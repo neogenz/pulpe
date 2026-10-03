@@ -1,12 +1,15 @@
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { BudgetSparse } from "pulpe-shared";
+import { PaperProvider } from "react-native-paper";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import BudgetsScreen from "@/app/(main)/(tabs)/budgets";
+import { useAmountVisibility } from "@/core/ui/amount-visibility";
+import { pulpeLightTheme } from "@/core/ui/theme";
 
 import { uniqueBudgets } from "./budget-list-selectors";
 
-const mockScrollToLocation = jest.fn();
 const mockInvalidateBudgets = jest.fn(async () => undefined);
 const mockRefetchStaleList = jest.fn(async () => undefined);
 const mockInvalidateSettings = jest.fn(async () => undefined);
@@ -21,10 +24,14 @@ const mockBudgets = {
   isRefetching: false,
   hasNextPage: false,
   isFetchingNextPage: false,
+  isFetchNextPageError: false,
   fetchNextPage: jest.fn(async () => undefined),
 };
 const mockSettings = {
-  data: { currency: "CHF", payDayOfMonth: 1 },
+  data: { currency: "CHF", payDayOfMonth: 1 } as {
+    currency?: string;
+    payDayOfMonth?: number;
+  },
   isPending: false,
   isError: false,
 };
@@ -37,223 +44,12 @@ jest.mock("expo-router", () => {
     useLocalSearchParams: () => mockGenerationResult,
   };
 });
-jest.mock("react-native-safe-area-context", () => ({
-  SafeAreaView: jest.requireActual("react-native").View,
-}));
-jest.mock("react-native", () => {
-  const actual = jest.requireActual("react-native");
-  const React = jest.requireActual("react");
-  const SectionList = React.forwardRef(
-    (
-      {
-        sections,
-        renderSectionHeader,
-        renderItem,
-        ListHeaderComponent,
-        ListFooterComponent,
-        onContentSizeChange,
-        onScrollToIndexFailed,
-        onEndReached,
-      }: {
-        sections: { year: number; data: BudgetSparse[] }[];
-        renderSectionHeader: (value: {
-          section: { year: number; data: BudgetSparse[] };
-        }) => React.ReactNode;
-        renderItem: (value: { item: BudgetSparse }) => React.ReactNode;
-        ListHeaderComponent: React.ReactNode;
-        ListFooterComponent: React.ReactNode;
-        onContentSizeChange: () => void;
-        onScrollToIndexFailed: () => void;
-        onEndReached: () => void;
-      },
-      ref: React.ForwardedRef<{
-        scrollToLocation: typeof mockScrollToLocation;
-      }>,
-    ) => {
-      React.useImperativeHandle(ref, () => ({
-        scrollToLocation: mockScrollToLocation,
-      }));
-      return (
-        <actual.View>
-          {ListHeaderComponent}
-          {sections.map((section) => (
-            <actual.View key={section.year}>
-              {renderSectionHeader({ section })}
-              {section.data.map((item) => (
-                <actual.View key={item.id}>{renderItem({ item })}</actual.View>
-              ))}
-            </actual.View>
-          ))}
-          {ListFooterComponent}
-          <actual.Pressable
-            testID="anchor-list"
-            onPress={onContentSizeChange}
-          />
-          <actual.Pressable
-            testID="retry-anchor"
-            onPress={onScrollToIndexFailed}
-          />
-          <actual.Pressable testID="load-more" onPress={onEndReached} />
-        </actual.View>
-      );
-    },
-  );
-  SectionList.displayName = "TestSectionList";
-  Object.defineProperty(actual, "SectionList", { value: SectionList });
-  Object.defineProperty(actual, "RefreshControl", { value: () => null });
-  return actual;
-});
-jest.mock("react-native-paper", () => {
-  const { Pressable, Text } = jest.requireActual("react-native");
-  return {
-    ActivityIndicator: ({
-      accessibilityLabel,
-    }: {
-      accessibilityLabel: string;
-    }) => <Text>{accessibilityLabel}</Text>,
-    Appbar: {
-      Action: ({
-        onPress,
-        accessibilityLabel,
-      }: {
-        onPress: () => void;
-        accessibilityLabel: string;
-      }) => (
-        <Pressable onPress={onPress} accessibilityLabel={accessibilityLabel} />
-      ),
-    },
-    FAB: ({
-      onPress,
-      accessibilityLabel,
-    }: {
-      onPress: () => void;
-      accessibilityLabel: string;
-    }) => (
-      <Pressable onPress={onPress} accessibilityLabel={accessibilityLabel} />
-    ),
-    List: { Subheader: Text },
-    Text,
-    useTheme: () => ({
-      colors: {
-        background: "white",
-        onSurfaceVariant: "gray",
-        primary: "purple",
-      },
-    }),
-  };
-});
-jest.mock("@/core/ui/tab-header", () => {
-  const { Text, View } = jest.requireActual("react-native");
-  return {
-    TabHeader: ({
-      title,
-      trailing,
-    }: {
-      title: string;
-      trailing?: React.ReactNode;
-    }) => (
-      <View>
-        <Text>{title}</Text>
-        {trailing}
-      </View>
-    ),
-  };
-});
-jest.mock("@/core/ui/notice", () => {
-  const { Pressable, Text } = jest.requireActual("react-native");
-  return {
-    Notice: ({
-      visible,
-      onDismiss,
-      children,
-    }: {
-      visible: boolean;
-      onDismiss: () => void;
-      children: React.ReactNode;
-    }) =>
-      visible ? (
-        <Pressable accessibilityLabel="dismiss-result" onPress={onDismiss}>
-          <Text>{children}</Text>
-        </Pressable>
-      ) : null,
-  };
-});
-jest.mock("@/core/ui/card", () => {
-  const { Pressable, View } = jest.requireActual("react-native");
-  return {
-    Card: Object.assign(
-      ({
-        children,
-        onPress,
-      }: {
-        children: React.ReactNode;
-        onPress: () => void;
-      }) => <Pressable onPress={onPress}>{children}</Pressable>,
-      { Content: View },
-    ),
-  };
-});
-jest.mock("@/core/ui/amount", () => ({
-  Amount: ({ children }: { children: React.ReactNode }) => {
-    const { Text } = jest.requireActual("react-native");
-    return <Text>{children}</Text>;
-  },
-}));
-jest.mock("@/core/ui/status-badge", () => ({
-  StatusBadge: ({ children }: { children: React.ReactNode }) => {
-    const { Text } = jest.requireActual("react-native");
-    return <Text>{children}</Text>;
-  },
-}));
-jest.mock("@/core/ui/placeholder-screen", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
-  return {
-    PlaceholderScreen: ({
-      title,
-      action,
-    }: {
-      title: string;
-      action: { label: string; onPress: () => void };
-    }) => (
-      <View>
-        <Text>{title}</Text>
-        <Pressable onPress={action.onPress}>
-          <Text>{action.label}</Text>
-        </Pressable>
-      </View>
-    ),
-  };
-});
-jest.mock("@/core/ui/amount-visibility", () => ({
-  useAmountMasking: jest.fn(),
-}));
-jest.mock("@/core/ui/amount-format", () => ({
-  formatSignedCompactCurrency: (amount: number) => `amount:${amount}`,
-}));
-jest.mock("@/core/ui/date-format", () => ({
-  formatDayMonth: (date: Date) => date.toISOString().slice(0, 10),
-  formatMonthName: (month: number, year: number) => `month:${year}-${month}`,
-}));
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({
     locale: "fr",
-    t: (key: string, options?: Record<string, unknown>) => {
-      if (key === "budgets.plan.resultCreated")
-        return `created:${String(options?.count)}`;
-      if (key === "budgets.plan.resultSkipped")
-        return `skipped:${String(options?.count)}`;
-      if (key === "budgets.plan.result")
-        return `${String(options?.created)}/${String(options?.skipped)}`;
-      return key;
-    },
+    t: (key: string, params?: Record<string, unknown>) =>
+      params === undefined ? key : `${key}:${JSON.stringify(params)}`,
   }),
-}));
-jest.mock("@/core/ui/theme", () => ({
-  FAB_CLEARANCE: 80,
-  SPACING: { xxs: 2, sm: 8, md: 16 },
-}));
-jest.mock("@/features/budgets/month-subtitle", () => ({
-  monthSubtitle: () => "month-subtitle",
 }));
 jest.mock("@/core/user-settings/user-settings-queries", () => ({
   invalidateUserSettings: () => mockInvalidateSettings(),
@@ -265,129 +61,243 @@ jest.mock("@/features/budgets/budget-queries", () => ({
   useBudgetList: () => mockBudgets,
 }));
 
-function budget(
-  id: string,
-  month: number,
-  year: number,
-  remaining = 100,
-): BudgetSparse {
-  return { id, month, year, remaining };
+/** The clock the screen reads its current period from: October 2026. */
+const NOW = new Date(2026, 9, 12, 9, 0);
+
+function budget(year: number, month: number, remaining = 100): BudgetSparse {
+  return {
+    id: `budget-${year}-${month}`,
+    year,
+    month,
+    remaining,
+    totalIncome: 1000,
+    totalExpenses: 500,
+    rollover: 0,
+  };
+}
+
+function renderScreen() {
+  return render(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 400, height: 800 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      <PaperProvider theme={pulpeLightTheme}>
+        <BudgetsScreen />
+      </PaperProvider>
+    </SafeAreaProvider>,
+  );
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
-  delete mockGenerationResult.createdCount;
-  delete mockGenerationResult.skippedCount;
+  useAmountVisibility.setState({ areAmountsHidden: false });
+  jest.useFakeTimers({ now: NOW, advanceTimers: true });
   Object.assign(mockBudgets, {
     data: [],
     isPending: false,
     isError: false,
-    isRefetching: false,
     hasNextPage: false,
     isFetchingNextPage: false,
+    isFetchNextPageError: false,
   });
   Object.assign(mockSettings, {
     data: { currency: "CHF", payDayOfMonth: 1 },
     isPending: false,
     isError: false,
   });
+  delete mockGenerationResult.createdCount;
+  delete mockGenerationResult.skippedCount;
+});
+
+afterEach(() => {
+  useAmountVisibility.setState({ areAmountsHidden: false });
+  jest.useRealTimers();
 });
 
 it("asks once for a stale list when the tab gains focus", async () => {
-  await render(<BudgetsScreen />);
+  await renderScreen();
 
   expect(mockRefetchStaleList).toHaveBeenCalledTimes(1);
 });
 
 it("renders loading, retryable failure and empty creation states", async () => {
   mockBudgets.isPending = true;
-  const view = await render(<BudgetsScreen />);
-  expect(view.getByText("common.loading")).toBeTruthy();
+  const view = await renderScreen();
+  expect(view.getByLabelText("common.loading")).toBeTruthy();
 
   Object.assign(mockBudgets, { isPending: false, isError: true });
-  await view.rerender(<BudgetsScreen />);
+  await view.rerender(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 400, height: 800 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      <PaperProvider theme={pulpeLightTheme}>
+        <BudgetsScreen />
+      </PaperProvider>
+    </SafeAreaProvider>,
+  );
   await fireEvent.press(view.getByText("common.retry"));
   expect(mockInvalidateSettings).toHaveBeenCalledTimes(1);
   expect(mockInvalidateBudgets).toHaveBeenCalledTimes(1);
 
   mockBudgets.isError = false;
-  await view.rerender(<BudgetsScreen />);
-  await fireEvent.press(view.getByLabelText("budgets.list.planAccessibility"));
-  expect(router.push).toHaveBeenCalledWith("/budget/plan");
+  await view.rerender(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 400, height: 800 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      <PaperProvider theme={pulpeLightTheme}>
+        <BudgetsScreen />
+      </PaperProvider>
+    </SafeAreaProvider>,
+  );
   await fireEvent.press(view.getByText("budgets.list.create"));
   expect(router.push).toHaveBeenCalledWith("/budget/create");
 });
 
-it("announces zero creations and clears both navigation counters", async () => {
-  Object.assign(mockGenerationResult, {
-    createdCount: "0",
-    skippedCount: "2",
-  });
+it("keeps planning in its bar, even when the list failed", async () => {
+  mockBudgets.isError = true;
+  const view = await renderScreen();
 
-  const view = await render(<BudgetsScreen />);
+  await fireEvent.press(view.getByLabelText("budgets.list.planAccessibility"));
 
-  expect(view.getByText("created:0/skipped:2")).toBeTruthy();
-  await fireEvent.press(view.getByLabelText("dismiss-result"));
-  expect(router.setParams).toHaveBeenCalledWith({
-    createdCount: undefined,
-    skippedCount: undefined,
-  });
+  expect(router.push).toHaveBeenCalledWith("/budget/plan");
 });
 
-it.each([
-  ["1", "2", "created:1/skipped:2"],
-  ["2", "1", "created:2/skipped:1"],
-])(
-  "pluralizes created %s and skipped %s independently",
-  async (createdCount, skippedCount, expected) => {
-    Object.assign(mockGenerationResult, { createdCount, skippedCount });
+it("creates a budget from its FAB, over the list as over the empty state", async () => {
+  mockBudgets.data = [budget(2026, 10)];
+  const view = await renderScreen();
 
-    const view = await render(<BudgetsScreen />);
+  await fireEvent.press(view.getByTestId("budgets-create"));
+  expect(router.push).toHaveBeenCalledWith("/budget/create");
 
-    expect(view.getByText(expected)).toBeTruthy();
+  mockBudgets.data = [];
+  await view.rerender(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 400, height: 800 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      <PaperProvider theme={pulpeLightTheme}>
+        <BudgetsScreen />
+      </PaperProvider>
+    </SafeAreaProvider>,
+  );
+  expect(view.getByTestId("budgets-create")).toBeTruthy();
+});
+
+it("reads the year being lived in, January first, and opens a month", async () => {
+  mockBudgets.data = [
+    budget(2026, 11, 300),
+    budget(2025, 12),
+    budget(2026, 10, 200),
+    budget(2026, 1, 50),
+  ];
+  const view = await renderScreen();
+
+  const names = view
+    .getAllByText(/^(Janvier|Octobre|Novembre|Décembre)$/)
+    .map((node) => node.props.children);
+  expect(names).toEqual(["Janvier", "Octobre", "Novembre", "Décembre"]);
+  // The year closes on its last month's remaining.
+  expect(view.getByLabelText(/budgets\.list\.yearBalance \+300/)).toBeTruthy();
+  expect(view.getByText("3 / 12")).toBeTruthy();
+
+  await fireEvent.press(view.getByTestId("budget-row-budget-2026-10"));
+  expect(router.push).toHaveBeenCalledWith("/budget/budget-2026-10");
+});
+
+it.each([300, -300, 0])(
+  "masks the yearly balance and its sign for a balance of %s",
+  async (remaining) => {
+    mockBudgets.data = [budget(2026, 10, remaining)];
+    useAmountVisibility.setState({ areAmountsHidden: true });
+    const view = await renderScreen();
+
+    expect(
+      view.getByLabelText("budgets.list.yearBalance ••• CHF"),
+    ).toBeTruthy();
+    expect(view.queryByText(/[+-]•••/)).toBeNull();
   },
 );
 
-it("anchors the current month, paginates and opens selected budgets", async () => {
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-  const future = new Date(currentYear, currentMonth, 1);
-  mockBudgets.data = [
-    budget("future", future.getMonth() + 1, future.getFullYear()),
-    budget("current", currentMonth, currentYear),
-    budget("old", 12, currentYear - 1, -20),
-  ];
-  Object.assign(mockBudgets, { hasNextPage: true });
+it("offers to create the next month still missing, with that month", async () => {
+  mockBudgets.data = [budget(2026, 10), budget(2026, 11)];
+  const view = await renderScreen();
 
-  const view = await render(<BudgetsScreen />);
-  expect(view.getByText(String(currentYear))).toBeTruthy();
-  expect(view.getByText(String(currentYear - 1))).toBeTruthy();
+  await fireEvent.press(view.getByTestId("budgets-create-missing"));
 
-  await fireEvent.press(view.getByTestId("anchor-list"));
-  expect(mockScrollToLocation).toHaveBeenCalledWith(
-    expect.objectContaining({ animated: false, itemIndex: expect.any(Number) }),
+  expect(router.push).toHaveBeenCalledWith({
+    pathname: "/budget/create",
+    params: { month: 12, year: 2026 },
+  });
+});
+
+it("moves to another year from the picker, which closes as a review", async () => {
+  mockBudgets.data = [budget(2025, 6, 40), budget(2026, 10)];
+  const view = await renderScreen();
+
+  await fireEvent.press(view.getByRole("tab", { name: "2025" }));
+
+  expect(view.getByText("Juin")).toBeTruthy();
+  expect(view.queryByText("Octobre")).toBeNull();
+  expect(view.getByLabelText(/budgets\.list\.yearReview/)).toBeTruthy();
+  // A year behind us has nothing left to create.
+  expect(view.queryByTestId("budgets-create-missing")).toBeNull();
+});
+
+it("reads every page, since a year cut at a page boundary closes wrong", async () => {
+  Object.assign(mockBudgets, {
+    data: [budget(2026, 10)],
+    hasNextPage: true,
+  });
+  await renderScreen();
+
+  await waitFor(() => expect(mockBudgets.fetchNextPage).toHaveBeenCalled());
+});
+
+it("stops reading at a failed page and offers the retry instead", async () => {
+  Object.assign(mockBudgets, {
+    data: [budget(2026, 10)],
+    hasNextPage: true,
+    isFetchNextPageError: true,
+  });
+  const view = await renderScreen();
+
+  expect(view.getByText("budgets.list.loadErrorTitle")).toBeTruthy();
+  expect(mockBudgets.fetchNextPage).not.toHaveBeenCalled();
+});
+
+it("announces zero creations and clears both navigation counters", async () => {
+  mockBudgets.data = [budget(2026, 10)];
+  Object.assign(mockGenerationResult, { createdCount: "0", skippedCount: "2" });
+  const view = await renderScreen();
+
+  expect(view.getByText(/budgets\.plan\.result/)).toBeTruthy();
+  await fireEvent(view.getByText(/budgets\.plan\.result/), "onDismiss");
+  await waitFor(() =>
+    expect(router.setParams).toHaveBeenCalledWith({
+      createdCount: undefined,
+      skippedCount: undefined,
+    }),
   );
-  await fireEvent.press(view.getByTestId("retry-anchor"));
-
-  await fireEvent.press(view.getByText(`month:${currentYear}-${currentMonth}`));
-  expect(router.push).toHaveBeenCalledWith("/budget/current");
-  await fireEvent.press(view.getByTestId("load-more"));
-  expect(mockBudgets.fetchNextPage).toHaveBeenCalledTimes(1);
-  await fireEvent.press(
-    view.getByLabelText("budgets.list.createAccessibility"),
-  );
-  expect(router.push).toHaveBeenCalledWith("/budget/create");
 });
 
 it("keeps one stable row when consecutive pages overlap", () => {
-  const first = budget("shared", 8, 2026, 100);
-  const duplicate = budget("shared", 8, 2026, 90);
-  const merged = uniqueBudgets([
-    [first],
-    [duplicate, budget("older", 7, 2026)],
-  ]);
+  const first = [budget(2026, 10), budget(2026, 9)];
+  const second = [budget(2026, 9), budget(2026, 8)];
 
-  expect(merged.map((item) => item.id)).toEqual(["shared", "older"]);
-  expect(merged[0]).toBe(first);
+  expect(uniqueBudgets([first, second]).map((row) => row.id)).toEqual([
+    "budget-2026-10",
+    "budget-2026-9",
+    "budget-2026-8",
+  ]);
 });

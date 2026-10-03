@@ -4,16 +4,17 @@ import type {
   SupportedCurrency,
   Transaction,
 } from "pulpe-shared";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Divider, Text, useTheme } from "react-native-paper";
 
-import { Card } from "@/core/ui/card";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { SectionHeader } from "@/core/ui/section-header";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
-import { formatIsoDate, formatMonthLabel } from "@/core/ui/date-format";
+import { formatInstantDay, formatMonthLabel } from "@/core/ui/date-format";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
-import { SPACING } from "@/core/ui/theme";
+import { useRipple } from "@/core/ui/ripple";
+import { RADIUS, SPACING } from "@/core/ui/theme";
 
 interface GoalContributionsProps {
   contributions: SavingsGoalContribution[];
@@ -32,20 +33,32 @@ export function GoalContributions({
   contributions,
   currency,
 }: GoalContributionsProps) {
+  const theme = useTheme();
   const { t } = useTranslation();
   if (contributions.length === 0) return null;
 
   return (
     <View style={styles.section}>
-      <Text variant="titleMedium">{t("goals.contributions.title")}</Text>
+      <SectionHeader title={t("goals.contributions.title")} />
 
-      {contributions.map((contribution) => (
-        <ContributionCard
-          key={contribution.lineId}
-          contribution={contribution}
-          currency={currency}
-        />
-      ))}
+      {/* One card for the whole record, one hairline between months — the
+          ledger every other list in the app is. A card per month made a year
+          of saving read as twelve unrelated objects. */}
+      <View style={[styles.ledger, { backgroundColor: theme.colors.surface }]}>
+        {contributions.map((contribution, index) => (
+          <View key={contribution.lineId}>
+            {index > 0 && (
+              <View
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.outlineVariant },
+                ]}
+              />
+            )}
+            <ContributionCard contribution={contribution} currency={currency} />
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -58,6 +71,7 @@ function ContributionCard({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
+  const ripple = useRipple();
   const { locale, t } = useTranslation();
   // A pointed forecast with no operation behind it has no budget to open — the
   // row stays passive rather than pretending otherwise.
@@ -69,55 +83,53 @@ function ContributionCard({
   );
 
   return (
-    <Card
-      mode="contained"
+    <Pressable
+      disabled={budgetId === undefined}
       onPress={
         budgetId === undefined
           ? undefined
           : () => router.push(`/budget/${budgetId}`)
       }
+      android_ripple={ripple}
+      accessibilityRole={budgetId === undefined ? undefined : "button"}
       accessibilityLabel={
         budgetId === undefined
           ? undefined
           : t("goals.contributions.openBudget", { period })
       }
+      style={styles.card}
     >
-      <Card.Content style={styles.card}>
-        <View style={styles.row}>
-          <View style={styles.rowLabels}>
-            <Text variant="bodyLarge">{contribution.name}</Text>
-            <StatusLine
-              base={period}
-              isChecked={contribution.checkedAt !== null}
-            />
-          </View>
-
-          <Amount size="row">
-            {formatCurrency(contribution.amount, currency)}
-          </Amount>
+      <View style={styles.row}>
+        <View style={styles.rowLabels}>
+          <Text variant="bodyLarge">{contribution.name}</Text>
+          <StatusLine
+            base={period}
+            isChecked={contribution.checkedAt !== null}
+          />
         </View>
 
-        {contribution.transactions.length > 0 && (
-          <View style={styles.transactions}>
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {t("goals.contributions.movements")}
-            </Text>
-            {contribution.transactions.map((transaction, index) => (
-              <View key={transaction.id}>
-                {index > 0 && <Divider />}
-                <TransactionLine
-                  transaction={transaction}
-                  currency={currency}
-                />
-              </View>
-            ))}
-          </View>
-        )}
-      </Card.Content>
-    </Card>
+        <Amount size="row">
+          {formatCurrency(contribution.amount, currency)}
+        </Amount>
+      </View>
+
+      {contribution.transactions.length > 0 && (
+        <View style={styles.transactions}>
+          <Text
+            variant="labelMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("goals.contributions.movements")}
+          </Text>
+          {contribution.transactions.map((transaction, index) => (
+            <View key={transaction.id}>
+              {index > 0 && <Divider />}
+              <TransactionLine transaction={transaction} currency={currency} />
+            </View>
+          ))}
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -134,7 +146,7 @@ function TransactionLine({
       <View style={styles.rowLabels}>
         <Text variant="bodyMedium">{transaction.name}</Text>
         <StatusLine
-          base={formatIsoDate(transaction.transactionDate.slice(0, 10), locale)}
+          base={formatInstantDay(transaction.transactionDate, locale)}
           isChecked={transaction.checkedAt !== null}
         />
       </View>
@@ -173,7 +185,9 @@ function StatusLine({ base, isChecked }: { base: string; isChecked: boolean }) {
 
 const styles = StyleSheet.create({
   section: { gap: SPACING.sm },
-  card: { gap: SPACING.md },
+  ledger: { borderRadius: RADIUS.card, overflow: "hidden" },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: SPACING.md },
+  card: { gap: SPACING.md, padding: SPACING.md },
   row: {
     flexDirection: "row",
     alignItems: "center",

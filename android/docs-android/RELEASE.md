@@ -96,9 +96,11 @@ different place on each platform — an explicit trigger there, a draft on a
 closed track here — and both end with a human promoting the build.
 
 `.github/workflows/android-e2e.yml` owns the smoke gate without a paid Expo
-plan. It generates a release APK for x86_64, boots an API 35 emulator, verifies
-the pinned Maestro archive before installing it, and fails when either journey
-fails. Maestro output stays on the ephemeral runner, never in public artifacts.
+plan. It generates a release APK for x86_64, checks that every native library
+in it is aligned for 16 KB pages (Play refuses the bundle otherwise), boots an
+API 35 emulator, verifies the pinned Maestro archive before installing it, and
+fails when any journey fails. Maestro output stays on the ephemeral runner,
+never in public artifacts.
 
 Android declares React and ReactDOM 19.2.3 together even though it does not ship
 a web build. `expo-router` has an optional ReactDOM peer; without the local
@@ -111,7 +113,19 @@ React/ReactDOM 19.2.8.
 `runtimeVersion` uses the `appVersion` policy, so an update only reaches builds
 whose `version` matches exactly.
 
-Ship over the air with `eas update --channel production`:
+Ship over the air with the profile-pinned script, never a bare `eas update`:
+
+```bash
+pnpm --filter pulpe-android update:production --message "…"
+```
+
+`eas update` does not read the `env` of an `eas.json` build profile, so run
+bare it bundles whatever `.env` the machine holds — a production update could
+point every installed app at a local or preview backend. The script runs it
+with the profile's own `EXPO_PUBLIC_*` values, which win over `.env` files.
+Any other `eas update` flag passes through.
+
+What can go over the air:
 
 - JavaScript and TypeScript changes
 - copy, styles, images under `assets/`
@@ -135,17 +149,21 @@ pnpm dlx eas-cli@latest update:republish --group <previous-group-id>
 
 ## Maestro journeys
 
-Five flows in `maestro/`, covering what must never break:
+Seven flows in `maestro/`, covering what must never break:
 
-| Flow                   | Proves                                              |
-| ---------------------- | --------------------------------------------------- |
-| `login-vault.yaml`     | sign in, unlock the vault, reach the month          |
-| `check-operation.yaml` | pointing persists, and un-pointing undoes it        |
-| `onboarding.yaml`      | the eight onboarding screens chain to a real budget |
-| `i18n.yaml`            | switches FR/EN/DE/IT and proves restart persistence |
-| `smoke.yaml`           | composes login, localization, pointing and undo     |
+| Flow                   | Proves                                                 |
+| ---------------------- | ------------------------------------------------------ |
+| `login-vault.yaml`     | sign in, unlock the vault, reach the month             |
+| `check-operation.yaml` | pointing persists, and un-pointing undoes it           |
+| `add-operation.yaml`   | an operation is written, found in its budget, deleted  |
+| `vault-resume.yaml`    | a return past the auto-lock asks for the existing PIN  |
+| `onboarding.yaml`      | the eight onboarding screens chain to a real budget    |
+| `i18n.yaml`            | switches FR/EN/DE/IT and proves restart persistence    |
+| `smoke.yaml`           | composes login, localization, pointing and an addition |
 
-The CI runs `smoke.yaml`, which composes login, localization and pointing.
+The CI runs each flow `smoke.yaml` composes, then `vault-resume.yaml` on the
+app it leaves signed in; `.github/scripts/ci-security.test.mjs` fails when the
+workflow's list and `smoke.yaml` disagree.
 `onboarding.yaml` registers a real account, so running it per push would fill
 the database with throwaway users; run it by hand before a release with a
 disposable address.
@@ -190,14 +208,14 @@ labels are exercised on the exact candidate head.
   the current build and privacy policy against this inventory — do not reduce
   the declaration to email and amounts:
 
-  | Play data family         | Current Android flow                                                                                                         | Purpose and control                                                      |
-  | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-  | Personal info            | Supabase/backend receive account email, user ID and profile name.                                                            | Account management, authentication and app functionality.                |
-  | Financial info           | User-entered amounts, balances and savings goals reach the backend as AES-256-GCM ciphertext.                                | Core app functionality; TLS in transit, server has no vault key.         |
-  | Other user content       | Budget, operation and goal names, tags, descriptions and dates support the user's records.                                   | Core app functionality; review each field's encryption before declaring. |
-  | App activity             | PostHog receives screen names and allow-listed onboarding/auth interaction events, without route IDs, typed text or amounts. | Analytics; production only, controlled by “Partager les diagnostics”.    |
-  | App info and performance | PostHog receives uncaught JavaScript exceptions and unhandled rejections, plus app version, build, platform and environment. | Diagnostics; no native crash/session replay, same user control.          |
-  | Device or other IDs      | PostHog assigns a distinct/device identifier and SDK device/app/OS properties.                                               | Analytics and diagnostics; same user control.                            |
+  | Play data family         | Current Android flow                                                                                                         | Purpose and control                                                                                                      |
+  | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+  | Personal info            | Supabase/backend receive account email, user ID and profile name. PostHog receives the account user ID (`identify`).         | Account management, authentication and app functionality; the user ID also for analytics, under the diagnostics control. |
+  | Financial info           | User-entered amounts, balances and savings goals reach the backend as AES-256-GCM ciphertext.                                | Core app functionality; TLS in transit, server has no vault key.                                                         |
+  | Other user content       | Budget, operation and goal names, tags, descriptions and dates support the user's records.                                   | Core app functionality; review each field's encryption before declaring.                                                 |
+  | App activity             | PostHog receives screen names and allow-listed onboarding/auth interaction events, without route IDs, typed text or amounts. | Analytics; production only, controlled by “Partager les diagnostics”.                                                    |
+  | App info and performance | PostHog receives uncaught JavaScript exceptions and unhandled rejections, plus app version, build, platform and environment. | Diagnostics; no native crash/session replay, same user control.                                                          |
+  | Device or other IDs      | PostHog assigns a distinct/device identifier and SDK device/app/OS properties.                                               | Analytics and diagnostics; same user control.                                                                            |
 
   Verify the final Play answers against the PostHog/Supabase processor terms,
   retention, deletion path and whether each transfer qualifies as “sharing”

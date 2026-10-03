@@ -6,12 +6,17 @@ import IndexRoute from "@/app/index";
 import { bootstrapVault } from "@/core/vault/vault-store";
 
 const mockRetrySession = jest.fn();
+const mockSignOut = jest.fn(() => Promise.resolve());
 const mockFonts = { loaded: true, error: null as Error | null };
 const mockSession = {
   status: "unauthenticated",
   retrySessionRestore: mockRetrySession,
+  signOut: mockSignOut,
 };
-const mockVault = { status: "unknown", hasBootstrapError: false };
+const mockVault = {
+  status: "unknown",
+  bootstrapFailure: null as string | null,
+};
 const mockOnboarding = {
   isFlowActive: false,
   hasCompletedOnboarding: false,
@@ -47,6 +52,9 @@ jest.mock("expo-router", () => {
     Redirect: ({ href }: { href: string }) => <Text>{`redirect:${href}`}</Text>,
   };
 });
+jest.mock("@/core/system/route-status-bar", () => ({
+  RouteStatusBar: () => null,
+}));
 jest.mock("@tanstack/react-query", () => ({
   QueryClientProvider: ({ children }: { children: React.ReactNode }) =>
     children,
@@ -123,15 +131,22 @@ jest.mock("@/core/ui/placeholder-screen", () => {
     PlaceholderScreen: ({
       title,
       action,
+      secondaryAction,
     }: {
       title: string;
       action: { label: string; loading?: boolean; onPress: () => void };
+      secondaryAction?: { label: string; onPress: () => void };
     }) => (
       <View>
         <Text>{title}</Text>
         <Pressable disabled={action.loading} onPress={action.onPress}>
           <Text>{action.loading ? "session-retry-loading" : action.label}</Text>
         </Pressable>
+        {secondaryAction !== undefined && (
+          <Pressable onPress={secondaryAction.onPress}>
+            <Text>{secondaryAction.label}</Text>
+          </Pressable>
+        )}
       </View>
     ),
   };
@@ -167,7 +182,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   Object.assign(mockFonts, { loaded: true, error: null });
   Object.assign(mockSession, { status: "unauthenticated" });
-  Object.assign(mockVault, { status: "unknown", hasBootstrapError: false });
+  Object.assign(mockVault, { status: "unknown", bootstrapFailure: null });
   Object.assign(mockOnboarding, {
     isFlowActive: false,
     hasCompletedOnboarding: false,
@@ -218,10 +233,36 @@ it("holds loading and makes a failed vault bootstrap retryable", async () => {
   expect(loading.toJSON()).toBeNull();
 
   Object.assign(mockSession, { status: "authenticated" });
-  Object.assign(mockVault, { hasBootstrapError: true });
+  Object.assign(mockVault, { bootstrapFailure: "unavailable" });
   const failed = await render(<IndexRoute />);
   await fireEvent.press(failed.getByText("common.retry"));
 
   expect(failed.getByText("startup.vaultError")).toBeTruthy();
   expect(mockedBootstrapVault).toHaveBeenCalledTimes(1);
+
+  // A vault that keeps refusing must not hold the user on a retry forever.
+  await fireEvent.press(failed.getByText("common.signOut"));
+  expect(mockSignOut).toHaveBeenCalledTimes(1);
+});
+
+it("tells an account scheduled for deletion why retrying will not help", async () => {
+  Object.assign(mockSession, { status: "authenticated" });
+  Object.assign(mockVault, { bootstrapFailure: "accountBlocked" });
+
+  const view = await render(<IndexRoute />);
+
+  expect(view.getByText("startup.accountBlocked.title")).toBeTruthy();
+  expect(view.getByText("common.contactSupport")).toBeTruthy();
+  expect(view.queryByText("common.retry")).toBeNull();
+  await fireEvent.press(view.getByText("common.signOut"));
+  expect(mockSignOut).toHaveBeenCalledTimes(1);
+});
+
+it("lets a session that cannot be read be signed out of", async () => {
+  Object.assign(mockSession, { status: "error" });
+
+  const view = await render(<RootLayout />);
+  await fireEvent.press(view.getByText("common.signOut"));
+
+  expect(mockSignOut).toHaveBeenCalledTimes(1);
 });

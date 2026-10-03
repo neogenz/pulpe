@@ -3,23 +3,21 @@ import * as Linking from "expo-linking";
 import type { BudgetTemplate } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import {
-  ActivityIndicator,
-  Chip,
-  FAB,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { usePushOnce } from "@/core/navigation/push-once";
 import { Tooltip } from "@/core/tips/tooltip";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { Card } from "@/core/ui/card";
+import { IconDisc } from "@/core/ui/icon-disc";
+import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
+import { SectionHeader } from "@/core/ui/section-header";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { useTemplates } from "@/features/templates/template-queries";
 import {
@@ -39,6 +37,7 @@ export default function TemplatesScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const templates = useTemplates();
+  const pull = usePullToRefresh(() => templates.refetch());
   const [isCreating, setCreating] = useState(false);
 
   if (templates.isPending) {
@@ -52,28 +51,34 @@ export default function TemplatesScreen() {
     );
   }
 
-  if (templates.isError) {
-    return (
-      <PlaceholderScreen
-        icon="cloud-off-outline"
-        title={t("templates.list.loadErrorTitle")}
-        hint={t("common.loadErrorHint")}
-        action={{
-          label: t("common.retry"),
-          onPress: () => void templates.refetch(),
-        }}
-      />
-    );
-  }
-
   const list = templates.data ?? [];
   const canAdd = canCreateTemplate(list.length);
+  const header = <TabHeader title={t("templates.list.title")} />;
+
+  if (templates.isError) {
+    return (
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        {header}
+        <PlaceholderScreen
+          icon="cloud-off-outline"
+          title={t("templates.list.loadErrorTitle")}
+          hint={t("common.loadErrorHint")}
+          action={{
+            label: t("common.retry"),
+            onPress: () => void templates.refetch(),
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     // The app bar carries the status bar inset; asking the safe area for the
     // top edge too would double it.
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <TabHeader title={t("templates.list.title")} />
+      {header}
       {list.length === 0 ? (
         <PlaceholderScreen
           icon="file-document-outline"
@@ -87,23 +92,8 @@ export default function TemplatesScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={templates.isRefetching}
-              onRefresh={() => void templates.refetch()}
-            />
-          }
+          refreshControl={<RefreshControl {...pull} />}
         >
-          <Text
-            variant="labelMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {t("templates.list.count", {
-              count: list.length,
-              max: MAX_TEMPLATES,
-            })}
-          </Text>
-
           <Tooltip
             id="templates-web-parity"
             icon="laptop"
@@ -116,25 +106,38 @@ export default function TemplatesScreen() {
             }}
           />
 
-          {list.map((template) => (
-            <TemplateCard key={template.id} template={template} />
-          ))}
-
-          {!canAdd && (
+          <View style={styles.section}>
+            <SectionHeader
+              title={t("templates.list.section")}
+              count={list.length}
+            />
+            <LedgerCard>
+              {list.map((template) => (
+                <TemplateRow key={template.id} template={template} />
+              ))}
+            </LedgerCard>
+            {/* The count is shown rather than the cap being discovered at the
+                moment of adding a sixth. */}
             <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
+              variant="bodySmall"
+              style={[styles.footer, { color: theme.colors.onSurfaceVariant }]}
             >
-              {t("templates.list.limit", { count: MAX_TEMPLATES })}
+              {canAdd
+                ? t("templates.list.count", {
+                    count: list.length,
+                    max: MAX_TEMPLATES,
+                  })
+                : t("templates.list.limit", { count: MAX_TEMPLATES })}
             </Text>
-          )}
+          </View>
         </ScrollView>
       )}
 
-      {/* Hidden while the sheet is up: the FAB floats above the Portal's scrim
-          and would otherwise sit on top of the form it just opened. */}
-      {list.length > 0 && canAdd && !isCreating && (
+      {/* Gone at the limit, where the footer says why; the empty state names
+          the action itself, so the plus sign only carries it over a list. */}
+      {canAdd && list.length > 0 && (
         <FAB
+          testID="templates-create"
           icon="plus"
           style={styles.fab}
           onPress={() => setCreating(true)}
@@ -158,36 +161,27 @@ export default function TemplatesScreen() {
   );
 }
 
-function TemplateCard({ template }: { template: BudgetTemplate }) {
+function TemplateRow({ template }: { template: BudgetTemplate }) {
   const theme = useTheme();
+  const push = usePushOnce();
   const { t } = useTranslation();
+  const description =
+    template.isDefault === true
+      ? t("templates.form.default")
+      : template.description !== undefined && template.description.length > 0
+        ? template.description
+        : undefined;
 
   return (
-    <Card
-      mode="contained"
-      onPress={() => router.push(`/template/${template.id}`)}
-    >
-      <Card.Content style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text variant="titleMedium" style={styles.cardTitle}>
-            {template.name}
-          </Text>
-          {template.isDefault === true && (
-            <Chip compact>{t("templates.form.default")}</Chip>
-          )}
-        </View>
-        {template.description !== undefined &&
-          template.description.length > 0 && (
-            <Text
-              variant="bodyMedium"
-              numberOfLines={2}
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {template.description}
-            </Text>
-          )}
-      </Card.Content>
-    </Card>
+    <LedgerRow
+      testID={`template-row-${template.id}`}
+      leading={
+        <IconDisc name="file-document-outline" tint={theme.colors.primary} />
+      }
+      title={template.name}
+      subtitle={description}
+      onPress={() => push(`/template/${template.id}`)}
+    />
   );
 }
 
@@ -196,16 +190,10 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: {
     padding: SPACING.md,
-    gap: SPACING.md,
+    gap: SPACING.lg,
     paddingBottom: FAB_CLEARANCE,
   },
-  card: { gap: SPACING.xs },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.sm,
-  },
-  cardTitle: { flex: 1 },
+  section: { gap: SPACING.sm },
+  footer: { paddingHorizontal: SPACING.md },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

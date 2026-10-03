@@ -9,6 +9,7 @@ import {
   disableBiometricUnlock,
   enableBiometricUnlock,
   hasBiometricKey,
+  hasLegacyBiometricKeyCandidate,
   resolveViaBiometric,
   storeClientKey,
 } from "@/core/crypto/client-key-manager";
@@ -35,6 +36,17 @@ import {
 export type VaultStatus = "unknown" | "setupRequired" | "locked" | "unlocked";
 
 /**
+ * Why the vault could not be asked. Each has its own way out: a retry for a
+ * network or server failure, a fresh session for a token revoked elsewhere, and
+ * nothing the app can do for an account scheduled for deletion. Retrying the
+ * last two asked the same refused question forever.
+ */
+export type VaultBootstrapFailure =
+  | "unavailable"
+  | "sessionRejected"
+  | "accountBlocked";
+
+/**
  * A recovery key is shown once and never again, and minting one is the last
  * step of both setup and recovery — the two moments where the vault flips to
  * `unlocked` and the router drops the screen that did the minting. So the
@@ -47,19 +59,32 @@ export type RecoveryKeyNotice =
 interface VaultState {
   status: VaultStatus;
   isBiometricAvailable: boolean;
+  /** Offered manually until an older release's authenticated slot is checked. */
+  isLegacyBiometricAvailable: boolean;
   /** Non-null only while `status` is `unknown`: the reason it is still unknown. */
-  hasBootstrapError: boolean;
+  bootstrapFailure: VaultBootstrapFailure | null;
   pendingRecoveryNotice: RecoveryKeyNotice | null;
 }
 
 export const useVaultStore = create<VaultState>(() => ({
   status: "unknown",
   isBiometricAvailable: false,
-  hasBootstrapError: false,
+  isLegacyBiometricAvailable: false,
+  bootstrapFailure: null,
   pendingRecoveryNotice: null,
 }));
 
 const setState = useVaultStore.setState;
+
+const HTTP_UNAUTHORIZED = 401;
+
+async function biometricAvailability() {
+  const [isBiometricAvailable, isLegacyBiometricAvailable] = await Promise.all([
+    hasBiometricKey(),
+    hasLegacyBiometricKeyCandidate(),
+  ]);
+  return { isBiometricAvailable, isLegacyBiometricAvailable };
+}
 
 /** Derives the key and leaves it in the API client's hands. */
 async function deriveAndHold(pin: string): Promise<string> {
@@ -82,29 +107,45 @@ async function deriveAndHold(pin: string): Promise<string> {
  * A failure becomes a stable flag, which the retry screen translates.
  */
 export async function bootstrapVault(): Promise<VaultStatus> {
-  setState({ hasBootstrapError: false });
+  setState({ bootstrapFailure: null });
 
   try {
     await clearLegacyClientKey();
     const status = await fetchVaultStatus();
 
     if (!status.pinCodeConfigured) {
-      setState({ status: "setupRequired", isBiometricAvailable: false });
+      await disableBiometricUnlock();
+      setState({
+        status: "setupRequired",
+        isBiometricAvailable: false,
+        isLegacyBiometricAvailable: false,
+      });
       return "setupRequired";
     }
 
     setState({
       status: "locked",
-      isBiometricAvailable: await hasBiometricKey(),
+      ...(await biometricAvailability()),
     });
     return "locked";
-  } catch {
+  } catch (error) {
     setState({
       status: "unknown",
-      hasBootstrapError: true,
+      bootstrapFailure: bootstrapFailureOf(error),
     });
     return "unknown";
   }
+}
+
+function bootstrapFailureOf(error: unknown): VaultBootstrapFailure {
+  if (!isApiError(error)) return "unavailable";
+  if (error.code === API_ERROR_CODES.USER_ACCOUNT_BLOCKED) {
+    return "accountBlocked";
+  }
+  if (error.status === HTTP_UNAUTHORIZED && !isVaultKeyRejected(error)) {
+    return "sessionRejected";
+  }
+  return "unavailable";
 }
 
 /**
@@ -159,17 +200,28 @@ export async function unlockVaultWithPin(pin: string): Promise<void> {
 /** Returns false when the user dismissed the prompt or no slot exists. */
 export async function unlockVaultWithBiometrics(): Promise<boolean> {
   const clientKeyHex = await resolveViaBiometric();
-  if (clientKeyHex === null) return false;
+  if (clientKeyHex === null) {
+    setState(await biometricAvailability());
+    return false;
+  }
 
   try {
     await validateClientKey(clientKeyHex);
-    setState({ status: "unlocked" });
+    setState({
+      status: "unlocked",
+      isBiometricAvailable: true,
+      isLegacyBiometricAvailable: false,
+    });
     return true;
   } catch (error) {
     // The stored key no longer matches the vault — a PIN change on another
     // device, most likely. Falling back to the PIN is the only way out.
     await clearAllKeys();
-    setState({ status: "locked", isBiometricAvailable: false });
+    setState({
+      status: "locked",
+      isBiometricAvailable: false,
+      isLegacyBiometricAvailable: false,
+    });
     throw error;
   }
 }
@@ -254,13 +306,19 @@ export async function checkRecoveryKey(recoveryKey: string): Promise<void> {
 /** Arms unlock-by-biometrics from the key already held for this session. */
 export async function enableVaultBiometrics(): Promise<boolean> {
   const isEnabled = await enableBiometricUnlock();
-  setState({ isBiometricAvailable: isEnabled });
+  setState({
+    isBiometricAvailable: isEnabled,
+    isLegacyBiometricAvailable: await hasLegacyBiometricKeyCandidate(),
+  });
   return isEnabled;
 }
 
 export async function disableVaultBiometrics(): Promise<void> {
   await disableBiometricUnlock();
-  setState({ isBiometricAvailable: false });
+  setState({
+    isBiometricAvailable: false,
+    isLegacyBiometricAvailable: false,
+  });
 }
 
 /** The user says they have written the key down; it is unrecoverable after this. */
@@ -278,7 +336,7 @@ export async function lockVault(): Promise<void> {
   queryClient.clear();
   setState({
     status: "locked",
-    isBiometricAvailable: await hasBiometricKey(),
+    ...(await biometricAvailability()),
   });
 }
 
@@ -287,7 +345,8 @@ export function resetVault(): void {
   setState({
     status: "unknown",
     isBiometricAvailable: false,
-    hasBootstrapError: false,
+    isLegacyBiometricAvailable: false,
+    bootstrapFailure: null,
     pendingRecoveryNotice: null,
   });
 }

@@ -1,9 +1,11 @@
-import type {
-  BudgetPeriod,
-  SupportedCurrency,
-  Transaction,
+import {
+  type BudgetPeriod,
+  getBudgetPeriodDates,
+  type SupportedCurrency,
+  type Transaction,
 } from "pulpe-shared";
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { BackHandler, StyleSheet } from "react-native";
 import { FAB, Menu, useTheme } from "react-native-paper";
 
 import { Notice } from "@/core/ui/notice";
@@ -31,6 +33,7 @@ interface BudgetDetailOverlaysProps {
   budgetId: string;
   period: BudgetPeriod;
   currency: SupportedCurrency;
+  payDayOfMonth: number | null;
   missingAmount: number;
   viewModel: CurrentMonthViewModel | null;
 }
@@ -40,12 +43,11 @@ export const BudgetDetailOverlays = forwardRef<
   BudgetDetailOverlaysHandle,
   BudgetDetailOverlaysProps
 >(function BudgetDetailOverlays(
-  { budgetId, period, currency, missingAmount, viewModel },
+  { budgetId, period, currency, payDayOfMonth, missingAmount, viewModel },
   ref,
 ) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const [isFabOpen, setFabOpen] = useState(false);
   const [isLineSheetVisible, setLineSheetVisible] = useState(false);
   const [isTransactionSheetVisible, setTransactionSheetVisible] =
     useState(false);
@@ -64,7 +66,27 @@ export const BudgetDetailOverlays = forwardRef<
     | null
   >(null);
   const [hasToggleFailed, setToggleFailed] = useState(false);
+  const [isFabOpen, setFabOpen] = useState(false);
+  const periodDates = getBudgetPeriodDates(
+    period.month,
+    period.year,
+    payDayOfMonth,
+  );
   const removal = useTransactionRemoval();
+
+  // Back folds an open speed dial first, as Android's own menus do; without
+  // this it left the budget with the dial still open over it.
+  useEffect(() => {
+    if (!isFabOpen) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        setFabOpen(false);
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [isFabOpen]);
 
   useImperativeHandle(ref, () => ({
     editTransaction: setEdited,
@@ -77,50 +99,82 @@ export const BudgetDetailOverlays = forwardRef<
 
   return (
     <>
-      {/* The owning route reserves FAB_CLEARANCE below its virtualized list. */}
+      {/* A budget is made of forecasts, and a loose operation is the other way
+          to add to it: two actions behind one FAB, Material's speed dial. The
+          owning route reserves FAB_CLEARANCE below its virtualized list. */}
       <FAB.Group
+        testID="budget-add"
         open={isFabOpen}
         visible={
           !isLineSheetVisible && !isTransactionSheetVisible && edited === null
         }
         icon={isFabOpen ? "close" : "plus"}
         onStateChange={({ open }) => setFabOpen(open)}
+        // Above the month tabs, which sit one layer over the list: the scrim
+        // has to dim the whole page, tabs included, while the menu is open.
+        style={styles.fabGroup}
         actions={[
           {
             icon: "calendar-check",
             label: t("budgets.mutations.forecastAction"),
             onPress: () => setLineSheetVisible(true),
+            testID: "budget-add-forecast",
           },
           {
             icon: "cash",
             label: t("budgets.mutations.activityAction"),
             onPress: () => setTransactionSheetVisible(true),
+            testID: "budget-add-activity",
           },
         ]}
         accessibilityLabel={t("budgets.mutations.add")}
       />
 
-      <Notice
-        clearsFab
-        visible={savedMessage !== null}
-        onDismiss={() => setSavedMessage(null)}
-      >
-        {savedMessage === null
-          ? ""
-          : t(`budgets.mutations.outcome.${savedMessage}`)}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={hasToggleFailed}
-        onDismiss={() => setToggleFailed(false)}
-        action={{
-          label: t("common.close"),
-          onPress: () => setToggleFailed(false),
-        }}
-      >
-        {t("budgets.mutations.toggleError")}
-      </Notice>
+      {/* One slot, the most pressing news first. Four snackbars in the same
+          spot drew over one another — a failure could hide under the "Annuler"
+          of a deletion, or a confirmation over it. */}
+      {removal.failure !== null ? (
+        <Notice clearsFab visible onDismiss={removal.dismissFailure}>
+          {t(`budgets.mutations.removal.${removal.failure}Error`)}
+        </Notice>
+      ) : hasToggleFailed ? (
+        <Notice
+          clearsFab
+          visible
+          onDismiss={() => setToggleFailed(false)}
+          action={{
+            label: t("common.close"),
+            onPress: () => setToggleFailed(false),
+          }}
+        >
+          {t("budgets.mutations.toggleError")}
+        </Notice>
+      ) : removal.last !== null ? (
+        <Notice
+          clearsFab
+          visible
+          onDismiss={removal.forget}
+          action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
+        >
+          {removal.undoable.length === 1
+            ? t("budgets.mutations.removal.removedOne", {
+                name: removal.last?.name,
+              })
+            : t("budgets.mutations.removal.removedMany", {
+                count: removal.undoable.length,
+              })}
+        </Notice>
+      ) : (
+        <Notice
+          clearsFab
+          visible={savedMessage !== null}
+          onDismiss={() => setSavedMessage(null)}
+        >
+          {savedMessage === null
+            ? ""
+            : t(`budgets.mutations.outcome.${savedMessage}`)}
+        </Notice>
+      )}
 
       <BudgetLineSheet
         isVisible={isLineSheetVisible}
@@ -139,6 +193,7 @@ export const BudgetDetailOverlays = forwardRef<
         onDismiss={() => setTransactionSheetVisible(false)}
         budgetId={budgetId}
         currency={currency}
+        period={periodDates}
         onSaved={() => {
           setTransactionSheetVisible(false);
           setSavedMessage("activityAdded");
@@ -152,12 +207,15 @@ export const BudgetDetailOverlays = forwardRef<
           onDismiss={() => setEdited(null)}
           budgetId={budgetId}
           currency={currency}
+          period={periodDates}
           transaction={edited}
           onSaved={() => {
             setEdited(null);
             setSavedMessage("activityUpdated");
           }}
           onDelete={() => removal.remove(edited, () => setEdited(null))}
+          isDeleting={removal.isPending}
+          hasDeleteFailed={removal.failure === "delete"}
         />
       )}
 
@@ -185,31 +243,6 @@ export const BudgetDetailOverlays = forwardRef<
         />
       </Menu>
 
-      <Notice
-        clearsFab
-        visible={removal.last !== null}
-        onDismiss={removal.forget}
-        action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
-      >
-        {removal.undoable.length === 1
-          ? t("budgets.mutations.removal.removedOne", {
-              name: removal.last?.name,
-            })
-          : t("budgets.mutations.removal.removedMany", {
-              count: removal.undoable.length,
-            })}
-      </Notice>
-
-      <Notice
-        clearsFab
-        visible={removal.failure !== null}
-        onDismiss={removal.dismissFailure}
-      >
-        {removal.failure === null
-          ? ""
-          : t(`budgets.mutations.removal.${removal.failure}Error`)}
-      </Notice>
-
       <SavingsWithdrawalSheet
         isVisible={isWithdrawalVisible}
         onDismiss={() => setWithdrawalVisible(false)}
@@ -235,3 +268,5 @@ export const BudgetDetailOverlays = forwardRef<
     </>
   );
 });
+
+const styles = StyleSheet.create({ fabGroup: { zIndex: 2 } });

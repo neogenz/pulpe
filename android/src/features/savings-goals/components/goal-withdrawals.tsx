@@ -10,9 +10,10 @@ import { Divider, Text, useTheme } from "react-native-paper";
 
 import { Card } from "@/core/ui/card";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { SectionHeader } from "@/core/ui/section-header";
 import { Amount } from "@/core/ui/amount";
 import { formatCurrency } from "@/core/ui/amount-format";
-import { formatIsoDate, formatMonthLabel } from "@/core/ui/date-format";
+import { formatInstantDay, formatMonthLabel } from "@/core/ui/date-format";
 import { SPACING } from "@/core/ui/theme";
 
 interface GoalWithdrawalsProps {
@@ -44,7 +45,7 @@ export function GoalWithdrawals({
 
   return (
     <View style={styles.section}>
-      <Text variant="titleMedium">{t("goals.withdrawals.title")}</Text>
+      <SectionHeader title={t("goals.withdrawals.title")} />
 
       {(planned.length > 0 || planOnly.length > 0) && (
         <>
@@ -141,7 +142,7 @@ function RealizedRow({
 }) {
   const isChecked = (withdrawal.checkedAt ?? null) !== null;
   const { locale, t } = useTranslation();
-  const day = formatIsoDate(withdrawal.transactionDate.slice(0, 10), locale);
+  const day = formatInstantDay(withdrawal.transactionDate, locale);
 
   return (
     <WithdrawalRow

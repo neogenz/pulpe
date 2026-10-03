@@ -1,10 +1,13 @@
 import type {
+  BudgetPeriodDates,
   SupportedCurrency,
   Transaction,
+  TransactionCreate,
   TransactionKind,
 } from "pulpe-shared";
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useRef, useState } from "react";
+import { randomUUID } from "react-native-quick-crypto";
+import { Keyboard, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -20,8 +23,9 @@ import { hapticSuccess } from "@/core/ui/haptics";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { kindOptions } from "@/core/ui/vocabulary";
 import { TagPicker } from "@/features/tags/tag-picker";
+import { QuickAmountChips } from "@/core/ui/quick-amount-chips";
 import { AmountField } from "@/core/ui/amount-field";
-import { formatCompactCurrency } from "@/core/ui/amount-format";
+import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { formatRelativeDay } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
 import { FilterChip } from "@/core/ui/filter-chip";
@@ -33,13 +37,16 @@ import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-
 import {
   buildTransactionPayload,
   buildTransactionUpdate,
+  defaultOperationDay,
   draftHint,
   isDraftSubmittable,
   transactionDraftFrom,
   type TransactionDraft,
 } from "../transaction-draft";
 import {
+  isUnsavedCreate,
   useCreateTransaction,
+  useRefreshAfterTransactionWrite,
   useUpdateTransaction,
 } from "../transaction-mutations";
 
@@ -70,8 +77,21 @@ interface TransactionSheetProps {
   transaction?: Transaction;
   /** Present when the operation fills an envelope, whose kind it then takes. */
   envelope?: EnvelopeTarget;
+  /**
+   * The days the budget covers: a new operation starts inside them, and the
+   * calendar offers no other.
+   */
+  period?: BudgetPeriodDates;
   onSaved: () => void;
   onDelete?: () => void;
+  /**
+   * The deletion asked from this sheet is in flight. The sheet is a separate
+   * window above the screen, so it has to say so itself: the screen's own
+   * notices are drawn underneath it.
+   */
+  isDeleting?: boolean;
+  /** The deletion asked from this sheet failed and can be asked again. */
+  hasDeleteFailed?: boolean;
 }
 
 /**
@@ -91,18 +111,22 @@ export function TransactionSheet({
   currency,
   transaction,
   envelope,
+  period,
   onSaved,
   onDelete,
+  isDeleting = false,
+  hasDeleteFailed = false,
 }: TransactionSheetProps) {
   const theme = useTheme();
   const { locale, t } = useTranslation();
   const create = useCreateTransaction();
   const update = useUpdateTransaction();
+  const refreshAfterWrite = useRefreshAfterTransactionWrite();
   // The budget is not part of the draft: it belongs to the screen, and holding
   // a copy in form state is how a sheet ends up posting to last month's budget
   // after a period rolls over while it is open.
   const [form, setForm] = useState<FormState>(() =>
-    initialForm(transaction, envelope),
+    initialForm(transaction, envelope, period),
   );
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   // Held apart from the chosen goal: "yes, from a goal" and "which one" are two
@@ -112,8 +136,33 @@ export function TransactionSheet({
   // separator survives typing, which means clearing the number behind it is not
   // enough to clear what is on screen — only a remount is.
   const [generation, setGeneration] = useState(0);
+  // One id per operation being written, replayed unchanged on a retry, so a
+  // request whose answer was lost cannot write it twice.
+  const [createId, setCreateId] = useState(() => randomUUID());
+  const [submittedCreate, setSubmittedCreate] =
+    useState<TransactionCreate | null>(null);
+  // The ref captures even two presses in one render; the state shows the
+  // exact submitted values while the request is pending or being retried.
+  const createAttempt = useRef<TransactionCreate | null>(null);
+  // An attempt whose answer never came may still land, possibly after a later
+  // one is refused: from then on the submitted values stay as they are.
+  const hasUncertainAttempt = useRef(false);
   const draft: TransactionDraft = { ...form, budgetId };
   const isEditing = transaction !== undefined;
+  // A sheet that stays mounted keeps the day it was mounted on: opened two
+  // days later, it booked the operation on the wrong day — possibly in the
+  // previous month — unless the user happened to look at the date. A new
+  // operation is dated the day the sheet opens.
+  const [wasVisible, setWasVisible] = useState(isVisible);
+  if (isVisible !== wasVisible) {
+    setWasVisible(isVisible);
+    if (isVisible && !isEditing) {
+      setForm((current) => ({
+        ...current,
+        day: defaultOperationDay(new Date(), period),
+      }));
+    }
+  }
   const mutation = isEditing ? update : create;
   // An allocated operation must keep its envelope's kind: the server refuses
   // the mismatch, and the envelope is the reason the user opened this form.
@@ -154,13 +203,20 @@ export function TransactionSheet({
   }
 
   function reset() {
-    setForm(initialForm(transaction, envelope));
+    setForm(initialForm(transaction, envelope, period));
     setFromSavingsGoal(false);
     setGeneration((current) => current + 1);
+    setCreateId(randomUUID());
+    setSubmittedCreate(null);
+    createAttempt.current = null;
+    hasUncertainAttempt.current = false;
   }
 
   /** Dismissing means abandoning: a half-filled form must not greet the next open. */
   function dismiss() {
+    // The retry copy says this one may already be saved; closing instead of
+    // retrying must not leave the budget hiding it.
+    if (submittedCreate !== null && create.isError) refreshAfterWrite();
     reset();
     create.reset();
     update.reset();
@@ -168,7 +224,12 @@ export function TransactionSheet({
   }
 
   function submit() {
-    if (!isDraftSubmittable(draft) || originProblem !== null) return;
+    if (
+      createAttempt.current === null &&
+      (!isDraftSubmittable(draft) || originProblem !== null)
+    ) {
+      return;
+    }
 
     const onSuccess = () => {
       hapticSuccess();
@@ -177,13 +238,28 @@ export function TransactionSheet({
     };
 
     if (transaction === undefined) {
-      const payload = buildTransactionPayload(draft, new Date());
-      create.mutate(
-        envelope === undefined
-          ? payload
-          : { ...payload, budgetLineId: envelope.id },
-        { onSuccess },
-      );
+      const payload = createAttempt.current ?? {
+        ...buildTransactionPayload(draft, new Date()),
+        id: createId,
+        ...(envelope === undefined ? {} : { budgetLineId: envelope.id }),
+      };
+      createAttempt.current = payload;
+      setSubmittedCreate(payload);
+      setDatePickerVisible(false);
+      Keyboard.dismiss();
+      create.mutate(payload, {
+        onSuccess,
+        onError: (error) => {
+          // Refused, and nothing stored under its id: the form opens again
+          // on the same values, so a wrong amount or goal can be corrected.
+          if (isUnsavedCreate(error) && !hasUncertainAttempt.current) {
+            createAttempt.current = null;
+            setSubmittedCreate(null);
+          } else {
+            hasUncertainAttempt.current = true;
+          }
+        },
+      });
       return;
     }
 
@@ -196,14 +272,15 @@ export function TransactionSheet({
     );
   }
 
-  const problem = draftHint(draft) ?? originProblem;
+  const problem =
+    submittedCreate === null ? (draftHint(draft) ?? originProblem) : null;
 
   return (
     <>
       <FormModal
         isVisible={isVisible}
         onDismiss={dismiss}
-        isBusy={mutation.isPending}
+        isBusy={mutation.isPending || isDeleting}
         title={t(
           `budgets.mutations.activity.${isEditing ? "editTitle" : "createTitle"}`,
         )}
@@ -223,16 +300,19 @@ export function TransactionSheet({
             )}
 
             <Button
+              testID="transaction-submit"
               mode="contained"
               onPress={submit}
               disabled={
-                !isDraftSubmittable(draft) ||
-                originProblem !== null ||
+                (submittedCreate === null &&
+                  (!isDraftSubmittable(draft) || originProblem !== null)) ||
                 mutation.isPending
               }
               loading={mutation.isPending}
             >
-              {t(`budgets.mutations.${isEditing ? "save" : "add"}`)}
+              {submittedCreate !== null && create.isError
+                ? t("common.retry")
+                : t(`budgets.mutations.${isEditing ? "save" : "add"}`)}
             </Button>
 
             {problem !== null && (
@@ -245,175 +325,227 @@ export function TransactionSheet({
             )}
 
             {onDelete !== undefined && isEditing && (
-              <Button
-                mode="text"
-                icon="trash-can-outline"
-                textColor={theme.colors.error}
-                onPress={onDelete}
-              >
-                {t("budgets.mutations.delete")}
-              </Button>
+              <>
+                {hasDeleteFailed && (
+                  <FieldError visible>
+                    {t("budgets.mutations.removal.deleteError")}
+                  </FieldError>
+                )}
+                <Button
+                  testID="transaction-delete"
+                  mode="text"
+                  icon="trash-can-outline"
+                  textColor={theme.colors.error}
+                  onPress={onDelete}
+                  // One request at a time: a second tap used to send a second
+                  // DELETE for a row the first one had already removed.
+                  disabled={isDeleting || mutation.isPending}
+                  loading={isDeleting}
+                >
+                  {t("budgets.mutations.delete")}
+                </Button>
+              </>
             )}
           </>
         }
       >
-        {!isKindLocked && (
-          <SegmentedButtons
-            value={draft.kind}
-            onValueChange={(kind) => changeKind(kind as TransactionKind)}
-            buttons={kindOptions(t).map((button) => ({
-              ...button,
-              icon: KIND_ICONS[button.value],
-            }))}
-          />
-        )}
+        {submittedCreate !== null ? (
+          <View style={styles.submitted}>
+            {create.isError && (
+              <Text variant="bodyMedium">
+                {t("budgets.mutations.activity.retryUnchanged")}
+              </Text>
+            )}
+            <Text variant="titleMedium">{submittedCreate.name}</Text>
+            <Text variant="bodyMedium">
+              {t(`vocabulary.kind.${submittedCreate.kind}`)}
+            </Text>
+            <Text variant="headlineMedium">
+              {formatCurrency(submittedCreate.amount, currency)}
+            </Text>
+            <Text variant="bodyMedium">
+              {formatRelativeDay(
+                new Date(submittedCreate.transactionDate ?? ""),
+                new Date(),
+                locale,
+              )}
+            </Text>
+          </View>
+        ) : (
+          <>
+            {!isKindLocked && (
+              <SegmentedButtons
+                value={draft.kind}
+                onValueChange={(kind) => changeKind(kind as TransactionKind)}
+                buttons={kindOptions(t).map((button) => ({
+                  ...button,
+                  icon: KIND_ICONS[button.value],
+                }))}
+              />
+            )}
 
-        <AmountField
-          key={generation}
-          label={t("budgets.mutations.amount")}
-          amount={draft.amount}
-          currency={currency}
-          onChange={(amount) => change({ amount })}
-        />
+            <AmountField
+              key={generation}
+              isProminent
+              label={t("budgets.mutations.amount")}
+              amount={draft.amount}
+              currency={currency}
+              onChange={(amount) => change({ amount })}
+            />
+            <QuickAmountChips
+              amount={draft.amount}
+              currency={currency}
+              onSelect={(amount) => {
+                change({ amount });
+                // The field holds its own text; only a remount shows the new one.
+                setGeneration((current) => current + 1);
+              }}
+            />
 
-        <TextInput
-          mode="outlined"
-          label={t("budgets.mutations.description")}
-          placeholder={t(
-            `budgets.mutations.activity.placeholders.${draft.kind}`,
-          )}
-          value={draft.name}
-          onChangeText={(name) => change({ name })}
-          maxLength={NAME_MAX_LENGTH}
-        />
+            <TextInput
+              testID="transaction-description"
+              mode="outlined"
+              label={t("budgets.mutations.description")}
+              placeholder={t(
+                `budgets.mutations.activity.placeholders.${draft.kind}`,
+              )}
+              value={draft.name}
+              onChangeText={(name) => change({ name })}
+              maxLength={NAME_MAX_LENGTH}
+            />
 
-        <Button
-          mode="outlined"
-          icon="calendar"
-          onPress={() => setDatePickerVisible(true)}
-          accessibilityLabel={t("budgets.mutations.activity.date")}
-        >
-          {formatRelativeDay(draft.day, new Date(), locale)}
-        </Button>
+            <Button
+              mode="outlined"
+              icon="calendar"
+              onPress={() => setDatePickerVisible(true)}
+              accessibilityLabel={t("budgets.mutations.activity.date")}
+            >
+              {formatRelativeDay(draft.day, new Date(), locale)}
+            </Button>
 
-        {/* An income can be money coming in, or money coming back out of a pot
+            {/* An income can be money coming in, or money coming back out of a pot
             the user already filled. Only the second empties a goal, and the
             server needs to be told which one this is. */}
-        {isOriginOffered && (
-          <View style={styles.origin}>
-            <View style={styles.checkedRow}>
-              <View style={styles.checkedLabels}>
-                <Text variant="bodyLarge">
-                  {t("budgets.mutations.activity.originTitle")}
-                </Text>
-                {isFromSavingsGoal && (
+            {isOriginOffered && (
+              <View style={styles.origin}>
+                <View style={styles.checkedRow}>
+                  <View style={styles.checkedLabels}>
+                    <Text variant="bodyLarge">
+                      {t("budgets.mutations.activity.originTitle")}
+                    </Text>
+                    {isFromSavingsGoal && (
+                      <Text
+                        variant="labelMedium"
+                        style={{ color: theme.colors.onSurfaceVariant }}
+                      >
+                        {t("budgets.mutations.activity.originHint")}
+                      </Text>
+                    )}
+                  </View>
+                  <Switch
+                    value={isFromSavingsGoal}
+                    onValueChange={(isOn) => {
+                      setFromSavingsGoal(isOn);
+                      if (!isOn) change({ sourceSavingsGoalId: null });
+                    }}
+                    accessibilityLabel={t(
+                      "budgets.mutations.activity.originAccessibility",
+                    )}
+                  />
+                </View>
+
+                {isFromSavingsGoal &&
+                  (options.isPending ? (
+                    <ActivityIndicator
+                      accessibilityLabel={t("common.loading")}
+                    />
+                  ) : (options.data ?? []).length === 0 ? (
+                    <Text
+                      variant="labelMedium"
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      {t("budgets.mutations.activity.noGoals")}
+                    </Text>
+                  ) : (
+                    <FadingRail
+                      inset={SHEET_PADDING}
+                      background={theme.colors.surface}
+                      accessibilityLabel={t(
+                        "budgets.mutations.activity.goalsAvailable",
+                      )}
+                    >
+                      {(options.data ?? []).map((option) => (
+                        <FilterChip
+                          key={option.goalId}
+                          selected={option.goalId === draft.sourceSavingsGoalId}
+                          icon="piggy-bank-outline"
+                          onPress={() =>
+                            change({ sourceSavingsGoalId: option.goalId })
+                          }
+                          accessibilityState={{
+                            selected:
+                              option.goalId === draft.sourceSavingsGoalId,
+                          }}
+                        >
+                          {`${option.name} · ${formatCompactCurrency(
+                            option.availableAmount,
+                            option.currency,
+                          )}`}
+                        </FilterChip>
+                      ))}
+                    </FadingRail>
+                  ))}
+
+                {/* What the goal has left afterwards, which is the number the
+                choice is actually made on. */}
+                {isFromSavingsGoal &&
+                  chosenOption !== null &&
+                  remainingAfterWithdrawal !== null && (
+                    <Text
+                      variant="labelMedium"
+                      style={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                      {`${chosenOption.name} · ${formatCompactCurrency(
+                        chosenOption.availableAmount,
+                        chosenOption.currency,
+                      )} → ${formatCompactCurrency(
+                        remainingAfterWithdrawal,
+                        chosenOption.currency,
+                      )}`}
+                    </Text>
+                  )}
+              </View>
+            )}
+
+            {!isEditing && (
+              <View style={styles.checkedRow}>
+                <View style={styles.checkedLabels}>
+                  <Text variant="bodyLarge">
+                    {t("budgets.mutations.activity.alreadyChecked")}
+                  </Text>
                   <Text
                     variant="labelMedium"
                     style={{ color: theme.colors.onSurfaceVariant }}
                   >
-                    {t("budgets.mutations.activity.originHint")}
+                    {t("budgets.mutations.activity.alreadyCheckedHint")}
                   </Text>
-                )}
-              </View>
-              <Switch
-                value={isFromSavingsGoal}
-                onValueChange={(isOn) => {
-                  setFromSavingsGoal(isOn);
-                  if (!isOn) change({ sourceSavingsGoalId: null });
-                }}
-                accessibilityLabel={t(
-                  "budgets.mutations.activity.originAccessibility",
-                )}
-              />
-            </View>
-
-            {isFromSavingsGoal &&
-              (options.isPending ? (
-                <ActivityIndicator accessibilityLabel={t("common.loading")} />
-              ) : (options.data ?? []).length === 0 ? (
-                <Text
-                  variant="labelMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {t("budgets.mutations.activity.noGoals")}
-                </Text>
-              ) : (
-                <FadingRail
-                  inset={SHEET_PADDING}
-                  background={theme.colors.surface}
+                </View>
+                <Switch
+                  value={draft.isChecked}
+                  onValueChange={(isChecked) => change({ isChecked })}
                   accessibilityLabel={t(
-                    "budgets.mutations.activity.goalsAvailable",
+                    "budgets.mutations.activity.alreadyCheckedAccessibility",
                   )}
-                >
-                  {(options.data ?? []).map((option) => (
-                    <FilterChip
-                      key={option.goalId}
-                      selected={option.goalId === draft.sourceSavingsGoalId}
-                      icon="piggy-bank-outline"
-                      onPress={() =>
-                        change({ sourceSavingsGoalId: option.goalId })
-                      }
-                      accessibilityState={{
-                        selected: option.goalId === draft.sourceSavingsGoalId,
-                      }}
-                    >
-                      {`${option.name} · ${formatCompactCurrency(
-                        option.availableAmount,
-                        option.currency,
-                      )}`}
-                    </FilterChip>
-                  ))}
-                </FadingRail>
-              ))}
+                />
+              </View>
+            )}
 
-            {/* What the goal has left afterwards, which is the number the
-                choice is actually made on. */}
-            {isFromSavingsGoal &&
-              chosenOption !== null &&
-              remainingAfterWithdrawal !== null && (
-                <Text
-                  variant="labelMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {`${chosenOption.name} · ${formatCompactCurrency(
-                    chosenOption.availableAmount,
-                    chosenOption.currency,
-                  )} → ${formatCompactCurrency(
-                    remainingAfterWithdrawal,
-                    chosenOption.currency,
-                  )}`}
-                </Text>
-              )}
-          </View>
-        )}
-
-        {!isEditing && (
-          <View style={styles.checkedRow}>
-            <View style={styles.checkedLabels}>
-              <Text variant="bodyLarge">
-                {t("budgets.mutations.activity.alreadyChecked")}
-              </Text>
-              <Text
-                variant="labelMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {t("budgets.mutations.activity.alreadyCheckedHint")}
-              </Text>
-            </View>
-            <Switch
-              value={draft.isChecked}
-              onValueChange={(isChecked) => change({ isChecked })}
-              accessibilityLabel={t(
-                "budgets.mutations.activity.alreadyCheckedAccessibility",
-              )}
+            <TagPicker
+              selectedIds={draft.tagIds}
+              onChange={(tagIds) => change({ tagIds })}
             />
-          </View>
+          </>
         )}
-
-        <TagPicker
-          selectedIds={draft.tagIds}
-          onChange={(tagIds) => change({ tagIds })}
-        />
       </FormModal>
 
       {/* Android's own dialog, not a full-page calendar: mounting this renders
@@ -422,6 +554,8 @@ export function TransactionSheet({
         <DateTimePicker
           value={draft.day}
           mode="date"
+          minimumDate={period?.startDate}
+          maximumDate={period?.endDate}
           onChange={(event, date) => {
             setDatePickerVisible(false);
             if (event.type !== "set" || date === undefined) return;
@@ -459,6 +593,7 @@ function originProblemOf(input: {
 function initialForm(
   transaction: Transaction | undefined,
   envelope: EnvelopeTarget | undefined,
+  period: BudgetPeriodDates | undefined,
 ): FormState {
   if (transaction !== undefined) {
     const { budgetId: _budgetId, ...form } = transactionDraftFrom(transaction);
@@ -469,7 +604,7 @@ function initialForm(
     name: "",
     amount: null,
     kind: envelope?.kind ?? "expense",
-    day: new Date(),
+    day: defaultOperationDay(new Date(), period),
     // An operation entered by hand is one the user has just seen happen, so it
     // arrives pointed; the toggle is there for the one they are anticipating.
     isChecked: true,
@@ -486,6 +621,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   checkedLabels: { flex: 1, gap: SPACING.xxs },
+  submitted: { gap: SPACING.sm },
   origin: { gap: SPACING.sm },
   hint: { textAlign: "center" },
 });

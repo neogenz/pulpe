@@ -31,7 +31,7 @@
       "verifying": "Verifica del link in corso"
     },
     "restore": {
-      "hint": "I tuoi dati sono ancora su questo dispositivo. Riprova ad aprire Pulpe.",
+      "hint": "Controlla la connessione, poi riprova. I tuoi dati sono rimasti su questo dispositivo.",
       "title": "Impossibile aprire la sessione"
     },
     "signIn": {
@@ -90,22 +90,27 @@
         "saving": "Risparmio",
         "unchecked": "Da spuntare"
       },
-      "gesturesMessage": "Tocca il cerchio per spuntare · Tocca la riga per modificare",
+      "gesturesMessage": "Tocca il cerchio o scorri la riga verso destra per spuntare · Tocca la riga per modificare",
       "gesturesTitle": "Due gesti per riga",
       "goal": "Obiettivo: %{name}",
       "goalShort": "Obiettivo",
       "hero": {
         "accessibility": "%{state} %{amount}, %{percent}% utilizzato",
-        "available": "Disponibile",
+        "available": "Disponibile da spendere",
         "deficit": "Disavanzo",
         "distribution": "Ripartizione del mese",
         "expenses": "spese",
         "income": "entrate",
         "previousMonth": "il mese precedente",
         "rollover": "Riporto del mese precedente incluso",
-        "rolloverNamed": "Riporto incluso · %{month}",
+        "rolloverNamed": "Riporto di %{month} incluso",
         "savings": "risparmio",
-        "viewMonth": "Vedi %{month}"
+        "viewMonth": "Vedi %{month}",
+        "verdict": {
+          "comfortable": "Questo mese hai margine.",
+          "tight": "Questo mese è un po' stretto.",
+          "deficit": "Questo mese spendi più di quanto guadagni."
+        }
       },
       "loadErrorHint": "Controlla la connessione e riprova.",
       "loadErrorTitle": "Non è stato possibile caricare questo budget",
@@ -129,7 +134,12 @@
         "toTransfer": "%{amount} da trasferire",
         "transferred": "Trasferito"
       },
-      "withdrawnFrom": "Prelevato da: %{name}"
+      "withdrawnFrom": "Prelevato da: %{name}",
+      "tracking": "Andamento del budget",
+      "swipe": {
+        "point": "Spunta",
+        "unpoint": "Togli la spunta"
+      }
     },
     "actions": {
       "line": {
@@ -159,7 +169,13 @@
         "plannedAmount": "su %{amount} previsti",
         "postpone": "Rimanda al mese successivo",
         "remaining": "%{amount} rimanenti",
-        "viewSpread": "Vedi i mesi distribuiti"
+        "viewSpread": "Vedi i mesi distribuiti",
+        "leftEyebrow": "Rimane",
+        "overrunEyebrow": "Sforamento",
+        "notedOf": "%{noted} registrato su %{planned} previsto",
+        "movements": "Movimenti",
+        "emptyTitle": "Niente registrato qui",
+        "note": "Registra un importo"
       },
       "spread": {
         "complete": "Obiettivo raggiunto",
@@ -246,7 +262,8 @@
           "expense": "Ristorante, benzina…",
           "income": "Bonus, rimborso…",
           "saving": "Trasferimento risparmio…"
-        }
+        },
+        "retryUnchanged": "Questo movimento potrebbe essere già stato salvato. Riprova con i valori qui sotto per confermarlo. Potrai poi modificarlo dal budget."
       },
       "activityAction": "Un movimento",
       "add": "Aggiungi",
@@ -291,6 +308,7 @@
       "undo": "Annulla",
       "validation": {
         "amount": "Aggiungi un importo",
+        "amountTooLarge": "Un movimento non può superare 1'000'000.",
         "description": "Aggiungi una descrizione",
         "exceedsGoal": "L'importo supera ciò che contiene l'obiettivo.",
         "goal": "Scegli l'obiettivo usato",
@@ -309,7 +327,20 @@
       "planAccessibility": "Pianifica più budget",
       "potential": "Potenziale",
       "result": "Risultato",
-      "title": "Budget"
+      "title": "Budget",
+      "yearBalance": "Saldo di fine anno",
+      "yearReview": "Bilancio dell'anno",
+      "budgetedMonths": "mesi a budget",
+      "verdict": {
+        "none": "Nessun mese a budget. Inizia ora.",
+        "all": "Hai messo a budget tutto l'anno. Ottimo lavoro!",
+        "some": "Hai messo a budget %{count} mesi su 12 quest'anno."
+      },
+      "months": "Mesi",
+      "yearSelector": "Scegli l'anno",
+      "ongoing": "in corso",
+      "notCreated": "Ancora nessun budget",
+      "createMonth": "Crea il budget"
     },
     "plan": {
       "default": "predefinito",
@@ -398,7 +429,12 @@
     "or": "o",
     "password": "Password",
     "retry": "Riprova",
-    "signOut": "Esci"
+    "signOut": "Esci",
+    "quickAmountAccessibility": "Imposta l'importo a %{amount}",
+    "screenError": {
+      "title": "Questa schermata ha avuto un problema",
+      "hint": "I tuoi dati non sono stati toccati. Riprova; se succede di nuovo, chiudi e riapri Pulpe."
+    }
   },
   "goals": {
     "status": {
@@ -414,7 +450,8 @@
       "emptyTitle": "Fissa il tuo primo obiettivo",
       "loadErrorTitle": "Non siamo riusciti a caricare i tuoi obiettivi",
       "since": "Dal %{date}",
-      "title": "Obiettivi di risparmio"
+      "title": "Obiettivi di risparmio",
+      "section": "Obiettivi"
     },
     "intro": {
       "create": "Crea il mio obiettivo",
@@ -456,7 +493,9 @@
       "target": "Obiettivo (opzionale)",
       "validation": {
         "dates": "L'inizio non può essere successivo alla scadenza.",
+        "monthly": "Il risparmio mensile deve essere maggiore di zero.",
         "name": "Dai un nome al tuo obiettivo.",
+        "pastDeadline": "La scadenza non può essere nel passato.",
         "target": "L'obiettivo deve essere maggiore di zero."
       }
     },
@@ -466,7 +505,8 @@
       "futureLinesError": "Non è stato possibile verificare le previsioni future di questo obiettivo.",
       "loadErrorTitle": "Non siamo riusciti a caricare questo obiettivo",
       "missingHint": "Potrebbe essere stato eliminato da un altro dispositivo.",
-      "missingTitle": "Questo obiettivo non esiste più"
+      "missingTitle": "Questo obiettivo non esiste più",
+      "statusError": "Non è stato possibile cambiare lo stato. Riprova."
     },
     "progress": {
       "achievementAccessibility": "%{percent}% dell'obiettivo risparmiato",
@@ -671,16 +711,18 @@
       "overBy": "+%{amount} in più",
       "summary": "%{amount} oltre il piano",
       "summaryAbsorbed": "%{amount} oltre il piano, compensato altrove questo mese",
-      "title": "Fuori rotta"
+      "title": "Fuori rotta",
+      "catchUp": "Recupera questi %{amount} in eccesso",
+      "catchUpHint": "Apri il budget per regolare le tue buste"
     },
     "hero": {
       "chartAccessibility": "Andamento del saldo stimato nel mese rispetto al piano",
-      "detail": "Vedi i dettagli",
+      "detail": "Vedi il budget",
       "detailAccessibility": "Vedi i dettagli del budget",
-      "estimate": "Stima a fine %{month} · %{currency}",
+      "estimate": "Stima a fine %{month}",
       "metricsAccessibility": "%{count} da segnare, %{variance} rispetto al previsto",
       "metricsHint": "Apri il dettaglio del saldo reale",
-      "toCheck": "da segnare",
+      "toCheck": "Da segnare",
       "verdict": {
         "gain": "Ti resta più del previsto.",
         "gainDated": "Sopra il tuo piano dal %{date}.",
@@ -688,7 +730,7 @@
         "overrun": "Ti resta meno del previsto.",
         "overrunDated": "Sotto il tuo piano dal %{date}."
       },
-      "vsPlanned": "vs previsto",
+      "vsPlanned": "Scarto dal piano",
       "chart": {
         "today": "oggi"
       }
@@ -1161,6 +1203,10 @@
     }
   },
   "startup": {
+    "accountBlocked": {
+      "hint": "Non può più essere aperto. Se non l'hai chiesto tu, contatta il supporto.",
+      "title": "Il tuo account è in fase di eliminazione"
+    },
     "vaultError": "Non è stato possibile preparare i tuoi dati protetti."
   },
   "templates": {
@@ -1175,7 +1221,8 @@
       "openWeb": "Apri sul web",
       "title": "Modelli",
       "webBody": "Non tutte le azioni sui modelli sono ancora disponibili qui. L'app web offre l'esperienza completa quando serve.",
-      "webTitle": "Modelli: Android è ancora semplificato"
+      "webTitle": "Modelli: Android è ancora semplificato",
+      "section": "Modelli"
     },
     "form": {
       "create": "Crea modello",
@@ -1211,7 +1258,8 @@
       },
       "propagationTitle": "Applicare ai mesi successivi?",
       "save": "Salva",
-      "templateOnly": "Solo modello"
+      "templateOnly": "Solo modello",
+      "longPressHint": "Tieni premuto per eliminare"
     },
     "detail": {
       "addLine": "Aggiungi una previsione",
@@ -1236,7 +1284,8 @@
         "other": "%{count} budget creati da questo modello"
       },
       "usageError": "Non è stato possibile verificare i budget collegati a questo modello.",
-      "usageHint": "L'eliminazione del modello non influisce su questi budget."
+      "usageHint": "L'eliminazione del modello non influisce su questi budget.",
+      "summary": "Riepilogo"
     }
   },
   "vault": {
@@ -1276,7 +1325,10 @@
       "forgot": "Codice dimenticato?",
       "subtitle": "Sblocca i tuoi importi",
       "title": "Il tuo codice"
-    }
+    },
+    "offline": "Errore di connessione, riprova",
+    "tooManyAttempts": "Troppi tentativi, aspetta un momento",
+    "wrongPin": "Questo codice non sembra corretto"
   },
   "vocabulary": {
     "kind": {

@@ -33,6 +33,7 @@ import {
   savingsGoalDraftFrom,
   savingsGoalDraftHint,
   suggestedMonthly,
+  targetDateBounds,
   usesManualMonthly,
   type SavingsGoalDraft,
 } from "../goal-draft";
@@ -87,7 +88,9 @@ export function GoalFormSheet({
   const suggestion = suggestedMonthly(draft, payDayOfMonth);
   const isDecomposable = !isEditing && canDecompose(draft);
   const isManual = !isEditing && usesManualMonthly(draft);
-  const hint = savingsGoalDraftHint(draft);
+  const deadlineBounds = targetDateBounds(goal?.targetDate ?? null);
+  const isSubmittable = isSavingsGoalDraftSubmittable(draft, deadlineBounds);
+  const hint = savingsGoalDraftHint(draft, deadlineBounds);
 
   function change(changes: Partial<SavingsGoalDraft>) {
     setDraft((current) => ({ ...current, ...changes }));
@@ -109,7 +112,7 @@ export function GoalFormSheet({
   }
 
   function submit() {
-    if (!isSavingsGoalDraftSubmittable(draft)) return;
+    if (!isSubmittable) return;
 
     const onSuccess = () => {
       hapticSuccess();
@@ -148,9 +151,7 @@ export function GoalFormSheet({
             <Button
               mode="contained"
               onPress={submit}
-              disabled={
-                !isSavingsGoalDraftSubmittable(draft) || mutation.isPending
-              }
+              disabled={!isSubmittable || mutation.isPending}
               loading={mutation.isPending}
             >
               {t(`goals.form.${isEditing ? "save" : "create"}`)}
@@ -301,6 +302,18 @@ export function GoalFormSheet({
               : new Date()
           }
           mode="date"
+          // The range the request schema accepts, so the calendar cannot
+          // offer a deadline the save would then refuse.
+          minimumDate={
+            pickingDate === "targetDate"
+              ? parseIsoDate(deadlineBounds.earliest)
+              : undefined
+          }
+          maximumDate={
+            pickingDate === "targetDate"
+              ? parseIsoDate(deadlineBounds.latest)
+              : undefined
+          }
           onChange={(event, date) => {
             const field = pickingDate;
             setPickingDate(null);

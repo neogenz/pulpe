@@ -29,6 +29,7 @@ import {
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { ROW_ACTION_ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { TAG_NAME_MAX_LENGTH } from "@/features/tags/tag-selection";
 
 /** `tagCreateSchema` caps a name at 30 characters. */
@@ -42,6 +43,7 @@ export default function TagsSettingsScreen() {
   const { t } = useTranslation();
   const keyboardHeight = useKeyboardHeight();
   const tags = useTags();
+  const pull = usePullToRefresh(() => tags.refetch());
   const create = useCreateTag();
   const rename = useRenameTag();
   const remove = useDeleteTag();
@@ -87,12 +89,7 @@ export default function TagsSettingsScreen() {
           { paddingBottom: SPACING.xxl + keyboardHeight },
         ]}
         keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            refreshing={tags.isRefetching}
-            onRefresh={() => void tags.refetch()}
-          />
-        }
+        refreshControl={<RefreshControl {...pull} />}
       >
         <Text
           variant="bodyMedium"
@@ -180,11 +177,16 @@ export default function TagsSettingsScreen() {
       </ScrollView>
 
       <Portal>
+        {/* Paper's Dialog stays centred in the whole window, which does not
+            shrink for the keyboard the autofocused field opens: the rename
+            action sat under the keys. Half the keyboard's height recentres it
+            in the room the keys leave. */}
         <Dialog
           visible={renamedTag !== null}
           onDismiss={() => {
             if (!rename.isPending) setRenamedTag(null);
           }}
+          style={{ transform: [{ translateY: -keyboardHeight / 2 }] }}
         >
           <Dialog.Title>{t("settings.tags.renameTitle")}</Dialog.Title>
           <Dialog.Content>

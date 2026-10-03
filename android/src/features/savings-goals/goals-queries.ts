@@ -136,7 +136,7 @@ export function useSavingsGoalDeletionImpact(goalId: string | null) {
 /**
  * A goal owns forecasts inside budgets, so writing one moves both trees. The
  * sweep stays: a plan or a deletion touches every month the goal generated
- * into, and nothing here carries a budget id for `invalidateBudget`.
+ * into, the budget list's totals included.
  */
 function useGoalMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,

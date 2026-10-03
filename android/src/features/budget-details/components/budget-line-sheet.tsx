@@ -19,6 +19,7 @@ import {
 import { kindOptions, recurrenceOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
+import { QuickAmountChips } from "@/core/ui/quick-amount-chips";
 import { AmountField } from "@/core/ui/amount-field";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
@@ -227,6 +228,7 @@ export function BudgetLineSheet({
 
       <AmountField
         key={generation}
+        isProminent
         label={
           isSpreading && spreadMode === "total"
             ? t("budgets.mutations.forecast.totalAmount")
@@ -237,6 +239,15 @@ export function BudgetLineSheet({
         amount={draft.amount}
         currency={currency}
         onChange={(amount) => change({ amount })}
+      />
+      <QuickAmountChips
+        amount={draft.amount}
+        currency={currency}
+        onSelect={(amount) => {
+          change({ amount });
+          // The field holds its own text; only a remount shows the new one.
+          setGeneration((current) => current + 1);
+        }}
       />
 
       <TextInput

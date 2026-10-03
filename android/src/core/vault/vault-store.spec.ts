@@ -8,6 +8,7 @@ import {
   disableBiometricUnlock,
   enableBiometricUnlock,
   hasBiometricKey,
+  hasLegacyBiometricKeyCandidate,
   resolveViaBiometric,
   storeClientKey,
 } from "@/core/crypto/client-key-manager";
@@ -25,6 +26,8 @@ import {
 import {
   bootstrapVault,
   changeVaultPin,
+  disableVaultBiometrics,
+  enableVaultBiometrics,
   recoverVaultWithKey,
   setupVaultPin,
   unlockVaultWithBiometrics,
@@ -72,6 +75,7 @@ const mocked = {
   clearLegacyClientKey: jest.mocked(clearLegacyClientKey),
   resolveViaBiometric: jest.mocked(resolveViaBiometric),
   hasBiometricKey: jest.mocked(hasBiometricKey),
+  hasLegacyBiometricKeyCandidate: jest.mocked(hasLegacyBiometricKeyCandidate),
   changePin: jest.mocked(changePin),
   enableBiometricUnlock: jest.mocked(enableBiometricUnlock),
   disableBiometricUnlock: jest.mocked(disableBiometricUnlock),
@@ -90,7 +94,8 @@ beforeEach(() => {
   useVaultStore.setState({
     status: "unknown",
     isBiometricAvailable: false,
-    hasBootstrapError: false,
+    isLegacyBiometricAvailable: false,
+    bootstrapFailure: null,
     pendingRecoveryNotice: null,
   });
 
@@ -101,6 +106,7 @@ beforeEach(() => {
   });
   mocked.deriveClientKey.mockResolvedValue(CLIENT_KEY);
   mocked.hasBiometricKey.mockResolvedValue(false);
+  mocked.hasLegacyBiometricKeyCandidate.mockResolvedValue(false);
   mocked.clearLegacyClientKey.mockResolvedValue(undefined);
 });
 
@@ -111,6 +117,8 @@ describe("bootstrapVault", () => {
     await expect(bootstrapVault()).resolves.toBe("setupRequired");
 
     expect(useVaultStore.getState().status).toBe("setupRequired");
+    expect(mocked.disableBiometricUnlock).toHaveBeenCalled();
+    expect(useVaultStore.getState().isLegacyBiometricAvailable).toBe(false);
   });
 
   it("should delete a legacy key and land locked after a cold start", async () => {
@@ -143,8 +151,53 @@ describe("bootstrapVault", () => {
 
     expect(useVaultStore.getState()).toMatchObject({
       status: "unknown",
-      hasBootstrapError: true,
+      bootstrapFailure: "unavailable",
     });
+  });
+
+  it("should offer an unchecked legacy slot without enabling automatic unlock", async () => {
+    mocked.fetchVaultStatus.mockResolvedValue(vaultStatus(true));
+    mocked.hasLegacyBiometricKeyCandidate.mockResolvedValue(true);
+
+    await expect(bootstrapVault()).resolves.toBe("locked");
+
+    expect(useVaultStore.getState()).toMatchObject({
+      isBiometricAvailable: false,
+      isLegacyBiometricAvailable: true,
+    });
+    expect(mocked.resolveViaBiometric).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a network failure", new Error("offline"), "unavailable"],
+    [
+      "a server error",
+      new ApiError("boom", undefined, 500, undefined),
+      "unavailable",
+    ],
+    [
+      "a session revoked elsewhere",
+      new ApiError("expired", "ERR_AUTH_TOKEN_INVALID", 401, undefined),
+      "sessionRejected",
+    ],
+    [
+      "an account scheduled for deletion",
+      new ApiError(
+        "blocked",
+        API_ERROR_CODES.USER_ACCOUNT_BLOCKED,
+        403,
+        undefined,
+      ),
+      "accountBlocked",
+    ],
+  ])("should tell %s apart from the others", async (_case, error, failure) => {
+    // A retry cannot get past the last two; the bootstrap screen offers each
+    // its own way out.
+    mocked.fetchVaultStatus.mockRejectedValue(error);
+
+    await bootstrapVault();
+
+    expect(useVaultStore.getState().bootstrapFailure).toBe(failure);
   });
 });
 
@@ -221,11 +274,44 @@ describe("unlockVaultWithPin", () => {
 });
 
 describe("unlockVaultWithBiometrics", () => {
+  it("should enable a validated legacy key after its manual attempt", async () => {
+    useVaultStore.setState({
+      status: "locked",
+      isLegacyBiometricAvailable: true,
+    });
+    mocked.resolveViaBiometric.mockResolvedValue(CLIENT_KEY);
+    mocked.validateClientKey.mockResolvedValue(undefined);
+
+    await expect(unlockVaultWithBiometrics()).resolves.toBe(true);
+
+    expect(useVaultStore.getState()).toMatchObject({
+      status: "unlocked",
+      isBiometricAvailable: true,
+      isLegacyBiometricAvailable: false,
+    });
+  });
+
   it("should report a dismissed prompt without changing state", async () => {
     useVaultStore.setState({ status: "locked" });
     mocked.resolveViaBiometric.mockResolvedValue(null);
 
     await expect(unlockVaultWithBiometrics()).resolves.toBe(false);
+    expect(useVaultStore.getState().status).toBe("locked");
+  });
+
+  it("should retain a canceled legacy attempt and remove an absent one", async () => {
+    useVaultStore.setState({
+      status: "locked",
+      isLegacyBiometricAvailable: true,
+    });
+    mocked.resolveViaBiometric.mockResolvedValue(null);
+    mocked.hasLegacyBiometricKeyCandidate.mockResolvedValueOnce(true);
+
+    await expect(unlockVaultWithBiometrics()).resolves.toBe(false);
+    expect(useVaultStore.getState().isLegacyBiometricAvailable).toBe(true);
+
+    await expect(unlockVaultWithBiometrics()).resolves.toBe(false);
+    expect(useVaultStore.getState().isLegacyBiometricAvailable).toBe(false);
     expect(useVaultStore.getState().status).toBe("locked");
   });
 
@@ -282,6 +368,43 @@ describe("recoverVaultWithKey", () => {
     expect(useVaultStore.getState()).toMatchObject({
       status: "unlocked",
       pendingRecoveryNotice: { kind: "mintFailed" },
+    });
+  });
+});
+
+describe("biometric settings", () => {
+  it("should clear the legacy offer after a successful opt-in", async () => {
+    useVaultStore.setState({ isLegacyBiometricAvailable: true });
+    mocked.enableBiometricUnlock.mockResolvedValue(true);
+
+    await expect(enableVaultBiometrics()).resolves.toBe(true);
+
+    expect(useVaultStore.getState()).toMatchObject({
+      isBiometricAvailable: true,
+      isLegacyBiometricAvailable: false,
+    });
+  });
+
+  it("should preserve a legacy attempt when a new opt-in is canceled", async () => {
+    mocked.enableBiometricUnlock.mockResolvedValue(false);
+    mocked.hasLegacyBiometricKeyCandidate.mockResolvedValue(true);
+
+    await expect(enableVaultBiometrics()).resolves.toBe(false);
+
+    expect(useVaultStore.getState()).toMatchObject({
+      isBiometricAvailable: false,
+      isLegacyBiometricAvailable: true,
+    });
+  });
+
+  it("should remove the legacy offer on explicit opt-out", async () => {
+    useVaultStore.setState({ isLegacyBiometricAvailable: true });
+
+    await disableVaultBiometrics();
+
+    expect(useVaultStore.getState()).toMatchObject({
+      isBiometricAvailable: false,
+      isLegacyBiometricAvailable: false,
     });
   });
 });

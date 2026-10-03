@@ -1,8 +1,9 @@
-import type {
-  BudgetLine,
-  BudgetPeriod,
-  SupportedCurrency,
-  Transaction,
+import {
+  type BudgetLine,
+  type BudgetPeriod,
+  getBudgetPeriodDates,
+  type SupportedCurrency,
+  type Transaction,
 } from "pulpe-shared";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { StyleSheet } from "react-native";
@@ -55,7 +56,12 @@ export const BudgetLineDetailOverlays = forwardRef<
   ref,
 ) {
   const { locale, t } = useTranslation();
-  const remove = useDeleteBudgetLine(budgetId);
+  const periodDates = getBudgetPeriodDates(
+    period.month,
+    period.year,
+    payDayOfMonth,
+  );
+  const remove = useDeleteBudgetLine();
   const removePair = useDeleteSavingsWithdrawal();
   const postpone = usePostponeBudgetLine();
   const removal = useTransactionRemoval();
@@ -102,20 +108,44 @@ export const BudgetLineDetailOverlays = forwardRef<
 
   return (
     <>
-      <Notice
-        visible={hasToggleFailed}
-        onDismiss={() => setToggleFailed(false)}
-        action={{
-          label: t("common.close"),
-          onPress: () => setToggleFailed(false),
-        }}
-      >
-        {t("budgets.mutations.toggleError")}
-      </Notice>
-
-      <Notice visible={failure !== null} onDismiss={() => setFailure(null)}>
-        {failure === null ? "" : t(`budgets.actions.line.failure.${failure}`)}
-      </Notice>
+      {/* One slot, the most pressing news first: four snackbars sharing the
+          spot drew over one another. Lifted over the page's FAB. */}
+      {removal.failure !== null ? (
+        <Notice clearsFab visible onDismiss={removal.dismissFailure}>
+          {t(`budgets.mutations.removal.${removal.failure}Error`)}
+        </Notice>
+      ) : failure !== null ? (
+        <Notice clearsFab visible onDismiss={() => setFailure(null)}>
+          {t(`budgets.actions.line.failure.${failure}`)}
+        </Notice>
+      ) : hasToggleFailed ? (
+        <Notice
+          clearsFab
+          visible
+          onDismiss={() => setToggleFailed(false)}
+          action={{
+            label: t("common.close"),
+            onPress: () => setToggleFailed(false),
+          }}
+        >
+          {t("budgets.mutations.toggleError")}
+        </Notice>
+      ) : (
+        <Notice
+          clearsFab
+          visible={removal.last !== null}
+          onDismiss={removal.forget}
+          action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
+        >
+          {removal.undoable.length === 1
+            ? t("budgets.mutations.removal.removedOne", {
+                name: removal.last?.name,
+              })
+            : t("budgets.mutations.removal.removedMany", {
+                count: removal.undoable.length,
+              })}
+        </Notice>
+      )}
 
       <BudgetLineSheet
         key={line.updatedAt}
@@ -128,34 +158,12 @@ export const BudgetLineDetailOverlays = forwardRef<
         onSaved={() => setEditVisible(false)}
       />
 
-      <Notice
-        visible={removal.last !== null}
-        onDismiss={removal.forget}
-        action={{ label: t("budgets.mutations.undo"), onPress: removal.undo }}
-      >
-        {removal.undoable.length === 1
-          ? t("budgets.mutations.removal.removedOne", {
-              name: removal.last?.name,
-            })
-          : t("budgets.mutations.removal.removedMany", {
-              count: removal.undoable.length,
-            })}
-      </Notice>
-
-      <Notice
-        visible={removal.failure !== null}
-        onDismiss={removal.dismissFailure}
-      >
-        {removal.failure === null
-          ? ""
-          : t(`budgets.mutations.removal.${removal.failure}Error`)}
-      </Notice>
-
       <TransactionSheet
         isVisible={isAddVisible}
         onDismiss={() => setAddVisible(false)}
         budgetId={budgetId}
         currency={currency}
+        period={periodDates}
         envelope={{ id: line.id, name: line.name, kind: line.kind }}
         onSaved={() => setAddVisible(false)}
       />
@@ -167,9 +175,12 @@ export const BudgetLineDetailOverlays = forwardRef<
           onDismiss={() => setEdited(null)}
           budgetId={budgetId}
           currency={currency}
+          period={periodDates}
           transaction={edited}
           onSaved={() => setEdited(null)}
           onDelete={() => removal.remove(edited, () => setEdited(null))}
+          isDeleting={removal.isPending}
+          hasDeleteFailed={removal.failure === "delete"}
         />
       )}
 

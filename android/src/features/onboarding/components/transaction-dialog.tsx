@@ -3,6 +3,7 @@ import { useState } from "react";
 import { StyleSheet } from "react-native";
 import { Button, Dialog, Portal, TextInput } from "react-native-paper";
 
+import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { SPACING } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
 
@@ -34,6 +35,7 @@ export function TransactionDialog({
   onSubmit: (transaction: OnboardingTransaction) => void;
 }) {
   const { t } = useTranslation();
+  const keyboardHeight = useKeyboardHeight();
   const [name, setName] = useState(editing?.name ?? "");
   const [amount, setAmount] = useState<number | null>(editing?.amount ?? null);
 
@@ -57,7 +59,15 @@ export function TransactionDialog({
 
   return (
     <Portal>
-      <Dialog visible onDismiss={onDismiss}>
+      {/* Paper's Dialog stays centred in the whole window, and the window does
+          not shrink for the keyboard (`keyboard-inset.ts`): "Ajouter" ended up
+          under the keys. Half the keyboard's height recentres it in the room
+          the keys leave. */}
+      <Dialog
+        visible
+        onDismiss={onDismiss}
+        style={{ transform: [{ translateY: -keyboardHeight / 2 }] }}
+      >
         <Dialog.Title>{t(`onboarding.transaction.title.${kind}`)}</Dialog.Title>
         <Dialog.Content style={styles.content}>
           <TextInput

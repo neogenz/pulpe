@@ -1,6 +1,8 @@
 import { Stack } from "expo-router";
 import { useTheme } from "react-native-paper";
 
+import { AmountMaskBoundary } from "@/core/ui/amount-mask-boundary";
+import { RouteErrorBoundary } from "@/core/ui/route-error-boundary";
 import { RequiredSettingsGate } from "@/core/user-settings/required-settings-gate";
 
 /**
@@ -25,7 +27,22 @@ export default function MainLayout() {
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
         }}
+        // The tabs remount their own screens, and the settings print no amount —
+        // remounting them would throw away the very screen the toggle is on.
+        screenLayout={({ route, children }) =>
+          route.name === "(tabs)" || route.name.startsWith("settings") ? (
+            children
+          ) : (
+            <AmountMaskBoundary>{children}</AmountMaskBoundary>
+          )
+        }
       />
     </RequiredSettingsGate>
   );
 }
+
+/**
+ * A screen that throws is replaced by a retry inside the signed-in area, below
+ * the root's providers, instead of taking the whole app down with it.
+ */
+export const ErrorBoundary = RouteErrorBoundary;

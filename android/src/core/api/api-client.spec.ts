@@ -90,6 +90,26 @@ describe("ApiClient", () => {
     expect(headers[CLIENT_KEY_HEADER]).toBe("unlocked-key");
   });
 
+  it("should send the key a request started with, even if the vault locks meanwhile", async () => {
+    const fetchFn = jest.fn().mockImplementation(jsonResponse(VALID_PAYLOAD));
+    let clientKey: string | null = "unlocked-key";
+    const client = new ApiClient({
+      baseUrl: "https://api.test/api/v1",
+      // The auto-lock clears the key while the token is being read.
+      getAccessToken: async () => {
+        clientKey = null;
+        return "access-token";
+      },
+      getClientKey: () => clientKey,
+      fetchFn: fetchFn as unknown as typeof fetch,
+    });
+
+    await client.get("/budgets", budgetsSchema);
+
+    const headers = fetchFn.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers[CLIENT_KEY_HEADER]).toBe("unlocked-key");
+  });
+
   it("should raise a typed parse error when the payload does not match", async () => {
     const fetchFn = jest
       .fn()

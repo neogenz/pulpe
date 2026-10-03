@@ -25,6 +25,7 @@ import { useSessionStore } from "@/core/auth/session-store";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { useUserProfile } from "@/features/account/account-queries";
 import { ProfileSheet } from "@/features/account/components/profile-sheet";
 import {
@@ -43,6 +44,7 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const profile = useUserProfile();
+  const pull = usePullToRefresh(() => profile.refetch());
   const sessionEmail = useSessionStore((state) => state.user?.email);
   const signOut = useSessionStore((state) => state.signOut);
   const [isEditingProfile, setEditingProfile] = useState(false);
@@ -69,12 +71,7 @@ export default function SettingsScreen() {
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={profile.isRefetching}
-            onRefresh={() => void profile.refetch()}
-          />
-        }
+        refreshControl={<RefreshControl {...pull} />}
       >
         <View style={styles.profile}>
           {/* Decorative: the name and email right below carry the identity. */}

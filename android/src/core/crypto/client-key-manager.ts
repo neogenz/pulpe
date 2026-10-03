@@ -22,6 +22,18 @@ import { isValidClientKeyHex } from "./client-key-format";
 
 const STANDARD_KEY_SLOT = "pulpe.clientKey";
 const BIOMETRIC_KEY_SLOT = "pulpe.clientKey.biometric";
+/**
+ * Records whether biometric unlock is enabled, without holding a secret.
+ * "1" means enabled, "0" means explicitly disabled; a missing marker is a
+ * possible legacy installation whose authenticated slot has not been checked.
+ * On Android a read of an item stored with `requireAuthentication`
+ * authenticates whatever options the
+ * read passes — `expo-secure-store` takes the flag from the stored item — so
+ * asking the gated slot whether it existed opened a blank biometric prompt at
+ * every cold start and every lock, and cancelling it left the vault unable to
+ * bootstrap. The marker holds no secret and needs no authentication.
+ */
+const BIOMETRIC_MARKER_SLOT = "pulpe.clientKey.biometric.armed";
 
 /**
  * Read synchronously by `ApiClient` on every request, so it cannot be a
@@ -57,12 +69,34 @@ export async function clearLegacyClientKey(): Promise<void> {
   await SecureStore.deleteItemAsync(STANDARD_KEY_SLOT);
 }
 
+/**
+ * Whether biometric unlock is confirmed enabled, answered without prompting.
+ */
 export async function hasBiometricKey(): Promise<boolean> {
-  // Presence is checked without `requireAuthentication`, so asking the question
-  // does not prompt: the unlock screen needs to know whether to offer the
-  // biometric button before the user has decided to use it.
-  const stored = await SecureStore.getItemAsync(BIOMETRIC_KEY_SLOT);
-  return stored !== null;
+  const marker = await SecureStore.getItemAsync(BIOMETRIC_MARKER_SLOT);
+  return marker === "1";
+}
+
+/**
+ * Older releases wrote only the authenticated slot. SecureStore has no
+ * presence API, so offer one manually initiated attempt rather than reading
+ * the slot during bootstrap. The sensor check never authenticates the user.
+ */
+export async function hasLegacyBiometricKeyCandidate(): Promise<boolean> {
+  const marker = await SecureStore.getItemAsync(BIOMETRIC_MARKER_SLOT);
+  return marker === null && SecureStore.canUseBiometricAuthentication();
+}
+
+/**
+ * Every release's sign-out removed the authenticated slot, so a launch that
+ * finds nobody signed in holds no legacy key. A fresh install is the common
+ * case: left unanswered, its first unlock offered a fingerprint that read an
+ * empty slot and vanished without a prompt.
+ */
+export async function retireLegacyBiometricCandidate(): Promise<void> {
+  const marker = await SecureStore.getItemAsync(BIOMETRIC_MARKER_SLOT);
+  if (marker !== null) return;
+  await disableBiometricUnlock();
 }
 
 /**
@@ -70,12 +104,25 @@ export async function hasBiometricKey(): Promise<boolean> {
  * rest of the process.
  */
 export async function resolveViaBiometric(): Promise<string | null> {
-  const hex = await readSlot(BIOMETRIC_KEY_SLOT, {
-    requireAuthentication: true,
-    authenticationPrompt: translate("settings.security.biometricPrompt"),
-  });
-  if (hex === null) return null;
+  let hex: string | null;
+  try {
+    hex = await readSlot(BIOMETRIC_KEY_SLOT, {
+      requireAuthentication: true,
+      authenticationPrompt: translate("settings.security.biometricPrompt"),
+    });
+  } catch {
+    // Dismissed, too many failed scans, or no sensor answering: the PIN is
+    // still there, and an error screen would only stand in front of it.
+    return null;
+  }
+  if (hex === null) {
+    // Android drops a key invalidated by a newly enrolled fingerprint, and
+    // the read comes back empty: stop offering what can no longer open.
+    await SecureStore.setItemAsync(BIOMETRIC_MARKER_SLOT, "0");
+    return null;
+  }
 
+  await SecureStore.setItemAsync(BIOMETRIC_MARKER_SLOT, "1");
   cachedClientKeyHex = hex;
   return hex;
 }
@@ -105,6 +152,7 @@ export async function enableBiometricUnlock(): Promise<boolean> {
       requireAuthentication: true,
       authenticationPrompt: translate("settings.security.biometricPrompt"),
     });
+    await SecureStore.setItemAsync(BIOMETRIC_MARKER_SLOT, "1");
     return true;
   } catch {
     return false;
@@ -119,7 +167,19 @@ export async function enableBiometricUnlock(): Promise<boolean> {
  * next person to trust that reading would have built on it.
  */
 export async function disableBiometricUnlock(): Promise<void> {
-  await SecureStore.deleteItemAsync(BIOMETRIC_KEY_SLOT);
+  await completeKeyCleanup([
+    SecureStore.setItemAsync(BIOMETRIC_MARKER_SLOT, "0"),
+    SecureStore.deleteItemAsync(BIOMETRIC_KEY_SLOT),
+  ]);
+}
+
+/** Attempt every cleanup before propagating the first storage failure. */
+async function completeKeyCleanup(
+  operations: Promise<unknown>[],
+): Promise<void> {
+  const results = await Promise.allSettled(operations);
+  const failure = results.find((result) => result.status === "rejected");
+  if (failure) throw failure.reason;
 }
 
 /** Locks the vault, keeping biometric unlock available. */
@@ -128,9 +188,12 @@ export async function clearSessionKey(): Promise<void> {
   await SecureStore.deleteItemAsync(STANDARD_KEY_SLOT);
 }
 
-/** Sign-out: nothing about this account survives on the device. */
+/** Sign-out: remove account secrets and keep an account-independent opt-out. */
 export async function clearAllKeys(): Promise<void> {
   cachedClientKeyHex = null;
-  await SecureStore.deleteItemAsync(STANDARD_KEY_SLOT);
-  await SecureStore.deleteItemAsync(BIOMETRIC_KEY_SLOT);
+  await completeKeyCleanup([
+    SecureStore.deleteItemAsync(STANDARD_KEY_SLOT),
+    SecureStore.setItemAsync(BIOMETRIC_MARKER_SLOT, "0"),
+    SecureStore.deleteItemAsync(BIOMETRIC_KEY_SLOT),
+  ]);
 }

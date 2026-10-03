@@ -78,14 +78,6 @@ jest.mock("@/core/ui/scheme-colors", () => ({
 jest.mock("@/core/ui/screen-app-bar", () => ({
   ScreenAppBar: ({ children }: { children: React.ReactNode }) => children,
 }));
-jest.mock("@/core/ui/eyebrow", () => {
-  const { Text } = jest.requireActual("react-native");
-  return {
-    Eyebrow: ({ children }: { children: React.ReactNode }) => (
-      <Text>{children}</Text>
-    ),
-  };
-});
 jest.mock("@/core/ui/card", () => {
   const { View } = jest.requireActual("react-native");
   const Card = ({ children }: { children: React.ReactNode }) => (
@@ -160,6 +152,9 @@ jest.mock("@/features/account/components/settings-section", () => {
         <Text>{title}</Text>
         {children}
       </View>
+    ),
+    SettingsSectionTitle: ({ children }: { children: string }) => (
+      <Text>{children}</Text>
     ),
     SettingsRow: ({
       title,

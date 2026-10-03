@@ -13,7 +13,10 @@ import {
 } from "@/core/vault/vault-store";
 
 const mockSignOut = jest.fn();
-const mockVault = { isBiometricAvailable: false };
+const mockVault = {
+  isBiometricAvailable: false,
+  isLegacyBiometricAvailable: false,
+};
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
@@ -28,6 +31,7 @@ jest.mock("@/core/auth/session-store", () => ({
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
+jest.mock("@/core/i18n/i18n", () => ({ translate: (key: string) => key }));
 jest.mock("@/core/ui/haptics", () => ({
   hapticCommit: jest.fn(),
   hapticFailure: jest.fn(),
@@ -35,6 +39,7 @@ jest.mock("@/core/ui/haptics", () => ({
 }));
 jest.mock("@/core/ui/ripple", () => ({ useRipple: () => undefined }));
 jest.mock("@/core/api/api-error", () => ({
+  ...jest.requireActual("@/core/api/api-error"),
   normalizeApiError: jest.fn(),
 }));
 jest.mock("@/core/vault/vault-store", () => ({
@@ -107,6 +112,7 @@ const COMPLETE_KEY = "A".repeat(52);
 beforeEach(() => {
   jest.clearAllMocks();
   mockVault.isBiometricAvailable = false;
+  mockVault.isLegacyBiometricAvailable = false;
   mockedRecover.mockResolvedValue(undefined);
   mockedSetup.mockResolvedValue(undefined);
   mockedBiometrics.mockResolvedValue(true);
@@ -125,6 +131,20 @@ it("unlocks with PIN, biometrics and a recoverable biometric retry", async () =>
   await waitFor(() => expect(mockedUnlock).toHaveBeenCalledWith("1234"));
   await fireEvent.press(view.getByLabelText("vault.unlock.biometric"));
   expect(mockedBiometrics).toHaveBeenCalledTimes(2);
+});
+
+it("offers legacy biometrics without prompting until the button is pressed", async () => {
+  mockVault.isLegacyBiometricAvailable = true;
+  const view = await render(<VaultUnlockScreen />);
+
+  expect(mockedBiometrics).not.toHaveBeenCalled();
+  await fireEvent.press(view.getByLabelText("vault.unlock.biometric"));
+  expect(mockedBiometrics).toHaveBeenCalledTimes(1);
+
+  mockVault.isBiometricAvailable = true;
+  mockVault.isLegacyBiometricAvailable = false;
+  await view.rerender(<VaultUnlockScreen />);
+  expect(mockedBiometrics).toHaveBeenCalledTimes(1);
 });
 
 it("requires matching setup PINs and remains retryable after setup failure", async () => {

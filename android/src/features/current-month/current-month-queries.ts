@@ -1,5 +1,6 @@
 import { getBudgetPeriodForDate, type SupportedCurrency } from "pulpe-shared";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AppState } from "react-native";
 
 import {
   invalidateUserSettings,
@@ -32,7 +33,6 @@ export interface CurrentMonthQuery {
   viewModel: CurrentMonthViewModel | null;
   currency: SupportedCurrency;
   payDayOfMonth: number | null;
-  isRefreshing: boolean;
   refresh: () => Promise<void>;
 }
 
@@ -55,14 +55,61 @@ export async function refreshCurrentMonth(): Promise<void> {
   await Promise.all([invalidateBudgetData(), invalidateUserSettings()]);
 }
 
+/**
+ * How long until the next local midnight, plus a second so a timer that fires
+ * a hair early does not land on the day it was meant to leave.
+ */
+export function msUntilNextDay(now: Date): number {
+  const nextDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+  return nextDay.getTime() - now.getTime() + 1000;
+}
+
+/**
+ * The moment the current period is read from, held as state so that it can
+ * move. A `new Date()` taken inside the memo was taken once: the refetched
+ * settings come back structurally identical, no dependency changed, and Home
+ * stayed on last month's budget after the pay day — through pull-to-refresh
+ * and Retry alike. Coming back to the foreground, refreshing, and midnight
+ * passing with the app open all read the clock again: a period starts at a
+ * day's boundary, so a screen left open overnight would otherwise keep showing
+ * the period that just ended.
+ */
+export function useNow(): [Date, () => void] {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") setNow(new Date());
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // Re-armed from each new reading. JS timers stop with the app in the
+  // background; the foreground listener above covers the night it slept
+  // through.
+  useEffect(() => {
+    const timer = setTimeout(() => setNow(new Date()), msUntilNextDay(now));
+    return () => clearTimeout(timer);
+  }, [now]);
+
+  return [now, () => setNow(new Date())];
+}
+
 export function useCurrentMonth(): CurrentMonthQuery {
   const settings = useUserSettings();
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
+  const [now, readClock] = useNow();
 
   const currentPeriod = useMemo(
     () =>
-      settings.data === undefined ? null : currentBudgetPeriod(payDayOfMonth),
-    [payDayOfMonth, settings.data],
+      settings.data === undefined
+        ? null
+        : currentBudgetPeriod(payDayOfMonth, now),
+    [payDayOfMonth, settings.data, now],
   );
   const periods = useBudgetPeriods(currentPeriod?.year ?? null);
   const budgetId = useMemo(
@@ -78,12 +125,9 @@ export function useCurrentMonth(): CurrentMonthQuery {
   const viewModel = useMemo(
     () =>
       details.data
-        ? buildCurrentMonthViewModel(details.data, {
-            now: new Date(),
-            payDayOfMonth,
-          })
+        ? buildCurrentMonthViewModel(details.data, { now, payDayOfMonth })
         : null,
-    [details.data, payDayOfMonth],
+    [details.data, payDayOfMonth, now],
   );
 
   return {
@@ -93,9 +137,10 @@ export function useCurrentMonth(): CurrentMonthQuery {
     viewModel,
     currency: settings.data?.currency ?? FALLBACK_CURRENCY,
     payDayOfMonth,
-    isRefreshing:
-      periods.isRefetching || details.isRefetching || settings.isRefetching,
-    refresh: refreshCurrentMonth,
+    refresh: () => {
+      readClock();
+      return refreshCurrentMonth();
+    },
   };
 }
 

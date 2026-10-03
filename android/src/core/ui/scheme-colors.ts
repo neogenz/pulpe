@@ -1,6 +1,11 @@
 import { useColorScheme } from "react-native";
 
-import { FINANCIAL_COLORS, HOME_HERO_COLORS } from "@/core/ui/theme";
+import {
+  FINANCIAL_COLORS,
+  HERO_COLORS,
+  PREVIEW_COLORS,
+  SHEET_COLORS,
+} from "@/core/ui/theme";
 
 /**
  * Which half of a two-scheme palette to read.
@@ -10,7 +15,7 @@ import { FINANCIAL_COLORS, HOME_HERO_COLORS } from "@/core/ui/theme";
  * right answer, but it was twenty chances to index a palette with `null` and
  * only be caught by someone switching their phone at the right moment.
  */
-function useSchemeName(): "light" | "dark" {
+export function useSchemeName(): "light" | "dark" {
   return useColorScheme() === "dark" ? "dark" : "light";
 }
 
@@ -19,7 +24,17 @@ export function useFinancialColors() {
   return FINANCIAL_COLORS[useSchemeName()];
 }
 
-/** The dashboard hero's mint surface and its ink, for the scheme in force. */
+/** The forest every hero sits on, and the inks that read on it. */
 export function useHeroColors() {
-  return HOME_HERO_COLORS[useSchemeName()];
+  return HERO_COLORS[useSchemeName()];
+}
+
+/** The onboarding preview's mint card and its ink, for the scheme in force. */
+export function usePreviewColors() {
+  return PREVIEW_COLORS[useSchemeName()];
+}
+
+/** The surface a form sheet rises on, for the scheme in force. */
+export function useSheetColors() {
+  return SHEET_COLORS[useSchemeName()];
 }

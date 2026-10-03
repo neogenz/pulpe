@@ -34,7 +34,10 @@ const PALETTE = {
     tertiaryContainer: "#D2E4FF",
     onTertiaryContainer: "#001D36",
 
-    background: "#F7F6F3",
+    // The sage canvas iOS paints every screen with (`Color.appBackground`).
+    // Cards sit on it in `surface`, white, so a list reads as a stack of
+    // paper on a calm ground rather than grey slabs on grey.
+    background: "#EFF3EE",
     onBackground: "#1A1C19",
     surface: "#FFFFFF",
     onSurface: "#1A1C19",
@@ -78,7 +81,7 @@ const PALETTE = {
     tertiaryContainer: "#00497F",
     onTertiaryContainer: "#D2E4FF",
 
-    background: "#141210",
+    background: "#121611",
     onBackground: "#E5E2DD",
     surface: "#1A1816",
     onSurface: "#E5E2DD",
@@ -118,6 +121,10 @@ export const FINANCIAL_COLORS = {
     destructive: "#C62828",
     /** The surface an irreversible action sits on, from `Color+Pulpe.swift`. */
     destructiveContainer: "#FDECEA",
+    /** The home's "Ça dérive" bars and figures — `driftAccent` on iOS. */
+    drift: "#AA4522",
+    /** An envelope past half its budget, before it overruns. */
+    warning: "#8A6400",
   },
   dark: {
     income: "#5AA8E0",
@@ -126,29 +133,78 @@ export const FINANCIAL_COLORS = {
     overBudget: "#E5A33A",
     destructive: "#FF6B6B",
     destructiveContainer: "#3A1818",
+    drift: "#E8825A",
+    warning: "#FFD54F",
   },
 } as const;
 
 /**
- * The home dashboard's mint hero card, from `Color+Pulpe.swift`. Its surface is
+ * The surface a form sheet rises on: warmer than the canvas, so the white
+ * fields and cards inside it lift off it the way iOS's `sheetBackground` does.
+ * Dark mode takes the lifted surface rather than the near-black iOS uses — on
+ * Android a sheet has no material behind it to tell it from the page.
+ */
+export const SHEET_COLORS = {
+  light: { background: "#F5F3F0" },
+  dark: { background: "#1A1816" },
+} as const;
+
+/**
+ * The onboarding preview's mint card, from `Color+Pulpe.swift`. Its surface is
  * the same in every emotion state — the brand stays calm and the verdict is
  * carried by the ink on it, not by the card turning colour underneath.
- *
- * `drift` is the deficit accent, set against this mint rather than against the
- * app background, which is where it has to clear 4.5:1.
  */
-export const HOME_HERO_COLORS = {
+export const PREVIEW_COLORS = {
   light: {
     surface: "#CFE8D6",
     ink: "#0E3A1C",
     support: "#2C5136",
-    drift: "#AA4522",
   },
   dark: {
     surface: "#1D3A28",
     ink: "#D5ECDC",
     support: "#9FC3AA",
-    drift: "#E8825A",
+  },
+} as const;
+
+/**
+ * The emotion zone: the constant forest every hero sits on (home, budgets,
+ * budget detail, savings goal), mirrored from the `hero*` tokens in
+ * `Color+Pulpe.swift`. The surface never changes with the month's state — the
+ * verdict is read in the sentence, one tile and the chart accent, so a hero
+ * that also turned amber would say it twice and shout the second time.
+ *
+ * Every ink is measured against `surface`, the darker stop: `ink` 12.8:1,
+ * `support` 9.9:1, and each accent clears 4.5:1.
+ */
+export const HERO_COLORS = {
+  light: {
+    surfaceTop: "#14512A",
+    surface: "#0E3A1C",
+    ink: "#F3F9F5",
+    support: "#CFE8D6",
+    /** A tile, a selected chip: a lift in the surface, never a signal. */
+    tile: "rgba(243, 249, 245, 0.12)",
+    /** The disc behind an app bar action, so the glyph keeps a 48dp target. */
+    disc: "rgba(243, 249, 245, 0.2)",
+    muted: "rgba(243, 249, 245, 0.6)",
+    positive: "#7EDB83",
+    caution: "#E5A33A",
+    deficit: "#F08A6A",
+    info: "#5AA8E0",
+  },
+  dark: {
+    surfaceTop: "#0E3A1C",
+    surface: "#0B2E16",
+    ink: "#F3F9F5",
+    support: "#CFE8D6",
+    tile: "rgba(243, 249, 245, 0.12)",
+    disc: "rgba(243, 249, 245, 0.2)",
+    muted: "rgba(243, 249, 245, 0.6)",
+    positive: "#7EDB83",
+    caution: "#E5A33A",
+    deficit: "#F08A6A",
+    info: "#5AA8E0",
   },
 } as const;
 
@@ -226,12 +282,6 @@ export const UPPERCASE_TRACKING = 2;
 export const SCREEN_PADDING = SPACING.md;
 
 /**
- * What a list must leave under its last row so a floating action button does
- * not sit on top of it: 56 for the button, 16 for its margin, 24 to read past.
- */
-export const FAB_CLEARANCE = 96;
-
-/**
  * The icon size an `IconButton` takes when it sits at the end of a list row.
  * Paper's default sizes the button at 1.5× its icon and hangs six points of
  * margin off every side, so a pencil and a bin together cost a hundred of the
@@ -252,10 +302,61 @@ export const RADIUS = {
   sm: 8,
   card: 18,
   md: 24,
+  /**
+   * The content zone's upper corners, where it rises over the hero. iOS draws
+   * 44 with continuous corners; a circular Android corner at that radius reads
+   * as a bubble, so this is Material's extra-large shape instead.
+   */
+  zone: 28,
   full: 999,
 } as const;
 
+/**
+ * What a list must leave under its last row so a floating action button does
+ * not sit on top of it: 56 for the button, 16 for its margin, 24 to read past.
+ * A notice on a screen with a FAB rises by the same amount, above it, as M3
+ * places a snackbar.
+ */
+export const FAB_CLEARANCE = 96;
+
+/** A ledger row: its disc column and its floor. */
+export const ROW = {
+  disc: 36,
+  minHeight: 56,
+} as const;
+
 const DISPLAY_FAMILY = "Manrope";
+
+/**
+ * The few brand roles MD3's scale has no slot for — `Typography.swift` on iOS.
+ * Manrope carries the figures; every title, label, button and body line stays
+ * on the system face, section titles included — they are chrome, and on iOS
+ * they are SF Pro for the same reason.
+ */
+export const BRAND_TYPE = {
+  /** The one number a hero exists to show. */
+  heroFigure: {
+    fontFamily: DISPLAY_FAMILY,
+    fontWeight: "800",
+    fontSize: 44,
+    lineHeight: 52,
+    letterSpacing: -1,
+  },
+  /** The currency set beside a hero figure, on the same baseline. */
+  heroCurrency: {
+    fontFamily: DISPLAY_FAMILY,
+    fontWeight: "700",
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  /** A ledger row's amount, the one figure the row exists for. */
+  rowAmount: {
+    fontFamily: DISPLAY_FAMILY,
+    fontWeight: "800",
+    fontSize: 17,
+    lineHeight: 22,
+  },
+} as const satisfies Record<string, TextStyle>;
 
 /**
  * Two families, per the Two-Family Rule. Manrope carries the brand on display

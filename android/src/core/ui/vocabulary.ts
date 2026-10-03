@@ -31,3 +31,14 @@ export function kindOptions(t: Translate) {
     label: t(`vocabulary.kind.${value}`),
   }));
 }
+
+/**
+ * The glyph each nature wears on its disc, everywhere a row opens on one. Five
+ * files had written the same three names out; a sixth would have been one
+ * chance for income to come out as a different arrow on one screen.
+ */
+export const KIND_ICONS = {
+  income: "arrow-down",
+  expense: "arrow-up",
+  saving: "piggy-bank-outline",
+} as const satisfies Record<TransactionKind, string>;

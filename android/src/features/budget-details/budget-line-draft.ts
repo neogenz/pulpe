@@ -92,7 +92,11 @@ export function buildBudgetLineUpdate(
       ? { recurrence: draft.recurrence }
       : {}),
     // An amount typed over a template's own is precisely what this flag means.
-    ...(draft.amount !== line.amount && line.templateLineId !== null
+    // A line already adjusted says so again whatever changed: the shared
+    // update schema reads a missing flag as `false`, so a rename alone lifted
+    // the shield that keeps a regenerated month from overwriting the amount.
+    ...(line.isManuallyAdjusted ||
+    (draft.amount !== line.amount && line.templateLineId !== null)
       ? { isManuallyAdjusted: true }
       : {}),
   };

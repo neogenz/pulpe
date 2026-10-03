@@ -1,8 +1,13 @@
+import {
+  isAuthApiError,
+  isAuthRetryableFetchError,
+} from "@supabase/supabase-js";
 import { hashKey, type QueryKey } from "@tanstack/react-query";
 
 import { isApiError } from "@/core/api/api-error";
 import { queryClient } from "@/core/query/query-client";
 import { isVaultKeyRejected } from "@/core/vault/key-rejection";
+import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 
 import { useSessionStore } from "./session-store";
 import { supabase } from "./supabase";
@@ -11,18 +16,45 @@ const HTTP_UNAUTHORIZED = 401;
 
 let recovery: Promise<boolean> | null = null;
 
+const HTTP_SERVER_ERROR = 500;
+
 /**
- * One refresh for a whole burst of 401s, and one sign-out if it fails: every
- * screen that failed in the same tick waits on the same promise. Resolves to
- * whether the session was refreshed.
+ * Whether a failed refresh proves the session is over, rather than that the
+ * auth server could not be reached. Only the server refusing the refresh token
+ * does: a network failure, a 5xx or a thrown error say nothing about it, and
+ * signing out on them wiped the keys — biometric unlock included — of every
+ * user who happened to be on a data screen during a Supabase incident or in a
+ * tunnel.
+ */
+function provesSessionDead(error: unknown): boolean {
+  if (isAuthRetryableFetchError(error)) return false;
+  if (isAuthApiError(error)) return error.status < HTTP_SERVER_ERROR;
+  // `AuthSessionMissingError` and friends: there is no session to refresh.
+  return (
+    error !== null && typeof error === "object" && "__isAuthError" in error
+  );
+}
+
+/**
+ * One refresh for a whole burst of 401s, and one sign-out if it proves the
+ * session dead: every screen that failed in the same tick waits on the same
+ * promise. Resolves to whether the session was refreshed.
  */
 function recoverSession(): Promise<boolean> {
   recovery ??= (async () => {
-    const isRefreshed = await supabase.auth.refreshSession().then(
-      ({ data, error }) => error === null && data.session !== null,
-      () => false,
+    const outcome = await supabase.auth.refreshSession().then(
+      ({ data, error }) =>
+        error === null
+          ? data.session !== null
+            ? "refreshed"
+            : "dead"
+          : provesSessionDead(error)
+            ? "dead"
+            : "unreachable",
+      () => "unreachable" as const,
     );
-    if (!isRefreshed) {
+    const isRefreshed = outcome === "refreshed";
+    if (outcome === "dead") {
       // Scoped to this device: the account is fine, only this session died.
       await useSessionStore
         .getState()
@@ -85,8 +117,34 @@ export function observeSessionRejection(): () => void {
       }
     });
 
+  // The vault is asked before any query runs, so a session revoked elsewhere
+  // reaches it first, where its retry screen asked the same refused question
+  // forever. Same rule as a query: one refresh, then one more try.
+  let hasRetriedBootstrap = false;
+  const unsubscribeVault = useVaultStore.subscribe((vault, previous) => {
+    if (vault.status !== "unknown") hasRetriedBootstrap = false;
+    if (
+      vault.bootstrapFailure !== "sessionRejected" ||
+      previous.bootstrapFailure === "sessionRejected" ||
+      hasRetriedBootstrap ||
+      useSessionStore.getState().status !== "authenticated"
+    ) {
+      return;
+    }
+    void recoverSession().then((isRefreshed) => {
+      if (!isRefreshed) return;
+      hasRetriedBootstrap = true;
+      void bootstrapVault();
+    });
+  });
+  const unsubscribeSession = useSessionStore.subscribe((session) => {
+    if (session.status !== "authenticated") hasRetriedBootstrap = false;
+  });
+
   return () => {
     unsubscribeQueries();
     unsubscribeMutations();
+    unsubscribeVault();
+    unsubscribeSession();
   };
 }

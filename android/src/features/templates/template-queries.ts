@@ -70,9 +70,8 @@ export function useTemplateUsage(templateId: string) {
 }
 
 /**
- * A model edit can reach the budgets generated from it, and none of these
- * inputs carries a budget id, so the budget prefix is swept rather than
- * narrowed with `invalidateBudget`.
+ * A model edit can reach the budgets generated from it, so the budget prefix
+ * is swept rather than narrowed with `invalidateAfterBudgetWrite`.
  */
 function useTemplateMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,

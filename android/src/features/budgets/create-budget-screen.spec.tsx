@@ -21,10 +21,12 @@ const mockSettings = {
   isError: false,
   refetch: jest.fn(),
 };
+let mockParams: { month?: string; year?: string } = {};
 const mockCreate = { mutate: jest.fn(), isPending: false, isError: false };
 
 jest.mock("expo-router", () => ({
-  router: { back: jest.fn(), replace: jest.fn() },
+  router: { back: jest.fn(), dismissTo: jest.fn(), replace: jest.fn() },
+  useLocalSearchParams: () => mockParams,
 }));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: jest.requireActual("react-native").View,
@@ -176,6 +178,7 @@ jest.mock("@/features/budgets/create-budget-mutation", () => ({
 }));
 
 beforeEach(() => {
+  mockParams = {};
   jest.clearAllMocks();
   Object.assign(mockBudgets, { data: [], isPending: false, isError: false });
   Object.assign(mockTemplates, { data: [], isPending: false, isError: false });
@@ -248,4 +251,39 @@ it("uses the selected period and template while keeping mutation errors recovera
   expect(view.getByText("radio:template-1")).toBeTruthy();
   await fireEvent.press(view.getByText("budgets.create.submit"));
   expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
+});
+
+/**
+ * This screen is pushed over the tabs: `replace` would stack a second tabs
+ * navigator on the (main) stack, and back would walk through both.
+ */
+it("pops back to the existing tabs when there is no template to create from", async () => {
+  const view = await render(<CreateBudgetScreen />);
+
+  expect(view.getByText("budgets.create.noTemplatesTitle")).toBeTruthy();
+  await fireEvent.press(view.getByText("budgets.create.viewTemplates"));
+
+  expect(router.dismissTo).toHaveBeenCalledWith("/templates");
+  expect(router.replace).not.toHaveBeenCalled();
+});
+
+it("opens on the month a list row asked for, even past the first few", async () => {
+  const now = new Date();
+  const far = new Date(now.getFullYear(), now.getMonth() + 6, 1);
+  mockParams = {
+    month: String(far.getMonth() + 1),
+    year: String(far.getFullYear()),
+  };
+  mockTemplates.data = [{ id: "template-1", name: "Simple", isDefault: true }];
+  const view = await render(<CreateBudgetScreen />);
+
+  await fireEvent.press(view.getByText("budgets.create.submit"));
+
+  expect(mockCreate.mutate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      month: far.getMonth() + 1,
+      year: far.getFullYear(),
+    }),
+    expect.anything(),
+  );
 });

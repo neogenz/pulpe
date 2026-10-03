@@ -10,6 +10,7 @@
     "build": "expo export --platform android",
     "eas-build-post-install": "pnpm --filter pulpe-shared build",
     "test:e2e": "maestro test maestro/smoke.yaml",
+    "update:production": "node scripts/eas-update.mjs production",
     "test": "jest --coverage --runInBand",
     "test:coverage": "jest --coverage --runInBand",
     "lint": "eslint .",

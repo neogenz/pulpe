@@ -2,7 +2,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -23,6 +22,7 @@ import {
 } from "@/core/observability/analytics";
 import { queryClient } from "@/core/query/query-client";
 import { ForegroundRefresh } from "@/core/system/foreground-refresh";
+import { RouteStatusBar } from "@/core/system/route-status-bar";
 import { armPrivacyShield } from "@/core/system/privacy-shield";
 import { SystemGateScreen } from "@/core/system/system-gate-screen";
 import { WhatsNewSheet } from "@/core/system/whats-new-sheet";
@@ -47,6 +47,7 @@ function RootLayout() {
   const retrySessionRestore = useSessionStore(
     (state) => state.retrySessionRestore,
   );
+  const signOut = useSessionStore((state) => state.signOut);
   const [isRetryingSession, setIsRetryingSession] = useState(false);
   const vaultStatus = useVaultStore((state) => state.status);
   const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
@@ -123,7 +124,7 @@ function RootLayout() {
         <PaperProvider
           theme={colorScheme === "dark" ? pulpeDarkTheme : pulpeLightTheme}
         >
-          <StatusBar style="auto" />
+          <RouteStatusBar />
           {status === "error" ? (
             <PlaceholderScreen
               icon="shield-alert-outline"
@@ -138,6 +139,12 @@ function RootLayout() {
                     setIsRetryingSession(false),
                   );
                 },
+              }}
+              // A session storage that keeps failing to read would otherwise
+              // hold the user on this screen for good.
+              secondaryAction={{
+                label: t("common.signOut"),
+                onPress: () => void signOut().catch(() => undefined),
               }}
             />
           ) : (
@@ -185,3 +192,6 @@ function RootLayout() {
 }
 
 export default RootLayout;
+
+// The last resort: a render error anywhere below would otherwise close the app.
+export { RouteErrorBoundary as ErrorBoundary } from "@/core/ui/route-error-boundary";

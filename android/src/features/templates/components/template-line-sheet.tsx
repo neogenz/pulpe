@@ -88,7 +88,14 @@ export function TemplateLineSheet({
   const [isPropagationVisible, setPropagationVisible] = useState(false);
 
   const isEditing = line !== undefined;
-  const mutation = isEditing ? (bulk.isPending ? bulk : update) : create;
+  // The one asked last — starting either resets the other — so a failure
+  // stays on screen once it lands. Keyed on `isPending` alone, a failed
+  // "Appliquer" fell back to the untouched update and said nothing.
+  const mutation = !isEditing
+    ? create
+    : bulk.isPending || bulk.isError
+      ? bulk
+      : update;
   const isSubmittable =
     name.trim().length > 0 &&
     amount !== null &&
@@ -136,8 +143,13 @@ export function TemplateLineSheet({
     saveTemplateOnly();
   }
 
+  // Back to the form on failure, where the error sits under the save button
+  // and the values stay as typed.
+  const leaveDialogOnError = () => setPropagationVisible(false);
+
   function saveTemplateOnly() {
     if (line === undefined || amount === null) return;
+    bulk.reset();
     update.mutate(
       {
         templateId,
@@ -150,12 +162,13 @@ export function TemplateLineSheet({
           savingsGoalId: goalLink,
         },
       },
-      { onSuccess: succeed },
+      { onSuccess: succeed, onError: leaveDialogOnError },
     );
   }
 
   function saveAndPropagate() {
     if (line === undefined || amount === null) return;
+    update.reset();
     bulk.mutate(
       {
         templateId,
@@ -175,7 +188,7 @@ export function TemplateLineSheet({
           propagateToBudgets: true,
         },
       },
-      { onSuccess: succeed },
+      { onSuccess: succeed, onError: leaveDialogOnError },
     );
   }
 

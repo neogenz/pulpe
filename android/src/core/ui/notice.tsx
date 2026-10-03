@@ -10,7 +10,7 @@ interface NoticeProps extends SnackbarProps {
    * The screen underneath has a FAB. Android stacks by elevation before it
    * stacks by tree order, so a FAB drawn at level 6 comes out on top of a
    * snackbar at level 3 however late the snackbar is written — the way out is
-   * not to overlap it at all.
+   * not to overlap it at all, and M3 puts the snackbar above the FAB anyway.
    */
   clearsFab?: boolean;
 }

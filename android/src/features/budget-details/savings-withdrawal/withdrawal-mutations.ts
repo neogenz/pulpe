@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   budgetKeys,
-  invalidateBudget,
+  invalidateAfterBudgetWrite,
 } from "@/features/budgets/budget-queries";
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
@@ -12,22 +12,18 @@ import {
 } from "./withdrawal-api";
 
 /**
- * Both halves of a withdrawal live in different months, and the response names
- * them. The one case that still sweeps is the month the request had to create:
- * a new budget is a new list entry and a new period, which no line id can say.
+ * The month the request had to create is the one case that sweeps every budget
+ * query: a new budget is a new list entry and a new period, not only figures
+ * that moved.
  */
 export function useCreateSavingsWithdrawal() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: createSavingsWithdrawal,
-    onSuccess: ({ incomeLine, savingLine, createdBudget }) => {
+    onSuccess: ({ createdBudget }) => {
       void (createdBudget === null
-        ? Promise.all(
-            [incomeLine.budgetId, savingLine.budgetId].map((budgetId) =>
-              invalidateBudget(queryClient, budgetId),
-            ),
-          )
+        ? invalidateAfterBudgetWrite(queryClient)
         : queryClient.invalidateQueries({ queryKey: budgetKeys.all }));
       void queryClient.invalidateQueries({ queryKey: goalKeys.all });
     },

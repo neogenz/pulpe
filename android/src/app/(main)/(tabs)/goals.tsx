@@ -1,19 +1,17 @@
-import { router } from "expo-router";
 import type { SavingsGoal, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import {
-  ActivityIndicator,
-  Chip,
-  FAB,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { ActivityIndicator, FAB, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "@/core/ui/card";
+import { usePushOnce } from "@/core/navigation/push-once";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
+import { IconDisc } from "@/core/ui/icon-disc";
+import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
+import { useFinancialColors } from "@/core/ui/scheme-colors";
+import { SectionHeader } from "@/core/ui/section-header";
+import { StateChip } from "@/core/ui/state-chip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate } from "@/core/ui/date-format";
@@ -21,6 +19,7 @@ import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
 import { GoalsIntro } from "@/features/savings-goals/components/goals-intro";
 import {
@@ -39,6 +38,7 @@ export default function GoalsScreen() {
   const { t } = useTranslation();
   const settings = useUserSettings();
   const goals = useSavingsGoals();
+  const pull = usePullToRefresh(() => goals.refetch());
   // Read once, at mount: the flag is written the moment the intro is answered,
   // and re-reading it mid-render would make the intro vanish under the user.
   const [isIntroVisible, setIntroVisible] = useState(
@@ -60,18 +60,25 @@ export default function GoalsScreen() {
     );
   }
 
+  const header = <TabHeader title={t("goals.list.title")} />;
+
   if (goals.isError || settings.isError) {
     return (
-      <PlaceholderScreen
-        icon="cloud-off-outline"
-        title={t("goals.list.loadErrorTitle")}
-        hint={t("common.loadErrorHint")}
-        action={{
-          label: t("common.retry"),
-          onPress: () =>
-            void Promise.all([goals.refetch(), settings.refetch()]),
-        }}
-      />
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        {header}
+        <PlaceholderScreen
+          icon="cloud-off-outline"
+          title={t("goals.list.loadErrorTitle")}
+          hint={t("common.loadErrorHint")}
+          action={{
+            label: t("common.retry"),
+            onPress: () =>
+              void Promise.all([goals.refetch(), settings.refetch()]),
+          }}
+        />
+      </View>
     );
   }
 
@@ -94,7 +101,7 @@ export default function GoalsScreen() {
     // The app bar carries the status bar inset; asking the safe area for the
     // top edge too would double it.
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <TabHeader title={t("goals.list.title")} />
+      {header}
       {list.length === 0 ? (
         <PlaceholderScreen
           icon="target"
@@ -108,23 +115,22 @@ export default function GoalsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={goals.isRefetching}
-              onRefresh={() => void goals.refetch()}
-            />
-          }
+          refreshControl={<RefreshControl {...pull} />}
         >
-          {list.map((goal) => (
-            <GoalRow key={goal.id} goal={goal} currency={currency} />
-          ))}
+          <SectionHeader title={t("goals.list.section")} count={list.length} />
+          <LedgerCard>
+            {list.map((goal) => (
+              <GoalRow key={goal.id} goal={goal} currency={currency} />
+            ))}
+          </LedgerCard>
         </ScrollView>
       )}
 
-      {/* Hidden while the sheet is up: the FAB floats above the Portal's scrim
-          and would otherwise sit on top of the form it just opened. */}
-      {list.length > 0 && !isCreating && (
+      {/* The empty state names the action itself; once there is a list, the
+          plus sign carries it. */}
+      {list.length > 0 && (
         <FAB
+          testID="goals-create"
           icon="plus"
           style={styles.fab}
           onPress={() => setCreating(true)}
@@ -143,6 +149,11 @@ export default function GoalsScreen() {
   );
 }
 
+/**
+ * A goal as a ledger row: its disc, its name, the span it runs over, and the
+ * amount it aims at — or, once it is no longer under way, the state it is in,
+ * which then matters more than the target.
+ */
 function GoalRow({
   goal,
   currency,
@@ -151,34 +162,38 @@ function GoalRow({
   currency: SupportedCurrency;
 }) {
   const theme = useTheme();
+  const financial = useFinancialColors();
+  const push = usePushOnce();
   const { locale, t } = useTranslation();
   const period = periodLabel(goal, locale, t);
 
   return (
-    <Card mode="contained" onPress={() => router.push(`/goal/${goal.id}`)}>
-      <Card.Content style={styles.row}>
-        <View style={styles.rowLabels}>
-          <Text variant="titleMedium">{goal.name}</Text>
-          <View style={styles.statusLine}>
-            <Chip compact>{t(`goals.status.${goal.status}`)}</Chip>
-            {period !== null && (
-              <Text
-                variant="bodySmall"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {period}
-              </Text>
-            )}
-          </View>
-        </View>
-
-        {goal.targetAmount !== null && (
-          <Amount size="row">
-            {formatCompactCurrency(goal.targetAmount, currency)}
-          </Amount>
-        )}
-      </Card.Content>
-    </Card>
+    <LedgerRow
+      testID={`goal-row-${goal.id}`}
+      leading={<IconDisc name="target" tint={financial.savings} />}
+      title={goal.name}
+      subtitle={period ?? undefined}
+      trailing={
+        goal.status === "ACTIVE" ? (
+          goal.targetAmount !== null ? (
+            <Amount size="row" numberOfLines={1}>
+              {formatCompactCurrency(goal.targetAmount, currency)}
+            </Amount>
+          ) : undefined
+        ) : (
+          <StateChip
+            tint={
+              goal.status === "COMPLETED"
+                ? financial.savings
+                : theme.colors.onSurfaceVariant
+            }
+          >
+            {t(`goals.status.${goal.status}`)}
+          </StateChip>
+        )
+      }
+      onPress={() => push(`/goal/${goal.id}`)}
+    />
   );
 }
 
@@ -206,21 +221,8 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: {
     padding: SPACING.md,
-    gap: SPACING.md,
-    paddingBottom: FAB_CLEARANCE,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.md,
-  },
-  rowLabels: { flex: 1, gap: SPACING.sm },
-  statusLine: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: SPACING.sm,
-    flexWrap: "wrap",
+    paddingBottom: FAB_CLEARANCE,
   },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

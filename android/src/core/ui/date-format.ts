@@ -137,6 +137,18 @@ export function formatIsoDate(
   return formatter.format(parseIsoDate(iso));
 }
 
+/**
+ * The day a stored instant fell on here, formatted like `formatIsoDate`. Its
+ * first ten characters are the UTC day instead: an operation entered at
+ * 00:30 in Zurich showed under the day before.
+ */
+export function formatInstantDay(
+  instant: string,
+  locale: string = DATE_LOCALE,
+): string {
+  return formatIsoDate(toIsoDate(new Date(instant)), locale);
+}
+
 export function parseIsoDate(iso: string): Date {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year, month - 1, day);

@@ -6,7 +6,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactAmount } from "@/core/ui/amount-format";
 import { Eyebrow } from "@/core/ui/eyebrow";
-import { useHeroColors } from "@/core/ui/scheme-colors";
+import { usePreviewColors } from "@/core/ui/scheme-colors";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import { FlowBars } from "../components/flow-bars";
@@ -31,7 +31,7 @@ import { submitOnboarding } from "../onboarding-submission";
  * row is a way back into the step that produced it.
  */
 export function BudgetPreviewStep({ onExit }: { onExit: () => void }) {
-  const hero = useHeroColors();
+  const hero = usePreviewColors();
   const { t } = useTranslation();
   const state = useOnboardingStore();
 

@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticCommit } from "@/core/ui/haptics";
+import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import {
   ICON_BUTTON_INSET,
   ICON_SIZE,
@@ -54,6 +55,7 @@ export function StepScaffold({
   const theme = useTheme();
   const { t } = useTranslation();
   const state = useOnboardingStore();
+  const keyboardHeight = useKeyboardHeight();
 
   const step = state.currentStep;
   const bar = progressBarSteps(state);
@@ -122,7 +124,17 @@ export function StepScaffold({
         </ScrollView>
       </View>
 
-      <View style={styles.actions}>
+      {/* The window does not shrink when the keyboard opens — the app is
+          edge-to-edge, so the IME arrives as an inset the layout never sees
+          (`keyboard-inset.ts`). Padding the pinned actions by it lifts the CTA
+          above the keys, and shortens the scroll above so the field being
+          typed in can still be brought into view. */}
+      <View
+        style={[
+          styles.actions,
+          { paddingBottom: SCREEN_PADDING + keyboardHeight },
+        ]}
+      >
         {footer}
         <Button
           mode="contained"

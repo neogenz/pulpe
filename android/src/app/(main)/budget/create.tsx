@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import type { BudgetTemplate } from "pulpe-shared";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -48,15 +48,35 @@ export default function CreateBudgetScreen() {
   const templates = useTemplates();
   const settings = useUserSettings();
   const create = useCreateBudget();
-  const [chosenPeriodKey, setChosenPeriodKey] = useState<string | null>(null);
+  // The month a list row asked for — "Créer le budget" on a missing month — so
+  // the form opens on it rather than on the soonest free one.
+  const requested = useLocalSearchParams<{ month?: string; year?: string }>();
+  const [chosenPeriodKey, setChosenPeriodKey] = useState<string | null>(() =>
+    requested.month === undefined || requested.year === undefined
+      ? null
+      : periodKey({
+          month: Number(requested.month),
+          year: Number(requested.year),
+        }),
+  );
   const [chosenTemplateId, setChosenTemplateId] = useState<string | null>(null);
 
-  const periods = availableMonths(
+  const freePeriods = availableMonths(
     budgets.data ?? [],
     new Date(),
-    PERIODS_OFFERED,
+    Number.POSITIVE_INFINITY,
     settings.data?.payDayOfMonth,
   );
+  const offered = freePeriods.slice(0, PERIODS_OFFERED);
+  // A month asked for from the list may sit past the first few on offer; it
+  // joins them rather than being silently swapped for the soonest one.
+  const requestedPeriod = freePeriods.find(
+    (candidate) => periodKey(candidate) === chosenPeriodKey,
+  );
+  const periods =
+    requestedPeriod === undefined || offered.includes(requestedPeriod)
+      ? offered
+      : [...offered, requestedPeriod];
   // Derived rather than synced from an effect: both lists arrive after the
   // first render, and a default written into state then would overwrite a
   // choice the user had already made in between.
@@ -116,7 +136,10 @@ export default function CreateBudgetScreen() {
         hint={t("budgets.create.noTemplatesHint")}
         action={{
           label: t("budgets.create.viewTemplates"),
-          onPress: () => router.replace("/templates"),
+          // Back to the tabs this screen was pushed over, on the Templates
+          // tab. `replace` would swap this screen for a second tabs
+          // navigator, and back would then walk through both.
+          onPress: () => router.dismissTo("/templates"),
         }}
       />
     );

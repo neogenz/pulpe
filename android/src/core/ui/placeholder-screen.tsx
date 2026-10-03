@@ -4,9 +4,10 @@ import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Text, useTheme } from "react-native-paper";
 
-import { SCREEN_PADDING, SPACING } from "./theme";
+import { ActionButton } from "./action-button";
+import { SPACING } from "./theme";
 
-const PLACEHOLDER_ICON_SIZE = 56;
+const PLACEHOLDER_ICON_SIZE = 48;
 
 interface PlaceholderScreenProps {
   /**
@@ -22,6 +23,8 @@ interface PlaceholderScreenProps {
   hint: string;
   /** A way out of the state, when there is one to offer. */
   action?: { label: string; loading?: boolean; onPress: () => void };
+  /** The other way out, when retrying may never get past the state. */
+  secondaryAction?: { label: string; onPress: () => void };
 }
 
 export function PlaceholderScreen({
@@ -29,6 +32,7 @@ export function PlaceholderScreen({
   title,
   hint,
   action,
+  secondaryAction,
 }: PlaceholderScreenProps) {
   const theme = useTheme();
 
@@ -41,23 +45,31 @@ export function PlaceholderScreen({
         size={PLACEHOLDER_ICON_SIZE}
         color={theme.colors.onSurfaceVariant}
       />
-      <Text variant="headlineSmall" style={styles.centered}>
+      <Text
+        variant="titleLarge"
+        style={[styles.centered, { color: theme.colors.onBackground }]}
+      >
         {title}
       </Text>
       <Text
-        variant="bodyMedium"
+        variant="bodyLarge"
         style={[styles.centered, { color: theme.colors.onSurfaceVariant }]}
       >
         {hint}
       </Text>
       {action !== undefined && (
-        <Button
-          mode="contained"
+        <ActionButton
           loading={action.loading}
           disabled={action.loading}
           onPress={action.onPress}
+          style={styles.action}
         >
           {action.label}
+        </ActionButton>
+      )}
+      {secondaryAction !== undefined && (
+        <Button onPress={secondaryAction.onPress}>
+          {secondaryAction.label}
         </Button>
       )}
     </SafeAreaView>
@@ -69,8 +81,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: SCREEN_PADDING,
-    gap: SPACING.sm,
+    padding: SPACING.xl,
+    gap: SPACING.md,
   },
   centered: { textAlign: "center" },
+  action: { marginTop: SPACING.sm },
 });

@@ -14,9 +14,11 @@ import {
   savingsGoalDraftFrom,
   savingsGoalDraftHint,
   suggestedMonthly,
+  targetDateBounds,
   usesManualMonthly,
   type SavingsGoalDraft,
 } from "./goal-draft";
+import { toIsoDate } from "@/core/ui/date-format";
 
 const NOW = new Date("2026-08-11T10:00:00.000Z");
 
@@ -232,5 +234,90 @@ describe("isSavingsGoalDraftSubmittable", () => {
   it("accepts a goal with a name and nothing else", () => {
     expect(isSavingsGoalDraftSubmittable(draft())).toBe(true);
     expect(savingsGoalDraftHint(draft())).toBeNull();
+  });
+});
+
+describe("targetDateBounds", () => {
+  const OCTOBER_FIRST = new Date(2026, 9, 1, 10);
+
+  it("runs from today to the last day of the 120th month, this one included", () => {
+    expect(targetDateBounds(null, OCTOBER_FIRST)).toEqual({
+      earliest: "2026-10-01",
+      latest: "2036-09-30",
+    });
+  });
+
+  it("keeps a deadline the goal already has reachable on either side", () => {
+    expect(targetDateBounds("2026-03-31", OCTOBER_FIRST).earliest).toBe(
+      "2026-03-31",
+    );
+    expect(targetDateBounds("2037-01-31", OCTOBER_FIRST).latest).toBe(
+      "2037-01-31",
+    );
+  });
+
+  /** The picker's range is only worth anything if it is the schema's. */
+  it("matches what the create schema accepts, edge days included", () => {
+    const now = new Date();
+    const { earliest, latest } = targetDateBounds(null, now);
+    const accepts = (targetDate: string) =>
+      savingsGoalCreateSchema.safeParse({ name: "Voyage", targetDate }).success;
+    const shift = (iso: string, days: number) => {
+      const [year, month, day] = iso.split("-").map(Number);
+      return toIsoDate(new Date(year, month - 1, day + days));
+    };
+
+    expect(accepts(earliest)).toBe(true);
+    expect(accepts(latest)).toBe(true);
+    expect(accepts(shift(latest, 1))).toBe(false);
+    expect(accepts(shift(earliest, -1))).toBe(false);
+  });
+});
+
+describe("savingsGoalDraftHint", () => {
+  const bounds = targetDateBounds(null, new Date(2026, 9, 1, 10));
+
+  it("names a past deadline instead of leaving the save to fail on it", () => {
+    const past = draft({ targetDate: "2026-09-30" });
+
+    expect(savingsGoalDraftHint(past, bounds)).toBe("pastDeadline");
+    expect(isSavingsGoalDraftSubmittable(past, bounds)).toBe(false);
+  });
+
+  it("lets an edit keep the past deadline its goal already had", () => {
+    const kept = draft({ targetDate: "2026-03-31" });
+    const editBounds = targetDateBounds("2026-03-31", new Date(2026, 9, 1, 10));
+
+    expect(savingsGoalDraftHint(kept, editBounds)).toBeNull();
+    expect(isSavingsGoalDraftSubmittable(kept, editBounds)).toBe(true);
+  });
+
+  it("explains a monthly amount of zero rather than only greying the button", () => {
+    const decomposed = draft({
+      targetAmount: 1200,
+      targetDate: "2027-06-30",
+      monthlyOverride: 0,
+    });
+    const manual = draft({ monthlyOverride: 0 });
+
+    expect(savingsGoalDraftHint(decomposed, bounds)).toBe("monthly");
+    expect(isSavingsGoalDraftSubmittable(decomposed, bounds)).toBe(false);
+    expect(savingsGoalDraftHint(manual, bounds)).toBe("monthly");
+    expect(isSavingsGoalDraftSubmittable(manual, bounds)).toBe(false);
+  });
+
+  it("ignores a monthly amount left in a field that is no longer shown", () => {
+    const declined = draft({
+      targetAmount: 1200,
+      targetDate: "2027-06-30",
+      isDecomposed: false,
+      monthlyOverride: 0,
+    });
+
+    expect(savingsGoalDraftHint(declined, bounds)).toBeNull();
+    expect(isSavingsGoalDraftSubmittable(declined, bounds)).toBe(true);
+    expect(buildSavingsGoalCreate(declined, null)).not.toHaveProperty(
+      "monthlyContribution",
+    );
   });
 });

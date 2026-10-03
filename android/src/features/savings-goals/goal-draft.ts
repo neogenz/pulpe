@@ -1,4 +1,5 @@
 import {
+  MAX_SAVINGS_GOAL_PLAN_PERIODS,
   type SavingsGoal,
   type SavingsGoalCreate,
   type SavingsGoalStatus,
@@ -96,36 +97,151 @@ export function usesManualMonthly(draft: SavingsGoalDraft): boolean {
   return draft.targetDate === null || draft.targetAmount === null;
 }
 
-export function isSavingsGoalDraftSubmittable(
-  draft: SavingsGoalDraft,
-): boolean {
-  if (draft.name.trim() === "") return false;
-  if (draft.targetAmount !== null && draft.targetAmount <= 0) return false;
-  if (draft.initialAmount !== null && draft.initialAmount < 0) return false;
-  if (draft.monthlyOverride !== null && draft.monthlyOverride <= 0)
-    return false;
-  if (draft.startDate !== null && draft.targetDate !== null) {
-    // ISO `YYYY-MM-DD` compares lexicographically the way it compares in time.
-    if (draft.startDate > draft.targetDate) return false;
-  }
-  return true;
+/** The deadlines the form may offer, as ISO `YYYY-MM-DD`, both included. */
+export interface TargetDateBounds {
+  earliest: string;
+  latest: string;
 }
 
-export type SavingsGoalDraftProblem = "name" | "target" | "dates";
+/**
+ * From today to the last day of the 120th month, the current one included —
+ * what `savingsGoalCreateSchema` accepts. Without these the calendar offered
+ * any day, the button stayed enabled, and the request was refused client-side
+ * with nothing but a generic save error.
+ *
+ * "Today" and "this month" are the server's as much as the phone's: the schema
+ * reads its own clock, UTC for the past check. Ahead of UTC — Switzerland, just
+ * after midnight on the 1st — the phone is already in a month the server has
+ * not reached, and a horizon counted from it ran one month past what the
+ * server would take. Behind UTC, in the evening, the phone's today is the
+ * server's yesterday. The range offered is the one both sides agree on.
+ *
+ * A goal that already carries a date outside that range keeps it reachable,
+ * as iOS bounds its picker (`SavingsGoalFormSheet.targetDateRange`): an edit
+ * must not be forced to move a deadline it never touched.
+ */
+export function targetDateBounds(
+  existingTarget: string | null,
+  now: Date = new Date(),
+): TargetDateBounds {
+  return boundsBetween(
+    existingTarget,
+    { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
+    {
+      year: now.getUTCFullYear(),
+      month: now.getUTCMonth() + 1,
+      day: now.getUTCDate(),
+    },
+  );
+}
 
+/** A date on a calendar, with no time and no zone; `month` is 1-12. */
+export interface CalendarDay {
+  year: number;
+  month: number;
+  day: number;
+}
+
+/**
+ * The range for a phone whose calendar reads `local` while the server's reads
+ * `server`: from the later of the two todays to the earlier of the two
+ * horizons.
+ */
+export function boundsBetween(
+  existingTarget: string | null,
+  local: CalendarDay,
+  server: CalendarDay,
+): TargetDateBounds {
+  const localToday = isoDay(local);
+  const serverToday = isoDay(server);
+  const today = localToday > serverToday ? localToday : serverToday;
+  const localHorizon = horizonFrom(local);
+  const serverHorizon = horizonFrom(server);
+  const horizon = localHorizon < serverHorizon ? localHorizon : serverHorizon;
+
+  return {
+    earliest:
+      existingTarget !== null && existingTarget < today
+        ? existingTarget
+        : today,
+    latest:
+      existingTarget !== null && existingTarget > horizon
+        ? existingTarget
+        : horizon,
+  };
+}
+
+function isoDay({ year, month, day }: CalendarDay): string {
+  return `${year}-${`${month}`.padStart(2, "0")}-${`${day}`.padStart(2, "0")}`;
+}
+
+/** The last day of the 120th month counted from `from`'s, that one included. */
+function horizonFrom({ year, month }: CalendarDay): string {
+  // Day 0 of the month after the last one is that month's last day; UTC so the
+  // arithmetic cannot be moved by the zone the code happens to run in.
+  const last = new Date(
+    Date.UTC(year, month - 1 + MAX_SAVINGS_GOAL_PLAN_PERIODS, 0),
+  );
+  return isoDay({
+    year: last.getUTCFullYear(),
+    month: last.getUTCMonth() + 1,
+    day: last.getUTCDate(),
+  });
+}
+
+/**
+ * Whether the monthly amount the user typed is the one that will be sent. The
+ * field is hidden otherwise, and a value left behind in it must neither block
+ * the form nor be what its hint points at.
+ */
+function isMonthlyOverrideInUse(draft: SavingsGoalDraft): boolean {
+  return canDecompose(draft) ? draft.isDecomposed : usesManualMonthly(draft);
+}
+
+export function isSavingsGoalDraftSubmittable(
+  draft: SavingsGoalDraft,
+  bounds: TargetDateBounds = targetDateBounds(null),
+): boolean {
+  if (draft.initialAmount !== null && draft.initialAmount < 0) return false;
+  return savingsGoalDraftHint(draft, bounds) === null;
+}
+
+export type SavingsGoalDraftProblem =
+  | "name"
+  | "target"
+  | "dates"
+  | "pastDeadline"
+  | "monthly";
+
+/**
+ * Why the form cannot be sent, in the order the fields read. Every reason the
+ * button is disabled has one, so a greyed-out button is never left unexplained.
+ */
 export function savingsGoalDraftHint(
   draft: SavingsGoalDraft,
+  bounds: TargetDateBounds = targetDateBounds(null),
 ): SavingsGoalDraftProblem | null {
   if (draft.name.trim() === "") return "name";
   if (draft.targetAmount !== null && draft.targetAmount <= 0) {
     return "target";
   }
+  // ISO `YYYY-MM-DD` compares lexicographically the way it compares in time.
   if (
     draft.startDate !== null &&
     draft.targetDate !== null &&
     draft.startDate > draft.targetDate
   ) {
     return "dates";
+  }
+  if (draft.targetDate !== null && draft.targetDate < bounds.earliest) {
+    return "pastDeadline";
+  }
+  if (
+    isMonthlyOverrideInUse(draft) &&
+    draft.monthlyOverride !== null &&
+    draft.monthlyOverride <= 0
+  ) {
+    return "monthly";
   }
   return null;
 }

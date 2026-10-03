@@ -45,6 +45,21 @@ it("holds a protected link until unlock and delivers it once", async () => {
   expect(mockedPush).toHaveBeenCalledTimes(1);
 });
 
+it("does not follow the same link again after the vault locks and unlocks", async () => {
+  mockLink.url = "pulpe://budget?id=budget-1";
+  mockSession.status = "authenticated";
+  mockVault.status = "unlocked";
+  const view = await render(<DeepLinkRouter />);
+  await waitFor(() => expect(mockedPush).toHaveBeenCalledTimes(1));
+
+  mockVault.status = "locked";
+  await view.rerender(<DeepLinkRouter />);
+  mockVault.status = "unlocked";
+  await view.rerender(<DeepLinkRouter />);
+
+  expect(mockedPush).toHaveBeenCalledTimes(1);
+});
+
 it("does not let an unrelated URL erase a pending link", async () => {
   mockLink.url = "pulpe://budget?id=budget-2";
   const view = await render(<DeepLinkRouter />);

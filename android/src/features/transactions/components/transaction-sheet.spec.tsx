@@ -22,9 +22,17 @@ const mockWithdrawalOptions = {
   isPending: false,
 };
 
+let mockUuidCount = 0;
+jest.mock("react-native-quick-crypto", () => ({
+  randomUUID: () => `operation-${(mockUuidCount += 1)}`,
+}));
+const mockRefreshAfterWrite = jest.fn();
+const mockUnsaved = new WeakSet<object>();
 jest.mock("../transaction-mutations", () => ({
   useCreateTransaction: () => mockCreate,
   useUpdateTransaction: () => mockUpdate,
+  useRefreshAfterTransactionWrite: () => mockRefreshAfterWrite,
+  isUnsavedCreate: (error: object) => mockUnsaved.has(error),
 }));
 jest.mock("@/features/savings-goals/goals-queries", () => ({
   useSavingsGoalWithdrawalOptions: () => mockWithdrawalOptions,
@@ -118,6 +126,20 @@ jest.mock("react-native-paper", () => {
     }),
   };
 });
+jest.mock("@/core/ui/quick-amount-chips", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    QuickAmountChips: ({
+      onSelect,
+    }: {
+      onSelect: (amount: number) => void;
+    }) => (
+      <Pressable accessibilityLabel="quick-15" onPress={() => onSelect(15)}>
+        <Text>15</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock("@/core/ui/amount-field", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
@@ -204,8 +226,12 @@ jest.mock("@react-native-community/datetimepicker", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return function DateTimePickerMock({
     onChange,
+    minimumDate,
+    maximumDate,
   }: {
     onChange: (event: { type: string }, date: Date) => void;
+    minimumDate?: Date;
+    maximumDate?: Date;
   }) {
     return (
       <Pressable
@@ -214,6 +240,7 @@ jest.mock("@react-native-community/datetimepicker", () => {
         }
       >
         <Text>select-date</Text>
+        <Text>{`bounds:${minimumDate?.getDate() ?? "-"}-${maximumDate?.getDate() ?? "-"}`}</Text>
       </Pressable>
     );
   };
@@ -231,6 +258,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   Object.assign(mockCreate, { isPending: false, isError: false });
   Object.assign(mockUpdate, { isPending: false, isError: false });
+  mockWithdrawalOptions.data = [
+    { goalId: "goal-1", name: "Voyage", availableAmount: 300, currency: "CHF" },
+  ];
 });
 
 async function fill(
@@ -278,6 +308,215 @@ it("creates the visible operation with its date and tags", async () => {
   };
   await act(() => callbacks.onSuccess());
   await waitFor(() => expect(baseProps.onSaved).toHaveBeenCalledTimes(1));
+});
+
+it("replays the same id on a retry, and a new one for the next operation", async () => {
+  // A request whose answer is lost on the way back is retried by the user;
+  // the same id lets the server tell it from a second operation.
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view);
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  const ids = mockCreate.mutate.mock.calls.map(
+    ([payload]) => (payload as { id: string }).id,
+  );
+  expect(ids[0]).toEqual(expect.any(String));
+  expect(ids[1]).toBe(ids[0]);
+  expect(mockCreate.mutate.mock.calls[1][0]).toEqual(
+    mockCreate.mutate.mock.calls[0][0],
+  );
+
+  const callbacks = mockCreate.mutate.mock.calls[1][1] as {
+    onSuccess: () => void;
+  };
+  await act(() => callbacks.onSuccess());
+  await fill(view);
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  const next = mockCreate.mutate.mock.calls[2][0] as { id: string };
+  expect(next.id).not.toBe(ids[0]);
+});
+
+it("locks every creation field at submission and explains the unchanged retry", async () => {
+  jest.useFakeTimers({ now: new Date(2026, 9, 2, 9), advanceTimers: true });
+  try {
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view, 120, "First values");
+    await fireEvent.press(view.getByText("budgets.mutations.add"));
+    const firstPayload = mockCreate.mutate.mock.calls[0][0];
+
+    // Before the request settles, neither the active keyboard nor a chip,
+    // tag, kind or calendar can change the operation it is already writing.
+    expect(view.queryByLabelText("budgets.mutations.description")).toBeNull();
+    expect(view.queryByLabelText("set-amount-500")).toBeNull();
+    expect(view.queryByLabelText("quick-15")).toBeNull();
+    expect(view.queryByLabelText("select-tag")).toBeNull();
+    expect(view.queryByLabelText("budgets.mutations.activity.date")).toBeNull();
+    expect(view.queryByText("vocabulary.kind.income")).toBeNull();
+    expect(view.getByText("First values")).toBeTruthy();
+
+    mockCreate.isError = true;
+    jest.setSystemTime(new Date(2026, 9, 3, 14));
+    await view.rerender(<TransactionSheet {...baseProps} />);
+    expect(
+      view.getByText("budgets.mutations.activity.retryUnchanged"),
+    ).toBeTruthy();
+    await fireEvent.press(view.getByText("common.retry"));
+
+    // Even the time of day and pointing timestamp replay as originally sent.
+    expect(mockCreate.mutate.mock.calls[1][0]).toEqual(firstPayload);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+it("refreshes the budget when an unconfirmed operation is abandoned", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view, 120, "Maybe saved");
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  mockCreate.isError = true;
+  await view.rerender(<TransactionSheet {...baseProps} />);
+  await fireEvent.press(view.getByLabelText("dismiss-form"));
+
+  expect(mockRefreshAfterWrite).toHaveBeenCalledTimes(1);
+  expect(baseProps.onDismiss).toHaveBeenCalled();
+});
+
+it("leaves the budget alone when a form that sent nothing is dismissed", async () => {
+  mockCreate.isError = true;
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view, 120, "Never sent");
+  await fireEvent.press(view.getByLabelText("dismiss-form"));
+
+  expect(mockRefreshAfterWrite).not.toHaveBeenCalled();
+  expect(baseProps.onDismiss).toHaveBeenCalled();
+});
+
+/** Answers attempt `index` the way `useMutation` would, through its callbacks. */
+async function failAttempt(index: number, error: Error) {
+  const options = mockCreate.mutate.mock.calls[index][1] as {
+    onError: (error: Error) => void;
+  };
+  await act(async () => options.onError(error));
+  mockCreate.isError = true;
+}
+
+it("reopens the form, same id, when a refusal is known to have saved nothing", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view, 120, "Too much");
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  const first = mockCreate.mutate.mock.calls[0][0];
+
+  const refusal = new Error("refused");
+  mockUnsaved.add(refusal);
+  await failAttempt(0, refusal);
+  await view.rerender(<TransactionSheet {...baseProps} />);
+
+  expect(
+    view.queryByText("budgets.mutations.activity.retryUnchanged"),
+  ).toBeNull();
+  expect(view.getByText("budgets.mutations.activity.error")).toBeTruthy();
+  expect(view.getByLabelText("budgets.mutations.description").props.value).toBe(
+    "Too much",
+  );
+
+  await fireEvent.press(view.getByLabelText("set-amount-500"));
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  expect(mockCreate.mutate.mock.calls[1][0]).toEqual(
+    expect.objectContaining({ id: first.id, amount: 500, name: "Too much" }),
+  );
+});
+
+it("keeps the submitted values once an attempt's answer was lost", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fill(view, 120, "Maybe landed");
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  await failAttempt(0, new Error("network"));
+  await view.rerender(<TransactionSheet {...baseProps} />);
+  await fireEvent.press(view.getByText("common.retry"));
+
+  const refusal = new Error("refused");
+  mockUnsaved.add(refusal);
+  await failAttempt(1, refusal);
+  await view.rerender(<TransactionSheet {...baseProps} />);
+
+  // The first request may still be written after this refusal: editing now
+  // could leave the stored row and the screen disagreeing.
+  expect(
+    view.getByText("budgets.mutations.activity.retryUnchanged"),
+  ).toBeTruthy();
+  expect(view.queryByLabelText("budgets.mutations.description")).toBeNull();
+});
+
+it("retries submitted withdrawals even if refreshed options now show a smaller balance", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fireEvent.press(view.getByText("vocabulary.kind.income"));
+  await fill(view, 120, "Withdrawal");
+  await fireEvent.press(
+    view.getByLabelText("budgets.mutations.activity.originAccessibility"),
+  );
+  await fireEvent.press(view.getByText(/Voyage/));
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  const firstPayload = mockCreate.mutate.mock.calls[0][0];
+
+  mockCreate.isError = true;
+  mockWithdrawalOptions.data[0].availableAmount = 20;
+  await view.rerender(<TransactionSheet {...baseProps} />);
+  expect(
+    view.queryByText("budgets.mutations.validation.exceedsGoal"),
+  ).toBeNull();
+  await fireEvent.press(view.getByText("common.retry"));
+
+  expect(mockCreate.mutate.mock.calls[1][0]).toEqual(firstPayload);
+});
+
+it("dates a new operation inside its budget, and offers no other day", async () => {
+  // September's budget, paid on the 25th, opened after it ended.
+  const period = {
+    startDate: new Date(2026, 7, 25),
+    endDate: new Date(2026, 8, 24),
+  };
+  jest.useFakeTimers({ now: new Date(2026, 9, 2, 9, 0), advanceTimers: true });
+  try {
+    const view = await render(
+      <TransactionSheet {...baseProps} period={period} />,
+    );
+    await fill(view);
+    await fireEvent.press(
+      view.getByLabelText("budgets.mutations.activity.date"),
+    );
+    expect(view.getByText("bounds:25-24")).toBeTruthy();
+    await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+    const { transactionDate } = mockCreate.mutate.mock.calls[0][0] as {
+      transactionDate: string;
+    };
+    const day = new Date(transactionDate);
+    expect([day.getFullYear(), day.getMonth(), day.getDate()]).toEqual([
+      2026, 8, 24,
+    ]);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+it("takes a quick amount in one tap", async () => {
+  const view = await render(<TransactionSheet {...baseProps} />);
+  await fireEvent.press(view.getByLabelText("quick-15"));
+  await fireEvent.changeText(
+    view.getByLabelText("budgets.mutations.description"),
+    "Café",
+  );
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+  expect(mockCreate.mutate).toHaveBeenCalledWith(
+    expect.objectContaining({ name: "Café", amount: 15 }),
+    expect.any(Object),
+  );
 });
 
 it("requires a savings origin and refuses an excessive withdrawal", async () => {

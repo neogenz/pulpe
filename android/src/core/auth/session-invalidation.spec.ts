@@ -1,5 +1,8 @@
+import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
+
 import { ApiError } from "@/core/api/api-error";
 import { queryClient } from "@/core/query/query-client";
+import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
 
 import { observeSessionRejection } from "./session-invalidation";
 import { useSessionStore } from "./session-store";
@@ -8,14 +11,25 @@ import { supabase } from "./supabase";
 const mockSignOut = jest.fn();
 
 jest.mock("./session-store", () => ({
-  useSessionStore: { getState: jest.fn() },
+  useSessionStore: { getState: jest.fn(), subscribe: jest.fn(() => jest.fn()) },
 }));
+jest.mock("@/core/vault/vault-store", () => {
+  const { create } = jest.requireActual<typeof import("zustand")>("zustand");
+  return {
+    bootstrapVault: jest.fn(),
+    useVaultStore: create(() => ({
+      status: "unknown",
+      bootstrapFailure: null as string | null,
+    })),
+  };
+});
 jest.mock("./supabase", () => ({
   supabase: { auth: { refreshSession: jest.fn() } },
 }));
 
 const mockedGetState = jest.mocked(useSessionStore.getState);
 const mockedRefresh = jest.mocked(supabase.auth.refreshSession);
+const mockedBootstrapVault = jest.mocked(bootstrapVault);
 
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
@@ -42,6 +56,7 @@ beforeEach(() => {
   mockedGetState.mockReturnValue(sessionState("authenticated"));
   mockSignOut.mockResolvedValue(undefined);
   queryClient.clear();
+  useVaultStore.setState({ status: "unknown", bootstrapFailure: null });
   stopObserving = observeSessionRejection();
 });
 
@@ -113,8 +128,16 @@ it("signs this device out when the refresh yields no session", async () => {
   expect(mockSignOut).toHaveBeenCalledTimes(1);
 });
 
+function refreshRefused(error: unknown) {
+  return { data: { session: null, user: null }, error } as never;
+}
+
 it("refreshes once and signs out at most once for a burst of 401s", async () => {
-  mockedRefresh.mockRejectedValue(new Error("revoked"));
+  mockedRefresh.mockResolvedValue(
+    refreshRefused(
+      new AuthApiError("Invalid Refresh Token", 400, "refresh_token_not_found"),
+    ),
+  );
 
   await Promise.all([
     failQuery(apiError(HTTP_UNAUTHORIZED)),
@@ -125,6 +148,41 @@ it("refreshes once and signs out at most once for a burst of 401s", async () => 
 
   expect(mockedRefresh).toHaveBeenCalledTimes(1);
   expect(mockSignOut).toHaveBeenCalledTimes(1);
+});
+
+/**
+ * A refresh that could not reach the auth server says nothing about the
+ * session. Signing out on it wiped the keys — biometric unlock included — of
+ * every user on a data screen during a Supabase incident or in a tunnel.
+ */
+it.each([
+  [
+    "a network failure",
+    refreshRefused(new AuthRetryableFetchError("Failed to fetch", 0)),
+  ],
+  [
+    "an auth server error",
+    refreshRefused(
+      new AuthApiError("Internal error", 500, "unexpected_failure"),
+    ),
+  ],
+])("keeps the session when the refresh meets %s", async (_label, answer) => {
+  mockedRefresh.mockResolvedValue(answer);
+
+  await failQuery(apiError(HTTP_UNAUTHORIZED));
+  await settle();
+
+  expect(mockedRefresh).toHaveBeenCalledTimes(1);
+  expect(mockSignOut).not.toHaveBeenCalled();
+});
+
+it("keeps the session when the refresh itself throws", async () => {
+  mockedRefresh.mockRejectedValue(new Error("unexpected"));
+
+  await failQuery(apiError(HTTP_UNAUTHORIZED));
+  await settle();
+
+  expect(mockSignOut).not.toHaveBeenCalled();
 });
 
 it("leaves 403 and key rejections to their own observers", async () => {
@@ -145,4 +203,47 @@ it("stops watching once torn down", async () => {
 
   expect(mockedRefresh).not.toHaveBeenCalled();
   stopObserving = () => undefined;
+});
+
+describe("a session the vault refused at launch", () => {
+  function refuseBootstrap() {
+    useVaultStore.setState({ bootstrapFailure: null });
+    useVaultStore.setState({ bootstrapFailure: "sessionRejected" });
+  }
+
+  it("refreshes it, then asks the vault again", async () => {
+    mockedRefresh.mockResolvedValue(refreshAnswer(true));
+
+    refuseBootstrap();
+    await settle();
+
+    expect(mockedRefresh).toHaveBeenCalledTimes(1);
+    expect(mockedBootstrapVault).toHaveBeenCalledTimes(1);
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  it("signs out when the refresh proves it dead", async () => {
+    mockedRefresh.mockResolvedValue(refreshAnswer(false));
+
+    refuseBootstrap();
+    await settle();
+
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    expect(mockedBootstrapVault).not.toHaveBeenCalled();
+  });
+
+  it("asks only once more when the fresh token is refused too", async () => {
+    mockedRefresh.mockResolvedValue(refreshAnswer(true));
+    mockedBootstrapVault.mockImplementation(async () => {
+      refuseBootstrap();
+      return "unknown";
+    });
+
+    refuseBootstrap();
+    await settle();
+    await settle();
+
+    expect(mockedRefresh).toHaveBeenCalledTimes(1);
+    expect(mockedBootstrapVault).toHaveBeenCalledTimes(1);
+  });
 });

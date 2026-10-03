@@ -1,42 +1,70 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
+  BudgetFormulas,
+  CURRENCY_METADATA,
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
   type BudgetSparse,
   type SupportedCurrency,
 } from "pulpe-shared";
-import { useCallback, useMemo, useRef } from "react";
-import { RefreshControl, SectionList, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Appbar,
-  FAB,
-  List,
-  Text,
-  useTheme,
-} from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { FAB, Text, useTheme } from "react-native-paper";
 
+import { usePushOnce } from "@/core/navigation/push-once";
 import {
   invalidateUserSettings,
   useUserSettings,
 } from "@/core/user-settings/user-settings-queries";
-import { Card } from "@/core/ui/card";
-import { Amount } from "@/core/ui/amount";
-import { useAmountMasking } from "@/core/ui/amount-visibility";
-import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
+import {
+  areAmountsHidden,
+  useAmountMasking,
+} from "@/core/ui/amount-visibility";
+import {
+  formatCompactAmount,
+  formatSignedCompactCurrency,
+} from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
+import {
+  ContentZone,
+  HeroAppBar,
+  HeroAppBarAction,
+  HeroFigure,
+  HeroTile,
+  HeroVerdict,
+  HeroZone,
+} from "@/core/ui/hero";
+import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { Notice } from "@/core/ui/notice";
-import { StatusBadge } from "@/core/ui/status-badge";
-import { TabHeader } from "@/core/ui/tab-header";
-import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
+import { useRipple } from "@/core/ui/ripple";
+import { SectionHeader } from "@/core/ui/section-header";
+import { useFinancialColors, useHeroColors } from "@/core/ui/scheme-colors";
+import {
+  BRAND_TYPE,
+  FAB_CLEARANCE,
+  RADIUS,
+  SPACING,
+  TABULAR_DIGITS,
+  TOUCH_TARGET,
+} from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import {
   type BudgetTiming,
+  type Period,
+  budgetsOfYear,
   budgetTiming,
-  budgetYearSections,
-  currentBudgetLocation,
+  budgetYears,
+  initialBudgetYear,
+  nextMissingMonth,
+  yearRecap,
 } from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
@@ -44,24 +72,18 @@ import {
   useBudgetList,
 } from "@/features/budgets/budget-queries";
 import { monthSubtitle } from "@/features/budgets/month-subtitle";
+import { useNow } from "@/features/current-month/current-month-queries";
 
 /** Below this, the period is the calendar month and printing its dates says nothing. */
 const CALENDAR_PAY_DAY = 1;
+const MONTHS_PER_YEAR = 12;
 
 /**
- * Twice the hairline Paper draws around an outlined card, so the month being
- * lived in reads as the same shape drawn harder rather than as a different one.
+ * The year as a whole, then its months — `BudgetListView.swift`. The hero says
+ * where the year closes and how much of it is planned; the list reads the
+ * months January first, like a calendar, and names the next one still missing
+ * so the way forward is in the list rather than behind an icon.
  */
-const CURRENT_MONTH_BORDER = 2;
-
-/** `VirtualizedList`'s own default, kept as the floor rather than lowered. */
-const DEFAULT_RENDER_WINDOW = 10;
-
-interface BudgetYearGroup {
-  year: number;
-  data: BudgetSparse[];
-}
-
 export default function BudgetsScreen() {
   // Repaints this screen when amounts are hidden or shown; the masking
   // itself lives in the formatters.
@@ -74,8 +96,17 @@ export default function BudgetsScreen() {
   }>();
   const settings = useUserSettings();
   const budgets = useBudgetList();
+  const [chosenYear, setChosenYear] = useState<number | null>(null);
+  // Read again on every return to the foreground: a period frozen at mount
+  // kept "en cours" on last month after the pay day.
+  const [now, readClock] = useNow();
+  const pull = usePullToRefresh(() => {
+    readClock();
+    return invalidateBudgetData();
+  });
 
-  // A write inside a month only marks this list stale (`invalidateBudget`);
+  // A write inside a month only marks this list stale
+  // (`invalidateAfterBudgetWrite`);
   // coming to the tab is when its totals are looked at, so it asks once here.
   useFocusEffect(
     useCallback(() => {
@@ -83,89 +114,66 @@ export default function BudgetsScreen() {
     }, []),
   );
 
-  // Derived above the gates below, and the anchor with it: the loading and error
-  // returns sit between here and the list, and a hook declared past an early
-  // return is a hook the next render may not reach.
-  const sections = useMemo(
-    () => budgetYearSections(budgets.data ?? []),
-    [budgets.data],
-  );
-  const groups = useMemo<BudgetYearGroup[]>(
-    () =>
-      sections.map((section) => ({
-        year: section.year,
-        data: section.budgets,
-      })),
-    [sections],
-  );
-  const currentPeriod = useMemo(
+  // A year is read whole, so every page is wanted: a year cut at a page
+  // boundary would close on the wrong month. A page holds three years. Keyed on
+  // the paging state alone: the query result is a new object on every render.
+  // A failed page stops the reading: with it, every failure re-armed the next
+  // attempt, and offline the screen asked again in a loop for as long as it
+  // stayed open. The failure is the screen's to show, retry included.
+  const {
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    fetchNextPage,
+  } = budgets;
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]);
+
+  const currentPeriod = useMemo<Period | null>(
     () =>
       settings.data?.payDayOfMonth === undefined
         ? null
-        : getBudgetPeriodForDate(new Date(), settings.data.payDayOfMonth),
-    [settings.data],
+        : getBudgetPeriodForDate(now, settings.data.payDayOfMonth),
+    [settings.data, now],
   );
-  const anchor = useMemo(
-    () =>
-      currentPeriod === null
-        ? null
-        : currentBudgetLocation(sections, currentPeriod),
-    [sections, currentPeriod],
-  );
+  const years = useMemo(() => budgetYears(budgets.data ?? []), [budgets.data]);
 
-  const list = useRef<SectionList<BudgetSparse, BudgetYearGroup>>(null);
-  const hasAnchored = useRef(false);
   const createdCount = navigationCount(generationResult.createdCount);
   const skippedCount = navigationCount(generationResult.skippedCount);
   const showsGenerationResult = createdCount !== null && skippedCount !== null;
 
-  const scrollToAnchor = useCallback(() => {
-    if (anchor === null) return;
-    list.current?.scrollToLocation({
-      sectionIndex: anchor.sectionIndex,
-      // `+ 1` because `SectionList` counts the year header as row `0` of its
-      // own section, where the selector counts budgets. Passing the budget's
-      // own index lands the list a card early — the month above the one being
-      // lived in. Kept here rather than in the selector: this is the list
-      // component's own numbering, not something the domain knows about.
-      itemIndex: anchor.itemIndex + 1,
-      viewPosition: 0,
-      // No clearance of our own: `scrollToLocation` measures the sticky year
-      // header and adds it to `viewOffset` itself, so a second allowance for
-      // it would push the card that far below the header instead of under it.
-      animated: false,
-    });
-  }, [anchor]);
-
-  // The list reads newest first, so the months still to come sit *above* the one
-  // being lived in — an account provisioned a year ahead opened twelve cards
-  // away from the only month anyone can act on.
-  //
-  // Driven by the list's own measurement rather than by a mount effect: asking
-  // it to scroll from inside the commit that mounts it moves rows the mounting
-  // is still placing, and Fabric answers that with "The specified child already
-  // has a parent" — a native crash on the tab, not a misplaced scroll. Once, and
-  // only once: re-anchoring after a pull-to-refresh would take the list back
-  // from under the thumb.
-  const anchorList = useCallback(() => {
-    if (anchor === null || hasAnchored.current) return;
-    hasAnchored.current = true;
-    scrollToAnchor();
-  }, [anchor, scrollToAnchor]);
+  const header = (
+    <HeroAppBar title={t("budgets.list.title")}>
+      <HeroAppBarAction
+        icon="calendar-multiple"
+        onPress={() => router.push("/budget/plan")}
+        accessibilityLabel={t("budgets.list.planAccessibility")}
+      />
+    </HeroAppBar>
+  );
 
   if (budgets.isPending || settings.isPending) {
     return (
-      <SafeAreaView
-        edges={["top"]}
-        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <ActivityIndicator accessibilityLabel={t("common.loading")} />
-      </SafeAreaView>
+        {header}
+        <HeroZone>
+          <YearSkeleton />
+        </HeroZone>
+        <ContentZone>
+          <View />
+        </ContentZone>
+      </View>
     );
   }
 
   if (
     budgets.isError ||
+    isFetchNextPageError ||
     settings.isError ||
     settings.data === undefined ||
     settings.data.currency === undefined ||
@@ -173,43 +181,45 @@ export default function BudgetsScreen() {
     currentPeriod === null
   ) {
     return (
-      <PlaceholderScreen
-        icon="cloud-off-outline"
-        title={t("budgets.list.loadErrorTitle")}
-        hint={t("budgets.list.loadErrorHint")}
-        action={{
-          label: t("common.retry"),
-          onPress: () =>
-            void Promise.all([
-              invalidateUserSettings(),
-              invalidateBudgetData(),
-            ]),
-        }}
-      />
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        {header}
+        <PlaceholderScreen
+          icon="cloud-off-outline"
+          title={t("budgets.list.loadErrorTitle")}
+          hint={t("budgets.list.loadErrorHint")}
+          action={{
+            label: t("common.retry"),
+            onPress: () =>
+              void Promise.all([
+                invalidateUserSettings(),
+                invalidateBudgetData(),
+              ]),
+          }}
+        />
+      </View>
     );
   }
 
   const { currency, payDayOfMonth } = settings.data;
+  // The chosen year only while it still has budgets: one deleted elsewhere
+  // would otherwise leave the picker pointing at nothing.
+  const year =
+    chosenYear !== null && years.includes(chosenYear)
+      ? chosenYear
+      : initialBudgetYear(years, currentPeriod);
+  const yearBudgets = budgetsOfYear(budgets.data ?? [], year);
+  const recap = yearRecap(yearBudgets);
+  const missingMonth = nextMissingMonth(yearBudgets, year, currentPeriod);
+  const isPastYear = year < currentPeriod.year;
 
   return (
     // The app bar carries the status bar inset; asking the safe area for the
     // top edge too would double it.
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <TabHeader
-        title={t("budgets.list.title")}
-        trailing={
-          <Appbar.Action
-            icon="calendar-plus"
-            onPress={() => router.push("/budget/plan")}
-            accessibilityLabel={t("budgets.list.planAccessibility")}
-          />
-        }
-      />
-      {/* Sectioned rather than flat: an account two years old is 24 months of
-          cards, and mounting all of them to show four is the frame drop the
-          list opens on. `SectionList` is the virtualiser that already speaks
-          year-then-months, so nothing has to be flattened by hand. */}
-      {sections.length === 0 ? (
+      {header}
+      {years.length === 0 ? (
         <PlaceholderScreen
           icon="calendar-blank-outline"
           title={t("budgets.list.emptyTitle")}
@@ -220,75 +230,102 @@ export default function BudgetsScreen() {
           }}
         />
       ) : (
-        <SectionList
-          ref={list}
-          sections={groups}
-          keyExtractor={(budget) => budget.id}
-          contentContainerStyle={styles.content}
-          onContentSizeChange={anchorList}
-          // Not optional, whatever is on screen: `scrollToIndex` refuses outright
-          // unless one of these two is present, and it throws rather than returns
-          // — which on this tab came out as a native mounting crash, not a scroll
-          // that quietly did nothing. These cards have no fixed height (a subtitle
-          // wraps, a badge does not), so `getItemLayout` would have to lie; the
-          // honest half of the pair is to answer the failure. It means the row is
-          // rendered but not yet measured, and one frame later it is.
-          onScrollToIndexFailed={() => {
-            requestAnimationFrame(scrollToAnchor);
-          }}
-          // What makes that second attempt land: the row has to exist to be
-          // measured, and the window stops well short of a year of months.
-          initialNumToRender={
-            anchor === null
-              ? undefined
-              : Math.max(DEFAULT_RENDER_WINDOW, anchor.rowsAbove + 1)
-          }
-          // Off by default on Android, on by default on iOS. A year is the one
-          // thing a month card never says, so scrolling into 2025 without it
-          // leaves twelve "Décembre" with nothing to date them.
-          stickySectionHeadersEnabled
-          refreshControl={
-            <RefreshControl
-              refreshing={budgets.isRefetching}
-              onRefresh={() => void invalidateBudgetData()}
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          refreshControl={<RefreshControl {...pull} />}
+        >
+          <HeroZone>
+            {years.length > 1 && (
+              <YearPicker
+                years={years}
+                selected={year}
+                onSelect={setChosenYear}
+              />
+            )}
+            <HeroFigure
+              eyebrow={t(
+                isPastYear
+                  ? "budgets.list.yearReview"
+                  : "budgets.list.yearBalance",
+              )}
+              amount={signedCompact(recap.closingBalance, currency)}
+              currency={CURRENCY_METADATA[currency].symbol}
             />
-          }
-          onEndReached={() => {
-            if (budgets.hasNextPage && !budgets.isFetchingNextPage) {
-              void budgets.fetchNextPage();
-            }
-          }}
-          ListFooterComponent={
-            budgets.isFetchingNextPage ? (
-              <ActivityIndicator accessibilityLabel={t("common.loading")} />
-            ) : null
-          }
-          renderSectionHeader={({ section }) => (
-            <List.Subheader
-              style={[
-                styles.year,
-                { backgroundColor: theme.colors.background },
-              ]}
-            >
-              {section.year}
-            </List.Subheader>
-          )}
-          renderItem={({ item: budget }) => (
-            <View style={styles.row}>
-              <BudgetRow
-                budget={budget}
-                currency={currency}
-                payDayOfMonth={payDayOfMonth}
-                timing={budgetTiming(budget, currentPeriod)}
-                locale={locale}
-                t={t}
+            <View style={styles.tile}>
+              <HeroTile
+                icon="calendar-month-outline"
+                value={`${recap.budgetedMonths} / ${MONTHS_PER_YEAR}`}
+                label={t("budgets.list.budgetedMonths")}
               />
             </View>
-          )}
-        />
+            <HeroVerdict
+              sentence={
+                recap.budgetedMonths === 0
+                  ? t("budgets.list.verdict.none")
+                  : recap.budgetedMonths >= MONTHS_PER_YEAR
+                    ? t("budgets.list.verdict.all")
+                    : t("budgets.list.verdict.some", {
+                        count: recap.budgetedMonths,
+                      })
+              }
+            />
+          </HeroZone>
+
+          <ContentZone style={styles.content}>
+            <View style={styles.section}>
+              <SectionHeader
+                title={t("budgets.list.months")}
+                count={yearBudgets.length}
+              />
+              <LedgerCard dividerInset={SPACING.md}>
+                {buildRows(yearBudgets, missingMonth, year).map((row) =>
+                  row.kind === "budget" ? (
+                    <BudgetRow
+                      key={row.budget.id}
+                      budget={row.budget}
+                      currency={currency}
+                      payDayOfMonth={payDayOfMonth}
+                      timing={budgetTiming(row.budget, currentPeriod)}
+                      locale={locale}
+                      t={t}
+                    />
+                  ) : (
+                    <LedgerRow
+                      key={`missing-${row.month}`}
+                      testID="budgets-create-missing"
+                      title={capitalized(
+                        formatMonthName(row.month, year, locale),
+                        locale,
+                      )}
+                      subtitle={t("budgets.list.notCreated")}
+                      trailing={
+                        <Text
+                          variant="labelLarge"
+                          style={{ color: theme.colors.primary }}
+                        >
+                          {t("budgets.list.createMonth")}
+                        </Text>
+                      }
+                      onPress={() =>
+                        router.push({
+                          pathname: "/budget/create",
+                          params: { month: row.month, year },
+                        })
+                      }
+                    />
+                  ),
+                )}
+              </LedgerCard>
+            </View>
+          </ContentZone>
+        </ScrollView>
       )}
 
+      {/* Writing a budget happens once a month at most, so the FAB keeps to
+          its plus sign: the empty state already names the action, where a
+          newcomer actually is. */}
       <FAB
+        testID="budgets-create"
         icon="plus"
         style={styles.fab}
         onPress={() => router.push("/budget/create")}
@@ -320,16 +357,134 @@ export default function BudgetsScreen() {
   );
 }
 
+type ListRow =
+  | { kind: "budget"; budget: BudgetSparse }
+  | { kind: "missing"; month: number };
+
+/** The year's budgets with the next missing month slotted in at its place. */
+function buildRows(
+  yearBudgets: BudgetSparse[],
+  missingMonth: number | null,
+  year: number,
+): ListRow[] {
+  const rows: ListRow[] = yearBudgets.map((budget) => ({
+    kind: "budget",
+    budget,
+  }));
+  if (missingMonth === null) return rows;
+  const at = rows.findIndex(
+    (row) =>
+      row.kind === "budget" &&
+      (row.budget.year ?? year) === year &&
+      (row.budget.month ?? 0) > missingMonth,
+  );
+  rows.splice(at === -1 ? rows.length : at, 0, {
+    kind: "missing",
+    month: missingMonth,
+  });
+  return rows;
+}
+
+/**
+ * The years as Material tabs on the forest — the label over a moving indicator,
+ * as the month pager draws its months — rather than a row of pills.
+ */
+function YearPicker({
+  years,
+  selected,
+  onSelect,
+}: {
+  years: number[];
+  selected: number;
+  onSelect: (year: number) => void;
+}) {
+  const hero = useHeroColors();
+  const { t } = useTranslation();
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.years}
+      accessibilityRole="tablist"
+      accessibilityLabel={t("budgets.list.yearSelector")}
+    >
+      {years.map((year) => {
+        const isSelected = year === selected;
+        return (
+          <Pressable
+            key={year}
+            onPress={() => onSelect(year)}
+            android_ripple={{ color: hero.tile }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isSelected }}
+            style={styles.year}
+          >
+            <Text
+              variant="titleSmall"
+              style={[
+                TABULAR_DIGITS,
+                { color: isSelected ? hero.ink : hero.support },
+              ]}
+            >
+              {year}
+            </Text>
+            <View
+              style={[
+                styles.yearIndicator,
+                { backgroundColor: isSelected ? hero.ink : "transparent" },
+              ]}
+            />
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/** The year's shape before its numbers, on the forest it will land on. */
+function YearSkeleton() {
+  const hero = useHeroColors();
+  const { t } = useTranslation();
+  const tone = { backgroundColor: hero.tile };
+
+  return (
+    <View
+      style={styles.skeleton}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={t("common.loading")}
+    >
+      <View style={[styles.bone, styles.boneEyebrow, tone]} />
+      <View style={[styles.bone, styles.boneFigure, tone]} />
+      <View style={[styles.bone, styles.boneTile, tone]} />
+    </View>
+  );
+}
+
 function navigationCount(value: unknown): number | null {
   if (typeof value !== "string") return null;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function signedCompact(value: number, currency: SupportedCurrency): string {
+  if (areAmountsHidden()) return formatCompactAmount(value, currency);
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  return `${sign}${formatCompactAmount(Math.abs(value), currency)}`;
+}
+
+function capitalized(value: string, locale: string): string {
+  return value.charAt(0).toLocaleUpperCase(locale) + value.slice(1);
+}
+
 /**
  * A month, what it leaves, and — only when the pay cycle is not the calendar —
  * the dates it actually spans. On a pay day of 1 that range restates the month
  * name, and the encouragement iOS prints there says more.
+ *
+ * The month being lived in is named in the brand green; a month that is over
+ * steps back to the quiet ink, figure included — it is a record, not a state.
  */
 function BudgetRow({
   budget,
@@ -347,81 +502,80 @@ function BudgetRow({
   t: (key: string) => string;
 }) {
   const theme = useTheme();
+  const financial = useFinancialColors();
+  const ripple = useRipple();
+  const push = usePushOnce();
   const month = budget.month ?? 1;
   const year = budget.year ?? new Date().getFullYear();
   const remaining = budget.remaining ?? 0;
   const isPositive = remaining >= 0;
   const isCurrent = timing === "current";
   const isPast = timing === "past";
+  const state = BudgetFormulas.emotionState(budget);
+  const amountColor = isPast
+    ? theme.colors.onSurfaceVariant
+    : state === "comfortable"
+      ? theme.colors.primary
+      : state === "tight"
+        ? financial.expense
+        : financial.overBudget;
+  const name = capitalized(formatMonthName(month, year, locale), locale);
+  const subtitle = isCurrent
+    ? `${t("budgets.list.ongoing")} · ${periodLabel(t, locale, month, year, payDayOfMonth, isPositive)}`
+    : periodLabel(t, locale, month, year, payDayOfMonth, isPositive);
 
   return (
-    <Card
-      // Three weights for three meanings: the month being lived in is raised
-      // and ringed, a plan is only outlined, and a month that is over is a flat
-      // filled surface. The surface carries it on its own — the 0.72 opacity
-      // that used to sit on top took "Résultat" down to 3.64:1, and a month
-      // already lived is exactly the one someone re-reads.
-      //
-      // The ring is what makes "raised" legible. `background` is #F7F6F3 and
-      // `surface` is #FFFFFF, so an outlined card is white against warm grey
-      // with a crisp edge, while an elevated one is a faint tint under a soft
-      // Android shadow — on this background elevation is the *weakest* of the
-      // three, and the current month ended up quieter than the plans above it.
-      // Drawing its edge in `primary` is the app's own way of saying "this one"
-      // (`budget/create.tsx` marks the chosen model the same way), and it does
-      // it without tinting a surface: filling the card with `primaryContainer`
-      // is what put the loudest colour in the palette on a list row and left
-      // the text below on roles resolved for a neutral one.
-      mode={isCurrent ? "elevated" : isPast ? "contained" : "outlined"}
-      style={
-        isCurrent && {
-          borderWidth: CURRENT_MONTH_BORDER,
-          borderColor: theme.colors.primary,
-        }
-      }
-      onPress={() => router.push(`/budget/${budget.id}`)}
+    <Pressable
+      testID={`budget-row-${budget.id}`}
+      onPress={() => push(`/budget/${budget.id}`)}
+      android_ripple={ripple}
+      accessibilityRole="button"
+      accessibilityLabel={`${name}${isCurrent ? `, ${t("budgets.list.current")}` : ""}`}
+      style={styles.row}
     >
-      <Card.Content style={styles.cardRow}>
-        <View style={styles.rowLabels}>
-          {/* Beside the month, not above it: stacked, the badge pushed "Août"
-              off the line every other month name shares with its amount, and a
-              list read by scanning down one column cannot afford one row that
-              sits lower than the rest. */}
-          <View style={styles.monthLine}>
-            <Text variant="titleMedium" style={styles.month}>
-              {formatMonthName(month, year, locale)}
-            </Text>
-            {isCurrent && (
-              <StatusBadge>{t("budgets.list.current")}</StatusBadge>
-            )}
-          </View>
-          <Text
-            variant="bodySmall"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {periodLabel(t, locale, month, year, payDayOfMonth, isPositive)}
-          </Text>
-        </View>
+      <View style={styles.rowText}>
+        <Text
+          variant="titleMedium"
+          style={{
+            color: isCurrent
+              ? theme.colors.primary
+              : isPast
+                ? theme.colors.onSurfaceVariant
+                : theme.colors.onSurface,
+          }}
+        >
+          {name}
+        </Text>
+        <Text
+          variant="bodySmall"
+          numberOfLines={1}
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
+          {subtitle}
+        </Text>
+      </View>
 
-        <View style={styles.amount}>
-          <Amount size="row">
-            {formatSignedCompactCurrency(remaining, currency)}
-          </Amount>
-          <Text
-            variant="labelSmall"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {/* A month that is over settled at this figure; the two other
-                tenses are still describing something that has not happened. */}
-            {isPast
-              ? t("budgets.list.result")
-              : isPositive
-                ? t("budgets.list.potential")
-                : t("budgets.list.adjustment")}
-          </Text>
-        </View>
-      </Card.Content>
-    </Card>
+      <View style={styles.amount}>
+        <Text
+          numberOfLines={1}
+          style={[BRAND_TYPE.rowAmount, TABULAR_DIGITS, { color: amountColor }]}
+        >
+          {formatSignedCompactCurrency(remaining, currency)}
+        </Text>
+        <Text
+          variant="bodySmall"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
+          {/* A month that is over settled at this figure; the two other
+              tenses are still describing something that has not happened. */}
+          {isPast
+            ? t("budgets.list.result")
+            : isPositive
+              ? t("budgets.list.potential")
+              : t("budgets.list.adjustment")}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -446,27 +600,42 @@ function periodLabel(
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  // Rhythm per row, not a container `gap`: a virtualised list has no single
-  // container to hold one.
-  content: { padding: SPACING.md, paddingBottom: FAB_CLEARANCE },
-  // Opaque, because a sticky header scrolls over the cards underneath it.
-  year: { paddingTop: SPACING.sm, paddingBottom: SPACING.sm },
-  row: { paddingBottom: SPACING.sm },
-  cardRow: {
-    flexDirection: "row",
+  scroll: { flexGrow: 1 },
+  content: { paddingBottom: FAB_CLEARANCE },
+  section: { gap: SPACING.sm },
+  tile: { flexDirection: "row" },
+  // The hero's gutter moves onto each tab, so the first label lines up with the
+  // figure below while its target still reaches the display edge.
+  years: { marginHorizontal: -SPACING.md, flexGrow: 0 },
+  year: {
+    minHeight: TOUCH_TARGET,
+    justifyContent: "flex-end",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+    gap: SPACING.sm,
   },
-  rowLabels: { flex: 1, gap: SPACING.xxs },
-  monthLine: {
+  /** M3's primary tab indicator. */
+  yearIndicator: {
+    alignSelf: "stretch",
+    height: 3,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+  },
+  row: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
-    flexWrap: "wrap",
+    minHeight: 64,
+    paddingVertical: SPACING.sm + SPACING.xs,
+    paddingHorizontal: SPACING.md,
   },
-  month: { textTransform: "capitalize" },
+  rowText: { flex: 1, gap: SPACING.xxs },
   amount: { alignItems: "flex-end", gap: SPACING.xxs },
+  skeleton: { gap: SPACING.md },
+  bone: { borderRadius: RADIUS.sm },
+  boneEyebrow: { width: 140, height: 14 },
+  boneFigure: { width: 180, height: 48 },
+  boneTile: { width: 180, height: 56, borderRadius: RADIUS.card },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

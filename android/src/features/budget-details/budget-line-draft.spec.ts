@@ -99,6 +99,21 @@ describe("buildBudgetLineUpdate", () => {
 
     expect(payload.isManuallyAdjusted).toBeUndefined();
   });
+
+  it("keeps an adjusted line adjusted when only its name changes", () => {
+    // The shared schema fills a missing flag with `false`: left out, a rename
+    // lifted the shield on an amount typed by hand.
+    const existing = line({
+      templateLineId: BUDGET_ID,
+      isManuallyAdjusted: true,
+    });
+    const payload = buildBudgetLineUpdate(
+      { ...budgetLineDraftFrom(existing), name: "Loyer appartement" },
+      existing,
+    );
+
+    expect(budgetLineUpdateSchema.parse(payload).isManuallyAdjusted).toBe(true);
+  });
 });
 
 describe("budgetLineDraftHint", () => {

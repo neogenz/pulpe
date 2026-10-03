@@ -15,15 +15,15 @@ jest.mock("@/features/budget-details/budget-line-api", () => ({
 jest.mock("./goals-api", () => ({}));
 
 describe("goal cache invalidation", () => {
-  it("refreshes the written budget and the goals after every budget-line write", async () => {
+  it("refreshes the budgets and the goals after every budget-line write", async () => {
     const invalidate = jest
       .spyOn(queryClient, "invalidateQueries")
       .mockResolvedValue(undefined);
 
-    await invalidateBudgetLines(queryClient, ["budget-1"]);
+    await invalidateBudgetLines(queryClient);
 
     expect(invalidate.mock.calls.map(([options]) => options?.queryKey)).toEqual(
-      [budgetKeys.detail("budget-1"), budgetKeys.list(), goalKeys.all],
+      [budgetKeys.details(), budgetKeys.list(), goalKeys.all],
     );
 
     invalidate.mockRestore();

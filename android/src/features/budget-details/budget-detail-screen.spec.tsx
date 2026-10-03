@@ -39,7 +39,7 @@ const mockUseBudgetPeriods = jest.fn((year: number | null) => ({
   data: year === null ? [] : (mockPeriodsByYear.get(year) ?? []),
 }));
 const mockToggle = {
-  mutate: jest.fn(),
+  mutateAsync: jest.fn(async () => undefined),
   isPending: false,
   variables: undefined,
 };
@@ -61,7 +61,13 @@ jest.mock("react-native-reanimated", () => {
   const { View } = jest.requireActual("react-native");
   return {
     __esModule: true,
-    default: { View },
+    default: {
+      View,
+      get FlatList() {
+        return jest.requireMock<typeof import("react-native")>("react-native")
+          .FlatList;
+      },
+    },
     LinearTransition: { duration: () => undefined },
   };
 });
@@ -96,6 +102,17 @@ jest.mock("react-native-paper", () => {
   const { Pressable, Text, TextInput, View } =
     jest.requireActual("react-native");
   return {
+    Button: ({
+      children,
+      onPress,
+    }: {
+      children: React.ReactNode;
+      onPress: () => void;
+    }) => (
+      <Pressable onPress={onPress}>
+        <Text>{children}</Text>
+      </Pressable>
+    ),
     ActivityIndicator: ({
       accessibilityLabel,
     }: {
@@ -181,10 +198,68 @@ jest.mock("@/core/ui/date-format", () => ({
 }));
 jest.mock("@/core/ui/theme", () => ({
   DURATION: { short: 100 },
-  FAB_CLEARANCE: 80,
   SCREEN_PADDING: 16,
-  SPACING: { sm: 8, md: 16, lg: 24 },
+  SPACING: { sm: 8, md: 16, lg: 24, xl: 32 },
 }));
+jest.mock("@/core/ui/scheme-colors", () => ({
+  useHeroColors: () => ({ surface: "green", ink: "white" }),
+}));
+jest.mock("@/core/ui/hero", () => {
+  const { Pressable, Text, View } = jest.requireActual("react-native");
+  const Children = ({ children }: { children?: React.ReactNode }) => (
+    <View>{children}</View>
+  );
+  return {
+    HeroAppBar: ({
+      title,
+      children,
+    }: {
+      title: string;
+      children?: React.ReactNode;
+    }) => (
+      <View>
+        <Text>{title}</Text>
+        {children}
+      </View>
+    ),
+    HeroAppBarAction: ({
+      onPress,
+      accessibilityLabel,
+    }: {
+      onPress: () => void;
+      accessibilityLabel: string;
+    }) => (
+      <Pressable onPress={onPress} accessibilityLabel={accessibilityLabel} />
+    ),
+    HeroZone: Children,
+    ContentZone: Children,
+  };
+});
+jest.mock("@/core/ui/ledger", () => ({
+  LedgerSegment: ({ children }: { children: React.ReactNode }) => children,
+}));
+jest.mock("@/core/ui/section-header", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    SectionHeader: ({ title }: { title: string }) => <Text>{title}</Text>,
+  };
+});
+jest.mock("@/core/ui/action-button", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    ActionButton: ({
+      children,
+      onPress,
+    }: {
+      children: React.ReactNode;
+      onPress: () => void;
+    }) => (
+      <Pressable onPress={onPress}>
+        <Text>{children}</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock("@/core/tips/tips-store", () => ({
   armTip: jest.fn(),
   dismissTip: jest.fn(),
@@ -205,16 +280,20 @@ jest.mock("@/features/budgets/budget-queries", () => ({
     all: ["budgets"],
     detail: (id: string) => ["budgets", "detail", id],
   },
-  invalidateBudget: jest.fn(async () => undefined),
+  invalidateAfterBudgetWrite: jest.fn(async () => undefined),
   invalidateBudgetData: jest.fn(async () => undefined),
   useBudgetDetails: () => mockDetails,
   useBudgetPeriods: (year: number | null) => mockUseBudgetPeriods(year),
+}));
+jest.mock("@/features/savings-goals/goals-queries", () => ({
+  goalKeys: { all: ["savings-goals"] },
 }));
 jest.mock("@/features/budgets/toggle-check-api", () => ({
   toggleCheck: (target: unknown) => mockToggleRequest(target),
 }));
 jest.mock("@/features/budgets/toggle-check-mutation", () => ({
   useToggleCheck: () => mockToggle,
+  usePendingCheck: () => () => false,
 }));
 jest.mock("@/features/current-month/current-month-view-model", () => ({
   buildCurrentMonthViewModel: () => ({ ready: true }),
@@ -227,6 +306,7 @@ jest.mock("./components/budget-detail-hero", () => {
         <Text>open-metrics</Text>
       </Pressable>
     ),
+    BudgetDetailSkeleton: () => <Text>common.loading</Text>,
   };
 });
 jest.mock("./components/budget-line-row", () => {
@@ -504,12 +584,9 @@ it("uses overlay handles for editing, metrics and rejected pointing", async () =
   await fireEvent.press(view.getByText("open-metrics"));
   expect(view.getByText("realized")).toBeTruthy();
 
+  mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
   await fireEvent.press(view.getByText("toggle:rent"));
-  const callbacks = mockToggle.mutate.mock.calls[0][1] as {
-    onError: () => void;
-  };
-  await act(() => callbacks.onError());
-  expect(view.getByText("toggle-failure")).toBeTruthy();
+  await waitFor(() => expect(view.getByText("toggle-failure")).toBeTruthy());
 });
 
 it("restores cached detail when the optimistic point request is rejected", async () => {

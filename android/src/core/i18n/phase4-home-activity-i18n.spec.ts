@@ -29,8 +29,8 @@ describe("phase 4 current-month activity localization", () => {
 
     expect(activityWindow).not.toContain("formatRelativeDay");
     expect(activityCard).toContain("formatRelativeDay(day.date, now, locale)");
-    expect(home).toContain('"point" | "undo" | null');
-    expect(home).toContain("t(`home.checking.${toggleFailure}Failure`)");
+    expect(home).toContain('step: "point" | "undo"');
+    expect(home).toContain("t(`home.checking.${current.step}Failure`)");
     expect(`${activityCard}\n${home}`).not.toMatch(
       /Activité sur \$|Le pointage n'a pas été enregistré|Dernier jour de la période/,
     );

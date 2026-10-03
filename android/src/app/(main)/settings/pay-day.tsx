@@ -9,6 +9,7 @@ import { Card } from "@/core/ui/card";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useTranslation } from "@/core/i18n/locale-store";
+import { readRemindersEnabled } from "@/core/notifications/reminder-flags";
 import { scheduleMonthlyReminder } from "@/core/notifications/scheduler";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { useRipple } from "@/core/ui/ripple";
@@ -57,8 +58,12 @@ export default function PayDayScreen() {
       { payDayOfMonth },
       {
         onSuccess: () => {
-          // The reminder fires on the pay day, so moving the day moves it.
-          void scheduleMonthlyReminder(payDayOfMonth);
+          // The reminder fires on the pay day, so moving the day moves it —
+          // when there is one. The system grant outlives the in-app switch, so
+          // it is the switch that says whether to arm anything.
+          if (readRemindersEnabled()) {
+            void scheduleMonthlyReminder(payDayOfMonth);
+          }
           router.back();
         },
       },

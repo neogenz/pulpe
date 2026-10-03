@@ -31,7 +31,7 @@
       "verifying": "Vérification du lien en cours"
     },
     "restore": {
-      "hint": "Tes données sont restées sur cet appareil. Réessaie pour ouvrir Pulpe.",
+      "hint": "Vérifie ta connexion, puis réessaie. Tes données sont restées sur cet appareil.",
       "title": "Impossible d'ouvrir ta session"
     },
     "signIn": {
@@ -90,22 +90,27 @@
         "saving": "Épargne",
         "unchecked": "À pointer"
       },
-      "gesturesMessage": "Touche le rond pour pointer · Touche la ligne pour la modifier",
+      "gesturesMessage": "Touche le rond ou glisse la ligne vers la droite pour pointer · Touche la ligne pour la modifier",
       "gesturesTitle": "Deux gestes par ligne",
       "goal": "Objectif : %{name}",
       "goalShort": "Objectif",
       "hero": {
         "accessibility": "%{state} %{amount}, %{percent} % utilisé",
-        "available": "Disponible",
+        "available": "Disponible à dépenser",
         "deficit": "Déficit",
         "distribution": "Répartition du mois",
         "expenses": "dépenses",
         "income": "revenus",
         "previousMonth": "le mois précédent",
         "rollover": "Report du mois précédent inclus",
-        "rolloverNamed": "Report inclus · %{month}",
+        "rolloverNamed": "Report de %{month} inclus",
         "savings": "épargne",
-        "viewMonth": "Voir %{month}"
+        "viewMonth": "Voir %{month}",
+        "verdict": {
+          "comfortable": "Tu es large ce mois-ci.",
+          "tight": "Ce mois est un peu juste.",
+          "deficit": "Tu dépenses plus que tu ne gagnes ce mois-ci."
+        }
       },
       "loadErrorHint": "Vérifie ta connexion, puis réessaie.",
       "loadErrorTitle": "On n'a pas pu charger ce budget",
@@ -129,7 +134,12 @@
         "toTransfer": "%{amount} à transférer",
         "transferred": "Transféré"
       },
-      "withdrawnFrom": "Puisé dans : %{name}"
+      "withdrawnFrom": "Puisé dans : %{name}",
+      "tracking": "Suivi du budget",
+      "swipe": {
+        "point": "Pointer",
+        "unpoint": "Dépointer"
+      }
     },
     "actions": {
       "line": {
@@ -159,7 +169,13 @@
         "plannedAmount": "sur %{amount} prévus",
         "postpone": "Reporter au mois suivant",
         "remaining": "%{amount} restants",
-        "viewSpread": "Voir les mois lissés"
+        "viewSpread": "Voir les mois lissés",
+        "leftEyebrow": "Il reste",
+        "overrunEyebrow": "Dépassement",
+        "notedOf": "%{noted} noté sur %{planned} prévu",
+        "movements": "Mouvements",
+        "emptyTitle": "Rien de noté ici",
+        "note": "Noter un montant"
       },
       "spread": {
         "complete": "Objectif atteint",
@@ -246,7 +262,8 @@
           "expense": "Restaurant, essence…",
           "income": "Prime, remboursement…",
           "saving": "Virement épargne…"
-        }
+        },
+        "retryUnchanged": "Cet ajout a peut-être déjà été enregistré. Réessaie avec les valeurs ci-dessous pour le confirmer. Tu pourras ensuite le modifier depuis le budget."
       },
       "activityAction": "Une opération",
       "add": "Ajouter",
@@ -291,6 +308,7 @@
       "undo": "Annuler",
       "validation": {
         "amount": "Ajoute un montant",
+        "amountTooLarge": "Une opération ne peut pas dépasser 1 000 000.",
         "description": "Ajoute une description",
         "exceedsGoal": "Ce montant dépasse ce que contient l'objectif.",
         "goal": "Choisis l'objectif utilisé",
@@ -309,7 +327,20 @@
       "planAccessibility": "Planifier plusieurs budgets",
       "potential": "Potentiel",
       "result": "Résultat",
-      "title": "Budgets"
+      "title": "Budgets",
+      "yearBalance": "Solde fin d'année",
+      "yearReview": "Bilan de l'année",
+      "budgetedMonths": "mois budgétés",
+      "verdict": {
+        "none": "Aucun mois budgétisé. Commence dès maintenant.",
+        "all": "Tu as budgétisé toute l'année. Bravo !",
+        "some": "Tu as budgétisé %{count} mois sur 12 sur l'année."
+      },
+      "months": "Mois",
+      "yearSelector": "Choisir l'année",
+      "ongoing": "en cours",
+      "notCreated": "Pas encore de budget",
+      "createMonth": "Créer le budget"
     },
     "plan": {
       "default": "par défaut",
@@ -398,7 +429,12 @@
     "or": "ou",
     "password": "Mot de passe",
     "retry": "Réessayer",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "quickAmountAccessibility": "Définir le montant à %{amount}",
+    "screenError": {
+      "title": "Cet écran a eu un problème",
+      "hint": "Tes données ne sont pas touchées. Réessaie ; si ça recommence, ferme et rouvre Pulpe."
+    }
   },
   "goals": {
     "status": {
@@ -414,7 +450,8 @@
       "emptyTitle": "Fixe ton premier objectif",
       "loadErrorTitle": "On n'a pas pu charger tes objectifs",
       "since": "Depuis %{date}",
-      "title": "Objectifs d'épargne"
+      "title": "Objectifs d'épargne",
+      "section": "Objectifs"
     },
     "intro": {
       "create": "Créer mon objectif",
@@ -456,7 +493,9 @@
       "target": "Cible (optionnelle)",
       "validation": {
         "dates": "Le début ne peut pas venir après l'échéance.",
+        "monthly": "L'épargne mensuelle doit être supérieure à zéro.",
         "name": "Donne un nom à ton objectif.",
+        "pastDeadline": "L'échéance ne peut pas être dans le passé.",
         "target": "La cible doit être supérieure à zéro."
       }
     },
@@ -466,7 +505,8 @@
       "futureLinesError": "Impossible de vérifier les prévisions futures de cet objectif.",
       "loadErrorTitle": "On n'a pas pu charger cet objectif",
       "missingHint": "Il a peut-être été supprimé depuis un autre appareil.",
-      "missingTitle": "Cet objectif n'existe plus"
+      "missingTitle": "Cet objectif n'existe plus",
+      "statusError": "Le statut n'a pas pu être changé. Réessaie."
     },
     "progress": {
       "achievementAccessibility": "%{percent} % de la cible épargné",
@@ -671,16 +711,18 @@
       "overBy": "+%{amount} en trop",
       "summary": "%{amount} au-delà du plan",
       "summaryAbsorbed": "%{amount} au-delà du plan, compensé ailleurs ce mois",
-      "title": "Ça dérive"
+      "title": "Ça dérive",
+      "catchUp": "Rattraper ces %{amount} en trop",
+      "catchUpHint": "Ouvre le budget pour ajuster tes enveloppes"
     },
     "hero": {
       "chartAccessibility": "Évolution du solde estimé par rapport au plan",
-      "detail": "Voir le détail",
+      "detail": "Voir le budget",
       "detailAccessibility": "Voir le détail du budget",
-      "estimate": "Estimé fin %{month} · %{currency}",
+      "estimate": "Estimé fin %{month}",
       "metricsAccessibility": "%{count} à pointer, %{variance} par rapport au prévu",
       "metricsHint": "Ouvrir le suivi du réalisé",
-      "toCheck": "à pointer",
+      "toCheck": "À pointer",
       "verdict": {
         "gain": "Il te reste plus que prévu.",
         "gainDated": "Au-dessus de ton plan depuis le %{date}.",
@@ -688,7 +730,7 @@
         "overrun": "Il te reste moins que prévu.",
         "overrunDated": "Sous ton plan depuis le %{date}."
       },
-      "vsPlanned": "vs prévu",
+      "vsPlanned": "Écart au plan",
       "chart": {
         "today": "aujourd'hui"
       }
@@ -1161,6 +1203,10 @@
     }
   },
   "startup": {
+    "accountBlocked": {
+      "hint": "Il ne peut plus être ouvert. Si tu n'as rien demandé, contacte le support.",
+      "title": "Ton compte est en cours de suppression"
+    },
     "vaultError": "Impossible de préparer tes données sécurisées."
   },
   "templates": {
@@ -1175,7 +1221,8 @@
       "openWeb": "Ouvrir sur le web",
       "title": "Modèles",
       "webBody": "Toutes les actions sur les modèles ne sont pas encore disponibles ici. Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour.",
-      "webTitle": "Modèles : version Android encore allégée"
+      "webTitle": "Modèles : version Android encore allégée",
+      "section": "Modèles"
     },
     "form": {
       "create": "Créer le modèle",
@@ -1211,7 +1258,8 @@
       },
       "propagationTitle": "Appliquer aux mois suivants ?",
       "save": "Enregistrer",
-      "templateOnly": "Modèle uniquement"
+      "templateOnly": "Modèle uniquement",
+      "longPressHint": "Appui long pour supprimer"
     },
     "detail": {
       "addLine": "Ajouter une prévision",
@@ -1236,7 +1284,8 @@
         "other": "%{count} budgets créés depuis ce modèle"
       },
       "usageError": "Impossible de vérifier les budgets liés à ce modèle.",
-      "usageHint": "Supprimer le modèle ne touche pas ces budgets."
+      "usageHint": "Supprimer le modèle ne touche pas ces budgets.",
+      "summary": "Récapitulatif"
     }
   },
   "vault": {
@@ -1276,7 +1325,10 @@
       "forgot": "Code oublié ?",
       "subtitle": "Il déverrouille tes montants",
       "title": "Ton code"
-    }
+    },
+    "offline": "Erreur de connexion, réessaie",
+    "tooManyAttempts": "Trop de tentatives, patiente un moment",
+    "wrongPin": "Ce code ne semble pas correct"
   },
   "vocabulary": {
     "kind": {

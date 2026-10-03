@@ -79,25 +79,28 @@ export function useBudgetDetails(budgetId: string | null) {
  * The sweep for writes whose reach no single id names: a budget created or
  * deleted moves the list and the periods, a spread lands in months the server
  * chose, a model edit reaches every budget generated from it, and
- * pull-to-refresh means everything. A write inside one known budget goes
- * through `invalidateBudget` instead.
+ * pull-to-refresh means everything. A write inside an existing budget goes
+ * through `invalidateAfterBudgetWrite` instead.
  */
 export function invalidateBudgetData(): Promise<void> {
   return queryClient.invalidateQueries({ queryKey: budgetKeys.all });
 }
 
 /**
- * A write inside one budget. Its detail refetches now wherever it is on
- * screen; the list is only marked stale, since its totals are not in front of
- * the user — the Budgets tab asks for them once on focus, rather than every
- * pointing tap costing a list request on top of the detail one.
+ * A write inside a budget. Every budget detail goes stale, not the written
+ * one's alone: a month's carry-over sums the deltas of the months before it,
+ * so a write in one month moves the available of every month after it. Only
+ * the details on screen refetch now — the one written, and Home's when it is a
+ * later month; the others when next opened. The list is only marked stale,
+ * since its totals are not in front of the user — the Budgets tab asks for
+ * them once on focus, rather than every pointing tap costing a list request on
+ * top of the detail one.
  */
-export function invalidateBudget(
+export function invalidateAfterBudgetWrite(
   queryClient: QueryClient,
-  budgetId: string,
 ): Promise<void> {
   return Promise.all([
-    queryClient.invalidateQueries({ queryKey: budgetKeys.detail(budgetId) }),
+    queryClient.invalidateQueries({ queryKey: budgetKeys.details() }),
     queryClient.invalidateQueries({
       queryKey: budgetKeys.list(),
       refetchType: "none",
@@ -105,7 +108,7 @@ export function invalidateBudget(
   ]).then(() => undefined);
 }
 
-/** The other half of `invalidateBudget`: silent when nothing went stale. */
+/** The other half of `invalidateAfterBudgetWrite`: silent when nothing went stale. */
 export function refetchStaleBudgetList(): Promise<void> {
   return queryClient.refetchQueries({
     queryKey: budgetKeys.list(),

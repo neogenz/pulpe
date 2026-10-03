@@ -12,6 +12,19 @@ export function parseAmount(input: string): number | null {
   return Number.isFinite(amount) ? amount : null;
 }
 
+/** Cents: the smallest unit of every currency the app handles. */
+const MAX_DECIMALS = 2;
+
+/**
+ * Whether the text carries more decimals than money has. The field refuses
+ * the keystroke that would add a third rather than rounding it: "12.345" was
+ * read as 12.345, sent and stored as is.
+ */
+export function exceedsCents(input: string): boolean {
+  const [, decimals = ""] = input.replace(",", ".").split(".");
+  return decimals.replace(/\D/g, "").length > MAX_DECIMALS;
+}
+
 /**
  * Seeds an amount field's text. Only for the initial value and for an amount
  * changed from outside the field — a field never re-renders its own text from

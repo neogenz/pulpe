@@ -7,16 +7,15 @@ import {
   View,
   type LayoutChangeEvent,
 } from "react-native";
-import { Text, useTheme } from "react-native-paper";
+import { Text } from "react-native-paper";
 
 import { formatMonthName } from "@/core/ui/date-format";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { useRipple } from "@/core/ui/ripple";
+import { useHeroColors } from "@/core/ui/scheme-colors";
 import { SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 
-/** M3's primary tab indicator, and the divider the row of them sits on. */
+/** M3's primary tab indicator. */
 const INDICATOR_HEIGHT = 3;
-const DIVIDER_HEIGHT = 1;
 
 interface MonthPagerProps {
   /** The viewed year and any boundary neighbor, oldest first. */
@@ -43,16 +42,17 @@ interface TabLayout {
  *
  * Deliberately always visible rather than revealed on scroll as on iOS: the
  * reveal is a scroll-driven animation, and a rail that is simply there navigates
- * just as well without one.
+ * just as well without one. It sits on the forest, under the app bar it extends —
+ * Material's tabs on a coloured top bar.
  */
 export function MonthPager({
   months,
   currentBudgetId,
   onSelect,
 }: MonthPagerProps) {
-  const theme = useTheme();
+  const hero = useHeroColors();
   const { locale, t } = useTranslation();
-  const ripple = useRipple();
+  const ripple = { color: hero.tile };
   const rail = useRef<ScrollView>(null);
   const layouts = useRef(new Map<string, TabLayout>());
   const [railWidth, setRailWidth] = useState(0);
@@ -80,7 +80,7 @@ export function MonthPager({
       onLayout={(event: LayoutChangeEvent) =>
         setRailWidth(event.nativeEvent.layout.width)
       }
-      style={[styles.rail, { borderBottomColor: theme.colors.outlineVariant }]}
+      style={{ backgroundColor: hero.surfaceTop }}
     >
       {/* No padding on the content: each tab carries the screen gutter itself,
           so the first label lines up with the column below while its hit area
@@ -106,9 +106,7 @@ export function MonthPager({
                 style={[
                   styles.label,
                   {
-                    color: isSelected
-                      ? theme.colors.primary
-                      : theme.colors.onSurfaceVariant,
+                    color: isSelected ? hero.ink : hero.support,
                   },
                 ]}
               >
@@ -121,9 +119,7 @@ export function MonthPager({
                 style={[
                   styles.indicator,
                   {
-                    backgroundColor: isSelected
-                      ? theme.colors.primary
-                      : "transparent",
+                    backgroundColor: isSelected ? hero.ink : "transparent",
                   },
                 ]}
               />
@@ -153,7 +149,6 @@ const styles = StyleSheet.create({
   // The line a set of Material tabs sits on. It is also what tells the list
   // below where the chrome stops, which the row previously borrowed a shadow to
   // say.
-  rail: { borderBottomWidth: DIVIDER_HEIGHT },
   tab: {
     minHeight: TOUCH_TARGET,
     justifyContent: "flex-end",
