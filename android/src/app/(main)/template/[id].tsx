@@ -39,6 +39,7 @@ import { Amount } from "@/core/ui/amount";
 import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
+import { useNow } from "@/features/current-month/current-month-queries";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { TemplateLines } from "@/features/templates/components/template-lines";
 import { TemplateLineSheet } from "@/features/templates/components/template-line-sheet";
@@ -69,7 +70,13 @@ export default function TemplateDetailScreen() {
   const settings = useUserSettings();
   const template = useTemplate(id);
   const lines = useTemplateLines(id);
-  const pull = usePullToRefresh(() => lines.refetch());
+  // The reach of an edit follows the payday period, so it is read again on
+  // midnight and on return to the foreground, not frozen at mount.
+  const [now, readClock] = useNow();
+  const pull = usePullToRefresh(() => {
+    readClock();
+    return lines.refetch();
+  });
   const usage = useTemplateUsage(id);
   const removeLine = useDeleteTemplateLine();
   const removeTemplate = useDeleteTemplate();
@@ -127,7 +134,7 @@ export default function TemplateDetailScreen() {
   const totals = BudgetFormulas.calculateTemplateTotals(list);
   const isUsageReady = usage.data !== undefined && !usage.isError;
   const propagationCount = isUsageReady
-    ? propagationBudgetCount(usage.data)
+    ? propagationBudgetCount(usage.data, settings.data?.payDayOfMonth, now)
     : 0;
 
   function dismissLineDeletion() {

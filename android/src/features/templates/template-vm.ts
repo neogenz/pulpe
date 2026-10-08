@@ -1,7 +1,9 @@
-import type {
-  TemplateLine,
-  TemplateUsageResponse,
-  TransactionKind,
+import {
+  compareBudgetPeriods,
+  getBudgetPeriodForDate,
+  type TemplateLine,
+  type TemplateUsageResponse,
+  type TransactionKind,
 } from "pulpe-shared";
 
 /** Same ceiling as iOS (`AppConfiguration.maxTemplates`). */
@@ -34,18 +36,20 @@ export function templateLineSections(
 /**
  * How many budgets an edit would actually reach.
  *
- * A model can have generated budgets for months already gone; propagation only
- * touches the current month and the ones after it, so announcing the raw usage
- * count would overstate what the user is about to change.
+ * A model can have generated budgets for periods already gone; propagation only
+ * touches the current period and the ones after it, so announcing the raw usage
+ * count would overstate what the user is about to change. The current period
+ * follows the user's payday, not the calendar month.
  */
 export function propagationBudgetCount(
   usage: TemplateUsage,
+  payDayOfMonth: number | null | undefined,
   now = new Date(),
 ): number {
-  const current = now.getFullYear() * 12 + (now.getMonth() + 1);
+  const current = getBudgetPeriodForDate(now, payDayOfMonth);
 
   return usage.budgets.filter(
-    (budget) => budget.year * 12 + budget.month >= current,
+    (budget) => compareBudgetPeriods(budget, current) >= 0,
   ).length;
 }
 
