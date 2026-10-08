@@ -62,6 +62,7 @@ describe("propagationBudgetCount", () => {
         { month: 8, year: 2026 },
         { month: 9, year: 2026 },
       ]),
+      null,
       now,
     );
 
@@ -69,15 +70,78 @@ describe("propagationBudgetCount", () => {
   });
 
   it("counts the current month", () => {
-    expect(propagationBudgetCount(usage([{ month: 8, year: 2026 }]), now)).toBe(
-      1,
-    );
+    expect(
+      propagationBudgetCount(usage([{ month: 8, year: 2026 }]), null, now),
+    ).toBe(1);
   });
 
   it("crosses the year boundary", () => {
-    expect(propagationBudgetCount(usage([{ month: 1, year: 2027 }]), now)).toBe(
-      1,
-    );
+    expect(
+      propagationBudgetCount(usage([{ month: 1, year: 2027 }]), null, now),
+    ).toBe(1);
+  });
+
+  describe("with a payday", () => {
+    const july = { month: 7, year: 2026 };
+    const august = { month: 8, year: 2026 };
+    const september = { month: 9, year: 2026 };
+
+    it("still counts the previous month's budget before a first-quinzaine payday", () => {
+      const beforePayday = new Date(2026, 7, 3);
+
+      expect(
+        propagationBudgetCount(usage([july, august]), 5, beforePayday),
+      ).toBe(2);
+      expect(propagationBudgetCount(usage([july]), 5, beforePayday)).toBe(1);
+    });
+
+    it("moves to the next period on a first-quinzaine payday", () => {
+      const onPayday = new Date(2026, 7, 5);
+
+      expect(propagationBudgetCount(usage([july, august]), 5, onPayday)).toBe(
+        1,
+      );
+    });
+
+    it("keeps the current budget until a second-quinzaine payday", () => {
+      const dayBefore = new Date(2026, 7, 26);
+
+      expect(
+        propagationBudgetCount(usage([august, september]), 27, dayBefore),
+      ).toBe(2);
+    });
+
+    it("drops the month once a second-quinzaine payday has passed", () => {
+      const onPayday = new Date(2026, 7, 27);
+
+      expect(
+        propagationBudgetCount(usage([august, september]), 27, onPayday),
+      ).toBe(1);
+    });
+
+    it("rolls a late-December payday over into January", () => {
+      const afterPayday = new Date(2026, 11, 28);
+
+      expect(
+        propagationBudgetCount(
+          usage([
+            { month: 12, year: 2026 },
+            { month: 1, year: 2027 },
+          ]),
+          27,
+          afterPayday,
+        ),
+      ).toBe(1);
+    });
+
+    it("falls back to the calendar month without a payday", () => {
+      const beforePayday = new Date(2026, 7, 3);
+
+      expect(propagationBudgetCount(usage([july]), null, beforePayday)).toBe(0);
+      expect(
+        propagationBudgetCount(usage([july]), undefined, beforePayday),
+      ).toBe(0);
+    });
   });
 });
 

@@ -127,7 +127,7 @@ export default function TemplateDetailScreen() {
   const totals = BudgetFormulas.calculateTemplateTotals(list);
   const isUsageReady = usage.data !== undefined && !usage.isError;
   const propagationCount = isUsageReady
-    ? propagationBudgetCount(usage.data)
+    ? propagationBudgetCount(usage.data, settings.data?.payDayOfMonth)
     : 0;
 
   function dismissLineDeletion() {
