@@ -14,7 +14,7 @@ const faq = [
   {
     question: "Quel est un budget mensuel type en Suisse ?",
     answer:
-      "Autour du salaire médian brut de 7’024 CHF, un loyer net d’environ 1’451 CHF et une prime adulte de 393.30 CHF. Le reste dépend des impôts, des transports et de l’épargne que tu poses avant de dépenser.",
+      "Autour du salaire médian brut de 7’024 CHF, un loyer net d’environ 1’451 CHF et une prime moyenne de 393.30 CHF, tous âges confondus. Le reste dépend des impôts, des transports et de l’épargne que tu poses avant de dépenser.",
   },
 ];
 

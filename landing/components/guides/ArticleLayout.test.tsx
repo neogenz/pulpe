@@ -442,6 +442,8 @@ describe("German health-premiums guide", async () => {
   it("cites BAG 2026 figures next to a bag.admin.ch source", () => {
     assert.ok(articleHtml, "the page must render an <article>");
     assert.ok(articleHtml.includes("393.30"));
+    assert.doesNotMatch(articleHtml, /im Monat für Erwachsene/);
+    assert.match(articleHtml, /über alle Altersgruppen/);
     assert.ok(articleHtml.includes("326.30"));
     assert.ok(articleHtml.includes("4,4"));
     assert.ok(articleHtml.includes("4,2"));
@@ -514,8 +516,7 @@ describe("French health-premiums guide", async () => {
       /msg-id-97889/,
       /news\.admin\.ch\/fr\/nsb\?id=102592/,
       /watson\.ch\/fr\/suisse\/assurance-maladie\//,
-      /comparis\.ch\/publikationen\/mitteilungen\/2026\/05\//,
-      /rts\.ch\/info\/suisse\/2026\/article\/[^"]+-29253733\.html/,
+      /bag\.admin\.ch\/fr\/newnsb\/BfuGvedj0OOX/,
     ]) {
       assert.match(articleHtml ?? "", source);
     }
@@ -523,10 +524,23 @@ describe("French health-premiums guide", async () => {
     assert.match(articleHtml ?? "", /class="guide-figures"/);
   });
 
-  it("keeps the 2027 slot on the spring forecasts until it is filled", () => {
-    assert.match(articleHtml ?? "", /Quelle hausse prévoir pour 2027/);
-    assert.match(articleHtml ?? "", /3,7/);
-    assert.match(articleHtml ?? "", /environ 5/);
+  it("leads with the official 2027 figures, not the spring forecasts", () => {
+    const section = (articleHtml ?? "").match(
+      /Quelle hausse prévoir pour 2027[\s\S]*?<h2>/,
+    )?.[0];
+    assert.ok(section, "the 2027 section is missing");
+    for (const figure of ["412", "338.80", "+5,0", "+4,8"]) {
+      assert.ok(section.includes(figure), figure);
+    }
+    assert.match(section, /communiqué du 29 septembre 2026/);
+    assert.doesNotMatch(
+      articleHtml ?? "",
+      /Au printemps 2026|fourchette haute/,
+    );
+    assert.ok(
+      (articleHtml ?? "").indexOf("Quelle hausse prévoir pour 2027") <
+        (articleHtml ?? "").indexOf("Et les années précédentes"),
+    );
   });
 
   it("phrases every article H2 as a reader question", () => {

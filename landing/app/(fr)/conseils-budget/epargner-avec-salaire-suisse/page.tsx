@@ -68,10 +68,10 @@ export default async function EpargnerSalairePage() {
 
       <h2>Les primes sont une dépense fixe</h2>
       <p>
-        Avant de viser 20&nbsp;%, pose la prime maladie. En 2026, la moyenne
-        adulte est à 393.30 CHF (OFSP). Ce n’est pas de l’épargne. C’est une
-        prévision, au même titre que le loyer. Un budget qui « épargne 20&nbsp;%
-        » en oubliant les primes ment sur le disponible.
+        Avant de viser 20&nbsp;%, pose la prime maladie. En 2026, la prime
+        moyenne, tous âges confondus, est à 393.30 CHF (OFSP). Ce n’est pas de
+        l’épargne. C’est une prévision, au même titre que le loyer. Un budget
+        qui « épargne 20&nbsp;% » en oubliant les primes ment sur le disponible.
       </p>
 
       <h2>Si 10 % ne passe pas</h2>

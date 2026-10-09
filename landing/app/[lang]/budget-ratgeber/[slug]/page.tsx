@@ -73,7 +73,7 @@ const premiumsFaq = [
   {
     question: "Wie hoch ist die mittlere Krankenkassenprämie 2026?",
     answer:
-      "393.30 CHF im Monat für Erwachsene und 326.30 CHF für 19- bis 25-Jährige, laut Bundesamt für Gesundheit. Die Erhöhung gegenüber 2025 beträgt 4,4 %.",
+      "393.30 CHF im Monat über alle Altersgruppen und 326.30 CHF für 19- bis 25-Jährige, laut Bundesamt für Gesundheit. Die Erhöhung gegenüber 2025 beträgt 4,4 %.",
   },
   {
     question:
@@ -198,7 +198,7 @@ function PremiumsArticle() {
         Für 2026 liegt die mittlere Prämie der obligatorischen
         Krankenversicherung bei{" "}
         <mark className="marker-highlight tabular-nums">393.30&nbsp;CHF</mark>{" "}
-        im Monat für Erwachsene und bei{" "}
+        im Monat über alle Altersgruppen und bei{" "}
         <mark className="marker-highlight tabular-nums">326.30&nbsp;CHF</mark>{" "}
         für 19- bis 25-Jährige, laut{" "}
         <a
