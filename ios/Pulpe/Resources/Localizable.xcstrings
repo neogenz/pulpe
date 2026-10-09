@@ -632,6 +632,28 @@
         }
       }
     },
+    "%@ est terminé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist vorbei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è finito"
+          }
+        }
+      }
+    },
     "%@ mois sur %lld" : {
       "localizations" : {
         "de" : {
@@ -744,6 +766,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ spuntato"
+          }
+        }
+      }
+    },
+    "%@ reportés sur %@ → tu démarres à %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ auf %2$@ übertragen → du startest mit %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ carried over to %2$@ → you start at %3$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ reportés sur %2$@ → tu démarres à %3$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ riportati su %2$@ → parti da %3$@"
           }
         }
       }
@@ -5821,6 +5871,28 @@
         }
       }
     },
+    "Bien joué, tu as mis %@ de côté." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gut gemacht, du hast %@ zur Seite gelegt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nice work — you set %@ aside."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ben fatto: hai messo %@ da parte."
+          }
+        }
+      }
+    },
     "Bientôt le bilan — tu gères" : {
       "localizations" : {
         "de" : {
@@ -5905,6 +5977,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bilancio dell’anno"
+          }
+        }
+      }
+    },
+    "Bilan du mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatsrückblick"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month recap"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bilancio del mese"
           }
         }
       }
@@ -6041,6 +6135,28 @@
         }
       }
     },
+    "Budget respecté." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget eingehalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget kept."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget rispettato."
+          }
+        }
+      }
+    },
     "Budgets" : {
       "localizations" : {
         "de" : {
@@ -6117,6 +6233,28 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "C'est noté" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verstanden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Got it"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ho capito"
           }
         }
       }
@@ -15249,6 +15387,28 @@
         }
       }
     },
+    "Masquer le bilan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückblick ausblenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide the recap"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi il bilancio"
+          }
+        }
+      }
+    },
     "Masquer le mot de passe" : {
       "localizations" : {
         "de" : {
@@ -22949,6 +23109,28 @@
         }
       }
     },
+    "Solde final" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endsaldo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final balance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saldo finale"
+          }
+        }
+      }
+    },
     "Solde négatif — on y remédie ?" : {
       "localizations" : {
         "de" : {
@@ -27005,6 +27187,28 @@
         }
       }
     },
+    "Voir le bilan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückblick ansehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the recap"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi il bilancio"
+          }
+        }
+      }
+    },
     "Voir le budget" : {
       "localizations" : {
         "de" : {
@@ -29127,6 +29331,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In arrivo"
+          }
+        }
+      }
+    },
+    "Ça arrive : %@ de plus que prévu." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kann passieren: %@ mehr als geplant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It happens: %@ more than planned."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capita: %@ in più del previsto."
           }
         }
       }

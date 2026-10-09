@@ -37,6 +37,7 @@ import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import {
   type DashboardData,
   type HistoryDataPoint,
+  type MonthRecap,
   type UpcomingMonthForecast,
 } from './dashboard-state';
 
@@ -69,6 +70,17 @@ const WITHDRAWAL_ERROR_CODES = new Set<string>([
   API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
   API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_CONFLICT,
 ]);
+
+// Half a franc either way, inclusive, on a cent-exact balance. Spelled out
+// rather than left to `Math.round`, whose -0.5 → -0 the iOS mirror
+// (`MonthRecap.outcome`) cannot reproduce.
+const MONTH_RECAP_BALANCED_MARGIN = 0.5;
+
+function monthRecapOutcome(endingBalance: number): MonthRecap['outcome'] {
+  if (endingBalance >= MONTH_RECAP_BALANCED_MARGIN) return 'saved';
+  if (endingBalance <= -MONTH_RECAP_BALANCED_MARGIN) return 'overspent';
+  return 'balanced';
+}
 
 // Une horloge, pas un instant. Un `InjectionToken` avec `factory` est fourni
 // dans l'injecteur racine : sa valeur est calculée une fois et gardée pour toute
@@ -434,6 +446,34 @@ export class DashboardStore {
   );
   readonly totalAvailable = computed<number>(() => this.#metrics().available);
   readonly remaining = computed<number>(() => this.#metrics().remaining);
+
+  // The previous period is closed as soon as this one has a budget. No budget
+  // in the history feed for it means there is nothing to recap — the user's
+  // first month included.
+  readonly previousMonthRecap = computed<MonthRecap | null>(() => {
+    if (!this.dashboardData()?.budget) return null;
+    const { month, year } = this.currentBudgetPeriod();
+    const previous =
+      month === 1 ? { month: 12, year: year - 1 } : { month: month - 1, year };
+    const closed = this.#historyResource
+      .value()
+      ?.find((b) => b.month === previous.month && b.year === previous.year);
+    if (!closed) return null;
+
+    // `expenses` is the raw feed, savings inside: the figure the month's
+    // result is defined against.
+    const endingBalance = moneyDifference(closed.income, closed.expenses);
+    return {
+      budgetId: closed.id,
+      ...previous,
+      income: closed.income,
+      expenses: closed.expenses,
+      endingBalance,
+      outcome: monthRecapOutcome(endingBalance),
+      carriedOver: this.rolloverAmount(),
+      startingAvailable: this.totalAvailable(),
+    };
+  });
 
   // A forecast funded by a savings goal is realized by recording the real
   // income, never by checking it: `toggleBudgetLineCheck` refuses that shape

@@ -57,6 +57,18 @@ struct FormattersLocaleSplitTests {
         #expect(rendered.lowercased() == expected)
     }
 
+    /// Inside a sentence each language keeps its own casing: lowercasing by hand wrote
+    /// "märz" and "march".
+    @Test(arguments: [
+        (SupportedLocale.fr, "mars"),
+        (.en, "March"),
+        (.de, "März"),
+        (.it, "marzo"),
+    ])
+    func monthNameInText_keepsTheLanguagesOwnCasing(language: SupportedLocale, expected: String) {
+        #expect(Formatters.monthNameInText(for: 3, in: language) == expected)
+    }
+
     /// The cache is keyed on template **and** language. Keyed on the template alone it
     /// would serve the first language asked for, for the rest of the session.
     @Test func dateFormatterCache_doesNotServeAStaleLanguage() throws {

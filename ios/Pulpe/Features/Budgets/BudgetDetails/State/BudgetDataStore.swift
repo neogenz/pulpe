@@ -114,7 +114,7 @@ final class BudgetDataStore {
               let month = previous.month else {
             return nil
         }
-        return Formatters.monthName(for: month).lowercased()
+        return Formatters.monthNameInText(for: month)
     }
 
     var displayBudgetLines: [BudgetLine] {

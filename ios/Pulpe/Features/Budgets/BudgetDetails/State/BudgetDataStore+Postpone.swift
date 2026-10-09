@@ -31,6 +31,6 @@ extension BudgetDataStore {
     /// current budget loads.
     var nextMonthLabel: String? {
         guard let next = nextCalendarMonth else { return nil }
-        return Formatters.monthName(for: next.month).lowercased()
+        return Formatters.monthNameInText(for: next.month)
     }
 }

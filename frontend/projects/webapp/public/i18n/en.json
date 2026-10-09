@@ -1063,6 +1063,23 @@
     "nextMonthRolloverAssumption": "if you stick to your planned items until the end of the month.",
     "nextMonthNoBudget": "No budget for {{ month }} yet",
     "nextMonthAnticipate": "Get ahead of next month",
+    "monthRecap": {
+      "title": "{{ month }} is over",
+      "saved": "Nice work — you set",
+      "savedSuffix": "aside.",
+      "overspent": "It happens:",
+      "overspentSuffix": "more than planned.",
+      "balanced": "Budget kept.",
+      "open": "See the recap",
+      "dismiss": "Hide the recap",
+      "dialogTitle": "Month recap",
+      "income": "Income",
+      "expenses": "Expenses",
+      "endingBalance": "Final balance",
+      "carriedOver": "carried over to {{ month }} → you start at",
+      "viewDetails": "See details",
+      "acknowledge": "Got it"
+    },
     "uncheckedForecasts": {
       "title": "Planned items to check",
       "count": "{{ checked }} out of {{ total }} checked",

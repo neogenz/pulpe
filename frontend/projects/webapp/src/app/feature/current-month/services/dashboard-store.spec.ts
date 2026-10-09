@@ -2215,3 +2215,102 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
     });
   });
 });
+
+describe('DashboardStore - Previous month recap', () => {
+  async function setupRecap(
+    history: {
+      id: string;
+      month: number;
+      year: number;
+      income: number;
+      expenses: number;
+    }[],
+    budget = createMockBudget({ rollover: 300 }),
+    now: Date = FIXED_DATE,
+  ) {
+    const mocks = createMocks();
+    mocks.budgetApi.getHistoryData$.mockReturnValue(
+      of(history.map((h) => ({ ...h, savings: 0 }))),
+    );
+    mocks.budgetApi.getDashboardData$.mockReturnValue(
+      of({
+        budget,
+        transactions: [],
+        budgetLines: [
+          createMockBudgetLine({ id: 'inc', kind: 'income', amount: 5000 }),
+        ],
+      }),
+    );
+    const result = setup(mocks, now);
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(result.store.dashboardData()?.budget?.id).toBe(budget.id);
+      expect(mocks.budgetApi.getHistoryData$).toHaveBeenCalled();
+    });
+    TestBed.tick();
+    return result;
+  }
+
+  it('should report what the closed month left and where the new one starts', async () => {
+    const { store } = await setupRecap([
+      { id: 'may', month: 5, year: 2025, income: 5000, expenses: 4700 },
+      { id: 'june', month: 6, year: 2025, income: 5000, expenses: 1200 },
+    ]);
+
+    await vi.waitFor(() => {
+      expect(store.previousMonthRecap()).toEqual({
+        budgetId: 'may',
+        month: 5,
+        year: 2025,
+        income: 5000,
+        expenses: 4700,
+        endingBalance: 300,
+        outcome: 'saved',
+        carriedOver: 300,
+        startingAvailable: 5300,
+      });
+    });
+  });
+
+  it.each([
+    [4900, 'overspent'],
+    [4799.6, 'balanced'],
+    [4800.4, 'balanced'],
+    [4799.5, 'saved'],
+    [4800.5, 'overspent'],
+  ] as const)(
+    'should read %d of expenses against 4800 of income as %s',
+    async (expenses, outcome) => {
+      const { store } = await setupRecap([
+        { id: 'may', month: 5, year: 2025, income: 4800, expenses },
+      ]);
+
+      await vi.waitFor(() => {
+        expect(store.previousMonthRecap()?.outcome).toBe(outcome);
+      });
+    },
+  );
+
+  it('should cross the year boundary in January', async () => {
+    const { store } = await setupRecap(
+      [{ id: 'dec', month: 12, year: 2024, income: 100, expenses: 50 }],
+      createMockBudget({ month: 1, year: 2025 }),
+      new Date(2025, 0, 15),
+    );
+
+    await vi.waitFor(() => {
+      expect(store.previousMonthRecap()?.budgetId).toBe('dec');
+    });
+  });
+
+  it('should have nothing to recap on the first month', async () => {
+    const { store } = await setupRecap([
+      { id: 'june', month: 6, year: 2025, income: 5000, expenses: 1200 },
+    ]);
+
+    await vi.waitFor(() => {
+      expect(store.historyData().length).toBe(1);
+    });
+    expect(store.previousMonthRecap()).toBeNull();
+  });
+});

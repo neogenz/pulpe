@@ -1063,6 +1063,23 @@
     "nextMonthRolloverAssumption": "wenn du dich bis Monatsende an deine Planung hältst.",
     "nextMonthNoBudget": "Noch kein Budget für {{ month }}",
     "nextMonthAnticipate": "Den nächsten Monat vorbereiten",
+    "monthRecap": {
+      "title": "{{ month }} ist vorbei",
+      "saved": "Gut gemacht, du hast",
+      "savedSuffix": "zur Seite gelegt.",
+      "overspent": "Kann passieren:",
+      "overspentSuffix": "mehr als geplant.",
+      "balanced": "Budget eingehalten.",
+      "open": "Rückblick ansehen",
+      "dismiss": "Rückblick ausblenden",
+      "dialogTitle": "Monatsrückblick",
+      "income": "Einnahmen",
+      "expenses": "Ausgaben",
+      "endingBalance": "Endsaldo",
+      "carriedOver": "auf {{ month }} übertragen → du startest mit",
+      "viewDetails": "Details ansehen",
+      "acknowledge": "Verstanden"
+    },
     "uncheckedForecasts": {
       "title": "Planposten zum Abhaken",
       "count": "{{ checked }} von {{ total }} abgehakt",
