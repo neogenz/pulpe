@@ -7,6 +7,10 @@ import { BudgetTemplatesStore } from './budget-templates-store';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import type { BudgetTemplate, BudgetTemplateCreate } from 'pulpe-shared';
 import { createMockDataCache } from '@core/testing';
+import { DataCache } from 'ngx-ziflux';
+import { BudgetApi } from '@core/budget/budget-api';
+import { Logger } from '@core/logging/logger';
+import { TemplateStore } from '@app/feature/budget/budget-list/create-budget/services/template-store';
 
 const mockCache = createMockDataCache();
 
@@ -471,7 +475,7 @@ describe('BudgetTemplatesStore', () => {
       expect(mockApi.checkUsage$).not.toHaveBeenCalled();
     });
 
-    it('should return stale data immediately and refetch in background (SWR)', async () => {
+    it('should wait for fresh data instead of serving a stale entry', async () => {
       const staleData = { isUsed: false, budgetCount: 0, budgets: [] };
       const freshData = {
         isUsed: true,
@@ -481,22 +485,14 @@ describe('BudgetTemplatesStore', () => {
         ],
       };
       mockCache.get.mockReturnValue({ data: staleData, fresh: false });
-      let resolveFetch: (value: unknown) => void = () => undefined;
-      const pending = new Promise((resolve) => {
-        resolveFetch = resolve;
-      });
-      mockApi.checkUsage$ = vi.fn().mockReturnValue({ subscribe: vi.fn() });
-      mockCache.deduplicate.mockImplementation(
-        (_key: string[], fn: () => Promise<unknown>) => {
-          fn().catch(() => undefined);
-          return pending;
-        },
-      );
+      mockApi.checkUsage$ = vi
+        .fn()
+        .mockReturnValue(of({ success: true, data: freshData }));
 
       const result = await store.checkUsage('template-1');
 
-      expect(result).toEqual(staleData);
-      resolveFetch(freshData);
+      expect(result).toEqual(freshData);
+      expect(mockApi.checkUsage$).toHaveBeenCalledWith('template-1');
     });
   });
 
@@ -527,5 +523,80 @@ describe('BudgetTemplatesStore', () => {
       expect(store.budgetTemplates.error()).toBeTruthy();
       expect(store.budgetTemplates.status()).toBe('error');
     });
+  });
+});
+
+describe('BudgetTemplatesStore usage after budget creation', () => {
+  const unusedTemplate = { isUsed: false, budgetCount: 0, budgets: [] };
+  const usedTemplate = {
+    isUsed: true,
+    budgetCount: 1,
+    budgets: [{ id: 'budget-1', month: 4, year: 2026, description: 'April' }],
+  };
+
+  let templatesStore: BudgetTemplatesStore;
+  let templateStore: TemplateStore;
+  let checkUsage$: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    checkUsage$ = vi
+      .fn()
+      .mockReturnValueOnce(of({ success: true, data: unusedTemplate }))
+      .mockReturnValueOnce(of({ success: true, data: usedTemplate }));
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        BudgetTemplatesStore,
+        TemplateStore,
+        {
+          provide: BudgetTemplatesApi,
+          useFactory: () => ({
+            getAll$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
+            getTemplateTransactions$: vi
+              .fn()
+              .mockReturnValue(of({ success: true, data: [] })),
+            checkUsage$,
+            cache: new DataCache({
+              name: 'templates',
+              staleTime: 30_000,
+              expireTime: 300_000,
+            }),
+          }),
+        },
+        {
+          provide: BudgetApi,
+          useValue: {
+            createBudget$: vi
+              .fn()
+              .mockReturnValue(of({ budget: { id: 'budget-1' } })),
+            cache: createMockDataCache(),
+          },
+        },
+        {
+          provide: Logger,
+          useValue: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+        },
+      ],
+    });
+
+    templatesStore = TestBed.inject(BudgetTemplatesStore);
+    templateStore = TestBed.inject(TemplateStore);
+  });
+
+  it('should not return a stale usage count once a budget uses the template', async () => {
+    expect(await templatesStore.checkUsage('template-1')).toEqual(
+      unusedTemplate,
+    );
+
+    await templateStore.createBudget({
+      month: 4,
+      year: 2026,
+      description: 'April',
+      templateId: 'template-1',
+    });
+
+    expect(await templatesStore.checkUsage('template-1')).toEqual(usedTemplate);
+    expect(checkUsage$).toHaveBeenCalledTimes(2);
   });
 });

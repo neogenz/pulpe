@@ -160,6 +160,7 @@ export class TemplateStore {
     cache: this.#budgetApi.cache,
     invalidateKeys: () => [['budget']],
     mutationFn: (data) => this.#budgetApi.createBudget$(data),
+    onSuccess: () => this.#invalidateTemplateUsage(),
   });
 
   readonly isCreatingBudget = this.#createBudgetMutation.isPending;
@@ -178,6 +179,7 @@ export class TemplateStore {
     cache: this.#budgetApi.cache,
     invalidateKeys: () => [['budget']],
     mutationFn: (data) => this.#budgetApi.generateBudgets$(data),
+    onSuccess: () => this.#invalidateTemplateUsage(),
   });
 
   readonly isGeneratingBudgets = this.#generateBudgetsMutation.isPending;
@@ -187,6 +189,13 @@ export class TemplateStore {
     data: BudgetGenerate,
   ): Promise<BudgetGenerateResponse | undefined> {
     return this.#generateBudgetsMutation.mutate(data);
+  }
+
+  // A new budget changes its template's usage count, which gates template
+  // deletion and propagation. `invalidateKeys` only reaches the budget cache,
+  // so the templates cache is marked by hand.
+  #invalidateTemplateUsage(): void {
+    this.#budgetTemplatesApi.cache.invalidate(['templates', 'usage']);
   }
 
   #calculateTotals(lines: TemplateLine[]): TemplateTotals {

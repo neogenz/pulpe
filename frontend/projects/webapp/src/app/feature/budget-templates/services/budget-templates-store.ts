@@ -113,6 +113,8 @@ export class BudgetTemplatesStore {
     await this.#deleteTemplateMutation.mutate(id);
   }
 
+  // The answer gates deletion and propagation, so a stale entry is never
+  // served: an invalidated or aged usage count waits for the server.
   async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
     const cacheKey: string[] = ['templates', 'usage', templateId];
     const cached =
@@ -121,19 +123,13 @@ export class BudgetTemplatesStore {
       );
     if (cached?.fresh) return cached.data;
 
-    const freshPromise = this.#budgetTemplatesApi.cache.deduplicate(
-      cacheKey,
-      async () => {
-        const response = await firstValueFrom(
-          this.#budgetTemplatesApi.checkUsage$(templateId),
-        );
-        this.#budgetTemplatesApi.cache.set(cacheKey, response.data);
-        return response.data;
-      },
-    );
-
-    if (cached) return cached.data;
-    return freshPromise;
+    return this.#budgetTemplatesApi.cache.deduplicate(cacheKey, async () => {
+      const response = await firstValueFrom(
+        this.#budgetTemplatesApi.checkUsage$(templateId),
+      );
+      this.#budgetTemplatesApi.cache.set(cacheKey, response.data);
+      return response.data;
+    });
   }
 
   async addTemplate(
