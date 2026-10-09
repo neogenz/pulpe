@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { of, throwError, NEVER, Subject } from 'rxjs';
+import { of, throwError, NEVER, Subject, type Observable } from 'rxjs';
 import { DashboardStore, DASHBOARD_NOW } from './dashboard-store';
 import { BudgetApi } from '@core/budget';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
@@ -1946,6 +1946,100 @@ describe('DashboardStore - History Data', () => {
       expect(store.historyData()[0].expenses).toBe(3000);
       expect(store.historyData()[0].savings).toBe(1000);
     });
+  });
+});
+
+describe('DashboardStore - First transaction activation', () => {
+  const historyPoint = (id: string, month: number, year: number) => ({
+    id,
+    month,
+    year,
+    income: 0,
+    expenses: 0,
+    savings: 0,
+  });
+
+  async function setupActivation(options: {
+    transactions?: Transaction[];
+    history$?: Observable<ReturnType<typeof historyPoint>[]>;
+  }) {
+    const mocks = createMocks();
+    mocks.budgetApi.getDashboardData$.mockReturnValue(
+      of({
+        budget: createMockBudget(),
+        transactions: options.transactions ?? [],
+        budgetLines: [],
+      }),
+    );
+    if (options.history$) {
+      mocks.budgetApi.getHistoryData$.mockReturnValue(options.history$);
+    }
+    const result = setup(mocks);
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(result.store.dashboardData()?.budget?.id).toBe('budget-1');
+    });
+    return result;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should await a first transaction in an empty first budget', async () => {
+    const { store } = await setupActivation({
+      // Later months may already be planned; only an earlier one disqualifies.
+      history$: of([
+        historyPoint('budget-1', 6, 2025),
+        historyPoint('h-next', 7, 2025),
+      ]),
+    });
+
+    await vi.waitFor(() => {
+      expect(store.isAwaitingFirstTransaction()).toBe(true);
+    });
+  });
+
+  it('should not await once the month holds a transaction', async () => {
+    const { store } = await setupActivation({
+      transactions: [createMockTransaction({})],
+      history$: of([historyPoint('budget-1', 6, 2025)]),
+    });
+
+    TestBed.tick();
+    expect(store.isAwaitingFirstTransaction()).toBe(false);
+  });
+
+  it('should not await when an earlier budget exists', async () => {
+    const { store } = await setupActivation({
+      history$: of([
+        historyPoint('h-prev', 12, 2024),
+        historyPoint('budget-1', 6, 2025),
+      ]),
+    });
+
+    await vi.waitFor(() => {
+      expect(store.historyData().length).toBe(2);
+    });
+    expect(store.isAwaitingFirstTransaction()).toBe(false);
+  });
+
+  it('should not await while the budget history is unknown', async () => {
+    const { store } = await setupActivation({ history$: NEVER });
+
+    TestBed.tick();
+    expect(store.isAwaitingFirstTransaction()).toBe(false);
+  });
+
+  it('should not await when the budget history failed to load', async () => {
+    const { store } = await setupActivation({
+      history$: throwError(() => new Error('offline')),
+    });
+
+    await vi.waitFor(() => {
+      expect(store.historyError()).toBeDefined();
+    });
+    expect(store.isAwaitingFirstTransaction()).toBe(false);
   });
 });
 

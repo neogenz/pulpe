@@ -50,6 +50,10 @@ enum AnalyticsEvent: String, CaseIterable {
 
     // MARK: - Transaction
     case transactionCreated = "transaction_created"
+    /// Fires once per device, next to `transactionCreated`, when the home records an
+    /// entry in the account's first budget while it holds none yet (PUL-306).
+    /// Properties: `type`, `source` (`FirstExpenseActivation.Source`).
+    case firstTransactionCreated = "first_transaction_created"
     /// Fires once when "Rapprocher mes comptes" completes: after its adjustment is
     /// recorded, or when the user confirms the accounts already match (PUL-351).
     /// Property: `adjustment_kind` (`AccountReconciliation.Completion`). Never an

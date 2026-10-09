@@ -398,6 +398,19 @@ export class DashboardStore {
       this.budgetLines().some((line) => line.checkedAt != null),
   );
 
+  // PUL-306 — the step the retention funnel loses: the account's first budget,
+  // with nothing recorded in it yet. "First" means no budget sits in an earlier
+  // period, read off the history list the page already loads; while that list
+  // is unknown the answer is no, so an established account never sees the
+  // invitation flash in and out.
+  readonly isAwaitingFirstTransaction = computed<boolean>(() => {
+    const budget = this.dashboardData()?.budget;
+    const budgets = this.#historyResource.value();
+    if (!budget || !budgets || this.transactions().length > 0) return false;
+    const period = budget.year * 12 + budget.month;
+    return budgets.every((b) => b.year * 12 + b.month >= period);
+  });
+
   readonly rolloverAmount = computed<number>(() => {
     const budget = this.dashboardData()?.budget;
     return budget?.rollover ?? 0;

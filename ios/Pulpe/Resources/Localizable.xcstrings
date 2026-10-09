@@ -17007,6 +17007,28 @@
         }
       }
     },
+    "Note ta première dépense" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfasse deine erste Ausgabe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note your first expense"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra la tua prima spesa"
+          }
+        }
+      }
+    },
     "Noter un montant" : {
       "localizations" : {
         "de" : {
@@ -26313,6 +26335,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esiste già un budget per questo periodo — scegli un altro mese"
+          }
+        }
+      }
+    },
+    "Un café, un plein, des courses : note-la dès qu'elle passe. Ton « disponible à dépenser » se met à jour aussitôt." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Kaffee, Tanken, Einkäufe: Erfasse sie, sobald sie anfällt. Dein „Verfügbar zum Ausgeben“ passt sich sofort an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A coffee, fuel, groceries: note it as soon as it happens. Your “available to spend” updates right away."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un caffè, un pieno, la spesa: registrala appena succede. Il tuo «disponibile da spendere» si aggiorna subito."
           }
         }
       }

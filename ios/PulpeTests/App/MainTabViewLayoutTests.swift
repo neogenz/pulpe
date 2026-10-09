@@ -41,7 +41,15 @@ struct MainTabViewNavigationOwnershipTests {
 
         #expect(source.contains("case addTransaction"))
         #expect(source.contains("AddTransactionSheet("))
-        #expect(source.contains("onAdd: store.addTransaction"))
+        // The entry passes the first-expense bookkeeping (PUL-306) on its way to the store.
+        #expect(source.contains("FirstExpenseActivation.add(transaction, from: source, to: store"))
+        let activation = try Self.read(
+            "Pulpe",
+            "Features",
+            "CurrentMonth",
+            "FirstExpenseActivation.swift"
+        )
+        #expect(activation.contains("home.addTransaction(transaction)"))
     }
 
     @Test("Current Month transaction action fills its declared hit area")
@@ -50,7 +58,8 @@ struct MainTabViewNavigationOwnershipTests {
             "Pulpe",
             "Features",
             "CurrentMonth",
-            "CurrentMonthView.swift"
+            "Components",
+            "HomeAddOperationRow.swift"
         )
         guard let start = source.range(of: "private var addOperationRow: some View {"),
               let end = source.range(

@@ -2,9 +2,9 @@ import SwiftUI
 import TipKit
 import WidgetKit
 
-private enum SheetDestination: Identifiable {
+private enum SheetDestination: Identifiable, Hashable {
     case realizedBalance, account, createBudget, notificationPrime
-    case addTransaction, feedback
+    case addTransaction(FirstExpenseActivation.Source), feedback
     var id: Self { self }
 }
 
@@ -116,9 +116,11 @@ struct CurrentMonthView: View {
                     NotificationPrimeSheet {
                         Task { await enableReminders() }
                     }
-                case .addTransaction:
+                case .addTransaction(let source):
                     if let budgetId = store.budget?.id {
-                        AddTransactionSheet(budgetId: budgetId, onAdd: store.addTransaction)
+                        AddTransactionSheet(budgetId: budgetId) { transaction in
+                            FirstExpenseActivation.add(transaction, from: source, to: store, budgets: budgetListStore)
+                        }
                     }
                 case .feedback:
                     AutomaticFeedbackSheet()
@@ -261,7 +263,7 @@ struct CurrentMonthView: View {
         // heading and the card it introduces, or the pairing reads the wrong way round.
         VStack(spacing: DesignTokens.Spacing.xxl) {
             if store.budget != nil {
-                addOperationRow
+                HomeAddOperationRow { activeSheet = .addTransaction($0) }
             }
             // Opérations à pointer — only while something needs checking
             if !store.uncheckedItems.isEmpty {
@@ -344,18 +346,6 @@ struct CurrentMonthView: View {
         appState.currentMonthPath.append(
             BudgetDestination.editTransaction(budgetId: budgetId, transactionId: transaction.id)
         )
-    }
-
-    /// The one filled element in the content zone. Recording an operation is the act the
-    /// whole app depends on, and dressed as a white card with a chevron it had the same
-    /// weight as the records below it — and promised a list it doesn't open.
-    private var addOperationRow: some View {
-        Button { activeSheet = .addTransaction } label: {
-            Label("Ajouter une opération", systemImage: "plus")
-        }
-        .primaryButtonStyle()
-        .accessibilityLabel("Ajouter une opération")
-        .accessibilityIdentifier("homeAddOperationButton")
     }
 }
 

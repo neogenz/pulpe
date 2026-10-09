@@ -31,7 +31,8 @@ import {
   transactionCreateFromQuickFormSchema,
   type TransactionFormData,
 } from './components/add-transaction-form.schema';
-import { transactionCreateSchema } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, transactionCreateSchema } from 'pulpe-shared';
+import { PostHogService } from '@core/analytics/posthog';
 import { DashboardError } from './components/dashboard-error';
 import {
   ReconcileAccountsDialog,
@@ -67,6 +68,10 @@ export const UNDO_WINDOW_MS = 6000;
 // class: without it the hide-amounts toggle would blur the toast and, through
 // `pointer-events: none`, take the Undo button with it.
 const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
+
+// Which control on this page opened the add sheet — the value space of
+// `source` on `first_transaction_created`.
+type AddTransactionSource = 'activation_prompt' | 'add_button';
 
 // The two things this page writes, and the two ways it takes them back.
 type UndoableAction =
@@ -171,6 +176,35 @@ type UndoableAction =
             data-testid="dashboard-block-hero"
             data-tour="dashboard-hero"
           />
+
+          <!-- PUL-306. The hero states what is left to spend; nothing on the
+               page said that one gesture keeps it true, and the account's first
+               budget is where most users stop. Right under the figure it
+               explains, so the reason and the way to act on it read together.
+               It asks for nothing else and blocks nothing: the page below works
+               as usual, and the first entry retires it. -->
+          @if (showFirstExpenseInvite()) {
+            <pulpe-state-card
+              class="bg-surface-container-low rounded-3xl"
+              variant="empty"
+              [compact]="true"
+              [title]="'currentMonth.firstExpenseInvite.title' | transloco"
+              [message]="'currentMonth.firstExpenseInvite.message' | transloco"
+              testId="first-expense-invite"
+            >
+              <!-- Tonal: the FAB below keeps the one filled primary on this
+                   page, and the same label teaches that both open one sheet. -->
+              <button
+                matButton="tonal"
+                class="mt-4"
+                data-testid="first-expense-invite-button"
+                (click)="openAddTransaction('activation_prompt')"
+              >
+                <mat-icon aria-hidden="true">add</mat-icon>
+                {{ 'currentMonth.addTransactionFab' | transloco }}
+              </button>
+            </pulpe-state-card>
+          }
 
           <!-- Fixed, so its place in the markup costs nothing visually and buys
                the tab order: recording a transaction is what this page is for,
@@ -563,6 +597,7 @@ export default class Dashboard {
   readonly #storage = inject(StorageService);
   readonly #dialog = inject(MatDialog);
   readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #postHogService = inject(PostHogService);
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
 
   // Folded by default: the daily visit is the one this page is for, and it ends
@@ -601,6 +636,20 @@ export default class Dashboard {
   );
   protected readonly showPointingHints = computed(
     () => !this.#pointingLearned(),
+  );
+
+  // Stored rather than read off the month: an entry undone from its toast
+  // leaves the first budget empty again, and the invitation must not come back
+  // for someone who has already made the gesture it teaches.
+  readonly #firstTransactionRecorded = signal(
+    this.#storage.get<boolean>(
+      STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED,
+    ) ?? false,
+  );
+  protected readonly showFirstExpenseInvite = computed(
+    () =>
+      this.store.isAwaitingFirstTransaction() &&
+      !this.#firstTransactionRecorded(),
   );
 
   #recordPointingLearned(): void {
@@ -1030,9 +1079,11 @@ export default class Dashboard {
     return true;
   }
 
-  protected async openAddTransaction(): Promise<void> {
+  protected async openAddTransaction(
+    source: AddTransactionSource = 'add_button',
+  ): Promise<void> {
     await this.#addTransactionDialog.open((transaction) =>
-      this.#addTransaction(transaction),
+      this.#addTransaction(transaction, source),
     );
   }
 
@@ -1044,6 +1095,7 @@ export default class Dashboard {
   // an accidental click outside is allowed to drop them.
   async #addTransaction(
     transaction: TransactionFormData,
+    source: AddTransactionSource,
   ): Promise<string | null> {
     const budgetId = this.store.dashboardData()?.budget?.id;
     // The sheet lives in the overlay and outlives a period rollover: returning
@@ -1057,8 +1109,25 @@ export default class Dashboard {
       budgetId,
       transactionDate: formatLocalDate(new Date()),
     });
+    // Read before the write: a successful one lands in the month at once and
+    // the invitation's condition is already false by the time it returns.
+    const isFirstTransaction = this.showFirstExpenseInvite();
     const outcome = await this.store.addTransaction(transactionCreate);
     if ('reason' in outcome) return outcome.reason;
+
+    if (isFirstTransaction) {
+      this.#postHogService.captureEvent(
+        ANALYTICS_EVENTS.FIRST_TRANSACTION_CREATED,
+        { type: transactionCreate.kind, source },
+      );
+    }
+    if (!this.#firstTransactionRecorded()) {
+      this.#firstTransactionRecorded.set(true);
+      this.#storage.set(
+        STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED,
+        true,
+      );
+    }
 
     this.#confirmWithUndo({
       kind: 'transaction',

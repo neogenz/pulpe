@@ -1,0 +1,44 @@
+import SwiftUI
+import TipKit
+
+/// The home's add action, and the invitation that explains it while the account's first
+/// budget holds nothing yet (PUL-306).
+struct HomeAddOperationRow: View {
+    let onAdd: (FirstExpenseActivation.Source) -> Void
+
+    @Environment(CurrentMonthStore.self) private var store
+    @Environment(BudgetListStore.self) private var budgetListStore
+
+    private var showsFirstExpenseTip: Bool {
+        FirstExpenseActivation.applies(home: store, budgets: budgetListStore)
+    }
+
+    var body: some View {
+        // The tip sits under the button it explains, low enough on the screen to reach with
+        // the thumb. Rendered only while it applies, so no other home pays for its slot.
+        VStack(spacing: DesignTokens.Spacing.md) {
+            addOperationRow
+            if showsFirstExpenseTip {
+                TipView(ProductTips.firstExpense) { action in
+                    guard action.id == ProductTips.FirstExpenseTip.addExpenseActionId else { return }
+                    onAdd(.activationPrompt)
+                }
+                .pulpeTipBackground()
+                .transition(.opacity)
+            }
+        }
+        .animation(DesignTokens.Animation.smoothEaseOut, value: showsFirstExpenseTip)
+    }
+
+    /// The one filled element in the content zone. Recording an operation is the act the
+    /// whole app depends on, and dressed as a white card with a chevron it had the same
+    /// weight as the records below it — and promised a list it doesn't open.
+    private var addOperationRow: some View {
+        Button { onAdd(.addButton) } label: {
+            Label("Ajouter une opération", systemImage: "plus")
+        }
+        .primaryButtonStyle()
+        .accessibilityLabel("Ajouter une opération")
+        .accessibilityIdentifier("homeAddOperationButton")
+    }
+}

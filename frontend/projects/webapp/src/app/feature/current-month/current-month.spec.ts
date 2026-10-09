@@ -27,6 +27,7 @@ import {
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+import { PostHogService } from '@core/analytics/posthog';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -515,6 +516,7 @@ describe('Dashboard (TestBed)', () => {
       realizedExpenses: signal(3380.01),
       rolloverAmount: signal(-120),
       periodDates: signal(getBudgetPeriodDates(4, 2026, 27)),
+      isAwaitingFirstTransaction: signal(false),
     };
   }
 
@@ -597,6 +599,7 @@ describe('Dashboard (TestBed)', () => {
       isMatched: vi.fn().mockReturnValue(false),
       observe: vi.fn().mockReturnValue(of({ matches: false, breakpoints: {} })),
     };
+    const mockPostHog = { captureEvent: vi.fn() };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -614,9 +617,13 @@ describe('Dashboard (TestBed)', () => {
           { provide: MatSnackBar, useValue: mockSnackBar },
           { provide: MatDialog, useValue: mockDialog },
           { provide: BreakpointObserver, useValue: mockBreakpoints },
+          { provide: PostHogService, useValue: mockPostHog },
         ],
       })
       .compileComponents();
+    TestBed.inject(StorageService).remove(
+      STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED,
+    );
 
     const fixture = TestBed.createComponent(Dashboard);
     return {
@@ -628,10 +635,104 @@ describe('Dashboard (TestBed)', () => {
       mockDialog,
       mockBreakpoints,
       mockRouter,
+      mockPostHog,
       undoAction,
       readPersistRefusal: () => persistRefusal,
     };
   }
+
+  // PUL-306 — the first budget with nothing in it is where most users stop.
+  describe('first-expense invitation', () => {
+    const firstExpense: TransactionFormData = {
+      name: 'Café',
+      amount: 4.5,
+      kind: 'expense',
+      tagIds: [],
+      isChecked: true,
+      conversion: null,
+    };
+
+    it('should show while the first budget awaits its first entry', async () => {
+      const { component, mockStore } = await setup(budgetId, undefined);
+
+      expect(component['showFirstExpenseInvite']()).toBe(false);
+      mockStore.isAwaitingFirstTransaction.set(true);
+      expect(component['showFirstExpenseInvite']()).toBe(true);
+    });
+
+    it('should mark the entry it opened as the first one', async () => {
+      const { component, mockStore, mockPostHog } = await setup(
+        budgetId,
+        firstExpense,
+      );
+      mockStore.isAwaitingFirstTransaction.set(true);
+
+      await component['openAddTransaction']('activation_prompt');
+
+      expect(mockPostHog.captureEvent).toHaveBeenCalledWith(
+        'first_transaction_created',
+        { type: 'expense', source: 'activation_prompt' },
+      );
+    });
+
+    it('should credit the add button when the first entry came from it', async () => {
+      const { component, mockStore, mockPostHog } = await setup(
+        budgetId,
+        firstExpense,
+      );
+      mockStore.isAwaitingFirstTransaction.set(true);
+
+      await component['openAddTransaction']();
+
+      expect(mockPostHog.captureEvent).toHaveBeenCalledWith(
+        'first_transaction_created',
+        { type: 'expense', source: 'add_button' },
+      );
+    });
+
+    it('should not mark an entry outside the first empty budget', async () => {
+      const { component, mockPostHog } = await setup(budgetId, firstExpense);
+
+      await component['openAddTransaction']();
+
+      expect(mockPostHog.captureEvent).not.toHaveBeenCalled();
+    });
+
+    it('should not mark a refused entry', async () => {
+      const { component, mockStore, mockPostHog } = await setup(
+        budgetId,
+        firstExpense,
+      );
+      mockStore.isAwaitingFirstTransaction.set(true);
+      mockStore.addTransaction.mockResolvedValue({ reason: 'Hors ligne' });
+
+      await component['openAddTransaction']('activation_prompt');
+
+      expect(mockPostHog.captureEvent).not.toHaveBeenCalled();
+      expect(component['showFirstExpenseInvite']()).toBe(true);
+    });
+
+    // Undoing the entry empties the month again; the gesture was still made.
+    it('should stay retired once an entry went through, even undone', async () => {
+      const { component, mockStore, mockPostHog, undoAction } = await setup(
+        budgetId,
+        firstExpense,
+      );
+      mockStore.isAwaitingFirstTransaction.set(true);
+
+      await component['openAddTransaction']('activation_prompt');
+      undoAction.next();
+      await component['openAddTransaction']('activation_prompt');
+
+      expect(component['showFirstExpenseInvite']()).toBe(false);
+      expect(mockPostHog.captureEvent).toHaveBeenCalledTimes(1);
+      expect(
+        TestBed.inject(StorageService).get<boolean>(
+          STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED,
+        ),
+      ).toBe(true);
+    });
+  });
 
   describe('reconciling the accounts', () => {
     function openedWith(mockDialog: { open: Mock }) {

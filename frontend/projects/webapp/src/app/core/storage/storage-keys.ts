@@ -25,6 +25,11 @@ export const STORAGE_KEYS = {
   // page defines inline ("Engagé", "Pointer") no longer need their glossaries
   DASHBOARD_POINTING_LEARNED: 'pulpe-dashboard-pointing-learned',
 
+  // Dashboard: an entry was recorded here, so the first-expense invitation is
+  // retired for good, even if that entry is later undone (PUL-306)
+  DASHBOARD_FIRST_TRANSACTION_RECORDED:
+    'pulpe-dashboard-first-transaction-recorded',
+
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',
 

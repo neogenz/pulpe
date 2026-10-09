@@ -102,6 +102,43 @@ enum ProductTips {
         }
     }
 
+    // MARK: - First Expense Tip
+
+    /// PUL-306 — rendered by the home only while `FirstExpenseActivation.isAwaiting`.
+    /// Invalidated by the first entry, so it never comes back once the gesture is made;
+    /// its close button lets the user ignore it.
+    struct FirstExpenseTip: Tip {
+        static let addExpenseActionId = "add-expense"
+
+        var id: String { "first-expense-v1" }
+
+        var title: Text {
+            Text("Note ta première dépense")
+        }
+
+        var message: Text? {
+            Text("""
+                Un café, un plein, des courses : note-la dès qu'elle passe. \
+                Ton « disponible à dépenser » se met à jour aussitôt.
+                """)
+        }
+
+        var image: Image? {
+            Image(systemName: "square.and.pencil")
+        }
+
+        var actions: [Action] {
+            [Action(id: Self.addExpenseActionId, title: AppLocale.string("Noter une dépense"))]
+        }
+
+        var rules: [Rule] {
+            [
+                #Rule(ProductTips.$tourDismissed) { $0 == false },
+                #Rule(ProductTips.$isSheetPresented) { $0 == false }
+            ]
+        }
+    }
+
     // MARK: - Templates Web Parity Tip
 
     struct TemplatesWebParityTip: Tip {
@@ -135,6 +172,7 @@ enum ProductTips {
 
     static let checking = CheckingTip()
     static let pessimisticCheck = PessimisticCheckTip()
+    static let firstExpense = FirstExpenseTip()
     static let templatesWebParity = TemplatesWebParityTip()
 
     // MARK: - Reset

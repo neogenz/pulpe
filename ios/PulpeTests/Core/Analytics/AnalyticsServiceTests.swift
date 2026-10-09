@@ -45,6 +45,7 @@ struct AnalyticsServiceTests {
             "budget_created",
             "first_budget_created",
             "transaction_created",
+            "first_transaction_created",
             "account_reconciliation_completed",
             "tab_switched",
             "notification_prime_shown",
