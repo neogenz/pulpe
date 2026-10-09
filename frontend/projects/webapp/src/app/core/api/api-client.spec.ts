@@ -203,6 +203,70 @@ describe('ApiClient', () => {
     });
   });
 
+  describe('postFormData$', () => {
+    function uploadBody(): FormData {
+      const body = new FormData();
+      body.append('file', new Blob(['<xml/>'], { type: 'text/xml' }), 'a.xml');
+      body.append('budgetId', 'budget-1');
+      return body;
+    }
+
+    it('should send the FormData untouched without a manual Content-Type', () => {
+      const { client, httpTesting } = setup();
+      const body = uploadBody();
+      const response = { success: true, data: { id: '3', name: 'Upload' } };
+      let result: unknown;
+
+      client
+        .postFormData$('/uploads', body, testSchema)
+        .subscribe((r) => (result = r));
+
+      const request = req(httpTesting, '/uploads');
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toBe(body);
+      expect(request.request.headers.has('Content-Type')).toBe(false);
+      request.flush(response);
+
+      expect(result).toEqual(response);
+    });
+
+    it('should throw ApiError with ZOD_PARSE_ERROR on invalid response', () => {
+      const { client, httpTesting } = setup();
+      let error: unknown;
+
+      client.postFormData$('/uploads', uploadBody(), testSchema).subscribe({
+        error: (e) => (error = e),
+      });
+
+      req(httpTesting, '/uploads').flush({ unexpected: true });
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).code).toBe('ZOD_PARSE_ERROR');
+    });
+
+    it('should normalize a business error and never replay the upload', () => {
+      const { client, httpTesting } = setup();
+      let error: unknown;
+
+      client.postFormData$('/uploads', uploadBody(), testSchema).subscribe({
+        error: (e) => (error = e),
+      });
+
+      req(httpTesting, '/uploads').flush(
+        {
+          success: false,
+          error: 'Conflict',
+          code: 'ERR_TRANSACTION_IMPORT_CONFLICT',
+        },
+        { status: 409, statusText: 'Conflict' },
+      );
+
+      httpTesting.expectNone(`${TEST_BASE_URL}/uploads`);
+      expect((error as ApiError).status).toBe(409);
+      expect((error as ApiError).code).toBe('ERR_TRANSACTION_IMPORT_CONFLICT');
+    });
+  });
+
   describe('patch$', () => {
     it('should send PATCH and parse response', () => {
       const { client, httpTesting } = setup();

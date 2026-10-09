@@ -43,6 +43,16 @@ const CODE_KEY_MAP = {
   [API_ERROR_CODES.TRANSACTION_ALREADY_CHECKED]:
     'apiError.transactionAlreadyChecked',
   [API_ERROR_CODES.TRANSACTION_ALLOCATED]: 'apiError.transactionAllocated',
+  [API_ERROR_CODES.TRANSACTION_IMPORT_FILE_MISSING]:
+    'apiError.transactionImportFileMissing',
+  [API_ERROR_CODES.TRANSACTION_IMPORT_INVALID]:
+    'apiError.transactionImportInvalid',
+  [API_ERROR_CODES.TRANSACTION_IMPORT_CONFLICT]:
+    'apiError.transactionImportConflict',
+  [API_ERROR_CODES.TRANSACTION_IMPORT_FAILED]:
+    'apiError.transactionImportFailed',
+  [API_ERROR_CODES.TRANSACTION_IMPORT_RECALCULATION_FAILED]:
+    'apiError.transactionImportRecalculationFailed',
   [API_ERROR_CODES.BUDGET_LINE_ALREADY_CHECKED]:
     'apiError.budgetLineAlreadyChecked',
   [API_ERROR_CODES.BUDGET_LINE_NOT_POSTPONABLE]:

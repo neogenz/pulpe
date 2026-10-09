@@ -7,6 +7,7 @@ import {
   DestroyRef,
   effect,
   inject,
+  Injector,
   linkedSignal,
   LOCALE_ID,
   signal,
@@ -15,6 +16,8 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SearchBar } from '@ui/index';
 import {
@@ -68,6 +71,14 @@ import {
   submitSavingsWithdrawalWithRetry,
   submitSpreadWithRetry,
 } from '../utils/budget-details-snackbar.utils';
+import {
+  TransactionImportDialog,
+  type TransactionImportDialogData,
+} from '../transaction-import/transaction-import-dialog';
+import {
+  importSuccessKey,
+  type TransactionImportDialogResult,
+} from '../transaction-import/transaction-import.view-model';
 
 /**
  * Unified container component for displaying budget items.
@@ -202,18 +213,28 @@ import {
           }
         </div>
 
-        @if (allUserTags().length > 0) {
+        <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <!-- PUL-25 — secondary, text-weight: the FAB stays the one primary action -->
           <button
             matButton
-            class="self-start sm:self-auto"
-            (click)="openTagHistoryDialog()"
-            [attr.aria-label]="'tagHistory.openAriaLabel' | transloco"
-            data-testid="tag-history-open"
+            (click)="openTransactionImportDialog()"
+            data-testid="import-statement-button"
           >
-            <mat-icon>insights</mat-icon>
-            {{ 'tagHistory.open' | transloco }}
+            <mat-icon>upload_file</mat-icon>
+            {{ 'transactionImport.open' | transloco }}
           </button>
-        }
+          @if (allUserTags().length > 0) {
+            <button
+              matButton
+              (click)="openTagHistoryDialog()"
+              [attr.aria-label]="'tagHistory.openAriaLabel' | transloco"
+              data-testid="tag-history-open"
+            >
+              <mat-icon>insights</mat-icon>
+              {{ 'tagHistory.open' | transloco }}
+            </button>
+          }
+        </div>
       </div>
 
       <div class="budget-items-view-transition">
@@ -338,6 +359,8 @@ export class BudgetItemsContainer {
   protected readonly store = inject(BudgetDetailsStore);
   readonly #destroyRef = inject(DestroyRef);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #dialog = inject(MatDialog);
+  readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
   readonly #logger = inject(Logger);
   readonly #userSettings = inject(UserSettingsStore);
@@ -931,6 +954,41 @@ export class BudgetItemsContainer {
     }
     this.#snackBar.open(
       this.#transloco.translate('transaction.deleted'),
+      this.#transloco.translate('common.close'),
+      { duration: 5000 },
+    );
+  }
+
+  protected async openTransactionImportDialog(): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) return;
+
+    const dialogRef = this.#dialog.open<
+      TransactionImportDialog,
+      TransactionImportDialogData,
+      TransactionImportDialogResult
+    >(TransactionImportDialog, {
+      data: { budgetId: budget.id },
+      width: '640px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      // Route injector — the dialog reads the route-scoped store and import API.
+      injector: this.#injector,
+    });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (!result) return;
+
+    if (result.status === 'importedWithWarning') {
+      openMutationErrorSnackbar(
+        result.message,
+        this.#snackBar,
+        this.#transloco,
+      );
+      return;
+    }
+    const count = result.result.createdCount;
+    this.#snackBar.open(
+      this.#transloco.translate(importSuccessKey(count), { count }),
       this.#transloco.translate('common.close'),
       { duration: 5000 },
     );

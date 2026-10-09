@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { BudgetDetailsStore } from './budget-details-store';
+import { TransactionImportApi } from '../transaction-import/transaction-import-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { Logger } from '@core/logging/logger';
@@ -127,6 +128,7 @@ describe('BudgetDetailsStore - Search Filtering', () => {
         provideHttpClientTesting(),
         ...provideTranslocoForTest(),
         BudgetDetailsStore,
+        TransactionImportApi,
         {
           provide: BudgetApi,
           useValue: {

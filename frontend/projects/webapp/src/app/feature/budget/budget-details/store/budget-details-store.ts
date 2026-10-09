@@ -35,6 +35,7 @@ import {
   type SpreadOccurrence,
   type Transaction,
   type TransactionCreate,
+  type TransactionImportResponse,
   type TransactionListResponse,
   type TransactionPostponeResponse,
   type TransactionUpdate,
@@ -63,6 +64,8 @@ import {
   buildSpreadOccurrenceViewModels,
   buildSpreadTracker,
 } from '../spread-occurrences/spread-occurrence.view-model';
+import { TransactionImportApi } from '../transaction-import/transaction-import-api';
+import type { TransactionImportOutcome } from '../transaction-import/transaction-import.view-model';
 
 /**
  * What a mutation that carries a payload gives back: the payload on success, the
@@ -204,6 +207,7 @@ export class BudgetDetailsStore {
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
   readonly #savingsGoalApi = inject(SavingsGoalApi);
+  readonly #transactionImportApi = inject(TransactionImportApi);
   readonly #budgetCalculator = inject(BudgetCalculator);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
@@ -793,6 +797,48 @@ export class BudgetDetailsStore {
       input,
     );
     return error !== null ? { error, retryable } : { data: data?.data };
+  }
+
+  // PUL-25 — a bank-statement import creates N free Réels server-side, all or
+  // nothing, with no single optimistic shape worth guessing: the invalidation
+  // refetches the month. The caller needs the refusal code (a stale preview is
+  // recovered differently from a plain failure), so this one keeps it.
+  //
+  // RECALCULATION_FAILED is the odd one: the Réels were committed and only the
+  // balances lag. ziflux invalidates on success only, so this path invalidates
+  // by hand — otherwise the page would keep showing the month without them.
+  async importTransactions(
+    budgetId: string,
+    file: File,
+  ): Promise<TransactionImportOutcome> {
+    const failure: { error?: unknown } = {};
+    const mutation = cachedMutation<File, TransactionImportResponse, void>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (statement) =>
+        this.#transactionImportApi.import$(budgetId, statement),
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (error) => {
+        failure.error = error;
+        this.#logUnexpectedFailure('Transaction import failed', error);
+      },
+    });
+
+    const response = await mutation.mutate(file);
+    if (response && !('error' in failure)) {
+      return { status: 'imported', result: response.data };
+    }
+
+    const error = failure.error;
+    const message = this.#localizeError(error, 'transactionImport.failedTitle');
+    const code = isApiError(error) ? (error.code ?? null) : null;
+    if (code === API_ERROR_CODES.TRANSACTION_IMPORT_RECALCULATION_FAILED) {
+      for (const key of BUDGET_DETAIL_INVALIDATION_KEYS) {
+        this.#budgetApi.cache.invalidate(key);
+      }
+      return { status: 'importedWithWarning', message };
+    }
+    return { status: 'failed', message, code };
   }
 
   readonly #deleteSavingsWithdrawalMutation = (fail: FailSink) =>
