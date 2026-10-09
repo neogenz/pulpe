@@ -16,11 +16,17 @@ struct MonthRecapSection: View {
         case showDetails(budgetId: String)
     }
 
-    private let flags = MonthRecapFlagsStore()
-    @State private var dismissedKey = MonthRecapFlagsStore().lastSeenMonthRecap
+    private let flags: MonthRecapFlagsStore
+    @State private var dismissedKey: String?
     @State private var presentedRecap: MonthRecap?
     @State private var sheetOutcome: SheetOutcome?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init() {
+        let flags = MonthRecapFlagsStore()
+        self.flags = flags
+        _dismissedKey = State(initialValue: flags.lastSeenMonthRecap)
+    }
 
     private var visibleRecap: MonthRecap? {
         guard let budget = store.budget,
@@ -92,10 +98,10 @@ struct MonthRecapCard: View {
         let currency = userSettingsStore.currency
         switch recap.outcome {
         case .saved:
-            let amount = recap.endingBalance.asCompactCurrency(currency)
+            let amount = recap.endingBalance.asAdaptiveCurrency(currency)
             return AppLocale.string("Bien joué, tu as mis \(amount) de côté.")
         case .overspent:
-            let amount = (-recap.endingBalance).asCompactCurrency(currency)
+            let amount = (-recap.endingBalance).asAdaptiveCurrency(currency)
             return AppLocale.string("Ça arrive : \(amount) de plus que prévu.")
         case .balanced:
             return AppLocale.string("Budget respecté.")

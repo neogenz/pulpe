@@ -75,8 +75,10 @@ struct MonthRecapTests {
         (Decimal(4_900), MonthRecap.Outcome.overspent),
         (Decimal(string: "4799.6") ?? 0, MonthRecap.Outcome.balanced),
         (Decimal(string: "4800.4") ?? 0, MonthRecap.Outcome.balanced),
+        (Decimal(string: "4799.5") ?? 0, MonthRecap.Outcome.saved),
+        (Decimal(string: "4800.5") ?? 0, MonthRecap.Outcome.overspent),
     ])
-    func outcome_judgedOnTheWholeFranc(expenses: Decimal, expected: MonthRecap.Outcome) throws {
+    func outcome_halfAFrancEitherWay_matchesTheWebapp(expenses: Decimal, expected: MonthRecap.Outcome) throws {
         let current = TestDataFactory.createBudget(id: "june", month: 6, year: 2025)
         let budgets = [Self.sparse(id: "may", month: 5, year: 2025, income: 4_800, expenses: expenses)]
 

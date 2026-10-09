@@ -30,11 +30,12 @@ struct MonthRecap: Hashable, Identifiable, Sendable {
 
     var id: String { key }
 
-    /// Judged on the whole franc the card prints, so it never reads "0 CHF de côté".
+    /// Half a franc either way, inclusive — the webapp's `monthRecapOutcome`, spelled out
+    /// rather than left to a rounding mode the two platforms break ties on differently.
     var outcome: Outcome {
-        let rounded = endingBalance.rounded(0)
-        if rounded > 0 { return .saved }
-        if rounded < 0 { return .overspent }
+        let margin = Decimal(string: "0.5") ?? 0
+        if endingBalance >= margin { return .saved }
+        if endingBalance <= -margin { return .overspent }
         return .balanced
     }
 }

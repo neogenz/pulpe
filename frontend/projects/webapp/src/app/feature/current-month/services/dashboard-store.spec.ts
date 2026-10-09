@@ -2276,6 +2276,8 @@ describe('DashboardStore - Previous month recap', () => {
     [4900, 'overspent'],
     [4799.6, 'balanced'],
     [4800.4, 'balanced'],
+    [4799.5, 'saved'],
+    [4800.5, 'overspent'],
   ] as const)(
     'should read %d of expenses against 4800 of income as %s',
     async (expenses, outcome) => {

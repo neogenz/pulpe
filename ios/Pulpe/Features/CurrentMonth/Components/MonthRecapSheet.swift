@@ -42,12 +42,13 @@ struct MonthRecapSheet: View {
                 }
 
                 VStack(spacing: DesignTokens.Spacing.md) {
-                    figureRow("Revenus", amount: recap.income, tint: .financialIncome)
-                    figureRow("Dépenses", amount: recap.expenses, tint: .financialExpense)
+                    figureRow("Revenus", amount: recap.income.asCompactCurrency(currency), tint: .financialIncome)
+                    figureRow("Dépenses", amount: recap.expenses.asCompactCurrency(currency), tint: .financialExpense)
                     Divider()
                     figureRow(
                         "Solde final",
-                        amount: recap.endingBalance,
+                        // To the cent: a balance carrying a verdict never prints "-0 CHF".
+                        amount: recap.endingBalance.asAdaptiveCurrency(currency),
                         tint: recap.endingBalance >= 0 ? .financialSavings : .financialOverBudget,
                         isTotal: true
                     )
@@ -96,7 +97,7 @@ struct MonthRecapSheet: View {
 
     private func figureRow(
         _ title: LocalizedStringKey,
-        amount: Decimal,
+        amount: String,
         tint: Color,
         isTotal: Bool = false
     ) -> some View {
@@ -105,7 +106,7 @@ struct MonthRecapSheet: View {
                 .font(isTotal ? PulpeTypography.cardTitle : PulpeTypography.bodyLarge)
                 .foregroundStyle(isTotal ? Color.textPrimary : Color.textSecondary)
             Spacer()
-            Text(amount.asCompactCurrency(currency))
+            Text(amount)
                 .font(isTotal ? PulpeTypography.amountCard : PulpeTypography.amountMedium)
                 .foregroundStyle(tint)
                 .monospacedDigit()

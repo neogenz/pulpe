@@ -76,7 +76,7 @@ export type MonthRecapDialogResult = 'details' | 'acknowledged';
             data-testid="month-recap-ending-balance"
           >
             {{
-              data.recap.endingBalance | appCurrency: data.currency : '1.0-0'
+              data.recap.endingBalance | appCurrency: data.currency : '1.0-2'
             }}
           </dd>
         </div>

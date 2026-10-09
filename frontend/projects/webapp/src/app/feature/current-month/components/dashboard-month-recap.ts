@@ -48,7 +48,7 @@ import type { MonthRecap } from '../services/dashboard-state';
               <span
                 class="font-bold tabular-nums whitespace-nowrap ph-no-capture"
                 >{{
-                  recap().endingBalance | appCurrency: currency() : '1.0-0'
+                  recap().endingBalance | appCurrency: currency() : '1.0-2'
                 }}</span
               >
               {{ 'currentMonth.monthRecap.savedSuffix' | transloco }}
@@ -58,7 +58,7 @@ import type { MonthRecap } from '../services/dashboard-state';
               <span
                 class="font-bold tabular-nums whitespace-nowrap ph-no-capture"
                 >{{
-                  -recap().endingBalance | appCurrency: currency() : '1.0-0'
+                  -recap().endingBalance | appCurrency: currency() : '1.0-2'
                 }}</span
               >
               {{ 'currentMonth.monthRecap.overspentSuffix' | transloco }}
