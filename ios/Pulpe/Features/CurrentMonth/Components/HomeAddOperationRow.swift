@@ -1,16 +1,18 @@
 import SwiftUI
 import TipKit
 
-/// The home's add action, and the invitation that explains it while the account's first
-/// budget holds nothing yet (PUL-306).
+/// The home's add action, and the invitation that explains it while the account has
+/// recorded nothing yet (PUL-306).
 struct HomeAddOperationRow: View {
-    let onAdd: (FirstExpenseActivation.Source) -> Void
+    let onAdd: (FirstTransactionTracker.Source) -> Void
 
     @Environment(CurrentMonthStore.self) private var store
-    @Environment(BudgetListStore.self) private var budgetListStore
+    private var firstTransactionTracker: FirstTransactionTracker { .shared }
 
+    /// The server answers for the whole account; the month's own list is checked too, so
+    /// an entry no surface reported still retires the invitation at once.
     private var showsFirstExpenseTip: Bool {
-        FirstExpenseActivation.applies(home: store, budgets: budgetListStore)
+        firstTransactionTracker.isAwaitingFirstTransaction && store.transactions.isEmpty
     }
 
     var body: some View {

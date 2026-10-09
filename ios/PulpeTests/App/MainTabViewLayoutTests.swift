@@ -41,15 +41,7 @@ struct MainTabViewNavigationOwnershipTests {
 
         #expect(source.contains("case addTransaction"))
         #expect(source.contains("AddTransactionSheet("))
-        // The entry passes the first-expense bookkeeping (PUL-306) on its way to the store.
-        #expect(source.contains("FirstExpenseActivation.add(transaction, from: source, to: store"))
-        let activation = try Self.read(
-            "Pulpe",
-            "Features",
-            "CurrentMonth",
-            "FirstExpenseActivation.swift"
-        )
-        #expect(activation.contains("home.addTransaction(transaction)"))
+        #expect(source.contains("onAdd: store.addTransaction"))
     }
 
     @Test("Current Month transaction action fills its declared hit area")

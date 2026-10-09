@@ -151,6 +151,30 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     };
   }
 
+  async hasAnyTransaction(): Promise<boolean> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('transaction')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'hasAnyTransaction',
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return data !== null;
+  }
+
   async findByBudgetId(budgetId: string): Promise<Transaction[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase

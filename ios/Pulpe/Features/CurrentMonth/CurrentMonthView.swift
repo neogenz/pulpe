@@ -4,7 +4,7 @@ import WidgetKit
 
 private enum SheetDestination: Identifiable, Hashable {
     case realizedBalance, account, createBudget, notificationPrime
-    case addTransaction(FirstExpenseActivation.Source), feedback
+    case addTransaction(FirstTransactionTracker.Source), feedback
     var id: Self { self }
 }
 
@@ -118,9 +118,7 @@ struct CurrentMonthView: View {
                     }
                 case .addTransaction(let source):
                     if let budgetId = store.budget?.id {
-                        AddTransactionSheet(budgetId: budgetId) { transaction in
-                            FirstExpenseActivation.add(transaction, from: source, to: store, budgets: budgetListStore)
-                        }
+                        AddTransactionSheet(budgetId: budgetId, source: source, onAdd: store.addTransaction)
                     }
                 case .feedback:
                     AutomaticFeedbackSheet()
@@ -164,6 +162,8 @@ struct CurrentMonthView: View {
                     hasAppeared = true
                 }
             }
+            // After the reveal: the first-expense tip (PUL-306) can arrive a beat late
+            await FirstTransactionTracker.shared.loadIfNeeded()
             // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
             await budgetListStore.loadIfNeeded()
             // Goal names for the "épargne versée" card — only when the month links to goals

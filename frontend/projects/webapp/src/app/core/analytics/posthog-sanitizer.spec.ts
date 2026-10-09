@@ -71,6 +71,7 @@ describe('posthog-sanitizer', () => {
       '/budgets/export',
       '/budgets/exists',
       '/transactions/search',
+      '/transactions/exists',
       '/budget-lines/spread',
       '/budget-lines/savings-withdrawal',
       '/budget-templates/from-onboarding',

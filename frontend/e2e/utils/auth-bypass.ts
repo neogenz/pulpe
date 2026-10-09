@@ -192,6 +192,17 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
+    // Transaction exists endpoint (PUL-306) - an account with nothing recorded,
+    // so the dashboard shows the first-expense invitation while the month is
+    // empty. Left unmocked it reaches a real backend and the 401 logs out.
+    if (url.includes('transactions/exists')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ hasTransaction: false }),
+      });
+    }
+
     // Budget details endpoint (must check BEFORE budget list due to url.includes)
     if (url.includes('budgets') && url.includes('/details')) {
       return route.fulfill({

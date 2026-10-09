@@ -27,7 +27,7 @@ import {
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
-import { PostHogService } from '@core/analytics/posthog';
+import { FirstTransactionTracker } from '@core/transaction';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -599,7 +599,7 @@ describe('Dashboard (TestBed)', () => {
       isMatched: vi.fn().mockReturnValue(false),
       observe: vi.fn().mockReturnValue(of({ matches: false, breakpoints: {} })),
     };
-    const mockPostHog = { captureEvent: vi.fn() };
+    const mockFirstTransactionTracker = { recordCreated: vi.fn() };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -617,13 +617,13 @@ describe('Dashboard (TestBed)', () => {
           { provide: MatSnackBar, useValue: mockSnackBar },
           { provide: MatDialog, useValue: mockDialog },
           { provide: BreakpointObserver, useValue: mockBreakpoints },
-          { provide: PostHogService, useValue: mockPostHog },
+          {
+            provide: FirstTransactionTracker,
+            useValue: mockFirstTransactionTracker,
+          },
         ],
       })
       .compileComponents();
-    TestBed.inject(StorageService).remove(
-      STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED,
-    );
 
     const fixture = TestBed.createComponent(Dashboard);
     return {
@@ -635,13 +635,14 @@ describe('Dashboard (TestBed)', () => {
       mockDialog,
       mockBreakpoints,
       mockRouter,
-      mockPostHog,
+      mockFirstTransactionTracker,
       undoAction,
       readPersistRefusal: () => persistRefusal,
     };
   }
 
-  // PUL-306 — the first budget with nothing in it is where most users stop.
+  // PUL-306 — an account with a budget and nothing recorded is where most
+  // users stop. Whether this entry is the first is the tracker's call.
   describe('first-expense invitation', () => {
     const firstExpense: TransactionFormData = {
       name: 'Café',
@@ -652,7 +653,7 @@ describe('Dashboard (TestBed)', () => {
       conversion: null,
     };
 
-    it('should show while the first budget awaits its first entry', async () => {
+    it('should show while the account awaits its first entry', async () => {
       const { component, mockStore } = await setup(budgetId, undefined);
 
       expect(component['showFirstExpenseInvite']()).toBe(false);
@@ -660,77 +661,44 @@ describe('Dashboard (TestBed)', () => {
       expect(component['showFirstExpenseInvite']()).toBe(true);
     });
 
-    it('should mark the entry it opened as the first one', async () => {
-      const { component, mockStore, mockPostHog } = await setup(
+    it('should report an entry opened from the invitation', async () => {
+      const { component, mockFirstTransactionTracker } = await setup(
         budgetId,
         firstExpense,
       );
-      mockStore.isAwaitingFirstTransaction.set(true);
 
       await component['openAddTransaction']('activation_prompt');
 
-      expect(mockPostHog.captureEvent).toHaveBeenCalledWith(
-        'first_transaction_created',
-        { type: 'expense', source: 'activation_prompt' },
+      expect(mockFirstTransactionTracker.recordCreated).toHaveBeenCalledWith(
+        'expense',
+        'activation_prompt',
       );
     });
 
-    it('should credit the add button when the first entry came from it', async () => {
-      const { component, mockStore, mockPostHog } = await setup(
+    it('should credit the add button by default', async () => {
+      const { component, mockFirstTransactionTracker } = await setup(
         budgetId,
         firstExpense,
       );
-      mockStore.isAwaitingFirstTransaction.set(true);
 
       await component['openAddTransaction']();
 
-      expect(mockPostHog.captureEvent).toHaveBeenCalledWith(
-        'first_transaction_created',
-        { type: 'expense', source: 'add_button' },
+      expect(mockFirstTransactionTracker.recordCreated).toHaveBeenCalledWith(
+        'expense',
+        'add_button',
       );
     });
 
-    it('should not mark an entry outside the first empty budget', async () => {
-      const { component, mockPostHog } = await setup(budgetId, firstExpense);
-
-      await component['openAddTransaction']();
-
-      expect(mockPostHog.captureEvent).not.toHaveBeenCalled();
-    });
-
-    it('should not mark a refused entry', async () => {
-      const { component, mockStore, mockPostHog } = await setup(
+    it('should not report a refused entry', async () => {
+      const { component, mockStore, mockFirstTransactionTracker } = await setup(
         budgetId,
         firstExpense,
       );
-      mockStore.isAwaitingFirstTransaction.set(true);
       mockStore.addTransaction.mockResolvedValue({ reason: 'Hors ligne' });
 
       await component['openAddTransaction']('activation_prompt');
 
-      expect(mockPostHog.captureEvent).not.toHaveBeenCalled();
-      expect(component['showFirstExpenseInvite']()).toBe(true);
-    });
-
-    // Undoing the entry empties the month again; the gesture was still made.
-    it('should stay retired once an entry went through, even undone', async () => {
-      const { component, mockStore, mockPostHog, undoAction } = await setup(
-        budgetId,
-        firstExpense,
-      );
-      mockStore.isAwaitingFirstTransaction.set(true);
-
-      await component['openAddTransaction']('activation_prompt');
-      undoAction.next();
-      await component['openAddTransaction']('activation_prompt');
-
-      expect(component['showFirstExpenseInvite']()).toBe(false);
-      expect(mockPostHog.captureEvent).toHaveBeenCalledTimes(1);
-      expect(
-        TestBed.inject(StorageService).get<boolean>(
-          STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED,
-        ),
-      ).toBe(true);
+      expect(mockFirstTransactionTracker.recordCreated).not.toHaveBeenCalled();
     });
   });
 
@@ -800,6 +768,9 @@ describe('Dashboard (TestBed)', () => {
 
       expect(isRecorded).toBe(true);
       expect(mockStore.addTransaction).toHaveBeenCalledTimes(1);
+      expect(
+        TestBed.inject(FirstTransactionTracker).recordCreated,
+      ).toHaveBeenCalledWith('income', 'reconciliation');
       const payload = mockStore.addTransaction.mock.calls[0][0];
       expect(payload).toEqual({
         budgetId,

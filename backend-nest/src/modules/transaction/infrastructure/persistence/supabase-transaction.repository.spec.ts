@@ -86,6 +86,38 @@ function createMockLogger(): InfoLogger {
 describe('SupabaseTransactionRepository', () => {
   let repo: SupabaseTransactionRepository;
 
+  describe('hasAnyTransaction', () => {
+    function repoAnswering(result: { data: unknown; error: unknown }) {
+      const maybeSingle = jest.fn().mockResolvedValue(result);
+      const provider = createMockProvider(() => ({
+        select: () => ({ limit: () => ({ maybeSingle }) }),
+      }));
+      return new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+    }
+
+    it('should be true when the caller holds a transaction', async () => {
+      repo = repoAnswering({ data: { id: 'txn-1' }, error: null });
+
+      expect(await repo.hasAnyTransaction()).toBe(true);
+    });
+
+    it('should be false when the caller holds none', async () => {
+      repo = repoAnswering({ data: null, error: null });
+
+      expect(await repo.hasAnyTransaction()).toBe(false);
+    });
+
+    it('should throw BusinessException when the query fails', async () => {
+      repo = repoAnswering({ data: null, error: { message: 'boom' } });
+
+      await expect(repo.hasAnyTransaction()).rejects.toThrow(BusinessException);
+    });
+  });
+
   describe('findById', () => {
     it('should return a decrypted entity on success', async () => {
       const provider = createMockProvider(() => ({

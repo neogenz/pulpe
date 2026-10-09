@@ -96,12 +96,15 @@ export const ANALYTICS_EVENTS = {
   /** Fires after a transaction is created. Properties: `type`. */
   TRANSACTION_CREATED: 'transaction_created',
   /**
-   * Fires once per device, next to `transaction_created`, when the dashboard
-   * records an entry in the account's first budget while that budget holds none
-   * yet — the activation step that follows `first_budget_created` (PUL-306).
+   * Fires when an entry is recorded while the server said the account held
+   * none yet — the activation step that follows `first_budget_created`
+   * (PUL-306). Every create surface reports it, so it fires once per account
+   * unless two devices record their first entry from the same stale answer.
    * Properties: `type` (`'income' | 'expense' | 'saving'`), `source`
    * (`'activation_prompt'` for the first-expense invitation, `'add_button'` for
-   * the dashboard's own add control). Never an amount or a label.
+   * the dashboard's own add control, `'budget_details'`, `'reconciliation'`,
+   * and on iOS `'widget'` for the add-expense deep link). Never an amount or a
+   * label.
    */
   FIRST_TRANSACTION_CREATED: 'first_transaction_created',
   /**

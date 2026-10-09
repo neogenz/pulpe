@@ -6,6 +6,7 @@ import { ClientKeyService } from '@core/encryption';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { TagApi } from '@core/tag/tag-api';
 import { McpApi } from '@core/mcp/mcp-api';
+import { FirstTransactionTracker } from '@core/transaction/first-transaction-tracker';
 
 import { DemoModeService } from '../demo/demo-mode.service';
 import { PreloadService } from '../preload/preload.service';
@@ -22,6 +23,7 @@ export class AuthCleanupService {
   readonly #savingsGoalApi = inject(SavingsGoalApi);
   readonly #tagApi = inject(TagApi);
   readonly #mcpApi = inject(McpApi);
+  readonly #firstTransactionTracker = inject(FirstTransactionTracker);
   readonly #demoModeService = inject(DemoModeService);
   readonly #preloadService = inject(PreloadService);
   readonly #postHogService = inject(PostHogService);
@@ -49,6 +51,10 @@ export class AuthCleanupService {
     );
     this.#safeCleanup(() => this.#tagApi.clearCache(), 'tags data cache');
     this.#safeCleanup(() => this.#mcpApi.clearCache(), 'MCP connections cache');
+    this.#safeCleanup(
+      () => this.#firstTransactionTracker.reset(),
+      'first transaction state',
+    );
     this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
     this.#safeCleanup(() => this.#userSettingsStore.reset(), 'user settings');
     this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');

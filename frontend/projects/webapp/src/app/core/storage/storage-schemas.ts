@@ -91,7 +91,7 @@ export const STORAGE_SCHEMAS = {
     scope: 'user',
   },
 
-  [STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED]: {
+  [STORAGE_KEYS.FIRST_TRANSACTION_RECORDED]: {
     version: 1,
     schema: z.boolean(),
     scope: 'user',

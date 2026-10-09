@@ -31,8 +31,11 @@ import {
   transactionCreateFromQuickFormSchema,
   type TransactionFormData,
 } from './components/add-transaction-form.schema';
-import { ANALYTICS_EVENTS, transactionCreateSchema } from 'pulpe-shared';
-import { PostHogService } from '@core/analytics/posthog';
+import { transactionCreateSchema } from 'pulpe-shared';
+import {
+  FirstTransactionTracker,
+  type FirstTransactionSource,
+} from '@core/transaction';
 import { DashboardError } from './components/dashboard-error';
 import {
   ReconcileAccountsDialog,
@@ -69,9 +72,11 @@ export const UNDO_WINDOW_MS = 6000;
 // `pointer-events: none`, take the Undo button with it.
 const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
 
-// Which control on this page opened the add sheet — the value space of
-// `source` on `first_transaction_created`.
-type AddTransactionSource = 'activation_prompt' | 'add_button';
+// Which control on this page opened the add sheet.
+type AddTransactionSource = Extract<
+  FirstTransactionSource,
+  'activation_prompt' | 'add_button'
+>;
 
 // The two things this page writes, and the two ways it takes them back.
 type UndoableAction =
@@ -597,7 +602,7 @@ export default class Dashboard {
   readonly #storage = inject(StorageService);
   readonly #dialog = inject(MatDialog);
   readonly #breakpointObserver = inject(BreakpointObserver);
-  readonly #postHogService = inject(PostHogService);
+  readonly #firstTransactionTracker = inject(FirstTransactionTracker);
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
 
   // Folded by default: the daily visit is the one this page is for, and it ends
@@ -638,19 +643,8 @@ export default class Dashboard {
     () => !this.#pointingLearned(),
   );
 
-  // Stored rather than read off the month: an entry undone from its toast
-  // leaves the first budget empty again, and the invitation must not come back
-  // for someone who has already made the gesture it teaches.
-  readonly #firstTransactionRecorded = signal(
-    this.#storage.get<boolean>(
-      STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED,
-    ) ?? false,
-  );
-  protected readonly showFirstExpenseInvite = computed(
-    () =>
-      this.store.isAwaitingFirstTransaction() &&
-      !this.#firstTransactionRecorded(),
-  );
+  protected readonly showFirstExpenseInvite =
+    this.store.isAwaitingFirstTransaction;
 
   #recordPointingLearned(): void {
     if (this.#pointingLearned()) return;
@@ -1071,6 +1065,10 @@ export default class Dashboard {
       this.#notify(outcome.reason, 'top');
       return false;
     }
+    this.#firstTransactionTracker.recordCreated(
+      adjustment.kind,
+      'reconciliation',
+    );
     this.#confirmWithUndo({
       kind: 'transaction',
       id: outcome.transactionId,
@@ -1109,25 +1107,10 @@ export default class Dashboard {
       budgetId,
       transactionDate: formatLocalDate(new Date()),
     });
-    // Read before the write: a successful one lands in the month at once and
-    // the invitation's condition is already false by the time it returns.
-    const isFirstTransaction = this.showFirstExpenseInvite();
     const outcome = await this.store.addTransaction(transactionCreate);
     if ('reason' in outcome) return outcome.reason;
 
-    if (isFirstTransaction) {
-      this.#postHogService.captureEvent(
-        ANALYTICS_EVENTS.FIRST_TRANSACTION_CREATED,
-        { type: transactionCreate.kind, source },
-      );
-    }
-    if (!this.#firstTransactionRecorded()) {
-      this.#firstTransactionRecorded.set(true);
-      this.#storage.set(
-        STORAGE_KEYS.DASHBOARD_FIRST_TRANSACTION_RECORDED,
-        true,
-      );
-    }
+    this.#firstTransactionTracker.recordCreated(transactionCreate.kind, source);
 
     this.#confirmWithUndo({
       kind: 'transaction',

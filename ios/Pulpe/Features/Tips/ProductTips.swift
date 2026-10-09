@@ -104,9 +104,9 @@ enum ProductTips {
 
     // MARK: - First Expense Tip
 
-    /// PUL-306 — rendered by the home only while `FirstExpenseActivation.isAwaiting`.
-    /// Invalidated by the first entry, so it never comes back once the gesture is made;
-    /// its close button lets the user ignore it.
+    /// PUL-306 — rendered by the home only while `FirstTransactionTracker` says the account
+    /// has recorded nothing; the tracker, reset at every identity boundary, decides when it
+    /// retires. Its close button lets the user ignore it.
     struct FirstExpenseTip: Tip {
         static let addExpenseActionId = "add-expense"
 
