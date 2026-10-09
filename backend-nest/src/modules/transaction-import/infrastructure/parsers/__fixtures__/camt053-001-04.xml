@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic statement shaped like a Swiss e-banking camt.053 export (SPS 001.04). No real data. -->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.04" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <BkToCstmrStmt>
+    <GrpHdr>
+      <MsgId>STMT-20260331-0001</MsgId>
+      <CreDtTm>2026-03-31T23:10:00</CreDtTm>
+    </GrpHdr>
+    <Stmt>
+      <Id>STMT-0001</Id>
+      <CreDtTm>2026-03-31T23:10:00</CreDtTm>
+      <FrToDt>
+        <FrDtTm>2026-03-01T00:00:00</FrDtTm>
+        <ToDtTm>2026-03-31T23:59:59</ToDtTm>
+      </FrToDt>
+      <Acct>
+        <Id>
+          <IBAN>CH9300762011623852957</IBAN>
+        </Id>
+        <Ccy>CHF</Ccy>
+      </Acct>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="CHF">2500.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt><Dt>2026-03-01</Dt></Dt>
+      </Bal>
+      <!-- 1. Salary: credit, counterparty is the debtor -->
+      <Ntry>
+        <Amt Ccy="CHF">5200.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-03-25</Dt></BookgDt>
+        <ValDt><Dt>2026-03-25</Dt></ValDt>
+        <AcctSvcrRef>20260325000123456</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RCDT</Cd><SubFmlyCd>SALA</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <NtryDtls>
+          <TxDtls>
+            <Refs><AcctSvcrRef>20260325000123456</AcctSvcrRef></Refs>
+            <RltdPties>
+              <Dbtr><Nm>Exemple SA</Nm></Dbtr>
+            </RltdPties>
+            <RmtInf><Ustrd>Salaire mars 2026</Ustrd></RmtInf>
+          </TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>CREDIT Exemple SA</AddtlNtryInf>
+      </Ntry>
+      <!-- 2. Card purchase: debit, counterparty is the creditor, padded name -->
+      <Ntry>
+        <Amt Ccy="CHF">84.35</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-03-04</Dt></BookgDt>
+        <ValDt><Dt>2026-03-03</Dt></ValDt>
+        <AcctSvcrRef>20260304000987654</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <RltdPties>
+              <Cdtr><Nm>  Supermarché   du Centre  </Nm></Cdtr>
+            </RltdPties>
+          </TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>ACHAT CARTE DEBIT 03.03.2026 SUPERMARCHE DU CENTRE</AddtlNtryInf>
+      </Ntry>
+      <!-- 3-4. Two identical coffees, no bank reference: told apart by rank -->
+      <Ntry>
+        <Amt Ccy="CHF">4.80</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-03-10</Dt></BookgDt>
+        <AddtlNtryInf>TWINT Café de la Gare</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="CHF">4.80</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-03-10</Dt></BookgDt>
+        <AddtlNtryInf>TWINT Café de la Gare</AddtlNtryInf>
+      </Ntry>
+      <!-- 5. Batch entry: two details, label comes from the entry text -->
+      <Ntry>
+        <Amt Ccy="CHF">150.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-03-15</Dt></BookgDt>
+        <AcctSvcrRef>20260315000555000</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <RltdPties><Cdtr><Nm>Assurance A</Nm></Cdtr></RltdPties>
+          </TxDtls>
+          <TxDtls>
+            <RltdPties><Cdtr><Nm>Assurance B</Nm></Cdtr></RltdPties>
+          </TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>ORDRE GROUPE 2 PAIEMENTS</AddtlNtryInf>
+      </Ntry>
+      <!-- 6. Pending: not booked yet, only a value date -->
+      <Ntry>
+        <Amt Ccy="CHF">32.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>PDNG</Sts>
+        <ValDt><Dt>2026-03-31</Dt></ValDt>
+        <AddtlNtryInf>RESERVATION CARTE STATION SERVICE</AddtlNtryInf>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

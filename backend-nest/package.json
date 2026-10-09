@@ -61,6 +61,7 @@
     "compression": "^1.8.1",
     "date-fns": "^4.1.0",
     "express-rate-limit": "^8.7.0",
+    "fast-xml-parser": "5.11.1",
     "helmet": "^8.1.0",
     "nestjs-cls": "^6.2.0",
     "nestjs-pino": "^4.4.0",

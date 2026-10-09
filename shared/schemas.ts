@@ -1690,6 +1690,151 @@ export type TransactionSearchResponse = z.infer<
   typeof transactionSearchResponseSchema
 >;
 
+/**
+ * TRANSACTION IMPORT (PUL-25) — a bank export becomes Réels in one budget.
+ *
+ * The client uploads the raw file twice: once for the preview, once for the
+ * confirmation. The server re-parses it on confirmation, so what gets written
+ * is always what the server itself recognised, never a client-side copy.
+ */
+
+/** Upload ceiling, enforced by the HTTP layer before any parsing. */
+export const TRANSACTION_IMPORT_MAX_FILE_BYTES = 2 * 1024 * 1024;
+/** Beyond this many operations the file is refused as a whole. */
+export const TRANSACTION_IMPORT_MAX_OPERATIONS = 1000;
+
+/** Bank export formats Pulpe knows how to read. */
+export const transactionImportFormatSchema = z.enum(['camt053']);
+export type TransactionImportFormat = z.infer<
+  typeof transactionImportFormatSchema
+>;
+
+/**
+ * Why the file cannot be imported. Every error blocks the whole import:
+ * nothing is written while one of them remains.
+ *
+ * - `unsupported_format`, `malformed_file`, `empty_statement`,
+ *   `too_many_operations`: the file as a whole (`position` is null).
+ * - `currency_mismatch`: an operation in another currency than the user's.
+ * - `missing_date`, `invalid_amount`, `missing_direction`, `missing_label`:
+ *   one operation of the file (`position` points at it).
+ */
+export const transactionImportErrorCodeSchema = z.enum([
+  'unsupported_format',
+  'malformed_file',
+  'empty_statement',
+  'too_many_operations',
+  'currency_mismatch',
+  'missing_date',
+  'invalid_amount',
+  'missing_direction',
+  'missing_label',
+]);
+export type TransactionImportErrorCode = z.infer<
+  typeof transactionImportErrorCodeSchema
+>;
+
+export const transactionImportErrorSchema = z.object({
+  code: transactionImportErrorCodeSchema,
+  /** 1-based rank of the operation in the file; null when the whole file is at fault. */
+  position: z.number().int().positive().nullable(),
+});
+export type TransactionImportError = z.infer<
+  typeof transactionImportErrorSchema
+>;
+
+/**
+ * What the confirmation will do with a recognised operation. Only `new`
+ * becomes a Réel; the other statuses are shown and skipped, never blocking.
+ *
+ * - `new`: will be created.
+ * - `already_imported`: a previous import already created it (stable fingerprint).
+ * - `outside_period`: booked outside the target budget's period.
+ * - `pending`: not booked yet by the bank, its amount may still change.
+ */
+export const transactionImportOperationStatusSchema = z.enum([
+  'new',
+  'already_imported',
+  'outside_period',
+  'pending',
+]);
+export type TransactionImportOperationStatus = z.infer<
+  typeof transactionImportOperationStatusSchema
+>;
+
+/** Imported operations are money in or money out; savings stay a user decision. */
+export const transactionImportKindSchema = z.enum(['income', 'expense']);
+
+export const transactionImportOperationSchema = z.object({
+  /** 1-based rank in the file, the key a later per-operation decision refers to. */
+  position: z.number().int().positive(),
+  /** Booking date, ISO calendar date (YYYY-MM-DD). */
+  date: z.iso.date(),
+  name: z.string().min(1).max(100),
+  amount: z.number().positive(),
+  kind: transactionImportKindSchema,
+  status: transactionImportOperationStatusSchema,
+});
+export type TransactionImportOperation = z.infer<
+  typeof transactionImportOperationSchema
+>;
+
+export const transactionImportPreviewSchema = z.object({
+  /** null when the file matched no known format. */
+  format: transactionImportFormatSchema.nullable(),
+  /** Budget period the operations are checked against (inclusive bounds). */
+  period: z.object({
+    startDate: z.iso.date(),
+    endDate: z.iso.date(),
+  }),
+  currency: supportedCurrencySchema,
+  operations: z.array(transactionImportOperationSchema),
+  errors: z.array(transactionImportErrorSchema),
+});
+export type TransactionImportPreview = z.infer<
+  typeof transactionImportPreviewSchema
+>;
+
+export const transactionImportPreviewResponseSchema = createSuccessResponse(
+  transactionImportPreviewSchema,
+);
+export type TransactionImportPreviewResponse = z.infer<
+  typeof transactionImportPreviewResponseSchema
+>;
+
+export const transactionImportResultSchema = z.object({
+  createdCount: z.number().int().nonnegative(),
+  skippedCount: z.number().int().nonnegative(),
+});
+export type TransactionImportResult = z.infer<
+  typeof transactionImportResultSchema
+>;
+
+export const transactionImportResponseSchema = createSuccessResponse(
+  transactionImportResultSchema,
+);
+export type TransactionImportResponse = z.infer<
+  typeof transactionImportResponseSchema
+>;
+
+/** Multipart text field sent next to the `file` part. */
+export const transactionImportRequestSchema = z.strictObject({
+  budgetId: z.uuid(),
+});
+export type TransactionImportRequest = z.infer<
+  typeof transactionImportRequestSchema
+>;
+
+/** Whether the confirmation may run: no error and at least one operation to create. */
+export function canConfirmTransactionImport(
+  preview: Pick<TransactionImportPreview, 'operations' | 'errors'>,
+): boolean {
+  return (
+    preview.errors.length === 0 &&
+    preview.operations.some((operation) => operation.status === 'new')
+  );
+}
+
 // Budget template schemas
 export const budgetTemplateSchema = z.object({
   id: z.uuid(),

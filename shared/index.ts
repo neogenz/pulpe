@@ -341,6 +341,34 @@ export {
   type LocaleMetadataEntry,
 } from './src/locale.js';
 
+// Export bank-export import contract (PUL-25)
+export {
+  TRANSACTION_IMPORT_MAX_FILE_BYTES,
+  TRANSACTION_IMPORT_MAX_OPERATIONS,
+  transactionImportFormatSchema,
+  transactionImportErrorCodeSchema,
+  transactionImportErrorSchema,
+  transactionImportOperationStatusSchema,
+  transactionImportKindSchema,
+  transactionImportOperationSchema,
+  transactionImportPreviewSchema,
+  transactionImportPreviewResponseSchema,
+  transactionImportResultSchema,
+  transactionImportResponseSchema,
+  transactionImportRequestSchema,
+  canConfirmTransactionImport,
+  type TransactionImportFormat,
+  type TransactionImportErrorCode,
+  type TransactionImportError,
+  type TransactionImportOperationStatus,
+  type TransactionImportOperation,
+  type TransactionImportPreview,
+  type TransactionImportPreviewResponse,
+  type TransactionImportResult,
+  type TransactionImportResponse,
+  type TransactionImportRequest,
+} from './schemas.js';
+
 // Export all types from types.ts
 export type {
   // Enum Types

@@ -668,6 +668,7 @@ export type Database = {
           created_at: string
           exchange_rate: number | null
           id: string
+          import_fingerprint: string | null
           kind: Database["public"]["Enums"]["transaction_kind"]
           name: string
           original_amount: string | null
@@ -686,6 +687,7 @@ export type Database = {
           created_at?: string
           exchange_rate?: number | null
           id?: string
+          import_fingerprint?: string | null
           kind: Database["public"]["Enums"]["transaction_kind"]
           name: string
           original_amount?: string | null
@@ -704,6 +706,7 @@ export type Database = {
           created_at?: string
           exchange_rate?: number | null
           id?: string
+          import_fingerprint?: string | null
           kind?: Database["public"]["Enums"]["transaction_kind"]
           name?: string
           original_amount?: string | null

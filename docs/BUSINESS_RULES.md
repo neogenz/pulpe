@@ -26,6 +26,13 @@ Ce fichier contient uniquement les invariants qui traversent plusieurs fonctionn
 - Lisser explicitement un Réel libre est l'unique exception au modèle additif : le Réel source est remplacé atomiquement par les Prévisions lissées afin d'éviter le double comptage.
 - Le contrat complet vit dans [`docs/SPREAD.md`](./SPREAD.md).
 
+## Import d'un export bancaire
+
+- Un import part d'un fichier choisi par l'utilisateur et ne demande aucun accès au compte. Le premier format lu est camt.053 (ISO 20022). Chaque format est un parseur ajouté à `STATEMENT_PARSERS` dans [`transaction-import.module.ts`](../backend-nest/src/modules/transaction-import/transaction-import.module.ts).
+- Le serveur relit le fichier à l'aperçu et à la confirmation. Toute erreur bloque l'import entier. Les opérations en attente, hors de la période du budget ou déjà importées sont affichées puis ignorées.
+- La confirmation crée en une seule requête les opérations nouvelles comme Réels libres et non pointés, dans le budget visé. L'insertion est entière ou nulle. Les règles vivent dans [`transaction-import.formulas.ts`](../backend-nest/src/modules/transaction-import/domain/transaction-import.formulas.ts).
+- Une empreinte stable par opération (`transaction.import_fingerprint`, unique) détecte les doublons avant la confirmation et fait échouer en bloc un import concurrent. Voir [`docs/ENCRYPTION.md`](./ENCRYPTION.md#empreinte-dimport-bancaire).
+
 ## Montants et devises
 
 - Toute décision financière compare un écart quantifié au centime. La présentation dépend du rôle du montant : jusqu'à deux décimales lorsqu'il justifie un état ou une action, format compact pour un agrégat de lecture rapide. Les pourcentages entiers restent indicatifs et ne décident jamais seuls d'un état monétaire.

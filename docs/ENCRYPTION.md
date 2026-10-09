@@ -59,6 +59,10 @@ Cela signifie que les deux colonnes de montants chiffrés sont mathématiquement
 
 Le chiffrement étant par utilisateur (DEK dérivée), ce lien n'est exploitable qu'à l'intérieur des données d'un seul utilisateur.
 
+### Empreinte d'import bancaire
+
+`transaction.import_fingerprint` (PUL-25) n'est pas chiffrée : c'est un HMAC-SHA256 hexadécimal de l'identité de l'opération bancaire (référence de la banque, ou date, sens, montant, libellé et rang), calculé par `ENCRYPTION_PORT.fingerprints`. Sa clé dérive par HKDF de `ENCRYPTION_MASTER_KEY` et de l'identifiant utilisateur, sans la DEK : elle ne dépend pas du code PIN, donc un rekey n'a pas à la recalculer et une opération déjà importée le reste. Sans la master key, l'empreinte ne permet pas de retrouver le montant. Une rotation de `ENCRYPTION_MASTER_KEY` ferait en revanche réapparaître comme nouvelles les opérations déjà importées.
+
 ## Mode démo
 
 Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY_BUFFER`) pour emprunter le même chemin de code que les vrais utilisateurs. Ce n'est pas un secret — les données démo sont publiques.
