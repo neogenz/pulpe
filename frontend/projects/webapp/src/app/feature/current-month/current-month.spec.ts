@@ -669,12 +669,26 @@ describe('Dashboard (TestBed)', () => {
       ).toBe('2026-03');
     });
 
-    it('should show the next closed month even after an earlier one was dismissed', async () => {
-      const { component, mockStore } = await setup(budgetId, undefined);
+    // Seeded through StorageService before the page exists: it reads the key
+    // once, at construction, and keeps only its own versioned entries.
+    function rememberDismissed(key: string): void {
       TestBed.inject(StorageService).set(
         STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN,
-        '2026-02',
+        key,
       );
+    }
+
+    it('should stay hidden on a later visit once that month was dismissed', async () => {
+      rememberDismissed('2026-03');
+      const { component, mockStore } = await setup(budgetId, undefined);
+      mockStore.previousMonthRecap.set(march);
+
+      expect(component['monthRecap']()).toBeNull();
+    });
+
+    it('should show the next closed month even after an earlier one was dismissed', async () => {
+      rememberDismissed('2026-02');
+      const { component, mockStore } = await setup(budgetId, undefined);
       mockStore.previousMonthRecap.set(march);
 
       expect(component['monthRecap']()).toBe(march);
