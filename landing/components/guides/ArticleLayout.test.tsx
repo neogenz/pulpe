@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { getDictionary } from "../../content/dictionary";
 import { DEFAULT_LOCALE } from "../../lib/i18n";
 import { socialPreviewImage } from "../../lib/metadata";
-import { DE_GUIDE_CHROME } from "./chrome";
+import { DE_GUIDE_CHROME, FR_GUIDE_CHROME } from "./chrome";
 import {
   DE_COMPARISON_SLUG,
   DE_GUIDES,
@@ -14,6 +14,7 @@ import {
   getDeGuide,
 } from "./guides.de";
 import { GUIDES, guideMetadata, type Guide } from "./guides";
+import { SourcedFigures } from "./SourcedFigures";
 import sitemap from "../../app/sitemap";
 
 Object.assign(globalThis, { React });
@@ -499,6 +500,90 @@ describe("French health-premiums guide", async () => {
     assert.match(
       articleHtml ?? "",
       /bag\.admin\.ch\/fr\/newnsb\/d2okh_kUK_OFhmMDfpyiy/,
+    );
+  });
+
+  it("labels 393.30 CHF as the all-ages average, never the adult premium", () => {
+    assert.match(pageHtml, /tous âges confondus/);
+    assert.doesNotMatch(pageHtml, /pour un adulte|Prime moyenne adulte/);
+  });
+
+  it("links a specific source beside every official figure", () => {
+    for (const source of [
+      /news-27-09-2022/,
+      /msg-id-97889/,
+      /news\.admin\.ch\/fr\/nsb\?id=102592/,
+      /watson\.ch\/fr\/suisse\/assurance-maladie\//,
+      /comparis\.ch\/publikationen\/mitteilungen\/2026\/05\//,
+      /rts\.ch\/info\/suisse\/2026\/article\/[^"]+-29253733\.html/,
+    ]) {
+      assert.match(articleHtml ?? "", source);
+    }
+    assert.doesNotMatch(articleHtml ?? "", /href="https:\/\/www\.rts\.ch\/"/);
+    assert.match(articleHtml ?? "", /class="guide-figures"/);
+  });
+
+  it("keeps the 2027 slot on the spring forecasts until it is filled", () => {
+    assert.match(articleHtml ?? "", /Quelle hausse prévoir pour 2027/);
+    assert.match(articleHtml ?? "", /3,7/);
+    assert.match(articleHtml ?? "", /environ 5/);
+  });
+
+  it("phrases every article H2 as a reader question", () => {
+    const headings = [...(articleHtml ?? "").matchAll(/<h2[^>]*>(.*?)<\/h2>/g)]
+      .map((match) => match[1])
+      .filter(
+        (heading) =>
+          heading !== FR_GUIDE_CHROME.relatedHeading &&
+          heading !== FR_GUIDE_CHROME.faqHeading,
+      );
+    assert.ok(headings.length >= 5);
+    for (const heading of headings) {
+      assert.match(heading, /\?$/, heading);
+    }
+  });
+
+  it("stays calm: provisioning words, no alarm or countdown", () => {
+    assert.match(articleHtml ?? "", /provision/);
+    assert.doesNotMatch(
+      articleHtml ?? "",
+      /\bAttention\b|urgen|alerte|dépêche|trop tard|compte à rebours/i,
+    );
+  });
+
+  it("separates « Continue avec… » from a CTA that names the feature", () => {
+    const related = (articleHtml ?? "").match(
+      /<h2>Continue avec…<\/h2><ul>([\s\S]*?)<\/ul>/,
+    )?.[1];
+    assert.ok(related, "the related block is missing");
+    assert.ok((related.match(/href="\/conseils-budget\//g)?.length ?? 0) >= 2);
+    assert.doesNotMatch(related, /data-cta-name/);
+    const cta = (articleHtml ?? "").match(
+      /<div class="mt-14 border-t[\s\S]*<\/div>/,
+    )?.[0];
+    assert.ok(cta, "the CTA block is missing");
+    assert.match(cta, /prévisions/);
+    assert.match(cta, /lisse/);
+    assert.doesNotMatch(cta, new RegExp(FR_GUIDE_CHROME.ctaButton));
+  });
+});
+
+describe("sourced figures block", () => {
+  it("prints each value with tabular figures and links its source", () => {
+    const html = renderToStaticMarkup(
+      <SourcedFigures
+        figures={[
+          { value: "412.00 CHF", change: "+5,0 %", label: "Prime moyenne" },
+        ]}
+        source={{ label: "OFSP", href: "https://example.org/communique" }}
+      />,
+    );
+    assert.match(html, /<dt>Prime moyenne<\/dt>/);
+    assert.match(html, /<dd class="tabular-nums">412\.00 CHF/);
+    assert.match(html, /\+5,0 %/);
+    assert.match(
+      html,
+      /<figcaption>[\s\S]*href="https:\/\/example\.org\/communique"[\s\S]*rel="noopener noreferrer"/,
     );
   });
 });

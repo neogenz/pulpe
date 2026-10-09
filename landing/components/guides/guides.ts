@@ -34,7 +34,7 @@ export const GUIDES: readonly Guide[] = [
     description:
       "La prime moyenne 2026 est à 393.30 CHF. Voici comment répartir la hausse sur l’année, sans attendre la facture de janvier.",
     publishedAt: "2026-08-18",
-    updatedAt: "2026-08-18",
+    updatedAt: "2026-10-09",
     readingMinutes: 8,
   },
   {

@@ -706,6 +706,53 @@ h3,
   color: var(--color-text);
 }
 
+/* Official figures: value first, label under it, primary source last. */
+.guide-prose .guide-figures {
+  padding: 1.25rem 1.5rem;
+  border-radius: 16px;
+  background-color: var(--color-surface-alt);
+}
+
+.guide-prose .guide-figures dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem 1.5rem;
+}
+
+/* Reversed so the value reads first; flex-end pins it to the top of the row
+   when a neighbour's label wraps. */
+.guide-prose .guide-figures dl > div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+}
+
+.guide-prose .guide-figures dt {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.guide-prose .guide-figures dd {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.guide-prose .guide-figures-change {
+  margin-inline-start: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--color-text-secondary);
+}
+
+.guide-prose .guide-figures figcaption {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
 /* Wide tables scroll inside their container, never the page. */
 .guide-prose .table-scroll {
   overflow-x: auto;
