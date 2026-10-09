@@ -5,6 +5,7 @@ import {
   transactionResponseSchema,
   transactionListResponseSchema,
   transactionDeleteResponseSchema,
+  transactionExistsResponseSchema,
   transactionPostponeResponseSchema,
   transactionSearchQuerySchema,
   transactionSearchResponseSchema,
@@ -24,6 +25,9 @@ export class TransactionListResponseDto extends createZodDto(
 ) {}
 export class TransactionDeleteResponseDto extends createZodDto(
   transactionDeleteResponseSchema,
+) {}
+export class TransactionExistsResponseDto extends createZodDto(
+  transactionExistsResponseSchema,
 ) {}
 export class TransactionPostponeResponseDto extends createZodDto(
   transactionPostponeResponseSchema,

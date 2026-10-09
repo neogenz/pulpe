@@ -47,6 +47,7 @@ import {
   TransactionResponseDto,
   TransactionListResponseDto,
   TransactionDeleteResponseDto,
+  TransactionExistsResponseDto,
   TransactionPostponeResponseDto,
   TransactionSearchResponseDto,
 } from './dto/transaction-swagger.dto';
@@ -107,12 +108,7 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Transaction existence check completed',
-    schema: {
-      type: 'object',
-      properties: {
-        hasTransaction: { type: 'boolean' },
-      },
-    },
+    type: TransactionExistsResponseDto,
   })
   async checkTransactionExists(
     @User() user: AuthenticatedUser,
