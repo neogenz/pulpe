@@ -52,10 +52,18 @@ import { DashboardFutureProjectionChart } from './components/dashboard-future-pr
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
 import { DashboardNextMonth } from './components/dashboard-next-month';
+import { DashboardMonthRecap } from './components/dashboard-month-recap';
+import {
+  MonthRecapDialog,
+  type MonthRecapDialogData,
+  type MonthRecapDialogResult,
+} from './components/month-recap-dialog';
+import type { MonthRecap } from './services/dashboard-state';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 import { dateFnsLocaleFor } from '@core/locale';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+import { firstValueFrom } from 'rxjs';
 
 // Longer than the plain notification below: this toast is not read, it is
 // reached. It has to survive the user noticing the mistake and travelling to
@@ -77,6 +85,9 @@ type AddTransactionSource = Extract<
   FirstTransactionSource,
   'activation_prompt' | 'add_button'
 >;
+
+const monthRecapKey = ({ month, year }: MonthRecap): string =>
+  `${year}-${String(month).padStart(2, '0')}`;
 
 // The two things this page writes, and the two ways it takes them back.
 type UndoableAction =
@@ -104,6 +115,7 @@ type UndoableAction =
     DashboardNextMonth,
     DashboardHistoryChart,
     DashboardFutureProjectionChart,
+    DashboardMonthRecap,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
@@ -157,6 +169,16 @@ type UndoableAction =
         />
       } @else if (store.dashboardData()?.budget) {
         <div class="flex flex-col gap-8">
+          @if (monthRecap(); as recap) {
+            <pulpe-dashboard-month-recap
+              [recap]="recap"
+              [currency]="currency()"
+              (openDetails)="openMonthRecap(recap)"
+              (dismiss)="dismissMonthRecap(recap)"
+              data-testid="dashboard-block-month-recap"
+            />
+          }
+
           <!-- Hero "Disponible à dépenser" -->
           <pulpe-dashboard-hero
             [expenses]="store.totalExpenses()"
@@ -624,6 +646,47 @@ export default class Dashboard {
   protected syncOutlookExpanded(isExpanded: boolean): void {
     this.#outlookExpanded.set(isExpanded);
     this.#storage.set(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED, isExpanded);
+  }
+
+  // One closed month at a time: the key moves forward with the calendar, so a
+  // recap dismissed in October cannot hide November's.
+  readonly #seenMonthRecap = signal(
+    this.#storage.get<string>(STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN),
+  );
+  protected readonly monthRecap = computed(() => {
+    const recap = this.store.previousMonthRecap();
+    return recap && monthRecapKey(recap) !== this.#seenMonthRecap()
+      ? recap
+      : null;
+  });
+
+  protected dismissMonthRecap(recap: MonthRecap): void {
+    const key = monthRecapKey(recap);
+    this.#seenMonthRecap.set(key);
+    this.#storage.set(STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN, key);
+  }
+
+  protected async openMonthRecap(recap: MonthRecap): Promise<void> {
+    const { month, year } = this.store.currentBudgetPeriod();
+    const dialogRef = this.#dialog.open<
+      MonthRecapDialog,
+      MonthRecapDialogData,
+      MonthRecapDialogResult
+    >(MonthRecapDialog, {
+      data: {
+        recap,
+        currentMonth: month,
+        currentYear: year,
+        currency: this.currency(),
+      },
+      width: '440px',
+      maxWidth: 'calc(100vw - 32px)',
+    });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (result === 'acknowledged') this.dismissMonthRecap(recap);
+    if (result === 'details') {
+      this.#router.navigate(['/budget', recap.budgetId]);
+    }
   }
 
   // "Engagé" and "Pointer" are this page's two house words, and each carries a

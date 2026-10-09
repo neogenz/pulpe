@@ -262,6 +262,8 @@ struct CurrentMonthView: View {
         // plus a card, so the space between two of them has to beat the space between a
         // heading and the card it introduces, or the pairing reads the wrong way round.
         VStack(spacing: DesignTokens.Spacing.xxl) {
+            // Bilan du mois clôturé (PUL-111): the forest above belongs to the hero alone.
+            MonthRecapSection()
             if store.budget != nil {
                 HomeAddOperationRow { activeSheet = .addTransaction($0) }
             }
@@ -400,7 +402,7 @@ extension CurrentMonthView {
 
     private var currentMonthName: String {
         guard let budget = store.budget else { return "" }
-        return Formatters.monthName(for: budget.month).lowercased()
+        return Formatters.monthNameInText(for: budget.month)
     }
 
     /// Goal name shown on the savings card — only when every saving line maps to the same goal.

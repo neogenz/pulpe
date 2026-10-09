@@ -57,6 +57,7 @@ extension AppState {
             ReminderPreferences().reset()
             PostOnboardingFlagsStore().reset()
             FirstTransactionTracker.shared.reset()
+            MonthRecapFlagsStore().reset()
             await NotificationScheduler.shared.cancelMonthlyReminder()
         } else {
             await clientKeyManager.clearSession()

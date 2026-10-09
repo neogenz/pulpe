@@ -1067,6 +1067,23 @@
     "nextMonthRolloverAssumption": "se stai alle tue previsioni fino a fine mese.",
     "nextMonthNoBudget": "Ancora nessun budget per {{ month }}",
     "nextMonthAnticipate": "Prepara il mese prossimo",
+    "monthRecap": {
+      "title": "{{ month }} è finito",
+      "saved": "Ben fatto: hai messo",
+      "savedSuffix": "da parte.",
+      "overspent": "Capita:",
+      "overspentSuffix": "in più del previsto.",
+      "balanced": "Budget rispettato.",
+      "open": "Vedi il bilancio",
+      "dismiss": "Nascondi il bilancio",
+      "dialogTitle": "Bilancio del mese",
+      "income": "Entrate",
+      "expenses": "Spese",
+      "endingBalance": "Saldo finale",
+      "carriedOver": "riportati su {{ month }} → parti da",
+      "viewDetails": "Vedi il dettaglio",
+      "acknowledge": "Ho capito"
+    },
     "uncheckedForecasts": {
       "title": "Previsioni da spuntare",
       "count": "{{ checked }} su {{ total }} spuntate",

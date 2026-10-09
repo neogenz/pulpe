@@ -26,6 +26,8 @@ import {
 } from './components/reconcile-accounts/reconcile-accounts-dialog';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
+import type { MonthRecap } from './services/dashboard-state';
+import { MonthRecapDialog } from './components/month-recap-dialog';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
 import { FirstTransactionTracker } from '@core/transaction';
 
@@ -517,6 +519,7 @@ describe('Dashboard (TestBed)', () => {
       rolloverAmount: signal(-120),
       periodDates: signal(getBudgetPeriodDates(4, 2026, 27)),
       isAwaitingFirstTransaction: signal(false),
+      previousMonthRecap: signal<MonthRecap | null>(null),
     };
   }
 
@@ -699,6 +702,98 @@ describe('Dashboard (TestBed)', () => {
       await component['openAddTransaction']('activation_prompt');
 
       expect(mockFirstTransactionTracker.recordCreated).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('month recap', () => {
+    const march: MonthRecap = {
+      budgetId: 'budget-march',
+      month: 3,
+      year: 2026,
+      income: 5000,
+      expenses: 4700,
+      endingBalance: 300,
+      outcome: 'saved',
+      carriedOver: 300,
+      startingAvailable: 5300,
+    };
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('should show the closed month until it is dismissed, then remember it', async () => {
+      const { component, mockStore } = await setup(budgetId, undefined);
+      mockStore.previousMonthRecap.set(march);
+
+      expect(component['monthRecap']()).toBe(march);
+
+      component['dismissMonthRecap'](march);
+
+      expect(component['monthRecap']()).toBeNull();
+      expect(
+        TestBed.inject(StorageService).get<string>(
+          STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN,
+        ),
+      ).toBe('2026-03');
+    });
+
+    // Seeded through StorageService before the page exists: it reads the key
+    // once, at construction, and keeps only its own versioned entries.
+    function rememberDismissed(key: string): void {
+      TestBed.inject(StorageService).set(
+        STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN,
+        key,
+      );
+    }
+
+    it('should stay hidden on a later visit once that month was dismissed', async () => {
+      rememberDismissed('2026-03');
+      const { component, mockStore } = await setup(budgetId, undefined);
+      mockStore.previousMonthRecap.set(march);
+
+      expect(component['monthRecap']()).toBeNull();
+    });
+
+    it('should show the next closed month even after an earlier one was dismissed', async () => {
+      rememberDismissed('2026-02');
+      const { component, mockStore } = await setup(budgetId, undefined);
+      mockStore.previousMonthRecap.set(march);
+
+      expect(component['monthRecap']()).toBe(march);
+    });
+
+    it('should hide the card when the detail is acknowledged', async () => {
+      const { component, mockStore, mockDialog } = await setup(
+        budgetId,
+        undefined,
+      );
+      mockStore.previousMonthRecap.set(march);
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of('acknowledged'),
+      });
+
+      await component['openMonthRecap'](march);
+
+      expect(mockDialog.open.mock.calls[0][0]).toBe(MonthRecapDialog);
+      expect(component['monthRecap']()).toBeNull();
+    });
+
+    it('should open the closed budget and keep the card when the detail is asked for', async () => {
+      const { component, mockStore, mockDialog, mockRouter } = await setup(
+        budgetId,
+        undefined,
+      );
+      mockStore.previousMonthRecap.set(march);
+      mockDialog.open.mockReturnValue({ afterClosed: () => of('details') });
+
+      await component['openMonthRecap'](march);
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/budget',
+        'budget-march',
+      ]);
+      expect(component['monthRecap']()).toBe(march);
     });
   });
 
