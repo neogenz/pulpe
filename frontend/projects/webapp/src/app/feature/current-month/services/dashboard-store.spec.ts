@@ -8,6 +8,7 @@ import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
+import { FirstTransactionTracker } from '@core/transaction';
 import { ApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { createMockDataCache } from '@core/testing';
@@ -127,6 +128,10 @@ function createMocks() {
     postHogService: {
       captureEvent: vi.fn(),
     },
+    firstTransactionTracker: {
+      isAwaitingFirstTransaction: signal(false),
+      load: vi.fn().mockResolvedValue(undefined),
+    },
   };
 }
 
@@ -142,6 +147,10 @@ function setup(mocks = createMocks(), now: Date = FIXED_DATE) {
       { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
       { provide: Logger, useValue: mocks.logger },
       { provide: PostHogService, useValue: mocks.postHogService },
+      {
+        provide: FirstTransactionTracker,
+        useValue: mocks.firstTransactionTracker,
+      },
       { provide: DASHBOARD_NOW, useValue: () => now },
     ],
   });
@@ -1949,6 +1958,74 @@ describe('DashboardStore - History Data', () => {
   });
 });
 
+describe('DashboardStore - First transaction activation', () => {
+  async function setupActivation(options: {
+    transactions?: Transaction[];
+    isAccountAwaiting: boolean;
+  }) {
+    const mocks = createMocks();
+    mocks.firstTransactionTracker.isAwaitingFirstTransaction.set(
+      options.isAccountAwaiting,
+    );
+    mocks.budgetApi.getDashboardData$.mockReturnValue(
+      of({
+        budget: createMockBudget(),
+        transactions: options.transactions ?? [],
+        budgetLines: [],
+      }),
+    );
+    const result = setup(mocks);
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(result.store.dashboardData()?.budget?.id).toBe('budget-1');
+    });
+    return result;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should ask the server whether the account has recorded anything', () => {
+    const { firstTransactionTracker } = setup();
+
+    expect(firstTransactionTracker.load).toHaveBeenCalled();
+  });
+
+  it('should await a first transaction while the account holds none', async () => {
+    const { store } = await setupActivation({ isAccountAwaiting: true });
+
+    expect(store.isAwaitingFirstTransaction()).toBe(true);
+  });
+
+  it('should not await once the month holds a transaction', async () => {
+    const { store } = await setupActivation({
+      transactions: [createMockTransaction({})],
+      isAccountAwaiting: true,
+    });
+
+    expect(store.isAwaitingFirstTransaction()).toBe(false);
+  });
+
+  it('should not await for an account that has recorded before', async () => {
+    const { store } = await setupActivation({ isAccountAwaiting: false });
+
+    expect(store.isAwaitingFirstTransaction()).toBe(false);
+  });
+
+  it('should not await without a budget to record into', async () => {
+    const mocks = createMocks();
+    mocks.firstTransactionTracker.isAwaitingFirstTransaction.set(true);
+    const { store } = setup(mocks);
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(store.dashboardData()).not.toBeNull();
+    });
+
+    expect(store.isAwaitingFirstTransaction()).toBe(false);
+  });
+});
+
 describe('DashboardStore - Upcoming Budgets Data', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -2112,6 +2189,10 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
         { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
         { provide: Logger, useValue: mocks.logger },
         { provide: PostHogService, useValue: mocks.postHogService },
+        {
+          provide: FirstTransactionTracker,
+          useValue: mocks.firstTransactionTracker,
+        },
         { provide: DASHBOARD_NOW, useValue: () => now },
       ],
     });

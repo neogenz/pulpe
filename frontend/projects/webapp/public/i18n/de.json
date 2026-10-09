@@ -1056,6 +1056,10 @@
     "viewTransactionsInBudget": "Bewegungen im Budget ansehen",
     "noTransaction": "Diesen Monat ist nichts notiert",
     "addFirstTransaction": "Meine erste Ausgabe hinzufügen",
+    "firstExpenseInvite": {
+      "title": "Notiere deine erste Ausgabe",
+      "message": "Ein Kaffee, Tanken, Einkäufe: Notiere sie, sobald sie anfällt. Dein „Verfügbar zum Ausgeben“ passt sich sofort an."
+    },
     "nextMonthTitle": "Nächster Monat",
     "nextMonthErrorTitle": "Der nächste Monat lässt sich nicht anzeigen",
     "nextMonthErrorMessage": "Deine kommenden Budgets konnten nicht geladen werden. Nichts ist verloren.",

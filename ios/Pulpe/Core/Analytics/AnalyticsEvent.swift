@@ -50,6 +50,10 @@ enum AnalyticsEvent: String, CaseIterable {
 
     // MARK: - Transaction
     case transactionCreated = "transaction_created"
+    /// Fires when an entry is recorded while the server said the account held none yet
+    /// (PUL-306), from whichever surface recorded it.
+    /// Properties: `type`, `source` (`FirstTransactionTracker.Source`).
+    case firstTransactionCreated = "first_transaction_created"
     /// Fires once when "Rapprocher mes comptes" completes: after its adjustment is
     /// recorded, or when the user confirms the accounts already match (PUL-351).
     /// Property: `adjustment_kind` (`AccountReconciliation.Completion`). Never an

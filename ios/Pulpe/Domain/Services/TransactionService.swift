@@ -37,6 +37,12 @@ actor TransactionService: TransactionServicing {
         try await apiClient.request(.transaction(id: id), method: .get)
     }
 
+    /// Whether the account has recorded at least one transaction, in any budget (PUL-306)
+    func hasAnyTransaction() async throws -> Bool {
+        let response: TransactionExistsResponse = try await apiClient.request(.transactionsExists, method: .get)
+        return response.hasTransaction
+    }
+
     /// Create a new transaction
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction {
         try await apiClient.request(.transactionsCreate, body: data, method: .post)

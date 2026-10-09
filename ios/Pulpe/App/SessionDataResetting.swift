@@ -39,5 +39,7 @@ final class LiveSessionDataResetter: SessionDataResetting {
         userSettingsStore.reset()
         savingsGoalStore.reset()
         tagStore.reset()
+        // App-wide rather than injected: every create surface reports to it (PUL-306).
+        FirstTransactionTracker.shared.reset()
     }
 }

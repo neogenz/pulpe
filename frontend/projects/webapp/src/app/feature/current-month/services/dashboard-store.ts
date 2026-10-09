@@ -34,6 +34,7 @@ import { isApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { TranslocoService } from '@jsverse/transloco';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { FirstTransactionTracker } from '@core/transaction';
 import {
   type DashboardData,
   type HistoryDataPoint,
@@ -113,6 +114,7 @@ export class DashboardStore {
   readonly #postHogService = inject(PostHogService);
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #transloco = inject(TranslocoService);
+  readonly #firstTransactionTracker = inject(FirstTransactionTracker);
 
   // ── 2. State ──
   readonly #pendingChecks = signal(new Set<string>());
@@ -133,6 +135,7 @@ export class DashboardStore {
         takeUntilDestroyed(),
       )
       .subscribe(() => this.#currentDate.set(this.#clock()));
+    void this.#firstTransactionTracker.load();
   }
 
   readonly payDayOfMonth = this.#userSettingsStore.payDayOfMonth;
@@ -408,6 +411,17 @@ export class DashboardStore {
     () =>
       this.transactions().length > 0 ||
       this.budgetLines().some((line) => line.checkedAt != null),
+  );
+
+  // PUL-306 — the step the retention funnel loses: a budget, and nothing ever
+  // recorded on the account. The server answers for the whole account; the
+  // month's own list is checked too, so an entry written by a surface that
+  // does not report to the tracker still retires the invitation at once.
+  readonly isAwaitingFirstTransaction = computed<boolean>(
+    () =>
+      !!this.dashboardData()?.budget &&
+      this.transactions().length === 0 &&
+      this.#firstTransactionTracker.isAwaitingFirstTransaction(),
   );
 
   readonly rolloverAmount = computed<number>(() => {

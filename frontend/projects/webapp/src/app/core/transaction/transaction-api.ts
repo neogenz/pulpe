@@ -11,13 +11,14 @@ import {
   type TransactionUpdate,
   type TransactionUpdateResponse,
   transactionCreateSchema,
+  transactionExistsResponseSchema,
   transactionListResponseSchema,
   transactionPostponeResponseSchema,
   transactionResponseSchema,
   transactionSearchResponseSchema,
   transactionUpdateSchema,
 } from 'pulpe-shared';
-import { type Observable } from 'rxjs';
+import { map, type Observable } from 'rxjs';
 import { ApiClient } from '@core/api/api-client';
 
 @Service()
@@ -40,6 +41,12 @@ export class TransactionApi {
       transactionResponseSchema,
       transactionCreateSchema,
     );
+  }
+
+  hasTransaction$(): Observable<boolean> {
+    return this.#api
+      .get$('/transactions/exists', transactionExistsResponseSchema)
+      .pipe(map((response) => response.hasTransaction));
   }
 
   findOne$(id: string): Observable<TransactionFindOneResponse> {

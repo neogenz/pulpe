@@ -50,7 +50,8 @@ struct MainTabViewNavigationOwnershipTests {
             "Pulpe",
             "Features",
             "CurrentMonth",
-            "CurrentMonthView.swift"
+            "Components",
+            "HomeAddOperationRow.swift"
         )
         guard let start = source.range(of: "private var addOperationRow: some View {"),
               let end = source.range(

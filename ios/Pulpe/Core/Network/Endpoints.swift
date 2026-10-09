@@ -49,6 +49,7 @@ enum Endpoint {
 
     case transactionsByBudget(budgetId: String)
     case transactionsCreate
+    case transactionsExists
     case transaction(id: String)
     case transactionToggle(id: String)
     case transactionPostpone(id: String)
@@ -153,6 +154,7 @@ enum Endpoint {
         // Transactions
         case .transactionsByBudget(let budgetId): return "/transactions/budget/\(budgetId)"
         case .transactionsCreate: return "/transactions"
+        case .transactionsExists: return "/transactions/exists"
         case .transaction(let id): return "/transactions/\(id)"
         case .transactionToggle(let id): return "/transactions/\(id)/toggle-check"
         case .transactionPostpone(let id): return "/transactions/\(id)/postpone"
@@ -226,7 +228,7 @@ enum Endpoint {
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
-             .transactionsByBudget, .budgetsSparse,
+             .transactionsByBudget, .transactionsExists, .budgetsSparse,
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,

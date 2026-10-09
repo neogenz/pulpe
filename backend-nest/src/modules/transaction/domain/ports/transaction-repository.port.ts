@@ -19,6 +19,8 @@ export interface TransactionSearchCriteria {
 }
 
 export interface TransactionRepositoryPort {
+  /** Whether the caller holds at least one transaction, in any budget (RLS-scoped). */
+  hasAnyTransaction(): Promise<boolean>;
   findById(id: string): Promise<Transaction>;
   findByBudgetId(budgetId: string): Promise<Transaction[]>;
   findByBudgetLineId(budgetLineId: string): Promise<Transaction[]>;

@@ -75,6 +75,11 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
 
 // MARK: - Create/Update DTOs
 
+/// `GET /transactions/exists` — mirrors `transactionExistsResponseSchema`.
+struct TransactionExistsResponse: Decodable, Sendable {
+    let hasTransaction: Bool
+}
+
 struct TransactionCreate: Encodable {
     let budgetId: String
     let budgetLineId: String?

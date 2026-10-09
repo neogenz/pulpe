@@ -1056,6 +1056,10 @@
     "viewTransactionsInBudget": "Voir les mouvements dans le budget",
     "noTransaction": "Rien de noté ce mois",
     "addFirstTransaction": "Ajouter ma première dépense",
+    "firstExpenseInvite": {
+      "title": "Note ta première dépense",
+      "message": "Un café, un plein, des courses : note-la dès qu'elle passe. Ton « disponible à dépenser » se met à jour aussitôt."
+    },
     "nextMonthTitle": "Mois prochain",
     "nextMonthErrorTitle": "On n'arrive pas à voir le mois prochain",
     "nextMonthErrorMessage": "Tes budgets à venir n'ont pas pu être chargés. Rien n'a été perdu.",

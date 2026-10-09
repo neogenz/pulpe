@@ -44,6 +44,8 @@ struct AddTransactionSheet: View {
     }
 
     let budgetId: String
+    /// Which control opened the sheet, for `first_transaction_created` (PUL-306).
+    let source: FirstTransactionTracker.Source
     let onAdd: (Transaction) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -79,10 +81,12 @@ struct AddTransactionSheet: View {
 
     init(
         budgetId: String,
+        source: FirstTransactionTracker.Source = .addButton,
         dependencies: AddTransactionDependencies = .live,
         onAdd: @escaping (Transaction) -> Void
     ) {
         self.budgetId = budgetId
+        self.source = source
         self.dependencies = dependencies
         self.onAdd = onAdd
     }
@@ -315,6 +319,7 @@ struct AddTransactionSheet: View {
                 savingsGoalStore.invalidateFromBudgetMutation()
             }
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
+            FirstTransactionTracker.shared.recordCreated(kind: kind, source: source)
             submitSuccessTrigger.toggle()
             onAdd(transaction)
             toastManager.show(AppLocale.string("Enregistré"))
@@ -366,7 +371,7 @@ struct DeepLinkAddExpenseSheet: View {
     var body: some View {
         Group {
             if let budgetId = viewModel.currentBudgetId {
-                AddTransactionSheet(budgetId: budgetId) { transaction in
+                AddTransactionSheet(budgetId: budgetId, source: .widget) { transaction in
                     currentMonthStore.addTransaction(transaction)
                     dismiss()
                 }

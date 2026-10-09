@@ -25,6 +25,7 @@ import { WriteTransactionsInProcessUseCase } from './application/write-transacti
 import { TRANSACTION_WRITE_PORT } from './domain/ports/transaction-write.port';
 import { PostponeTransactionUseCase } from './application/postpone-transaction.use-case';
 import { SpreadTransactionFromTxnUseCase } from './application/spread-transaction-from-txn.use-case';
+import { HasTransactionsUseCase } from './application/has-transactions.use-case';
 
 @Module({
   // SavingsGoalModule fournit SAVINGS_GOAL_WITHDRAWAL_POLICY : un revenu venu
@@ -49,6 +50,7 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     SearchTransactionsInProcessUseCase,
     PostponeTransactionUseCase,
     SpreadTransactionFromTxnUseCase,
+    HasTransactionsUseCase,
     {
       provide: TRANSACTION_REPOSITORY,
       useClass: SupabaseTransactionRepository,
@@ -80,6 +82,7 @@ import { SpreadTransactionFromTxnUseCase } from './application/spread-transactio
     createInfoLoggerProvider(SearchTransactionsUseCase.name),
     createInfoLoggerProvider(PostponeTransactionUseCase.name),
     createInfoLoggerProvider(SpreadTransactionFromTxnUseCase.name),
+    createInfoLoggerProvider(HasTransactionsUseCase.name),
   ],
   exports: [
     TRANSACTION_SPREAD_FROM_TXN_PORT,

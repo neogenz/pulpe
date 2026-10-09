@@ -34,6 +34,7 @@ import {
   type TransactionDeleteResponse,
   type TransactionPostponeResponse,
   type TransactionSearchResponse,
+  type TransactionExistsResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -46,6 +47,7 @@ import {
   TransactionResponseDto,
   TransactionListResponseDto,
   TransactionDeleteResponseDto,
+  TransactionExistsResponseDto,
   TransactionPostponeResponseDto,
   TransactionSearchResponseDto,
 } from './dto/transaction-swagger.dto';
@@ -59,6 +61,7 @@ import { RemoveTransactionUseCase } from '../../application/remove-transaction.u
 import { ToggleTransactionCheckUseCase } from '../../application/toggle-transaction-check.use-case';
 import { SearchTransactionsUseCase } from '../../application/search-transactions.use-case';
 import { PostponeTransactionUseCase } from '../../application/postpone-transaction.use-case';
+import { HasTransactionsUseCase } from '../../application/has-transactions.use-case';
 import { TransactionMapper } from '../mappers/transaction.mapper';
 
 const SEARCH_QUERY_VALIDATION_REASON_BY_CODE: Partial<Record<string, string>> =
@@ -91,8 +94,28 @@ export class TransactionController {
     private readonly toggleCheckUseCase: ToggleTransactionCheckUseCase,
     private readonly searchUseCase: SearchTransactionsUseCase,
     private readonly postponeUseCase: PostponeTransactionUseCase,
+    private readonly hasTransactionsUseCase: HasTransactionsUseCase,
     private readonly mapper: TransactionMapper,
   ) {}
+
+  // Declared before `:id`, which would otherwise take "exists" for an id.
+  @Get('exists')
+  @ApiOperation({
+    summary: 'Check if user has any transaction',
+    description:
+      'Lightweight endpoint that returns whether the authenticated user has recorded at least one transaction, in any budget.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction existence check completed',
+    type: TransactionExistsResponseDto,
+  })
+  async checkTransactionExists(
+    @User() user: AuthenticatedUser,
+  ): Promise<TransactionExistsResponse> {
+    const hasTransaction = await this.hasTransactionsUseCase.execute(user);
+    return { hasTransaction };
+  }
 
   @Get('budget/:budgetId')
   @ApiOperation({ summary: "Liste toutes les transactions d'un budget" })

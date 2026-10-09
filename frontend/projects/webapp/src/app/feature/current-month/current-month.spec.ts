@@ -29,6 +29,7 @@ import { DashboardStore } from './services/dashboard-store';
 import type { MonthRecap } from './services/dashboard-state';
 import { MonthRecapDialog } from './components/month-recap-dialog';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+import { FirstTransactionTracker } from '@core/transaction';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -517,6 +518,7 @@ describe('Dashboard (TestBed)', () => {
       realizedExpenses: signal(3380.01),
       rolloverAmount: signal(-120),
       periodDates: signal(getBudgetPeriodDates(4, 2026, 27)),
+      isAwaitingFirstTransaction: signal(false),
       previousMonthRecap: signal<MonthRecap | null>(null),
     };
   }
@@ -600,6 +602,7 @@ describe('Dashboard (TestBed)', () => {
       isMatched: vi.fn().mockReturnValue(false),
       observe: vi.fn().mockReturnValue(of({ matches: false, breakpoints: {} })),
     };
+    const mockFirstTransactionTracker = { recordCreated: vi.fn() };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -617,6 +620,10 @@ describe('Dashboard (TestBed)', () => {
           { provide: MatSnackBar, useValue: mockSnackBar },
           { provide: MatDialog, useValue: mockDialog },
           { provide: BreakpointObserver, useValue: mockBreakpoints },
+          {
+            provide: FirstTransactionTracker,
+            useValue: mockFirstTransactionTracker,
+          },
         ],
       })
       .compileComponents();
@@ -631,10 +638,72 @@ describe('Dashboard (TestBed)', () => {
       mockDialog,
       mockBreakpoints,
       mockRouter,
+      mockFirstTransactionTracker,
       undoAction,
       readPersistRefusal: () => persistRefusal,
     };
   }
+
+  // PUL-306 — an account with a budget and nothing recorded is where most
+  // users stop. Whether this entry is the first is the tracker's call.
+  describe('first-expense invitation', () => {
+    const firstExpense: TransactionFormData = {
+      name: 'Café',
+      amount: 4.5,
+      kind: 'expense',
+      tagIds: [],
+      isChecked: true,
+      conversion: null,
+    };
+
+    it('should show while the account awaits its first entry', async () => {
+      const { component, mockStore } = await setup(budgetId, undefined);
+
+      expect(component['showFirstExpenseInvite']()).toBe(false);
+      mockStore.isAwaitingFirstTransaction.set(true);
+      expect(component['showFirstExpenseInvite']()).toBe(true);
+    });
+
+    it('should report an entry opened from the invitation', async () => {
+      const { component, mockFirstTransactionTracker } = await setup(
+        budgetId,
+        firstExpense,
+      );
+
+      await component['openAddTransaction']('activation_prompt');
+
+      expect(mockFirstTransactionTracker.recordCreated).toHaveBeenCalledWith(
+        'expense',
+        'activation_prompt',
+      );
+    });
+
+    it('should credit the add button by default', async () => {
+      const { component, mockFirstTransactionTracker } = await setup(
+        budgetId,
+        firstExpense,
+      );
+
+      await component['openAddTransaction']();
+
+      expect(mockFirstTransactionTracker.recordCreated).toHaveBeenCalledWith(
+        'expense',
+        'add_button',
+      );
+    });
+
+    it('should not report a refused entry', async () => {
+      const { component, mockStore, mockFirstTransactionTracker } = await setup(
+        budgetId,
+        firstExpense,
+      );
+      mockStore.addTransaction.mockResolvedValue({ reason: 'Hors ligne' });
+
+      await component['openAddTransaction']('activation_prompt');
+
+      expect(mockFirstTransactionTracker.recordCreated).not.toHaveBeenCalled();
+    });
+  });
 
   describe('month recap', () => {
     const march: MonthRecap = {
@@ -794,6 +863,9 @@ describe('Dashboard (TestBed)', () => {
 
       expect(isRecorded).toBe(true);
       expect(mockStore.addTransaction).toHaveBeenCalledTimes(1);
+      expect(
+        TestBed.inject(FirstTransactionTracker).recordCreated,
+      ).toHaveBeenCalledWith('income', 'reconciliation');
       const payload = mockStore.addTransaction.mock.calls[0][0];
       expect(payload).toEqual({
         budgetId,

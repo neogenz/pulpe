@@ -139,6 +139,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
+          # The profile's default RAM leaves little room for API 35 plus a
+          # release React Native build, and smoke runs lost the app process
+          # right after a launch. The runner has 16 GB to spare.
+          ram-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           # Maestro output can contain evaluated credentials and PIN digits.
@@ -162,6 +166,26 @@ jobs:
             echo 'Android app process: running'; else echo 'Android app process: not detected'; fi;
             if adb shell dumpsys activity activities 2>> "$RUNNER_TEMP/maestro-$flow.log" | grep -q 'topResumedActivity=.*app\.pulpe\.android/'; then
             echo 'Android app foreground: yes'; else echo 'Android app foreground: not detected'; fi;
+            focus=$(adb shell dumpsys window 2>> "$RUNNER_TEMP/maestro-$flow.log" | sed -n 's/.*mCurrentFocus=//p' | head -n 1);
+            case "$focus" in
+            *'Application Not Responding'*) echo 'Android focused window: ANR_DIALOG' ;;
+            *'Application Error'*) echo 'Android focused window: CRASH_DIALOG' ;;
+            *'app.pulpe.android/'*) echo 'Android focused window: APP_ACTIVITY' ;;
+            *'app.pulpe.android'*) echo 'Android focused window: APP_DIALOG' ;;
+            ''|null*) echo 'Android focused window: NONE' ;;
+            *) echo 'Android focused window: OTHER' ;;
+            esac;
+            exit_reason=$(adb shell dumpsys activity exit-info app.pulpe.android 2>> "$RUNNER_TEMP/maestro-$flow.log" | sed -n 's/^ *process=app\.pulpe\.android reason=\([0-9][0-9]*\) .*/\1/p' | head -n 1);
+            case "$exit_reason" in
+            2) echo 'Android last app exit: SIGNALED' ;;
+            3) echo 'Android last app exit: LOW_MEMORY' ;;
+            4) echo 'Android last app exit: CRASH' ;;
+            5) echo 'Android last app exit: NATIVE_CRASH' ;;
+            6) echo 'Android last app exit: ANR' ;;
+            10) echo 'Android last app exit: USER_REQUESTED' ;;
+            '') echo 'Android last app exit: NONE' ;;
+            *) echo 'Android last app exit: OTHER' ;;
+            esac;
             if grep -qF 'MaestroDriverStartupException$AndroidDriverTimeoutException' "$RUNNER_TEMP/maestro-$flow.log"; then
             echo 'Android driver category: DRIVER_STARTUP_TIMEOUT';
             elif grep -qF 'StatusRuntimeException: DEADLINE_EXCEEDED' "$RUNNER_TEMP/maestro-$flow.log"; then
