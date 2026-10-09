@@ -68,6 +68,7 @@ describe('TemplateStore', () => {
   beforeEach(() => {
     mockCache.get.mockReturnValue(undefined);
     mockCache.set.mockClear();
+    mockCache.invalidate.mockClear();
     mockBudgetCache.invalidate.mockClear();
 
     budgetApiMock = {
@@ -223,6 +224,7 @@ describe('TemplateStore', () => {
       expect(result).toBeDefined();
       expect(budgetApiMock.createBudget$).toHaveBeenCalledWith(budgetData);
       expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+      expect(mockCache.invalidate).toHaveBeenCalledWith(['templates', 'usage']);
     });
 
     it('should return undefined on error', async () => {
@@ -243,6 +245,7 @@ describe('TemplateStore', () => {
 
       expect(result).toBeUndefined();
       expect(store.createBudgetError()).toBeDefined();
+      expect(mockCache.invalidate).not.toHaveBeenCalled();
     });
   });
 
@@ -260,6 +263,7 @@ describe('TemplateStore', () => {
       expect(result?.data.skippedMonths).toHaveLength(1);
       expect(budgetApiMock.generateBudgets$).toHaveBeenCalledWith(data);
       expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+      expect(mockCache.invalidate).toHaveBeenCalledWith(['templates', 'usage']);
     });
   });
 
