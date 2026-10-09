@@ -1169,6 +1169,33 @@ test("Android diagnostics identify failed flows without printing their output", 
     { message: { secret: "private-test-marker" } },
     null,
   ];
+  const focusedWindows = [
+    [
+      "Window{1 u0 Application Not Responding: app.pulpe.android private-test-marker}",
+      "ANR_DIALOG",
+    ],
+    [
+      "Window{1 u0 Application Error: app.pulpe.android private-test-marker}",
+      "CRASH_DIALOG",
+    ],
+    [
+      "Window{1 u0 app.pulpe.android/app.pulpe.android.MainActivity private-test-marker}",
+      "APP_ACTIVITY",
+    ],
+    ["Window{1 u0 app.pulpe.android private-test-marker}", "APP_DIALOG"],
+    ["null", "NONE"],
+    ["Window{1 u0 private-test-marker}", "OTHER"],
+  ];
+  const appExits = [
+    ["", "NONE"],
+    ["2", "SIGNALED"],
+    ["3", "LOW_MEMORY"],
+    ["4", "CRASH"],
+    ["5", "NATIVE_CRASH"],
+    ["6", "ANR"],
+    ["10", "USER_REQUESTED"],
+    ["13", "OTHER"],
+  ];
   const cases = [
     ...["", ...flows].map((failedFlow) => ({ failedFlow, report: true })),
     ...driverErrors.map(([driverError, category]) => ({
@@ -1177,8 +1204,20 @@ test("Android diagnostics identify failed flows without printing their output", 
       driverError,
       category,
     })),
-  ];
-  for (const { failedFlow, report, driverError = "", category } of cases) {
+  ].map((testCase, index) => ({
+    ...testCase,
+    // Cycled so the failing cases, together, reach every category.
+    focus: focusedWindows[index % focusedWindows.length],
+    appExit: appExits[index % appExits.length],
+  }));
+  for (const {
+    failedFlow,
+    report,
+    driverError = "",
+    category,
+    focus,
+    appExit,
+  } of cases) {
     const directory = mkdtempSync(join(tmpdir(), "pulpe-android-ci-"));
     try {
       const reportDirectory = join(directory, `maestro-${failedFlow}`);
@@ -1208,6 +1247,10 @@ test("Android diagnostics identify failed flows without printing their output", 
           case "$*" in
             "shell pidof app.pulpe.android") echo private-test-marker; test "$FAIL_FLOW" != login-vault ;;
             "shell dumpsys activity activities") echo "topResumedActivity=app.pulpe.android/.MainActivity private-test-marker" ;;
+            "shell dumpsys window") echo "  mCurrentFocus=$FOCUS" ;;
+            "shell dumpsys activity exit-info app.pulpe.android")
+              echo "description=private-test-marker"
+              test -z "$EXIT_REASON" || echo "    process=app.pulpe.android reason=$EXIT_REASON (private-test-marker) subreason=0 status=0" ;;
           esac
         }
         sleep() { return 0; }
@@ -1227,6 +1270,8 @@ test("Android diagnostics identify failed flows without printing their output", 
             RUNNER_TEMP: directory,
             FAIL_FLOW: failedFlow,
             DRIVER_ERROR: driverError,
+            FOCUS: focus[0],
+            EXIT_REASON: appExit[0],
           },
         },
       );
@@ -1246,6 +1291,12 @@ test("Android diagnostics identify failed flows without printing their output", 
           ),
         );
         assert.match(result.stdout, /Android app foreground: yes/);
+        assert.ok(
+          result.stdout.includes(`Android focused window: ${focus[1]}\n`),
+        );
+        assert.ok(
+          result.stdout.includes(`Android last app exit: ${appExit[1]}\n`),
+        );
         if (report) {
           assert.match(result.stdout, /Android failed command index: 1/);
           for (const category of [
