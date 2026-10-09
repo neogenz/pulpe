@@ -146,6 +146,12 @@ export default async function PrimesMaladieGuidePage() {
           href: OFSP_2026_URL,
         }}
       />
+      <p>
+        Ces montants sont ceux annoncés en septembre 2025. L’OFSP a depuis
+        recalculé la moyenne 2026 à 392.30&nbsp;CHF : c’est sur cette base que
+        la hausse 2027 atteint +5,0&nbsp;%, soit 19.70&nbsp;CHF de plus par
+        mois.
+      </p>
       <p>Les cinq dernières hausses annoncées par l’OFSP :</p>
       <div className="table-scroll">
         <table>

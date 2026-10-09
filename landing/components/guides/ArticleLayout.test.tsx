@@ -439,15 +439,14 @@ describe("German health-premiums guide", async () => {
   const graph = extractJsonLd(pageHtml)["@graph"];
   const articleLd = graph.find((node) => node["@type"] === "Article");
 
-  it("cites BAG 2026 figures next to a bag.admin.ch source", () => {
+  it("cites BAG 2027 figures next to the BAG communiqué", () => {
     assert.ok(articleHtml, "the page must render an <article>");
-    assert.ok(articleHtml.includes("393.30"));
+    for (const figure of ["412", "338.80", "+5,0", "+4,8"]) {
+      assert.ok(articleHtml.includes(figure), figure);
+    }
     assert.doesNotMatch(articleHtml, /im Monat für Erwachsene/);
     assert.match(articleHtml, /über alle Altersgruppen/);
-    assert.ok(articleHtml.includes("326.30"));
-    assert.ok(articleHtml.includes("4,4"));
-    assert.ok(articleHtml.includes("4,2"));
-    assert.match(articleHtml, /bag\.admin\.ch/);
+    assert.match(articleHtml, /bag\.admin\.ch\/de\/newnsb\/BfuGvedj0OOX/);
     assert.match(articleHtml, /Rückstellung/);
     assert.ok(articleHtml.includes("380"));
     assert.ok(articleHtml.includes("397"));
@@ -533,6 +532,8 @@ describe("French health-premiums guide", async () => {
       assert.ok(section.includes(figure), figure);
     }
     assert.match(section, /communiqué du 29 septembre 2026/);
+    // 393.30 → 412 reads as +4,75 %: the page must say why OFSP prints +5,0 %.
+    assert.match(articleHtml ?? "", /recalculé la moyenne 2026 à 392\.30/);
     assert.doesNotMatch(
       articleHtml ?? "",
       /Au printemps 2026|fourchette haute/,
@@ -573,7 +574,7 @@ describe("French health-premiums guide", async () => {
     assert.ok((related.match(/href="\/conseils-budget\//g)?.length ?? 0) >= 2);
     assert.doesNotMatch(related, /data-cta-name/);
     const cta = (articleHtml ?? "").match(
-      /<div class="mt-14 border-t[\s\S]*<\/div>/,
+      /<div class="mt-14 border-t[\s\S]*?<\/div>/,
     )?.[0];
     assert.ok(cta, "the CTA block is missing");
     assert.match(cta, /prévisions/);
