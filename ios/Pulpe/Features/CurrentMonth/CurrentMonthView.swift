@@ -412,7 +412,7 @@ extension CurrentMonthView {
 
     private var currentMonthName: String {
         guard let budget = store.budget else { return "" }
-        return Formatters.monthName(for: budget.month).lowercased()
+        return Formatters.monthNameInText(for: budget.month)
     }
 
     /// Goal name shown on the savings card — only when every saving line maps to the same goal.

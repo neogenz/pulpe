@@ -18,10 +18,8 @@ struct MonthRecapSheet: View {
         date(month: recap.month, year: recap.year)?.monthYearFormatted ?? ""
     }
 
-    /// Native casing, not lowercased by hand: German capitalizes its month names.
     private var openedMonthName: String {
-        let year = recap.openedMonth == 1 ? recap.year + 1 : recap.year
-        return date(month: recap.openedMonth, year: year).map { Formatters.month.string(from: $0) } ?? ""
+        Formatters.monthNameInText(for: recap.openedMonth)
     }
 
     private var carryOverSentence: String {
