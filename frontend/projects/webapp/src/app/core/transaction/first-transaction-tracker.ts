@@ -28,6 +28,9 @@ export class FirstTransactionTracker {
   // established account cannot see it flash in while the request is out.
   readonly #hasTransaction = signal<boolean | undefined>(undefined);
   #pendingLoad: Promise<void> | null = null;
+  // Bumped by `reset()`, so an answer still in flight for the previous account
+  // cannot land on the next one.
+  #generation = 0;
 
   readonly isAwaitingFirstTransaction = computed(
     () => this.#hasTransaction() === false,
@@ -40,17 +43,23 @@ export class FirstTransactionTracker {
       this.#hasTransaction.set(true);
       return Promise.resolve();
     }
+    const generation = this.#generation;
     this.#pendingLoad ??= firstValueFrom(this.#transactionApi.hasTransaction$())
       .then(
         // An entry recorded while the request was out already answered.
         (hasTransaction) => {
-          if (this.#hasTransaction() === undefined)
+          if (
+            generation === this.#generation &&
+            this.#hasTransaction() === undefined
+          )
             this.#hasTransaction.set(hasTransaction);
         },
         // Left unknown: the invitation stays hidden rather than guessing.
         () => undefined,
       )
-      .finally(() => (this.#pendingLoad = null));
+      .finally(() => {
+        if (generation === this.#generation) this.#pendingLoad = null;
+      });
     return this.#pendingLoad;
   }
 
@@ -68,6 +77,7 @@ export class FirstTransactionTracker {
 
   /** Identity boundary: the next account starts from its own answer. */
   reset(): void {
+    this.#generation += 1;
     this.#hasTransaction.set(undefined);
     this.#pendingLoad = null;
   }

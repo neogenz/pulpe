@@ -110,6 +110,23 @@ describe('FirstTransactionTracker', () => {
     expect(tracker.isAwaitingFirstTransaction()).toBe(false);
   });
 
+  it('should drop an answer that arrives after a reset', async () => {
+    const previousAccount = new Subject<boolean>();
+    transactionApi.hasTransaction$.mockReturnValueOnce(previousAccount);
+    const tracker = setup();
+    const staleLoad = tracker.load();
+
+    tracker.reset();
+    previousAccount.next(false);
+    previousAccount.complete();
+    await staleLoad;
+
+    expect(tracker.isAwaitingFirstTransaction()).toBe(false);
+    transactionApi.hasTransaction$.mockReturnValue(of(true));
+    await tracker.load();
+    expect(transactionApi.hasTransaction$).toHaveBeenCalledTimes(2);
+  });
+
   it('should ask again for the next account after a reset', async () => {
     const tracker = setup();
     await tracker.load();
