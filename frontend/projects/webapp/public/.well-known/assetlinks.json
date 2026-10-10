@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.pulpe.android",
+      "sha256_cert_fingerprints": [
+        "40:36:66:A8:F2:B1:10:EF:9F:C9:0A:60:C1:3A:F9:75:4A:48:EC:DF:35:8B:FB:C6:35:26:5A:14:71:A6:EF:4C"
+      ]
+    }
+  }
+]
