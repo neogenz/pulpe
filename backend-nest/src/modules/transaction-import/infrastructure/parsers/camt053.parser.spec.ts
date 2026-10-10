@@ -34,7 +34,6 @@ describe('Camt053Parser', () => {
     const statement = parser.parse(sample);
 
     expect(statement.format).toBe('camt053');
-    expect(statement.accountId).toBe('CH9300762011623852957');
     expect(statement.operations).toEqual([
       {
         position: 1,
@@ -45,6 +44,7 @@ describe('Camt053Parser', () => {
         label: 'Exemple SA',
         isBooked: true,
         bankReference: '20260325000123456',
+        accountId: 'CH9300762011623852957',
       },
       {
         position: 2,
@@ -55,6 +55,7 @@ describe('Camt053Parser', () => {
         label: 'Supermarché   du Centre',
         isBooked: true,
         bankReference: '20260304000987654',
+        accountId: 'CH9300762011623852957',
       },
       {
         position: 3,
@@ -65,6 +66,7 @@ describe('Camt053Parser', () => {
         label: 'TWINT Café de la Gare',
         isBooked: true,
         bankReference: null,
+        accountId: 'CH9300762011623852957',
       },
       {
         position: 4,
@@ -75,6 +77,7 @@ describe('Camt053Parser', () => {
         label: 'TWINT Café de la Gare',
         isBooked: true,
         bankReference: null,
+        accountId: 'CH9300762011623852957',
       },
       {
         position: 5,
@@ -85,6 +88,7 @@ describe('Camt053Parser', () => {
         label: 'ORDRE GROUPE 2 PAIEMENTS',
         isBooked: true,
         bankReference: '20260315000555000',
+        accountId: 'CH9300762011623852957',
       },
       {
         position: 6,
@@ -95,6 +99,7 @@ describe('Camt053Parser', () => {
         label: 'RESERVATION CARTE STATION SERVICE',
         isBooked: false,
         bankReference: null,
+        accountId: 'CH9300762011623852957',
       },
     ]);
   });
@@ -111,13 +116,39 @@ describe('Camt053Parser', () => {
         </TxDtls></NtryDtls>`),
     );
 
-    expect(statement.accountId).toBe('ACC-42');
     expect(statement.operations[0]).toMatchObject({
+      accountId: 'ACC-42',
       date: '2026-03-02',
       currency: 'EUR',
       label: 'Boulangerie',
       isBooked: true,
     });
+  });
+
+  it('keeps each entry on the account of its own statement', () => {
+    const entry = `<Ntry>
+      <Amt Ccy="CHF">10.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+      <BookgDt><Dt>2026-03-02</Dt></BookgDt><AcctSvcrRef>SAME-REF</AcctSvcrRef>
+      <AddtlNtryInf>Paiement</AddtlNtryInf>
+    </Ntry>`;
+    const statement = parser.parse(`<?xml version="1.0"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.04">
+  <BkToCstmrStmt>
+    <Stmt><Acct><Id><IBAN>CH11</IBAN></Id></Acct>${entry}</Stmt>
+    <Stmt><Acct><Id><IBAN>CH22</IBAN></Id></Acct>${entry}</Stmt>
+  </BkToCstmrStmt>
+</Document>`);
+
+    expect(
+      statement.operations.map(({ position, accountId, bankReference }) => ({
+        position,
+        accountId,
+        bankReference,
+      })),
+    ).toEqual([
+      { position: 1, accountId: 'CH11', bankReference: 'SAME-REF' },
+      { position: 2, accountId: 'CH22', bankReference: 'SAME-REF' },
+    ]);
   });
 
   it('falls back to remittance text when no counterparty is named', () => {

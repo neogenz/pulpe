@@ -25,6 +25,7 @@ const operation = (
   label: 'Boulangerie',
   isBooked: true,
   bankReference: null,
+  accountId: 'CH93',
   ...overrides,
 });
 
@@ -36,12 +37,12 @@ const valid = (overrides: Partial<ValidOperation> = {}): ValidOperation => ({
   name: 'Boulangerie',
   isBooked: true,
   bankReference: null,
+  accountId: 'CH93',
   ...overrides,
 });
 
 const statement = (operations: StatementOperation[]): BankStatement => ({
   format: 'camt053',
-  accountId: 'CH93',
   operations,
 });
 
@@ -144,6 +145,17 @@ describe('validateOperations', () => {
     expect(errors).toEqual([{ code: 'currency_mismatch', position: null }]);
   });
 
+  it('keeps only the file-level error when the whole file is in another currency', () => {
+    const { errors } = validateOperations(
+      [
+        operation({ position: 1, currency: 'EUR' }),
+        operation({ position: 2, currency: 'EUR', date: null }),
+      ],
+      'CHF',
+    );
+    expect(errors).toEqual([{ code: 'currency_mismatch', position: null }]);
+  });
+
   it('points at the odd operation when only some differ', () => {
     const { errors } = validateOperations(
       [operation({ position: 1 }), operation({ position: 2, currency: 'USD' })],
@@ -154,13 +166,13 @@ describe('validateOperations', () => {
 });
 
 describe('fingerprintMaterials', () => {
-  const meta = { format: 'camt053' as const, accountId: 'CH93' };
+  const format = 'camt053' as const;
 
   it('prefers the bank reference over the content', () => {
-    const [withReference] = fingerprintMaterials(meta, [
+    const [withReference] = fingerprintMaterials(format, [
       valid({ bankReference: 'REF-1' }),
     ]);
-    const [sameReferenceOtherContent] = fingerprintMaterials(meta, [
+    const [sameReferenceOtherContent] = fingerprintMaterials(format, [
       valid({ bankReference: 'REF-1', name: 'Autre', amount: 99 }),
     ]);
     expect(withReference).toBe(sameReferenceOtherContent);
@@ -168,22 +180,24 @@ describe('fingerprintMaterials', () => {
 
   it('tells identical operations apart by their rank, stably', () => {
     const coffees = [valid({ position: 1 }), valid({ position: 2 })];
-    const first = fingerprintMaterials(meta, coffees);
-    const again = fingerprintMaterials(meta, coffees);
+    const first = fingerprintMaterials(format, coffees);
+    const again = fingerprintMaterials(format, coffees);
 
     expect(first[0]).not.toBe(first[1]);
     expect(again).toEqual(first);
   });
 
-  it('separates the same operation on two accounts', () => {
-    const [a] = fingerprintMaterials(meta, [valid()]);
-    const [b] = fingerprintMaterials({ ...meta, accountId: 'CH44' }, [valid()]);
+  it('separates the same reference on two accounts of one file', () => {
+    const [a, b] = fingerprintMaterials(format, [
+      valid({ bankReference: 'REF-1' }),
+      valid({ bankReference: 'REF-1', accountId: 'CH44' }),
+    ]);
     expect(a).not.toBe(b);
   });
 
   it('ignores label case so a re-export with other casing still matches', () => {
-    const [lower] = fingerprintMaterials(meta, [valid({ name: 'café' })]);
-    const [upper] = fingerprintMaterials(meta, [valid({ name: 'CAFÉ' })]);
+    const [lower] = fingerprintMaterials(format, [valid({ name: 'café' })]);
+    const [upper] = fingerprintMaterials(format, [valid({ name: 'CAFÉ' })]);
     expect(lower).toBe(upper);
   });
 });

@@ -820,7 +820,11 @@ export class BudgetDetailsStore {
       onSuccess: () => this.#onFinancialMutationSuccess(),
       onError: (error) => {
         failure.error = error;
-        this.#logUnexpectedFailure('Transaction import failed', error);
+        // A partial success, not a failed import: the Réels are committed and
+        // the server already reported the balance refresh as critical.
+        if (!isImportRecalculationFailure(error)) {
+          this.#logUnexpectedFailure('Transaction import failed', error);
+        }
       },
     });
 
@@ -832,7 +836,7 @@ export class BudgetDetailsStore {
     const error = failure.error;
     const message = this.#localizeError(error, 'transactionImport.failedTitle');
     const code = isApiError(error) ? (error.code ?? null) : null;
-    if (code === API_ERROR_CODES.TRANSACTION_IMPORT_RECALCULATION_FAILED) {
+    if (isImportRecalculationFailure(error)) {
       for (const key of BUDGET_DETAIL_INVALIDATION_KEYS) {
         this.#budgetApi.cache.invalidate(key);
       }
@@ -1572,4 +1576,11 @@ export class BudgetDetailsStore {
         });
     }
   }
+}
+
+function isImportRecalculationFailure(error: unknown): boolean {
+  return (
+    isApiError(error) &&
+    error.code === API_ERROR_CODES.TRANSACTION_IMPORT_RECALCULATION_FAILED
+  );
 }

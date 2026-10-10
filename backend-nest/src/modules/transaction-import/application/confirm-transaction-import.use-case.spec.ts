@@ -169,6 +169,29 @@ describe('PreviewTransactionImportUseCase', () => {
     expect(result.operations[1].status).toBe('new');
   });
 
+  it('matches a bank reference within its own account only', async () => {
+    const entry = `<Ntry>
+      <Amt Ccy="CHF">10.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+      <BookgDt><Dt>2026-03-02</Dt></BookgDt><AcctSvcrRef>SAME-REF</AcctSvcrRef>
+      <AddtlNtryInf>Paiement</AddtlNtryInf>
+    </Ntry>`;
+    const twoAccounts = `<?xml version="1.0"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.04">
+  <BkToCstmrStmt>
+    <Stmt><Acct><Id><IBAN>CH11</IBAN></Id></Acct>${entry}</Stmt>
+    <Stmt><Acct><Id><IBAN>CH22</IBAN></Id></Acct>${entry}</Stmt>
+  </BkToCstmrStmt>
+</Document>`;
+    const { preview } = setup({ imported: ['CH11\u001fref:SAME-REF'] });
+
+    const result = await preview.execute(twoAccounts, BUDGET_ID);
+
+    expect(result.operations.map((op) => op.status)).toEqual([
+      'already_imported',
+      'new',
+    ]);
+  });
+
   it('flags an unknown format without guessing', async () => {
     const { preview } = setup();
 

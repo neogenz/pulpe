@@ -2241,6 +2241,26 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(mockBudgetApi.cache.invalidate).not.toHaveBeenCalled();
     });
 
+    it('reports an unexpected server failure', async () => {
+      mockTransactionImportApi.import$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'boom',
+              API_ERROR_CODES.TRANSACTION_IMPORT_FAILED,
+              500,
+              undefined,
+            ),
+        ),
+      );
+      mockLogger.error.mockClear();
+
+      const outcome = await service.importTransactions(mockBudgetId, statement);
+
+      expect(outcome.status).toBe('failed');
+      expect(mockLogger.error).toHaveBeenCalledOnce();
+    });
+
     it('still refreshes the month when only the balance recalculation failed', async () => {
       const lag = new ApiError(
         'recalculation failed',
@@ -2249,10 +2269,13 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         undefined,
       );
       mockTransactionImportApi.import$.mockReturnValue(throwError(() => lag));
+      mockLogger.error.mockClear();
 
       const outcome = await service.importTransactions(mockBudgetId, statement);
 
       expect(outcome.status).toBe('importedWithWarning');
+      // A partial success: the Réels exist, so no "import failed" report.
+      expect(mockLogger.error).not.toHaveBeenCalled();
       expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledWith([
         'budget',
         'details',

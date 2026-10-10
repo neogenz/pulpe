@@ -102,7 +102,7 @@ export class TransactionImportAnalyzer {
       settings.currency,
     );
     const fingerprints = this.repo.fingerprint(
-      fingerprintMaterials(statement, valid),
+      fingerprintMaterials(statement.format, valid),
     );
     const { operations, candidates } = classifyOperations({
       operations: valid,

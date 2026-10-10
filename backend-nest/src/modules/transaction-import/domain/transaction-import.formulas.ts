@@ -32,6 +32,7 @@ export interface ValidOperation {
   name: string;
   isBooked: boolean;
   bankReference: string | null;
+  accountId: string | null;
 }
 
 export function budgetPeriodBounds(
@@ -69,7 +70,8 @@ export function findStatementErrors(
 
 /**
  * Validates each operation. A file entirely in another currency yields one
- * file-level error instead of one per line: the fix is the same either way.
+ * file-level error and nothing else: the only useful fix is another export,
+ * so listing its other line errors would only add noise.
  */
 export function validateOperations(
   operations: readonly StatementOperation[],
@@ -94,6 +96,7 @@ export function validateOperations(
       name: toDisplayName(operation.label!),
       isBooked: operation.isBooked,
       bankReference: operation.bankReference,
+      accountId: operation.accountId,
     });
   }
 
@@ -101,13 +104,7 @@ export function validateOperations(
     (error) => error.code === 'currency_mismatch',
   );
   if (mismatches.length === operations.length) {
-    return {
-      valid,
-      errors: [
-        { code: 'currency_mismatch', position: null },
-        ...errors.filter((error) => error.code !== 'currency_mismatch'),
-      ],
-    };
+    return { valid, errors: [{ code: 'currency_mismatch', position: null }] };
   }
   return { valid, errors };
 }
@@ -166,7 +163,7 @@ function toDisplayName(label: string): string {
  * the keyed hash, never to storage or logs.
  */
 export function fingerprintMaterials(
-  statement: Pick<BankStatement, 'format' | 'accountId'>,
+  format: BankStatement['format'],
   operations: readonly ValidOperation[],
 ): string[] {
   const occurrences = new Map<string, number>();
@@ -176,8 +173,8 @@ export function fingerprintMaterials(
       : contentIdentity(operation, occurrences);
     return [
       FINGERPRINT_VERSION,
-      statement.format,
-      statement.accountId ?? '',
+      format,
+      operation.accountId ?? '',
       identity,
     ].join(FIELD_SEPARATOR);
   });
@@ -188,6 +185,7 @@ function contentIdentity(
   occurrences: Map<string, number>,
 ): string {
   const key = [
+    operation.accountId ?? '',
     operation.date,
     operation.kind,
     Math.round(operation.amount * 100),

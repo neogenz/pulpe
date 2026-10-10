@@ -76,18 +76,17 @@ export class Camt053Parser implements StatementParser {
     let position = 0;
     const operations: StatementOperation[] = [];
     for (const statement of statements) {
-      const accountCurrency = text(child(statement, 'Acct', 'Ccy'));
+      const account = {
+        id: readAccountId(statement),
+        currency: text(child(statement, 'Acct', 'Ccy')),
+      };
       for (const entry of asNodes(child(statement, 'Ntry'))) {
         position += 1;
-        operations.push(readEntry(entry, position, accountCurrency));
+        operations.push(readEntry(entry, position, account));
       }
     }
 
-    return {
-      format: this.format,
-      accountId: readAccountId(statements[0]),
-      operations,
-    };
+    return { format: this.format, operations };
   }
 }
 
@@ -101,7 +100,7 @@ function readAccountId(statement: XmlNode): string | null {
 function readEntry(
   entry: XmlNode,
   position: number,
-  accountCurrency: string | null,
+  account: { id: string | null; currency: string | null },
 ): StatementOperation {
   const amountNode = child(entry, 'Amt');
   const direction = text(child(entry, 'CdtDbtInd'));
@@ -115,7 +114,7 @@ function readEntry(
     position,
     date: readDate(child(entry, 'BookgDt')) ?? readDate(child(entry, 'ValDt')),
     amount: readAmount(text(amountNode)),
-    currency: attribute(amountNode, 'Ccy') ?? accountCurrency,
+    currency: attribute(amountNode, 'Ccy') ?? account.currency,
     direction: kind,
     label: readLabel(entry, singleDetail, kind),
     isBooked: readStatus(entry) === 'BOOK',
@@ -123,6 +122,7 @@ function readEntry(
       text(child(entry, 'AcctSvcrRef')) ??
       text(child(entry, 'NtryRef')) ??
       text(child(singleDetail, 'Refs', 'AcctSvcrRef')),
+    accountId: account.id,
   };
 }
 

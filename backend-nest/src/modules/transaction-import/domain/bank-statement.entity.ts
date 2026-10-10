@@ -22,12 +22,16 @@ export interface StatementOperation {
   isBooked: boolean;
   /** Reference the bank assigns to the operation, stable across exports. */
   bankReference: string | null;
+  /**
+   * Account the operation belongs to (IBAN when given). One file may hold
+   * several accounts, and a bank reference is only unique within its
+   * account. Only ever used inside fingerprints.
+   */
+  accountId: string | null;
 }
 
 export interface BankStatement {
   format: TransactionImportFormat;
-  /** Account identifier (IBAN when given); only ever used inside fingerprints. */
-  accountId: string | null;
   operations: StatementOperation[];
 }
 
