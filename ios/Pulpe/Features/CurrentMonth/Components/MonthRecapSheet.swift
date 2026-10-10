@@ -11,6 +11,10 @@ struct MonthRecapSheet: View {
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.dismiss) private var dismiss
+    /// Measured, so the sheet stops where its content does: a medium detent left half
+    /// the sheet empty under the buttons.
+    @State private var contentHeight: CGFloat = 0
+    @State private var actionsHeight: CGFloat = 0
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
 
@@ -23,9 +27,14 @@ struct MonthRecapSheet: View {
     }
 
     private var carryOverSentence: String {
-        let carried = recap.carriedOver.asCompactCurrency(currency)
-        let start = recap.startingAvailable.asCompactCurrency(currency)
+        let carried = recap.carriedOver.asCurrency(currency)
+        let start = recap.startingAvailable.asCurrency(currency)
         return AppLocale.string("\(carried) reportés sur \(openedMonthName) → tu démarres à \(start)")
+    }
+
+    /// A custom detent's height leaves out the bottom safe area, which the system adds.
+    private var fittedDetent: PresentationDetent {
+        contentHeight > 0 ? .height(contentHeight + actionsHeight) : .medium
     }
 
     var body: some View {
@@ -41,37 +50,45 @@ struct MonthRecapSheet: View {
                         .foregroundStyle(Color.textSecondary)
                 }
 
-                VStack(spacing: DesignTokens.Spacing.md) {
-                    figureRow("Revenus", amount: recap.income.asCompactCurrency(currency), tint: .financialIncome)
-                    figureRow("Dépenses", amount: recap.expenses.asCompactCurrency(currency), tint: .financialExpense)
-                    Divider()
-                    figureRow(
-                        "Solde final",
-                        // To the cent: a balance carrying a verdict never prints "-0 CHF".
-                        amount: recap.endingBalance.asAdaptiveCurrency(currency),
-                        tint: recap.endingBalance >= 0 ? .financialSavings : .financialOverBudget,
-                        isTotal: true
-                    )
+                // One format for the three figures: whole francs beside a balance to the
+                // cent read as two different units ("5 200 CHF", "-1'478.2 CHF").
+                FormCard {
+                    figureRow("Revenus", kind: .income, amount: recap.income)
+                    FormRowDivider()
+                    figureRow("Dépenses", kind: .expense, amount: recap.expenses)
+                    FormRowDivider()
+                    balanceRow
                 }
 
-                Text(carryOverSentence)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textPrimary)
-                    .monospacedDigit()
-                    .fixedSize(horizontal: false, vertical: true)
-                    .sensitiveAmount()
-                    .padding(DesignTokens.Spacing.lg)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.surfaceContainer, in: .rect(cornerRadius: DesignTokens.CornerRadius.card))
+                carryOver
             }
-            .padding(DesignTokens.Spacing.xxl)
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.xxl)
+            .padding(.bottom, DesignTokens.Spacing.lg)
+            .onGeometryChange(for: CGFloat.self, of: \.size.height) { contentHeight = $0 }
         }
-        // Pinned rather than scrolled: at the medium detent the carry-over sentence can
-        // sit below the fold, and the way out must not.
+        // Scrolls only when the content outgrows the screen, at the largest text sizes.
+        .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             actions
+                .onGeometryChange(for: CGFloat.self, of: \.size.height) { actionsHeight = $0 }
         }
-        .standardSheetPresentation(detents: [.medium, .large])
+        .standardSheetPresentation(detents: [fittedDetent])
+    }
+
+    private var carryOver: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            RowIcon(systemName: "arrow.uturn.forward", tint: .pulpePrimary)
+            Text(carryOverSentence)
+                .font(PulpeTypography.bodyLarge)
+                .foregroundStyle(Color.textPrimary)
+                .monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
+                .sensitiveAmount()
+        }
+        .padding(DesignTokens.Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
     }
 
     private var actions: some View {
@@ -90,28 +107,43 @@ struct MonthRecapSheet: View {
             .textLinkButtonStyle()
             .accessibilityIdentifier("monthRecapDetailsButton")
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Color.sheetBackground)
+        .background { Color.sheetBackground.ignoresSafeArea(edges: .bottom) }
     }
 
-    private func figureRow(
-        _ title: LocalizedStringKey,
-        amount: String,
-        tint: Color,
-        isTotal: Bool = false
-    ) -> some View {
-        HStack(alignment: .firstTextBaseline) {
+    private func figureRow(_ title: LocalizedStringKey, kind: TransactionKind, amount: Decimal) -> some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            RowIcon(systemName: kind.icon, tint: kind.color)
             Text(title)
-                .font(isTotal ? PulpeTypography.cardTitle : PulpeTypography.bodyLarge)
-                .foregroundStyle(isTotal ? Color.textPrimary : Color.textSecondary)
-            Spacer()
-            Text(amount)
-                .font(isTotal ? PulpeTypography.amountCard : PulpeTypography.amountMedium)
+                .font(PulpeTypography.bodyLarge)
+                .foregroundStyle(Color.textPrimary)
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            Text(amount.asCurrency(currency))
+                .font(PulpeTypography.amountMedium)
+                .foregroundStyle(kind.color)
+                .monospacedDigit()
+                .sensitiveAmount()
+        }
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var balanceRow: some View {
+        let tint: Color = recap.endingBalance >= 0 ? .financialSavings : .financialOverBudget
+        return HStack(spacing: DesignTokens.Spacing.md) {
+            RowIcon(systemName: "equal", tint: tint)
+            Text("Solde final")
+                .font(PulpeTypography.cardTitle)
+                .foregroundStyle(Color.textPrimary)
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            Text(recap.endingBalance.asCurrency(currency))
+                .font(PulpeTypography.amountCard)
                 .foregroundStyle(tint)
                 .monospacedDigit()
                 .sensitiveAmount()
         }
+        .padding(.vertical, DesignTokens.Spacing.md)
         .accessibilityElement(children: .combine)
     }
 

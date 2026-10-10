@@ -613,6 +613,11 @@ extension CurrentMonthStore {
     /// Unchecked items for dashboard "À pointer" card (max 5, cached).
     /// Priority: free transactions → allocated transactions → budget lines.
     var uncheckedItems: [CheckableItem] {
+        Array(allUncheckedItems.prefix(Self.maxDashboardItems))
+    }
+
+    /// Every unchecked item, in the card's order: the reconciliation lists them all.
+    var allUncheckedItems: [CheckableItem] {
         cachedUncheckedItems ?? computeUncheckedItems()
     }
 
@@ -658,7 +663,7 @@ extension CurrentMonthStore {
                 return .budgetLine(line, consumption: consumption)
             }
 
-        return Array(items.prefix(Self.maxDashboardItems))
+        return items
     }
 
     private func computeSavingsSummary() -> SavingsSummary {

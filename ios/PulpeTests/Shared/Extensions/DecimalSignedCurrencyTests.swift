@@ -80,6 +80,12 @@ struct DecimalSignedCurrencyTests {
         #expect(formatted.hasSuffix("CHF"))
     }
 
+    @Test func signedCurrencyForKind_zero_staysUnsigned() {
+        let formatted = Decimal.zero.asSignedCurrency(.chf, for: .saving)
+
+        #expect(formatted == Decimal.zero.asCurrency(.chf))
+    }
+
     @Test func signedCurrencyForKind_eur_income_prependsPlusAndUsesEuroSign() {
         let formatted = Decimal(1234.56).asSignedCurrency(.eur, for: .income)
 

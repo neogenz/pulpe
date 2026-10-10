@@ -7,8 +7,7 @@ extension View {
     /// any earlier resolution cancels the ramp and keeps it hidden.
     ///
     /// Centralises the `Task.sleep`-based ramp pattern previously inlined in
-    /// `BudgetLineMixedRow`. Sole permitted location for the timer alongside
-    /// `AutoPopView` and `View+afterPushTransition`.
+    /// `BudgetLineMixedRow`, shared by every `PointCircle`.
     func rampSyncIndicator(
         isSyncing: Bool,
         displayed: Binding<Bool>

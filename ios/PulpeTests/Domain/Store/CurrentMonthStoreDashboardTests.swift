@@ -107,6 +107,8 @@ struct CurrentMonthStoreDashboardTests {
         )
 
         #expect(store.uncheckedItems.count == 5)
+        #expect(store.allUncheckedItems.count == 8)
+        #expect(store.uncheckedItems.map(\.id) == Array(store.allUncheckedItems.prefix(5)).map(\.id))
     }
 
     @Test func uncheckedItems_emptyWhenAllChecked() {
