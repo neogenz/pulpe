@@ -192,10 +192,26 @@ export default function BudgetDetailScreen() {
   // otherwise sends it out of sight with nothing to say where it went.
   // A later tap supersedes that notice: its "Annuler" would flip the row the
   // wrong way once the row was unpointed again.
+  // A failed undo puts its "Annuler" back behind the error, as a failed restore
+  // does after a deletion: the row is still pointed, and under "À pointer" out
+  // of sight, so the notice is the only way left to ask again.
   const overlays = useRef<BudgetDetailOverlaysHandle>(null);
   const latestToggle = useRef(0);
+  type ToggleTarget = Parameters<typeof toggle.mutateAsync>[0];
+  function offerUndo(target: ToggleTarget, name: string) {
+    overlays.current?.showPointed({
+      name,
+      undo: () => {
+        const undoId = ++latestToggle.current;
+        void toggle.mutateAsync(target).catch(() => {
+          overlays.current?.showToggleFailure();
+          if (undoId === latestToggle.current) offerUndo(target, name);
+        });
+      },
+    });
+  }
   function pointWithUndo(
-    target: Parameters<typeof toggle.mutateAsync>[0],
+    target: ToggleTarget,
     name: string,
     isPointing: boolean,
   ) {
@@ -203,16 +219,9 @@ export default function BudgetDetailScreen() {
     overlays.current?.showPointed(null);
     void toggle.mutateAsync(target).then(
       () => {
-        if (!isPointing || toggleId !== latestToggle.current) return;
-        overlays.current?.showPointed({
-          name,
-          undo: () => {
-            latestToggle.current++;
-            void toggle
-              .mutateAsync(target)
-              .catch(() => overlays.current?.showToggleFailure());
-          },
-        });
+        if (isPointing && toggleId === latestToggle.current) {
+          offerUndo(target, name);
+        }
       },
       () => overlays.current?.showToggleFailure(),
     );

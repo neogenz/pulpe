@@ -414,17 +414,37 @@ jest.mock("./components/budget-detail-overlays", () => {
       ref: React.ForwardedRef<unknown>,
     ) {
       const [message, setMessage] = React.useState("");
+      // Its own slot, as in the real overlays: a failure does not erase the
+      // pointing notice queued behind it.
+      const [hasToggleFailed, setToggleFailed] = React.useState(false);
+      const [pointed, setPointed] = React.useState(
+        null as { name: string; undo: () => void } | null,
+      );
       React.useImperativeHandle(ref, () => ({
         editTransaction: (transaction: Transaction) =>
           setMessage(`edit:${transaction.id}`),
         showTransactionMenu: () => setMessage("transaction-menu"),
         showWithdrawal: () => setMessage("withdrawal"),
         showRealizedBalance: () => setMessage("realized"),
-        showToggleFailure: () => setMessage("toggle-failure"),
-        showPointed: (pointed: { name: string } | null) =>
-          setMessage(pointed ? `pointed:${pointed.name}` : ""),
+        showToggleFailure: () => setToggleFailed(true),
+        showPointed: setPointed,
       }));
-      return <Text>{message}</Text>;
+      return (
+        <>
+          <Text>{message}</Text>
+          {hasToggleFailed ? <Text>toggle-failure</Text> : null}
+          {pointed !== null ? (
+            <Text
+              onPress={() => {
+                setPointed(null);
+                pointed.undo();
+              }}
+            >
+              {`pointed:${pointed.name}`}
+            </Text>
+          ) : null}
+        </>
+      );
     }),
   };
 });
@@ -610,6 +630,21 @@ it("drops a pointing's undo once a later tap supersedes it", async () => {
   await act(async () => pending[1]?.());
   mockToggle.mutateAsync.mockImplementation(async () => undefined);
   expect(view.getByText("pointed:Loyer")).toBeTruthy();
+});
+
+it("offers a failed undo again behind its error", async () => {
+  mockDetails.data = readyDetails();
+  const view = await render(<BudgetDetailScreen />);
+
+  await fireEvent.press(view.getByText("toggle:rent"));
+  mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
+  await fireEvent.press(await view.findByText("pointed:Loyer"));
+
+  expect(await view.findByText("toggle-failure")).toBeTruthy();
+  expect(view.getByText("pointed:Loyer")).toBeTruthy();
+  await fireEvent.press(view.getByText("pointed:Loyer"));
+  await waitFor(() => expect(mockToggle.mutateAsync).toHaveBeenCalledTimes(3));
+  expect(view.queryByText("pointed:Loyer")).toBeNull();
 });
 
 it("restores cached detail when the optimistic point request is rejected", async () => {
