@@ -122,22 +122,18 @@ on the `production` and `production-apk` profiles. A failed upload fails the
 build, so the preview APK and the CI smoke build, which report nothing, never
 attempt one.
 
-Create two variables in the EAS **production** environment, visibility
-**Secret**:
-
-| Name                     | Value                                                                           |
-| ------------------------ | ------------------------------------------------------------------------------- |
-| `POSTHOG_CLI_API_KEY`    | PostHog personal API key, scopes _error tracking: write_ + _organization: read_ |
-| `POSTHOG_CLI_PROJECT_ID` | the PostHog project ID                                                          |
+Create one variable in the EAS **production** environment, visibility
+**Secret**: `POSTHOG_CLI_API_KEY`, a PostHog personal API key with scopes
+_error tracking: write_ + _organization: read_. Omit `--value` so the CLI
+prompts for the key and it never lands in the shell history:
 
 ```bash
-pnpm dlx eas-cli@latest env:create --environment production --visibility secret --name POSTHOG_CLI_API_KEY --value <key>
-pnpm dlx eas-cli@latest env:create --environment production --visibility secret --name POSTHOG_CLI_PROJECT_ID --value <id>
+pnpm dlx eas-cli@latest env:set --environment production --visibility secret --name POSTHOG_CLI_API_KEY
 ```
 
 `POSTHOG_CLI_HOST` (`https://eu.posthog.com`, the EU app host, not the
-`eu.i.` ingestion host) is not secret and lives in the `production` profile of
-`eas.json`.
+`eu.i.` ingestion host) and `POSTHOG_CLI_PROJECT_ID` are not secret and live in
+the `production` profile of `eas.json`.
 
 To verify an upload happened, search the EAS build log (Run gradlew phase) for
 the `PostHogUpload` and `uploadPostHogProguardMappings` tasks, then open PostHog
