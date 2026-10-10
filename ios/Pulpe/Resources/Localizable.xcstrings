@@ -6461,6 +6461,28 @@
         }
       }
     },
+    "Carte de crédit, découvert" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kreditkarte, Überziehung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credit card, overdraft"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carta di credito, scoperto"
+          }
+        }
+      }
+    },
     "Ce Réel sera créé pointé." : {
       "localizations" : {
         "de" : {
@@ -8597,6 +8619,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account non trovato — controlla la tua email"
+          }
+        }
+      }
+    },
+    "Compter en négatif" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als negativ zählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count as negative"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conta come negativo"
+          }
+        }
+      }
+    },
+    "Compter le compte %lld en négatif" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto %lld als negativ zählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count account %lld as negative"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conta il conto %lld come negativo"
           }
         }
       }
@@ -11705,6 +11771,28 @@
         }
       }
     },
+    "En moins sur tes comptes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weniger auf deinen Konten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less in your accounts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In meno sui tuoi conti"
+          }
+        }
+      }
+    },
     "En pause" : {
       "localizations" : {
         "de" : {
@@ -11723,6 +11811,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In pausa"
+          }
+        }
+      }
+    },
+    "En plus sur tes comptes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehr auf deinen Konten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More in your accounts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In più sui tuoi conti"
           }
         }
       }
@@ -17277,6 +17387,50 @@
         }
       }
     },
+    "Noté comme dépense pointée, cet ajustement aligne ton solde pointé sur tes comptes." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als abgehakte Ausgabe erfasst, gleicht diese Anpassung deinen abgehakten Saldo an deine Konten an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded as a checked expense, this adjustment lines your checked balance up with your accounts."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrato come spesa spuntata, questo aggiustamento allinea il tuo saldo spuntato ai tuoi conti."
+          }
+        }
+      }
+    },
+    "Noté comme revenu pointé, cet ajustement aligne ton solde pointé sur tes comptes." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als abgehakte Einnahme erfasst, gleicht diese Anpassung deinen abgehakten Saldo an deine Konten an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded as a checked income, this adjustment lines your checked balance up with your accounts."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrato come entrata spuntata, questo aggiustamento allinea il tuo saldo spuntato ai tuoi conti."
+          }
+        }
+      }
+    },
     "Noté · %@" : {
       "localizations" : {
         "de" : {
@@ -19151,6 +19305,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spunta"
+          }
+        }
+      }
+    },
+    "Pointe ce qui est déjà passé sur tes comptes : ton solde pointé suit." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake ab, was schon über deine Konten gelaufen ist: dein abgehakter Saldo zieht mit."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check what has already gone through your accounts: your checked balance follows."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta ciò che è già passato sui tuoi conti: il tuo saldo spuntato si aggiorna."
           }
         }
       }
@@ -28677,6 +28853,28 @@
         }
       }
     },
+    "par rapport à ton solde pointé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "als dein abgehakter Saldo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "than your checked balance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rispetto al tuo saldo spuntato"
+          }
+        }
+      }
+    },
     "passé" : {
       "localizations" : {
         "de" : {
@@ -30934,28 +31132,6 @@
         }
       }
     },
-    "À découvert" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Überzogen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Overdrawn"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In scoperto"
-          }
-        }
-      }
-    },
     "Comparer avec mes comptes" : {
       "localizations" : {
         "de" : {
@@ -30974,28 +31150,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confronta con i miei conti"
-          }
-        }
-      }
-    },
-    "Compte %lld à découvert" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konto %lld überzogen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account %lld overdrawn"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conto %lld in scoperto"
           }
         }
       }
@@ -31216,50 +31370,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Periodo: %@"
-          }
-        }
-      }
-    },
-    "Pour les aligner, on note un revenu pointé de ce montant." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zum Ausgleich wird eine abgehakte Einnahme in dieser Höhe erfasst."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To line them up, a checked income of this amount is recorded."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Per allinearli, si registra un'entrata spuntata di questo importo."
-          }
-        }
-      }
-    },
-    "Pour les aligner, on note une dépense pointée de ce montant." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zum Ausgleich wird eine abgehakte Ausgabe in dieser Höhe erfasst."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To line them up, a checked expense of this amount is recorded."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Per allinearli, si registra una spesa spuntata di questo importo."
           }
         }
       }
@@ -31506,50 +31616,6 @@
         }
       }
     },
-    "Tes comptes ont %@ de moins que ton solde pointé." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Konten zeigen %@ weniger als dein abgehakter Saldo."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your accounts hold %@ less than your checked balance."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I tuoi conti hanno %@ in meno del tuo saldo spuntato."
-          }
-        }
-      }
-    },
-    "Tes comptes ont %@ de plus que ton solde pointé." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Konten zeigen %@ mehr als dein abgehakter Saldo."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your accounts hold %@ more than your checked balance."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I tuoi conti hanno %@ in più del tuo saldo spuntato."
-          }
-        }
-      }
-    },
     "Ton solde pointé" : {
       "localizations" : {
         "de" : {
@@ -31590,28 +31656,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "È tutto aggiornato"
-          }
-        }
-      }
-    },
-    "Voir ce qu'il reste à pointer" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Offene Einträge ansehen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "See what is left to check"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vedi cosa resta da spuntare"
           }
         }
       }

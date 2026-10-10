@@ -21,6 +21,40 @@ extension View {
     func contentZone() -> some View {
         modifier(ContentZoneModifier())
     }
+
+    /// Apply to the hero screen, around its `ScrollView`. `isUnderBar` stays true while the
+    /// forest lies under the navigation bar and turns false once the content zone has risen
+    /// beneath it: the bar's light ink and hero buttons belong to the forest, and over the
+    /// light canvas they vanish. True until a hero is laid out.
+    func trackingHeroUnderBar(_ isUnderBar: Binding<Bool>) -> some View {
+        modifier(HeroUnderBarModifier(isUnderBar: isUnderBar))
+    }
+}
+
+/// The screen's own space: laid out inside the safe area, so y = 0 is the bar's bottom.
+private let heroScreenSpace = "heroScreen"
+
+/// Whether the hero's forest is still under the bar, as the content zone reports it; nil
+/// while no content zone is laid out.
+private struct HeroUnderBarKey: PreferenceKey {
+    static var defaultValue: Bool? { nil }
+
+    static func reduce(value: inout Bool?, nextValue: () -> Bool?) {
+        value = value ?? nextValue()
+    }
+}
+
+private struct HeroUnderBarModifier: ViewModifier {
+    @Binding var isUnderBar: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .coordinateSpace(.named(heroScreenSpace))
+            // A lazy stack that drops a scrolled-away zone keeps the last answer.
+            .onPreferenceChange(HeroUnderBarKey.self) { isCovered in
+                if let isCovered { isUnderBar = isCovered }
+            }
+    }
 }
 
 private struct HeroZoneModifier: ViewModifier {
@@ -53,6 +87,8 @@ private struct HeroZoneModifier: ViewModifier {
 }
 
 private struct ContentZoneModifier: ViewModifier {
+    @State private var isHeroUnderBar = true
+
     func body(content: Content) -> some View {
         content
             .frame(maxWidth: .infinity)
@@ -68,6 +104,12 @@ private struct ContentZoneModifier: ViewModifier {
                 // card's bottom edge (and its shadow) never comes into view.
                 .padding(.bottom, -DesignTokens.Layout.overscrollBleed)
             }
+            // The card's top edge, measured here rather than on the hero, whose parallax
+            // offset would move it: the forest is under the bar until this edge reaches it.
+            .onGeometryChange(for: Bool.self) { proxy in
+                proxy.frame(in: .named(heroScreenSpace)).minY > 0
+            } action: { isHeroUnderBar = $0 }
+            .preference(key: HeroUnderBarKey.self, value: isHeroUnderBar)
             .padding(.top, -DesignTokens.CornerRadius.zone)
     }
 }

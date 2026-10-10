@@ -167,7 +167,6 @@ custom_rules:
     excluded:
       - ".*/Helpers/AutoPopView\\.swift"
       - ".*/Helpers/View\\+afterPushTransition\\.swift"
-      - ".*/Helpers/View\\+syncIndicatorRamp\\.swift"
     regex: "Task\\.sleep\\(for:"
     message: "Use AutoPopView, View.afterPushTransition, or View.rampSyncIndicator helpers instead of inline Task.sleep."
     severity: error

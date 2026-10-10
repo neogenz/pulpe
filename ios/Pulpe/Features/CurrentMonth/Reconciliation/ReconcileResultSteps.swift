@@ -6,46 +6,43 @@ struct ReconcileSummaryStep: View {
     let flow: ReconcileAccountsFlow
     let month: ReconcileAccountsSheet.Month
     let currency: SupportedCurrency
-    let onShowItemsToCheck: @MainActor () -> Void
     let onClose: @MainActor () -> Void
 
     private var realized: BudgetFormulas.RealizedMetrics { month.realizedMetrics }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-            balanceHeader
+            ReconcileHeader(
+                title: AppLocale.string("Solde pointé"),
+                value: realized.realizedBalance.asCurrency(currency),
+                caption: month.periodLabel.map { AppLocale.string("Période : \($0)") }
+            )
+            // Each part opens on its nature disc and carries its color, as on the ledger:
+            // four rows of the same black read as one block nobody parsed.
             FormCard {
                 ReconcileAmountRow(
-                    title: AppLocale.string("Revenus pointés"),
-                    value: realized.realizedIncome.asSignedCurrency(currency, for: .income)
-                )
-                FormRowDivider()
-                ReconcileAmountRow(
-                    title: AppLocale.string("Dépenses pointées"),
-                    value: realized.realizedSpending.asSignedCurrency(currency, for: .expense)
-                )
-                FormRowDivider()
-                ReconcileAmountRow(
-                    title: AppLocale.string("Épargne pointée"),
-                    value: realized.checkedSavingsAmount.asSignedCurrency(currency, for: .saving)
-                )
-                FormRowDivider()
-                ReconcileAmountRow(
                     title: AppLocale.string("Report du mois précédent"),
-                    value: month.rollover.asArithmeticSignedCurrency(currency)
+                    value: month.rollover.asArithmeticSignedCurrency(currency),
+                    icon: .init(systemName: "arrow.uturn.forward", tint: .onSurfaceVariant)
                 )
+                FormRowDivider()
+                kindRow(.income, title: AppLocale.string("Revenus pointés"), amount: realized.realizedIncome)
+                FormRowDivider()
+                kindRow(.expense, title: AppLocale.string("Dépenses pointées"), amount: realized.realizedSpending)
+                FormRowDivider()
+                kindRow(.saving, title: AppLocale.string("Épargne pointée"), amount: realized.checkedSavingsAmount)
+                // In the same card: one row never gets a card of its own (One Ledger Rule).
+                if month.uncheckedCount > 0 {
+                    FormRowDivider()
+                    itemsToCheckRow
+                }
             }
-            Text("Seuls les éléments pointés comptent ici. Ce qu'il reste à pointer peut expliquer un écart.")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button(action: onShowItemsToCheck) {
-                Label("Voir ce qu'il reste à pointer", systemImage: "checklist")
-                    .font(PulpeTypography.labelLarge)
+            if month.uncheckedCount > 0 {
+                Text("Seuls les éléments pointés comptent ici. Ce qu'il reste à pointer peut expliquer un écart.")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .textLinkButtonStyle()
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .accessibilityIdentifier("reconcileItemsToCheckLink")
         }
         .reconcileStep(AppLocale.string("Ton solde pointé"), onClose: onClose) {
             Button("Comparer avec mes comptes") { flow.continueToVerdict() }
@@ -54,24 +51,39 @@ struct ReconcileSummaryStep: View {
         }
     }
 
-    private var balanceHeader: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Text("Solde pointé")
-                .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondary)
-            Text(realized.realizedBalance.asCurrency(currency))
-                .font(PulpeTypography.amountHero)
-                .monospacedDigit()
-                .multilineTextAlignment(.center)
-                .sensitiveAmount()
-            if let periodLabel = month.periodLabel {
-                Text("Période : \(periodLabel)")
+    private func kindRow(_ kind: TransactionKind, title: String, amount: Decimal) -> some View {
+        ReconcileAmountRow(
+            title: title,
+            value: amount.asSignedCurrency(currency, for: kind),
+            tint: kind.color,
+            icon: .init(systemName: kind.icon, tint: kind.color)
+        )
+    }
+
+    /// Pushed inside the flow: the month's own page would have dropped every account typed.
+    private var itemsToCheckRow: some View {
+        Button(action: flow.showItemsToCheck) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                RowIcon(systemName: "checklist", tint: .pulpePrimary)
+                Text("Opérations à pointer")
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                Text(month.uncheckedCount, format: .number)
+                    .font(PulpeTypography.bodyLarge)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.textSecondary)
+                Image(systemName: "chevron.right")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
             }
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .frame(minHeight: DesignTokens.ListRow.minHeight)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
+        .plainPressedButtonStyle()
+        .accessibilityIdentifier("reconcileItemsToCheckRow")
     }
 }
 
@@ -116,40 +128,44 @@ struct ReconcileVerdictStep: View {
     }
 
     var body: some View {
+        // The verdict first, the two figures behind it next, then what closes the gap.
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-            comparison
             switch verdict {
             case .upToDate:
                 upToDate
+                comparison
             case .adjustment(let kind, let amount):
+                ReconcileHeader(
+                    title: kind == .income
+                        ? AppLocale.string("En plus sur tes comptes")
+                        : AppLocale.string("En moins sur tes comptes"),
+                    value: amount.asSignedCurrency(currency, for: kind),
+                    tint: kind.color,
+                    caption: AppLocale.string("par rapport à ton solde pointé")
+                )
+                comparison
                 adjustment(kind: kind, amount: amount)
             case nil:
-                EmptyView()
+                comparison
             }
         }
         .reconcileStep(AppLocale.string("Écart"), isSubmitting: flow.isSubmitting, onClose: onClose) {
             footer
         }
-        .keyboardFieldNavigation(focus: $focusedField, order: [.label])
     }
 
     private var comparison: some View {
-        let difference = flow.difference(realizedBalance: realizedBalance) ?? 0
-        return FormCard {
+        FormCard {
             ReconcileAmountRow(
                 title: AppLocale.string("Tes comptes"),
-                value: (flow.total ?? 0).asCurrency(currency)
+                value: (flow.total ?? 0).asCurrency(currency),
+                icon: .init(systemName: "building.columns", tint: .onSurfaceVariant)
             )
             FormRowDivider()
             ReconcileAmountRow(
                 title: AppLocale.string("Solde pointé"),
-                value: realizedBalance.asCurrency(currency)
-            )
-            FormRowDivider()
-            ReconcileAmountRow(
-                title: AppLocale.string("Écart"),
-                value: difference.asArithmeticSignedCurrency(currency),
-                isEmphasized: true
+                value: realizedBalance.asCurrency(currency),
+                icon: .init(systemName: "checkmark", tint: .pulpePrimary)
             )
         }
     }
@@ -157,11 +173,11 @@ struct ReconcileVerdictStep: View {
     private var upToDate: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: "checkmark.circle.fill")
-                .font(PulpeTypography.headline)
-                .imageScale(.large)
+                .font(PulpeTypography.heroIcon)
                 .foregroundStyle(Color.financialSavings)
+                .accessibilityHidden(true)
             Text("Tout est à jour")
-                .font(PulpeTypography.headline)
+                .font(PulpeTypography.title2)
             Text("Tes comptes et ton solde pointé sont identiques, au centime près.")
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondary)
@@ -172,22 +188,7 @@ struct ReconcileVerdictStep: View {
     }
 
     private func adjustment(kind: TransactionKind, amount: Decimal) -> some View {
-        let formatted = amount.asCurrency(currency)
-        let gapText = kind == .income
-            ? AppLocale.string("Tes comptes ont \(formatted) de plus que ton solde pointé.")
-            : AppLocale.string("Tes comptes ont \(formatted) de moins que ton solde pointé.")
-        let remedyText = kind == .income
-            ? AppLocale.string("Pour les aligner, on note un revenu pointé de ce montant.")
-            : AppLocale.string("Pour les aligner, on note une dépense pointée de ce montant.")
-        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            Text(gapText)
-                .font(PulpeTypography.body)
-                .fixedSize(horizontal: false, vertical: true)
-                .sensitiveAmount()
-            Text(remedyText)
-                .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             FormCard {
                 FormTextField(
                     hint: AppLocale.string("Ajustement"),
@@ -202,9 +203,16 @@ struct ReconcileVerdictStep: View {
                 ReconcileAmountRow(
                     title: kind.label,
                     value: amount.asSignedCurrency(currency, for: kind),
-                    tint: kind.color
+                    tint: kind.color,
+                    icon: .init(systemName: kind.icon, tint: kind.color)
                 )
             }
+            Text(kind == .income
+                ? "Noté comme revenu pointé, cet ajustement aligne ton solde pointé sur tes comptes."
+                : "Noté comme dépense pointée, cet ajustement aligne ton solde pointé sur tes comptes.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -212,13 +220,15 @@ struct ReconcileVerdictStep: View {
     private var footer: some View {
         switch verdict {
         case .upToDate:
-            let canFinish = flow.canConfirmUpToDate(realizedBalance: realizedBalance, of: month.budgetId)
+            let canFinish = !month.hasPointingInFlight
+                && flow.canConfirmUpToDate(realizedBalance: realizedBalance, of: month.budgetId)
             Button("Terminer", action: onFinish)
                 .disabled(!canFinish)
                 .primaryButtonStyle(isEnabled: canFinish)
                 .accessibilityIdentifier("reconcileFinishButton")
         case .adjustment:
-            let canSubmit = flow.canSubmitAdjustment(realizedBalance: realizedBalance, of: month.budgetId)
+            let canSubmit = !month.hasPointingInFlight
+                && flow.canSubmitAdjustment(realizedBalance: realizedBalance, of: month.budgetId)
             Button {
                 Task { await onSubmit() }
             } label: {
@@ -237,21 +247,59 @@ struct ReconcileVerdictStep: View {
     }
 }
 
-/// One title / amount line of a reconciliation card. The title arrives localized.
-private struct ReconcileAmountRow: View {
+/// The figure a step is about, centered above its card. The strings arrive localized.
+private struct ReconcileHeader: View {
     let title: String
     let value: String
-    var isEmphasized = false
     var tint: Color = .textPrimary
+    var caption: String?
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(PulpeTypography.subheadline)
+                .foregroundStyle(Color.textSecondary)
+            Text(value)
+                .font(PulpeTypography.amountHero)
+                .monospacedDigit()
+                .foregroundStyle(tint)
+                .sensitiveAmount()
+            if let caption {
+                Text(caption)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// One title / amount line of a reconciliation card. The title arrives localized.
+private struct ReconcileAmountRow: View {
+    struct Icon {
+        let systemName: String
+        let tint: Color
+    }
+
+    let title: String
+    let value: String
+    var tint: Color = .textPrimary
+    var icon: Icon?
+
+    var body: some View {
+        // A disc has no baseline: rows that open on one center on it.
+        HStack(alignment: icon == nil ? .firstTextBaseline : .center, spacing: DesignTokens.Spacing.md) {
+            if let icon {
+                RowIcon(systemName: icon.systemName, tint: icon.tint)
+            }
             Text(title)
                 .font(PulpeTypography.bodyLarge)
                 .foregroundStyle(Color.textPrimary)
             Spacer(minLength: DesignTokens.Spacing.sm)
             Text(value)
-                .font(isEmphasized ? PulpeTypography.listRowTitle : PulpeTypography.bodyLarge)
+                .font(PulpeTypography.bodyLarge)
                 .monospacedDigit()
                 .foregroundStyle(tint)
                 .multilineTextAlignment(.trailing)

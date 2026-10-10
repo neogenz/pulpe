@@ -36,13 +36,13 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.accounts.map(\.id) == [first])
     }
 
-    @Test("the total follows every typed amount live, overdraft included")
+    @Test("the total follows every typed amount live, negative account included")
     func totalCents_followsTypedAmounts() {
         let flow = makeFlow()
         flow.accounts[0].amountText = "10.10"
         _ = flow.addAccount()
         flow.accounts[1].amountText = "5"
-        flow.accounts[1].isOverdraft = true
+        flow.accounts[1].isNegative = true
 
         #expect(flow.totalCents == 510)
         #expect(flow.total == Decimal(string: "5.10"))
@@ -72,6 +72,23 @@ struct ReconcileAccountsFlowTests {
         flow.continueFromAccounts()
         flow.continueToVerdict()
 
+        #expect(flow.path == [.summary, .verdict])
+    }
+
+    @Test("the items to check open inside the flow, keep the accounts, and lead to the verdict")
+    func showItemsToCheck_staysInFlow_thenVerdictReplacesIt() {
+        let flow = makeFlow()
+        flow.showItemsToCheck()
+        #expect(flow.path.isEmpty)
+
+        flow.accounts[0].amountText = "100"
+        flow.continueFromAccounts()
+        flow.showItemsToCheck()
+        flow.showItemsToCheck()
+        #expect(flow.path == [.summary, .itemsToCheck])
+        #expect(flow.accounts[0].amountText == "100")
+
+        flow.continueToVerdict()
         #expect(flow.path == [.summary, .verdict])
     }
 

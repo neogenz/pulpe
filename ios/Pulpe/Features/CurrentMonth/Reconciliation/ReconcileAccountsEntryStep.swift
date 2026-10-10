@@ -56,7 +56,6 @@ struct ReconcileAccountsEntryStep: View {
                 .accessibilityLabel("Retour")
             }
         }
-        .keyboardFieldNavigation(focus: $focusedField, order: fieldOrder)
         .task {
             // Opening on an empty flow focuses its one amount, as the add sheets do.
             guard flow.path.isEmpty, let first = flow.accounts.first, first.amountText.isEmpty else { return }
@@ -64,10 +63,6 @@ struct ReconcileAccountsEntryStep: View {
             guard !Task.isCancelled else { return }
             focusedField = .amount(first.id)
         }
-    }
-
-    private var fieldOrder: [Field] {
-        flow.accounts.flatMap { [Field.label($0.id), Field.amount($0.id)] }
     }
 
     // MARK: - Account card
@@ -88,13 +83,21 @@ struct ReconcileAccountsEntryStep: View {
                 FormRowDivider()
                 amountRow(row, number: number)
                 FormRowDivider()
-                Toggle(isOn: row.isOverdraft) {
-                    Text("À découvert")
-                        .font(PulpeTypography.bodyLarge)
+                // A credit card's spending to come is not an overdraft: the switch says
+                // what it does to the total, and the caption names both cases.
+                Toggle(isOn: row.isNegative) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                        Text("Compter en négatif")
+                            .font(PulpeTypography.bodyLarge)
+                        Text("Carte de crédit, découvert")
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(Color.onSurfaceVariant)
+                    }
                 }
-                .tint(Color.financialOverBudget)
+                .tint(Color.pulpePrimary)
                 .frame(minHeight: DesignTokens.ListRow.minHeight)
-                .accessibilityLabel(AppLocale.string("Compte \(number) à découvert"))
+                .accessibilityLabel(AppLocale.string("Compter le compte \(number) en négatif"))
+                .accessibilityHint(AppLocale.string("Carte de crédit, découvert"))
                 if flow.canRemoveAccount(id: account.id) {
                     FormRowDivider()
                     removeButton(for: account.id, number: number)
@@ -108,22 +111,25 @@ struct ReconcileAccountsEntryStep: View {
         }
     }
 
-    /// The decimal pad has no minus key: the overdraft switch carries the sign, and the
-    /// row shows it in front of the digits.
+    /// The decimal pad has no minus key: the negative switch carries the sign, and the
+    /// row shows it in front of the digits. No alarm color: a card balance is not a fault.
     private func amountRow(_ account: Binding<AccountReconciliation.Account>, number: Int) -> some View {
         let id = account.wrappedValue.id
-        let isOverdraft = account.wrappedValue.isOverdraft
+        let isNegative = account.wrappedValue.isNegative
         return HStack(spacing: DesignTokens.Spacing.md) {
             Text("Solde")
                 .font(PulpeTypography.bodyLarge)
                 .foregroundStyle(Color.textPrimary)
+            Spacer(minLength: DesignTokens.Spacing.none)
             HStack(spacing: DesignTokens.Spacing.xs) {
-                if isOverdraft {
+                if isNegative {
                     Text(verbatim: "\u{2212}")
                 }
+                // Hugs its digits so the sign sits against them; the row's tap focuses it.
                 TextField(Decimal.zero.asAmount(for: currency), text: account.amountText)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
+                    .fixedSize()
                     .focused($focusedField, equals: .amount(id))
                     .accessibilityLabel(AppLocale.string("Solde du compte \(number)"))
                 Text(currency.symbol)
@@ -131,7 +137,7 @@ struct ReconcileAccountsEntryStep: View {
             }
             .font(PulpeTypography.bodyLarge)
             .monospacedDigit()
-            .foregroundStyle(isOverdraft ? Color.financialOverBudget : Color.textPrimary)
+            .foregroundStyle(Color.textPrimary)
             .sensitiveAmount()
         }
         .frame(minHeight: DesignTokens.ListRow.minHeight)

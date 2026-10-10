@@ -42,20 +42,20 @@ struct AccountReconciliationTests {
         #expect(AccountReconciliation.parseAmount(text) == .invalid)
     }
 
-    // MARK: - Overdraft (the decimal pad has no minus key)
+    // MARK: - Negative balance (the decimal pad has no minus key)
 
-    @Test("the overdraft switch makes a typed balance negative, and keeps a pasted minus negative")
-    func account_overdraft_isAlwaysNegative() {
-        #expect(account("40", isOverdraft: true).amount == .valid(cents: -4_000))
-        #expect(account("-40", isOverdraft: true).amount == .valid(cents: -4_000))
+    @Test("the negative switch makes a typed balance negative, and keeps a pasted minus negative")
+    func account_negative_isAlwaysNegative() {
+        #expect(account("40", isNegative: true).amount == .valid(cents: -4_000))
+        #expect(account("-40", isNegative: true).amount == .valid(cents: -4_000))
         #expect(account("-40").amount == .valid(cents: -4_000))
         #expect(account("40").amount == .valid(cents: 4_000))
     }
 
-    @Test("the overdraft switch never turns a blank or refused amount into a number")
-    func account_overdraft_keepsBlankAndInvalid() {
-        #expect(account("", isOverdraft: true).amount == .blank)
-        #expect(account("12.", isOverdraft: true).amount == .invalid)
+    @Test("the negative switch never turns a blank or refused amount into a number")
+    func account_negative_keepsBlankAndInvalid() {
+        #expect(account("", isNegative: true).amount == .blank)
+        #expect(account("12.", isNegative: true).amount == .invalid)
     }
 
     // MARK: - Total
@@ -65,9 +65,9 @@ struct AccountReconciliationTests {
         #expect(AccountReconciliation.totalCents(of: [account("0.1"), account("0.2")]) == 30)
     }
 
-    @Test("an overdrawn account is subtracted from the total")
-    func totalCents_subtractsOverdraft() {
-        let accounts = [account("1500.25"), account("200,50", isOverdraft: true), account("0.01")]
+    @Test("a negative account is subtracted from the total")
+    func totalCents_subtractsNegativeAccount() {
+        let accounts = [account("1500.25"), account("200,50", isNegative: true), account("0.01")]
         #expect(AccountReconciliation.totalCents(of: accounts) == 129_976)
     }
 
@@ -210,7 +210,7 @@ struct AccountReconciliationTests {
 
     private static let now = Date(timeIntervalSince1970: 1_790_000_000)
 
-    private func account(_ amountText: String, isOverdraft: Bool = false) -> AccountReconciliation.Account {
-        AccountReconciliation.Account(amountText: amountText, isOverdraft: isOverdraft)
+    private func account(_ amountText: String, isNegative: Bool = false) -> AccountReconciliation.Account {
+        AccountReconciliation.Account(amountText: amountText, isNegative: isNegative)
     }
 }
