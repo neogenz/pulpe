@@ -14,7 +14,10 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { KIND_ICONS, recurrenceLabel } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -74,6 +77,7 @@ export default function BudgetLineDetailScreen() {
   useAmountMasking();
   const { id, lineId } = useLocalSearchParams<{ id: string; lineId: string }>();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { locale, t } = useTranslation();
   const financial = useFinancialColors();
   const settings = useUserSettings();
@@ -164,7 +168,10 @@ export default function BudgetLineDetailScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScreenAppBar>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction
+          onPress={() => router.back()}
+          accessibilityLabel={t("common.back")}
+        />
         <Appbar.Content title={line.name} />
         <Menu
           visible={isMenuOpen}
@@ -399,7 +406,9 @@ export default function BudgetLineDetailScreen() {
         icon="plus"
         testID="line-add-activity"
         label={t("budgets.actions.line.note")}
-        style={styles.fab}
+        // An absolute child sits outside the safe area's padding: without the
+        // inset, the FAB lands on the gesture bar.
+        style={[styles.fab, { bottom: SPACING.md + insets.bottom }]}
         onPress={() => overlays.current?.addTransaction()}
       />
 

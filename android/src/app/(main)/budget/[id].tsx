@@ -185,6 +185,30 @@ export default function BudgetDetailScreen() {
   const toggle = useToggleCheck(id);
   const isPendingCheck = usePendingCheck(id);
   const pull = usePullToRefresh(invalidateBudgetData);
+
+  // Per call: `mutate`'s callbacks belong to the latest call alone, so a
+  // failure on a row pointed just before another went unsaid. A pointing gets
+  // its "Annuler": under "À pointer" the row leaves the list, and a stray swipe
+  // otherwise sends it out of sight with nothing to say where it went.
+  function pointWithUndo(
+    target: Parameters<typeof toggle.mutateAsync>[0],
+    name: string,
+    isPointing: boolean,
+  ) {
+    void toggle.mutateAsync(target).then(
+      () => {
+        if (!isPointing) return;
+        overlays.current?.showPointed({
+          name,
+          undo: () =>
+            void toggle
+              .mutateAsync(target)
+              .catch(() => overlays.current?.showToggleFailure()),
+        });
+      },
+      () => overlays.current?.showToggleFailure(),
+    );
+  }
   const overlays = useRef<BudgetDetailOverlaysHandle>(null);
   const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
   const [isSearchVisible, setSearchVisible] = useState(false);
@@ -451,12 +475,14 @@ export default function BudgetDetailScreen() {
                     )
                   }
                   onToggle={() =>
-                    void toggle
-                      .mutateAsync({
+                    pointWithUndo(
+                      {
                         source: "transaction",
                         sourceId: row.transaction.id,
-                      })
-                      .catch(() => overlays.current?.showToggleFailure())
+                      },
+                      row.transaction.name,
+                      row.transaction.checkedAt == null,
+                    )
                   }
                 />
               </LedgerSegment>
@@ -482,14 +508,11 @@ export default function BudgetDetailScreen() {
                 onToggle={() => {
                   dismissTip("gestures");
                   if (isPessimistic(row.item)) armTip("pessimistic-check");
-                  void toggle
-                    .mutateAsync({
-                      source: "budgetLine",
-                      sourceId: row.item.line.id,
-                    })
-                    // Per call: `mutate`'s callbacks belong to the latest call alone,
-                    // so a failure on a row pointed just before another went unsaid.
-                    .catch(() => overlays.current?.showToggleFailure());
+                  pointWithUndo(
+                    { source: "budgetLine", sourceId: row.item.line.id },
+                    row.item.line.name,
+                    row.item.line.checkedAt == null,
+                  );
                 }}
               />
             </LedgerSegment>

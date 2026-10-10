@@ -155,7 +155,10 @@ export default function TemplateDetailScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScreenAppBar>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction
+          onPress={() => router.back()}
+          accessibilityLabel={t("common.back")}
+        />
         <Appbar.Content title={template.data.name} />
         <Menu
           visible={isMenuVisible}

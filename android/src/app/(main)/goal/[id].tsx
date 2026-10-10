@@ -388,5 +388,5 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1 },
   section: { gap: SPACING.sm },
   card: { borderRadius: RADIUS.card, padding: SPACING.md },
-  bone: { height: 160, borderRadius: SPACING.sm },
+  bone: { height: 160, borderRadius: RADIUS.sm },
 });

@@ -49,6 +49,7 @@ it("asks about each operation on its own page and points the one confirmed", asy
   const view = await render(
     <UncheckedOperationsCard
       items={items}
+      totalCount={9}
       currency="CHF"
       isPending={notPending}
       onToggle={onToggle}
@@ -59,7 +60,10 @@ it("asks about each operation on its own page and points the one confirmed", asy
   expect(view.queryByText("2 / 2")).toBeNull();
   await layOut(view);
 
-  expect(view.getByText("home.checking.title  ·  2")).toBeTruthy();
+  // The header counts every operation left, not just the queue it shows.
+  expect(
+    view.getByText("home.checking.title\u00A0\u00A0·\u00A09"),
+  ).toBeTruthy();
   expect(view.getByText("Loyer")).toBeTruthy();
   expect(view.getByText("1 / 2")).toBeTruthy();
   expect(view.getByText("2 / 2")).toBeTruthy();
@@ -77,6 +81,7 @@ it("slides to the next page on later, and back to the first from the last", asyn
   const view = await render(
     <UncheckedOperationsCard
       items={items}
+      totalCount={items.length}
       currency="CHF"
       isPending={notPending}
       onToggle={jest.fn()}
@@ -109,6 +114,7 @@ it("holds only the operation in flight, not the whole queue", async () => {
   const view = await render(
     <UncheckedOperationsCard
       items={items}
+      totalCount={items.length}
       currency="CHF"
       isPending={(item) => item.id === "rent"}
       onToggle={jest.fn()}
@@ -128,6 +134,7 @@ it("offers no later when there is only one operation left", async () => {
   const view = await render(
     <UncheckedOperationsCard
       items={[items[0]!]}
+      totalCount={1}
       currency="CHF"
       isPending={notPending}
       onToggle={jest.fn()}
@@ -142,6 +149,7 @@ it("renders nothing with nothing to point", async () => {
   const view = await render(
     <UncheckedOperationsCard
       items={[]}
+      totalCount={0}
       currency="CHF"
       isPending={notPending}
       onToggle={jest.fn()}
