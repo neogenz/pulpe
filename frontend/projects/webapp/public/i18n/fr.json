@@ -1145,6 +1145,7 @@
         "labelRequired": "Donne un libellé à cet ajustement",
         "defaultLabel": "Ajustement",
         "record": "Confirmer l'ajustement",
+        "recording": "Enregistrement...",
         "finish": "Terminer",
         "morePrefix": "Tes comptes ont",
         "moreSuffix": "de plus",

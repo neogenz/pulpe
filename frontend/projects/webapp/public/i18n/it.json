@@ -1145,6 +1145,7 @@
         "labelRequired": "Dai una descrizione a questo allineamento",
         "defaultLabel": "Allineamento",
         "record": "Conferma l'allineamento",
+        "recording": "Salvataggio...",
         "finish": "Fatto",
         "morePrefix": "Sui tuoi conti ci sono",
         "moreSuffix": "in più",

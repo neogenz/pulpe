@@ -13,25 +13,12 @@
   </button>
 </header>
 
-<ol
+<pulpe-step-progress
   class="step-progress"
-  [attr.aria-label]="'currentMonth.reconcile.stepOf' | transloco: { step: step() }"
->
-  @for (item of steps; track item.number) {
-  <li
-    [class.is-current]="step() === item.number"
-    [class.is-complete]="step() > item.number"
-    [attr.aria-current]="step() === item.number ? 'step' : null"
-  >
-    <span class="step-number" aria-hidden="true">
-      @if (step() > item.number) {
-      <mat-icon>check</mat-icon>
-      } @else { {{ item.number }} }
-    </span>
-    <span>{{ item.label | transloco }}</span>
-  </li>
-  }
-</ol>
+  [steps]="steps"
+  [currentStep]="step()"
+  [ariaLabel]="'currentMonth.reconcile.stepOf' | transloco: { step: step() }"
+/>
 
 <mat-dialog-content #scrollContent class="reconcile-content">
   @switch (step()) { @case (1) {
@@ -39,7 +26,7 @@
     <h3
       #stepHeading
       tabindex="-1"
-      class="step-heading"
+      class="step-heading text-headline-small font-bold"
       data-testid="reconcile-step-heading"
     >
       {{ 'currentMonth.reconcile.accounts.heading' | transloco }}
@@ -168,7 +155,7 @@
     <h3
       #stepHeading
       tabindex="-1"
-      class="step-heading"
+      class="step-heading text-headline-small font-bold"
       data-testid="reconcile-step-heading"
     >
       {{ 'currentMonth.reconcile.realized.heading' | transloco }}
@@ -179,7 +166,7 @@
       {{ 'currentMonth.reconcile.realized.intro' | transloco }}
     </p>
     <div class="position-card p-6 rounded-3xl bg-surface-container-low">
-      <p class="position-label m-0 text-[13px] text-on-surface-variant">
+      <p class="position-label m-0 text-body-medium text-on-surface-variant">
         {{ 'currentMonth.reconcile.realized.balance' | transloco }}
       </p>
       <p
@@ -190,7 +177,7 @@
       </p>
       @if (periodRange(); as range) {
       <p
-        class="period-label m-0 text-[13px] text-on-surface-variant"
+        class="period-label m-0 text-body-medium text-on-surface-variant"
         data-testid="reconcile-period"
       >
         {{ 'currentMonth.reconcile.realized.period' | transloco: range }}
@@ -263,7 +250,7 @@
       <h3
         #stepHeading
         tabindex="-1"
-        class="step-heading"
+        class="step-heading text-headline-small font-bold"
         data-testid="reconcile-verdict-title"
       >
         {{ 'currentMonth.reconcile.verdict.upToDateTitle' | transloco }}
@@ -328,14 +315,14 @@
         <h4>
           {{ 'currentMonth.reconcile.verdict.adjustmentTitle' | transloco }}
         </h4>
-        <span
+        <mat-chip
           class="adjustment-kind"
           [class.is-expense]="currentVerdict.kind === 'expense'"
         >
           {{ (currentVerdict.kind === 'income' ?
           'currentMonth.reconcile.verdict.income' :
           'currentMonth.reconcile.verdict.expense') | transloco }}
-        </span>
+        </mat-chip>
       </div>
       <p
         class="adjustment-description ph-no-capture m-0 mb-5 text-on-surface-variant text-sm leading-normal"
@@ -410,18 +397,17 @@
       <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
     </button>
     } @else if (adjustment()) {
-    <button
-      matButton="filled"
+    <pulpe-loading-button
       class="primary-action"
-      (click)="record()"
+      type="button"
+      testId="reconcile-record-button"
+      [loading]="isRecording()"
       [disabled]="!canRecord()"
-      data-testid="reconcile-record-button"
+      [loadingText]="'currentMonth.reconcile.verdict.recording' | transloco"
+      (click)="record()"
     >
-      <span class="record-label">
-        @if (isRecording()) { <mat-spinner diameter="18" /> } {{
-        'currentMonth.reconcile.verdict.record' | transloco }}
-      </span>
-    </button>
+      {{ 'currentMonth.reconcile.verdict.record' | transloco }}
+    </pulpe-loading-button>
     } @else {
     <button
       matButton="filled"

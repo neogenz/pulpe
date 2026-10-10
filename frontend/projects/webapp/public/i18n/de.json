@@ -1145,6 +1145,7 @@
         "labelRequired": "Gib diesem Ausgleich eine Bezeichnung",
         "defaultLabel": "Ausgleich",
         "record": "Ausgleich bestätigen",
+        "recording": "Wird gespeichert...",
         "finish": "Fertig",
         "morePrefix": "Auf deinen Konten sind",
         "moreSuffix": "mehr",

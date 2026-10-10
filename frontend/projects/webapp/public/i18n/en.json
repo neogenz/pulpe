@@ -1145,6 +1145,7 @@
         "labelRequired": "Give this adjustment a label",
         "defaultLabel": "Adjustment",
         "record": "Confirm the adjustment",
+        "recording": "Saving...",
         "finish": "Done",
         "morePrefix": "Your accounts hold",
         "moreSuffix": "more",

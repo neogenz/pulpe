@@ -16,6 +16,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import type { ErrorStateMatcher } from '@angular/material/core';
 import {
   MAT_DIALOG_DATA,
@@ -25,7 +26,6 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
@@ -41,6 +41,8 @@ import { filter, merge } from 'rxjs';
 
 import { PostHogService } from '@core/analytics/posthog';
 import { AppCurrencyPipe } from '@core/currency';
+import { LoadingButton } from '@ui/loading-button';
+import { StepProgress } from '@ui/step-progress';
 
 /** The pointed side of the active month, as the page already computes it. */
 export interface RealizedPosition {
@@ -88,14 +90,16 @@ const LEADING_MINUS = /^\s*[-−]/;
   imports: [
     FormsModule,
     MatButtonModule,
+    MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatProgressSpinnerModule,
     MatTooltipModule,
     TranslocoPipe,
     AppCurrencyPipe,
+    LoadingButton,
+    StepProgress,
   ],
   templateUrl: './reconcile-accounts-dialog.html',
   styleUrl: './reconcile-accounts-dialog.scss',
@@ -124,9 +128,9 @@ export class ReconcileAccountsDialog {
     viewChild<ElementRef<HTMLElement>>('scrollContent');
 
   protected readonly steps = [
-    { number: 1, label: 'currentMonth.reconcile.steps.accounts' },
-    { number: 2, label: 'currentMonth.reconcile.steps.realized' },
-    { number: 3, label: 'currentMonth.reconcile.steps.verdict' },
+    { labelKey: 'currentMonth.reconcile.steps.accounts' },
+    { labelKey: 'currentMonth.reconcile.steps.realized' },
+    { labelKey: 'currentMonth.reconcile.steps.verdict' },
   ] as const;
   protected readonly step = signal<Step>(1);
   protected readonly accounts = signal<AccountRow[]>([
