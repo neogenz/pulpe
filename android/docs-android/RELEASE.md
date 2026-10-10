@@ -17,9 +17,8 @@ checklist rather than a description of a finished release pipeline.
 | 6   | Backend env on Railway                    | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate      |
 | 7   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/`                       | App Links verification |
 
-`eas init` writes `extra.eas.projectId` into `app.json`; `eas update:configure`
-writes `updates.url`. Until the latter runs, OTA is inert — the app still builds
-and runs, it simply never checks for an update.
+`eas init` writes `extra.eas.projectId` into `app.json`; `updates.url` points at
+the same project, so a binary checks its channel for an update on every launch.
 
 ## First-time setup
 
@@ -208,14 +207,14 @@ labels are exercised on the exact candidate head.
   the current build and privacy policy against this inventory — do not reduce
   the declaration to email and amounts:
 
-  | Play data family         | Current Android flow                                                                                                         | Purpose and control                                                                                                      |
-  | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-  | Personal info            | Supabase/backend receive account email, user ID and profile name. PostHog receives the account user ID (`identify`).         | Account management, authentication and app functionality; the user ID also for analytics, under the diagnostics control. |
-  | Financial info           | User-entered amounts, balances and savings goals reach the backend as AES-256-GCM ciphertext.                                | Core app functionality; TLS in transit, server has no vault key.                                                         |
-  | Other user content       | Budget, operation and goal names, tags, descriptions and dates support the user's records.                                   | Core app functionality; review each field's encryption before declaring.                                                 |
-  | App activity             | PostHog receives screen names and allow-listed onboarding/auth interaction events, without route IDs, typed text or amounts. | Analytics; production only, controlled by “Partager les diagnostics”.                                                    |
-  | App info and performance | PostHog receives uncaught JavaScript exceptions and unhandled rejections, plus app version, build, platform and environment. | Diagnostics; no native crash/session replay, same user control.                                                          |
-  | Device or other IDs      | PostHog assigns a distinct/device identifier and SDK device/app/OS properties.                                               | Analytics and diagnostics; same user control.                                                                            |
+  | Play data family         | Current Android flow                                                                                                                         | Purpose and control                                                                                                      |
+  | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+  | Personal info            | Supabase/backend receive account email, user ID and profile name. PostHog receives the account user ID (`identify`).                         | Account management, authentication and app functionality; the user ID also for analytics, under the diagnostics control. |
+  | Financial info           | User-entered amounts, balances and savings goals reach the backend as AES-256-GCM ciphertext.                                                | Core app functionality; TLS in transit, server has no vault key.                                                         |
+  | Other user content       | Budget, operation and goal names, tags, descriptions and dates support the user's records.                                                   | Core app functionality; review each field's encryption before declaring.                                                 |
+  | App activity             | PostHog receives screen names and allow-listed onboarding/auth interaction events, without route IDs, typed text or amounts.                 | Analytics; production only, controlled by “Partager les diagnostics”.                                                    |
+  | App info and performance | PostHog receives uncaught JavaScript exceptions, unhandled rejections and JVM crash logs, plus app version, build, platform and environment. | Diagnostics (declare “Crash logs”); no session replay, same user control.                                                |
+  | Device or other IDs      | PostHog assigns a distinct/device identifier and SDK device/app/OS properties.                                                               | Analytics and diagnostics; same user control.                                                                            |
 
   Verify the final Play answers against the PostHog/Supabase processor terms,
   retention, deletion path and whether each transfer qualifies as “sharing”

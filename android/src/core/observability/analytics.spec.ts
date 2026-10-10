@@ -106,7 +106,7 @@ describe("PostHog startup", () => {
           uncaughtExceptions: true,
           unhandledRejections: true,
           console: [],
-          nativeCrashes: false,
+          nativeCrashes: true,
         },
       },
     });

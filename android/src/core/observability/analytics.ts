@@ -116,7 +116,7 @@ export function startAnalytics(): () => void {
           uncaughtExceptions: true,
           unhandledRejections: true,
           console: [],
-          nativeCrashes: false,
+          nativeCrashes: true,
         },
       },
     });
