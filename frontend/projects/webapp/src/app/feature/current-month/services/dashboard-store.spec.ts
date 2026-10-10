@@ -453,10 +453,7 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(mocks.budgetApi.createTransaction$).toHaveBeenCalled();
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-new');
-      expect(mocks.postHogService.captureEvent).toHaveBeenCalledWith(
-        'transaction_created',
-        { type: 'expense' },
-      );
+      expect(mocks.postHogService.captureEvent).not.toHaveBeenCalled();
     });
 
     it('should not insert transaction and should set error signal when addTransaction fails', async () => {

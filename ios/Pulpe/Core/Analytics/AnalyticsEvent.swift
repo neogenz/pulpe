@@ -49,6 +49,7 @@ enum AnalyticsEvent: String, CaseIterable {
     case firstBudgetCreated = "first_budget_created"
 
     // MARK: - Transaction
+    /// Fires after a successful creation response from any surface. Properties: `type`.
     case transactionCreated = "transaction_created"
     /// Fires when an entry is recorded while the server said the account held none yet
     /// (PUL-306), from whichever surface recorded it.
