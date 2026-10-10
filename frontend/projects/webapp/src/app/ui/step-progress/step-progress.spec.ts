@@ -4,20 +4,22 @@ import { describe, expect, it } from 'vitest';
 
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
-import { StepProgress } from './step-progress';
+import { StepProgress, type ProgressStep } from './step-progress';
 
-async function render(currentStep: number) {
+const STEPS = [
+  { labelKey: 'step.one' },
+  { labelKey: 'step.two' },
+  { labelKey: 'step.three' },
+];
+
+async function render(currentStep: number, steps: ProgressStep[] = STEPS) {
   await TestBed.configureTestingModule({
     imports: [StepProgress],
     providers: [provideZonelessChangeDetection(), ...provideTranslocoForTest()],
   }).compileComponents();
 
   const fixture = TestBed.createComponent(StepProgress);
-  fixture.componentRef.setInput('steps', [
-    { labelKey: 'step.one' },
-    { labelKey: 'step.two' },
-    { labelKey: 'step.three' },
-  ]);
+  fixture.componentRef.setInput('steps', steps);
   fixture.componentRef.setInput('ariaLabel', 'Progress');
   fixture.componentRef.setInput('currentStep', currentStep);
   fixture.detectChanges();
@@ -41,5 +43,22 @@ describe('StepProgress', () => {
     const list = await render(1);
 
     expect(list.hasAttribute('data-testid')).toBe(false);
+  });
+
+  it('should show the short label on mobile and the full label from sm up', async () => {
+    const list = await render(1, [
+      ...STEPS.slice(0, 2),
+      { labelKey: 'step.three', shortLabelKey: 'step.threeShort' },
+    ]);
+
+    const labels = [
+      ...list
+        .querySelectorAll('li')[2]
+        .querySelectorAll('.sm\\:hidden, .sm\\:inline'),
+    ].map((span) => [span.textContent?.trim(), span.className]);
+    expect(labels).toEqual([
+      ['step.threeShort', 'sm:hidden'],
+      ['step.three', 'hidden sm:inline'],
+    ]);
   });
 });
