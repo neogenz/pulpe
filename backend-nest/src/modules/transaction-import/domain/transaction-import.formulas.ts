@@ -217,17 +217,19 @@ export function classifyOperations(input: {
   const operations: TransactionImportOperation[] = [];
   const candidates: ImportCandidate[] = [];
   // A bank reference listed twice (overlapping statements in one file) is one
-  // operation: the second listing counts as already imported.
-  const seen = new Set<string>();
+  // operation: once a listing will be created, the next counts as already
+  // imported. Only creations count — a pending listing followed by the booked
+  // one must still create the booked one.
+  const created = new Set<string>();
 
   input.operations.forEach((operation, index) => {
     const fingerprint = input.fingerprints[index];
     const status = statusOf(
       operation,
-      input.importedFingerprints.has(fingerprint) || seen.has(fingerprint),
+      input.importedFingerprints.has(fingerprint) || created.has(fingerprint),
       input.period,
     );
-    seen.add(fingerprint);
+    if (status === 'new') created.add(fingerprint);
     operations.push({
       position: operation.position,
       date: operation.date,

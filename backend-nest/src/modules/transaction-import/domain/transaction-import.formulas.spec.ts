@@ -250,6 +250,21 @@ describe('classifyOperations', () => {
     expect(candidates).toHaveLength(2);
   });
 
+  it('still creates the booked listing of a reference first listed as pending', () => {
+    const { operations: listed, candidates } = classifyOperations({
+      operations: [
+        valid({ position: 1, isBooked: false }),
+        valid({ position: 2 }),
+      ],
+      fingerprints: ['same', 'same'],
+      importedFingerprints: new Set(),
+      period: MARCH,
+      lines: [],
+    });
+    expect(listed.map((op) => op.status)).toEqual(['pending', 'new']);
+    expect(candidates.map((candidate) => candidate.position)).toEqual([2]);
+  });
+
   it('keeps a reference listed twice in the file to a single creation', () => {
     const { operations: listed, candidates } = classifyOperations({
       operations: [valid({ position: 1 }), valid({ position: 2 })],
