@@ -32,6 +32,10 @@ import {
   type TransactionFormData,
 } from './components/add-transaction-form.schema';
 import { transactionCreateSchema } from 'pulpe-shared';
+import {
+  FirstTransactionTracker,
+  type FirstTransactionSource,
+} from '@core/transaction';
 import { DashboardError } from './components/dashboard-error';
 import {
   ReconcileAccountsDialog,
@@ -48,10 +52,18 @@ import { DashboardFutureProjectionChart } from './components/dashboard-future-pr
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
 import { DashboardNextMonth } from './components/dashboard-next-month';
+import { DashboardMonthRecap } from './components/dashboard-month-recap';
+import {
+  MonthRecapDialog,
+  type MonthRecapDialogData,
+  type MonthRecapDialogResult,
+} from './components/month-recap-dialog';
+import type { MonthRecap } from './services/dashboard-state';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 import { dateFnsLocaleFor } from '@core/locale';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+import { firstValueFrom } from 'rxjs';
 
 // Longer than the plain notification below: this toast is not read, it is
 // reached. It has to survive the user noticing the mistake and travelling to
@@ -67,6 +79,15 @@ export const UNDO_WINDOW_MS = 6000;
 // class: without it the hide-amounts toggle would blur the toast and, through
 // `pointer-events: none`, take the Undo button with it.
 const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
+
+// Which control on this page opened the add sheet.
+type AddTransactionSource = Extract<
+  FirstTransactionSource,
+  'activation_prompt' | 'add_button'
+>;
+
+const monthRecapKey = ({ month, year }: MonthRecap): string =>
+  `${year}-${String(month).padStart(2, '0')}`;
 
 // The two things this page writes, and the two ways it takes them back.
 type UndoableAction =
@@ -94,6 +115,7 @@ type UndoableAction =
     DashboardNextMonth,
     DashboardHistoryChart,
     DashboardFutureProjectionChart,
+    DashboardMonthRecap,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
@@ -147,6 +169,16 @@ type UndoableAction =
         />
       } @else if (store.dashboardData()?.budget) {
         <div class="flex flex-col gap-8">
+          @if (monthRecap(); as recap) {
+            <pulpe-dashboard-month-recap
+              [recap]="recap"
+              [currency]="currency()"
+              (openDetails)="openMonthRecap(recap)"
+              (dismiss)="dismissMonthRecap(recap)"
+              data-testid="dashboard-block-month-recap"
+            />
+          }
+
           <!-- Hero "Disponible à dépenser" -->
           <pulpe-dashboard-hero
             [expenses]="store.totalExpenses()"
@@ -171,6 +203,35 @@ type UndoableAction =
             data-testid="dashboard-block-hero"
             data-tour="dashboard-hero"
           />
+
+          <!-- PUL-306. The hero states what is left to spend; nothing on the
+               page said that one gesture keeps it true, and the account's first
+               budget is where most users stop. Right under the figure it
+               explains, so the reason and the way to act on it read together.
+               It asks for nothing else and blocks nothing: the page below works
+               as usual, and the first entry retires it. -->
+          @if (showFirstExpenseInvite()) {
+            <pulpe-state-card
+              class="bg-surface-container-low rounded-3xl"
+              variant="empty"
+              [compact]="true"
+              [title]="'currentMonth.firstExpenseInvite.title' | transloco"
+              [message]="'currentMonth.firstExpenseInvite.message' | transloco"
+              testId="first-expense-invite"
+            >
+              <!-- Tonal: the FAB below keeps the one filled primary on this
+                   page, and the same label teaches that both open one sheet. -->
+              <button
+                matButton="tonal"
+                class="mt-4"
+                data-testid="first-expense-invite-button"
+                (click)="openAddTransaction('activation_prompt')"
+              >
+                <mat-icon aria-hidden="true">add</mat-icon>
+                {{ 'currentMonth.addTransactionFab' | transloco }}
+              </button>
+            </pulpe-state-card>
+          }
 
           <!-- Fixed, so its place in the markup costs nothing visually and buys
                the tab order: recording a transaction is what this page is for,
@@ -563,6 +624,7 @@ export default class Dashboard {
   readonly #storage = inject(StorageService);
   readonly #dialog = inject(MatDialog);
   readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #firstTransactionTracker = inject(FirstTransactionTracker);
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
 
   // Folded by default: the daily visit is the one this page is for, and it ends
@@ -586,6 +648,47 @@ export default class Dashboard {
     this.#storage.set(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED, isExpanded);
   }
 
+  // One closed month at a time: the key moves forward with the calendar, so a
+  // recap dismissed in October cannot hide November's.
+  readonly #seenMonthRecap = signal(
+    this.#storage.get<string>(STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN),
+  );
+  protected readonly monthRecap = computed(() => {
+    const recap = this.store.previousMonthRecap();
+    return recap && monthRecapKey(recap) !== this.#seenMonthRecap()
+      ? recap
+      : null;
+  });
+
+  protected dismissMonthRecap(recap: MonthRecap): void {
+    const key = monthRecapKey(recap);
+    this.#seenMonthRecap.set(key);
+    this.#storage.set(STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN, key);
+  }
+
+  protected async openMonthRecap(recap: MonthRecap): Promise<void> {
+    const { month, year } = this.store.currentBudgetPeriod();
+    const dialogRef = this.#dialog.open<
+      MonthRecapDialog,
+      MonthRecapDialogData,
+      MonthRecapDialogResult
+    >(MonthRecapDialog, {
+      data: {
+        recap,
+        currentMonth: month,
+        currentYear: year,
+        currency: this.currency(),
+      },
+      width: '440px',
+      maxWidth: 'calc(100vw - 32px)',
+    });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (result === 'acknowledged') this.dismissMonthRecap(recap);
+    if (result === 'details') {
+      this.#router.navigate(['/budget', recap.budgetId]);
+    }
+  }
+
   // "Engagé" and "Pointer" are this page's two house words, and each carries a
   // printed definition on the card that uses it. Both were retiring on the
   // wrong clock: the hero's showed whenever an engagé segment existed, which is
@@ -602,6 +705,9 @@ export default class Dashboard {
   protected readonly showPointingHints = computed(
     () => !this.#pointingLearned(),
   );
+
+  protected readonly showFirstExpenseInvite =
+    this.store.isAwaitingFirstTransaction;
 
   #recordPointingLearned(): void {
     if (this.#pointingLearned()) return;
@@ -1022,6 +1128,10 @@ export default class Dashboard {
       this.#notify(outcome.reason, 'top');
       return false;
     }
+    this.#firstTransactionTracker.recordCreated(
+      adjustment.kind,
+      'reconciliation',
+    );
     this.#confirmWithUndo({
       kind: 'transaction',
       id: outcome.transactionId,
@@ -1030,9 +1140,11 @@ export default class Dashboard {
     return true;
   }
 
-  protected async openAddTransaction(): Promise<void> {
+  protected async openAddTransaction(
+    source: AddTransactionSource = 'add_button',
+  ): Promise<void> {
     await this.#addTransactionDialog.open((transaction) =>
-      this.#addTransaction(transaction),
+      this.#addTransaction(transaction, source),
     );
   }
 
@@ -1044,6 +1156,7 @@ export default class Dashboard {
   // an accidental click outside is allowed to drop them.
   async #addTransaction(
     transaction: TransactionFormData,
+    source: AddTransactionSource,
   ): Promise<string | null> {
     const budgetId = this.store.dashboardData()?.budget?.id;
     // The sheet lives in the overlay and outlives a period rollover: returning
@@ -1059,6 +1172,8 @@ export default class Dashboard {
     });
     const outcome = await this.store.addTransaction(transactionCreate);
     if ('reason' in outcome) return outcome.reason;
+
+    this.#firstTransactionTracker.recordCreated(transactionCreate.kind, source);
 
     this.#confirmWithUndo({
       kind: 'transaction',

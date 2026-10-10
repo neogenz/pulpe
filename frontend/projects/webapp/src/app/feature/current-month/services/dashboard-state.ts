@@ -29,3 +29,23 @@ export interface UpcomingMonthForecast {
   expenses: number | null;
   savings: number | null;
 }
+
+/**
+ * The month that just closed, read once the next one has opened. Income and
+ * expenses come from the sparse history feed; the carry-over and the start of
+ * the new month come from the current budget, whose `rollover` is by definition
+ * where the closed month ended.
+ */
+export interface MonthRecap {
+  budgetId: string;
+  month: number;
+  year: number;
+  income: number;
+  expenses: number;
+  // The month's own result (`ending_balance`): income − expenses, without the
+  // report it inherited.
+  endingBalance: number;
+  outcome: 'saved' | 'overspent' | 'balanced';
+  carriedOver: number;
+  startingAvailable: number;
+}

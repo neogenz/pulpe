@@ -332,6 +332,7 @@ const API_ROUTE_TEMPLATES: readonly RouteTemplate[] = [
   ['savings-goals', ':id'],
   ['transactions'],
   ['transactions', 'search'],
+  ['transactions', 'exists'],
   ['transactions', 'budget', ':budgetId'],
   ['transactions', 'budget-line', ':budgetLineId'],
   ['transactions', ':id', 'toggle-check'],

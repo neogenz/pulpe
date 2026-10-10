@@ -2,9 +2,9 @@ import SwiftUI
 import TipKit
 import WidgetKit
 
-private enum SheetDestination: Identifiable {
+private enum SheetDestination: Identifiable, Hashable {
     case realizedBalance, account, createBudget, notificationPrime
-    case addTransaction, feedback
+    case addTransaction(FirstTransactionTracker.Source), feedback
     var id: Self { self }
 }
 
@@ -116,9 +116,9 @@ struct CurrentMonthView: View {
                     NotificationPrimeSheet {
                         Task { await enableReminders() }
                     }
-                case .addTransaction:
+                case .addTransaction(let source):
                     if let budgetId = store.budget?.id {
-                        AddTransactionSheet(budgetId: budgetId, onAdd: store.addTransaction)
+                        AddTransactionSheet(budgetId: budgetId, source: source, onAdd: store.addTransaction)
                     }
                 case .feedback:
                     AutomaticFeedbackSheet()
@@ -162,6 +162,8 @@ struct CurrentMonthView: View {
                     hasAppeared = true
                 }
             }
+            // After the reveal: the first-expense tip (PUL-306) can arrive a beat late
+            await FirstTransactionTracker.shared.loadIfNeeded()
             // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
             await budgetListStore.loadIfNeeded()
             // Goal names for the "épargne versée" card — only when the month links to goals
@@ -260,8 +262,10 @@ struct CurrentMonthView: View {
         // plus a card, so the space between two of them has to beat the space between a
         // heading and the card it introduces, or the pairing reads the wrong way round.
         VStack(spacing: DesignTokens.Spacing.xxl) {
+            // Bilan du mois clôturé (PUL-111): the forest above belongs to the hero alone.
+            MonthRecapSection()
             if store.budget != nil {
-                addOperationRow
+                HomeAddOperationRow { activeSheet = .addTransaction($0) }
             }
             // Opérations à pointer — only while something needs checking
             if !store.uncheckedItems.isEmpty {
@@ -345,18 +349,6 @@ struct CurrentMonthView: View {
             BudgetDestination.editTransaction(budgetId: budgetId, transactionId: transaction.id)
         )
     }
-
-    /// The one filled element in the content zone. Recording an operation is the act the
-    /// whole app depends on, and dressed as a white card with a chevron it had the same
-    /// weight as the records below it — and promised a list it doesn't open.
-    private var addOperationRow: some View {
-        Button { activeSheet = .addTransaction } label: {
-            Label("Ajouter une opération", systemImage: "plus")
-        }
-        .primaryButtonStyle()
-        .accessibilityLabel("Ajouter une opération")
-        .accessibilityIdentifier("homeAddOperationButton")
-    }
 }
 
 // MARK: - Retention hooks (post-onboarding handoff + notification priming)
@@ -410,7 +402,7 @@ extension CurrentMonthView {
 
     private var currentMonthName: String {
         guard let budget = store.budget else { return "" }
-        return Formatters.monthName(for: budget.month).lowercased()
+        return Formatters.monthNameInText(for: budget.month)
     }
 
     /// Goal name shown on the savings card — only when every saving line maps to the same goal.

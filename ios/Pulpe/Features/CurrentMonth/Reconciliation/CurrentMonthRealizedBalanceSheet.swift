@@ -23,10 +23,20 @@ struct CurrentMonthRealizedBalanceSheet: View {
                 if let month = reconciledMonth {
                     // `addTransaction` is the store's own landing for a created entry: the
                     // checked balance moves at once and the sibling stores are invalidated.
-                    ReconcileAccountsSheet(month: month, onAdjustmentCreated: store.addTransaction) {
-                        dismiss()
-                        onShowItemsToCheck()
-                    }
+                    ReconcileAccountsSheet(
+                        month: month,
+                        onAdjustmentCreated: { transaction in
+                            FirstTransactionTracker.shared.recordCreated(
+                                kind: transaction.kind,
+                                source: .reconciliation
+                            )
+                            store.addTransaction(transaction)
+                        },
+                        onShowItemsToCheck: {
+                            dismiss()
+                            onShowItemsToCheck()
+                        }
+                    )
                 }
             }
     }

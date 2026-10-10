@@ -30,11 +30,12 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     slug: "budgeter-primes-maladie",
-    title: "Primes maladie 2026 : comment les provisionner dans ton budget",
+    title:
+      "Primes maladie 2027 : comment provisionner la hausse dans ton budget",
     description:
-      "La prime moyenne 2026 est à 393.30 CHF. Voici comment répartir la hausse sur l’année, sans attendre la facture de janvier.",
+      "La prime moyenne passe à 412 CHF en 2027, soit +5,0 %. Voici comment répartir la hausse sur les mois qui restent, sans attendre la facture de janvier.",
     publishedAt: "2026-08-18",
-    updatedAt: "2026-08-18",
+    updatedAt: "2026-10-09",
     readingMinutes: 8,
   },
   {

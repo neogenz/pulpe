@@ -116,6 +116,7 @@ extension BudgetDetailsCoordinator {
     ) async throws -> Transaction {
         let transaction = try await transactionService.createTransaction(data)
         addTransaction(transaction)
+        FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .budgetDetails)
         return transaction
     }
 

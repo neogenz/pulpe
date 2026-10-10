@@ -91,6 +91,18 @@ export const STORAGE_SCHEMAS = {
     scope: 'user',
   },
 
+  [STORAGE_KEYS.FIRST_TRANSACTION_RECORDED]: {
+    version: 1,
+    schema: z.boolean(),
+    scope: 'user',
+  },
+
+  [STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN]: {
+    version: 1,
+    schema: z.string().regex(/^\d{4}-\d{2}$/),
+    scope: 'user',
+  },
+
   // Currency snapshot for bootstrap locale selection (device-level, preserved across sessions)
   [STORAGE_KEYS.SETTINGS_CURRENCY]: {
     version: 1,

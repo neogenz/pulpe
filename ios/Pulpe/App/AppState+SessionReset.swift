@@ -262,9 +262,11 @@ extension AppState {
         onboardingBootstrapper.clearPendingData()
         // Frontière d'identité : le prochain compte sur ce device ne doit ni
         // hériter des rappels de celui-ci, ni perdre son propre handoff
-        // post-onboarding, ni recevoir une notification déjà programmée.
+        // post-onboarding, ni son bilan de clôture, ni recevoir une notification déjà
+        // programmée.
         ReminderPreferences().reset()
         PostOnboardingFlagsStore().reset()
+        MonthRecapFlagsStore().reset()
         await NotificationScheduler.shared.cancelMonthlyReminder()
         clearManualBiometricRetryRequiredFlag()
         await biometric.disable()

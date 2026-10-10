@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { getDictionary } from "../../content/dictionary";
 import { DEFAULT_LOCALE } from "../../lib/i18n";
 import { socialPreviewImage } from "../../lib/metadata";
-import { DE_GUIDE_CHROME } from "./chrome";
+import { DE_GUIDE_CHROME, FR_GUIDE_CHROME } from "./chrome";
 import {
   DE_COMPARISON_SLUG,
   DE_GUIDES,
@@ -14,6 +14,7 @@ import {
   getDeGuide,
 } from "./guides.de";
 import { GUIDES, guideMetadata, type Guide } from "./guides";
+import { SourcedFigures } from "./SourcedFigures";
 import sitemap from "../../app/sitemap";
 
 Object.assign(globalThis, { React });
@@ -438,13 +439,14 @@ describe("German health-premiums guide", async () => {
   const graph = extractJsonLd(pageHtml)["@graph"];
   const articleLd = graph.find((node) => node["@type"] === "Article");
 
-  it("cites BAG 2026 figures next to a bag.admin.ch source", () => {
+  it("cites BAG 2027 figures next to the BAG communiqué", () => {
     assert.ok(articleHtml, "the page must render an <article>");
-    assert.ok(articleHtml.includes("393.30"));
-    assert.ok(articleHtml.includes("326.30"));
-    assert.ok(articleHtml.includes("4,4"));
-    assert.ok(articleHtml.includes("4,2"));
-    assert.match(articleHtml, /bag\.admin\.ch/);
+    for (const figure of ["412", "338.80", "+5,0", "+4,8"]) {
+      assert.ok(articleHtml.includes(figure), figure);
+    }
+    assert.doesNotMatch(articleHtml, /im Monat für Erwachsene/);
+    assert.match(articleHtml, /über alle Altersgruppen/);
+    assert.match(articleHtml, /bag\.admin\.ch\/de\/newnsb\/BfuGvedj0OOX/);
     assert.match(articleHtml, /Rückstellung/);
     assert.ok(articleHtml.includes("380"));
     assert.ok(articleHtml.includes("397"));
@@ -499,6 +501,104 @@ describe("French health-premiums guide", async () => {
     assert.match(
       articleHtml ?? "",
       /bag\.admin\.ch\/fr\/newnsb\/d2okh_kUK_OFhmMDfpyiy/,
+    );
+  });
+
+  it("labels 393.30 CHF as the all-ages average, never the adult premium", () => {
+    assert.match(pageHtml, /tous âges confondus/);
+    assert.doesNotMatch(pageHtml, /pour un adulte|Prime moyenne adulte/);
+  });
+
+  it("links a specific source beside every official figure", () => {
+    for (const source of [
+      /news-27-09-2022/,
+      /msg-id-97889/,
+      /news\.admin\.ch\/fr\/nsb\?id=102592/,
+      /watson\.ch\/fr\/suisse\/assurance-maladie\//,
+      /bag\.admin\.ch\/fr\/newnsb\/BfuGvedj0OOX/,
+    ]) {
+      assert.match(articleHtml ?? "", source);
+    }
+    assert.doesNotMatch(articleHtml ?? "", /href="https:\/\/www\.rts\.ch\/"/);
+    assert.match(articleHtml ?? "", /class="guide-figures"/);
+  });
+
+  it("leads with the official 2027 figures, not the spring forecasts", () => {
+    const section = (articleHtml ?? "").match(
+      /Quelle hausse prévoir pour 2027[\s\S]*?<h2>/,
+    )?.[0];
+    assert.ok(section, "the 2027 section is missing");
+    for (const figure of ["412", "338.80", "+5,0", "+4,8"]) {
+      assert.ok(section.includes(figure), figure);
+    }
+    assert.match(section, /communiqué du 29 septembre 2026/);
+    // 393.30 → 412 reads as +4,75 %: the page must say why OFSP prints +5,0 %.
+    assert.match(articleHtml ?? "", /recalculé la moyenne 2026 à 392\.30/);
+    assert.doesNotMatch(
+      articleHtml ?? "",
+      /Au printemps 2026|fourchette haute/,
+    );
+    assert.ok(
+      (articleHtml ?? "").indexOf("Quelle hausse prévoir pour 2027") <
+        (articleHtml ?? "").indexOf("Et les années précédentes"),
+    );
+  });
+
+  it("phrases every article H2 as a reader question", () => {
+    const headings = [...(articleHtml ?? "").matchAll(/<h2[^>]*>(.*?)<\/h2>/g)]
+      .map((match) => match[1])
+      .filter(
+        (heading) =>
+          heading !== FR_GUIDE_CHROME.relatedHeading &&
+          heading !== FR_GUIDE_CHROME.faqHeading,
+      );
+    assert.ok(headings.length >= 5);
+    for (const heading of headings) {
+      assert.match(heading, /\?$/, heading);
+    }
+  });
+
+  it("stays calm: provisioning words, no alarm or countdown", () => {
+    assert.match(articleHtml ?? "", /provision/);
+    assert.doesNotMatch(
+      articleHtml ?? "",
+      /\bAttention\b|urgen|alerte|dépêche|trop tard|compte à rebours/i,
+    );
+  });
+
+  it("separates « Continue avec… » from a CTA that names the feature", () => {
+    const related = (articleHtml ?? "").match(
+      /<h2>Continue avec…<\/h2><ul>([\s\S]*?)<\/ul>/,
+    )?.[1];
+    assert.ok(related, "the related block is missing");
+    assert.ok((related.match(/href="\/conseils-budget\//g)?.length ?? 0) >= 2);
+    assert.doesNotMatch(related, /data-cta-name/);
+    const cta = (articleHtml ?? "").match(
+      /<div class="mt-14 border-t[\s\S]*?<\/div>/,
+    )?.[0];
+    assert.ok(cta, "the CTA block is missing");
+    assert.match(cta, /prévisions/);
+    assert.match(cta, /lisse/);
+    assert.doesNotMatch(cta, new RegExp(FR_GUIDE_CHROME.ctaButton));
+  });
+});
+
+describe("sourced figures block", () => {
+  it("prints each value with tabular figures and links its source", () => {
+    const html = renderToStaticMarkup(
+      <SourcedFigures
+        figures={[
+          { value: "412.00 CHF", change: "+5,0 %", label: "Prime moyenne" },
+        ]}
+        source={{ label: "OFSP", href: "https://example.org/communique" }}
+      />,
+    );
+    assert.match(html, /<dt>Prime moyenne<\/dt>/);
+    assert.match(html, /<dd class="tabular-nums">412\.00 CHF/);
+    assert.match(html, /\+5,0 %/);
+    assert.match(
+      html,
+      /<figcaption>[\s\S]*href="https:\/\/example\.org\/communique"[\s\S]*rel="noopener noreferrer"/,
     );
   });
 });

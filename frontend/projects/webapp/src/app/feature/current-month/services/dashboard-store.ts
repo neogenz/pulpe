@@ -34,9 +34,11 @@ import { isApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { TranslocoService } from '@jsverse/transloco';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { FirstTransactionTracker } from '@core/transaction';
 import {
   type DashboardData,
   type HistoryDataPoint,
+  type MonthRecap,
   type UpcomingMonthForecast,
 } from './dashboard-state';
 
@@ -70,6 +72,17 @@ const WITHDRAWAL_ERROR_CODES = new Set<string>([
   API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_CONFLICT,
 ]);
 
+// Half a franc either way, inclusive, on a cent-exact balance. Spelled out
+// rather than left to `Math.round`, whose -0.5 → -0 the iOS mirror
+// (`MonthRecap.outcome`) cannot reproduce.
+const MONTH_RECAP_BALANCED_MARGIN = 0.5;
+
+function monthRecapOutcome(endingBalance: number): MonthRecap['outcome'] {
+  if (endingBalance >= MONTH_RECAP_BALANCED_MARGIN) return 'saved';
+  if (endingBalance <= -MONTH_RECAP_BALANCED_MARGIN) return 'overspent';
+  return 'balanced';
+}
+
 // Une horloge, pas un instant. Un `InjectionToken` avec `factory` est fourni
 // dans l'injecteur racine : sa valeur est calculée une fois et gardée pour toute
 // la durée de vie de l'application. Un `Date` y devenait donc l'heure du premier
@@ -101,6 +114,7 @@ export class DashboardStore {
   readonly #postHogService = inject(PostHogService);
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #transloco = inject(TranslocoService);
+  readonly #firstTransactionTracker = inject(FirstTransactionTracker);
 
   // ── 2. State ──
   readonly #pendingChecks = signal(new Set<string>());
@@ -121,6 +135,7 @@ export class DashboardStore {
         takeUntilDestroyed(),
       )
       .subscribe(() => this.#currentDate.set(this.#clock()));
+    void this.#firstTransactionTracker.load();
   }
 
   readonly payDayOfMonth = this.#userSettingsStore.payDayOfMonth;
@@ -398,6 +413,17 @@ export class DashboardStore {
       this.budgetLines().some((line) => line.checkedAt != null),
   );
 
+  // PUL-306 — the step the retention funnel loses: a budget, and nothing ever
+  // recorded on the account. The server answers for the whole account; the
+  // month's own list is checked too, so an entry written by a surface that
+  // does not report to the tracker still retires the invitation at once.
+  readonly isAwaitingFirstTransaction = computed<boolean>(
+    () =>
+      !!this.dashboardData()?.budget &&
+      this.transactions().length === 0 &&
+      this.#firstTransactionTracker.isAwaitingFirstTransaction(),
+  );
+
   readonly rolloverAmount = computed<number>(() => {
     const budget = this.dashboardData()?.budget;
     return budget?.rollover ?? 0;
@@ -434,6 +460,34 @@ export class DashboardStore {
   );
   readonly totalAvailable = computed<number>(() => this.#metrics().available);
   readonly remaining = computed<number>(() => this.#metrics().remaining);
+
+  // The previous period is closed as soon as this one has a budget. No budget
+  // in the history feed for it means there is nothing to recap — the user's
+  // first month included.
+  readonly previousMonthRecap = computed<MonthRecap | null>(() => {
+    if (!this.dashboardData()?.budget) return null;
+    const { month, year } = this.currentBudgetPeriod();
+    const previous =
+      month === 1 ? { month: 12, year: year - 1 } : { month: month - 1, year };
+    const closed = this.#historyResource
+      .value()
+      ?.find((b) => b.month === previous.month && b.year === previous.year);
+    if (!closed) return null;
+
+    // `expenses` is the raw feed, savings inside: the figure the month's
+    // result is defined against.
+    const endingBalance = moneyDifference(closed.income, closed.expenses);
+    return {
+      budgetId: closed.id,
+      ...previous,
+      income: closed.income,
+      expenses: closed.expenses,
+      endingBalance,
+      outcome: monthRecapOutcome(endingBalance),
+      carriedOver: this.rolloverAmount(),
+      startingAvailable: this.totalAvailable(),
+    };
+  });
 
   // A forecast funded by a savings goal is realized by recording the real
   // income, never by checking it: `toggleBudgetLineCheck` refuses that shape

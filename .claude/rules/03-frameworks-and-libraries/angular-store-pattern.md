@@ -175,7 +175,9 @@ A store never instantiates `DataCache`; it reads `this.#api.cache`.
 
 Store resources go through `cachedResource()`, which does the cache wiring itself.
 Only a one-shot read triggered by a user action still touches the cache by hand —
-`deduplicate()` keeps concurrent callers on a single request:
+`deduplicate()` keeps concurrent callers on a single request. When the answer gates
+an action (here: deleting or propagating a template), a stale entry is never served,
+because `invalidate()` only marks it stale:
 
 ```typescript
 async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
@@ -184,16 +186,17 @@ async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
 
   if (cached?.fresh) return cached.data;
 
-  const freshPromise = this.#api.cache.deduplicate(cacheKey, async () => {
+  return this.#api.cache.deduplicate(cacheKey, async () => {
     const response = await firstValueFrom(this.#api.checkUsage$(templateId));
     this.#api.cache.set(cacheKey, response.data);
     return response.data;
   });
-
-  if (cached) return cached.data;  // stale — return while refetch runs
-  return freshPromise;             // miss — await fresh data
 }
 ```
+
+Each feature API owns its own `DataCache`, so a mutation's `invalidateKeys` never
+reaches another API's keys. Creating a budget invalidates `['templates', 'usage']`
+from `onSuccess` on `BudgetTemplatesApi.cache` for that reason.
 
 ## Scoping
 

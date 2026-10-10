@@ -1683,6 +1683,17 @@ export type TransactionSearchResult = z.infer<
   typeof transactionSearchResultSchema
 >;
 
+/**
+ * `GET /transactions/exists` — whether the account has recorded at least one
+ * transaction, in any budget. Drives the first-expense invitation (PUL-306).
+ */
+export const transactionExistsResponseSchema = z.object({
+  hasTransaction: z.boolean(),
+});
+export type TransactionExistsResponse = z.infer<
+  typeof transactionExistsResponseSchema
+>;
+
 export const transactionSearchResponseSchema = createListResponse(
   transactionSearchResultSchema,
 );

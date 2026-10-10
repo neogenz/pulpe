@@ -19,6 +19,7 @@ import { formatLocalDate } from '@core/date/format-local-date';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { UserSettingsStore } from '@core/user-settings';
+import { FirstTransactionTracker } from '@core/transaction/first-transaction-tracker';
 import {
   type BudgetLine,
   type BudgetLineCreate,
@@ -216,6 +217,7 @@ export class BudgetDetailsStore {
     month: 'long',
   });
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #firstTransactionTracker = inject(FirstTransactionTracker);
 
   // ── 2. Internal state (private/writable) ──
   readonly #state = createInitialBudgetDetailsState();
@@ -1119,6 +1121,10 @@ export class BudgetDetailsStore {
           ),
         }));
         this.#onFinancialMutationSuccess();
+        this.#firstTransactionTracker.recordCreated(
+          response.data.kind,
+          'budget_details',
+        );
       },
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);

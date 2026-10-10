@@ -26,7 +26,10 @@ import {
 } from './components/reconcile-accounts/reconcile-accounts-dialog';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
+import type { MonthRecap } from './services/dashboard-state';
+import { MonthRecapDialog } from './components/month-recap-dialog';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+import { FirstTransactionTracker } from '@core/transaction';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -515,6 +518,8 @@ describe('Dashboard (TestBed)', () => {
       realizedExpenses: signal(3380.01),
       rolloverAmount: signal(-120),
       periodDates: signal(getBudgetPeriodDates(4, 2026, 27)),
+      isAwaitingFirstTransaction: signal(false),
+      previousMonthRecap: signal<MonthRecap | null>(null),
     };
   }
 
@@ -597,6 +602,7 @@ describe('Dashboard (TestBed)', () => {
       isMatched: vi.fn().mockReturnValue(false),
       observe: vi.fn().mockReturnValue(of({ matches: false, breakpoints: {} })),
     };
+    const mockFirstTransactionTracker = { recordCreated: vi.fn() };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -614,6 +620,10 @@ describe('Dashboard (TestBed)', () => {
           { provide: MatSnackBar, useValue: mockSnackBar },
           { provide: MatDialog, useValue: mockDialog },
           { provide: BreakpointObserver, useValue: mockBreakpoints },
+          {
+            provide: FirstTransactionTracker,
+            useValue: mockFirstTransactionTracker,
+          },
         ],
       })
       .compileComponents();
@@ -628,10 +638,164 @@ describe('Dashboard (TestBed)', () => {
       mockDialog,
       mockBreakpoints,
       mockRouter,
+      mockFirstTransactionTracker,
       undoAction,
       readPersistRefusal: () => persistRefusal,
     };
   }
+
+  // PUL-306 — an account with a budget and nothing recorded is where most
+  // users stop. Whether this entry is the first is the tracker's call.
+  describe('first-expense invitation', () => {
+    const firstExpense: TransactionFormData = {
+      name: 'Café',
+      amount: 4.5,
+      kind: 'expense',
+      tagIds: [],
+      isChecked: true,
+      conversion: null,
+    };
+
+    it('should show while the account awaits its first entry', async () => {
+      const { component, mockStore } = await setup(budgetId, undefined);
+
+      expect(component['showFirstExpenseInvite']()).toBe(false);
+      mockStore.isAwaitingFirstTransaction.set(true);
+      expect(component['showFirstExpenseInvite']()).toBe(true);
+    });
+
+    it('should report an entry opened from the invitation', async () => {
+      const { component, mockFirstTransactionTracker } = await setup(
+        budgetId,
+        firstExpense,
+      );
+
+      await component['openAddTransaction']('activation_prompt');
+
+      expect(mockFirstTransactionTracker.recordCreated).toHaveBeenCalledWith(
+        'expense',
+        'activation_prompt',
+      );
+    });
+
+    it('should credit the add button by default', async () => {
+      const { component, mockFirstTransactionTracker } = await setup(
+        budgetId,
+        firstExpense,
+      );
+
+      await component['openAddTransaction']();
+
+      expect(mockFirstTransactionTracker.recordCreated).toHaveBeenCalledWith(
+        'expense',
+        'add_button',
+      );
+    });
+
+    it('should not report a refused entry', async () => {
+      const { component, mockStore, mockFirstTransactionTracker } = await setup(
+        budgetId,
+        firstExpense,
+      );
+      mockStore.addTransaction.mockResolvedValue({ reason: 'Hors ligne' });
+
+      await component['openAddTransaction']('activation_prompt');
+
+      expect(mockFirstTransactionTracker.recordCreated).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('month recap', () => {
+    const march: MonthRecap = {
+      budgetId: 'budget-march',
+      month: 3,
+      year: 2026,
+      income: 5000,
+      expenses: 4700,
+      endingBalance: 300,
+      outcome: 'saved',
+      carriedOver: 300,
+      startingAvailable: 5300,
+    };
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('should show the closed month until it is dismissed, then remember it', async () => {
+      const { component, mockStore } = await setup(budgetId, undefined);
+      mockStore.previousMonthRecap.set(march);
+
+      expect(component['monthRecap']()).toBe(march);
+
+      component['dismissMonthRecap'](march);
+
+      expect(component['monthRecap']()).toBeNull();
+      expect(
+        TestBed.inject(StorageService).get<string>(
+          STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN,
+        ),
+      ).toBe('2026-03');
+    });
+
+    // Seeded through StorageService before the page exists: it reads the key
+    // once, at construction, and keeps only its own versioned entries.
+    function rememberDismissed(key: string): void {
+      TestBed.inject(StorageService).set(
+        STORAGE_KEYS.DASHBOARD_MONTH_RECAP_SEEN,
+        key,
+      );
+    }
+
+    it('should stay hidden on a later visit once that month was dismissed', async () => {
+      rememberDismissed('2026-03');
+      const { component, mockStore } = await setup(budgetId, undefined);
+      mockStore.previousMonthRecap.set(march);
+
+      expect(component['monthRecap']()).toBeNull();
+    });
+
+    it('should show the next closed month even after an earlier one was dismissed', async () => {
+      rememberDismissed('2026-02');
+      const { component, mockStore } = await setup(budgetId, undefined);
+      mockStore.previousMonthRecap.set(march);
+
+      expect(component['monthRecap']()).toBe(march);
+    });
+
+    it('should hide the card when the detail is acknowledged', async () => {
+      const { component, mockStore, mockDialog } = await setup(
+        budgetId,
+        undefined,
+      );
+      mockStore.previousMonthRecap.set(march);
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of('acknowledged'),
+      });
+
+      await component['openMonthRecap'](march);
+
+      expect(mockDialog.open.mock.calls[0][0]).toBe(MonthRecapDialog);
+      expect(component['monthRecap']()).toBeNull();
+    });
+
+    it('should open the closed budget and keep the card when the detail is asked for', async () => {
+      const { component, mockStore, mockDialog, mockRouter } = await setup(
+        budgetId,
+        undefined,
+      );
+      mockStore.previousMonthRecap.set(march);
+      mockDialog.open.mockReturnValue({ afterClosed: () => of('details') });
+
+      await component['openMonthRecap'](march);
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/budget',
+        'budget-march',
+      ]);
+      expect(component['monthRecap']()).toBe(march);
+    });
+  });
 
   describe('reconciling the accounts', () => {
     function openedWith(mockDialog: { open: Mock }) {
@@ -699,6 +863,9 @@ describe('Dashboard (TestBed)', () => {
 
       expect(isRecorded).toBe(true);
       expect(mockStore.addTransaction).toHaveBeenCalledTimes(1);
+      expect(
+        TestBed.inject(FirstTransactionTracker).recordCreated,
+      ).toHaveBeenCalledWith('income', 'reconciliation');
       const payload = mockStore.addTransaction.mock.calls[0][0];
       expect(payload).toEqual({
         budgetId,

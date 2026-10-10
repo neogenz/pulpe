@@ -24,6 +24,8 @@ interface ArticleLayoutProps {
   dict: Dictionary;
   children: ReactNode;
   chrome?: GuideChrome;
+  /** Names the feature the article leads to, instead of the generic chrome CTA. */
+  cta?: { lead: string; button: string };
 }
 
 function formatDate(iso: string, dateLocale: string): string {
@@ -43,6 +45,7 @@ export function ArticleLayout({
   dict,
   children,
   chrome = FR_GUIDE_CHROME,
+  cta = { lead: chrome.ctaLead, button: chrome.ctaButton },
 }: ArticleLayoutProps) {
   const articleUrl = `${SITE_URL}${localizedPath(chrome.locale, `${chrome.sectionPath}/${guide.slug}`)}`;
   const jsonLd = {
@@ -163,7 +166,7 @@ export function ArticleLayout({
 
             <div className="mt-14 border-t border-text/10 pt-10 text-center">
               <p className="text-xl font-semibold leading-snug text-text">
-                {chrome.ctaLead}
+                {cta.lead}
               </p>
               <Button
                 href={angularUrl(
@@ -176,7 +179,7 @@ export function ArticleLayout({
                 data-cta-location="guide_article"
                 data-cta-destination="/signup"
               >
-                {chrome.ctaButton}
+                {cta.button}
               </Button>
             </div>
           </article>

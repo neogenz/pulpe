@@ -147,6 +147,14 @@ enum Formatters {
         return monthYear.monthSymbols[month - 1].capitalized
     }
 
+    /// The month as it sits inside a sentence, in the language's own casing: "juillet",
+    /// "luglio", but "Juli" and "July". Lowercasing `monthName(for:)` by hand got French
+    /// and Italian right and German and English wrong.
+    static func monthNameInText(for month: Int, in language: SupportedLocale = AppLocale.current) -> String {
+        guard month >= 1, month <= 12 else { return "—" }
+        return dateFormatter(Template.monthYear, in: language).monthSymbols[month - 1]
+    }
+
     /// Short subtitle for each month. Copy, not data — it lives in the catalog like the
     /// rest of the interface, and is resolved here rather than in the view because the
     /// callers hand it to `Text` as an already-formatted string.

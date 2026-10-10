@@ -1056,6 +1056,10 @@
     "viewTransactionsInBudget": "Vedi i movimenti nel budget",
     "noTransaction": "Questo mese non c'è niente di segnato",
     "addFirstTransaction": "Aggiungi la mia prima spesa",
+    "firstExpenseInvite": {
+      "title": "Segna la tua prima spesa",
+      "message": "Un caffè, un pieno, la spesa: segnala appena succede. Il tuo «disponibile da spendere» si aggiorna subito."
+    },
     "nextMonthTitle": "Mese prossimo",
     "nextMonthErrorTitle": "Non riusciamo a vedere il mese prossimo",
     "nextMonthErrorMessage": "I tuoi budget futuri non si sono caricati. Non è andato perso niente.",
@@ -1063,6 +1067,23 @@
     "nextMonthRolloverAssumption": "se stai alle tue previsioni fino a fine mese.",
     "nextMonthNoBudget": "Ancora nessun budget per {{ month }}",
     "nextMonthAnticipate": "Prepara il mese prossimo",
+    "monthRecap": {
+      "title": "{{ month }} è finito",
+      "saved": "Ben fatto: hai messo",
+      "savedSuffix": "da parte.",
+      "overspent": "Capita:",
+      "overspentSuffix": "in più del previsto.",
+      "balanced": "Budget rispettato.",
+      "open": "Vedi il bilancio",
+      "dismiss": "Nascondi il bilancio",
+      "dialogTitle": "Bilancio del mese",
+      "income": "Entrate",
+      "expenses": "Spese",
+      "endingBalance": "Saldo finale",
+      "carriedOver": "riportati su {{ month }} → parti da",
+      "viewDetails": "Vedi il dettaglio",
+      "acknowledge": "Ho capito"
+    },
     "uncheckedForecasts": {
       "title": "Previsioni da spuntare",
       "count": "{{ checked }} su {{ total }} spuntate",

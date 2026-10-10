@@ -22,6 +22,7 @@ import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
+import { FirstTransactionTracker } from '@core/transaction/first-transaction-tracker';
 import {
   createMockBudget,
   createMockBudgetLine,
@@ -973,6 +974,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         });
       });
 
+      const recordCreated = vi.spyOn(
+        TestBed.inject(FirstTransactionTracker),
+        'recordCreated',
+      );
+
       await service.createAllocatedTransaction({
         budgetId: mockBudgetId,
         budgetLineId: 'line-2',
@@ -981,6 +987,8 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         kind: 'expense',
       });
 
+      // PUL-306 — this page is one of the surfaces a first entry can come from.
+      expect(recordCreated).toHaveBeenCalledWith('expense', 'budget_details');
       expect(capturedClientId).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );

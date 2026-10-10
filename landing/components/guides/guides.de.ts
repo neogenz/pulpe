@@ -15,11 +15,11 @@ export const DE_GUIDES: readonly Guide[] = [
   },
   {
     slug: DE_PREMIUMS_SLUG,
-    title: "Krankenkassenprämien 2026 budgetieren",
+    title: "Krankenkassenprämien 2027 budgetieren",
     description:
-      "So verteilst du die Prämienerhöhung 2026 auf die restlichen Monate, mit den offiziellen BAG-Zahlen neben der Quelle.",
+      "So verteilst du die Prämienerhöhung 2027 auf die restlichen Monate, mit den offiziellen BAG-Zahlen neben der Quelle.",
     publishedAt: "2026-08-18",
-    updatedAt: "2026-08-18",
+    updatedAt: "2026-10-09",
     readingMinutes: 8,
   },
 ];

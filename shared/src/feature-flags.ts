@@ -96,6 +96,18 @@ export const ANALYTICS_EVENTS = {
   /** Fires after a transaction is created. Properties: `type`. */
   TRANSACTION_CREATED: 'transaction_created',
   /**
+   * Fires when an entry is recorded while the server said the account held
+   * none yet — the activation step that follows `first_budget_created`
+   * (PUL-306). Every create surface reports it, so it fires once per account
+   * unless two devices record their first entry from the same stale answer.
+   * Properties: `type` (`'income' | 'expense' | 'saving'`), `source`
+   * (`'activation_prompt'` for the first-expense invitation, `'add_button'` for
+   * the dashboard's own add control, `'budget_details'`, `'reconciliation'`,
+   * and on iOS `'widget'` for the add-expense deep link). Never an amount or a
+   * label.
+   */
+  FIRST_TRANSACTION_CREATED: 'first_transaction_created',
+  /**
    * Fires once when the "Rapprocher mes comptes" flow completes: after its
    * adjustment is recorded, or when the user confirms the accounts already
    * match. Properties: `adjustment_kind` (`'income' | 'expense' | 'none'`).

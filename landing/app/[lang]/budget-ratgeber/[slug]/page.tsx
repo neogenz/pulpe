@@ -71,9 +71,9 @@ const premiumsFaq = [
       "Nimm die heutige Prämie, rechne die bekannte Erhöhung dazu. Die monatliche Differenz setzt du sofort auf die Linie, oder du multiplizierst sie mit den Monaten bis Januar. Der Jahresbetrag bleibt gleich: du verteilst ihn nur.",
   },
   {
-    question: "Wie hoch ist die mittlere Krankenkassenprämie 2026?",
+    question: "Wie hoch ist die mittlere Krankenkassenprämie 2027?",
     answer:
-      "393.30 CHF im Monat für Erwachsene und 326.30 CHF für 19- bis 25-Jährige, laut Bundesamt für Gesundheit. Die Erhöhung gegenüber 2025 beträgt 4,4 %.",
+      "412 CHF im Monat über alle Altersgruppen und 338.80 CHF für 19- bis 25-Jährige, laut Bundesamt für Gesundheit. Die Erhöhung gegenüber 2026 beträgt 5,0 %.",
   },
   {
     question:
@@ -195,29 +195,21 @@ function PremiumsArticle() {
         ihn zurücklegst.
       </p>
       <p>
-        Für 2026 liegt die mittlere Prämie der obligatorischen
-        Krankenversicherung bei{" "}
-        <mark className="marker-highlight tabular-nums">393.30&nbsp;CHF</mark>{" "}
-        im Monat für Erwachsene und bei{" "}
-        <mark className="marker-highlight tabular-nums">326.30&nbsp;CHF</mark>{" "}
-        für 19- bis 25-Jährige, laut{" "}
+        Für 2027 steigt die mittlere Prämie der obligatorischen
+        Krankenversicherung auf{" "}
+        <mark className="marker-highlight tabular-nums">412&nbsp;CHF</mark> im
+        Monat über alle Altersgruppen und auf{" "}
+        <mark className="marker-highlight tabular-nums">338.80&nbsp;CHF</mark>{" "}
+        für 19- bis 25-Jährige. Das sind <strong>+5,0&nbsp;%</strong> im Schnitt
+        und <strong>+4,8&nbsp;%</strong> für junge Erwachsene, laut{" "}
         <a
-          href="https://www.bag.admin.ch/de/praemien-und-kosten-antworten-auf-haeufige-fragen"
+          href="https://www.bag.admin.ch/de/newnsb/BfuGvedj0OOX"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Bundesamt für Gesundheit
+          Medienmitteilung des Bundesamts für Gesundheit vom 29.09.2026
         </a>
-        . Die Erhöhung gegenüber 2025 beträgt 4,4&nbsp;%. Für junge Erwachsene
-        nennt das BAG die{" "}
-        <a
-          href="https://www.bag.admin.ch/de/newnsb/d2okh_kUK_OFhmMDfpyiy"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          326.30&nbsp;CHF (+4,2&nbsp;%)
-        </a>{" "}
-        im Communiqué vom 23.09.2025.
+        .
       </p>
 
       <h2>So bildest du die Rückstellung</h2>
