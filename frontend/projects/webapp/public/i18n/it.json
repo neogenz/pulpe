@@ -1147,10 +1147,8 @@
         "record": "Conferma l'allineamento",
         "recording": "Salvataggio...",
         "finish": "Fatto",
-        "morePrefix": "Sui tuoi conti ci sono",
-        "moreSuffix": "in più",
-        "lessPrefix": "Mancano",
-        "lessSuffix": "sui tuoi conti",
+        "moreTitle": "In più sui tuoi conti",
+        "lessTitle": "Manca sui tuoi conti",
         "adjustmentTitle": "Allineamento proposto",
         "income": "Entrata",
         "expense": "Spesa"

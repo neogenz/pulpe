@@ -1147,10 +1147,8 @@
         "record": "Ausgleich bestätigen",
         "recording": "Wird gespeichert...",
         "finish": "Fertig",
-        "morePrefix": "Auf deinen Konten sind",
-        "moreSuffix": "mehr",
-        "lessPrefix": "Es fehlen",
-        "lessSuffix": "auf deinen Konten",
+        "moreTitle": "Mehr auf deinen Konten",
+        "lessTitle": "Fehlt auf deinen Konten",
         "adjustmentTitle": "Vorgeschlagener Ausgleich",
         "income": "Einnahme",
         "expense": "Ausgabe"

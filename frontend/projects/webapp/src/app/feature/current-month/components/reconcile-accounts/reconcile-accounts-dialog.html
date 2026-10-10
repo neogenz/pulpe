@@ -275,12 +275,11 @@
         data-testid="reconcile-verdict-title"
       >
         {{ (currentVerdict.kind === 'income' ?
-        'currentMonth.reconcile.verdict.morePrefix' :
-        'currentMonth.reconcile.verdict.lessPrefix') | transloco }}
-        <span class="verdict-amount tabular-nums">{{ gap }}</span>
-        {{ (currentVerdict.kind === 'income' ?
-        'currentMonth.reconcile.verdict.moreSuffix' :
-        'currentMonth.reconcile.verdict.lessSuffix') | transloco }}
+        'currentMonth.reconcile.verdict.moreTitle' :
+        'currentMonth.reconcile.verdict.lessTitle') | transloco }}
+        <span class="verdict-amount tabular-nums"
+          >{{ currentVerdict.kind === 'income' ? '+' : '−' }}{{ gap }}</span
+        >
       </h3>
     </div>
     }

@@ -1147,10 +1147,8 @@
         "record": "Confirm the adjustment",
         "recording": "Saving...",
         "finish": "Done",
-        "morePrefix": "Your accounts hold",
-        "moreSuffix": "more",
-        "lessPrefix": "Your accounts are",
-        "lessSuffix": "short",
+        "moreTitle": "Extra in your accounts",
+        "lessTitle": "Missing from your accounts",
         "adjustmentTitle": "Suggested adjustment",
         "income": "Income",
         "expense": "Expense"
