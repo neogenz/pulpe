@@ -83,8 +83,6 @@ struct ReconcileSummaryStep: View {
             .contentShape(Rectangle())
         }
         .plainPressedButtonStyle()
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("reconcileItemsToCheckRow")
     }
 }
