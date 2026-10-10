@@ -107,6 +107,48 @@ declaration, Expo Doctor traverses the monorepo and borrows Landing's 19.2.8,
 then reports a duplicate React installation. Landing deliberately remains on
 React/ReactDOM 19.2.8.
 
+## Crash symbols
+
+R8 obfuscates release builds, and Hermes compiles the JavaScript bundle, so a
+crash reaches PostHog unreadable unless the build uploads its R8 mapping and
+its Hermes source map. `posthog-react-native/expo` (`app.config.js`) wires both
+into the release Gradle build: the `com.posthog.android` plugin uploads the
+mapping, `posthog.gradle` uploads the source map. `metro.config.js` stamps the
+debug id that ties the bundle to its map, and `@posthog/cli` is pinned in
+`devDependencies`.
+
+The plugin is added only when `EXPO_PUBLIC_POSTHOG_ENABLED` is `true`, that is
+on the `production` and `production-apk` profiles. A failed upload fails the
+build, so the preview APK and the CI smoke build, which report nothing, never
+attempt one.
+
+Create two variables in the EAS **production** environment, visibility
+**Secret**:
+
+| Name                     | Value                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `POSTHOG_CLI_API_KEY`    | PostHog personal API key, scopes _error tracking: write_ + _organization: read_ |
+| `POSTHOG_CLI_PROJECT_ID` | the PostHog project ID                                                          |
+
+```bash
+pnpm dlx eas-cli@latest env:create --environment production --visibility secret --name POSTHOG_CLI_API_KEY --value <key>
+pnpm dlx eas-cli@latest env:create --environment production --visibility secret --name POSTHOG_CLI_PROJECT_ID --value <id>
+```
+
+`POSTHOG_CLI_HOST` (`https://eu.posthog.com`, the EU app host, not the
+`eu.i.` ingestion host) is not secret and lives in the `production` profile of
+`eas.json`.
+
+To verify an upload happened, search the EAS build log (Run gradlew phase) for
+the `PostHogUpload` and `uploadPostHogProguardMappings` tasks, then open PostHog
+→ Error tracking → Configuration → Symbol sets: the build adds a Hermes source
+map and a ProGuard mapping for `app.pulpe.android`, `version`, `versionCode`.
+The real proof is a crash from that build whose frames show `src/…` files and
+unobfuscated class names.
+
+An OTA update ships a new bundle without a Gradle build, so nothing uploads its
+source map; its JavaScript crashes stay minified.
+
 ## OTA vs a new binary
 
 `runtimeVersion` uses the `appVersion` policy, so an update only reaches builds

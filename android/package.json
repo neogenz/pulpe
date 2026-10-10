@@ -52,7 +52,7 @@
     "expo-web-browser": "~57.0.3",
     "i18n-js": "^4.5.3",
     "lottie-react-native": "~7.3.8",
-    "posthog-react-native": "^4.66.0",
+    "posthog-react-native": "4.77.1",
     "pulpe-shared": "workspace:*",
     "react": "19.2.3",
     "react-native": "0.86.3",
@@ -71,6 +71,7 @@
   },
   "devDependencies": {
     "@babel/runtime": "^7.29.7",
+    "@posthog/cli": "0.18.10",
     "@react-native/jest-preset": "^0.86.3",
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "^29.5.14",
