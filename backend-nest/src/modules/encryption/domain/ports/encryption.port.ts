@@ -68,6 +68,12 @@ export interface EncryptionPort {
     userId: string,
     clientKey: Buffer,
   ): Promise<{ amount: string }[]>;
+  /**
+   * Deterministic keyed fingerprints (HMAC-SHA256, hex), one per material.
+   * Per-user server key: never reversible to the material, stable across PIN
+   * changes, different for two users holding the same material.
+   */
+  fingerprints(userId: string, materials: readonly string[]): string[];
   /** Encrypt optional amount; null/undefined input → null output. */
   encryptOptionalAmount(
     amount: number | null | undefined,

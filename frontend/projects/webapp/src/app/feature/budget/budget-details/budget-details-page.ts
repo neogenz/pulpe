@@ -24,6 +24,7 @@ import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-fi
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
+import { TransactionImportApi } from './transaction-import/transaction-import-api';
 import {
   openMutationErrorSnackbar,
   spreadCreateEcho,
@@ -46,7 +47,11 @@ import { CURRENCY_CONFIG } from '@core/currency';
     BudgetFinancialOverview,
     BaseLoading,
   ],
-  providers: [BudgetDetailsStore, BudgetDetailsDialogService],
+  providers: [
+    BudgetDetailsStore,
+    BudgetDetailsDialogService,
+    TransactionImportApi,
+  ],
   templateUrl: './budget-details-page.html',
   styles: `
     :host {

@@ -4,6 +4,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   hkdfSync,
   randomBytes,
 } from 'node:crypto';
@@ -211,6 +212,30 @@ export class AesGcmCryptoService {
       clientKey,
     );
     return encrypted;
+  }
+
+  /**
+   * Keyed fingerprints (HMAC-SHA256, hex) for one user. The key derives from
+   * the master key alone, not from the DEK: a PIN change rekeys every amount
+   * but must not make already-imported operations look new again.
+   */
+  fingerprints(userId: string, materials: readonly string[]): string[] {
+    const key = Buffer.from(
+      hkdfSync(
+        HKDF_DIGEST,
+        this.#masterKey,
+        Buffer.alloc(0),
+        `pulpe-fingerprint-${userId}`,
+        KEY_LENGTH,
+      ),
+    );
+    try {
+      return materials.map((material) =>
+        createHmac('sha256', key).update(material, 'utf8').digest('hex'),
+      );
+    } finally {
+      key.fill(0);
+    }
   }
 
   async prepareAmountsData(

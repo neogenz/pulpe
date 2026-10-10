@@ -14,6 +14,7 @@ import {
 } from 'pulpe-shared';
 
 import { BudgetDetailsStore, type CheckOutcome } from './budget-details-store';
+import { TransactionImportApi } from '../transaction-import/transaction-import-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { ApiError } from '@core/api/api-error';
@@ -101,6 +102,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     deleteSavingsWithdrawal$: ReturnType<typeof vi.fn>;
     cache: MockDataCache;
   };
+  let mockTransactionImportApi: { import$: ReturnType<typeof vi.fn> };
   let mockLogger: {
     debug: ReturnType<typeof vi.fn>;
     info: ReturnType<typeof vi.fn>;
@@ -153,6 +155,8 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       cache: createMockDataCache(),
     };
 
+    mockTransactionImportApi = { import$: vi.fn() };
+
     mockLogger = {
       debug: vi.fn(),
       info: vi.fn(),
@@ -177,6 +181,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         provideHttpClientTesting(),
         ...provideTranslocoForTest(),
         BudgetDetailsStore,
+        { provide: TransactionImportApi, useValue: mockTransactionImportApi },
         { provide: BudgetApi, useValue: mockBudgetApi },
         {
           provide: SavingsGoalApi,
@@ -2176,9 +2181,119 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
             ?.value?.constructor?.name === 'AsyncFunction',
       );
 
+      // `importTransactions` answers with a richer outcome (it keeps the refusal
+      // code) and is covered by its own block below.
       expect(asyncMethods.sort()).toEqual(
-        mutations.map((mutation) => mutation.name).sort(),
+        [
+          ...mutations.map((mutation) => mutation.name),
+          'importTransactions',
+        ].sort(),
       );
+    });
+  });
+
+  // PUL-25 — the import creates N Réels server-side, all or nothing.
+  describe('importTransactions', () => {
+    const statement = new File(['<Document/>'], 'releve.xml', {
+      type: 'text/xml',
+    });
+
+    beforeEach(async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+      mockBudgetApi.cache.invalidate.mockClear();
+    });
+
+    it('returns the result and invalidates the budget keys on success', async () => {
+      const result = { createdCount: 3, attachedCount: 1, skippedCount: 1 };
+      const decisions = [
+        { position: 2, budgetLineId: '00000000-0000-4000-8000-0000000000a1' },
+      ];
+      mockTransactionImportApi.import$.mockReturnValue(
+        of({ success: true, data: result }),
+      );
+
+      const outcome = await service.importTransactions(
+        mockBudgetId,
+        statement,
+        decisions,
+      );
+
+      expect(mockTransactionImportApi.import$).toHaveBeenCalledWith(
+        mockBudgetId,
+        statement,
+        decisions,
+      );
+      expect(outcome).toEqual({ status: 'imported', result });
+      expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledWith([
+        'budget',
+        'details',
+      ]);
+    });
+
+    it('hands back the refusal code and leaves the budget on screen', async () => {
+      const refusal = new ApiError(
+        'conflict',
+        API_ERROR_CODES.TRANSACTION_IMPORT_CONFLICT,
+        409,
+        undefined,
+      );
+      mockTransactionImportApi.import$.mockReturnValue(
+        throwError(() => refusal),
+      );
+      const localizer = TestBed.inject(ApiErrorLocalizer);
+
+      const outcome = await service.importTransactions(mockBudgetId, statement);
+
+      expect(outcome).toEqual({
+        status: 'failed',
+        message: localizer.localizeApiError(refusal),
+        code: API_ERROR_CODES.TRANSACTION_IMPORT_CONFLICT,
+      });
+      expect(service.error()).toBeUndefined();
+      expect(mockBudgetApi.cache.invalidate).not.toHaveBeenCalled();
+    });
+
+    it('reports an unexpected server failure', async () => {
+      mockTransactionImportApi.import$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'boom',
+              API_ERROR_CODES.TRANSACTION_IMPORT_FAILED,
+              500,
+              undefined,
+            ),
+        ),
+      );
+      mockLogger.error.mockClear();
+
+      const outcome = await service.importTransactions(mockBudgetId, statement);
+
+      expect(outcome.status).toBe('failed');
+      expect(mockLogger.error).toHaveBeenCalledOnce();
+    });
+
+    it('still refreshes the month when only the balance recalculation failed', async () => {
+      const lag = new ApiError(
+        'recalculation failed',
+        API_ERROR_CODES.TRANSACTION_IMPORT_RECALCULATION_FAILED,
+        500,
+        undefined,
+      );
+      mockTransactionImportApi.import$.mockReturnValue(throwError(() => lag));
+      mockLogger.error.mockClear();
+
+      const outcome = await service.importTransactions(mockBudgetId, statement);
+
+      expect(outcome.status).toBe('importedWithWarning');
+      // A partial success: the Réels exist, so no "import failed" report.
+      expect(mockLogger.error).not.toHaveBeenCalled();
+      expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledWith([
+        'budget',
+        'details',
+      ]);
     });
   });
 

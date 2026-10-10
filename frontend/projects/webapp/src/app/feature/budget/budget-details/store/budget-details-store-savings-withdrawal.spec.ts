@@ -10,6 +10,7 @@ import {
 } from 'pulpe-shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
+import { TransactionImportApi } from '../transaction-import/transaction-import-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { ApiError } from '@core/api/api-error';
@@ -136,6 +137,7 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
         provideHttpClientTesting(),
         ...provideTranslocoForTest(),
         BudgetDetailsStore,
+        TransactionImportApi,
         {
           provide: BudgetApi,
           useValue: {
