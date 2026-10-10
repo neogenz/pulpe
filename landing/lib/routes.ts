@@ -39,6 +39,7 @@ export const CALCULATOR_LABEL_FR = "Calculateur de budget";
 // French trust anchors. They remain outside `ROUTES` so alternates and the
 // footer do not advertise nonexistent translations.
 export const ABOUT_ROUTE = "/about";
+export const ABOUT_LABEL_FR = "À propos";
 export const PRIVACY_ROUTE = "/privacy";
 export const TRUST_ROUTES = [ABOUT_ROUTE, PRIVACY_ROUTE] as const;
 

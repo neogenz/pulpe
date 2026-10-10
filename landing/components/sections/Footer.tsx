@@ -10,6 +10,8 @@ import {
   DE_PREMIUMS_SLUG,
 } from "@/components/guides/guides.de";
 import {
+  ABOUT_LABEL_FR,
+  ABOUT_ROUTE,
   ADVICE_LABEL_FR,
   ADVICE_INDEX_ROUTE,
   CALCULATOR_LABEL_FR,
@@ -29,6 +31,7 @@ const FOOTER_GROUPS = [
   {
     id: "discover",
     links: [
+      { id: "about", href: ABOUT_ROUTE, internal: true, frenchOnly: true },
       {
         id: "guides",
         href: ADVICE_INDEX_ROUTE,
@@ -99,10 +102,11 @@ export function Footer({
   /** `null` sur une page qui n'existe qu'en français : rien vers quoi basculer. */
   route: Route | null;
 }) {
-  // Les libellés des conseils ne vivent pas dans les dictionnaires : chaque
-  // article n'existe que dans une langue, donc le lien se retire des autres et
+  // Les libellés des pages non traduites ne vivent pas dans les dictionnaires :
+  // chaque page n'existe que dans une langue, donc le lien se retire des autres et
   // une traduction resterait inatteignable.
   const labelOf = (id: string) => {
+    if (id === "about") return ABOUT_LABEL_FR;
     if (id === "guides") return ADVICE_LABEL_FR;
     if (id === "calculator") return CALCULATOR_LABEL_FR;
     if (id === "deComparison") return DE_COMPARISON_GUIDE_LABEL;
