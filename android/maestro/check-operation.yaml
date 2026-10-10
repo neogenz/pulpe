@@ -39,6 +39,11 @@ env:
 - assertVisible: "Pointé · ${LINE}"
 
 # And back, because an undo that does not undo is the same bug wearing a
-# different hat.
-- tapOn: "Pointé · ${LINE}"
+# different hat. The notice only comes once the server took the pointing, and
+# it covers the bottom of the list, where the scroll above may leave the row:
+# a tap on the circle under it lands on the notice. Take it back from there.
+- extendedWaitUntil:
+    visible: "${LINE} pointé"
+    timeout: 30000
+- tapOn: "Annuler"
 - assertVisible: "À pointer · ${LINE}"
