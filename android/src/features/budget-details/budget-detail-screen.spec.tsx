@@ -609,6 +609,7 @@ it("drops a pointing's undo once a later tap supersedes it", async () => {
   expect(view.queryByText(/^pointed:/)).toBeNull();
   await act(async () => pending[1]?.());
   mockToggle.mutateAsync.mockImplementation(async () => undefined);
+  expect(view.getByText("pointed:Loyer")).toBeTruthy();
 });
 
 it("restores cached detail when the optimistic point request is rejected", async () => {

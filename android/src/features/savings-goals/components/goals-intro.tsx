@@ -1,5 +1,5 @@
 import type { SupportedCurrency } from "pulpe-shared";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, ProgressBar, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -160,11 +160,13 @@ function GoalPreview({ currency }: { currency: SupportedCurrency }) {
 function PlanPreview({ currency }: { currency: SupportedCurrency }) {
   const theme = useTheme();
   const { locale, t } = useTranslation();
+  // One window per mount: a re-render across a month boundary keeps its rows.
+  const months = useMemo(() => sampleMonths(new Date()), []);
 
   return (
     <Card mode="contained" style={styles.preview}>
       <Card.Content style={styles.previewContent}>
-        {sampleMonths(new Date()).map(({ month, year }, index) => (
+        {months.map(({ month, year }, index) => (
           <View key={month} style={styles.planRow}>
             <Text
               variant="bodyMedium"
