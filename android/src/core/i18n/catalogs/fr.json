@@ -72,7 +72,7 @@
       "viewTemplates": "Voir mes modèles"
     },
     "detail": {
-      "activityLongPressHint": "Appui long pour effacer ou modifier",
+      "activityLongPressHint": "Appui long pour supprimer ou modifier",
       "allChecked": "Tout est pointé pour ce mois.",
       "amountSuffix": {
         "overrun": "de dépassement",
@@ -80,7 +80,7 @@
         "plannedTotal": "/ %{amount} prévu",
         "remaining": "restant sur %{amount}"
       },
-      "deletedGoal": "Cet objectif a été effacé. Le revenu reste dans ton budget.",
+      "deletedGoal": "Cet objectif a été supprimé. Le revenu reste dans ton budget.",
       "editActivity": "Modifier %{name}",
       "filters": {
         "all": "Tout",
@@ -150,18 +150,18 @@
         "cancelPair": "Tout annuler",
         "createTargetBudget": "Crée d'abord le budget de %{month}",
         "deleteEmpty": "Elle disparaîtra de ce mois-ci.",
-        "deleteTitle": "Effacer cette prévision ?",
+        "deleteTitle": "Supprimer cette prévision ?",
         "deleteWithMany": "Les %{count} opérations rattachées resteront, mais sans prévision.",
         "deleteWithOne": "L'opération rattachée restera, mais sans prévision.",
         "empty": "Rien n'a encore été rattaché à cette prévision.",
         "failure": {
-          "deleteLine": "La prévision n'a pas pu être effacée. Réessaie.",
+          "deleteLine": "La prévision n'a pas pu être supprimée. Réessaie.",
           "deletePair": "La suppression a échoué. Réessaie.",
           "postpone": "Le report n'a pas pu être fait. Réessaie."
         },
         "keepIncome": "Garder le revenu de %{month}",
         "loadError": "Impossible de charger cette prévision.",
-        "missingHint": "Elle a peut-être été effacée depuis un autre appareil.",
+        "missingHint": "Elle a peut-être été supprimée depuis un autre appareil.",
         "missingTitle": "Cette prévision n'existe plus",
         "overrun": "%{amount} de dépassement",
         "pairDescription": "+%{amount} sur %{incomeMonth} est lié à -%{amount} sur %{repaymentMonth}.",
@@ -268,7 +268,7 @@
       "activityAction": "Une opération",
       "add": "Ajouter",
       "amount": "Montant",
-      "delete": "Effacer",
+      "delete": "Supprimer",
       "description": "Description",
       "edit": "Modifier",
       "forecast": {
@@ -297,9 +297,9 @@
         "withdrawalReady": "C'est en place"
       },
       "removal": {
-        "deleteError": "L'opération n'a pas pu être effacée. Réessaie.",
-        "removedMany": "%{count} opérations effacées",
-        "removedOne": "« %{name} » effacée",
+        "deleteError": "L'opération n'a pas pu être supprimée. Réessaie.",
+        "removedMany": "%{count} opérations supprimées",
+        "removedOne": "« %{name} » supprimée",
         "undoError": "L'annulation n'a pas abouti. Réessaie."
       },
       "save": "Enregistrer",
@@ -418,7 +418,7 @@
     "close": "Fermer",
     "contactSupport": "Contacter le support",
     "continue": "Continuer",
-    "delete": "Effacer",
+    "delete": "Supprimer",
     "email": "Adresse e-mail",
     "emailExample": "ton@email.com",
     "edit": "Modifier",
