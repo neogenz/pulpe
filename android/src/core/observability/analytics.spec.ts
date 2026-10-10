@@ -1,3 +1,5 @@
+import { ApiError } from "@/core/api/api-error";
+
 const mockClient = {
   identify: jest.fn(),
   register: jest.fn(),
@@ -179,6 +181,26 @@ describe("PostHog startup", () => {
     expect(mockClient.captureException).toHaveBeenCalledWith(
       expect.any(Error),
       { request_id: "request-42" },
+    );
+  });
+
+  it("hands its exception capture to API error reporting on start", () => {
+    let reporting: typeof import("./api-error-reporting") | undefined;
+    jest.isolateModules(() => {
+      jest
+        .requireActual<typeof import("./analytics")>("./analytics")
+        .startAnalytics();
+      reporting = jest.requireActual("./api-error-reporting");
+    });
+
+    reporting!.reportApiError(new ApiError("down", undefined, 500, null), {
+      method: "get",
+      path: "/budgets",
+    });
+
+    expect(mockClient.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "ApiRequestError" }),
+      expect.objectContaining({ http_status: 500 }),
     );
   });
 
