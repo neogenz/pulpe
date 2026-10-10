@@ -414,8 +414,8 @@ jest.mock("./components/budget-detail-overlays", () => {
       ref: React.ForwardedRef<unknown>,
     ) {
       const [message, setMessage] = React.useState("");
-      // Its own slot, as in the real overlays: a failure does not erase the
-      // pointing notice queued behind it.
+      // One slot, as in the real overlays: a failure hides the pointing notice
+      // until it is closed, without erasing it.
       const [hasToggleFailed, setToggleFailed] = React.useState(false);
       const [pointed, setPointed] = React.useState(
         null as { name: string; undo: () => void } | null,
@@ -432,8 +432,9 @@ jest.mock("./components/budget-detail-overlays", () => {
       return (
         <>
           <Text>{message}</Text>
-          {hasToggleFailed ? <Text>toggle-failure</Text> : null}
-          {pointed !== null ? (
+          {hasToggleFailed ? (
+            <Text onPress={() => setToggleFailed(false)}>toggle-failure</Text>
+          ) : pointed !== null ? (
             <Text
               onPress={() => {
                 setPointed(null);
@@ -640,8 +641,7 @@ it("offers a failed undo again behind its error", async () => {
   mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
   await fireEvent.press(await view.findByText("pointed:Loyer"));
 
-  expect(await view.findByText("toggle-failure")).toBeTruthy();
-  expect(view.getByText("pointed:Loyer")).toBeTruthy();
+  await fireEvent.press(await view.findByText("toggle-failure"));
   await fireEvent.press(view.getByText("pointed:Loyer"));
   await waitFor(() => expect(mockToggle.mutateAsync).toHaveBeenCalledTimes(3));
   expect(view.queryByText("pointed:Loyer")).toBeNull();
