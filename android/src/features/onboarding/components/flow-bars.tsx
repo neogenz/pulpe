@@ -7,7 +7,7 @@ import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
-import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
+import { ICON_SIZE, RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 
 const BAR_HEIGHT = 8;
 const FULL_WIDTH_PERCENT = 100;
@@ -98,7 +98,12 @@ export function FlowBars({
 
 const styles = StyleSheet.create({
   list: { gap: SPACING.md },
-  row: { gap: SPACING.xs, paddingVertical: SPACING.xs },
+  row: {
+    gap: SPACING.xs,
+    paddingVertical: SPACING.xs,
+    minHeight: TOUCH_TARGET,
+    justifyContent: "center",
+  },
   labels: { flexDirection: "row", justifyContent: "space-between" },
   amount: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   track: {

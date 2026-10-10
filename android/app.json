@@ -9,6 +9,9 @@
     "runtimeVersion": {
       "policy": "appVersion"
     },
+    "updates": {
+      "url": "https://u.expo.dev/e876501a-aa88-495e-941a-5d218021e5e9"
+    },
     "icon": "./assets/images/icon.png",
     "android": {
       "package": "app.pulpe.android",
@@ -69,7 +72,16 @@
       "@react-native-google-signin/google-signin",
       "@react-native-community/datetimepicker",
       "./plugins/with-brand-colors",
-      "./plugins/with-release-permissions"
+      "./plugins/with-release-permissions",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -57,7 +57,7 @@
   "budgets": {
     "create": {
       "default": "Standard",
-      "description": "Das Budget wird mit den Prognosen der gewählten Vorlage erstellt.",
+      "description": "Das Budget wird mit den Planungen der gewählten Vorlage erstellt.",
       "error": "Das Budget konnte nicht erstellt werden. Versuche es erneut.",
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
       "loadErrorTitle": "Das neue Budget konnte nicht vorbereitet werden",
@@ -502,7 +502,7 @@
     "detail": {
       "deadline": "Zieldatum %{date}",
       "delete": "Ziel löschen",
-      "futureLinesError": "Die zukünftigen Prognosen dieses Ziels konnten nicht geprüft werden.",
+      "futureLinesError": "Die zukünftigen Planungen dieses Ziels konnten nicht geprüft werden.",
       "loadErrorTitle": "Dieses Ziel konnte nicht geladen werden",
       "missingHint": "Es wurde vielleicht auf einem anderen Gerät gelöscht.",
       "missingTitle": "Dieses Ziel existiert nicht mehr",
@@ -540,8 +540,8 @@
         "one": "Dieses Ziel wurde gestoppt, aber %{count} Sparprognose ist noch für einen zukünftigen Monat reserviert.",
         "other": "Dieses Ziel wurde gestoppt, aber %{count} Sparprognosen sind noch für zukünftige Monate reserviert."
       },
-      "futureTitle": "Mit zukünftigen Monaten verknüpfte Prognosen",
-      "manage": "Prognosen verwalten",
+      "futureTitle": "Mit zukünftigen Monaten verknüpfte Planungen",
+      "manage": "Planungen verwalten",
       "overdueBody": "Dein Zieldatum ist vorbei. Verschiebe es, um in deinem Tempo weiterzumachen.",
       "overdueTitle": "Zieldatum überschritten",
       "postpone": "Datum verschieben",
@@ -555,15 +555,15 @@
       "completedTitle": "Ziel erreicht",
       "error": "Die Entscheidung konnte nicht angewendet werden. Lade neu und versuche es erneut.",
       "freeze": "Ohne Ziel behalten",
-      "freezeHint": "Die Prognosen bleiben in deinen Budgets und werden nur vom Ziel getrennt.",
+      "freezeHint": "Die Planungen bleiben in deinen Budgets und werden nur vom Ziel getrennt.",
       "intro": {
         "one": "%{count} Sparprognose bleibt in einem zukünftigen Monat mit diesem Ziel verknüpft. Was möchtest du damit tun?",
         "other": "%{count} Sparprognosen bleiben in zukünftigen Monaten mit diesem Ziel verknüpft. Was möchtest du damit tun?"
       },
       "pausedTitle": "Ziel pausiert",
       "remove": "Aus zukünftigen Monaten entfernen",
-      "removeAccessibility": "Löscht die angezeigten Prognosen und gibt ihre Beträge frei",
-      "removeHint": "Die Prognosen werden gelöscht und der Betrag wird jeden Monat wieder verfügbar.",
+      "removeAccessibility": "Löscht die angezeigten Planungen und gibt ihre Beträge frei",
+      "removeHint": "Die Planungen werden gelöscht und der Betrag wird jeden Monat wieder verfügbar.",
       "total": "Gesamt"
     },
     "simulator": {
@@ -605,29 +605,29 @@
         "other": "%{count} Budgets"
       },
       "confirm": {
-        "goal_and_forecasts": "Ziel und Prognosen löschen",
+        "goal_and_forecasts": "Ziel und Planungen löschen",
         "goal_forecasts_and_transactions": "Alles löschen",
         "goal_only": "Nur das Ziel löschen"
       },
-      "empty": "Mit diesem Ziel ist keine Prognose oder Bewegung verknüpft.",
+      "empty": "Mit diesem Ziel ist keine Planung oder Bewegung verknüpft.",
       "error": "Löschen fehlgeschlagen. Nichts wurde gelöscht.",
       "forecastCount": {
-        "one": "%{count} Prognose",
-        "other": "%{count} Prognosen"
+        "one": "%{count} Planung",
+        "other": "%{count} Planungen"
       },
-      "forecasts": "Auch alle verknüpften Prognosen löschen",
+      "forecasts": "Auch alle verknüpften Planungen löschen",
       "goalOnlyHint": "Nur das Ziel wird gelöscht. Alles andere bleibt erhalten.",
       "impactError": "Die Auswirkungen konnten nicht berechnet werden. Nichts wurde gelöscht.",
       "impactLoading": "Auswirkungen werden berechnet…",
       "impactLoadingAccessibility": "Auswirkungen der Löschung werden berechnet",
       "intro": "Prüfe vor der Auswahl alles, was mit „%{name}“ verknüpft ist.",
-      "movements": "Auch Bewegungen löschen, die mit diesen Prognosen verknüpft sind",
+      "movements": "Auch Bewegungen löschen, die mit diesen Planungen verknüpft sind",
       "movementsLabel": "Bewegungen",
       "pending": "Wird gelöscht…",
       "question": "Was möchtest du löschen?",
       "summaryAccessibility": "Zusammenfassung der Auswirkungen",
       "template": "Typischer Monat",
-      "templateLines": "Prognosen des typischen Monats",
+      "templateLines": "Planungen des typischen Monats",
       "title": "Ziel löschen",
       "withdrawals": "Entnahmen in deine Budgets",
       "withdrawalsHint": "Diese Einnahmen bleiben unabhängig von deiner Auswahl in ihren Budgets.",
@@ -666,8 +666,8 @@
       "thisMonth": "Dieser Monat",
       "title": "Dein Plan, Monat für Monat",
       "unlinked": {
-        "one": "%{count} verbleibender Monat hat keine Prognose für dieses Ziel.",
-        "other": "%{count} verbleibende Monate haben keine Prognose für dieses Ziel."
+        "one": "%{count} verbleibender Monat hat keine Planung für dieses Ziel.",
+        "other": "%{count} verbleibende Monate haben keine Planung für dieses Ziel."
       },
       "withdrawal": "davon %{amount} zur Entnahme"
     }
@@ -705,8 +705,8 @@
     },
     "drift": {
       "hidden": {
-        "one": "+1 weitere Prognose",
-        "other": "+%{count} weitere Prognosen"
+        "one": "+1 weitere Planung",
+        "other": "+%{count} weitere Planungen"
       },
       "overBy": "+%{amount} zu viel",
       "summary": "%{amount} über dem Plan",
@@ -1156,10 +1156,10 @@
       "createSelect": "Diesen Tag erstellen und auswählen",
       "delete": "Löschen",
       "deleteA11y": "%{name} löschen",
-      "deleteDescription": "„%{name}“ wird von den Prognosen und Vorgängen entfernt, die ihn verwenden. Diese bleiben bestehen.",
+      "deleteDescription": "„%{name}“ wird von den Planungen und Vorgängen entfernt, die ihn verwenden. Diese bleiben bestehen.",
       "deleteError": "Der Tag konnte nicht gelöscht werden. Versuche es erneut.",
       "deleteTitle": "Diesen Tag löschen?",
-      "description": "Mit Tags gruppierst du Prognosen und Vorgänge. Die Tags werden mit der Web- und der iOS-App geteilt.",
+      "description": "Mit Tags gruppierst du Planungen und Vorgänge. Die Tags werden mit der Web- und der iOS-App geteilt.",
       "empty": "Noch keine Tags.",
       "loadError": "Deine Tags konnten nicht geladen werden.",
       "name": "Name",
@@ -1245,16 +1245,16 @@
       "add": "Hinzufügen",
       "amount": "Geplanter Betrag",
       "apply": "Anwenden",
-      "createTitle": "Neue Prognose",
+      "createTitle": "Neue Planung",
       "deleteAccessibility": "%{name} löschen",
       "editAccessibility": "%{name} bearbeiten",
-      "editTitle": "Prognose bearbeiten",
-      "error": "Die Prognose konnte nicht gespeichert werden. Versuche es erneut.",
+      "editTitle": "Planung bearbeiten",
+      "error": "Die Planung konnte nicht gespeichert werden. Versuche es erneut.",
       "linkGoal": "Mit einem Ziel verknüpfen",
       "noGoal": "Keines",
       "propagationBody": {
-        "one": "Diese Vorlage wird von %{count} Budget verwendet. „Anwenden“ aktualisiert aktuelle und zukünftige Budgets. Manuell bearbeitete Prognosen bleiben unverändert.",
-        "other": "Diese Vorlage wird von %{count} Budgets verwendet. „Anwenden“ aktualisiert aktuelle und zukünftige Budgets. Manuell bearbeitete Prognosen bleiben unverändert."
+        "one": "Diese Vorlage wird von %{count} Budget verwendet. „Anwenden“ aktualisiert aktuelle und zukünftige Budgets. Manuell bearbeitete Planungen bleiben unverändert.",
+        "other": "Diese Vorlage wird von %{count} Budgets verwendet. „Anwenden“ aktualisiert aktuelle und zukünftige Budgets. Manuell bearbeitete Planungen bleiben unverändert."
       },
       "propagationTitle": "Auf folgende Monate anwenden?",
       "save": "Speichern",
@@ -1262,13 +1262,13 @@
       "longPressHint": "Lange drücken zum Löschen"
     },
     "detail": {
-      "addLine": "Prognose hinzufügen",
+      "addLine": "Planung hinzufügen",
       "balance": "Übrig",
       "confirmDelete": "Löschen",
       "delete": "Vorlage löschen",
       "deleteLineBody": "„%{name}“ wird aus der Vorlage entfernt. Bestehende Budgets behalten ihre Kopie.",
-      "deleteLineError": "Die Prognose konnte nicht gelöscht werden. Versuche es erneut.",
-      "deleteLineTitle": "Diese Prognose löschen?",
+      "deleteLineError": "Die Planung konnte nicht gelöscht werden. Versuche es erneut.",
+      "deleteLineTitle": "Diese Planung löschen?",
       "deleteTemplateBody": "Budgets, die bereits aus „%{name}“ erstellt wurden, bleiben unverändert. Nur die Vorlage verschwindet.",
       "deleteTemplateError": "Die Vorlage konnte nicht gelöscht werden. Versuche es erneut.",
       "deleteTemplateTitle": "Diese Vorlage löschen?",

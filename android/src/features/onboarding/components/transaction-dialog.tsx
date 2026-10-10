@@ -1,10 +1,8 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
-import { StyleSheet } from "react-native";
-import { Button, Dialog, Portal, TextInput } from "react-native-paper";
+import { Button, TextInput } from "react-native-paper";
 
-import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
-import { SPACING } from "@/core/ui/theme";
+import { FormModal } from "@/core/ui/sheet";
 import { useTranslation } from "@/core/i18n/locale-store";
 
 import {
@@ -35,7 +33,6 @@ export function TransactionDialog({
   onSubmit: (transaction: OnboardingTransaction) => void;
 }) {
   const { t } = useTranslation();
-  const keyboardHeight = useKeyboardHeight();
   const [name, setName] = useState(editing?.name ?? "");
   const [amount, setAmount] = useState<number | null>(editing?.amount ?? null);
 
@@ -58,49 +55,38 @@ export function TransactionDialog({
   }
 
   return (
-    <Portal>
-      {/* Paper's Dialog stays centred in the whole window, and the window does
-          not shrink for the keyboard (`keyboard-inset.ts`): "Ajouter" ended up
-          under the keys. Half the keyboard's height recentres it in the room
-          the keys leave. */}
-      <Dialog
-        visible
-        onDismiss={onDismiss}
-        style={{ transform: [{ translateY: -keyboardHeight / 2 }] }}
-      >
-        <Dialog.Title>{t(`onboarding.transaction.title.${kind}`)}</Dialog.Title>
-        <Dialog.Content style={styles.content}>
-          <TextInput
-            mode="outlined"
-            label={t("onboarding.transaction.name")}
-            placeholder={t(`onboarding.transaction.placeholder.${kind}`)}
-            value={name}
-            onChangeText={setName}
-            maxLength={NAME_MAX_LENGTH}
-            autoFocus
-          />
-          <AmountField
-            label={t("onboarding.transaction.monthlyAmount")}
-            amount={amount}
-            currency={currency}
-            onChange={setAmount}
-          />
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismiss}>{t("common.cancel")}</Button>
-          <Button disabled={!isValid} onPress={submit}>
-            {t(
-              editing === null
-                ? "onboarding.transaction.add"
-                : "onboarding.transaction.save",
-            )}
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+    // Mounted only while open, so it is always visible; FormModal keeps the
+    // pinned "Ajouter" above the keyboard.
+    <FormModal
+      isVisible
+      onDismiss={onDismiss}
+      title={t(`onboarding.transaction.title.${kind}`)}
+      footer={
+        <Button mode="contained" disabled={!isValid} onPress={submit}>
+          {t(
+            editing === null
+              ? "onboarding.transaction.add"
+              : "onboarding.transaction.save",
+          )}
+        </Button>
+      }
+    >
+      <AmountField
+        isProminent
+        label={t("onboarding.transaction.monthlyAmount")}
+        amount={amount}
+        currency={currency}
+        onChange={setAmount}
+        autoFocus
+      />
+      <TextInput
+        mode="outlined"
+        label={t("onboarding.transaction.name")}
+        placeholder={t(`onboarding.transaction.placeholder.${kind}`)}
+        value={name}
+        onChangeText={setName}
+        maxLength={NAME_MAX_LENGTH}
+      />
+    </FormModal>
   );
 }
-
-const styles = StyleSheet.create({
-  content: { gap: SPACING.md },
-});

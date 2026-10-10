@@ -27,6 +27,8 @@ export interface BudgetDetailOverlaysHandle {
   showWithdrawal: () => void;
   showRealizedBalance: () => void;
   showToggleFailure: () => void;
+  /** Offers to take a pointing back: under "À pointer" the row just left. */
+  showPointed: (pointed: { name: string; undo: () => void } | null) => void;
 }
 
 interface BudgetDetailOverlaysProps {
@@ -66,6 +68,10 @@ export const BudgetDetailOverlays = forwardRef<
     | null
   >(null);
   const [hasToggleFailed, setToggleFailed] = useState(false);
+  const [pointed, setPointed] = useState<{
+    name: string;
+    undo: () => void;
+  } | null>(null);
   const [isFabOpen, setFabOpen] = useState(false);
   const periodDates = getBudgetPeriodDates(
     period.month,
@@ -95,6 +101,7 @@ export const BudgetDetailOverlays = forwardRef<
     showWithdrawal: () => setWithdrawalVisible(true),
     showRealizedBalance: () => setRealizedVisible(true),
     showToggleFailure: () => setToggleFailed(true),
+    showPointed: setPointed,
   }));
 
   return (
@@ -163,6 +170,21 @@ export const BudgetDetailOverlays = forwardRef<
             : t("budgets.mutations.removal.removedMany", {
                 count: removal.undoable.length,
               })}
+        </Notice>
+      ) : pointed !== null ? (
+        <Notice
+          clearsFab
+          visible
+          onDismiss={() => setPointed(null)}
+          action={{
+            label: t("common.cancel"),
+            onPress: () => {
+              setPointed(null);
+              pointed.undo();
+            },
+          }}
+        >
+          {t("home.checking.pointed", { name: pointed.name })}
         </Notice>
       ) : (
         <Notice

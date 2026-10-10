@@ -28,6 +28,8 @@ const PAGE_GAP = SPACING.sm;
 
 interface UncheckedOperationsCardProps {
   items: CheckableItem[];
+  /** Every operation left to point; the queue only shows the first few. */
+  totalCount: number;
   currency: SupportedCurrency;
   /** Whether that operation's pointing is still on its way to the server. */
   isPending: (item: CheckableItem) => boolean;
@@ -48,6 +50,7 @@ interface UncheckedOperationsCardProps {
  */
 export function UncheckedOperationsCard({
   items,
+  totalCount,
   currency,
   isPending,
   onToggle,
@@ -99,7 +102,7 @@ export function UncheckedOperationsCard({
     <View style={styles.section}>
       <SectionHeader
         title={t("home.checking.title")}
-        count={items.length}
+        count={totalCount}
         link={
           onViewAll === undefined
             ? undefined

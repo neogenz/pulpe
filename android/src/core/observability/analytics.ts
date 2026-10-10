@@ -13,6 +13,7 @@ import {
   sanitizeProperties,
   type AnalyticsProperties,
 } from "./analytics-properties";
+import { setApiErrorCapture } from "./api-error-reporting";
 import {
   isDiagnosticSharingEnabled,
   useDiagnosticsConsent,
@@ -116,12 +117,13 @@ export function startAnalytics(): () => void {
           uncaughtExceptions: true,
           unhandledRejections: true,
           console: [],
-          nativeCrashes: false,
+          nativeCrashes: true,
         },
       },
     });
     // Registered once so every manual event carries the same app identity.
     void client.register(appContextProperties());
+    setApiErrorCapture(captureException);
   }
 
   syncIdentity();

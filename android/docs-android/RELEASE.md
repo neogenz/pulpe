@@ -15,11 +15,10 @@ checklist rather than a description of a finished release pipeline.
 | 4   | Google OAuth client IDs (web + Android)   | Google Cloud, project `894420283180`                                 | Google sign-in         |
 | 5   | PostHog project key (EU host)             | posthog.com                                                          | analytics + JS errors  |
 | 6   | Backend env on Railway                    | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate      |
-| 7   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/`                       | App Links verification |
+| 7   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/` (done)                | App Links verification |
 
-`eas init` writes `extra.eas.projectId` into `app.json`; `eas update:configure`
-writes `updates.url`. Until the latter runs, OTA is inert — the app still builds
-and runs, it simply never checks for an update.
+`eas init` writes `extra.eas.projectId` into `app.json`; `updates.url` points at
+the same project, so a binary checks its channel for an update on every launch.
 
 ## First-time setup
 
@@ -107,6 +106,44 @@ a web build. `expo-router` has an optional ReactDOM peer; without the local
 declaration, Expo Doctor traverses the monorepo and borrows Landing's 19.2.8,
 then reports a duplicate React installation. Landing deliberately remains on
 React/ReactDOM 19.2.8.
+
+## Crash symbols
+
+R8 obfuscates release builds, and Hermes compiles the JavaScript bundle, so a
+crash reaches PostHog unreadable unless the build uploads its R8 mapping and
+its Hermes source map. `posthog-react-native/expo` (`app.config.js`) wires both
+into the release Gradle build: the `com.posthog.android` plugin uploads the
+mapping, `posthog.gradle` uploads the source map. `metro.config.js` stamps the
+debug id that ties the bundle to its map, and `@posthog/cli` is pinned in
+`devDependencies`.
+
+The plugin is added only when `EXPO_PUBLIC_POSTHOG_ENABLED` is `true`, that is
+on the `production` and `production-apk` profiles. A failed upload fails the
+build, so the preview APK and the CI smoke build, which report nothing, never
+attempt one.
+
+Create one variable in the EAS **production** environment, visibility
+**Secret**: `POSTHOG_CLI_API_KEY`, a PostHog personal API key with scopes
+_error tracking: write_ + _organization: read_. Omit `--value` so the CLI
+prompts for the key and it never lands in the shell history:
+
+```bash
+pnpm dlx eas-cli@latest env:set --environment production --visibility secret --name POSTHOG_CLI_API_KEY
+```
+
+`POSTHOG_CLI_HOST` (`https://eu.posthog.com`, the EU app host, not the
+`eu.i.` ingestion host) and `POSTHOG_CLI_PROJECT_ID` are not secret and live in
+the `production` profile of `eas.json`.
+
+To verify an upload happened, search the EAS build log (Run gradlew phase) for
+the `PostHogUpload` and `uploadPostHogProguardMappings` tasks, then open PostHog
+→ Error tracking → Configuration → Symbol sets: the build adds a Hermes source
+map and a ProGuard mapping for `app.pulpe.android`, `version`, `versionCode`.
+The real proof is a crash from that build whose frames show `src/…` files and
+unobfuscated class names.
+
+An OTA update ships a new bundle without a Gradle build, so nothing uploads its
+source map; its JavaScript crashes stay minified.
 
 ## OTA vs a new binary
 
@@ -208,14 +245,14 @@ labels are exercised on the exact candidate head.
   the current build and privacy policy against this inventory — do not reduce
   the declaration to email and amounts:
 
-  | Play data family         | Current Android flow                                                                                                         | Purpose and control                                                                                                      |
-  | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-  | Personal info            | Supabase/backend receive account email, user ID and profile name. PostHog receives the account user ID (`identify`).         | Account management, authentication and app functionality; the user ID also for analytics, under the diagnostics control. |
-  | Financial info           | User-entered amounts, balances and savings goals reach the backend as AES-256-GCM ciphertext.                                | Core app functionality; TLS in transit, server has no vault key.                                                         |
-  | Other user content       | Budget, operation and goal names, tags, descriptions and dates support the user's records.                                   | Core app functionality; review each field's encryption before declaring.                                                 |
-  | App activity             | PostHog receives screen names and allow-listed onboarding/auth interaction events, without route IDs, typed text or amounts. | Analytics; production only, controlled by “Partager les diagnostics”.                                                    |
-  | App info and performance | PostHog receives uncaught JavaScript exceptions and unhandled rejections, plus app version, build, platform and environment. | Diagnostics; no native crash/session replay, same user control.                                                          |
-  | Device or other IDs      | PostHog assigns a distinct/device identifier and SDK device/app/OS properties.                                               | Analytics and diagnostics; same user control.                                                                            |
+  | Play data family         | Current Android flow                                                                                                                         | Purpose and control                                                                                                      |
+  | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+  | Personal info            | Supabase/backend receive account email, user ID and profile name. PostHog receives the account user ID (`identify`).                         | Account management, authentication and app functionality; the user ID also for analytics, under the diagnostics control. |
+  | Financial info           | User-entered amounts, balances and savings goals reach the backend as AES-256-GCM ciphertext.                                                | Core app functionality; TLS in transit, server has no vault key.                                                         |
+  | Other user content       | Budget, operation and goal names, tags, descriptions and dates support the user's records.                                                   | Core app functionality; review each field's encryption before declaring.                                                 |
+  | App activity             | PostHog receives screen names and allow-listed onboarding/auth interaction events, without route IDs, typed text or amounts.                 | Analytics; production only, controlled by “Partager les diagnostics”.                                                    |
+  | App info and performance | PostHog receives uncaught JavaScript exceptions, unhandled rejections and JVM crash logs, plus app version, build, platform and environment. | Diagnostics (declare “Crash logs”); no session replay, same user control.                                                |
+  | Device or other IDs      | PostHog assigns a distinct/device identifier and SDK device/app/OS properties.                                                               | Analytics and diagnostics; same user control.                                                                            |
 
   Verify the final Play answers against the PostHog/Supabase processor terms,
   retention, deletion path and whether each transfer qualifies as “sharing”
@@ -246,26 +283,15 @@ where iOS reads `iosVersion`, so no separate Android numbering is needed.
 
 ## App Links
 
-`app.json` already declares the intent filter for
-`https://app.pulpe.app/reset-password` with `autoVerify`. Verification fails
-today — `adb shell pm get-app-links app.pulpe.android` reports state `1024`,
-meaning no `assetlinks.json` was found. Publish this at
-`https://app.pulpe.app/.well-known/assetlinks.json`, with the **Play app-signing
-SHA-256** from Play Console after the first AAB upload:
+`app.json` declares the intent filter for `https://app.pulpe.app/reset-password`
+with `autoVerify`. The webapp serves the matching
+`https://app.pulpe.app/.well-known/assetlinks.json` from
+`frontend/projects/webapp/public/.well-known/assetlinks.json`. It lists the
+**Play app-signing SHA-256** (Play Console → Signature d'application), so only
+builds Play delivers verify. Add a fingerprint there for any other distribution
+that must open links in the app, and for every new key after a signing-key
+rotation.
 
-```json
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "app.pulpe.android",
-      "sha256_cert_fingerprints": ["<Play app-signing SHA-256>"]
-    }
-  }
-]
-```
-
-Until it is served, password-reset links open in the browser instead of the
-app. Nothing breaks — the web page handles the reset — but the handoff is
-missing.
+Check a Play-installed build with `adb shell pm get-app-links app.pulpe.android`:
+`verified` means password-reset links open the app. Without verification they
+open in the browser, where the web page still handles the reset.

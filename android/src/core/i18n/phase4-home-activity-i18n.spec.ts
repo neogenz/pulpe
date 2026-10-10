@@ -8,7 +8,7 @@ describe("phase 4 current-month activity localization", () => {
   it.each([
     ["fr", "Dernier jour de la période", "+2 autres enveloppes"],
     ["en", "Last day of the period", "+2 other forecasts"],
-    ["de", "Letzter Tag der Periode", "+2 weitere Prognosen"],
+    ["de", "Letzter Tag der Periode", "+2 weitere Planungen"],
     ["it", "Ultimo giorno del periodo", "+2 altre previsioni"],
   ])("serves activity status and plurals in %s", (locale, period, hidden) => {
     i18n.locale = locale;

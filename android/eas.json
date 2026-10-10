@@ -51,7 +51,9 @@
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "894420283180-chlgsmfheqfks78iamv72n80nfo8kgsl.apps.googleusercontent.com",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_TQXZF60iqsU5m3HpGGtTRjGx5vFvggoBt1Gzr4zWLar",
-        "EXPO_PUBLIC_POSTHOG_ENABLED": "true"
+        "EXPO_PUBLIC_POSTHOG_ENABLED": "true",
+        "POSTHOG_CLI_HOST": "https://eu.posthog.com",
+        "POSTHOG_CLI_PROJECT_ID": "87621"
       }
     },
     "production-apk": {
