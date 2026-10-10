@@ -71,6 +71,14 @@ export function TransactionDialog({
         </Button>
       }
     >
+      <AmountField
+        isProminent
+        label={t("onboarding.transaction.monthlyAmount")}
+        amount={amount}
+        currency={currency}
+        onChange={setAmount}
+        autoFocus
+      />
       <TextInput
         mode="outlined"
         label={t("onboarding.transaction.name")}
@@ -78,13 +86,6 @@ export function TransactionDialog({
         value={name}
         onChangeText={setName}
         maxLength={NAME_MAX_LENGTH}
-        autoFocus
-      />
-      <AmountField
-        label={t("onboarding.transaction.monthlyAmount")}
-        amount={amount}
-        currency={currency}
-        onChange={setAmount}
       />
     </FormModal>
   );

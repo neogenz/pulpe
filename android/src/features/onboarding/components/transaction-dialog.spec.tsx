@@ -10,7 +10,20 @@ jest.mock("react-native-safe-area-context", () => ({
   ...jest.requireActual("react-native-safe-area-context"),
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
-jest.mock("@/core/ui/amount-field", () => ({ AmountField: () => null }));
+// A host element carrying the props, so the spec can see where the field sits
+// and how it is set without loading the real input.
+jest.mock("@/core/ui/amount-field", () => {
+  const { View } = jest.requireActual("react-native");
+  return {
+    AmountField: (props: { isProminent?: boolean; autoFocus?: boolean }) => (
+      <View
+        testID="amount-field"
+        isProminent={props.isProminent}
+        autoFocus={props.autoFocus}
+      />
+    ),
+  };
+});
 // Mints ids through the native crypto binding, which no test can load.
 jest.mock("../onboarding-transaction", () => ({
   createCustomTransaction: jest.fn(),
@@ -43,4 +56,36 @@ it("opens in the shared form modal with its action pinned in the footer", async 
 
   await fireEvent.press(view.getByLabelText("common.close"));
   expect(onDismiss).toHaveBeenCalledTimes(1);
+});
+
+/**
+ * Like every form that takes an amount, the dialog leads with it, set large,
+ * and opens the keyboard on it; the name follows.
+ */
+it("leads with the prominent amount, focused, before the name", async () => {
+  const view = await render(
+    <PaperProvider>
+      <TransactionDialog
+        kind="expense"
+        currency="CHF"
+        editing={null}
+        onDismiss={jest.fn()}
+        onSubmit={jest.fn()}
+      />
+    </PaperProvider>,
+  );
+
+  const amountField = view.getByTestId("amount-field");
+  expect(amountField.props.isProminent).toBe(true);
+  expect(amountField.props.autoFocus).toBe(true);
+
+  const nameField = view.getByPlaceholderText(
+    "onboarding.transaction.placeholder.expense",
+  );
+  expect(nameField.props.autoFocus).toBeFalsy();
+
+  const tree = JSON.stringify(view.toJSON());
+  expect(tree.indexOf('"amount-field"')).toBeLessThan(
+    tree.indexOf('"onboarding.transaction.placeholder.expense"'),
+  );
 });
