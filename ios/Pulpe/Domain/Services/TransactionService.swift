@@ -20,9 +20,16 @@ actor TransactionService: TransactionServicing {
     static let shared = TransactionService()
 
     private let apiClient: APIClient
+    private let captureCreated: @MainActor @Sendable (TransactionKind) -> Void
 
-    private init(apiClient: APIClient = .shared) {
+    init(
+        apiClient: APIClient = .shared,
+        captureCreated: @escaping @MainActor @Sendable (TransactionKind) -> Void = { kind in
+            AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
+        }
+    ) {
         self.apiClient = apiClient
+        self.captureCreated = captureCreated
     }
 
     // MARK: - CRUD Operations
@@ -45,7 +52,9 @@ actor TransactionService: TransactionServicing {
 
     /// Create a new transaction
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction {
-        try await apiClient.request(.transactionsCreate, body: data, method: .post)
+        let transaction: Transaction = try await apiClient.request(.transactionsCreate, body: data, method: .post)
+        await captureCreated(transaction.kind)
+        return transaction
     }
 
     /// Update a transaction

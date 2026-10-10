@@ -480,7 +480,10 @@ describe('PostHogService', () => {
 
     service.identify('user-123', { plan: 'pro' });
 
-    expect(posthog.identify).toHaveBeenCalledWith('user-123', { plan: 'pro' });
+    expect(posthog.identify).toHaveBeenCalledWith('user-123', {
+      plan: 'pro',
+      supabase_user_id: 'user-123',
+    });
   });
 
   it('sanitizes identify properties before they enter PostHog SDK state', async () => {
@@ -503,7 +506,7 @@ describe('PostHogService', () => {
     expect(posthog.identify).toHaveBeenCalledWith('user-example', {
       email: 'person@example.test',
       name: 'First',
-      supabase_user_id: 'technical-user-id',
+      supabase_user_id: 'user-example',
       currency: 'EUR',
       early_adopter: true,
     });
@@ -524,7 +527,21 @@ describe('PostHogService', () => {
 
     expect(posthog.identify).toHaveBeenCalledWith('user-example', {
       currency: 'EUR',
+      supabase_user_id: 'user-example',
     });
+  });
+
+  it('uses the same identity for uppercase iOS and lowercase web UUIDs', async () => {
+    const posthog = (await import('posthog-js')).default;
+    await service.initialize();
+    const id = 'ab123456-1234-1234-1234-123456789abc';
+
+    for (const userId of [id.toUpperCase(), id]) {
+      service.identify(userId, { supabase_user_id: userId });
+      expect(posthog.identify).toHaveBeenLastCalledWith(id, {
+        supabase_user_id: id,
+      });
+    }
   });
 
   it('sanitizes person property updates before they enter PostHog SDK state', async () => {

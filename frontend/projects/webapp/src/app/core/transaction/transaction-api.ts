@@ -1,6 +1,7 @@
 import { inject, Service } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
 import {
+  ANALYTICS_EVENTS,
   type TransactionCreate,
   type TransactionCreateResponse,
   type TransactionFindOneResponse,
@@ -18,12 +19,14 @@ import {
   transactionSearchResponseSchema,
   transactionUpdateSchema,
 } from 'pulpe-shared';
-import { map, type Observable } from 'rxjs';
+import { map, tap, type Observable } from 'rxjs';
 import { ApiClient } from '@core/api/api-client';
+import { PostHogService } from '@core/analytics/posthog';
 
 @Service()
 export class TransactionApi {
   readonly #api = inject(ApiClient);
+  readonly #postHog = inject(PostHogService);
 
   findByBudget$(budgetId: string): Observable<TransactionListResponse> {
     return this.#api.get$(
@@ -35,12 +38,20 @@ export class TransactionApi {
   create$(
     transaction: TransactionCreate,
   ): Observable<TransactionCreateResponse> {
-    return this.#api.post$(
-      '/transactions',
-      transaction,
-      transactionResponseSchema,
-      transactionCreateSchema,
-    );
+    return this.#api
+      .post$(
+        '/transactions',
+        transaction,
+        transactionResponseSchema,
+        transactionCreateSchema,
+      )
+      .pipe(
+        tap(({ data }) =>
+          this.#postHog.captureEvent(ANALYTICS_EVENTS.TRANSACTION_CREATED, {
+            type: data.kind,
+          }),
+        ),
+      );
   }
 
   hasTransaction$(): Observable<boolean> {

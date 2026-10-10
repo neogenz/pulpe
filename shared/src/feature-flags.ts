@@ -93,7 +93,7 @@ export const ANALYTICS_EVENTS = {
   PIN_CHANGED: 'pin_changed',
   /** Fires when a budget is created outside onboarding. Properties: none. */
   BUDGET_CREATED: 'budget_created',
-  /** Fires after a transaction is created. Properties: `type`. */
+  /** Fires after a successful transaction creation response, from any surface. Properties: `type`. */
   TRANSACTION_CREATED: 'transaction_created',
   /**
    * Fires when an entry is recorded while the server said the account held

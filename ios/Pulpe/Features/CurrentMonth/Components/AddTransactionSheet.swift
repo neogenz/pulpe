@@ -318,7 +318,6 @@ struct AddTransactionSheet: View {
             if data.sourceSavingsGoalId != nil {
                 savingsGoalStore.invalidateFromBudgetMutation()
             }
-            AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             FirstTransactionTracker.shared.recordCreated(kind: kind, source: source)
             submitSuccessTrigger.toggle()
             onAdd(transaction)
