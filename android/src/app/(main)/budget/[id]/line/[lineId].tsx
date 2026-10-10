@@ -108,7 +108,10 @@ export default function BudgetLineDetailScreen() {
     );
   }
 
-  if (details.isError || settings.isError) {
+  if (
+    (details.isError && details.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <SafeAreaView
         edges={["bottom"]}
@@ -354,14 +357,17 @@ export default function BudgetLineDetailScreen() {
 
         <SectionHeader
           title={t("budgets.actions.line.movements")}
-          count={transactions.length}
+          count={transactions.length > 0 ? transactions.length : undefined}
         />
 
         {transactions.length === 0 ? (
           <LedgerCard>
             <LedgerRow
               leading={
-                <IconDisc name="tray" tint={theme.colors.onSurfaceVariant} />
+                <IconDisc
+                  name="inbox-outline"
+                  tint={theme.colors.onSurfaceVariant}
+                />
               }
               title={t("budgets.actions.line.emptyTitle")}
               subtitle={t("budgets.actions.line.empty")}

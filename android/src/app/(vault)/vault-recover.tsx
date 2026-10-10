@@ -155,7 +155,7 @@ function NewPinStep({ recoveryKey, onBack, onKeyRejected }: NewPinStepProps) {
       } catch (error) {
         const apiError = normalizeApiError(error);
         if (apiError.status === HTTP_UNAUTHORIZED) {
-          void signOut();
+          void signOut().catch(() => undefined);
           return null;
         }
         const message =

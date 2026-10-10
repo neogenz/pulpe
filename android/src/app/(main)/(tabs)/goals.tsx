@@ -62,7 +62,10 @@ export default function GoalsScreen() {
 
   const header = <TabHeader title={t("goals.list.title")} />;
 
-  if (goals.isError || settings.isError) {
+  if (
+    (goals.isError && goals.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}

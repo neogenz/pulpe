@@ -109,9 +109,12 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
                   key={tag.id}
                   selected={isSelected}
                   icon={isSelected ? "check" : "tag-outline"}
+                  // Held while a tag is created: its success adds to the selection
+                  // it captured, and would undo a chip toggled meanwhile.
                   disabled={
-                    !isSelected &&
-                    selectedIds.length >= MAX_TAGS_PER_TRANSACTION
+                    createTag.isPending ||
+                    (!isSelected &&
+                      selectedIds.length >= MAX_TAGS_PER_TRANSACTION)
                   }
                   onPress={() => onChange(toggledTagIds(tag.id, selectedIds))}
                   accessibilityState={{ selected: isSelected }}

@@ -89,11 +89,6 @@ export function TransactionRow({
           android_ripple={ripple}
           disabled={onPress === undefined}
           accessibilityRole={onPress === undefined ? undefined : "button"}
-          accessibilityLabel={
-            onPress === undefined
-              ? undefined
-              : t("budgets.detail.editActivity", { name: transaction.name })
-          }
           accessibilityHint={
             onLongPress === undefined
               ? undefined
@@ -131,6 +126,8 @@ export function TransactionRow({
 
           <Text
             numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
             style={[
               BRAND_TYPE.rowAmount,
               TABULAR_DIGITS,

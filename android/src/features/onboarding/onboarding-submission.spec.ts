@@ -34,6 +34,9 @@ jest.mock("./onboarding-store", () => ({
 jest.mock("@/core/user-settings/user-settings-api", () => ({
   updateUserSettings: jest.fn(),
 }));
+jest.mock("@/core/user-settings/user-settings-queries", () => ({
+  cacheUserSettings: jest.fn(),
+}));
 jest.mock("@/core/i18n/locale-store", () => ({
   useLocaleStore: { getState: () => ({ locale: "de" }) },
 }));

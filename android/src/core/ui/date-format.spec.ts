@@ -49,6 +49,12 @@ describe("localized day labels", () => {
     expect(formatDayMonth(new Date(2026, 7, 1))).toBe("1er août");
     expect(formatDayMonth(new Date(2026, 7, 1), "en")).toBe("August 1");
   });
+
+  it("keeps the same ordinal on a full date", () => {
+    expect(formatIsoDate("2027-05-01")).toBe("1er mai 2027");
+    expect(formatIsoDate("2027-05-02")).toBe("2 mai 2027");
+    expect(formatIsoDate("2027-05-01", "en")).toBe("May 1, 2027");
+  });
 });
 
 describe("formatMonthYearShort", () => {

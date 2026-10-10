@@ -55,7 +55,7 @@ export default function TemplatesScreen() {
   const canAdd = canCreateTemplate(list.length);
   const header = <TabHeader title={t("templates.list.title")} />;
 
-  if (templates.isError) {
+  if (templates.isError && templates.data === undefined) {
     return (
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}

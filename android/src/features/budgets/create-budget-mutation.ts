@@ -8,6 +8,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/core/api/api";
 import { ENDPOINTS } from "@/core/api/endpoints";
+import { goalKeys } from "@/features/savings-goals/goals-queries";
+import { templateKeys } from "@/features/templates/template-queries";
 
 import { budgetKeys } from "./budget-queries";
 
@@ -29,7 +31,12 @@ export function useCreateBudget() {
 
   return useMutation({
     mutationFn: createBudget,
+    // The new lines carry their template line's goal, and the template its usage.
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: budgetKeys.all }),
+        queryClient.invalidateQueries({ queryKey: goalKeys.all }),
+        queryClient.invalidateQueries({ queryKey: templateKeys.all }),
+      ]),
   });
 }

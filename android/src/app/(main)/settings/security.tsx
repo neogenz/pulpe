@@ -331,7 +331,7 @@ export default function SecuritySettingsScreen() {
                 removeAccount.mutate(undefined, {
                   // Signing out is the confirmation: the account is gone, so
                   // staying on a screen that reads from it would only fail.
-                  onSuccess: () => void signOut(),
+                  onSuccess: () => void signOut().catch(() => undefined),
                   onError: () => {
                     setDeletingAccount(false);
                     setNotice(t("settings.security.deleteAccountError"));

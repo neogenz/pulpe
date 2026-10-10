@@ -172,9 +172,8 @@ export default function BudgetsScreen() {
   }
 
   if (
-    budgets.isError ||
+    (budgets.isError && budgets.data === undefined) ||
     isFetchNextPageError ||
-    settings.isError ||
     settings.data === undefined ||
     settings.data.currency === undefined ||
     settings.data.payDayOfMonth === undefined ||
@@ -530,7 +529,6 @@ function BudgetRow({
       onPress={() => push(`/budget/${budget.id}`)}
       android_ripple={ripple}
       accessibilityRole="button"
-      accessibilityLabel={`${name}${isCurrent ? `, ${t("budgets.list.current")}` : ""}`}
       style={styles.row}
     >
       <View style={styles.rowText}>

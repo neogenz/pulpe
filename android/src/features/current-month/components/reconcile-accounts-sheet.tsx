@@ -6,6 +6,7 @@ import {
   reconciliationVerdict,
   summarizeAccounts,
   type SupportedCurrency,
+  type TransactionCreate,
 } from "pulpe-shared";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -16,6 +17,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { randomUUID } from "react-native-quick-crypto";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { captureEvent } from "@/core/observability/analytics";
@@ -104,6 +106,9 @@ export function ReconcileAccountsSheet({
   // `isPending` arrives with the next render; a second tap before it must not
   // write a second adjustment.
   const isSubmitting = useRef(false);
+  // One id per adjustment, replayed on a retry: a request whose answer was lost
+  // may have committed, and `createOnce` reads it back instead of writing twice.
+  const attempt = useRef<TransactionCreate | null>(null);
 
   const adjustmentLabel = label ?? t("home.reconcile.verdict.defaultLabel");
   const summary = summarizeAccounts(rows.map((row) => row.amountText));
@@ -125,6 +130,7 @@ export function ReconcileAccountsSheet({
     setLabel(null);
     nextRowId.current = 1;
     isSubmitting.current = false;
+    attempt.current = null;
     create.reset();
   }
 
@@ -198,21 +204,36 @@ export function ReconcileAccountsSheet({
     if (isSubmitting.current) return;
     isSubmitting.current = true;
 
-    create.mutate(
-      buildAdjustmentPayload({ budgetId, name, adjustment, now: new Date() }),
-      {
-        onSuccess: () => {
-          complete(adjustment.kind);
-          hapticSuccess();
-          reset();
-          onRecorded();
-        },
-        // A refusal keeps the step and the label: retrying is one press.
-        onSettled: () => {
-          isSubmitting.current = false;
-        },
+    const previous = attempt.current;
+    const payload =
+      previous !== null &&
+      previous.name === name &&
+      previous.amount === adjustment.amount &&
+      previous.kind === adjustment.kind
+        ? previous
+        : {
+            ...buildAdjustmentPayload({
+              budgetId,
+              name,
+              adjustment,
+              now: new Date(),
+            }),
+            id: randomUUID(),
+          };
+    attempt.current = payload;
+
+    create.mutate(payload, {
+      onSuccess: () => {
+        complete(adjustment.kind);
+        hapticSuccess();
+        reset();
+        onRecorded();
       },
-    );
+      // A refusal keeps the step and the label: retrying is one press.
+      onSettled: () => {
+        isSubmitting.current = false;
+      },
+    });
   }
 
   // A write already out ends the flow itself, even once a refresh brings the

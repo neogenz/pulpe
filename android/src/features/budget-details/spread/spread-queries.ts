@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { budgetKeys } from "@/features/budgets/budget-queries";
+import { goalKeys } from "@/features/savings-goals/goals-queries";
 import { useVaultStore } from "@/core/vault/vault-store";
 
 import {
@@ -9,16 +10,19 @@ import {
   spreadExistingLine,
 } from "./spread-api";
 
+// Under the budget details, so pointing or editing one month of a spread
+// refreshes the tracker with the month itself.
 export const spreadKeys = {
-  all: ["spread"] as const,
-  occurrences: (groupId: string) => ["spread", "occurrences", groupId] as const,
+  occurrences: (groupId: string) =>
+    [...budgetKeys.details(), "spread-occurrences", groupId] as const,
 };
 
 /**
  * A spread writes into several months at once, so both mutations sweep the
  * whole budget prefix rather than going through `invalidateAfterBudgetWrite`
  * — the months the server had to create along the way are new list entries
- * and new periods.
+ * and new periods. A goal-linked line hands its goal to every part, so the goal
+ * pages are swept too.
  */
 function useSpreadMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,
@@ -29,7 +33,7 @@ function useSpreadMutation<TInput, TResult>(
     mutationFn,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-      void queryClient.invalidateQueries({ queryKey: spreadKeys.all });
+      void queryClient.invalidateQueries({ queryKey: goalKeys.all });
     },
   });
 }

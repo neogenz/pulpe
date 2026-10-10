@@ -100,7 +100,11 @@ export default function TemplateDetailScreen() {
     );
   }
 
-  if (template.isError || lines.isError || settings.isError) {
+  if (
+    (template.isError && template.data === undefined) ||
+    (lines.isError && lines.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"

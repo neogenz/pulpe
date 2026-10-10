@@ -81,7 +81,6 @@
         "remaining": "restant sur %{amount}"
       },
       "deletedGoal": "Cet objectif a été supprimé. Le revenu reste dans ton budget.",
-      "editActivity": "Modifier %{name}",
       "filters": {
         "all": "Tout",
         "checked": "Pointé",
@@ -319,7 +318,6 @@
       "adjustment": "Ajustement",
       "create": "Créer mon budget",
       "createAccessibility": "Créer un budget",
-      "current": "Mois actuel",
       "emptyHint": "Crée ton premier mois depuis un de tes modèles.",
       "emptyTitle": "Aucun budget pour l'instant",
       "loadErrorHint": "Vérifie ta connexion, puis réessaie.",

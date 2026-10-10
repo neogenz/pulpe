@@ -81,7 +81,6 @@
         "remaining": "übrig von %{amount}"
       },
       "deletedGoal": "Dieses Ziel wurde gelöscht. Die Einnahme bleibt in deinem Budget.",
-      "editActivity": "%{name} bearbeiten",
       "filters": {
         "all": "Alle",
         "checked": "Abgehakt",
@@ -319,7 +318,6 @@
       "adjustment": "Anpassung",
       "create": "Budget erstellen",
       "createAccessibility": "Ein Budget erstellen",
-      "current": "Aktueller Monat",
       "emptyHint": "Erstelle deinen ersten Monat aus einer deiner Vorlagen.",
       "emptyTitle": "Noch keine Budgets",
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",

@@ -71,7 +71,8 @@ export default function PlanBudgetsScreen() {
         : null;
   const isLoading = settings.isPending || templates.isPending;
   const hasLoadError =
-    settings.isError || templates.isError || settings.data === undefined;
+    (templates.isError && templates.data === undefined) ||
+    settings.data === undefined;
   const hasNoTemplates =
     !isLoading && !hasLoadError && templates.data?.length === 0;
 

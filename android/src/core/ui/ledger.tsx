@@ -131,7 +131,7 @@ export function LedgerRow({
         {typeof subtitle === "string" ? (
           <Text
             variant="bodyMedium"
-            numberOfLines={1}
+            numberOfLines={2}
             style={{ color: theme.colors.onSurfaceVariant }}
           >
             {subtitle}

@@ -92,7 +92,10 @@ export function ActivityCard({
         <LedgerCard>
           <LedgerRow
             leading={
-              <IconDisc name="tray" tint={theme.colors.onSurfaceVariant} />
+              <IconDisc
+                name="inbox-outline"
+                tint={theme.colors.onSurfaceVariant}
+              />
             }
             title={t(`home.activity.empty.${window}`)}
             subtitle={t("home.activity.emptyHint")}
