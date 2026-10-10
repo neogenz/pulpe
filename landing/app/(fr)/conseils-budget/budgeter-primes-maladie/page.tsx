@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArticleLayout } from "@/components/guides/ArticleLayout";
 import { RelatedGuides } from "@/components/guides/RelatedGuides";
+import { SourcedFigures } from "@/components/guides/SourcedFigures";
 import { getGuide, guideMetadata } from "@/components/guides/guides";
 import { getDictionary } from "@/content/dictionary";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
@@ -9,6 +10,30 @@ const guide = getGuide("budgeter-primes-maladie");
 
 export const generateMetadata = (): Promise<Metadata> => guideMetadata(guide);
 
+const OFSP_2026_URL =
+  "https://www.bag.admin.ch/fr/newnsb/d2okh_kUK_OFhmMDfpyiy";
+const OFSP_2027_URL = "https://www.bag.admin.ch/fr/newnsb/BfuGvedj0OOX";
+
+const announcedIncreases = [
+  {
+    year: 2023,
+    increase: "+6,6 %",
+    href: "https://www.bag.admin.ch/bag/fr/home/das-bag/aktuell/news/news-27-09-2022.html",
+  },
+  {
+    year: 2024,
+    increase: "+8,7 %",
+    href: "https://www.admin.ch/gov/fr/accueil/documentation/communiques.msg-id-97889.html",
+  },
+  {
+    year: 2025,
+    increase: "+6 %",
+    href: "https://www.news.admin.ch/fr/nsb?id=102592",
+  },
+  { year: 2026, increase: "+4,4 %", href: OFSP_2026_URL },
+  { year: 2027, increase: "+5,0 %", href: OFSP_2027_URL },
+];
+
 const faq = [
   {
     question: "Comment provisionner une hausse de prime dans mon budget ?",
@@ -16,9 +41,9 @@ const faq = [
       "Prends la prime actuelle, applique la hausse connue. La différence mensuelle, tu l'ajoutes à ta ligne dès maintenant, ou tu la multiplies par les mois qui restent avant janvier. Le total ne change pas : tu le répartis.",
   },
   {
-    question: "Quel est le montant moyen d’une prime maladie en 2026 ?",
+    question: "Quel est le montant moyen d’une prime maladie en 2027 ?",
     answer:
-      "393.30 CHF par mois pour un adulte, et 326.30 CHF pour les 19-25 ans, selon l’Office fédéral de la santé publique.",
+      "412 CHF par mois en moyenne, tous âges confondus, et 338.80 CHF pour les 19-25 ans, selon l’Office fédéral de la santé publique. C’est 5,0 % de plus qu’en 2026.",
   },
   {
     question: "Faut-il changer de caisse pour absorber la hausse ?",
@@ -33,6 +58,10 @@ export default async function PrimesMaladieGuidePage() {
       guide={guide}
       faq={faq}
       dict={await getDictionary(DEFAULT_LOCALE)}
+      cta={{
+        lead: "Pose ta prime dans tes prévisions, lisse la hausse sur les mois qui restent, et vois ton disponible de janvier dès aujourd’hui.",
+        button: "Créer mes prévisions gratuitement",
+      }}
     >
       <p>
         Pour absorber une hausse de prime maladie, tu la répartis sur les mois
@@ -41,26 +70,24 @@ export default async function PrimesMaladieGuidePage() {
         autres.
       </p>
       <p>
-        En 2026, la prime moyenne de l’assurance obligatoire atteint{" "}
-        <mark className="marker-highlight">393.30&nbsp;CHF par mois</mark> pour
-        un adulte, et <mark className="marker-highlight">326.30&nbsp;CHF</mark>{" "}
-        pour les 19 à 25 ans, d’après l’
-        <a
-          href="https://www.bag.admin.ch/fr/primes-et-couts-reponses-aux-questions-frequentes"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Office fédéral de la santé publique
+        En 2027, la prime moyenne de l’assurance obligatoire, tous âges
+        confondus, passe à{" "}
+        <mark className="marker-highlight">412&nbsp;CHF par mois</mark>, et à{" "}
+        <mark className="marker-highlight">338.80&nbsp;CHF</mark> pour les 19 à
+        25 ans. C’est <strong>+5,0&nbsp;%</strong> par rapport à 2026, d’après
+        le{" "}
+        <a href={OFSP_2027_URL} target="_blank" rel="noopener noreferrer">
+          communiqué de l’Office fédéral de la santé publique
         </a>
-        . La hausse a été de 4,4&nbsp;% par rapport à 2025.
+        .
       </p>
 
       <h2>Comment provisionner la hausse, mois par mois ?</h2>
       <p>
         Tu prends ta prime actuelle. Tu appliques le pourcentage annoncé. La
-        différence mensuelle, tu l'ajoutes à ta ligne tout de suite : ce montant
-        devient une prévision, comme le loyer. Si tu lisses jusqu'à janvier, tu
-        multiplies cet écart par les mois qui restent — c'est le total à
+        différence mensuelle, tu l’ajoutes à ta ligne tout de suite : ce montant
+        devient une prévision, comme le loyer. Si tu lisses jusqu’à janvier, tu
+        multiplies cet écart par les mois qui restent : c’est le total à
         répartir.
       </p>
       <p>
@@ -75,37 +102,86 @@ export default async function PrimesMaladieGuidePage() {
         l’avance, plutôt qu’une facture qui arrive d’un coup.
       </p>
 
-      <h2>Quels chiffres retenir pour 2026 ?</h2>
-      <ul>
-        <li>
-          Prime moyenne adulte :{" "}
-          <strong className="tabular-nums">393.30 CHF</strong> / mois (OFSP).
-        </li>
-        <li>
-          Prime 19-25 ans : <strong className="tabular-nums">326.30 CHF</strong>{" "}
-          / mois,{" "}
-          <a
-            href="https://www.bag.admin.ch/fr/newnsb/d2okh_kUK_OFhmMDfpyiy"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            +4,2&nbsp;% (OFSP)
-          </a>
-          .
-        </li>
-        <li>
-          Hausses récentes, relayées par l’OFSP via la{" "}
-          <a
-            href="https://www.rts.ch/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            RTS
-          </a>
-          : +6,6&nbsp;% (2023), +8,7&nbsp;% (2024), +6&nbsp;% (2025),
-          +4,4&nbsp;% (2026).
-        </li>
-      </ul>
+      <h2>Quelle hausse prévoir pour 2027 ?</h2>
+      <SourcedFigures
+        figures={[
+          {
+            value: "412 CHF",
+            change: "+5,0 %",
+            label: "Prime moyenne 2027 par mois, tous âges confondus",
+          },
+          {
+            value: "338.80 CHF",
+            change: "+4,8 %",
+            label: "Prime moyenne 2027 par mois, 19 à 25 ans",
+          },
+        ]}
+        source={{
+          label: "OFSP, communiqué du 29 septembre 2026",
+          href: OFSP_2027_URL,
+        }}
+      />
+      <p>
+        Ta caisse t’envoie ton avis de prime 2027 d’ici fin octobre : c’est ce
+        montant que tu poses dans ton budget. En attendant, les +5,0&nbsp;%
+        suffisent pour une première provision.
+      </p>
+
+      <h2>Et les années précédentes ?</h2>
+      <SourcedFigures
+        figures={[
+          {
+            value: "393.30 CHF",
+            change: "+4,4 %",
+            label: "Prime moyenne 2026 par mois, tous âges confondus",
+          },
+          {
+            value: "326.30 CHF",
+            change: "+4,2 %",
+            label: "Prime moyenne 2026 par mois, 19 à 25 ans",
+          },
+        ]}
+        source={{
+          label: "OFSP, communiqué du 23 septembre 2025",
+          href: OFSP_2026_URL,
+        }}
+      />
+      <p>
+        Ces montants sont ceux annoncés en septembre 2025. L’OFSP a depuis
+        recalculé la moyenne 2026 à 392.30&nbsp;CHF : c’est sur cette base que
+        la hausse 2027 atteint +5,0&nbsp;%, soit 19.70&nbsp;CHF de plus par
+        mois.
+      </p>
+      <p>Les cinq dernières hausses annoncées par l’OFSP :</p>
+      <div className="table-scroll">
+        <table>
+          <caption className="sr-only">
+            Hausse moyenne des primes annoncée par l’OFSP, de 2023 à 2027
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Primes</th>
+              <th scope="col">Hausse moyenne annoncée</th>
+              <th scope="col">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {announcedIncreases.map((row) => (
+              <tr key={row.year}>
+                <td>{row.year}</td>
+                <td>
+                  <strong>{row.increase}</strong>
+                </td>
+                <td>
+                  <a href={row.href} target="_blank" rel="noopener noreferrer">
+                    Communiqué officiel
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <p>
         Ces moyennes cachent de grands écarts entre cantons et entre modèles
         (médecin de famille, Telmed, HMO). Ton avis de prime reste la source
@@ -113,34 +189,33 @@ export default async function PrimesMaladieGuidePage() {
         pas hors sol, pas à remplacer ta facture.
       </p>
 
-      <h2>Et les subsides ?</h2>
+      <h2>Et si je touche un subside ?</h2>
       <p>
         En 2024,{" "}
         <mark className="marker-highlight">
           32,2&nbsp;% des Romands ont reçu un subside
         </mark>
+        , selon les chiffres cantonaux{" "}
+        <a
+          href="https://www.watson.ch/fr/suisse/assurance-maladie/910285635-prime-maladie-combien-les-subsides-coutent-aux-cantons-romands"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          relayés par watson
+        </a>
         . C’est un taux de recours observé, pas une estimation de « ceux qui y
         auraient droit sans le savoir ». Si tu touches déjà une réduction
         cantonale, provisionne la prime <em>après</em> subside. Si tu n’en
         touches pas, ne compte pas dessus dans le budget de l’année.
       </p>
 
-      <h2>Les chiffres 2027</h2>
-      <p>
-        Avant l’annonce de l’OFSP, fin septembre, deux ordres de grandeur
-        circulent déjà : environ +3,7&nbsp;% selon Comparis (mai 2026), et
-        environ 5&nbsp;% signalé par l’OFSP. Ce ne sont pas encore les primes
-        officielles. Quand l’annonce paraîtra, cette section reprendra les
-        montants exacts. En attendant, tu peux déjà poser une provision sur la
-        fourchette haute : si la hausse est plus basse, tu récupères du
-        disponible à dépenser.
-      </p>
-
       <h2>Où ça se place dans Pulpe ?</h2>
       <p>
-        Dans Pulpe, la prime est une prévision récurrente. Si tu lisses la
-        hausse, tu ajustes le montant de cette ligne, et les mois suivants se
-        recalculent. Tu vois le disponible de janvier sans attendre janvier.
+        Dans Pulpe, ta prime est une prévision « Mensuel ». Tu ajustes son
+        montant au niveau de janvier, et les mois suivants se recalculent. Si tu
+        préfères mettre de côté le total calculé plus haut, « Lisser sur
+        plusieurs mois » le répartit sur les mois que tu choisis. Tu vois ton
+        disponible à dépenser de janvier sans attendre janvier.
       </p>
 
       <RelatedGuides
