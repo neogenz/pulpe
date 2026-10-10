@@ -162,5 +162,7 @@ const styles = StyleSheet.create({
   /** Struck through and receding, never faded — a pointed row is re-read. */
   struck: { textDecorationLine: "line-through" },
   labels: { flex: 1, gap: SPACING.xxs, paddingVertical: SPACING.sm },
-  amount: { maxWidth: "45%" },
+  // The row's gap is shaved for the disc's touch target; the amount takes the
+  // shave back, or a long name ellipsized 6dp from it and the two read as one.
+  amount: { maxWidth: "45%", marginLeft: TARGET_INSET },
 });
