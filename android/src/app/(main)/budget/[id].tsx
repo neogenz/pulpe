@@ -192,6 +192,7 @@ export default function BudgetDetailScreen() {
   // otherwise sends it out of sight with nothing to say where it went.
   // A later tap supersedes that notice: its "Annuler" would flip the row the
   // wrong way once the row was unpointed again.
+  const overlays = useRef<BudgetDetailOverlaysHandle>(null);
   const latestToggle = useRef(0);
   function pointWithUndo(
     target: Parameters<typeof toggle.mutateAsync>[0],
@@ -216,7 +217,6 @@ export default function BudgetDetailScreen() {
       () => overlays.current?.showToggleFailure(),
     );
   }
-  const overlays = useRef<BudgetDetailOverlaysHandle>(null);
   const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
   const [isSearchVisible, setSearchVisible] = useState(false);
   const [isCardDismissed, setCardDismissed] = useState(() =>
