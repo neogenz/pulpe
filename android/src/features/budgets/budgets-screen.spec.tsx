@@ -128,7 +128,11 @@ it("renders loading, retryable failure and empty creation states", async () => {
   const view = await renderScreen();
   expect(view.getByLabelText("common.loading")).toBeTruthy();
 
-  Object.assign(mockBudgets, { isPending: false, isError: true });
+  Object.assign(mockBudgets, {
+    data: undefined,
+    isPending: false,
+    isError: true,
+  });
   await view.rerender(
     <SafeAreaProvider
       initialMetrics={{

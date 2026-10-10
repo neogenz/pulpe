@@ -100,7 +100,7 @@ export function BudgetDetailHero({
           android_ripple={{ color: hero.tile }}
           disabled={onPressRollover === undefined}
           accessibilityRole={onPressRollover === undefined ? undefined : "link"}
-          accessibilityLabel={
+          accessibilityHint={
             onPressRollover === undefined
               ? undefined
               : t("budgets.detail.hero.viewMonth", {

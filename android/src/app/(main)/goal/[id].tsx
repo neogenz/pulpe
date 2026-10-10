@@ -112,7 +112,11 @@ export default function GoalDetailScreen() {
     );
   }
 
-  if (goal.isError || progress.isError || settings.isError) {
+  if (
+    (goal.isError && goal.data === undefined) ||
+    (progress.isError && progress.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}

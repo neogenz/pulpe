@@ -124,7 +124,7 @@ export function BudgetLineRow({
           <View style={styles.labels}>
             <Text
               variant="titleMedium"
-              numberOfLines={1}
+              numberOfLines={2}
               style={[
                 { color: item.isChecked ? muted : theme.colors.onSurface },
                 item.isChecked && styles.struck,
@@ -156,6 +156,8 @@ export function BudgetLineRow({
           <View style={styles.amounts}>
             <Text
               numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
               style={[BRAND_TYPE.rowAmount, TABULAR_DIGITS, { color: accent }]}
             >
               {formatCurrency(item.displayAmount, currency)}

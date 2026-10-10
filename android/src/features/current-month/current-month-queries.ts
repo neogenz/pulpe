@@ -145,7 +145,7 @@ export function useCurrentMonth(): CurrentMonthQuery {
 }
 
 interface StatusInput {
-  settings: { isError: boolean; isPending: boolean };
+  settings: { isError: boolean; isPending: boolean; data?: unknown };
   periods: { isError: boolean; data?: unknown };
   details: { isError: boolean; data?: unknown };
   budgetId: string | null;
@@ -154,7 +154,8 @@ interface StatusInput {
 /**
  * The settings failing is fatal on purpose: without the pay day the app cannot
  * tell which budget the user is living in, and guessing the calendar month
- * would show a confident number for the wrong period.
+ * would show a confident number for the wrong period. A failed refetch is not a
+ * failure: TanStack keeps the cached data, and the screen keeps showing it.
  */
 export function resolveStatus({
   settings,
@@ -162,7 +163,13 @@ export function resolveStatus({
   details,
   budgetId,
 }: StatusInput): CurrentMonthStatus {
-  if (settings.isError || periods.isError || details.isError) return "failed";
+  if (
+    (settings.isError && settings.data === undefined) ||
+    (periods.isError && periods.data === undefined) ||
+    (details.isError && details.data === undefined)
+  ) {
+    return "failed";
+  }
   if (settings.isPending || periods.data === undefined) return "loading";
   if (budgetId === null) return "empty";
   return details.data === undefined ? "loading" : "ready";

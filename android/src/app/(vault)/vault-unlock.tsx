@@ -65,7 +65,9 @@ export default function VaultUnlockScreen() {
           <Link href="/vault-recover" asChild>
             <Button>{t("vault.unlock.forgot")}</Button>
           </Link>
-          <Button onPress={() => void signOut()}>{t("common.signOut")}</Button>
+          <Button onPress={() => void signOut().catch(() => undefined)}>
+            {t("common.signOut")}
+          </Button>
         </>
       }
     >

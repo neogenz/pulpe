@@ -331,13 +331,17 @@ it("renders loading, retryable failure and missing-template states", async () =>
   const view = await render(<PlanBudgetsScreen />);
   expect(view.getByText("common.loading")).toBeTruthy();
 
-  Object.assign(mockSettings, { isPending: false, isError: true });
+  Object.assign(mockSettings, {
+    data: undefined,
+    isPending: false,
+    isError: true,
+  });
   await view.rerender(<PlanBudgetsScreen />);
   await fireEvent.press(view.getByText("common.retry"));
   expect(mockSettings.refetch).toHaveBeenCalledTimes(1);
   expect(mockTemplates.refetch).toHaveBeenCalledTimes(1);
 
-  mockSettings.isError = false;
+  Object.assign(mockSettings, { data: { payDayOfMonth: 25 }, isError: false });
   mockTemplates.data = [];
   await view.rerender(<PlanBudgetsScreen />);
   await fireEvent.press(view.getByText("budgets.plan.viewTemplates"));

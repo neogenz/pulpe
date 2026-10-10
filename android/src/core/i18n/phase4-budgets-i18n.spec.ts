@@ -31,8 +31,10 @@ describe("phase 4 budget localization", () => {
 
     expect(list).toContain("formatMonthName(month, year, locale)");
     expect(list).toContain('t("budgets.list.createAccessibility")');
-    expect(list).toContain("budgets.isError ||");
-    expect(list).toContain("settings.isError ||");
+    expect(list).toContain(
+      "(budgets.isError && budgets.data === undefined) ||",
+    );
+    expect(list).toContain("settings.data === undefined ||");
     expect(list).toMatch(
       /Promise\.all\(\[\s*invalidateUserSettings\(\),\s*invalidateBudgetData\(\),?\s*\]\)/,
     );
@@ -40,7 +42,9 @@ describe("phase 4 budget localization", () => {
       "formatMonthLabel(candidate.month, candidate.year, locale)",
     );
     expect(create).toContain('t("budgets.create.error")');
-    expect(create).toContain("budgets.isError || templates.isError");
+    expect(create).toContain(
+      "(budgets.isError && budgets.data === undefined) ||",
+    );
     expect(`${list}\n${create}`).not.toMatch(
       /Aucun budget pour l'instant|Nouveau budget|Le budget n&apos;a pas pu/,
     );

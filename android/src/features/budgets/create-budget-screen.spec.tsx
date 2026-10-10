@@ -195,7 +195,11 @@ it("renders loading and retries every failed prerequisite", async () => {
   const view = await render(<CreateBudgetScreen />);
   expect(view.getByText("common.loading")).toBeTruthy();
 
-  Object.assign(mockBudgets, { isPending: false, isError: true });
+  Object.assign(mockBudgets, {
+    data: undefined,
+    isPending: false,
+    isError: true,
+  });
   await view.rerender(<CreateBudgetScreen />);
   await fireEvent.press(view.getByText("common.retry"));
   expect(mockBudgets.refetch).toHaveBeenCalledTimes(1);

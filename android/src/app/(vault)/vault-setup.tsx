@@ -29,7 +29,9 @@ export default function VaultSetupScreen() {
           : t("vault.setup.subtitle", { count: PIN_LENGTH })
       }
       footer={
-        <Button onPress={() => void signOut()}>{t("common.signOut")}</Button>
+        <Button onPress={() => void signOut().catch(() => undefined)}>
+          {t("common.signOut")}
+        </Button>
       }
     >
       <PinPad

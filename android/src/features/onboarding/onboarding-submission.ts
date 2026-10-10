@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { translate } from "@/core/i18n/i18n";
 import { useLocaleStore } from "@/core/i18n/locale-store";
 import { updateUserSettings } from "@/core/user-settings/user-settings-api";
+import { cacheUserSettings } from "@/core/user-settings/user-settings-queries";
 
 import {
   createTemplateFromOnboarding,
@@ -87,7 +88,9 @@ async function discardTemplate(templateId: string): Promise<void> {
 
 async function persistCurrency(currency: SupportedCurrency): Promise<void> {
   try {
-    await updateUserSettings({ currency });
+    // The settings cache was filled at PIN time with the server default: Home
+    // is already mounted and would show it until the next refetch.
+    cacheUserSettings(await updateUserSettings({ currency }));
   } catch {
     // Deliberately silent — see the call site.
   }

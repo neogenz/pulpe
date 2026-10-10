@@ -5,7 +5,7 @@ import {
   type SupportedCurrency,
   type Transaction,
 } from "pulpe-shared";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
 import { BackHandler, RefreshControl, StyleSheet, View } from "react-native";
 import { Searchbar, Text, useTheme } from "react-native-paper";
 import {
@@ -78,6 +78,35 @@ import { TransactionRow } from "@/features/budget-details/components/transaction
 import { buildCurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
+
+type ToggleCheck = ReturnType<typeof useToggleCheck>;
+type ToggleTarget = Parameters<ToggleCheck["mutateAsync"]>[0];
+
+interface UndoContext {
+  overlays: RefObject<BudgetDetailOverlaysHandle | null>;
+  latestToggle: RefObject<number>;
+  toggle: ToggleCheck;
+}
+
+/**
+ * Offers "Annuler" on a pointing, and offers it again after a failed undo.
+ * Module scope on purpose: a function that calls itself inside the screen makes
+ * the React Compiler give up on the whole component (`PruneHoistedContexts`).
+ */
+function offerUndo(context: UndoContext, target: ToggleTarget, name: string) {
+  context.overlays.current?.showPointed({
+    name,
+    undo: () => {
+      const undoId = ++context.latestToggle.current;
+      void context.toggle.mutateAsync(target).catch(() => {
+        context.overlays.current?.showToggleFailure();
+        if (undoId === context.latestToggle.current) {
+          offerUndo(context, target, name);
+        }
+      });
+    },
+  });
+}
 
 /**
  * The month flattened into rows, because a budget grows without bound in two
@@ -197,19 +226,6 @@ export default function BudgetDetailScreen() {
   // of sight, so the notice is the only way left to ask again.
   const overlays = useRef<BudgetDetailOverlaysHandle>(null);
   const latestToggle = useRef(0);
-  type ToggleTarget = Parameters<typeof toggle.mutateAsync>[0];
-  function offerUndo(target: ToggleTarget, name: string) {
-    overlays.current?.showPointed({
-      name,
-      undo: () => {
-        const undoId = ++latestToggle.current;
-        void toggle.mutateAsync(target).catch(() => {
-          overlays.current?.showToggleFailure();
-          if (undoId === latestToggle.current) offerUndo(target, name);
-        });
-      },
-    });
-  }
   function pointWithUndo(
     target: ToggleTarget,
     name: string,
@@ -220,7 +236,7 @@ export default function BudgetDetailScreen() {
     void toggle.mutateAsync(target).then(
       () => {
         if (isPointing && toggleId === latestToggle.current) {
-          offerUndo(target, name);
+          offerUndo({ overlays, latestToggle, toggle }, target, name);
         }
       },
       () => overlays.current?.showToggleFailure(),
@@ -316,7 +332,10 @@ export default function BudgetDetailScreen() {
     );
   }
 
-  if (details.isError || settings.isError) {
+  if (
+    (details.isError && details.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -405,6 +424,8 @@ export default function BudgetDetailScreen() {
             onChangeText={(search) => setFilters({ ...filters, search })}
             icon="arrow-left"
             onIconPress={closeSearch}
+            searchAccessibilityLabel={t("common.back")}
+            clearAccessibilityLabel={t("common.clear")}
             // Clearing the field is not leaving the search — only the arrow is,
             // and it is the one that puts the full list back.
             onClearIconPress={() => setFilters({ ...filters, search: "" })}
@@ -418,7 +439,7 @@ export default function BudgetDetailScreen() {
             onPress={() => setSearchVisible(true)}
           />
           <HeroAppBarAction
-            icon="chart-donut"
+            icon="chart-bar"
             accessibilityLabel={t("budgets.detail.tracking")}
             onPress={() => overlays.current?.showRealizedBalance()}
           />

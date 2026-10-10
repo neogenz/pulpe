@@ -134,7 +134,15 @@ export function formatIsoDate(
           month: "short",
           year: "numeric",
         });
-  return formatter.format(parseIsoDate(iso));
+  const date = parseIsoDate(iso);
+  if (date.getDate() !== 1 || !locale.toLowerCase().startsWith("fr")) {
+    return formatter.format(date);
+  }
+  // French writes the first of the month as an ordinal, like `formatDayMonth`.
+  return formatter
+    .formatToParts(date)
+    .map((part) => (part.type === "day" ? "1er" : part.value))
+    .join("");
 }
 
 /**

@@ -199,7 +199,7 @@ export default function SettingsScreen() {
                 session back to the login screen on its own. */}
             <Button
               textColor={theme.colors.error}
-              onPress={() => void signOut()}
+              onPress={() => void signOut().catch(() => undefined)}
             >
               {t("common.signOut")}
             </Button>

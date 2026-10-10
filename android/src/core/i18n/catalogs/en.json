@@ -81,7 +81,6 @@
         "remaining": "left from %{amount}"
       },
       "deletedGoal": "This goal was deleted. The income remains in your budget.",
-      "editActivity": "Edit %{name}",
       "filters": {
         "all": "All",
         "checked": "Checked off",
@@ -319,7 +318,6 @@
       "adjustment": "Adjustment",
       "create": "Create my budget",
       "createAccessibility": "Create a budget",
-      "current": "Current month",
       "emptyHint": "Create your first month from one of your templates.",
       "emptyTitle": "No budgets yet",
       "loadErrorHint": "Check your connection, then try again.",

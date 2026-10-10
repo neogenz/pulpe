@@ -46,7 +46,7 @@ const BUDGET_ID = "budget-august";
 
 function statusInput(
   overrides: {
-    settings?: { isError: boolean; isPending: boolean };
+    settings?: { isError: boolean; isPending: boolean; data?: unknown };
     periods?: { isError: boolean; data?: unknown };
     details?: { isError: boolean; data?: unknown };
     budgetId?: string | null;
@@ -88,6 +88,17 @@ describe("resolveStatus", () => {
 
   it("returns to ready once the settings query stops erroring", () => {
     expect(resolveStatus(statusInput())).toBe("ready");
+  });
+
+  it("keeps a loaded month on screen when a refetch fails", () => {
+    expect(
+      resolveStatus(
+        statusInput({
+          settings: { isError: true, isPending: false, data: {} },
+          details: { isError: true, data: {} },
+        }),
+      ),
+    ).toBe("ready");
   });
 
   it("reads no budget for the period as empty, not as a failure", () => {
