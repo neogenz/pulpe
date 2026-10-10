@@ -5,6 +5,11 @@
   "installCommand": "cd .. && pnpm install --frozen-lockfile --filter=pulpe-landing --ignore-scripts",
   "redirects": [
     {
+      "source": "/welcome",
+      "destination": "https://app.pulpe.app/welcome",
+      "permanent": true
+    },
+    {
       "source": "/app/:path*",
       "destination": "https://app.pulpe.app/:path*",
       "permanent": true

@@ -1974,6 +1974,26 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.footer, /min-h-11 items-center/);
   });
 
+  it("links the French footer to About without advertising missing translations", () => {
+    for (const locale of LOCALES) {
+      const catalog = CATALOGS[locale];
+      const html = renderToStaticMarkup(
+        <Footer
+          dict={catalog.footer}
+          language={catalog.language}
+          locale={locale}
+          route={null}
+        />,
+      );
+
+      if (locale === "fr") {
+        assert.match(html, /<a\b[^>]*href="\/about"[^>]*>À propos<\/a>/);
+      } else {
+        assert.doesNotMatch(html, /href="[^"]*\/about"/);
+      }
+    }
+  });
+
   it("propagates the landing locale through both legal links", () => {
     for (const locale of LOCALES) {
       const catalog = CATALOGS[locale];
