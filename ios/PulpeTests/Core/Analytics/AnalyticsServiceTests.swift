@@ -250,13 +250,15 @@ struct AnalyticsServiceTests {
 
     @Test func diagnosticSharing_optOutAndOptInRestoresIdentityAndPreferences() {
         let service = AnalyticsService(isConfiguredEnabled: true)
+        let userId = "AB123456-1234-1234-1234-123456789ABC"
         let identityProperties: [String: Any] = [
             AnalyticsService.emailProperty: "support@example.com",
             AnalyticsService.nameProperty: "Support",
-            AnalyticsService.supabaseUserIdProperty: "support-user"
+            AnalyticsService.supabaseUserIdProperty: userId
         ]
         service.initialize()
-        service.identify(userId: "support-user", properties: identityProperties)
+        service.identify(userId: userId, properties: identityProperties)
+        #expect(PostHogSDK.shared.getDistinctId() == userId.lowercased())
         service.setPersonProperties([
             AnalyticsService.currencyProperty: "EUR",
             AnalyticsService.showCurrencySelectorProperty: true
@@ -269,7 +271,7 @@ struct AnalyticsServiceTests {
         #expect(service.isIdentified == false)
         #expect(service.isFeatureEnabled("disabled-flag") == false)
 
-        service.identify(userId: "support-user", properties: identityProperties)
+        service.identify(userId: userId, properties: identityProperties)
         var reloadCompleted = false
         service.reloadFeatureFlags {
             reloadCompleted = true
@@ -280,7 +282,7 @@ struct AnalyticsServiceTests {
         #expect(service.isDiagnosticSharingEnabled)
         #expect(service.isEventCapturingEnabled)
         #expect(service.isIdentified)
-        #expect(PostHogSDK.shared.getDistinctId() == "support-user")
+        #expect(PostHogSDK.shared.getDistinctId() == userId.lowercased())
         #expect(service.currentPersonProperties[AnalyticsService.currencyProperty] as? String == "EUR")
         #expect(
             service.currentPersonProperties[AnalyticsService.showCurrencySelectorProperty]
