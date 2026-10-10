@@ -59,7 +59,8 @@ struct CurrentMonthRealizedBalanceSheet: View {
                 year: budget.year,
                 payDayOfMonth: store.payDayOfMonth
             ),
-            uncheckedCount: store.uncheckedCount
+            uncheckedCount: store.uncheckedCount,
+            hasPointingInFlight: store.hasTogglesInFlight
         )
     }
 }

@@ -13,6 +13,13 @@ struct ReconcileItemsToCheckStep: View {
     /// unchecked list, and its row would vanish under the finger. Kept, a row pointed by
     /// mistake is unpointed with the same disc.
     @State private var listedItems: [CurrentMonthStore.CheckableItem]?
+    /// Discs still playing their fill: the toggle only starts once it ends.
+    @State private var completingItemIds: Set<String> = []
+
+    /// Leaving mid-pointing would compare against a balance that is still moving.
+    private var isPointingSettled: Bool {
+        completingItemIds.isEmpty && !store.hasTogglesInFlight
+    }
 
     var body: some View {
         let items = (listedItems ?? store.allUncheckedItems).compactMap(liveItem)
@@ -34,7 +41,8 @@ struct ReconcileItemsToCheckStep: View {
         }
         .reconcileStep(AppLocale.string("Opérations à pointer"), onClose: onClose) {
             Button("Comparer avec mes comptes") { flow.continueToVerdict() }
-                .primaryButtonStyle()
+                .disabled(!isPointingSettled)
+                .primaryButtonStyle(isEnabled: isPointingSettled)
                 .accessibilityIdentifier("reconcileCompareButton")
         }
         .onAppear {
@@ -48,10 +56,16 @@ struct ReconcileItemsToCheckStep: View {
                 kind: item.kind,
                 isPointed: isChecked(item),
                 color: item.kind.color,
-                isSyncing: isSyncing(item)
-            ) {
-                toggle(item)
-            }
+                isSyncing: isSyncing(item),
+                onCompletionStateChange: { isCompleting in
+                    if isCompleting {
+                        completingItemIds.insert(item.id)
+                    } else {
+                        completingItemIds.remove(item.id)
+                    }
+                },
+                onToggle: { toggle(item) }
+            )
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(item.name)
                     .font(PulpeTypography.labelLarge)

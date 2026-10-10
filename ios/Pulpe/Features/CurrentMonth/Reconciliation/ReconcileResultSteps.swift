@@ -222,13 +222,15 @@ struct ReconcileVerdictStep: View {
     private var footer: some View {
         switch verdict {
         case .upToDate:
-            let canFinish = flow.canConfirmUpToDate(realizedBalance: realizedBalance, of: month.budgetId)
+            let canFinish = !month.hasPointingInFlight
+                && flow.canConfirmUpToDate(realizedBalance: realizedBalance, of: month.budgetId)
             Button("Terminer", action: onFinish)
                 .disabled(!canFinish)
                 .primaryButtonStyle(isEnabled: canFinish)
                 .accessibilityIdentifier("reconcileFinishButton")
         case .adjustment:
-            let canSubmit = flow.canSubmitAdjustment(realizedBalance: realizedBalance, of: month.budgetId)
+            let canSubmit = !month.hasPointingInFlight
+                && flow.canSubmitAdjustment(realizedBalance: realizedBalance, of: month.budgetId)
             Button {
                 Task { await onSubmit() }
             } label: {

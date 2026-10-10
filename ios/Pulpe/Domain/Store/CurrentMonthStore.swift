@@ -100,6 +100,12 @@ final class CurrentMonthStore: StoreProtocol {
     private(set) var syncingTransactionIds: Set<String> = []
     private(set) var syncingBudgetLineIds: Set<String> = []
 
+    /// A toggle still waiting for the server: the checked balance shown is optimistic and
+    /// can roll back.
+    var hasTogglesInFlight: Bool {
+        !syncingTransactionIds.isEmpty || !syncingBudgetLineIds.isEmpty
+    }
+
     // MARK: - Cache Metadata
 
     private var lastLoadTime: Date?

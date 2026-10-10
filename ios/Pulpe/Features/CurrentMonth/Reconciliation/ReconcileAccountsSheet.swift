@@ -15,6 +15,9 @@ struct ReconcileAccountsSheet: View {
         let periodLabel: String?
         /// What is left to check, the same count as the home screen's "À pointer".
         let uncheckedCount: Int
+        /// A pointing not yet confirmed: its rollback would move the balance under a
+        /// verdict already acted on, so the verdict's actions wait for it.
+        var hasPointingInFlight = false
     }
 
     let month: Month
