@@ -3,7 +3,7 @@
     "version": "0.50.0",
     "date": "2026-09-09",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.50.0",
-    "platforms": ["web", "android"],
+    "platforms": ["web"],
     "changes": {
       "features": [
         {
