@@ -357,6 +357,11 @@ export {
   transactionImportResultSchema,
   transactionImportResponseSchema,
   transactionImportRequestSchema,
+  transactionImportMatchReasonSchema,
+  transactionImportSuggestionSchema,
+  transactionImportBudgetLineSchema,
+  transactionImportDecisionSchema,
+  transactionImportConfirmRequestSchema,
   canConfirmTransactionImport,
   type TransactionImportFormat,
   type TransactionImportErrorCode,
@@ -368,6 +373,11 @@ export {
   type TransactionImportResult,
   type TransactionImportResponse,
   type TransactionImportRequest,
+  type TransactionImportMatchReason,
+  type TransactionImportSuggestion,
+  type TransactionImportBudgetLine,
+  type TransactionImportDecision,
+  type TransactionImportConfirmRequest,
 } from './schemas.js';
 
 // Export all types from types.ts

@@ -986,9 +986,12 @@ export class BudgetItemsContainer {
       );
       return;
     }
-    const count = result.result.createdCount;
+    const { createdCount, attachedCount } = result.result;
     this.#snackBar.open(
-      this.#transloco.translate(importSuccessKey(count), { count }),
+      this.#transloco.translate(importSuccessKey(result.result), {
+        count: createdCount,
+        attached: attachedCount,
+      }),
       this.#transloco.translate('common.close'),
       { duration: 5000 },
     );

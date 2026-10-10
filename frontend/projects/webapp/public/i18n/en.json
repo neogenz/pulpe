@@ -2102,7 +2102,34 @@
     "confirmMany": "Import {{ count }} entries",
     "confirmNone": "Nothing to import",
     "successOne": "1 entry imported",
-    "successMany": "{{ count }} entries imported"
+    "successMany": "{{ count }} entries imported",
+    "successOneChecked": "1 entry imported and checked",
+    "successManyCheckedOne": "{{ count }} entries imported, 1 of them checked",
+    "successManyCheckedMany": "{{ count }} entries imported, {{ attached }} of them checked",
+    "attachment": {
+      "suggested": "Suggested:",
+      "reasonsLabel": "Why this suggestion",
+      "reason": {
+        "kind": "Compatible type",
+        "amount": "Same amount",
+        "label": "Similar description"
+      },
+      "accept": "Accept",
+      "refuse": "Dismiss",
+      "change": "Change",
+      "remove": "Remove",
+      "attach": "Attach to a planned item",
+      "attachedTo": "Attached to",
+      "willBeChecked": "will be checked",
+      "free": "Unattached, to check",
+      "menuLabel": "Compatible planned items",
+      "acceptAll": "Accept all {{ count }} suggestions",
+      "planAttachedOne": "{{ count }} attached and checked",
+      "planAttachedMany": "{{ count }} attached and checked",
+      "planFreeOne": "{{ count }} unattached",
+      "planFreeMany": "{{ count }} unattached",
+      "planNothingAttached": "Nothing attached: every entry arrives unattached, to check"
+    }
   },
   "tagPicker": {
     "label": "Tags",

@@ -1776,6 +1776,44 @@ export type TransactionImportOperationStatus = z.infer<
 /** Imported operations are money in or money out; savings stay a user decision. */
 export const transactionImportKindSchema = z.enum(['income', 'expense']);
 
+/**
+ * The explicit criteria a suggested Prévision meets (CA4). The month is
+ * implicit: only the target budget's Prévisions are ever candidates.
+ *
+ * - `kind`: its type can carry the operation (a Revenu for money in; a
+ *   Dépense or an Épargne for money out). Always present.
+ * - `amount`: its planned amount equals the operation's, to the cent.
+ * - `label`: every significant word of its name appears in the bank label.
+ */
+export const transactionImportMatchReasonSchema = z.enum([
+  'kind',
+  'amount',
+  'label',
+]);
+export type TransactionImportMatchReason = z.infer<
+  typeof transactionImportMatchReasonSchema
+>;
+
+/** A suggestion only: nothing is attached until the user accepts it. */
+export const transactionImportSuggestionSchema = z.object({
+  budgetLineId: z.uuid(),
+  reasons: z.array(transactionImportMatchReasonSchema).min(1),
+});
+export type TransactionImportSuggestion = z.infer<
+  typeof transactionImportSuggestionSchema
+>;
+
+/** A Prévision of the target budget a new operation may be attached to. */
+export const transactionImportBudgetLineSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  kind: transactionKindSchema,
+  amount: z.number().nonnegative(),
+});
+export type TransactionImportBudgetLine = z.infer<
+  typeof transactionImportBudgetLineSchema
+>;
+
 export const transactionImportOperationSchema = z.object({
   /** 1-based rank in the file, the key a later per-operation decision refers to. */
   position: z.number().int().positive(),
@@ -1785,6 +1823,8 @@ export const transactionImportOperationSchema = z.object({
   amount: z.number().positive(),
   kind: transactionImportKindSchema,
   status: transactionImportOperationStatusSchema,
+  /** Best Prévision for a `new` operation, when one stands out; always null otherwise. */
+  suggestion: transactionImportSuggestionSchema.nullable(),
 });
 export type TransactionImportOperation = z.infer<
   typeof transactionImportOperationSchema
@@ -1801,6 +1841,8 @@ export const transactionImportPreviewSchema = z.object({
   currency: supportedCurrencySchema,
   operations: z.array(transactionImportOperationSchema),
   errors: z.array(transactionImportErrorSchema),
+  /** Prévisions an operation may be attached to: the suggestions and every alternative. */
+  budgetLines: z.array(transactionImportBudgetLineSchema),
 });
 export type TransactionImportPreview = z.infer<
   typeof transactionImportPreviewSchema
@@ -1815,6 +1857,8 @@ export type TransactionImportPreviewResponse = z.infer<
 
 export const transactionImportResultSchema = z.object({
   createdCount: z.number().int().nonnegative(),
+  /** Among the created Réels, those attached to a Prévision, hence checked. */
+  attachedCount: z.number().int().nonnegative(),
   skippedCount: z.number().int().nonnegative(),
 });
 export type TransactionImportResult = z.infer<
@@ -1834,6 +1878,53 @@ export const transactionImportRequestSchema = z.strictObject({
 });
 export type TransactionImportRequest = z.infer<
   typeof transactionImportRequestSchema
+>;
+
+/**
+ * An attachment the user explicitly accepted or chose (CA5). The Réel created
+ * for `position` is attached to `budgetLineId` and checked (CA6).
+ */
+export const transactionImportDecisionSchema = z.strictObject({
+  position: z.number().int().positive(),
+  budgetLineId: z.uuid(),
+});
+export type TransactionImportDecision = z.infer<
+  typeof transactionImportDecisionSchema
+>;
+
+/** Multipart fields are text: the decisions travel as one JSON array. */
+function parseJsonField(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Confirmation fields. Operations left out of `decisions` become free,
+ * unchecked Réels: no suggestion is ever applied on the user's behalf.
+ */
+export const transactionImportConfirmRequestSchema =
+  transactionImportRequestSchema.extend({
+    decisions: z
+      .preprocess(
+        parseJsonField,
+        z
+          .array(transactionImportDecisionSchema)
+          .max(TRANSACTION_IMPORT_MAX_OPERATIONS)
+          .refine(
+            (decisions) =>
+              new Set(decisions.map((decision) => decision.position)).size ===
+              decisions.length,
+            { message: 'Une opération ne peut être rattachée qu’une fois.' },
+          ),
+      )
+      .default([]),
+  });
+export type TransactionImportConfirmRequest = z.infer<
+  typeof transactionImportConfirmRequestSchema
 >;
 
 /** Whether the confirmation may run: no error and at least one operation to create. */

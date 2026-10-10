@@ -10,7 +10,10 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { InfoLogger } from '@common/logger';
 import { Camt053Parser } from '../infrastructure/parsers/camt053.parser';
 import type { TransactionImportRepositoryPort } from '../domain/ports/transaction-import-repository.port';
-import type { ImportCandidate } from '../domain/transaction-import.entity';
+import type {
+  AttachableLine,
+  PlannedImport,
+} from '../domain/transaction-import.entity';
 import { TransactionImportAnalyzer } from './transaction-import-analyzer';
 import { PreviewTransactionImportUseCase } from './preview-transaction-import.use-case';
 import { ConfirmTransactionImportUseCase } from './confirm-transaction-import.use-case';
@@ -24,6 +27,31 @@ const sample = readFileSync(
 );
 
 const BUDGET_ID = '11111111-1111-4111-8111-111111111111';
+const SALARY_LINE: AttachableLine = {
+  id: 'a1111111-1111-4111-8111-111111111111',
+  name: 'Salaire',
+  kind: 'income',
+  amount: 5200,
+};
+const GROCERIES_LINE: AttachableLine = {
+  id: 'a2222222-2222-4222-8222-222222222222',
+  name: 'Courses',
+  kind: 'expense',
+  amount: 600,
+};
+const CAFE_LINE: AttachableLine = {
+  id: 'a3333333-3333-4333-8333-333333333333',
+  name: 'Café',
+  kind: 'expense',
+  amount: 50,
+};
+const SAVING_LINE: AttachableLine = {
+  id: 'a4444444-4444-4444-8444-444444444444',
+  name: 'Épargne vacances',
+  kind: 'saving',
+  amount: 150,
+};
+const LINES = [SALARY_LINE, GROCERIES_LINE, CAFE_LINE, SAVING_LINE];
 const user = { id: 'user-1' } as AuthenticatedUser;
 const logger: InfoLogger = {
   info: mock(() => {}),
@@ -35,13 +63,14 @@ const logger: InfoLogger = {
 function setup(
   options: { imported?: string[]; currency?: 'CHF' | 'EUR' } = {},
 ) {
-  const inserted: ImportCandidate[][] = [];
+  const inserted: PlannedImport[][] = [];
   const repo = {
     findTargetBudget: mock(async () => ({
       id: BUDGET_ID,
       month: 3,
       year: 2026,
     })),
+    findAttachableLines: mock(async () => LINES),
     // Deterministic stand-in for the keyed hash: unique per material.
     fingerprint: mock((materials: readonly string[]) =>
       materials.map((material) => `fp:${material}`),
@@ -55,8 +84,8 @@ function setup(
         ),
     ),
     insertAll: mock(
-      async (_budgetId: string, candidates: readonly ImportCandidate[]) => {
-        inserted.push([...candidates]);
+      async (_budgetId: string, planned: readonly PlannedImport[]) => {
+        inserted.push([...planned]);
       },
     ),
   } satisfies TransactionImportRepositoryPort;
@@ -160,6 +189,23 @@ describe('PreviewTransactionImportUseCase', () => {
     expect(repo.insertAll).not.toHaveBeenCalled();
   });
 
+  it('suggests a Prévision per new operation and says why (CA4)', async () => {
+    const { preview } = setup();
+
+    const result = await preview.execute(sample, BUDGET_ID);
+
+    expect(result.budgetLines).toEqual(LINES);
+    expect(result.operations.map((op) => op.suggestion)).toEqual([
+      { budgetLineId: SALARY_LINE.id, reasons: ['kind', 'amount'] },
+      null,
+      { budgetLineId: CAFE_LINE.id, reasons: ['kind', 'label'] },
+      { budgetLineId: CAFE_LINE.id, reasons: ['kind', 'label'] },
+      { budgetLineId: SAVING_LINE.id, reasons: ['kind', 'amount'] },
+      // Pending: it will not be created, so nothing is suggested for it.
+      null,
+    ]);
+  });
+
   it('marks what a previous import already created', async () => {
     const { preview } = setup({ imported: ['20260325000123456'] });
 
@@ -231,9 +277,13 @@ describe('ConfirmTransactionImportUseCase', () => {
   });
 
   it('creates the new booked operations in one batch, then refreshes the budget', async () => {
-    const result = await ctx.confirm.execute(sample, BUDGET_ID, user);
+    const result = await ctx.confirm.execute(sample, BUDGET_ID, [], user);
 
-    expect(result).toEqual({ createdCount: 4, skippedCount: 2 });
+    expect(result).toEqual({
+      createdCount: 4,
+      attachedCount: 0,
+      skippedCount: 2,
+    });
     expect(ctx.inserted).toHaveLength(1);
     expect(ctx.inserted[0].map((candidate) => candidate.position)).toEqual([
       1, 3, 4, 5,
@@ -242,6 +292,68 @@ describe('ConfirmTransactionImportUseCase', () => {
     expect(ctx.recalculation.recalculate).toHaveBeenCalledWith(BUDGET_ID);
   });
 
+  it('attaches and checks only the decisions the user sent (CA5, CA6)', async () => {
+    ctx = setup();
+    const result = await ctx.confirm.execute(
+      sample,
+      BUDGET_ID,
+      [
+        { position: 1, budgetLineId: SALARY_LINE.id },
+        // Not the suggested Prévision: the user's choice wins.
+        { position: 2, budgetLineId: SAVING_LINE.id },
+      ],
+      user,
+    );
+
+    expect(result).toEqual({
+      createdCount: 5,
+      attachedCount: 2,
+      skippedCount: 1,
+    });
+    const byPosition = new Map(
+      ctx.inserted[0].map((entry) => [entry.position, entry]),
+    );
+    expect(byPosition.get(1)).toMatchObject({
+      kind: 'income',
+      budgetLineId: SALARY_LINE.id,
+      checkedAt: expect.any(String),
+    });
+    expect(byPosition.get(2)).toMatchObject({
+      kind: 'saving',
+      budgetLineId: SAVING_LINE.id,
+      checkedAt: expect.any(String),
+    });
+    // Suggested but never accepted: stays a free, unchecked Réel.
+    expect(byPosition.get(3)).toMatchObject({
+      kind: 'expense',
+      budgetLineId: null,
+      checkedAt: null,
+    });
+  });
+
+  it.each([
+    ['an operation that will not be created', 6, CAFE_LINE.id],
+    ['a Prévision that is gone', 2, 'a9999999-9999-4999-8999-999999999999'],
+    ['a Prévision of an incompatible type', 1, GROCERIES_LINE.id],
+  ])(
+    'refuses the whole import for a decision on %s',
+    async (_case, position, budgetLineId) => {
+      const error = await captureError(
+        ctx.confirm.execute(
+          sample,
+          BUDGET_ID,
+          [{ position, budgetLineId }],
+          user,
+        ),
+      );
+
+      expect(error.code).toBe(
+        ERROR_DEFINITIONS.TRANSACTION_IMPORT_INVALID.code,
+      );
+      expect(ctx.repo.insertAll).not.toHaveBeenCalled();
+    },
+  );
+
   it('writes nothing while the file has a blocking error', async () => {
     const broken = sample.replace(
       '<Amt Ccy="CHF">84.35</Amt>',
@@ -249,7 +361,7 @@ describe('ConfirmTransactionImportUseCase', () => {
     );
 
     const error = await captureError(
-      ctx.confirm.execute(broken, BUDGET_ID, user),
+      ctx.confirm.execute(broken, BUDGET_ID, [], user),
     );
 
     expect(error.code).toBe(ERROR_DEFINITIONS.TRANSACTION_IMPORT_INVALID.code);
@@ -267,9 +379,13 @@ describe('ConfirmTransactionImportUseCase', () => {
       ],
     });
 
-    const result = await ctx.confirm.execute(sample, BUDGET_ID, user);
+    const result = await ctx.confirm.execute(sample, BUDGET_ID, [], user);
 
-    expect(result).toEqual({ createdCount: 0, skippedCount: 6 });
+    expect(result).toEqual({
+      createdCount: 0,
+      attachedCount: 0,
+      skippedCount: 6,
+    });
     expect(ctx.repo.insertAll).not.toHaveBeenCalled();
     expect(ctx.recalculation.recalculate).not.toHaveBeenCalled();
   });
@@ -283,7 +399,7 @@ describe('ConfirmTransactionImportUseCase', () => {
     });
 
     const error = await captureError(
-      ctx.confirm.execute(sample, BUDGET_ID, user),
+      ctx.confirm.execute(sample, BUDGET_ID, [], user),
     );
 
     expect(error).toBe(conflict);
@@ -296,7 +412,7 @@ describe('ConfirmTransactionImportUseCase', () => {
     });
 
     const error = await captureError(
-      ctx.confirm.execute(sample, BUDGET_ID, user),
+      ctx.confirm.execute(sample, BUDGET_ID, [], user),
     );
 
     expect(error.code).toBe(

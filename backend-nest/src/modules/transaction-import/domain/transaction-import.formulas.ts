@@ -12,9 +12,11 @@ import type {
   StatementOperation,
 } from './bank-statement.entity';
 import type {
+  AttachableLine,
   ImportCandidate,
   ImportPeriod,
 } from './transaction-import.entity';
+import { suggestMatch } from './transaction-import.matching';
 
 /** Same bound as a Réel's name (`transactionCreateSchema`). */
 const NAME_MAX_LENGTH = 100;
@@ -199,13 +201,15 @@ function contentIdentity(
 /**
  * Decides what the confirmation does with each operation. Precedence:
  * pending, then already imported, then outside the period; the rest is new.
- * `fingerprints` is aligned with `operations`.
+ * `fingerprints` is aligned with `operations`. Only a new operation gets a
+ * suggested Prévision: the others will not be created at all.
  */
 export function classifyOperations(input: {
   operations: readonly ValidOperation[];
   fingerprints: readonly string[];
   importedFingerprints: ReadonlySet<string>;
   period: ImportPeriod;
+  lines: readonly AttachableLine[];
 }): {
   operations: TransactionImportOperation[];
   candidates: ImportCandidate[];
@@ -231,6 +235,8 @@ export function classifyOperations(input: {
       amount: operation.amount,
       kind: operation.kind,
       status,
+      suggestion:
+        status === 'new' ? suggestMatch(operation, input.lines) : null,
     });
     if (status === 'new') {
       candidates.push({

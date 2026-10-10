@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { TransactionImportResult } from 'pulpe-shared';
+import type {
+  TransactionImportDecision,
+  TransactionImportResult,
+} from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -13,13 +16,16 @@ import {
   TRANSACTION_IMPORT_REPOSITORY,
   type TransactionImportRepositoryPort,
 } from '../domain/ports/transaction-import-repository.port';
+import { planImport } from '../domain/transaction-import.matching';
 import { TransactionImportAnalyzer } from './transaction-import-analyzer';
 
 /**
- * Creates the file's new operations as free, unchecked Réels — all of them or
- * none. The file is analysed again rather than trusting the preview: the
- * same blocking errors refuse it, and an operation imported since the preview
- * is skipped instead of duplicated.
+ * Creates the file's new operations as Réels — all of them or none. Those the
+ * user explicitly attached to a Prévision are attached and checked; every
+ * other one stays free and unchecked. The file is analysed again rather than
+ * trusting the preview: the same blocking errors refuse it, an operation
+ * imported since the preview is skipped instead of duplicated, and a decision
+ * that no longer fits refuses the whole import.
  */
 @Injectable()
 export class ConfirmTransactionImportUseCase {
@@ -37,9 +43,10 @@ export class ConfirmTransactionImportUseCase {
   async execute(
     content: string,
     budgetId: string,
+    decisions: readonly TransactionImportDecision[],
     user: AuthenticatedUser,
   ): Promise<TransactionImportResult> {
-    const { preview, candidates } = await this.analyzer.analyze(
+    const { preview, candidates, lines } = await this.analyzer.analyze(
       content,
       budgetId,
     );
@@ -57,10 +64,35 @@ export class ConfirmTransactionImportUseCase {
       );
     }
 
-    const skippedCount = preview.operations.length - candidates.length;
-    if (candidates.length === 0) return { createdCount: 0, skippedCount };
+    const plan = planImport({
+      candidates,
+      decisions,
+      lines,
+      checkedAt: new Date().toISOString(),
+    });
+    if ('problem' in plan) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_IMPORT_INVALID,
+        { reason: `${plan.problem} at operation ${plan.position}` },
+        {
+          operation: 'transactionImport.confirm.planImport',
+          userId: user.id,
+          budgetId,
+          problem: plan.problem,
+        },
+      );
+    }
 
-    await this.repo.insertAll(budgetId, candidates);
+    const { planned } = plan;
+    const attachedCount = planned.filter(
+      (entry) => entry.budgetLineId !== null,
+    ).length;
+    const skippedCount = preview.operations.length - planned.length;
+    if (planned.length === 0) {
+      return { createdCount: 0, attachedCount: 0, skippedCount };
+    }
+
+    await this.repo.insertAll(budgetId, planned);
     // Before the recalculation: if it fails, no cached list may hide the rows.
     await this.cacheService.invalidateForUser(user.id);
 
@@ -76,7 +108,7 @@ export class ConfirmTransactionImportUseCase {
           partialFailure: true,
           userId: user.id,
           budgetId,
-          createdCount: candidates.length,
+          createdCount: planned.length,
         },
         { cause },
       );
@@ -88,12 +120,13 @@ export class ConfirmTransactionImportUseCase {
         userId: user.id,
         budgetId,
         format: preview.format,
-        createdCount: candidates.length,
+        createdCount: planned.length,
+        attachedCount,
         skippedCount,
       },
       'Bank export imported',
     );
 
-    return { createdCount: candidates.length, skippedCount };
+    return { createdCount: planned.length, attachedCount, skippedCount };
   }
 }

@@ -1,8 +1,10 @@
 import { inject, Service } from '@angular/core';
 import { ApiClient } from '@core/api/api-client';
 import {
+  type TransactionImportDecision,
   type TransactionImportPreview,
   type TransactionImportResponse,
+  transactionImportConfirmRequestSchema,
   transactionImportPreviewResponseSchema,
   transactionImportRequestSchema,
   transactionImportResponseSchema,
@@ -32,12 +34,19 @@ export class TransactionImportApi {
     ).pipe(map((response) => response.data));
   }
 
-  /** All or nothing: one Réel per `new` operation, or nothing written. */
-  import$(budgetId: string, file: File): Observable<TransactionImportResponse> {
+  /**
+   * All or nothing: one Réel per `new` operation, or nothing written. Only the
+   * operations in `decisions` are attached (and pointés); the others stay free.
+   */
+  import$(
+    budgetId: string,
+    file: File,
+    decisions: readonly TransactionImportDecision[],
+  ): Observable<TransactionImportResponse> {
     return defer(() =>
       this.#api.postFormData$(
         IMPORT_PATH,
-        buildImportBody(budgetId, file),
+        buildConfirmBody(budgetId, file, decisions),
         transactionImportResponseSchema,
       ),
     );
@@ -48,6 +57,23 @@ function buildImportBody(budgetId: string, file: File): FormData {
   const request = transactionImportRequestSchema.parse({ budgetId });
   const body = new FormData();
   body.append('budgetId', request.budgetId);
+  body.append('file', file, file.name);
+  return body;
+}
+
+/** Multipart fields are text: the decisions travel as one JSON array. */
+function buildConfirmBody(
+  budgetId: string,
+  file: File,
+  decisions: readonly TransactionImportDecision[],
+): FormData {
+  const request = transactionImportConfirmRequestSchema.parse({
+    budgetId,
+    decisions,
+  });
+  const body = new FormData();
+  body.append('budgetId', request.budgetId);
+  body.append('decisions', JSON.stringify(request.decisions));
   body.append('file', file, file.name);
   return body;
 }

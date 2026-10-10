@@ -2206,20 +2206,26 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
 
     it('returns the result and invalidates the budget keys on success', async () => {
+      const result = { createdCount: 3, attachedCount: 1, skippedCount: 1 };
+      const decisions = [
+        { position: 2, budgetLineId: '00000000-0000-4000-8000-0000000000a1' },
+      ];
       mockTransactionImportApi.import$.mockReturnValue(
-        of({ success: true, data: { createdCount: 3, skippedCount: 1 } }),
+        of({ success: true, data: result }),
       );
 
-      const outcome = await service.importTransactions(mockBudgetId, statement);
+      const outcome = await service.importTransactions(
+        mockBudgetId,
+        statement,
+        decisions,
+      );
 
       expect(mockTransactionImportApi.import$).toHaveBeenCalledWith(
         mockBudgetId,
         statement,
+        decisions,
       );
-      expect(outcome).toEqual({
-        status: 'imported',
-        result: { createdCount: 3, skippedCount: 1 },
-      });
+      expect(outcome).toEqual({ status: 'imported', result });
       expect(mockBudgetApi.cache.invalidate).toHaveBeenCalledWith([
         'budget',
         'details',

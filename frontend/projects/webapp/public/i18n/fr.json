@@ -2102,7 +2102,34 @@
     "confirmMany": "Importer {{ count }} opérations",
     "confirmNone": "Rien à importer",
     "successOne": "1 mouvement importé",
-    "successMany": "{{ count }} mouvements importés"
+    "successMany": "{{ count }} mouvements importés",
+    "successOneChecked": "1 mouvement importé et pointé",
+    "successManyCheckedOne": "{{ count }} mouvements importés, dont 1 pointé",
+    "successManyCheckedMany": "{{ count }} mouvements importés, dont {{ attached }} pointés",
+    "attachment": {
+      "suggested": "Suggestion :",
+      "reasonsLabel": "Pourquoi cette suggestion",
+      "reason": {
+        "kind": "Type compatible",
+        "amount": "Même montant",
+        "label": "Libellé proche"
+      },
+      "accept": "Accepter",
+      "refuse": "Refuser",
+      "change": "Changer",
+      "remove": "Retirer",
+      "attach": "Rattacher à une prévision",
+      "attachedTo": "Rattachée à",
+      "willBeChecked": "sera pointée",
+      "free": "Réel libre, à pointer",
+      "menuLabel": "Prévisions compatibles",
+      "acceptAll": "Accepter les {{ count }} suggestions",
+      "planAttachedOne": "{{ count }} rattachée et pointée",
+      "planAttachedMany": "{{ count }} rattachées et pointées",
+      "planFreeOne": "{{ count }} en Réel libre",
+      "planFreeMany": "{{ count }} en Réels libres",
+      "planNothingAttached": "Aucune rattachée : tout arrivera en Réel libre, à pointer"
+    }
   },
   "tagPicker": {
     "label": "Tags",

@@ -36,6 +36,7 @@ import {
   type SpreadOccurrence,
   type Transaction,
   type TransactionCreate,
+  type TransactionImportDecision,
   type TransactionImportResponse,
   type TransactionListResponse,
   type TransactionPostponeResponse,
@@ -812,13 +813,14 @@ export class BudgetDetailsStore {
   async importTransactions(
     budgetId: string,
     file: File,
+    decisions: readonly TransactionImportDecision[] = [],
   ): Promise<TransactionImportOutcome> {
     const failure: { error?: unknown } = {};
     const mutation = cachedMutation<File, TransactionImportResponse, void>({
       cache: this.#budgetApi.cache,
       invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
       mutationFn: (statement) =>
-        this.#transactionImportApi.import$(budgetId, statement),
+        this.#transactionImportApi.import$(budgetId, statement, decisions),
       onSuccess: () => this.#onFinancialMutationSuccess(),
       onError: (error) => {
         failure.error = error;
@@ -831,7 +833,7 @@ export class BudgetDetailsStore {
     });
 
     const response = await mutation.mutate(file);
-    if (response && !('error' in failure)) {
+    if (response) {
       return { status: 'imported', result: response.data };
     }
 

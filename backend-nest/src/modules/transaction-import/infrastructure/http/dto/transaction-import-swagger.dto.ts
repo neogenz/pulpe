@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import {
+  transactionImportConfirmRequestSchema,
   transactionImportPreviewResponseSchema,
   transactionImportRequestSchema,
   transactionImportResponseSchema,
@@ -7,6 +8,9 @@ import {
 
 export class TransactionImportRequestDto extends createZodDto(
   transactionImportRequestSchema,
+) {}
+export class TransactionImportConfirmRequestDto extends createZodDto(
+  transactionImportConfirmRequestSchema,
 ) {}
 export class TransactionImportPreviewResponseDto extends createZodDto(
   transactionImportPreviewResponseSchema,

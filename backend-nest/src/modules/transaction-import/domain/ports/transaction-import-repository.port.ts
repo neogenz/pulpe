@@ -1,6 +1,7 @@
 import type {
-  ImportCandidate,
+  AttachableLine,
   ImportTargetBudget,
+  PlannedImport,
 } from '../transaction-import.entity';
 
 export const TRANSACTION_IMPORT_REPOSITORY = Symbol(
@@ -10,6 +11,8 @@ export const TRANSACTION_IMPORT_REPOSITORY = Symbol(
 export interface TransactionImportRepositoryPort {
   /** The caller's budget; throws BUDGET_NOT_FOUND for a missing or foreign one. */
   findTargetBudget(budgetId: string): Promise<ImportTargetBudget>;
+  /** The budget's Prévisions an import may attach to, amounts decrypted. */
+  findAttachableLines(budgetId: string): Promise<AttachableLine[]>;
   /** Keyed fingerprints for the caller, one per material, same order. */
   fingerprint(materials: readonly string[]): string[];
   /** The subset of `fingerprints` already carried by one of the caller's Réels. */
@@ -17,12 +20,8 @@ export interface TransactionImportRepositoryPort {
     fingerprints: readonly string[],
   ): Promise<ReadonlySet<string>>;
   /**
-   * Creates every candidate as an unchecked free Réel in ONE statement: all
-   * rows or none. Throws TRANSACTION_IMPORT_CONFLICT when one of them was
-   * imported in the meantime.
+   * Creates every planned Réel in ONE statement: all rows or none. Throws
+   * TRANSACTION_IMPORT_CONFLICT when one of them was imported in the meantime.
    */
-  insertAll(
-    budgetId: string,
-    candidates: readonly ImportCandidate[],
-  ): Promise<void>;
+  insertAll(budgetId: string, planned: readonly PlannedImport[]): Promise<void>;
 }

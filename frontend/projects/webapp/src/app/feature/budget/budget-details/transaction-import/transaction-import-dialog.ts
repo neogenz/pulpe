@@ -15,6 +15,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
@@ -24,14 +25,28 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { LoadingButton } from '@ui/loading-button';
 import {
   canConfirmTransactionImport,
+  type TransactionImportBudgetLine,
+  type TransactionImportOperation,
   type TransactionImportPreview,
 } from 'pulpe-shared';
 import { firstValueFrom } from 'rxjs';
 import { BudgetDetailsStore } from '../store/budget-details-store';
 import { TransactionImportApi } from './transaction-import-api';
 import {
+  acceptAllSuggestions,
+  acceptSuggestion,
+  type AttachmentDecisions,
+  type AttachmentView,
+  attachOperation,
+  buildAttachmentPlan,
+  buildAttachmentViews,
+  buildPlanSummary,
   buildStatusSummary,
   confirmLabelKey,
+  countPendingSuggestions,
+  emptyAttachmentDecisions,
+  leaveFree,
+  toImportDecisions,
   countOperationsByStatus,
   isFileTooLarge,
   isPreviewStale,
@@ -84,6 +99,7 @@ const ACCEPTED_FILE_TYPES = '.xml,application/xml,text/xml';
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     TranslocoPipe,
   ],
@@ -191,6 +207,38 @@ const ACCEPTED_FILE_TYPES = '.xml,application/xml,text/xml';
             }
           </p>
 
+          @if (isPlanShown()) {
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p
+                class="min-w-0 flex-1 text-body-medium text-on-surface-variant"
+                role="status"
+                data-testid="import-plan"
+              >
+                @for (item of planSummary(); track item.key; let last = $last) {
+                  <span>{{ item.key | transloco: { count: item.count } }}</span>
+                  @if (!last) {
+                    <span aria-hidden="true"> · </span>
+                  }
+                }
+              </p>
+              @if (pendingSuggestionCount() >= 2) {
+                <button
+                  matButton="tonal"
+                  class="shrink-0"
+                  [disabled]="isImporting()"
+                  (click)="acceptAll()"
+                  data-testid="accept-all-suggestions-button"
+                >
+                  <mat-icon>done_all</mat-icon>
+                  {{
+                    'transactionImport.attachment.acceptAll'
+                      | transloco: { count: pendingSuggestionCount() }
+                  }}
+                </button>
+              }
+            </div>
+          }
+
           @if (errorRows().length > 0) {
             <div
               class="rounded-2xl bg-error-container p-4 text-on-error-container"
@@ -241,49 +289,288 @@ const ACCEPTED_FILE_TYPES = '.xml,application/xml,text/xml';
               "
             >
               @for (row of operationRows(); track row.position) {
+                @let attachment = attachmentViews().get(row.position);
                 <li
-                  class="flex min-w-0 items-start gap-3 py-3"
+                  class="flex min-w-0 flex-col gap-2 py-3"
                   data-testid="import-operation-row"
                 >
-                  <div class="min-w-0 flex-1">
-                    <p
-                      class="ph-no-capture truncate text-body-large"
-                      [class.text-on-surface]="row.isNew"
+                  <div class="flex min-w-0 items-start gap-3">
+                    <div class="min-w-0 flex-1">
+                      <p
+                        class="ph-no-capture truncate text-body-large"
+                        [id]="'import-operation-name-' + row.position"
+                        [class.text-on-surface]="row.isNew"
+                        [class.text-on-surface-variant]="!row.isNew"
+                      >
+                        {{ row.name }}
+                      </p>
+                      <p
+                        class="flex flex-wrap gap-x-2 text-body-small text-on-surface-variant"
+                      >
+                        <span>{{ row.date | date: dateFormat() }}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{{ row.kindKey | transloco }}</span>
+                        @if (row.statusKey) {
+                          <span aria-hidden="true">·</span>
+                          <span
+                            class="font-medium"
+                            data-testid="import-operation-status"
+                            >{{ row.statusKey | transloco }}</span
+                          >
+                        }
+                      </p>
+                    </div>
+                    <span
+                      class="ph-no-capture shrink-0 text-body-large tabular-nums"
+                      [class.text-financial-income]="
+                        row.isNew && row.kind === 'income'
+                      "
+                      [class.text-financial-expense]="
+                        row.isNew && row.kind === 'expense'
+                      "
                       [class.text-on-surface-variant]="!row.isNew"
                     >
-                      {{ row.name }}
-                    </p>
-                    <p
-                      class="flex flex-wrap gap-x-2 text-body-small text-on-surface-variant"
-                    >
-                      <span>{{ row.date | date: dateFormat() }}</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{{ row.kindKey | transloco }}</span>
-                      @if (row.statusKey) {
-                        <span aria-hidden="true">·</span>
-                        <span
-                          class="font-medium"
-                          data-testid="import-operation-status"
-                          >{{ row.statusKey | transloco }}</span
-                        >
-                      }
-                    </p>
+                      {{ row.amount | appCurrency: preview.currency : '1.2-2' }}
+                    </span>
                   </div>
-                  <span
-                    class="ph-no-capture shrink-0 text-body-large tabular-nums"
-                    [class.text-financial-income]="
-                      row.isNew && row.kind === 'income'
-                    "
-                    [class.text-financial-expense]="
-                      row.isNew && row.kind === 'expense'
-                    "
-                    [class.text-on-surface-variant]="!row.isNew"
-                  >
-                    {{ row.amount | appCurrency: preview.currency : '1.2-2' }}
-                  </span>
+
+                  @if (attachment) {
+                    <!-- A pending or accepted attachment gets a panel; a free Réel stays a quiet line. -->
+                    <div
+                      class="flex min-w-0 flex-col gap-1"
+                      [class]="
+                        attachment.state === 'free'
+                          ? ''
+                          : 'rounded-2xl bg-surface-container px-3 py-2'
+                      "
+                      role="group"
+                      [attr.aria-labelledby]="
+                        'import-operation-name-' + row.position
+                      "
+                      [attr.data-state]="attachment.state"
+                      data-testid="import-attachment-panel"
+                    >
+                      @switch (attachment.state) {
+                        @case ('suggested') {
+                          <p
+                            class="flex min-w-0 items-start gap-2 text-body-medium text-on-surface"
+                          >
+                            <mat-icon
+                              class="mat-icon-sm shrink-0 text-primary"
+                              aria-hidden="true"
+                              >lightbulb</mat-icon
+                            >
+                            <span class="min-w-0">
+                              {{
+                                'transactionImport.attachment.suggested'
+                                  | transloco
+                              }}
+                              <span
+                                class="ph-no-capture font-medium break-words"
+                                >{{ attachment.line.name }}</span
+                              >
+                            </span>
+                          </p>
+                          <ul
+                            class="flex flex-wrap gap-1"
+                            [attr.aria-label]="
+                              'transactionImport.attachment.reasonsLabel'
+                                | transloco
+                            "
+                          >
+                            @for (
+                              reasonKey of attachment.reasonKeys;
+                              track reasonKey
+                            ) {
+                              <li
+                                class="inline-flex items-center rounded-full bg-secondary-container px-2 py-0.5 text-label-small text-on-secondary-container"
+                                data-testid="suggestion-reason-chip"
+                              >
+                                {{ reasonKey | transloco }}
+                              </li>
+                            }
+                          </ul>
+                          <div class="flex flex-wrap items-center gap-x-1">
+                            <button
+                              matButton="tonal"
+                              [disabled]="isImporting()"
+                              (click)="accept(row.position)"
+                              data-testid="accept-suggestion-button"
+                            >
+                              {{
+                                'transactionImport.attachment.accept'
+                                  | transloco
+                              }}
+                            </button>
+                            <button
+                              matButton
+                              [disabled]="isImporting()"
+                              [matMenuTriggerFor]="attachmentMenu"
+                              [matMenuTriggerData]="{
+                                position: row.position,
+                                attachment,
+                              }"
+                              data-testid="change-attachment-button"
+                            >
+                              {{
+                                'transactionImport.attachment.change'
+                                  | transloco
+                              }}
+                            </button>
+                            <button
+                              matButton
+                              [disabled]="isImporting()"
+                              (click)="refuse(row.position)"
+                              data-testid="refuse-suggestion-button"
+                            >
+                              {{
+                                'transactionImport.attachment.refuse'
+                                  | transloco
+                              }}
+                            </button>
+                          </div>
+                        }
+                        @case ('attached') {
+                          <p
+                            class="flex min-w-0 items-start gap-2 text-body-medium text-on-surface"
+                          >
+                            <mat-icon
+                              class="mat-icon-sm icon-filled shrink-0 text-primary"
+                              aria-hidden="true"
+                              >check_circle</mat-icon
+                            >
+                            <span class="min-w-0">
+                              {{
+                                'transactionImport.attachment.attachedTo'
+                                  | transloco
+                              }}
+                              <span
+                                class="ph-no-capture font-medium break-words"
+                                >{{ attachment.line.name }}</span
+                              >
+                              <span class="text-on-surface-variant">
+                                ·
+                                {{
+                                  'transactionImport.attachment.willBeChecked'
+                                    | transloco
+                                }}</span
+                              >
+                            </span>
+                          </p>
+                          <div class="flex flex-wrap items-center gap-x-1">
+                            <button
+                              matButton
+                              [disabled]="isImporting()"
+                              [matMenuTriggerFor]="attachmentMenu"
+                              [matMenuTriggerData]="{
+                                position: row.position,
+                                attachment,
+                              }"
+                              data-testid="change-attachment-button"
+                            >
+                              {{
+                                'transactionImport.attachment.change'
+                                  | transloco
+                              }}
+                            </button>
+                            <button
+                              matButton
+                              [disabled]="isImporting()"
+                              (click)="detach(row.position)"
+                              data-testid="remove-attachment-button"
+                            >
+                              {{
+                                'transactionImport.attachment.remove'
+                                  | transloco
+                              }}
+                            </button>
+                          </div>
+                        }
+                        @case ('free') {
+                          <div
+                            class="flex min-w-0 flex-wrap items-center justify-between gap-x-2"
+                          >
+                            <p
+                              class="text-body-medium text-on-surface-variant"
+                              data-testid="free-attachment-label"
+                            >
+                              {{
+                                'transactionImport.attachment.free' | transloco
+                              }}
+                            </p>
+                            <button
+                              matButton
+                              [disabled]="isImporting()"
+                              [matMenuTriggerFor]="attachmentMenu"
+                              [matMenuTriggerData]="{
+                                position: row.position,
+                                attachment,
+                              }"
+                              data-testid="attach-button"
+                            >
+                              <mat-icon>add_link</mat-icon>
+                              {{
+                                'transactionImport.attachment.attach'
+                                  | transloco
+                              }}
+                            </button>
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
                 </li>
               }
             </ul>
+
+            <mat-menu
+              #attachmentMenu="matMenu"
+              xPosition="before"
+              [aria-label]="
+                'transactionImport.attachment.menuLabel' | transloco
+              "
+            >
+              <ng-template
+                matMenuContent
+                let-position="position"
+                let-attachment="attachment"
+              >
+                @for (group of attachment.options; track group.kind) {
+                  <p
+                    class="px-4 pb-1 pt-2 text-label-medium text-on-surface-variant"
+                    aria-hidden="true"
+                  >
+                    {{ group.kindKey | transloco }}
+                  </p>
+                  @for (line of group.lines; track line.id) {
+                    <button
+                      mat-menu-item
+                      (click)="attach(position, line)"
+                      data-testid="attachment-option-button"
+                    >
+                      @if (isCurrentLine(attachment, line)) {
+                        <mat-icon matMenuItemIcon>check</mat-icon>
+                      }
+                      <span class="flex w-full min-w-0 items-baseline gap-4">
+                        <span class="ph-no-capture min-w-0 flex-1 truncate">{{
+                          line.name
+                        }}</span>
+                        <span class="sr-only">{{
+                          group.kindKey | transloco
+                        }}</span>
+                        <span
+                          class="ph-no-capture shrink-0 text-body-small tabular-nums text-on-surface-variant"
+                          >{{
+                            line.amount
+                              | appCurrency: preview.currency : '1.2-2'
+                          }}</span
+                        >
+                      </span>
+                    </button>
+                  }
+                }
+              </ng-template>
+            </mat-menu>
           }
         }
       </div>
@@ -425,6 +712,42 @@ export class TransactionImportDialog {
     confirmLabelKey(this.newCount()),
   );
 
+  /** Reset by every preview: a decision only holds for the operations it was made on. */
+  readonly #decisions = signal<AttachmentDecisions>(emptyAttachmentDecisions());
+  readonly #operations = computed(() => this.preview()?.operations ?? []);
+  readonly #budgetLines = computed(() => this.preview()?.budgetLines ?? []);
+
+  protected readonly attachmentViews = computed(() =>
+    buildAttachmentViews(
+      this.#decisions(),
+      this.#operations(),
+      this.#budgetLines(),
+    ),
+  );
+  protected readonly pendingSuggestionCount = computed(() =>
+    countPendingSuggestions(
+      this.#decisions(),
+      this.#operations(),
+      this.#budgetLines(),
+    ),
+  );
+  protected readonly planSummary = computed(() =>
+    buildPlanSummary(
+      buildAttachmentPlan(
+        this.#decisions(),
+        this.#operations(),
+        this.#budgetLines(),
+      ),
+    ),
+  );
+  /** Only when something can be attached and the file can be imported at all. */
+  protected readonly isPlanShown = computed(
+    () =>
+      this.attachmentViews().size > 0 &&
+      this.errorRows().length === 0 &&
+      this.newCount() > 0,
+  );
+
   readonly canConfirm = computed(() => {
     const state = this.#state();
     return (
@@ -477,7 +800,51 @@ export class TransactionImportDialog {
     }
   }
 
+  protected accept(position: number): void {
+    const operation = this.#operationAt(position);
+    if (!operation) return;
+    this.#decisions.update((decisions) =>
+      acceptSuggestion(decisions, operation, this.#budgetLines()),
+    );
+  }
+
+  protected refuse(position: number): void {
+    this.#decisions.update((decisions) => leaveFree(decisions, position));
+  }
+
+  protected detach(position: number): void {
+    this.#decisions.update((decisions) => leaveFree(decisions, position));
+  }
+
+  protected attach(position: number, line: TransactionImportBudgetLine): void {
+    const operation = this.#operationAt(position);
+    if (!operation) return;
+    this.#decisions.update((decisions) =>
+      attachOperation(decisions, operation, line),
+    );
+  }
+
+  protected acceptAll(): void {
+    this.#decisions.update((decisions) =>
+      acceptAllSuggestions(decisions, this.#operations(), this.#budgetLines()),
+    );
+  }
+
+  protected isCurrentLine(
+    attachment: AttachmentView,
+    line: TransactionImportBudgetLine,
+  ): boolean {
+    return attachment.state === 'attached' && attachment.line.id === line.id;
+  }
+
+  #operationAt(position: number): TransactionImportOperation | undefined {
+    return this.#operations().find(
+      (operation) => operation.position === position,
+    );
+  }
+
   async #runPreview(file: File): Promise<void> {
+    this.#decisions.set(emptyAttachmentDecisions());
     this.#state.set({ step: 'previewing', file });
     try {
       const preview = await firstValueFrom(
@@ -505,6 +872,11 @@ export class TransactionImportDialog {
     const outcome = await this.#store.importTransactions(
       this.#data.budgetId,
       file,
+      toImportDecisions(
+        this.#decisions(),
+        preview.operations,
+        preview.budgetLines,
+      ),
     );
     this.#dialogRef.disableClose = false;
 

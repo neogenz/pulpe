@@ -215,6 +215,7 @@ describe('classifyOperations', () => {
       fingerprints: ['fp1', 'fp2', 'fp3', 'fp4'],
       importedFingerprints: new Set(['fp4']),
       period: MARCH,
+      lines: [],
     });
 
     expect(listed.map((op) => op.status)).toEqual([
@@ -244,6 +245,7 @@ describe('classifyOperations', () => {
       fingerprints: ['a', 'b'],
       importedFingerprints: new Set(),
       period: MARCH,
+      lines: [],
     });
     expect(candidates).toHaveLength(2);
   });
@@ -254,6 +256,7 @@ describe('classifyOperations', () => {
       fingerprints: ['same', 'same'],
       importedFingerprints: new Set(),
       period: MARCH,
+      lines: [],
     });
     expect(listed.map((op) => op.status)).toEqual(['new', 'already_imported']);
     expect(candidates).toHaveLength(1);

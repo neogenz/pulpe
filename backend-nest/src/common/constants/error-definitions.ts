@@ -443,7 +443,9 @@ export const ERROR_DEFINITIONS = {
     message: (details?: Record<string, unknown>) =>
       details?.errorCount
         ? `The bank export has ${details.errorCount} blocking error(s); nothing was imported`
-        : 'The bank export has blocking errors; nothing was imported',
+        : details?.reason
+          ? `An import decision no longer applies (${details.reason}); nothing was imported`
+          : 'The bank export has blocking errors; nothing was imported',
     httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
   },
   TRANSACTION_IMPORT_CONFLICT: {

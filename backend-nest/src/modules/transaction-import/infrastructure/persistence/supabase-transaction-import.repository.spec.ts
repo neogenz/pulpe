@@ -3,21 +3,24 @@ import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authentica
 import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import type { ImportCandidate } from '../../domain/transaction-import.entity';
+import type { PlannedImport } from '../../domain/transaction-import.entity';
 import { SupabaseTransactionImportRepository } from './supabase-transaction-import.repository';
 
 const BUDGET_ID = '11111111-1111-4111-8111-111111111111';
 const user = { id: 'user-1', clientKey: Buffer.alloc(32, 7) };
 
-const candidate = (
-  overrides: Partial<ImportCandidate> = {},
-): ImportCandidate => ({
+const LINE_ID = '22222222-2222-4222-8222-222222222222';
+const CHECKED_AT = '2026-03-31T10:00:00.000Z';
+
+const candidate = (overrides: Partial<PlannedImport> = {}): PlannedImport => ({
   position: 1,
   date: '2026-03-10',
   name: 'Boulangerie',
   amount: 12.5,
   kind: 'expense',
   fingerprint: 'a'.repeat(64),
+  budgetLineId: null,
+  checkedAt: null,
   ...overrides,
 });
 
@@ -38,7 +41,7 @@ function setup(insertError: { code: string } | null = null) {
 }
 
 describe('SupabaseTransactionImportRepository.insertAll', () => {
-  it('encrypts every amount and sends all rows in a single insert', async () => {
+  it('encrypts every amount and sends free and attached rows in a single insert', async () => {
     const { repo, insert, encryption } = setup();
 
     await repo.insertAll(BUDGET_ID, [
@@ -46,8 +49,10 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
       candidate({
         position: 2,
         amount: 5200,
-        kind: 'income',
+        kind: 'saving',
         fingerprint: 'b'.repeat(64),
+        budgetLineId: LINE_ID,
+        checkedAt: CHECKED_AT,
       }),
     ]);
 
@@ -70,12 +75,12 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
       },
       {
         budget_id: BUDGET_ID,
-        budget_line_id: null,
+        budget_line_id: LINE_ID,
         name: 'Boulangerie',
         amount: 'enc(5200)',
-        kind: 'income',
+        kind: 'saving',
         transaction_date: '2026-03-10T12:00:00.000Z',
-        checked_at: null,
+        checked_at: CHECKED_AT,
         import_fingerprint: 'b'.repeat(64),
       },
     ]);
@@ -108,5 +113,47 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
     await repo.insertAll(BUDGET_ID, []);
 
     expect(insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('SupabaseTransactionImportRepository.findAttachableLines', () => {
+  function setupLines(rows: unknown[]) {
+    const calls: [string, ...unknown[]][] = [];
+    const query: Record<string, unknown> = {};
+    for (const method of ['select', 'eq', 'is', 'order']) {
+      query[method] = (...args: unknown[]) => {
+        calls.push([method, ...args]);
+        return query;
+      };
+    }
+    query.range = async () => ({ data: rows, error: null });
+    const client = { from: mock(() => query) };
+    const encryption = {
+      getDekFor: mock(async () => Buffer.alloc(32)),
+      tryDecryptAmount: mock((ciphertext: string) =>
+        Number(ciphertext.replace('enc:', '')),
+      ),
+    };
+    const repo = new SupabaseTransactionImportRepository(
+      { client, user } as unknown as AuthenticatedSupabaseProvider,
+      encryption as unknown as EncryptionPort,
+    );
+    return { repo, client, calls };
+  }
+
+  it('reads the budget’s Prévisions without savings-goal withdrawals, decrypted', async () => {
+    const { repo, client, calls } = setupLines([
+      { id: 'l1', name: 'Loyer', kind: 'expense', amount: 'enc:1850' },
+    ]);
+
+    const lines = await repo.findAttachableLines(BUDGET_ID);
+
+    expect(client.from).toHaveBeenCalledWith('budget_line');
+    expect(calls).toContainEqual(['eq', 'budget_id', BUDGET_ID]);
+    expect(calls).toContainEqual(['is', 'source_savings_goal_id', null]);
+    expect(calls).toContainEqual(['is', 'source_savings_goal_name', null]);
+    expect(lines).toEqual([
+      { id: 'l1', name: 'Loyer', kind: 'expense', amount: 1850 },
+    ]);
   });
 });

@@ -2102,7 +2102,34 @@
     "confirmMany": "{{ count }} Umsätze importieren",
     "confirmNone": "Nichts zu importieren",
     "successOne": "1 Bewegung importiert",
-    "successMany": "{{ count }} Bewegungen importiert"
+    "successMany": "{{ count }} Bewegungen importiert",
+    "successOneChecked": "1 Bewegung importiert und abgehakt",
+    "successManyCheckedOne": "{{ count }} Bewegungen importiert, davon 1 abgehakt",
+    "successManyCheckedMany": "{{ count }} Bewegungen importiert, davon {{ attached }} abgehakt",
+    "attachment": {
+      "suggested": "Vorschlag:",
+      "reasonsLabel": "Warum dieser Vorschlag",
+      "reason": {
+        "kind": "Passende Art",
+        "amount": "Gleicher Betrag",
+        "label": "Ähnliche Bezeichnung"
+      },
+      "accept": "Annehmen",
+      "refuse": "Ablehnen",
+      "change": "Ändern",
+      "remove": "Entfernen",
+      "attach": "Einem Planposten zuordnen",
+      "attachedTo": "Zugeordnet zu",
+      "willBeChecked": "wird abgehakt",
+      "free": "Ohne Planposten, offen",
+      "menuLabel": "Passende Planposten",
+      "acceptAll": "Alle {{ count }} Vorschläge annehmen",
+      "planAttachedOne": "{{ count }} zugeordnet und abgehakt",
+      "planAttachedMany": "{{ count }} zugeordnet und abgehakt",
+      "planFreeOne": "{{ count }} ohne Planposten",
+      "planFreeMany": "{{ count }} ohne Planposten",
+      "planNothingAttached": "Nichts zugeordnet: Alles kommt ohne Planposten und offen an"
+    }
   },
   "tagPicker": {
     "label": "Tags",

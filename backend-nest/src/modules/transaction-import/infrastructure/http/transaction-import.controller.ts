@@ -39,6 +39,7 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { PreviewTransactionImportUseCase } from '../../application/preview-transaction-import.use-case';
 import { ConfirmTransactionImportUseCase } from '../../application/confirm-transaction-import.use-case';
 import {
+  TransactionImportConfirmRequestDto,
   TransactionImportPreviewResponseDto,
   TransactionImportRequestDto,
   TransactionImportResponseDto,
@@ -56,13 +57,27 @@ const uploadInterceptor = FileInterceptor(FILE_FIELD, {
   limits: { fileSize: TRANSACTION_IMPORT_MAX_FILE_BYTES, files: 1, fields: 4 },
 });
 
-const multipartBody = {
+const previewBody = {
   schema: {
     type: 'object',
     required: [FILE_FIELD, 'budgetId'],
     properties: {
       [FILE_FIELD]: { type: 'string', format: 'binary' },
       budgetId: { type: 'string', format: 'uuid' },
+    },
+  },
+};
+
+const confirmBody = {
+  schema: {
+    ...previewBody.schema,
+    properties: {
+      ...previewBody.schema.properties,
+      decisions: {
+        type: 'string',
+        description:
+          'JSON array of { position, budgetLineId }: the attachments the user accepted. Omitted operations become free, unchecked Réels.',
+      },
     },
   },
 };
@@ -90,7 +105,7 @@ export class TransactionImportController {
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseInterceptors(uploadInterceptor)
   @ApiConsumes('multipart/form-data')
-  @ApiBody(multipartBody)
+  @ApiBody(previewBody)
   @ApiOperation({
     summary: 'Analyse un export bancaire sans rien enregistrer',
   })
@@ -110,7 +125,7 @@ export class TransactionImportController {
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseInterceptors(uploadInterceptor)
   @ApiConsumes('multipart/form-data')
-  @ApiBody(multipartBody)
+  @ApiBody(confirmBody)
   @ApiOperation({
     summary:
       'Crée les opérations nouvelles d’un export bancaire (tout ou rien)',
@@ -126,12 +141,13 @@ export class TransactionImportController {
   })
   async confirm(
     @UploadedFile() file: UploadedBankFile | undefined,
-    @Body() body: TransactionImportRequestDto,
+    @Body() body: TransactionImportConfirmRequestDto,
     @User() user: AuthenticatedUser,
   ): Promise<TransactionImportResponse> {
     const data = await this.confirmUseCase.execute(
       decodeFile(file),
       body.budgetId,
+      body.decisions,
       user,
     );
     return { success: true, data };

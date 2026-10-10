@@ -20,7 +20,10 @@ import {
   TRANSACTION_IMPORT_REPOSITORY,
   type TransactionImportRepositoryPort,
 } from '../domain/ports/transaction-import-repository.port';
-import type { ImportCandidate } from '../domain/transaction-import.entity';
+import type {
+  AttachableLine,
+  ImportCandidate,
+} from '../domain/transaction-import.entity';
 import {
   budgetPeriodBounds,
   classifyOperations,
@@ -33,6 +36,8 @@ export interface TransactionImportAnalysis {
   preview: TransactionImportPreview;
   /** What a confirmation would write; meaningless while `preview.errors` is non-empty. */
   candidates: ImportCandidate[];
+  /** The Prévisions a candidate may be attached to. */
+  lines: AttachableLine[];
 }
 
 /**
@@ -57,10 +62,19 @@ export class TransactionImportAnalyzer {
     content: string,
     budgetId: string,
   ): Promise<TransactionImportAnalysis> {
-    const [budget, settings] = await Promise.all([
-      this.repo.findTargetBudget(budgetId),
+    // The budget lookup doubles as the ownership check: it runs first, so the
+    // Prévisions are never read for a budget that is not the caller's.
+    const budget = await this.repo.findTargetBudget(budgetId);
+    const [settings, lines] = await Promise.all([
       this.users.findSettings(),
+      this.repo.findAttachableLines(budget.id),
     ]);
+    const budgetLines = lines.map(({ id, name, kind, amount }) => ({
+      id,
+      name,
+      kind,
+      amount,
+    }));
     const period = budgetPeriodBounds(
       budget.month,
       budget.year,
@@ -76,8 +90,10 @@ export class TransactionImportAnalyzer {
         currency: settings.currency,
         operations: [],
         errors,
+        budgetLines,
       },
       candidates: [],
+      lines,
     });
 
     const parser = this.parsers.find((candidate) => candidate.accepts(content));
@@ -110,6 +126,7 @@ export class TransactionImportAnalyzer {
       importedFingerprints:
         await this.repo.findImportedFingerprints(fingerprints),
       period,
+      lines,
     });
 
     return {
@@ -119,8 +136,10 @@ export class TransactionImportAnalyzer {
         currency: settings.currency,
         operations,
         errors,
+        budgetLines,
       },
       candidates,
+      lines,
     };
   }
 

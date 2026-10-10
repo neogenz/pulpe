@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canConfirmTransactionImport,
+  transactionImportConfirmRequestSchema,
   transactionImportPreviewSchema,
   transactionImportRequestSchema,
   type TransactionImportOperation,
@@ -15,6 +16,7 @@ const operation = (
   amount: 12.5,
   kind: 'expense',
   status: 'new',
+  suggestion: null,
   ...overrides,
 });
 
@@ -47,6 +49,7 @@ describe('transactionImportPreviewSchema', () => {
         currency: 'CHF',
         operations: [],
         errors: [{ code: 'unsupported_format', position: null }],
+        budgetLines: [],
       }).format,
     ).toBeNull();
   });
@@ -59,6 +62,7 @@ describe('transactionImportPreviewSchema', () => {
         currency: 'CHF',
         operations: [{ ...operation(), kind: 'saving' }],
         errors: [],
+        budgetLines: [],
       }),
     ).toThrow();
   });
@@ -70,6 +74,44 @@ describe('transactionImportRequestSchema', () => {
       transactionImportRequestSchema.parse({
         budgetId: '11111111-1111-4111-8111-111111111111',
         format: 'camt053',
+      }),
+    ).toThrow();
+  });
+});
+
+describe('transactionImportConfirmRequestSchema', () => {
+  const budgetId = '11111111-1111-4111-8111-111111111111';
+  const lineId = '22222222-2222-4222-8222-222222222222';
+
+  it('reads the decisions sent as a JSON multipart field', () => {
+    expect(
+      transactionImportConfirmRequestSchema.parse({
+        budgetId,
+        decisions: JSON.stringify([{ position: 3, budgetLineId: lineId }]),
+      }).decisions,
+    ).toEqual([{ position: 3, budgetLineId: lineId }]);
+  });
+
+  it('treats missing decisions as no attachment at all', () => {
+    expect(
+      transactionImportConfirmRequestSchema.parse({ budgetId }).decisions,
+    ).toEqual([]);
+  });
+
+  it('refuses two decisions for one operation, and unreadable JSON', () => {
+    expect(() =>
+      transactionImportConfirmRequestSchema.parse({
+        budgetId,
+        decisions: JSON.stringify([
+          { position: 3, budgetLineId: lineId },
+          { position: 3, budgetLineId: lineId },
+        ]),
+      }),
+    ).toThrow();
+    expect(() =>
+      transactionImportConfirmRequestSchema.parse({
+        budgetId,
+        decisions: '[{',
       }),
     ).toThrow();
   });

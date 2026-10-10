@@ -33,6 +33,7 @@ const PREVIEW = {
   currency: 'CHF',
   operations: [],
   errors: [],
+  budgetLines: [],
 };
 
 class MockAuthGuard implements CanActivate {
@@ -56,7 +57,11 @@ const logger = {
 
 const previewUseCase = { execute: mock(async () => PREVIEW) };
 const confirmUseCase = {
-  execute: mock(async () => ({ createdCount: 3, skippedCount: 1 })),
+  execute: mock(async () => ({
+    createdCount: 3,
+    attachedCount: 0,
+    skippedCount: 1,
+  })),
 };
 
 let app: INestApplication;
@@ -121,12 +126,48 @@ describe('Transaction import HTTP pipeline', () => {
       .attach('file', Buffer.from('<Document/>'), 'releve.xml')
       .expect(201);
 
-    expect(res.body.data).toEqual({ createdCount: 3, skippedCount: 1 });
+    expect(res.body.data).toEqual({
+      createdCount: 3,
+      attachedCount: 0,
+      skippedCount: 1,
+    });
     expect(confirmUseCase.execute).toHaveBeenCalledWith(
       '<Document/>',
       BUDGET_ID,
+      [],
       expect.objectContaining({ id: 'user-1' }),
     );
+  });
+
+  it('passes the accepted attachments sent as a JSON field', async () => {
+    const decisions = [
+      { position: 2, budgetLineId: '22222222-2222-4222-8222-222222222222' },
+    ];
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transaction-imports')
+      .field('budgetId', BUDGET_ID)
+      .field('decisions', JSON.stringify(decisions))
+      .attach('file', Buffer.from('<Document/>'), 'releve.xml')
+      .expect(201);
+
+    expect(confirmUseCase.execute).toHaveBeenCalledWith(
+      '<Document/>',
+      BUDGET_ID,
+      decisions,
+      expect.objectContaining({ id: 'user-1' }),
+    );
+  });
+
+  it('answers 400 for malformed decisions, before any analysis', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/transaction-imports')
+      .field('budgetId', BUDGET_ID)
+      .field('decisions', '[{"position":0}]')
+      .attach('file', Buffer.from('<Document/>'), 'releve.xml')
+      .expect(400);
+
+    expect(confirmUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('answers 400 when the file part is missing', async () => {

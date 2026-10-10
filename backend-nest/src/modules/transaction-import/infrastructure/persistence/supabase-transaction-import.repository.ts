@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { fetchRowsByParentIds } from '@common/utils/postgrest-pagination';
+import {
+  fetchAllPages,
+  fetchRowsByParentIds,
+} from '@common/utils/postgrest-pagination';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
   ENCRYPTION_PORT,
@@ -10,8 +13,9 @@ import {
 import type { Database } from '../../../../types/database.types';
 import type { TransactionImportRepositoryPort } from '../../domain/ports/transaction-import-repository.port';
 import type {
-  ImportCandidate,
+  AttachableLine,
   ImportTargetBudget,
+  PlannedImport,
 } from '../../domain/transaction-import.entity';
 import { toTransactionDate } from '../../domain/transaction-import.formulas';
 
@@ -50,6 +54,47 @@ export class SupabaseTransactionImportRepository implements TransactionImportRep
       );
     }
     return data;
+  }
+
+  async findAttachableLines(budgetId: string): Promise<AttachableLine[]> {
+    const supabase = this.supabaseProvider.client;
+    const user = this.supabaseProvider.user;
+
+    try {
+      // A withdrawal from a savings goal (active or broken link) can only be
+      // realised under the goal's balance check: never offered to an import.
+      const rows = await fetchAllPages((from, to) =>
+        supabase
+          .from('budget_line')
+          .select('id, name, kind, amount')
+          .eq('budget_id', budgetId)
+          .is('source_savings_goal_id', null)
+          .is('source_savings_goal_name', null)
+          .order('id', { ascending: true })
+          .range(from, to),
+      );
+      if (rows.length === 0) return [];
+
+      const dek = await this.encryption.getDekFor(user);
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        kind: row.kind,
+        amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      }));
+    } catch (cause) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'transactionImport.findAttachableLines',
+          userId: user.id,
+          entityId: budgetId,
+          entityType: 'budget',
+        },
+        { cause },
+      );
+    }
   }
 
   fingerprint(materials: readonly string[]): string[] {
@@ -98,25 +143,25 @@ export class SupabaseTransactionImportRepository implements TransactionImportRep
 
   async insertAll(
     budgetId: string,
-    candidates: readonly ImportCandidate[],
+    planned: readonly PlannedImport[],
   ): Promise<void> {
-    if (candidates.length === 0) return;
+    if (planned.length === 0) return;
     const user = this.supabaseProvider.user;
 
     const encrypted = await this.encryption.prepareAmountsData(
-      candidates.map((candidate) => candidate.amount),
+      planned.map((entry) => entry.amount),
       user.id,
       user.clientKey,
     );
-    const rows: TransactionInsert[] = candidates.map((candidate, index) => ({
+    const rows: TransactionInsert[] = planned.map((entry, index) => ({
       budget_id: budgetId,
-      budget_line_id: null,
-      name: candidate.name,
+      budget_line_id: entry.budgetLineId,
+      name: entry.name,
       amount: encrypted[index].amount,
-      kind: candidate.kind,
-      transaction_date: toTransactionDate(candidate.date),
-      checked_at: null,
-      import_fingerprint: candidate.fingerprint,
+      kind: entry.kind,
+      transaction_date: toTransactionDate(entry.date),
+      checked_at: entry.checkedAt,
+      import_fingerprint: entry.fingerprint,
     }));
 
     // One PostgREST request is one INSERT statement: every row lands, or the
