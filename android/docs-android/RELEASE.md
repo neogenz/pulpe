@@ -15,7 +15,7 @@ checklist rather than a description of a finished release pipeline.
 | 4   | Google OAuth client IDs (web + Android)   | Google Cloud, project `894420283180`                                 | Google sign-in         |
 | 5   | PostHog project key (EU host)             | posthog.com                                                          | analytics + JS errors  |
 | 6   | Backend env on Railway                    | `MIN_ANDROID_VERSION`, `LATEST_ANDROID_VERSION`, `ANDROID_STORE_URL` | force-update gate      |
-| 7   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/`                       | App Links verification |
+| 7   | `assetlinks.json` on `app.pulpe.app`      | `frontend/projects/webapp/public/.well-known/` (done)                | App Links verification |
 
 `eas init` writes `extra.eas.projectId` into `app.json`; `updates.url` points at
 the same project, so a binary checks its channel for an update on every launch.
@@ -245,26 +245,15 @@ where iOS reads `iosVersion`, so no separate Android numbering is needed.
 
 ## App Links
 
-`app.json` already declares the intent filter for
-`https://app.pulpe.app/reset-password` with `autoVerify`. Verification fails
-today — `adb shell pm get-app-links app.pulpe.android` reports state `1024`,
-meaning no `assetlinks.json` was found. Publish this at
-`https://app.pulpe.app/.well-known/assetlinks.json`, with the **Play app-signing
-SHA-256** from Play Console after the first AAB upload:
+`app.json` declares the intent filter for `https://app.pulpe.app/reset-password`
+with `autoVerify`. The webapp serves the matching
+`https://app.pulpe.app/.well-known/assetlinks.json` from
+`frontend/projects/webapp/public/.well-known/assetlinks.json`. It lists the
+**Play app-signing SHA-256** (Play Console → Signature d'application), so only
+builds Play delivers verify. Add a fingerprint there for any other distribution
+that must open links in the app, and for every new key after a signing-key
+rotation.
 
-```json
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "app.pulpe.android",
-      "sha256_cert_fingerprints": ["<Play app-signing SHA-256>"]
-    }
-  }
-]
-```
-
-Until it is served, password-reset links open in the browser instead of the
-app. Nothing breaks — the web page handles the reset — but the handoff is
-missing.
+Check a Play-installed build with `adb shell pm get-app-links app.pulpe.android`:
+`verified` means password-reset links open the app. Without verification they
+open in the browser, where the web page still handles the reset.
