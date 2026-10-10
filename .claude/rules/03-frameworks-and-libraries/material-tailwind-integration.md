@@ -126,6 +126,9 @@ Rules:
 ## Material Component Overrides
 
 Use `mat.*-overrides()` SCSS mixins in global `styles/*.scss` files. **NEVER** use `::ng-deep`.
+A component-specific override targets a `pulpe-`-prefixed class the component sets on itself
+(`.pulpe-kind-tag`, `.pulpe-reconcile-dialog`): global selectors are unscoped, and a bare
+`.template-card` would also restyle `budget-templates`' own card.
 
 ```scss
 @use "@angular/material" as mat;

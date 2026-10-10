@@ -1,0 +1,22 @@
+@use "@angular/material" as mat;
+
+// Kind Tag (DESIGN.md vocabulary): a chip tinted by its financial role.
+// The color always sits next to the kind's label, never alone.
+.pulpe-kind-tag {
+  @include mat.chips-overrides(
+    (
+      outline-width: 0,
+      elevated-container-color: var(--pulpe-financial-income-light),
+      label-text-color: var(--pulpe-financial-income-dark),
+    )
+  );
+
+  &.is-expense {
+    @include mat.chips-overrides(
+      (
+        elevated-container-color: var(--pulpe-financial-expense-light),
+        label-text-color: var(--pulpe-financial-expense-dark),
+      )
+    );
+  }
+}

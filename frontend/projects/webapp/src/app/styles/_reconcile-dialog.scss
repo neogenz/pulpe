@@ -1,0 +1,16 @@
+@use "@angular/material" as mat;
+
+// Reconcile dialog: rounder amount fields and a 48px Continue that matches
+// the record button (pulpe-loading-button) sharing its footer.
+.pulpe-reconcile-dialog {
+  @include mat.form-field-overrides(
+    (
+      outlined-container-shape: 12px,
+    )
+  );
+  @include mat.button-overrides(
+    (
+      filled-container-height: 48px,
+    )
+  );
+}

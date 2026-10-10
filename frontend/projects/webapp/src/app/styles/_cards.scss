@@ -1,0 +1,22 @@
+@use "@angular/material" as mat;
+
+// Error card: the outlined card takes the error role.
+.pulpe-error-card {
+  @include mat.card-overrides(
+    (
+      outlined-container-color: var(--mat-sys-error-container),
+      outlined-outline-color: var(--mat-sys-error),
+      subtitle-text-color: var(--mat-sys-on-error-container),
+    )
+  );
+}
+
+// Template picker: the selected template gets a 2px primary outline.
+.pulpe-template-card-selected {
+  @include mat.card-overrides(
+    (
+      outlined-outline-color: var(--mat-sys-primary),
+      outlined-outline-width: 2px,
+    )
+  );
+}

@@ -1,5 +1,3 @@
-@use "@angular/material" as mat;
-
 :host {
   display: flex;
   flex-direction: column;
@@ -7,16 +5,6 @@
   max-height: inherit;
   color: var(--mat-sys-on-surface);
   background: var(--mat-sys-surface);
-  @include mat.form-field-overrides(
-    (
-      outlined-container-shape: 12px,
-    )
-  );
-  @include mat.button-overrides(
-    (
-      filled-container-height: 48px,
-    )
-  );
 }
 
 .reconcile-header {
@@ -134,23 +122,6 @@
   font:
     600 16px / 1.4 "Manrope",
     sans-serif;
-}
-.adjustment-kind {
-  @include mat.chips-overrides(
-    (
-      outline-width: 0,
-      elevated-container-color: var(--pulpe-financial-income-light),
-      label-text-color: var(--pulpe-financial-income-dark),
-    )
-  );
-  &.is-expense {
-    @include mat.chips-overrides(
-      (
-        elevated-container-color: var(--pulpe-financial-expense-light),
-        label-text-color: var(--pulpe-financial-expense-dark),
-      )
-    );
-  }
 }
 .reconcile-footer {
   flex-shrink: 0;

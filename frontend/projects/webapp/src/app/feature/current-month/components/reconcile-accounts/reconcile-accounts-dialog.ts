@@ -103,6 +103,7 @@ const LEADING_MINUS = /^\s*[-−]/;
   ],
   templateUrl: './reconcile-accounts-dialog.html',
   styleUrl: './reconcile-accounts-dialog.scss',
+  host: { class: 'pulpe-reconcile-dialog' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReconcileAccountsDialog {
