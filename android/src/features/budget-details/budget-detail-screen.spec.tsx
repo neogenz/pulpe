@@ -421,6 +421,8 @@ jest.mock("./components/budget-detail-overlays", () => {
         showWithdrawal: () => setMessage("withdrawal"),
         showRealizedBalance: () => setMessage("realized"),
         showToggleFailure: () => setMessage("toggle-failure"),
+        showPointed: (pointed: { name: string } | null) =>
+          setMessage(pointed ? `pointed:${pointed.name}` : ""),
       }));
       return <Text>{message}</Text>;
     }),
@@ -587,6 +589,26 @@ it("uses overlay handles for editing, metrics and rejected pointing", async () =
   mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
   await fireEvent.press(view.getByText("toggle:rent"));
   await waitFor(() => expect(view.getByText("toggle-failure")).toBeTruthy());
+});
+
+it("drops a pointing's undo once a later tap supersedes it", async () => {
+  mockDetails.data = readyDetails();
+  const view = await render(<BudgetDetailScreen />);
+  const pending: (() => void)[] = [];
+  mockToggle.mutateAsync.mockImplementation(
+    () =>
+      new Promise<undefined>((resolve) =>
+        pending.push(() => resolve(undefined)),
+      ),
+  );
+
+  await fireEvent.press(view.getByText("toggle:rent"));
+  await fireEvent.press(view.getByText("toggle:rent"));
+  await act(async () => pending[0]?.());
+
+  expect(view.queryByText(/^pointed:/)).toBeNull();
+  await act(async () => pending[1]?.());
+  mockToggle.mutateAsync.mockImplementation(async () => undefined);
 });
 
 it("restores cached detail when the optimistic point request is rejected", async () => {

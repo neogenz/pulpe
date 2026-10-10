@@ -190,20 +190,27 @@ export default function BudgetDetailScreen() {
   // failure on a row pointed just before another went unsaid. A pointing gets
   // its "Annuler": under "À pointer" the row leaves the list, and a stray swipe
   // otherwise sends it out of sight with nothing to say where it went.
+  // A later tap supersedes that notice: its "Annuler" would flip the row the
+  // wrong way once the row was unpointed again.
+  const latestToggle = useRef(0);
   function pointWithUndo(
     target: Parameters<typeof toggle.mutateAsync>[0],
     name: string,
     isPointing: boolean,
   ) {
+    const toggleId = ++latestToggle.current;
+    overlays.current?.showPointed(null);
     void toggle.mutateAsync(target).then(
       () => {
-        if (!isPointing) return;
+        if (!isPointing || toggleId !== latestToggle.current) return;
         overlays.current?.showPointed({
           name,
-          undo: () =>
+          undo: () => {
+            latestToggle.current++;
             void toggle
               .mutateAsync(target)
-              .catch(() => overlays.current?.showToggleFailure()),
+              .catch(() => overlays.current?.showToggleFailure());
+          },
         });
       },
       () => overlays.current?.showToggleFailure(),

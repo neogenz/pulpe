@@ -28,7 +28,7 @@ export interface BudgetDetailOverlaysHandle {
   showRealizedBalance: () => void;
   showToggleFailure: () => void;
   /** Offers to take a pointing back: under "À pointer" the row just left. */
-  showPointed: (pointed: { name: string; undo: () => void }) => void;
+  showPointed: (pointed: { name: string; undo: () => void } | null) => void;
 }
 
 interface BudgetDetailOverlaysProps {
