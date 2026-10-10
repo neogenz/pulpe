@@ -21,7 +21,11 @@ import {
   createMockTagStore,
   type MockTagStore,
 } from '@app/testing/tag-store.mock';
-import { createMockLogger } from '@app/testing/mock-posthog';
+import {
+  createMockLogger,
+  createMockPostHogService,
+} from '@app/testing/mock-posthog';
+import { PostHogService } from '@core/analytics/posthog';
 import { StorageService } from '@core/storage';
 import { TagStore } from '@core/tag';
 import { Logger } from '@core/logging/logger';
@@ -1055,6 +1059,7 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
           },
         },
         { provide: Logger, useValue: createMockLogger() },
+        { provide: PostHogService, useValue: createMockPostHogService() },
         {
           provide: ApplicationConfiguration,
           useValue: { backendApiUrl: () => 'http://localhost:3000/api/v1' },
