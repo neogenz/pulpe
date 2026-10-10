@@ -68,7 +68,7 @@ jest.mock("react-native-reanimated", () => {
           .FlatList;
       },
     },
-    LinearTransition: { duration: () => undefined },
+    LinearTransition: { springify: () => ({ dampingRatio: () => undefined }) },
   };
 });
 jest.mock("react-native", () => {
@@ -197,7 +197,7 @@ jest.mock("@/core/ui/date-format", () => ({
   formatMonthName: (month: number, year: number) => `${year}-${month}`,
 }));
 jest.mock("@/core/ui/theme", () => ({
-  DURATION: { short: 100 },
+  SPRING: { duration: 500, dampingRatio: 0.8 },
   SCREEN_PADDING: 16,
   SPACING: { sm: 8, md: 16, lg: 24, xl: 32 },
 }));

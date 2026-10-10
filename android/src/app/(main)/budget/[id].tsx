@@ -30,10 +30,10 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import {
-  DURATION,
   FAB_CLEARANCE,
   SCREEN_PADDING,
   SPACING,
+  SPRING,
 } from "@/core/ui/theme";
 import { tagSummary } from "@/features/tags/tag-selection";
 import { useTags } from "@/features/tags/tag-queries";
@@ -433,7 +433,9 @@ export default function BudgetDetailScreen() {
         // either way, and an `entering` animation takes it out of flow while it
         // plays, which in this app once left a whole screen drawing over its
         // own chrome.
-        itemLayoutAnimation={LinearTransition.duration(DURATION.short)}
+        itemLayoutAnimation={LinearTransition.springify(
+          SPRING.duration,
+        ).dampingRatio(SPRING.dampingRatio)}
         style={{ backgroundColor: theme.colors.background }}
         contentContainerStyle={styles.content}
         refreshControl={
