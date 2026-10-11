@@ -218,6 +218,8 @@ jobs:
           chmod 600 "$asc_key_path"
           openssl pkey -in "$asc_key_path" -check -noout
           echo "ASC_KEY_PATH=$asc_key_path" >> "$GITHUB_ENV"
+          # The asc CLI only reads its own variable name; without it every asc call fails with missing authentication.
+          echo "ASC_PRIVATE_KEY_PATH=$asc_key_path" >> "$GITHUB_ENV"
       - name: Install verified App Store Connect CLI
         if: github.event_name == 'push'
         run: |
