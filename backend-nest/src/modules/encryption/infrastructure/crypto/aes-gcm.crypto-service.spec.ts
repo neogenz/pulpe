@@ -239,6 +239,39 @@ describe('AesGcmCryptoService', () => {
     });
   });
 
+  describe('fingerprints (bank import deduplication)', () => {
+    const build = (masterKey = TEST_MASTER_KEY) =>
+      new AesGcmCryptoService(
+        createMockLogger() as any,
+        {
+          get: (key: string) =>
+            key === 'ENCRYPTION_MASTER_KEY' ? masterKey : undefined,
+        } as any,
+        mockRepository as any,
+      );
+
+    it('is deterministic, hex, and never echoes the material', () => {
+      const [first] = build().fingerprints(TEST_USER_ID, ['v1|42.00|Café']);
+      const [again] = build().fingerprints(TEST_USER_ID, ['v1|42.00|Café']);
+
+      expect(first).toMatch(/^[0-9a-f]{64}$/);
+      expect(again).toBe(first);
+      expect(first).not.toContain('42');
+    });
+
+    it('differs per user, per material and per master key', () => {
+      const service = build();
+      const [mine, other] = service.fingerprints(TEST_USER_ID, ['a', 'b']);
+      const [theirs] = service.fingerprints('another-user', ['a']);
+      const [rotated] = build(randomBytes(32).toString('hex')).fingerprints(
+        TEST_USER_ID,
+        ['a'],
+      );
+
+      expect(new Set([mine, other, theirs, rotated]).size).toBe(4);
+    });
+  });
+
   describe('constructor', () => {
     it('should create service with valid ENCRYPTION_MASTER_KEY', () => {
       service = new AesGcmCryptoService(

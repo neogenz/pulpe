@@ -31,6 +31,16 @@ export const ANALYTICS_PROPERTIES = {
 } as const;
 
 /**
+ * PostHog feature flag keys — evaluated on the web client through
+ * `PostHogService.isFeatureEnabled`. A flag gates what the interface offers,
+ * never what the API accepts. Remove a key once its feature ships to everyone.
+ */
+export const FEATURE_FLAGS = {
+  /** Shows the bank-statement import on a budget's details (PUL-25). */
+  TRANSACTION_IMPORT: 'transaction_import',
+} as const;
+
+/**
  * PostHog event names — cross-platform source of truth (web + iOS).
  *
  * Event values follow `object_action` past-tense `snake_case`. iOS mirrors

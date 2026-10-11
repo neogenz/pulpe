@@ -432,6 +432,40 @@ export const ERROR_DEFINITIONS = {
     httpStatus: HttpStatus.CONFLICT,
   },
 
+  // Transaction import (PUL-25)
+  TRANSACTION_IMPORT_FILE_MISSING: {
+    code: API_ERROR_CODES.TRANSACTION_IMPORT_FILE_MISSING,
+    message: () => 'A bank export file is required in the "file" field',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  TRANSACTION_IMPORT_INVALID: {
+    code: API_ERROR_CODES.TRANSACTION_IMPORT_INVALID,
+    message: (details?: Record<string, unknown>) =>
+      details?.errorCount
+        ? `The bank export has ${details.errorCount} blocking error(s); nothing was imported`
+        : details?.reason
+          ? `An import decision no longer applies (${details.reason}); nothing was imported`
+          : 'The bank export has blocking errors; nothing was imported',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
+  TRANSACTION_IMPORT_CONFLICT: {
+    code: API_ERROR_CODES.TRANSACTION_IMPORT_CONFLICT,
+    message: () =>
+      'Some operations of this file were imported in the meantime; nothing was imported',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  TRANSACTION_IMPORT_FAILED: {
+    code: API_ERROR_CODES.TRANSACTION_IMPORT_FAILED,
+    message: () => 'Failed to import the bank export; nothing was imported',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TRANSACTION_IMPORT_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.TRANSACTION_IMPORT_RECALCULATION_FAILED,
+    message: () =>
+      'The operations were imported, but budget balances could not be refreshed. Reload without importing the file again.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+
   // Tag Errors (PUL-18)
   TAG_NOT_FOUND: {
     code: API_ERROR_CODES.TAG_NOT_FOUND,

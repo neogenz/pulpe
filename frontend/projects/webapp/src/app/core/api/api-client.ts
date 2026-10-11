@@ -82,6 +82,23 @@ export class ApiClient {
     );
   }
 
+  /**
+   * POST a multipart body (file upload). No `Content-Type` is set: the browser
+   * writes `multipart/form-data` with its boundary, and a hand-set header would
+   * drop the boundary and break the body. Same interceptors, error mapping and
+   * response validation as `post$`; never replayed, like every mutation.
+   */
+  postFormData$<TRes>(
+    path: string,
+    body: FormData,
+    responseSchema: ZodType<TRes>,
+  ): Observable<TRes> {
+    return this.#http.post<unknown>(`${this.#baseUrl}${path}`, body).pipe(
+      map((res) => responseSchema.parse(res)),
+      catchError((error) => this.#handleError(error)),
+    );
+  }
+
   patch$<TRes, TReq = unknown>(
     path: string,
     body: TReq,

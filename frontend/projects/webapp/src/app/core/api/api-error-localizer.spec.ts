@@ -155,6 +155,37 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
+  it.each([
+    [
+      'ERR_TRANSACTION_IMPORT_FILE_MISSING',
+      400,
+      'Aucun fichier reçu — choisis ton relevé et réessaie',
+    ],
+    [
+      'ERR_TRANSACTION_IMPORT_INVALID',
+      422,
+      "Le relevé contient des erreurs — rien n'a été importé, relance l'aperçu pour les voir",
+    ],
+    [
+      'ERR_TRANSACTION_IMPORT_CONFLICT',
+      409,
+      "Certaines opérations ont été importées entre-temps — rien n'a été créé, relance l'aperçu",
+    ],
+    [
+      'ERR_TRANSACTION_IMPORT_FAILED',
+      500,
+      "L'import a échoué — rien n'a été créé, réessaie",
+    ],
+    [
+      'ERR_TRANSACTION_IMPORT_RECALCULATION_FAILED',
+      500,
+      "Les mouvements ont bien été importés, mais les soldes n'ont pas pu être actualisés — recharge la page sans réimporter le fichier",
+    ],
+  ])('should localize the statement import error %s', (code, status, text) => {
+    const error = new ApiError('Import refused', code, status, null);
+    expect(service.localizeApiError(error)).toBe(text);
+  });
+
   it('should localize auth-related API errors', () => {
     const unauthorized = new ApiError(
       'Unauthorized',
