@@ -68,7 +68,7 @@ jest.mock("react-native-reanimated", () => {
           .FlatList;
       },
     },
-    LinearTransition: { duration: () => undefined },
+    LinearTransition: { springify: () => ({ dampingRatio: () => undefined }) },
   };
 });
 jest.mock("react-native", () => {
@@ -197,7 +197,7 @@ jest.mock("@/core/ui/date-format", () => ({
   formatMonthName: (month: number, year: number) => `${year}-${month}`,
 }));
 jest.mock("@/core/ui/theme", () => ({
-  DURATION: { short: 100 },
+  SPRING: { duration: 500, dampingRatio: 0.8 },
   SCREEN_PADDING: 16,
   SPACING: { sm: 8, md: 16, lg: 24, xl: 32 },
 }));
@@ -414,15 +414,38 @@ jest.mock("./components/budget-detail-overlays", () => {
       ref: React.ForwardedRef<unknown>,
     ) {
       const [message, setMessage] = React.useState("");
+      // One slot, as in the real overlays: a failure hides the pointing notice
+      // until it is closed, without erasing it.
+      const [hasToggleFailed, setToggleFailed] = React.useState(false);
+      const [pointed, setPointed] = React.useState(
+        null as { name: string; undo: () => void } | null,
+      );
       React.useImperativeHandle(ref, () => ({
         editTransaction: (transaction: Transaction) =>
           setMessage(`edit:${transaction.id}`),
         showTransactionMenu: () => setMessage("transaction-menu"),
         showWithdrawal: () => setMessage("withdrawal"),
         showRealizedBalance: () => setMessage("realized"),
-        showToggleFailure: () => setMessage("toggle-failure"),
+        showToggleFailure: () => setToggleFailed(true),
+        showPointed: setPointed,
       }));
-      return <Text>{message}</Text>;
+      return (
+        <>
+          <Text>{message}</Text>
+          {hasToggleFailed ? (
+            <Text onPress={() => setToggleFailed(false)}>toggle-failure</Text>
+          ) : pointed !== null ? (
+            <Text
+              onPress={() => {
+                setPointed(null);
+                pointed.undo();
+              }}
+            >
+              {`pointed:${pointed.name}`}
+            </Text>
+          ) : null}
+        </>
+      );
     }),
   };
 });
@@ -587,6 +610,41 @@ it("uses overlay handles for editing, metrics and rejected pointing", async () =
   mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
   await fireEvent.press(view.getByText("toggle:rent"));
   await waitFor(() => expect(view.getByText("toggle-failure")).toBeTruthy());
+});
+
+it("drops a pointing's undo once a later tap supersedes it", async () => {
+  mockDetails.data = readyDetails();
+  const view = await render(<BudgetDetailScreen />);
+  const pending: (() => void)[] = [];
+  mockToggle.mutateAsync.mockImplementation(
+    () =>
+      new Promise<undefined>((resolve) =>
+        pending.push(() => resolve(undefined)),
+      ),
+  );
+
+  await fireEvent.press(view.getByText("toggle:rent"));
+  await fireEvent.press(view.getByText("toggle:rent"));
+  await act(async () => pending[0]?.());
+
+  expect(view.queryByText(/^pointed:/)).toBeNull();
+  await act(async () => pending[1]?.());
+  mockToggle.mutateAsync.mockImplementation(async () => undefined);
+  expect(view.getByText("pointed:Loyer")).toBeTruthy();
+});
+
+it("offers a failed undo again behind its error", async () => {
+  mockDetails.data = readyDetails();
+  const view = await render(<BudgetDetailScreen />);
+
+  await fireEvent.press(view.getByText("toggle:rent"));
+  mockToggle.mutateAsync.mockRejectedValueOnce(new Error("offline"));
+  await fireEvent.press(await view.findByText("pointed:Loyer"));
+
+  await fireEvent.press(await view.findByText("toggle-failure"));
+  await fireEvent.press(view.getByText("pointed:Loyer"));
+  await waitFor(() => expect(mockToggle.mutateAsync).toHaveBeenCalledTimes(3));
+  expect(view.queryByText("pointed:Loyer")).toBeNull();
 });
 
 it("restores cached detail when the optimistic point request is rejected", async () => {

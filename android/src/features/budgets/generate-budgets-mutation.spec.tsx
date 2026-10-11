@@ -14,8 +14,14 @@ jest.mock("./budget-api", () => ({
 jest.mock("./budget-queries", () => ({
   budgetKeys: { all: ["budgets"] },
 }));
+jest.mock("@/features/savings-goals/goals-queries", () => ({
+  goalKeys: { all: ["savings-goals"] },
+}));
+jest.mock("@/features/templates/template-queries", () => ({
+  templateKeys: { all: ["templates"] },
+}));
 
-it("invalidates the complete budget prefix after generation", async () => {
+it("invalidates the budget, goal and template prefixes after generation", async () => {
   const client = new QueryClient({
     defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
   });
@@ -43,6 +49,8 @@ it("invalidates the complete budget prefix after generation", async () => {
   await waitFor(() =>
     expect(invalidate).toHaveBeenCalledWith({ queryKey: budgetKeys.all }),
   );
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["savings-goals"] });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["templates"] });
   expect(hook.result.current.isSuccess).toBe(false);
 
   await act(async () => {

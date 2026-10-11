@@ -477,10 +477,13 @@ export class PostHogService implements OnDestroy {
     if (!this.#canCapture()) return;
 
     try {
-      const sanitizedProperties = properties
-        ? sanitizePersonProperties(properties as Record<string, unknown>)
-        : undefined;
-      this.#posthog?.identify(userId, sanitizedProperties);
+      // Supabase UUIDs must match Swift's UUID representation across devices.
+      const canonicalId = userId.toLowerCase();
+      const sanitizedProperties = sanitizePersonProperties({
+        ...properties,
+        supabase_user_id: canonicalId,
+      });
+      this.#posthog?.identify(canonicalId, sanitizedProperties);
       this.#logger.debug('PostHog user identified', { userId });
     } catch (error) {
       this.#logger.error('Failed to identify user', error);

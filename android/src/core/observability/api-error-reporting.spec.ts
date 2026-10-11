@@ -2,15 +2,15 @@ import { API_ERROR_CODES } from "pulpe-shared";
 
 import { ApiError, CLIENT_ERROR_CODES } from "@/core/api/api-error";
 
-import { reportApiError } from "./api-error-reporting";
-import { captureException } from "./analytics";
+import { reportApiError, setApiErrorCapture } from "./api-error-reporting";
 
-jest.mock("./analytics", () => ({ captureException: jest.fn() }));
-
-const mockedCapture = jest.mocked(captureException);
+const mockedCapture = jest.fn();
 
 describe("API error reporting", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setApiErrorCapture(mockedCapture);
+  });
 
   it("captures only filtered technical correlation data", () => {
     reportApiError(

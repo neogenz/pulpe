@@ -92,7 +92,7 @@ function ContributionCard({
       }
       android_ripple={ripple}
       accessibilityRole={budgetId === undefined ? undefined : "button"}
-      accessibilityLabel={
+      accessibilityHint={
         budgetId === undefined
           ? undefined
           : t("goals.contributions.openBudget", { period })

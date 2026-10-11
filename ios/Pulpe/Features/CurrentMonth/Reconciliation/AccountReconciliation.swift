@@ -19,20 +19,21 @@ enum AccountReconciliation {
         let id: UUID
         var label: String
         var amountText: String
-        /// The decimal pad has no minus key: an overdrawn account is said explicitly.
-        var isOverdraft: Bool
+        /// The decimal pad has no minus key: a balance that counts against the user (an
+        /// overdraft, but also a credit card's spending to come) is said explicitly.
+        var isNegative: Bool
 
-        init(id: UUID = UUID(), label: String = "", amountText: String = "", isOverdraft: Bool = false) {
+        init(id: UUID = UUID(), label: String = "", amountText: String = "", isNegative: Bool = false) {
             self.id = id
             self.label = label
             self.amountText = amountText
-            self.isOverdraft = isOverdraft
+            self.isNegative = isNegative
         }
 
         /// The switch only ever makes a balance negative: a pasted minus stays one.
         var amount: Amount {
             let parsed = AccountReconciliation.parseAmount(amountText)
-            guard isOverdraft, case .valid(let cents) = parsed else { return parsed }
+            guard isNegative, case .valid(let cents) = parsed else { return parsed }
             return .valid(cents: -abs(cents))
         }
     }

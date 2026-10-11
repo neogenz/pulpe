@@ -124,7 +124,7 @@ export function BudgetLineRow({
           <View style={styles.labels}>
             <Text
               variant="titleMedium"
-              numberOfLines={1}
+              numberOfLines={2}
               style={[
                 { color: item.isChecked ? muted : theme.colors.onSurface },
                 item.isChecked && styles.struck,
@@ -156,6 +156,8 @@ export function BudgetLineRow({
           <View style={styles.amounts}>
             <Text
               numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
               style={[BRAND_TYPE.rowAmount, TABULAR_DIGITS, { color: accent }]}
             >
               {formatCurrency(item.displayAmount, currency)}
@@ -217,5 +219,12 @@ const styles = StyleSheet.create({
   struck: { textDecorationLine: "line-through" },
   labels: { flex: 1, gap: SPACING.xxs, paddingVertical: SPACING.sm },
   status: { fontWeight: "700" },
-  amounts: { alignItems: "flex-end", gap: SPACING.xxs, maxWidth: "45%" },
+  // The row's gap is shaved for the disc's touch target; the amount takes the
+  // shave back, or a long name ellipsized 6dp from it and the two read as one.
+  amounts: {
+    alignItems: "flex-end",
+    gap: SPACING.xxs,
+    maxWidth: "45%",
+    marginLeft: TARGET_INSET,
+  },
 });

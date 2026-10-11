@@ -169,8 +169,9 @@ extension View {
 
     /// Hero under the navigation bar: no bar background, and on iOS 26 the soft
     /// scroll-edge effect, pinned — the hard one rules a hairline across the forest on scroll.
-    func heroNavigationBar() -> some View {
-        modifier(HeroNavigationBarModifier())
+    /// Light ink while `isOnHeroSurface`, the screen's own ink otherwise.
+    func heroNavigationBar(isOnHeroSurface: Bool) -> some View {
+        modifier(HeroNavigationBarModifier(isOnHeroSurface: isOnHeroSurface))
     }
 
     /// Applies text-link button styling (44pt minimum tap height)
@@ -190,8 +191,14 @@ extension View {
 }
 
 private struct HeroNavigationBarModifier: ViewModifier {
+    let isOnHeroSurface: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
     func body(content: Content) -> some View {
-        let bare = content.toolbarBackground(.hidden, for: .navigationBar)
+        // Named off the forest, never nil: going back to nil leaves the bar's light ink on.
+        let bare = content
+            .toolbarColorScheme(isOnHeroSurface ? .dark : colorScheme, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             bare.scrollEdgeEffectStyle(.soft, for: .top)

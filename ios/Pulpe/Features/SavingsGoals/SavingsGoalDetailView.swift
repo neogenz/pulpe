@@ -33,6 +33,7 @@ struct SavingsGoalDetailView: View {
     @State private var pendingEditUpdate: SavingsGoalUpdate?
     @State private var pendingDeadlineUpdate: SavingsGoalUpdate?
     @State private var reopenGenerationStop = false
+    @State private var isHeroUnderBar = true
 
     init(
         goal: SavingsGoal,
@@ -51,10 +52,11 @@ struct SavingsGoalDetailView: View {
     var currency: SupportedCurrency { userSettingsStore.currency }
 
     /// The skeleton paints the same forest hero as the loaded screen, so the bar keeps
-    /// its light ink instead of flipping when the data lands. Only the error state,
-    /// which draws on the flat canvas, gives it back.
+    /// its light ink instead of flipping when the data lands. The error state, which
+    /// draws on the flat canvas, gives it back, and so does the light canvas once it has
+    /// scrolled under the bar.
     private var paintsHeroSurface: Bool {
-        viewModel.progress != nil || viewModel.error == nil
+        (viewModel.progress != nil || viewModel.error == nil) && isHeroUnderBar
     }
 
     var body: some View {
@@ -70,8 +72,8 @@ struct SavingsGoalDetailView: View {
         .navigationTitle(currentGoal.name)
         .navigationBarTitleDisplayMode(.inline)
         .background { Color.appBackground.ignoresSafeArea() }
-        .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
-        .heroNavigationBar()
+        .trackingHeroUnderBar($isHeroUnderBar)
+        .heroNavigationBar(isOnHeroSurface: paintsHeroSurface)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {

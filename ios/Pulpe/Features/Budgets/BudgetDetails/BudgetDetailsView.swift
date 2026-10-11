@@ -20,6 +20,7 @@ struct BudgetDetailsView: View {
     @State var projector: BudgetDetailsProjector
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
+    @State private var isHeroUnderBar = true
     /// Budget ids for which the "mois un peu juste" card was dismissed via
     /// "Plus tard" (PUL-292), comma-joined. Non-private for the card extension.
     @AppStorage(SavingsWithdrawalCardGate.storageKey) var dismissedWithdrawalBudgetIds = ""
@@ -106,12 +107,13 @@ struct BudgetDetailsView: View {
             }
         }
         .trackScreen("BudgetDetails")
+        .trackingHeroUnderBar($isHeroUnderBar)
         .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.content)
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
-        // Hero under the nav bar on the forest surface: light ink when loaded, default ink on error / skeleton.
-        .toolbarColorScheme(screenState.content == .loaded ? .dark : nil, for: .navigationBar)
-        .heroNavigationBar()
+        // Hero under the nav bar on the forest surface: light ink when loaded, default ink on
+        // error / skeleton and once the content zone has scrolled under the bar.
+        .heroNavigationBar(isOnHeroSurface: screenState.content == .loaded && isHeroUnderBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 // Reads the month back rather than adding to it, so it stays a glyph in the

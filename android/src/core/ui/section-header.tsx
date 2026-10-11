@@ -43,7 +43,9 @@ export function SectionHeader({
               variant="titleSmall"
               style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
             >
-              {`  ·  ${count}`}
+              {/* Non-breaking: a wrapped title carries its count along instead of
+                  stranding `· 5` at the start of a line. */}
+              {`\u00A0\u00A0·\u00A0${count}`}
             </Text>
           )}
         </Text>

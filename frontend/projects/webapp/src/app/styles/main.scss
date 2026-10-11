@@ -13,5 +13,8 @@
 @forward "./tabs"; // get it using `@ngm-dev/cli add styles/_tabs`
 @forward "./stepper"; // complete-profile stepper customization
 @forward "./oauth-buttons"; // Apple HIG label/logo color compliance
+@forward "./cards"; // error and selected-template card roles
+@forward "./chips"; // Kind Tag financial tint
+@forward "./reconcile-dialog"; // reconcile dialog field shape and CTA height
 @forward "./financial-colors"; // financial summary color variables
 @forward "./vendors/_tailwind.css"; // get it using `@ngm-dev/cli add styles/vendors`

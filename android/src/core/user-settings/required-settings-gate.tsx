@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, StyleSheet } from "react-native";
-import { useTheme } from "react-native-paper";
+import { StyleSheet } from "react-native";
+import { ActivityIndicator, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";

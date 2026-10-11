@@ -13,12 +13,10 @@ import {
 import { DOCUMENT } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Logger } from '@core/logging/logger';
-import { PostHogService } from '@core/analytics/posthog';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
 import { filter, firstValueFrom, fromEvent } from 'rxjs';
 import { UserSettingsStore } from '@core/user-settings';
 import {
-  ANALYTICS_EVENTS,
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
@@ -111,7 +109,6 @@ export class DashboardStore {
   readonly #savingsGoalApi = inject(SavingsGoalApi);
   readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #logger = inject(Logger);
-  readonly #postHogService = inject(PostHogService);
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #transloco = inject(TranslocoService);
   readonly #firstTransactionTracker = inject(FirstTransactionTracker);
@@ -681,12 +678,6 @@ export class DashboardStore {
           }));
         }
         succeed(response.data.id);
-        this.#postHogService.captureEvent(
-          ANALYTICS_EVENTS.TRANSACTION_CREATED,
-          {
-            type: response.data.kind,
-          },
-        );
       },
       onError: (error) => {
         fail(

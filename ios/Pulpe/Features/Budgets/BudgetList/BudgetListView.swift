@@ -8,6 +8,7 @@ struct BudgetListView: View {
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var showsBudgetPlanner = false
     @State private var hasAppeared = false
+    @State private var isHeroUnderBar = true
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var templateBalance: Decimal?
 
@@ -37,11 +38,11 @@ struct BudgetListView: View {
             }
         }
         .trackScreen("BudgetList")
+        .trackingHeroUnderBar($isHeroUnderBar)
         .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
         .localizedNavigationTitle("Budgets")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(isOnHeroSurface ? .dark : nil, for: .navigationBar)
-        .heroNavigationBar()
+        .heroNavigationBar(isOnHeroSurface: isOnHeroSurface)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 planButton
@@ -125,8 +126,9 @@ struct BudgetListView: View {
         }
     }
 
-    /// The list and its skeleton both paint the forest; error and empty keep a flat canvas.
-    private var isOnHeroSurface: Bool { !store.budgets.isEmpty || showsSkeleton }
+    /// The list and its skeleton both paint the forest, the bar follows it while it is under
+    /// the bar; error and empty keep a flat canvas.
+    private var isOnHeroSurface: Bool { (!store.budgets.isEmpty || showsSkeleton) && isHeroUnderBar }
 
     private var showsSkeleton: Bool {
         !store.hasLoadedOnce && store.budgets.isEmpty && store.error == nil

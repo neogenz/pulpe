@@ -34,8 +34,8 @@ import { type TemplateViewModel } from './template-view-model';
   template: `
     <mat-card
       appearance="outlined"
-      class="cursor-pointer transition-all hover:shadow-md template-card"
-      [class.selected]="isSelected()"
+      class="cursor-pointer transition-all hover:shadow-md"
+      [class.pulpe-template-card-selected]="isSelected()"
       (click)="selectTemplate.emit(templateViewModel().template.id)"
     >
       <mat-card-content class="p-4">
@@ -183,20 +183,8 @@ import { type TemplateViewModel } from './template-view-model';
     </mat-card>
   `,
   styles: `
-    @use '@angular/material' as mat;
-
     :host {
       display: block;
-    }
-
-    /* Custom card overrides for selected state */
-    .template-card.selected {
-      @include mat.card-overrides(
-        (
-          outlined-outline-color: var(--mat-sys-primary),
-          outlined-outline-width: 2px,
-        )
-      );
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

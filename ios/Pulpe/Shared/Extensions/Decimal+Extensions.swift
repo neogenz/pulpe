@@ -138,8 +138,10 @@ private extension Decimal {
         self > 0 ? "+" : ""
     }
 
+    /// Nothing moved, so no direction: zero stays unsigned, as `signPrefix` leaves it.
     func signedFormatted(_ base: String, for kind: TransactionKind) -> String {
-        switch kind {
+        guard self != 0 else { return base }
+        return switch kind {
         case .income: "+\(base)"
         case .expense, .saving: "-\(base)"
         }

@@ -20,7 +20,11 @@ interface IconDiscProps {
  */
 export function IconDisc({ name, tint }: IconDiscProps) {
   return (
+    // Decorative: the row's words say the same. Left visible, the glyph's
+    // private-use character was read aloud at the start of the row's label.
     <View
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden
       style={[styles.disc, { backgroundColor: `${tint}${TINT_ALPHA.icon}` }]}
     >
       <MaterialCommunityIcons name={name} size={ICON_SIZE.md} color={tint} />

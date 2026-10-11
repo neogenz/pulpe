@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Appbar, Button, Text, TextInput, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { z } from "zod";
@@ -34,8 +35,13 @@ export default function ForgotPasswordScreen() {
     setIsSending(false);
 
     // Deliberately not surfaced per address: a per-address failure would tell
-    // an attacker which e-mails have an account here.
-    if (error && error.status !== undefined && error.status >= 500) {
+    // an attacker which e-mails have an account here. Offline, the request never
+    // left: confirming an e-mail would be a lie.
+    if (
+      error &&
+      (isAuthRetryableFetchError(error) ||
+        (error.status !== undefined && error.status >= 500))
+    ) {
       setErrorMessage(t("auth.forgot.error"));
       return;
     }

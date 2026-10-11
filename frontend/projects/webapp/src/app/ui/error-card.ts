@@ -6,7 +6,10 @@ import { MatCardModule } from '@angular/material/card';
   imports: [MatCardModule],
   template: `
     <div class="mt-8">
-      <mat-card appearance="outlined" class="text-on-error-container">
+      <mat-card
+        appearance="outlined"
+        class="pulpe-error-card text-on-error-container"
+      >
         <mat-card-header>
           <mat-card-title>Erreur</mat-card-title>
         </mat-card-header>
@@ -16,23 +19,11 @@ import { MatCardModule } from '@angular/material/card';
       </mat-card>
     </div>
   `,
-  styles: [
-    `
-      @use '@angular/material' as mat;
-
-      :host {
-        display: block;
-
-        @include mat.card-overrides(
-          (
-            outlined-container-color: var(--mat-sys-error-container),
-            outlined-outline-color: var(--mat-sys-error),
-            subtitle-text-color: var(--mat-sys-on-error-container),
-          )
-        );
-      }
-    `,
-  ],
+  styles: `
+    :host {
+      display: block;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ErrorCard {

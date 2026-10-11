@@ -3,8 +3,20 @@ import { API_ERROR_CODES } from "pulpe-shared";
 import type { ApiErrorContext } from "@/core/api/api-client";
 import { type ApiError, CLIENT_ERROR_CODES } from "@/core/api/api-error";
 
-import { captureException } from "./analytics";
 import type { AnalyticsProperties } from "./analytics-properties";
+
+type CaptureException = (error: Error, properties: AnalyticsProperties) => void;
+
+let captureException: CaptureException | null = null;
+
+/**
+ * `analytics.ts` hands its `captureException` over when it starts. Importing it
+ * here instead would close a require cycle: analytics → session store → vault →
+ * `api.ts` → this file → analytics. Until then there is no client to report to.
+ */
+export function setApiErrorCapture(capture: CaptureException): void {
+  captureException = capture;
+}
 
 const IGNORED_STATUSES = new Set([401, 403, 429]);
 const IGNORED_CODES = new Set<string>([
@@ -38,7 +50,7 @@ export function reportApiError(
   };
   const incident = new Error("API request failed");
   incident.name = "ApiRequestError";
-  captureException(incident, properties);
+  captureException?.(incident, properties);
 }
 
 function anonymizePath(path: string): string {

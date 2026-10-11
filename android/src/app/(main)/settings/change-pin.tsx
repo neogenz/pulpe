@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { API_ERROR_CODES } from "pulpe-shared";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { BackHandler } from "react-native";
 import { Button } from "react-native-paper";
 
 import { hapticCommit, hapticSuccess } from "@/core/ui/haptics";
@@ -72,6 +73,16 @@ export default function ChangePinScreen() {
       }
     },
   );
+
+  // Leaving mid-rewrap would let the awaited `router.back()` pop Settings too.
+  useEffect(() => {
+    if (!isBusy) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => true,
+    );
+    return () => subscription.remove();
+  }, [isBusy]);
 
   return (
     <PinScreen

@@ -11,6 +11,8 @@ import type {
   SavingsGoalDeletionImpact,
   SavingsGoalProgress,
 } from 'pulpe-shared';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
+import { PostHogService } from '@core/analytics/posthog';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from './savings-goal-api';
@@ -92,6 +94,7 @@ describe('SavingsGoalApi', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         SavingsGoalApi,
+        { provide: PostHogService, useValue: createMockPostHogService() },
         { provide: ApplicationConfiguration, useValue: mockApplicationConfig },
       ],
     });

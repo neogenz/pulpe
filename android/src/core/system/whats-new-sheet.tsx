@@ -73,31 +73,47 @@ export function WhatsNewSheet() {
   );
 }
 
-function Release({ title, body }: { title: string; body: string }) {
+export function Release({ title, body }: { title: string; body: string }) {
   const theme = useTheme();
+  const muted = { color: theme.colors.onSurfaceVariant };
 
   return (
     <View style={styles.release}>
       <Text variant="titleSmall">{title}</Text>
-      {/* The body arrives as one markdown block per release. Nothing here
-          renders markdown, and pulling in a renderer for a bullet list would
-          cost more than the asterisks it removes. */}
-      <Text
-        variant="bodyMedium"
-        style={{ color: theme.colors.onSurfaceVariant }}
-      >
-        {stripEmphasis(body)}
-      </Text>
+      {/* The body arrives as one markdown block per release, a `- ` line per
+          note. Only that bullet syntax and the `**` emphasis occur, so they are
+          read here rather than through a markdown renderer. */}
+      {body
+        .split("\n")
+        .filter((line) => line.trim() !== "")
+        .map((line, index) => {
+          const isItem = line.startsWith("- ");
+          const text = (isItem ? line.slice(2) : line).replaceAll("**", "");
+          return (
+            <View key={index} style={styles.item}>
+              {isItem && (
+                <Text
+                  variant="bodyMedium"
+                  style={muted}
+                  importantForAccessibility="no"
+                >
+                  •
+                </Text>
+              )}
+              <Text variant="bodyMedium" style={[muted, styles.itemText]}>
+                {text}
+              </Text>
+            </View>
+          );
+        })}
     </View>
   );
-}
-
-function stripEmphasis(body: string): string {
-  return body.replaceAll("**", "");
 }
 
 const styles = StyleSheet.create({
   centered: { textAlign: "center" },
   content: { gap: SPACING.lg, paddingVertical: SPACING.md },
   release: { gap: SPACING.xs },
+  item: { flexDirection: "row", gap: SPACING.sm },
+  itemText: { flex: 1 },
 });

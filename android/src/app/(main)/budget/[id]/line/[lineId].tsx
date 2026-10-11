@@ -14,7 +14,10 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { KIND_ICONS, recurrenceLabel } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -74,6 +77,7 @@ export default function BudgetLineDetailScreen() {
   useAmountMasking();
   const { id, lineId } = useLocalSearchParams<{ id: string; lineId: string }>();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { locale, t } = useTranslation();
   const financial = useFinancialColors();
   const settings = useUserSettings();
@@ -104,7 +108,10 @@ export default function BudgetLineDetailScreen() {
     );
   }
 
-  if (details.isError || settings.isError) {
+  if (
+    (details.isError && details.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <SafeAreaView
         edges={["bottom"]}
@@ -164,7 +171,10 @@ export default function BudgetLineDetailScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScreenAppBar>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction
+          onPress={() => router.back()}
+          accessibilityLabel={t("common.back")}
+        />
         <Appbar.Content title={line.name} />
         <Menu
           visible={isMenuOpen}
@@ -347,14 +357,17 @@ export default function BudgetLineDetailScreen() {
 
         <SectionHeader
           title={t("budgets.actions.line.movements")}
-          count={transactions.length}
+          count={transactions.length > 0 ? transactions.length : undefined}
         />
 
         {transactions.length === 0 ? (
           <LedgerCard>
             <LedgerRow
               leading={
-                <IconDisc name="tray" tint={theme.colors.onSurfaceVariant} />
+                <IconDisc
+                  name="inbox-outline"
+                  tint={theme.colors.onSurfaceVariant}
+                />
               }
               title={t("budgets.actions.line.emptyTitle")}
               subtitle={t("budgets.actions.line.empty")}
@@ -399,7 +412,9 @@ export default function BudgetLineDetailScreen() {
         icon="plus"
         testID="line-add-activity"
         label={t("budgets.actions.line.note")}
-        style={styles.fab}
+        // An absolute child sits outside the safe area's padding: without the
+        // inset, the FAB lands on the gesture bar.
+        style={[styles.fab, { bottom: SPACING.md + insets.bottom }]}
         onPress={() => overlays.current?.addTransaction()}
       />
 

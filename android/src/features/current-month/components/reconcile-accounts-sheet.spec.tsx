@@ -16,6 +16,10 @@ const mockCreate = {
   isError: false,
 };
 
+let mockUuidCount = 0;
+jest.mock("react-native-quick-crypto", () => ({
+  randomUUID: () => `adjustment-${(mockUuidCount += 1)}`,
+}));
 jest.mock("@/features/transactions/transaction-mutations", () => ({
   useCreateTransaction: () => mockCreate,
 }));
@@ -336,6 +340,7 @@ it("records one checked adjustment with the edited label and reports completion 
     { onSuccess: () => void },
   ];
   expect(payload).toEqual({
+    id: expect.any(String),
     budgetId: "budget-1",
     name: "Écart banque",
     amount: 0.01,
@@ -403,6 +408,18 @@ it("holds every exit while the write is pending and keeps the step after a failu
   expect(captureEvent).not.toHaveBeenCalled();
   // Still on screen with its own notice: nothing for the screen to say.
   expect(props.onRecordFailed).not.toHaveBeenCalled();
+
+  // The same values retried replay the same write, id included, so a lost
+  // answer that did commit is read back rather than written twice.
+  const [, retry] = mockCreate.mutate.mock.calls[1] as [
+    unknown,
+    { onSettled: () => void },
+  ];
+  await act(() => retry.onSettled());
+  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
+  expect(mockCreate.mutate.mock.calls[2][0]).toBe(
+    mockCreate.mutate.mock.calls[1][0],
+  );
 });
 
 it("calls the accounts up to date at the exact cent and records nothing", async () => {

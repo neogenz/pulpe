@@ -10,6 +10,7 @@ final class ReconcileAccountsFlow {
     /// Steps pushed after the accounts step, which is the stack's root.
     enum Step: Hashable {
         case summary
+        case itemsToCheck
         case verdict
     }
 
@@ -94,9 +95,16 @@ final class ReconcileAccountsFlow {
         path = [.summary]
     }
 
+    /// Pointing happens inside the flow: leaving for the month's page lost every account.
+    func showItemsToCheck() {
+        guard path == [.summary] else { return }
+        path.append(.itemsToCheck)
+    }
+
+    /// From the summary, or from the items just pointed: the verdict replaces them.
     func continueToVerdict() {
-        guard canContinue, path == [.summary] else { return }
-        path.append(.verdict)
+        guard canContinue, path == [.summary] || path == [.summary, .itemsToCheck] else { return }
+        path = [.summary, .verdict]
     }
 
     // MARK: - Verdict step

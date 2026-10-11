@@ -81,7 +81,6 @@
         "remaining": "rimanenti su %{amount}"
       },
       "deletedGoal": "Questo obiettivo è stato eliminato. L'entrata resta nel tuo budget.",
-      "editActivity": "Modifica %{name}",
       "filters": {
         "all": "Tutto",
         "checked": "Spuntato",
@@ -319,7 +318,6 @@
       "adjustment": "Aggiustamento",
       "create": "Crea il mio budget",
       "createAccessibility": "Crea un budget",
-      "current": "Mese attuale",
       "emptyHint": "Crea il tuo primo mese da uno dei tuoi modelli.",
       "emptyTitle": "Nessun budget per ora",
       "loadErrorHint": "Controlla la connessione, poi riprova.",
@@ -418,7 +416,7 @@
     "close": "Chiudi",
     "contactSupport": "Contatta l'assistenza",
     "continue": "Continua",
-    "delete": "Cancella",
+    "delete": "Elimina",
     "email": "Indirizzo email",
     "emailExample": "tu@esempio.it",
     "edit": "Modifica",

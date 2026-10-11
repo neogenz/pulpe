@@ -231,15 +231,14 @@ struct BudgetDetailsArchitectureTests {
     // MARK: - Phase 5 — No Task.sleep outside helpers
 
     /// Phase 5 invariant: inside the feature, `Task.sleep` is only allowed in
-    /// the dedicated `Helpers/` modifiers (`AutoPopView`, `afterPushTransition`,
-    /// `rampSyncIndicator`). Any other location must route through one of them.
+    /// the dedicated `Helpers/` modifiers (`AutoPopView`, `afterPushTransition`) or the
+    /// shared `rampSyncIndicator`. Any other location must route through one of them.
     @Test("No Task.sleep outside helpers")
     func noTaskSleepOutsideHelpers() {
         let files = Self.swiftFiles(under: Self.featureDirectory())
         let helperFilenames: Set<String> = [
             "AutoPopView.swift",
             "View+afterPushTransition.swift",
-            "View+syncIndicatorRamp.swift",
         ]
         let offenders = files.filter { url in
             guard !helperFilenames.contains(url.lastPathComponent) else { return false }

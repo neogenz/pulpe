@@ -246,11 +246,14 @@ final class AnalyticsService {
     // MARK: - User Identity
 
     func identify(userId: String, properties: [String: Any] = [:]) {
-        let sanitized = Self.sanitizePersonProperties(properties)
-        cachedIdentity = (userId, sanitized)
+        // Swift UUID strings are uppercase; web/Supabase use lowercase.
+        let canonicalId = userId.lowercased()
+        var sanitized = Self.sanitizePersonProperties(properties)
+        sanitized[Self.supabaseUserIdProperty] = canonicalId
+        cachedIdentity = (canonicalId, sanitized)
         guard isEventCapturingEnabled else { return }
         PostHogSDK.shared.identify(
-            userId,
+            canonicalId,
             userProperties: sanitized,
             userPropertiesSetOnce: [
                 "first_app_version": AppConfiguration.appVersion

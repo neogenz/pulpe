@@ -5,11 +5,7 @@ import SwiftUI
 /// month this store has loaded. The budget page shows the shared sheet alone — only the
 /// current month is reconciled, and never through a second resolution of which month.
 struct CurrentMonthRealizedBalanceSheet: View {
-    /// Leaves "Suivi du budget" for the month's own page, where its items are checked.
-    let onShowItemsToCheck: @MainActor () -> Void
-
     @Environment(CurrentMonthStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
     @State private var isReconciling = false
 
     var body: some View {
@@ -31,10 +27,6 @@ struct CurrentMonthRealizedBalanceSheet: View {
                                 source: .reconciliation
                             )
                             store.addTransaction(transaction)
-                        },
-                        onShowItemsToCheck: {
-                            dismiss()
-                            onShowItemsToCheck()
                         }
                     )
                 }
@@ -66,7 +58,9 @@ struct CurrentMonthRealizedBalanceSheet: View {
                 month: budget.month,
                 year: budget.year,
                 payDayOfMonth: store.payDayOfMonth
-            )
+            ),
+            uncheckedCount: store.uncheckedCount,
+            hasPointingInFlight: store.hasTogglesInFlight
         )
     }
 }

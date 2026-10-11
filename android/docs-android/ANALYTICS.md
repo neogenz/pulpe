@@ -13,8 +13,9 @@ on iOS.
 
 - Product events from `ANALYTICS_EVENTS` (`shared/src/feature-flags.ts`) with
   the minimum dimensions each analysis needs.
-- Uncaught JavaScript exceptions and unhandled rejections (PostHog error
-  tracking); native crashes and session replay are off.
+- Uncaught JavaScript exceptions, unhandled rejections and JVM crashes
+  (PostHog error tracking, native ones through `@posthog/react-native-plugin`,
+  which inherits the same opt-out); NDK crashes and session replay are off.
 - API failures through `reportApiError`
   (`src/core/observability/api-error-reporting.ts`): HTTP method, status,
   error code, request id and a path with every id replaced by `:id`. Auth

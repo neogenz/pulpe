@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useVaultStore } from "@/core/vault/vault-store";
 import { budgetKeys } from "@/features/budgets/budget-queries";
+import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
   bulkTemplateLines,
@@ -83,6 +84,8 @@ function useTemplateMutation<TInput, TResult>(
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: templateKeys.all });
       void queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      // A propagated line hands its goal to the budgets it lands in.
+      void queryClient.invalidateQueries({ queryKey: goalKeys.all });
     },
   });
 }

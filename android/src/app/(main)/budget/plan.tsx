@@ -24,7 +24,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { FieldError } from "@/core/ui/field-error";
 import { formatMonthName } from "@/core/ui/date-format";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useGenerateBudgets } from "@/features/budgets/generate-budgets-mutation";
 import { useTemplates } from "@/features/templates/template-queries";
@@ -71,7 +71,8 @@ export default function PlanBudgetsScreen() {
         : null;
   const isLoading = settings.isPending || templates.isPending;
   const hasLoadError =
-    settings.isError || templates.isError || settings.data === undefined;
+    (templates.isError && templates.data === undefined) ||
+    settings.data === undefined;
   const hasNoTemplates =
     !isLoading && !hasLoadError && templates.data?.length === 0;
 
@@ -365,7 +366,7 @@ const styles = StyleSheet.create({
   content: { padding: SPACING.md, gap: SPACING.lg },
   field: { gap: SPACING.sm },
   pickers: { flexDirection: "row", gap: SPACING.sm },
-  pickerButton: { minHeight: 48 },
+  pickerButton: { minHeight: TOUCH_TARGET },
   templates: { gap: SPACING.sm },
   templateLabel: { textAlign: "left" },
   template: { borderRadius: RADIUS.card, borderWidth: 1 },

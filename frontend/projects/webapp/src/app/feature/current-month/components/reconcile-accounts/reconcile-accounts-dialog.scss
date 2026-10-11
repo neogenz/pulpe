@@ -1,5 +1,3 @@
-@use "@angular/material" as mat;
-
 :host {
   display: flex;
   flex-direction: column;
@@ -7,16 +5,6 @@
   max-height: inherit;
   color: var(--mat-sys-on-surface);
   background: var(--mat-sys-surface);
-  @include mat.form-field-overrides(
-    (
-      outlined-container-shape: 12px,
-    )
-  );
-  @include mat.button-overrides(
-    (
-      filled-container-height: 48px,
-    )
-  );
 }
 
 .reconcile-header {
@@ -28,68 +16,21 @@
   padding: 16px 20px 0 28px;
 }
 
+// mat-dialog-title carries its own font, so the title token is set here rather than as a utility.
 .reconcile-title {
   margin: 0;
   padding: 0;
-  font:
-    600 20px / 1.3 "Manrope",
-    sans-serif;
-  letter-spacing: -0.02em;
+  font: var(--mat-sys-title-large);
+  font-weight: 600;
+  letter-spacing: var(--mat-sys-title-large-tracking);
   &::before {
     display: none;
   }
 }
 
 .step-progress {
-  display: flex;
-  gap: 12px;
   flex-shrink: 0;
-  margin: 0;
   padding: 20px 28px 24px;
-  list-style: none;
-  li {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--mat-sys-outline-variant);
-    color: var(--mat-sys-on-surface-variant);
-    font-size: 13px;
-    font-weight: 500;
-  }
-  .is-current {
-    border-color: var(--mat-sys-primary);
-    color: var(--mat-sys-primary);
-    font-weight: 700;
-  }
-  .is-complete {
-    border-color: var(--mat-sys-primary);
-  }
-}
-
-.step-number {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--mat-sys-surface-container);
-  font-size: 12px;
-  .is-current & {
-    background: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
-  }
-  .is-complete & {
-    background: var(--mat-sys-primary-container);
-    color: var(--mat-sys-on-primary-container);
-  }
-  mat-icon {
-    width: 16px;
-    height: 16px;
-    font-size: 16px;
-  }
 }
 
 .reconcile-content {
@@ -103,10 +44,6 @@
 
 .step-heading {
   margin: 0 0 8px;
-  font:
-    700 24px / 1.25 "Manrope",
-    sans-serif;
-  letter-spacing: -0.025em;
   &:focus {
     outline: none;
   }
@@ -186,18 +123,6 @@
     600 16px / 1.4 "Manrope",
     sans-serif;
 }
-.adjustment-kind {
-  padding: 4px 10px;
-  border-radius: 999px;
-  color: var(--pulpe-financial-income-dark);
-  background: var(--pulpe-financial-income-light);
-  font-size: 12px;
-  font-weight: 600;
-  &.is-expense {
-    color: var(--pulpe-financial-expense-dark);
-    background: var(--pulpe-financial-expense-light);
-  }
-}
 .reconcile-footer {
   flex-shrink: 0;
   padding: 16px 28px 24px;
@@ -232,12 +157,6 @@
 .primary-action {
   min-width: 190px;
 }
-.record-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
 
 :host-context(.full-screen-dialog) {
   height: 100%;
@@ -245,23 +164,12 @@
   .reconcile-header {
     padding: max(12px, env(safe-area-inset-top)) 12px 0 20px;
   }
-  .reconcile-title {
-    font-size: 18px;
-  }
   .step-progress {
     padding: 12px 20px 16px;
-    gap: 8px;
-    li {
-      gap: 6px;
-      font-size: 12px;
-    }
   }
   .reconcile-content {
     max-height: none;
     padding: 0 20px 20px;
-  }
-  .step-heading {
-    font-size: 23px;
   }
   .step-description {
     margin-bottom: 20px;

@@ -5,7 +5,7 @@ import {
   type SupportedCurrency,
   type Transaction,
 } from "pulpe-shared";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
 import { BackHandler, RefreshControl, StyleSheet, View } from "react-native";
 import { Searchbar, Text, useTheme } from "react-native-paper";
 import {
@@ -30,10 +30,10 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import {
-  DURATION,
   FAB_CLEARANCE,
   SCREEN_PADDING,
   SPACING,
+  SPRING,
 } from "@/core/ui/theme";
 import { tagSummary } from "@/features/tags/tag-selection";
 import { useTags } from "@/features/tags/tag-queries";
@@ -78,6 +78,35 @@ import { TransactionRow } from "@/features/budget-details/components/transaction
 import { buildCurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
+
+type ToggleCheck = ReturnType<typeof useToggleCheck>;
+type ToggleTarget = Parameters<ToggleCheck["mutateAsync"]>[0];
+
+interface UndoContext {
+  overlays: RefObject<BudgetDetailOverlaysHandle | null>;
+  latestToggle: RefObject<number>;
+  toggle: ToggleCheck;
+}
+
+/**
+ * Offers "Annuler" on a pointing, and offers it again after a failed undo.
+ * Module scope on purpose: a function that calls itself inside the screen makes
+ * the React Compiler give up on the whole component (`PruneHoistedContexts`).
+ */
+function offerUndo(context: UndoContext, target: ToggleTarget, name: string) {
+  context.overlays.current?.showPointed({
+    name,
+    undo: () => {
+      const undoId = ++context.latestToggle.current;
+      void context.toggle.mutateAsync(target).catch(() => {
+        context.overlays.current?.showToggleFailure();
+        if (undoId === context.latestToggle.current) {
+          offerUndo(context, target, name);
+        }
+      });
+    },
+  });
+}
 
 /**
  * The month flattened into rows, because a budget grows without bound in two
@@ -185,7 +214,34 @@ export default function BudgetDetailScreen() {
   const toggle = useToggleCheck(id);
   const isPendingCheck = usePendingCheck(id);
   const pull = usePullToRefresh(invalidateBudgetData);
+
+  // Per call: `mutate`'s callbacks belong to the latest call alone, so a
+  // failure on a row pointed just before another went unsaid. A pointing gets
+  // its "Annuler": under "À pointer" the row leaves the list, and a stray swipe
+  // otherwise sends it out of sight with nothing to say where it went.
+  // A later tap supersedes that notice: its "Annuler" would flip the row the
+  // wrong way once the row was unpointed again.
+  // A failed undo puts its "Annuler" back behind the error, as a failed restore
+  // does after a deletion: the row is still pointed, and under "À pointer" out
+  // of sight, so the notice is the only way left to ask again.
   const overlays = useRef<BudgetDetailOverlaysHandle>(null);
+  const latestToggle = useRef(0);
+  function pointWithUndo(
+    target: ToggleTarget,
+    name: string,
+    isPointing: boolean,
+  ) {
+    const toggleId = ++latestToggle.current;
+    overlays.current?.showPointed(null);
+    void toggle.mutateAsync(target).then(
+      () => {
+        if (isPointing && toggleId === latestToggle.current) {
+          offerUndo({ overlays, latestToggle, toggle }, target, name);
+        }
+      },
+      () => overlays.current?.showToggleFailure(),
+    );
+  }
   const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
   const [isSearchVisible, setSearchVisible] = useState(false);
   const [isCardDismissed, setCardDismissed] = useState(() =>
@@ -276,7 +332,10 @@ export default function BudgetDetailScreen() {
     );
   }
 
-  if (details.isError || settings.isError) {
+  if (
+    (details.isError && details.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -365,6 +424,8 @@ export default function BudgetDetailScreen() {
             onChangeText={(search) => setFilters({ ...filters, search })}
             icon="arrow-left"
             onIconPress={closeSearch}
+            searchAccessibilityLabel={t("common.back")}
+            clearAccessibilityLabel={t("common.clear")}
             // Clearing the field is not leaving the search — only the arrow is,
             // and it is the one that puts the full list back.
             onClearIconPress={() => setFilters({ ...filters, search: "" })}
@@ -378,7 +439,7 @@ export default function BudgetDetailScreen() {
             onPress={() => setSearchVisible(true)}
           />
           <HeroAppBarAction
-            icon="chart-donut"
+            icon="chart-bar"
             accessibilityLabel={t("budgets.detail.tracking")}
             onPress={() => overlays.current?.showRealizedBalance()}
           />
@@ -409,7 +470,9 @@ export default function BudgetDetailScreen() {
         // either way, and an `entering` animation takes it out of flow while it
         // plays, which in this app once left a whole screen drawing over its
         // own chrome.
-        itemLayoutAnimation={LinearTransition.duration(DURATION.short)}
+        itemLayoutAnimation={LinearTransition.springify(
+          SPRING.duration,
+        ).dampingRatio(SPRING.dampingRatio)}
         style={{ backgroundColor: theme.colors.background }}
         contentContainerStyle={styles.content}
         refreshControl={
@@ -451,12 +514,14 @@ export default function BudgetDetailScreen() {
                     )
                   }
                   onToggle={() =>
-                    void toggle
-                      .mutateAsync({
+                    pointWithUndo(
+                      {
                         source: "transaction",
                         sourceId: row.transaction.id,
-                      })
-                      .catch(() => overlays.current?.showToggleFailure())
+                      },
+                      row.transaction.name,
+                      row.transaction.checkedAt == null,
+                    )
                   }
                 />
               </LedgerSegment>
@@ -482,14 +547,11 @@ export default function BudgetDetailScreen() {
                 onToggle={() => {
                   dismissTip("gestures");
                   if (isPessimistic(row.item)) armTip("pessimistic-check");
-                  void toggle
-                    .mutateAsync({
-                      source: "budgetLine",
-                      sourceId: row.item.line.id,
-                    })
-                    // Per call: `mutate`'s callbacks belong to the latest call alone,
-                    // so a failure on a row pointed just before another went unsaid.
-                    .catch(() => overlays.current?.showToggleFailure());
+                  pointWithUndo(
+                    { source: "budgetLine", sourceId: row.item.line.id },
+                    row.item.line.name,
+                    row.item.line.checkedAt == null,
+                  );
                 }}
               />
             </LedgerSegment>

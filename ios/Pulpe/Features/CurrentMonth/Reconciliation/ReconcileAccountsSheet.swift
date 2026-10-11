@@ -13,10 +13,14 @@ struct ReconcileAccountsSheet: View {
         let rollover: Decimal
         /// "5 mars - 4 avr." when the pay day is not the 1st, `nil` for a calendar month.
         let periodLabel: String?
+        /// What is left to check, the same count as the home screen's "À pointer".
+        let uncheckedCount: Int
+        /// A pointing not yet confirmed: its rollback would move the balance under a
+        /// verdict already acted on, so the verdict's actions wait for it.
+        var hasPointingInFlight = false
     }
 
     let month: Month
-    let onShowItemsToCheck: @MainActor () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
@@ -27,11 +31,9 @@ struct ReconcileAccountsSheet: View {
     init(
         month: Month,
         dependencies: AddTransactionDependencies = .live,
-        onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void,
-        onShowItemsToCheck: @escaping @MainActor () -> Void
+        onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void
     ) {
         self.month = month
-        self.onShowItemsToCheck = onShowItemsToCheck
         _flow = State(initialValue: ReconcileAccountsFlow(
             budgetId: month.budgetId,
             adjustmentLabel: AppLocale.string("Ajustement"),
@@ -59,7 +61,12 @@ struct ReconcileAccountsSheet: View {
                         flow: flow,
                         month: month,
                         currency: userSettingsStore.currency,
-                        onShowItemsToCheck: onShowItemsToCheck,
+                        onClose: { dismiss() }
+                    )
+                case .itemsToCheck:
+                    ReconcileItemsToCheckStep(
+                        flow: flow,
+                        currency: userSettingsStore.currency,
                         onClose: { dismiss() }
                     )
                 case .verdict:
@@ -115,9 +122,10 @@ struct ReconcileAccountsSheet: View {
 
 // MARK: - Step chrome
 
-/// What the three steps share: the scrolling body on the sheet surface, the action
-/// footer pinned above the keyboard, the inline title and the close button. Back and
-/// close are held while the write is in flight.
+/// What the steps share: the scrolling body on the sheet surface, the action footer
+/// pinned above the keyboard, the inline title and the close button. Back and close are
+/// held while the write is in flight. No step adds a keyboard toolbar: on iOS 26 it
+/// floats outside the keyboard's safe area, over the footer.
 private struct ReconcileStepChrome<Footer: View>: ViewModifier {
     let title: String
     let isSubmitting: Bool
@@ -187,11 +195,12 @@ extension View {
                         checkedSavingsAmount: 300
                     ),
                     rollover: 120,
-                    periodLabel: "25 févr. - 24 mars"
+                    periodLabel: "25 févr. - 24 mars",
+                    uncheckedCount: 6
                 ),
-                onAdjustmentCreated: { _ in },
-                onShowItemsToCheck: {}
+                onAdjustmentCreated: { _ in }
             )
+            .environment(CurrentMonthStore())
             .environment(ToastManager())
             .environment(UserSettingsStore())
         }

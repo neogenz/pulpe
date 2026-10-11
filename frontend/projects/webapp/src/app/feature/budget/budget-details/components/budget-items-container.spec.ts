@@ -25,7 +25,7 @@ import {
   createMockLogger,
   createMockPostHogService,
 } from '@app/testing/mock-posthog';
-import { PostHogService } from '@core/analytics';
+import { PostHogService } from '@core/analytics/posthog';
 import { StorageService } from '@core/storage';
 import { TagStore } from '@core/tag';
 import { Logger } from '@core/logging/logger';

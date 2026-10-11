@@ -392,7 +392,7 @@ describe('ReconcileAccountsDialog', () => {
       await reachVerdict(view, '1000', '500');
 
       expect(view.byTestId('reconcile-verdict-title')?.textContent).toContain(
-        'Tes comptes ont 0.01 CHF de plus',
+        'En plus sur tes comptes +0.01 CHF',
       );
       expect(view.byTestId('reconcile-verdict-message')?.textContent).toContain(
         "revenu d'ajustement de 0.01 CHF",
@@ -412,7 +412,7 @@ describe('ReconcileAccountsDialog', () => {
       await reachVerdict(view, '-50');
 
       expect(view.byTestId('reconcile-verdict-title')?.textContent).toContain(
-        'Il manque 170.30 CHF sur tes comptes',
+        'Manque sur tes comptes −170.30 CHF',
       );
       expect(view.byTestId('reconcile-verdict-message')?.textContent).toContain(
         "dépense d'ajustement de 170.30 CHF",

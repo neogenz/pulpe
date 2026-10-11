@@ -98,7 +98,11 @@ export default function CreateBudgetScreen() {
     );
   }
 
-  if (budgets.isError || templates.isError || settings.isError) {
+  if (
+    (budgets.isError && budgets.data === undefined) ||
+    (templates.isError && templates.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"

@@ -124,7 +124,10 @@ export default function SecuritySettingsScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScreenAppBar>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction
+          onPress={() => router.back()}
+          accessibilityLabel={t("common.back")}
+        />
         <Appbar.Content title={t("settings.security.title")} />
       </ScreenAppBar>
 
@@ -328,7 +331,7 @@ export default function SecuritySettingsScreen() {
                 removeAccount.mutate(undefined, {
                   // Signing out is the confirmation: the account is gone, so
                   // staying on a screen that reads from it would only fail.
-                  onSuccess: () => void signOut(),
+                  onSuccess: () => void signOut().catch(() => undefined),
                   onError: () => {
                     setDeletingAccount(false);
                     setNotice(t("settings.security.deleteAccountError"));

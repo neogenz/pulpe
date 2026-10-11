@@ -1,5 +1,5 @@
 import type { SupportedCurrency } from "pulpe-shared";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, ProgressBar, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,8 +15,15 @@ import { formatMonthName } from "@/core/ui/date-format";
 const SAMPLE_TARGET = 6000;
 const SAMPLE_SAVED = 2250;
 const SAMPLE_MONTHLY = 250;
-const SAMPLE_MONTHS = [8, 9, 10, 11];
-const SAMPLE_YEAR = 2027;
+const SAMPLE_MONTH_COUNT = 4;
+
+/** The sample's first row says "Ce mois", so it starts on the real one. */
+function sampleMonths(today: Date): { month: number; year: number }[] {
+  return Array.from({ length: SAMPLE_MONTH_COUNT }, (_, offset) => {
+    const date = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    return { month: date.getMonth() + 1, year: date.getFullYear() };
+  });
+}
 
 interface GoalsIntroProps {
   currency: SupportedCurrency;
@@ -153,29 +160,37 @@ function GoalPreview({ currency }: { currency: SupportedCurrency }) {
 function PlanPreview({ currency }: { currency: SupportedCurrency }) {
   const theme = useTheme();
   const { locale, t } = useTranslation();
+  // One window per mount: a re-render across a month boundary keeps its rows.
+  const months = useMemo(() => sampleMonths(new Date()), []);
 
   return (
     <Card mode="contained" style={styles.preview}>
       <Card.Content style={styles.previewContent}>
-        {SAMPLE_MONTHS.map((month, index) => (
+        {months.map(({ month, year }, index) => (
           <View key={month} style={styles.planRow}>
             <Text
               variant="bodyMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
+              style={[
+                styles.planMonth,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
             >
-              {formatMonthName(month, SAMPLE_YEAR, locale)}
+              {formatMonthName(month, year, locale)}
             </Text>
             <Amount size="row">
               {formatCurrency(SAMPLE_MONTHLY, currency)}
             </Amount>
             <Text
               variant="labelMedium"
-              style={{
-                color:
-                  index === 0
-                    ? theme.colors.primary
-                    : theme.colors.onSurfaceVariant,
-              }}
+              style={[
+                styles.planState,
+                {
+                  color:
+                    index === 0
+                      ? theme.colors.primary
+                      : theme.colors.onSurfaceVariant,
+                },
+              ]}
             >
               {t(`goals.intro.${index === 0 ? "thisMonth" : "planned"}`)}
             </Text>
@@ -188,7 +203,12 @@ function PlanPreview({ currency }: { currency: SupportedCurrency }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingBottom: SPACING.xl },
-  skipRow: { flexDirection: "row", justifyContent: "flex-end" },
+  // The text button pads its label by 12dp; 4 more puts it on the 16dp gutter.
+  skipRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: SPACING.xs,
+  },
   stage: {
     flex: 1,
     justifyContent: "center",
@@ -201,9 +221,12 @@ const styles = StyleSheet.create({
   planRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     gap: SPACING.md,
   },
+  // The state column has a set width and the month takes the rest, so the
+  // amounts — all the same width — line up whatever the labels say.
+  planMonth: { flex: 1 },
+  planState: { width: "25%", textAlign: "right" },
   copy: { gap: SPACING.sm },
   centered: { textAlign: "center" },
   dots: {

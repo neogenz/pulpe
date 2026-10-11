@@ -354,6 +354,7 @@ export default function HomeScreen() {
                 />
                 <UncheckedOperationsCard
                   items={viewModel.uncheckedItems}
+                  totalCount={viewModel.uncheckedCount}
                   currency={currency}
                   isPending={isPendingCheck}
                   onViewAll={openBudget}

@@ -19,6 +19,7 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
+    @State private var isHeroUnderBar = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var canCreateBudget: Bool {
@@ -75,10 +76,10 @@ struct CurrentMonthView: View {
             }
         }
         .background { Color.appBackground.ignoresSafeArea() }
+        .trackingHeroUnderBar($isHeroUnderBar)
         // The hero runs under the navigation bar: its title and avatar go to light ink
-        // while the forest is painted, and back to the default on a flat canvas.
-        .toolbarColorScheme(paintsHeroSurface ? .dark : nil, for: .navigationBar)
-        .heroNavigationBar()
+        // while the forest is under the bar, and back to the default on the light canvas.
+        .heroNavigationBar(isOnHeroSurface: paintsHeroSurface)
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
         .navigationTitle(currentMonthName.capitalized)
@@ -109,7 +110,7 @@ struct CurrentMonthView: View {
             Group {
                 switch sheet {
                 case .realizedBalance:
-                    CurrentMonthRealizedBalanceSheet { navigateToBudget = true }
+                    CurrentMonthRealizedBalanceSheet()
                 case .account:
                     AccountView()
                 case .notificationPrime:
@@ -363,14 +364,14 @@ extension CurrentMonthView {
         }
     }
 
-    /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
-    /// `heroZone()`, so the navigation bar ink follows the same switch.
     /// Crossfade only: `blurReplace` washed the forest to a pale haze for a frame.
     fileprivate var loadedTransition: AnyTransition { .opacity }
 
+    /// Failed and empty keep a flat canvas; loaded and skeleton paint the forest through
+    /// `heroZone()`, and the navigation bar ink follows it while it is under the bar.
     fileprivate var paintsHeroSurface: Bool {
         switch store.contentState {
-        case .idle, .loading, .loaded: true
+        case .idle, .loading, .loaded: isHeroUnderBar
         case .failed, .empty: false
         }
     }

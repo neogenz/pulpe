@@ -50,9 +50,8 @@ export function canShowWhatsNew(
  * never on a fresh install, where "everything is new" is not news.
  *
  * Mirrors `ios/Pulpe/Domain/Store/WhatsNewStore.swift`, against the Android
- * route of the same feed. The corpus carries no Android-tagged release yet, so
- * today every call returns an empty list; that is the same silent path a
- * technical-only release takes, not a special case.
+ * route of the same feed. A release with no Android projection answers an empty
+ * list, the same silent path a technical-only release takes, not a special case.
  *
  * Fails open, like the version gate: an outage leaves the marker untouched so
  * the next launch retries, and never holds up a launch.

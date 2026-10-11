@@ -100,7 +100,11 @@ export default function TemplateDetailScreen() {
     );
   }
 
-  if (template.isError || lines.isError || settings.isError) {
+  if (
+    (template.isError && template.data === undefined) ||
+    (lines.isError && lines.data === undefined) ||
+    (settings.isError && settings.data === undefined)
+  ) {
     return (
       <PlaceholderScreen
         icon="cloud-off-outline"
@@ -155,7 +159,10 @@ export default function TemplateDetailScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <ScreenAppBar>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction
+          onPress={() => router.back()}
+          accessibilityLabel={t("common.back")}
+        />
         <Appbar.Content title={template.data.name} />
         <Menu
           visible={isMenuVisible}

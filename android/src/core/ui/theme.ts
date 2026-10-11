@@ -252,13 +252,12 @@ export const ICON_SIZE = { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 } as const;
 export const EMPHASIS = { pending: 0.5, disabled: 0.38 } as const;
 
 /**
- * How long anything is allowed to take, in milliseconds. M3's `short4` and
- * `medium2`: `short` for something rearranging itself in place, `medium` for
- * something arriving or leaving. Longer than this and the app is asking to be
- * waited for; shorter and the eye reads a cut rather than a movement, which is
- * the whole reason a line that gets pointed used to vanish between two frames.
+ * The one spring anything that moves rides: `DESIGN.md` asks for soft springs
+ * (response 0.4-0.6 s, damping 0.65-0.85), and this is iOS's `defaultSpring`
+ * (response 0.5, damping 0.8) in Reanimated's terms. `duration` is the
+ * perceptual duration Reanimated's `springify` takes, in milliseconds.
  */
-export const DURATION = { short: 200, medium: 300 } as const;
+export const SPRING = { duration: 500, dampingRatio: 0.8 } as const;
 
 /**
  * The margin Paper hangs off every side of an `IconButton`. Subtract it from a
