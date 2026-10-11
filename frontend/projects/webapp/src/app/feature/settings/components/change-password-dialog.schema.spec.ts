@@ -7,12 +7,11 @@ import {
 const validFormValue: ChangePasswordFormValue = {
   currentPassword: 'oldPass12',
   newPassword: 'newPass345',
-  confirmPassword: 'newPass345',
 };
 
 describe('changePasswordFormSchema', () => {
-  describe('transform', () => {
-    it('should omit confirmPassword from the output DTO', () => {
+  describe('payload', () => {
+    it('should accept one new password without a confirmation field', () => {
       const result = changePasswordFormSchema.parse(validFormValue);
 
       expect(result).toEqual({
@@ -24,23 +23,10 @@ describe('changePasswordFormSchema', () => {
   });
 
   describe('validation', () => {
-    it('should reject when new and confirm passwords do not match', () => {
-      const result = changePasswordFormSchema.safeParse({
-        ...validFormValue,
-        confirmPassword: 'different',
-      });
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0]?.path).toEqual(['confirmPassword']);
-      }
-    });
-
     it('should reject new password shorter than minimum length', () => {
       const result = changePasswordFormSchema.safeParse({
         currentPassword: 'oldPass12',
         newPassword: 'short',
-        confirmPassword: 'short',
       });
 
       expect(result.success).toBe(false);
@@ -58,7 +44,6 @@ describe('changePasswordFormSchema', () => {
     it('should reject missing currentPassword field', () => {
       const result = changePasswordFormSchema.safeParse({
         newPassword: 'newPass345',
-        confirmPassword: 'newPass345',
       });
 
       expect(result.success).toBe(false);

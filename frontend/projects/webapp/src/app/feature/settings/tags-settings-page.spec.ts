@@ -10,6 +10,7 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { By } from '@angular/platform-browser';
+import { TranslocoService } from '@jsverse/transloco';
 import { describe, expect, it, vi } from 'vitest';
 import { type Tag } from 'pulpe-shared';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -149,6 +150,9 @@ describe('TagsSettingsPage', () => {
         .querySelector('[data-testid="tag-counter"]')
         .textContent.trim(),
     ).toBe('2 tags personnels');
+    expect(fixture.nativeElement.textContent).not.toContain(
+      TestBed.inject(TranslocoService).translate('settings.tags.emptyMessage'),
+    );
     expect(fixture.nativeElement.querySelector('button')).toBeNull();
   });
 });

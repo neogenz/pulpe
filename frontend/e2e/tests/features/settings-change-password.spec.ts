@@ -22,15 +22,12 @@ const fillPasswordForm = async (
 ): Promise<void> => {
   const currentInput = dialog.getByTestId('current-password-input');
   const newInput = dialog.getByTestId('new-password-input');
-  const confirmInput = dialog.getByTestId('confirm-password-input');
 
   await expect(async () => {
     await currentInput.fill(currentPassword);
     await newInput.fill('new-password-123');
-    await confirmInput.fill('new-password-123');
     expect(await currentInput.inputValue()).toBe(currentPassword);
     expect(await newInput.inputValue()).toBe('new-password-123');
-    expect(await confirmInput.inputValue()).toBe('new-password-123');
   }).toPass();
 };
 
@@ -67,11 +64,7 @@ test.describe('Settings Change Password', () => {
     await expect(dialog.locator('mat-error')).toContainText(/Au moins|requis/);
     await expect(submitButton).toBeDisabled();
 
-    await dialog.getByTestId('new-password-input').fill('new-password-123');
-    await dialog
-      .getByTestId('confirm-password-input')
-      .fill('different-password');
-    await expect(submitButton).toBeDisabled();
+    await expect(dialog.getByTestId('confirm-password-input')).toHaveCount(0);
 
     await fillPasswordForm(dialog, 'current-password');
     await expect(submitButton).toBeEnabled();
@@ -173,7 +166,7 @@ test.describe('Settings Change Password', () => {
 
     const submitButton = dialog.getByTestId('submit-password-button');
     await expect(submitButton).toBeEnabled();
-    await submitButton.click();
+    await dialog.getByTestId('new-password-input').press('Enter');
 
     await expect(page.locator('simple-snack-bar')).toContainText(
       'Mot de passe modifié',

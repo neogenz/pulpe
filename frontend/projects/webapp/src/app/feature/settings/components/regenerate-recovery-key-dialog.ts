@@ -56,7 +56,11 @@ import { ErrorAlert } from '@ui/error-alert';
       />
 
       <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()">
-        <mat-form-field appearance="outline" class="w-full mb-2">
+        <mat-form-field
+          appearance="outline"
+          class="w-full mb-2"
+          subscriptSizing="dynamic"
+        >
           <mat-label>{{ 'settings.pinCodeLabel' | transloco }}</mat-label>
           <input
             matInput

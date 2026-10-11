@@ -28,7 +28,7 @@ import { ConnectionSetup } from './connection-setup';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex flex-col gap-6 h-full min-w-0"
+      class="flex flex-col gap-8 w-full max-w-5xl min-w-0 pb-8"
       data-testid="connections-page"
     >
       <header class="pulpe-page-header" data-testid="page-header">
@@ -42,23 +42,8 @@ import { ConnectionSetup } from './connection-setup';
           <p class="text-body-medium text-on-surface-variant mt-1">
             {{ 'settings.connections.subtitle' | transloco }}
           </p>
-          @if (
-            store.status() !== 'loading' &&
-            store.status() !== 'error' &&
-            store.connections().length === 0
-          ) {
-            <p
-              class="text-label-large text-on-surface-variant mt-4"
-              role="status"
-              data-testid="connections-empty"
-            >
-              {{ 'settings.connections.emptyTitle' | transloco }}
-            </p>
-          }
         </div>
       </header>
-
-      <pulpe-connection-setup />
 
       @switch (store.status()) {
         @case ('loading') {
@@ -80,7 +65,17 @@ import { ConnectionSetup } from './connection-setup';
         }
         @default {
           @if (store.connections().length > 0) {
-            <div class="space-y-4" data-testid="connections-list">
+            <section
+              class="space-y-4"
+              aria-labelledby="connected-assistants-title"
+              data-testid="connections-list"
+            >
+              <h2 id="connected-assistants-title" class="text-title-large">
+                {{ 'settings.connections.connectedTitle' | transloco }}
+                <span class="text-on-surface-variant"
+                  >({{ store.connections().length }})</span
+                >
+              </h2>
               @for (connection of store.connections(); track connection.id) {
                 <pulpe-connection-card
                   [connection]="connection"
@@ -88,10 +83,20 @@ import { ConnectionSetup } from './connection-setup';
                   (revoke)="onRevoke(connection)"
                 />
               }
-            </div>
+            </section>
+          } @else {
+            <p
+              class="text-body-medium text-on-surface-variant rounded-2xl bg-surface-container-low p-5"
+              role="status"
+              data-testid="connections-empty"
+            >
+              {{ 'settings.connections.emptyTitle' | transloco }}
+            </p>
           }
         }
       }
+
+      <pulpe-connection-setup />
     </div>
   `,
   styles: `

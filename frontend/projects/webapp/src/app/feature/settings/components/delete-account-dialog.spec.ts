@@ -154,6 +154,18 @@ describe('DeleteAccountDialog', () => {
       expect(component['deleteForm'].valid).toBe(false);
     });
 
+    it.each(['', 'short'])(
+      'does not verify an invalid password: %j',
+      async (password) => {
+        component['deleteForm'].controls.password.setValue(password);
+
+        await component['onSubmit']();
+
+        expect(mockAuthSession.verifyPassword).not.toHaveBeenCalled();
+        expect(component['deleteForm'].invalid).toBe(true);
+      },
+    );
+
     it('should close dialog with true on correct password', async () => {
       mockAuthSession.verifyPassword.mockResolvedValue({ success: true });
 

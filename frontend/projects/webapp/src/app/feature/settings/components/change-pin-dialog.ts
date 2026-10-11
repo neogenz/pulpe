@@ -6,7 +6,12 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -29,6 +34,7 @@ import { Logger } from '@core/logging/logger';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { StorageService } from '@core/storage/storage.service';
 import { ErrorAlert } from '@ui/error-alert';
+import { createFieldsMatchValidator } from '@core/validators';
 
 @Component({
   selector: 'pulpe-change-pin-dialog',
@@ -73,8 +79,16 @@ import { ErrorAlert } from '@ui/error-alert';
       />
 
       @if (step() === 1) {
-        <form [formGroup]="oldPinForm" (ngSubmit)="onSubmitOldPin()">
-          <mat-form-field appearance="outline" class="w-full">
+        <form
+          id="change-old-pin-form"
+          [formGroup]="oldPinForm"
+          (ngSubmit)="onSubmitOldPin()"
+        >
+          <mat-form-field
+            appearance="outline"
+            class="w-full"
+            subscriptSizing="dynamic"
+          >
             <mat-label>{{
               'settings.changePin.oldPinLabel' | transloco
             }}</mat-label>
@@ -123,8 +137,17 @@ import { ErrorAlert } from '@ui/error-alert';
           </mat-form-field>
         </form>
       } @else {
-        <form [formGroup]="newPinForm" (ngSubmit)="onSubmitNewPin()">
-          <mat-form-field appearance="outline" class="w-full">
+        <form
+          id="change-new-pin-form"
+          class="space-y-4"
+          [formGroup]="newPinForm"
+          (ngSubmit)="onSubmitNewPin()"
+        >
+          <mat-form-field
+            appearance="outline"
+            class="w-full"
+            subscriptSizing="dynamic"
+          >
             <mat-label>{{
               'settings.changePin.newPinLabel' | transloco
             }}</mat-label>
@@ -171,12 +194,46 @@ import { ErrorAlert } from '@ui/error-alert';
               }}</mat-error>
             }
           </mat-form-field>
+          <mat-form-field
+            appearance="outline"
+            class="w-full"
+            subscriptSizing="dynamic"
+          >
+            <mat-label>{{
+              'auth.vaultCode.confirmPinLabel' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              [type]="isNewPinHidden() ? 'password' : 'text'"
+              inputmode="numeric"
+              [attr.maxlength]="VAULT_CODE_LENGTH"
+              formControlName="confirmPin"
+              data-testid="change-pin-confirm-pin-input"
+            />
+            <mat-icon matPrefix>lock</mat-icon>
+            @if (newPinForm.controls.confirmPin.hasError('required')) {
+              <mat-error>{{
+                'auth.vaultCode.confirmPinRequired' | transloco
+              }}</mat-error>
+            } @else if (
+              newPinForm.controls.confirmPin.hasError('pinsMismatch')
+            ) {
+              <mat-error>{{
+                'auth.vaultCode.pinsMismatch' | transloco
+              }}</mat-error>
+            }
+          </mat-form-field>
         </form>
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton mat-dialog-close data-testid="change-pin-cancel-button">
+      <button
+        matButton
+        mat-dialog-close
+        data-testid="change-pin-cancel-button"
+        [disabled]="isSubmitting()"
+      >
         {{ 'common.cancel' | transloco }}
       </button>
       @if (step() === 1) {
@@ -184,8 +241,9 @@ import { ErrorAlert } from '@ui/error-alert';
           matButton="filled"
           color="primary"
           data-testid="change-pin-submit-button"
+          type="submit"
+          form="change-old-pin-form"
           [disabled]="isSubmitting() || !isOldPinValid()"
-          (click)="onSubmitOldPin()"
         >
           <span class="flex items-center justify-center">
             @if (isSubmitting()) {
@@ -199,8 +257,9 @@ import { ErrorAlert } from '@ui/error-alert';
           matButton="filled"
           color="primary"
           data-testid="change-pin-submit-button"
+          type="submit"
+          form="change-new-pin-form"
           [disabled]="isSubmitting() || !isNewPinValid()"
-          (click)="onSubmitNewPin()"
         >
           <span class="flex items-center justify-center">
             @if (isSubmitting()) {
@@ -242,12 +301,25 @@ export class ChangePinDialog {
     }),
   });
 
-  protected readonly newPinForm = new FormGroup({
-    newPin: new FormControl('', {
-      nonNullable: true,
-      validators: VAULT_CODE_VALIDATORS,
-    }),
-  });
+  protected readonly newPinForm = new FormGroup(
+    {
+      newPin: new FormControl('', {
+        nonNullable: true,
+        validators: VAULT_CODE_VALIDATORS,
+      }),
+      confirmPin: new FormControl('', {
+        nonNullable: true,
+        validators: Validators.required,
+      }),
+    },
+    {
+      validators: createFieldsMatchValidator(
+        'newPin',
+        'confirmPin',
+        'pinsMismatch',
+      ),
+    },
+  );
 
   readonly #oldPinChanges = toSignal(this.oldPinForm.valueChanges, {
     initialValue: this.oldPinForm.value,
@@ -330,6 +402,7 @@ export class ChangePinDialog {
     const { newPin } = this.newPinForm.getRawValue();
 
     this.isSubmitting.set(true);
+    this.#dialogRef.disableClose = true;
     this.errorMessage.set('');
 
     let newClientKey: string | undefined;
@@ -357,6 +430,7 @@ export class ChangePinDialog {
     } catch (error) {
       this.#handlePinChangeError(error, newClientKey, hasLocalKey);
     } finally {
+      this.#dialogRef.disableClose = false;
       this.isSubmitting.set(false);
     }
   }

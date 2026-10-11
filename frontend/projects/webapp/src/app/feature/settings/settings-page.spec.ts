@@ -162,7 +162,7 @@ describe('SettingsPage', () => {
 
     expect(entry).not.toBeNull();
     expect(entry.getAttribute('aria-label')).toBe('Voir mes tags personnels');
-    expect(entry.textContent?.trim()).toBe('Gérer');
+    expect(entry.textContent).toContain('Mes tags');
 
     entry.click();
     await fixture.whenStable();
@@ -172,6 +172,36 @@ describe('SettingsPage', () => {
       ROUTES.SETTINGS,
       ROUTES.SETTINGS_TAGS,
     ]);
+  });
+
+  it('keeps draft preferences when the language selector would reload the page', async () => {
+    fixture.componentInstance.selectedPayDay.set(15);
+    await fixture.whenStable();
+    const language = () =>
+      fixture.nativeElement.querySelector('[data-testid="language-select"]');
+    expect(language().getAttribute('aria-disabled')).toBe('true');
+    expect(fixture.nativeElement.textContent).toContain('Enregistre ou annule');
+    fixture.componentInstance.resetChanges();
+    await fixture.whenStable();
+    expect(language().getAttribute('aria-disabled')).toBe('false');
+  });
+
+  it('names the actual currency and diagnostic switch controls', () => {
+    const names = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '[role="switch"]',
+      ) as NodeListOf<HTMLElement>,
+      (element) => element.getAttribute('aria-label'),
+    );
+    expect(names).toEqual(['Sélecteur de devise', 'Partager les diagnostics']);
+  });
+
+  it('shows the default budget cycle instead of an empty payday field', async () => {
+    await fixture.whenStable();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="pay-day-select"]')
+        .textContent,
+    ).toContain('1er du mois');
   });
 
   describe('onDeleteAccount - ApiError handling', () => {

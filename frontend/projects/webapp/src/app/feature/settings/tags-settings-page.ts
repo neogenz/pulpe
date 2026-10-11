@@ -15,7 +15,7 @@ import { StateCard } from '@ui/state-card/state-card';
   imports: [MatIconModule, TranslocoPipe, BaseLoading, StateCard],
   template: `
     <div
-      class="flex flex-col gap-6 h-full min-w-0"
+      class="flex flex-col gap-8 w-full max-w-5xl min-w-0 pb-8"
       data-testid="tags-settings-page"
     >
       <header class="pulpe-page-header" data-testid="page-header">
@@ -26,6 +26,9 @@ import { StateCard } from '@ui/state-card/state-card';
           >
             {{ 'settings.tags.title' | transloco }}
           </h1>
+          <p class="text-body-medium text-on-surface-variant mt-1">
+            {{ 'settings.tags.description' | transloco }}
+          </p>
           @if (
             store.tags.status() !== 'loading' && store.tags.status() !== 'error'
           ) {

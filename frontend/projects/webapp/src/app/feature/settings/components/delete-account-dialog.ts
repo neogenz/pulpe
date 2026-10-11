@@ -49,7 +49,7 @@ import { ErrorAlert } from '@ui/error-alert';
       <button
         matIconButton
         mat-dialog-close
-        [attr.aria-label]="'common.close' | transloco"
+        [aria-label]="'common.close' | transloco"
         class="text-outline! shrink-0"
       >
         <mat-icon>close</mat-icon>
@@ -68,7 +68,11 @@ import { ErrorAlert } from '@ui/error-alert';
 
       @if (isOAuthOnly()) {
         <form [formGroup]="vaultCodeForm" (ngSubmit)="onSubmit()">
-          <mat-form-field appearance="outline" class="w-full mb-2">
+          <mat-form-field
+            appearance="outline"
+            class="w-full mb-2"
+            subscriptSizing="dynamic"
+          >
             <mat-label>{{ 'settings.pinCodeLabel' | transloco }}</mat-label>
             <input
               matInput
@@ -112,14 +116,17 @@ import { ErrorAlert } from '@ui/error-alert';
         </form>
       } @else {
         <form [formGroup]="deleteForm" (ngSubmit)="onSubmit()">
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>{{
-              'settings.confirmWithPassword' | transloco
-            }}</mat-label>
+          <mat-form-field
+            appearance="outline"
+            class="w-full"
+            subscriptSizing="dynamic"
+          >
+            <mat-label>{{ 'settings.password' | transloco }}</mat-label>
             <input
               matInput
               [type]="isPasswordHidden() ? 'password' : 'text'"
               formControlName="password"
+              autocomplete="current-password"
               data-testid="delete-confirm-password-input"
               [placeholder]="passwordPlaceholder"
             />
@@ -155,11 +162,13 @@ import { ErrorAlert } from '@ui/error-alert';
       }
     </mat-dialog-content>
 
-    <mat-dialog-actions>
+    <mat-dialog-actions align="end" class="gap-2">
+      <button matButton mat-dialog-close>
+        {{ 'common.cancel' | transloco }}
+      </button>
       <button
         matButton="filled"
         color="warn"
-        class="w-full py-6! text-title-medium font-bold"
         data-testid="confirm-delete-account-button"
         [disabled]="
           isSubmitting() ||
@@ -267,7 +276,7 @@ export class DeleteAccountDialog {
 
   async #submitWithPassword(): Promise<void> {
     const passwordControl = this.deleteForm.get('password');
-    passwordControl?.setErrors(null);
+    passwordControl?.updateValueAndValidity();
 
     if (this.isSubmitting() || !this.deleteForm.valid) return;
 
