@@ -71,7 +71,8 @@ Solo project, AI-assisted. Cleaning up after an over-shipped feature is the top 
 
 Docs, memory, specs and plans live in `aidd_docs/`.
 
-<aidd_project_memory>
+<!-- aidd_project_memory:start -->
+
 @aidd_docs/memory/api.md
 @aidd_docs/memory/architecture.md
 @aidd_docs/memory/auth.md
@@ -88,7 +89,8 @@ Docs, memory, specs and plans live in `aidd_docs/`.
 @aidd_docs/memory/project-brief.md
 @aidd_docs/memory/testing.md
 @aidd_docs/memory/vcs.md
-</aidd_project_memory>
+
+<!-- aidd_project_memory:end -->
 
 - `aidd_docs/memory/external/*`: when the user asks.
 - `aidd_docs/memory/internal/*`: when the task needs it.
