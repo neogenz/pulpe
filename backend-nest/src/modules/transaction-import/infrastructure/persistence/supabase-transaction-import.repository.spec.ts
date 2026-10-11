@@ -116,6 +116,46 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
   });
 });
 
+describe('SupabaseTransactionImportRepository.findImportedFingerprints', () => {
+  function setupFingerprints(rows: { import_fingerprint: string | null }[]) {
+    const queried: unknown[][] = [];
+    const query: Record<string, unknown> = {
+      select: () => query,
+      in: (column: string, values: unknown[]) => {
+        queried.push([column, values]);
+        return query;
+      },
+      order: () => query,
+      range: async () => ({ data: rows, error: null }),
+    };
+    const client = { from: mock(() => query) };
+    const repo = new SupabaseTransactionImportRepository(
+      { client, user } as unknown as AuthenticatedSupabaseProvider,
+      {} as EncryptionPort,
+    );
+    return { repo, client, queried };
+  }
+
+  it('returns the fingerprints already stored, asking once per distinct value', async () => {
+    const { repo, client, queried } = setupFingerprints([
+      { import_fingerprint: 'fp1' },
+    ]);
+
+    const imported = await repo.findImportedFingerprints(['fp1', 'fp2', 'fp1']);
+
+    expect(client.from).toHaveBeenCalledWith('transaction');
+    expect(queried).toEqual([['import_fingerprint', ['fp1', 'fp2']]]);
+    expect([...imported]).toEqual(['fp1']);
+  });
+
+  it('does not reach the database without fingerprints', async () => {
+    const { repo, client } = setupFingerprints([]);
+
+    expect((await repo.findImportedFingerprints([])).size).toBe(0);
+    expect(client.from).not.toHaveBeenCalled();
+  });
+});
+
 describe('SupabaseTransactionImportRepository.findAttachableLines', () => {
   function setupLines(rows: unknown[]) {
     const calls: [string, ...unknown[]][] = [];

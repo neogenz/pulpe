@@ -195,6 +195,14 @@ describe('fingerprintMaterials', () => {
     expect(a).not.toBe(b);
   });
 
+  it('separates identical content without a reference on two accounts', () => {
+    const [a, b] = fingerprintMaterials(format, [
+      valid({ position: 1 }),
+      valid({ position: 2, accountId: 'CH44' }),
+    ]);
+    expect(a).not.toBe(b);
+  });
+
   it('ignores label case so a re-export with other casing still matches', () => {
     const [lower] = fingerprintMaterials(format, [valid({ name: 'café' })]);
     const [upper] = fingerprintMaterials(format, [valid({ name: 'CAFÉ' })]);

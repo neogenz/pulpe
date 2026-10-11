@@ -1,8 +1,8 @@
-import type {
-  TransactionImportDecision,
-  TransactionImportMatchReason,
-  TransactionImportSuggestion,
-  TransactionKind,
+import {
+  TRANSACTION_IMPORT_ATTACHABLE_KINDS,
+  type TransactionImportDecision,
+  type TransactionImportMatchReason,
+  type TransactionImportSuggestion,
 } from 'pulpe-shared';
 import type { ImportedKind } from './bank-statement.entity';
 import type {
@@ -10,14 +10,6 @@ import type {
   ImportCandidate,
   PlannedImport,
 } from './transaction-import.entity';
-
-/** Money in only fills a Revenu; money out a Dépense or an Épargne. */
-const ATTACHABLE_KINDS: Readonly<
-  Record<ImportedKind, readonly TransactionKind[]>
-> = {
-  income: ['income'],
-  expense: ['expense', 'saving'],
-};
 
 /** Shorter words ("de", "la", "sa") carry no meaning in a bank label. */
 const SIGNIFICANT_WORD_MIN_LENGTH = 3;
@@ -27,7 +19,7 @@ const LABEL_SCORE = 2;
 const AMOUNT_SCORE = 1;
 
 export function canAttach(kind: ImportedKind, line: AttachableLine): boolean {
-  return ATTACHABLE_KINDS[kind].includes(line.kind);
+  return TRANSACTION_IMPORT_ATTACHABLE_KINDS[kind].includes(line.kind);
 }
 
 /**

@@ -1,6 +1,7 @@
 import {
   API_ERROR_CODES,
   TRANSACTION_IMPORT_MAX_FILE_BYTES,
+  TRANSACTION_IMPORT_ATTACHABLE_KINDS,
   TRANSACTION_IMPORT_MAX_OPERATIONS,
   type TransactionImportBudgetLine,
   type TransactionImportDecision,
@@ -231,20 +232,11 @@ type AttachableOperation = Pick<
   'position' | 'kind' | 'status' | 'suggestion'
 >;
 
-/** Money in goes to a Revenu; money out to a Dépense or an Épargne. */
-const COMPATIBLE_LINE_KINDS: Record<
-  TransactionImportOperation['kind'],
-  readonly TransactionKind[]
-> = {
-  income: ['income'],
-  expense: ['expense', 'saving'],
-};
-
 export function isLineCompatible(
   operationKind: TransactionImportOperation['kind'],
   lineKind: TransactionKind,
 ): boolean {
-  return COMPATIBLE_LINE_KINDS[operationKind].includes(lineKind);
+  return TRANSACTION_IMPORT_ATTACHABLE_KINDS[operationKind].includes(lineKind);
 }
 
 export function compatibleBudgetLines(
@@ -397,7 +389,7 @@ export function buildAttachmentOptions(
   operation: Pick<TransactionImportOperation, 'kind'>,
   budgetLines: readonly TransactionImportBudgetLine[],
 ): AttachmentOptionGroup[] {
-  return COMPATIBLE_LINE_KINDS[operation.kind]
+  return TRANSACTION_IMPORT_ATTACHABLE_KINDS[operation.kind]
     .map((kind) => ({
       kind,
       kindKey: `transactionKind.${kind}`,

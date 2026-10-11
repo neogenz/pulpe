@@ -1777,6 +1777,20 @@ export type TransactionImportOperationStatus = z.infer<
 export const transactionImportKindSchema = z.enum(['income', 'expense']);
 
 /**
+ * The Prévision kinds an imported operation may be attached to: money in only
+ * fills a Revenu; money out a Dépense or an Épargne.
+ */
+export const TRANSACTION_IMPORT_ATTACHABLE_KINDS: Readonly<
+  Record<
+    z.infer<typeof transactionImportKindSchema>,
+    readonly TransactionKind[]
+  >
+> = {
+  income: ['income'],
+  expense: ['expense', 'saving'],
+};
+
+/**
  * The explicit criteria a suggested Prévision meets (CA4). The month is
  * implicit: only the target budget's Prévisions are ever candidates.
  *

@@ -347,6 +347,7 @@ export {
 export {
   TRANSACTION_IMPORT_MAX_FILE_BYTES,
   TRANSACTION_IMPORT_MAX_OPERATIONS,
+  TRANSACTION_IMPORT_ATTACHABLE_KINDS,
   transactionImportFormatSchema,
   transactionImportErrorCodeSchema,
   transactionImportErrorSchema,
