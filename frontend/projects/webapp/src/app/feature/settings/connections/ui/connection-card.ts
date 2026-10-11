@@ -169,7 +169,9 @@ const FULL_COUNT = 50;
                     (click)="
                       isExpanded()
                         ? isExpanded.set(false)
-                        : fetchActivity(fullCount)
+                        : requestedLimit === fullCount
+                          ? isExpanded.set(true)
+                          : fetchActivity(fullCount)
                     "
                     [attr.data-testid]="
                       isExpanded()

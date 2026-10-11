@@ -96,11 +96,6 @@ import { StateCard } from '@ui/state-card/state-card';
           }
         }
       }
-      @if (store.tags.status() === 'resolved' && tagCount() > 0) {
-        <p class="text-body-small text-on-surface-variant">
-          {{ 'settings.tags.emptyMessage' | transloco }}
-        </p>
-      }
     </div>
   `,
   styles: `

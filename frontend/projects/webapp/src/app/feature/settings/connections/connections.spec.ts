@@ -188,42 +188,49 @@ describe('Connections', () => {
     expect(query('connection-no-activity')).not.toBeNull();
   });
 
-  it('expands, reduces and reopens cached history with simultaneous actions', async () => {
-    await setup([chatgpt]);
-    const entries: McpActivity[] = Array.from({ length: 50 }, () => ({
-      tool: 'future_tool',
-      outcome: 'ok',
-      createdAt: '2026-09-06T00:00:00Z',
-    }));
-    store.loadActivity
-      .mockResolvedValueOnce(entries.slice(0, 5))
-      .mockResolvedValueOnce(entries);
-    const rowCount = () =>
-      fixture.nativeElement.querySelectorAll(
-        '[data-testid="connection-activity-row"]',
-      ).length;
-    query('connection-load-activity')!.click();
-    await fixture.whenStable();
-    expect(rowCount()).toBe(5);
-    expect(store.loadActivity).toHaveBeenCalledWith(chatgpt.id, 5);
-    const firstRow = query('connection-activity-row')?.textContent;
-    expect(firstRow).toContain('Action de l’assistant');
-    expect(firstRow).not.toContain('future_tool');
-    query('connection-see-all')!.click();
-    await fixture.whenStable();
-    expect(store.loadActivity).toHaveBeenLastCalledWith(chatgpt.id, 50);
-    expect(rowCount()).toBe(50);
-    query('connection-show-less')!.click();
-    await fixture.whenStable();
-    expect(rowCount()).toBe(5);
-    query('connection-load-activity')!.click();
-    await fixture.whenStable();
-    expect(
-      query('connection-load-activity')?.getAttribute('aria-expanded'),
-    ).toBe('false');
-    query('connection-load-activity')!.click();
-    await fixture.whenStable();
-    expect(rowCount()).toBe(5);
-    expect(store.loadActivity).toHaveBeenCalledTimes(2);
-  });
+  it.each([12, 50])(
+    'reuses %i cached actions after reducing and reopening history',
+    async (count) => {
+      await setup([chatgpt]);
+      const entries: McpActivity[] = Array.from({ length: count }, () => ({
+        tool: 'future_tool',
+        outcome: 'ok',
+        createdAt: '2026-09-06T00:00:00Z',
+      }));
+      store.loadActivity
+        .mockResolvedValueOnce(entries.slice(0, 5))
+        .mockResolvedValueOnce(entries);
+      const rowCount = () =>
+        fixture.nativeElement.querySelectorAll(
+          '[data-testid="connection-activity-row"]',
+        ).length;
+      query('connection-load-activity')!.click();
+      await fixture.whenStable();
+      expect(rowCount()).toBe(5);
+      expect(store.loadActivity).toHaveBeenCalledWith(chatgpt.id, 5);
+      const firstRow = query('connection-activity-row')?.textContent;
+      expect(firstRow).toContain('Action de l’assistant');
+      expect(firstRow).not.toContain('future_tool');
+      query('connection-see-all')!.click();
+      await fixture.whenStable();
+      expect(store.loadActivity).toHaveBeenLastCalledWith(chatgpt.id, 50);
+      expect(rowCount()).toBe(count);
+      query('connection-show-less')!.click();
+      await fixture.whenStable();
+      expect(rowCount()).toBe(5);
+      query('connection-load-activity')!.click();
+      await fixture.whenStable();
+      expect(
+        query('connection-load-activity')?.getAttribute('aria-expanded'),
+      ).toBe('false');
+      query('connection-load-activity')!.click();
+      await fixture.whenStable();
+      expect(rowCount()).toBe(5);
+      expect(store.loadActivity).toHaveBeenCalledTimes(2);
+      query('connection-see-all')!.click();
+      await fixture.whenStable();
+      expect(rowCount()).toBe(count);
+      expect(store.loadActivity).toHaveBeenCalledTimes(2);
+    },
+  );
 });
