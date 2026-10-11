@@ -4,7 +4,7 @@ Structured context the AI assistant reads at the start of a session, so it does 
 
 ## How it loads
 
-- The files at the root of `memory/` are referenced by the `<aidd_project_memory>` block in the AI context file and load every session.
+- The files at the root of `memory/` are referenced by the project memory block in each AI context file and load every session.
 - `internal/` and `external/` are listed there too, but load on demand, only when relevant.
 
 ## Files

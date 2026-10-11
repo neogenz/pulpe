@@ -1,5 +1,22 @@
 # pulpe-frontend
 
+## 0.51.1
+
+### Patch Changes
+
+- Soumission de l’app iOS 1.7.0 (2), qui porte le contenu de la 0.51.0.
+  - pulpe-shared@0.51.1
+
+## 0.51.0
+
+### Minor Changes
+
+- Rapprocher mes comptes, bilan du mois, pointage priorisé et invitation à noter sa première dépense.
+
+### Patch Changes
+
+- pulpe-shared@0.51.0
+
 ## 0.50.0
 
 ### Minor Changes
