@@ -11,12 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.50.0',
+  version: '0.51.0',
   features: {
-    fr: ['Connexion guidée aux assistants', 'Écrans sans données'],
-    en: ['Assistant connection guide', 'Empty screens'],
-    de: ['Assistenten verbinden', 'Ansichten ohne Daten'],
-    it: ['Connessione guidata agli assistenti', 'Schermate senza dati'],
+    fr: ['Rapprocher mes comptes', 'Bilan du mois', 'Pointage priorisé'],
+    en: ['Match my accounts', 'Month recap', 'Smarter checking'],
+    de: ['Konten abgleichen', 'Monatsrückblick', 'Priorisiertes Abhaken'],
+    it: ['Allinea i miei conti', 'Riepilogo del mese', 'Spunta prioritaria'],
   },
 };
 

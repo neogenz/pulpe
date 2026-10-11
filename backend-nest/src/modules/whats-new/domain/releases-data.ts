@@ -54,6 +54,119 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.51.0',
+    iosVersion: '1.7.0',
+    date: '2026-10-11',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Rapprocher mes comptes',
+          description:
+            'Compare le solde de tes comptes à ton solde pointé et ajuste l’écart en un geste.',
+        },
+        {
+          title: 'Bilan du mois',
+          description:
+            'À l’ouverture d’un nouveau mois, un bilan résume le mois terminé et le montant reporté.',
+        },
+        {
+          title: 'Pointage priorisé',
+          description:
+            'L’accueil propose d’abord les prévisions que tu pointes d’habitude à cette période du mois.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Barre de navigation',
+          description:
+            'Le titre et les boutons restent lisibles quand tu fais défiler l’accueil, les budgets ou un objectif.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Match my accounts',
+            description:
+              'Compare your account balances with your checked balance and adjust the difference in one step.',
+          },
+          {
+            title: 'Month recap',
+            description:
+              'When a new month starts, a recap sums up the month that ended and the amount carried over.',
+          },
+          {
+            title: 'Smarter checking',
+            description:
+              'The home screen first shows the planned items you usually check at this point of the month.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Navigation bar',
+            description:
+              'The title and buttons stay readable when you scroll the home screen, budgets or a goal.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Konten abgleichen',
+            description:
+              'Vergleiche deine Kontostände mit deinem abgehakten Saldo und gleiche die Differenz in einem Schritt aus.',
+          },
+          {
+            title: 'Monatsrückblick',
+            description:
+              'Beginnt ein neuer Monat, fasst ein Rückblick den abgelaufenen Monat und den übertragenen Betrag zusammen.',
+          },
+          {
+            title: 'Priorisiertes Abhaken',
+            description:
+              'Die Startseite zeigt zuerst die Planposten, die du zu diesem Zeitpunkt im Monat üblicherweise abhakst.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Navigationsleiste',
+            description:
+              'Titel und Schaltflächen bleiben lesbar, wenn du durch die Startseite, die Budgets oder ein Ziel scrollst.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Allinea i miei conti',
+            description:
+              'Confronta il saldo dei tuoi conti con il saldo spuntato e correggi la differenza in un solo passaggio.',
+          },
+          {
+            title: 'Riepilogo del mese',
+            description:
+              'All’inizio di un nuovo mese, un riepilogo riassume il mese concluso e l’importo riportato.',
+          },
+          {
+            title: 'Spunta prioritaria',
+            description:
+              'La home mostra prima le previsioni che di solito spunti in questo momento del mese.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Barra di navigazione',
+            description:
+              'Titolo e pulsanti restano leggibili quando scorri la home, i budget o un obiettivo.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.49.0',
     iosVersion: '1.6.0',
     date: '2026-09-08',
