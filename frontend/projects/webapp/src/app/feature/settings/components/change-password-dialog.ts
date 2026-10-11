@@ -19,7 +19,6 @@ import { AuthSessionService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 import { MatDivider } from '@angular/material/divider';
 import { ErrorAlert } from '@ui/error-alert';
-import { createFieldsMatchValidator } from '@core/validators';
 import { changePasswordFormSchema } from './change-password-dialog.schema';
 
 @Component({
@@ -51,9 +50,17 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
         data-testid="change-password-error"
       />
 
-      <form [formGroup]="passwordForm" (ngSubmit)="onSubmit()">
+      <form
+        id="change-password-form"
+        [formGroup]="passwordForm"
+        (ngSubmit)="onSubmit()"
+      >
         <!-- Section: Ancien mot de passe -->
-        <mat-form-field appearance="outline" class="w-full">
+        <mat-form-field
+          appearance="outline"
+          class="w-full mb-4"
+          subscriptSizing="dynamic"
+        >
           <mat-label>{{ 'settings.currentPassword' | transloco }}</mat-label>
           <input
             matInput
@@ -90,7 +97,11 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
 
         <!-- Section: Nouveau mot de passe -->
         <div class="space-y-4">
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field
+            appearance="outline"
+            class="w-full"
+            subscriptSizing="dynamic"
+          >
             <mat-label>{{ 'settings.newPassword' | transloco }}</mat-label>
             <input
               matInput
@@ -132,42 +143,6 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
               </mat-error>
             }
           </mat-form-field>
-
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>{{
-              'settings.confirmNewPassword' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
-              formControlName="confirmPassword"
-              autocomplete="new-password"
-              data-testid="confirm-password-input"
-              (input)="clearError()"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            <button
-              type="button"
-              matIconButton
-              matSuffix
-              (click)="isConfirmPasswordHidden.set(!isConfirmPasswordHidden())"
-              [attr.aria-label]="showPasswordLabel"
-              [attr.aria-pressed]="!isConfirmPasswordHidden()"
-            >
-              <mat-icon>{{
-                isConfirmPasswordHidden() ? 'visibility_off' : 'visibility'
-              }}</mat-icon>
-            </button>
-            @if (passwordForm.get('confirmPassword')?.hasError('required')) {
-              <mat-error>{{
-                'settings.confirmPasswordRequired' | transloco
-              }}</mat-error>
-            } @else if (
-              passwordForm.get('confirmPassword')?.hasError('passwordsMismatch')
-            ) {
-              <mat-error>{{ 'form.passwordsMismatch' | transloco }}</mat-error>
-            }
-          </mat-form-field>
         </div>
       </form>
     </mat-dialog-content>
@@ -180,8 +155,9 @@ import { changePasswordFormSchema } from './change-password-dialog.schema';
         matButton="filled"
         color="primary"
         data-testid="submit-password-button"
+        type="submit"
+        form="change-password-form"
         [disabled]="isSubmitting() || !isFormValid()"
-        (click)="onSubmit()"
       >
         <span class="flex items-center justify-center">
           @if (isSubmitting()) {
@@ -211,25 +187,14 @@ export class ChangePasswordDialog {
   protected readonly errorMessage = signal('');
   protected readonly isCurrentPasswordHidden = signal(true);
   protected readonly isNewPasswordHidden = signal(true);
-  protected readonly isConfirmPasswordHidden = signal(true);
 
-  protected readonly passwordForm = this.#formBuilder.nonNullable.group(
-    {
-      currentPassword: ['', [Validators.required]],
-      newPassword: [
-        '',
-        [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
-      ],
-      confirmPassword: ['', [Validators.required]],
-    },
-    {
-      validators: createFieldsMatchValidator(
-        'newPassword',
-        'confirmPassword',
-        'passwordsMismatch',
-      ),
-    },
-  );
+  protected readonly passwordForm = this.#formBuilder.nonNullable.group({
+    currentPassword: ['', [Validators.required]],
+    newPassword: [
+      '',
+      [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
+    ],
+  });
 
   readonly #formStatus = toSignal(this.passwordForm.statusChanges, {
     initialValue: this.passwordForm.status,

@@ -8,11 +8,9 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -62,11 +60,9 @@ import { SettingsDialogService } from './settings-dialog.service';
     CurrencyConverterWidget,
     MatButtonModule,
     MatButtonToggleModule,
-    MatCardModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
-    MatInputModule,
     MatDividerModule,
     MatProgressSpinnerModule,
     MatSelectModule,
@@ -76,15 +72,25 @@ import { SettingsDialogService } from './settings-dialog.service';
     TranslocoPipe,
   ],
   template: `
-    <div data-testid="settings-page">
-      <h1 class="text-headline-medium mb-8">
-        {{ 'settings.title' | transloco }}
-      </h1>
+    <div class="w-full max-w-5xl min-w-0 pb-8" data-testid="settings-page">
+      <header class="pulpe-page-header mb-8" data-testid="page-header">
+        <div>
+          <h1
+            class="text-headline-medium md:text-display-small font-bold"
+            data-testid="page-title"
+          >
+            {{ 'settings.title' | transloco }}
+          </h1>
+          <p class="text-body-medium text-on-surface-variant mt-1">
+            {{ 'settings.subtitle' | transloco }}
+          </p>
+        </div>
+      </header>
 
       <!-- ═══ Section: Compte ═══ -->
-      <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
+      <section class="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
         <div>
-          <h2 class="text-title-medium font-bold mb-2">
+          <h2 class="text-title-large mb-2">
             {{ 'settings.accountSection' | transloco }}
           </h2>
           <p class="text-body-small text-on-surface-variant leading-relaxed">
@@ -92,24 +98,9 @@ import { SettingsDialogService } from './settings-dialog.service';
           </p>
         </div>
 
-        <div class="md:col-span-2 space-y-8">
-          <!-- Tip: Comment ça marche ? -->
-          <div
-            class="rounded-2xl bg-surface-container/50 p-5 text-on-surface-container! flex gap-4 items-start border border-outline-variant"
-          >
-            <mat-icon class="text-on-surface-container! shrink-0 opacity-70"
-              >lightbulb</mat-icon
-            >
-            <div class="space-y-1">
-              <p class="text-body-medium font-medium">
-                {{ 'settings.howItWorks' | transloco }}
-              </p>
-              <p class="text-body-small leading-relaxed">
-                {{ 'settings.howItWorksDetail' | transloco }}
-              </p>
-            </div>
-          </div>
-
+        <div
+          class="min-w-0 rounded-2xl border border-outline-variant bg-surface-container-low p-5 sm:p-6 space-y-6"
+        >
           <div class="space-y-4">
             <!-- Currency Selector -->
             <div class="flex flex-col gap-2">
@@ -147,18 +138,6 @@ import { SettingsDialogService } from './settings-dialog.service';
               </mat-button-toggle-group>
             </div>
 
-            <!-- Language -->
-            <div class="flex flex-col gap-1">
-              <pulpe-language-selector
-                [locale]="currentLocale()"
-                [disabled]="isChangingLanguage()"
-                (localeChange)="onLanguageChange($event)"
-              />
-              <p class="text-body-small text-on-surface-variant">
-                {{ 'settings.languageReloadHint' | transloco }}
-              </p>
-            </div>
-
             <!-- Currency Selector Toggle -->
             <div class="flex items-center justify-between gap-4 py-2">
               <div class="space-y-0.5">
@@ -172,6 +151,7 @@ import { SettingsDialogService } from './settings-dialog.service';
               <mat-slide-toggle
                 [checked]="selectedShowCurrencySelector()"
                 (change)="onShowCurrencySelectorChange($event.checked)"
+                [aria-label]="'settings.currencySelectorLabel' | transloco"
                 data-testid="show-currency-selector-toggle"
               />
             </div>
@@ -190,6 +170,7 @@ import { SettingsDialogService } from './settings-dialog.service';
               <mat-label>{{ 'settings.payDay' | transloco }}</mat-label>
               <mat-select
                 data-testid="pay-day-select"
+                [canSelectNullableOptions]="true"
                 [value]="selectedPayDay()"
                 (selectionChange)="onPayDayChange($event)"
               >
@@ -216,6 +197,19 @@ import { SettingsDialogService } from './settings-dialog.service';
                 }
               </mat-hint>
             </mat-form-field>
+
+            <details class="rounded-xl bg-surface-container p-4">
+              <summary
+                class="cursor-pointer text-label-large text-on-surface min-h-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                {{ 'settings.howItWorks' | transloco }}
+              </summary>
+              <p
+                class="text-body-small text-on-surface-variant leading-relaxed mt-2"
+              >
+                {{ 'settings.howItWorksDetail' | transloco }}
+              </p>
+            </details>
 
             @if (hasChanges()) {
               <div class="flex justify-end gap-3 pt-2">
@@ -244,15 +238,31 @@ import { SettingsDialogService } from './settings-dialog.service';
               </div>
             }
           </div>
+          <!-- Language -->
+          <div class="flex flex-col gap-2 border-t border-outline-variant pt-6">
+            <pulpe-language-selector
+              [locale]="currentLocale()"
+              [disabled]="isChangingLanguage() || hasChanges()"
+              (localeChange)="onLanguageChange($event)"
+            />
+            <p class="text-body-small text-on-surface-variant">
+              {{
+                (hasChanges()
+                  ? 'settings.languagePendingHint'
+                  : 'settings.languageReloadHint'
+                ) | transloco
+              }}
+            </p>
+          </div>
         </div>
       </section>
 
       <mat-divider class="my-8!"></mat-divider>
 
       <!-- ═══ Section: Organisation ═══ -->
-      <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
+      <section class="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
         <div>
-          <h2 class="text-title-medium font-bold mb-2">
+          <h2 class="text-title-large mb-2">
             {{ 'settings.organizationSection' | transloco }}
           </h2>
           <p class="text-body-small text-on-surface-variant leading-relaxed">
@@ -260,46 +270,55 @@ import { SettingsDialogService } from './settings-dialog.service';
           </p>
         </div>
 
-        <div class="md:col-span-2 flex items-center justify-between gap-6">
-          <div class="space-y-1">
-            <h3 class="text-title-small">
-              {{ 'settings.tags.title' | transloco }}
-            </h3>
-            <p class="text-body-small text-on-surface-variant">
-              {{ 'settings.tags.description' | transloco }}
-            </p>
-          </div>
+        <div class="space-y-3">
           <button
-            matButton="outlined"
             type="button"
-            class="shrink-0"
+            class="flex w-full items-center gap-4 rounded-2xl border border-outline-variant bg-surface-container-low p-5 text-left hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             data-testid="tags-settings-link"
             [attr.aria-label]="'settings.tags.open' | transloco"
             (click)="openTagCatalog()"
           >
-            {{ 'settings.tags.manage' | transloco }}
+            <mat-icon class="text-primary shrink-0" aria-hidden="true"
+              >sell</mat-icon
+            >
+            <span class="min-w-0 flex-1">
+              <span class="block text-title-medium">{{
+                'settings.tags.title' | transloco
+              }}</span>
+              <span
+                class="block text-body-small text-on-surface-variant mt-1"
+                >{{ 'settings.tags.description' | transloco }}</span
+              >
+            </span>
+            <mat-icon
+              class="text-on-surface-variant shrink-0"
+              aria-hidden="true"
+              >chevron_right</mat-icon
+            >
           </button>
-        </div>
-
-        <div
-          class="md:col-start-2 md:col-span-2 flex items-center justify-between gap-6"
-        >
-          <div class="space-y-1">
-            <h3 class="text-title-small">
-              {{ 'settings.connections.title' | transloco }}
-            </h3>
-            <p class="text-body-small text-on-surface-variant">
-              {{ 'settings.connections.description' | transloco }}
-            </p>
-          </div>
           <button
-            matButton="outlined"
             type="button"
-            class="shrink-0"
+            class="flex w-full items-center gap-4 rounded-2xl border border-outline-variant bg-surface-container-low p-5 text-left hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             data-testid="connections-settings-link"
             (click)="openConnections()"
           >
-            {{ 'settings.tags.manage' | transloco }}
+            <mat-icon class="text-primary shrink-0" aria-hidden="true"
+              >smart_toy</mat-icon
+            >
+            <span class="min-w-0 flex-1">
+              <span class="block text-title-medium">{{
+                'settings.connections.title' | transloco
+              }}</span>
+              <span
+                class="block text-body-small text-on-surface-variant mt-1"
+                >{{ 'settings.connections.description' | transloco }}</span
+              >
+            </span>
+            <mat-icon
+              class="text-on-surface-variant shrink-0"
+              aria-hidden="true"
+              >chevron_right</mat-icon
+            >
           </button>
         </div>
       </section>
@@ -308,9 +327,9 @@ import { SettingsDialogService } from './settings-dialog.service';
 
       <!-- ═══ Section: Sécurité ═══ -->
       @if (!isDemoMode()) {
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-12">
+        <section class="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
           <div>
-            <h2 class="text-title-medium font-bold mb-2">
+            <h2 class="text-title-large mb-2">
               {{ 'settings.securitySection' | transloco }}
             </h2>
             <p class="text-body-small text-on-surface-variant leading-relaxed">
@@ -318,11 +337,13 @@ import { SettingsDialogService } from './settings-dialog.service';
             </p>
           </div>
 
-          <div class="md:col-span-2 space-y-10">
+          <div
+            class="min-w-0 rounded-2xl border border-outline-variant bg-surface-container-low px-5 sm:px-6 divide-y divide-outline-variant"
+          >
             @if (!isOAuthOnly()) {
               <!-- Mot de passe -->
               <div
-                class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
+                class="flex flex-col items-start gap-3 py-5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div class="space-y-1">
                   <h3 class="text-title-small">
@@ -334,6 +355,8 @@ import { SettingsDialogService } from './settings-dialog.service';
                 </div>
                 <button
                   matButton="outlined"
+                  class="shrink-0"
+                  [attr.aria-label]="'settings.changePasswordTitle' | transloco"
                   data-testid="change-password-button"
                   (click)="onChangePassword()"
                 >
@@ -344,7 +367,7 @@ import { SettingsDialogService } from './settings-dialog.service';
 
             <!-- Code PIN -->
             <div
-              class="flex items-center justify-between gap-6 pb-6 border-b border-outline-variant/20"
+              class="flex flex-col items-start gap-3 py-5 sm:flex-row sm:items-center sm:justify-between"
             >
               <div class="space-y-1">
                 <h3 class="text-title-small">
@@ -356,6 +379,8 @@ import { SettingsDialogService } from './settings-dialog.service';
               </div>
               <button
                 matButton="outlined"
+                class="shrink-0"
+                [attr.aria-label]="'settings.changePin.title' | transloco"
                 data-testid="change-pin-button"
                 (click)="onChangePin()"
               >
@@ -364,9 +389,7 @@ import { SettingsDialogService } from './settings-dialog.service';
             </div>
 
             <!-- Clé de récupération -->
-            <div
-              class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6"
-            >
+            <div class="flex flex-col items-start gap-3 py-5">
               <div class="space-y-1 min-w-0">
                 <h3 class="text-title-small">
                   {{ 'settings.recoveryKey' | transloco }}
@@ -405,9 +428,9 @@ import { SettingsDialogService } from './settings-dialog.service';
       }
 
       <!-- ═══ Section: Données de diagnostic ═══ -->
-      <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
+      <section class="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
         <div>
-          <h2 class="text-title-medium font-bold mb-2">
+          <h2 class="text-title-large mb-2">
             {{ 'settings.diagnosticDataSection' | transloco }}
           </h2>
           <p class="text-body-small text-on-surface-variant leading-relaxed">
@@ -415,14 +438,16 @@ import { SettingsDialogService } from './settings-dialog.service';
           </p>
         </div>
 
-        <div class="md:col-span-2 flex items-center justify-between gap-6">
+        <div
+          class="flex items-center justify-between gap-4 rounded-2xl border border-outline-variant bg-surface-container-low p-5"
+        >
           <span class="text-body-medium">
             {{ 'settings.diagnosticSharingLabel' | transloco }}
           </span>
           <mat-slide-toggle
             [checked]="diagnosticSharingEnabled()"
             (change)="onDiagnosticSharingChange($event.checked)"
-            [attr.aria-label]="'settings.diagnosticSharingLabel' | transloco"
+            [aria-label]="'settings.diagnosticSharingLabel' | transloco"
             data-testid="diagnostic-sharing-toggle"
           />
         </div>
@@ -432,35 +457,36 @@ import { SettingsDialogService } from './settings-dialog.service';
 
       <!-- ═══ Section: Zone de danger ═══ -->
       @if (!isDemoMode()) {
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8 pb-12">
+        <section
+          class="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8 pb-12"
+        >
           <div>
-            <h2 class="text-title-medium text-error font-bold mb-2">
+            <h2 class="text-title-large mb-2">
               {{ 'settings.dangerSection' | transloco }}
             </h2>
-            <p class="text-body-small text-error opacity-70 leading-relaxed">
+            <p class="text-body-small text-on-surface-variant leading-relaxed">
               {{ 'settings.dangerDescription' | transloco }}
             </p>
           </div>
 
-          <div class="md:col-span-2">
+          <div class="min-w-0">
             <div
-              class="bg-error-container/30 rounded-2xl border border-error/50 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
+              class="rounded-2xl border border-outline-variant bg-surface-container-low p-5 flex flex-col items-start gap-4"
             >
               <div class="space-y-1">
-                <h3 class="text-title-small font-bold text-error">
+                <h3 class="text-title-medium">
                   {{ 'settings.deleteAccount' | transloco }}
                 </h3>
-                <p class="text-body-medium text-error opacity-90">
+                <p class="text-body-small text-on-surface-variant">
                   {{ 'settings.deleteAccountDescription' | transloco }}
                 </p>
               </div>
               <button
-                matButton="filled"
-                color="warn"
+                matButton="outlined"
                 data-testid="delete-account-button"
                 [disabled]="isDeleting()"
                 (click)="onDeleteAccount()"
-                class="shrink-0"
+                class="warn-theme shrink-0"
               >
                 <span class="flex items-center justify-center">
                   @if (isDeleting()) {

@@ -57,6 +57,9 @@ test.describe('Settings OAuth User', () => {
     await page.getByTestId('delete-account-button').click();
     const dialog = page.getByRole('dialog', { name: 'Supprimer ton compte' });
     await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole('button', { name: 'Fermer', exact: true }),
+    ).toBeVisible();
 
     await expect(
       dialog.getByTestId('delete-confirm-vault-code-input'),

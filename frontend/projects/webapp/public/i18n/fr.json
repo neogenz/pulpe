@@ -337,8 +337,8 @@
   },
   "settings": {
     "title": "Paramètres",
-    "accountSection": "Compte",
-    "accountDescription": "Gère tes préférences de compte et ton cycle budgétaire.",
+    "accountSection": "Préférences",
+    "accountDescription": "Adapte Pulpe à ta langue, ta devise et ton rythme budgétaire.",
     "organizationSection": "Organisation",
     "organizationDescription": "Retrouve les éléments que tu utilises pour organiser tes finances.",
     "tags": {
@@ -402,7 +402,7 @@
     "regenerateKey": "Régénérer",
     "newRecoveryKeySaved": "Nouvelle clé de récupération enregistrée",
     "generateKeyError": "La génération de la clé a échoué — réessaie plus tard",
-    "dangerSection": "Zone de danger",
+    "dangerSection": "Compte",
     "dangerDescription": "Actions irréversibles sur ton compte.",
     "deleteAccount": "Supprimer mon compte",
     "deleteAccountDescription": "Tes données seront supprimées définitivement après 3 jours.",
@@ -425,7 +425,7 @@
     "changePasswordFailed": "Le changement de mot de passe a échoué",
     "changePasswordError": "Le changement de mot de passe a échoué — réessaie plus tard",
     "deleteAccountTitle": "Supprimer ton compte",
-    "deleteAccountWarning": "Toutes tes données seront supprimées définitivement. Il n'y a pas de retour en arrière possible.",
+    "deleteAccountWarning": "Tu seras déconnecté et ton compte sera supprimé définitivement dans 3 jours, avec toutes tes données.",
     "pinCodeLabel": "Code PIN",
     "showPinCode": "Afficher le code PIN",
     "pinCodeRequired": "Le code PIN est requis",
@@ -435,7 +435,7 @@
     "passwordPlaceholder": "Ton mot de passe",
     "passwordRequired": "Le mot de passe est requis",
     "passwordMinLength": "Au moins {{ min }} caractères",
-    "deleteAccountConfirm": "Supprimer définitivement le compte",
+    "deleteAccountConfirm": "Confirmer la suppression",
     "pinIncorrect": "Code PIN incorrect ou clé de chiffrement invalide",
     "deleteAccountVerificationFailed": "La vérification a échoué — réessaie plus tard",
     "passwordIncorrect": "Mot de passe incorrect",
@@ -484,7 +484,8 @@
         "copied": "Adresse copiée.",
         "copyFailed": "La copie a échoué. Sélectionne l’adresse et copie-la manuellement.",
         "finish": "Connecte-toi à Pulpe et choisis ce que l’assistant peut faire. Ensuite, active Pulpe dans ta conversation. Tu peux couper son accès ici à tout moment.",
-        "availability": "Pulpe n’est pas encore dans les catalogues. Les options de connexion dépendent de ton compte et de l’application utilisée."
+        "availability": "Pulpe n’est pas encore dans les catalogues. Les options de connexion dépendent de ton compte et de l’application utilisée.",
+        "steps": "Voir les étapes"
       },
       "title": "Connexions",
       "description": "Les assistants IA autorisés à accéder à ton budget.",
@@ -499,7 +500,7 @@
       "recentActions": "Dernières actions",
       "showActions": "Voir ce que l'assistant a fait",
       "noActivity": "Aucune action pour l'instant.",
-      "seeAll": "Tout voir",
+      "seeAll": "Voir les 50 dernières actions",
       "failed": "échec",
       "tools": {
         "add_movement": "Mouvement ajouté",
@@ -516,8 +517,14 @@
       "revokeTitle": "Couper l'accès à {{ client }} ?",
       "revokeMessage": "{{ client }} ne pourra plus lire ni modifier ton budget. Pour le rebrancher, il faudra l'autoriser à nouveau avec ton code.",
       "revokeSuccess": "Accès de {{ client }} coupé.",
-      "revokeError": "Impossible de couper l'accès. Réessaie."
-    }
+      "revokeError": "Impossible de couper l'accès. Réessaie.",
+      "connectedTitle": "Assistants connectés",
+      "activityLoading": "Chargement des dernières actions…",
+      "activityError": "Impossible de charger les dernières actions.",
+      "showLess": "Réduire"
+    },
+    "subtitle": "Tes préférences, tes assistants et la sécurité de ton compte.",
+    "languagePendingHint": "Enregistre ou annule tes modifications avant de changer de langue."
   },
   "budget": {
     "loading": "Préparation de ton budget...",
