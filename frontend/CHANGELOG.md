@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.51.1
+
+### Patch Changes
+
+- Soumission de l’app iOS 1.7.0 (2), qui porte le contenu de la 0.51.0.
+  - pulpe-shared@0.51.1
+
 ## 0.51.0
 
 ### Minor Changes
