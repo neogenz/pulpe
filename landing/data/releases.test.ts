@@ -8,9 +8,9 @@ const releases = JSON.parse(
 ) as Array<Record<string, unknown>>;
 
 const localeMarkers = {
-  en: "Empty screens",
-  de: "Ansichten ohne Daten",
-  it: "Schermate senza dati",
+  en: "Payday",
+  de: "Zahltag",
+  it: "Giorno di paga",
 } as const;
 
 describe("localized release data", () => {
@@ -25,6 +25,7 @@ describe("localized release data", () => {
       assert.deepEqual(
         localized.map(({ version }) => version),
         [
+          "0.51.0",
           "0.50.0",
           "0.49.0",
           "0.48.0",

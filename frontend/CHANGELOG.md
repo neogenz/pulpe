@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.51.0
+
+### Minor Changes
+
+- Rapprocher mes comptes, bilan du mois, pointage priorisé et invitation à noter sa première dépense.
+
+### Patch Changes
+
+- pulpe-shared@0.51.0
+
 ## 0.50.0
 
 ### Minor Changes
