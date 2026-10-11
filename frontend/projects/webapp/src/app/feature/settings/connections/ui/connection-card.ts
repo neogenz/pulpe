@@ -199,7 +199,6 @@ export class ConnectionCard {
   readonly revoke = output<void>();
 
   protected readonly previewCount = PREVIEW_COUNT;
-  protected readonly fullCount = FULL_COUNT;
   protected readonly activity = signal<McpActivity[] | null>(null);
   protected readonly isExpanded = signal(false);
   protected readonly historyOpen = signal(false);
