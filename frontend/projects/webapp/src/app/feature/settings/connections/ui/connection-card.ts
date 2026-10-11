@@ -89,7 +89,6 @@ const FULL_COUNT = 50;
           <section
             [id]="'activity-' + connection().id"
             [hidden]="!historyOpen()"
-            [attr.aria-label]="'settings.connections.recentActions' | transloco"
             [attr.aria-busy]="isLoading()"
             class="pb-3"
           >
@@ -166,13 +165,7 @@ const FULL_COUNT = 50;
                     type="button"
                     class="mt-2"
                     [disabled]="isLoading()"
-                    (click)="
-                      isExpanded()
-                        ? isExpanded.set(false)
-                        : requestedLimit === fullCount
-                          ? isExpanded.set(true)
-                          : fetchActivity(fullCount)
-                    "
+                    (click)="toggleExpandedActivity()"
                     [attr.data-testid]="
                       isExpanded()
                         ? 'connection-show-less'
@@ -226,6 +219,16 @@ export class ConnectionCard {
     this.historyOpen.update((open) => !open);
     if (this.historyOpen() && this.activity() === null) {
       void this.fetchActivity(PREVIEW_COUNT);
+    }
+  }
+
+  protected toggleExpandedActivity(): void {
+    if (this.isExpanded()) {
+      this.isExpanded.set(false);
+    } else if (this.requestedLimit === FULL_COUNT) {
+      this.isExpanded.set(true);
+    } else {
+      void this.fetchActivity(FULL_COUNT);
     }
   }
 
