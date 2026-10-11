@@ -21,7 +21,11 @@ import {
   createMockTagStore,
   type MockTagStore,
 } from '@app/testing/tag-store.mock';
-import { createMockLogger } from '@app/testing/mock-posthog';
+import {
+  createMockLogger,
+  createMockPostHogService,
+} from '@app/testing/mock-posthog';
+import { PostHogService } from '@core/analytics';
 import { StorageService } from '@core/storage';
 import { TagStore } from '@core/tag';
 import { Logger } from '@core/logging/logger';
@@ -30,6 +34,7 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 import { BudgetApi } from '@core/budget/budget-api';
 import { firstValueFrom, of } from 'rxjs';
 import {
+  FEATURE_FLAGS,
   transactionUpdateSchema,
   type BudgetLine,
   type Transaction,
@@ -169,6 +174,7 @@ function setupComponent(
   mockDialogService: MockDialogService,
   mockSnackBar: { open: ReturnType<typeof vi.fn> },
   mockTagStore: MockTagStore = createMockTagStore(),
+  mockPostHog = createMockPostHogService(),
 ): ComponentFixture<BudgetItemsContainer> {
   TestBed.configureTestingModule({
     imports: [BudgetItemsContainer, NoopAnimationsModule],
@@ -188,6 +194,7 @@ function setupComponent(
       },
       { provide: Logger, useValue: { warn: vi.fn(), error: vi.fn() } },
       { provide: TagStore, useValue: mockTagStore },
+      { provide: PostHogService, useValue: mockPostHog },
     ],
   });
 
@@ -261,6 +268,47 @@ describe('BudgetItemsContainer — contextual empty states', () => {
     const nativeEl: HTMLElement = fixture.nativeElement;
     expect(nativeEl.textContent).toContain('Aucune prévision trouvée');
     expect(nativeEl.textContent).not.toContain('Tout est pointé');
+  });
+});
+
+describe('BudgetItemsContainer — bank statement import flag (PUL-25)', () => {
+  const importButton = (fixture: ComponentFixture<BudgetItemsContainer>) =>
+    (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="import-statement-button"]',
+    );
+
+  it('hides the import while the flag is off', () => {
+    const fixture = setupComponent(
+      createMockStore(),
+      createMockDialogService(),
+      {
+        open: vi.fn(),
+      },
+    );
+    fixture.detectChanges();
+
+    expect(importButton(fixture)).toBeNull();
+  });
+
+  it('offers the import once PostHog resolves the flag for the user', () => {
+    const postHog = createMockPostHogService();
+    const fixture = setupComponent(
+      createMockStore(),
+      createMockDialogService(),
+      { open: vi.fn() },
+      createMockTagStore(),
+      postHog,
+    );
+    fixture.detectChanges();
+    expect(importButton(fixture)).toBeNull();
+
+    postHog.isFeatureEnabled.mockImplementation(
+      (key: string) => key === FEATURE_FLAGS.TRANSACTION_IMPORT,
+    );
+    postHog.flagsVersion.set(1);
+    fixture.detectChanges();
+
+    expect(importButton(fixture)).not.toBeNull();
   });
 });
 
@@ -1055,6 +1103,7 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
           },
         },
         { provide: Logger, useValue: createMockLogger() },
+        { provide: PostHogService, useValue: createMockPostHogService() },
         {
           provide: ApplicationConfiguration,
           useValue: { backendApiUrl: () => 'http://localhost:3000/api/v1' },

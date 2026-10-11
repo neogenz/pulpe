@@ -238,6 +238,7 @@ export { moneyDifference } from './src/money.js';
 export {
   ANALYTICS_PROPERTIES,
   ANALYTICS_EVENTS,
+  FEATURE_FLAGS,
   type AnalyticsEventName,
 } from './src/feature-flags.js';
 

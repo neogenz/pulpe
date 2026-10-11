@@ -27,6 +27,7 @@ import {
 } from '@core/budget';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
 import {
+  FEATURE_FLAGS,
   type BudgetLine,
   type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
@@ -38,6 +39,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { TagStore } from '@core/tag';
 import { Logger } from '@core/logging/logger';
+import { PostHogService } from '@core/analytics';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTable } from './budget-table/budget-table';
@@ -215,14 +217,16 @@ import {
 
         <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <!-- PUL-25 — secondary, text-weight: the FAB stays the one primary action -->
-          <button
-            matButton
-            (click)="openTransactionImportDialog()"
-            data-testid="import-statement-button"
-          >
-            <mat-icon>upload_file</mat-icon>
-            {{ 'transactionImport.open' | transloco }}
-          </button>
+          @if (isTransactionImportEnabled()) {
+            <button
+              matButton
+              (click)="openTransactionImportDialog()"
+              data-testid="import-statement-button"
+            >
+              <mat-icon>upload_file</mat-icon>
+              {{ 'transactionImport.open' | transloco }}
+            </button>
+          }
           @if (allUserTags().length > 0) {
             <button
               matButton
@@ -365,12 +369,18 @@ export class BudgetItemsContainer {
   readonly #logger = inject(Logger);
   readonly #userSettings = inject(UserSettingsStore);
   readonly #tagStore = inject(TagStore);
+  readonly #postHog = inject(PostHogService);
   readonly #currencyPipe = new AppCurrencyPipe();
   readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
     month: 'long',
   });
 
   protected readonly currency = this.#userSettings.currency;
+  protected readonly isTransactionImportEnabled = computed(() => {
+    // Re-evaluates when PostHog resolves or refreshes its flags.
+    this.#postHog.flagsVersion();
+    return this.#postHog.isFeatureEnabled(FEATURE_FLAGS.TRANSACTION_IMPORT);
+  });
 
   // Tag filter (PUL-18) — local UI state; applied on the built rows so the
   // consumption figures baked into each row stay correct.
