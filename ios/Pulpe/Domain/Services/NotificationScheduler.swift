@@ -178,11 +178,17 @@ actor NotificationScheduler {
 
         var sentences: [String] = []
         if let allowance = recap.weekAllowance {
-            let amount = allowance.asCompactCurrency(currency)
-            let sentence = if allowance <= 0 {
+            // Rounded once to the whole units the compact format shows, so the wording follows
+            // the figure: 0.25 left reads as exhausted, never "environ 0 CHF à dépenser".
+            let shownAllowance = allowance.rounded(0)
+            let amount = shownAllowance.asCompactCurrency(currency)
+            let sentence = if shownAllowance <= 0 {
                 AppLocale.string("Ton disponible est épuisé : un coup d'œil pour ajuster ta semaine ?")
-            } else if let usual = recap.usualWeekSpending?.asCompactCurrency(currency) {
-                AppLocale.string("Cette semaine : environ \(amount) à dépenser (d'habitude, tu en dépenses \(usual)).")
+            } else if let usual = recap.usualWeekSpending?.rounded(0), usual > 0 {
+                AppLocale.string("""
+                    Cette semaine : environ \(amount) à dépenser (d'habitude, tu en dépenses \
+                    \(usual.asCompactCurrency(currency))).
+                    """)
             } else {
                 AppLocale.string("Cette semaine : environ \(amount) à dépenser.")
             }
