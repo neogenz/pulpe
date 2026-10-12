@@ -6,7 +6,7 @@ import type { Dictionary } from "../dictionary";
 const en: Dictionary = {
   site: {
     titleDefault:
-      "Pulpe – Budget app | Plan your year, see what you’ll have left",
+      "Pulpe: budget app | Plan your year, see what you’ll have left",
     titleTemplate: "%s | Pulpe",
     description:
       "A budget app to plan your income, expenses and savings. Pulpe shows you what you’ll have left each month, with no bank connection.",
@@ -127,7 +127,7 @@ const en: Dictionary = {
             " of income, 1,600 of recurring expenses and 500 of savings leave 1,400 available every month",
         },
         year: {
-          title: "Place what changes",
+          title: "Plan one-off expenses",
           description:
             "Add taxes, holidays and big purchases in the months when they will happen.",
           captionLead: "Your year: twelve months at 1,400 ",
@@ -222,7 +222,7 @@ const en: Dictionary = {
     },
 
     platforms: {
-      heading: "Your budget follows you. Not the other way round.",
+      heading: "Your budget goes wherever you go.",
       intro:
         "On iPhone or in your browser, you find the same year and the same figures.",
       ios: {
@@ -247,7 +247,7 @@ const en: Dictionary = {
     whyFree: {
       portraitAlt: "Maxime, the creator of Pulpe",
       eyebrow: "A note from the creator",
-      heading: "I needed a budget that looks ahead.",
+      heading: "I needed to see the months ahead.",
       paragraphs: [
         "I built Pulpe after spending far too long keeping my spreadsheets up to date. I wanted to know what a decision would change in the months that followed, not only to understand where my money had gone.",
         "The project is free today, with no ads and no subscription. Its code stays public so you can check how it works.",
@@ -271,7 +271,7 @@ const en: Dictionary = {
     },
 
     faq: {
-      heading: "The questions I get asked most.",
+      heading: "Frequently asked questions.",
       items: [
         {
           question: "Is Pulpe a budget app?",
@@ -339,7 +339,7 @@ const en: Dictionary = {
       title: "Connect Pulpe to an AI assistant",
       text: "Connect ChatGPT, Claude or Claude Code to your budget, read only or with the right to write.",
     },
-    faqHeading: "The questions I get asked most.",
+    faqHeading: "Frequently asked questions.",
     faq: {
       purpose: {
         question: "What does Pulpe actually do?",
@@ -471,7 +471,7 @@ const en: Dictionary = {
       intro:
         "With ChatGPT or Claude, ask about your month, find an expense or ask the assistant to record it in Pulpe.",
       cta: "Explore the connection",
-      examplesTitle: "What you’ll be able to ask",
+      examplesTitle: "Example questions",
       examples: [
         "How much can I still spend this month?",
         "Find my grocery expenses.",

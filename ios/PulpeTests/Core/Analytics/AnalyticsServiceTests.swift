@@ -52,6 +52,7 @@ struct AnalyticsServiceTests {
             "notification_permission_granted",
             "notification_permission_denied",
             "reminder_toggled",
+            "reminder_opened",
             "ios_whats_new_shown",
             "currency_changed",
             "currency_selector_toggled",

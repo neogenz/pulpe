@@ -73,6 +73,13 @@ actor WidgetDataSyncService {
         payDayOfMonth: Int?,
         currency: SupportedCurrency
     ) async {
+        await refreshWeeklyRecaps(
+            budgetsWithDetails: budgetsWithDetails,
+            currentBudgetDetails: currentBudgetDetails,
+            payDayOfMonth: payDayOfMonth,
+            currency: currency
+        )
+
         let calendar = Calendar.current
         let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
 
@@ -125,6 +132,29 @@ actor WidgetDataSyncService {
 
         WidgetCenter.shared.reloadTimelines(ofKind: Self.currentMonthWidgetKind)
         WidgetCenter.shared.reloadTimelines(ofKind: Self.yearOverviewWidgetKind)
+    }
+
+    /// Every path that refreshes the widget (backgrounding, mutations, BGAppRefresh) holds a
+    /// fresh budget snapshot, so the Monday recap re-freezes its figures from it. No current
+    /// budget = a failed or empty read: keep the pending recaps rather than silence them over
+    /// a network blip.
+    private func refreshWeeklyRecaps(
+        budgetsWithDetails: [BudgetWithDetails],
+        currentBudgetDetails: BudgetDetails?,
+        payDayOfMonth: Int?,
+        currency: SupportedCurrency
+    ) async {
+        guard let currentBudgetDetails, ReminderPreferences().weeklyRecapEnabled else { return }
+        await NotificationScheduler.shared.scheduleWeeklyRecaps(
+            // The export already holds the current budget; without it, past weeks and
+            // habits only see the current period.
+            transactions: budgetsWithDetails.isEmpty
+                ? currentBudgetDetails.transactions
+                : budgetsWithDetails.flatMap(\.transactions),
+            current: currentBudgetDetails,
+            payDayOfMonth: payDayOfMonth,
+            currency: currency
+        )
     }
 
     nonisolated private func buildYearBudgets(

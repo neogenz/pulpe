@@ -267,7 +267,7 @@ extension AppState {
         ReminderPreferences().reset()
         PostOnboardingFlagsStore().reset()
         MonthRecapFlagsStore().reset()
-        await NotificationScheduler.shared.cancelMonthlyReminder()
+        await NotificationScheduler.shared.cancelAllReminders()
         clearManualBiometricRetryRequiredFlag()
         await biometric.disable()
         // Account deletion / signup abandon → revoke JWT server-side so a

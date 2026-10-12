@@ -70,8 +70,12 @@ enum AnalyticsEvent: String, CaseIterable {
     case notificationPrimeShown = "notification_prime_shown"
     case notificationPermissionGranted = "notification_permission_granted"
     case notificationPermissionDenied = "notification_permission_denied"
-    /// Fires when the "Rappels" preference toggle changes. Property `enabled` (Bool).
+    /// Fires when a reminder preference changes. Properties `enabled` (Bool) and `reminder`
+    /// (`NotificationScheduler.Reminder`); events before the weekly recap carry no
+    /// `reminder` and are all `monthly`.
     case reminderToggled = "reminder_toggled"
+    /// Fires when a tap on a delivered reminder opens the app. Property `reminder`.
+    case reminderOpened = "reminder_opened"
 
     // MARK: - What's New
     /// Fires when the post-update release-notes dialog is shown. Property:

@@ -41,7 +41,7 @@ const testimonials: Testimonial[] = [
 const fr = {
   site: {
     titleDefault:
-      "Pulpe – App de budget | Planifie ton année, vois combien il te restera",
+      "Pulpe : app de budget | Planifie ton année, vois combien il te restera",
     titleTemplate: "%s | Pulpe",
     description:
       "App de budget pour planifier tes revenus, tes dépenses et ton épargne. Pulpe te montre combien il te restera chaque mois, sans connexion bancaire.",
@@ -168,7 +168,7 @@ const fr = {
             " de revenu, 1 600 de dépenses récurrentes et 500 d’épargne laissent 1 400 disponibles chaque mois",
         },
         year: {
-          title: "Place ce qui change",
+          title: "Place les dépenses ponctuelles",
           description:
             "Ajoute les impôts, les vacances et les gros achats dans les mois où ils auront lieu.",
           captionLead: "Ton année : douze mois à 1 400 ",
@@ -244,7 +244,7 @@ const fr = {
     },
 
     platforms: {
-      heading: "Ton budget te suit. Pas l’inverse.",
+      heading: "Ton budget te suit partout.",
       intro:
         "Sur iPhone ou dans ton navigateur, tu retrouves la même année et les mêmes chiffres.",
       ios: {
@@ -269,7 +269,7 @@ const fr = {
     whyFree: {
       portraitAlt: "Maxime, créateur de Pulpe",
       eyebrow: "Une note du créateur",
-      heading: "J’avais besoin d’un budget qui regarde devant.",
+      heading: "J’avais besoin de voir les mois à venir.",
       paragraphs: [
         "J’ai créé Pulpe après avoir passé trop de temps à tenir mes tableurs à jour. Je voulais savoir ce qu’une décision changerait dans les mois suivants, pas seulement comprendre où mon argent était parti.",
         "Le projet est gratuit aujourd’hui, sans publicité ni abonnement. Son code reste public pour que tu puisses vérifier son fonctionnement.",
@@ -293,7 +293,7 @@ const fr = {
     },
 
     faq: {
-      heading: "Les questions qu’on me pose le plus.",
+      heading: "Questions fréquentes.",
       // `isOpen` reste dans le composant : c’est une décision de mise en page,
       // pas de la copie, et elle vaut pour les quatre langues.
       items: [
@@ -363,7 +363,7 @@ const fr = {
       title: "Connecter Pulpe à un assistant IA",
       text: "Branche ChatGPT, Claude ou Claude Code sur ton budget, en lecture seule ou avec le droit d’écrire.",
     },
-    faqHeading: "Les questions qu’on me pose le plus.",
+    faqHeading: "Questions fréquentes.",
     // `plainAnswer` n’est plus écrit à la main : il est dérivé du texte
     // ci-dessous pour le JSON-LD, donc les deux ne peuvent plus diverger.
     faq: {
@@ -500,7 +500,7 @@ const fr = {
       intro:
         "Avec ChatGPT ou Claude, pose une question sur ton mois, retrouve une dépense ou demande à l’assistant de la noter dans Pulpe.",
       cta: "Découvrir la connexion",
-      examplesTitle: "Ce que tu pourras lui demander",
+      examplesTitle: "Exemples de questions",
       examples: [
         "Combien me reste-t-il à dépenser ce mois-ci ?",
         "Retrouve mes dépenses de courses.",

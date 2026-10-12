@@ -16,4 +16,17 @@ struct NotificationSchedulerTests {
         let fireDay = NotificationScheduler.monthlyFireDay(for: payDay)
         #expect(fireDay == expected)
     }
+
+    // `reminder_opened` dashboards read this mapping: a renamed id would silently stop
+    // counting the taps it stands for.
+    @Test(arguments: [
+        ("pulpe.reminder.monthly", NotificationScheduler.Reminder.monthly),
+        ("pulpe.reminder.weekly-recap.0", .weeklyRecap),
+        ("pulpe.reminder.weekly-recap.2", .weeklyRecap),
+        ("pulpe.reminder.weekly-recap.3", nil),
+        ("some.other.app.request", nil),
+    ])
+    func reminderOfRequest_mapsEveryScheduledIdOnly(id: String, expected: NotificationScheduler.Reminder?) {
+        #expect(NotificationScheduler.reminder(ofRequest: id) == expected)
+    }
 }

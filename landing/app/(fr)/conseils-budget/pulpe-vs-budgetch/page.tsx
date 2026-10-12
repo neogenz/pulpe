@@ -32,9 +32,9 @@ export default async function PulpeVsBudgetChPage() {
       </p>
       <p>
         Budget-conseil Suisse publie BudgetCH depuis des années, en français,
-        avec un serveur en Suisse. C’est un appui sérieux, pas un gadget. Pulpe
-        est plus récente, tournée vers la projection annuelle, avec une app
-        iPhone native.
+        avec un serveur en Suisse. C’est un appui sérieux. Pulpe est plus
+        récente, tournée vers la projection annuelle, avec une app iPhone
+        native.
       </p>
 
       <ComparisonTable

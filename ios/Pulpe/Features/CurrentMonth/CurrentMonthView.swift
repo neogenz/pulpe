@@ -471,7 +471,15 @@ extension CurrentMonthView {
             AnalyticsService.shared.capture(.notificationPermissionGranted)
         }
         reminderPrefs.setRemindersEnabled(true)
-        AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
+        // The sheet's copy promises both. The recap needs a fresh snapshot: the one taken
+        // after the pointing that opened this sheet ran while it was still off.
+        reminderPrefs.setWeeklyRecapEnabled(true)
+        Task { await WidgetDataSyncService.shared.syncAll(payDayOfMonth: userSettingsStore.payDayOfMonth) }
+        for reminder in [NotificationScheduler.Reminder.monthly, .weeklyRecap] {
+            AnalyticsService.shared.capture(
+                .reminderToggled, properties: ["enabled": true, "reminder": reminder.rawValue]
+            )
+        }
         // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
         // so the next foreground reschedule heals with the real pay-day.
         guard let payDay = userSettingsStore.payDayOfMonth else { return }

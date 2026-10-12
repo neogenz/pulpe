@@ -1574,10 +1574,7 @@ describe("landing accessibility contracts", () => {
       frDict.home.howItWorks.steps.month.title,
       "Vois combien il te restera",
     );
-    assert.match(
-      frDict.home.faq.heading,
-      /Les questions qu(?:’|')on me pose le plus/,
-    );
+    assert.equal(frDict.home.faq.heading, "Questions fréquentes.");
   });
 
   it("reuses the landing composition and accordion on the support page", () => {

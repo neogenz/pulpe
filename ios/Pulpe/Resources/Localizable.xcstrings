@@ -6347,6 +6347,50 @@
         }
       }
     },
+    "Cette semaine : environ %@ à dépenser (d'habitude, tu en dépenses %@)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Woche: etwa %1$@ zum Ausgeben (normalerweise gibst du %2$@ aus)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This week: about %1$@ to spend (you usually spend %2$@)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa settimana: circa %1$@ da spendere (di solito ne spendi %2$@)."
+          }
+        }
+      }
+    },
+    "Cette semaine : environ %@ à dépenser." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Woche: etwa %@ zum Ausgeben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This week: about %@ to spend."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa settimana: circa %@ da spendere."
+          }
+        }
+      }
+    },
     "CGU" : {
       "localizations" : {
         "de" : {
@@ -13425,6 +13469,28 @@
         }
       }
     },
+    "Je te fais signe ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soll ich mich melden?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Want a nudge?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ti avviso?"
+          }
+        }
+      }
+    },
     "JOUR DE PAIE" : {
       "localizations" : {
         "de" : {
@@ -14305,6 +14371,28 @@
         }
       }
     },
+    "Le jour de paie, un rappel pour pointer tes dépenses. Le lundi matin, le récap de ta semaine et ce qu'il te reste pour la suivante. Tu peux couper quand tu veux." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Am Zahltag eine Erinnerung, um deine Ausgaben abzuhaken. Am Montagmorgen ein Rückblick auf deine Woche und was dir für die nächste bleibt. Jederzeit abschaltbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On pay day, a reminder to check off your spending. On Monday morning, a recap of your week and what's left for the next one. Turn it off whenever you like."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il giorno di paga, un promemoria per spuntare le tue spese. Il lunedì mattina, il riepilogo della tua settimana e quanto ti resta per la prossima. Puoi disattivarlo quando vuoi."
+          }
+        }
+      }
+    },
     "Le lissage n'a pas pu aboutir" : {
       "localizations" : {
         "de" : {
@@ -14323,6 +14411,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La ripartizione non è riuscita — riprova"
+          }
+        }
+      }
+    },
+    "Le lundi matin, le récap de ta semaine. Le jour de paie, ton nouveau mois. C'est tout — jamais de spam, et tu coupes quand tu veux." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Am Montagmorgen ein Rückblick auf deine Woche. Am Zahltag dein neuer Monat. Das ist alles — nie Spam, und du schaltest sie ab, wann du willst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On Monday morning, a recap of your week. On pay day, your new month. That's it — never any spam, and you can turn it off whenever you want."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il lunedì mattina, il riepilogo della tua settimana. Il giorno di paga, il tuo nuovo mese. Tutto qui — mai spam, e lo spegni quando vuoi."
           }
         }
       }
@@ -17717,6 +17827,28 @@
         }
       }
     },
+    "Nouvelle semaine : une minute pour noter tes derniers mouvements ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Woche: eine Minute, um deine letzten Bewegungen zu erfassen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New week: a minute to log your latest activity?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuova settimana: un minuto per annotare i tuoi ultimi movimenti?"
+          }
+        }
+      }
+    },
     "OK" : {
       "localizations" : {
         "de" : {
@@ -18363,28 +18495,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questa previsione di %@ viene suddivisa in %@ al mese su %lld mesi."
-          }
-        }
-      }
-    },
-    "On te fait signe le jour de paie ?" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Soll ich mich am Zahltag melden?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Want a nudge on pay day?"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ti avviso il giorno di paga?"
           }
         }
       }
@@ -20457,6 +20567,28 @@
         }
       }
     },
+    "Prévu cette semaine : %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Woche geplant: %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned this week: %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsto questa settimana: %@."
+          }
+        }
+      }
+    },
     "Prévu fin de période %@." : {
       "localizations" : {
         "de" : {
@@ -22325,6 +22457,28 @@
         }
       }
     },
+    "Récap du lundi" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Montags-Rückblick"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monday recap"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riepilogo del lunedì"
+          }
+        }
+      }
+    },
     "Récapitulatif" : {
       "localizations" : {
         "de" : {
@@ -22745,6 +22899,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Registrati con l'email"
+          }
+        }
+      }
+    },
+    "Semaine passée : %lld mouvements notés." : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Letzte Woche: %lld Bewegung erfasst."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Letzte Woche: %lld Bewegungen erfasst."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Last week: %lld entry recorded."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Last week: %lld entries recorded."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Semaine passée : %lld mouvement noté."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Semaine passée : %lld mouvements notés."
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Settimana scorsa: %lld movimento annotato."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Settimana scorsa: %lld movimenti annotati."
+                }
+              }
+            }
           }
         }
       }
@@ -24255,6 +24485,28 @@
         }
       }
     },
+    "Ta semaine en bref" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Woche im Überblick"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your week at a glance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua settimana in breve"
+          }
+        }
+      }
+    },
     "Ta session a expiré — reconnecte-toi" : {
       "localizations" : {
         "de" : {
@@ -24971,6 +25223,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo account verrà eliminato definitivamente dopo 3 giorni. Questa azione è irreversibile."
+          }
+        }
+      }
+    },
+    "Ton disponible est épuisé : un coup d'œil pour ajuster ta semaine ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Verfügbares ist aufgebraucht: kurz reinschauen, um deine Woche anzupassen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing left available: a quick look to adjust your week?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo disponibile è esaurito: un'occhiata per sistemare la settimana?"
           }
         }
       }
@@ -26803,50 +27077,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un piano chiaro per ogni mese"
-          }
-        }
-      }
-    },
-    "Un rappel par mois pour pointer tes dépenses et voir ton disponible. C'est tout — jamais de spam, et tu coupes quand tu veux." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eine Erinnerung pro Monat, um deine Ausgaben abzuhaken und dein Verfügbares zu sehen. Das ist alles — nie Spam, und du schaltest sie ab, wann du willst."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One reminder a month to check your expenses and see what's available. That's it — never any spam, and you can turn it off whenever you want."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un promemoria al mese per spuntare le tue spese e vedere il tuo disponibile. Tutto qui — mai spam, e lo spegni quando vuoi."
-          }
-        }
-      }
-    },
-    "Un rappel par mois, le jour de paie, pour pointer tes dépenses. Tu peux couper quand tu veux." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eine Erinnerung pro Monat, am Zahltag, um deine Ausgaben abzuhaken. Jederzeit abschaltbar."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One reminder a month, on pay day, to check off your spending. Turn it off whenever you like."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un promemoria al mese, il giorno di paga, per spuntare le tue spese. Puoi disattivarlo quando vuoi."
           }
         }
       }
