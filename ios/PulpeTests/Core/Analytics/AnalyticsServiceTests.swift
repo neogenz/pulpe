@@ -28,6 +28,7 @@ struct AnalyticsServiceTests {
             "signup_started",
             "signup_completed",
             "onboarding_step_completed",
+            "onboarding_paused",
             "onboarding_abandoned",
             "onboarding_resumed",
             "onboarding_suggestion_toggled",

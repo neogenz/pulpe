@@ -22,6 +22,22 @@ struct OnboardingStateTests {
     private static let allSuggestions: [OnboardingTransaction] =
         OnboardingState.chargeSuggestions + OnboardingState.savingSuggestions(for: .chf)
 
+    @Test func backgroundPause_keepsOnboardingActiveAcrossResumes() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.currentStep = .income
+        state.monthlyIncome = 3000
+
+        state.capturePaused()
+        state.capturePaused()
+
+        #expect(!state.hasAbandoned)
+        #expect(!state.hasCompleted)
+        #expect(state.currentStep == .income)
+        state.nextStep()
+        #expect(state.currentStep == .charges)
+    }
+
     // MARK: - canProceed: Required Steps
 
     @Test
