@@ -809,11 +809,13 @@ export default class Dashboard {
       this.#closeUndoWindow();
     });
 
-    // This page is the web "Home": the feedback invitation is offered once,
-    // after the figures first arrive, never over anything else on screen.
-    const offerFeedback = effect(() => {
-      if (!this.store.dashboardData()) return;
-      offerFeedback.destroy();
+    // This page is the web "Home": the feedback invitation is offered once the
+    // figures arrive, and again on each new active day for a tab left open
+    // across days, never over anything else on screen.
+    const hasDashboardData = computed(() => !!this.store.dashboardData());
+    effect(() => {
+      this.#feedbackPrompt.activeDay();
+      if (!hasDashboardData()) return;
       untracked(() => void this.#offerFeedback());
     });
 

@@ -73,10 +73,15 @@ export class FeedbackPrompt {
   // released when nothing opened.
   #claimed = false;
 
+  readonly #activeDay = signal<string | null>(null);
+  /** The last recorded active day, so the Home can re-offer on a new one. */
+  readonly activeDay = this.#activeDay.asReadonly();
+
   recordActiveDay(now = new Date()): void {
     const userId = this.#authStore.user()?.id;
     if (!userId) return;
     const today = format(now, 'yyyy-MM-dd');
+    this.#activeDay.set(today);
     this.#update(userId, (state) =>
       state.lastActiveDay === today
         ? state

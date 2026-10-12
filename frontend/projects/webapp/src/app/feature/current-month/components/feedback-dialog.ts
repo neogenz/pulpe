@@ -56,7 +56,7 @@ export interface FeedbackDialogData {
             {{ 'feedback.question' | transloco }}
           </legend>
           <div class="mt-2 flex justify-center gap-1">
-            @for (value of ratings; track value) {
+            @for (option of ratingOptions; track option.value) {
               <label
                 class="flex size-12 cursor-pointer items-center justify-center rounded-full text-on-surface-variant has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary"
               >
@@ -64,16 +64,16 @@ export interface FeedbackDialogData {
                   type="radio"
                   name="feedback-rating"
                   class="sr-only"
-                  [value]="value"
-                  [checked]="rating() === value"
-                  [attr.aria-label]="'feedback.rating' + value | transloco"
-                  [attr.data-testid]="'rating-' + value + '-input'"
-                  (change)="rating.set(value)"
+                  [value]="option.value"
+                  [checked]="rating() === option.value"
+                  [attr.aria-label]="option.labelKey | transloco"
+                  [attr.data-testid]="'rating-' + option.value + '-input'"
+                  (change)="rating.set(option.value)"
                 />
                 <mat-icon
                   aria-hidden="true"
-                  [class.icon-filled]="value <= (rating() ?? 0)"
-                  [class.text-primary]="value <= (rating() ?? 0)"
+                  [class.icon-filled]="option.value <= (rating() ?? 0)"
+                  [class.text-primary]="option.value <= (rating() ?? 0)"
                   >star</mat-icon
                 >
               </label>
@@ -136,7 +136,14 @@ export class FeedbackDialog {
   };
   #isSubmitted = false;
 
-  protected readonly ratings = [1, 2, 3, 4, 5] as const;
+  // Literal keys: the catalog parity check only sees keys written in full.
+  protected readonly ratingOptions = [
+    { value: 1, labelKey: 'feedback.rating1' },
+    { value: 2, labelKey: 'feedback.rating2' },
+    { value: 3, labelKey: 'feedback.rating3' },
+    { value: 4, labelKey: 'feedback.rating4' },
+    { value: 5, labelKey: 'feedback.rating5' },
+  ] as const;
   protected readonly rating = signal<number | null>(null);
   protected readonly comment = signal('');
   protected readonly isSubmitting = signal(false);

@@ -53,6 +53,11 @@ struct FeedbackPromptPreferences: @unchecked Sendable {
         return state.activeDayCount - lastPrompt >= Self.activeDaysBetweenPrompts
     }
 
+    /// The 1-based number the next automatic invitation will carry, for analytics.
+    func nextAutomaticPromptNumber(for userID: String) -> Int {
+        (loadStates()[userID]?.promptCount ?? 0) + 1
+    }
+
     /// Returns the 1-based number of this automatic invitation, for analytics.
     @discardableResult
     func markAutomaticPromptShown(for userID: String) -> Int {
@@ -142,8 +147,9 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     let hasBlockingSheet: Bool
     let isNavigating: Bool
     let isPostOnboardingHandoffPresented: Bool
-    /// Receives the 1-based number of this automatic invitation.
-    let onPresent: (Int) -> Void
+    /// Presents the invitation numbered by its argument when the live screen still
+    /// allows it, and returns whether it did. Only a presented invitation is recorded.
+    let onPresent: (Int) -> Bool
 
     @State private var hasEvaluatedInitialLoad = false
     @State private var hasPendingForegroundEvaluation = false
@@ -194,8 +200,10 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     private func presentIfEligible() {
         guard let userID = appState.currentUser?.id, allowsPresentation(for: userID) else { return }
         Task { @MainActor in
-            guard await accountHasNotAnswered(userID), allowsPresentation(for: userID) else { return }
-            onPresent(preferences.markAutomaticPromptShown(for: userID))
+            guard await accountHasNotAnswered(userID),
+                  allowsPresentation(for: userID),
+                  onPresent(preferences.nextAutomaticPromptNumber(for: userID)) else { return }
+            preferences.markAutomaticPromptShown(for: userID)
         }
     }
 
@@ -242,7 +250,7 @@ extension View {
         hasBlockingSheet: Bool,
         isNavigating: Bool,
         isPostOnboardingHandoffPresented: Bool,
-        onPresent: @escaping (Int) -> Void
+        onPresent: @escaping (Int) -> Bool
     ) -> some View {
         modifier(AutomaticFeedbackPromptModifier(
             contentState: contentState,

@@ -583,6 +583,10 @@ describe('Dashboard (TestBed)', () => {
       ),
     };
     const mockRouter = { navigate: vi.fn() };
+    const mockFeedbackPrompt = {
+      activeDay: signal<string | null>('2026-10-10'),
+      claimAutomaticPrompt: vi.fn().mockResolvedValue(null),
+    };
     // One subject per toast, not one for the whole run: MatSnackBar dismisses
     // the ref it had open when a new one arrives, and a dismissed ref's
     // onAction never fires again. Sharing a single subject made every toast
@@ -625,10 +629,7 @@ describe('Dashboard (TestBed)', () => {
             provide: FirstTransactionTracker,
             useValue: mockFirstTransactionTracker,
           },
-          {
-            provide: FeedbackPrompt,
-            useValue: { claimAutomaticPrompt: () => Promise.resolve(null) },
-          },
+          { provide: FeedbackPrompt, useValue: mockFeedbackPrompt },
         ],
       })
       .compileComponents();
@@ -637,6 +638,7 @@ describe('Dashboard (TestBed)', () => {
     return {
       component: fixture.componentInstance,
       fixture,
+      mockFeedbackPrompt,
       mockStore,
       mockDialogService,
       mockSnackBar,
@@ -648,6 +650,26 @@ describe('Dashboard (TestBed)', () => {
       readPersistRefusal: () => persistRefusal,
     };
   }
+
+  describe('feedback invitation', () => {
+    it('should offer again on a new active day, not on a refetch', async () => {
+      const { mockFeedbackPrompt, mockStore } = await setup(
+        budgetId,
+        undefined,
+      );
+      mockStore.dashboardData.set({});
+      TestBed.tick();
+      expect(mockFeedbackPrompt.claimAutomaticPrompt).toHaveBeenCalledTimes(1);
+
+      mockStore.dashboardData.set({});
+      TestBed.tick();
+      expect(mockFeedbackPrompt.claimAutomaticPrompt).toHaveBeenCalledTimes(1);
+
+      mockFeedbackPrompt.activeDay.set('2026-10-11');
+      TestBed.tick();
+      expect(mockFeedbackPrompt.claimAutomaticPrompt).toHaveBeenCalledTimes(2);
+    });
+  });
 
   // PUL-306 — an account with a budget and nothing recorded is where most
   // users stop. Whether this entry is the first is the tracker's call.

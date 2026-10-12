@@ -27,7 +27,10 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
 import type { FeedbackStatusResponse } from 'pulpe-shared';
 import { GetFeedbackStatusUseCase } from '../../application/get-feedback-status.use-case';
 import { SubmitFeedbackUseCase } from '../../application/submit-feedback.use-case';
-import { FeedbackCreateDto } from './dto/feedback-swagger.dto';
+import {
+  FeedbackCreateDto,
+  FeedbackStatusResponseDto,
+} from './dto/feedback-swagger.dto';
 
 @ApiTags('Feedback')
 @ApiBearerAuth()
@@ -54,10 +57,7 @@ export class FeedbackController {
   })
   @ApiOkResponse({
     description: 'Feedback status',
-    schema: {
-      type: 'object',
-      properties: { hasSubmitted: { type: 'boolean' } },
-    },
+    type: FeedbackStatusResponseDto,
   })
   async status(): Promise<FeedbackStatusResponse> {
     return this.getFeedbackStatus.execute();
