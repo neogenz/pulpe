@@ -114,10 +114,8 @@ export function captureFirstBudgetCreated(state: OnboardingState): void {
 }
 
 /**
- * The user confirmed the exit dialog. Only that: an app killed from the task
- * switcher leaves no event, since nothing runs to send one — iOS catches that
- * case on `background`, which has no Android equivalent that is worth a
- * lifecycle listener here.
+ * The user confirmed the exit dialog. Backgrounding is a pause, not an exit;
+ * killing the app leaves no event because nothing runs to send one.
  */
 export function captureOnboardingAbandoned(state: OnboardingState): void {
   if (hasEmittedAbandoned) return;

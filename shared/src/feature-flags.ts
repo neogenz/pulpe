@@ -73,7 +73,9 @@ export const ANALYTICS_EVENTS = {
    * so there is no history to preserve.
    */
   ONBOARDING_STEP_COMPLETED: 'onboarding_step_completed',
-  /** Fires when onboarding is exited early. Properties: `last_step`, `exit_method`, `was_authenticated`, `auth_method`. */
+  /** Fires when iOS onboarding pauses in the background. Properties: `last_step`, `pause_method`, `was_authenticated`, `auth_method`. */
+  ONBOARDING_PAUSED: 'onboarding_paused',
+  /** Fires when the user confirms an early exit from onboarding. Properties: `last_step`, `exit_method`, `was_authenticated`, `auth_method`. */
   ONBOARDING_ABANDONED: 'onboarding_abandoned',
   /** Fires when an incomplete signup resumes. Properties: `method`, `source`, `resumed_at_step`. */
   ONBOARDING_RESUMED: 'onboarding_resumed',

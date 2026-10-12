@@ -17,6 +17,8 @@ enum AnalyticsEvent: String, CaseIterable {
     case signupStarted = "signup_started"
     case signupCompleted = "signup_completed"
     case onboardingStepCompleted = "onboarding_step_completed"
+    /// Backgrounding pauses the flow without marking it abandoned.
+    case onboardingPaused = "onboarding_paused"
     case onboardingAbandoned = "onboarding_abandoned"
     /// Fires when an email user cold-starts an in-progress signup after
     /// killing or backgrounding the app. Source disambiguates the pending-user

@@ -101,12 +101,8 @@ struct OnboardingFlow: View {
                 )
             }
             .onChange(of: scenePhase) { _, newPhase in
-                if newPhase == .background,
-                   state.currentStep != .welcome,
-                   !state.hasCompleted,
-                   !state.isSubmitting,
-                   !state.hasAbandoned {
-                    captureAbandoned(exitMethod: .background)
+                if newPhase == .background {
+                    state.capturePaused()
                 }
             }
             .onChange(of: state.readyToComplete) { _, ready in
@@ -228,7 +224,6 @@ struct OnboardingFlow: View {
 
     /// Typed exit trigger for `onboarding_abandoned` events.
     private enum ExitMethod: String {
-        case background
         case quitButton = "quit_button"
         case restartButton = "restart_button"
     }
