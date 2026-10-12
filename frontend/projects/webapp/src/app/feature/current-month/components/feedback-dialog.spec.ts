@@ -78,6 +78,39 @@ describe('FeedbackDialog', () => {
     expect(events()).toEqual([ANALYTICS_EVENTS.FEEDBACK_VIEWED]);
   });
 
+  it('should not let the dialog close while the send is in flight', async () => {
+    let finishSend: () => void = () => undefined;
+    const { click, dialogRef, el } = await setup(
+      () => new Promise<void>((resolve) => (finishSend = resolve)),
+    );
+    await click('rating-4-input');
+    await click('submit-button');
+
+    const later = el.querySelector<HTMLButtonElement>(
+      '[data-testid="later-button"]',
+    )!;
+    expect(later.disabled).toBe(true);
+    expect((dialogRef as { disableClose?: boolean }).disableClose).toBe(true);
+
+    finishSend();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(dialogRef.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('should let the dialog close again after a failed send', async () => {
+    const { click, dialogRef, el } = await setup(() =>
+      Promise.reject(new Error('offline')),
+    );
+    await click('rating-2-input');
+    await click('submit-button');
+
+    expect(
+      el.querySelector<HTMLButtonElement>('[data-testid="later-button"]')!
+        .disabled,
+    ).toBe(false);
+    expect((dialogRef as { disableClose?: boolean }).disableClose).toBe(false);
+  });
+
   it('should track cancelled when closed without sending', async () => {
     const { click, events, analytics } = await setup(() => Promise.resolve());
     await click('later-button');

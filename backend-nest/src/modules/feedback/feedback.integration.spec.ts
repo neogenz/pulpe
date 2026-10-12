@@ -139,6 +139,41 @@ describe('POST /api/v1/feedback (local Supabase)', () => {
     expect(error?.code).toBe('42501');
   });
 
+  it('never lets the client see that another account answered', async () => {
+    if (!hasSupabase) return;
+    const { data: other, error: otherError } =
+      await admin.auth.admin.createUser({
+        email: `feedback-other-${crypto.randomUUID()}@test.local`,
+        password: TEST_PASSWORD,
+        email_confirm: true,
+      });
+    if (otherError || !other.user) {
+      throw new Error(`createUser: ${otherError?.message ?? 'no user'}`);
+    }
+    const otherId = other.user.id;
+    try {
+      const { error: insertError } = await admin.from('user_feedback').insert({
+        user_id: otherId,
+        overall_rating: 4,
+        app_version: '0.52.0',
+        platform: 'web',
+      });
+      if (insertError) throw insertError;
+
+      // Unfiltered on purpose: only the policy may hide the other account.
+      const { data, error } = await userClient
+        .from('user_feedback')
+        .select('user_id');
+      if (error) throw error;
+      expect(data.map((row) => row.user_id)).not.toContain(otherId);
+      expect(new Set(data.map((row) => row.user_id))).toEqual(
+        new Set([userId]),
+      );
+    } finally {
+      await admin.auth.admin.deleteUser(otherId);
+    }
+  });
+
   it('stores minimal and complete feedback for the token owner', async () => {
     if (!hasSupabase) return;
 

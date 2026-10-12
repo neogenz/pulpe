@@ -154,6 +154,10 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     @State private var hasEvaluatedInitialLoad = false
     @State private var hasPendingForegroundEvaluation = false
     @State private var backgroundReturnTracker = SceneBackgroundReturnTracker()
+    /// Set once the server confirms the account has not answered. The final gate runs
+    /// from `.onChange`, on the live view: the Task holds a copy of this modifier whose
+    /// inputs and environment values were frozen before the request.
+    @State private var unansweredUserID: String?
     private let preferences = FeedbackPromptPreferences()
 
     func body(content: Content) -> some View {
@@ -165,6 +169,13 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
             .onChange(of: appState.isRestoringSession, initial: true) { _, isRestoring in
                 guard !isRestoring else { return }
                 evaluateReadyMomentIfNeeded()
+            }
+            .onChange(of: unansweredUserID) { _, userID in
+                guard let userID else { return }
+                unansweredUserID = nil
+                guard allowsPresentation(for: userID),
+                      onPresent(preferences.nextAutomaticPromptNumber(for: userID)) else { return }
+                preferences.markAutomaticPromptShown(for: userID)
             }
             .onChange(of: scenePhase) { _, newPhase in
                 guard backgroundReturnTracker.consumeReturn(to: newPhase) else { return }
@@ -200,10 +211,8 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     private func presentIfEligible() {
         guard let userID = appState.currentUser?.id, allowsPresentation(for: userID) else { return }
         Task { @MainActor in
-            guard await accountHasNotAnswered(userID),
-                  allowsPresentation(for: userID),
-                  onPresent(preferences.nextAutomaticPromptNumber(for: userID)) else { return }
-            preferences.markAutomaticPromptShown(for: userID)
+            guard await accountHasNotAnswered(userID) else { return }
+            unansweredUserID = userID
         }
     }
 

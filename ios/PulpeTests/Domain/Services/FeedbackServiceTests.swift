@@ -76,6 +76,36 @@ struct FeedbackServiceTests {
         ])
     }
 
+    @Test
+    func hasSubmitted_onSuccess_getsAuthenticatedStatus() async throws {
+        let recorder = FeedbackRequestRecorder()
+        InterceptingURLProtocol.requestHandler = { request in
+            recorder.record(request)
+            return (makeHTTPResponse(for: request, statusCode: 200), Data(#"{"hasSubmitted":true}"#.utf8))
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let hasSubmitted = try await FeedbackService(apiClient: makeAPIClient()).hasSubmitted()
+
+        #expect(hasSubmitted)
+        let request = try #require(recorder.request)
+        #expect(request.httpMethod == "GET")
+        #expect(request.url?.path == "/v1/feedback/status")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer feedback-token")
+    }
+
+    @Test
+    func hasSubmitted_onServerError_throwsSoInvitationFailsClosed() async {
+        InterceptingURLProtocol.requestHandler = { request in
+            (makeHTTPResponse(for: request, statusCode: 500), Data())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        await #expect(throws: (any Error).self) {
+            _ = try await FeedbackService(apiClient: makeAPIClient()).hasSubmitted()
+        }
+    }
+
     private func makeAPIClient() -> APIClient {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [InterceptingURLProtocol.self]

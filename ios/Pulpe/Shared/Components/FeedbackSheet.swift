@@ -63,6 +63,8 @@ struct FeedbackSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.sheetBackground)
         .loadingOverlay(viewModel.isSubmitting)
+        // A swipe mid-send would log a cancellation before the send succeeds.
+        .interactiveDismissDisabled(viewModel.isSubmitting)
         .dismissKeyboardOnTap()
         .keyboardFieldNavigation(focus: $focusedField, order: [.comment])
         .sensoryFeedback(.success, trigger: viewModel.isSubmitted)

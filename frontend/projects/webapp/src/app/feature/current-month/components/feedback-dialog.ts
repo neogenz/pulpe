@@ -105,6 +105,7 @@ export interface FeedbackDialogData {
         <button
           matButton
           type="button"
+          [disabled]="isSubmitting()"
           (click)="close()"
           data-testid="later-button"
         >
@@ -174,6 +175,9 @@ export class FeedbackDialog {
     const rating = this.rating();
     if (rating === null || this.isSubmitting()) return;
 
+    // Closing mid-send would count as a cancellation, then the send would
+    // still succeed and count as a submission.
+    this.#dialogRef.disableClose = true;
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
     try {
@@ -181,6 +185,7 @@ export class FeedbackDialog {
     } catch {
       this.errorMessage.set(this.#transloco.translate('feedback.error'));
       this.isSubmitting.set(false);
+      this.#dialogRef.disableClose = false;
       return;
     }
 
