@@ -6,6 +6,7 @@ import {
   type TransactionImportOperation,
   type TransactionImportOperationStatus,
 } from 'pulpe-shared';
+import { TRANSACTION_CONSTANTS } from '@modules/transaction/domain/transaction.invariants';
 import type {
   BankStatement,
   ImportedKind,
@@ -117,10 +118,12 @@ function operationErrorCodes(
 ): TransactionImportError['code'][] {
   const codes: TransactionImportError['code'][] = [];
   if (!isValidIsoDate(operation.date)) codes.push('missing_date');
+  // Same ceiling as a Réel entered by hand.
   if (
     operation.amount === null ||
     !Number.isFinite(operation.amount) ||
-    roundToCents(operation.amount) <= 0
+    roundToCents(operation.amount) <= 0 ||
+    roundToCents(operation.amount) > TRANSACTION_CONSTANTS.MAX_AMOUNT
   ) {
     codes.push('invalid_amount');
   }

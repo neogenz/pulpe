@@ -134,6 +134,19 @@ describe('validateOperations', () => {
     ]);
   });
 
+  it('refuses an amount above the Réel ceiling', () => {
+    const { valid: result, errors } = validateOperations(
+      [
+        operation({ position: 1, amount: 1_000_000 }),
+        operation({ position: 2, amount: 1_000_000.01 }),
+      ],
+      'CHF',
+    );
+
+    expect(result.map((op) => op.position)).toEqual([1]);
+    expect(errors).toEqual([{ code: 'invalid_amount', position: 2 }]);
+  });
+
   it('collapses a file entirely in another currency into one error', () => {
     const { errors } = validateOperations(
       [

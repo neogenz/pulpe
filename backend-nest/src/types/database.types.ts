@@ -741,6 +741,32 @@ export type Database = {
           },
         ]
       }
+      transaction_import_fingerprint: {
+        Row: {
+          budget_id: string
+          created_at: string
+          fingerprint: string
+        }
+        Insert: {
+          budget_id: string
+          created_at?: string
+          fingerprint: string
+        }
+        Update: {
+          budget_id?: string
+          created_at?: string
+          fingerprint?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_import_fingerprint_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_budget"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_tag: {
         Row: {
           created_at: string
