@@ -150,10 +150,11 @@ actor NotificationScheduler {
         center.removeDeliveredNotifications(withIdentifiers: Self.weeklyRecapIds)
     }
 
-    /// Identity boundary: every pending request belongs to the account leaving.
+    /// Identity boundary: every request, pending or delivered, belongs to the account leaving.
     func cancelAllReminders() {
         weeklyRecapGeneration += 1
         center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
     }
 
     /// Next Monday 8:30, today included while 8:30 hasn't passed. Half an hour ahead of
