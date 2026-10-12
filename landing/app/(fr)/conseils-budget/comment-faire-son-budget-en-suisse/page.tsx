@@ -17,7 +17,7 @@ const faq = [
   {
     question: "Comment gérer les impôts dans un budget suisse ?",
     answer:
-      "Si tu n'es pas imposé à la source, mets de côté chaque mois une provision, par exemple un douzième de ta facture de l'an dernier, sur un compte séparé. La facture d'impôts devient une dépense prévue comme une autre, pas une mauvaise surprise. Si l'impôt est effectivement retenu sur ton salaire, adapte ou retire cette provision. Pour les frontaliers, le régime dépend notamment du canton de travail et du pays de résidence.",
+      "Si tu n'es pas imposé à la source, mets de côté chaque mois une provision, par exemple un douzième de ta facture de l'an dernier, sur un compte séparé. La facture d'impôts devient une dépense prévue comme une autre. Si l'impôt est effectivement retenu sur ton salaire, adapte ou retire cette provision. Pour les frontaliers, le régime dépend notamment du canton de travail et du pays de résidence.",
   },
   {
     question: "Quelle application pour faire son budget en Suisse ?",
@@ -65,9 +65,9 @@ export default async function BudgetSuisseGuidePage() {
         </li>
         <li>
           <strong>Choisis ton épargne. </strong>Décide d&apos;un montant avant
-          de dépenser, pas avec ce qui traîne en fin de mois. Vire-le dès que le
-          salaire arrive, sur un compte séparé que tu ne touches pas au
-          quotidien.
+          de dépenser, sans attendre de voir ce qui traîne en fin de mois.
+          Vire-le dès que le salaire arrive, sur un compte séparé que tu ne
+          touches pas au quotidien.
         </li>
         <li>
           <strong>Regarde ton disponible à dépenser. </strong>Revenus, moins
@@ -232,7 +232,7 @@ export default async function BudgetSuisseGuidePage() {
         </li>
       </ul>
 
-      <h2>Pourquoi prévoir l&apos;année entière, pas seulement le mois ?</h2>
+      <h2>Pourquoi prévoir l&apos;année entière ?</h2>
       <p>
         Un budget mensuel isolé te dit si ce mois-ci passe. Il ne te dit pas si
         l&apos;année passe. En Suisse, les grosses dépenses sont concentrées :
@@ -242,9 +242,9 @@ export default async function BudgetSuisseGuidePage() {
         mois différents.
       </p>
       <p>
-        Le 13e salaire fonctionne pareil, dans l&apos;autre sens : ce n&apos;est
-        pas un bonus tombé du ciel, c&apos;est un mois différent que tu peux
-        affecter d&apos;avance aux impôts ou aux vacances.
+        Le 13e salaire fonctionne pareil, dans l&apos;autre sens : c&apos;est un
+        mois différent que tu peux affecter d&apos;avance aux impôts ou aux
+        vacances.
       </p>
       <p className="guide-pull-quote">
         Un budget n&apos;est pas là pour t&apos;empêcher de dépenser. Il est là

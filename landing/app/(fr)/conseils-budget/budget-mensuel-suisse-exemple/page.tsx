@@ -28,7 +28,8 @@ export default async function BudgetMensuelExemplePage() {
       <p>
         Un exemple de budget mensuel en Suisse part du revenu net, pose loyer,
         primes et impôts, choisit l’épargne, puis lit ce qui reste. Les chiffres
-        ci-dessous sont des ordres de grandeur officiels, pas ton budget.
+        ci-dessous sont des ordres de grandeur officiels, à ajuster à ta
+        situation.
       </p>
       <p>
         Le salaire médian à plein temps est de{" "}
@@ -48,8 +49,7 @@ export default async function BudgetMensuelExemplePage() {
       <h2>Trois profils, un même geste</h2>
       <p>
         Dans chaque cas, l’épargne est posée avant le quotidien. Le disponible
-        n’est pas « ce qui reste si tout va bien » : c’est ce que tu t’autorises
-        après les prévisions.
+        est ce que tu t’autorises une fois les prévisions posées.
       </p>
       <ComparisonTable
         caption="Trois exemples de budget mensuel en Suisse, en francs"
@@ -66,11 +66,11 @@ export default async function BudgetMensuelExemplePage() {
       />
       <p>
         Ces lignes sont arrondies. Un loyer lausannois, une franchise haute ou
-        un 13e salaire changent le tableau. L’intérêt n’est pas le centime :
-        c’est de voir que le disponible n’existe qu’après l’épargne.
+        un 13e salaire changent le tableau. Retiens surtout l’ordre : le
+        disponible n’existe qu’après l’épargne.
       </p>
 
-      <h2>Pourquoi regarder l’année, pas seulement le mois</h2>
+      <h2>Pourquoi regarder l’année entière ?</h2>
       <p>
         Le jeune actif ci-dessus a 1’900 CHF de disponible. En juillet, si les
         impôts partent et qu’il n’a rien provisionné, ce mois-là bascule. Sur

@@ -92,10 +92,10 @@ export default async function CalculatorPage() {
                 prime moyenne 2026 est à 326.30 CHF (OFSP).
               </p>
               <p>
-                Le calculateur reste volontairement statique : un mois, pas une
-                année. Les impôts en juillet, les vacances en août, le 13e en
-                décembre n’y figurent pas. C’est la limite, et c’est pour ça que
-                Pulpe existe.
+                Le calculateur reste volontairement statique et ne couvre qu’un
+                seul mois. Les impôts en juillet, les vacances en août, le 13e
+                en décembre n’y figurent pas. C’est la limite, et c’est pour ça
+                que Pulpe existe.
               </p>
               <h2>Trois situations fréquentes</h2>
               <ul>
