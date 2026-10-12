@@ -87,7 +87,7 @@ export const GUIDES: readonly Guide[] = [
     slug: "epargner-avec-salaire-suisse",
     title: "Combien épargner avec un salaire suisse ?",
     description:
-      "Repères autour du salaire médian de 7’024 CHF, méthode « payer son épargne d’abord », fonds de secours et pilier 3a — sans viser un pourcentage magique.",
+      "Repères autour du salaire médian de 7’024 CHF, méthode « payer son épargne d’abord », fonds de secours et pilier 3a, sans viser un pourcentage magique.",
     publishedAt: "2026-08-18",
     updatedAt: "2026-08-18",
     readingMinutes: 8,

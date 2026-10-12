@@ -55,14 +55,14 @@ export default async function PulpeVsBudgetHubPage() {
         ]}
       />
 
-      <h2>Ce que BudgetHub fait mieux</h2>
+      <h2>Les points forts de BudgetHub</h2>
       <p>
         L’import CSV (presets pour plusieurs banques suisses), la lecture de
         QR-factures, BudgetAI, et les budgets à plusieurs. Si tu refuses de tout
         retaper, c’est l’outil. Pulpe n’a rien de tout ça aujourd’hui.
       </p>
 
-      <h2>Ce que Pulpe fait mieux</h2>
+      <h2>Les points forts de Pulpe</h2>
       <p>
         Une app iPhone native, aucun palier payant, et une vue des mois suivants
         : tu places une dépense en septembre, tu vois le disponible d’octobre.

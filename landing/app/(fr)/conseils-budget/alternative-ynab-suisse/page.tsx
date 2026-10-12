@@ -43,7 +43,7 @@ export default async function AlternativeYnabPage() {
         mobile léger.
       </p>
 
-      <h2>Ce que YNAB demande en Suisse</h2>
+      <h2>YNAB en Suisse : prix, langue et devise</h2>
       <ul>
         <li>
           <strong>14,99&nbsp;$ / mois ou 109&nbsp;$ / an</strong>, sans palier
@@ -51,8 +51,8 @@ export default async function AlternativeYnabPage() {
           not reflected in the price ».
         </li>
         <li>
-          Interface anglaise : c’est le champ langue de la fiche App Store
-          suisse, pas une page marketing.
+          Interface anglaise, selon le champ langue de la fiche App Store
+          suisse.
         </li>
         <li>
           Un budget par devise : tu « can’t use multiple currencies together in
@@ -107,7 +107,7 @@ export default async function AlternativeYnabPage() {
         ]}
       />
 
-      <h2>Ce que Pulpe ne remplace pas</h2>
+      <h2>Les limites de Pulpe face à YNAB</h2>
       <p>
         Pulpe n’est pas YNAB. Pas d’enveloppes nommées, pas de synchro bancaire,
         pas de budget à plusieurs, pas encore d’ancienneté. Si la méthode
