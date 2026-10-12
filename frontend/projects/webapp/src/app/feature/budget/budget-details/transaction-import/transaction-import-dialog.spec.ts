@@ -298,6 +298,19 @@ describe('TransactionImportDialog', () => {
     expect(byTestId('import-failure-alert')?.textContent).toContain(
       'Aucun fichier reçu',
     );
+    expect(byTestId('cancel-button')).not.toBeNull();
+  });
+
+  it('should keep a way out when there is nothing to import', async () => {
+    preview$.mockReturnValue(
+      of(previewWith({ operations: [newOperation({ status: 'pending' })] })),
+    );
+
+    await component.selectFile(statementFile());
+
+    expect(confirmButton().disabled).toBe(true);
+    const cancel = byTestId('cancel-button') as HTMLButtonElement;
+    expect(cancel.disabled).toBe(false);
   });
 
   describe('attachments', () => {
@@ -350,8 +363,10 @@ describe('TransactionImportDialog', () => {
       const panel = byTestId('import-attachment-panel');
       expect(panel?.textContent).toContain('Suggestion :');
       expect(panel?.textContent).toContain('Loyer');
-      expect(panel?.textContent).toContain('Type compatible');
       expect(panel?.textContent).toContain('Même montant');
+      expect(
+        panel?.querySelectorAll('[data-testid="suggestion-reason-chip"]'),
+      ).toHaveLength(1);
       expect(byTestId('import-plan')?.textContent).toContain(
         'Aucune rattachée',
       );
@@ -389,7 +404,7 @@ describe('TransactionImportDialog', () => {
       byTestId('refuse-suggestion-button')?.click();
 
       expect(byTestId('free-attachment-label')?.textContent).toContain(
-        'Réel libre',
+        'Hors prévision',
       );
       await confirmImport();
       expect(sentDecisions()).toEqual([]);
@@ -420,6 +435,28 @@ describe('TransactionImportDialog', () => {
       await confirmImport();
 
       expect(sentDecisions()).toEqual([{ position: 3, budgetLineId: RENT_ID }]);
+    });
+
+    it('should keep focus on the row once its decision is made', async () => {
+      preview$.mockReturnValue(of(previewWithSuggestions([suggestedRent()])));
+      await component.selectFile(statementFile());
+
+      byTestId('accept-suggestion-button')?.click();
+      await fixture.whenStable();
+
+      expect(document.activeElement).toBe(byTestId('import-attachment-panel'));
+    });
+
+    it('should move focus to the list once every suggestion is accepted', async () => {
+      preview$.mockReturnValue(
+        of(previewWithSuggestions([suggestedRent(1), suggestedRent(2)])),
+      );
+      await component.selectFile(statementFile());
+
+      byTestId('accept-all-suggestions-button')?.click();
+      await fixture.whenStable();
+
+      expect(document.activeElement?.id).toBe('import-operations');
     });
 
     it('should accept every pending suggestion at once', async () => {

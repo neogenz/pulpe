@@ -2005,7 +2005,7 @@
     "transactionImportFileMissing": "Nessun file ricevuto — scegli il tuo estratto conto e riprova",
     "transactionImportInvalid": "L'estratto conto contiene errori — non è stato importato nulla, rilancia l'anteprima per vederli",
     "transactionImportConflict": "Alcune operazioni sono state importate nel frattempo — non è stato creato nulla, rilancia l'anteprima",
-    "transactionImportFailed": "L'importazione non è riuscita — non è stato creato nulla, riprova",
+    "transactionImportFailed": "Non è stato creato nulla, riprova",
     "transactionImportRecalculationFailed": "I movimenti sono stati importati, ma i saldi non hanno potuto essere aggiornati — ricarica la pagina senza importare di nuovo il file"
   },
   "logout": {
@@ -2065,7 +2065,7 @@
   "transactionImport": {
     "open": "Importa un estratto conto",
     "title": "Importa un estratto conto",
-    "intro": "Importa l'estratto conto camt.053 (file .xml) esportato dal tuo e-banking. Pulpe registra ogni operazione di questo mese come movimento effettivo.",
+    "intro": "Importa l'estratto conto camt.053 (file .xml) esportato dal tuo e-banking. Pulpe crea un movimento per ogni operazione di questo mese.",
     "noBankAccess": "Pulpe non accede mai al tuo conto bancario: viene letto solo il file che scegli.",
     "chooseFile": "Scegli un file",
     "chooseAnotherFile": "Scegli un altro file",
@@ -2111,14 +2111,13 @@
       "suggested": "Suggerimento:",
       "reasonsLabel": "Perché questo suggerimento",
       "reason": {
-        "kind": "Tipo compatibile",
         "amount": "Stesso importo",
         "label": "Descrizione simile"
       },
       "accept": "Accetta",
       "refuse": "Rifiuta",
       "change": "Cambia",
-      "remove": "Rimuovi",
+      "remove": "Scollega",
       "attach": "Collega a una previsione",
       "attachedTo": "Collegata a",
       "willBeChecked": "sarà spuntata",

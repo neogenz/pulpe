@@ -2005,7 +2005,7 @@
     "transactionImportFileMissing": "Keine Datei erhalten — wähl deinen Auszug und versuch es nochmal",
     "transactionImportInvalid": "Der Auszug enthält Fehler — nichts wurde importiert, starte die Vorschau neu, um sie zu sehen",
     "transactionImportConflict": "Einige Umsätze wurden zwischenzeitlich importiert — nichts wurde erstellt, starte die Vorschau neu",
-    "transactionImportFailed": "Der Import ist fehlgeschlagen — nichts wurde erstellt, versuch es nochmal",
+    "transactionImportFailed": "Nichts wurde erstellt, versuch es nochmal",
     "transactionImportRecalculationFailed": "Die Bewegungen wurden importiert, aber die Salden konnten nicht aktualisiert werden — lade die Seite neu, ohne die Datei erneut zu importieren"
   },
   "logout": {
@@ -2065,7 +2065,7 @@
   "transactionImport": {
     "open": "Kontoauszug importieren",
     "title": "Kontoauszug importieren",
-    "intro": "Importiere den camt.053-Auszug (.xml-Datei) aus deinem E-Banking. Pulpe erfasst jeden Umsatz dieses Monats als tatsächliche Bewegung.",
+    "intro": "Importiere den camt.053-Auszug (.xml-Datei) aus deinem E-Banking. Pulpe legt für jeden Umsatz dieses Monats eine Bewegung an.",
     "noBankAccess": "Pulpe greift nie auf dein Bankkonto zu: Gelesen wird nur die Datei, die du auswählst.",
     "chooseFile": "Datei auswählen",
     "chooseAnotherFile": "Andere Datei auswählen",
@@ -2111,14 +2111,13 @@
       "suggested": "Vorschlag:",
       "reasonsLabel": "Warum dieser Vorschlag",
       "reason": {
-        "kind": "Passende Art",
         "amount": "Gleicher Betrag",
         "label": "Ähnliche Bezeichnung"
       },
       "accept": "Annehmen",
       "refuse": "Ablehnen",
       "change": "Ändern",
-      "remove": "Entfernen",
+      "remove": "Zuordnung aufheben",
       "attach": "Einem Planposten zuordnen",
       "attachedTo": "Zugeordnet zu",
       "willBeChecked": "wird abgehakt",

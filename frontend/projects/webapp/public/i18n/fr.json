@@ -2005,7 +2005,7 @@
     "transactionImportFileMissing": "Aucun fichier reçu — choisis ton relevé et réessaie",
     "transactionImportInvalid": "Le relevé contient des erreurs — rien n'a été importé, relance l'aperçu pour les voir",
     "transactionImportConflict": "Certaines opérations ont été importées entre-temps — rien n'a été créé, relance l'aperçu",
-    "transactionImportFailed": "L'import a échoué — rien n'a été créé, réessaie",
+    "transactionImportFailed": "Rien n'a été créé, réessaie",
     "transactionImportRecalculationFailed": "Les mouvements ont bien été importés, mais les soldes n'ont pas pu être actualisés — recharge la page sans réimporter le fichier"
   },
   "logout": {
@@ -2065,7 +2065,7 @@
   "transactionImport": {
     "open": "Importer un relevé",
     "title": "Importer un relevé",
-    "intro": "Importe le relevé camt.053 (fichier .xml) exporté depuis ton e-banking. Pulpe crée un Réel pour chaque opération de ce mois.",
+    "intro": "Importe le relevé camt.053 (fichier .xml) exporté depuis ton e-banking. Pulpe crée un mouvement pour chaque opération de ce mois.",
     "noBankAccess": "Pulpe n'accède jamais à ton compte bancaire : seul le fichier que tu choisis est lu.",
     "chooseFile": "Choisir un fichier",
     "chooseAnotherFile": "Choisir un autre fichier",
@@ -2111,25 +2111,24 @@
       "suggested": "Suggestion :",
       "reasonsLabel": "Pourquoi cette suggestion",
       "reason": {
-        "kind": "Type compatible",
         "amount": "Même montant",
         "label": "Libellé proche"
       },
       "accept": "Accepter",
       "refuse": "Refuser",
       "change": "Changer",
-      "remove": "Retirer",
+      "remove": "Détacher",
       "attach": "Rattacher à une prévision",
       "attachedTo": "Rattachée à",
       "willBeChecked": "sera pointée",
-      "free": "Réel libre, à pointer",
+      "free": "Hors prévision, à pointer",
       "menuLabel": "Prévisions compatibles",
       "acceptAll": "Accepter les {{ count }} suggestions",
       "planAttachedOne": "{{ count }} rattachée et pointée",
       "planAttachedMany": "{{ count }} rattachées et pointées",
-      "planFreeOne": "{{ count }} en Réel libre",
-      "planFreeMany": "{{ count }} en Réels libres",
-      "planNothingAttached": "Aucune rattachée : tout arrivera en Réel libre, à pointer"
+      "planFreeOne": "{{ count }} hors prévision",
+      "planFreeMany": "{{ count }} hors prévision",
+      "planNothingAttached": "Aucune rattachée : tout arrivera hors prévision, à pointer"
     }
   },
   "tagPicker": {

@@ -2005,7 +2005,7 @@
     "transactionImportFileMissing": "No file received — choose your statement and try again",
     "transactionImportInvalid": "The statement has errors — nothing was imported, run the preview again to see them",
     "transactionImportConflict": "Some entries were imported in the meantime — nothing was created, run the preview again",
-    "transactionImportFailed": "The import failed — nothing was created, try again",
+    "transactionImportFailed": "Nothing was created, try again",
     "transactionImportRecalculationFailed": "The entries were imported, but the balances couldn't be refreshed — reload the page without importing the file again"
   },
   "logout": {
@@ -2065,7 +2065,7 @@
   "transactionImport": {
     "open": "Import a statement",
     "title": "Import a statement",
-    "intro": "Import the camt.053 statement (.xml file) exported from your e-banking. Pulpe records each of this month's entries as Actual.",
+    "intro": "Import the camt.053 statement (.xml file) exported from your e-banking. Pulpe adds each of this month's entries to your budget.",
     "noBankAccess": "Pulpe never accesses your bank account: only the file you choose is read.",
     "chooseFile": "Choose a file",
     "chooseAnotherFile": "Choose another file",
@@ -2111,14 +2111,13 @@
       "suggested": "Suggested:",
       "reasonsLabel": "Why this suggestion",
       "reason": {
-        "kind": "Compatible type",
         "amount": "Same amount",
         "label": "Similar description"
       },
       "accept": "Accept",
       "refuse": "Dismiss",
       "change": "Change",
-      "remove": "Remove",
+      "remove": "Detach",
       "attach": "Attach to a planned item",
       "attachedTo": "Attached to",
       "willBeChecked": "will be checked",

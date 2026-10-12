@@ -1,10 +1,12 @@
 import { DatePipe } from '@angular/common';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
-  type ElementRef,
+  ElementRef,
   inject,
+  Injector,
   signal,
   viewChild,
 } from '@angular/core';
@@ -283,7 +285,9 @@ const ACCEPTED_FILE_TYPES = '.xml,application/xml,text/xml';
 
           @if (operationRows().length > 0) {
             <ul
+              id="import-operations"
               class="flex flex-col divide-y divide-outline-variant"
+              tabindex="-1"
               [attr.aria-label]="
                 'transactionImport.operationsLabel' | transloco
               "
@@ -344,6 +348,8 @@ const ACCEPTED_FILE_TYPES = '.xml,application/xml,text/xml';
                           : 'rounded-2xl bg-surface-container px-3 py-2'
                       "
                       role="group"
+                      tabindex="-1"
+                      [id]="'import-attachment-' + row.position"
                       [attr.aria-labelledby]="
                         'import-operation-name-' + row.position
                       "
@@ -597,6 +603,9 @@ const ACCEPTED_FILE_TYPES = '.xml,application/xml,text/xml';
           </button>
         }
         @case ('failed') {
+          <button matButton mat-dialog-close data-testid="cancel-button">
+            {{ 'common.cancel' | transloco }}
+          </button>
           <button
             matButton
             (click)="chooseFile()"
@@ -613,6 +622,14 @@ const ACCEPTED_FILE_TYPES = '.xml,application/xml,text/xml';
           </button>
         }
         @default {
+          <button
+            matButton
+            mat-dialog-close
+            [disabled]="isImporting()"
+            data-testid="cancel-button"
+          >
+            {{ 'common.cancel' | transloco }}
+          </button>
           <button
             matButton
             [disabled]="isImporting()"
@@ -653,6 +670,8 @@ export class TransactionImportDialog {
   readonly #store = inject(BudgetDetailsStore);
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #transloco = inject(TranslocoService);
+  readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
+  readonly #injector = inject(Injector);
 
   private readonly fileInput =
     viewChild.required<ElementRef<HTMLInputElement>>('fileInput');
@@ -806,14 +825,17 @@ export class TransactionImportDialog {
     this.#decisions.update((decisions) =>
       acceptSuggestion(decisions, operation, this.#budgetLines()),
     );
+    this.#focusAfterRender(`#import-attachment-${position}`);
   }
 
   protected refuse(position: number): void {
     this.#decisions.update((decisions) => leaveFree(decisions, position));
+    this.#focusAfterRender(`#import-attachment-${position}`);
   }
 
   protected detach(position: number): void {
     this.#decisions.update((decisions) => leaveFree(decisions, position));
+    this.#focusAfterRender(`#import-attachment-${position}`);
   }
 
   protected attach(position: number, line: TransactionImportBudgetLine): void {
@@ -822,12 +844,14 @@ export class TransactionImportDialog {
     this.#decisions.update((decisions) =>
       attachOperation(decisions, operation, line),
     );
+    this.#focusAfterRender(`#import-attachment-${position}`);
   }
 
   protected acceptAll(): void {
     this.#decisions.update((decisions) =>
       acceptAllSuggestions(decisions, this.#operations(), this.#budgetLines()),
     );
+    this.#focusAfterRender('#import-operations');
   }
 
   protected isCurrentLine(
@@ -835,6 +859,18 @@ export class TransactionImportDialog {
     line: TransactionImportBudgetLine,
   ): boolean {
     return attachment.state === 'attached' && attachment.line.id === line.id;
+  }
+
+  /**
+   * A decision swaps the buttons of its row, so the one just pressed is gone
+   * after the render; without this, focus falls back to <body> (WCAG 2.4.3).
+   */
+  #focusAfterRender(selector: string): void {
+    afterNextRender(
+      () =>
+        this.#host.nativeElement.querySelector<HTMLElement>(selector)?.focus(),
+      { injector: this.#injector },
+    );
   }
 
   #operationAt(position: number): TransactionImportOperation | undefined {
