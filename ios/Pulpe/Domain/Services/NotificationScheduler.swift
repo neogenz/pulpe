@@ -92,18 +92,26 @@ actor NotificationScheduler {
     /// One slot per upcoming Monday, so a reschedule replaces all of them.
     private static let weeklyRecapIds = (0..<3).map { "pulpe.reminder.weekly-recap.\($0)" }
 
+    /// Bumped by every cancel, so a schedule suspended across one knows its figures are stale.
+    private var weeklyRecapGeneration = 0
+
     /// (Re)schedules the next three Monday recaps, each computed for its own date from the
     /// budget snapshot held now. Called on every fresh snapshot (`WidgetDataSyncService.sync`,
     /// background refresh included), which replaces them all. Content is frozen at scheduling,
     /// and that is what keeps the later two exact: they only survive if nothing new was
     /// recorded since, which is the state they describe. The series ends only when no sync
-    /// runs for three weeks, rather than repeat figures that old. No-op unless authorized.
+    /// runs for three weeks, rather than repeat figures that old. No-op unless authorized
+    /// and signed in.
     func scheduleWeeklyRecaps(
         transactions: [Transaction],
         current: BudgetDetails,
         payDayOfMonth: Int?,
         currency: SupportedCurrency
     ) async {
+        // A sync still in flight when the session ends must not bring the figures back. Captured
+        // before the session check: every session end signs out first, then cancels.
+        let generation = weeklyRecapGeneration
+        guard await AuthService.shared.hasPersistedSession() else { return }
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
         // Lock-screen privacy, like the widget's `.privacySensitive()`: amounts and forecast
@@ -129,16 +137,22 @@ actor NotificationScheduler {
             )
             try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
+        // A cancel that ran while this call was suspended wins over what it added since.
+        if generation != weeklyRecapGeneration {
+            center.removePendingNotificationRequests(withIdentifiers: Self.weeklyRecapIds)
+        }
     }
 
     /// Delivered ones too: a recap left in Notification Center keeps showing its amounts.
     func cancelWeeklyRecaps() {
+        weeklyRecapGeneration += 1
         center.removePendingNotificationRequests(withIdentifiers: Self.weeklyRecapIds)
         center.removeDeliveredNotifications(withIdentifiers: Self.weeklyRecapIds)
     }
 
     /// Identity boundary: every pending request belongs to the account leaving.
     func cancelAllReminders() {
+        weeklyRecapGeneration += 1
         center.removeAllPendingNotificationRequests()
     }
 
