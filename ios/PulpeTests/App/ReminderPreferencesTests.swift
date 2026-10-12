@@ -18,6 +18,17 @@ struct ReminderPreferencesTests {
         #expect(sut.weeklyRecapEnabled == false)
     }
 
+    @Test func revokedAuthorizationDisablesWeeklyRecapAlone() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let sut = ReminderPreferences(defaults: defaults)
+        sut.setWeeklyRecapEnabled(true)
+
+        _ = sut.reconcileAuthorization(isAuthorized: false)
+
+        #expect(sut.weeklyRecapEnabled == false)
+    }
+
     @Test func authorizedRemindersStayEnabled() throws {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }

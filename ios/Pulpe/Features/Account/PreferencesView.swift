@@ -107,7 +107,9 @@ struct PreferencesView: View {
             set: { newValue in
                 weeklyRecapEnabled = newValue
                 weeklyRecapTask?.cancel()
-                weeklyRecapTask = Task { await applyWeeklyRecapPreference(newValue) }
+                weeklyRecapTask = Task(name: "PreferencesView.weeklyRecap") {
+                    await applyWeeklyRecapPreference(newValue)
+                }
             }
         )
     }
@@ -157,10 +159,9 @@ struct PreferencesView: View {
         await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
     }
 
-    /// Same contract as `applyReminderPreference`. The recap needs budget figures, so the
-    /// next budget snapshot schedules it rather than this toggle: leaving the app syncs one
-    /// (`WidgetDataSyncService.sync`), well before any Monday. No `reminder_toggled`: that
-    /// event's contract is the monthly reminder.
+    /// Same contract as `applyReminderPreference`. The recap needs budget figures, so a
+    /// fresh snapshot schedules it: the one taken on leaving the app is not guaranteed to
+    /// finish. No `reminder_toggled`: that event's contract is the monthly reminder.
     private func applyWeeklyRecapPreference(_ enabled: Bool) async {
         guard !Task.isCancelled else { return }
         guard enabled else {
@@ -171,7 +172,11 @@ struct PreferencesView: View {
         let granted = await authorizeNotifications()
         guard !Task.isCancelled else { return }
         reminderPrefs.setWeeklyRecapEnabled(granted)
-        if !granted { weeklyRecapEnabled = false }  // revert; direct write skips the binding setter
+        guard granted else {
+            weeklyRecapEnabled = false  // revert; direct write skips the binding setter
+            return
+        }
+        await WidgetDataSyncService.shared.syncAll()
     }
 
     /// Fires the one-shot OS prompt, unless the toggle was already superseded: then
