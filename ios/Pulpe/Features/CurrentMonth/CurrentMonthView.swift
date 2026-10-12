@@ -202,12 +202,7 @@ struct CurrentMonthView: View {
             isNavigating: navigateToBudget,
             isPostOnboardingHandoffPresented: showPostOnboardingHandoff.wrappedValue
         ) { promptNumber in
-            // The status request ran in between: re-read the live presentation state.
-            guard activeSheet == nil, !navigateToBudget, !showPostOnboardingHandoff.wrappedValue else {
-                return false
-            }
             activeSheet = .feedback(promptNumber: promptNumber)
-            return true
         }
     }
 

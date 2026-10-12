@@ -53,13 +53,7 @@ struct FeedbackPromptPreferences: @unchecked Sendable {
         return state.activeDayCount - lastPrompt >= Self.activeDaysBetweenPrompts
     }
 
-    /// The 1-based number the next automatic invitation will carry, for analytics.
-    func nextAutomaticPromptNumber(for userID: String) -> Int {
-        (loadStates()[userID]?.promptCount ?? 0) + 1
-    }
-
     /// Returns the 1-based number of this automatic invitation, for analytics.
-    @discardableResult
     func markAutomaticPromptShown(for userID: String) -> Int {
         var promptNumber = 0
         update(userID) { state in
@@ -147,9 +141,8 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     let hasBlockingSheet: Bool
     let isNavigating: Bool
     let isPostOnboardingHandoffPresented: Bool
-    /// Presents the invitation numbered by its argument when the live screen still
-    /// allows it, and returns whether it did. Only a presented invitation is recorded.
-    let onPresent: (Int) -> Bool
+    /// Presents the invitation numbered by its argument.
+    let onPresent: (Int) -> Void
 
     @State private var hasEvaluatedInitialLoad = false
     @State private var hasPendingForegroundEvaluation = false
@@ -173,9 +166,8 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
             .onChange(of: unansweredUserID) { _, userID in
                 guard let userID else { return }
                 unansweredUserID = nil
-                guard allowsPresentation(for: userID),
-                      onPresent(preferences.nextAutomaticPromptNumber(for: userID)) else { return }
-                preferences.markAutomaticPromptShown(for: userID)
+                guard allowsPresentation(for: userID) else { return }
+                onPresent(preferences.markAutomaticPromptShown(for: userID))
             }
             .onChange(of: scenePhase) { _, newPhase in
                 guard backgroundReturnTracker.consumeReturn(to: newPhase) else { return }
@@ -259,7 +251,7 @@ extension View {
         hasBlockingSheet: Bool,
         isNavigating: Bool,
         isPostOnboardingHandoffPresented: Bool,
-        onPresent: @escaping (Int) -> Bool
+        onPresent: @escaping (Int) -> Void
     ) -> some View {
         modifier(AutomaticFeedbackPromptModifier(
             contentState: contentState,

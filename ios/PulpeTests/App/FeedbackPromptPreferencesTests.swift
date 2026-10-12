@@ -45,9 +45,6 @@ struct FeedbackPromptPreferencesTests {
         let base = try date(year: 2026, month: 4, day: 1, hour: 12, calendar: fixture.calendar)
         try recordActiveDays(fixture, "user", offsets: [0, 1, 2], from: base)
 
-        // Announcing the number records nothing: an invitation that could not be
-        // presented stays due.
-        #expect(fixture.store.nextAutomaticPromptNumber(for: "user") == 1)
         #expect(fixture.store.isEligible(for: "user"))
         #expect(fixture.store.markAutomaticPromptShown(for: "user") == 1)
         #expect(!fixture.store.isEligible(for: "user"))
@@ -57,7 +54,6 @@ struct FeedbackPromptPreferencesTests {
 
         try recordActiveDays(fixture, "user", offsets: [5], from: base)
         #expect(fixture.store.isEligible(for: "user"))
-        #expect(fixture.store.nextAutomaticPromptNumber(for: "user") == 2)
         #expect(fixture.store.markAutomaticPromptShown(for: "user") == 2)
     }
 
