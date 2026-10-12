@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import UserNotifications
 
 /// Schedules Pulpe's local re-engagement notifications.
@@ -198,10 +199,14 @@ actor NotificationScheduler {
 }
 
 /// Counts the taps that bring the user back from a reminder, the retention signal the
-/// reminders exist for. No `willPresent`: a reminder firing while the app is open stays
-/// silent, as it did without a delegate.
-final class ReminderOpenTracker: NSObject, UNUserNotificationCenterDelegate, Sendable {
-    private static let shared = ReminderOpenTracker()
+/// reminders exist for, and opens the current month. No `willPresent`: a reminder firing
+/// while the app is open stays silent, as it did without a delegate.
+///
+/// Main actor on purpose: UIKit aborts unless the completion behind this async method runs
+/// on the main thread, and a nonisolated witness returns from the cooperative pool.
+@MainActor
+final class ReminderTapHandler: NSObject, @MainActor UNUserNotificationCenterDelegate {
+    private static let shared = ReminderTapHandler()
 
     /// From `PulpeApp.init`: the delegate must be set before launch finishes, or the tap
     /// that cold-launches the app is never delivered.
@@ -215,8 +220,15 @@ final class ReminderOpenTracker: NSObject, UNUserNotificationCenterDelegate, Sen
     ) async {
         guard let reminder = NotificationScheduler.reminder(ofRequest: response.notification.request.identifier)
         else { return }
-        await MainActor.run {
-            AnalyticsService.shared.capture(.reminderOpened, properties: ["reminder": reminder.rawValue])
-        }
+        AnalyticsService.shared.capture(.reminderOpened, properties: ["reminder": reminder.rawValue])
+        PendingReminderTap.shared.opensCurrentMonth = true
     }
+}
+
+/// Every reminder is about the current month. `MainTabView` consumes the tap: it only exists
+/// past the PIN, so a tap that cold-launched the app lands once the user has unlocked.
+@MainActor @Observable
+final class PendingReminderTap {
+    static let shared = PendingReminderTap()
+    var opensCurrentMonth = false
 }

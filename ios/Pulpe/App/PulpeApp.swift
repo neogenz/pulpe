@@ -30,7 +30,7 @@ struct PulpeApp: App {
 
     init() {
         AnalyticsService.shared.initialize()
-        ReminderOpenTracker.install()
+        ReminderTapHandler.install()
 
         let appState = AppState()
         let currentMonthStore = CurrentMonthStore()

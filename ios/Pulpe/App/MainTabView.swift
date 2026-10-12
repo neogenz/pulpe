@@ -47,6 +47,12 @@ struct MainTabView: View {
             #endif
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
         }
+        .onChange(of: PendingReminderTap.shared.opensCurrentMonth, initial: true) { _, opens in
+            guard opens else { return }
+            PendingReminderTap.shared.opensCurrentMonth = false
+            appState.currentMonthPath = NavigationPath()
+            appState.selectedTab = .currentMonth
+        }
         .task {
             #if DEBUG
             guard let rawValue = ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"],
