@@ -3,7 +3,6 @@ import {
   Component,
   computed,
   inject,
-  signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,6 +11,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { CURRENT_APP_VERSION } from '@core/app-version/current-app-version';
+import { WHATS_NEW_VISIBLE } from '@core/feedback/feedback-prompt';
 import { featuresForLocale, LATEST_RELEASE } from './whats-new-releases';
 
 @Component({
@@ -134,8 +134,13 @@ export class WhatsNewToast {
       : `https://pulpe.app/${locale}/changelog`;
   });
 
-  readonly #isVisible = signal(this.#shouldShow());
+  // Shared so the lower-priority feedback invitation waits while this shows.
+  readonly #isVisible = inject(WHATS_NEW_VISIBLE);
   protected readonly isVisible = this.#isVisible.asReadonly();
+
+  constructor() {
+    this.#isVisible.set(this.#shouldShow());
+  }
 
   #shouldShow(): boolean {
     if (LATEST_RELEASE.version !== this.version) return false;

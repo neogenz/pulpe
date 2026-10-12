@@ -814,9 +814,10 @@ export type Database = {
           future_planning: number | null
           home_clarity: number | null
           id: string
-          ios_version: string
+          ios_version: string | null
           onboarding: number | null
           overall_rating: number
+          platform: string
           user_id: string
         }
         Insert: {
@@ -828,9 +829,10 @@ export type Database = {
           future_planning?: number | null
           home_clarity?: number | null
           id?: string
-          ios_version: string
+          ios_version?: string | null
           onboarding?: number | null
           overall_rating: number
+          platform?: string
           user_id: string
         }
         Update: {
@@ -842,9 +844,10 @@ export type Database = {
           future_planning?: number | null
           home_clarity?: number | null
           id?: string
-          ios_version?: string
+          ios_version?: string | null
           onboarding?: number | null
           overall_rating?: number
+          platform?: string
           user_id?: string
         }
         Relationships: []

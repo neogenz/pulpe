@@ -211,6 +211,7 @@ export {
   // Feedback
   feedbackRatingSchema,
   feedbackCreateSchema,
+  feedbackStatusResponseSchema,
   // MCP agent connector
   mcpAccessModeSchema,
   mcpConsentDetailsResponseSchema,
@@ -579,6 +580,7 @@ export type {
 
   // Feedback
   FeedbackCreate,
+  FeedbackStatusResponse,
   McpAccessMode,
   McpConsentDetailsResponse,
   McpConsentApproveRequest,

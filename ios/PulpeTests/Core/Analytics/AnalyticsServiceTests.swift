@@ -60,7 +60,10 @@ struct AnalyticsServiceTests {
             "language_changed",
             "savings_goals_intro_viewed",
             "savings_goals_intro_completed",
-            "savings_goals_intro_skipped"
+            "savings_goals_intro_skipped",
+            "feedback_viewed",
+            "feedback_submitted",
+            "feedback_cancelled"
         ]
 
         #expect(Set(AnalyticsEvent.allCases.map(\.rawValue)) == expected)

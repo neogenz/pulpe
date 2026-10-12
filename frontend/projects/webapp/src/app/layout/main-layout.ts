@@ -12,7 +12,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NgTemplateOutlet } from '@angular/common';
+import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
@@ -39,6 +39,7 @@ import { AuthStore } from '@core/auth/auth-store';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { DemoModeService } from '@core/demo/demo-mode.service';
+import { FeedbackPrompt } from '@core/feedback/feedback-prompt';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
 import {
@@ -69,6 +70,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'pulpe-main-layout',
+  host: { '(document:visibilitychange)': 'recordActiveDayIfVisible()' },
   imports: [
     MatButtonModule,
     MatDividerModule,
@@ -771,6 +773,8 @@ export default class MainLayout {
   readonly #logger = inject(Logger);
   readonly #dialog = inject(MatDialog);
   readonly #productTourService = inject(ProductTourService);
+  readonly #document = inject(DOCUMENT);
+  readonly #feedbackPrompt = inject(FeedbackPrompt);
   protected readonly loadingIndicator = inject(LoadingIndicator);
   // Display "Mode Démo" for demo users, otherwise show email
   protected readonly userEmail = computed(() => {
@@ -911,6 +915,10 @@ export default class MainLayout {
   });
 
   constructor() {
+    // The authenticated shell is the app being used: one active day per local
+    // calendar day, for the feedback invitation cadence.
+    this.#feedbackPrompt.recordActiveDay();
+
     afterNextRender(() => {
       const sentinel = this.scrollSentinel()?.nativeElement;
       if (!sentinel) return;
@@ -923,6 +931,12 @@ export default class MainLayout {
       observer.observe(sentinel);
       this.#destroyRef.onDestroy(() => observer.disconnect());
     });
+  }
+
+  protected recordActiveDayIfVisible(): void {
+    if (this.#document.visibilityState === 'visible') {
+      this.#feedbackPrompt.recordActiveDay();
+    }
   }
 
   // Navigation state for progress bar feedback (debounced to prevent flicker)

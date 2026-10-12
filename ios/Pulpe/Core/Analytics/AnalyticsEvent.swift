@@ -102,4 +102,12 @@ enum AnalyticsEvent: String, CaseIterable {
     case savingsGoalsIntroViewed = "savings_goals_intro_viewed"
     case savingsGoalsIntroCompleted = "savings_goals_intro_completed"
     case savingsGoalsIntroSkipped = "savings_goals_intro_skipped"
+
+    // MARK: - Feedback
+    /// `viewed` fires on open, then exactly one of `submitted` or `cancelled`.
+    /// Properties: `source` (`automatic` | `settings`), `prompt_number` for `automatic`.
+    /// `submitted` adds `rating`, `has_comment`, `has_details`. Never the comment.
+    case feedbackViewed = "feedback_viewed"
+    case feedbackSubmitted = "feedback_submitted"
+    case feedbackCancelled = "feedback_cancelled"
 }

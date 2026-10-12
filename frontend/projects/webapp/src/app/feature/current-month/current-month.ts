@@ -63,6 +63,14 @@ import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 import { dateFnsLocaleFor } from '@core/locale';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+import {
+  FeedbackPrompt,
+  WHATS_NEW_VISIBLE,
+} from '@core/feedback/feedback-prompt';
+import {
+  FeedbackDialog,
+  type FeedbackDialogData,
+} from './components/feedback-dialog';
 import { firstValueFrom } from 'rxjs';
 
 // Longer than the plain notification below: this toast is not read, it is
@@ -625,6 +633,8 @@ export default class Dashboard {
   readonly #dialog = inject(MatDialog);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #firstTransactionTracker = inject(FirstTransactionTracker);
+  readonly #feedbackPrompt = inject(FeedbackPrompt);
+  readonly #whatsNewVisible = inject(WHATS_NEW_VISIBLE);
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
 
   // Folded by default: the daily visit is the one this page is for, and it ends
@@ -799,6 +809,16 @@ export default class Dashboard {
       this.#closeUndoWindow();
     });
 
+    // This page is the web "Home": the feedback invitation is offered once the
+    // figures arrive, and again on each new active day for a tab left open
+    // across days, never over anything else on screen.
+    const hasDashboardData = computed(() => !!this.store.dashboardData());
+    effect(() => {
+      this.#feedbackPrompt.activeDay();
+      if (!hasDashboardData()) return;
+      untracked(() => void this.#offerFeedback());
+    });
+
     afterNextRender(() => {
       const tourTimeout = setTimeout(
         () => this.#productTourService.startFirstRunTour(),
@@ -837,6 +857,22 @@ export default class Dashboard {
     }
     this.#refreshPhase.set('requested');
     this.store.refreshData();
+  }
+
+  async #offerFeedback(): Promise<void> {
+    const promptNumber = await this.#feedbackPrompt.claimAutomaticPrompt(
+      () =>
+        !this.#destroyRef.destroyed &&
+        this.#dialog.openDialogs.length === 0 &&
+        !this.#whatsNewVisible() &&
+        this.#productTourService.hasSeenIntro(),
+    );
+    if (promptNumber === null) return;
+    this.#dialog.open(FeedbackDialog, {
+      data: { promptNumber } satisfies FeedbackDialogData,
+      width: '440px',
+      maxWidth: 'calc(100vw - 32px)',
+    });
   }
 
   protected openPageHelp(event: Event): void {

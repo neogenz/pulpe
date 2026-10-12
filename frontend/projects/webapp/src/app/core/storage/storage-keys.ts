@@ -51,6 +51,9 @@ export const STORAGE_KEYS = {
   // What's New dismissal
   WHATS_NEW_DISMISSED: 'pulpe-whats-new-dismissed',
 
+  // Automatic feedback invitation: per-account active-day history, by user id
+  FEEDBACK_PROMPT: 'pulpe-feedback-prompt',
+
   // Analytics: pending OAuth signup method (sessionStorage)
   PENDING_SIGNUP_METHOD: 'pulpe_pending_signup_method',
 

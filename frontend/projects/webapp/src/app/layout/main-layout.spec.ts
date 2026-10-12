@@ -34,6 +34,7 @@ import { DemoInitializerService } from '../core/demo/demo-initializer.service';
 import { LoadingIndicator } from '../core/loading/loading-indicator';
 import { Logger } from '../core/logging/logger';
 import { ProductTourService } from '../core/product-tour/product-tour.service';
+import { FeedbackPrompt } from '../core/feedback/feedback-prompt';
 import { BreadcrumbState } from '../core/shell/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
 
@@ -262,6 +263,7 @@ describe('MainLayout', () => {
           provide: LoadingIndicator,
           useValue: { isLoading: signal(false) },
         },
+        { provide: FeedbackPrompt, useValue: { recordActiveDay: vi.fn() } },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     });

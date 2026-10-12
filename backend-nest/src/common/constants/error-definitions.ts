@@ -864,6 +864,11 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to submit feedback',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  FEEDBACK_STATUS_FAILED: {
+    code: API_ERROR_CODES.FEEDBACK_STATUS_FAILED,
+    message: () => 'Failed to read feedback status',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
 
   // Validation Errors
   VALIDATION_FAILED: {
