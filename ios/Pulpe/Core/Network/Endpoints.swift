@@ -93,6 +93,7 @@ enum Endpoint {
     // MARK: - Feedback
 
     case feedback
+    case feedbackStatus
 
     // MARK: - Encryption
 
@@ -192,6 +193,7 @@ enum Endpoint {
 
         // Feedback
         case .feedback: return "/feedback"
+        case .feedbackStatus: return "/feedback/status"
 
         // Encryption
         case .encryptionVaultStatus: return "/encryption/vault-status"
@@ -228,7 +230,7 @@ enum Endpoint {
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
-             .transactionsByBudget, .transactionsExists, .budgetsSparse,
+             .transactionsByBudget, .transactionsExists, .budgetsSparse, .feedbackStatus,
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,

@@ -2885,7 +2885,8 @@ export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;
  * FEEDBACK — Private in-app feedback
  *
  * Authenticated clients submit an overall rating and may add area ratings or
- * a short comment. Identity is always derived from the access token.
+ * a short comment. Identity is always derived from the access token. iOS builds
+ * that predate `platform` omit it and always send `iosVersion`.
  */
 export const feedbackRatingSchema = z.number().int().min(1).max(5);
 
@@ -2897,25 +2898,42 @@ const maximumFeedbackCommentCodePointCount = 1_000;
 const hasValidFeedbackCommentLength = (value: string): boolean =>
   Array.from(value).length <= maximumFeedbackCommentCodePointCount;
 
-export const feedbackCreateSchema = z.strictObject({
-  overallRating: feedbackRatingSchema,
-  onboarding: optionalFeedbackRatingSchema,
-  budgetClarity: optionalFeedbackRatingSchema,
-  currentMonth: optionalFeedbackRatingSchema,
-  futurePlanning: optionalFeedbackRatingSchema,
-  homeClarity: optionalFeedbackRatingSchema,
-  comment: z
-    .string()
-    .trim()
-    .refine(hasValidFeedbackCommentLength, {
-      message: `Too big: expected string to have <=${maximumFeedbackCommentCodePointCount} Unicode code points`,
-    })
-    .optional()
-    .transform((value) => value || undefined),
-  appVersion: z.string().trim().min(1).max(32),
-  iosVersion: z.string().trim().min(1).max(32),
-});
+export const feedbackCreateSchema = z
+  .strictObject({
+    overallRating: feedbackRatingSchema,
+    onboarding: optionalFeedbackRatingSchema,
+    budgetClarity: optionalFeedbackRatingSchema,
+    currentMonth: optionalFeedbackRatingSchema,
+    futurePlanning: optionalFeedbackRatingSchema,
+    homeClarity: optionalFeedbackRatingSchema,
+    comment: z
+      .string()
+      .trim()
+      .refine(hasValidFeedbackCommentLength, {
+        message: `Too big: expected string to have <=${maximumFeedbackCommentCodePointCount} Unicode code points`,
+      })
+      .optional()
+      .transform((value) => value || undefined),
+    appVersion: z.string().trim().min(1).max(32),
+    platform: z.enum(['ios', 'web']).default('ios'),
+    iosVersion: z.string().trim().min(1).max(32).optional(),
+  })
+  .refine((feedback) => feedback.platform !== 'ios' || feedback.iosVersion, {
+    message: 'iosVersion is required for iOS feedback',
+    path: ['iosVersion'],
+  });
 export type FeedbackCreate = z.infer<typeof feedbackCreateSchema>;
+
+/**
+ * `GET /feedback/status` — whether the account has ever submitted feedback, on
+ * any platform. Stops the automatic invitation everywhere once answered.
+ */
+export const feedbackStatusResponseSchema = z.object({
+  hasSubmitted: z.boolean(),
+});
+export type FeedbackStatusResponse = z.infer<
+  typeof feedbackStatusResponseSchema
+>;
 
 // ============================================================================
 // MCP agent connector — consent page (OAuth 2.1 authorization on Supabase)

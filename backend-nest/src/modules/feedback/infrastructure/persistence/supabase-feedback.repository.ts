@@ -25,6 +25,7 @@ export class SupabaseFeedbackRepository implements FeedbackRepositoryPort {
         home_clarity: feedback.homeClarity,
         comment: feedback.comment,
         app_version: feedback.appVersion,
+        platform: feedback.platform,
         ios_version: feedback.iosVersion,
       });
 
@@ -36,5 +37,24 @@ export class SupabaseFeedbackRepository implements FeedbackRepositoryPort {
         { cause: error },
       );
     }
+  }
+
+  async hasSubmitted(): Promise<boolean> {
+    const userId = this.authenticatedProvider.user.id;
+    const { data, error } = await this.authenticatedProvider.client
+      .from('user_feedback')
+      .select('user_id')
+      .eq('user_id', userId)
+      .limit(1);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.FEEDBACK_STATUS_FAILED,
+        undefined,
+        { userId, operation: 'feedback.status' },
+        { cause: error },
+      );
+    }
+    return data.length > 0;
   }
 }

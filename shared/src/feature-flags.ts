@@ -164,6 +164,17 @@ export const ANALYTICS_EVENTS = {
   SAVINGS_GOALS_INTRO_COMPLETED: 'savings_goals_intro_completed',
   /** Fires when the savings-goals intro is skipped. Properties: none. */
   SAVINGS_GOALS_INTRO_SKIPPED: 'savings_goals_intro_skipped',
+  /**
+   * Feedback form, web and iOS. `viewed` fires on open, then exactly one of
+   * `submitted` or `cancelled`. Properties on all three: `source`
+   * (`'automatic' | 'settings'`) and, for `automatic` only, `prompt_number`
+   * (1 for the first invitation, 2 for the reminder three active days later...).
+   * `submitted` adds `rating` (overall, 1-5), `has_comment` and `has_details`.
+   * Never the comment text.
+   */
+  FEEDBACK_VIEWED: 'feedback_viewed',
+  FEEDBACK_SUBMITTED: 'feedback_submitted',
+  FEEDBACK_CANCELLED: 'feedback_cancelled',
 } as const;
 
 export type AnalyticsEventName =

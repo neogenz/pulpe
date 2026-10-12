@@ -46,9 +46,9 @@ struct AccountView: View {
                 EditFirstNameSheet(initialFirstName: appState.currentUser?.firstName)
             }
             .sheet(isPresented: $showFeedback) {
-                FeedbackSheet {
+                FeedbackSheet(source: .settings) {
                     guard let userID = appState.currentUser?.id else { return }
-                    feedbackPromptPreferences.markAutomaticPromptHandled(for: userID)
+                    feedbackPromptPreferences.markSubmitted(for: userID)
                 }
             }
         }

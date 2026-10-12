@@ -6,11 +6,29 @@ const minimalFeedback = {
   appVersion: '1.4.0',
   iosVersion: '19.0',
 };
+const parsedMinimalFeedback = { ...minimalFeedback, platform: 'ios' };
 
 describe('feedbackCreateSchema', () => {
+  it('accepts web feedback without an iOS version', () => {
+    expect(
+      feedbackCreateSchema.parse({
+        overallRating: 3,
+        appVersion: '0.52.0',
+        platform: 'web',
+      }),
+    ).toEqual({ overallRating: 3, appVersion: '0.52.0', platform: 'web' });
+  });
+
+  it('requires an iOS version on iOS feedback', () => {
+    expect(
+      feedbackCreateSchema.safeParse({ overallRating: 3, appVersion: '1.7.0' })
+        .success,
+    ).toBe(false);
+  });
+
   it('accepts minimal and complete feedback', () => {
     expect(feedbackCreateSchema.parse(minimalFeedback)).toEqual(
-      minimalFeedback,
+      parsedMinimalFeedback,
     );
 
     expect(
@@ -24,7 +42,7 @@ describe('feedbackCreateSchema', () => {
         comment: '  Simple et utile.  ',
       }),
     ).toEqual({
-      ...minimalFeedback,
+      ...parsedMinimalFeedback,
       onboarding: 1,
       budgetClarity: 2,
       currentMonth: 3,
@@ -53,7 +71,7 @@ describe('feedbackCreateSchema', () => {
   it('normalizes a blank comment to absence', () => {
     expect(
       feedbackCreateSchema.parse({ ...minimalFeedback, comment: '   ' }),
-    ).toEqual(minimalFeedback);
+    ).toEqual(parsedMinimalFeedback);
   });
 
   it('measures the comment limit in Unicode code points', () => {

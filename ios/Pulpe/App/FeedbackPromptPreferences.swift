@@ -1,20 +1,27 @@
 import Foundation
 import SwiftUI
 
-/// Device-local, account-scoped memory for the one automatic feedback invitation.
+/// Device-local, account-scoped memory for the automatic feedback invitation: first on
+/// the third active day, then every three active days until the account answers.
 /// App versions are deliberately absent: updating Pulpe must not reset the history.
 ///
 /// SAFETY: `UserDefaults` is thread-safe. Production calls this value from the main
 /// actor; tests use isolated suites, so each read-modify-write sequence has one owner.
 struct FeedbackPromptPreferences: @unchecked Sendable {
+    static let activeDaysBetweenPrompts = 3
+
     private struct AccountState: Codable {
-        var firstUseAt: Date
-        var activeDays: Set<String>
-        var hasHandledAutomaticPrompt: Bool
+        var activeDayCount = 0
+        var lastActiveDay: String?
+        var lastPromptedAtActiveDayCount: Int?
+        var promptCount = 0
+        var hasSubmitted = false
     }
 
     private enum Key {
-        static let accountStates = "pulpe.feedback-prompt.account-states"
+        // v1 counted a 7-day window and only remembered "prompted once". Its history
+        // is dropped on purpose: the server is the source of truth for "answered".
+        static let accountStates = "pulpe.feedback-prompt.v2.account-states"
     }
 
     private let defaults: UserDefaults
@@ -30,53 +37,44 @@ struct FeedbackPromptPreferences: @unchecked Sendable {
         now: Date = Date(),
         calendar: Calendar = .current
     ) {
-        var states = loadStates()
-        var state = states[userID] ?? AccountState(
-            firstUseAt: now,
-            activeDays: [],
-            hasHandledAutomaticPrompt: false
-        )
-        state.activeDays.insert(dayIdentifier(for: now, calendar: calendar))
-        state.activeDays.formIntersection(recentDayIdentifiers(at: now, calendar: calendar))
-        states[userID] = state
-        save(states)
-    }
-
-    func isEligible(
-        for userID: String,
-        now: Date = Date(),
-        calendar: Calendar = .current
-    ) -> Bool {
-        guard let state = loadStates()[userID],
-              !state.hasHandledAutomaticPrompt,
-              let threshold = calendar.date(byAdding: .day, value: 7, to: state.firstUseAt),
-              now >= threshold else {
-            return false
+        let today = dayIdentifier(for: now, calendar: calendar)
+        update(userID) { state in
+            guard state.lastActiveDay != today else { return }
+            state.lastActiveDay = today
+            state.activeDayCount += 1
         }
-
-        let recentDays = recentDayIdentifiers(at: now, calendar: calendar)
-        return state.activeDays.intersection(recentDays).count >= 5
     }
 
-    func markAutomaticPromptHandled(for userID: String, now: Date = Date()) {
+    func isEligible(for userID: String) -> Bool {
+        let state = loadStates()[userID] ?? AccountState()
+        guard !state.hasSubmitted,
+              state.activeDayCount >= Self.activeDaysBetweenPrompts else { return false }
+        guard let lastPrompt = state.lastPromptedAtActiveDayCount else { return true }
+        return state.activeDayCount - lastPrompt >= Self.activeDaysBetweenPrompts
+    }
+
+    /// Returns the 1-based number of this automatic invitation, for analytics.
+    @discardableResult
+    func markAutomaticPromptShown(for userID: String) -> Int {
+        var promptNumber = 0
+        update(userID) { state in
+            state.lastPromptedAtActiveDayCount = state.activeDayCount
+            state.promptCount += 1
+            promptNumber = state.promptCount
+        }
+        return promptNumber
+    }
+
+    func markSubmitted(for userID: String) {
+        update(userID) { $0.hasSubmitted = true }
+    }
+
+    private func update(_ userID: String, _ change: (inout AccountState) -> Void) {
         var states = loadStates()
-        var state = states[userID] ?? AccountState(
-            firstUseAt: now,
-            activeDays: [],
-            hasHandledAutomaticPrompt: false
-        )
-        guard !state.hasHandledAutomaticPrompt else { return }
-        state.hasHandledAutomaticPrompt = true
+        var state = states[userID] ?? AccountState()
+        change(&state)
         states[userID] = state
         save(states)
-    }
-
-    private func recentDayIdentifiers(at now: Date, calendar: Calendar) -> Set<String> {
-        let today = calendar.startOfDay(for: now)
-        return Set((0..<7).compactMap { offset in
-            calendar.date(byAdding: .day, value: -offset, to: today)
-                .map { dayIdentifier(for: $0, calendar: calendar) }
-        })
     }
 
     private func dayIdentifier(for date: Date, calendar: Calendar) -> String {
@@ -144,7 +142,8 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     let hasBlockingSheet: Bool
     let isNavigating: Bool
     let isPostOnboardingHandoffPresented: Bool
-    let onPresent: () -> Void
+    /// Receives the 1-based number of this automatic invitation.
+    let onPresent: (Int) -> Void
 
     @State private var hasEvaluatedInitialLoad = false
     @State private var hasPendingForegroundEvaluation = false
@@ -193,11 +192,20 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
     }
 
     private func presentIfEligible() {
-        guard let userID = appState.currentUser?.id else { return }
-        let canPresent = AutomaticFeedbackPromptGate(
+        guard let userID = appState.currentUser?.id, allowsPresentation(for: userID) else { return }
+        Task { @MainActor in
+            guard await accountHasNotAnswered(userID), allowsPresentation(for: userID) else { return }
+            onPresent(preferences.markAutomaticPromptShown(for: userID))
+        }
+    }
+
+    private func allowsPresentation(for userID: String) -> Bool {
+        AutomaticFeedbackPromptGate(
             isSceneActive: scenePhase == .active,
             isRestoringSession: appState.isRestoringSession,
-            isAuthenticated: appState.authState == .authenticated && appState.currentRoute == .main,
+            isAuthenticated: appState.authState == .authenticated
+                && appState.currentRoute == .main
+                && appState.currentUser?.id == userID,
             isHomeAtRoot: appState.selectedTab == .currentMonth && appState.currentMonthPath.isEmpty,
             hasBlockingPresentation: hasBlockingSheet
                 || hasPriorityRootPresentation
@@ -208,8 +216,14 @@ private struct AutomaticFeedbackPromptModifier: ViewModifier {
             whatsNewAllowsPresentation: whatsNewStore.allowsLowerPriorityPresentation,
             isEligible: preferences.isEligible(for: userID)
         ).allowsPresentation
-        guard canPresent else { return }
-        onPresent()
+    }
+
+    /// The account may have answered on another device or on the web. Fails closed:
+    /// offline or erroring, nobody is invited.
+    private func accountHasNotAnswered(_ userID: String) async -> Bool {
+        guard let hasSubmitted = try? await FeedbackService.shared.hasSubmitted() else { return false }
+        if hasSubmitted { preferences.markSubmitted(for: userID) }
+        return !hasSubmitted
     }
 }
 
@@ -228,7 +242,7 @@ extension View {
         hasBlockingSheet: Bool,
         isNavigating: Bool,
         isPostOnboardingHandoffPresented: Bool,
-        onPresent: @escaping () -> Void
+        onPresent: @escaping (Int) -> Void
     ) -> some View {
         modifier(AutomaticFeedbackPromptModifier(
             contentState: contentState,
@@ -242,13 +256,12 @@ extension View {
 
 struct AutomaticFeedbackSheet: View {
     @Environment(AppState.self) private var appState
-    private let preferences = FeedbackPromptPreferences()
+    let promptNumber: Int
 
     var body: some View {
-        FeedbackSheet()
-            .onAppear {
-                guard let userID = appState.currentUser?.id else { return }
-                preferences.markAutomaticPromptHandled(for: userID)
-            }
+        FeedbackSheet(source: .automatic(promptNumber: promptNumber)) {
+            guard let userID = appState.currentUser?.id else { return }
+            FeedbackPromptPreferences().markSubmitted(for: userID)
+        }
     }
 }

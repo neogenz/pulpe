@@ -1,6 +1,19 @@
 import SwiftUI
 import UIKit
 
+/// Where the form was opened from, for analytics.
+enum FeedbackSource: Equatable {
+    case automatic(promptNumber: Int)
+    case settings
+
+    var analyticsProperties: [String: Any] {
+        switch self {
+        case .automatic(let promptNumber): ["source": "automatic", "prompt_number": promptNumber]
+        case .settings: ["source": "settings"]
+        }
+    }
+}
+
 struct FeedbackSheet: View {
     private enum Field: Hashable {
         case comment
@@ -11,13 +24,16 @@ struct FeedbackSheet: View {
     @State private var viewModel: FeedbackViewModel
     @State private var showsDetails = false
 
+    private let source: FeedbackSource
     private let onSubmitted: () -> Void
 
     init(
+        source: FeedbackSource,
         dependencies: FeedbackDependencies? = nil,
         onSubmitted: @escaping () -> Void = {}
     ) {
         _viewModel = State(initialValue: FeedbackViewModel(dependencies: dependencies))
+        self.source = source
         self.onSubmitted = onSubmitted
     }
 
@@ -52,6 +68,13 @@ struct FeedbackSheet: View {
         .sensoryFeedback(.success, trigger: viewModel.isSubmitted)
         .suppressesTips()
         .standardSheetPresentation()
+        .onAppear {
+            AnalyticsService.shared.capture(.feedbackViewed, properties: source.analyticsProperties)
+        }
+        .onDisappear {
+            guard !viewModel.isSubmitted else { return }
+            AnalyticsService.shared.capture(.feedbackCancelled, properties: source.analyticsProperties)
+        }
     }
 
     private var header: some View {
@@ -232,8 +255,17 @@ struct FeedbackSheet: View {
     private func submit() {
         Task {
             guard await viewModel.submit() else { return }
+            trackSubmission()
             onSubmitted()
         }
+    }
+
+    private func trackSubmission() {
+        var properties = source.analyticsProperties
+        properties["rating"] = viewModel.overallRating?.rawValue
+        properties["has_comment"] = !viewModel.comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        properties["has_details"] = !viewModel.ratings.isEmpty
+        AnalyticsService.shared.capture(.feedbackSubmitted, properties: properties)
     }
 
     private var successContent: some View {
@@ -372,5 +404,5 @@ final class FeedbackViewModel {
 }
 
 #Preview {
-    FeedbackSheet()
+    FeedbackSheet(source: .settings)
 }

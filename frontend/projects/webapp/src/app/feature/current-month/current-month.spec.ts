@@ -30,6 +30,7 @@ import type { MonthRecap } from './services/dashboard-state';
 import { MonthRecapDialog } from './components/month-recap-dialog';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
 import { FirstTransactionTracker } from '@core/transaction';
+import { FeedbackPrompt } from '@core/feedback/feedback-prompt';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -623,6 +624,10 @@ describe('Dashboard (TestBed)', () => {
           {
             provide: FirstTransactionTracker,
             useValue: mockFirstTransactionTracker,
+          },
+          {
+            provide: FeedbackPrompt,
+            useValue: { claimAutomaticPrompt: () => Promise.resolve(null) },
           },
         ],
       })

@@ -69,3 +69,7 @@ struct FeedbackSubmission: Codable, Equatable, Sendable {
         self.iosVersion = iosVersion
     }
 }
+
+struct FeedbackStatusResponse: Decodable, Sendable {
+    let hasSubmitted: Bool
+}

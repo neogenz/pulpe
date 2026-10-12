@@ -2176,5 +2176,22 @@
   "yearCalendar": {
     "budgetCountOne": "{{ count }} budget",
     "budgetCountMany": "{{ count }} budgets"
+  },
+  "feedback": {
+    "title": "Your feedback on Pulpe",
+    "privacy": "Your feedback stays private.",
+    "question": "How is it going with Pulpe?",
+    "rating1": "Needs improvement",
+    "rating2": "Difficult",
+    "rating3": "Okay",
+    "rating4": "Good",
+    "rating5": "Very good",
+    "commentLabel": "Optional comment",
+    "commentPlaceholder": "Anything you'd like to add?",
+    "later": "Later",
+    "submit": "Send",
+    "submitting": "Sending…",
+    "error": "Your feedback wasn't sent. Try again.",
+    "thanks": "Thanks. Your feedback helps Pulpe improve."
   }
 }

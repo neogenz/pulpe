@@ -4,7 +4,7 @@ import WidgetKit
 
 private enum SheetDestination: Identifiable, Hashable {
     case realizedBalance, account, createBudget, notificationPrime
-    case addTransaction(FirstTransactionTracker.Source), feedback
+    case addTransaction(FirstTransactionTracker.Source), feedback(promptNumber: Int)
     var id: Self { self }
 }
 
@@ -121,8 +121,8 @@ struct CurrentMonthView: View {
                     if let budgetId = store.budget?.id {
                         AddTransactionSheet(budgetId: budgetId, source: source, onAdd: store.addTransaction)
                     }
-                case .feedback:
-                    AutomaticFeedbackSheet()
+                case .feedback(let promptNumber):
+                    AutomaticFeedbackSheet(promptNumber: promptNumber)
                 case .createBudget:
                     if let nextMonth = budgetListStore.nextAvailableMonth {
                         CreateBudgetView(
@@ -201,8 +201,10 @@ struct CurrentMonthView: View {
             hasBlockingSheet: activeSheet != nil,
             isNavigating: navigateToBudget,
             isPostOnboardingHandoffPresented: showPostOnboardingHandoff.wrappedValue
-        ) {
-            activeSheet = .feedback
+        ) { promptNumber in
+            // The status request ran in between: re-read the live sheet state.
+            guard activeSheet == nil, !navigateToBudget else { return }
+            activeSheet = .feedback(promptNumber: promptNumber)
         }
     }
 

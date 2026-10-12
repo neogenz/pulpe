@@ -41,6 +41,15 @@ export const completeProfileDraftSchema = z.object({
 
 export type CompleteProfileDraft = z.infer<typeof completeProfileDraftSchema>;
 
+const feedbackPromptStateSchema = z.object({
+  activeDayCount: z.number().int().nonnegative(),
+  lastActiveDay: z.string().nullable(),
+  lastPromptedAtActiveDayCount: z.number().int().nonnegative().nullable(),
+  promptCount: z.number().int().nonnegative(),
+  hasSubmitted: z.boolean(),
+});
+export type FeedbackPromptState = z.infer<typeof feedbackPromptStateSchema>;
+
 /**
  * Schema registry for all storage keys.
  * Each key has a Zod schema, version number, and scope.
@@ -159,6 +168,14 @@ export const STORAGE_SCHEMAS = {
   [STORAGE_KEYS.WHATS_NEW_DISMISSED]: {
     version: 1,
     schema: z.string(),
+    scope: 'app',
+  },
+
+  // Keyed by user id. Scope 'app' so logging out does not reset the count of
+  // active days; it holds no financial data.
+  [STORAGE_KEYS.FEEDBACK_PROMPT]: {
+    version: 1,
+    schema: z.record(z.string(), feedbackPromptStateSchema),
     scope: 'app',
   },
 

@@ -23,6 +23,7 @@ class NoopThrottlerGuard {
 describe('POST /api/v1/feedback (local Supabase)', () => {
   let app: INestApplication;
   let admin: SupabaseClient<Database>;
+  let userClient: SupabaseClient<Database>;
   let accessToken = '';
   let userId = '';
   let hasSupabase = false;
@@ -67,6 +68,9 @@ describe('POST /api/v1/feedback (local Supabase)', () => {
       throw new Error(`signIn: ${sessionError?.message ?? 'no session'}`);
     }
     accessToken = sessionData.session.access_token;
+    userClient = createClient<Database>(env.apiUrl, env.anonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideGuard(UserThrottlerGuard)
@@ -104,6 +108,37 @@ describe('POST /api/v1/feedback (local Supabase)', () => {
     return count ?? 0;
   }
 
+  it('reports the status and stores web feedback without an iOS version', async () => {
+    if (!hasSupabase) return;
+    const status = () =>
+      request(app.getHttpServer())
+        .get('/api/v1/feedback/status')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+    expect((await status()).body).toEqual({ hasSubmitted: false });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/feedback')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ overallRating: 3, appVersion: '0.52.0', platform: 'web' })
+      .expect(204);
+
+    expect((await status()).body).toEqual({ hasSubmitted: true });
+    const { data, error } = await admin
+      .from('user_feedback')
+      .select('platform, ios_version')
+      .eq('user_id', userId);
+    if (error) throw error;
+    expect(data).toEqual([{ platform: 'web', ios_version: null }]);
+  });
+
+  it('never lets the client read feedback content back', async () => {
+    if (!hasSupabase) return;
+    const { error } = await userClient.from('user_feedback').select('comment');
+    expect(error?.code).toBe('42501');
+  });
+
   it('stores minimal and complete feedback for the token owner', async () => {
     if (!hasSupabase) return;
 
@@ -135,13 +170,14 @@ describe('POST /api/v1/feedback (local Supabase)', () => {
       .eq('user_id', userId)
       .order('created_at');
     if (error) throw error;
-    expect(data).toHaveLength(2);
-    expect(data?.[0]).toMatchObject({
+    const iosRows = data?.filter((row) => row.platform === 'ios');
+    expect(iosRows).toHaveLength(2);
+    expect(iosRows?.[0]).toMatchObject({
       user_id: userId,
       overall_rating: 4,
       comment: null,
     });
-    expect(data?.[1]).toMatchObject({
+    expect(iosRows?.[1]).toMatchObject({
       user_id: userId,
       overall_rating: 5,
       onboarding: 4,
