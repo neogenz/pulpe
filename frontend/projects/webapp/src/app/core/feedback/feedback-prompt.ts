@@ -48,11 +48,13 @@ export function isFeedbackPromptDue(state: FeedbackPromptState): boolean {
 }
 
 /**
- * Written by the what's-new toast. The feedback invitation has the lowest
- * priority, so it waits while the toast is on screen.
+ * Written by the what's-new toast: true while it is on screen during the load
+ * that first showed this version. The feedback invitation has the lowest
+ * priority, so it skips that load. The toast never dismisses itself, so later
+ * loads must not wait for it, or a user who ignores it would never be invited.
  */
-export const WHATS_NEW_VISIBLE = new InjectionToken<WritableSignal<boolean>>(
-  'WHATS_NEW_VISIBLE',
+export const WHATS_NEW_ANNOUNCING = new InjectionToken<WritableSignal<boolean>>(
+  'WHATS_NEW_ANNOUNCING',
   { providedIn: 'root', factory: () => signal(false) },
 );
 
@@ -69,8 +71,9 @@ export class FeedbackPrompt {
   readonly #storage = inject(StorageService);
   readonly #appVersion = inject(CURRENT_APP_VERSION);
 
-  // At most one invitation per app load. Held while the status request runs,
-  // released when nothing opened.
+  // One status request at a time. Released once it settles: the invitation
+  // recorded in storage is what keeps the next one three active days away, so
+  // a tab left open re-offers on the active day it becomes due again.
   #claimed = false;
 
   readonly #activeDay = signal<string | null>(null);
@@ -128,8 +131,9 @@ export class FeedbackPrompt {
       }
     } catch {
       // Fail closed: no invitation without a confirmed status.
+    } finally {
+      this.#claimed = false;
     }
-    this.#claimed = false;
     return null;
   }
 

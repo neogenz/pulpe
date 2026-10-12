@@ -64,6 +64,16 @@ describe('FeedbackDialog', () => {
     );
   });
 
+  it('should show the selected rating label under the stars', async () => {
+    const { click, el } = await setup(() => Promise.resolve());
+    const label = () =>
+      el.querySelector('[data-testid="rating-label"]')!.textContent!.trim();
+
+    expect(label()).toBe('');
+    await click('rating-4-input');
+    expect(label()).toBe('Bien');
+  });
+
   it('should keep the dialog open with an error when the send fails', async () => {
     const { click, events, dialogRef, el } = await setup(() =>
       Promise.reject(new Error('offline')),

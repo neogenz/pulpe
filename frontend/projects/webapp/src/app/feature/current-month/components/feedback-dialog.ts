@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -79,6 +80,16 @@ export interface FeedbackDialogData {
               </label>
             }
           </div>
+          <!-- Visual echo of the checked radio, which already carries the name. -->
+          <p
+            aria-hidden="true"
+            class="mt-1 min-h-5 text-center text-body-medium text-on-surface-variant"
+            data-testid="rating-label"
+          >
+            @if (selectedLabelKey(); as labelKey) {
+              {{ labelKey | transloco }}
+            }
+          </p>
         </fieldset>
 
         <mat-form-field
@@ -146,6 +157,11 @@ export class FeedbackDialog {
     { value: 5, labelKey: 'feedback.rating5' },
   ] as const;
   protected readonly rating = signal<number | null>(null);
+  protected readonly selectedLabelKey = computed(
+    () =>
+      this.ratingOptions.find((option) => option.value === this.rating())
+        ?.labelKey ?? null,
+  );
   protected readonly comment = signal('');
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);

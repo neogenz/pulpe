@@ -171,6 +171,14 @@ export const STORAGE_SCHEMAS = {
     scope: 'app',
   },
 
+  // What's New - version whose toast was first shown, so only that load holds
+  // back the feedback invitation (device-level, preserved across sessions)
+  [STORAGE_KEYS.WHATS_NEW_SHOWN]: {
+    version: 1,
+    schema: z.string(),
+    scope: 'app',
+  },
+
   // Keyed by user id. Scope 'app' so logging out does not reset the count of
   // active days; it holds no financial data.
   [STORAGE_KEYS.FEEDBACK_PROMPT]: {
