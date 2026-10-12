@@ -11,9 +11,12 @@ protocol WidgetSyncing: Sendable {
 // MARK: - Production Implementation
 
 struct WidgetSyncAdapter: WidgetSyncing {
+    /// Clears what the widget sync froze outside the PIN: the app-group snapshot and the
+    /// Monday recaps it schedules (`WidgetDataSyncService.refreshWeeklyRecaps`).
     func clearAndReload() {
         WidgetDataCoordinator().clear()
         WidgetCenter.shared.reloadAllTimelines()
+        Task { await NotificationScheduler.shared.cancelWeeklyRecaps() }
     }
 }
 
