@@ -30,6 +30,7 @@ struct PulpeApp: App {
 
     init() {
         AnalyticsService.shared.initialize()
+        ReminderTapHandler.install()
 
         let appState = AppState()
         let currentMonthStore = CurrentMonthStore()
@@ -88,9 +89,7 @@ struct PulpeApp: App {
             onAppOpened: { [weak appState] in Self.recordActiveDay(for: appState) }
         ))
 
-        try? Tips.configure([
-            .datastoreLocation(.applicationDefault)
-        ])
+        try? Tips.configure([.datastoreLocation(.applicationDefault)])
         BackgroundTaskService.shared.registerTasks()
     }
 

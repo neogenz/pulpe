@@ -132,8 +132,14 @@ export const ANALYTICS_EVENTS = {
   NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',
   /** Fires when notification permission is denied. Properties: none. */
   NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
-  /** Fires when the reminders preference changes. Properties: `enabled`. */
+  /**
+   * Fires when a reminder preference changes. Properties: `enabled`, `reminder`
+   * (`'monthly' | 'weekly_recap'`). Events sent before the weekly recap carry no
+   * `reminder` and are all `monthly`.
+   */
   REMINDER_TOGGLED: 'reminder_toggled',
+  /** Fires when a tap on a delivered reminder opens the app. Properties: `reminder`. */
+  REMINDER_OPENED: 'reminder_opened',
   /** Fires when iOS release notes are shown after an update. Properties: `version`. */
   IOS_WHATS_NEW_SHOWN: 'ios_whats_new_shown',
   /** Fires after a successful currency change in settings. Properties: `from`, `to`. */
