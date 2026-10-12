@@ -20,7 +20,20 @@ actor NotificationScheduler {
     /// duplicates — safe to call on every foreground.
     private static let monthlyReminderId = "pulpe.reminder.monthly"
 
+    /// The `reminder` analytics dimension. Stable once shipped: dashboards compare it
+    /// across releases.
+    enum Reminder: String {
+        case monthly
+        case weeklyRecap = "weekly_recap"
+    }
+
     private init() {}
+
+    /// Which reminder a delivered request is, nil for anything Pulpe didn't schedule.
+    static func reminder(ofRequest identifier: String) -> Reminder? {
+        if identifier == monthlyReminderId { return .monthly }
+        return weeklyRecapIds.contains(identifier) ? .weeklyRecap : nil
+    }
 
     // MARK: - Authorization
 
@@ -181,5 +194,29 @@ actor NotificationScheduler {
     /// early for high pay-days, which is fine for a start-of-cycle reminder.
     static func monthlyFireDay(for payDay: Int) -> Int {
         min(max(payDay, 1), 28)
+    }
+}
+
+/// Counts the taps that bring the user back from a reminder, the retention signal the
+/// reminders exist for. No `willPresent`: a reminder firing while the app is open stays
+/// silent, as it did without a delegate.
+final class ReminderOpenTracker: NSObject, UNUserNotificationCenterDelegate, Sendable {
+    private static let shared = ReminderOpenTracker()
+
+    /// From `PulpeApp.init`: the delegate must be set before launch finishes, or the tap
+    /// that cold-launches the app is never delivered.
+    static func install() {
+        UNUserNotificationCenter.current().delegate = shared
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        guard let reminder = NotificationScheduler.reminder(ofRequest: response.notification.request.identifier)
+        else { return }
+        await MainActor.run {
+            AnalyticsService.shared.capture(.reminderOpened, properties: ["reminder": reminder.rawValue])
+        }
     }
 }

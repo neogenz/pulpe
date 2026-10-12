@@ -140,7 +140,7 @@ struct PreferencesView: View {
         guard !Task.isCancelled else { return }
         guard enabled else {
             reminderPrefs.setRemindersEnabled(false)
-            AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": false])
+            captureToggle(.monthly, enabled: false)
             await NotificationScheduler.shared.cancelMonthlyReminder()
             return
         }
@@ -152,7 +152,7 @@ struct PreferencesView: View {
             return
         }
         reminderPrefs.setRemindersEnabled(true)
-        AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
+        captureToggle(.monthly, enabled: true)
         // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
         // so the next foreground reschedule heals with the real pay-day.
         guard let payDay = userSettingsStore.payDayOfMonth else { return }
@@ -161,11 +161,12 @@ struct PreferencesView: View {
 
     /// Same contract as `applyReminderPreference`. The recap needs budget figures, so a
     /// fresh snapshot schedules it: the one taken on leaving the app is not guaranteed to
-    /// finish. No `reminder_toggled`: that event's contract is the monthly reminder.
+    /// finish.
     private func applyWeeklyRecapPreference(_ enabled: Bool) async {
         guard !Task.isCancelled else { return }
         guard enabled else {
             reminderPrefs.setWeeklyRecapEnabled(false)
+            captureToggle(.weeklyRecap, enabled: false)
             await NotificationScheduler.shared.cancelWeeklyRecaps()
             return
         }
@@ -176,7 +177,14 @@ struct PreferencesView: View {
             weeklyRecapEnabled = false  // revert; direct write skips the binding setter
             return
         }
+        captureToggle(.weeklyRecap, enabled: true)
         await WidgetDataSyncService.shared.syncAll()
+    }
+
+    private func captureToggle(_ reminder: NotificationScheduler.Reminder, enabled: Bool) {
+        AnalyticsService.shared.capture(
+            .reminderToggled, properties: ["enabled": enabled, "reminder": reminder.rawValue]
+        )
     }
 
     /// Fires the one-shot OS prompt, unless the toggle was already superseded: then
