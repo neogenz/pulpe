@@ -156,7 +156,9 @@ export class FeedbackDialog {
       this.#properties,
     );
     // Every way out that is not a successful send (Plus tard, Escape,
-    // backdrop) counts as one cancellation.
+    // backdrop) counts as one cancellation. No takeUntilDestroyed: the CDK
+    // destroys this component before afterClosed emits, which would swallow
+    // the event. afterClosed completes on its own.
     this.#dialogRef.afterClosed().subscribe(() => {
       if (this.#isSubmitted) return;
       this.#analytics.captureEvent(
