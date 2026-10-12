@@ -50,6 +50,25 @@ struct WeeklyRecapTests {
         #expect(recap.usualWeekSpending == nil)
     }
 
+    /// Signed up this month: no 4 weeks of spending, and the server only returns checking
+    /// days after 3 months of pointing. The recap keeps the week ahead and last week only.
+    @Test func make_newUserWithoutHabits_keepsTheWeekAheadAndLastWeek() throws {
+        let details = try october
+        let fresh = BudgetDetails(
+            budget: details.budget, transactions: details.transactions, budgetLines: details.budgetLines
+        )
+
+        let recap = WeeklyRecap.make(
+            on: try date(day: 19, hour: 8, minute: 30),
+            transactions: details.transactions,
+            current: fresh,
+            payDayOfMonth: nil
+        )
+
+        let body = NotificationScheduler.weeklyRecapBody(recap, currency: .chf, showDetails: true)
+        #expect(body == "Cette semaine : environ 1’400 CHF à dépenser. Semaine passée : 2 mouvements notés.")
+    }
+
     @Test func make_exhaustedBudget_leavesNoAllowance() throws {
         let details = try october
         let overspent = BudgetDetails(
