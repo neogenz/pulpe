@@ -466,6 +466,8 @@ extension CurrentMonthView {
             AnalyticsService.shared.capture(.notificationPermissionGranted)
         }
         reminderPrefs.setRemindersEnabled(true)
+        // The sheet's copy promises both; the next budget snapshot schedules the recap.
+        reminderPrefs.setWeeklyRecapEnabled(true)
         AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
         // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
         // so the next foreground reschedule heals with the real pay-day.

@@ -9,11 +9,13 @@ struct ReminderPreferencesTests {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let sut = ReminderPreferences(defaults: defaults)
         sut.setRemindersEnabled(true)
+        sut.setWeeklyRecapEnabled(true)
 
         let reconciledValue = sut.reconcileAuthorization(isAuthorized: false)
 
         #expect(reconciledValue == false)
         #expect(sut.remindersEnabled == false)
+        #expect(sut.weeklyRecapEnabled == false)
     }
 
     @Test func authorizedRemindersStayEnabled() throws {
@@ -33,11 +35,13 @@ struct ReminderPreferencesTests {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let sut = ReminderPreferences(defaults: defaults)
         sut.setRemindersEnabled(true)
+        sut.setWeeklyRecapEnabled(true)
         sut.setHasPrimedReminders()
 
         sut.reset()
 
         #expect(sut.remindersEnabled == false)
+        #expect(sut.weeklyRecapEnabled == false)
         #expect(sut.hasPrimedReminders == false)
     }
 
