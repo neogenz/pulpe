@@ -137,14 +137,18 @@ actor WidgetDataSyncService {
     /// Every path that refreshes the widget (backgrounding, mutations, BGAppRefresh) holds a
     /// fresh budget snapshot, so the Monday recap re-freezes its figures from it. No current
     /// budget = a failed or empty read: keep the pending recaps rather than silence them over
-    /// a network blip.
+    /// a network blip. Disabled = cancel, so a schedule that raced the toggle is undone too.
     private func refreshWeeklyRecaps(
         budgetsWithDetails: [BudgetWithDetails],
         currentBudgetDetails: BudgetDetails?,
         payDayOfMonth: Int?,
         currency: SupportedCurrency
     ) async {
-        guard let currentBudgetDetails, ReminderPreferences().weeklyRecapEnabled else { return }
+        guard ReminderPreferences().weeklyRecapEnabled else {
+            await NotificationScheduler.shared.cancelWeeklyRecaps()
+            return
+        }
+        guard let currentBudgetDetails else { return }
         await NotificationScheduler.shared.scheduleWeeklyRecaps(
             // The export already holds the current budget; without it, past weeks and
             // habits only see the current period.

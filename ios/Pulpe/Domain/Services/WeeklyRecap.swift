@@ -31,14 +31,15 @@ struct WeeklyRecap: Equatable, Sendable {
         calendar: Calendar = .current
     ) -> WeeklyRecap {
         let weekStart = calendar.startOfDay(for: fireDate)
-        let day = { (offset: Int) in calendar.date(byAdding: .day, value: offset, to: weekStart) ?? weekStart }
+        let daysBefore = { (count: Int) in calendar.date(byAdding: .day, value: -count, to: weekStart) ?? weekStart }
 
-        let movementCount = transactions.filter { (day(-7)..<weekStart).contains($0.transactionDate) }.count
+        let movementCount = transactions.filter { (daysBefore(7)..<weekStart).contains($0.transactionDate) }.count
 
         let usualWeekSpending: Decimal? = {
-            guard transactions.contains(where: { $0.transactionDate < day(-21) }) else { return nil }
+            guard transactions.contains(where: { $0.transactionDate < daysBefore(21) }) else { return nil }
+            let lastFourWeeks = daysBefore(28)..<weekStart
             let spent = transactions
-                .filter { $0.kind == .expense && $0.isFree && (day(-28)..<weekStart).contains($0.transactionDate) }
+                .filter { $0.kind == .expense && $0.isFree && lastFourWeeks.contains($0.transactionDate) }
                 .reduce(Decimal.zero) { $0 + $1.amount }
             return spent > 0 ? spent / 4 : nil
         }()

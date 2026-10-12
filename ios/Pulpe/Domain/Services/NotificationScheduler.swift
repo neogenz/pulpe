@@ -1,5 +1,4 @@
 import Foundation
-import Observation
 import UserNotifications
 
 /// Schedules Pulpe's local re-engagement notifications.
@@ -93,18 +92,26 @@ actor NotificationScheduler {
     /// One slot per upcoming Monday, so a reschedule replaces all of them.
     private static let weeklyRecapIds = (0..<3).map { "pulpe.reminder.weekly-recap.\($0)" }
 
+    /// Bumped by every cancel, so a schedule suspended across one knows its figures are stale.
+    private var weeklyRecapGeneration = 0
+
     /// (Re)schedules the next three Monday recaps, each computed for its own date from the
-    /// budget snapshot held now. Called on every fresh snapshot (`WidgetDataSyncService.sync`),
-    /// which replaces them all. Content is frozen at scheduling, and that is what keeps the
-    /// later two exact: they only survive if nothing new was recorded in the app, which is
-    /// the state they describe. After them the recap falls silent rather than nag someone
-    /// who left. No-op unless authorized.
+    /// budget snapshot held now. Called on every fresh snapshot (`WidgetDataSyncService.sync`,
+    /// background refresh included), which replaces them all. Content is frozen at scheduling,
+    /// and that is what keeps the later two exact: they only survive if nothing new was
+    /// recorded since, which is the state they describe. The series ends only when no sync
+    /// runs for three weeks, rather than repeat figures that old. No-op unless authorized
+    /// and signed in.
     func scheduleWeeklyRecaps(
         transactions: [Transaction],
         current: BudgetDetails,
         payDayOfMonth: Int?,
         currency: SupportedCurrency
     ) async {
+        // A sync still in flight when the session ends must not bring the figures back. Captured
+        // before the session check: every session end signs out first, then cancels.
+        let generation = weeklyRecapGeneration
+        guard await AuthService.shared.hasPersistedSession() else { return }
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
         // Lock-screen privacy, like the widget's `.privacySensitive()`: amounts and forecast
@@ -130,15 +137,24 @@ actor NotificationScheduler {
             )
             try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
+        // A cancel that ran while this call was suspended wins over what it added since.
+        if generation != weeklyRecapGeneration {
+            center.removePendingNotificationRequests(withIdentifiers: Self.weeklyRecapIds)
+        }
     }
 
+    /// Delivered ones too: a recap left in Notification Center keeps showing its amounts.
     func cancelWeeklyRecaps() {
+        weeklyRecapGeneration += 1
         center.removePendingNotificationRequests(withIdentifiers: Self.weeklyRecapIds)
+        center.removeDeliveredNotifications(withIdentifiers: Self.weeklyRecapIds)
     }
 
-    /// Identity boundary: every pending request belongs to the account leaving.
+    /// Identity boundary: every request, pending or delivered, belongs to the account leaving.
     func cancelAllReminders() {
+        weeklyRecapGeneration += 1
         center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
     }
 
     /// Next Monday 8:30, today included while 8:30 hasn't passed. Half an hour ahead of
@@ -196,39 +212,4 @@ actor NotificationScheduler {
     static func monthlyFireDay(for payDay: Int) -> Int {
         min(max(payDay, 1), 28)
     }
-}
-
-/// Counts the taps that bring the user back from a reminder, the retention signal the
-/// reminders exist for, and opens the current month. No `willPresent`: a reminder firing
-/// while the app is open stays silent, as it did without a delegate.
-///
-/// Main actor on purpose: UIKit aborts unless the completion behind this async method runs
-/// on the main thread, and a nonisolated witness returns from the cooperative pool.
-@MainActor
-final class ReminderTapHandler: NSObject, @MainActor UNUserNotificationCenterDelegate {
-    private static let shared = ReminderTapHandler()
-
-    /// From `PulpeApp.init`: the delegate must be set before launch finishes, or the tap
-    /// that cold-launches the app is never delivered.
-    static func install() {
-        UNUserNotificationCenter.current().delegate = shared
-    }
-
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
-        guard let reminder = NotificationScheduler.reminder(ofRequest: response.notification.request.identifier)
-        else { return }
-        AnalyticsService.shared.capture(.reminderOpened, properties: ["reminder": reminder.rawValue])
-        PendingReminderTap.shared.opensCurrentMonth = true
-    }
-}
-
-/// Every reminder is about the current month. `MainTabView` consumes the tap: it only exists
-/// past the PIN, so a tap that cold-launched the app lands once the user has unlocked.
-@MainActor @Observable
-final class PendingReminderTap {
-    static let shared = PendingReminderTap()
-    var opensCurrentMonth = false
 }

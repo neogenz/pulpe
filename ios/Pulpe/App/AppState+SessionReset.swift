@@ -368,6 +368,7 @@ extension AppState {
         // Tout scope aboutit à `.unauthenticated` : le solde caché dans l'app
         // group vit HORS du périmètre PIN et ne doit survivre à aucune fin de
         // session — expiration comprise, pas seulement le logout explicite.
+        // Les récaps du lundi figent les mêmes montants : la purge les annule aussi.
         widgetSyncing.clearAndReload()
         if scope.setsManualBiometricRetry {
             setManualBiometricRetryRequiredFlag(true)
