@@ -19,9 +19,10 @@ struct FeedbackPromptPreferences: @unchecked Sendable {
     }
 
     private enum Key {
+        static let accountStates = "pulpe.feedback-prompt.v2.account-states"
         // v1 counted a 7-day window and only remembered "prompted once". Its history
         // is dropped on purpose: the server is the source of truth for "answered".
-        static let accountStates = "pulpe.feedback-prompt.v2.account-states"
+        static let v1AccountStates = "pulpe.feedback-prompt.account-states"
     }
 
     private let defaults: UserDefaults
@@ -94,6 +95,8 @@ struct FeedbackPromptPreferences: @unchecked Sendable {
     private func save(_ states: [String: AccountState]) {
         guard let data = try? encoder.encode(states) else { return }
         defaults.set(data, forKey: Key.accountStates)
+        // The first v2 write retires v1; removing an absent key is a no-op.
+        defaults.removeObject(forKey: Key.v1AccountStates)
     }
 }
 
