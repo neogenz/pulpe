@@ -211,6 +211,9 @@ describe('Connections', () => {
       const firstRow = query('connection-activity-row')?.textContent;
       expect(firstRow).toContain('Action de l’assistant');
       expect(firstRow).not.toContain('future_tool');
+      expect(query('connection-see-all')?.textContent).toContain(
+        'Voir les 50 dernières actions',
+      );
       query('connection-see-all')!.click();
       await fixture.whenStable();
       expect(store.loadActivity).toHaveBeenLastCalledWith(chatgpt.id, 50);

@@ -337,14 +337,13 @@
   },
   "settings": {
     "title": "Einstellungen",
-    "accountSection": "Einstellungen",
-    "accountDescription": "Passe Pulpe an deine Sprache, Währung und deinen Budgetrhythmus an.",
+    "preferencesSection": "Einstellungen",
+    "preferencesDescription": "Passe Pulpe an deine Sprache, Währung und deinen Budgetrhythmus an.",
     "organizationSection": "Ordnung",
     "organizationDescription": "Hier findest du, womit du deine Finanzen ordnest.",
     "tags": {
       "title": "Meine Tags",
       "description": "Sieh dir die persönlichen Tags an, die auf all deinen Geräten verfügbar sind.",
-      "open": "Meine persönlichen Tags ansehen",
       "loading": "Deine Tags werden geladen...",
       "countOne": "{{ count }} persönlicher Tag",
       "countMany": "{{ count }} persönliche Tags",
@@ -401,8 +400,8 @@
     "regenerateKey": "Neu erzeugen",
     "newRecoveryKeySaved": "Neuer Wiederherstellungsschlüssel gespeichert",
     "generateKeyError": "Das Erzeugen des Schlüssels ist fehlgeschlagen — versuch es später nochmal",
-    "dangerSection": "Konto",
-    "dangerDescription": "Aktionen an deinem Konto, die sich nicht rückgängig machen lassen.",
+    "accountSection": "Konto",
+    "accountDescription": "Aktionen an deinem Konto, die sich nicht rückgängig machen lassen.",
     "deleteAccount": "Mein Konto löschen",
     "deleteAccountDescription": "Deine Daten werden nach 3 Tagen endgültig gelöscht.",
     "deleteAccountButton": "Konto löschen",
@@ -481,7 +480,8 @@
         "copyFailed": "Kopieren fehlgeschlagen. Wähle die Adresse aus und kopiere sie manuell.",
         "finish": "Melde dich bei Pulpe an und wähle, was der Assistent tun darf. Aktiviere danach Pulpe in deinem Gespräch. Du kannst den Zugriff hier jederzeit widerrufen.",
         "availability": "Pulpe ist noch nicht in den Verzeichnissen. Die Verbindungsmöglichkeiten hängen von deinem Konto und der verwendeten App ab.",
-        "steps": "Schritte anzeigen"
+        "steps": "Schritte anzeigen",
+        "stepsFor": "Schritte anzeigen: {{ client }}"
       },
       "title": "Verbindungen",
       "description": "Die KI-Assistenten, die auf dein Budget zugreifen dürfen.",
@@ -495,7 +495,7 @@
       "since": "seit {{ date }}",
       "recentActions": "Letzte Aktionen",
       "noActivity": "Noch keine Aktion.",
-      "seeAll": "Die letzten 50 Aktionen anzeigen",
+      "seeAll": "Die letzten {{ count }} Aktionen anzeigen",
       "failed": "fehlgeschlagen",
       "tools": {
         "add_movement": "Bewegung hinzugefügt",

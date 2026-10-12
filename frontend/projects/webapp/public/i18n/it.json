@@ -337,14 +337,13 @@
   },
   "settings": {
     "title": "Impostazioni",
-    "accountSection": "Preferenze",
-    "accountDescription": "Adatta Pulpe alla tua lingua, valuta e al tuo ciclo di budget.",
+    "preferencesSection": "Preferenze",
+    "preferencesDescription": "Adatta Pulpe alla tua lingua, valuta e al tuo ciclo di budget.",
     "organizationSection": "Organizzazione",
     "organizationDescription": "Ritrova gli elementi che usi per organizzare le tue finanze.",
     "tags": {
       "title": "I miei tag",
       "description": "Guarda i tag personali disponibili su tutti i tuoi dispositivi.",
-      "open": "Vedi i miei tag personali",
       "loading": "Carico i tuoi tag...",
       "countOne": "{{ count }} tag personale",
       "countMany": "{{ count }} tag personali",
@@ -401,8 +400,8 @@
     "regenerateKey": "Rigenera",
     "newRecoveryKeySaved": "Nuova chiave di recupero salvata",
     "generateKeyError": "La generazione della chiave non è riuscita — riprova più tardi",
-    "dangerSection": "Account",
-    "dangerDescription": "Azioni irreversibili sul tuo account.",
+    "accountSection": "Account",
+    "accountDescription": "Azioni irreversibili sul tuo account.",
     "deleteAccount": "Elimina il mio account",
     "deleteAccountDescription": "I tuoi dati verranno eliminati per sempre dopo 3 giorni.",
     "deleteAccountButton": "Elimina l'account",
@@ -481,7 +480,8 @@
         "copyFailed": "Copia non riuscita. Seleziona l’indirizzo e copialo manualmente.",
         "finish": "Accedi a Pulpe e scegli cosa può fare l’assistente. Poi attiva Pulpe nella conversazione. Puoi revocare il suo accesso qui in qualsiasi momento.",
         "availability": "Pulpe non è ancora nei cataloghi. Le opzioni di connessione dipendono dal tuo account e dall’app utilizzata.",
-        "steps": "Mostra i passaggi"
+        "steps": "Mostra i passaggi",
+        "stepsFor": "Mostra i passaggi: {{ client }}"
       },
       "title": "Connessioni",
       "description": "Gli assistenti IA autorizzati ad accedere al tuo budget.",
@@ -495,7 +495,7 @@
       "since": "dal {{ date }}",
       "recentActions": "Ultime azioni",
       "noActivity": "Nessuna azione per ora.",
-      "seeAll": "Mostra le ultime 50 azioni",
+      "seeAll": "Mostra le ultime {{ count }} azioni",
       "failed": "fallita",
       "tools": {
         "add_movement": "Movimento aggiunto",

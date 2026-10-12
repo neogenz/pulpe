@@ -337,14 +337,13 @@
   },
   "settings": {
     "title": "Paramètres",
-    "accountSection": "Préférences",
-    "accountDescription": "Adapte Pulpe à ta langue, ta devise et ton rythme budgétaire.",
+    "preferencesSection": "Préférences",
+    "preferencesDescription": "Adapte Pulpe à ta langue, ta devise et ton rythme budgétaire.",
     "organizationSection": "Organisation",
     "organizationDescription": "Retrouve les éléments que tu utilises pour organiser tes finances.",
     "tags": {
       "title": "Mes tags",
       "description": "Consulte les tags personnels disponibles sur tous tes appareils.",
-      "open": "Voir mes tags personnels",
       "loading": "Chargement de tes tags...",
       "countOne": "{{ count }} tag personnel",
       "countMany": "{{ count }} tags personnels",
@@ -401,8 +400,8 @@
     "regenerateKey": "Régénérer",
     "newRecoveryKeySaved": "Nouvelle clé de récupération enregistrée",
     "generateKeyError": "La génération de la clé a échoué — réessaie plus tard",
-    "dangerSection": "Compte",
-    "dangerDescription": "Actions irréversibles sur ton compte.",
+    "accountSection": "Compte",
+    "accountDescription": "Actions irréversibles sur ton compte.",
     "deleteAccount": "Supprimer mon compte",
     "deleteAccountDescription": "Tes données seront supprimées définitivement après 3 jours.",
     "deleteAccountButton": "Supprimer le compte",
@@ -481,7 +480,8 @@
         "copyFailed": "La copie a échoué. Sélectionne l’adresse et copie-la manuellement.",
         "finish": "Connecte-toi à Pulpe et choisis ce que l’assistant peut faire. Ensuite, active Pulpe dans ta conversation. Tu peux couper son accès ici à tout moment.",
         "availability": "Pulpe n’est pas encore dans les catalogues. Les options de connexion dépendent de ton compte et de l’application utilisée.",
-        "steps": "Voir les étapes"
+        "steps": "Voir les étapes",
+        "stepsFor": "Voir les étapes : {{ client }}"
       },
       "title": "Connexions",
       "description": "Les assistants IA autorisés à accéder à ton budget.",
@@ -495,7 +495,7 @@
       "since": "depuis le {{ date }}",
       "recentActions": "Dernières actions",
       "noActivity": "Aucune action pour l'instant.",
-      "seeAll": "Voir les 50 dernières actions",
+      "seeAll": "Voir les {{ count }} dernières actions",
       "failed": "échec",
       "tools": {
         "add_movement": "Mouvement ajouté",

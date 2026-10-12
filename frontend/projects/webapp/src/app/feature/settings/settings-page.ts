@@ -87,14 +87,14 @@ import { SettingsDialogService } from './settings-dialog.service';
         </div>
       </header>
 
-      <!-- ═══ Section: Compte ═══ -->
+      <!-- ═══ Section: Préférences ═══ -->
       <section class="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
         <div>
           <h2 class="text-title-large mb-2">
-            {{ 'settings.accountSection' | transloco }}
+            {{ 'settings.preferencesSection' | transloco }}
           </h2>
           <p class="text-body-small text-on-surface-variant leading-relaxed">
-            {{ 'settings.accountDescription' | transloco }}
+            {{ 'settings.preferencesDescription' | transloco }}
           </p>
         </div>
 
@@ -198,14 +198,19 @@ import { SettingsDialogService } from './settings-dialog.service';
               </mat-hint>
             </mat-form-field>
 
-            <details class="rounded-xl bg-surface-container p-4">
+            <details
+              class="group rounded-xl bg-surface-container px-4 open:pb-4"
+            >
               <summary
-                class="cursor-pointer text-label-large text-on-surface min-h-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                class="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg text-label-large text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 {{ 'settings.howItWorks' | transloco }}
+                <mat-icon class="group-open:rotate-180" aria-hidden="true"
+                  >expand_more</mat-icon
+                >
               </summary>
               <p
-                class="text-body-small text-on-surface-variant leading-relaxed mt-2"
+                class="text-body-small text-on-surface-variant leading-relaxed"
               >
                 {{ 'settings.howItWorksDetail' | transloco }}
               </p>
@@ -275,7 +280,6 @@ import { SettingsDialogService } from './settings-dialog.service';
             type="button"
             class="flex w-full items-center gap-4 rounded-2xl border border-outline-variant bg-surface-container-low p-5 text-left hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             data-testid="tags-settings-link"
-            [attr.aria-label]="'settings.tags.open' | transloco"
             (click)="openTagCatalog()"
           >
             <mat-icon class="text-primary shrink-0" aria-hidden="true"
@@ -384,7 +388,7 @@ import { SettingsDialogService } from './settings-dialog.service';
                 data-testid="change-pin-button"
                 (click)="onChangePin()"
               >
-                {{ 'common.edit' | transloco }}
+                {{ 'settings.changePassword' | transloco }}
               </button>
             </div>
 
@@ -455,17 +459,17 @@ import { SettingsDialogService } from './settings-dialog.service';
 
       <mat-divider class="my-8!"></mat-divider>
 
-      <!-- ═══ Section: Zone de danger ═══ -->
+      <!-- ═══ Section: Compte ═══ -->
       @if (!isDemoMode()) {
         <section
           class="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8 pb-12"
         >
           <div>
             <h2 class="text-title-large mb-2">
-              {{ 'settings.dangerSection' | transloco }}
+              {{ 'settings.accountSection' | transloco }}
             </h2>
             <p class="text-body-small text-on-surface-variant leading-relaxed">
-              {{ 'settings.dangerDescription' | transloco }}
+              {{ 'settings.accountDescription' | transloco }}
             </p>
           </div>
 
@@ -500,6 +504,14 @@ import { SettingsDialogService } from './settings-dialog.service';
         </section>
       }
     </div>
+  `,
+  styles: `
+    summary {
+      list-style: none;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -727,7 +739,13 @@ export default class SettingsPage {
   }
 
   async onChangePin(): Promise<void> {
-    const dialogRef = this.#dialog.open(ChangePinDialog, { width: '480px' });
+    // Back during the rekey would dispose the dialog despite `disableClose`:
+    // `afterClosed` would emit nothing and the recovery key the server just
+    // rotated would never be shown.
+    const dialogRef = this.#dialog.open(ChangePinDialog, {
+      width: '480px',
+      closeOnNavigation: false,
+    });
     const result = await firstValueFrom(dialogRef.afterClosed());
     if (!result) return;
 
@@ -739,6 +757,7 @@ export default class SettingsPage {
         data: dialogData,
         width: '480px',
         disableClose: true,
+        closeOnNavigation: false,
       });
       await firstValueFrom(recoveryRef.afterClosed());
     }
@@ -826,6 +845,7 @@ export default class SettingsPage {
         data: dialogData,
         width: '480px',
         disableClose: true,
+        closeOnNavigation: false,
       });
 
       const confirmed = await firstValueFrom(dialogRef.afterClosed());
