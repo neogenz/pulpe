@@ -133,9 +133,9 @@ struct PulpeApp: App {
                         }
                     }
                     .onChange(of: userSettingsStore.locale) { _, _ in
-                        // The monthly reminder's copy is frozen at scheduling time, so
-                        // without this the user reads a French nudge months after switching.
-                        Task { await rescheduleRemindersIfEnabled() }
+                        // Reminder copy is frozen at scheduling time, so without this the user
+                        // reads a French nudge months later. The weekly recap re-renders on a sync.
+                        Task { await rescheduleRemindersIfEnabled(); await WidgetDataSyncService.shared.syncAll() }
                     }
                     .onOpenURL { url in
                         handleDeepLink(url)

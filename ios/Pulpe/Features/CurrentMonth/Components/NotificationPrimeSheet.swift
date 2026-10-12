@@ -19,7 +19,7 @@ struct NotificationPrimeSheet: View {
                 .font(.largeTitle)
                 .foregroundStyle(Color.pulpePrimary)
 
-            Text("On te fait signe le jour de paie ?")
+            Text("Je te fais signe ?")
                 .font(PulpeTypography.stepTitle)
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
@@ -27,7 +27,7 @@ struct NotificationPrimeSheet: View {
             // One literal, not two joined by `+`: a concatenation binds the verbatim `Text`
             // overload, so neither half ever reaches the string catalog.
             Text("""
-                Un rappel par mois pour pointer tes dépenses et voir ton disponible. \
+                Le lundi matin, le récap de ta semaine. Le jour de paie, ton nouveau mois. \
                 C'est tout — jamais de spam, et tu coupes quand tu veux.
                 """)
                 .font(PulpeTypography.bodyLarge)
