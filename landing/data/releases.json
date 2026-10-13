@@ -1,5 +1,112 @@
 [
   {
+    "version": "0.52.0",
+    "iosVersion": "1.8.0",
+    "date": "2026-10-13",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.52.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Récap du lundi",
+          "description": "Chaque lundi matin, une notification te dit combien tu peux dépenser cette semaine et quelles prévisions t’attendent. À activer dans Préférences."
+        },
+        {
+          "title": "Ton avis",
+          "description": "Sur le web comme sur iPhone, Pulpe te demande de temps en temps ce que tu en penses, jusqu’à ce que tu répondes."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Réglages",
+          "description": "Les préférences, les assistants connectés et la sécurité sont plus faciles à parcourir, et un nouveau code PIN se confirme avant d’être enregistré."
+        },
+        {
+          "title": "Rappels",
+          "description": "Toucher un rappel ouvre directement l’accueil."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Monday recap",
+              "description": "Every Monday morning, a notification tells you how much you can spend this week and which planned items are coming up. Turn it on in Preferences."
+            },
+            {
+              "title": "Your feedback",
+              "description": "On the web and on iPhone, Pulpe asks now and then what you think of it, until you answer."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Settings",
+              "description": "Preferences, connected assistants and security are easier to scan, and a new PIN code must be confirmed before it is saved."
+            },
+            {
+              "title": "Reminders",
+              "description": "Tapping a reminder opens the home screen directly."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Montags-Rückblick",
+              "description": "Jeden Montagmorgen zeigt dir eine Mitteilung, wie viel du diese Woche ausgeben kannst und welche Planposten anstehen. In den Einstellungen aktivierbar."
+            },
+            {
+              "title": "Deine Meinung",
+              "description": "Im Web wie auf dem iPhone fragt dich Pulpe ab und zu, was du davon hältst, bis du antwortest."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Einstellungen",
+              "description": "Präferenzen, verbundene Assistenten und Sicherheit sind übersichtlicher, und ein neuer PIN-Code wird vor dem Speichern bestätigt."
+            },
+            {
+              "title": "Erinnerungen",
+              "description": "Ein Tippen auf eine Erinnerung öffnet direkt die Startseite."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Riepilogo del lunedì",
+              "description": "Ogni lunedì mattina, una notifica ti dice quanto puoi spendere questa settimana e quali previsioni ti aspettano. Da attivare nelle Preferenze."
+            },
+            {
+              "title": "La tua opinione",
+              "description": "Sul web come su iPhone, Pulpe ti chiede di tanto in tanto cosa ne pensi, finché non rispondi."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Impostazioni",
+              "description": "Preferenze, assistenti collegati e sicurezza sono più facili da consultare, e un nuovo codice PIN va confermato prima di essere salvato."
+            },
+            {
+              "title": "Promemoria",
+              "description": "Toccare un promemoria apre direttamente la home."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
     "version": "0.51.0",
     "iosVersion": "1.7.0",
     "date": "2026-10-11",

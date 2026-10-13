@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.52.0
+
+### Minor Changes
+
+- Récap du lundi sur iOS, invitation à donner son avis sur le web et iOS, réglages web réorganisés.
+
+### Patch Changes
+
+- pulpe-shared@0.52.0
+
 ## 0.51.1
 
 ### Patch Changes
