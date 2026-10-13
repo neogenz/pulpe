@@ -926,9 +926,13 @@ test("one macOS CI job proves units and the targeted iOS smoke", () => {
   );
   assert.ok(classifier.includes('path.startsWith("shared/")'));
 
+  // The PostHog release follows the valid Apple proof but precedes the
+  // submission, so a failed submit finished by hand still gets its release.
   const posthog = iosDistribution.indexOf("Create PostHog release");
   assert.ok(
-    iosDistribution.indexOf("Submit approved App Store version once") < posthog,
+    iosDistribution.indexOf("Upload iOS distribution proof") < posthog &&
+      posthog <
+        iosDistribution.indexOf("Submit approved App Store version once"),
   );
   assert.doesNotMatch(iosDistribution, /Create PostHog annotation/);
   assert.match(iosDistribution, /readback/);

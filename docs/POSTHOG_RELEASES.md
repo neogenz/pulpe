@@ -115,6 +115,8 @@ L'iOS a son propre cycle de release (App Store) avec un versioning indépendant.
 
 La publication PostHog est rattachée à une distribution réellement livrée : elle
 n'arrive qu'après la preuve Apple (`state=valid`), jamais pour `channel=internal`.
+Elle précède la soumission App Store : une soumission refusée puis terminée à la
+main livre le même build, qui garde ainsi sa release.
 La Release utilise une identité déterministe et vérifie le conflit « déjà existant ».
 Elle reste `continue-on-error`: un échec reste visible dans le run sans invalider une
 distribution Apple déjà prouvée. L'ancienne annotation horodatée n'est plus émise :
