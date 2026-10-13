@@ -29,6 +29,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.52.0',
+    reason:
+      'Côté webapp, seulement des Réglages réorganisés et l’invitation à donner son avis : aucune nouvelle capacité qui justifie d’interrompre les utilisateurs existants',
+  },
+  {
     version: '0.51.1',
     reason:
       'Republication de l’app iOS 1.7.0 sous le build 2, la soumission de la 0.51.0 ayant échoué avant App Store Connect : aucun changement dans la webapp',

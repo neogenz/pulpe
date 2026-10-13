@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.51.1",
-  "githubReleaseNotes": "## v0.51.1\n\n### Technique\n\n- **Soumission de l’app iOS 1.7.0** — La 0.51.0 n’a pas pu soumettre l’app iOS à l’App Store : la chaîne de publication ne parvenait pas à s’authentifier auprès d’App Store Connect. Cette version corrige cette authentification et soumet le build 2 de la 1.7.0, qui porte le contenu exact de la 0.51.0. Rien d’autre ne change : ni la webapp, ni le site, ni l’API.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.52.0",
+  "githubReleaseNotes": "## v0.52.0\n\n### Nouveautés\n\n- **Récap du lundi** — Chaque lundi matin, une notification te dit combien tu peux dépenser cette semaine et quelles prévisions t’attendent. À activer dans Préférences.\n- **Ton avis** — Sur le web comme sur iPhone, Pulpe te demande de temps en temps ce que tu en penses, jusqu’à ce que tu répondes.\n\n### Corrections\n\n- **Réglages** — Les préférences, les assistants connectés et la sécurité sont plus faciles à parcourir, et un nouveau code PIN se confirme avant d’être enregistré.\n- **Rappels** — Toucher un rappel ouvre directement l’accueil.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }

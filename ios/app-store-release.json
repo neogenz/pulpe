@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.51.1",
-  "marketingVersion": "1.7.0",
-  "buildNumber": "2",
+  "productVersion": "0.52.0",
+  "marketingVersion": "1.8.0",
+  "buildNumber": "1",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "• Rapprocher mes comptes : Compare le solde de tes comptes à ton solde pointé et ajuste l’écart en un geste.\n• Bilan du mois : À l’ouverture d’un nouveau mois, un bilan résume le mois terminé et le montant reporté.\n• Pointage priorisé : L’accueil propose d’abord les prévisions que tu pointes d’habitude à cette période du mois.\n• Première dépense : Après l’inscription, l’accueil t’invite à noter ta première dépense.\n• Jour de paie : Modifier un modèle annonce le bon nombre de budgets concernés.\n• Barre de navigation : Le titre et les boutons restent lisibles quand tu fais défiler l’écran."
+    "frFR": "• Récap du lundi : Chaque lundi matin, une notification te dit combien tu peux dépenser cette semaine et quelles prévisions t’attendent. À activer dans Préférences.\n• Ton avis : Pulpe te demande de temps en temps ce que tu en penses, jusqu’à ce que tu répondes.\n• Rappels : Toucher un rappel ouvre directement l’accueil."
   },
-  "reviewNotes": "Sign in with the demo account. On Home, tap the right-hand tile below the balance to open the budget tracking sheet, then tap \"Rapprocher mes comptes\" and enter any account balance to walk through the three steps. Nothing connects to a bank. The month recap card appears at the top of Home once a new month has started. The first-expense invitation only appears on a brand-new account with no movement."
+  "reviewNotes": "Sign in with the demo account. On Home, tap the account button (top right), open Préférences and turn on \"Récap du lundi\", allowing notifications when asked. A local notification titled \"Ta semaine en bref\" is then scheduled for Monday at 8:30; it is computed on the device. Tapping any Pulpe reminder opens Home. The feedback form is available from the account screen; the automatic invitation only appears on the third day of use."
 }

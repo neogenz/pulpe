@@ -54,6 +54,55 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.52.0',
+    iosVersion: '1.8.0',
+    date: '2026-10-13',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Récap du lundi',
+          description:
+            'Chaque lundi matin, une notification te dit combien tu peux dépenser cette semaine et quelles prévisions t’attendent. À activer dans Préférences.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Monday recap',
+            description:
+              'Every Monday morning, a notification tells you how much you can spend this week and which planned items are coming up. Turn it on in Preferences.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: 'Montags-Rückblick',
+            description:
+              'Jeden Montagmorgen zeigt dir eine Mitteilung, wie viel du diese Woche ausgeben kannst und welche Planposten anstehen. In den Einstellungen aktivierbar.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: 'Riepilogo del lunedì',
+            description:
+              'Ogni lunedì mattina, una notifica ti dice quanto puoi spendere questa settimana e quali previsioni ti aspettano. Da attivare nelle Preferenze.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
     version: '0.51.0',
     iosVersion: '1.7.0',
     date: '2026-10-11',
