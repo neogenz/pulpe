@@ -658,18 +658,6 @@ jobs:
           name: ios-distribution-proof-${{ inputs.marketing_version }}-${{ inputs.build_number }}-${{ inputs.source_sha }}
           path: ${{ runner.temp }}/ios-distribution-proof.json
           retention-days: 30
-      - name: Submit approved App Store version once
-        env:
-          GH_TOKEN: ${{ github.token }}
-        if: github.event_name == 'push'
-        run: |
-          set -euo pipefail
-          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$SOURCE_SHA"
-          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/production" --jq .commit.sha)" = "$SOURCE_SHA"
-          build_id=$(ruby ../.github/scripts/app-store-build-status.rb --build-id app.pulpe.ios "$EXPECTED_MARKETING_VERSION" "$BUILD_NUMBER")
-          test -n "$build_id"
-          node ../.github/scripts/submit-app-store.mjs "$build_id"
-
       - name: Create PostHog release
         if: github.event_name == 'push'
         continue-on-error: true
@@ -708,6 +696,18 @@ jobs:
             '.project == $project and .version == $version and .hash_id == $hash and .metadata.git.commit_id == $sha' \
             "$readback" >/dev/null
           echo "✅ Exact PostHog iOS release verified"
+
+      - name: Submit approved App Store version once
+        env:
+          GH_TOKEN: ${{ github.token }}
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$SOURCE_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/production" --jq .commit.sha)" = "$SOURCE_SHA"
+          build_id=$(ruby ../.github/scripts/app-store-build-status.rb --build-id app.pulpe.ios "$EXPECTED_MARKETING_VERSION" "$BUILD_NUMBER")
+          test -n "$build_id"
+          node ../.github/scripts/submit-app-store.mjs "$build_id"
 
       - name: Distribution summary
         env:
