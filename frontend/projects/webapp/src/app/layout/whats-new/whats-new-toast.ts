@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,7 +12,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { CURRENT_APP_VERSION } from '@core/app-version/current-app-version';
-import { WHATS_NEW_VISIBLE } from '@core/feedback/feedback-prompt';
+import { WHATS_NEW_ANNOUNCING } from '@core/feedback/feedback-prompt';
 import { featuresForLocale, LATEST_RELEASE } from './whats-new-releases';
 
 @Component({
@@ -134,12 +135,25 @@ export class WhatsNewToast {
       : `https://pulpe.app/${locale}/changelog`;
   });
 
-  // Shared so the lower-priority feedback invitation waits while this shows.
-  readonly #isVisible = inject(WHATS_NEW_VISIBLE);
-  protected readonly isVisible = this.#isVisible.asReadonly();
+  protected readonly isVisible = signal(false);
+  // Shared so the lower-priority feedback invitation skips the load that first
+  // announces this version, without waiting on a toast left open for good.
+  readonly #announcing = inject(WHATS_NEW_ANNOUNCING);
 
   constructor() {
-    this.#isVisible.set(this.#shouldShow());
+    const isVisible = this.#shouldShow();
+    this.isVisible.set(isVisible);
+    this.#announcing.set(isVisible && this.#recordFirstShowing());
+  }
+
+  /** True only on the first load that shows this version's toast. */
+  #recordFirstShowing(): boolean {
+    const shown = this.#storageService.get<string>(
+      STORAGE_KEYS.WHATS_NEW_SHOWN,
+    );
+    if (shown === this.version) return false;
+    this.#storageService.set(STORAGE_KEYS.WHATS_NEW_SHOWN, this.version);
+    return true;
   }
 
   #shouldShow(): boolean {
@@ -152,6 +166,7 @@ export class WhatsNewToast {
 
   protected dismiss(): void {
     this.#storageService.set(STORAGE_KEYS.WHATS_NEW_DISMISSED, this.version);
-    this.#isVisible.set(false);
+    this.isVisible.set(false);
+    this.#announcing.set(false);
   }
 }

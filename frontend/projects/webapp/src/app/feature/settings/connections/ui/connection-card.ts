@@ -176,7 +176,7 @@ const FULL_COUNT = 50;
                       (isExpanded()
                         ? 'settings.connections.showLess'
                         : 'settings.connections.seeAll'
-                      ) | transloco
+                      ) | transloco: { count: fullCount }
                     }}
                   </button>
                 }
@@ -199,6 +199,7 @@ export class ConnectionCard {
   readonly revoke = output<void>();
 
   protected readonly previewCount = PREVIEW_COUNT;
+  protected readonly fullCount = FULL_COUNT;
   protected readonly activity = signal<McpActivity[] | null>(null);
   protected readonly isExpanded = signal(false);
   protected readonly historyOpen = signal(false);

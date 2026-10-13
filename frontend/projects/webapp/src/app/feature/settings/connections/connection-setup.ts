@@ -37,9 +37,8 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
               <summary
                 class="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg text-label-large text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 [attr.aria-label]="
-                  ('settings.connections.setup.steps' | transloco) +
-                  ' : ' +
-                  client.name
+                  'settings.connections.setup.stepsFor'
+                    | transloco: { client: client.name }
                 "
                 [attr.data-testid]="'setup-steps-' + client.id"
               >

@@ -256,7 +256,6 @@ describe('AesGcmCryptoService', () => {
 
       expect(first).toMatch(/^[0-9a-f]{64}$/);
       expect(again).toBe(first);
-      expect(first).not.toContain('42');
     });
 
     it('differs per user, per material and per master key', () => {

@@ -175,7 +175,8 @@ export const ANALYTICS_EVENTS = {
   /**
    * Feedback form, web and iOS. `viewed` fires on open, then exactly one of
    * `submitted` or `cancelled`. Properties on all three: `source`
-   * (`'automatic' | 'settings'`) and, for `automatic` only, `prompt_number`
+   * (`'automatic' | 'settings'`; the web only offers `automatic`) and, for
+   * `automatic` only, `prompt_number`
    * (1 for the first invitation, 2 for the reminder three active days later...).
    * `submitted` adds `rating` (overall, 1-5), `has_comment` and `has_details`.
    * Never the comment text.

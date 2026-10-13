@@ -200,11 +200,16 @@ extension OnboardingState {
 // MARK: - Onboarding analytics
 
 extension OnboardingState {
-    func capturePaused() {
+    /// `send` is a test seam; production always captures through `AnalyticsService`.
+    func capturePaused(
+        send: (AnalyticsEvent, [String: Any]) -> Void = {
+            AnalyticsService.shared.capture($0, properties: $1)
+        }
+    ) {
         guard currentStep != .welcome, !hasCompleted, !isSubmitting, !hasAbandoned else { return }
-        AnalyticsService.shared.capture(
+        send(
             .onboardingPaused,
-            properties: [
+            [
                 "last_step": currentStep.analyticsName,
                 "pause_method": "background",
                 "was_authenticated": isAuthenticated,

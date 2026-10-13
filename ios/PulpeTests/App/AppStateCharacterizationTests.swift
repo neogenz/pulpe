@@ -567,8 +567,8 @@ struct AppStateCharacterizationTests {
         await sut.logout(source: .system)
 
         #expect(
-            mockWidget.clearAndReloadCalled.value == true,
-            "logout must call widgetSyncing.clearAndReload() via injected dependency"
+            mockWidget.purgeDataOutsidePinCalled.value == true,
+            "logout must call widgetSyncing.purgeDataOutsidePin() via injected dependency"
         )
     }
 
@@ -599,7 +599,7 @@ struct AppStateCharacterizationTests {
             sut.resetSession(scope)
 
             #expect(
-                mockWidget.clearAndReloadCalled.value == true,
+                mockWidget.purgeDataOutsidePinCalled.value == true,
                 "resetSession(.\(scope)) must purge the app-group widget cache"
             )
         }

@@ -34,8 +34,8 @@ catalog into documentation.
 - Event and property names use static `snake_case` strings.
 - Events describe completed facts with `object_action`: `budget_created`, not `create_budget`
   or `created`.
-- Flow markers use `_started`, `_completed`, `_cancelled`, `_abandoned`, `_resumed`, or
-  `_failed`.
+- Flow markers use `_started`, `_completed`, `_cancelled`, `_abandoned`, `_paused`,
+  `_resumed`, or `_failed`.
 - Put variable data in properties; never interpolate it into the event name.
 - Keep property value spaces stable once shipped so dashboards remain comparable.
 

@@ -248,7 +248,7 @@ const it: Dictionary = {
     whyFree: {
       portraitAlt: "Maxime, il creatore di Pulpe",
       eyebrow: "Una nota dal creatore",
-      heading: "Volevo vedere i mesi a venire.",
+      heading: "Avevo bisogno di vedere i mesi a venire.",
       paragraphs: [
         "Ho creato Pulpe dopo aver passato troppo tempo a tenere aggiornati i miei fogli di calcolo. Volevo sapere che cosa una decisione avrebbe cambiato nei mesi successivi, non solo capire dove erano finiti i miei soldi.",
         "Il progetto oggi è gratis, senza pubblicità né abbonamento. Il suo codice resta pubblico perché tu possa verificare come funziona.",

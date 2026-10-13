@@ -89,6 +89,18 @@ struct FeedbackPromptPreferencesTests {
         #expect(fixture.store.isEligible(for: "traveller"))
     }
 
+    @Test
+    func v1History_isRemovedByTheFirstWrite() throws {
+        let fixture = try makeFixture()
+        defer { fixture.cleanup() }
+        let v1Key = "pulpe.feedback-prompt.account-states"
+        fixture.defaults.set(Data("{}".utf8), forKey: v1Key)
+
+        fixture.store.recordActiveDay(for: "user", calendar: fixture.calendar)
+
+        #expect(fixture.defaults.object(forKey: v1Key) == nil)
+    }
+
     private func recordActiveDays(
         _ fixture: Fixture,
         _ userID: String,

@@ -3,7 +3,7 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { TransactionCreate, TransactionUpdate } from 'pulpe-shared';
 import type { SpreadSourceTransaction } from './transaction.entity';
 
-const TRANSACTION_CONSTANTS = {
+export const TRANSACTION_CONSTANTS = {
   MAX_AMOUNT: 1000000,
   NAME_MAX_LENGTH: 100,
 } as const;

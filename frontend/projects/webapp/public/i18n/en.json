@@ -337,14 +337,13 @@
   },
   "settings": {
     "title": "Settings",
-    "accountSection": "Preferences",
-    "accountDescription": "Adapt Pulpe to your language, currency and budget cycle.",
+    "preferencesSection": "Preferences",
+    "preferencesDescription": "Adapt Pulpe to your language, currency and budget cycle.",
     "organizationSection": "Organisation",
     "organizationDescription": "Find the items you use to organise your finances.",
     "tags": {
       "title": "My tags",
       "description": "See the personal tags available on all your devices.",
-      "open": "See my personal tags",
       "loading": "Loading your tags...",
       "countOne": "{{ count }} personal tag",
       "countMany": "{{ count }} personal tags",
@@ -401,8 +400,8 @@
     "regenerateKey": "Regenerate",
     "newRecoveryKeySaved": "New recovery key saved",
     "generateKeyError": "Generating the key failed — try again later",
-    "dangerSection": "Account",
-    "dangerDescription": "Actions on your account that can't be undone.",
+    "accountSection": "Account",
+    "accountDescription": "Actions on your account that can't be undone.",
     "deleteAccount": "Delete my account",
     "deleteAccountDescription": "Your data will be deleted for good after 3 days.",
     "deleteAccountButton": "Delete the account",
@@ -481,7 +480,8 @@
         "copyFailed": "Copying failed. Select the address and copy it manually.",
         "finish": "Sign in to Pulpe and choose what the assistant can do. Then enable Pulpe in your conversation. You can revoke its access here at any time.",
         "availability": "Pulpe is not in the directories yet. Connection options depend on your account and the app you use.",
-        "steps": "View setup steps"
+        "steps": "View setup steps",
+        "stepsFor": "View setup steps: {{ client }}"
       },
       "title": "Connections",
       "description": "The AI assistants allowed to access your budget.",
@@ -495,7 +495,7 @@
       "since": "since {{ date }}",
       "recentActions": "Recent actions",
       "noActivity": "No action yet.",
-      "seeAll": "View the last 50 actions",
+      "seeAll": "View the last {{ count }} actions",
       "failed": "failed",
       "tools": {
         "add_movement": "Movement added",
@@ -2005,7 +2005,7 @@
     "transactionImportFileMissing": "No file received — choose your statement and try again",
     "transactionImportInvalid": "The statement has errors — nothing was imported, run the preview again to see them",
     "transactionImportConflict": "Some entries were imported in the meantime — nothing was created, run the preview again",
-    "transactionImportFailed": "The import failed — nothing was created, try again",
+    "transactionImportFailed": "Nothing was created, try again",
     "transactionImportRecalculationFailed": "The entries were imported, but the balances couldn't be refreshed — reload the page without importing the file again"
   },
   "logout": {
@@ -2065,7 +2065,7 @@
   "transactionImport": {
     "open": "Import a statement",
     "title": "Import a statement",
-    "intro": "Import the camt.053 statement (.xml file) exported from your e-banking. Pulpe records each of this month's entries as Actual.",
+    "intro": "Import the camt.053 statement (.xml file) exported from your e-banking. Pulpe adds each of this month's entries to your budget.",
     "noBankAccess": "Pulpe never accesses your bank account: only the file you choose is read.",
     "chooseFile": "Choose a file",
     "chooseAnotherFile": "Choose another file",
@@ -2111,14 +2111,13 @@
       "suggested": "Suggested:",
       "reasonsLabel": "Why this suggestion",
       "reason": {
-        "kind": "Compatible type",
         "amount": "Same amount",
         "label": "Similar description"
       },
       "accept": "Accept",
       "refuse": "Dismiss",
       "change": "Change",
-      "remove": "Remove",
+      "remove": "Detach",
       "attach": "Attach to a planned item",
       "attachedTo": "Attached to",
       "willBeChecked": "will be checked",

@@ -1,6 +1,6 @@
 # Review: weekly recap notification (iOS)
 
-- **Verdict**: changes-requested
+- **Verdict**: changes-requested (all findings resolved in #784)
 - **Diff**: `1c81ed15b...52afda431` (#780) + `8a23997e1...3ae7ef8fa` (#782)
 - **Axes run**: code, functional (criteria from the #780 and #782 descriptions, no plan.md), relevancy
 - **Date**: 2026_10_12

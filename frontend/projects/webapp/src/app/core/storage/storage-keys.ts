@@ -50,6 +50,8 @@ export const STORAGE_KEYS = {
 
   // What's New dismissal
   WHATS_NEW_DISMISSED: 'pulpe-whats-new-dismissed',
+  // What's New: the version whose toast was already shown once on this device
+  WHATS_NEW_SHOWN: 'pulpe-whats-new-shown',
 
   // Automatic feedback invitation: per-account active-day history, by user id
   FEEDBACK_PROMPT: 'pulpe-feedback-prompt',

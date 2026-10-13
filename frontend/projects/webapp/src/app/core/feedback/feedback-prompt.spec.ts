@@ -151,6 +151,20 @@ describe('FeedbackPrompt.claimAutomaticPrompt', () => {
     expect(get$).toHaveBeenCalledTimes(1);
   });
 
+  it('should invite again in the same tab once three more active days pass', async () => {
+    const { prompt } = setup({
+      status: () => of({ hasSubmitted: false }),
+    });
+
+    expect(await prompt.claimAutomaticPrompt(() => true)).toBe(1);
+    expect(await prompt.claimAutomaticPrompt(() => true)).toBeNull();
+
+    for (const day of [11, 12, 13]) {
+      prompt.recordActiveDay(new Date(2026, 9, day));
+    }
+    expect(await prompt.claimAutomaticPrompt(() => true)).toBe(2);
+  });
+
   it('should never ask the server in demo mode or before it is due', async () => {
     const demo = setup({
       status: () => of({ hasSubmitted: false }),

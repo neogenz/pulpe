@@ -113,6 +113,34 @@ struct WeeklyRecapTests {
         #expect(shown.hasPrefix("Cette semaine : environ 1’400 CHF"))
     }
 
+    /// The compact format shows whole units: the wording follows what it displays.
+    @Test(arguments: [
+        (Decimal(25) / 100, "Ton disponible est épuisé : un coup d'œil pour ajuster ta semaine ?"),
+        (Decimal(6) / 10, "Cette semaine : environ 1 CHF à dépenser."),
+    ])
+    func weeklyRecapBody_subUnitAllowance_matchesTheDisplayedAmount(allowance: Decimal, expected: String) {
+        let recap = WeeklyRecap(
+            movementCount: 1, weekAllowance: allowance, usualWeekSpending: nil, expectedLineNames: []
+        )
+
+        let body = NotificationScheduler.weeklyRecapBody(recap, currency: .chf, showDetails: true)
+
+        #expect(body.hasPrefix(expected))
+    }
+
+    @Test func weeklyRecapBody_usualSpendingUnderHalfAUnit_isNotComparedAsZero() {
+        let recap = WeeklyRecap(
+            movementCount: 1,
+            weekAllowance: 100,
+            usualWeekSpending: Decimal(25) / 100,
+            expectedLineNames: []
+        )
+
+        let body = NotificationScheduler.weeklyRecapBody(recap, currency: .chf, showDetails: true)
+
+        #expect(body.hasPrefix("Cette semaine : environ 100 CHF à dépenser."))
+    }
+
     // MARK: - Fixture
 
     private var october: BudgetDetails {

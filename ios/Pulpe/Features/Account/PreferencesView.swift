@@ -44,7 +44,7 @@ struct PreferencesView: View {
                     .font(PulpeTypography.labelLarge)
             } footer: {
                 Text("""
-                    Le jour de paie, un rappel pour pointer tes dépenses. Le lundi matin, le récap \
+                    Le jour de paie, ton nouveau mois. Le lundi matin, le récap \
                     de ta semaine et ce qu'il te reste pour la suivante. Tu peux couper quand tu veux.
                     """)
             }

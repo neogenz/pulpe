@@ -14371,24 +14371,24 @@
         }
       }
     },
-    "Le jour de paie, un rappel pour pointer tes dépenses. Le lundi matin, le récap de ta semaine et ce qu'il te reste pour la suivante. Tu peux couper quand tu veux." : {
+    "Le jour de paie, ton nouveau mois. Le lundi matin, le récap de ta semaine et ce qu'il te reste pour la suivante. Tu peux couper quand tu veux." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Am Zahltag eine Erinnerung, um deine Ausgaben abzuhaken. Am Montagmorgen ein Rückblick auf deine Woche und was dir für die nächste bleibt. Jederzeit abschaltbar."
+            "value" : "Am Zahltag dein neuer Monat. Am Montagmorgen ein Rückblick auf deine Woche und was dir für die nächste bleibt. Jederzeit abschaltbar."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "On pay day, a reminder to check off your spending. On Monday morning, a recap of your week and what's left for the next one. Turn it off whenever you like."
+            "value" : "On pay day, your new month. On Monday morning, a recap of your week and what's left for the next one. Turn it off whenever you like."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il giorno di paga, un promemoria per spuntare le tue spese. Il lunedì mattina, il riepilogo della tua settimana e quanto ti resta per la prossima. Puoi disattivarlo quando vuoi."
+            "value" : "Il giorno di paga, il tuo nuovo mese. Il lunedì mattina, il riepilogo della tua settimana e quanto ti resta per la prossima. Puoi disattivarlo quando vuoi."
           }
         }
       }

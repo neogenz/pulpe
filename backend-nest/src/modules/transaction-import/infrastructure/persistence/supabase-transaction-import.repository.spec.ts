@@ -117,7 +117,7 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
 });
 
 describe('SupabaseTransactionImportRepository.findImportedFingerprints', () => {
-  function setupFingerprints(rows: { import_fingerprint: string | null }[]) {
+  function setupFingerprints(rows: { fingerprint: string }[]) {
     const queried: unknown[][] = [];
     const query: Record<string, unknown> = {
       select: () => query,
@@ -136,15 +136,15 @@ describe('SupabaseTransactionImportRepository.findImportedFingerprints', () => {
     return { repo, client, queried };
   }
 
-  it('returns the fingerprints already stored, asking once per distinct value', async () => {
+  it('reads the import ledger, not the Réels, asking once per distinct value', async () => {
     const { repo, client, queried } = setupFingerprints([
-      { import_fingerprint: 'fp1' },
+      { fingerprint: 'fp1' },
     ]);
 
     const imported = await repo.findImportedFingerprints(['fp1', 'fp2', 'fp1']);
 
-    expect(client.from).toHaveBeenCalledWith('transaction');
-    expect(queried).toEqual([['import_fingerprint', ['fp1', 'fp2']]]);
+    expect(client.from).toHaveBeenCalledWith('transaction_import_fingerprint');
+    expect(queried).toEqual([['fingerprint', ['fp1', 'fp2']]]);
     expect([...imported]).toEqual(['fp1']);
   });
 

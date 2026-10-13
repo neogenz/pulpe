@@ -65,7 +65,7 @@ import { dateFnsLocaleFor } from '@core/locale';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
 import {
   FeedbackPrompt,
-  WHATS_NEW_VISIBLE,
+  WHATS_NEW_ANNOUNCING,
 } from '@core/feedback/feedback-prompt';
 import {
   FeedbackDialog,
@@ -634,7 +634,7 @@ export default class Dashboard {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #firstTransactionTracker = inject(FirstTransactionTracker);
   readonly #feedbackPrompt = inject(FeedbackPrompt);
-  readonly #whatsNewVisible = inject(WHATS_NEW_VISIBLE);
+  readonly #whatsNewAnnouncing = inject(WHATS_NEW_ANNOUNCING);
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
 
   // Folded by default: the daily visit is the one this page is for, and it ends
@@ -864,7 +864,7 @@ export default class Dashboard {
       () =>
         !this.#destroyRef.destroyed &&
         this.#dialog.openDialogs.length === 0 &&
-        !this.#whatsNewVisible() &&
+        !this.#whatsNewAnnouncing() &&
         this.#productTourService.hasSeenIntro(),
     );
     if (promptNumber === null) return;
