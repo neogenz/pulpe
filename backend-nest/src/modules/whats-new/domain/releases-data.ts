@@ -54,6 +54,55 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.53.0',
+    iosVersion: '1.9.0',
+    date: '2026-10-16',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Pointer un retrait d’objectif en un clic',
+          description:
+            'Sur un revenu prévu depuis un objectif, active « Pointé » : le revenu est créé pour le montant restant, déjà pointé. Désactive-le pour l’annuler, l’argent retourne sur l’objectif.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Check a goal withdrawal in one click',
+            description:
+              'On an income planned from a goal, turn on “Checked”: the income is created for the remaining amount, already checked. Turn it off to cancel it; the money goes back to the goal.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: 'Zielentnahme mit einem Klick abhaken',
+            description:
+              'Bei einer aus einem Ziel geplanten Einnahme «Abgehakt» einschalten: Die Einnahme wird für den Restbetrag erfasst, bereits abgehakt. Ausschalten macht sie rückgängig, das Geld geht zurück ins Ziel.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: 'Spunta un prelievo da un obiettivo con un clic',
+            description:
+              'Su un’entrata pianificata da un obiettivo, attiva «Spuntato»: l’entrata viene registrata per l’importo restante, già spuntata. Disattivala per annullarla; il denaro torna sull’obiettivo.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
     version: '0.52.0',
     iosVersion: '1.8.0',
     date: '2026-10-13',

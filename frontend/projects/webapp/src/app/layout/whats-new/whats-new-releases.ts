@@ -11,12 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.51.0',
+  version: '0.53.0',
   features: {
-    fr: ['Rapprocher mes comptes', 'Bilan du mois', 'Pointage priorisé'],
-    en: ['Match my accounts', 'Month recap', 'Smarter checking'],
-    de: ['Konten abgleichen', 'Monatsrückblick', 'Priorisiertes Abhaken'],
-    it: ['Allinea i miei conti', 'Riepilogo del mese', 'Spunta prioritaria'],
+    fr: ['Tes retraits d’épargne se pointent comme le reste'],
+    en: ['Savings withdrawals check off like everything else'],
+    de: ['Sparentnahmen wie alles andere abhaken'],
+    it: ['Prelievi dai risparmi: si spuntano come il resto'],
   },
 };
 

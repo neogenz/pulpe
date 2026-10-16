@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.53.0
+
+### Minor Changes
+
+- Pointage d’un retrait d’objectif en un clic sur le web et iOS, plan d’objectif aligné sur le graphique, rapprochement des comptes plus clair.
+
+### Patch Changes
+
+- pulpe-shared@0.53.0
+
 ## 0.52.0
 
 ### Minor Changes
