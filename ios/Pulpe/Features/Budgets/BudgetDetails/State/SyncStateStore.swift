@@ -26,6 +26,16 @@ final class SyncStateStore {
     var showSavingsWithdrawalDeleteChoice = false
     private(set) var budgetLineToDeleteWithdrawal: BudgetLine?
 
+    /// Confirmation before un-pointing an announced withdrawal: deleting its one
+    /// realizing Réel returns the money to the goal.
+    var showPlannedWithdrawalUndo = false
+    private(set) var plannedWithdrawalUndo: PlannedWithdrawalUndo?
+
+    struct PlannedWithdrawalUndo {
+        let realization: Transaction
+        let goalName: String
+    }
+
     func markSyncing(lineId: String) {
         syncingBudgetLineIds.insert(lineId)
     }
@@ -80,5 +90,15 @@ final class SyncStateStore {
     func resetSavingsWithdrawalDeleteChoice() {
         budgetLineToDeleteWithdrawal = nil
         showSavingsWithdrawalDeleteChoice = false
+    }
+
+    func presentPlannedWithdrawalUndo(_ undo: PlannedWithdrawalUndo) {
+        plannedWithdrawalUndo = undo
+        showPlannedWithdrawalUndo = true
+    }
+
+    func resetPlannedWithdrawalUndo() {
+        plannedWithdrawalUndo = nil
+        showPlannedWithdrawalUndo = false
     }
 }

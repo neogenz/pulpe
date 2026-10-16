@@ -77,9 +77,7 @@ final class FiltersStore {
         _ line: BudgetLine,
         consumptionByLineId: [String: BudgetFormulas.Consumption]
     ) -> Bool {
-        if line.checkedAt != nil { return true }
-        guard line.isPlannedSavingsWithdrawal else { return false }
-        return (consumptionByLineId[line.id]?.allocated ?? 0) >= line.amount
+        line.isPointed(allocated: consumptionByLineId[line.id]?.allocated ?? 0)
     }
 
     /// Sections to display after applying BOTH filters (checked + type), in

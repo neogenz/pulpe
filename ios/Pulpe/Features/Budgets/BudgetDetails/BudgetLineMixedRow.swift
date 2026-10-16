@@ -41,7 +41,7 @@ struct BudgetLineMixedRow: View {
     /// Equivalent of `e.real > e.planned` in the spec; matches `consumption.isOverBudget`.
     var isOverBudget: Bool { consumption.isOverBudget }
 
-    private var isPointed: Bool { line.isChecked }
+    private var isPointed: Bool { line.isPointed(allocated: realAmount) }
     var isIncome: Bool { line.kind == .income }
     var isSaving: Bool { line.kind == .saving }
     var isExpense: Bool { line.kind == .expense }
@@ -75,20 +75,6 @@ struct BudgetLineMixedRow: View {
         )
     }
 
-    static func realizationLabel(
-        for line: BudgetLine,
-        realizedAmount: Decimal
-    ) -> String? {
-        guard line.isPlannedSavingsWithdrawal, realizedAmount < line.amount else { return nil }
-        return realizedAmount > 0
-            ? AppLocale.string("Réaliser le solde")
-            : AppLocale.string("Réaliser ce retrait")
-    }
-
-    private var realizationLabel: String? {
-        Self.realizationLabel(for: line, realizedAmount: realAmount)
-    }
-
     /// PointCircle dot color — kind-based. The overflow override only applies to
     /// expenses; income / saving keep their category color even when the actual
     /// amount overshoots the plan (a positive surprise, not a deficit).
@@ -104,24 +90,16 @@ struct BudgetLineMixedRow: View {
     var body: some View {
         Button(action: handleTap) {
             HStack(spacing: DesignTokens.Spacing.sm) {
-                // The leading rail belongs to the row, not to the disc. An announced
-                // withdrawal has nothing to point, so it keeps the glyph without the control.
-                Group {
-                    if line.isPlannedSavingsWithdrawal {
-                        RowIcon(systemName: line.kind.icon, tint: dotColor)
-                    } else {
-                        PointCircle(
-                            kind: line.kind,
-                            isPointed: isPointed,
-                            color: dotColor,
-                            isSyncing: isSyncing,
-                            onPrepareToggle: onPrepareTogglePointed,
-                            onCompletionStateChange: { pointCompletionGate.isPending = $0 },
-                            onToggle: handleTogglePointed
-                        )
-                        .popoverTip(showsCheckingTip ? ProductTips.checking : nil)
-                    }
-                }
+                PointCircle(
+                    kind: line.kind,
+                    isPointed: isPointed,
+                    color: dotColor,
+                    isSyncing: isSyncing,
+                    onPrepareToggle: onPrepareTogglePointed,
+                    onCompletionStateChange: { pointCompletionGate.isPending = $0 },
+                    onToggle: handleTogglePointed
+                )
+                .popoverTip(showsCheckingTip ? ProductTips.checking : nil)
                 .frame(width: DesignTokens.TapTarget.minimum)
 
                 if dynamicTypeSize.isAccessibilitySize {
@@ -150,15 +128,11 @@ struct BudgetLineMixedRow: View {
             )
         }
         .buttonStyle(.plain)
-        // Second path to the same toggle, the gesture Mail taught; a withdrawal has nothing to point.
+        // Second path to the same toggle, the gesture Mail taught.
         .leadingSwipeAction(
             systemImage: isPointed ? "arrow.uturn.backward" : "checkmark",
             tint: dotColor,
-            isEnabled: {
-                !line.isPlannedSavingsWithdrawal
-                    && !pointCompletionGate.isPending
-                    && !isSyncing
-            },
+            isEnabled: { !pointCompletionGate.isPending && !isSyncing },
             action: handleTogglePointed
         )
         // Explicit, or the button inherits the metadata Text's identifier from its label.
@@ -329,13 +303,8 @@ struct BudgetLineMixedRow: View {
 
     /// The row's state, resolved here and spoken by `Self.accessibilityLabel`.
     private var accessibilityLabel: String {
-        // An announced withdrawal is realized, not pointed. Either way the row
-        // speaks its state, never its action: realizing one happens on the line's
-        // own screen, so naming the verb here would announce a button that the
-        // row does not carry.
-        let status = line.isPlannedSavingsWithdrawal
-            ? (realizationLabel == nil ? AppLocale.string("Réalisé") : AppLocale.string("À réaliser"))
-            : (isPointed ? AppLocale.string("Pointé") : AppLocale.string("À pointer"))
+        // The row speaks its state, never its action: the disc carries the verb.
+        let status = isPointed ? AppLocale.string("Pointé") : AppLocale.string("À pointer")
         return Self.accessibilityLabel(
             line: line,
             status: status,

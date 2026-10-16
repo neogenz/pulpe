@@ -95,11 +95,12 @@ export class BudgetDetailsPage {
   }
 
   /**
-   * Le geste qui remplace le pointage sur un retrait annoncé : il ouvre la
-   * saisie du revenu réel, seul mouvement qui débite l'objectif.
+   * Réalise un retrait annoncé pour un montant choisi : la saisie du revenu
+   * réel, préremplie du reste à sortir. Le pointage, lui, réalise tout le reste.
    */
   async realizeWithdrawal(lineId: string): Promise<void> {
-    await this.page.getByTestId(`realize-withdrawal-${lineId}`).click();
+    await this.page.getByTestId(`card-menu-${lineId}`).click();
+    await this.page.getByTestId(`add-transaction-${lineId}`).click();
     await expect(
       this.page.getByTestId('realize-withdrawal-context'),
     ).toBeVisible();

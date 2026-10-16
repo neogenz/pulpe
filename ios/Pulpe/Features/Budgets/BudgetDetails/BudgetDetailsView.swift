@@ -193,6 +193,11 @@ struct BudgetDetailsView: View {
         } message: { _ in
             Text("Cette prévision a des mouvements encore à pointer.")
         }
+        .modifier(PlannedWithdrawalUndoAlert(
+            syncStore: syncStore, currency: userSettingsStore.currency, amountsHidden: amountsHidden
+        ) { tx in
+            Task { await coordinator.dispatch(.softDeleteTransaction(tx, toastContext)) }
+        })
     }
 
     private var content: some View {

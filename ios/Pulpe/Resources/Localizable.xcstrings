@@ -798,6 +798,34 @@
         }
       }
     },
+    "%@ retourneront sur « %@ »." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ fliessen zurück auf „%@“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ will go back to “%@”."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ retourneront sur « %2$@ »."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ torneranno su «%@»."
+          }
+        }
+      }
+    },
     "%@ sur %@" : {
       "localizations" : {
         "de" : {
@@ -4643,6 +4671,50 @@
         }
       }
     },
+    "Ce montant retournera sur « %@ »." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Betrag fliesst zurück auf „%@“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This amount will go back to “%@”."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo importo tornerà su «%@»."
+          }
+        }
+      }
+    },
+    "Annuler ce retrait ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Entnahme rückgängig machen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel this withdrawal?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annullare questo prelievo?"
+          }
+        }
+      }
+    },
     "Annuler disponible" : {
       "localizations" : {
         "de" : {
@@ -4683,6 +4755,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Annulla l'eliminazione"
+          }
+        }
+      }
+    },
+    "Annuler le retrait" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entnahme rückgängig machen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel withdrawal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla il prelievo"
           }
         }
       }
@@ -12739,6 +12833,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tienilo sott'occhio"
+          }
+        }
+      }
+    },
+    "Garder le retrait" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entnahme behalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep withdrawal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni il prelievo"
           }
         }
       }
@@ -22365,50 +22481,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Riequilibra il resto"
-          }
-        }
-      }
-    },
-    "Réaliser ce retrait" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diese Entnahme ausführen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Make this withdrawal"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effettua questo prelievo"
-          }
-        }
-      }
-    },
-    "Réaliser le solde" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restbetrag entnehmen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take the balance"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preleva il resto"
           }
         }
       }

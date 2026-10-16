@@ -389,6 +389,34 @@ export class BudgetDetailsDialogService {
     return confirmed === true;
   }
 
+  async confirmUnrealizeWithdrawal(
+    amount: string,
+    goalName: string,
+  ): Promise<boolean> {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: {
+        title: this.#transloco.translate(
+          'budgetLine.unrealizeWithdrawal.title',
+        ),
+        message: this.#transloco.translate(
+          'budgetLine.unrealizeWithdrawal.message',
+          { amount, goal: goalName },
+        ),
+        confirmText: this.#transloco.translate(
+          'budgetLine.unrealizeWithdrawal.confirm',
+        ),
+        cancelText: this.#transloco.translate(
+          'budgetLine.unrealizeWithdrawal.keep',
+        ),
+        confirmColor: 'warn',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+    return confirmed === true;
+  }
+
   async confirmCheckAllocatedTransactions(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {

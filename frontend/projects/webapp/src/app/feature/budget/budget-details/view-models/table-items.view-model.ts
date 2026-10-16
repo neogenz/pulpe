@@ -83,12 +83,10 @@ export interface TableItem {
      */
     savingsWithdrawalOriginLabel?: string | null;
     /**
-     * PUL-329 v2 — clé transloco du geste attendu sur un retrait annoncé :
-     * réaliser le montant initial, puis son solde. `null` à reliquat nul.
+     * État affiché par la bascule « Pointé » : `checkedAt`, ou pour un retrait
+     * annoncé, sa réalisation complète.
      */
-    sourceWithdrawalCtaKey?: string | null;
-    /** La Prévision liée est couverte ; aucun geste de réalisation ne subsiste. */
-    isSourceWithdrawalRealized?: boolean;
+    isPointed?: boolean;
   } & TableItemDisplayMetadata;
 }
 

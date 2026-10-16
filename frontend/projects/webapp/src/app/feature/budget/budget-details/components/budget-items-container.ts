@@ -39,6 +39,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { TagStore } from '@core/tag';
 import { Logger } from '@core/logging/logger';
+import { formatLocalDate } from '@core/date/format-local-date';
 import { PostHogService } from '@core/analytics';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
@@ -59,6 +60,8 @@ import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-fi
 import { BudgetTagFilter } from './budget-table/budget-tag-filter';
 import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
 import { type WithdrawalRealizationContext } from '../allocated-transactions/create-dialog/form';
+import { computeBudgetPeriodDateConstraints } from '../allocated-transactions/create-dialog/budget-period-date-constraints';
+import { transactionCreateFromFormSchema } from './edit-transaction-form';
 import {
   BudgetDetailsStore,
   type MutationOutcome,
@@ -289,7 +292,6 @@ import {
             (postpone)="handlePostponeBudgetLine($event)"
             (postponeTransaction)="handlePostponeTransaction($event)"
             (toggleCheck)="handleToggleCheck($event)"
-            (realizeWithdrawal)="handleRealizeWithdrawal($event)"
             (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
           />
         } @else {
@@ -307,7 +309,6 @@ import {
             (resetFromTemplate)="handleResetFromTemplate($event)"
             (postpone)="handlePostponeItem($event)"
             (toggleCheck)="handleToggleCheck($event)"
-            (realizeWithdrawal)="handleRealizeWithdrawal($event)"
             (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
           />
         }
@@ -760,6 +761,14 @@ export class BudgetItemsContainer {
     const details = this.store.budgetDetails();
     if (!details) return;
 
+    const sourceLine = details.budgetLines.find(
+      (line) => line.id === budgetLineId && line.sourceSavingsGoalId,
+    );
+    if (sourceLine) {
+      await this.#toggleWithdrawalRealization(sourceLine);
+      return;
+    }
+
     const behavior = determineCheckBehavior(
       budgetLineId,
       details.budgetLines,
@@ -797,15 +806,80 @@ export class BudgetItemsContainer {
     this.#showEnvelopeSnackbar(budgetLineId);
   }
 
-  protected async handleRealizeWithdrawal(budgetLineId: string): Promise<void> {
-    const details = this.store.budgetDetails();
-    const sourceLine = details?.budgetLines.find(
-      (line) => line.id === budgetLineId && line.sourceSavingsGoalId,
+  /**
+   * Un retrait annoncé se pointe comme les autres prévisions : pointer crée le
+   * revenu réel du reste (le serveur débite l'objectif et le marque pointé),
+   * dépointer supprime ce revenu et rend l'argent à l'objectif. `checkedAt` de
+   * la prévision n'est jamais posé : le serveur le refuse et le revenu serait
+   * compté deux fois.
+   */
+  async #toggleWithdrawalRealization(line: BudgetLine): Promise<void> {
+    const context = this.#withdrawalRealizationContext(line);
+    if (!context) return;
+    if (context.remainingAmount > 0) {
+      await this.#realizeWithdrawal(line, context.remainingAmount);
+      return;
+    }
+
+    const allocated = (this.store.budgetDetails()?.transactions ?? []).filter(
+      (tx) => tx.budgetLineId === line.id,
     );
-    if (!sourceLine) return;
-    const context = this.#withdrawalRealizationContext(sourceLine);
-    if (!context || context.remainingAmount <= 0) return;
-    await this.openCreateAllocatedTransactionDialog(sourceLine);
+    // Plusieurs revenus : lequel annuler est un choix, pas un réflexe.
+    if (allocated.length !== 1) {
+      const details = this.store.budgetDetails();
+      await this.openAllocatedTransactionsDialog({
+        budgetLine: line,
+        consumption: calculateBudgetLineConsumption(
+          line,
+          details?.transactions ?? [],
+        ),
+      });
+      return;
+    }
+    const [transaction] = allocated;
+    const amount =
+      this.#currencyPipe.transform(
+        transaction.amount,
+        this.currency(),
+        '1.2-2',
+      ) ?? '';
+    const confirmed = await this.#dialogService.confirmUnrealizeWithdrawal(
+      amount,
+      context.goalName,
+    );
+    if (!confirmed) return;
+    const error = await this.store.deleteTransaction(transaction.id);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+    }
+  }
+
+  async #realizeWithdrawal(line: BudgetLine, amount: number): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) return;
+    const { defaultDate } = computeBudgetPeriodDateConstraints(
+      budget.month,
+      budget.year,
+      this.#userSettings.payDayOfMonth(),
+    );
+    const error = await this.store.createAllocatedTransaction(
+      transactionCreateFromFormSchema.parse({
+        budgetId: line.budgetId,
+        budgetLineId: line.id,
+        name: line.name,
+        amount,
+        kind: line.kind,
+        transactionDate: formatLocalDate(defaultDate),
+        isChecked: true,
+        tagIds: [],
+        conversion: null,
+      }),
+    );
+    if (!error) return;
+    // Solde insuffisant, conflit ou réseau : la boîte préremplie montre le
+    // solde confirmé et laisse ajuster le montant.
+    openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+    await this.openCreateAllocatedTransactionDialog(line);
   }
 
   protected async handleToggleTransactionCheck(
