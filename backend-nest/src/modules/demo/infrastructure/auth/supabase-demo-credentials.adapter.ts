@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { SupabaseService } from '@modules/supabase/supabase.service';
+import { DEMO_CLIENT_KEY_BUFFER } from '@modules/encryption/domain/encryption.constants';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { DemoCredentialsPort } from '../../domain/ports/demo-credentials.port';
 import type { DemoAuthUser, DemoAuthSession } from '../../domain/auth.types';
 
@@ -11,6 +14,7 @@ import type { DemoAuthUser, DemoAuthSession } from '../../domain/auth.types';
 export class SupabaseDemoCredentialsAdapter implements DemoCredentialsPort {
   constructor(
     private readonly supabaseService: SupabaseService,
+    private readonly cls: ClsService,
     @InjectInfoLogger(SupabaseDemoCredentialsAdapter.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -84,6 +88,24 @@ export class SupabaseDemoCredentialsAdapter implements DemoCredentialsPort {
     }
 
     return { session: signInData.session, user: signInData.user };
+  }
+
+  bindDemoUserToRequest(
+    userId: string,
+    email: string,
+    accessToken: string,
+  ): void {
+    const user: AuthenticatedUser = {
+      id: userId,
+      email,
+      accessToken,
+      clientKey: DEMO_CLIENT_KEY_BUFFER,
+    };
+    this.cls.set('user', user);
+    this.cls.set(
+      'supabase',
+      this.supabaseService.createAuthenticatedClient(accessToken),
+    );
   }
 
   async deleteUser(userId: string): Promise<void> {

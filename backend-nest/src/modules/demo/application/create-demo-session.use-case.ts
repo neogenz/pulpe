@@ -38,15 +38,15 @@ export class CreateDemoSessionUseCase {
     const supabase = this.supabaseService.createAuthenticatedClient(
       session.access_token,
     );
+    this.creds.bindDemoUserToRequest(userId, email, session.access_token);
 
     try {
       await this.generateDemoData.execute(userId, supabase);
     } catch (err) {
       this.logger.warn(
-        {
-          userId,
-          err: err instanceof Error ? err.message : String(err),
-        },
+        // The production `err` serializer keeps name, code and stack frames
+        // but drops the message, so pass the Error itself, never its message.
+        { userId, err },
         'Demo seed failed; session still valid',
       );
     }
