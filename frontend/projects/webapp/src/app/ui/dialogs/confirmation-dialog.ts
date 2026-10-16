@@ -22,7 +22,9 @@ export interface ConfirmationDialogData {
     <h2 mat-dialog-title>{{ data.title }}</h2>
 
     <mat-dialog-content>
-      <p class="text-body-large text-on-surface">{{ data.message }}</p>
+      <p class="ph-no-capture text-body-large text-on-surface">
+        {{ data.message }}
+      </p>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" class="gap-2">

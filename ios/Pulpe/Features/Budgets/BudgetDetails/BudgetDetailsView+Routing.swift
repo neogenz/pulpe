@@ -20,9 +20,22 @@ extension BudgetDetailsView {
 
     func handlePointGesture(on line: BudgetLine) {
         Task {
-            await coordinator.dispatch(
-                .toggleLine(line, toastContext, amountsHidden: amountsHidden)
-            )
+            guard line.isPlannedSavingsWithdrawal else {
+                await coordinator.dispatch(
+                    .toggleLine(line, toastContext, amountsHidden: amountsHidden)
+                )
+                return
+            }
+            switch await coordinator.pointPlannedWithdrawal(
+                line, context: toastContext, payDayOfMonth: userSettingsStore.payDayOfMonth
+            ) {
+            case .handled:
+                break
+            case .openRealizationForm:
+                router.push(.addAllocatedTx(lineId: line.id))
+            case .openLineDetail:
+                router.push(.lineDetail(lineId: line.id))
+            }
         }
     }
 

@@ -280,20 +280,13 @@ function createBudgetLineViewModel(
         budgetLine.kind === 'saving' && budgetLine.savingsWithdrawalGroupId
           ? savingsWithdrawalOriginLabel
           : null,
-      // PUL-329 v2 — un retrait ANNONCÉ ne se réalise pas en cochant une case
-      // mais en créant le revenu réel : la bascule de pointage cède la place à
-      // cette action. Une source orpheline (objectif supprimé) n'en porte pas : elle
-      // ne peut plus être réalisée et redevient une prévision ordinaire.
-      sourceWithdrawalCtaKey: budgetLine.sourceSavingsGoalId
-        ? budgetLine.amount - consumed > 0
-          ? hasTransactions
-            ? 'budgetLine.realizeWithdrawalBalance'
-            : 'budgetLine.realizeWithdrawal'
-          : null
-        : null,
-      isSourceWithdrawalRealized: budgetLine.sourceSavingsGoalId
+      // Un retrait annoncé se pointe comme les autres prévisions, mais son état
+      // vient de sa réalisation (le revenu réel couvre le montant), jamais de
+      // `checkedAt` que le serveur refuse sur une source vivante. Une source
+      // orpheline (objectif supprimé) redevient une prévision ordinaire.
+      isPointed: budgetLine.sourceSavingsGoalId
         ? budgetLine.amount - consumed <= 0
-        : false,
+        : !!budgetLine.checkedAt,
     },
     consumption: {
       consumed,

@@ -4,7 +4,7 @@ import Testing
 
 /// Realizing an announced withdrawal (PUL-329 v2): the forecast is copied into a
 /// real allocated income — the only movement that debits the goal — and the row
-/// says so instead of offering to point.
+/// reads it as pointed once that income covers the forecast.
 struct AddAllocatedTransactionRealizationTests {
     private func announcedLine(
         amount: Decimal = 500,
@@ -96,29 +96,36 @@ struct AddAllocatedTransactionRealizationTests {
         #expect(beyond == nil)
     }
 
-    // MARK: - Dedicated realization action
+    // MARK: - Pointed state
 
-    @Test("The text action names the first realization, then its balance")
-    func action_namesTheIntention() throws {
+    /// Realized means pointed: the disc reads `annoncé − Σ réels alloués`, never the
+    /// line's own `checkedAt`, which the server refuses to set on a live source.
+    @Test("An announced withdrawal is pointed once realized, whatever its checkedAt")
+    func pointed_followsTheRealizedAmount() {
         let line = announcedLine()
+        let stale = BudgetLine(
+            id: "line-1", budgetId: "budget-1", templateLineId: nil, savingsGoalId: nil,
+            name: "Apport cuisine", amount: 500, kind: .income, recurrence: .oneOff,
+            isManuallyAdjusted: false, checkedAt: TestDataFactory.fixedCheckedDate,
+            createdAt: TestDataFactory.fixedDate, updatedAt: TestDataFactory.fixedDate,
+            sourceSavingsGoalId: "goal-1", sourceSavingsGoalName: "Fonds d'urgence"
+        )
 
-        let first = try #require(BudgetLineMixedRow.realizationLabel(for: line, realizedAmount: 0))
-        let partial = try #require(BudgetLineMixedRow.realizationLabel(for: line, realizedAmount: 200))
-
-        #expect(first == "Réaliser ce retrait")
-        #expect(partial == "Réaliser le solde")
-        #expect(BudgetLineMixedRow.realizationLabel(for: line, realizedAmount: 500) == nil)
+        #expect(!line.isPointed(allocated: 0))
+        #expect(!line.isPointed(allocated: 300))
+        #expect(line.isPointed(allocated: 500))
+        #expect(line.isPointed(allocated: 620))
+        #expect(!stale.isPointed(allocated: 0))
     }
 
-    /// Every other line keeps the ordinary pointing circle — including a line whose
-    /// goal was deleted, which the server would refuse to debit.
-    @Test("Only an announced withdrawal replaces the pointing circle")
-    func affordance_absentOnEveryOtherLine() {
-        let ordinary = TestDataFactory.createBudgetLine(kind: .income)
+    /// Every other line keeps its own check, including one whose goal was deleted.
+    @Test("Any other line is pointed by its own check")
+    func pointed_followsTheCheckElsewhere() {
         let broken = announcedLine(goalId: nil)
 
-        #expect(BudgetLineMixedRow.realizationLabel(for: ordinary, realizedAmount: 0) == nil)
-        #expect(BudgetLineMixedRow.realizationLabel(for: broken, realizedAmount: 0) == nil)
+        #expect(!broken.isPointed(allocated: 500))
+        #expect(TestDataFactory.createBudgetLine(isChecked: true).isPointed(allocated: 0))
+        #expect(!TestDataFactory.createBudgetLine(isChecked: false).isPointed(allocated: 5000))
     }
 
     @Test("A realization payload is pointé from its first write")

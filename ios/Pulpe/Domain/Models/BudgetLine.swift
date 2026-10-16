@@ -92,6 +92,14 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
         sourceSavingsGoalId != nil
     }
 
+    /// The pointed state the screen shows, given the sum of the line's allocated
+    /// Réel. An announced withdrawal is pointed once realized, never through its
+    /// own `checkedAt`: the server refuses to check a live source, and a checked
+    /// source would count the income twice.
+    func isPointed(allocated: Decimal) -> Bool {
+        isPlannedSavingsWithdrawal ? allocated >= amount : isChecked
+    }
+
     /// PUL-22 (CA1/CA6/CA7) — whether "Reporter au mois suivant" may be offered:
     /// an unchecked, one-off line that isn't the virtual rollover, isn't a spread
     /// occurrence (PUL-17 — moving one slice breaks the group's month distribution),

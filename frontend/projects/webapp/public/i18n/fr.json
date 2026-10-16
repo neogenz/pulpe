@@ -785,10 +785,8 @@
     "uncheckLabel": "Dépointer {{ name }}",
     "uncheckedStatus": "À pointer",
     "checkedStatus": "Pointé",
-    "realizeWithdrawal": "Saisir le revenu",
-    "realizeWithdrawalBalance": "Saisir le solde",
-    "withdrawalRealized": "Revenu saisi",
     "realizationPointed": "Ce revenu sera ajouté à tes mouvements et marqué « Pointé », donc confirmé comme reçu.",
+    "withdrawalRealized": "Revenu saisi",
     "remainingPlannedWithdrawal": "Montant restant prévu",
     "checked": "Déjà pointé",
     "savings": "Épargne",
@@ -856,6 +854,12 @@
       "trackerPerRemainingMonth": "Prévois ~{{ perMonth }} par mois pour tenir l'objectif",
       "trackerFinalGap": "Tous les mois sont clôturés · il reste {{ remaining }} non provisionné",
       "trackerGoalReached": "Objectif atteint"
+    },
+    "unrealizeWithdrawal": {
+      "title": "Annuler ce retrait ?",
+      "message": "{{ amount }} retourneront sur « {{ goal }} ».",
+      "confirm": "Annuler le retrait",
+      "keep": "Garder le retrait"
     }
   },
   "transaction": {
@@ -1124,7 +1128,6 @@
         "removeNumbered": "Retirer le compte {{ index }}",
         "total": "Total de tes comptes",
         "numbered": "Compte {{ index }}",
-        "overdraft": "Découvert",
         "privateHint": "Les comptes saisis ne sont pas enregistrés."
       },
       "realized": {

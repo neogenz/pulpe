@@ -47,21 +47,30 @@ export const hashMcpCredential = (value: string): string =>
 /** Credential storage only. Financial repositories still use the owner's RLS session. */
 @Injectable()
 export class SupabaseMcpOAuthRepository {
-  readonly #key: Buffer;
+  readonly #key: Buffer | null;
 
   constructor(
     private readonly supabase: SupabaseService,
     config: ConfigService,
   ) {
-    const key = Buffer.from(
-      config.getOrThrow<string>('MCP_WRAPPING_KEY'),
-      'hex',
-    );
+    // Absent only where the environment schema allows it (MCP off, not
+    // production): the module still boots, and the first credential access fails.
+    const wrappingKey = config.get<string>('MCP_WRAPPING_KEY');
+    if (!wrappingKey) {
+      this.#key = null;
+      return;
+    }
+    const key = Buffer.from(wrappingKey, 'hex');
     if (key.length !== 32) throw new Error('MCP_WRAPPING_KEY must be 32 bytes');
     this.#key = Buffer.from(
       hkdfSync('sha256', key, Buffer.alloc(0), 'pulpe-mcp-oauth-v1', 32),
     );
     key.fill(0);
+  }
+
+  #requireKey(): Buffer {
+    if (!this.#key) throw new Error('MCP_WRAPPING_KEY is not configured');
+    return this.#key;
   }
 
   async getClient(id: string): Promise<OAuthClientInformationFull | undefined> {
@@ -341,7 +350,7 @@ export class SupabaseMcpOAuthRepository {
 
   #seal(value: unknown, context: string[]): string {
     const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', this.#key, iv);
+    const cipher = createCipheriv('aes-256-gcm', this.#requireKey(), iv);
     cipher.setAAD(Buffer.from(JSON.stringify(context)));
     const encrypted = Buffer.concat([
       cipher.update(JSON.stringify(value), 'utf8'),
@@ -357,7 +366,7 @@ export class SupabaseMcpOAuthRepository {
     if (payload.length < 29) throw new Error('Invalid MCP credential payload');
     const decipher = createDecipheriv(
       'aes-256-gcm',
-      this.#key,
+      this.#requireKey(),
       payload.subarray(0, 12),
     );
     decipher.setAAD(Buffer.from(JSON.stringify(context)));

@@ -785,10 +785,8 @@
     "uncheckLabel": "Uncheck {{ name }}",
     "uncheckedStatus": "To check",
     "checkedStatus": "Checked",
-    "realizeWithdrawal": "Enter the income",
-    "realizeWithdrawalBalance": "Enter the balance",
-    "withdrawalRealized": "Income entered",
     "realizationPointed": "This income will be added to your activity and marked “Checked”, so confirmed as received.",
+    "withdrawalRealized": "Income entered",
     "remainingPlannedWithdrawal": "Amount still planned",
     "checked": "Already checked",
     "savings": "Savings",
@@ -856,6 +854,12 @@
       "trackerPerRemainingMonth": "Plan about {{ perMonth }} a month to stay on target",
       "trackerFinalGap": "Every month is closed · {{ remaining }} was never set aside",
       "trackerGoalReached": "Target reached"
+    },
+    "unrealizeWithdrawal": {
+      "title": "Cancel this withdrawal?",
+      "message": "{{ amount }} will go back to “{{ goal }}”.",
+      "confirm": "Cancel withdrawal",
+      "keep": "Keep withdrawal"
     }
   },
   "transaction": {
@@ -1124,7 +1128,6 @@
         "removeNumbered": "Remove account {{ index }}",
         "total": "Total of your accounts",
         "numbered": "Account {{ index }}",
-        "overdraft": "Overdraft",
         "privateHint": "The accounts you enter are not saved."
       },
       "realized": {
