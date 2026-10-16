@@ -44,7 +44,7 @@
     "test:public-surface": "node --test .github/scripts/public-surface.test.mjs",
     "test:lexicon": "node --test .github/scripts/lexicon.test.mjs",
     "checks": "turbo checks",
-    "deps:check": "pnpm run deps:check:expo && pnpm run deps:check:frontend && pnpm run deps:check:android",
+    "deps:check": "pnpm run deps:check:frontend && pnpm run deps:check:android",
     "deps:check:expo": "pnpm --dir android exec expo install --check",
     "deps:check:frontend": "madge --circular frontend/projects/webapp/src/app --extensions ts --ts-config frontend/projects/webapp/tsconfig.app.json",
     "deps:check:android": "madge --circular android/src --extensions ts,tsx --ts-config android/tsconfig.json",

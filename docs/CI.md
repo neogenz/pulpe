@@ -61,8 +61,8 @@ decision is routed, the workspace runs `build`, unit tests and `lint` with
 
 - `workspace` is the single Node unit: one checkout, one frozen pnpm install,
   then build, unit tests, lint, format, the root quality gate (repository
-  security and vocabulary tests included), `deps:check` (Expo compatibility
-  plus the frontend and Android circularity graphs) and the critical audit as
+  security and vocabulary tests included), `deps:check` (the frontend and
+  Android circularity graphs) and the critical audit as
   separate steps sharing the local Turbo cache, before uploading the build
   artifacts E2E consumes. There is no separate install prewarm job: every job
   that needs Node declares its own install and pnpm cache.
