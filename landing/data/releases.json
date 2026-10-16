@@ -1,5 +1,148 @@
 [
   {
+    "version": "0.53.0",
+    "iosVersion": "1.9.0",
+    "date": "2026-10-16",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.53.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Pointer un retrait d’objectif en un clic",
+          "description": "Sur un revenu prévu depuis un objectif, active « Pointé » : le revenu est créé pour le montant restant, déjà pointé. Désactive-le pour l’annuler, l’argent retourne sur l’objectif."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Le plan d’objectif déduit tes retraits",
+          "description": "Chaque mois du plan affiche le même solde que le graphique : épargne de départ comprise, retraits prévus déduits."
+        },
+        {
+          "title": "Rapprochement des comptes plus clair",
+          "description": "Chaque compte, le premier compris, a un champ « Nom du compte », et un découvert se signale avec la case « Solde négatif (découvert) »."
+        },
+        {
+          "title": "Les soldes reviennent dans la démo",
+          "description": "Le mode démo affiche de nouveau les soldes de fin de mois."
+        },
+        {
+          "title": "Titre du budget lisible sur iPhone",
+          "description": "En faisant défiler un budget, le titre ne passe plus en noir sur le fond vert."
+        }
+      ],
+      "technical": [
+        {
+          "title": "Démarrage local simplifié",
+          "description": "Le serveur démarre sans clé MCP tant que l’accès des assistants IA n’est pas configuré."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Check a goal withdrawal in one click",
+              "description": "On an income planned from a goal, turn on “Checked”: the income is created for the remaining amount, already checked. Turn it off to cancel it; the money goes back to the goal."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "The goal plan deducts your withdrawals",
+              "description": "Each month of the plan shows the same balance as the chart: starting savings included, planned withdrawals deducted."
+            },
+            {
+              "title": "Clearer account reconciliation",
+              "description": "Every account, including the first, has an “Account name” field, and an overdraft is flagged with the “Negative balance (overdraft)” box."
+            },
+            {
+              "title": "Balances are back in the demo",
+              "description": "Demo mode shows end-of-month balances again."
+            },
+            {
+              "title": "Readable budget title on iPhone",
+              "description": "When you scroll a budget, the title no longer turns black on the green background."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Simpler local start",
+              "description": "The server starts without an MCP key as long as AI assistant access is not configured."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Zielentnahme mit einem Klick abhaken",
+              "description": "Bei einer aus einem Ziel geplanten Einnahme «Abgehakt» einschalten: Die Einnahme wird für den Restbetrag erfasst, bereits abgehakt. Ausschalten macht sie rückgängig, das Geld geht zurück ins Ziel."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Der Zielplan zieht deine Entnahmen ab",
+              "description": "Jeder Monat des Plans zeigt denselben Saldo wie das Diagramm: Anfangssparguthaben inbegriffen, geplante Entnahmen abgezogen."
+            },
+            {
+              "title": "Klarerer Kontenabgleich",
+              "description": "Jedes Konto, auch das erste, hat ein Feld «Kontoname», und eine Überziehung wird mit dem Kästchen «Negativer Saldo (Überziehung)» gekennzeichnet."
+            },
+            {
+              "title": "Die Salden sind zurück in der Demo",
+              "description": "Der Demomodus zeigt wieder die Salden zum Monatsende."
+            },
+            {
+              "title": "Lesbarer Budgettitel auf dem iPhone",
+              "description": "Beim Scrollen durch ein Budget wird der Titel nicht mehr schwarz auf grünem Hintergrund."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Einfacherer lokaler Start",
+              "description": "Der Server startet ohne MCP-Schlüssel, solange der Zugang für KI-Assistenten nicht konfiguriert ist."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Spunta un prelievo da un obiettivo con un clic",
+              "description": "Su un’entrata pianificata da un obiettivo, attiva «Spuntato»: l’entrata viene registrata per l’importo restante, già spuntata. Disattivala per annullarla; il denaro torna sull’obiettivo."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Il piano dell’obiettivo detrae i tuoi prelievi",
+              "description": "Ogni mese del piano mostra lo stesso saldo del grafico: risparmio iniziale incluso, prelievi pianificati detratti."
+            },
+            {
+              "title": "Riconciliazione dei conti più chiara",
+              "description": "Ogni conto, anche il primo, ha un campo «Nome del conto», e uno scoperto si segnala con la casella «Saldo negativo (scoperto)»."
+            },
+            {
+              "title": "I saldi tornano nella demo",
+              "description": "La modalità demo mostra di nuovo i saldi di fine mese."
+            },
+            {
+              "title": "Titolo del budget leggibile su iPhone",
+              "description": "Scorrendo un budget, il titolo non diventa più nero sullo sfondo verde."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Avvio locale semplificato",
+              "description": "Il server si avvia senza chiave MCP finché l’accesso degli assistenti IA non è configurato."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.52.0",
     "iosVersion": "1.8.0",
     "date": "2026-10-13",

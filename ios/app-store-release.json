@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.52.0",
-  "marketingVersion": "1.8.0",
+  "productVersion": "0.53.0",
+  "marketingVersion": "1.9.0",
   "buildNumber": "1",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "• Récap du lundi : Chaque lundi matin, une notification te dit combien tu peux dépenser cette semaine et quelles prévisions t’attendent. À activer dans Préférences.\n• Ton avis : Pulpe te demande de temps en temps ce que tu en penses, jusqu’à ce que tu répondes.\n• Rappels : Toucher un rappel ouvre directement l’accueil."
+    "frFR": "• Pointer un retrait d’objectif : sur un revenu prévu depuis un objectif, active « Pointé ». Le revenu est créé pour le montant restant ; désactive-le pour l’annuler.\n• Le titre du budget reste lisible quand tu le fais défiler."
   },
-  "reviewNotes": "Sign in with the demo account. On Home, tap the account button (top right), open Préférences and turn on \"Récap du lundi\", allowing notifications when asked. A local notification titled \"Ta semaine en bref\" is then scheduled for Monday at 8:30; it is computed on the device. Tapping any Pulpe reminder opens Home. The feedback form is available from the account screen; the automatic invitation only appears on the third day of use."
+  "reviewNotes": "Sign in with the demo account. Open the current month in the Budget tab and tap + to add a forecast. Choose Revenu, set Origine to \"Retrait d'un objectif\", pick one of the demo savings goals, enter an amount and tap \"Planifier le retrait\". On the new income line, turn on the \"Pointé\" switch: a checked income for the remaining amount is created. Turn it off and confirm to remove it. Scrolling the budget keeps the title readable under the month selector."
 }
