@@ -938,6 +938,16 @@ test("one macOS CI job proves units and the targeted iOS smoke", () => {
   assert.match(iosDistribution, /readback/);
 });
 
+test("Expo patch alignment stays out of the PR gate", () => {
+  // `expo install --check` reads the live registry: in the PR gate, every Expo
+  // patch release would fail unrelated PRs. A scheduled job fixes it instead.
+  assert.doesNotMatch(rootPackage.scripts["deps:check"], /expo/);
+  const expoDrift = read(".github/workflows/expo-drift.yml");
+  assert.match(expoDrift, /pnpm --dir android exec expo install --fix\n/);
+  assert.match(expoDrift, /gh pr merge "\$BRANCH" .* --auto --squash\n/);
+  assert.match(expoDrift, /app-id: \$\{\{ secrets\.PULPE_RELEASE_APP_ID \}\}/);
+});
+
 test("the backend image does not install Bun", () => {
   assert.doesNotMatch(dockerfile, /bun\.sh\/install|\/root\/\.bun/);
 });
