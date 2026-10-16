@@ -21,20 +21,23 @@ extension BudgetDetailsCoordinator {
     /// outcome, like the form-driven mutations in `+Mutations.swift`.
     func pointPlannedWithdrawal(
         _ line: BudgetLine,
-        context: ToastContext
+        context: ToastContext,
+        payDayOfMonth: Int?,
+        now: Date = .now
     ) async -> PlannedWithdrawalPointOutcome {
         guard !syncStore.isSyncing(lineId: line.id) else { return .handled }
         let realized = BudgetFormulas.calculateConsumption(for: line, transactions: dataStore.transactions).allocated
         guard !line.isPointed(allocated: realized) else { return unpointPlannedWithdrawal(line) }
 
         // Same payload the prefilled form submits untouched: the line's name, what
-        // is left to take out, today, pointed. The server inherits the goal.
+        // is left to take out, today within this budget's period, pointed. The server
+        // inherits the goal.
         let data = AddAllocatedTransactionLogic.buildCreate(
             for: line,
             input: .init(
                 name: line.name,
                 amount: line.amount - realized,
-                transactionDate: .now,
+                transactionDate: realizationDate(payDayOfMonth: payDayOfMonth, now: now),
                 isChecked: true,
                 conversion: nil,
                 tagIds: nil
@@ -50,6 +53,20 @@ extension BudgetDetailsCoordinator {
             context.toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
             return .openRealizationForm
         }
+    }
+
+    /// Today when it falls in the displayed budget's period, else the period's first day,
+    /// so a past or future month never gets a movement dated outside it. Mirrors the
+    /// web's `computeBudgetPeriodDateConstraints` default.
+    private func realizationDate(payDayOfMonth: Int?, now: Date) -> Date {
+        guard let budget = dataStore.budget else { return now }
+        let period = BudgetPeriodCalculator.periodDates(
+            month: budget.month, year: budget.year, payDayOfMonth: payDayOfMonth
+        )
+        let calendar = Calendar.current
+        let periodEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: period.endDate))
+            ?? period.endDate
+        return now >= period.startDate && now < periodEnd ? now : period.startDate
     }
 
     private func unpointPlannedWithdrawal(_ line: BudgetLine) -> PlannedWithdrawalPointOutcome {

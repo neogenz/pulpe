@@ -27,10 +27,11 @@ struct PlannedWithdrawalPointTests {
 
     private func makeCoordinator(
         txService: MockTransactionService,
-        transactions: [Transaction] = []
+        transactions: [Transaction] = [],
+        budgetId: String = "planned-withdrawal-point-budget"
     ) async -> BudgetDetailsCoordinator {
         let coord = BudgetDetailsCoordinator(
-            budgetId: "planned-withdrawal-point-budget",
+            budgetId: budgetId,
             budgetLineService: MockBudgetLineService(),
             transactionService: txService
         )
@@ -49,7 +50,7 @@ struct PlannedWithdrawalPointTests {
         txService.stubbedCreated = realization(id: "tx-new", amount: 200)
         let coord = await makeCoordinator(txService: txService, transactions: [realization(id: "tx-1", amount: 300)])
 
-        let outcome = await coord.pointPlannedWithdrawal(announcedLine(), context: context())
+        let outcome = await coord.pointPlannedWithdrawal(announcedLine(), context: context(), payDayOfMonth: nil)
 
         #expect(outcome == .handled)
         let payload = try #require(txService.createdPayloads.first)
@@ -65,6 +66,27 @@ struct PlannedWithdrawalPointTests {
         #expect(!coord.syncStore.isSyncing(lineId: "line-1"))
     }
 
+    @Test("Point ON dates the Réel today inside the budget's period, else on its first day")
+    func pointOn_datesInsideTheBudgetPeriod() async throws {
+        let calendar = Calendar.current
+        let juneFirst = try #require(calendar.date(from: DateComponents(year: 2025, month: 6, day: 1)))
+        let inJune = try #require(calendar.date(from: DateComponents(year: 2025, month: 6, day: 12, hour: 9)))
+        let inSeptember = try #require(calendar.date(from: DateComponents(year: 2025, month: 9, day: 10)))
+
+        #expect(try await realizationDate(inJuneBudgetOn: inJune) == inJune)
+        #expect(try await realizationDate(inJuneBudgetOn: inSeptember) == juneFirst)
+    }
+
+    private func realizationDate(inJuneBudgetOn now: Date) async throws -> Date? {
+        let txService = MockTransactionService()
+        txService.stubbedCreated = realization(id: "tx-new", amount: 500)
+        // Its own cache key: the Réel it creates must not leak into the other tests.
+        let coord = await makeCoordinator(txService: txService, budgetId: UUID().uuidString)
+        coord.dataStore.setBudget(TestDataFactory.createBudget(id: "june", month: 6, year: 2025))
+        _ = await coord.pointPlannedWithdrawal(announcedLine(), context: context(), payDayOfMonth: nil, now: now)
+        return try #require(txService.createdPayloads.first).transactionDate
+    }
+
     @Test("A refused realization toasts the error and falls back to the form")
     func pointOn_failureOpensTheForm() async throws {
         let txService = MockTransactionService()
@@ -72,7 +94,9 @@ struct PlannedWithdrawalPointTests {
         let coord = await makeCoordinator(txService: txService)
         let toastManager = ToastManager()
 
-        let outcome = await coord.pointPlannedWithdrawal(announcedLine(), context: context(toastManager))
+        let outcome = await coord.pointPlannedWithdrawal(
+            announcedLine(), context: context(toastManager), payDayOfMonth: nil
+        )
 
         #expect(outcome == .openRealizationForm)
         #expect(try #require(toastManager.currentToast).type == .error)
@@ -85,7 +109,7 @@ struct PlannedWithdrawalPointTests {
         let txService = MockTransactionService()
         let coord = await makeCoordinator(txService: txService, transactions: [realization(id: "tx-1", amount: 500)])
 
-        let outcome = await coord.pointPlannedWithdrawal(announcedLine(), context: context())
+        let outcome = await coord.pointPlannedWithdrawal(announcedLine(), context: context(), payDayOfMonth: nil)
 
         #expect(outcome == .handled)
         #expect(coord.syncStore.showPlannedWithdrawalUndo)
@@ -108,7 +132,7 @@ struct PlannedWithdrawalPointTests {
             transactions: [realization(id: "tx-1", amount: 300), realization(id: "tx-2", amount: 200)]
         )
 
-        let outcome = await coord.pointPlannedWithdrawal(announcedLine(), context: context())
+        let outcome = await coord.pointPlannedWithdrawal(announcedLine(), context: context(), payDayOfMonth: nil)
 
         #expect(outcome == .openLineDetail)
         #expect(!coord.syncStore.showPlannedWithdrawalUndo)

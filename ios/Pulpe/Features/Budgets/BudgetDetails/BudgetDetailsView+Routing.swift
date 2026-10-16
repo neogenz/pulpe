@@ -26,7 +26,9 @@ extension BudgetDetailsView {
                 )
                 return
             }
-            switch await coordinator.pointPlannedWithdrawal(line, context: toastContext) {
+            switch await coordinator.pointPlannedWithdrawal(
+                line, context: toastContext, payDayOfMonth: userSettingsStore.payDayOfMonth
+            ) {
             case .handled:
                 break
             case .openRealizationForm:
