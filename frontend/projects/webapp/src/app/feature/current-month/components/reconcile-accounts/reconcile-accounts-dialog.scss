@@ -49,39 +49,10 @@
   }
 }
 
-.account-name-input {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 36px;
-  padding: 6px 0;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--mat-sys-on-surface);
-  font: inherit;
-  font-size: 14px;
-  &::placeholder {
-    color: var(--mat-sys-on-surface-variant);
-    opacity: 1;
-  }
-  &:focus-visible {
-    outline: 2px solid var(--mat-sys-primary);
-    outline-offset: 4px;
-  }
-}
 .account-amount-input {
   font:
     600 24px / 1.2 "Manrope",
     sans-serif;
-}
-.overdraft-toggle {
-  margin-top: 4px;
-  margin-left: -8px;
-  color: var(--mat-sys-on-surface-variant);
-  &.is-negative {
-    background: var(--pulpe-financial-negative-light);
-    color: var(--pulpe-financial-negative-dark);
-  }
 }
 .position-amount {
   margin: 8px 0;

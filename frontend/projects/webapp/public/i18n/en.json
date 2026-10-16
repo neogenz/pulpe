@@ -1128,7 +1128,6 @@
         "removeNumbered": "Remove account {{ index }}",
         "total": "Total of your accounts",
         "numbered": "Account {{ index }}",
-        "overdraft": "Overdraft",
         "privateHint": "The accounts you enter are not saved."
       },
       "realized": {

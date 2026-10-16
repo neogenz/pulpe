@@ -1128,7 +1128,6 @@
         "removeNumbered": "Konto {{ index }} entfernen",
         "total": "Summe deiner Konten",
         "numbered": "Konto {{ index }}",
-        "overdraft": "Überziehung",
         "privateHint": "Die eingegebenen Konten werden nicht gespeichert."
       },
       "realized": {

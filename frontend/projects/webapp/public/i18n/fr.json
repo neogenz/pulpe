@@ -1128,7 +1128,6 @@
         "removeNumbered": "Retirer le compte {{ index }}",
         "total": "Total de tes comptes",
         "numbered": "Compte {{ index }}",
-        "overdraft": "Découvert",
         "privateHint": "Les comptes saisis ne sont pas enregistrés."
       },
       "realized": {

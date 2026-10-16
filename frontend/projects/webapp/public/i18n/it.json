@@ -1128,7 +1128,6 @@
         "removeNumbered": "Rimuovi il conto {{ index }}",
         "total": "Totale dei tuoi conti",
         "numbered": "Conto {{ index }}",
-        "overdraft": "Scoperto",
         "privateHint": "I conti inseriti non vengono salvati."
       },
       "realized": {
