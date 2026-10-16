@@ -112,8 +112,12 @@ struct BudgetDetailsView: View {
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
         // Hero under the nav bar on the forest surface: light ink when loaded, default ink on
-        // error / skeleton and once the content zone has scrolled under the bar.
-        .heroNavigationBar(isOnHeroSurface: screenState.content == .loaded && isHeroUnderBar)
+        // error / skeleton. Once the content zone has scrolled under the bar, the sticky
+        // pager takes over the forest, so the ink stays light whenever it has months.
+        .heroNavigationBar(
+            isOnHeroSurface: screenState.content == .loaded
+                && (isHeroUnderBar || !coordinator.dataStore.pagerMonths.isEmpty)
+        )
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 // Reads the month back rather than adding to it, so it stays a glyph in the
