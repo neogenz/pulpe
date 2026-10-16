@@ -84,6 +84,31 @@ describe('GoalPlanTimeline', () => {
     expect(rows[1].nativeElement.textContent).toContain('900');
   });
 
+  it('should quote the projected balance, withdrawals and stock included', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 8,
+        plannedCumulative: 3600,
+        remainingPlannedWithdrawalAmount: 500,
+        projectedCumulative: 3100,
+      }),
+    ]);
+    fixture.detectChanges();
+
+    const text = rowsQuery()[0].nativeElement.textContent;
+    expect(text).toContain('3’100');
+    expect(text).not.toContain('3’600');
+  });
+
+  it('should fall back to the planned cumulative on a payload without a projection', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({ month: 8, plannedCumulative: 3600 }),
+    ]);
+    fixture.detectChanges();
+
+    expect(rowsQuery()[0].nativeElement.textContent).toContain('3’600');
+  });
+
   it('wraps the period badges instead of colliding with the monthly amount', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 9, state: 'current' }),
@@ -584,10 +609,9 @@ describe('GoalPlanTimeline', () => {
     expect(withdrawalRow.nativeElement.textContent).toContain('Retiré');
   });
 
-  // An announcement takes nothing out yet, so it moves no contribution and no
-  // cumulative here — without a sub-line the month says nothing about the 500
-  // it plans to release, and the simulator's editable field would look like the
-  // place to type it.
+  // An announcement moves no contribution — without a sub-line the month says
+  // nothing about the 500 it plans to release, and the simulator's editable
+  // field would look like the place to type it.
   it('states the announced withdrawal of a contributing month without offering to edit it', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({
