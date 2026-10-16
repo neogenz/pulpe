@@ -400,9 +400,13 @@ export class GoalPlanTimeline {
         withdrawalBudgetId: planLinkedWithdrawal?.budgetId ?? null,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,
+        // The same balance the chart, the estimate and the simulator quote:
+        // stock, plan and withdrawals. `plannedCumulative` sums contributions
+        // from 0, so the row disagreed with every other figure on the page.
+        // It only closes a payload that predates `projectedCumulative`.
         cumulative: simulated
           ? sim.simulatedCumulative
-          : month.plannedCumulative,
+          : (month.projectedCumulative ?? month.plannedCumulative),
         isWithdrawalOnly: month.isContributionEligible === false,
         withdrawn: month.withdrawnAmount ?? 0,
         plannedWithdrawal: month.plannedWithdrawalAmount ?? 0,
