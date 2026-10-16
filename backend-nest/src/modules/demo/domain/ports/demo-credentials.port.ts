@@ -1,3 +1,4 @@
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { DemoAuthUser, DemoAuthSession } from '../auth.types';
 
 export const DEMO_CREDENTIALS_PORT = Symbol('DEMO_CREDENTIALS_PORT');
@@ -21,6 +22,7 @@ export interface DemoCredentialsPort {
     userId: string,
     email: string,
     accessToken: string,
+    supabase: AuthenticatedSupabaseClient,
   ): void;
   deleteUser(userId: string): Promise<void>;
   listExpiredDemoUsers(

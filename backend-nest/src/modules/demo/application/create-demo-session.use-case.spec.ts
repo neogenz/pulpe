@@ -133,6 +133,7 @@ describe('CreateDemoSessionUseCase', () => {
         'test-user-id',
         'demo-uuid@pulpe.app',
         'mock-access-token',
+        expect.anything(),
       );
       expect(calls).toEqual(['bind', 'seed']);
     });

@@ -38,7 +38,12 @@ export class CreateDemoSessionUseCase {
     const supabase = this.supabaseService.createAuthenticatedClient(
       session.access_token,
     );
-    this.creds.bindDemoUserToRequest(userId, email, session.access_token);
+    this.creds.bindDemoUserToRequest(
+      userId,
+      email,
+      session.access_token,
+      supabase,
+    );
 
     try {
       await this.generateDemoData.execute(userId, supabase);

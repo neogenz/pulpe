@@ -4,7 +4,10 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { SupabaseService } from '@modules/supabase/supabase.service';
+import {
+  type AuthenticatedSupabaseClient,
+  SupabaseService,
+} from '@modules/supabase/supabase.service';
 import { DEMO_CLIENT_KEY_BUFFER } from '@modules/encryption/domain/encryption.constants';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { DemoCredentialsPort } from '../../domain/ports/demo-credentials.port';
@@ -94,6 +97,7 @@ export class SupabaseDemoCredentialsAdapter implements DemoCredentialsPort {
     userId: string,
     email: string,
     accessToken: string,
+    supabase: AuthenticatedSupabaseClient,
   ): void {
     const user: AuthenticatedUser = {
       id: userId,
@@ -102,10 +106,7 @@ export class SupabaseDemoCredentialsAdapter implements DemoCredentialsPort {
       clientKey: DEMO_CLIENT_KEY_BUFFER,
     };
     this.cls.set('user', user);
-    this.cls.set(
-      'supabase',
-      this.supabaseService.createAuthenticatedClient(accessToken),
-    );
+    this.cls.set('supabase', supabase);
   }
 
   async deleteUser(userId: string): Promise<void> {
