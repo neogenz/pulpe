@@ -785,10 +785,8 @@
     "uncheckLabel": "Togli la spunta a {{ name }}",
     "uncheckedStatus": "Da spuntare",
     "checkedStatus": "Spuntato",
-    "realizeWithdrawal": "Inserisci l'entrata",
-    "realizeWithdrawalBalance": "Inserisci il resto",
-    "withdrawalRealized": "Entrata inserita",
     "realizationPointed": "Questa entrata verrà aggiunta ai tuoi movimenti e segnata «Spuntato», quindi confermata come ricevuta.",
+    "withdrawalRealized": "Entrata inserita",
     "remainingPlannedWithdrawal": "Importo ancora previsto",
     "checked": "Già spuntata",
     "savings": "Risparmio",
@@ -856,6 +854,12 @@
       "trackerPerRemainingMonth": "Prevedi circa {{ perMonth }} al mese per tenere l'obiettivo",
       "trackerFinalGap": "Tutti i mesi sono chiusi · restano {{ remaining }} mai accantonati",
       "trackerGoalReached": "Obiettivo raggiunto"
+    },
+    "unrealizeWithdrawal": {
+      "title": "Annullare questo prelievo?",
+      "message": "{{ amount }} torneranno su «{{ goal }}».",
+      "confirm": "Annulla il prelievo",
+      "keep": "Mantieni il prelievo"
     }
   },
   "transaction": {
@@ -1124,7 +1128,6 @@
         "removeNumbered": "Rimuovi il conto {{ index }}",
         "total": "Totale dei tuoi conti",
         "numbered": "Conto {{ index }}",
-        "overdraft": "Scoperto",
         "privateHint": "I conti inseriti non vengono salvati."
       },
       "realized": {

@@ -77,7 +77,6 @@ async function setup(
     onResetBudgetLine: vi.fn(),
     onPostponeBudgetLine: vi.fn(),
     onToggleBudgetLineCheck: vi.fn(),
-    onRealizeWithdrawal: vi.fn(),
     onDeleteTransaction: vi.fn(),
     onToggleTransactionCheck: vi.fn(),
     onEditTransaction: vi.fn(),
@@ -167,36 +166,32 @@ describe('BudgetDetailPanel forecast actions', () => {
     expect(data.onDeleteBudgetLine).toHaveBeenCalledWith('line-1');
   });
 
-  it('should expose withdrawal realization with the forecast actions', async () => {
+  it('should point an announced withdrawal through the forecast toggle', async () => {
     const fixture = await setup(
       [],
       { kind: 'income', sourceSavingsGoalId: 'goal-1' },
-      { sourceWithdrawalCtaKey: 'budgetLine.realizeWithdrawalBalance' },
+      { isPointed: false },
     );
     const data = TestBed.inject(MAT_DIALOG_DATA) as BudgetDetailPanelData;
     const forecastToolbar: HTMLElement = fixture.nativeElement.querySelector(
       '[data-testid="detail-forecast-toolbar"]',
     );
-    const movementsHeader: HTMLElement = fixture.nativeElement.querySelector(
-      '[data-testid="detail-movements-header"]',
-    );
-    const realizationButton: HTMLButtonElement = forecastToolbar.querySelector(
-      '[data-testid="detail-realize-withdrawal-line-1"]',
+    const toggle: HTMLElement = forecastToolbar.querySelector(
+      '[data-testid="detail-toggle-check-line-1"]',
     )!;
 
-    expect(realizationButton).not.toBeNull();
+    expect(toggle).not.toBeNull();
     expect(
-      movementsHeader.querySelector('[data-testid^="detail-realize"]'),
+      fixture.nativeElement.querySelector('[data-testid^="detail-realize"]'),
     ).toBeNull();
-    expect(
-      forecastToolbar.querySelector('[data-testid^="detail-more-actions-"]'),
-    ).toBeNull();
-    expect(
-      forecastToolbar.querySelector('[data-testid="delete-line-1"]'),
-    ).not.toBeNull();
-    realizationButton.click();
+    toggle.querySelector('button')!.click();
     await fixture.whenStable();
-    expect(data.onRealizeWithdrawal).toHaveBeenCalledWith('line-1');
+
+    expect(data.onToggleBudgetLineCheck).toHaveBeenCalledWith('line-1');
+    // Controlled: the toggle waits for the store instead of flipping itself.
+    expect(toggle.querySelector('button')!.getAttribute('aria-checked')).toBe(
+      'false',
+    );
   });
 
   it('should expose the forecast pointing control separately from movements', async () => {
@@ -207,7 +202,7 @@ describe('BudgetDetailPanel forecast actions', () => {
     );
 
     expect(toggle).not.toBeNull();
-    toggle.dispatchEvent(new Event('change'));
+    toggle.querySelector('button')!.click();
     await fixture.whenStable();
 
     expect(data.onToggleBudgetLineCheck).toHaveBeenCalledWith('line-1');

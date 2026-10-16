@@ -213,12 +213,12 @@ final class BudgetDetailsCoordinator {
         return await performToggleBudgetLine(line)
     }
 
-    /// Returns false after presenting the linked-movements alert when confirmation is required.
+    /// Returns false after presenting the linked-movements alert (never on an announced withdrawal).
     func prepareToggleBudgetLine(_ line: BudgetLine) -> Bool {
         guard !(line.isRollover ?? false) else { return false }
         guard !syncStore.isSyncing(lineId: line.id) else { return false }
 
-        if !line.isChecked,
+        if !line.isChecked, !line.isPlannedSavingsWithdrawal,
            dataStore.transactions.contains(where: {
                 $0.budgetLineId == line.id && !$0.isChecked
            }) {

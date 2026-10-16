@@ -785,10 +785,8 @@
     "uncheckLabel": "Haken bei {{ name }} entfernen",
     "uncheckedStatus": "Offen",
     "checkedStatus": "Abgehakt",
-    "realizeWithdrawal": "Einnahme erfassen",
-    "realizeWithdrawalBalance": "Restbetrag erfassen",
-    "withdrawalRealized": "Einnahme erfasst",
     "realizationPointed": "Diese Einnahme wird zu deinen Bewegungen hinzugefügt und als „Abgehakt“ markiert, also als erhalten bestätigt.",
+    "withdrawalRealized": "Einnahme erfasst",
     "remainingPlannedWithdrawal": "Noch geplanter Betrag",
     "checked": "Schon abgehakt",
     "savings": "Sparen",
@@ -856,6 +854,12 @@
       "trackerPerRemainingMonth": "Plan rund {{ perMonth }} pro Monat ein, um das Ziel zu halten",
       "trackerFinalGap": "Alle Monate sind abgeschlossen · {{ remaining }} wurden nie zurückgelegt",
       "trackerGoalReached": "Ziel erreicht"
+    },
+    "unrealizeWithdrawal": {
+      "title": "Diese Entnahme zurücknehmen?",
+      "message": "{{ amount }} fliessen zurück auf „{{ goal }}“.",
+      "confirm": "Entnahme zurücknehmen",
+      "keep": "Entnahme behalten"
     }
   },
   "transaction": {
@@ -1124,7 +1128,6 @@
         "removeNumbered": "Konto {{ index }} entfernen",
         "total": "Summe deiner Konten",
         "numbered": "Konto {{ index }}",
-        "overdraft": "Überziehung",
         "privateHint": "Die eingegebenen Konten werden nicht gespeichert."
       },
       "realized": {

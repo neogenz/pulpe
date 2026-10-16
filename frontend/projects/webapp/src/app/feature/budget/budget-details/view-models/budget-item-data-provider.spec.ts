@@ -45,50 +45,41 @@ describe('BudgetItemDataProvider', () => {
       sourceSavingsGoalName: 'Voyage',
     });
 
-    it('offers the withdrawal first, then only its remaining balance', () => {
-      const fresh = filterDataItems(
-        service.provideTableData({
-          budgetLines: [sourceLine],
-          transactions: [],
-        }),
-      )[0] as BudgetLineTableItem;
-      const partial = filterDataItems(
-        service.provideTableData({
-          budgetLines: [sourceLine],
-          transactions: [
-            createMockTransaction({
-              budgetLineId: sourceLine.id,
-              amount: 200,
-              kind: 'income',
-            }),
-          ],
-        }),
-      )[0] as BudgetLineTableItem;
+    const pointedState = (amounts: number[], line = sourceLine) =>
+      (
+        filterDataItems(
+          service.provideTableData({
+            budgetLines: [line],
+            transactions: amounts.map((amount) =>
+              createMockTransaction({
+                budgetLineId: line.id,
+                amount,
+                kind: 'income',
+              }),
+            ),
+          }),
+        )[0] as BudgetLineTableItem
+      ).metadata.isPointed;
 
-      expect(fresh.metadata.sourceWithdrawalCtaKey).toBe(
-        'budgetLine.realizeWithdrawal',
-      );
-      expect(partial.metadata.sourceWithdrawalCtaKey).toBe(
-        'budgetLine.realizeWithdrawalBalance',
-      );
+    it('should read pointed only once allocated Reals cover the forecast', () => {
+      expect(pointedState([])).toBe(false);
+      expect(pointedState([200])).toBe(false);
+      expect(pointedState([500])).toBe(true);
     });
 
-    it('exposes only the realized state once allocated Reals cover the forecast', () => {
-      const item = filterDataItems(
-        service.provideTableData({
-          budgetLines: [sourceLine],
-          transactions: [
-            createMockTransaction({
-              budgetLineId: sourceLine.id,
-              amount: 500,
-              kind: 'income',
-            }),
-          ],
-        }),
-      )[0] as BudgetLineTableItem;
+    it('should ignore checkedAt on a live source line', () => {
+      expect(
+        pointedState([], { ...sourceLine, checkedAt: '2026-01-01T00:00:00Z' }),
+      ).toBe(false);
+    });
 
-      expect(item.metadata.sourceWithdrawalCtaKey).toBeNull();
-      expect(item.metadata.isSourceWithdrawalRealized).toBe(true);
+    it('should fall back to checkedAt once the goal is gone', () => {
+      const orphan = {
+        ...sourceLine,
+        sourceSavingsGoalId: null,
+        checkedAt: '2026-01-01T00:00:00Z',
+      };
+      expect(pointedState([], orphan)).toBe(true);
     });
   });
 

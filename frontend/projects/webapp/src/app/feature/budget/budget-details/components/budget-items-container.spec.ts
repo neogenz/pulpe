@@ -150,6 +150,7 @@ interface MockDialogService {
   confirmDelete: ReturnType<typeof vi.fn>;
   confirmCheckAllocatedTransactions: ReturnType<typeof vi.fn>;
   confirmPostpone: ReturnType<typeof vi.fn>;
+  confirmUnrealizeWithdrawal: ReturnType<typeof vi.fn>;
 }
 
 function createMockDialogService(): MockDialogService {
@@ -166,6 +167,7 @@ function createMockDialogService(): MockDialogService {
     confirmDelete: vi.fn().mockResolvedValue(false),
     confirmCheckAllocatedTransactions: vi.fn().mockResolvedValue(false),
     confirmPostpone: vi.fn().mockResolvedValue(false),
+    confirmUnrealizeWithdrawal: vi.fn().mockResolvedValue(false),
   };
 }
 
@@ -742,10 +744,11 @@ describe('BudgetItemsContainer — editing a transaction (PUL-329)', () => {
 });
 
 // PUL-329 v2 — a forecast income carrying `sourceSavingsGoalId` is an ANNOUNCED
-// withdrawal: nothing leaves the pot until a real income is allocated to it, so
-// a dedicated action opens that entry, while pointing stays reserved for Réels.
-// Creation follows the same dialog-owns-submission contract as the edit flow above.
-describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2)', () => {
+// withdrawal: nothing leaves the pot until a real income is allocated to it.
+// Its « Pointé » toggle realizes it (ON creates the real income of the rest)
+// and cancels it (OFF deletes that income after confirmation), never touching
+// the line's own `checkedAt`.
+describe('BudgetItemsContainer — pointing an announced withdrawal (PUL-329 v2)', () => {
   const LINE_ID = '99999999-9999-4999-8999-999999999999';
   const GOAL_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
@@ -757,6 +760,8 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
   const sourceLine = (overrides = {}) =>
     createMockBudgetLine({
       id: LINE_ID,
+      budgetId: '11111111-1111-4111-8111-111111111111',
+      name: 'Retrait vacances',
       kind: 'income',
       amount: 500,
       sourceSavingsGoalId: GOAL_ID,
@@ -764,17 +769,23 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
       ...overrides,
     });
 
-  beforeEach(() => {
-    mockStore = createMockStore();
-    mockDialogService = createMockDialogService();
-    mockSnackBar = { open: vi.fn() };
+  const setDetails = (
+    transactions: Transaction[] = [],
+    line: BudgetLine = sourceLine(),
+  ) =>
     mockStore.budgetDetails.set({
       id: 'budget-1',
       month: 1,
       year: 2026,
-      budgetLines: [sourceLine()],
-      transactions: [],
+      budgetLines: [line],
+      transactions,
     });
+
+  beforeEach(() => {
+    mockStore = createMockStore();
+    mockDialogService = createMockDialogService();
+    mockSnackBar = { open: vi.fn() };
+    setDetails();
     component = setupComponent(
       mockStore,
       mockDialogService,
@@ -782,82 +793,101 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
     ).componentInstance;
   });
 
-  it('opens the real-income entry through its dedicated action', async () => {
-    await component['handleRealizeWithdrawal'](LINE_ID);
+  it('should create a pointed real income for the rest when switched on', async () => {
+    mockStore.createAllocatedTransaction.mockResolvedValue(null);
+    setDetails([createMockTransaction({ budgetLineId: LINE_ID, amount: 300 })]);
+
+    await component['handleToggleCheck'](LINE_ID);
 
     expect(mockStore.toggleCheck).not.toHaveBeenCalled();
-    expect(
-      mockDialogService.openCreateAllocatedTransactionDialog,
-    ).toHaveBeenCalled();
-  });
-
-  it('prefills what is left to take out, allocated reals deducted', async () => {
-    mockStore.budgetDetails.set({
-      id: 'budget-1',
-      month: 1,
-      year: 2026,
-      budgetLines: [sourceLine()],
-      transactions: [
-        createMockTransaction({ budgetLineId: LINE_ID, amount: 300 }),
-      ],
-    });
-
-    await component['handleRealizeWithdrawal'](LINE_ID);
-
-    const realization =
-      mockDialogService.openCreateAllocatedTransactionDialog.mock.calls[0][4];
-    expect(realization).toEqual({
-      goalId: GOAL_ID,
-      goalName: "Fonds d'urgence",
-      remainingAmount: 200,
-    });
-  });
-
-  it('does not reopen the entry once the forecast is fully realized', async () => {
-    mockStore.budgetDetails.set({
-      id: 'budget-1',
-      month: 1,
-      year: 2026,
-      budgetLines: [sourceLine()],
-      transactions: [
-        createMockTransaction({ budgetLineId: LINE_ID, amount: 600 }),
-      ],
-    });
-
-    await component['handleRealizeWithdrawal'](LINE_ID);
-
+    expect(mockStore.createAllocatedTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        budgetLineId: LINE_ID,
+        name: 'Retrait vacances',
+        kind: 'income',
+        amount: 200,
+        checkedAt: expect.any(String),
+      }),
+    );
     expect(
       mockDialogService.openCreateAllocatedTransactionDialog,
     ).not.toHaveBeenCalled();
   });
 
-  it('leaves an orphan source on the ordinary toggle, like the backend does', async () => {
-    mockStore.budgetDetails.set({
-      id: 'budget-1',
-      month: 1,
-      year: 2026,
-      budgetLines: [sourceLine({ sourceSavingsGoalId: null, checkedAt: null })],
-      transactions: [],
+  it('should fall back to the prefilled entry when the realization is refused', async () => {
+    mockStore.createAllocatedTransaction.mockResolvedValue(
+      'Ce montant dépasse ce que contient l’objectif.',
+    );
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(mockSnackBar.open).toHaveBeenCalled();
+    expect(
+      mockDialogService.openCreateAllocatedTransactionDialog.mock.calls[0][4],
+    ).toEqual({
+      goalId: GOAL_ID,
+      goalName: "Fonds d'urgence",
+      remainingAmount: 500,
     });
+  });
+
+  it('should delete the single real income after confirmation when switched off', async () => {
+    const realization = createMockTransaction({
+      id: 'tx-realization',
+      budgetLineId: LINE_ID,
+      amount: 500,
+    });
+    setDetails([realization]);
+    mockDialogService.confirmUnrealizeWithdrawal.mockResolvedValue(true);
+    mockStore.deleteTransaction.mockResolvedValue(null);
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(mockDialogService.confirmUnrealizeWithdrawal).toHaveBeenCalledWith(
+      expect.stringContaining('500'),
+      "Fonds d'urgence",
+    );
+    expect(mockStore.deleteTransaction).toHaveBeenCalledWith('tx-realization');
+    expect(mockStore.toggleCheck).not.toHaveBeenCalled();
+  });
+
+  it('should keep the real income when the cancellation is declined', async () => {
+    setDetails([createMockTransaction({ budgetLineId: LINE_ID, amount: 500 })]);
+    mockDialogService.confirmUnrealizeWithdrawal.mockResolvedValue(false);
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(mockStore.deleteTransaction).not.toHaveBeenCalled();
+  });
+
+  it('should let the user pick which income to cancel when several realize it', async () => {
+    setDetails([
+      createMockTransaction({ budgetLineId: LINE_ID, amount: 300 }),
+      createMockTransaction({ budgetLineId: LINE_ID, amount: 200 }),
+    ]);
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(
+      mockDialogService.openAllocatedTransactionsDialog,
+    ).toHaveBeenCalled();
+    expect(mockDialogService.confirmUnrealizeWithdrawal).not.toHaveBeenCalled();
+    expect(mockStore.deleteTransaction).not.toHaveBeenCalled();
+  });
+
+  it('should leave an orphan source on the ordinary toggle, like the backend does', async () => {
+    setDetails([], sourceLine({ sourceSavingsGoalId: null, checkedAt: null }));
     mockStore.toggleCheck.mockResolvedValue({ status: 'succeeded' });
 
     await component['handleToggleCheck'](LINE_ID);
 
     expect(mockStore.toggleCheck).toHaveBeenCalledWith(LINE_ID);
-    expect(
-      mockDialogService.openCreateAllocatedTransactionDialog,
-    ).not.toHaveBeenCalled();
+    expect(mockStore.createAllocatedTransaction).not.toHaveBeenCalled();
   });
 
-  it('offers no realization context on an orphan source, only the ordinary form', async () => {
+  it('should offer no realization context on an orphan source, only the ordinary form', async () => {
     const orphan = sourceLine({ sourceSavingsGoalId: null });
-    mockStore.budgetDetails.set({
-      id: 'budget-1',
-      month: 1,
-      year: 2026,
-      budgetLines: [orphan],
-      transactions: [],
-    });
+    setDetails([], orphan);
 
     await component['openCreateAllocatedTransactionDialog'](orphan);
 
@@ -866,7 +896,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
     ).toBeNull();
   });
 
-  it('supplies a submit closure that routes straight to the create mutation', async () => {
+  it('should supply a submit closure that routes straight to the create mutation', async () => {
     const created = { name: 'Apport cuisine', amount: 500 };
     mockStore.createAllocatedTransaction.mockResolvedValue(null);
     mockDialogService.openCreateAllocatedTransactionDialog.mockImplementation(
@@ -878,7 +908,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
       ) => submit(created).then(() => created),
     );
 
-    await component['handleRealizeWithdrawal'](LINE_ID);
+    await component['openCreateAllocatedTransactionDialog'](sourceLine());
 
     expect(mockStore.createAllocatedTransaction).toHaveBeenCalledWith(created);
     expect(mockSnackBar.open).toHaveBeenCalledWith(
@@ -888,7 +918,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
     );
   });
 
-  it('shows no toast when a refusal keeps the dialog open', async () => {
+  it('should show no toast when a refusal keeps the dialog open', async () => {
     mockStore.createAllocatedTransaction.mockResolvedValue(
       'Ce montant dépasse ce que contient l’objectif.',
     );
@@ -905,7 +935,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
       },
     );
 
-    await component['handleRealizeWithdrawal'](LINE_ID);
+    await component['openCreateAllocatedTransactionDialog'](sourceLine());
 
     expect(mockStore.createAllocatedTransaction).toHaveBeenCalled();
     expect(mockSnackBar.open).not.toHaveBeenCalled();

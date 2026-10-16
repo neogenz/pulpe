@@ -167,6 +167,11 @@ struct PointCircle: View {
         .onChange(of: isPointed) {
             if isPointed { finishCompletion() }
         }
+        // A parent that points only once the server confirms (an announced withdrawal)
+        // may end its sync unpointed: release the completion, or the disc stays filled.
+        .onChange(of: isSyncing) {
+            if !isSyncing, !isPointed { finishCompletion() }
+        }
         .accessibilityLabel(displayedIsPointed ? "Pointé" : "À pointer")
         .accessibilityAddTraits(displayedIsPointed ? [.isButton, .isSelected] : .isButton)
     }

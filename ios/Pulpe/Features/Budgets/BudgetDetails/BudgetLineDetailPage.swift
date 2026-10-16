@@ -327,23 +327,15 @@ private extension BudgetLineDetailPage {
         .tint(.editAction)
     }
 
-    @ViewBuilder
+    /// The same entry on every line. On an announced withdrawal still to realize, the
+    /// form opens prefilled with what is left; pointing it from the list skips the form.
     func addTransactionButton(line: BudgetLine) -> some View {
-        let realized = projector.screenState.consumptionByLineId[line.id]?.allocated ?? 0
-        if let label = BudgetLineMixedRow.realizationLabel(for: line, realizedAmount: realized) {
-            Button(label) {
-                router.push(.addAllocatedTx(lineId: line.id))
-            }
-            .primaryButtonStyle()
-            .accessibilityIdentifier("budgetLineDetailPrimaryAction")
-        } else if !line.isPlannedSavingsWithdrawal {
-            Button {
-                router.push(.addAllocatedTx(lineId: line.id))
-            } label: {
-                Label("Noter un montant", systemImage: "plus")
-            }
-            .primaryButtonStyle()
-            .accessibilityIdentifier("budgetLineDetailPrimaryAction")
+        Button {
+            router.push(.addAllocatedTx(lineId: line.id))
+        } label: {
+            Label("Noter un montant", systemImage: "plus")
         }
+        .primaryButtonStyle()
+        .accessibilityIdentifier("budgetLineDetailPrimaryAction")
     }
 }
