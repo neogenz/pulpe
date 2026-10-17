@@ -27,19 +27,26 @@ struct GoalProjectionSeriesTests {
         #expect(ticks.last?.index == monthCount - 1)
     }
 
-    @Test("day 1 — current month first: a single confirmed point is no trend, chart hidden")
-    func hasConfirmedTrend_day1_isFalse() {
+    @Test("day 1 — the planned curve alone draws a line, chart shown")
+    func hasDrawableLine_day1WithPlan_isTrue() {
         let series = GoalProjectionSeries.read(from: makeProgress(currentIndex: 0))
 
         #expect(series.confirmed.count == 1)
-        #expect(series.hasConfirmedTrend == false)
+        #expect(series.hasDrawableLine == true)
+    }
+
+    @Test("a single-month plan on its own month is a lone dot, chart hidden")
+    func hasDrawableLine_singleMonth_isFalse() {
+        let series = GoalProjectionSeries.read(from: makeProgress(currentIndex: 0, count: 1))
+
+        #expect(series.hasDrawableLine == false)
     }
 
     @Test("one elapsed month + the current: the confirmed line exists, chart shown")
-    func hasConfirmedTrend_elapsedMonthBehind_isTrue() {
+    func hasDrawableLine_elapsedMonthBehind_isTrue() {
         let series = GoalProjectionSeries.read(from: makeProgress(currentIndex: 1))
 
-        #expect(series.hasConfirmedTrend == true)
+        #expect(series.hasDrawableLine == true)
     }
 
     @Test("planned projection starts on confirmed and ends on the API projection")

@@ -193,7 +193,7 @@ struct SavingsGoalDetailView: View {
                     // Construite une seule fois : la même série gate la section
                     // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
                     let series = GoalProjectionSeries.read(from: progress)
-                    if series.hasConfirmedTrend {
+                    if series.hasDrawableLine {
                         GoalTrajectorySection(progress: progress, series: series, currency: currency)
                     }
                 }
