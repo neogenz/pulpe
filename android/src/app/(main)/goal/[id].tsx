@@ -249,10 +249,7 @@ export default function GoalDetailScreen() {
             />
           )}
 
-          {/* The trajectory needs a month behind it to be a trajectory. Before
-            that it is two axes and a dashed target — decoration that reads as
-            a verdict on a goal set this morning. */}
-          {series !== null && series.hasConfirmedTrend && (
+          {series !== null && series.hasDrawableLine && (
             <View style={styles.section}>
               <SectionHeader title={t("goals.progress.trajectory")} />
               <View
