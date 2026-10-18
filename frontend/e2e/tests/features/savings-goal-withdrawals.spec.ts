@@ -320,7 +320,7 @@ test.describe('Savings goal as the source of an income', () => {
     await savingsGoalsPage.gotoDetail(GOAL_ID);
     await savingsGoalsPage.expectConfirmedAmount('5 500');
     await savingsGoalsPage.expectWithdrawalCount(1);
-    await expect(savingsGoalsPage.withdrawalRows()).toContainText(/4.500\.00/);
+    await expect(savingsGoalsPage.withdrawalRows()).toContainText(/-4.500 CHF/);
 
     // Une seule transition : le retrait ouvre son budget, jamais un éditeur
     // poussé après attente. L'URL ne porte donc plus de transaction ciblée.
