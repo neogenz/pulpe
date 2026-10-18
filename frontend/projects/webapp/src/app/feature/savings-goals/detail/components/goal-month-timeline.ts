@@ -559,7 +559,7 @@ const SKELETON =
                           | transloco
                             : {
                                 amount:
-                                  (-w.remaining
+                                  (w.remaining
                                   | appCurrency: currency() : '1.0-2'),
                               }
                       }}</span>
