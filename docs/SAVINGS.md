@@ -334,7 +334,7 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 - **Mois par mois** (webapp) : une seule liste de l'ancrage à l'échéance, qui porte pour chaque mois le Prévu, le Réel et le solde après, avec les retraits insérés à leur période. Les mois passés et les Prévisions pointées sont verrouillés.
 - **Ajuster mon plan** : sandbox client, montant global et ajustements mensuels. « Réajuster la suite » redistribue le reste sur les mois ouverts.
 - **Appliquer** : récapitulatif obligatoire puis écriture pessimiste. Annuler ou quitter ne persiste rien.
-- Le Réel d'un mois suit la règle d'enveloppe : une Prévision pointée compte pour au moins son montant. Ses mouvements se déplient sous la ligne du mois. En simulation, le Réel et les retraits sont masqués.
+- Le Réel d'un mois suit la règle d'enveloppe du confirmé : seuls les mouvements pointés comptent, et une Prévision pointée compte pour au moins son montant. Ses mouvements se déplient sous la ligne du mois. En simulation, le Réel et les retraits sont masqués.
 - Les couleurs suivent RG-002 : vert épargne et neutres, jamais ambre ou rouge.
 
 ### 10.2 Contrat de lecture

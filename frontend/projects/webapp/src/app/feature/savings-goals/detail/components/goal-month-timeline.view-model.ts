@@ -148,8 +148,9 @@ export function buildGoalMonthTimeline(
     currentPeriodKey !== null && key < currentPeriodKey;
 
   const transactionsByPeriod = new Map<number, Transaction[]>();
-  // Envelope rule (BudgetFormulas): a pointed forecast counts for at least its
-  // planned amount, an open one only for what its operations already moved.
+  // Envelope rule (BudgetFormulas.calculateRealizedSavings): only pointed
+  // movements count, and a pointed forecast counts for at least its planned
+  // amount — the same layer as the goal's confirmed amount.
   const realByPeriod = new Map<number, number>();
   for (const c of input.contributions) {
     const key = c.budgetYear * 12 + c.budgetMonth;
@@ -157,8 +158,11 @@ export function buildGoalMonthTimeline(
       ...(transactionsByPeriod.get(key) ?? []),
       ...c.transactions,
     ]);
-    if (c.checkedAt == null && c.transactions.length === 0) continue;
-    const consumed = c.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const pointed = c.transactions.filter(
+      (tx) => tx.checkedAt != null && tx.kind === 'saving',
+    );
+    if (c.checkedAt == null && pointed.length === 0) continue;
+    const consumed = pointed.reduce((sum, tx) => sum + tx.amount, 0);
     const real = c.checkedAt != null ? Math.max(c.amount, consumed) : consumed;
     realByPeriod.set(key, (realByPeriod.get(key) ?? 0) + real);
   }
@@ -259,13 +263,14 @@ export function buildGoalMonthTimeline(
         ? (month as SavingsPlanSimulatedMonth).simulatedCumulative
         : (month.projectedCumulative ?? month.plannedCumulative)
       : null;
-    // The projection already nets every withdrawal of the period; adding each
-    // one back gives the balance before them. A linked withdrawal weighs its
-    // full plan (realized part + remainder), not just what is left.
+    // The projection already nets the period's withdrawals; adding each one
+    // back gives the balance before them. What it nets is the realized part,
+    // plus the remainder only while the server still counts it — an expired
+    // announcement keeps a raw remainder the projection never subtracted.
+    const countsRemainder = (month?.remainingPlannedWithdrawalAmount ?? 0) > 0;
     const effect = (w: GoalWithdrawalEntry) =>
-      w.source === 'realized'
-        ? (w.realized ?? 0)
-        : w.remaining + (w.realized ?? 0);
+      (w.realized ?? 0) +
+      (w.source !== 'realized' && countsRemainder ? w.remaining : 0);
     let running =
       projected === null
         ? null

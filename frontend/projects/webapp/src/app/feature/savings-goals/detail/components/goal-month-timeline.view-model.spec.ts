@@ -59,7 +59,10 @@ function makeInput(
   };
 }
 
-function makeTransaction(amount: number): Transaction {
+function makeTransaction(
+  amount: number,
+  checkedAt: string | null = null,
+): Transaction {
   return {
     id: crypto.randomUUID(),
     budgetId: BUDGET_ID,
@@ -70,7 +73,7 @@ function makeTransaction(amount: number): Transaction {
     transactionDate: '2026-03-10T10:00:00.000Z',
     createdAt: '2026-03-10T10:00:00.000Z',
     updatedAt: '2026-03-10T10:00:00.000Z',
-    checkedAt: null,
+    checkedAt,
   } as Transaction;
 }
 
@@ -128,13 +131,36 @@ describe('buildGoalMonthTimeline', () => {
   it('should quote a month before its withdrawals, each withdrawal stepping the balance down to the projection', () => {
     const { entries } = buildGoalMonthTimeline(
       makeInput({
-        months: [makeMonth({ projectedCumulative: 3100 })],
+        months: [
+          makeMonth({
+            projectedCumulative: 3100,
+            remainingPlannedWithdrawalAmount: 500,
+          }),
+        ],
         plannedWithdrawals: [makePlanned({ remainingAmount: 500 })],
       }),
     );
 
     expect(entries.map((e) => e.kind)).toEqual(['month', 'withdrawal']);
     expect(months(entries)[0].balance).toBe(3600);
+    expect(withdrawals(entries)[0].balance).toBe(3100);
+  });
+
+  it('should not add back the remainder of an expired announcement the projection never subtracted', () => {
+    const { entries } = buildGoalMonthTimeline(
+      makeInput({
+        months: [
+          makeMonth({
+            state: 'past',
+            projectedCumulative: 3100,
+            remainingPlannedWithdrawalAmount: 0,
+          }),
+        ],
+        plannedWithdrawals: [makePlanned({ remainingAmount: 500 })],
+      }),
+    );
+
+    expect(months(entries)[0].balance).toBe(3100);
     expect(withdrawals(entries)[0].balance).toBe(3100);
   });
 
@@ -154,7 +180,12 @@ describe('buildGoalMonthTimeline', () => {
     });
     const { entries } = buildGoalMonthTimeline(
       makeInput({
-        months: [makeMonth({ projectedCumulative: 1000 })],
+        months: [
+          makeMonth({
+            projectedCumulative: 1000,
+            remainingPlannedWithdrawalAmount: 200,
+          }),
+        ],
         plannedWithdrawals: [planned],
         withdrawals: [makeRealized({ budgetLineId: planned.budgetLineId })],
       }),
@@ -241,19 +272,36 @@ describe('buildGoalMonthTimeline', () => {
     expect(entries.map((e) => e.periodKey)).toEqual([2026 * 12 + 9]);
   });
 
-  it('should sum the real contributions of the month and keep them for the nested list', () => {
+  it('should sum the pointed contributions of the month and keep every one for the nested list', () => {
+    const checkedAt = '2026-03-20T10:00:00.000Z';
     const { entries } = buildGoalMonthTimeline(
       makeInput({
         months: [makeMonth()],
         contributions: [
-          makeContribution([makeTransaction(200), makeTransaction(59.5)]),
-          makeContribution([makeTransaction(100)], 4),
+          makeContribution([
+            makeTransaction(200, checkedAt),
+            makeTransaction(59.5, checkedAt),
+            makeTransaction(40),
+          ]),
+          makeContribution([makeTransaction(100, checkedAt)], 4),
         ],
       }),
     );
 
     expect(months(entries)[0].realAmount).toBe(259.5);
-    expect(months(entries)[0].transactions).toHaveLength(2);
+    expect(months(entries)[0].transactions).toHaveLength(3);
+  });
+
+  it('should leave Réel empty while no movement of the month is pointed', () => {
+    const { entries } = buildGoalMonthTimeline(
+      makeInput({
+        months: [makeMonth()],
+        contributions: [makeContribution([makeTransaction(150)])],
+      }),
+    );
+
+    expect(months(entries)[0].realAmount).toBeNull();
+    expect(months(entries)[0].transactions).toHaveLength(1);
   });
 
   it('should count a checked forecast for at least its planned amount', () => {
@@ -263,7 +311,7 @@ describe('buildGoalMonthTimeline', () => {
         months: [makeMonth()],
         contributions: [
           { ...makeContribution([]), checkedAt },
-          { ...makeContribution([makeTransaction(500)]), checkedAt },
+          { ...makeContribution([makeTransaction(500, checkedAt)]), checkedAt },
           makeContribution([]),
         ],
       }),
