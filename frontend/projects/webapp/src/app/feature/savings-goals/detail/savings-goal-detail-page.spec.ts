@@ -105,7 +105,6 @@ class StubGoalMonthTimeline {
   readonly isWithdrawalsLoading = input(false);
   readonly hasWithdrawalsError = input(false);
   readonly currency = input<string>('CHF');
-  readonly locale = input<string>('fr-CH');
   readonly payDayOfMonth = input<number | null>(null);
   readonly editable = input<boolean>(false);
   readonly expanded = input<boolean>(false);
