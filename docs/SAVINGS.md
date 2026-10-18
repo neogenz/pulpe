@@ -331,10 +331,10 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 ### 10.1 Surfaces et sémantique
 
 - **Ta trajectoire** : trois séries de solde, Épargné, Projection planifiée et Cible. Le flux `plannedCumulative` reste disponible séparément ; la simulation remplace la projection future par le brouillon.
-- **Ton plan, mois par mois** : timeline verticale de l'ancrage à l'échéance. Les mois passés et les Prévisions pointées sont verrouillés.
+- **Mois par mois** (webapp) : une seule liste de l'ancrage à l'échéance, qui porte pour chaque mois le Prévu, le Réel et le solde après, avec les retraits insérés à leur période. Les mois passés et les Prévisions pointées sont verrouillés.
 - **Ajuster mon plan** : sandbox client, montant global et ajustements mensuels. « Réajuster la suite » redistribue le reste sur les mois ouverts.
 - **Appliquer** : récapitulatif obligatoire puis écriture pessimiste. Annuler ou quitter ne persiste rien.
-- Les contributions réelles restent consultables séparément dans « Ton suivi ».
+- Le Réel d'un mois suit la règle d'enveloppe du confirmé : seuls les mouvements pointés comptent, et une Prévision pointée compte pour au moins son montant. Ses mouvements se déplient sous la ligne du mois. En simulation, le Réel et les retraits sont masqués.
 - Les couleurs suivent RG-002 : vert épargne et neutres, jamais ambre ou rouge.
 
 ### 10.2 Contrat de lecture
