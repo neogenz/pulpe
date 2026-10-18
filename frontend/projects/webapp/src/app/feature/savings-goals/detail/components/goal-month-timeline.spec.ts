@@ -290,7 +290,7 @@ describe('GoalMonthTimeline', () => {
         .nativeElement as HTMLAnchorElement;
       expect(linked.getAttribute('href')).toBe(`/budget/${BUDGET_ID}`);
       expect(linked.textContent).toContain('Partiellement réalisé');
-      expect(linked.textContent).toContain('-4’200 CHF');
+      expect(linked.textContent).toContain('reste 4’200 CHF');
       expect(linked.getAttribute('aria-label')).toContain('Ouvrir ce budget');
 
       const outside = query('savings-goal-plan-only-withdrawal-row')
