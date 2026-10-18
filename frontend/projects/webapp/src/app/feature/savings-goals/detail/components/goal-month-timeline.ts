@@ -127,12 +127,12 @@ const SKELETON =
         </div>
 
         <div
-          class="flex flex-col overflow-hidden rounded-corner-large bg-surface-container-lowest"
+          class="flex flex-col overflow-hidden rounded-2xl bg-surface-container-low"
         >
           @for (entry of visibleEntries(); track entry.key) {
             @if (entry.showYear) {
               <div
-                class="border-b-2 border-on-surface bg-surface-container-lowest px-4 py-2 sm:px-5 text-label-large font-bold tabular-nums text-on-surface"
+                class="border-b-2 border-on-surface px-4 py-2 sm:px-5 text-label-large font-bold tabular-nums text-on-surface"
                 data-testid="goal-plan-year"
               >
                 {{ entry.year }}
@@ -457,7 +457,7 @@ const SKELETON =
                     </span>
                     @for (tx of m.transactions; track tx.id) {
                       <div
-                        class="flex items-center gap-3 rounded-lg bg-surface-container px-3 py-2"
+                        class="flex items-center gap-3 rounded-lg bg-surface-container-high px-3 py-2"
                         data-testid="goal-plan-real-transaction"
                       >
                         <mat-icon
@@ -605,7 +605,7 @@ const SKELETON =
               @if (w.budgetId) {
                 <a
                   [class]="withdrawalRowClass(w)"
-                  class="no-underline text-on-surface hover:bg-surface-container"
+                  class="no-underline text-on-surface hover:bg-surface-container-high"
                   [routerLink]="['/budget', w.budgetId]"
                   [attr.aria-label]="withdrawalAria(w)"
                   [attr.data-testid]="
@@ -778,14 +778,14 @@ export class GoalMonthTimeline {
     const tone = row.isCurrent
       ? 'bg-financial-savings/10'
       : row.isPast
-        ? 'bg-surface-container-low'
+        ? 'bg-surface-container'
         : '';
     return `${ROW} ${this.grid()} ${tone}`;
   }
 
   protected withdrawalRowClass(row: GoalWithdrawalEntry): string {
     const tone = row.isPast
-      ? 'bg-surface-container-low'
+      ? 'bg-surface-container'
       : 'bg-financial-negative-light/40';
     return `${ROW} ${READ_GRID} border-dashed ${tone}`;
   }
