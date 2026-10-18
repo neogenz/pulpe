@@ -259,6 +259,9 @@ export function buildGoalMonthTimeline(
         ? (month as SavingsPlanSimulatedMonth).simulatedCumulative
         : (month.projectedCumulative ?? month.plannedCumulative)
       : null;
+    // The projection already nets every withdrawal of the period; adding each
+    // one back gives the balance before them. A linked withdrawal weighs its
+    // full plan (realized part + remainder), not just what is left.
     const effect = (w: GoalWithdrawalEntry) =>
       w.source === 'realized'
         ? (w.realized ?? 0)

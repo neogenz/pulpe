@@ -94,7 +94,6 @@ describe('GoalMonthTimeline', () => {
     fixture = TestBed.createComponent(GoalMonthTimeline);
     component = fixture.componentInstance;
     setTestInput(component.currency, 'CHF');
-    setTestInput(component.locale, 'de-CH');
     setTestInput(component.canRepair, true);
     setTestInput(component.expanded, true);
   });

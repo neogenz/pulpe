@@ -702,7 +702,6 @@ export class GoalMonthTimeline {
   readonly isWithdrawalsLoading = input(false);
   readonly hasWithdrawalsError = input(false);
   readonly currency = input.required<SupportedCurrency>();
-  readonly locale = input.required<string>();
   readonly payDayOfMonth = input<number | null>(null);
   readonly editable = input<boolean>(false);
   readonly expanded = input<boolean>(false);
@@ -808,7 +807,7 @@ export class GoalMonthTimeline {
       row.month,
       row.year,
       this.payDayOfMonth(),
-      this.locale(),
+      this.#appLocale,
     );
   }
 
@@ -839,7 +838,7 @@ export class GoalMonthTimeline {
       );
     }
     if (!row.isChecked || row.amount === null) return null;
-    const amount = `${formatNumber(row.amount, this.locale(), '1.0-2')} ${this.currency()}`;
+    const amount = `${formatNumber(row.amount, this.#appLocale, '1.0-2')} ${this.currency()}`;
     return this.#transloco.translate('savingsGoals.detail.lockedAmountAria', {
       amount,
     });

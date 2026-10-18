@@ -665,7 +665,6 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [isWithdrawalsLoading]="store.isWithdrawalsLoading()"
                 [hasWithdrawalsError]="!!store.withdrawalsError()"
                 [currency]="currency()"
-                [locale]="locale"
                 [payDayOfMonth]="payDayOfMonth()"
                 [editable]="simulator.isSimulating()"
                 [expanded]="timelineExpanded()"
