@@ -465,4 +465,19 @@ describe('GoalMonthTimeline', () => {
       'Voir les 6 mois',
     );
   });
+
+  it('should keep offering to collapse once every month is shown', () => {
+    setTestInput(component.expanded, true);
+    setTestInput(
+      component.months,
+      [1, 2, 3, 4, 5, 6].map((month) =>
+        makeMonth({ month, isLocked: month <= 2 }),
+      ),
+    );
+    fixture.detectChanges();
+
+    expect(query('goal-plan-see-all').nativeElement.textContent).toContain(
+      'Réduire',
+    );
+  });
 });

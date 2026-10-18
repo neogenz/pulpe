@@ -429,11 +429,17 @@ const SKELETON =
                         (click)="toggleReal(m.periodKey)"
                         data-testid="goal-plan-real-toggle-button"
                       >
-                        <mat-icon>{{
-                          isExpanded(m.periodKey)
-                            ? 'expand_less'
-                            : 'expand_more'
-                        }}</mat-icon>
+                        <mat-icon
+                          [class.text-primary]="isExpanded(m.periodKey)"
+                          [class.text-on-surface-variant]="
+                            !isExpanded(m.periodKey)
+                          "
+                          >{{
+                            isExpanded(m.periodKey)
+                              ? 'expand_less'
+                              : 'expand_more'
+                          }}</mat-icon
+                        >
                       </button>
                     }
                   </span>
@@ -643,7 +649,7 @@ const SKELETON =
         </div>
       }
 
-      @if (hiddenCount() > 0) {
+      @if (isWindowed()) {
         <button
           matButton
           class="self-center"
@@ -755,9 +761,12 @@ export class GoalMonthTimeline {
   protected readonly visibleEntries = computed(() =>
     windowGoalTimeline(this.#timeline().entries, this.expanded()),
   );
-  protected readonly hiddenCount = computed(
-    () => this.#timeline().entries.length - this.visibleEntries().length,
-  );
+  // Compared against the collapsed window, not the visible one: once
+  // expanded nothing is hidden, yet « Réduire » must stay reachable.
+  protected readonly isWindowed = computed(() => {
+    const { entries } = this.#timeline();
+    return entries.length > windowGoalTimeline(entries, false).length;
+  });
   protected readonly monthCount = computed(() => this.#timeline().monthCount);
   protected readonly gapCount = computed(() => this.#timeline().gapCount);
 
