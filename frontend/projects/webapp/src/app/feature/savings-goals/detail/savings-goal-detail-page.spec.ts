@@ -36,10 +36,8 @@ import { UserSettingsStore } from '@core/user-settings';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { GoalProjectionChart } from './components/goal-projection-chart';
-import { GoalPlanTimeline } from './components/goal-plan-timeline';
+import { GoalMonthTimeline } from './components/goal-month-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
-import { GoalContributionsList } from './components/goal-contributions-list';
-import { GoalWithdrawalsList } from './components/goal-withdrawals-list';
 import { GoalPlanRepairCallout } from './components/goal-plan-repair-callout';
 import { GoalDeletionDialog } from './components/goal-deletion-dialog';
 import { setTestInput } from '../../../testing/signal-test-utils';
@@ -93,14 +91,19 @@ class StubGoalProjectionChart {
 }
 
 @Component({
-  selector: 'pulpe-goal-plan-timeline',
+  selector: 'pulpe-goal-month-timeline',
   template: '<div data-testid="stub-timeline"></div>',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-class StubGoalPlanTimeline {
+class StubGoalMonthTimeline {
   readonly months = input<unknown>();
   readonly simulatedMonths = input<unknown>(null);
+  readonly contributions = input<unknown>([]);
   readonly plannedWithdrawals = input<unknown>([]);
+  readonly planOnlyWithdrawals = input<unknown>([]);
+  readonly withdrawals = input<unknown>([]);
+  readonly isWithdrawalsLoading = input(false);
+  readonly hasWithdrawalsError = input(false);
   readonly currency = input<string>('CHF');
   readonly locale = input<string>('fr-CH');
   readonly payDayOfMonth = input<number | null>(null);
@@ -108,7 +111,9 @@ class StubGoalPlanTimeline {
   readonly expanded = input<boolean>(false);
   readonly canRepair = input<boolean>(false);
   readonly amountChange = output<unknown>();
+  readonly invalidChange = output<boolean>();
   readonly toggleExpanded = output<void>();
+  readonly retryRequested = output<void>();
 }
 
 @Component({
@@ -121,30 +126,6 @@ class StubGoalPlanSimulatorToolbar {
   readonly verdict = input<string>('');
   readonly ariaVerdict = input<string>('');
   readonly targetReached = input(false);
-}
-
-@Component({
-  selector: 'pulpe-goal-contributions-list',
-  template: '<div data-testid="stub-contributions"></div>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-class StubGoalContributionsList {
-  readonly contributions = input<unknown>([]);
-  readonly currency = input<string>('CHF');
-}
-
-@Component({
-  selector: 'pulpe-goal-withdrawals-list',
-  template: '<div data-testid="stub-withdrawals"></div>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-class StubGoalWithdrawalsList {
-  readonly withdrawals = input<unknown>([]);
-  readonly plannedWithdrawals = input<unknown>([]);
-  readonly planOnlyWithdrawals = input<unknown>([]);
-  readonly currency = input<string>('CHF');
-  readonly isLoading = input(false);
-  readonly hasError = input(false);
 }
 
 @Component({
@@ -376,22 +357,18 @@ describe('SavingsGoalDetailPage', () => {
             StateCard,
             BaseLoading,
             GoalProjectionChart,
-            GoalPlanTimeline,
+            GoalMonthTimeline,
             GoalPlanSimulatorToolbar,
-            GoalContributionsList,
-            GoalWithdrawalsList,
             GoalPlanRepairCallout,
           ],
         },
         add: {
           imports: [
-            StubGoalWithdrawalsList,
             StubStateCard,
             StubBaseLoading,
             StubGoalProjectionChart,
-            StubGoalPlanTimeline,
+            StubGoalMonthTimeline,
             StubGoalPlanSimulatorToolbar,
-            StubGoalContributionsList,
             StubGoalPlanRepairCallout,
           ],
         },
@@ -1744,7 +1721,7 @@ describe('SavingsGoalDetailPage', () => {
     expect(
       fixture.debugElement.query(By.directive(StubBaseLoading)),
     ).toBeTruthy();
-    expect(query('savings-goal-contributions')).toBeFalsy();
+    expect(query('savings-goal-plan')).toBeFalsy();
   });
 
   it('shows the error state (no progress body) when progress fails', () => {
@@ -1780,12 +1757,6 @@ describe('SavingsGoalDetailPage', () => {
     expect(reloadProgress).toHaveBeenCalledOnce();
   });
 
-  it('hides the contributions section entirely when no line is linked', () => {
-    progressSig.set(makeProgress({ linkedLineCount: 0 }));
-    fixture.detectChanges();
-    expect(query('savings-goal-contributions')).toBeFalsy();
-  });
-
   it('navigates back to the list on back button', () => {
     fixture.detectChanges();
     query('savings-goal-back-button').nativeElement.click();
@@ -1812,38 +1783,78 @@ describe('SavingsGoalDetailPage', () => {
       status: 'planned',
     };
 
-    it('stays hidden while the goal has never been drawn from', () => {
+    it('shows no month list while there is neither a plan nor a withdrawal', () => {
       fixture.detectChanges();
-      expect(query('savings-goal-withdrawals')).toBeFalsy();
+      expect(query('savings-goal-plan')).toBeFalsy();
     });
 
-    it('shows up beside the contributions once money went out', () => {
+    it('keeps the month list for a withdrawal history without any plan month', () => {
       withdrawalsSig.set([withdrawal]);
       fixture.detectChanges();
 
-      const section = query('savings-goal-withdrawals');
-      expect(section).toBeTruthy();
-      expect(section.nativeElement.textContent).toContain('Retraits');
-      expect(query('savings-goal-contributions')).toBeTruthy();
+      expect(query('savings-goal-plan')).toBeTruthy();
+      expect(
+        fixture.debugElement.query(By.directive(StubGoalMonthTimeline)),
+      ).toBeTruthy();
     });
 
-    it('shows up as soon as a linked forecast announces a withdrawal', () => {
+    it('shows the month list as soon as a linked forecast announces a withdrawal', () => {
       plannedWithdrawalsSig.set([plannedWithdrawal]);
       fixture.detectChanges();
 
-      expect(query('savings-goal-withdrawals')).toBeTruthy();
-      expect(query('savings-goal-withdrawals')).toBeTruthy();
+      expect(query('savings-goal-plan')).toBeTruthy();
     });
 
-    it('survives an empty history to carry its own loading and error states', () => {
+    it('survives an empty history to carry the withdrawals loading and error states', () => {
       isWithdrawalsLoadingSig.set(true);
       fixture.detectChanges();
-      expect(query('savings-goal-withdrawals')).toBeTruthy();
+      expect(query('savings-goal-plan')).toBeTruthy();
 
       isWithdrawalsLoadingSig.set(false);
       withdrawalsErrorSig.set(new Error('offline'));
       fixture.detectChanges();
-      expect(query('savings-goal-withdrawals')).toBeTruthy();
+      expect(query('savings-goal-plan')).toBeTruthy();
+    });
+
+    it('retries the withdrawals from the month list', () => {
+      withdrawalsErrorSig.set(new Error('offline'));
+      fixture.detectChanges();
+
+      fixture.debugElement
+        .query(By.directive(StubGoalMonthTimeline))
+        .triggerEventHandler('retryRequested');
+
+      expect(reloadWithdrawals).toHaveBeenCalledOnce();
     });
   });
+
+  it('headlines the month list with the count of pointed months', () => {
+    progressSig.set(makeProgress({ months: [makePlanMonth()] }));
+    contributionsSig.set([
+      makeContributionStub('2026-06-15T10:00:00.000Z'),
+      makeContributionStub(null),
+    ]);
+    fixture.detectChanges();
+
+    expect(
+      query('goal-contributions-summary').nativeElement.textContent,
+    ).toContain('1 mois mis de côté');
+    expect(query('savings-goal-plan').nativeElement.textContent).toContain(
+      'Mois par mois',
+    );
+  });
 });
+
+function makeContributionStub(
+  checkedAt: string | null,
+): SavingsGoalContribution {
+  return {
+    lineId: crypto.randomUUID(),
+    name: 'Épargne',
+    amount: 100,
+    checkedAt,
+    budgetMonth: 6,
+    budgetYear: 2026,
+    transactions: [],
+  };
+}
