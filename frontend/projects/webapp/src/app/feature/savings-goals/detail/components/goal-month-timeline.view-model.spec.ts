@@ -464,6 +464,23 @@ describe('windowGoalTimeline', () => {
     expect(windowGoalTimeline(entries, true)).toHaveLength(entries.length);
   });
 
+  it('should start at the locked first month, leaving earlier withdrawals out', () => {
+    const { entries } = buildGoalMonthTimeline(
+      makeInput({
+        months: [1, 2, 3, 4, 5, 6].map((month) =>
+          makeMonth({ month, isLocked: month === 1 }),
+        ),
+        withdrawals: [
+          makeRealized({ transactionDate: '2025-12-10T10:00:00Z' }),
+        ],
+      }),
+    );
+
+    const visible = windowGoalTimeline(entries, false);
+    expect(visible[0]).toMatchObject({ kind: 'month', month: 1, year: 2026 });
+    expect(visible.some((e) => e.kind === 'withdrawal')).toBe(false);
+  });
+
   it('should open a year divider at the first row and at each year change only', () => {
     const { entries } = buildGoalMonthTimeline(
       makeInput({

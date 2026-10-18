@@ -393,7 +393,7 @@ export function windowGoalTimeline(
     });
     const startMonth = Math.max(0, lastLocked);
     const endMonth = startMonth + WINDOW_OPEN_ROWS + 1;
-    const start = startMonth === 0 ? 0 : monthIndexes[startMonth];
+    const start = lastLocked < 0 ? 0 : monthIndexes[startMonth];
     const end =
       endMonth >= monthIndexes.length ? entries.length : monthIndexes[endMonth];
     windowed = entries.slice(start, end);
