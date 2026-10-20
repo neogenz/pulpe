@@ -957,7 +957,10 @@ export default class MainLayout {
         !this.#router.currentNavigation() &&
         this.#dialog.openDialogs.length === 0 &&
         !this.#whatsNewAnnouncing() &&
-        this.#productTourService.hasSeenIntro(),
+        !this.#productTourService.isActive() &&
+        // Only the dashboard can start the introduction tour.
+        (this.currentTourPageId() !== 'dashboard' ||
+          this.#productTourService.hasSeenIntro()),
     );
     if (promptNumber === null) return;
     this.#dialog.open(FeedbackDialog, {

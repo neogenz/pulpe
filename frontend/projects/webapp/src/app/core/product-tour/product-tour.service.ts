@@ -82,6 +82,10 @@ export class ProductTourService {
     return this.#hasSeenTour(TOUR_IDS.intro);
   }
 
+  isActive(): boolean {
+    return this.#activeDriver !== null;
+  }
+
   hasSeenPageTour(pageId: TourPageId): boolean {
     return this.#hasSeenTour(TOUR_IDS[pageId]);
   }

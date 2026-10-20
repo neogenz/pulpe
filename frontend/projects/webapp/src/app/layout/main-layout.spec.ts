@@ -154,6 +154,7 @@ describe('MainLayout', () => {
   };
   let mockProductTourService: {
     hasSeenIntro: ReturnType<typeof vi.fn>;
+    isActive: ReturnType<typeof vi.fn>;
     startPageTour: ReturnType<typeof vi.fn>;
   };
   let mockFeedbackPrompt: {
@@ -196,7 +197,7 @@ describe('MainLayout', () => {
       navigate: vi.fn().mockResolvedValue(true),
       events: new Subject<NavigationEnd>(),
       currentNavigation: vi.fn().mockReturnValue(null),
-      url: ROUTES.DASHBOARD,
+      url: `/${ROUTES.DASHBOARD}`,
       createUrlTree: vi.fn().mockReturnValue({}),
       serializeUrl: vi.fn().mockReturnValue('/test-url'),
     };
@@ -221,6 +222,7 @@ describe('MainLayout', () => {
     };
     mockProductTourService = {
       hasSeenIntro: vi.fn().mockReturnValue(true),
+      isActive: vi.fn().mockReturnValue(false),
       startPageTour: vi.fn(),
     };
 
@@ -446,17 +448,29 @@ describe('MainLayout', () => {
       expect(mockDialog.open).toHaveBeenCalledOnce();
     });
 
-    it.each(['dialog', 'news', 'intro', 'navigation'])(
+    it.each(['dialog', 'news', 'intro', 'tour', 'navigation'])(
       'preserves the %s presentation guard',
       async (blocker) => {
         if (blocker === 'dialog') mockDialog.openDialogs.push({});
         if (blocker === 'news') TestBed.inject(WHATS_NEW_ANNOUNCING).set(true);
         if (blocker === 'intro')
           mockProductTourService.hasSeenIntro.mockReturnValue(false);
+        if (blocker === 'tour')
+          mockProductTourService.isActive.mockReturnValue(true);
         if (blocker === 'navigation')
           mockRouter.currentNavigation.mockReturnValue({});
         await fixture.whenStable();
         expect(mockDialog.open).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['/budget/123', '/settings'])(
+      'does not require the dashboard introduction on %s',
+      async (url) => {
+        mockProductTourService.hasSeenIntro.mockReturnValue(false);
+        mockRouter.events.next(new NavigationEnd(1, url, url));
+        await fixture.whenStable();
+        await vi.waitFor(() => expect(mockDialog.open).toHaveBeenCalledOnce());
       },
     );
 

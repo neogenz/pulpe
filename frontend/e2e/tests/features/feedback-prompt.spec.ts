@@ -55,4 +55,26 @@ test.describe('Automatic feedback across web screens', () => {
       expect(state.promptCount).toBe(1);
     });
   }
+
+  test('a missing dashboard introduction does not block other screens', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.goto('/budget');
+    const dialog = page.getByTestId('feedback-dialog');
+    await expect(dialog).toBeVisible();
+    await dialog.getByTestId('later-button').click();
+
+    await page.evaluate((userId) => {
+      localStorage.removeItem('pulpe-tour-intro');
+      const entry = JSON.parse(localStorage.getItem('pulpe-feedback-prompt')!);
+      entry.data[userId].activeDayCount += 3;
+      localStorage.setItem('pulpe-feedback-prompt', JSON.stringify(entry));
+    }, TEST_CONFIG.USER.ID);
+
+    // Navigate within the app so the auth fixture does not restore the tour state.
+    await page.getByTestId('user-menu-trigger').click();
+    await page.getByTestId('settings-link').click();
+    await expect(page).toHaveURL('/settings');
+    await expect(dialog).toBeVisible();
+  });
 });
