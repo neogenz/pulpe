@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Tool catalog surfaces, activity labels and the e2e contract

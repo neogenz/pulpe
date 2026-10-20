@@ -503,8 +503,12 @@
         "add_movement": "Movement added",
         "add_forecast": "Forecast added",
         "create_month_from_template": "Monthly budget created",
+        "create_tag": "Tag created",
         "delete_movement": "Movement deleted",
+        "delete_tag": "Tag deleted",
+        "rename_tag": "Tag renamed",
         "spread_expense": "Expense spread",
+        "tag_items": "Tags updated",
         "toggle_check": "Checked status changed",
         "update_forecast": "Forecast updated",
         "update_movement": "Movement updated"

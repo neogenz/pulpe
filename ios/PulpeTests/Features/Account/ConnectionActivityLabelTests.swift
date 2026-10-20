@@ -13,7 +13,11 @@ struct ConnectionActivityLabelTests {
         "update_forecast",
         "spread_expense",
         "create_month_from_template",
-        "toggle_check"
+        "toggle_check",
+        "create_tag",
+        "rename_tag",
+        "delete_tag",
+        "tag_items"
     ]
 
     private func entry(_ tool: String, outcome: MCPActivity.Outcome = .ok) -> MCPActivity {

@@ -171,9 +171,20 @@ extension ConnectionDetailView {
         case "spread_expense": AppLocale.string("Dépense répartie")
         case "create_month_from_template": AppLocale.string("Budget mensuel créé")
         case "toggle_check": AppLocale.string("Pointage modifié")
-        default: entry.tool
+        default: tagLabel(for: entry.tool) ?? entry.tool
         }
         return entry.outcome == .error ? AppLocale.string("\(name) (échec)") : name
+    }
+
+    /// The tag tools, apart from `label(for:)` to keep it under the complexity ceiling.
+    private static func tagLabel(for tool: String) -> String? {
+        switch tool {
+        case "create_tag": AppLocale.string("Tag créé")
+        case "rename_tag": AppLocale.string("Tag renommé")
+        case "delete_tag": AppLocale.string("Tag supprimé")
+        case "tag_items": AppLocale.string("Tags modifiés")
+        default: nil
+        }
     }
 
     private static func timestamp(_ date: Date) -> String {

@@ -503,8 +503,12 @@
         "add_movement": "Mouvement ajouté",
         "add_forecast": "Prévision ajoutée",
         "create_month_from_template": "Budget mensuel créé",
+        "create_tag": "Tag créé",
         "delete_movement": "Mouvement supprimé",
+        "delete_tag": "Tag supprimé",
+        "rename_tag": "Tag renommé",
         "spread_expense": "Dépense répartie",
+        "tag_items": "Tags modifiés",
         "toggle_check": "Pointage modifié",
         "update_forecast": "Prévision modifiée",
         "update_movement": "Mouvement modifié"

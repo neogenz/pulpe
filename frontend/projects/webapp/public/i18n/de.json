@@ -503,8 +503,12 @@
         "add_movement": "Bewegung hinzugefügt",
         "add_forecast": "Planung hinzugefügt",
         "create_month_from_template": "Monatsbudget erstellt",
+        "create_tag": "Tag erstellt",
         "delete_movement": "Bewegung gelöscht",
+        "delete_tag": "Tag gelöscht",
+        "rename_tag": "Tag umbenannt",
         "spread_expense": "Ausgabe verteilt",
+        "tag_items": "Tags aktualisiert",
         "toggle_check": "Prüfstatus geändert",
         "update_forecast": "Planung aktualisiert",
         "update_movement": "Bewegung aktualisiert"
