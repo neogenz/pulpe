@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: MCP tag CRUD, `create_tag`, `rename_tag`, `delete_tag`

@@ -37,6 +37,9 @@ import { UpdateForecastTool } from './infrastructure/tools/write/update-forecast
 import { SpreadExpenseTool } from './infrastructure/tools/write/spread-expense.tool';
 import { CreateMonthFromTemplateTool } from './infrastructure/tools/write/create-month-from-template.tool';
 import { ToggleCheckTool } from './infrastructure/tools/write/toggle-check.tool';
+import { CreateTagTool } from './infrastructure/tools/write/create-tag.tool';
+import { RenameTagTool } from './infrastructure/tools/write/rename-tag.tool';
+import { DeleteTagTool } from './infrastructure/tools/write/delete-tag.tool';
 import { ResolveCurrencyUseCase } from './application/resolve-currency.use-case';
 import { McpRevocationModule } from './mcp-revocation.module';
 import { MCP_ACTIVITY_REPOSITORY, MCP_TOOLS } from './mcp.tokens';
@@ -58,6 +61,9 @@ const TOOLS = [
   SpreadExpenseTool,
   CreateMonthFromTemplateTool,
   ToggleCheckTool,
+  CreateTagTool,
+  RenameTagTool,
+  DeleteTagTool,
 ];
 
 @Module({
