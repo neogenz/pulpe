@@ -34,6 +34,7 @@ import { AddForecastTool } from './infrastructure/tools/write/add-forecast.tool'
 import { UpdateForecastTool } from './infrastructure/tools/write/update-forecast.tool';
 import { SpreadExpenseTool } from './infrastructure/tools/write/spread-expense.tool';
 import { CreateMonthFromTemplateTool } from './infrastructure/tools/write/create-month-from-template.tool';
+import { DeleteMonthTool } from './infrastructure/tools/write/delete-month.tool';
 import { ToggleCheckTool } from './infrastructure/tools/write/toggle-check.tool';
 import { ResolveCurrencyUseCase } from './application/resolve-currency.use-case';
 import { McpRevocationModule } from './mcp-revocation.module';
@@ -54,6 +55,7 @@ const TOOLS = [
   UpdateForecastTool,
   SpreadExpenseTool,
   CreateMonthFromTemplateTool,
+  DeleteMonthTool,
   ToggleCheckTool,
 ];
 

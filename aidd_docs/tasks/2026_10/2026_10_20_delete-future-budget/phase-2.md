@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 <!-- Fill or omit these sections; never add, rename, or reorder one. -->
@@ -17,8 +17,8 @@ status: pending
     │   ├── domain/ports/budget-write.port.ts                    ✏️ + deletionImpact(month, year), removeMonth(month, year, confirmLinks)
     │   ├── application/
     │   │   ├── create-budget-in-process.use-case.ts             ❌ renamed (git mv)
-    │   │   ├── budget-write-in-process.use-case.ts              ✅ BudgetWriteInProcessUseCase: createFromTemplate + the two new methods
-    │   │   └── budget-write-in-process.use-case.spec.ts         ✅ period → id resolution, 404, session user + confirmLinks passthrough
+    │   │   ├── write-budgets-in-process.use-case.ts              ✅ WriteBudgetsInProcessUseCase: createFromTemplate + the two new methods
+    │   │   └── write-budgets-in-process.use-case.spec.ts         ✅ period → id resolution, 404, session user + confirmLinks passthrough
     │   └── budget.module.ts                                     ✏️ provider + useExisting binding renamed
     └── mcp/
         ├── mcp.module.ts                                        ✏️ DeleteMonthTool in TOOLS
@@ -76,13 +76,13 @@ journey
 1. In `budget-write.port.ts`, add these methods and update the JSDoc to "Create or delete the budget of a month…":
    - `deletionImpact(month: number, year: number): Promise<BudgetDeletionImpact>`
    - `removeMonth(month: number, year: number, confirmLinks: boolean): Promise<BudgetDeletionImpact>`
-2. Rename the adapter with `git mv` from `create-budget-in-process.use-case.ts` to `budget-write-in-process.use-case.ts`, class `BudgetWriteInProcessUseCase`.
+2. Rename the adapter with `git mv` from `create-budget-in-process.use-case.ts` to `write-budgets-in-process.use-case.ts`, class `WriteBudgetsInProcessUseCase`.
    - Inject `RemoveBudgetUseCase` and `@Inject(BUDGET_REPOSITORY) repo`.
    - Add a private `#budgetId(month, year)`: `repo.fetchBudgetIdByPeriod(month, year)`. If the result is `null`, throw `BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND)`.
    - `deletionImpact` delegates to `removeBudget.impact(id, session.user)`.
    - `removeMonth` returns `removeBudget.execute(id, session.user, confirmLinks)`, which returns the deleted month's impact so the tool can name the counts.
-3. In `budget.module.ts`, rename the import, the provider and `{ provide: BUDGET_WRITE_PORT, useExisting: BudgetWriteInProcessUseCase }`.
-4. In `budget-write-in-process.use-case.spec.ts`, use mocked `RemoveBudgetUseCase`, repo and session. Cover:
+3. In `budget.module.ts`, rename the import, the provider and `{ provide: BUDGET_WRITE_PORT, useExisting: WriteBudgetsInProcessUseCase }`.
+4. In `write-budgets-in-process.use-case.spec.ts`, use mocked `RemoveBudgetUseCase`, repo and session. Cover:
    - id resolution
    - a null id gives a 404
    - `confirmLinks` and `session.user` are passed through
@@ -137,7 +137,7 @@ journey
 Validation (scoped):
 
 ```bash
-cd backend-nest && bun test src/modules/mcp/infrastructure/tools/write/delete-month.tool.spec.ts src/modules/budget/application/budget-write-in-process.use-case.spec.ts
+cd backend-nest && bun test src/modules/mcp/infrastructure/tools/write/delete-month.tool.spec.ts src/modules/budget/application/write-budgets-in-process.use-case.spec.ts
 cd backend-nest && bun run type-check:full && bun run lint && bun run lint:arch && bun run format:check
 cd backend-nest && RUN_INTEGRATION_TESTS=true bun --env-file=.env.local test src/modules/mcp/infrastructure/oauth/mcp-oauth.integration.spec.ts   # needs local Supabase started from the main repo
 ```
