@@ -1,9 +1,33 @@
-import { describe, it, expect } from 'vitest';
-import type {
-  BudgetLineCreate,
-  BudgetLineUpdate,
-  TransactionUpdate,
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { of, throwError } from 'rxjs';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  API_ERROR_CODES,
+  type BudgetDeletionImpact,
+  type BudgetLineCreate,
+  type BudgetLineUpdate,
+  type TransactionUpdate,
 } from 'pulpe-shared';
+
+import { BudgetDetailsStore } from './budget-details-store';
+import { TransactionImportApi } from '../transaction-import/transaction-import-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { ApiError } from '@core/api/api-error';
+import { Logger } from '@core/logging/logger';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { PostHogService } from '@core/analytics/posthog';
+import { UserSettingsStore } from '@core/user-settings';
+import { createMockDataCache } from '@core/testing';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import {
+  createMockBudget,
+  createMockBudgetDetailsResponse,
+} from '../../../../testing/mock-factories';
 
 /**
  * Tests unitaires métier pour BudgetDetailsStore
@@ -491,6 +515,359 @@ describe('BudgetDetailsStore - Logique Métier', () => {
       expect(updated.budgetLines).not.toBe(original.budgetLines);
       expect(updated.budgetLines[0].amount).toBe(200);
       expect(original.budgetLines[0].amount).toBe(100); // Original unchanged
+    });
+  });
+});
+
+/**
+ * PUL-361 — "Supprimer ce mois". The store owns the future-month gate and the
+ * order of the cache work around a delete, so these run the real store.
+ */
+describe('BudgetDetailsStore — delete a future month (PUL-361)', () => {
+  const VIEWED_ID = 'budget-viewed';
+  const OTHER_ID = 'budget-other';
+
+  const NO_LINKS_IMPACT: BudgetDeletionImpact = {
+    forecastCount: 4,
+    movementCount: 2,
+    links: {
+      spreadForecasts: 0,
+      savingsGoalForecasts: 0,
+      savingsWithdrawalForecasts: 0,
+      savingsWithdrawalMovements: 0,
+    },
+  };
+
+  const flush = async (ready: () => boolean): Promise<void> => {
+    // The system clock is frozen, so poll by attempts rather than by elapsed time.
+    for (let attempt = 0; attempt < 200; attempt++) {
+      if (ready()) return;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    throw new Error('store did not stabilize in time');
+  };
+
+  /** Today is frozen, and the store is built after it, so the live period is fixed. */
+  const setup = async (options: {
+    today: Date;
+    payDay: number;
+    viewed: { month: number; year: number };
+  }) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(options.today);
+
+    // One log across the caches: the order of the calls is what is asserted.
+    const calls: string[] = [];
+    const budgetCache = createMockDataCache();
+    const savingsGoalCache = createMockDataCache();
+    const templatesCache = createMockDataCache();
+    for (const cache of [budgetCache, savingsGoalCache, templatesCache]) {
+      cache.invalidate.mockImplementation((key: string[]) => {
+        calls.push(key.join('.'));
+      });
+    }
+
+    const otherBudget = createMockBudget({
+      id: OTHER_ID,
+      month: 1,
+      year: 2020,
+    });
+    const viewedBudget = createMockBudget({
+      id: VIEWED_ID,
+      month: options.viewed.month,
+      year: options.viewed.year,
+    });
+    const budgetApi = {
+      getBudgetWithDetails$: vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: viewedBudget,
+            budgetLines: [],
+            transactions: [],
+          }),
+        ),
+      ),
+      getAllBudgets$: vi.fn().mockReturnValue(of([otherBudget, viewedBudget])),
+      getDeletionImpact$: vi.fn().mockReturnValue(of(NO_LINKS_IMPACT)),
+      deleteBudget$: vi
+        .fn()
+        .mockReturnValue(of({ success: true, message: 'Budget deleted' })),
+      cache: budgetCache,
+    };
+    const logger = { error: vi.fn(), warn: vi.fn() };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        ...provideTranslocoForTest(),
+        BudgetDetailsStore,
+        TransactionImportApi,
+        { provide: BudgetApi, useValue: budgetApi },
+        {
+          provide: SavingsGoalApi,
+          useValue: {
+            getAll$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
+            cache: savingsGoalCache,
+          },
+        },
+        { provide: BudgetTemplatesApi, useValue: { cache: templatesCache } },
+        { provide: Logger, useValue: logger },
+        {
+          provide: UserSettingsStore,
+          useValue: {
+            currency: signal('CHF'),
+            payDayOfMonth: signal(options.payDay),
+          },
+        },
+        {
+          provide: ApplicationConfiguration,
+          useValue: {
+            backendApiUrl: vi
+              .fn()
+              .mockReturnValue('http://localhost:3000/api/v1'),
+          },
+        },
+        {
+          provide: PostHogService,
+          useValue: {
+            captureException: vi.fn(),
+            isInitialized: vi.fn(() => ({ value: true })),
+            isEnabled: vi.fn(() => ({ value: true })),
+          },
+        },
+      ],
+    });
+
+    const store = TestBed.inject(BudgetDetailsStore);
+    store.setBudgetId(VIEWED_ID);
+    TestBed.tick();
+    await flush(() => store.budgetDetails() !== null);
+    return {
+      store,
+      budgetApi,
+      budgetCache,
+      savingsGoalCache,
+      templatesCache,
+      calls,
+      logger,
+    };
+  };
+
+  const OCT_20_2026 = new Date(2026, 9, 20, 12);
+  const OCT_26_2026 = new Date(2026, 9, 26, 12);
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  describe('isViewedMonthFuture', () => {
+    it.each([
+      // payDay 1: the live month is the calendar month.
+      { payDay: 1, today: OCT_20_2026, viewed: [10, 2026], expected: false },
+      { payDay: 1, today: OCT_20_2026, viewed: [9, 2026], expected: false },
+      { payDay: 1, today: OCT_20_2026, viewed: [11, 2026], expected: true },
+      // payDay 25 before the 25th: still October.
+      { payDay: 25, today: OCT_20_2026, viewed: [10, 2026], expected: false },
+      { payDay: 25, today: OCT_20_2026, viewed: [11, 2026], expected: true },
+      // payDay 25 on the 26th (quinzaine rule): November is live, December is not.
+      { payDay: 25, today: OCT_26_2026, viewed: [10, 2026], expected: false },
+      { payDay: 25, today: OCT_26_2026, viewed: [11, 2026], expected: false },
+      { payDay: 25, today: OCT_26_2026, viewed: [12, 2026], expected: true },
+    ])(
+      'should be $expected for viewed $viewed with payDay $payDay',
+      async ({ payDay, today, viewed: [month, year], expected }) => {
+        const { store } = await setup({
+          today,
+          payDay,
+          viewed: { month, year },
+        });
+
+        expect(store.isViewedMonthFuture()).toBe(expected);
+      },
+    );
+
+    it('should be false while no month is loaded', () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(OCT_20_2026);
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          ...provideTranslocoForTest(),
+          BudgetDetailsStore,
+          TransactionImportApi,
+          {
+            provide: BudgetApi,
+            useValue: {
+              getBudgetWithDetails$: vi.fn(),
+              getAllBudgets$: vi.fn().mockReturnValue(of([])),
+              cache: createMockDataCache(),
+            },
+          },
+          {
+            provide: SavingsGoalApi,
+            useValue: {
+              getAll$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
+              cache: createMockDataCache(),
+            },
+          },
+          { provide: Logger, useValue: { error: vi.fn(), warn: vi.fn() } },
+          {
+            provide: UserSettingsStore,
+            useValue: { currency: signal('CHF'), payDayOfMonth: signal(1) },
+          },
+          {
+            provide: ApplicationConfiguration,
+            useValue: {
+              backendApiUrl: vi
+                .fn()
+                .mockReturnValue('http://localhost:3000/api/v1'),
+            },
+          },
+          {
+            provide: PostHogService,
+            useValue: {
+              captureException: vi.fn(),
+              isInitialized: vi.fn(() => ({ value: true })),
+              isEnabled: vi.fn(() => ({ value: true })),
+            },
+          },
+        ],
+      });
+
+      expect(TestBed.inject(BudgetDetailsStore).isViewedMonthFuture()).toBe(
+        false,
+      );
+    });
+  });
+
+  describe('deletionImpact', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('should return the impact of the viewed month', async () => {
+      const { store, budgetApi } = await setup({
+        today: OCT_20_2026,
+        payDay: 1,
+        viewed: { month: 11, year: 2026 },
+      });
+
+      await expect(store.deletionImpact()).resolves.toEqual(NO_LINKS_IMPACT);
+      expect(budgetApi.getDeletionImpact$).toHaveBeenCalledWith(VIEWED_ID);
+    });
+
+    it('should return null and log when the impact cannot be read', async () => {
+      const { store, budgetApi, logger } = await setup({
+        today: OCT_20_2026,
+        payDay: 1,
+        viewed: { month: 11, year: 2026 },
+      });
+      budgetApi.getDeletionImpact$.mockReturnValue(
+        throwError(() => new Error('network')),
+      );
+
+      await expect(store.deletionImpact()).resolves.toBeNull();
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteMonth', () => {
+    const FUTURE = {
+      today: OCT_20_2026,
+      payDay: 1,
+      viewed: { month: 11, year: 2026 },
+    };
+
+    it.each([true, false])(
+      'should send confirmLinks=%s to the API',
+      async (confirmLinks) => {
+        const { store, budgetApi } = await setup(FUTURE);
+
+        const isDeleted = await store.deleteMonth(
+          confirmLinks,
+          vi.fn().mockResolvedValue(true),
+        );
+
+        expect(isDeleted).toBe(true);
+        expect(budgetApi.deleteBudget$).toHaveBeenCalledWith(
+          VIEWED_ID,
+          confirmLinks,
+        );
+      },
+    );
+
+    it('should leave the page before invalidating anything', async () => {
+      const { store, calls } = await setup(FUTURE);
+
+      await store.deleteMonth(false, async () => {
+        calls.push('leave');
+      });
+
+      expect(calls).toEqual([
+        'leave',
+        'budget.details',
+        'budget.list',
+        'budget.dashboard',
+        'budget.history',
+        'budget.spread',
+        'savings-goals',
+        'templates.usage',
+      ]);
+    });
+
+    it('should write the month out of the cached list before leaving', async () => {
+      const { store, budgetCache } = await setup(FUTURE);
+      budgetCache.set.mockClear(); // drop the write of the initial load
+      let listWhenLeaving: unknown;
+
+      await store.deleteMonth(false, async () => {
+        listWhenLeaving = budgetCache.set.mock.calls.find(
+          ([key]) => key.join('.') === 'budget.list',
+        )?.[1];
+      });
+
+      expect(
+        (listWhenLeaving as { id: string }[]).map((budget) => budget.id),
+      ).toEqual([OTHER_ID]);
+    });
+
+    it('should neither leave nor invalidate when the server refuses', async () => {
+      const {
+        store,
+        budgetApi,
+        budgetCache,
+        savingsGoalCache,
+        templatesCache,
+        logger,
+      } = await setup(FUTURE);
+      budgetCache.set.mockClear(); // drop the write of the initial load
+      budgetApi.deleteBudget$.mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'links not confirmed',
+              API_ERROR_CODES.BUDGET_DELETION_LINKS_UNCONFIRMED,
+              409,
+              undefined,
+            ),
+        ),
+      );
+      const leave = vi.fn().mockResolvedValue(true);
+
+      const isDeleted = await store.deleteMonth(false, leave);
+
+      expect(isDeleted).toBe(false);
+      expect(leave).not.toHaveBeenCalled();
+      expect(budgetCache.invalidate).not.toHaveBeenCalled();
+      expect(savingsGoalCache.invalidate).not.toHaveBeenCalled();
+      expect(templatesCache.invalidate).not.toHaveBeenCalled();
+      expect(budgetCache.set).not.toHaveBeenCalled();
+      // A 409 is an expected refusal, not a failure worth reporting.
+      expect(logger.error).not.toHaveBeenCalled();
     });
   });
 });

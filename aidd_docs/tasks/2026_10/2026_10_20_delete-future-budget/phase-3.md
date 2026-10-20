@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 <!-- Fill or omit these sections; never add, rename, or reorder one. -->
@@ -57,7 +57,7 @@ journey
   section Edge case - current or past month
     Viewed month equals the live period => render header => no month menu: 1: system
   section Edge case - payday shifts the live period
-    payDay 25 and today 2026-10-20 => view October 2026 => menu shown, view September 2026 => no menu: 1: system
+    payDay 25 and today 2026-10-26 (quinzaine rule, November is live) => view December 2026 => menu shown, view November 2026 => no menu: 1: system
   section Edge case - cancel
     Dialog closed with false => deleteMonth => deleteBudget$ never called, no navigation: 1: system
   section Edge case - server refusal

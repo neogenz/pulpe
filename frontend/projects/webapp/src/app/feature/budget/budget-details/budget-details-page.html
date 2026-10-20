@@ -86,6 +86,29 @@
         <span>{{ 'layout.nextMonth' | transloco }}</span>
         <mat-icon iconPositionEnd>chevron_right</mat-icon>
       </button>
+      <!-- Future months only: the live and past months cannot be deleted -->
+      @if (store.isViewedMonthFuture()) {
+      <button
+        matIconButton
+        [matMenuTriggerFor]="monthMenu"
+        [attr.aria-label]="'common.more' | transloco"
+        data-testid="budget-month-menu"
+        class="shrink-0"
+      >
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #monthMenu="matMenu" xPosition="before">
+        <button
+          mat-menu-item
+          (click)="deleteMonth()"
+          data-testid="delete-month-button"
+          class="text-error"
+        >
+          <mat-icon matMenuItemIcon class="text-error">delete</mat-icon>
+          <span>{{ 'budget.deleteMonth' | transloco }}</span>
+        </button>
+      </mat-menu>
+      }
     </div>
   </header>
 

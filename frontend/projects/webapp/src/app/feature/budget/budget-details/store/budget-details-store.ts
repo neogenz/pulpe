@@ -12,6 +12,7 @@ import { cachedMutation, cachedResource } from 'ngx-ziflux';
 import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
@@ -21,6 +22,7 @@ import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { UserSettingsStore } from '@core/user-settings';
 import { FirstTransactionTracker } from '@core/transaction/first-transaction-tracker';
 import {
+  type BudgetDeletionImpact,
   type BudgetLine,
   type BudgetLineCreate,
   type BudgetLineDeleteResponse,
@@ -209,6 +211,7 @@ export class BudgetDetailsStore {
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
   readonly #savingsGoalApi = inject(SavingsGoalApi);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #transactionImportApi = inject(TransactionImportApi);
   readonly #budgetCalculator = inject(BudgetCalculator);
   readonly #logger = inject(Logger);
@@ -508,6 +511,15 @@ export class BudgetDetailsStore {
     const reference = this.#spreadReferencePeriod();
     if (!reference) return false;
     return compareBudgetPeriods(reference, this.#spreadLivePeriod()) >= 0;
+  });
+
+  // PUL-361 — only a month AFTER the live payday-aware period can be deleted.
+  // The server owns the rule (409 otherwise); this only decides whether the
+  // action is offered.
+  readonly isViewedMonthFuture = computed<boolean>(() => {
+    const reference = this.#spreadReferencePeriod();
+    if (!reference) return false;
+    return compareBudgetPeriods(reference, this.#spreadLivePeriod()) > 0;
   });
 
   // The recovery action shows whenever the viewed current/future month runs a
@@ -1444,6 +1456,61 @@ export class BudgetDetailsStore {
     } finally {
       this.#mutatingIds.delete(budgetLineId);
     }
+  }
+
+  /** What deleting the viewed month takes with it, or `null` when unreadable. */
+  async deletionImpact(): Promise<BudgetDeletionImpact | null> {
+    const id = this.#state.budgetId();
+    if (!id) return null;
+    try {
+      return await firstValueFrom(this.#budgetApi.getDeletionImpact$(id));
+    } catch (error) {
+      this.#logUnexpectedFailure('Budget deletion impact failed', error);
+      return null;
+    }
+  }
+
+  /**
+   * Deletes the viewed month, hands the page to `leave`, and only then
+   * invalidates. `false` means the server refused or never answered: nothing
+   * was deleted and nothing was invalidated.
+   */
+  async deleteMonth(
+    confirmLinks: boolean,
+    leave: () => Promise<unknown>,
+  ): Promise<boolean> {
+    const id = this.#state.budgetId();
+    if (!id) return false;
+    try {
+      await firstValueFrom(this.#budgetApi.deleteBudget$(id, confirmLinks));
+    } catch (error) {
+      this.#logUnexpectedFailure('Budget month delete failed', error);
+      return false;
+    }
+
+    // Invalidation only marks the list stale: the list page would first paint
+    // the deleted month from it, then drop it. Write the month out of it first;
+    // `set` reruns no loader.
+    const budgets = this.#allBudgetsResource.value();
+    if (budgets) {
+      this.#allBudgetsResource.set(
+        budgets.filter((budget) => budget.id !== id),
+      );
+    }
+    // Any invalidation bumps the cache version, so every mounted resource
+    // reruns its loader: one older than staleTime would refetch the deleted
+    // id and flash a 404 on this page. Leave first, invalidate after.
+    try {
+      await leave();
+    } finally {
+      for (const key of BUDGET_DETAIL_INVALIDATION_KEYS) {
+        this.#budgetApi.cache.invalidate(key);
+      }
+      this.#savingsGoalApi.cache.invalidate(['savings-goals']);
+      // The usage count gates deleting or propagating the template.
+      this.#budgetTemplatesApi.cache.invalidate(['templates', 'usage']);
+    }
+    return true;
   }
 
   reloadBudgetDetails(): void {

@@ -1,8 +1,12 @@
-import { TestBed } from '@angular/core/testing';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
+  ChangeDetectionStrategy,
+  Component,
   DestroyRef,
   effect,
+  input,
+  output,
   signal,
   provideZonelessChangeDetection,
 } from '@angular/core';
@@ -10,12 +14,21 @@ import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslocoService } from '@jsverse/transloco';
-import { formatBudgetPeriod, type SupportedLocale } from 'pulpe-shared';
+import {
+  formatBudgetPeriod,
+  type BudgetDeletionImpact,
+  type SupportedLocale,
+} from 'pulpe-shared';
 import { BreadcrumbState } from '@core/shell/breadcrumb-state';
 import { UserSettingsStore } from '@core/user-settings';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { BaseLoading } from '@ui/loading';
+import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-financial-overview';
 import BudgetDetailsPage from './budget-details-page';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
+import { BudgetItemsContainer } from './components/budget-items-container';
+import { createMockBudget } from '../../../testing/mock-factories';
 
 /**
  * Tests the loading indicator ↔ isStale contract used by BudgetDetailsPage.
@@ -131,6 +144,327 @@ describe('BudgetDetailsPage — localized budget period', () => {
       );
     },
   );
+});
+
+/**
+ * PUL-361 — "Supprimer ce mois". The page is rendered for real (its template is
+ * what hides the menu on live and past months); the store, the dialog service
+ * and the heavy children are doubles.
+ */
+@Component({
+  selector: 'pulpe-budget-items',
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class BudgetItemsStub {}
+
+@Component({
+  selector: 'pulpe-budget-financial-overview',
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class BudgetFinancialOverviewStub {
+  readonly totals = input<unknown>();
+  readonly rollover = input<number>();
+  readonly currency = input<string>();
+  readonly locale = input<string>();
+  readonly showSavingsAction = input<boolean>();
+  readonly coverWithSavings = output<void>();
+}
+
+@Component({
+  selector: 'pulpe-base-loading',
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class BaseLoadingStub {
+  readonly message = input<string>();
+  readonly size = input<string>();
+  readonly fullHeight = input<boolean>();
+  readonly testId = input<string>();
+}
+
+describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
+  const NO_LINKS_IMPACT: BudgetDeletionImpact = {
+    forecastCount: 4,
+    movementCount: 2,
+    links: {
+      spreadForecasts: 0,
+      savingsGoalForecasts: 0,
+      savingsWithdrawalForecasts: 0,
+      savingsWithdrawalMovements: 0,
+    },
+  };
+  const LINKED_IMPACT: BudgetDeletionImpact = {
+    ...NO_LINKS_IMPACT,
+    links: { ...NO_LINKS_IMPACT.links, spreadForecasts: 3 },
+  };
+
+  let fixture: ComponentFixture<BudgetDetailsPage>;
+  let isViewedMonthFuture: ReturnType<typeof signal<boolean>>;
+  let store: {
+    deletionImpact: ReturnType<typeof vi.fn>;
+    deleteMonth: ReturnType<typeof vi.fn>;
+  };
+  let dialogService: { confirmDelete: ReturnType<typeof vi.fn> };
+  let router: { navigate: ReturnType<typeof vi.fn> };
+  let snackBar: { open: ReturnType<typeof vi.fn> };
+
+  const settle = (): Promise<void> =>
+    new Promise((resolve) => setTimeout(resolve));
+
+  const query = (testId: string): HTMLElement | null =>
+    document.querySelector(`[data-testid="${testId}"]`);
+
+  const setup = async (): Promise<void> => {
+    isViewedMonthFuture = signal(true);
+    store = {
+      deletionImpact: vi.fn().mockResolvedValue(NO_LINKS_IMPACT),
+      // The real store hands the page over to `leave` before it reports success.
+      deleteMonth: vi.fn(
+        async (_confirmLinks: boolean, leave: () => Promise<unknown>) => {
+          await leave();
+          return true;
+        },
+      ),
+    };
+    dialogService = { confirmDelete: vi.fn().mockResolvedValue(true) };
+    router = { navigate: vi.fn().mockResolvedValue(true) };
+    snackBar = { open: vi.fn() };
+
+    await TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+        { provide: Router, useValue: router },
+        { provide: MatSnackBar, useValue: snackBar },
+        {
+          provide: UserSettingsStore,
+          useValue: {
+            currency: signal('CHF'),
+            locale: signal('fr'),
+            payDayOfMonth: signal(1),
+          },
+        },
+        {
+          provide: BreadcrumbState,
+          useValue: {
+            setDynamicBreadcrumb: () => undefined,
+            clearDynamicBreadcrumb: () => undefined,
+          },
+        },
+        {
+          provide: LoadingIndicator,
+          useValue: { setLoading: () => undefined },
+        },
+      ],
+    })
+      .overrideComponent(BudgetDetailsPage, {
+        set: {
+          providers: [
+            {
+              provide: BudgetDetailsStore,
+              useValue: {
+                ...store,
+                isInitialLoading: signal(false),
+                error: signal(undefined),
+                isStale: signal(false),
+                budgetDetails: signal({
+                  ...createMockBudget({
+                    id: 'budget-1',
+                    month: 11,
+                    year: 2026,
+                  }),
+                  budgetLines: [],
+                  transactions: [],
+                }),
+                financialTotals: signal(null),
+                previousMonthRollover: signal(0),
+                shouldShowSavingsWithdrawalAction: signal(false),
+                hasPrevious: signal(false),
+                hasNext: signal(false),
+                previousBudgetId: signal(null),
+                nextBudgetId: signal(null),
+                isViewedMonthFuture,
+                setBudgetId: () => undefined,
+              },
+            },
+            { provide: BudgetDetailsDialogService, useValue: dialogService },
+          ],
+        },
+      })
+      .overrideComponent(BudgetDetailsPage, {
+        remove: {
+          imports: [BudgetItemsContainer, BudgetFinancialOverview, BaseLoading],
+        },
+        add: {
+          imports: [
+            BudgetItemsStub,
+            BudgetFinancialOverviewStub,
+            BaseLoadingStub,
+          ],
+        },
+      })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(BudgetDetailsPage);
+    fixture.componentRef.setInput('id', 'budget-1');
+    await fixture.whenStable();
+  };
+
+  const openMenuAndDelete = async (): Promise<void> => {
+    query('budget-month-menu')?.click();
+    await fixture.whenStable();
+    query('delete-month-button')?.click();
+    await settle();
+  };
+
+  beforeEach(setup);
+
+  describe('menu', () => {
+    it('should offer the menu on a future month', () => {
+      expect(query('budget-month-menu')).not.toBeNull();
+    });
+
+    it('should not offer the menu on a live or past month', async () => {
+      isViewedMonthFuture.set(false);
+      await fixture.whenStable();
+
+      expect(query('budget-month-menu')).toBeNull();
+    });
+
+    it('should list a single delete entry once opened', async () => {
+      query('budget-month-menu')?.click();
+      await fixture.whenStable();
+
+      expect(query('delete-month-button')?.textContent).toContain(
+        'Supprimer ce mois',
+      );
+    });
+  });
+
+  describe('confirm', () => {
+    it('should delete without confirming links when the month has none', async () => {
+      await openMenuAndDelete();
+
+      expect(dialogService.confirmDelete).toHaveBeenCalledWith({
+        title: 'Supprimer novembre 2026 ?',
+        message:
+          'Ses prévisions (4) et ses mouvements (2) seront supprimés. Cette action est irréversible.',
+      });
+      expect(store.deleteMonth).toHaveBeenCalledWith(
+        false,
+        expect.any(Function),
+      );
+    });
+
+    it('should land on the budget list and confirm with a snackbar', async () => {
+      await openMenuAndDelete();
+
+      expect(router.navigate).toHaveBeenCalledWith(['/', 'budget']);
+      expect(snackBar.open).toHaveBeenCalledWith('Mois supprimé', 'Fermer', {
+        duration: 3000,
+      });
+    });
+
+    it('should name the spread link and confirm the links when the month has one', async () => {
+      store.deletionImpact.mockResolvedValue(LINKED_IMPACT);
+
+      await openMenuAndDelete();
+
+      const { message } = dialogService.confirmDelete.mock.calls[0][0];
+      expect(message).toContain('dépense lissée (3)');
+      expect(message).toContain("Ce mois est aussi lié à d'autres mois");
+      expect(store.deleteMonth).toHaveBeenCalledWith(
+        true,
+        expect.any(Function),
+      );
+    });
+
+    it('should list each non-zero link and sum withdrawal forecasts with movements', async () => {
+      store.deletionImpact.mockResolvedValue({
+        ...NO_LINKS_IMPACT,
+        links: {
+          spreadForecasts: 0,
+          savingsGoalForecasts: 1,
+          savingsWithdrawalForecasts: 1,
+          savingsWithdrawalMovements: 2,
+        },
+      });
+
+      await openMenuAndDelete();
+
+      const { message } = dialogService.confirmDelete.mock.calls[0][0];
+      expect(message).toContain(
+        "objectif d'épargne (1), retrait d'épargne (3)",
+      );
+      expect(message).not.toContain('dépense lissée');
+    });
+  });
+
+  describe('cancel', () => {
+    it('should change nothing when the dialog is dismissed', async () => {
+      dialogService.confirmDelete.mockResolvedValue(false);
+
+      await openMenuAndDelete();
+
+      expect(store.deleteMonth).not.toHaveBeenCalled();
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(snackBar.open).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refusal', () => {
+    it('should show the error and stay put when the impact cannot be read', async () => {
+      store.deletionImpact.mockResolvedValue(null);
+
+      await openMenuAndDelete();
+
+      expect(dialogService.confirmDelete).not.toHaveBeenCalled();
+      expect(snackBar.open).toHaveBeenCalledWith(
+        "Le mois n'a pas pu être supprimé",
+        'Fermer',
+        expect.anything(),
+      );
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should show the error and stay put when the server refuses the delete', async () => {
+      store.deleteMonth.mockResolvedValue(false);
+
+      await openMenuAndDelete();
+
+      expect(snackBar.open).toHaveBeenCalledTimes(1);
+      expect(snackBar.open).toHaveBeenCalledWith(
+        "Le mois n'a pas pu être supprimé",
+        'Fermer',
+        expect.anything(),
+      );
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('double activation', () => {
+    it('should run one deletion at a time', async () => {
+      let resolveImpact!: (impact: BudgetDeletionImpact) => void;
+      store.deletionImpact.mockReturnValue(
+        new Promise<BudgetDeletionImpact>((resolve) => {
+          resolveImpact = resolve;
+        }),
+      );
+      const component = fixture.componentInstance as unknown as {
+        deleteMonth: () => Promise<void>;
+      };
+
+      const first = component.deleteMonth();
+      const second = component.deleteMonth();
+      resolveImpact(NO_LINKS_IMPACT);
+      await Promise.all([first, second]);
+
+      expect(store.deletionImpact).toHaveBeenCalledTimes(1);
+      expect(store.deleteMonth).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 /**
