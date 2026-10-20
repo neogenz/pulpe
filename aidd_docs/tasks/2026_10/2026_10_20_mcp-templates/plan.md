@@ -1,6 +1,6 @@
 ---
 objective: "An agent connected to Pulpe reads, creates, renames, deletes and duplicates templates, edits template lines with an explicit propagation scope, and adjusts a forecast or an allocated movement over several months, asking instead of guessing whenever the scope or the target is unclear."
-status: pending
+status: in-progress
 ---
 
 # Plan: Templates and multi-month adjustments through the agent connector

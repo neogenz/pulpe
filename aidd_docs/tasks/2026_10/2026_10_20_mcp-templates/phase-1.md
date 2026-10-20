@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Template module, read/write ports, duplicate, bounded propagation, in-use months

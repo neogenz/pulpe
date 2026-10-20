@@ -25,8 +25,10 @@ export class RemoveTemplateUseCase {
 
     await this.repo.validateAccess(id, user.id);
 
-    const isInUse = await this.repo.isTemplateInUse(id);
-    BudgetTemplateInvariants.validateTemplateNotUsed(id, isInUse ? 1 : 0);
+    BudgetTemplateInvariants.validateTemplateNotUsed(
+      id,
+      await this.repo.fetchTemplateBudgets(id),
+    );
 
     await this.repo.delete(id);
 
