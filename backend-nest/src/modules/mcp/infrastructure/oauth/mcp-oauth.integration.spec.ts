@@ -1117,6 +1117,14 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           }),
         );
       const before = await normal(`budgets/${budgetId}/details`);
+      const activityRows = async () =>
+        (
+          await admin
+            .from('mcp_activity')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', owner.id)
+        ).count;
+      const rowsBefore = await activityRows();
       expect(await call('create_month_from_template', future)).toContain(
         'Information manquante',
       );
@@ -1136,6 +1144,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           kind: 'saving',
         }),
       ).toContain('Information manquante');
+      expect(await activityRows()).toBe(rowsBefore);
       const after = await normal(`budgets/${budgetId}/details`);
       expect(after.budgetLines).toHaveLength(before.budgetLines.length);
       expect(after.transactions).toHaveLength(before.transactions.length);

@@ -7,6 +7,7 @@ import {
 } from '@modules/transaction/domain/ports/transaction-write.port';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 import { ResolveCurrencyUseCase } from '../../../application/resolve-currency.use-case';
+import { askUser } from './elicitation';
 
 const inputSchema = {
   movementId: z.uuid().describe('Identifiant du mouvement à modifier'),
@@ -53,6 +54,20 @@ export class UpdateMovementTool implements McpTool<Args> {
 
   async execute(args: Args): Promise<McpToolResult> {
     const { movementId, currency, amount, ...rest } = args;
+    if (currency !== undefined && amount === undefined) {
+      return askUser(
+        'le montant dans cette devise : une devise seule ne change rien. Rappelle update_movement avec amount et currency.',
+      );
+    }
+    // Written over `rest`, not a field list: a field added later counts as a change.
+    if (
+      amount === undefined &&
+      Object.values(rest).every((v) => v === undefined)
+    ) {
+      return askUser(
+        'ce qu’il faut modifier sur ce mouvement (intitulé, montant, nature ou date), puis rappelle update_movement.',
+      );
+    }
     const money =
       amount == null
         ? {}
