@@ -1678,6 +1678,8 @@ export const transactionSearchResultSchema = z.object({
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   monthLabel: z.string(),
+  // Always filled by the backend; optional so existing clients and fixtures stay valid.
+  tagIds: z.array(z.uuid()).optional(),
 });
 export type TransactionSearchResult = z.infer<
   typeof transactionSearchResultSchema

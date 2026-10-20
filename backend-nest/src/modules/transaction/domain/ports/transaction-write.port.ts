@@ -10,6 +10,8 @@ export const TRANSACTION_WRITE_PORT = Symbol('TRANSACTION_WRITE_PORT');
  * (`TRANSACTION_CREATE_PORT`), older than this one.
  */
 export interface TransactionWritePort {
+  /** Lu avant une écriture qui raisonne en ajout/retrait, comme les tags. */
+  find(id: string): Promise<Transaction>;
   update(id: string, patch: TransactionUpdate): Promise<Transaction>;
   /**
    * Rejects with `TRANSACTION_NOT_FOUND` when the id is not one of the user's

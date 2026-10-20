@@ -157,6 +157,7 @@ export interface TransactionSearchTransactionRow {
   transactionDate: string;
   budgetId: string;
   budget: { description: string; month: number; year: number } | null;
+  tagIds: string[];
 }
 
 export interface TransactionSearchBudgetLineRow {
@@ -167,4 +168,5 @@ export interface TransactionSearchBudgetLineRow {
   recurrence: 'fixed' | 'one_off';
   budgetId: string;
   budget: { description: string; month: number; year: number } | null;
+  tagIds: string[];
 }

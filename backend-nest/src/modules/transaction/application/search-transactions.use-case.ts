@@ -105,6 +105,7 @@ export class SearchTransactionsUseCase {
       year: t.budget?.year ?? new Date().getFullYear(),
       month: t.budget?.month ?? 1,
       monthLabel: MONTHS[(t.budget?.month ?? 1) - 1] ?? '',
+      tagIds: t.tagIds,
     };
   }
 
@@ -124,6 +125,7 @@ export class SearchTransactionsUseCase {
       year: bl.budget?.year ?? new Date().getFullYear(),
       month: bl.budget?.month ?? 1,
       monthLabel: MONTHS[(bl.budget?.month ?? 1) - 1] ?? '',
+      tagIds: bl.tagIds,
     };
   }
 }

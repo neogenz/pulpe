@@ -826,6 +826,7 @@ describe('SupabaseTransactionRepository', () => {
       });
 
       expect(result.map(({ id }) => id)).toEqual(['txn-tagged']);
+      expect(result[0]?.tagIds).toEqual([]);
       expect(byTag.in).toHaveBeenCalledWith('transaction_tag.tag_id', [
         'tag-groceries',
       ]);
@@ -887,7 +888,10 @@ describe('SupabaseTransactionRepository', () => {
 
     it('combines text and exact tags in one query', async () => {
       const query = transactionQuery([
-        searchRow('txn-shared', '2026-07-10T00:00:00.000Z'),
+        {
+          ...searchRow('txn-shared', '2026-07-10T00:00:00.000Z'),
+          all_tags: [{ tag_id: 'tag-food' }, { tag_id: 'tag-home' }],
+        },
       ]);
       const provider = createMockProvider((table) => {
         if (table === 'tag') {
@@ -914,6 +918,11 @@ describe('SupabaseTransactionRepository', () => {
       });
 
       expect(result.map(({ id }) => id)).toEqual(['txn-shared']);
+      // Filtered by one tag, the result still carries every tag of the item.
+      expect(result[0]?.tagIds).toEqual(['tag-food', 'tag-home']);
+      expect(query.select).toHaveBeenCalledWith(
+        expect.stringContaining('all_tags:transaction_tag(tag_id)'),
+      );
       expect(query.in).toHaveBeenCalledWith('transaction_tag.tag_id', [
         'tag-food',
       ]);
@@ -994,7 +1003,12 @@ describe('SupabaseTransactionRepository', () => {
     }
 
     it('combines text, budget, and exact tag filters in one query', async () => {
-      const bySelectedTag = budgetLineQuery([searchRow('line-selected')]);
+      const bySelectedTag = budgetLineQuery([
+        {
+          ...searchRow('line-selected'),
+          all_tags: [{ tag_id: 'tag-food' }, { tag_id: 'tag-home' }],
+        },
+      ]);
       const provider = createMockProvider(() => bySelectedTag);
       repo = new SupabaseTransactionRepository(
         provider,
@@ -1010,6 +1024,10 @@ describe('SupabaseTransactionRepository', () => {
       });
 
       expect(result.map(({ id }) => id)).toEqual(['line-selected']);
+      expect(result[0]?.tagIds).toEqual(['tag-food', 'tag-home']);
+      expect(bySelectedTag.select).toHaveBeenCalledWith(
+        expect.stringContaining('all_tags:budget_line_tag(tag_id)'),
+      );
       expect(bySelectedTag.in).toHaveBeenCalledWith('budget_line_tag.tag_id', [
         'tag-food',
         'tag-home',
@@ -1020,6 +1038,27 @@ describe('SupabaseTransactionRepository', () => {
         '***=courses',
       );
       expect(bySelectedTag.in).toHaveBeenCalledWith('budget_id', ['budget-1']);
+    });
+
+    it('maps a line without tag links to an empty tagIds', async () => {
+      const byName = budgetLineQuery([searchRow('line-plain')]);
+      repo = new SupabaseTransactionRepository(
+        createMockProvider(() => byName),
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.fetchBudgetLinesByPattern({
+        userId: 'user-1',
+        searchPattern: '***=courses',
+        budgetIds: null,
+        tagIds: [],
+      });
+
+      expect(result.map(({ tagIds }) => tagIds)).toEqual([[]]);
+      expect(byName.select).toHaveBeenCalledWith(
+        expect.stringContaining('all_tags:budget_line_tag(tag_id)'),
+      );
     });
   });
 

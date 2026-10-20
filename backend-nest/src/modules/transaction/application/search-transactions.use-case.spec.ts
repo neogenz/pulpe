@@ -95,6 +95,45 @@ describe('SearchTransactionsUseCase', () => {
     });
   });
 
+  describe('tag ids', () => {
+    it('should carry the tag ids of each transaction and budget line into its result', async () => {
+      const budget = { description: 'Janvier', year: 2026, month: 1 };
+      mockRepo.fetchTransactionsByPattern.mockResolvedValue([
+        {
+          id: 'transaction-1',
+          name: 'Result',
+          amount: 12,
+          kind: 'expense',
+          transactionDate: '2026-01-01T00:00:00.000Z',
+          budgetId: 'budget-1',
+          budget,
+          tagIds: ['tag-1', 'tag-2'],
+        },
+      ]);
+      mockRepo.fetchBudgetLinesByPattern.mockResolvedValue([
+        {
+          id: 'line-1',
+          name: 'Result',
+          amount: 12,
+          kind: 'expense',
+          recurrence: 'fixed',
+          budgetId: 'budget-1',
+          budget,
+          tagIds: ['tag-3'],
+        },
+      ]);
+
+      const results = await useCase.execute({ q: 'Result' }, mockUser);
+
+      expect(
+        Object.fromEntries(results.map((r) => [r.itemType, r.tagIds])),
+      ).toEqual({
+        transaction: ['tag-1', 'tag-2'],
+        budget_line: ['tag-3'],
+      });
+    });
+  });
+
   describe('filter criteria', () => {
     it('should scope text and tag filters to budgets from selected years', async () => {
       mockRepo.fetchBudgetIdsByYears.mockResolvedValue([
