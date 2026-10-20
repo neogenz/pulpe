@@ -77,6 +77,7 @@ describe('EditTemplateLinesTool', () => {
     expect(result.text).toContain('template_only');
     expect(result.text).toContain('current_and_future');
     expect(result.text).toContain('range');
+    expect(result.text).toContain('adjust_over_months');
     expect(editLines).not.toHaveBeenCalled();
   });
 

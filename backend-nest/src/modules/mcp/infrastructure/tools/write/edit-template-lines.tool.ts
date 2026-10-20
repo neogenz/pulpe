@@ -113,7 +113,7 @@ export class EditTemplateLinesTool implements McpTool<Args> {
   readonly name = 'edit_template_lines';
   readonly title = 'Modifier les prévisions d’un modèle';
   readonly description =
-    'Ajoute, modifie ou supprime des prévisions d’un modèle de mois. scope dit jusqu’où la modification s’applique : le modèle seul, le mois en cours et les suivants, ou une plage de mois, jamais avant le mois en cours. Les mois créés depuis ce modèle suivent, sauf les prévisions ajustées à la main dans un mois, qui restent telles quelles.';
+    'Ajoute, modifie ou supprime des prévisions d’un modèle de mois. Le modèle change toujours, donc aussi les mois créés plus tard depuis lui. scope dit quels mois existants suivent : aucun, le mois en cours et les suivants, ou une plage de mois, jamais avant le mois en cours. Les prévisions ajustées à la main dans un mois restent telles quelles. Pour changer seulement certains mois sans toucher au modèle, utiliser adjust_over_months. Si l’utilisateur n’a pas dit s’il veut changer le modèle ou seulement ces mois, lui demander avant d’appeler l’un ou l’autre.';
   readonly mode = 'read_write' as const;
   // A repeated `create` adds the line twice: not idempotent.
   readonly annotations = {
@@ -146,7 +146,7 @@ export class EditTemplateLinesTool implements McpTool<Args> {
     // months the user never meant to touch.
     if (!scope) {
       return askUser(
-        'si la modification vaut pour le modèle seul (template_only), aussi pour le mois en cours et les suivants (current_and_future), ou pour une plage de mois (range avec from et to), puis rappelle edit_template_lines avec scope.',
+        'si la modification vaut pour le modèle seul (template_only), pour le modèle et aussi le mois en cours et les suivants (current_and_future), ou pour le modèle et aussi les mois de from à to (range). Dans les trois cas le modèle change, donc aussi les mois créés plus tard depuis lui. Pour changer seulement certains mois sans toucher au modèle, utilise plutôt adjust_over_months. Sinon rappelle edit_template_lines avec scope.',
       );
     }
     if (scope === 'range' && (!from || !to)) {

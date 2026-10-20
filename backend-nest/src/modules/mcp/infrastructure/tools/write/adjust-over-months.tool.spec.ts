@@ -129,7 +129,7 @@ describe('AdjustOverMonthsTool', () => {
 
     asksUser(result);
     expect(result.text).toContain('4/2027');
-    expect(result.text).toContain(`[${ID}] Loyer · 1600`);
+    expect(result.text).toContain(`[${ID}] Loyer · 1600.4`);
     expect(result.text).toContain(`[${OTHER}] Loyer · 20`);
     expect(result.text).toContain('chosenIds');
   });

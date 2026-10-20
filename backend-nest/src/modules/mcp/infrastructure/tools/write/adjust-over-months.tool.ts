@@ -13,6 +13,7 @@ import {
   AdjustOverMonthsUseCase,
   type AdjustOverMonthsResult,
 } from '../../../application/adjust-over-months.use-case';
+import { round } from '../read/month-report';
 import { askUser } from './elicitation';
 
 const MAX_MONTHS = 12;
@@ -74,7 +75,7 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
   readonly name = 'adjust_over_months';
   readonly title = 'Ajuster sur plusieurs mois';
   readonly description =
-    'Applique le même changement d’intitulé ou de montant à une prévision, ou à un mouvement rattaché à une prévision, sur plusieurs mois consécutifs (12 au plus) à partir du mois donné. Dans chaque mois, l’équivalent est la prévision issue de la même prévision du modèle, sinon celle de même intitulé et de même nature. Un mois sans budget n’est jamais créé : la réponse le liste. Les prévisions modifiées sont marquées ajustées à la main.';
+    'Applique le même changement d’intitulé ou de montant à une prévision, ou à un mouvement rattaché à une prévision, sur plusieurs mois consécutifs (12 au plus) à partir du mois donné, sans toucher au modèle. Pour changer aussi le modèle, utiliser edit_template_lines. Si l’utilisateur n’a pas dit s’il veut changer le modèle ou seulement ces mois, lui demander avant d’appeler l’un ou l’autre. Dans chaque mois, l’équivalent est la prévision issue de la même prévision du modèle, sinon celle de même intitulé et de même nature. Un mois sans budget n’est jamais créé : la réponse le liste. Les prévisions modifiées sont marquées ajustées à la main : une modification du modèle ne les changera plus.';
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,
@@ -147,7 +148,7 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
     const lines = result.months.map(
       ({ period: p, candidates }) =>
         `${label(p)} : ${candidates
-          .map((c) => `[${c.id}] ${c.name} · ${Math.round(c.amount)}`)
+          .map((c) => `[${c.id}] ${c.name} · ${round(c.amount)}`)
           .join(' ; ')}`,
     );
     return askUser(
