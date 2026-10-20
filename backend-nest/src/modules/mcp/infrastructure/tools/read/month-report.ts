@@ -23,9 +23,16 @@ export function renderMonth(details: BudgetWithDetails): string {
     rollover,
   );
 
+  // A live planned withdrawal is pointed once its allocated Réel covers it, never
+  // through `checkedAt` (the server refuses to check it). Same rule as web
+  // `budget-item-data-builder.ts` (`isPointed`) and iOS `BudgetLine.isPointed`.
+  const isPointed = (l: (typeof budgetLines)[number]): boolean =>
+    l.sourceSavingsGoalId
+      ? BudgetFormulas.calculateConsumption(l, transactions).available <= 0
+      : !!l.checkedAt;
   const lines = budgetLines.map(
     (l) =>
-      `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Mensuel' : 'Ponctuel'} · ${l.checkedAt ? 'Pointé' : 'À pointer'}`,
+      `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Mensuel' : 'Ponctuel'} · ${isPointed(l) ? 'Pointé' : 'À pointer'}`,
   );
   // Keep the timezone: a UTC date alone can be the previous local day.
   const moves = transactions.map(

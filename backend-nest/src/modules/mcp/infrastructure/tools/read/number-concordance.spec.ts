@@ -139,6 +139,46 @@ describe('read tools · number concordance', () => {
     ).toBe('06.09.2026');
   });
 
+  it('shows a planned withdrawal as Pointé once its allocated Réel covers it', () => {
+    const withdrawal = line({
+      id: 'withdrawal',
+      name: 'Retrait',
+      kind: 'income',
+      amount: 500,
+      sourceSavingsGoalId: 'goal-1',
+      checkedAt: null,
+    });
+    const rowOf = (allocated: number) =>
+      renderMonth({
+        ...MONTH,
+        budgetLines: [withdrawal],
+        transactions: [
+          movement({
+            kind: 'income',
+            amount: allocated,
+            budgetLineId: 'withdrawal',
+          }),
+        ],
+      })
+        .split('\n')
+        .find((row) => row.startsWith('- [withdrawal]'));
+
+    expect(rowOf(500)).toEndWith(' · Pointé');
+    expect(rowOf(300)).toEndWith(' · À pointer');
+  });
+
+  it('keeps checkedAt as the pointed state of an ordinary forecast', () => {
+    const text = renderMonth({
+      ...MONTH,
+      budgetLines: [
+        line({ id: 'plain', checkedAt: '2026-03-05T00:00:00.000Z' }),
+      ],
+      transactions: [],
+    });
+
+    expect(text).toContain('- [plain] Dépense · Ligne · 0 · Ponctuel · Pointé');
+  });
+
   it('prints the month totals the shared budget formulas produce', async () => {
     const budgets = {
       readMonth: async () => MONTH,
