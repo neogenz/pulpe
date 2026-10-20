@@ -515,7 +515,8 @@
         "create_template": "Modello creato",
         "update_template": "Modello aggiornato",
         "delete_template": "Modello eliminato",
-        "duplicate_template": "Modello duplicato"
+        "duplicate_template": "Modello duplicato",
+        "edit_template_lines": "Previsioni del modello aggiornate"
       },
       "unknownAction": "Azione dell’assistente",
       "revoke": "Togli l'accesso",

@@ -379,7 +379,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       ]);
     }
 
-    it('associates through the production consent API and lists the 25 tools with an opaque credential', async () => {
+    it('associates through the production consent API and lists the 26 tools with an opaque credential', async () => {
       const preflight = await request(app.getHttpServer())
         .options('/mcp')
         .set('Origin', 'https://assistant.example')
@@ -418,7 +418,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }).expect(200);
       expect(initialized.body.result.serverInfo.name).toBe('pulpe');
       const catalog = await mcp(active.access_token).expect(200);
-      expect(catalog.body.result.tools).toHaveLength(25);
+      expect(catalog.body.result.tools).toHaveLength(26);
     });
 
     it('rejects unsafe redirect registrations and keeps the native public registration route closed', async () => {
@@ -922,7 +922,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         await refresh(client, rotated.body.refresh_token).expect(400);
       }
     });
-    it('advertises all 25 tools honestly and refuses every write tool in read-only mode', async () => {
+    it('advertises all 26 tools honestly and refuses every write tool in read-only mode', async () => {
       app.getHttpServer().closeAllConnections();
       await app.close();
       await boot();
@@ -958,6 +958,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'update_template',
         'delete_template',
         'duplicate_template',
+        'edit_template_lines',
       ];
       const destructive = [
         'update_movement',
@@ -970,6 +971,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'tag_items',
         'update_template',
         'delete_template',
+        'edit_template_lines',
       ];
       expect(catalog.map((tool: { name: string }) => tool.name).sort()).toEqual(
         [...reads, ...writes].sort(),
@@ -1098,7 +1100,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }
     });
 
-    it('executes all 25 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
+    it('executes all 26 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
       const owner = owners[1];
       const token = (
         await exchange(client, await authorize(client, owner)).expect(200)
@@ -1462,7 +1464,55 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           .data,
       ).toHaveLength(1);
       await call('delete_template', { templateId: copyId });
-      expect(used.size).toBe(25);
+      // Template lines: the scope is always asked, then a range reaches exactly
+      // one month and a template-only edit reaches none.
+      const linesBefore = await templateLines(owner.templateId);
+      expect(
+        await call('edit_template_lines', {
+          templateId: owner.templateId,
+          update: [{ id: crypto.randomUUID(), amount: 1 }],
+        }),
+      ).toContain('Information manquante');
+      expect(await templateLines(owner.templateId)).toBe(linesBefore);
+      const ranged = await call('edit_template_lines', {
+        templateId: owner.templateId,
+        scope: 'range',
+        from: future,
+        to: future,
+        create: [
+          {
+            name: 'Matrix template rent',
+            amount: 400,
+            kind: 'expense',
+            recurrence: 'fixed',
+          },
+        ],
+      });
+      expect(ranged).toContain('1 mois mis à jour');
+      const templateLineId = resultId(ranged);
+      const propagated = await admin
+        .from('budget_line')
+        .select('id')
+        .eq('budget_id', futureId)
+        .eq('template_line_id', templateLineId);
+      expect(propagated.data).toHaveLength(1);
+      const currentCopies = await admin
+        .from('budget_line')
+        .select('id')
+        .eq('budget_id', budgetId)
+        .eq('template_line_id', templateLineId);
+      expect(currentCopies.data).toHaveLength(0);
+      await call('edit_template_lines', {
+        templateId: owner.templateId,
+        scope: 'template_only',
+        update: [{ id: templateLineId, amount: 450 }],
+      });
+      const futureForecast = (
+        (await normal(`budgets/${futureId}/details`))
+          .budgetLines as BudgetLine[]
+      ).find((line) => line.id === propagated.data![0].id);
+      expect(futureForecast?.amount).toBe(400);
+      expect(used.size).toBe(26);
     });
 
     it('searches literal punctuation and tag names consistently through MCP and ordinary REST', async () => {

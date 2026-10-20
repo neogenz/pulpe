@@ -515,7 +515,8 @@
         "create_template": "Template created",
         "update_template": "Template updated",
         "delete_template": "Template deleted",
-        "duplicate_template": "Template duplicated"
+        "duplicate_template": "Template duplicated",
+        "edit_template_lines": "Template planned items updated"
       },
       "unknownAction": "Assistant action",
       "revoke": "Cut access",

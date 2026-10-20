@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: MCP tool `edit_template_lines` with an explicit scope

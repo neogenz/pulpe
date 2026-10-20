@@ -46,6 +46,7 @@ import { CreateTemplateTool } from './infrastructure/tools/write/create-template
 import { UpdateTemplateTool } from './infrastructure/tools/write/update-template.tool';
 import { DeleteTemplateTool } from './infrastructure/tools/write/delete-template.tool';
 import { DuplicateTemplateTool } from './infrastructure/tools/write/duplicate-template.tool';
+import { EditTemplateLinesTool } from './infrastructure/tools/write/edit-template-lines.tool';
 import { ResolveCurrencyUseCase } from './application/resolve-currency.use-case';
 import { McpRevocationModule } from './mcp-revocation.module';
 import { MCP_ACTIVITY_REPOSITORY, MCP_TOOLS } from './mcp.tokens';
@@ -76,6 +77,7 @@ const TOOLS = [
   UpdateTemplateTool,
   DeleteTemplateTool,
   DuplicateTemplateTool,
+  EditTemplateLinesTool,
 ];
 
 @Module({
