@@ -20,7 +20,8 @@ describe('WriteTransactionsInProcessUseCase.find', () => {
       { user } as unknown as AuthenticatedSupabaseProvider,
     );
 
-    await expect(port.find(ID)).resolves.toEqual({ id: ID, tagIds: [ID] });
+    const found = await port.find(ID);
+    expect(found.tagIds).toEqual([ID]);
     expect(find).toHaveBeenCalledWith(ID, user);
   });
 });

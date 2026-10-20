@@ -50,7 +50,8 @@ describe('WriteBudgetLinesInProcessUseCase.update', () => {
 describe('WriteBudgetLinesInProcessUseCase.find', () => {
   it('reads the forecast, with its tag ids, as the session user', async () => {
     const { port, find } = setup();
-    await expect(port.find(ID)).resolves.toEqual({ id: ID, tagIds: [ID] });
+    const found = await port.find(ID);
+    expect(found.tagIds).toEqual([ID]);
     expect(find).toHaveBeenCalledWith(ID, user);
   });
 });

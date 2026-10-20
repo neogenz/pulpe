@@ -1123,8 +1123,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
           month,
           year
         ),
-        budget_line_tag!inner(tag_id),
-        all_tags:budget_line_tag(tag_id)
+        budget_line_tag!inner(tag_id), all_tags:budget_line_tag(tag_id)
       `,
       )
       .in('budget_line_tag.tag_id', tagIds);
