@@ -77,7 +77,7 @@ export class FeedbackPrompt {
   #claimed = false;
 
   readonly #activeDay = signal<string | null>(null);
-  /** The last recorded active day, so the Home can re-offer on a new one. */
+  /** The last recorded active day, so the shell can re-offer on a new one. */
   readonly activeDay = this.#activeDay.asReadonly();
 
   recordActiveDay(now = new Date()): void {

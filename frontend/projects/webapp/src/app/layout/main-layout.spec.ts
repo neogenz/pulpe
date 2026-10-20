@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   provideZonelessChangeDetection,
+  PendingTasks,
+  ApplicationRef,
   signal,
   type Signal,
   type WritableSignal,
@@ -34,7 +36,11 @@ import { DemoInitializerService } from '../core/demo/demo-initializer.service';
 import { LoadingIndicator } from '../core/loading/loading-indicator';
 import { Logger } from '../core/logging/logger';
 import { ProductTourService } from '../core/product-tour/product-tour.service';
-import { FeedbackPrompt } from '../core/feedback/feedback-prompt';
+import {
+  FeedbackPrompt,
+  WHATS_NEW_ANNOUNCING,
+} from '../core/feedback/feedback-prompt';
+import { FeedbackDialog } from './feedback-dialog';
 import { BreadcrumbState } from '../core/shell/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
 
@@ -122,6 +128,7 @@ describe('MainLayout', () => {
   let mockRouter: {
     navigate: ReturnType<typeof vi.fn>;
     events: Subject<NavigationEnd>;
+    currentNavigation: ReturnType<typeof vi.fn>;
     url: string;
     createUrlTree: ReturnType<typeof vi.fn>;
     serializeUrl: ReturnType<typeof vi.fn>;
@@ -142,10 +149,17 @@ describe('MainLayout', () => {
     get: ReturnType<typeof vi.fn>;
   };
   let mockDialog: {
+    openDialogs: unknown[];
     open: ReturnType<typeof vi.fn>;
   };
   let mockProductTourService: {
+    hasSeenIntro: ReturnType<typeof vi.fn>;
     startPageTour: ReturnType<typeof vi.fn>;
+  };
+  let mockFeedbackPrompt: {
+    recordActiveDay: ReturnType<typeof vi.fn>;
+    activeDay: WritableSignal<string>;
+    claimAutomaticPrompt: ReturnType<typeof vi.fn>;
   };
   let breakpointSubject: Subject<{ matches: boolean }>;
 
@@ -181,6 +195,7 @@ describe('MainLayout', () => {
     mockRouter = {
       navigate: vi.fn().mockResolvedValue(true),
       events: new Subject<NavigationEnd>(),
+      currentNavigation: vi.fn().mockReturnValue(null),
       url: ROUTES.DASHBOARD,
       createUrlTree: vi.fn().mockReturnValue({}),
       serializeUrl: vi.fn().mockReturnValue('/test-url'),
@@ -201,10 +216,18 @@ describe('MainLayout', () => {
       get: vi.fn().mockReturnValue(EMPTY),
     };
     mockDialog = {
+      openDialogs: [],
       open: vi.fn().mockReturnValue({ afterClosed: () => EMPTY }),
     };
     mockProductTourService = {
+      hasSeenIntro: vi.fn().mockReturnValue(true),
       startPageTour: vi.fn(),
+    };
+
+    mockFeedbackPrompt = {
+      recordActiveDay: vi.fn(),
+      activeDay: signal('2026-10-20'),
+      claimAutomaticPrompt: vi.fn().mockResolvedValue(null),
     };
 
     // Configure TestBed
@@ -263,7 +286,7 @@ describe('MainLayout', () => {
           provide: LoadingIndicator,
           useValue: { isLoading: signal(false) },
         },
-        { provide: FeedbackPrompt, useValue: { recordActiveDay: vi.fn() } },
+        { provide: FeedbackPrompt, useValue: mockFeedbackPrompt },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     });
@@ -384,6 +407,93 @@ describe('MainLayout', () => {
           '[data-testid="menu-toggle"][data-tour="navigation"]',
         ),
       ).toBeTruthy();
+    });
+  });
+
+  describe('feedback invitation', () => {
+    beforeEach(() => {
+      mockFeedbackPrompt.claimAutomaticPrompt.mockImplementation(
+        async (canOpen: () => boolean) => (canOpen() ? 1 : null),
+      );
+    });
+
+    it.each(['/dashboard', '/budget/123', '/settings', '/savings-goals'])(
+      'offers feedback after navigation to %s',
+      async (url) => {
+        mockRouter.events.next(new NavigationEnd(1, url, url));
+        await fixture.whenStable();
+
+        await vi.waitFor(() => {
+          expect(mockDialog.open).toHaveBeenCalledExactlyOnceWith(
+            FeedbackDialog,
+            {
+              data: { promptNumber: 1 },
+              width: '440px',
+              maxWidth: 'calc(100vw - 32px)',
+            },
+          );
+        });
+      },
+    );
+
+    it('waits for page loading to finish', async () => {
+      const finishLoading = TestBed.inject(PendingTasks).add();
+      fixture.detectChanges();
+      await Promise.resolve();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      finishLoading();
+      await fixture.whenStable();
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+    });
+
+    it.each(['dialog', 'news', 'intro', 'navigation'])(
+      'preserves the %s presentation guard',
+      async (blocker) => {
+        if (blocker === 'dialog') mockDialog.openDialogs.push({});
+        if (blocker === 'news') TestBed.inject(WHATS_NEW_ANNOUNCING).set(true);
+        if (blocker === 'intro')
+          mockProductTourService.hasSeenIntro.mockReturnValue(false);
+        if (blocker === 'navigation')
+          mockRouter.currentNavigation.mockReturnValue({});
+        await fixture.whenStable();
+        expect(mockDialog.open).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rechecks on a new active day, not on unrelated renders', async () => {
+      mockFeedbackPrompt.claimAutomaticPrompt.mockResolvedValue(null);
+      await fixture.whenStable();
+      expect(mockFeedbackPrompt.claimAutomaticPrompt).toHaveBeenCalledTimes(1);
+      mockAuthStore.user.set({ email: 'changed@example.com' });
+      await fixture.whenStable();
+      expect(mockFeedbackPrompt.claimAutomaticPrompt).toHaveBeenCalledTimes(1);
+      mockFeedbackPrompt.activeDay.set('2026-10-21');
+      await fixture.whenStable();
+      expect(mockFeedbackPrompt.claimAutomaticPrompt).toHaveBeenCalledTimes(2);
+    });
+
+    it('defers a blocked invitation until the next navigation', async () => {
+      const announcing = TestBed.inject(WHATS_NEW_ANNOUNCING);
+      announcing.set(true);
+      await fixture.whenStable();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+
+      announcing.set(false);
+      await fixture.whenStable();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+
+      mockRouter.events.next(new NavigationEnd(2, '/budget', '/budget'));
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(mockDialog.open).toHaveBeenCalledOnce());
+    });
+
+    it('does not present when the layout is destroyed while loading', async () => {
+      const finishLoading = TestBed.inject(PendingTasks).add();
+      fixture.detectChanges();
+      fixture.destroy();
+      finishLoading();
+      await TestBed.inject(ApplicationRef).whenStable();
+      expect(mockDialog.open).not.toHaveBeenCalled();
     });
   });
 
