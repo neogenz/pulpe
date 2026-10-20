@@ -161,9 +161,16 @@ extension ConnectionDetailView {
 
     /// The tool name in plain words. An unknown tool falls back to its raw name
     /// rather than a vague "Action": a wrong reassurance is worse than a slug.
-    private static func label(for entry: MCPActivity) -> String {
+    static func label(for entry: MCPActivity) -> String {
         let name = switch entry.tool {
         case "add_movement": AppLocale.string("Mouvement ajouté")
+        case "update_movement": AppLocale.string("Mouvement modifié")
+        case "delete_movement": AppLocale.string("Mouvement supprimé")
+        case "add_forecast": AppLocale.string("Prévision ajoutée")
+        case "update_forecast": AppLocale.string("Prévision modifiée")
+        case "spread_expense": AppLocale.string("Dépense répartie")
+        case "create_month_from_template": AppLocale.string("Budget mensuel créé")
+        case "toggle_check": AppLocale.string("Pointage modifié")
         default: entry.tool
         }
         return entry.outcome == .error ? AppLocale.string("\(name) (échec)") : name

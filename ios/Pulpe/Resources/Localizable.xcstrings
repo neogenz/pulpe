@@ -172,6 +172,28 @@
       },
       "shouldTranslate" : false
     },
+    "%@ (échec)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (fehlgeschlagen)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (failed)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (non riuscito)"
+          }
+        }
+      }
+    },
     "%@ / %@" : {
       "localizations" : {
         "fr" : {
@@ -6207,6 +6229,28 @@
         }
       }
     },
+    "Budget mensuel créé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatsbudget erstellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly budget created"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget mensile creato"
+          }
+        }
+      }
+    },
     "Budget protégé" : {
       "localizations" : {
         "de" : {
@@ -11453,6 +11497,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spesa ripartita, vedi i mesi"
+          }
+        }
+      }
+    },
+    "Dépense répartie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgabe verteilt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expense spread"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spesa ripartita"
           }
         }
       }
@@ -17065,6 +17131,28 @@
         }
       }
     },
+    "Mouvement ajouté" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry added"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento aggiunto"
+          }
+        }
+      }
+    },
     "Mouvement de l’objectif, %@ %@" : {
       "localizations" : {
         "de" : {
@@ -17089,6 +17177,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Movimento dell'obiettivo, %@ %@"
+          }
+        }
+      }
+    },
+    "Mouvement modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento modificato"
+          }
+        }
+      }
+    },
+    "Mouvement supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento eliminato"
           }
         }
       }
@@ -19509,6 +19641,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spunta"
+          }
+        }
+      }
+    },
+    "Pointage modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abhaken geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking changed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta modificata"
           }
         }
       }
