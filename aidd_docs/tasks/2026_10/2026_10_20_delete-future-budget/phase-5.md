@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 <!-- Fill or omit these sections; never add, rename, or reorder one. -->
@@ -58,7 +58,7 @@ journey
   section Edge case - current or past month
     budgetTiming is current or past => render screen => no dots-vertical action: 1: system
   section Edge case - payday shifts the live period
-    payDayOfMonth 25 and now 2026-10-20 => render October 2026 => action shown: 1: system
+    payDayOfMonth 25 and now 2026-10-26 (quinzaine rule, November is live) => render November 2026 => no action, December 2026 => action shown: 1: system
   section Edge case - delete fails
     deleteVoid rejects => confirm => FieldError shown, router.back not called, dialog stays open: 1: system
   section Edge case - no refetch of the deleted month

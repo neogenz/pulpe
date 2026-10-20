@@ -3,6 +3,7 @@ import { ENDPOINTS } from "@/core/api/endpoints";
 
 import {
   BUDGET_PAGE_SIZE,
+  fetchBudgetDeletionImpact,
   fetchBudgetListPage,
   fetchBudgetPeriods,
   generateBudgets,
@@ -64,6 +65,34 @@ describe("budget list API", () => {
     expect(response.data.skippedMonths).toEqual([{ month: 10, year: 2026 }]);
 
     const responseSchema = mockedPost.mock.calls[0]?.[2];
+    expect(() => responseSchema?.parse({ success: true, data: {} })).toThrow();
+  });
+
+  it("reads the deletion impact of one budget and unwraps its payload", async () => {
+    const impact = {
+      forecastCount: 4,
+      movementCount: 2,
+      links: {
+        spreadForecasts: 1,
+        savingsGoalForecasts: 0,
+        savingsWithdrawalForecasts: 0,
+        savingsWithdrawalMovements: 0,
+      },
+    };
+    mockedGet.mockResolvedValue({ success: true, data: impact });
+
+    await expect(fetchBudgetDeletionImpact("budget-1")).resolves.toEqual(
+      impact,
+    );
+
+    expect(mockedGet).toHaveBeenCalledWith(
+      ENDPOINTS.budgetDeletionImpact("budget-1"),
+      expect.objectContaining({ parse: expect.any(Function) }),
+    );
+    expect(ENDPOINTS.budgetDeletionImpact("budget-1")).toBe(
+      "/budgets/budget-1/deletion-impact",
+    );
+    const responseSchema = mockedGet.mock.calls[0]?.[1];
     expect(() => responseSchema?.parse({ success: true, data: {} })).toThrow();
   });
 });

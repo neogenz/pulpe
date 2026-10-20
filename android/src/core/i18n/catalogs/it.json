@@ -81,6 +81,18 @@
         "remaining": "rimanenti su %{amount}"
       },
       "deletedGoal": "Questo obiettivo è stato eliminato. L'entrata resta nel tuo budget.",
+      "deleteMonth": {
+        "action": "Elimina questo mese",
+        "title": "Eliminare %{month}?",
+        "body": "Le sue previsioni (%{forecastCount}) e i suoi movimenti (%{movementCount}) verranno eliminati. Questa azione è irreversibile.",
+        "links": "Questo mese è collegato anche ad altri mesi: %{links}. Gli altri mesi mantengono la loro parte.",
+        "linkSpread": "spesa distribuita (%{count})",
+        "linkGoal": "obiettivo di risparmio (%{count})",
+        "linkWithdrawal": "prelievo dai risparmi (%{count})",
+        "confirm": "Elimina",
+        "loadError": "Non è stato possibile caricare i dettagli del mese. Riprova.",
+        "failure": "Non è stato possibile eliminare il mese. Riprova."
+      },
       "filters": {
         "all": "Tutto",
         "checked": "Spuntato",

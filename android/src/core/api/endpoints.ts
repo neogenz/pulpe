@@ -21,6 +21,7 @@ export const ENDPOINTS = {
   budgetsGenerate: "/budgets/generate",
   budget: (id: string) => `/budgets/${id}`,
   budgetDetails: (id: string) => `/budgets/${id}/details`,
+  budgetDeletionImpact: (id: string) => `/budgets/${id}/deletion-impact`,
   budgetsExport: "/budgets/export",
 
   budgetLines: "/budget-lines",
