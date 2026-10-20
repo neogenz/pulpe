@@ -17,7 +17,13 @@ struct ConnectionActivityLabelTests {
         "create_tag",
         "rename_tag",
         "delete_tag",
-        "tag_items"
+        "tag_items",
+        "create_template",
+        "update_template",
+        "delete_template",
+        "duplicate_template",
+        "edit_template_lines",
+        "adjust_over_months"
     ]
 
     private func entry(_ tool: String, outcome: MCPActivity.Outcome = .ok) -> MCPActivity {
