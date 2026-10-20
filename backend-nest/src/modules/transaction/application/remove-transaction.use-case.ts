@@ -31,8 +31,29 @@ export class RemoveTransactionUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(id: string, user: AuthenticatedUser): Promise<void> {
+  /**
+   * `DELETE /transactions/:id` is idempotent: an unknown id succeeds. An
+   * in-process caller that must not report a deletion that never happened
+   * passes `mustExist`.
+   */
+  async execute(
+    id: string,
+    user: AuthenticatedUser,
+    options: { mustExist?: boolean } = {},
+  ): Promise<void> {
     const context = await this.repo.findMutationContext(id);
+    if (!context && options.mustExist) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+        { id },
+        {
+          operation: 'transaction.remove',
+          userId: user.id,
+          entityId: id,
+          entityType: 'transaction',
+        },
+      );
+    }
     const budgetId = context?.budgetId ?? null;
 
     // Supprimer un retrait rend son montant au pot : la suppression passe donc

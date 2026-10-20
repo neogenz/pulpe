@@ -1,6 +1,10 @@
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import type { TransactionCreate, TransactionUpdate } from 'pulpe-shared';
+import type {
+  TransactionCreate,
+  TransactionKind,
+  TransactionUpdate,
+} from 'pulpe-shared';
 import type { SpreadSourceTransaction } from './transaction.entity';
 
 export const TRANSACTION_CONSTANTS = {
@@ -106,6 +110,21 @@ export class TransactionInvariants {
         {
           reason:
             'a savings-goal-sourced income cannot change kind, only a new transaction can',
+        },
+      );
+    }
+  }
+
+  /** A movement allocated to a forecast keeps that forecast's kind, at creation and on update. */
+  static validateKindMatchesLine(
+    lineKind: TransactionKind,
+    kind: TransactionKind,
+  ): void {
+    if (lineKind !== kind) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        {
+          reason: `Transaction kind must match budget line kind (expected: ${lineKind}, got: ${kind})`,
         },
       );
     }

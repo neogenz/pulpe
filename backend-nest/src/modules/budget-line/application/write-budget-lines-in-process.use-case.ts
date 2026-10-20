@@ -25,7 +25,17 @@ export class WriteBudgetLinesInProcessUseCase implements BudgetLineWritePort {
   }
 
   update(id: string, patch: BudgetLineUpdate): Promise<BudgetLine> {
-    return this.updateBudgetLine.execute(id, patch, this.session.user);
+    // An agent edit of a value is a manual adjustment, like the web and iOS
+    // edit forms: Mois Type propagation and a goal stop leave the line alone.
+    // A tags-only patch is not one: tagging must not freeze a forecast.
+    const editsValue = Object.entries(patch).some(
+      ([key, value]) => key !== 'id' && key !== 'tagIds' && value !== undefined,
+    );
+    return this.updateBudgetLine.execute(
+      id,
+      editsValue ? { ...patch, isManuallyAdjusted: true } : patch,
+      this.session.user,
+    );
   }
 
   toggleCheck(id: string): Promise<BudgetLine> {

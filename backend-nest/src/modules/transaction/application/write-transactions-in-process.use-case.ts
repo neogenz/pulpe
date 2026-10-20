@@ -22,7 +22,9 @@ export class WriteTransactionsInProcessUseCase implements TransactionWritePort {
   }
 
   remove(id: string): Promise<void> {
-    return this.removeTransaction.execute(id, this.session.user);
+    return this.removeTransaction.execute(id, this.session.user, {
+      mustExist: true,
+    });
   }
 
   toggleCheck(id: string): Promise<Transaction> {

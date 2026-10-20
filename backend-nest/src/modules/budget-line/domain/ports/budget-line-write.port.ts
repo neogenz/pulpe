@@ -11,6 +11,11 @@ export const BUDGET_LINE_WRITE_PORT = Symbol('BUDGET_LINE_WRITE_PORT');
  */
 export interface BudgetLineWritePort {
   create(dto: BudgetLineCreate): Promise<BudgetLine>;
+  /**
+   * An agent edit of a value field marks the line `isManuallyAdjusted`
+   * (BUSINESS_RULES: no longer overwritten by Mois Type propagation); a
+   * tags-only patch does not.
+   */
   update(id: string, patch: BudgetLineUpdate): Promise<BudgetLine>;
   /** Pointe ou dépointe : le même geste dans les deux sens. */
   toggleCheck(id: string): Promise<BudgetLine>;

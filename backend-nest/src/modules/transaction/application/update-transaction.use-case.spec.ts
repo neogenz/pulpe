@@ -45,6 +45,7 @@ describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => 
     update: ReturnType<typeof jest.fn>;
     updateWithdrawal: ReturnType<typeof jest.fn>;
     findMutationContext: ReturnType<typeof jest.fn>;
+    fetchBudgetLineForAllocation: ReturnType<typeof jest.fn>;
   };
   let mockWithdrawalPolicy: { runAgainstBalance: ReturnType<typeof jest.fn> };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
@@ -63,6 +64,7 @@ describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => 
         sourceSavingsGoalId: null,
         sourceSavingsGoalName: null,
       }),
+      fetchBudgetLineForAllocation: jest.fn().mockResolvedValue(null),
     };
     mockWithdrawalPolicy = {
       runAgainstBalance: jest
@@ -185,6 +187,62 @@ describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => 
     expect(result).toEqual(mockEntity);
     expect(mockRepo.update).toHaveBeenCalledTimes(1);
     expect(mockBudget.recalculate).toHaveBeenCalledWith(mockEntity.budgetId);
+  });
+
+  describe('kind of an allocated movement', () => {
+    const allocated = (kind: 'income' | 'expense') => {
+      mockRepo.findMutationContext.mockResolvedValue({
+        budgetId: 'budget-1',
+        budgetLineId: 'line-1',
+        kind,
+        amount: 50,
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: null,
+      });
+      mockRepo.fetchBudgetLineForAllocation.mockResolvedValue({
+        id: 'line-1',
+        budgetId: 'budget-1',
+        kind: 'expense',
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: null,
+      });
+    };
+
+    it('should refuse a kind that differs from the forecast, writing nothing', async () => {
+      allocated('expense');
+
+      const caught = await useCase
+        .execute('txn-1', { kind: 'income' }, mockUser)
+        .catch((error: unknown) => error);
+
+      expect((caught as BusinessException).code).toBe(
+        'ERR_TRANSACTION_VALIDATION_FAILED',
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should let a drifted movement return to its forecast kind', async () => {
+      allocated('income');
+
+      await useCase.execute('txn-1', { kind: 'expense' }, mockUser);
+
+      expect(mockRepo.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not look the forecast up when the kind is unchanged', async () => {
+      allocated('expense');
+
+      await useCase.execute('txn-1', { kind: 'expense', amount: 60 }, mockUser);
+
+      expect(mockRepo.fetchBudgetLineForAllocation).not.toHaveBeenCalled();
+    });
+
+    it('should change the kind of a free movement without any lookup', async () => {
+      await useCase.execute('txn-1', { kind: 'income' }, mockUser);
+
+      expect(mockRepo.fetchBudgetLineForAllocation).not.toHaveBeenCalled();
+      expect(mockRepo.update).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('savings-goal withdrawal (PUL-329)', () => {
