@@ -1008,20 +1008,18 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     options: TransactionTagSearchOptions,
   ): Promise<RawSearchTransactionRow[]> {
     const hasTextTagFilter = Boolean(options.textTagIds?.length);
+    // Aliased: an unaliased filter path would also narrow `all_tags`.
     const tagRelations = hasTextTagFilter
       ? `
         selected_tags:transaction_tag!inner(tag_id),
         text_tags:transaction_tag!inner(tag_id)
       `
-      : 'transaction_tag!inner(tag_id)';
-    const selectedTagsRelation = hasTextTagFilter
-      ? 'selected_tags'
-      : 'transaction_tag';
+      : 'selected_tags:transaction_tag!inner(tag_id)';
     const select: string = `${SEARCH_TRANSACTION_FIELDS}, ${tagRelations}`;
     let query = this.supabaseProvider.client
       .from('transaction')
       .select(select)
-      .in(`${selectedTagsRelation}.tag_id`, tagIds);
+      .in('selected_tags.tag_id', tagIds);
     if (options.textTagIds?.length) {
       query = query.in('text_tags.tag_id', options.textTagIds);
     }
@@ -1123,10 +1121,10 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
           month,
           year
         ),
-        budget_line_tag!inner(tag_id), all_tags:budget_line_tag(tag_id)
+        selected_tags:budget_line_tag!inner(tag_id), all_tags:budget_line_tag(tag_id)
       `,
       )
-      .in('budget_line_tag.tag_id', tagIds);
+      .in('selected_tags.tag_id', tagIds);
     if (searchPattern) {
       query = query.filter('name', 'imatch', searchPattern);
     }

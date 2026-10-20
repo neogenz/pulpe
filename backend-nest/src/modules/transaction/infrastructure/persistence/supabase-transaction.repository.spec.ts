@@ -827,7 +827,7 @@ describe('SupabaseTransactionRepository', () => {
 
       expect(result.map(({ id }) => id)).toEqual(['txn-tagged']);
       expect(result[0]?.tagIds).toEqual([]);
-      expect(byTag.in).toHaveBeenCalledWith('transaction_tag.tag_id', [
+      expect(byTag.in).toHaveBeenCalledWith('selected_tags.tag_id', [
         'tag-groceries',
       ]);
     });
@@ -923,7 +923,7 @@ describe('SupabaseTransactionRepository', () => {
       expect(query.select).toHaveBeenCalledWith(
         expect.stringContaining('all_tags:transaction_tag(tag_id)'),
       );
-      expect(query.in).toHaveBeenCalledWith('transaction_tag.tag_id', [
+      expect(query.in).toHaveBeenCalledWith('selected_tags.tag_id', [
         'tag-food',
       ]);
       expect(query.filter).toHaveBeenCalledWith(
@@ -1028,7 +1028,7 @@ describe('SupabaseTransactionRepository', () => {
       expect(bySelectedTag.select).toHaveBeenCalledWith(
         expect.stringContaining('all_tags:budget_line_tag(tag_id)'),
       );
-      expect(bySelectedTag.in).toHaveBeenCalledWith('budget_line_tag.tag_id', [
+      expect(bySelectedTag.in).toHaveBeenCalledWith('selected_tags.tag_id', [
         'tag-food',
         'tag-home',
       ]);
