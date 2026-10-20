@@ -164,6 +164,7 @@ extension ConnectionDetailView {
     private static func label(for entry: MCPActivity) -> String {
         let name = switch entry.tool {
         case "add_movement": AppLocale.string("Mouvement ajouté")
+        case "delete_month": AppLocale.string("Mois supprimé")
         default: entry.tool
         }
         return entry.outcome == .error ? AppLocale.string("\(name) (échec)") : name

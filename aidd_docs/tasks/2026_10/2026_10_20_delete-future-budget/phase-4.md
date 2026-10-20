@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 <!-- Fill or omit these sections; never add, rename, or reorder one. -->
@@ -71,7 +71,7 @@ journey
   section Edge case - current or past month
     Month equals or precedes periodForDate(now) => isFutureMonth => false, no toolbar menu: 1: system
   section Edge case - payday shifts the live period
-    payDay 25 and today 2026-10-20 => isFutureMonth October 2026 => true, September 2026 => false: 1: system
+    payDay 25 and today 2026-10-26 (quinzaine rule, November is live) => isFutureMonth December 2026 => true, November 2026 => false: 1: system
   section Edge case - request contract
     Intercepting URLProtocol => deleteBudget confirmLinks true => DELETE /budgets/{id}?confirmLinks=true: 1: system
   section Edge case - file budgets

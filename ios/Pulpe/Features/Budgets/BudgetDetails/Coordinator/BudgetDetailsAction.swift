@@ -52,6 +52,10 @@ enum BudgetDetailsAction {
     /// Lisser une transaction libre existante (total préservé) (PUL-17 v1.1).
     case spreadTransactionFromExisting(txId: String, periods: [SpreadFromExistingPeriod], ToastContext)
 
+    // Month mutations
+    /// Deletes the open month (a future one, PUL-361), then hands control back through `onDeleted`.
+    case deleteMonth(confirmLinks: Bool, ToastContext, onDeleted: @MainActor () -> Void)
+
     // Side-effect: emit "Pointé" toast after a successful toggle
     case showCheckToastIfNeeded(BudgetLine, ToastContext, amountsHidden: Bool)
 

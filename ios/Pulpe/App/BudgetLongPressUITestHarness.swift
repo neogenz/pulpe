@@ -127,6 +127,9 @@ private final class BudgetGoalSpreadUITestService: BudgetServicing, BudgetLineSe
         budgets
     }
 
+    func getDeletionImpact(id _: String) async throws -> BudgetDeletionImpact { throw URLError(.unsupportedURL) }
+    func deleteBudget(id _: String, confirmLinks _: Bool) async throws { throw URLError(.unsupportedURL) }
+
     func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence] {
         guard spreadGroupId == self.spreadGroupId else { throw URLError(.badServerResponse) }
         return occurrences
