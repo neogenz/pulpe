@@ -2,47 +2,6 @@ import SwiftUI
 
 /// Sheet for adding a new transaction — fintech-inspired hero amount layout
 struct AddTransactionSheet: View {
-    /// Whether an income is funded by a savings goal (PUL-329), and what that
-    /// implies for the form. A value type so the rule can be tested on its own.
-    struct SavingsGoalOrigin: Equatable {
-        let kind: TransactionKind
-        let isEnabled: Bool
-        let goalId: String?
-        let isWithdrawalReady: Bool
-        /// The typed amount could not be converted into the account currency, so
-        /// there is nothing to weigh the goal's balance against (RG-009).
-        let hasConversionFailed: Bool
-        /// Which savings, once the income comes from savings. « À remettre » leaves
-        /// this sheet for the budget page's withdrawal preview (PUL-292).
-        var origin: SavingsOrigin = .goal
-
-        /// Only an income can come out of savings.
-        var isOffered: Bool { kind == .income }
-
-        /// The goal path: the income is created here, drawn from the chosen goal.
-        var isActive: Bool { isOffered && isEnabled && origin == .goal }
-
-        /// The repay path: nothing is created here, the request is handed over.
-        var routesToWithdrawal: Bool { isOffered && isEnabled && origin == .repay }
-
-        /// The id sent on creation — never sent for a kind that cannot carry one.
-        var sourceSavingsGoalId: String? { isActive ? goalId : nil }
-
-        var blocksSubmission: Bool { isActive && !isWithdrawalReady }
-
-        /// Why this block holds the submission back, when the reason is its own.
-        /// A chosen goal that the picker refuses states itself down there; what
-        /// the picker cannot see is that it was never handed an amount to judge.
-        var blockingReason: String? {
-            guard isActive else { return nil }
-            if goalId == nil { return AppLocale.string("Choisis l'objectif utilisé") }
-            if hasConversionFailed {
-                return AppLocale.string("Le taux de change est indisponible, réessaie dans un instant.")
-            }
-            return nil
-        }
-    }
-
     /// What the details card starts with when nothing is touched: the fact is dated
     /// today and has already left the account. Explicit so the defaults are tested.
     enum Defaults {
@@ -74,9 +33,9 @@ struct AddTransactionSheet: View {
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
     @State private var selectedTagIds: Set<String> = []
-    /// PUL-329 — an income can be funded by a savings goal. Off by default; the
+    /// An income can come from savings: a goal (PUL-329) or « À remettre » (PUL-292). Off by default; the
     /// whole block disappears (and the choice is dropped) for any other kind.
-    @State private var isFromSavingsGoal = false
+    @State private var isFromSavings = false
     @State private var savingsOrigin: SavingsOrigin = .goal
     @State private var savingsGoalId: String?
     @State private var isWithdrawalReady = false
@@ -107,7 +66,7 @@ struct AddTransactionSheet: View {
     private var savingsGoalOrigin: SavingsGoalOrigin {
         SavingsGoalOrigin(
             kind: kind,
-            isEnabled: isFromSavingsGoal,
+            isEnabled: isFromSavings,
             goalId: savingsGoalId,
             isWithdrawalReady: isWithdrawalReady,
             hasConversionFailed: hasConversionFailed,
@@ -200,7 +159,7 @@ struct AddTransactionSheet: View {
         .onAppear { inputCurrency = userSettingsStore.currency }
         .onChange(of: kind) { _, newKind in
             guard newKind != .income else { return }
-            isFromSavingsGoal = false
+            isFromSavings = false
             savingsOrigin = .goal
             savingsGoalId = nil
         }
@@ -229,7 +188,7 @@ struct AddTransactionSheet: View {
         )
     }
 
-    // MARK: - Savings-goal origin (PUL-329)
+    // MARK: - Savings origin (PUL-329 / PUL-292)
 
     @ViewBuilder
     private var savingsGoalOriginSection: some View {
@@ -237,7 +196,7 @@ struct AddTransactionSheet: View {
             if !routesToWithdrawal { FormRowDivider() }
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 SavingsOriginToggle(
-                    isOn: $isFromSavingsGoal,
+                    isOn: $isFromSavings,
                     origin: $savingsOrigin,
                     offersRepay: onRequestSavingsWithdrawal != nil,
                     tintColor: kind.color
