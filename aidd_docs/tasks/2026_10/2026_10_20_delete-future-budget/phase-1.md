@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 <!-- Fill or omit these sections; never add, rename, or reorder one. -->
@@ -66,7 +66,7 @@ journey
   section Edge case - current or past month
     Budget period equals or precedes the live period => delete => 409 ERR_BUDGET_NOT_DELETABLE, deleteBudget never called: 1: system
   section Edge case - payday shifts the live period
-    payDay 25 and today 2026-10-20 => delete October 2026 => allowed, September 2026 refused: 1: system
+    payDay 25 and today 2026-10-26 (quinzaine rule, November is live) => delete November 2026 refused, December 2026 allowed, a calendar user may delete November: 1: system
   section Edge case - unconfirmed links
     Month carries a spread forecast and confirmLinks absent => delete => 409 ERR_BUDGET_DELETION_LINKS_UNCONFIRMED with links in details, deleteBudget never called: 1: system
   section Edge case - unknown or foreign id

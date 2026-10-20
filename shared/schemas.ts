@@ -931,6 +931,24 @@ export type SavingsGoalDeletionImpact = z.infer<
 >;
 
 /**
+ * Ce que la suppression d'un mois emporte. `links` compte les Prévisions et
+ * Mouvements du mois qui sont liés à d'autres mois ou à un objectif (dépense
+ * lissée, objectif d'épargne, retrait d'épargne) : chaque Prévision est
+ * comptée dans une seule catégorie.
+ */
+export const budgetDeletionImpactSchema = z.object({
+  forecastCount: z.number().int().nonnegative(),
+  movementCount: z.number().int().nonnegative(),
+  links: z.object({
+    spreadForecasts: z.number().int().nonnegative(),
+    savingsGoalForecasts: z.number().int().nonnegative(),
+    savingsWithdrawalForecasts: z.number().int().nonnegative(),
+    savingsWithdrawalMovements: z.number().int().nonnegative(),
+  }),
+});
+export type BudgetDeletionImpact = z.infer<typeof budgetDeletionImpactSchema>;
+
+/**
  * BUDGET LINE - Ligne budgétaire planifiée
  *
  * Selon SPECS.md section 2 "Concepts Métier":
@@ -2180,6 +2198,12 @@ export type BudgetExistsResponse = z.infer<typeof budgetExistsResponseSchema>;
 export const budgetDeleteResponseSchema = deleteResponseSchema;
 export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 
+// Plain enum, not z.stringbool: a codec through createZodDto is untested here.
+export const budgetDeleteQuerySchema = z.strictObject({
+  confirmLinks: z.enum(['true', 'false']).optional(),
+});
+export type BudgetDeleteQuery = z.infer<typeof budgetDeleteQuerySchema>;
+
 // Budget summary schema with rollover calculations
 export const budgetSummarySchema = z.object({
   endingBalance: z.number(),
@@ -2556,6 +2580,13 @@ export const savingsGoalDeletionImpactResponseSchema = createSuccessResponse(
 );
 export type SavingsGoalDeletionImpactResponse = z.infer<
   typeof savingsGoalDeletionImpactResponseSchema
+>;
+
+export const budgetDeletionImpactResponseSchema = createSuccessResponse(
+  budgetDeletionImpactSchema,
+);
+export type BudgetDeletionImpactResponse = z.infer<
+  typeof budgetDeletionImpactResponseSchema
 >;
 
 // Tag response schemas (PUL-18)

@@ -1135,3 +1135,90 @@ describe('SupabaseBudgetRepository row cap', () => {
     );
   });
 });
+
+describe('SupabaseBudgetRepository fetchDeletionLinkRows', () => {
+  function linkRowsProvider(lineRows: unknown[], movementRows: unknown[]) {
+    const inSpy = jest.fn();
+    const selectSpy = jest.fn();
+    const provider = createMockProvider((table: string) => {
+      const rows = table === 'budget_line' ? lineRows : movementRows;
+      return {
+        select: (columns: string) => {
+          selectSpy(table, columns);
+          return {
+            in: (column: string, ids: string[]) => {
+              inSpy(table, column, ids);
+              return pagedRowsQuery(rows);
+            },
+          };
+        },
+      };
+    });
+    return { provider, inSpy, selectSpy };
+  }
+
+  it('reads only the given budget and maps the link columns to camelCase', async () => {
+    const { provider, inSpy, selectSpy } = linkRowsProvider(
+      [
+        {
+          spread_group_id: 'spread-1',
+          savings_goal_id: null,
+          savings_withdrawal_group_id: null,
+          source_savings_goal_id: null,
+        },
+      ],
+      [{ source_savings_goal_id: 'goal-1' }],
+    );
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    const rows = await repo.fetchDeletionLinkRows('budget-1');
+
+    expect(rows).toEqual({
+      lines: [
+        {
+          spreadGroupId: 'spread-1',
+          savingsGoalId: null,
+          savingsWithdrawalGroupId: null,
+          sourceSavingsGoalId: null,
+        },
+      ],
+      movements: [{ sourceSavingsGoalId: 'goal-1' }],
+    });
+    expect(inSpy.mock.calls).toEqual([
+      ['budget_line', 'budget_id', ['budget-1']],
+      ['transaction', 'budget_id', ['budget-1']],
+    ]);
+    expect(selectSpy.mock.calls).toEqual([
+      [
+        'budget_line',
+        'spread_group_id, savings_goal_id, savings_withdrawal_group_id, source_savings_goal_id',
+      ],
+      ['transaction', 'source_savings_goal_id'],
+    ]);
+  });
+
+  it('maps a failed read to BUDGET_FETCH_FAILED', async () => {
+    const provider = createMockProvider(() => {
+      const chain: Record<string, unknown> = {};
+      chain.select = () => chain;
+      chain.in = () => chain;
+      chain.order = () => chain;
+      chain.range = () =>
+        Promise.resolve({ data: null, error: new Error('read failed') });
+      return chain;
+    });
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    let caught: unknown;
+    try {
+      await repo.fetchDeletionLinkRows('budget-1');
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.BUDGET_FETCH_FAILED.code,
+    );
+  });
+});

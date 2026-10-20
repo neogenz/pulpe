@@ -39,6 +39,7 @@ import type {
 } from '../../domain/ports/budget-repository.port';
 import { computeTargetMonths } from '../../domain/budget.formulas';
 import type { HistoryMonth } from '../../domain/drift-history';
+import type { BudgetDeletionLinkRows } from '../../domain/budget-deletion';
 import type {
   MaterializedBudgetPeriod,
   SavingsGoalHorizonPort,
@@ -474,6 +475,58 @@ export class SupabaseBudgetRepository
         kind: row.kind,
         amount: decryptStrict(row.amount),
         budgetLineId: row.budget_line_id,
+      })),
+    };
+  }
+
+  async fetchDeletionLinkRows(
+    budgetId: string,
+  ): Promise<BudgetDeletionLinkRows> {
+    const supabase = this.supabaseProvider.client;
+    const [lines, movements] = await Promise.all([
+      this.readPagedRows(
+        [budgetId],
+        (ids, from, to) =>
+          supabase
+            .from('budget_line')
+            .select(
+              'spread_group_id, savings_goal_id, savings_withdrawal_group_id, source_savings_goal_id',
+            )
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          operation: 'fetchDeletionLinkRows',
+          entityType: 'budgetLines',
+        },
+      ),
+      this.readPagedRows(
+        [budgetId],
+        (ids, from, to) =>
+          supabase
+            .from('transaction')
+            .select('source_savings_goal_id')
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          operation: 'fetchDeletionLinkRows',
+          entityType: 'transactions',
+        },
+      ),
+    ]);
+
+    return {
+      lines: lines.map((row) => ({
+        spreadGroupId: row.spread_group_id,
+        savingsGoalId: row.savings_goal_id,
+        savingsWithdrawalGroupId: row.savings_withdrawal_group_id,
+        sourceSavingsGoalId: row.source_savings_goal_id,
+      })),
+      movements: movements.map((row) => ({
+        sourceSavingsGoalId: row.source_savings_goal_id,
       })),
     };
   }
