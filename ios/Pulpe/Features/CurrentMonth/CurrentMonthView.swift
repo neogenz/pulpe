@@ -21,6 +21,8 @@ struct CurrentMonthView: View {
     @State private var hasAppeared = false
     @State private var isHeroUnderBar = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.requestSavingsWithdrawal) var requestSavingsWithdrawal
+    @State var pendingWithdrawal: SavingsWithdrawalRequest?
 
     private var canCreateBudget: Bool {
         budgetListStore.nextAvailableMonth != nil
@@ -106,7 +108,7 @@ struct CurrentMonthView: View {
             }
             .heroToolbarGroup(paintsHeroSurface)
         }
-        .sheet(item: $activeSheet) { sheet in
+        .sheet(item: $activeSheet, onDismiss: handOverPendingWithdrawal) { sheet in
             Group {
                 switch sheet {
                 case .realizedBalance:
@@ -118,9 +120,7 @@ struct CurrentMonthView: View {
                         Task { await enableReminders() }
                     }
                 case .addTransaction(let source):
-                    if let budgetId = store.budget?.id {
-                        AddTransactionSheet(budgetId: budgetId, source: source, onAdd: store.addTransaction)
-                    }
+                    addTransactionSheet(source: source, store: store)
                 case .feedback(let promptNumber):
                     AutomaticFeedbackSheet(promptNumber: promptNumber)
                 case .createBudget:

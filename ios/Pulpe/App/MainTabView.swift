@@ -125,6 +125,7 @@ struct CurrentMonthTab: View {
         // the back button pointing at the other section's root.
         NavigationStack(path: $state.currentMonthPath) {
             CurrentMonthView()
+                .environment(\.requestSavingsWithdrawal, openSavingsWithdrawal)
                 .ignoresForeignKeyboardInset()
                 .navigationDestination(for: BudgetDestination.self) { destination in
                     budgetDestination(destination)
@@ -135,6 +136,22 @@ struct CurrentMonthTab: View {
         }
         .environment(router)
         .task { router.bind(to: appState) }
+    }
+
+    /// « À remettre » from the accueil (PUL-292): the month's budget page, where the
+    /// new Revenu lands, with the existing withdrawal preview on top. The preview
+    /// is presented by that page's own `.sheet(item: $router.sheet)` once it is on screen.
+    private func openSavingsWithdrawal(_ request: SavingsWithdrawalRequest) {
+        appState.pushOnActiveStack(BudgetDestination.details(budgetId: request.budgetId))
+        router.present(.savingsWithdrawal(SavingsWithdrawalPrefill(
+            budgetId: request.budgetId,
+            anchorMonth: request.month,
+            anchorYear: request.year,
+            amount: request.amount,
+            inputCurrency: request.inputCurrency,
+            source: request.source,
+            startsAtPreview: true
+        )))
     }
 }
 

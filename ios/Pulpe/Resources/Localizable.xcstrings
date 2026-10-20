@@ -6441,6 +6441,28 @@
         }
       }
     },
+    "Cet argent vient de mon épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Geld kommt aus meinem Ersparten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This money comes from my savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questi soldi vengono dai miei risparmi"
+          }
+        }
+      }
+    },
     "Cette semaine : environ %@ à dépenser (d'habitude, tu en dépenses %@)." : {
       "localizations" : {
         "de" : {
@@ -7141,28 +7163,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questo prelievo è già stato effettuato in parte o del tutto. Modificalo dal budget."
-          }
-        }
-      }
-    },
-    "Ce revenu vient d'un objectif d'épargne" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diese Einnahme kommt aus einem Sparziel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This income comes from a savings goal"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questa entrata arriva da un obiettivo di risparmio"
           }
         }
       }
@@ -10209,6 +10209,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Da dove arrivano i soldi? (facoltativo)"
+          }
+        }
+      }
+    },
+    "D'un objectif" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus einem Sparziel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From a goal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da un obiettivo"
           }
         }
       }
@@ -18715,50 +18737,6 @@
         }
       }
     },
-    "Origine" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Herkunft"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origin"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origine"
-          }
-        }
-      }
-    },
-    "Origine du revenu" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Herkunft der Einnahme"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Where the income comes from"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origine dell'entrata"
-          }
-        }
-      }
-    },
     "Oui, tout pointer" : {
       "localizations" : {
         "de" : {
@@ -19893,28 +19871,6 @@
         }
       }
     },
-    "Pris sur mon épargne, à remettre le mois prochain" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Von meinem Sparen geholt, nächsten Monat zurückzulegen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taken from my savings, to put back next month"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Presa dal mio risparmio, da rimettere il mese prossimo"
-          }
-        }
-      }
-    },
     "Pris sur ton épargne" : {
       "localizations" : {
         "de" : {
@@ -20119,6 +20075,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Protezione dei tuoi dati"
+          }
+        }
+      }
+    },
+    "Provenance de l'épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herkunft der Ersparnisse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Savings source"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provenienza del risparmio"
           }
         }
       }
@@ -21865,28 +21843,6 @@
         }
       }
     },
-    "Retrait d'un objectif" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aus einem Sparziel geholt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taken from a goal"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Presa da un obiettivo"
-          }
-        }
-      }
-    },
     "Retrait planifié" : {
       "localizations" : {
         "de" : {
@@ -22125,28 +22081,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Entrata nel budget"
-          }
-        }
-      }
-    },
-    "Revenu habituel" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Übliche Einnahme"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usual income"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entrata abituale"
           }
         }
       }
@@ -29809,6 +29743,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Da spuntare"
+          }
+        }
+      }
+    },
+    "À remettre" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurückzulegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To put back"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da rimettere"
           }
         }
       }

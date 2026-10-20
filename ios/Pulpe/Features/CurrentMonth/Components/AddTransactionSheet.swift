@@ -12,11 +12,18 @@ struct AddTransactionSheet: View {
         /// The typed amount could not be converted into the account currency, so
         /// there is nothing to weigh the goal's balance against (RG-009).
         let hasConversionFailed: Bool
+        /// Which savings, once the income comes from savings. « À remettre » leaves
+        /// this sheet for the budget page's withdrawal preview (PUL-292).
+        var origin: SavingsOrigin = .goal
 
-        /// Only an income can come out of a goal.
+        /// Only an income can come out of savings.
         var isOffered: Bool { kind == .income }
 
-        var isActive: Bool { isOffered && isEnabled }
+        /// The goal path: the income is created here, drawn from the chosen goal.
+        var isActive: Bool { isOffered && isEnabled && origin == .goal }
+
+        /// The repay path: nothing is created here, the request is handed over.
+        var routesToWithdrawal: Bool { isOffered && isEnabled && origin == .repay }
 
         /// The id sent on creation — never sent for a kind that cannot carry one.
         var sourceSavingsGoalId: String? { isActive ? goalId : nil }
@@ -47,6 +54,9 @@ struct AddTransactionSheet: View {
     /// Which control opened the sheet, for `first_transaction_created` (PUL-306).
     let source: FirstTransactionTracker.Source
     let onAdd: (Transaction) -> Void
+    /// « À remettre »: amount, currency and source to hand to the withdrawal flow.
+    /// `nil` where that flow is out of reach (widget deep link) — the segment hides.
+    let onRequestSavingsWithdrawal: ((Decimal, SupportedCurrency, String?) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
@@ -67,6 +77,7 @@ struct AddTransactionSheet: View {
     /// PUL-329 — an income can be funded by a savings goal. Off by default; the
     /// whole block disappears (and the choice is dropped) for any other kind.
     @State private var isFromSavingsGoal = false
+    @State private var savingsOrigin: SavingsOrigin = .goal
     @State private var savingsGoalId: String?
     @State private var isWithdrawalReady = false
     @State private var withdrawalRefreshToken = 0
@@ -83,11 +94,13 @@ struct AddTransactionSheet: View {
         budgetId: String,
         source: FirstTransactionTracker.Source = .addButton,
         dependencies: AddTransactionDependencies = .live,
+        onRequestSavingsWithdrawal: ((Decimal, SupportedCurrency, String?) -> Void)? = nil,
         onAdd: @escaping (Transaction) -> Void
     ) {
         self.budgetId = budgetId
         self.source = source
         self.dependencies = dependencies
+        self.onRequestSavingsWithdrawal = onRequestSavingsWithdrawal
         self.onAdd = onAdd
     }
 
@@ -97,12 +110,16 @@ struct AddTransactionSheet: View {
             isEnabled: isFromSavingsGoal,
             goalId: savingsGoalId,
             isWithdrawalReady: isWithdrawalReady,
-            hasConversionFailed: hasConversionFailed
+            hasConversionFailed: hasConversionFailed,
+            origin: savingsOrigin
         )
     }
 
+    private var routesToWithdrawal: Bool { savingsGoalOrigin.routesToWithdrawal }
+
     private var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
+        // The withdrawal names its source itself ("Mon épargne") when none is typed.
+        (routesToWithdrawal || !name.trimmingCharacters(in: .whitespaces).isEmpty) &&
         (amount ?? 0) > 0 &&
         !isLoading &&
         !savingsGoalOrigin.blocksSubmission
@@ -115,7 +132,7 @@ struct AddTransactionSheet: View {
     private var validationHint: String? {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
         if (amount ?? 0) <= 0 { return AppLocale.string("Ajoute un montant") }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty {
+        if !routesToWithdrawal, name.trimmingCharacters(in: .whitespaces).isEmpty {
             return AppLocale.string("Ajoute une description")
         }
         return savingsGoalOrigin.blockingReason
@@ -152,17 +169,22 @@ struct AddTransactionSheet: View {
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
 
             // Three blocks: the amount above, what it is, then the details.
+            // « À remettre » creates no operation here: no tag, date or pointé to set.
             FormCard {
                 descriptionField
-                FormRowDivider()
-                TagPickerField(selection: $selectedTagIds, style: .row)
+                if !routesToWithdrawal {
+                    FormRowDivider()
+                    TagPickerField(selection: $selectedTagIds, style: .row)
+                }
             }
 
             // The date is a detail, today by default.
             FormCard {
-                TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
-                FormRowDivider()
-                CheckedToggle(isOn: $isChecked, tintColor: kind.color, style: .row)
+                if !routesToWithdrawal {
+                    TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
+                    FormRowDivider()
+                    CheckedToggle(isOn: $isChecked, tintColor: kind.color, style: .row)
+                }
                 savingsGoalOriginSection
             }
 
@@ -179,6 +201,7 @@ struct AddTransactionSheet: View {
         .onChange(of: kind) { _, newKind in
             guard newKind != .income else { return }
             isFromSavingsGoal = false
+            savingsOrigin = .goal
             savingsGoalId = nil
         }
         .task(id: ConversionKey(amount: amount, inputCurrency: inputCurrency)) {
@@ -211,14 +234,16 @@ struct AddTransactionSheet: View {
     @ViewBuilder
     private var savingsGoalOriginSection: some View {
         if savingsGoalOrigin.isOffered {
-            FormRowDivider()
+            if !routesToWithdrawal { FormRowDivider() }
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Toggle("Ce revenu vient d'un objectif d'épargne", isOn: $isFromSavingsGoal)
-                    .font(PulpeTypography.body)
-                    .tint(kind.color)
-                    .frame(minHeight: DesignTokens.ListRow.minHeight)
+                SavingsOriginToggle(
+                    isOn: $isFromSavingsGoal,
+                    origin: $savingsOrigin,
+                    offersRepay: onRequestSavingsWithdrawal != nil,
+                    tintColor: kind.color
+                )
 
-                if isFromSavingsGoal {
+                if savingsGoalOrigin.isActive {
                     Text("Le montant sera retiré de l'objectif choisi.")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
@@ -233,8 +258,8 @@ struct AddTransactionSheet: View {
                     )
                 }
             }
-            .padding(.bottom, isFromSavingsGoal ? DesignTokens.Spacing.lg : 0)
-            .animation(DesignTokens.Animation.smoothEaseInOut, value: isFromSavingsGoal)
+            .padding(.bottom, savingsGoalOrigin.isActive ? DesignTokens.Spacing.lg : 0)
+            .animation(DesignTokens.Animation.smoothEaseInOut, value: savingsGoalOrigin.isActive)
         }
     }
 
@@ -243,7 +268,7 @@ struct AddTransactionSheet: View {
     private var addButton: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Button { Task { await addTransaction() } } label: {
-                Text("Ajouter")
+                Text(routesToWithdrawal ? AppLocale.string("Continuer") : AppLocale.string("Ajouter"))
             }
             .disabled(!canSubmit)
             .primaryButtonStyle(isEnabled: canSubmit)
@@ -287,6 +312,12 @@ struct AddTransactionSheet: View {
 
     private func addTransaction() async {
         guard let amount else { return }
+        if routesToWithdrawal {
+            let trimmed = name.trimmingCharacters(in: .whitespaces)
+            onRequestSavingsWithdrawal?(amount, inputCurrency, trimmed.isEmpty ? nil : trimmed)
+            dismiss()
+            return
+        }
 
         isLoading = true
         defer { isLoading = false }
