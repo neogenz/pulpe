@@ -106,7 +106,11 @@ export class TagItemsTool implements McpTool<Args> {
     for (const item of args.items) {
       outcomes.push(await this.tagOne(item, add, remove, names));
     }
-    return { text: report(add, remove, names, outcomes) };
+    const text = report(add, remove, names, outcomes);
+    // An all-unchanged or all-failed call wrote nothing: keep it out of the activity log.
+    return outcomes.some((o) => o.status === 'applied')
+      ? { text }
+      : { text, wrote: false };
   }
 
   private async tagOne(

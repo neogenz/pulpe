@@ -67,7 +67,7 @@ describe('TagItemsTool', () => {
       { id: FORECAST, name: 'Loyer', tagIds: [] },
     ]);
 
-    const { text } = await tool.execute({
+    const { text, wrote } = await tool.execute({
       items: [
         { target: 'movement', id: MOVEMENT },
         { target: 'forecast', id: FORECAST },
@@ -82,6 +82,7 @@ describe('TagItemsTool', () => {
       tagIds: [A],
     });
     expect(text).toContain('Tags posés : Tag1');
+    expect(wrote).toBeUndefined();
     expect(text).toContain('Appliqués (2)');
     expect(text).toContain(
       `- [${MOVEMENT}] Mouvement « Migros » · Tags : Tag2, Tag1`,
@@ -122,13 +123,14 @@ describe('TagItemsTool', () => {
       { id: MOVEMENT, name: 'Migros', tagIds: [A, B] },
     ]);
 
-    const { text } = await tool.execute({
+    const { text, wrote } = await tool.execute({
       items: [{ target: 'movement', id: MOVEMENT }],
       addTagIds: [A],
       removeTagIds: [C],
     });
 
     expect(movements.update).not.toHaveBeenCalled();
+    expect(wrote).toBe(false);
     expect(text).toContain('Inchangés (1)');
     expect(text).not.toContain('Appliqués');
   });
@@ -147,9 +149,10 @@ describe('TagItemsTool', () => {
       removeTagIds: [B],
     };
 
-    await tool.execute(call);
-    const { text } = await tool.execute(call);
+    expect((await tool.execute(call)).wrote).toBeUndefined();
+    const { text, wrote } = await tool.execute(call);
 
+    expect(wrote).toBe(false);
     expect(text).toContain('Inchangés (2)');
     expect(text).not.toContain('Appliqués');
   });
@@ -161,7 +164,7 @@ describe('TagItemsTool', () => {
       { id: MOVEMENT_2, name: 'Libre', tagIds: [] },
     ]);
 
-    const { text } = await tool.execute({
+    const { text, wrote } = await tool.execute({
       items: [
         { target: 'movement', id: MOVEMENT },
         { target: 'movement', id: MOVEMENT_2 },
@@ -169,6 +172,7 @@ describe('TagItemsTool', () => {
       addTagIds: [uuid(11)],
     });
 
+    expect(wrote).toBeUndefined();
     expect(movements.update).toHaveBeenCalledTimes(1);
     expect(movements.update).toHaveBeenCalledWith(MOVEMENT_2, {
       tagIds: [uuid(11)],
@@ -192,6 +196,26 @@ describe('TagItemsTool', () => {
       `En échec (1)\n- [${FORECAST}] Prévision : introuvable`,
     );
     expect(text).toContain('Appliqués (1)');
+  });
+
+  it('should flag a call where every item failed as having written nothing', async () => {
+    const full = TAGS.slice(0, 10).map((t) => t.id);
+    const { tool, movements } = setup([
+      { id: MOVEMENT, name: 'Chargé', tagIds: full },
+    ]);
+
+    const { text, wrote } = await tool.execute({
+      items: [
+        { target: 'movement', id: MOVEMENT },
+        { target: 'forecast', id: FORECAST },
+      ],
+      addTagIds: [uuid(11)],
+    });
+
+    expect(movements.update).not.toHaveBeenCalled();
+    expect(wrote).toBe(false);
+    expect(text).toContain('En échec (2)');
+    expect(text).not.toContain('Appliqués');
   });
 
   it('should refuse an unknown tag id before reading or writing anything', async () => {

@@ -24,7 +24,7 @@ export class CallToolUseCase {
   /**
    * Dispatch against the mode-filtered catalog: a direct call to a hidden
    * tool is refused. Every write the tool performed lands in the activity log,
-   * with its outcome and nothing of its arguments; a question back to the user
+   * with its outcome and nothing of its arguments; a reply that changed nothing
    * (`wrote: false`) does not.
    */
   async execute(
