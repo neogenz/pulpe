@@ -26,7 +26,12 @@ function forecastPort() {
     create: mock(async () => forecast),
     update: mock(async () => forecast),
     toggleCheck: mock(async () => forecast),
-    spread: mock(async () => ({ lines: [], skippedMonths: [] })),
+    spread: mock(async () => ({
+      spreadGroupId: ID,
+      lines: [],
+      skippedMonths: [],
+      createdBudgets: [],
+    })),
   } satisfies BudgetLineWritePort;
 }
 
