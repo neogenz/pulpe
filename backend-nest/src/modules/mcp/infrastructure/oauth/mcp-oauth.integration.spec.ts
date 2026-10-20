@@ -379,7 +379,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       ]);
     }
 
-    it('associates through the production consent API and lists the 26 tools with an opaque credential', async () => {
+    it('associates through the production consent API and lists the 27 tools with an opaque credential', async () => {
       const preflight = await request(app.getHttpServer())
         .options('/mcp')
         .set('Origin', 'https://assistant.example')
@@ -418,7 +418,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }).expect(200);
       expect(initialized.body.result.serverInfo.name).toBe('pulpe');
       const catalog = await mcp(active.access_token).expect(200);
-      expect(catalog.body.result.tools).toHaveLength(26);
+      expect(catalog.body.result.tools).toHaveLength(27);
     });
 
     it('rejects unsafe redirect registrations and keeps the native public registration route closed', async () => {
@@ -922,7 +922,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         await refresh(client, rotated.body.refresh_token).expect(400);
       }
     });
-    it('advertises all 26 tools honestly and refuses every write tool in read-only mode', async () => {
+    it('advertises all 27 tools honestly and refuses every write tool in read-only mode', async () => {
       app.getHttpServer().closeAllConnections();
       await app.close();
       await boot();
@@ -959,6 +959,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'delete_template',
         'duplicate_template',
         'edit_template_lines',
+        'adjust_over_months',
       ];
       const destructive = [
         'update_movement',
@@ -972,6 +973,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'update_template',
         'delete_template',
         'edit_template_lines',
+        'adjust_over_months',
       ];
       expect(catalog.map((tool: { name: string }) => tool.name).sort()).toEqual(
         [...reads, ...writes].sort(),
@@ -992,6 +994,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
               'tag_items',
               'update_template',
               'delete_template',
+              'adjust_over_months',
             ].includes(tool.name),
         );
         expect(tool.annotations.openWorldHint).toBe(false);
@@ -1100,7 +1103,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }
     });
 
-    it('executes all 26 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
+    it('executes all 27 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
       const owner = owners[1];
       const token = (
         await exchange(client, await authorize(client, owner)).expect(200)
@@ -1512,7 +1515,62 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           .budgetLines as BudgetLine[]
       ).find((line) => line.id === propagated.data![0].id);
       expect(futureForecast?.amount).toBe(400);
-      expect(used.size).toBe(26);
+      // Adjusting over months: the span is asked, a month without budget is
+      // listed and never created, and an adjusted forecast survives a later
+      // template edit that reaches its month.
+      const nextMonth =
+        future.month === 12
+          ? { month: 1, year: future.year + 1 }
+          : { month: future.month + 1, year: future.year };
+      const nextBudget = async () =>
+        (
+          await admin
+            .from('monthly_budget')
+            .select('id')
+            .eq('user_id', owner.id)
+            .eq('month', nextMonth.month)
+            .eq('year', nextMonth.year)
+        ).data;
+      expect(await nextBudget()).toHaveLength(0);
+      expect(
+        await call('adjust_over_months', {
+          target: 'forecast',
+          id: futureForecast!.id,
+          ...future,
+          amount: 450,
+        }),
+      ).toContain('Information manquante');
+      const adjusted = await call('adjust_over_months', {
+        target: 'forecast',
+        id: futureForecast!.id,
+        ...future,
+        amount: 450,
+        months: 2,
+      });
+      expect(adjusted).toContain(
+        `Ajusté sur 1 mois : ${future.month}/${future.year}.`,
+      );
+      expect(adjusted).toContain(
+        `Mois sans budget, non créés : ${nextMonth.month}/${nextMonth.year}.`,
+      );
+      const adjustedRow = await admin
+        .from('budget_line')
+        .select('is_manually_adjusted')
+        .eq('id', futureForecast!.id)
+        .single();
+      expect(adjustedRow.data?.is_manually_adjusted).toBe(true);
+      expect(await nextBudget()).toHaveLength(0);
+      await call('edit_template_lines', {
+        templateId: owner.templateId,
+        scope: 'current_and_future',
+        update: [{ id: templateLineId, amount: 500 }],
+      });
+      const afterTemplateEdit = (
+        (await normal(`budgets/${futureId}/details`))
+          .budgetLines as BudgetLine[]
+      ).find((line) => line.id === futureForecast!.id);
+      expect(afterTemplateEdit?.amount).toBe(450);
+      expect(used.size).toBe(27);
     });
 
     it('searches literal punctuation and tag names consistently through MCP and ordinary REST', async () => {

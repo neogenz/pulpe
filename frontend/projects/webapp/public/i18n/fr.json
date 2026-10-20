@@ -516,7 +516,8 @@
         "update_template": "Modèle modifié",
         "delete_template": "Modèle supprimé",
         "duplicate_template": "Modèle dupliqué",
-        "edit_template_lines": "Prévisions du modèle modifiées"
+        "edit_template_lines": "Prévisions du modèle modifiées",
+        "adjust_over_months": "Ajusté sur plusieurs mois"
       },
       "unknownAction": "Action de l’assistant",
       "revoke": "Couper l'accès",

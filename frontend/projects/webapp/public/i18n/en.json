@@ -516,7 +516,8 @@
         "update_template": "Template updated",
         "delete_template": "Template deleted",
         "duplicate_template": "Template duplicated",
-        "edit_template_lines": "Template planned items updated"
+        "edit_template_lines": "Template planned items updated",
+        "adjust_over_months": "Adjusted over several months"
       },
       "unknownAction": "Assistant action",
       "revoke": "Cut access",

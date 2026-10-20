@@ -47,7 +47,9 @@ import { UpdateTemplateTool } from './infrastructure/tools/write/update-template
 import { DeleteTemplateTool } from './infrastructure/tools/write/delete-template.tool';
 import { DuplicateTemplateTool } from './infrastructure/tools/write/duplicate-template.tool';
 import { EditTemplateLinesTool } from './infrastructure/tools/write/edit-template-lines.tool';
+import { AdjustOverMonthsTool } from './infrastructure/tools/write/adjust-over-months.tool';
 import { ResolveCurrencyUseCase } from './application/resolve-currency.use-case';
+import { AdjustOverMonthsUseCase } from './application/adjust-over-months.use-case';
 import { McpRevocationModule } from './mcp-revocation.module';
 import { MCP_ACTIVITY_REPOSITORY, MCP_TOOLS } from './mcp.tokens';
 
@@ -78,6 +80,7 @@ const TOOLS = [
   DeleteTemplateTool,
   DuplicateTemplateTool,
   EditTemplateLinesTool,
+  AdjustOverMonthsTool,
 ];
 
 @Module({
@@ -101,6 +104,7 @@ const TOOLS = [
   providers: [
     ListToolsUseCase,
     ResolveCurrencyUseCase,
+    AdjustOverMonthsUseCase,
     CallToolUseCase,
     ApproveConnectionUseCase,
     DenyConnectionUseCase,

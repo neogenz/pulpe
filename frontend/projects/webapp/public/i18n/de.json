@@ -516,7 +516,8 @@
         "update_template": "Vorlage aktualisiert",
         "delete_template": "Vorlage gelöscht",
         "duplicate_template": "Vorlage dupliziert",
-        "edit_template_lines": "Planung der Vorlage aktualisiert"
+        "edit_template_lines": "Planung der Vorlage aktualisiert",
+        "adjust_over_months": "Über mehrere Monate angepasst"
       },
       "unknownAction": "Aktion des Assistenten",
       "revoke": "Zugriff beenden",
