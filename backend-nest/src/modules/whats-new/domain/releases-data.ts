@@ -54,6 +54,55 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.54.0',
+    iosVersion: '1.10.0',
+    date: '2026-10-20',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: '« Cet argent vient de mon épargne »',
+          description:
+            'Sur un revenu, active cet interrupteur pour dire d’où vient l’argent : un retrait sur un objectif, ou une avance sur ton épargne que tu remettras le mois suivant.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: '“This money comes from my savings”',
+            description:
+              'On an income, turn on this switch to say where the money comes from: a withdrawal from a goal, or an advance on your savings that you’ll put back the following month.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: '«Dieses Geld kommt aus meinem Ersparten»',
+            description:
+              'Bei einer Einnahme zeigt dieser Schalter, woher das Geld kommt: eine Entnahme aus einem Ziel oder ein Vorschuss aus deinem Ersparten, den du im Folgemonat zurücklegst.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: '«Questi soldi vengono dai miei risparmi»',
+            description:
+              'Su un’entrata, attiva questo interruttore per indicare da dove arrivano i soldi: un prelievo da un obiettivo o un anticipo sui tuoi risparmi da rimettere il mese successivo.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
     version: '0.53.0',
     iosVersion: '1.9.0',
     date: '2026-10-16',

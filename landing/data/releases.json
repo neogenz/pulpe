@@ -1,5 +1,128 @@
 [
   {
+    "version": "0.54.0",
+    "iosVersion": "1.10.0",
+    "date": "2026-10-20",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.54.0",
+    "platforms": ["web", "ios", "android"],
+    "changes": {
+      "features": [
+        {
+          "title": "Suivi d’objectif repensé",
+          "description": "La page d’un objectif réunit le plan, les versements et les retraits dans une seule liste, mois par mois."
+        },
+        {
+          "title": "« Cet argent vient de mon épargne »",
+          "description": "Sur un revenu, active cet interrupteur pour dire d’où vient l’argent : un retrait sur un objectif, ou une avance sur ton épargne que tu remettras le mois suivant."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Trajectoire dès la création",
+          "description": "La courbe d’un objectif s’affiche sans attendre deux mois confirmés."
+        },
+        {
+          "title": "Clavier des montants",
+          "description": "Le bouton « Fermer le clavier » ferme aussi le clavier des champs montant."
+        },
+        {
+          "title": "Réel d’un objectif",
+          "description": "Le Réel compte uniquement les mouvements pointés. Le reste d’un retrait s’affiche en positif et, une fois le retrait expiré, il sort du solde."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Redesigned goal tracking",
+              "description": "A goal’s page brings the plan, contributions and withdrawals together in one list, month by month."
+            },
+            {
+              "title": "“This money comes from my savings”",
+              "description": "On an income, turn on this switch to say where the money comes from: a withdrawal from a goal, or an advance on your savings that you’ll put back the following month."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Trajectory from day one",
+              "description": "A goal’s curve shows without waiting for two confirmed months."
+            },
+            {
+              "title": "Amount keyboard",
+              "description": "The “Close keyboard” button also closes the keyboard of amount fields."
+            },
+            {
+              "title": "Goal actuals",
+              "description": "Actual only counts checked entries. A withdrawal’s remainder shows as positive and leaves the balance once the withdrawal expires."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Sparziel neu gestaltet",
+              "description": "Die Seite eines Ziels vereint Plan, Einzahlungen und Entnahmen in einer Liste, Monat für Monat."
+            },
+            {
+              "title": "«Dieses Geld kommt aus meinem Ersparten»",
+              "description": "Bei einer Einnahme zeigt dieser Schalter, woher das Geld kommt: eine Entnahme aus einem Ziel oder ein Vorschuss aus deinem Ersparten, den du im Folgemonat zurücklegst."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Verlauf ab der Erstellung",
+              "description": "Die Kurve eines Ziels erscheint, ohne auf zwei bestätigte Monate zu warten."
+            },
+            {
+              "title": "Tastatur bei Beträgen",
+              "description": "Die Schaltfläche «Tastatur schliessen» schliesst auch die Tastatur der Betragsfelder."
+            },
+            {
+              "title": "Ist-Wert eines Ziels",
+              "description": "Der Ist-Wert zählt nur abgehakte Bewegungen. Der Rest einer Entnahme erscheint positiv und fällt nach Ablauf der Entnahme aus dem Saldo."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Obiettivo rinnovato",
+              "description": "La pagina di un obiettivo riunisce piano, versamenti e prelievi in un’unica lista, mese per mese."
+            },
+            {
+              "title": "«Questi soldi vengono dai miei risparmi»",
+              "description": "Su un’entrata, attiva questo interruttore per indicare da dove arrivano i soldi: un prelievo da un obiettivo o un anticipo sui tuoi risparmi da rimettere il mese successivo."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Andamento dalla creazione",
+              "description": "La curva di un obiettivo appare senza attendere due mesi confermati."
+            },
+            {
+              "title": "Tastiera degli importi",
+              "description": "Il pulsante «Chiudi la tastiera» chiude anche la tastiera dei campi importo."
+            },
+            {
+              "title": "Effettivo di un obiettivo",
+              "description": "L’Effettivo conta solo i movimenti spuntati. Il resto di un prelievo appare in positivo ed esce dal saldo quando il prelievo scade."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
     "version": "0.53.0",
     "iosVersion": "1.9.0",
     "date": "2026-10-16",

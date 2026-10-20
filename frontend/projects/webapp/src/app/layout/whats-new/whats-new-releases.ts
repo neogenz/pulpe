@@ -11,12 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.53.0',
+  version: '0.54.0',
   features: {
-    fr: ['Tes retraits d’épargne se pointent comme le reste'],
-    en: ['Savings withdrawals check off like everything else'],
-    de: ['Sparentnahmen wie alles andere abhaken'],
-    it: ['Prelievi dai risparmi: si spuntano come il resto'],
+    fr: ['Page de suivi d’objectif repensée', 'Correctifs mineurs'],
+    en: ['Redesigned goal tracking page', 'Minor fixes'],
+    de: ['Überarbeitete Seite für Sparziele', 'Kleinere Korrekturen'],
+    it: ['Pagina dell’obiettivo rinnovata', 'Correzioni minori'],
   },
 };
 

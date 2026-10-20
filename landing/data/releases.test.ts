@@ -8,9 +8,9 @@ const releases = JSON.parse(
 ) as Array<Record<string, unknown>>;
 
 const localeMarkers = {
-  en: "The goal plan deducts your withdrawals",
-  de: "Der Zielplan zieht deine Entnahmen ab",
-  it: "Il piano dell’obiettivo detrae i tuoi prelievi",
+  en: "Trajectory from day one",
+  de: "Verlauf ab der Erstellung",
+  it: "Andamento dalla creazione",
 } as const;
 
 describe("localized release data", () => {
@@ -25,6 +25,7 @@ describe("localized release data", () => {
       assert.deepEqual(
         localized.map(({ version }) => version),
         [
+          "0.54.0",
           "0.53.0",
           "0.52.0",
           "0.51.0",
