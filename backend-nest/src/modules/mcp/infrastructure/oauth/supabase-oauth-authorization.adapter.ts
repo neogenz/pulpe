@@ -178,6 +178,9 @@ export class SupabaseOAuthAuthorizationAdapter implements OAuthAuthorizationPort
     return {
       clientId: client.client_id,
       clientName: client.client_name ?? 'MCP client',
+      // `hostname` drops path, port and query, and is punycode for an IDN, so
+      // a look-alike domain cannot read as the real one.
+      redirectHost: new URL(request.redirect_uri).hostname,
     };
   }
 

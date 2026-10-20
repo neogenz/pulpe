@@ -19,6 +19,7 @@ describe('McpConsent', () => {
   let store: {
     authorizationId: ReturnType<typeof signal<string | null>>;
     clientName: ReturnType<typeof signal<string | null>>;
+    redirectHost: ReturnType<typeof signal<string | null>>;
     mode: ReturnType<typeof signal<'read' | 'read_write'>>;
     load: ReturnType<typeof vi.fn>;
     approve: ReturnType<typeof vi.fn>;
@@ -29,9 +30,11 @@ describe('McpConsent', () => {
     store = {
       authorizationId: signal<string | null>(null),
       clientName: signal<string | null>(null),
+      redirectHost: signal<string | null>(null),
       mode: signal<'read' | 'read_write'>('read'),
       load: vi.fn(async () => {
         store.clientName.set('ChatGPT');
+        store.redirectHost.set('attacker.example');
       }),
       approve: vi.fn(),
       deny: vi.fn(),
@@ -73,10 +76,23 @@ describe('McpConsent', () => {
       ?.textContent ?? '';
 
   it('names the client from the authorization request, not from the URL', async () => {
-    await setup({ authorization_id: 'auth-1', client: 'Evil Corp' });
+    await setup({
+      authorization_id: 'auth-1',
+      client: 'Evil Corp',
+      host: 'evil.example',
+    });
     expect(store.load).toHaveBeenCalledWith('auth-1');
     expect(text('mcp-consent-title')).toContain('ChatGPT');
     expect(fixture.nativeElement.textContent).not.toContain('Evil Corp');
+    expect(fixture.nativeElement.textContent).not.toContain('evil.example');
+  });
+
+  it('shows the host the access is sent to next to the declared name', async () => {
+    await setup({ authorization_id: 'auth-1' });
+    expect(text('mcp-consent-title')).toContain('ChatGPT');
+    expect(text('mcp-consent-redirect-host')).toContain(
+      'Accès envoyé à attacker.example',
+    );
   });
 
   it('shows an error and no form when the request id is missing', async () => {

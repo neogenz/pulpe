@@ -2943,9 +2943,13 @@ export type FeedbackStatusResponse = z.infer<
 export const mcpAccessModeSchema = z.enum(['read', 'read_write']);
 export type McpAccessMode = z.infer<typeof mcpAccessModeSchema>;
 
-/** GET /mcp/consent/:authorizationId — the client as declared to Supabase */
+/**
+ * GET /mcp/consent/:authorizationId — the client as declared to Supabase, and
+ * the host its callback (code and data) goes to, read from the stored request.
+ */
 export const mcpConsentDetailsResponseSchema = z.object({
   clientName: z.string(),
+  redirectHost: z.string().min(1),
 });
 export type McpConsentDetailsResponse = z.infer<
   typeof mcpConsentDetailsResponseSchema

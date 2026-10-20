@@ -244,6 +244,8 @@
     "mcpConsent": {
       "title": "Pulpe mit {{client}} verbinden",
       "subtitle": "{{client}} bittet um Zugriff auf dein Budget.",
+      "redirectHost": "Zugriff geht an {{host}}",
+      "redirectHostHint": "Prüf, ob diese Adresse wirklich zu {{client}} gehört, bevor du deinen Code eingibst.",
       "modeRead": "Nur lesen",
       "modeReadDescription": "Ansehen und auswerten, nichts ändern.",
       "modeReadWrite": "Lesen und schreiben",

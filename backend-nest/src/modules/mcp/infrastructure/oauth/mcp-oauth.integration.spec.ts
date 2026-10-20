@@ -263,6 +263,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         .auth(owner.token, { type: 'bearer' })
         .expect(200);
       expect(details.body.clientName).toBe('Integration client');
+      expect(details.body.redirectHost).toBe('client.example');
       const consent = await request(app.getHttpServer())
         .post(`/api/v1/mcp/consent/${id}/approve`)
         .auth(owner.token, { type: 'bearer' })

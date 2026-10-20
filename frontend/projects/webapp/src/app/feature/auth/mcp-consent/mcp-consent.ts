@@ -24,8 +24,9 @@ import { McpConsentStore } from './mcp-consent-store';
 
 /**
  * OAuth consent page for AI agents: the only screen that asks the vault
- * code on behalf of a third party. The client name comes from the
- * authorization request, never from the URL or the user.
+ * code on behalf of a third party. The client name and the host its callback
+ * goes to both come from the authorization request, never from the URL or the
+ * user: the name is self-declared, the host is where the access really goes.
  */
 @Component({
   selector: 'pulpe-mcp-consent',
@@ -58,6 +59,18 @@ import { McpConsentStore } from './mcp-consent-store';
           </h1>
           <p class="text-body-medium text-on-surface-variant">
             {{ 'auth.mcpConsent.subtitle' | transloco: { client } }}
+          </p>
+          <p
+            class="mt-3 text-body-medium font-medium text-on-surface break-all"
+            data-testid="mcp-consent-redirect-host"
+          >
+            {{
+              'auth.mcpConsent.redirectHost'
+                | transloco: { host: store.redirectHost() }
+            }}
+          </p>
+          <p class="text-body-small text-on-surface-variant">
+            {{ 'auth.mcpConsent.redirectHostHint' | transloco: { client } }}
           </p>
         </div>
 

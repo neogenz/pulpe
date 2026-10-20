@@ -244,6 +244,8 @@
     "mcpConsent": {
       "title": "Collegare Pulpe a {{client}}",
       "subtitle": "{{client}} chiede l’accesso al tuo budget.",
+      "redirectHost": "Accesso inviato a {{host}}",
+      "redirectHostHint": "Verifica che questo indirizzo appartenga davvero a {{client}} prima di inserire il tuo codice.",
       "modeRead": "Sola lettura",
       "modeReadDescription": "Consultare e analizzare, senza cambiare nulla.",
       "modeReadWrite": "Lettura e scrittura",

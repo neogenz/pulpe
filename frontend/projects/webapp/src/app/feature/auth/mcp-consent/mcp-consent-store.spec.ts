@@ -20,7 +20,8 @@ it('defaults to read-only and sends only an explicitly chosen write grant', asyn
       {
         provide: McpApi,
         useValue: {
-          getConsent$: () => of({ clientName: 'ChatGPT' }),
+          getConsent$: () =>
+            of({ clientName: 'ChatGPT', redirectHost: 'chatgpt.com' }),
           approve$,
           deny$: () => of({ redirectUrl: 'https://client.test/denied' }),
         },
@@ -36,6 +37,7 @@ it('defaults to read-only and sends only an explicitly chosen write grant', asyn
   });
   const store = TestBed.inject(McpConsentStore);
   await store.load('authorization');
+  expect(store.redirectHost()).toBe('chatgpt.com');
   expect(captureEvent).not.toHaveBeenCalled();
   expect(store.mode()).toBe('read');
   await store.approve('1234');
