@@ -12,8 +12,8 @@ struct AddTransactionSheetTests {
         isWithdrawalReady: Bool = true,
         hasConversionFailed: Bool = false,
         savings: SavingsOrigin = .goal
-    ) -> AddTransactionSheet.SavingsGoalOrigin {
-        AddTransactionSheet.SavingsGoalOrigin(
+    ) -> AddTransactionSheet.SavingsOriginRule {
+        AddTransactionSheet.SavingsOriginRule(
             kind: kind,
             isEnabled: isEnabled,
             goalId: goalId,
