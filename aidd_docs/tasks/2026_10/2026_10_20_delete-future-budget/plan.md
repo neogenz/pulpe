@@ -1,6 +1,6 @@
 ---
 objective: "A user, or their agent through the MCP connector, can delete a future month's budget on the API, web, iOS and Android, and linked months need an explicit confirmation."
-status: pending
+status: done
 ---
 
 <!-- Fill or omit these sections; never add, rename, or reorder one. -->
