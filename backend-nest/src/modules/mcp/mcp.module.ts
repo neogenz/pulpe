@@ -40,6 +40,7 @@ import { ToggleCheckTool } from './infrastructure/tools/write/toggle-check.tool'
 import { CreateTagTool } from './infrastructure/tools/write/create-tag.tool';
 import { RenameTagTool } from './infrastructure/tools/write/rename-tag.tool';
 import { DeleteTagTool } from './infrastructure/tools/write/delete-tag.tool';
+import { TagItemsTool } from './infrastructure/tools/write/tag-items.tool';
 import { ResolveCurrencyUseCase } from './application/resolve-currency.use-case';
 import { McpRevocationModule } from './mcp-revocation.module';
 import { MCP_ACTIVITY_REPOSITORY, MCP_TOOLS } from './mcp.tokens';
@@ -64,6 +65,7 @@ const TOOLS = [
   CreateTagTool,
   RenameTagTool,
   DeleteTagTool,
+  TagItemsTool,
 ];
 
 @Module({
