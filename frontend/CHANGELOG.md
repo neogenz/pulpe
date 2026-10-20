@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.54.0
+
+### Minor Changes
+
+- Suivi d’objectif repensé, « Cet argent vient de mon épargne » sur iOS et correctifs mineurs.
+
+### Patch Changes
+
+- pulpe-shared@0.54.0
+
 ## 0.53.0
 
 ### Minor Changes

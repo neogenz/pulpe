@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.53.0",
-  "marketingVersion": "1.9.0",
+  "productVersion": "0.54.0",
+  "marketingVersion": "1.10.0",
   "buildNumber": "1",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "• Pointer un retrait d’objectif : sur un revenu prévu depuis un objectif, active « Pointé ». Le revenu est créé pour le montant restant ; désactive-le pour l’annuler.\n• Le titre du budget reste lisible quand tu le fais défiler."
+    "frFR": "• Sur un revenu, l’interrupteur « Cet argent vient de mon épargne » dit d’où vient l’argent : un retrait sur un objectif, ou une avance sur ton épargne que tu remettras le mois suivant.\n• La trajectoire d’un objectif s’affiche dès sa création.\n• Le bouton « Fermer le clavier » ferme aussi le clavier des champs montant."
   },
-  "reviewNotes": "Sign in with the demo account. Open the current month in the Budget tab and tap + to add a forecast. Choose Revenu, set Origine to \"Retrait d'un objectif\", pick one of the demo savings goals, enter an amount and tap \"Planifier le retrait\". On the new income line, turn on the \"Pointé\" switch: a checked income for the remaining amount is created. Turn it off and confirm to remove it. Scrolling the budget keeps the title readable under the month selector."
+  "reviewNotes": "Sign in with the demo account. From Home, tap + and choose an income. Turn on \"Cet argent vient de mon épargne\", then choose \"D'un objectif\" or \"À remettre\". \"À remettre\" closes the sheet and opens the month's budget with the cover-from-savings preview prefilled. The same switch appears when adding an income forecast with + in the Budget tab. Create a new savings goal: its trajectory chart shows immediately. In any amount field, the \"Fermer le clavier\" button dismisses the keyboard."
 }
