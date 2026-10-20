@@ -16,12 +16,15 @@ extension CurrentMonthView {
                 budgetId: budget.id,
                 source: source,
                 onRequestSavingsWithdrawal: requestSavingsWithdrawal == nil ? nil : { amount, currency, name in
+                    // No deficit chip, as on the budget page's own toggle path: the deficit
+                    // is in the account currency, `amount` may not be.
                     pendingWithdrawal = SavingsWithdrawalRequest(
-                        budget: budget,
+                        budgetId: budget.id,
+                        month: budget.month,
+                        year: budget.year,
                         amount: amount,
                         inputCurrency: currency,
-                        source: name,
-                        remaining: store.metrics.remaining
+                        source: name
                     )
                 },
                 onAdd: store.addTransaction

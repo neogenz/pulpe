@@ -95,22 +95,4 @@ struct SavingsWithdrawalRequest: Equatable, Sendable {
     let amount: Decimal
     let inputCurrency: SupportedCurrency
     let source: String?
-    /// |available| when the month runs a deficit, for the quick-fill chip.
-    let missingAmount: Decimal?
-}
-
-extension SavingsWithdrawalRequest {
-    /// `remaining` is the month's « Disponible à dépenser »: below zero, its gap
-    /// feeds the quick-fill chip.
-    init(budget: Budget, amount: Decimal, inputCurrency: SupportedCurrency, source: String?, remaining: Decimal) {
-        self.init(
-            budgetId: budget.id,
-            month: budget.month,
-            year: budget.year,
-            amount: amount,
-            inputCurrency: inputCurrency,
-            source: source,
-            missingAmount: remaining.rounded(2) < 0 ? remaining.absoluteValue : nil
-        )
-    }
 }

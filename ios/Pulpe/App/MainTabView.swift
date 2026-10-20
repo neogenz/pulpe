@@ -148,7 +148,6 @@ struct CurrentMonthTab: View {
             anchorMonth: request.month,
             anchorYear: request.year,
             amount: request.amount,
-            missingAmount: request.missingAmount,
             inputCurrency: request.inputCurrency,
             source: request.source,
             startsAtPreview: true
