@@ -10,15 +10,34 @@ struct AddTransactionSheetTests {
         isEnabled: Bool = true,
         goalId: String? = "goal-1",
         isWithdrawalReady: Bool = true,
-        hasConversionFailed: Bool = false
+        hasConversionFailed: Bool = false,
+        savings: SavingsOrigin = .goal
     ) -> AddTransactionSheet.SavingsGoalOrigin {
         AddTransactionSheet.SavingsGoalOrigin(
             kind: kind,
             isEnabled: isEnabled,
             goalId: goalId,
             isWithdrawalReady: isWithdrawalReady,
-            hasConversionFailed: hasConversionFailed
+            hasConversionFailed: hasConversionFailed,
+            origin: savings
         )
+    }
+
+    @Test("« À remettre » hands over to the withdrawal: no goal sent, nothing blocks")
+    func repay_routesWithoutAGoal() {
+        let repay = origin(kind: .income, goalId: nil, isWithdrawalReady: false, savings: .repay)
+
+        #expect(repay.routesToWithdrawal)
+        #expect(repay.sourceSavingsGoalId == nil)
+        #expect(!repay.blocksSubmission)
+        #expect(repay.blockingReason == nil)
+    }
+
+    @Test("« À remettre » never routes when opted out or for another kind")
+    func repay_needsAnIncomeThatOptedIn() {
+        #expect(!origin(kind: .income, isEnabled: false, savings: .repay).routesToWithdrawal)
+        #expect(!origin(kind: .expense, savings: .repay).routesToWithdrawal)
+        #expect(!origin(kind: .income).routesToWithdrawal)
     }
 
     @Test("the date defaults to today")

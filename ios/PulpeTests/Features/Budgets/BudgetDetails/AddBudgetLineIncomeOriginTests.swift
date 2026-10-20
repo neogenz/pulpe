@@ -53,4 +53,28 @@ struct AddBudgetLineIncomeOriginTests {
         #expect(forbidding.count == forbiddenOrigins.count, "income only — one row per origin")
         #expect(!AddBudgetLineSheet.forbidsChecked(kind: .income, origin: .regular))
     }
+
+    // The sheet asks "from my savings?" then "which?" — two controls over one origin.
+    @Test("The savings toggle off is an ordinary income, whatever the segment")
+    func toggleOff_isRegular() {
+        for savings in SavingsOrigin.allCases {
+            #expect(IncomeOrigin(isFromSavings: false, savingsOrigin: savings) == .regular)
+        }
+        #expect(!IncomeOrigin.regular.isFromSavings)
+    }
+
+    @Test("Each segment maps to its own origin and back")
+    func segment_roundTrips() {
+        #expect(IncomeOrigin(isFromSavings: true, savingsOrigin: .goal) == .savingsGoal)
+        #expect(IncomeOrigin(isFromSavings: true, savingsOrigin: .repay) == .repayNextMonth)
+        for origin in IncomeOrigin.allCases where origin.isFromSavings {
+            #expect(IncomeOrigin(isFromSavings: true, savingsOrigin: origin.savingsOrigin) == origin)
+        }
+    }
+
+    @Test("Turning the toggle on starts on « D'un objectif »")
+    func toggleOn_defaultsToGoal() {
+        let turnedOn = IncomeOrigin(isFromSavings: true, savingsOrigin: IncomeOrigin.regular.savingsOrigin)
+        #expect(turnedOn == .savingsGoal)
+    }
 }

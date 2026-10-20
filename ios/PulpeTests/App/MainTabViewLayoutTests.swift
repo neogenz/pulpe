@@ -32,12 +32,9 @@ struct MainTabViewNavigationOwnershipTests {
 
     @Test("Current Month owns transaction creation")
     func currentMonthOwnsTransactionCreation() throws {
-        let source = try Self.read(
-            "Pulpe",
-            "Features",
-            "CurrentMonth",
-            "CurrentMonthView.swift"
-        )
+        let source = try ["CurrentMonthView.swift", "CurrentMonthView+SavingsWithdrawal.swift"]
+            .map { try Self.read("Pulpe", "Features", "CurrentMonth", $0) }
+            .joined()
 
         #expect(source.contains("case addTransaction"))
         #expect(source.contains("AddTransactionSheet("))
