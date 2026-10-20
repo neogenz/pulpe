@@ -1,6 +1,6 @@
 ---
 objective: "A read_write agent can list, create, rename and delete the user's tags and add or remove tags on up to 50 movements or prévisions in one call, every month and search rendering shows tag names, and each new write tool has an activity label on web and iOS."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Tags through the MCP connector
