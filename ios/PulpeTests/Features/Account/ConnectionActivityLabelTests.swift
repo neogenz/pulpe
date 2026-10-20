@@ -36,6 +36,16 @@ struct ConnectionActivityLabelTests {
         #expect(ConnectionDetailView.label(for: entry(tool)) != tool)
     }
 
+    @Test("a write tool is translated in every shipped language", arguments: writeTools)
+    @MainActor
+    func writeToolIsTranslated(tool: String) {
+        let french = ConnectionDetailView.label(for: entry(tool), locale: AppLocale.uiLocale(for: .fr))
+        for locale in [SupportedLocale.en, .de, .it] {
+            let translated = ConnectionDetailView.label(for: entry(tool), locale: AppLocale.uiLocale(for: locale))
+            #expect(translated != french, "\(tool) has no \(locale.rawValue) catalog entry")
+        }
+    }
+
     @Test("a failed call keeps its label and adds the failure suffix")
     @MainActor
     func failedCallAppendsTheFailureSuffix() {

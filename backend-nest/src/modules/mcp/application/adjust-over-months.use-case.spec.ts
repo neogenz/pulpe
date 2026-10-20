@@ -76,8 +76,9 @@ describe('AdjustOverMonthsUseCase', () => {
       month([line('a', { templateLineId: TEMPLATE_LINE })]),
       month([
         line('b', { templateLineId: TEMPLATE_LINE, name: 'Loyer Paris' }),
+        line('b-same-name', { name: 'Loyer', templateLineId: 'other' }),
       ]),
-      month([line('c', { name: 'Loyer', templateLineId: 'other' })]),
+      month([line('c', { name: 'Charges', templateLineId: 'other' })]),
     ]);
 
     const result = await useCase.execute({
@@ -103,6 +104,28 @@ describe('AdjustOverMonthsUseCase', () => {
       targetCurrency: 'CHF',
     });
     expect(resolve).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to name and kind in a month built from another template', async () => {
+    const { useCase, updateLine } = setup([
+      month([line('a', { templateLineId: TEMPLATE_LINE })]),
+      month([line('b', { name: ' loyer', templateLineId: 'summer-rent' })]),
+      month([line('c', { kind: 'saving', templateLineId: 'summer-rent' })]),
+    ]);
+
+    const result = await useCase.execute({
+      target: 'forecast',
+      id: 'a',
+      from,
+      count: 3,
+      amount: 1800,
+    });
+
+    expect(result).toMatchObject({
+      updated: periods(3, 4),
+      unmatched: periods(5),
+    });
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['a', 'b']);
   });
 
   it('matches a forecast without template line on trimmed name and same kind', async () => {

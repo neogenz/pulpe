@@ -184,9 +184,9 @@ extension ConnectionDetailView {
 
     /// The tool name in plain words. An unknown tool falls back to its raw name
     /// rather than a vague "Action": a wrong reassurance is worse than a slug.
-    static func label(for entry: MCPActivity) -> String {
-        let name = toolLabels[entry.tool].map { AppLocale.string($0) } ?? entry.tool
-        return entry.outcome == .error ? AppLocale.string("\(name) (échec)") : name
+    static func label(for entry: MCPActivity, locale: Locale = AppLocale.currentUILocale) -> String {
+        let name = toolLabels[entry.tool].map { AppLocale.string($0, locale: locale) } ?? entry.tool
+        return entry.outcome == .error ? AppLocale.string("\(name) (échec)", locale: locale) : name
     }
 
     private static func timestamp(_ date: Date) -> String {

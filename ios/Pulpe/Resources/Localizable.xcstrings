@@ -4649,6 +4649,28 @@
         }
       }
     },
+    "Ajusté sur plusieurs mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über mehrere Monate angepasst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjusted over several months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modificato su più mesi"
+          }
+        }
+      }
+    },
     "Aller aux opérations à pointer" : {
       "localizations" : {
         "de" : {
@@ -16427,6 +16449,50 @@
         }
       }
     },
+    "Modèle dupliqué" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage dupliziert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template duplicated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello duplicato"
+          }
+        }
+      }
+    },
+    "Modèle modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello aggiornato"
+          }
+        }
+      }
+    },
     "Modèle par défaut" : {
       "localizations" : {
         "de" : {
@@ -16445,6 +16511,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modello predefinito"
+          }
+        }
+      }
+    },
+    "Modèle supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello eliminato"
           }
         }
       }
@@ -20547,6 +20635,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previsione eliminata"
+          }
+        }
+      }
+    },
+    "Prévisions du modèle modifiées" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planung der Vorlage aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template planned items updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsioni del modello aggiornate"
           }
         }
       }

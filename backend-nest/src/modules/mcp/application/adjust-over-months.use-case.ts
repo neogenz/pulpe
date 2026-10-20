@@ -64,6 +64,25 @@ export type AdjustOverMonthsResult =
 const normalized = (name: string): string => name.trim().toLowerCase();
 
 /**
+ * The same template line first; failing that, the same name and kind (a month
+ * built from another template carries other template line ids).
+ */
+function equivalentForecasts(
+  lines: BudgetLineDecrypted[],
+  forecast: BudgetLineDecrypted,
+): BudgetLineDecrypted[] {
+  const sameTemplateLine = forecast.templateLineId
+    ? lines.filter((line) => line.templateLineId === forecast.templateLineId)
+    : [];
+  if (sameTemplateLine.length > 0) return sameTemplateLine;
+  return lines.filter(
+    (line) =>
+      normalized(line.name) === normalized(forecast.name) &&
+      line.kind === forecast.kind,
+  );
+}
+
+/**
  * The same change on a forecast, or on a movement allocated to a forecast,
  * across consecutive months. It never creates a month and never guesses: an
  * item that cannot be matched with certainty is listed, and several candidates
@@ -110,12 +129,6 @@ export class AdjustOverMonthsUseCase {
     months: (BudgetWithDetails | null)[],
   ) {
     const { forecast, movement } = this.#reference(input, months[0]);
-    const isEquivalentForecast = (line: BudgetLineDecrypted): boolean =>
-      forecast.templateLineId
-        ? line.templateLineId === forecast.templateLineId
-        : normalized(line.name) === normalized(forecast.name) &&
-          line.kind === forecast.kind;
-
     const targets: { period: BudgetPeriod; id: string }[] = [];
     const missingMonths: BudgetPeriod[] = [];
     const unmatched: BudgetPeriod[] = [];
@@ -133,7 +146,7 @@ export class AdjustOverMonthsUseCase {
       const candidates: AdjustCandidate[] =
         i === 0
           ? [{ id: input.id, name: '', amount: 0 }]
-          : this.#candidates(details, isEquivalentForecast, movement);
+          : this.#candidates(details, forecast, movement);
       if (candidates.length === 0) {
         unmatched.push(period);
       } else if (candidates.length === 1) {
@@ -215,10 +228,10 @@ export class AdjustOverMonthsUseCase {
 
   #candidates(
     details: BudgetWithDetails,
-    isEquivalentForecast: (line: BudgetLineDecrypted) => boolean,
+    forecast: BudgetLineDecrypted,
     movement?: TransactionDecrypted,
   ): AdjustCandidate[] {
-    const forecasts = details.budgetLines.filter(isEquivalentForecast);
+    const forecasts = equivalentForecasts(details.budgetLines, forecast);
     if (!movement) return forecasts;
     const ids = new Set(forecasts.map((line) => line.id));
     return details.transactions.filter(
