@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: MCP tools to get, create, update, delete and duplicate a template

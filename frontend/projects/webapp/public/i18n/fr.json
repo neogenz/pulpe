@@ -511,7 +511,11 @@
         "tag_items": "Tags modifiés",
         "toggle_check": "Pointage modifié",
         "update_forecast": "Prévision modifiée",
-        "update_movement": "Mouvement modifié"
+        "update_movement": "Mouvement modifié",
+        "create_template": "Modèle créé",
+        "update_template": "Modèle modifié",
+        "delete_template": "Modèle supprimé",
+        "duplicate_template": "Modèle dupliqué"
       },
       "unknownAction": "Action de l’assistant",
       "revoke": "Couper l'accès",

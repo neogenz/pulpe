@@ -379,7 +379,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       ]);
     }
 
-    it('associates through the production consent API and lists the 20 tools with an opaque credential', async () => {
+    it('associates through the production consent API and lists the 25 tools with an opaque credential', async () => {
       const preflight = await request(app.getHttpServer())
         .options('/mcp')
         .set('Origin', 'https://assistant.example')
@@ -418,7 +418,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }).expect(200);
       expect(initialized.body.result.serverInfo.name).toBe('pulpe');
       const catalog = await mcp(active.access_token).expect(200);
-      expect(catalog.body.result.tools).toHaveLength(20);
+      expect(catalog.body.result.tools).toHaveLength(25);
     });
 
     it('rejects unsafe redirect registrations and keeps the native public registration route closed', async () => {
@@ -655,7 +655,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       await mcp(previous.access_token).expect(401);
       await refresh(client, previous.refresh_token!).expect(400);
       const catalog = await mcp(active.access_token).expect(200);
-      expect(catalog.body.result.tools).toHaveLength(8);
+      expect(catalog.body.result.tools).toHaveLength(9);
       expect(
         catalog.body.result.tools.every(
           (tool: { annotations: { readOnlyHint: boolean } }) =>
@@ -922,7 +922,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         await refresh(client, rotated.body.refresh_token).expect(400);
       }
     });
-    it('advertises all 20 tools honestly and refuses every write tool in read-only mode', async () => {
+    it('advertises all 25 tools honestly and refuses every write tool in read-only mode', async () => {
       app.getHttpServer().closeAllConnections();
       await app.close();
       await boot();
@@ -935,6 +935,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'get_month',
         'list_months',
         'list_templates',
+        'get_template',
         'list_tags',
         'search_movements',
         'list_savings_goals',
@@ -953,6 +954,10 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'rename_tag',
         'delete_tag',
         'tag_items',
+        'create_template',
+        'update_template',
+        'delete_template',
+        'duplicate_template',
       ];
       const destructive = [
         'update_movement',
@@ -963,6 +968,8 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'rename_tag',
         'delete_tag',
         'tag_items',
+        'update_template',
+        'delete_template',
       ];
       expect(catalog.map((tool: { name: string }) => tool.name).sort()).toEqual(
         [...reads, ...writes].sort(),
@@ -981,6 +988,8 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
               'rename_tag',
               'delete_tag',
               'tag_items',
+              'update_template',
+              'delete_template',
             ].includes(tool.name),
         );
         expect(tool.annotations.openWorldHint).toBe(false);
@@ -1089,7 +1098,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }
     });
 
-    it('executes all 20 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
+    it('executes all 25 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
       const owner = owners[1];
       const token = (
         await exchange(client, await authorize(client, owner)).expect(200)
@@ -1405,7 +1414,55 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         .single();
       expect(encrypted.data?.target_amount === '1000').toBe(false);
       expect(encrypted.data?.initial_amount === '100').toBe(false);
-      expect(used.size).toBe(20);
+      // Templates: read, copy, rename, create and delete; a template with
+      // months built from it refuses deletion and says which.
+      expect(
+        await call('get_template', { templateId: owner.templateId }),
+      ).toContain(`${future.month}/${future.year}`);
+      const templateLines = async (id: string) =>
+        (
+          await admin
+            .from('template_line')
+            .select('id', { count: 'exact', head: true })
+            .eq('template_id', id)
+        ).count;
+      const copyId = resultId(
+        await call('duplicate_template', {
+          templateId: owner.templateId,
+          name: 'Matrix copie',
+        }),
+      );
+      const copyRow = await admin
+        .from('template')
+        .select('is_default')
+        .eq('id', copyId)
+        .single();
+      expect(copyRow.data?.is_default).toBe(false);
+      expect(await templateLines(copyId)).toBe(
+        await templateLines(owner.templateId),
+      );
+      await call('update_template', {
+        templateId: copyId,
+        name: 'Matrix copie renommée',
+      });
+      expect(await call('list_templates')).toContain('Matrix copie renommée');
+      const emptyTemplateId = resultId(
+        await call('create_template', { name: 'Matrix vide' }),
+      );
+      await call('delete_template', { templateId: emptyTemplateId });
+      expect(
+        (await admin.from('template').select('id').eq('id', emptyTemplateId))
+          .data,
+      ).toHaveLength(0);
+      expect(
+        await failure('delete_template', { templateId: owner.templateId }),
+      ).toContain(`${future.month}/${future.year}`);
+      expect(
+        (await admin.from('template').select('id').eq('id', owner.templateId))
+          .data,
+      ).toHaveLength(1);
+      await call('delete_template', { templateId: copyId });
+      expect(used.size).toBe(25);
     });
 
     it('searches literal punctuation and tag names consistently through MCP and ordinary REST', async () => {

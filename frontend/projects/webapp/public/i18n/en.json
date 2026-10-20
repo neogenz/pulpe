@@ -511,7 +511,11 @@
         "tag_items": "Tags updated",
         "toggle_check": "Checked status changed",
         "update_forecast": "Forecast updated",
-        "update_movement": "Movement updated"
+        "update_movement": "Movement updated",
+        "create_template": "Template created",
+        "update_template": "Template updated",
+        "delete_template": "Template deleted",
+        "duplicate_template": "Template duplicated"
       },
       "unknownAction": "Assistant action",
       "revoke": "Cut access",

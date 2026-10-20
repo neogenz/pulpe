@@ -29,6 +29,7 @@ import { ListSavingsGoalsTool } from './infrastructure/tools/read/list-savings-g
 import { GetSavingsGoalOutlookTool } from './infrastructure/tools/read/get-savings-goal-outlook.tool';
 import { ListTemplatesTool } from './infrastructure/tools/read/list-templates.tool';
 import { ListTagsTool } from './infrastructure/tools/read/list-tags.tool';
+import { GetTemplateTool } from './infrastructure/tools/read/get-template.tool';
 import { AddMovementTool } from './infrastructure/tools/write/add-movement.tool';
 import { UpdateMovementTool } from './infrastructure/tools/write/update-movement.tool';
 import { DeleteMovementTool } from './infrastructure/tools/write/delete-movement.tool';
@@ -41,6 +42,10 @@ import { CreateTagTool } from './infrastructure/tools/write/create-tag.tool';
 import { RenameTagTool } from './infrastructure/tools/write/rename-tag.tool';
 import { DeleteTagTool } from './infrastructure/tools/write/delete-tag.tool';
 import { TagItemsTool } from './infrastructure/tools/write/tag-items.tool';
+import { CreateTemplateTool } from './infrastructure/tools/write/create-template.tool';
+import { UpdateTemplateTool } from './infrastructure/tools/write/update-template.tool';
+import { DeleteTemplateTool } from './infrastructure/tools/write/delete-template.tool';
+import { DuplicateTemplateTool } from './infrastructure/tools/write/duplicate-template.tool';
 import { ResolveCurrencyUseCase } from './application/resolve-currency.use-case';
 import { McpRevocationModule } from './mcp-revocation.module';
 import { MCP_ACTIVITY_REPOSITORY, MCP_TOOLS } from './mcp.tokens';
@@ -66,6 +71,11 @@ const TOOLS = [
   RenameTagTool,
   DeleteTagTool,
   TagItemsTool,
+  GetTemplateTool,
+  CreateTemplateTool,
+  UpdateTemplateTool,
+  DeleteTemplateTool,
+  DuplicateTemplateTool,
 ];
 
 @Module({

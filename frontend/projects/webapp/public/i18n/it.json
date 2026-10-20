@@ -511,7 +511,11 @@
         "tag_items": "Tag aggiornati",
         "toggle_check": "Stato di verifica modificato",
         "update_forecast": "Previsione aggiornata",
-        "update_movement": "Movimento aggiornato"
+        "update_movement": "Movimento aggiornato",
+        "create_template": "Modello creato",
+        "update_template": "Modello aggiornato",
+        "delete_template": "Modello eliminato",
+        "duplicate_template": "Modello duplicato"
       },
       "unknownAction": "Azione dell’assistente",
       "revoke": "Togli l'accesso",
