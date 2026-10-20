@@ -63,8 +63,8 @@ struct AddTransactionSheet: View {
         self.onAdd = onAdd
     }
 
-    private var savingsGoalOrigin: SavingsGoalOrigin {
-        SavingsGoalOrigin(
+    private var savingsOriginRule: SavingsOriginRule {
+        SavingsOriginRule(
             kind: kind,
             isEnabled: isFromSavings,
             goalId: savingsGoalId,
@@ -74,14 +74,14 @@ struct AddTransactionSheet: View {
         )
     }
 
-    private var routesToWithdrawal: Bool { savingsGoalOrigin.routesToWithdrawal }
+    private var routesToWithdrawal: Bool { savingsOriginRule.routesToWithdrawal }
 
     private var canSubmit: Bool {
         // The withdrawal names its source itself ("Mon épargne") when none is typed.
         (routesToWithdrawal || !name.trimmingCharacters(in: .whitespaces).isEmpty) &&
         (amount ?? 0) > 0 &&
         !isLoading &&
-        !savingsGoalOrigin.blocksSubmission
+        !savingsOriginRule.blocksSubmission
     }
 
     private var hasStartedFilling: Bool {
@@ -94,7 +94,7 @@ struct AddTransactionSheet: View {
         if !routesToWithdrawal, name.trimmingCharacters(in: .whitespaces).isEmpty {
             return AppLocale.string("Ajoute une description")
         }
-        return savingsGoalOrigin.blockingReason
+        return savingsOriginRule.blockingReason
     }
 
     var body: some View {
@@ -144,7 +144,7 @@ struct AddTransactionSheet: View {
                     FormRowDivider()
                     CheckedToggle(isOn: $isChecked, tintColor: kind.color, style: .row)
                 }
-                savingsGoalOriginSection
+                savingsOriginSection
             }
 
             if let error {
@@ -191,8 +191,8 @@ struct AddTransactionSheet: View {
     // MARK: - Savings origin (PUL-329 / PUL-292)
 
     @ViewBuilder
-    private var savingsGoalOriginSection: some View {
-        if savingsGoalOrigin.isOffered {
+    private var savingsOriginSection: some View {
+        if savingsOriginRule.isOffered {
             if !routesToWithdrawal { FormRowDivider() }
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 SavingsOriginToggle(
@@ -202,7 +202,7 @@ struct AddTransactionSheet: View {
                     tintColor: kind.color
                 )
 
-                if savingsGoalOrigin.isActive {
+                if savingsOriginRule.isActive {
                     Text("Le montant sera retiré de l'objectif choisi.")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
@@ -217,8 +217,8 @@ struct AddTransactionSheet: View {
                     )
                 }
             }
-            .padding(.bottom, savingsGoalOrigin.isActive ? DesignTokens.Spacing.lg : 0)
-            .animation(DesignTokens.Animation.smoothEaseInOut, value: savingsGoalOrigin.isActive)
+            .padding(.bottom, savingsOriginRule.isActive ? DesignTokens.Spacing.lg : 0)
+            .animation(DesignTokens.Animation.smoothEaseInOut, value: savingsOriginRule.isActive)
         }
     }
 
@@ -301,7 +301,7 @@ struct AddTransactionSheet: View {
                 targetCurrency: conversion?.targetCurrency,
                 exchangeRate: conversion?.exchangeRate,
                 tagIds: TagPickerField.createdTagIds(from: selectedTagIds),
-                sourceSavingsGoalId: savingsGoalOrigin.sourceSavingsGoalId
+                sourceSavingsGoalId: savingsOriginRule.sourceSavingsGoalId
             )
 
             let transaction = try await dependencies.createTransaction(data)

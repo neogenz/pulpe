@@ -1,9 +1,9 @@
 import Foundation
 
 extension AddTransactionSheet {
-    /// Whether an income is funded by a savings goal (PUL-329), and what that
-    /// implies for the form. A value type so the rule can be tested on its own.
-    struct SavingsGoalOrigin: Equatable {
+    /// Whether an income comes from savings, a goal (PUL-329) or « À remettre »
+    /// (PUL-292), and what that implies for the form. A value type so the rule can be tested on its own.
+    struct SavingsOriginRule: Equatable {
         let kind: TransactionKind
         let isEnabled: Bool
         let goalId: String?
