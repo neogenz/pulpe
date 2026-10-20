@@ -22,6 +22,7 @@ const movement = { id: ID, name: 'Café', amount: 10 } as Transaction;
 
 function forecastPort() {
   return {
+    find: mock(async () => forecast),
     create: mock(async () => forecast),
     update: mock(async () => forecast),
     toggleCheck: mock(async () => forecast),
@@ -31,6 +32,7 @@ function forecastPort() {
 
 function movementPort() {
   return {
+    find: mock(async () => movement),
     update: mock(async () => movement),
     remove: mock(async () => {}),
     toggleCheck: mock(async () => movement),

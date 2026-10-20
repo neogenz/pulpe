@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: MCP read side, `list_tags`, tag names, search by tag

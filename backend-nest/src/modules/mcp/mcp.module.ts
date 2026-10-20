@@ -7,6 +7,7 @@ import { UserModule } from '@modules/user/user.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { SavingsGoalModule } from '@modules/savings-goal/savings-goal.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
+import { TagModule } from '@modules/tag/tag.module';
 import { ListToolsUseCase } from './application/list-tools.use-case';
 import { CallToolUseCase } from './application/call-tool.use-case';
 import { ApproveConnectionUseCase } from './application/approve-connection.use-case';
@@ -27,6 +28,7 @@ import { SearchMovementsTool } from './infrastructure/tools/read/search-movement
 import { ListSavingsGoalsTool } from './infrastructure/tools/read/list-savings-goals.tool';
 import { GetSavingsGoalOutlookTool } from './infrastructure/tools/read/get-savings-goal-outlook.tool';
 import { ListTemplatesTool } from './infrastructure/tools/read/list-templates.tool';
+import { ListTagsTool } from './infrastructure/tools/read/list-tags.tool';
 import { AddMovementTool } from './infrastructure/tools/write/add-movement.tool';
 import { UpdateMovementTool } from './infrastructure/tools/write/update-movement.tool';
 import { DeleteMovementTool } from './infrastructure/tools/write/delete-movement.tool';
@@ -47,6 +49,7 @@ const TOOLS = [
   ListSavingsGoalsTool,
   GetSavingsGoalOutlookTool,
   ListTemplatesTool,
+  ListTagsTool,
   AddMovementTool,
   UpdateMovementTool,
   DeleteMovementTool,
@@ -67,6 +70,7 @@ const TOOLS = [
     UserModule,
     SavingsGoalModule,
     TransactionModule,
+    TagModule,
   ],
   controllers: [
     McpController,

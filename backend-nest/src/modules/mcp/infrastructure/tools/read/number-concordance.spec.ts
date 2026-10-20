@@ -6,6 +6,7 @@ import type {
   TransactionDecrypted,
 } from '@modules/budget/domain/budget.entity';
 import type { BudgetMonthReadPort } from '@modules/budget/domain/ports/budget-month-read.port';
+import type { TagReadPort } from '@modules/tag/domain/ports/tag-read.port';
 import type {
   SavingsGoal,
   SavingsGoalProgressComputation,
@@ -185,8 +186,10 @@ describe('read tools · number concordance', () => {
       listMonths: async () => [],
     } satisfies BudgetMonthReadPort;
 
+    const tags = { list: async () => [] } satisfies TagReadPort;
+
     const text = (
-      await new GetMonthTool(budgets).execute({ month: 3, year: 2026 })
+      await new GetMonthTool(budgets, tags).execute({ month: 3, year: 2026 })
     ).text;
 
     const expected = BudgetFormulas.calculateAllMetrics(

@@ -1,5 +1,6 @@
 import { BudgetFormulas } from 'pulpe-shared';
 import type { BudgetWithDetails } from '@modules/budget/domain/budget.entity';
+import type { Tag } from '@modules/tag/domain/tag.entity';
 
 export const KIND_LABEL = {
   income: 'Revenu',
@@ -10,12 +11,30 @@ export const KIND_LABEL = {
 /** Same rounding as the app's display: no float noise reaches the model. */
 export const round = (n: number): number => Number(n.toFixed(2));
 
+export const tagNames = (tags: readonly Tag[]): ReadonlyMap<string, string> =>
+  new Map(tags.map((tag) => [tag.id, tag.name]));
+
+/**
+ * The tag names of one line, ready to append to it. An id missing from `names`
+ * (a tag deleted since the read) is skipped, never printed raw.
+ */
+export function tagSuffix(
+  tagIds: readonly string[],
+  names: ReadonlyMap<string, string>,
+): string {
+  const known = tagIds.flatMap((id) => names.get(id) ?? []);
+  return known.length > 0 ? ` · Tags : ${known.join(', ')}` : '';
+}
+
 /**
  * One month in words. Shared by the current-month and given-month tools so an
  * agent never gets two different renderings of the same figures, and always
  * the ones `BudgetFormulas` produces for the app.
  */
-export function renderMonth(details: BudgetWithDetails): string {
+export function renderMonth(
+  details: BudgetWithDetails,
+  names: ReadonlyMap<string, string> = new Map(),
+): string {
   const { budget, budgetLines, transactions, rollover } = details;
   const m = BudgetFormulas.calculateAllMetrics(
     budgetLines,
@@ -32,12 +51,12 @@ export function renderMonth(details: BudgetWithDetails): string {
       : !!l.checkedAt;
   const lines = budgetLines.map(
     (l) =>
-      `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Mensuel' : 'Ponctuel'} · ${isPointed(l) ? 'Pointé' : 'À pointer'}`,
+      `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Mensuel' : 'Ponctuel'} · ${isPointed(l) ? 'Pointé' : 'À pointer'}${tagSuffix(l.tagIds, names)}`,
   );
   // Keep the timezone: a UTC date alone can be the previous local day.
   const moves = transactions.map(
     (t) =>
-      `- [${t.id}] ${KIND_LABEL[t.kind]} · ${t.name} · ${round(t.amount)} · ${t.transactionDate} · ${t.checkedAt ? 'Pointé' : 'À pointer'}`,
+      `- [${t.id}] ${KIND_LABEL[t.kind]} · ${t.name} · ${round(t.amount)} · ${t.transactionDate} · ${t.checkedAt ? 'Pointé' : 'À pointer'}${tagSuffix(t.tagIds, names)}`,
   );
 
   return [
