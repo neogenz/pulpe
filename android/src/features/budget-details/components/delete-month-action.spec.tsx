@@ -8,7 +8,9 @@ import { ENDPOINTS } from "@/core/api/endpoints";
 
 import { DeleteMonthAction } from "./delete-month-action";
 
-jest.mock("expo-router", () => ({ router: { back: jest.fn() } }));
+jest.mock("expo-router", () => ({
+  router: { back: jest.fn(), dismissTo: jest.fn() },
+}));
 // Paper's Menu and Dialog animate and measure through portals; the behaviour
 // under test is which content they show and what their buttons send.
 jest.mock("react-native-paper", () => {
@@ -193,7 +195,9 @@ it("lists the counts, then deletes without confirming links and leaves the scree
 
   await fireEvent.press(confirmButton(view));
 
-  await waitFor(() => expect(router.back).toHaveBeenCalledTimes(1));
+  await waitFor(() =>
+    expect(router.dismissTo).toHaveBeenCalledWith("/budgets"),
+  );
   expect(mockedDeleteVoid).toHaveBeenCalledWith(ENDPOINTS.budget("budget-1"), {
     confirmLinks: false,
   });
@@ -220,7 +224,9 @@ it("names the links that are present, adds forecasts to movements for a withdraw
 
   await fireEvent.press(confirmButton(view));
 
-  await waitFor(() => expect(router.back).toHaveBeenCalledTimes(1));
+  await waitFor(() =>
+    expect(router.dismissTo).toHaveBeenCalledWith("/budgets"),
+  );
   expect(mockedDeleteVoid).toHaveBeenCalledWith(ENDPOINTS.budget("budget-1"), {
     confirmLinks: true,
   });
@@ -237,7 +243,7 @@ it("closes on cancel without deleting, and reads the impact again on the next op
     expect(view.queryByText(`${PREFIX}.title month=Novembre 2026`)).toBeNull(),
   );
   expect(mockedDeleteVoid).not.toHaveBeenCalled();
-  expect(router.back).not.toHaveBeenCalled();
+  expect(router.dismissTo).not.toHaveBeenCalled();
 
   await openDialog(view);
 
@@ -264,7 +270,7 @@ it("keeps the dialog open with an error line when the delete fails", async () =>
   await fireEvent.press(confirmButton(view));
 
   expect(await view.findByText(`${PREFIX}.failure`)).toBeTruthy();
-  expect(router.back).not.toHaveBeenCalled();
+  expect(router.dismissTo).not.toHaveBeenCalled();
   expect(view.getByText(`${PREFIX}.title month=Novembre 2026`)).toBeTruthy();
 });
 
@@ -289,7 +295,9 @@ it("reads the impact again after a failed delete, so the retry confirms the link
 
   await fireEvent.press(confirmButton(view));
 
-  await waitFor(() => expect(router.back).toHaveBeenCalledTimes(1));
+  await waitFor(() =>
+    expect(router.dismissTo).toHaveBeenCalledWith("/budgets"),
+  );
   expect(mockedDeleteVoid).toHaveBeenLastCalledWith(
     ENDPOINTS.budget("budget-1"),
     { confirmLinks: true },

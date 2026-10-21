@@ -147,7 +147,9 @@ export function DeleteMonthAction({
                 remove.mutate(labels.length > 0, {
                   onSuccess: () => {
                     setDialogOpen(false);
-                    router.back();
+                    // The stack can hold this month twice (rollover push, then
+                    // the pager's replace): popping one would land on the other.
+                    router.dismissTo("/budgets");
                   },
                   // Links may have appeared since the read: confirm waits for
                   // a fresh one, so the retry sends what the user is shown.
