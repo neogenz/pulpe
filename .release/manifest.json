@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.54.1",
-  "githubReleaseNotes": "## v0.54.1\n\n### Corrections\n\n- **Affichage du formulaire d’ajout** — Le formulaire s’adapte aux petites fenêtres et garde les options d’épargne et de pointage bien alignées.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.55.0",
+  "githubReleaseNotes": "## v0.55.0\n\n### Nouveautés\n\n- **Avis détaillés** — Tu peux compléter ta note globale par des notes facultatives sur les différentes parties de l’application web.\n\n### Corrections\n\n- **Menu des prévisions** — Sur le web mobile, le solde ambigu a été retiré du menu des prévisions.\n- **Confirmation du code** — Sur Android, une erreur de confirmation conserve le code choisi et te permet de réessayer sans tout recommencer.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }
