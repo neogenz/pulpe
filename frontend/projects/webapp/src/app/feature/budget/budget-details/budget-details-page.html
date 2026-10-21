@@ -86,7 +86,8 @@
         <span>{{ 'layout.nextMonth' | transloco }}</span>
         <mat-icon iconPositionEnd>chevron_right</mat-icon>
       </button>
-      <!-- Future months only: the live and past months cannot be deleted -->
+      <!-- Future months only: the live and past months cannot be deleted. The
+           placeholder keeps the next button where it is when the menu is absent. -->
       @if (store.isViewedMonthFuture()) {
       <button
         matIconButton
@@ -108,6 +109,8 @@
           <span>{{ 'budget.deleteMonth' | transloco }}</span>
         </button>
       </mat-menu>
+      } @else {
+      <span class="size-10 shrink-0" aria-hidden="true"></span>
       }
     </div>
   </header>

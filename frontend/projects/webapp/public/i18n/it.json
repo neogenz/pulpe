@@ -548,7 +548,7 @@
     "deleteMonthTitle": "Eliminare {{ month }}?",
     "deleteMonthMessage": "Le sue previsioni ({{ forecastCount }}) e i suoi movimenti ({{ movementCount }}) verranno eliminati. Non si può tornare indietro.",
     "deleteMonthLinks": "Questo mese è collegato anche ad altri mesi o a un obiettivo di risparmio: {{ links }}. Gli altri mesi mantengono la loro parte.",
-    "deleteMonthLinkSpread": "spesa ripartita ({{ count }})",
+    "deleteMonthLinkSpread": "previsione distribuita ({{ count }})",
     "deleteMonthLinkGoal": "obiettivo di risparmio ({{ count }})",
     "deleteMonthLinkWithdrawal": "prelievo dal risparmio ({{ count }})",
     "monthDeleted": "Mese eliminato",

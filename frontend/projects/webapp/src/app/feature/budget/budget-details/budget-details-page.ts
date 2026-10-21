@@ -223,8 +223,12 @@ export default class BudgetDetailsPage {
   protected async deleteMonth(): Promise<void> {
     if (this.#isDeletingMonth) return;
     this.#isDeletingMonth = true;
+    // Navigating to another month while the impact loads or the dialog is open
+    // re-points the store: the month confirmed is the one captured here.
+    const id = this.id();
     try {
-      const impact = await this.store.deletionImpact();
+      const impact = await this.store.deletionImpact(id);
+      if (this.id() !== id) return;
       if (!impact) {
         this.#notifyMonthDeleteError();
         return;
@@ -236,9 +240,9 @@ export default class BudgetDetailsPage {
         }),
         message: this.#deleteMonthMessage(impact),
       });
-      if (!confirmed) return;
+      if (!confirmed || this.id() !== id) return;
 
-      const isDeleted = await this.store.deleteMonth(hasLinks, () =>
+      const isDeleted = await this.store.deleteMonth(id, hasLinks, () =>
         this.#router.navigate(['/', ROUTES.BUDGET]),
       );
       if (!isDeleted) {

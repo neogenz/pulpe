@@ -1458,10 +1458,8 @@ export class BudgetDetailsStore {
     }
   }
 
-  /** What deleting the viewed month takes with it, or `null` when unreadable. */
-  async deletionImpact(): Promise<BudgetDeletionImpact | null> {
-    const id = this.#state.budgetId();
-    if (!id) return null;
+  /** What deleting month `id` takes with it, or `null` when unreadable. */
+  async deletionImpact(id: string): Promise<BudgetDeletionImpact | null> {
     try {
       return await firstValueFrom(this.#budgetApi.getDeletionImpact$(id));
     } catch (error) {
@@ -1471,16 +1469,17 @@ export class BudgetDetailsStore {
   }
 
   /**
-   * Deletes the viewed month, hands the page to `leave`, and only then
-   * invalidates. `false` means the server refused or never answered: nothing
-   * was deleted and nothing was invalidated.
+   * Deletes month `id`, hands the page to `leave`, and only then invalidates.
+   * The caller names the month: reading the viewed one here would delete
+   * whichever month the user navigated to while the confirmation was open.
+   * `false` means the server refused or never answered: nothing was deleted
+   * and nothing was invalidated.
    */
   async deleteMonth(
+    id: string,
     confirmLinks: boolean,
     leave: () => Promise<unknown>,
   ): Promise<boolean> {
-    const id = this.#state.budgetId();
-    if (!id) return false;
     try {
       await firstValueFrom(this.#budgetApi.deleteBudget$(id, confirmLinks));
     } catch (error) {

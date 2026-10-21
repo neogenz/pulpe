@@ -756,7 +756,9 @@ describe('BudgetDetailsStore — delete a future month (PUL-361)', () => {
         viewed: { month: 11, year: 2026 },
       });
 
-      await expect(store.deletionImpact()).resolves.toEqual(NO_LINKS_IMPACT);
+      await expect(store.deletionImpact(VIEWED_ID)).resolves.toEqual(
+        NO_LINKS_IMPACT,
+      );
       expect(budgetApi.getDeletionImpact$).toHaveBeenCalledWith(VIEWED_ID);
     });
 
@@ -770,7 +772,7 @@ describe('BudgetDetailsStore — delete a future month (PUL-361)', () => {
         throwError(() => new Error('network')),
       );
 
-      await expect(store.deletionImpact()).resolves.toBeNull();
+      await expect(store.deletionImpact(VIEWED_ID)).resolves.toBeNull();
       expect(logger.error).toHaveBeenCalled();
     });
   });
@@ -788,6 +790,7 @@ describe('BudgetDetailsStore — delete a future month (PUL-361)', () => {
         const { store, budgetApi } = await setup(FUTURE);
 
         const isDeleted = await store.deleteMonth(
+          VIEWED_ID,
           confirmLinks,
           vi.fn().mockResolvedValue(true),
         );
@@ -800,10 +803,28 @@ describe('BudgetDetailsStore — delete a future month (PUL-361)', () => {
       },
     );
 
+    it('should delete the month it is given, not the one now viewed', async () => {
+      const { store, budgetApi, budgetCache } = await setup(FUTURE);
+      budgetCache.set.mockClear(); // drop the write of the initial load
+      store.setBudgetId(OTHER_ID);
+
+      await store.deleteMonth(
+        VIEWED_ID,
+        false,
+        vi.fn().mockResolvedValue(true),
+      );
+
+      expect(budgetApi.deleteBudget$).toHaveBeenCalledWith(VIEWED_ID, false);
+      const list = budgetCache.set.mock.calls.find(
+        ([key]) => key.join('.') === 'budget.list',
+      )?.[1] as { id: string }[];
+      expect(list.map((budget) => budget.id)).toEqual([OTHER_ID]);
+    });
+
     it('should leave the page before invalidating anything', async () => {
       const { store, calls } = await setup(FUTURE);
 
-      await store.deleteMonth(false, async () => {
+      await store.deleteMonth(VIEWED_ID, false, async () => {
         calls.push('leave');
       });
 
@@ -824,7 +845,7 @@ describe('BudgetDetailsStore — delete a future month (PUL-361)', () => {
       budgetCache.set.mockClear(); // drop the write of the initial load
       let listWhenLeaving: unknown;
 
-      await store.deleteMonth(false, async () => {
+      await store.deleteMonth(VIEWED_ID, false, async () => {
         listWhenLeaving = budgetCache.set.mock.calls.find(
           ([key]) => key.join('.') === 'budget.list',
         )?.[1];
@@ -858,7 +879,7 @@ describe('BudgetDetailsStore — delete a future month (PUL-361)', () => {
       );
       const leave = vi.fn().mockResolvedValue(true);
 
-      const isDeleted = await store.deleteMonth(false, leave);
+      const isDeleted = await store.deleteMonth(VIEWED_ID, false, leave);
 
       expect(isDeleted).toBe(false);
       expect(leave).not.toHaveBeenCalled();

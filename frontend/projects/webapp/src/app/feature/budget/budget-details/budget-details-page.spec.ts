@@ -222,7 +222,11 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       deletionImpact: vi.fn().mockResolvedValue(NO_LINKS_IMPACT),
       // The real store hands the page over to `leave` before it reports success.
       deleteMonth: vi.fn(
-        async (_confirmLinks: boolean, leave: () => Promise<unknown>) => {
+        async (
+          _id: string,
+          _confirmLinks: boolean,
+          leave: () => Promise<unknown>,
+        ) => {
           await leave();
           return true;
         },
@@ -352,7 +356,9 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
         message:
           'Ses prévisions (4) et ses mouvements (2) seront supprimés. Cette action est irréversible.',
       });
+      expect(store.deletionImpact).toHaveBeenCalledWith('budget-1');
       expect(store.deleteMonth).toHaveBeenCalledWith(
+        'budget-1',
         false,
         expect.any(Function),
       );
@@ -373,11 +379,12 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       await openMenuAndDelete();
 
       const { message } = dialogService.confirmDelete.mock.calls[0][0];
-      expect(message).toContain('dépense lissée (3)');
+      expect(message).toContain('prévision lissée (3)');
       expect(message).toContain(
         "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne",
       );
       expect(store.deleteMonth).toHaveBeenCalledWith(
+        'budget-1',
         true,
         expect.any(Function),
       );
@@ -400,7 +407,7 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       expect(message).toContain(
         "objectif d'épargne (1), retrait d'épargne (3)",
       );
-      expect(message).not.toContain('dépense lissée');
+      expect(message).not.toContain('prévision lissée');
     });
   });
 
@@ -443,6 +450,52 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
         expect.anything(),
       );
       expect(router.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('navigating away mid-deletion', () => {
+    const component = (): { deleteMonth: () => Promise<void> } =>
+      fixture.componentInstance as unknown as {
+        deleteMonth: () => Promise<void>;
+      };
+
+    it('should open no dialog when the month changes while the impact loads', async () => {
+      let resolveImpact!: (impact: BudgetDeletionImpact) => void;
+      store.deletionImpact.mockReturnValue(
+        new Promise<BudgetDeletionImpact>((resolve) => {
+          resolveImpact = resolve;
+        }),
+      );
+
+      const deletion = component().deleteMonth();
+      fixture.componentRef.setInput('id', 'budget-2');
+      await fixture.whenStable();
+      resolveImpact(LINKED_IMPACT);
+      await deletion;
+
+      expect(store.deletionImpact).toHaveBeenCalledWith('budget-1');
+      expect(dialogService.confirmDelete).not.toHaveBeenCalled();
+      expect(store.deleteMonth).not.toHaveBeenCalled();
+    });
+
+    it('should delete nothing when the month changes while the dialog is open', async () => {
+      let confirm!: (confirmed: boolean) => void;
+      dialogService.confirmDelete.mockReturnValue(
+        new Promise<boolean>((resolve) => {
+          confirm = resolve;
+        }),
+      );
+
+      const deletion = component().deleteMonth();
+      await settle();
+      fixture.componentRef.setInput('id', 'budget-2');
+      await fixture.whenStable();
+      confirm(true);
+      await deletion;
+
+      expect(store.deleteMonth).not.toHaveBeenCalled();
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(snackBar.open).not.toHaveBeenCalled();
     });
   });
 
