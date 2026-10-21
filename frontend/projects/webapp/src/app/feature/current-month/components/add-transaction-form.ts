@@ -157,10 +157,20 @@ interface AddTransactionModel {
         <pulpe-tag-picker [control]="transactionForm.tagIds" />
         @if (model().kind === 'income') {
           <div class="flex flex-col gap-1">
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-body-medium text-on-surface">{{
-                'currentMonth.addTransactionFromSavingsGoal' | transloco
-              }}</span>
+            <div class="flex items-center justify-between gap-4 py-2">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-body-medium text-on-surface">{{
+                  'currentMonth.addTransactionFromSavingsGoal' | transloco
+                }}</span>
+                <p
+                  [id]="SAVINGS_SOURCE_HINT_ID"
+                  class="text-body-small text-on-surface-variant m-0"
+                >
+                  {{
+                    'currentMonth.addTransactionFromSavingsGoalHint' | transloco
+                  }}
+                </p>
+              </div>
               <!-- The inputs, not attr. bindings of the same names. The
                    focusable element is a button carrying role switch inside
                    this component, and it takes its accessible name from the
@@ -178,12 +188,6 @@ interface AddTransactionModel {
                 data-testid="transaction-savings-source-toggle"
               />
             </div>
-            <p
-              [id]="SAVINGS_SOURCE_HINT_ID"
-              class="text-body-small text-on-surface-variant m-0"
-            >
-              {{ 'currentMonth.addTransactionFromSavingsGoalHint' | transloco }}
-            </p>
             @if (isFromSavingsGoal()) {
               <pulpe-savings-goal-picker-field
                 mode="withdrawal"
@@ -197,8 +201,8 @@ interface AddTransactionModel {
         }
       </div>
       <div class="add-transaction-form-meta">
-        <div class="flex items-center justify-between py-2 px-1">
-          <div class="flex flex-col">
+        <div class="flex items-center justify-between gap-4 py-2">
+          <div class="flex flex-col gap-0.5">
             <span class="text-body-medium text-on-surface">{{
               'transactionForm.checkedToggle' | transloco
             }}</span>
@@ -231,13 +235,17 @@ interface AddTransactionModel {
     }
   `,
   styles: `
-    :host(.add-transaction-form-wide) .add-transaction-form-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      column-gap: var(--pulpe-section-gap-md);
-    }
-    :host(.add-transaction-form-wide) .add-transaction-form-lede,
-    :host(.add-transaction-form-wide) .add-transaction-form-meta {
-      grid-column: span 2 / span 2;
+    @media (min-width: 768px) {
+      :host(.add-transaction-form-wide) .add-transaction-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: var(--pulpe-section-gap-md);
+      }
+      :host(.add-transaction-form-wide) .add-transaction-form-lede {
+        grid-column: span 2 / span 2;
+      }
+      :host(.add-transaction-form-wide) .add-transaction-form-meta {
+        grid-column: 2;
+      }
     }
   `,
   host: { class: 'block' },
