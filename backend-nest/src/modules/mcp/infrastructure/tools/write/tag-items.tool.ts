@@ -39,6 +39,7 @@ const inputSchema = {
     .describe('Tags à poser (ids, voir list_tags)'),
   removeTagIds: z
     .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
     .optional()
     .describe('Tags à retirer (ids, voir list_tags)'),
 };
