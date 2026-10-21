@@ -11,33 +11,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
-import type { SupportedCurrency } from 'pulpe-shared';
-import { CURRENCY_CONFIG } from '@core/currency';
 import type { BudgetLineTableItem } from '../view-models/table-items.view-model';
 import {
   isPostponeUnavailableForRecurringLine,
   isSpreadUnavailableForRecurringLine,
 } from './budget-line-action-list';
-
-const BALANCE_FORMATTERS = new Map<string, Intl.NumberFormat>();
-
-function getBalanceFormatter(
-  locale: string,
-  currency: string,
-): Intl.NumberFormat {
-  const key = `${locale}-${currency}`;
-  let formatter = BALANCE_FORMATTERS.get(key);
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-    BALANCE_FORMATTERS.set(key, formatter);
-  }
-  return formatter;
-}
 
 /**
  * Contextual action menu for budget line cards.
@@ -74,12 +52,6 @@ function getBalanceFormatter(
       >
         {{ item().data.name }}
       </div>
-      @if (showBalance()) {
-        <div class="ph-no-capture px-4 pb-2 text-label-medium">
-          {{ 'budget.balance' | transloco }}:
-          {{ formattedBalance() }}
-        </div>
-      }
       <mat-divider />
       <button
         mat-menu-item
@@ -190,10 +162,8 @@ function getBalanceFormatter(
 })
 export class BudgetActionMenu {
   readonly item = input.required<BudgetLineTableItem>();
-  readonly currency = input<SupportedCurrency>('CHF');
   readonly menuIcon = input<string>('more_vert');
   readonly buttonClass = input<string>('');
-  readonly showBalance = input<boolean>(false);
 
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
@@ -201,13 +171,6 @@ export class BudgetActionMenu {
   readonly spread = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
-
-  protected readonly formattedBalance = computed(() => {
-    const balance = this.item().metadata.cumulativeBalance;
-    const currency = this.currency();
-    const config = CURRENCY_CONFIG[currency];
-    return getBalanceFormatter(config.locale, currency).format(balance);
-  });
 
   protected readonly showSpreadUnavailable = computed(() =>
     isSpreadUnavailableForRecurringLine(this.item()),
