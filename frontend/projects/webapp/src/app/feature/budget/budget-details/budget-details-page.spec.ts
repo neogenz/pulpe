@@ -374,7 +374,9 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
 
       const { message } = dialogService.confirmDelete.mock.calls[0][0];
       expect(message).toContain('dépense lissée (3)');
-      expect(message).toContain("Ce mois est aussi lié à d'autres mois");
+      expect(message).toContain(
+        "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne",
+      );
       expect(store.deleteMonth).toHaveBeenCalledWith(
         true,
         expect.any(Function),

@@ -85,7 +85,7 @@
         "action": "Elimina questo mese",
         "title": "Eliminare %{month}?",
         "body": "Le sue previsioni (%{forecastCount}) e i suoi movimenti (%{movementCount}) verranno eliminati. Questa azione è irreversibile.",
-        "links": "Questo mese è collegato anche ad altri mesi: %{links}. Gli altri mesi mantengono la loro parte.",
+        "links": "Questo mese è collegato anche ad altri mesi o a un obiettivo di risparmio: %{links}. Gli altri mesi mantengono la loro parte.",
         "linkSpread": "spesa distribuita (%{count})",
         "linkGoal": "obiettivo di risparmio (%{count})",
         "linkWithdrawal": "prelievo dai risparmi (%{count})",

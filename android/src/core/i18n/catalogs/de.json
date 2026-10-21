@@ -85,7 +85,7 @@
         "action": "Diesen Monat löschen",
         "title": "%{month} löschen?",
         "body": "Seine Planungen (%{forecastCount}) und seine Bewegungen (%{movementCount}) werden gelöscht. Das lässt sich nicht rückgängig machen.",
-        "links": "Dieser Monat ist auch mit anderen Monaten verknüpft: %{links}. Die anderen Monate behalten ihren Anteil.",
+        "links": "Dieser Monat ist auch mit anderen Monaten oder einem Sparziel verknüpft: %{links}. Die anderen Monate behalten ihren Anteil.",
         "linkSpread": "verteilte Ausgabe (%{count})",
         "linkGoal": "Sparziel (%{count})",
         "linkWithdrawal": "Entnahme aus Ersparnissen (%{count})",

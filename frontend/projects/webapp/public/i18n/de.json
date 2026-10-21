@@ -547,7 +547,7 @@
     "deleteMonth": "Diesen Monat löschen",
     "deleteMonthTitle": "{{ month }} löschen?",
     "deleteMonthMessage": "Die Planposten ({{ forecastCount }}) und Bewegungen ({{ movementCount }}) dieses Monats werden gelöscht. Das lässt sich nicht rückgängig machen.",
-    "deleteMonthLinks": "Dieser Monat ist auch mit anderen Monaten verknüpft: {{ links }}. Die anderen Monate behalten ihren Anteil.",
+    "deleteMonthLinks": "Dieser Monat ist auch mit anderen Monaten oder einem Sparziel verknüpft: {{ links }}. Die anderen Monate behalten ihren Anteil.",
     "deleteMonthLinkSpread": "verteilte Ausgabe ({{ count }})",
     "deleteMonthLinkGoal": "Sparziel ({{ count }})",
     "deleteMonthLinkWithdrawal": "Entnahme aus dem Sparen ({{ count }})",

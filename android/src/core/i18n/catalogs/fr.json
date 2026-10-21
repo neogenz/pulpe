@@ -85,7 +85,7 @@
         "action": "Supprimer ce mois",
         "title": "Supprimer %{month} ?",
         "body": "Ses prévisions (%{forecastCount}) et ses mouvements (%{movementCount}) seront supprimés. Cette action est irréversible.",
-        "links": "Ce mois est aussi lié à d'autres mois : %{links}. Les autres mois gardent leur part.",
+        "links": "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : %{links}. Les autres mois gardent leur part.",
         "linkSpread": "dépense lissée (%{count})",
         "linkGoal": "objectif d'épargne (%{count})",
         "linkWithdrawal": "retrait d'épargne (%{count})",

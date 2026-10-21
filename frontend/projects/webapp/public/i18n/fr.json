@@ -547,7 +547,7 @@
     "deleteMonth": "Supprimer ce mois",
     "deleteMonthTitle": "Supprimer {{ month }} ?",
     "deleteMonthMessage": "Ses prévisions ({{ forecastCount }}) et ses mouvements ({{ movementCount }}) seront supprimés. Cette action est irréversible.",
-    "deleteMonthLinks": "Ce mois est aussi lié à d'autres mois : {{ links }}. Les autres mois gardent leur part.",
+    "deleteMonthLinks": "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : {{ links }}. Les autres mois gardent leur part.",
     "deleteMonthLinkSpread": "dépense lissée ({{ count }})",
     "deleteMonthLinkGoal": "objectif d'épargne ({{ count }})",
     "deleteMonthLinkWithdrawal": "retrait d'épargne ({{ count }})",

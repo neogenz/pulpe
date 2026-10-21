@@ -52,7 +52,7 @@ struct DeleteMonthMenu: ViewModifier {
         }
         let list = labels.joined(separator: ", ")
         let linked = AppLocale.string("""
-            Ce mois est aussi lié à d'autres mois : \(list). \
+            Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : \(list). \
             Les autres mois gardent leur part.
             """)
         return "\(counts)\n\(linked)"

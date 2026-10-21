@@ -547,7 +547,7 @@
     "deleteMonth": "Delete this month",
     "deleteMonthTitle": "Delete {{ month }}?",
     "deleteMonthMessage": "Its planned items ({{ forecastCount }}) and its activity ({{ movementCount }}) will be deleted. This can't be undone.",
-    "deleteMonthLinks": "This month is also linked to other months: {{ links }}. The other months keep their share.",
+    "deleteMonthLinks": "This month is also linked to other months or to a savings goal: {{ links }}. The other months keep their share.",
     "deleteMonthLinkSpread": "spread expense ({{ count }})",
     "deleteMonthLinkGoal": "savings goal ({{ count }})",
     "deleteMonthLinkWithdrawal": "savings withdrawal ({{ count }})",

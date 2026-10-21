@@ -6925,24 +6925,24 @@
         }
       }
     },
-    "Ce mois est aussi lié à d'autres mois : %@. Les autres mois gardent leur part." : {
+    "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : %@. Les autres mois gardent leur part." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Monat ist auch mit anderen Monaten verknüpft: %@. Die anderen Monate behalten ihren Anteil."
+            "value" : "Dieser Monat ist auch mit anderen Monaten oder einem Sparziel verknüpft: %@. Die anderen Monate behalten ihren Anteil."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This month is also linked to other months: %@. The other months keep their share."
+            "value" : "This month is also linked to other months or to a savings goal: %@. The other months keep their share."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questo mese è collegato anche ad altri mesi: %@. Gli altri mesi mantengono la loro parte."
+            "value" : "Questo mese è collegato anche ad altri mesi o a un obiettivo di risparmio: %@. Gli altri mesi mantengono la loro parte."
           }
         }
       }

@@ -54,8 +54,8 @@ struct DeleteMonthMenuTests {
 
         #expect(message.hasPrefix("Ses prévisions (5) et ses mouvements (2) seront supprimés."))
         #expect(message.contains(
-            "Ce mois est aussi lié à d'autres mois : dépense lissée (2), objectif d'épargne (1). "
-                + "Les autres mois gardent leur part."
+            "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : "
+                + "dépense lissée (2), objectif d'épargne (1). Les autres mois gardent leur part."
         ))
         #expect(!message.contains("retrait d'épargne"))
     }
@@ -68,7 +68,7 @@ struct DeleteMonthMenuTests {
 
         #expect(message.contains("retrait d'épargne (3)"))
         #expect(!message.contains("dépense lissée"))
-        #expect(!message.contains("objectif d'épargne"))
+        #expect(!message.contains("objectif d'épargne ("))
     }
 
     // MARK: - Helpers
