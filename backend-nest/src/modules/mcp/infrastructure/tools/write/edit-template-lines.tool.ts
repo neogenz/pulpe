@@ -132,10 +132,6 @@ export class EditTemplateLinesTool implements McpTool<Args> {
 
   async execute(args: Args): Promise<McpToolResult> {
     const { templateId, scope, from, to } = args;
-    const creates = args.create ?? [];
-    const updates = args.update ?? [];
-    const deletes = args.delete ?? [];
-
     const missing = this.#missingInput(args);
     if (missing) return missing;
     if (scope === 'range' && periodIndex(from!) > periodIndex(to!)) {
@@ -144,28 +140,7 @@ export class EditTemplateLinesTool implements McpTool<Args> {
       });
     }
 
-    const ops: TemplateLinesBulkOperations = {
-      create: await Promise.all(
-        creates.map(async ({ currency, tagIds: tags, ...line }) => ({
-          ...line,
-          ...(await this.resolveCurrency.execute(line.amount, currency)),
-          recurrence: line.recurrence!,
-          description: '',
-          ...(tags && { tagIds: [...new Set(tags)] }),
-        })),
-      ),
-      update: await Promise.all(
-        updates.map(async ({ currency, tagIds: tags, ...line }) => ({
-          ...line,
-          ...(line.amount === undefined
-            ? {}
-            : await this.resolveCurrency.execute(line.amount, currency)),
-          ...(tags && { tagIds: [...new Set(tags)] }),
-        })),
-      ),
-      delete: deletes,
-      propagateToBudgets: scope !== 'template_only',
-    };
+    const ops = await this.#operations(args);
     const result = await this.templates.editLines(
       templateId,
       ops,
@@ -174,12 +149,41 @@ export class EditTemplateLinesTool implements McpTool<Args> {
 
     return {
       text: [
-        `Modèle mis à jour : ${result.createdLines.length} prévisions ajoutées, ${result.updatedLines.length} modifiées, ${result.deletedIds.length} supprimées.`,
+        `Modèle mis à jour. Prévisions ajoutées : ${result.createdLines.length}, modifiées : ${result.updatedLines.length}, supprimées : ${result.deletedIds.length}.`,
         ...result.createdLines.map((line) => `- [${line.id}] ${line.name}`),
         scope === 'template_only'
           ? 'Les mois déjà créés ne changent pas.'
           : `${result.propagation.affectedBudgetsCount} mois mis à jour. Les prévisions ajustées à la main dans un mois restent telles quelles.`,
       ].join('\n'),
+    };
+  }
+
+  async #operations(args: Args): Promise<TemplateLinesBulkOperations> {
+    return {
+      create: await Promise.all(
+        (args.create ?? []).map(
+          async ({ currency, tagIds: tags, ...line }) => ({
+            ...line,
+            ...(await this.resolveCurrency.execute(line.amount, currency)),
+            recurrence: line.recurrence!,
+            description: '',
+            ...(tags && { tagIds: [...new Set(tags)] }),
+          }),
+        ),
+      ),
+      update: await Promise.all(
+        (args.update ?? []).map(
+          async ({ currency, tagIds: tags, ...line }) => ({
+            ...line,
+            ...(line.amount === undefined
+              ? {}
+              : await this.resolveCurrency.execute(line.amount, currency)),
+            ...(tags && { tagIds: [...new Set(tags)] }),
+          }),
+        ),
+      ),
+      delete: args.delete ?? [],
+      propagateToBudgets: args.scope !== 'template_only',
     };
   }
 

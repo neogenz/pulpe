@@ -262,7 +262,7 @@ describe('EditTemplateLinesTool', () => {
     });
 
     expect(result.text).toContain(
-      'Modèle mis à jour : 1 prévisions ajoutées, 1 modifiées, 1 supprimées.',
+      'Modèle mis à jour. Prévisions ajoutées : 1, modifiées : 1, supprimées : 1.',
     );
     expect(result.text).toContain('- [new-1] Loyer');
     expect(result.text).toContain('4 mois mis à jour.');

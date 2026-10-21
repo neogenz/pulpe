@@ -28,7 +28,7 @@ describe('DuplicateTemplateTool', () => {
 
     expect(port.duplicate).toHaveBeenCalledWith(ID, 'Mois été');
     expect(result.text).toContain('id copy-1');
-    expect(result.text).toContain('3 prévisions copiées');
+    expect(result.text).toContain('Prévisions copiées : 3.');
   });
 
   it('should be a non-destructive, non-idempotent write tool', () => {

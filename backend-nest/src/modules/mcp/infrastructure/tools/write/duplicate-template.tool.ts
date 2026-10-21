@@ -39,7 +39,7 @@ export class DuplicateTemplateTool implements McpTool<Args> {
       args.name,
     );
     return {
-      text: `Modèle dupliqué (id ${template.id}) : ${template.name}, ${lines.length} prévisions copiées. La copie n’est pas le modèle par défaut.`,
+      text: `Modèle dupliqué (id ${template.id}) : ${template.name}. Prévisions copiées : ${lines.length}. La copie n’est pas le modèle par défaut.`,
     };
   }
 }

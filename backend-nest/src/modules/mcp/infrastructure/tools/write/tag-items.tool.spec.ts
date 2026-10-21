@@ -131,6 +131,8 @@ describe('TagItemsTool', () => {
 
     expect(movements.update).not.toHaveBeenCalled();
     expect(wrote).toBe(false);
+    expect(text).toContain('Rien n’a été modifié.');
+    expect(text).not.toContain('Tags posés');
     expect(text).toContain('Inchangés (1)');
     expect(text).not.toContain('Appliqués');
   });

@@ -167,13 +167,17 @@ function report(
       ? [`${title} (${rows.length})`, ...rows].join('\n')
       : '';
   };
+  // The request alone would read as done when every item failed or was unchanged.
+  const summary = outcomes.some((o) => o.status === 'applied')
+    ? [
+        posed.length > 0 && `Tags posés : ${nameList(posed, names)}`,
+        remove.length > 0 && `Tags retirés : ${nameList(remove, names)}`,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : 'Rien n’a été modifié.';
   return [
-    [
-      posed.length > 0 && `Tags posés : ${nameList(posed, names)}`,
-      remove.length > 0 && `Tags retirés : ${nameList(remove, names)}`,
-    ]
-      .filter(Boolean)
-      .join(' · '),
+    summary,
     section('Appliqués', 'applied'),
     section('Inchangés', 'unchanged'),
     section('En échec', 'failed'),
