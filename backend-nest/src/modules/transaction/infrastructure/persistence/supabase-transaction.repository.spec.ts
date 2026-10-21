@@ -18,6 +18,7 @@ const mockUser: AuthenticatedUser = {
 
 const mockRow: TransactionRow = {
   id: 'txn-1',
+  import_fingerprint: null,
   budget_id: 'budget-1',
   budget_line_id: null,
   amount: 'encrypted',

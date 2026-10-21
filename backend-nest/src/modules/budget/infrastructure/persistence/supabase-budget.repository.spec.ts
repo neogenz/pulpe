@@ -881,6 +881,7 @@ describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
 describe('SupabaseBudgetRepository toTransactionDecrypted (PUL-329)', () => {
   const transactionRow: TransactionRow = {
     id: 'tx-1',
+    import_fingerprint: null,
     budget_id: 'budget-1',
     budget_line_id: null,
     name: 'Salaire',

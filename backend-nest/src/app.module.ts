@@ -68,6 +68,7 @@ import {
   validateConfig,
 } from '@config/environment';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ObserveModule } from './observe';
 
 // Utils
 import {
@@ -271,6 +272,11 @@ export function createPinoLoggerConfig(configService: ConfigService) {
       ],
       cache: true,
       validate: validateConfig,
+    }),
+    ObserveModule.forRoot({
+      appKey: process.env.OBSERVE_APP_KEY,
+      appSecret: process.env.OBSERVE_APP_SECRET,
+      serviceId: 'pulpe',
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
