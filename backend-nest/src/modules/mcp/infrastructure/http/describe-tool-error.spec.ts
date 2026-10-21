@@ -59,6 +59,17 @@ describe('describeToolError', () => {
     expect(describeToolError(error)).toBe('Plage inversée.');
   });
 
+  it('never rewords a tool refusal, even on a code it rewords elsewhere', () => {
+    const error = agentError(
+      ERROR_DEFINITIONS.TAG_NOT_FOUND,
+      'Tag « Courses » supprimé entre-temps.',
+    );
+
+    expect(describeToolError(error)).toBe(
+      'Tag « Courses » supprimé entre-temps.',
+    );
+  });
+
   it('hides any server failure behind a generic message', () => {
     expect(describeToolError(new Error('db exploded'))).toBe(
       'Pulpe n’a pas pu traiter cette demande.',

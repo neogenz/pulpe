@@ -156,6 +156,13 @@ export class AdjustOverMonthsUseCase {
         const chosen = candidates.filter((c) =>
           input.chosenIds?.includes(c.id),
         );
+        // Two picks in one month would ask the same question again, forever.
+        if (chosen.length > 1) {
+          throw agentError(
+            ERROR_DEFINITIONS.VALIDATION_FAILED,
+            `${period.month}/${period.year} : plusieurs identifiants choisis dans chosenIds, un seul par mois. Rien n’a été modifié.`,
+          );
+        }
         if (chosen.length === 1) targets.push({ period, id: chosen[0].id });
         else ambiguous.push({ period, candidates });
       }
@@ -204,8 +211,19 @@ export class AdjustOverMonthsUseCase {
     input: AdjustOverMonthsInput,
     first: BudgetWithDetails | null,
   ): { forecast: BudgetLineDecrypted; movement?: TransactionDecrypted } {
+    // No budget that month: the ids are fine, the month is wrong.
+    if (!first) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        undefined,
+        {
+          operation: 'mcp.adjust_over_months',
+          ...input.from,
+        },
+      );
+    }
     const lineById = (id: string) =>
-      first?.budgetLines.find((line) => line.id === id);
+      first.budgetLines.find((line) => line.id === id);
     const notFound = (id: string) =>
       new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND, { id });
 
@@ -214,7 +232,7 @@ export class AdjustOverMonthsUseCase {
       if (!forecast) throw notFound(input.id);
       return { forecast };
     }
-    const movement = first?.transactions.find((t) => t.id === input.id);
+    const movement = first.transactions.find((t) => t.id === input.id);
     if (!movement) {
       throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND, {
         id: input.id,

@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { z } from 'zod';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -31,7 +31,11 @@ function setup(items: Entity[]) {
   const store = new Map(items.map((e) => [e.id, { ...e }]));
   const find = async (id: string) => {
     const found = store.get(id);
-    if (!found) throw new NotFoundException();
+    if (!found) {
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND, {
+        id,
+      });
+    }
     return found;
   };
   const movements = {
@@ -268,6 +272,26 @@ describe('TagItemsTool', () => {
         addTagIds: [A],
       }),
     ).rejects.toBe(failure);
+  });
+
+  it('should abort the call on a refusal that is not a business one', async () => {
+    const { tool, movements } = setup([
+      { id: MOVEMENT, name: 'Migros', tagIds: [] },
+      { id: MOVEMENT_2, name: 'Coop', tagIds: [] },
+    ]);
+    const denied = new ForbiddenException();
+    movements.update.mockRejectedValueOnce(denied);
+
+    await expect(
+      tool.execute({
+        items: [
+          { target: 'movement', id: MOVEMENT },
+          { target: 'movement', id: MOVEMENT_2 },
+        ],
+        addTagIds: [A],
+      }),
+    ).rejects.toBe(denied);
+    expect(movements.update).toHaveBeenCalledTimes(1);
   });
 
   it('should be a destructive idempotent read_write tool taking at most 50 items', () => {

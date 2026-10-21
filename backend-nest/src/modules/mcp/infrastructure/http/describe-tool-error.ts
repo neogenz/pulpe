@@ -1,5 +1,6 @@
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { AgentError } from '../../domain/agent-error';
 
 type Details = Record<string, unknown> | undefined;
 
@@ -33,6 +34,8 @@ export function describeToolError(error: unknown): string {
   if (!status || status >= 500 || !(error instanceof Error)) {
     return 'Pulpe n’a pas pu traiter cette demande.';
   }
-  if (!(error instanceof BusinessException)) return error.message;
+  if (!(error instanceof BusinessException) || error instanceof AgentError) {
+    return error.message;
+  }
   return AGENT_MESSAGES[error.code]?.(error.details) ?? error.message;
 }

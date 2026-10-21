@@ -267,6 +267,40 @@ describe('AdjustOverMonthsUseCase', () => {
     expect(noMovement.code).toBe(ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND.code);
   });
 
+  it('names the missing month, not the id, when the first month has no budget', async () => {
+    const { useCase } = setup([null, month([line('b')])]);
+
+    for (const target of ['forecast', 'movement'] as const) {
+      const error = await useCase
+        .execute({ target, id: 'a', from, count: 2, amount: 1 })
+        .catch((e) => e);
+
+      expect(error.code).toBe(ERROR_DEFINITIONS.BUDGET_NOT_FOUND.code);
+    }
+  });
+
+  it('refuses two picks in one month instead of asking again, and writes nothing', async () => {
+    const { useCase, updateLine } = setup([
+      month([line('a')]),
+      month([line('b1'), line('b2')]),
+    ]);
+
+    const error = await useCase
+      .execute({
+        target: 'forecast',
+        id: 'a',
+        from,
+        count: 2,
+        amount: 10,
+        chosenIds: ['b1', 'b2'],
+      })
+      .catch((e) => e);
+
+    expect(error.code).toBe(API_ERROR_CODES.VALIDATION_FAILED);
+    expect(error.message).toContain('4/2027');
+    expect(updateLine).not.toHaveBeenCalled();
+  });
+
   it('records a refused month and goes on with the others', async () => {
     const { useCase, updateLine } = setup([
       month([line('a')]),

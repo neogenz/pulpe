@@ -184,7 +184,8 @@ export class EditTemplateLinesTool implements McpTool<Args> {
         ),
       ),
       delete: args.delete ?? [],
-      propagateToBudgets: args.scope !== 'template_only',
+      propagateToBudgets:
+        args.scope === 'current_and_future' || args.scope === 'range',
     };
   }
 

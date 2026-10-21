@@ -1,7 +1,8 @@
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { MAX_TAGS_PER_TRANSACTION } from 'pulpe-shared';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 import {
   BUDGET_LINE_WRITE_PORT,
   type BudgetLineWritePort,
@@ -150,7 +151,7 @@ export class TagItemsTool implements McpTool<Args> {
       return { status: 'applied', row: `${label}${tagSuffix(tagIds, names)}` };
     } catch (error) {
       // Add/remove converges, so re-running the call after an abort is safe.
-      if (!(error instanceof HttpException) || error.getStatus() >= 500) {
+      if (!(error instanceof BusinessException) || error.getStatus() >= 500) {
         throw error;
       }
       return {
