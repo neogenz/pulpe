@@ -56,6 +56,66 @@ test.describe('Automatic feedback across web screens', () => {
     });
   }
 
+  for (const viewport of [
+    { width: 1440, height: 1000 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 },
+  ]) {
+    test(`optional details at ${viewport.width}px`, async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await page.setViewportSize(viewport);
+      let payload: Record<string, unknown> | undefined;
+      await page.route('**/feedback', (route) => {
+        payload = route.request().postDataJSON();
+        return route.fulfill({ status: 204 });
+      });
+      await page.goto('/settings');
+      const dialog = page.getByTestId('feedback-dialog');
+      const send = dialog.getByTestId('submit-button');
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('group')).toHaveCount(6);
+      await expect(send).toBeDisabled();
+      await expect(dialog.getByText('Sans note')).toHaveCount(0);
+      await expect(send).toBeInViewport();
+      await page.screenshot({
+        path: testInfo.outputPath('feedback-initial.png'),
+        animations: 'disabled',
+      });
+      await dialog.getByTestId('rating-4-input').press('Space');
+      await expect(send).toBeEnabled();
+      if (viewport.width !== 320) {
+        await dialog.getByTestId('onboarding-2-input').press('Space');
+        await dialog.getByTestId('onboarding-clear').click();
+        await expect(dialog.getByTestId('onboarding-1-input')).toBeFocused();
+        await dialog.getByTestId('homeClarity-5-input').press('Space');
+        await dialog.getByTestId('comment-input').fill('Plus clair, merci !');
+      }
+      await expect(send).toBeInViewport();
+      expect(
+        await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
+      ).toBe(true);
+      await page.screenshot({
+        path: testInfo.outputPath('feedback-filled.png'),
+        animations: 'disabled',
+      });
+      await send.click();
+      await expect(dialog).toBeHidden();
+      expect(payload).toMatchObject({ overallRating: 4, platform: 'web' });
+      expect(payload).not.toHaveProperty('onboarding');
+      expect(payload).not.toHaveProperty('budgetClarity');
+      expect(payload).not.toHaveProperty('currentMonth');
+      expect(payload).not.toHaveProperty('futurePlanning');
+      if (viewport.width === 320)
+        expect(payload).not.toHaveProperty('homeClarity');
+      else
+        expect(payload).toMatchObject({
+          homeClarity: 5,
+          comment: 'Plus clair, merci !',
+        });
+    });
+  }
+
   test('a missing dashboard introduction does not block other screens', async ({
     authenticatedPage: page,
   }) => {
