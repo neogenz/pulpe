@@ -53,10 +53,12 @@ export function renderMonth(
     (l) =>
       `- [${l.id}] ${KIND_LABEL[l.kind]} · ${l.name} · ${round(l.amount)} · ${l.recurrence === 'fixed' ? 'Mensuel' : 'Ponctuel'} · ${isPointed(l) ? 'Pointé' : 'À pointer'}${tagSuffix(l.tagIds, names)}`,
   );
-  // Keep the timezone: a UTC date alone can be the previous local day.
+  // Keep the timezone: a UTC date alone can be the previous local day. The
+  // forecast is named because an allocated movement keeps its nature and is
+  // the only kind adjust_over_months can follow across months.
   const moves = transactions.map(
     (t) =>
-      `- [${t.id}] ${KIND_LABEL[t.kind]} · ${t.name} · ${round(t.amount)} · ${t.transactionDate} · ${t.checkedAt ? 'Pointé' : 'À pointer'}${tagSuffix(t.tagIds, names)}`,
+      `- [${t.id}] ${KIND_LABEL[t.kind]} · ${t.name} · ${round(t.amount)} · ${t.transactionDate} · ${t.checkedAt ? 'Pointé' : 'À pointer'}${t.budgetLineId ? ` · Prévision [${t.budgetLineId}]` : ''}${tagSuffix(t.tagIds, names)}`,
   );
 
   return [

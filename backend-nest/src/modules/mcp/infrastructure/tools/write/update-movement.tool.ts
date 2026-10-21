@@ -36,7 +36,7 @@ export class UpdateMovementTool implements McpTool<Args> {
   readonly name = 'update_movement';
   readonly title = 'Modifier un mouvement';
   readonly description =
-    'Modifie un mouvement réel existant : intitulé, montant, nature ou date. Seuls les champs fournis changent.';
+    'Modifie un mouvement réel existant : intitulé, montant, nature ou date. Seuls les champs fournis changent. Un mouvement rattaché à une prévision (« Prévision [id] » dans get_month) garde la nature de cette prévision.';
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,

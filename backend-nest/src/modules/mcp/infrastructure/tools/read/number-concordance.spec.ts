@@ -210,6 +210,11 @@ describe('read tools · number concordance', () => {
     expect(text).toContain(
       '[t-3] Dépense · Restaurant · 61.9 · 2026-03-12 · À pointer',
     );
+    // An allocated movement names its forecast; a free one names none.
+    expect(text).toContain(
+      '[t-1] Dépense · Migros · 212.4 · 2026-03-12 · À pointer · Prévision [l-4]',
+    );
+    expect(text).not.toContain('Restaurant · 61.9 · 2026-03-12 · À pointer ·');
   });
 
   it('prints the savings goal figures the shared progress calculator produces', async () => {

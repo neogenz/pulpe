@@ -27,7 +27,7 @@ const inputSchema = {
   target: z
     .enum(['forecast', 'movement'])
     .describe(
-      'forecast = une prévision, movement = un mouvement rattaché à une prévision',
+      'forecast = une prévision, movement = un mouvement rattaché à une prévision (« Prévision [id] » dans get_month)',
     ),
   id: z
     .uuid()
