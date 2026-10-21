@@ -47,7 +47,11 @@ export interface FeedbackDialogData {
     LoadingButton,
   ],
   template: `
-    <form (submit)="submit($event)" class="flex min-h-0 flex-1 flex-col">
+    <form
+      (submit)="submit($event)"
+      class="flex min-h-0 flex-1 flex-col"
+      style="padding-top: env(safe-area-inset-top)"
+    >
       <h2 mat-dialog-title>{{ 'feedback.title' | transloco }}</h2>
 
       <mat-dialog-content class="min-h-0 flex-1" style="max-height: none">
