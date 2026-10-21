@@ -6,7 +6,7 @@ The wide host placed the checked row across both columns. The fix keeps the date
 
 - 32 unit tests passed across the entry form, bottom sheet and dialog service on the initial alignment candidate, exit code 0. Vitest reported a worker termination timeout after successful results; final template changes are covered by compilation and browser checks.
 - Final Angular development compilation passed with `strictTemplates` enabled.
-- Targeted ESLint passed on the initial candidate; final formatting and whitespace checks passed. Repository quality and hosted CI are tracked by the delivery owner.
+- Repository quality, automation, formatting and whitespace checks passed on the final candidate. Hosted CI is tracked in PR #812.
 - Architecture: no macro or micro violations; feature boundary, imports, form model, accessibility bindings and persistence remain unchanged.
 - Final Chrome journey passed at 600, 767, 768, 1440 and 390px in 15.8 seconds, exit code 0. It covers expense/income, both switches, alignment, horizontal bounds, keyboard Tab/Space, visible actions and the 767/768px density boundary.
 - Actual scroll owners have equal scroll/client widths: 552, 719, 720, 720 and 390px respectively. Keyboard focus decoration extends 4px beyond the inner form into existing padding without horizontal scrolling. The assertion checks the scroll owner and preserves the focus ring.
@@ -16,4 +16,4 @@ The wide host placed the checked row across both columns. The fix keeps the date
 
 The Homebrew Node alias was broken; validation used installed Node 24.16.0 through nvm. The shared package was built before validation. Browser startup required local process permission and installed Chrome because the Playwright Chromium binary was absent. Temporary extended startup/navigation deadlines and disabled trace/video recording avoided local startup and artifact finalization delays; the temporary configuration was removed.
 
-No claim of a reproduced failing pre-fix regression test is made. No separate production build or real-account write was performed locally; hosted CI owns the production build gate. Implementation and local verification are complete; independent review and publication remain with the delivery owner.
+No claim of a reproduced failing pre-fix regression test is made. No separate production build or real-account write was performed locally; hosted CI owns the production build gate. Implementation, local verification and independent review are complete.

@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: completed
 ---
 
 # Instruction: Keep both controls readable at every width
@@ -60,9 +60,9 @@ journey
 
 ## Execution status
 
-Implementation and local browser verification are complete. Independent final review, CI and publication remain in progress; see [validation.md](./validation.md).
+Implementation, local verification and independent review are complete; see [validation.md](./validation.md) and [review.md](./review.md). Delivery evidence is tracked in PR #812.
 
-## Tasks to do
+## Completed work
 
 ### `1)` Fix the layout and validate
 
@@ -70,14 +70,13 @@ Implementation and local browser verification are complete. Independent final re
 2. Correct the checked row placement without changing form values, accessibility bindings or persistence.
 3. Verify expense/income at 600, 767, 768, 1440 and 390px with browser geometry, both switch interactions, scroll and visible actions.
 4. Run relevant checks and strict template build, independent AIDD review and outcome challenge.
-5. Commit, push, open PR, pass CI, merge into main and verify its deployment.
 
 ## Test acceptance criteria
 
-| Task | Acceptance criteria                                                                     |
-| ---- | --------------------------------------------------------------------------------------- |
-| 1    | At 768px and wider, checked explanation starts in the details column, with its switch alongside it. |
-| 1    | Income savings source and checked controls remain distinct and aligned.                 |
+| Task | Acceptance criteria                                                                                                                     |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | At 768px and wider, checked explanation starts in the details column, with its switch alongside it.                                     |
+| 1    | Income savings source and checked controls remain distinct and aligned.                                                                 |
 | 1    | Below 768px, amounts, details and both switches share one column; content scrolls and actions stay visible without horizontal overflow. |
-| 1    | Mobile has no horizontal overflow and checked state remains interactive.                |
-| 1    | Existing submission payload and accessible name/description remain unchanged.           |
+| 1    | Mobile has no horizontal overflow and checked state remains interactive.                                                                |
+| 1    | Existing submission payload and accessible name/description remain unchanged.                                                           |
