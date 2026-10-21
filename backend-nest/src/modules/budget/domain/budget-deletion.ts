@@ -1,4 +1,12 @@
-import type { BudgetDeletionImpact } from 'pulpe-shared';
+import {
+  compareBudgetPeriods,
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
+  type BudgetDeletionImpact,
+  type BudgetPeriod,
+} from 'pulpe-shared';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
 /** Link columns of one month, as read from `budget_line` and `transaction`. */
 export interface BudgetDeletionLinkRows {
@@ -61,4 +69,28 @@ export function summarizeDeletionImpact(
 
 export function hasDeletionLinks(impact: BudgetDeletionImpact): boolean {
   return Object.values(impact.links).some((count) => count > 0);
+}
+
+/**
+ * Only a month after the live, pay-day-aware period can be deleted. `today` is
+ * a business calendar day (`YYYY-MM-DD`), passed in so the guard stays pure.
+ */
+export function assertDeletableMonth(
+  budget: BudgetPeriod,
+  today: string,
+  payDayOfMonth: number | null | undefined,
+  loggingContext: { operation: string; userId: string; entityId: string },
+): void {
+  const livePeriod = getBudgetPeriodForDate(
+    parseIsoDateLocal(today),
+    payDayOfMonth,
+  );
+
+  if (compareBudgetPeriods(budget, livePeriod) <= 0) {
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_NOT_DELETABLE,
+      undefined,
+      loggingContext,
+    );
+  }
 }

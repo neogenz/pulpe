@@ -64,6 +64,7 @@ import { FindBudgetWithDetailsUseCase } from '../../application/find-budget-with
 import { CreateBudgetUseCase } from '../../application/create-budget.use-case';
 import { UpdateBudgetUseCase } from '../../application/update-budget.use-case';
 import { RemoveBudgetUseCase } from '../../application/remove-budget.use-case';
+import { GetBudgetDeletionImpactUseCase } from '../../application/get-budget-deletion-impact.use-case';
 import { GenerateBudgetsUseCase } from '../../application/generate-budgets.use-case';
 import { ExportAllBudgetsUseCase } from '../../application/export-all-budgets.use-case';
 import { BudgetMapper } from '../mappers/budget.mapper';
@@ -90,6 +91,7 @@ export class BudgetController {
     private readonly createBudgetUseCase: CreateBudgetUseCase,
     private readonly updateBudgetUseCase: UpdateBudgetUseCase,
     private readonly removeBudgetUseCase: RemoveBudgetUseCase,
+    private readonly getBudgetDeletionImpactUseCase: GetBudgetDeletionImpactUseCase,
     private readonly generateBudgetsUseCase: GenerateBudgetsUseCase,
     private readonly exportAllBudgetsUseCase: ExportAllBudgetsUseCase,
     private readonly mapper: BudgetMapper,
@@ -352,7 +354,7 @@ export class BudgetController {
   ): Promise<BudgetDeletionImpactResponse> {
     return {
       success: true,
-      data: await this.removeBudgetUseCase.impact(id, user),
+      data: await this.getBudgetDeletionImpactUseCase.execute(id, user),
     };
   }
 
@@ -398,7 +400,7 @@ export class BudgetController {
   @ApiOperation({
     summary: 'Delete existing budget',
     description:
-      'Permanently deletes a future month and its forecasts, movements and tags. The current and past months are refused. A month linked to other months is refused unless confirmLinks=true.',
+      'Permanently deletes a future month and its forecasts, movements and tags. The current and past months are refused. A month linked to other months or to a savings goal is refused unless confirmLinks=true.',
   })
   @ApiParam({
     name: 'id',
@@ -416,7 +418,7 @@ export class BudgetController {
     name: 'confirmLinks',
     required: false,
     description:
-      'Must be "true" to delete a month linked to other months (ERR_BUDGET_DELETION_LINKS_UNCONFIRMED otherwise)',
+      'Must be "true" to delete a month linked to other months or to a savings goal (ERR_BUDGET_DELETION_LINKS_UNCONFIRMED otherwise)',
     enum: ['true', 'false'],
   })
   @ApiNotFoundResponse({

@@ -11,6 +11,7 @@ import {
 import type { Budget } from '../domain/budget.entity';
 import { CreateBudgetUseCase } from './create-budget.use-case';
 import { RemoveBudgetUseCase } from './remove-budget.use-case';
+import { GetBudgetDeletionImpactUseCase } from './get-budget-deletion-impact.use-case';
 
 /** Month creation and deletion, for in-process consumers that have no HTTP request. */
 @Injectable()
@@ -18,6 +19,7 @@ export class WriteBudgetsInProcessUseCase implements BudgetWritePort {
   constructor(
     private readonly createBudget: CreateBudgetUseCase,
     private readonly removeBudget: RemoveBudgetUseCase,
+    private readonly getDeletionImpact: GetBudgetDeletionImpactUseCase,
     @Inject(BUDGET_REPOSITORY)
     private readonly repo: BudgetRepositoryPort,
     private readonly session: AuthenticatedSupabaseProvider,
@@ -31,7 +33,7 @@ export class WriteBudgetsInProcessUseCase implements BudgetWritePort {
     month: number,
     year: number,
   ): Promise<BudgetDeletionImpact> {
-    return this.removeBudget.impact(
+    return this.getDeletionImpact.execute(
       await this.#budgetId(month, year),
       this.session.user,
     );

@@ -518,19 +518,7 @@ export class SupabaseBudgetRepository
       ),
     ]);
 
-    return {
-      lines: lines.map((row) => ({
-        id: row.id,
-        spreadGroupId: row.spread_group_id,
-        savingsGoalId: row.savings_goal_id,
-        savingsWithdrawalGroupId: row.savings_withdrawal_group_id,
-        sourceSavingsGoalId: row.source_savings_goal_id,
-      })),
-      movements: movements.map((row) => ({
-        budgetLineId: row.budget_line_id,
-        sourceSavingsGoalId: row.source_savings_goal_id,
-      })),
-    };
+    return this.#toDeletionLinkRows(lines, movements);
   }
 
   async createBudgetFromTemplateRpc(payload: {
@@ -1124,6 +1112,35 @@ export class SupabaseBudgetRepository
       updatedAt: decrypted.updated_at,
       sourceSavingsGoalId: decrypted.source_savings_goal_id,
       sourceSavingsGoalName: decrypted.source_savings_goal_name,
+    };
+  }
+
+  #toDeletionLinkRows(
+    lines: Pick<
+      BudgetLineRow,
+      | 'id'
+      | 'spread_group_id'
+      | 'savings_goal_id'
+      | 'savings_withdrawal_group_id'
+      | 'source_savings_goal_id'
+    >[],
+    movements: Pick<
+      TransactionRow,
+      'budget_line_id' | 'source_savings_goal_id'
+    >[],
+  ): BudgetDeletionLinkRows {
+    return {
+      lines: lines.map((row) => ({
+        id: row.id,
+        spreadGroupId: row.spread_group_id,
+        savingsGoalId: row.savings_goal_id,
+        savingsWithdrawalGroupId: row.savings_withdrawal_group_id,
+        sourceSavingsGoalId: row.source_savings_goal_id,
+      })),
+      movements: movements.map((row) => ({
+        budgetLineId: row.budget_line_id,
+        sourceSavingsGoalId: row.source_savings_goal_id,
+      })),
     };
   }
 

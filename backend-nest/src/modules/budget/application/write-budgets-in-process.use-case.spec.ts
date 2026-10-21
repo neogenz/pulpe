@@ -8,6 +8,7 @@ import type { BudgetRepositoryPort } from '../domain/ports/budget-repository.por
 import type { Budget } from '../domain/budget.entity';
 import type { CreateBudgetUseCase } from './create-budget.use-case';
 import type { RemoveBudgetUseCase } from './remove-budget.use-case';
+import type { GetBudgetDeletionImpactUseCase } from './get-budget-deletion-impact.use-case';
 import { WriteBudgetsInProcessUseCase } from './write-budgets-in-process.use-case';
 
 const user: AuthenticatedUser = {
@@ -30,23 +31,20 @@ const impact: BudgetDeletionImpact = {
 
 describe('WriteBudgetsInProcessUseCase', () => {
   let createBudget: { execute: ReturnType<typeof jest.fn> };
-  let removeBudget: {
-    impact: ReturnType<typeof jest.fn>;
-    execute: ReturnType<typeof jest.fn>;
-  };
+  let removeBudget: { execute: ReturnType<typeof jest.fn> };
+  let getDeletionImpact: { execute: ReturnType<typeof jest.fn> };
   let repo: { fetchBudgetIdByPeriod: ReturnType<typeof jest.fn> };
   let adapter: WriteBudgetsInProcessUseCase;
 
   beforeEach(() => {
     createBudget = { execute: jest.fn() };
-    removeBudget = {
-      impact: jest.fn().mockResolvedValue(impact),
-      execute: jest.fn().mockResolvedValue(impact),
-    };
+    removeBudget = { execute: jest.fn().mockResolvedValue(impact) };
+    getDeletionImpact = { execute: jest.fn().mockResolvedValue(impact) };
     repo = { fetchBudgetIdByPeriod: jest.fn().mockResolvedValue('budget-1') };
     adapter = new WriteBudgetsInProcessUseCase(
       createBudget as unknown as CreateBudgetUseCase,
       removeBudget as unknown as RemoveBudgetUseCase,
+      getDeletionImpact as unknown as GetBudgetDeletionImpactUseCase,
       repo as unknown as BudgetRepositoryPort,
       { user } as unknown as AuthenticatedSupabaseProvider,
     );
@@ -56,7 +54,7 @@ describe('WriteBudgetsInProcessUseCase', () => {
     const result = await adapter.deletionImpact(3, 2027);
 
     expect(repo.fetchBudgetIdByPeriod).toHaveBeenCalledWith(3, 2027);
-    expect(removeBudget.impact).toHaveBeenCalledWith('budget-1', user);
+    expect(getDeletionImpact.execute).toHaveBeenCalledWith('budget-1', user);
     expect(result).toBe(impact);
   });
 
@@ -90,7 +88,7 @@ describe('WriteBudgetsInProcessUseCase', () => {
       );
       expect((error as BusinessException).getStatus()).toBe(404);
     }
-    expect(removeBudget.impact).not.toHaveBeenCalled();
+    expect(getDeletionImpact.execute).not.toHaveBeenCalled();
     expect(removeBudget.execute).not.toHaveBeenCalled();
   });
 

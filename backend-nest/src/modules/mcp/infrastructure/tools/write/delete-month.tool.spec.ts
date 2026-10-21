@@ -57,7 +57,7 @@ describe('DeleteMonthTool', () => {
     expect(budgets.removeMonth).toHaveBeenCalledTimes(1);
     expect(budgets.removeMonth).toHaveBeenCalledWith(3, 2027, false);
     expect(result.text).toBe(
-      'Budget de 3/2027 supprimé (4 prévisions, 2 mouvements).',
+      'Budget de 3/2027 supprimé (prévisions : 4, mouvements : 2).',
     );
   });
 
@@ -89,7 +89,7 @@ describe('DeleteMonthTool', () => {
 
       expect(result.text).toStartWith('Information manquante');
       expect(result.text).toContain('3/2027');
-      expect(result.text).toContain('dépense lissée (2)');
+      expect(result.text).toContain('prévision lissée (2)');
       expect(result.text).toContain('objectif d’épargne (1)');
       expect(result.text).toContain('retrait d’épargne (3)');
       expect(result.text).toEndWith(
@@ -106,7 +106,7 @@ describe('DeleteMonthTool', () => {
     const result = await tool.execute({ month: 3, year: 2027 });
 
     expect(result.text).toContain('retrait d’épargne (1)');
-    expect(result.text).not.toContain('dépense lissée');
+    expect(result.text).not.toContain('prévision lissée');
     expect(result.text).not.toContain('objectif d’épargne');
   });
 

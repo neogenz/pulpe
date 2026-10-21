@@ -1,10 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  compareBudgetPeriods,
-  getBudgetPeriodForDate,
-  parseIsoDateLocal,
-  type BudgetDeletionImpact,
-} from 'pulpe-shared';
+import type { BudgetDeletionImpact } from 'pulpe-shared';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -16,6 +11,7 @@ import {
   type BudgetRepositoryPort,
 } from '../domain/ports/budget-repository.port';
 import {
+  assertDeletableMonth,
   hasDeletionLinks,
   summarizeDeletionImpact,
 } from '../domain/budget-deletion';
@@ -30,40 +26,31 @@ export class RemoveBudgetUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  /** What deleting this month takes with it. Refuses the current and past months. */
-  async impact(
-    id: string,
-    user: AuthenticatedUser,
-  ): Promise<BudgetDeletionImpact> {
-    const budget = await this.repo.fetchBudgetById(id, user.id);
-    const livePeriod = getBudgetPeriodForDate(
-      parseIsoDateLocal(formatBusinessCalendarDate()),
-      user.payDayOfMonth,
-    );
-
-    if (compareBudgetPeriods(budget, livePeriod) <= 0) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_DELETABLE,
-        undefined,
-        { operation: 'budget.remove', userId: user.id, entityId: id },
-      );
-    }
-
-    return summarizeDeletionImpact(await this.repo.fetchDeletionLinkRows(id));
-  }
-
   async execute(
     id: string,
     user: AuthenticatedUser,
     confirmLinks = false,
   ): Promise<BudgetDeletionImpact> {
-    const impact = await this.impact(id, user);
+    const loggingContext = {
+      operation: 'budget.remove',
+      userId: user.id,
+      entityId: id,
+    };
+    assertDeletableMonth(
+      await this.repo.fetchBudgetById(id, user.id),
+      formatBusinessCalendarDate(),
+      user.payDayOfMonth,
+      loggingContext,
+    );
+    const impact = summarizeDeletionImpact(
+      await this.repo.fetchDeletionLinkRows(id),
+    );
 
     if (hasDeletionLinks(impact) && !confirmLinks) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_DELETION_LINKS_UNCONFIRMED,
         { links: impact.links },
-        { operation: 'budget.remove', userId: user.id, entityId: id },
+        loggingContext,
       );
     }
 

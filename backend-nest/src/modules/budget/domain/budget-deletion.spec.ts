@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import {
+  assertDeletableMonth,
   hasDeletionLinks,
   summarizeDeletionImpact,
   type BudgetDeletionLinkRows,
@@ -179,5 +182,70 @@ describe('hasDeletionLinks', () => {
     expect(
       hasDeletionLinks({ ...noLinks, links: { ...noLinks.links, [key]: 1 } }),
     ).toBe(true);
+  });
+});
+
+describe('assertDeletableMonth', () => {
+  const loggingContext = {
+    operation: 'budget.remove',
+    userId: 'user-1',
+    entityId: 'budget-1',
+  };
+
+  it.each([
+    ['the current month', 10, 2026],
+    ['the previous month', 9, 2026],
+    ['a month of last year', 12, 2025],
+  ])('refuses %s with the log context', (_label, month, year) => {
+    let error: unknown;
+    try {
+      assertDeletableMonth({ month, year }, '2026-10-20', null, loggingContext);
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(BusinessException);
+    expect((error as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.BUDGET_NOT_DELETABLE.code,
+    );
+    expect((error as BusinessException).loggingContext).toEqual(loggingContext);
+  });
+
+  it('allows a month after the live period, across the year end', () => {
+    expect(() =>
+      assertDeletableMonth(
+        { month: 11, year: 2026 },
+        '2026-10-20',
+        undefined,
+        loggingContext,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertDeletableMonth(
+        { month: 1, year: 2027 },
+        '2026-12-15',
+        null,
+        loggingContext,
+      ),
+    ).not.toThrow();
+  });
+
+  it('follows the pay day: 26 Oct with pay day 25 is already the November period', () => {
+    expect(() =>
+      assertDeletableMonth(
+        { month: 11, year: 2026 },
+        '2026-10-26',
+        25,
+        loggingContext,
+      ),
+    ).toThrow(BusinessException);
+    expect(() =>
+      assertDeletableMonth(
+        { month: 12, year: 2026 },
+        '2026-10-26',
+        25,
+        loggingContext,
+      ),
+    ).not.toThrow();
   });
 });

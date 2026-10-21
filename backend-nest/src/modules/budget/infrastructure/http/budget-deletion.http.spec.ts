@@ -16,6 +16,7 @@ import {
 } from 'pulpe-shared';
 import { BudgetController } from './budget.controller';
 import { RemoveBudgetUseCase } from '../../application/remove-budget.use-case';
+import { GetBudgetDeletionImpactUseCase } from '../../application/get-budget-deletion-impact.use-case';
 import { HasBudgetsUseCase } from '../../application/has-budgets.use-case';
 import { FindAllBudgetsUseCase } from '../../application/find-all-budgets.use-case';
 import { FindBudgetUseCase } from '../../application/find-budget.use-case';
@@ -70,7 +71,9 @@ const mockLogger = {
 } as unknown as PinoLogger;
 
 const removeBudget = {
-  impact: mock(() => Promise.resolve(impact)),
+  execute: mock(() => Promise.resolve(impact)),
+};
+const getDeletionImpact = {
   execute: mock(() => Promise.resolve(impact)),
 };
 
@@ -82,6 +85,7 @@ beforeAll(async () => {
     controllers: [BudgetController],
     providers: [
       { provide: RemoveBudgetUseCase, useValue: removeBudget },
+      { provide: GetBudgetDeletionImpactUseCase, useValue: getDeletionImpact },
       { provide: HasBudgetsUseCase, ...unused },
       { provide: FindAllBudgetsUseCase, ...unused },
       { provide: FindBudgetUseCase, ...unused },
@@ -125,14 +129,14 @@ describe('Budget deletion HTTP surface', () => {
         success: true,
         data: impact,
       });
-      expect(removeBudget.impact).toHaveBeenCalledWith(
+      expect(getDeletionImpact.execute).toHaveBeenCalledWith(
         BUDGET_ID,
         expect.objectContaining({ id: MOCK_USER_ID }),
       );
     });
 
     it('answers 409 with the business code for a current or past month', async () => {
-      removeBudget.impact.mockImplementationOnce(() =>
+      getDeletionImpact.execute.mockImplementationOnce(() =>
         Promise.reject(
           new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_DELETABLE),
         ),

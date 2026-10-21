@@ -116,53 +116,6 @@ describe('RemoveBudgetUseCase', () => {
 
   afterEach(() => setSystemTime());
 
-  describe('impact', () => {
-    it('returns the counts of a future month with no links', async () => {
-      const impact = await useCase.impact('budget-1', user);
-
-      expect(mockRepo.fetchBudgetById).toHaveBeenCalledWith(
-        'budget-1',
-        'user-1',
-      );
-      expect(mockRepo.fetchDeletionLinkRows).toHaveBeenCalledWith('budget-1');
-      expect(impact).toEqual({
-        forecastCount: 1,
-        movementCount: 1,
-        links: {
-          spreadForecasts: 0,
-          savingsGoalForecasts: 0,
-          savingsWithdrawalForecasts: 0,
-          savingsWithdrawalMovements: 0,
-        },
-      });
-      expect(mockRepo.deleteBudget).not.toHaveBeenCalled();
-    });
-
-    it('refuses the current month without reading its links', async () => {
-      mockRepo.fetchBudgetById.mockResolvedValue(budgetAt(10, 2026));
-
-      const error = await businessError(() => useCase.impact('budget-1', user));
-
-      expect(error.code).toBe(ERROR_DEFINITIONS.BUDGET_NOT_DELETABLE.code);
-      expect(error.getStatus()).toBe(409);
-      expect(mockRepo.fetchDeletionLinkRows).not.toHaveBeenCalled();
-    });
-
-    it('propagates the 404 of an unknown or foreign id', async () => {
-      mockRepo.fetchBudgetById.mockRejectedValue(
-        new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, {
-          id: 'budget-1',
-        }),
-      );
-
-      const error = await businessError(() => useCase.impact('budget-1', user));
-
-      expect(error.code).toBe(ERROR_DEFINITIONS.BUDGET_NOT_FOUND.code);
-      expect(error.getStatus()).toBe(404);
-      expect(mockRepo.fetchDeletionLinkRows).not.toHaveBeenCalled();
-    });
-  });
-
   describe('execute', () => {
     it('deletes a future month with no links and invalidates the cache', async () => {
       const impact = await useCase.execute('budget-1', user);
@@ -237,6 +190,11 @@ describe('RemoveBudgetUseCase', () => {
 
       expect(error.code).toBe(ERROR_DEFINITIONS.BUDGET_NOT_DELETABLE.code);
       expect(error.getStatus()).toBe(409);
+      expect(error.loggingContext).toEqual({
+        operation: 'budget.remove',
+        userId: 'user-1',
+        entityId: 'budget-1',
+      });
       expect(mockRepo.deleteBudget).not.toHaveBeenCalled();
       expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
     });

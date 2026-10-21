@@ -47,7 +47,7 @@ export class DeleteMonthTool implements McpTool<Args> {
     // Deleting a linked month breaks a spread, a savings goal or a withdrawal
     // pair for the months that stay. Only the user can accept that.
     const counts: [label: string, count: number][] = [
-      ['dépense lissée', impact.links.spreadForecasts],
+      ['prévision lissée', impact.links.spreadForecasts],
       ['objectif d’épargne', impact.links.savingsGoalForecasts],
       [
         'retrait d’épargne',
@@ -70,7 +70,7 @@ export class DeleteMonthTool implements McpTool<Args> {
       confirmLinks === true,
     );
     return {
-      text: `Budget de ${month}/${year} supprimé (${removed.forecastCount} prévisions, ${removed.movementCount} mouvements).`,
+      text: `Budget de ${month}/${year} supprimé (prévisions : ${removed.forecastCount}, mouvements : ${removed.movementCount}).`,
     };
   }
 }

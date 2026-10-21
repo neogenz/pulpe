@@ -17,6 +17,7 @@ import { FindBudgetUseCase } from './application/find-budget.use-case';
 import { FindBudgetWithDetailsUseCase } from './application/find-budget-with-details.use-case';
 import { UpdateBudgetUseCase } from './application/update-budget.use-case';
 import { RemoveBudgetUseCase } from './application/remove-budget.use-case';
+import { GetBudgetDeletionImpactUseCase } from './application/get-budget-deletion-impact.use-case';
 import { RecalculateBudgetBalancesUseCase } from './application/recalculate-budget-balances.use-case';
 import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-budget.use-case';
 import { EnsureBudgetsForPeriodsUseCase } from './application/ensure-budgets-for-periods.use-case';
@@ -41,6 +42,7 @@ import { WriteBudgetsInProcessUseCase } from './application/write-budgets-in-pro
     FindBudgetWithDetailsUseCase,
     UpdateBudgetUseCase,
     RemoveBudgetUseCase,
+    GetBudgetDeletionImpactUseCase,
     RecalculateBudgetBalancesUseCase,
     ResolveNextMonthBudgetUseCase,
     EnsureBudgetsForPeriodsUseCase,
