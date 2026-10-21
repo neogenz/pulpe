@@ -25,6 +25,7 @@ import {
   type TransactionWritePort,
 } from '@modules/transaction/domain/ports/transaction-write.port';
 import { ResolveCurrencyUseCase } from './resolve-currency.use-case';
+import { agentError } from '../domain/agent-error';
 
 export interface AdjustOverMonthsInput {
   target: 'forecast' | 'movement';
@@ -174,9 +175,11 @@ export class AdjustOverMonthsUseCase {
     const updated: BudgetPeriod[] = [];
     const failed: { period: BudgetPeriod; reason: string }[] = [];
     // ponytail: sequential and non-atomic, one recalculation per month; a batch
-    // RPC if 12 months ever proves slow. Re-running converges, so a failed month
-    // can simply be retried.
-    for (const { period, id } of targets) {
+    // RPC if 12 months ever proves slow. The other months are matched on the
+    // first one, so it is written last: a server failure part way leaves it
+    // unchanged and a retry finds the same months again.
+    const [reference, ...others] = targets;
+    for (const { period, id } of [...others, reference]) {
       try {
         if (input.target === 'forecast') {
           // The write port marks a value edit as manually adjusted.
@@ -192,6 +195,7 @@ export class AdjustOverMonthsUseCase {
         failed.push({ period, reason: error.message });
       }
     }
+    updated.sort((a, b) => periodIndex(a) - periodIndex(b));
     return { updated, failed };
   }
 
@@ -217,9 +221,10 @@ export class AdjustOverMonthsUseCase {
       });
     }
     if (!movement.budgetLineId) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: 'movement is not allocated to a forecast',
-      });
+      throw agentError(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        'Ce mouvement n’est rattaché à aucune prévision : il n’a pas d’équivalent dans les autres mois. Rien n’a été modifié.',
+      );
     }
     const forecast = lineById(movement.budgetLineId);
     if (!forecast) throw notFound(movement.budgetLineId);

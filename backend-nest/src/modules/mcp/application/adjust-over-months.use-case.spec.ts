@@ -96,9 +96,9 @@ describe('AdjustOverMonthsUseCase', () => {
       unmatched: periods(5),
       failed: [],
     });
-    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['a', 'b']);
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'a']);
     // The write port marks a value edit as manually adjusted on its own.
-    expect(updateLine.mock.calls[0][1]).toEqual({
+    expect(updateLine.mock.calls[1][1]).toEqual({
       id: 'a',
       amount: 1650,
       targetCurrency: 'CHF',
@@ -125,7 +125,7 @@ describe('AdjustOverMonthsUseCase', () => {
       updated: periods(3, 4),
       unmatched: periods(5),
     });
-    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['a', 'b']);
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'a']);
   });
 
   it('matches a forecast without template line on trimmed name and same kind', async () => {
@@ -147,8 +147,8 @@ describe('AdjustOverMonthsUseCase', () => {
       updated: periods(3, 4),
       unmatched: periods(5),
     });
-    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['a', 'b']);
-    expect(updateLine.mock.calls[1][1]).toEqual({
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'a']);
+    expect(updateLine.mock.calls[0][1]).toEqual({
       id: 'b',
       name: 'Loyer 2027',
     });
@@ -210,7 +210,7 @@ describe('AdjustOverMonthsUseCase', () => {
     const answered = await useCase.execute({ ...input, chosenIds: ['b2'] });
 
     expect(answered).toMatchObject({ status: 'done', updated: periods(3, 4) });
-    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['a', 'b2']);
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b2', 'a']);
   });
 
   it('updates the same-name movement on the equivalent forecast, without touching forecasts', async () => {
@@ -237,7 +237,7 @@ describe('AdjustOverMonthsUseCase', () => {
     });
 
     expect(result).toMatchObject({ status: 'done', updated: periods(3, 4) });
-    expect(updateMovement.mock.calls.map((c) => c[0])).toEqual(['ma', 'mb']);
+    expect(updateMovement.mock.calls.map((c) => c[0])).toEqual(['mb', 'ma']);
     expect(updateLine).not.toHaveBeenCalled();
   });
 
@@ -294,6 +294,33 @@ describe('AdjustOverMonthsUseCase', () => {
       updated: periods(3, 5),
       failed: [{ period: periods(4)[0], reason: expect.stringContaining('b') }],
     });
+  });
+
+  it('writes the first month last, so a retry after a server failure finds the same months', async () => {
+    const months = [month([line('a')]), month([line('b')]), month([line('c')])];
+    const { useCase, updateLine } = setup(months);
+    updateLine.mockImplementation(async (id: string) => {
+      if (id === 'c') throw new Error('db down');
+      return { id };
+    });
+    const input = {
+      target: 'forecast' as const,
+      id: 'a',
+      from,
+      count: 3,
+      name: 'Loyer 2027',
+    };
+
+    await expect(useCase.execute(input)).rejects.toThrow('db down');
+    // The reference month, matched on by name, is still untouched.
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'c']);
+
+    updateLine.mockClear();
+    updateLine.mockImplementation(async (id: string) => ({ id }));
+    const retried = await useCase.execute(input);
+
+    expect(retried).toMatchObject({ updated: periods(3, 4, 5), unmatched: [] });
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'c', 'a']);
   });
 
   it('rethrows an unexpected error', async () => {

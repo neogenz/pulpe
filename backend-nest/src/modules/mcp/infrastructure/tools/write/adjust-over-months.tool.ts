@@ -7,7 +7,7 @@ import {
   type BudgetPeriod,
 } from 'pulpe-shared';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { BusinessException } from '@common/exceptions/business.exception';
+import { agentError } from '../../../domain/agent-error';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 import {
   AdjustOverMonthsUseCase,
@@ -60,7 +60,7 @@ const inputSchema = {
     .max(MAX_MONTHS)
     .optional()
     .describe(
-      'Réponse de l’utilisateur quand plusieurs éléments correspondent dans un mois',
+      'Réponse de l’utilisateur quand plusieurs éléments correspondent dans un mois : un seul identifiant par mois',
     ),
 };
 
@@ -97,9 +97,10 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
       ? periodIndex(args.until) - periodIndex(from) + 1
       : args.months!;
     if (count < 1 || count > MAX_MONTHS) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: 'until must be within 12 months from the start month',
-      });
+      throw agentError(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        `until doit tomber entre le mois de départ et ${MAX_MONTHS} mois plus tard, mois de départ compris. Rien n’a été modifié.`,
+      );
     }
 
     const result = await this.adjust.execute({
@@ -152,7 +153,7 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
           .join(' ; ')}`,
     );
     return askUser(
-      `plusieurs éléments correspondent. ${lines.join(' ; ')}. Demande lesquels ajuster, puis rappelle adjust_over_months avec les mêmes arguments et chosenIds.`,
+      `plusieurs éléments correspondent. ${lines.join(' ; ')}. Demande lequel ajuster dans chaque mois (un seul par mois), puis rappelle adjust_over_months avec les mêmes arguments et chosenIds.`,
     );
   }
 
