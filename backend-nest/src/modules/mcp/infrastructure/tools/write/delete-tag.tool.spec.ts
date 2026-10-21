@@ -26,17 +26,6 @@ describe('DeleteTagTool', () => {
     expect(result.text).toBe(`Tag supprimé (id ${ID}).`);
   });
 
-  it('should reject an unknown tag with a French 404, never a success text', async () => {
-    const { tool } = setup(async () => {
-      throw new BusinessException(ERROR_DEFINITIONS.TAG_NOT_FOUND, { id: ID });
-    });
-
-    const failure = await tool.execute({ tagId: ID }).catch((e) => e);
-
-    expect(failure.getStatus()).toBe(404);
-    expect(failure.message).toContain('Tag introuvable');
-  });
-
   it('should let a 500 BusinessException through untouched', async () => {
     const failure = new BusinessException(ERROR_DEFINITIONS.TAG_DELETE_FAILED);
     const { tool } = setup(async () => {

@@ -41,10 +41,11 @@ describe('DeleteTemplateTool', () => {
     expect(failure.message).toContain('10/2026, 11/2026');
   });
 
-  it('should be a destructive, idempotent write tool', () => {
+  it('should be a destructive, idempotent write tool that waits for an explicit yes', () => {
     const { tool } = setup(async () => {});
 
     expect(tool.name).toBe('delete_template');
+    expect(tool.description).toContain('confirmation explicite');
     expect(tool.mode).toBe('read_write');
     expect(tool.annotations).toEqual({
       readOnlyHint: false,

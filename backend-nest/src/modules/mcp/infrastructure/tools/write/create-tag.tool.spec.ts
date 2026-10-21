@@ -26,20 +26,6 @@ describe('CreateTagTool', () => {
     expect(result.text).toBe(`Tag créé (id ${ID}) : « Courses ».`);
   });
 
-  it('should reject a taken name with a French 409 and no success text', async () => {
-    const { tool } = setup(async () => {
-      throw new BusinessException(ERROR_DEFINITIONS.TAG_ALREADY_EXISTS, {
-        name: 'courses',
-      });
-    });
-
-    const failure = await tool.execute({ name: 'courses' }).catch((e) => e);
-
-    expect(failure.getStatus()).toBe(409);
-    expect(failure.message).toContain('existe déjà');
-    expect(failure.message).toContain('courses');
-  });
-
   it('should let an unrelated failure through unchanged', async () => {
     const failure = new BusinessException(ERROR_DEFINITIONS.TAG_CREATE_FAILED);
     const { tool } = setup(async () => {

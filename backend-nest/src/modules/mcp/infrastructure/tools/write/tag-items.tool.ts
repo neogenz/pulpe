@@ -1,6 +1,7 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { MAX_TAGS_PER_TRANSACTION } from 'pulpe-shared';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import {
   BUDGET_LINE_WRITE_PORT,
   type BudgetLineWritePort,
@@ -13,10 +14,10 @@ import {
   TRANSACTION_WRITE_PORT,
   type TransactionWritePort,
 } from '@modules/transaction/domain/ports/transaction-write.port';
+import { agentError } from '../../../domain/agent-error';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 import { tagNames, tagSuffix } from '../read/month-report';
 import { askUser } from './elicitation';
-import { unknownTagIdsError } from './tag-errors';
 
 const MAX_ITEMS = 50;
 
@@ -31,7 +32,8 @@ const inputSchema = {
       }),
     )
     .min(1)
-    .max(MAX_ITEMS),
+    .max(MAX_ITEMS)
+    .describe('Mouvements ou prévisions à taguer'),
   addTagIds: z
     .array(z.uuid())
     .max(MAX_TAGS_PER_TRANSACTION)
@@ -58,7 +60,7 @@ export class TagItemsTool implements McpTool<Args> {
   readonly name = 'tag_items';
   readonly title = 'Poser ou retirer des tags';
   readonly description =
-    'Pose et/ou retire des tags sur 1 à 50 mouvements ou prévisions en un appel. Les tags non mentionnés restent en place ; un tag présent dans les deux listes est retiré. 10 tags au plus par élément : un élément qui dépasserait cette limite, ou introuvable, est signalé en échec sans bloquer les autres. Taguer une prévision ne la marque pas comme ajustée : une mise à jour du modèle remplace ses tags.';
+    'Pose et/ou retire des tags sur 1 à 50 mouvements ou prévisions en un appel. Les tags non mentionnés restent en place ; un tag présent dans les deux listes est retiré. 10 tags au plus par élément : un élément qui dépasserait cette limite, ou introuvable, est signalé en échec sans bloquer les autres. Prévisions d’un mois seulement : pour celles d’un modèle, utiliser edit_template_lines (update[].tagIds). Taguer une prévision ne la marque pas comme ajustée : une mise à jour du modèle remplace ses tags.';
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,
@@ -91,7 +93,12 @@ export class TagItemsTool implements McpTool<Args> {
       (id) => !names.has(id),
     );
     if (unknown.length > 0) {
-      throw unknownTagIdsError(unknown);
+      throw agentError(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        `Tags inconnus : ${unknown.join(', ')}. Appelle list_tags ; rien n’a été modifié.`,
+        { ids: unknown },
+        { operation: 'mcp.tag_items' },
+      );
     }
 
     const outcomes: Outcome[] = [];

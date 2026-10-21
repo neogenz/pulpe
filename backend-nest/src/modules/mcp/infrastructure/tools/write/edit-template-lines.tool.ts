@@ -10,11 +10,11 @@ import {
   type TemplateLinesBulkOperations,
 } from 'pulpe-shared';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { BusinessException } from '@common/exceptions/business.exception';
 import {
   BUDGET_TEMPLATE_WRITE_PORT,
   type BudgetTemplateWritePort,
 } from '@modules/budget-template/domain/ports/budget-template-write.port';
+import { agentError } from '../../../domain/agent-error';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 import { ResolveCurrencyUseCase } from '../../../application/resolve-currency.use-case';
 import { askUser } from './elicitation';
@@ -113,7 +113,7 @@ export class EditTemplateLinesTool implements McpTool<Args> {
   readonly name = 'edit_template_lines';
   readonly title = 'Modifier les prévisions d’un modèle';
   readonly description =
-    'Ajoute, modifie ou supprime des prévisions d’un modèle de mois. Le modèle change toujours, donc aussi les mois créés plus tard depuis lui. scope dit quels mois existants suivent : aucun, le mois en cours et les suivants, ou une plage de mois, jamais avant le mois en cours. Les prévisions ajustées à la main dans un mois restent telles quelles. Pour changer seulement certains mois sans toucher au modèle, utiliser adjust_over_months. Si l’utilisateur n’a pas dit s’il veut changer le modèle ou seulement ces mois, lui demander avant d’appeler l’un ou l’autre.';
+    'Ajoute, modifie ou supprime des prévisions d’un modèle de mois. Le modèle change toujours, donc aussi les mois créés plus tard depuis lui. scope dit quels mois existants suivent : aucun, le mois en cours et les suivants, ou une plage de mois, jamais avant le mois en cours. Les prévisions ajustées à la main dans un mois restent telles quelles. Pour changer seulement certains mois sans toucher au modèle, utiliser adjust_over_months. Si l’utilisateur n’a pas dit s’il veut changer le modèle ou seulement ces mois, lui demander avant d’appeler l’un ou l’autre. Une suppression (delete) n’est à envoyer qu’après confirmation explicite de l’utilisateur. Les tags d’une prévision du modèle se changent ici (update[].tagIds), pas avec tag_items.';
   readonly mode = 'read_write' as const;
   // A repeated `create` adds the line twice: not idempotent.
   readonly annotations = {
@@ -135,9 +135,10 @@ export class EditTemplateLinesTool implements McpTool<Args> {
     const missing = this.#missingInput(args);
     if (missing) return missing;
     if (scope === 'range' && periodIndex(from!) > periodIndex(to!)) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: 'range from is after to',
-      });
+      throw agentError(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        'Plage inversée : from doit précéder to ou lui être égal. Rien n’a été modifié.',
+      );
     }
 
     const ops = await this.#operations(args);

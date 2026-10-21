@@ -5,7 +5,6 @@ import {
   type TagWritePort,
 } from '@modules/tag/domain/ports/tag-write.port';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
-import { toTagToolError } from './tag-errors';
 
 const inputSchema = {
   tagId: z.uuid().describe('Identifiant du tag à supprimer'),
@@ -34,11 +33,7 @@ export class DeleteTagTool implements McpTool<Args> {
   ) {}
 
   async execute(args: Args): Promise<McpToolResult> {
-    try {
-      await this.tags.remove(args.tagId);
-      return { text: `Tag supprimé (id ${args.tagId}).` };
-    } catch (error) {
-      throw toTagToolError(error);
-    }
+    await this.tags.remove(args.tagId);
+    return { text: `Tag supprimé (id ${args.tagId}).` };
   }
 }

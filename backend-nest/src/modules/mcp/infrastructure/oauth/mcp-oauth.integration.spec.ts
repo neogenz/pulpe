@@ -1296,6 +1296,13 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       const month = await call('get_month', { ...period });
       expect(month).toContain(totals);
       expect(await call('get_current_month')).toBe(month);
+      const withoutArguments = (
+        await mcp(token, 'tools/call', { name: 'get_current_month' }).expect(
+          200,
+        )
+      ).body.result;
+      expect(withoutArguments.isError).toBeUndefined();
+      expect(withoutArguments.content[0].text).toBe(month);
       expect(await call('list_months', { limit: 60 })).toContain(totals);
       expect(month).not.toContain('Isolated test expense');
       expect(

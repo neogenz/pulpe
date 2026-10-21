@@ -26,32 +26,17 @@ describe('RenameTagTool', () => {
     expect(result.text).toBe(`Tag renommé (id ${ID}) : « Maison ».`);
   });
 
-  it('should reject an unknown tag with a French 404, never a success text', async () => {
+  it('should let the port refusal through for the controller to word', async () => {
+    const failure = new BusinessException(ERROR_DEFINITIONS.TAG_NOT_FOUND, {
+      id: ID,
+    });
     const { tool } = setup(async () => {
-      throw new BusinessException(ERROR_DEFINITIONS.TAG_NOT_FOUND, { id: ID });
+      throw failure;
     });
 
-    const failure = await tool
-      .execute({ tagId: ID, name: 'Maison' })
-      .catch((e) => e);
-
-    expect(failure.getStatus()).toBe(404);
-    expect(failure.message).toContain('Tag introuvable');
-  });
-
-  it('should reject a taken name with a French 409', async () => {
-    const { tool } = setup(async () => {
-      throw new BusinessException(ERROR_DEFINITIONS.TAG_ALREADY_EXISTS, {
-        name: 'Maison',
-      });
-    });
-
-    const failure = await tool
-      .execute({ tagId: ID, name: 'Maison' })
-      .catch((e) => e);
-
-    expect(failure.getStatus()).toBe(409);
-    expect(failure.message).toContain('existe déjà');
+    await expect(tool.execute({ tagId: ID, name: 'Maison' })).rejects.toBe(
+      failure,
+    );
   });
 
   it('should be an idempotent destructive read_write tool', () => {

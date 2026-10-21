@@ -39,7 +39,7 @@ export class UpdateForecastTool implements McpTool<Args> {
   readonly name = 'update_forecast';
   readonly title = 'Modifier une prévision';
   readonly description =
-    'Modifie une prévision existante : intitulé, montant, nature ou fréquence. Seuls les champs fournis changent.';
+    'Modifie une prévision existante : intitulé, montant, nature ou fréquence. Seuls les champs fournis changent. La prévision est alors marquée ajustée à la main : une modification du modèle ne la changera plus. Pour plusieurs mois : adjust_over_months ; pour le modèle : edit_template_lines.';
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,

@@ -11,7 +11,7 @@ const inputSchema = {
   forecastId: z.uuid().describe('Identifiant de la prévision à lisser'),
   // Same rule as `POST /budget-lines/:id/spread`: two months at least, each once.
   months: budgetLineSpreadFromLineCreateSchema.shape.periods.describe(
-    'Mois sur lesquels étaler la dépense, deux au minimum, chacun une seule fois. Les mois sans budget sont créés depuis le modèle par défaut',
+    'Mois sur lesquels étaler la dépense ({ month: 1 pour janvier, year }), deux au minimum, chacun une seule fois. Les mois sans budget sont créés depuis le modèle par défaut',
   ),
 };
 

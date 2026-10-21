@@ -6,7 +6,6 @@ import {
   type TagWritePort,
 } from '@modules/tag/domain/ports/tag-write.port';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
-import { toTagToolError } from './tag-errors';
 
 const inputSchema = {
   // Trims like the REST route; the MCP SDK hands the tool the parsed value.
@@ -36,11 +35,7 @@ export class CreateTagTool implements McpTool<Args> {
   ) {}
 
   async execute(args: Args): Promise<McpToolResult> {
-    try {
-      const tag = await this.tags.create(args.name);
-      return { text: `Tag créé (id ${tag.id}) : « ${tag.name} ».` };
-    } catch (error) {
-      throw toTagToolError(error, args.name);
-    }
+    const tag = await this.tags.create(args.name);
+    return { text: `Tag créé (id ${tag.id}) : « ${tag.name} ».` };
   }
 }
