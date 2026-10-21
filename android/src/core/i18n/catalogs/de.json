@@ -1315,8 +1315,11 @@
     },
     "repeatPin": "Gib ihn ein zweites Mal ein",
     "setup": {
-      "subtitle": "%{count} Ziffern — deine Beträge werden mit diesem Code verschlüsselt",
-      "title": "Wähle deinen Code"
+      "title": "Erstelle deinen %{count}-stelligen Code",
+      "subtitle": "Er schützt deine Beträge.",
+      "confirmHint": "Gib die %{count} Ziffern, die du gerade gewählt hast, erneut ein.",
+      "mismatch": "Dieser Code unterscheidet sich vom ersten. Versuche es erneut.",
+      "changeCode": "Meinen Code ändern"
     },
     "unlock": {
       "biometric": "Mit Biometrie entsperren",

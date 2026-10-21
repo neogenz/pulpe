@@ -27,10 +27,13 @@ interface PinEntry {
 
 /**
  * The submit behaviour the three vault steps share: no validate button — the
- * fourth digit is the submit — the pad locked while the step runs, and an
- * error that clears itself so the user is never stuck looking at a stale one.
+ * fourth digit is the submit — the pad locked while the step runs, and
+ * errors cleared on input (or after a delay unless persistence is requested).
  */
-export function usePinEntry(handle: PinStepHandler): PinEntry {
+export function usePinEntry(
+  handle: PinStepHandler,
+  { persistError = false }: { persistError?: boolean } = {},
+): PinEntry {
   const [pin, setPin] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -53,16 +56,20 @@ export function usePinEntry(handle: PinStepHandler): PinEntry {
     [],
   );
 
-  const showError = useCallback((message: string) => {
-    setErrorMessage(message);
-    hapticFailure();
+  const showError = useCallback(
+    (message: string) => {
+      setErrorMessage(message);
+      hapticFailure();
 
-    if (errorTimeout.current) clearTimeout(errorTimeout.current);
-    errorTimeout.current = setTimeout(
-      () => setErrorMessage(null),
-      ERROR_DISPLAY_MS,
-    );
-  }, []);
+      if (errorTimeout.current) clearTimeout(errorTimeout.current);
+      if (persistError) return;
+      errorTimeout.current = setTimeout(
+        () => setErrorMessage(null),
+        ERROR_DISPLAY_MS,
+      );
+    },
+    [persistError],
+  );
 
   useEffect(() => {
     if (pin.length < PIN_LENGTH || isRunning.current) return;
