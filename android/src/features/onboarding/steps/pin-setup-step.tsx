@@ -17,27 +17,35 @@ import { submitOnboarding } from "../onboarding-submission";
  */
 export function PinSetupStep() {
   const { t } = useTranslation();
-  const { pin, setPin, errorMessage, isBusy, isConfirming } = usePinCeremony(
-    () => {
+  const { pin, setPin, errorMessage, isBusy, isConfirming, restart } =
+    usePinCeremony(() => {
       markPinSetupCompleted();
       // Not awaited: its own overlay reports how it goes, and holding the pad
       // busy would leave the user staring at a locked keypad meanwhile.
       void submitOnboarding();
-    },
-  );
+    });
 
   return (
     <PinScreen
-      title={t(isConfirming ? "vault.confirmPin" : "vault.setup.title")}
+      title={t(isConfirming ? "vault.confirmPin" : "vault.setup.title", {
+        count: PIN_LENGTH,
+      })}
       subtitle={
         isConfirming
-          ? t("vault.repeatPin")
+          ? t("vault.setup.confirmHint", { count: PIN_LENGTH })
           : t("vault.setup.subtitle", { count: PIN_LENGTH })
       }
       footer={
-        <Button disabled={isBusy} onPress={() => goToPreviousStep()}>
-          {t("onboarding.pin.back")}
-        </Button>
+        <>
+          {isConfirming && (
+            <Button disabled={isBusy} onPress={restart}>
+              {t("vault.setup.changeCode")}
+            </Button>
+          )}
+          <Button disabled={isBusy} onPress={() => goToPreviousStep()}>
+            {t("onboarding.pin.back")}
+          </Button>
+        </>
       }
     >
       <PinPad

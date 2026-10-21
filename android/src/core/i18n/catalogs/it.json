@@ -1315,8 +1315,11 @@
     },
     "repeatPin": "Inseriscilo una seconda volta",
     "setup": {
-      "subtitle": "%{count} cifre — i tuoi importi sono crittografati con questo codice",
-      "title": "Scegli il tuo codice"
+      "title": "Crea il tuo codice a %{count} cifre",
+      "subtitle": "Proteggerà i tuoi importi.",
+      "confirmHint": "Inserisci di nuovo le %{count} cifre che hai appena scelto.",
+      "mismatch": "Questo codice è diverso dal primo. Riprova.",
+      "changeCode": "Modifica il mio codice"
     },
     "unlock": {
       "biometric": "Sblocca con la biometria",

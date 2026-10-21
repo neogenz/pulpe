@@ -1315,8 +1315,11 @@
     },
     "repeatPin": "Enter it one more time",
     "setup": {
-      "subtitle": "%{count} digits — your amounts are encrypted with this code",
-      "title": "Choose your code"
+      "title": "Create your %{count}-digit code",
+      "subtitle": "It will protect your amounts.",
+      "confirmHint": "Enter the %{count} digits you just chose again.",
+      "mismatch": "This code is different from the first. Try again.",
+      "changeCode": "Change my code"
     },
     "unlock": {
       "biometric": "Unlock with biometrics",
