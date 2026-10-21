@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.54.1
+
+### Patch Changes
+
+- Le formulaire s’adapte aux petites fenêtres et garde les options d’épargne et de pointage bien alignées.
+  - pulpe-shared@0.54.1
+
 ## 0.54.0
 
 ### Minor Changes

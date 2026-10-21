@@ -1,5 +1,11 @@
 # backend-nest
 
+## 0.54.1
+
+### Patch Changes
+
+- pulpe-shared@0.54.1
+
 ## 0.54.0
 
 ### Patch Changes

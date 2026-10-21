@@ -1,5 +1,59 @@
 [
   {
+    "version": "0.54.1",
+    "date": "2026-10-21",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.54.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Affichage du formulaire d’ajout",
+          "description": "Le formulaire s’adapte aux petites fenêtres et garde les options d’épargne et de pointage bien alignées."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Entry form layout",
+              "description": "The form adapts to smaller windows and keeps the savings and checked-status options neatly aligned."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Darstellung des Eingabeformulars",
+              "description": "Das Formular passt sich kleinen Fenstern an und richtet die Optionen für Ersparnisse und den Abhakstatus übersichtlich aus."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Visualizzazione del modulo di aggiunta",
+              "description": "Il modulo si adatta alle finestre più piccole e mantiene ben allineate le opzioni di risparmio e spunta."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
     "version": "0.54.0",
     "iosVersion": "1.10.0",
     "date": "2026-10-20",
