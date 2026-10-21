@@ -29,6 +29,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.54.1',
+    reason:
+      'Correction mineure de la disposition du formulaire d’ajout, publiée dans l’historique sans notification Nouveautés selon la décision de release',
+  },
+  {
     version: '0.52.0',
     reason:
       'Côté webapp, seulement des Réglages réorganisés et l’invitation à donner son avis : aucune nouvelle capacité qui justifie d’interrompre les utilisateurs existants',
