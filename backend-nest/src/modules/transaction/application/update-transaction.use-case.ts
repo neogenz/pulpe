@@ -52,19 +52,7 @@ export class UpdateTransactionUseCase {
       TransactionInvariants.validateWithdrawalUpdate(dto);
     }
 
-    // An allocated movement keeps its forecast's kind, as at creation. Only a
-    // real change of kind pays for the lookup.
-    if (
-      dto.kind !== undefined &&
-      context?.budgetLineId &&
-      dto.kind !== context.kind
-    ) {
-      const line = await this.repo.fetchBudgetLineForAllocation(
-        context.budgetLineId,
-      );
-      if (line)
-        TransactionInvariants.validateKindMatchesLine(line.kind, dto.kind);
-    }
+    await this.#assertKindKeepsForecast(dto, context);
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
 
@@ -120,6 +108,28 @@ export class UpdateTransactionUseCase {
     );
 
     return entity;
+  }
+
+  /**
+   * An allocated movement keeps its forecast's kind, as at creation. Only a
+   * real change of kind pays for the lookup.
+   */
+  async #assertKindKeepsForecast(
+    dto: TransactionUpdate,
+    context: TransactionMutationContext | null,
+  ): Promise<void> {
+    if (
+      dto.kind === undefined ||
+      !context?.budgetLineId ||
+      dto.kind === context.kind
+    ) {
+      return;
+    }
+    const line = await this.repo.fetchBudgetLineForAllocation(
+      context.budgetLineId,
+    );
+    if (line)
+      TransactionInvariants.validateKindMatchesLine(line.kind, dto.kind);
   }
 
   /**
