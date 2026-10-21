@@ -52,7 +52,16 @@ export class WriteBudgetsInProcessUseCase implements BudgetWritePort {
   async #budgetId(month: number, year: number): Promise<string> {
     const id = await this.repo.fetchBudgetIdByPeriod(month, year);
     if (id === null) {
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        undefined,
+        {
+          operation: 'budget.findIdByPeriod',
+          userId: this.session.user.id,
+          month,
+          year,
+        },
+      );
     }
     return id;
   }
