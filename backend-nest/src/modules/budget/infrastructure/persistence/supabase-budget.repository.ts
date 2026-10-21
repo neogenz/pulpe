@@ -490,7 +490,7 @@ export class SupabaseBudgetRepository
           supabase
             .from('budget_line')
             .select(
-              'spread_group_id, savings_goal_id, savings_withdrawal_group_id, source_savings_goal_id',
+              'id, spread_group_id, savings_goal_id, savings_withdrawal_group_id, source_savings_goal_id',
             )
             .in('budget_id', ids)
             .order('id', { ascending: true })
@@ -506,7 +506,7 @@ export class SupabaseBudgetRepository
         (ids, from, to) =>
           supabase
             .from('transaction')
-            .select('source_savings_goal_id')
+            .select('budget_line_id, source_savings_goal_id')
             .in('budget_id', ids)
             .order('id', { ascending: true })
             .range(from, to),
@@ -520,12 +520,14 @@ export class SupabaseBudgetRepository
 
     return {
       lines: lines.map((row) => ({
+        id: row.id,
         spreadGroupId: row.spread_group_id,
         savingsGoalId: row.savings_goal_id,
         savingsWithdrawalGroupId: row.savings_withdrawal_group_id,
         sourceSavingsGoalId: row.source_savings_goal_id,
       })),
       movements: movements.map((row) => ({
+        budgetLineId: row.budget_line_id,
         sourceSavingsGoalId: row.source_savings_goal_id,
       })),
     };

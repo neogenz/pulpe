@@ -30,18 +30,20 @@ const TODAY = '2026-10-20T10:00:00Z';
 const noLinks: BudgetDeletionLinkRows = {
   lines: [
     {
+      id: 'line-1',
       spreadGroupId: null,
       savingsGoalId: null,
       savingsWithdrawalGroupId: null,
       sourceSavingsGoalId: null,
     },
   ],
-  movements: [{ sourceSavingsGoalId: null }],
+  movements: [{ budgetLineId: null, sourceSavingsGoalId: null }],
 };
 
 const spreadLink: BudgetDeletionLinkRows = {
   lines: [
     {
+      id: 'line-1',
       spreadGroupId: 'spread-1',
       savingsGoalId: null,
       savingsWithdrawalGroupId: null,

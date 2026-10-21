@@ -1161,13 +1161,14 @@ describe('SupabaseBudgetRepository fetchDeletionLinkRows', () => {
     const { provider, inSpy, selectSpy } = linkRowsProvider(
       [
         {
+          id: 'line-1',
           spread_group_id: 'spread-1',
           savings_goal_id: null,
           savings_withdrawal_group_id: null,
           source_savings_goal_id: null,
         },
       ],
-      [{ source_savings_goal_id: 'goal-1' }],
+      [{ budget_line_id: 'line-1', source_savings_goal_id: 'goal-1' }],
     );
     const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
 
@@ -1176,13 +1177,14 @@ describe('SupabaseBudgetRepository fetchDeletionLinkRows', () => {
     expect(rows).toEqual({
       lines: [
         {
+          id: 'line-1',
           spreadGroupId: 'spread-1',
           savingsGoalId: null,
           savingsWithdrawalGroupId: null,
           sourceSavingsGoalId: null,
         },
       ],
-      movements: [{ sourceSavingsGoalId: 'goal-1' }],
+      movements: [{ budgetLineId: 'line-1', sourceSavingsGoalId: 'goal-1' }],
     });
     expect(inSpy.mock.calls).toEqual([
       ['budget_line', 'budget_id', ['budget-1']],
@@ -1191,9 +1193,9 @@ describe('SupabaseBudgetRepository fetchDeletionLinkRows', () => {
     expect(selectSpy.mock.calls).toEqual([
       [
         'budget_line',
-        'spread_group_id, savings_goal_id, savings_withdrawal_group_id, source_savings_goal_id',
+        'id, spread_group_id, savings_goal_id, savings_withdrawal_group_id, source_savings_goal_id',
       ],
-      ['transaction', 'source_savings_goal_id'],
+      ['transaction', 'budget_line_id, source_savings_goal_id'],
     ]);
   });
 

@@ -943,6 +943,11 @@ export const budgetDeletionImpactSchema = z.object({
     spreadForecasts: z.number().int().nonnegative(),
     savingsGoalForecasts: z.number().int().nonnegative(),
     savingsWithdrawalForecasts: z.number().int().nonnegative(),
+    /**
+     * Retraits réalisés sans Prévision de retrait dans le mois. Un Mouvement
+     * alloué à un retrait annoncé du mois est déjà compté par sa Prévision :
+     * la somme des deux compteurs donne le nombre de retraits.
+     */
     savingsWithdrawalMovements: z.number().int().nonnegative(),
   }),
 });

@@ -6,11 +6,19 @@ import {
 } from './budget-deletion';
 
 type LineRow = BudgetDeletionLinkRows['lines'][number];
+type MovementRow = BudgetDeletionLinkRows['movements'][number];
 
 const line = (links: Partial<LineRow> = {}): LineRow => ({
+  id: 'line-1',
   spreadGroupId: null,
   savingsGoalId: null,
   savingsWithdrawalGroupId: null,
+  sourceSavingsGoalId: null,
+  ...links,
+});
+
+const movement = (links: Partial<MovementRow> = {}): MovementRow => ({
+  budgetLineId: null,
   sourceSavingsGoalId: null,
   ...links,
 });
@@ -32,7 +40,7 @@ describe('summarizeDeletionImpact', () => {
   it('counts unlinked forecasts and movements without any link', () => {
     const impact = summarizeDeletionImpact({
       lines: [line(), line()],
-      movements: [{ sourceSavingsGoalId: null }],
+      movements: [movement()],
     });
 
     expect(impact.forecastCount).toBe(2);
@@ -113,14 +121,45 @@ describe('summarizeDeletionImpact', () => {
     const impact = summarizeDeletionImpact({
       lines: [],
       movements: [
-        { sourceSavingsGoalId: 'goal-1' },
-        { sourceSavingsGoalId: null },
-        { sourceSavingsGoalId: 'goal-2' },
+        movement({ sourceSavingsGoalId: 'goal-1' }),
+        movement(),
+        movement({ sourceSavingsGoalId: 'goal-2' }),
       ],
     });
 
     expect(impact.movementCount).toBe(3);
     expect(impact.links.savingsWithdrawalMovements).toBe(2);
+  });
+
+  it('counts a realized withdrawal once, through its forecast', () => {
+    const impact = summarizeDeletionImpact({
+      lines: [line({ id: 'withdrawal-line', sourceSavingsGoalId: 'goal-1' })],
+      movements: [
+        movement({
+          budgetLineId: 'withdrawal-line',
+          sourceSavingsGoalId: 'goal-1',
+        }),
+        movement({ sourceSavingsGoalId: 'goal-1' }),
+      ],
+    });
+
+    expect(impact.links.savingsWithdrawalForecasts).toBe(1);
+    expect(impact.links.savingsWithdrawalMovements).toBe(1);
+  });
+
+  it('still counts a withdrawal movement allocated to a plain forecast', () => {
+    const impact = summarizeDeletionImpact({
+      lines: [line({ id: 'income-line' })],
+      movements: [
+        movement({
+          budgetLineId: 'income-line',
+          sourceSavingsGoalId: 'goal-1',
+        }),
+      ],
+    });
+
+    expect(impact.links.savingsWithdrawalForecasts).toBe(0);
+    expect(impact.links.savingsWithdrawalMovements).toBe(1);
   });
 });
 
