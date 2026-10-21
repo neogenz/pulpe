@@ -24,7 +24,7 @@ export function summarizeDeletionImpact(
     savingsWithdrawalForecasts: 0,
     savingsWithdrawalMovements: 0,
   };
-  const withdrawalForecastIds = new Set<string | null>();
+  const withdrawalForecastIds = new Set<string>();
 
   for (const line of rows.lines) {
     // ponytail: first match wins, so a forecast counts once. Goal-generated
@@ -48,7 +48,8 @@ export function summarizeDeletionImpact(
   links.savingsWithdrawalMovements = rows.movements.filter(
     (movement) =>
       movement.sourceSavingsGoalId !== null &&
-      !withdrawalForecastIds.has(movement.budgetLineId),
+      (movement.budgetLineId === null ||
+        !withdrawalForecastIds.has(movement.budgetLineId)),
   ).length;
 
   return {
