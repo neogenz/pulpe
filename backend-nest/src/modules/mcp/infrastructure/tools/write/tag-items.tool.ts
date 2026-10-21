@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  HttpException,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { MAX_TAGS_PER_TRANSACTION } from 'pulpe-shared';
 import {
@@ -21,6 +16,7 @@ import {
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 import { tagNames, tagSuffix } from '../read/month-report';
 import { askUser } from './elicitation';
+import { unknownTagIdsError } from './tag-errors';
 
 const MAX_ITEMS = 50;
 
@@ -94,9 +90,7 @@ export class TagItemsTool implements McpTool<Args> {
       (id) => !names.has(id),
     );
     if (unknown.length > 0) {
-      throw new BadRequestException(
-        `Tags inconnus : ${unknown.join(', ')}. Appelle list_tags ; rien n’a été modifié.`,
-      );
+      throw unknownTagIdsError(unknown);
     }
 
     const outcomes: Outcome[] = [];
