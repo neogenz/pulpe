@@ -267,3 +267,31 @@ it("keeps the dialog open with an error line when the delete fails", async () =>
   expect(router.back).not.toHaveBeenCalled();
   expect(view.getByText(`${PREFIX}.title month=Novembre 2026`)).toBeTruthy();
 });
+
+it("reads the impact again after a failed delete, so the retry confirms the links now present", async () => {
+  mockedDeleteVoid.mockRejectedValueOnce(new Error("409"));
+  const view = await renderAction();
+  await openDialog(view);
+  await view.findByText(`${PREFIX}.body forecastCount=3 movementCount=1`);
+  expect(view.queryByText(new RegExp(`^${PREFIX}\\.links `))).toBeNull();
+  mockedGet.mockResolvedValue({
+    success: true,
+    data: impact({ spreadForecasts: 1 }),
+  });
+
+  await fireEvent.press(confirmButton(view));
+
+  await view.findByText(`${PREFIX}.failure`);
+  await waitFor(() => expect(mockedGet).toHaveBeenCalledTimes(2));
+  expect(
+    await view.findByText(`${PREFIX}.links links=${PREFIX}.linkSpread count=1`),
+  ).toBeTruthy();
+
+  await fireEvent.press(confirmButton(view));
+
+  await waitFor(() => expect(router.back).toHaveBeenCalledTimes(1));
+  expect(mockedDeleteVoid).toHaveBeenLastCalledWith(
+    ENDPOINTS.budget("budget-1"),
+    { confirmLinks: true },
+  );
+});

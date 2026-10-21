@@ -149,6 +149,9 @@ export function DeleteMonthAction({
                     setDialogOpen(false);
                     router.back();
                   },
+                  // Links may have appeared since the read: confirm waits for
+                  // a fresh one, so the retry sends what the user is shown.
+                  onError: () => void impact.refetch(),
                 })
               }
               textColor={financial.destructive}

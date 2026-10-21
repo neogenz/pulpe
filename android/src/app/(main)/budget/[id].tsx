@@ -408,6 +408,8 @@ export default function BudgetDetailScreen() {
   // scrolls, and the bar is what still names the page once it has.
   const monthName = formatMonthName(budget.month, budget.year, locale);
   const monthTitle = `${monthName.charAt(0).toLocaleUpperCase(locale)}${monthName.slice(1)} ${budget.year}`;
+  // Mid-sentence, the month keeps the casing its language gives it.
+  const monthInSentence = `${monthName} ${budget.year}`;
 
   // Leaving the search puts the whole list back: a term left behind would keep
   // filtering it from a field the user can no longer see.
@@ -454,7 +456,10 @@ export default function BudgetDetailScreen() {
             onPress={() => overlays.current?.showRealizedBalance()}
           />
           {isFutureMonth && (
-            <DeleteMonthAction budgetId={budget.id} monthTitle={monthTitle} />
+            <DeleteMonthAction
+              budgetId={budget.id}
+              monthTitle={monthInSentence}
+            />
           )}
         </HeroAppBar>
       )}
