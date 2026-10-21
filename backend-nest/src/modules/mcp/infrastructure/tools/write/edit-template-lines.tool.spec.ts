@@ -122,6 +122,15 @@ describe('EditTemplateLinesTool', () => {
     expect(editLines).not.toHaveBeenCalled();
   });
 
+  it('asks what to change when an update carries only its id', async () => {
+    const { tool, editLines } = setup();
+
+    asksUser(
+      await tool.execute({ templateId: TEMPLATE, update: [{ id: LINE }] }),
+    );
+    expect(editLines).not.toHaveBeenCalled();
+  });
+
   it('keeps the months untouched with template_only', async () => {
     const { tool, editLines } = setup();
 

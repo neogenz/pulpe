@@ -136,40 +136,12 @@ export class EditTemplateLinesTool implements McpTool<Args> {
     const updates = args.update ?? [];
     const deletes = args.delete ?? [];
 
-    if (creates.length + updates.length + deletes.length === 0) {
-      return askUser(
-        'ce qu’il faut ajouter, modifier ou supprimer dans ce modèle (get_template donne les identifiants des prévisions), puis rappelle edit_template_lines.',
-      );
-    }
-
-    // The scope decides how many months change. Guessing it would rewrite
-    // months the user never meant to touch.
-    if (!scope) {
-      return askUser(
-        'si la modification vaut pour le modèle seul (template_only), pour le modèle et aussi le mois en cours et les suivants (current_and_future), ou pour le modèle et aussi les mois de from à to (range). Dans les trois cas le modèle change, donc aussi les mois créés plus tard depuis lui. Pour changer seulement certains mois sans toucher au modèle, utilise plutôt adjust_over_months. Sinon rappelle edit_template_lines avec scope.',
-      );
-    }
-    if (scope === 'range' && (!from || !to)) {
-      return askUser(
-        'le premier et le dernier mois de la plage (from et to), puis rappelle edit_template_lines.',
-      );
-    }
+    const missing = this.#missingInput(args);
+    if (missing) return missing;
     if (scope === 'range' && periodIndex(from!) > periodIndex(to!)) {
       throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
         reason: 'range from is after to',
       });
-    }
-
-    // Monthly or one-off changes what every month built from the template looks like.
-    if (creates.some((line) => !line.recurrence)) {
-      return askUser(
-        'si chaque prévision à ajouter revient chaque mois (Mensuel) ou est ponctuelle (Ponctuel), puis rappelle edit_template_lines avec recurrence.',
-      );
-    }
-    if (updates.some((line) => line.currency && line.amount === undefined)) {
-      return askUser(
-        'le montant dans cette devise : une devise seule ne change rien. Rappelle edit_template_lines avec amount et currency.',
-      );
     }
 
     const ops: TemplateLinesBulkOperations = {
@@ -209,5 +181,56 @@ export class EditTemplateLinesTool implements McpTool<Args> {
           : `${result.propagation.affectedBudgetsCount} mois mis à jour. Les prévisions ajustées à la main dans un mois restent telles quelles.`,
       ].join('\n'),
     };
+  }
+
+  #missingInput({
+    scope,
+    from,
+    to,
+    create: creates = [],
+    update: updates = [],
+    delete: deletes = [],
+  }: Args): McpToolResult | undefined {
+    if (creates.length + updates.length + deletes.length === 0) {
+      return askUser(
+        'ce qu’il faut ajouter, modifier ou supprimer dans ce modèle (get_template donne les identifiants des prévisions), puis rappelle edit_template_lines.',
+      );
+    }
+    // An update carrying only its id would still touch every propagated line and log an action.
+    if (
+      updates.some((line) =>
+        Object.entries(line).every(
+          ([key, value]) => key === 'id' || value === undefined,
+        ),
+      )
+    ) {
+      return askUser(
+        'ce qu’il faut changer sur chaque prévision à modifier (intitulé, montant, nature, fréquence ou tags), puis rappelle edit_template_lines.',
+      );
+    }
+    // The scope decides how many months change. Guessing it would rewrite
+    // months the user never meant to touch.
+    if (!scope) {
+      return askUser(
+        'si la modification vaut pour le modèle seul (template_only), pour le modèle et aussi le mois en cours et les suivants (current_and_future), ou pour le modèle et aussi les mois de from à to (range). Dans les trois cas le modèle change, donc aussi les mois créés plus tard depuis lui. Pour changer seulement certains mois sans toucher au modèle, utilise plutôt adjust_over_months. Sinon rappelle edit_template_lines avec scope.',
+      );
+    }
+    if (scope === 'range' && (!from || !to)) {
+      return askUser(
+        'le premier et le dernier mois de la plage (from et to), puis rappelle edit_template_lines.',
+      );
+    }
+    // Monthly or one-off changes what every month built from the template looks like.
+    if (creates.some((line) => !line.recurrence)) {
+      return askUser(
+        'si chaque prévision à ajouter revient chaque mois (Mensuel) ou est ponctuelle (Ponctuel), puis rappelle edit_template_lines avec recurrence.',
+      );
+    }
+    if (updates.some((line) => line.currency && line.amount === undefined)) {
+      return askUser(
+        'le montant dans cette devise : une devise seule ne change rien. Rappelle edit_template_lines avec amount et currency.',
+      );
+    }
+    return undefined;
   }
 }
