@@ -91,7 +91,20 @@ describe('McpConsent', () => {
     await setup({ authorization_id: 'auth-1' });
     expect(text('mcp-consent-title')).toContain('ChatGPT');
     expect(text('mcp-consent-redirect-host')).toContain(
-      'Accès envoyé à attacker.example',
+      'L’accès sera envoyé à attacker.example',
+    );
+  });
+
+  it('says a loopback callback stays on this device', async () => {
+    await setup({ authorization_id: 'auth-1' });
+    store.redirectHost.set('127.0.0.1');
+    await fixture.whenStable();
+
+    expect(text('mcp-consent-redirect-host')).toContain(
+      'une application de cet appareil (127.0.0.1)',
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      'Autorise seulement si tu viens de lancer la connexion depuis ChatGPT',
     );
   });
 

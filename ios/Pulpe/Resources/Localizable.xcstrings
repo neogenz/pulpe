@@ -11523,28 +11523,6 @@
         }
       }
     },
-    "Dépense répartie" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ausgabe verteilt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expense spread"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spesa ripartita"
-          }
-        }
-      }
-    },
     "Dépenses" : {
       "localizations" : {
         "de" : {
@@ -19744,7 +19722,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Checking changed"
+            "value" : "Checked status changed"
           }
         },
         "it" : {

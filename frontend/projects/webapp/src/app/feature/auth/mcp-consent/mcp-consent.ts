@@ -64,13 +64,26 @@ import { McpConsentStore } from './mcp-consent-store';
             class="mt-3 text-body-medium font-medium text-on-surface break-all"
             data-testid="mcp-consent-redirect-host"
           >
-            {{
-              'auth.mcpConsent.redirectHost'
-                | transloco: { host: store.redirectHost() }
-            }}
+            @if (isLocalRedirect()) {
+              {{
+                'auth.mcpConsent.redirectHostLocal'
+                  | transloco: { host: store.redirectHost() }
+              }}
+            } @else {
+              {{
+                'auth.mcpConsent.redirectHost'
+                  | transloco: { host: store.redirectHost() }
+              }}
+            }
           </p>
           <p class="text-body-small text-on-surface-variant">
-            {{ 'auth.mcpConsent.redirectHostHint' | transloco: { client } }}
+            @if (isLocalRedirect()) {
+              {{
+                'auth.mcpConsent.redirectHostLocalHint' | transloco: { client }
+              }}
+            } @else {
+              {{ 'auth.mcpConsent.redirectHostHint' | transloco: { client } }}
+            }
           </p>
         </div>
 
@@ -226,6 +239,12 @@ export default class McpConsent {
     },
   ];
   protected readonly clientName = computed(() => this.store.clientName());
+  // Same loopback hosts the server accepts over http: the code stays on this device.
+  protected readonly isLocalRedirect = computed(() =>
+    ['localhost', '127.0.0.1', '[::1]'].includes(
+      this.store.redirectHost() ?? '',
+    ),
+  );
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
 

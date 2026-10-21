@@ -167,7 +167,7 @@ extension ConnectionDetailView {
         "delete_movement": "Mouvement supprimé",
         "add_forecast": "Prévision ajoutée",
         "update_forecast": "Prévision modifiée",
-        "spread_expense": "Dépense répartie",
+        "spread_expense": "Dépense lissée",
         "create_month_from_template": "Budget mensuel créé",
         "toggle_check": "Pointage modifié",
         "create_tag": "Tag créé",
