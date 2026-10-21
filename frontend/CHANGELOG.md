@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.55.0
+
+### Minor Changes
+
+- Avis détaillés, simplification du menu des prévisions et correction de la confirmation du code Android.
+
+### Patch Changes
+
+- pulpe-shared@0.55.0
+
 ## 0.54.1
 
 ### Patch Changes
