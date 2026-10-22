@@ -124,12 +124,14 @@ docs/angular-architecture-for-enterprise.md
 .agents/skills/*
 !.agents/skills/product-owner
 !.agents/skills/release
+!.agents/skills/drive-local-app
 !.agents/skills/refresh-pulpe-app-store-captures/
 !.agents/skills/refresh-pulpe-app-store-captures/**
 .agent/skills/
 .gemini/skills/
 .claude/skills/*
 !.claude/skills/design-audit/
+!.claude/skills/drive-local-app/
 !.claude/skills/feature-intelligence/
 !.claude/skills/product-owner/
 !.claude/skills/release/
