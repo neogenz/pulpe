@@ -60,31 +60,29 @@ import { McpConsentStore } from './mcp-consent-store';
           <p class="text-body-medium text-on-surface-variant">
             {{ 'auth.mcpConsent.subtitle' | transloco: { client } }}
           </p>
-          <p
-            class="mt-3 text-body-medium font-medium text-on-surface break-all"
-            data-testid="mcp-consent-redirect-host"
-          >
-            @if (isLocalRedirect()) {
-              {{
-                'auth.mcpConsent.redirectHostLocal'
-                  | transloco: { host: store.redirectHost() }
-              }}
-            } @else {
-              {{
-                'auth.mcpConsent.redirectHost'
-                  | transloco: { host: store.redirectHost() }
-              }}
-            }
-          </p>
-          <p class="text-body-small text-on-surface-variant">
-            @if (isLocalRedirect()) {
-              {{
-                'auth.mcpConsent.redirectHostLocalHint' | transloco: { client }
-              }}
-            } @else {
-              {{ 'auth.mcpConsent.redirectHostHint' | transloco: { client } }}
-            }
-          </p>
+          <!-- An API older than this page sends no host: nothing to verify, so no line. -->
+          @if (store.redirectHost(); as host) {
+            <p
+              class="mt-3 text-body-medium font-medium text-on-surface break-all"
+              data-testid="mcp-consent-redirect-host"
+            >
+              @if (isLocalRedirect()) {
+                {{ 'auth.mcpConsent.redirectHostLocal' | transloco: { host } }}
+              } @else {
+                {{ 'auth.mcpConsent.redirectHost' | transloco: { host } }}
+              }
+            </p>
+            <p class="text-body-small text-on-surface-variant">
+              @if (isLocalRedirect()) {
+                {{
+                  'auth.mcpConsent.redirectHostLocalHint'
+                    | transloco: { client }
+                }}
+              } @else {
+                {{ 'auth.mcpConsent.redirectHostHint' | transloco: { client } }}
+              }
+            </p>
+          }
         </div>
 
         <form [formGroup]="form" (ngSubmit)="onApprove()" class="space-y-6">

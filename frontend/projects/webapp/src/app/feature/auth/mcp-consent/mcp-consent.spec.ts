@@ -108,6 +108,22 @@ describe('McpConsent', () => {
     );
   });
 
+  it('drops the host lines but keeps the form when the API sends no host', async () => {
+    await setup({ authorization_id: 'auth-1' });
+    store.redirectHost.set(null);
+    await fixture.whenStable();
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="mcp-consent-redirect-host"]',
+      ),
+    ).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Vérifie');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="mcp-consent-pin"]'),
+    ).not.toBeNull();
+  });
+
   it('shows an error and no form when the request id is missing', async () => {
     await setup({});
     expect(store.load).not.toHaveBeenCalled();

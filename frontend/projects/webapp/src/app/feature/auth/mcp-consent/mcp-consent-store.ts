@@ -29,7 +29,7 @@ export class McpConsentStore {
       this.#api.getConsent$(this.#requestId()),
     );
     this.clientName.set(clientName);
-    this.redirectHost.set(redirectHost);
+    this.redirectHost.set(redirectHost ?? null);
   }
 
   /** @returns the URL the client expects the browser back on (carries the code). */

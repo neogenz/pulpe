@@ -2948,10 +2948,12 @@ export type McpAccessMode = z.infer<typeof mcpAccessModeSchema>;
 /**
  * GET /mcp/consent/:authorizationId — the client as declared to Supabase, and
  * the host its callback (code and data) goes to, read from the stored request.
+ * `redirectHost` stays optional so a web build deployed before its API still
+ * opens the consent page.
  */
 export const mcpConsentDetailsResponseSchema = z.object({
   clientName: z.string(),
-  redirectHost: z.string().min(1),
+  redirectHost: z.string().min(1).optional(),
 });
 export type McpConsentDetailsResponse = z.infer<
   typeof mcpConsentDetailsResponseSchema
