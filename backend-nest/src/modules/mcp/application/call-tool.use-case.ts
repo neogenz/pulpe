@@ -38,16 +38,18 @@ export class CallToolUseCase {
       .find((t) => t.name === name);
     if (!tool) throw new McpToolNotAvailableError(name);
     if (tool.mode !== 'read_write') return tool.execute(args);
+    let result: McpToolResult;
     try {
-      const result = await tool.execute(args);
-      if (result.wrote !== false) {
-        await this.#record(connection, userId, name, 'ok');
-      }
-      return result;
+      result = await tool.execute(args);
     } catch (error) {
       await this.#record(connection, userId, name, 'error');
       throw error;
     }
+    // Outside the try, and `record` never rejects: a write that happened is never reported as failed.
+    if (result.wrote !== false) {
+      await this.#record(connection, userId, name, 'ok');
+    }
+    return result;
   }
 
   #record(
