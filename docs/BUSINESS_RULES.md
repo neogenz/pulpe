@@ -6,6 +6,7 @@ Ce fichier contient uniquement les invariants qui traversent plusieurs fonctionn
 
 - Une `budget_line` est une **Prévision** ; une `transaction` est un **Réel**. Un Réel s'ajoute normalement aux Prévisions.
 - Un Réel alloué à une Prévision est couvert par son enveloppe : le total effectif vaut `max(montant prévu, somme des Réels de même nature)`. Un Réel libre impacte directement le budget.
+- Un Réel alloué porte toujours la nature de sa Prévision. Changer la nature de la Prévision (édition, retour au Mois Type ou propagation) change celle de ses Réels alloués dans la même écriture, via le trigger [`align_allocated_transaction_kind`](../backend-nest/supabase/migrations/20261022140000_align_allocated_transaction_kind.sql).
 - Les formules canoniques vivent dans [`shared/src/calculators/budget-formulas.ts`](../shared/src/calculators/budget-formulas.ts) et leur miroir Swift dans [`ios/Pulpe/Domain/Formulas/BudgetFormulas.swift`](../ios/Pulpe/Domain/Formulas/BudgetFormulas.swift).
 
 ## Continuité mensuelle
