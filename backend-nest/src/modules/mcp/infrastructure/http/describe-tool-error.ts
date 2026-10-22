@@ -33,6 +33,10 @@ const AGENT_MESSAGES: Record<string, (details: Details) => string | undefined> =
       'Prévision introuvable. Reprends l’id d’une ligne Prévision de get_month ou get_current_month.',
     [ERROR_DEFINITIONS.BUDGET_NOT_FOUND.code]: () =>
       'Mois introuvable. Appelle list_months pour les mois qui existent.',
+    [ERROR_DEFINITIONS.BUDGET_NOT_DELETABLE.code]: () =>
+      'Mois non supprimé : seuls les mois à venir peuvent être supprimés, le mois en cours et les mois passés restent. Appelle list_months pour les mois à venir.',
+    [ERROR_DEFINITIONS.BUDGET_DELETION_LINKS_UNCONFIRMED.code]: () =>
+      'Mois non supprimé : il est lié à d’autres mois ou à un objectif d’épargne. Rappelle delete_month sans confirmLinks pour obtenir ces liens, demande à l’utilisateur, puis rappelle-le avec confirmLinks: true s’il accepte.',
     [ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND.code]: () =>
       'Modèle introuvable. Appelle list_templates pour les ids valides.',
     [ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND.code]: () =>

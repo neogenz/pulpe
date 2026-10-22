@@ -81,6 +81,18 @@
         "remaining": "restant sur %{amount}"
       },
       "deletedGoal": "Cet objectif a été supprimé. Le revenu reste dans ton budget.",
+      "deleteMonth": {
+        "action": "Supprimer ce mois",
+        "title": "Supprimer %{month} ?",
+        "body": "Ses prévisions (%{forecastCount}) et ses mouvements (%{movementCount}) seront supprimés. Cette action est irréversible.",
+        "links": "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : %{links}. Les autres mois gardent leur part.",
+        "linkSpread": "prévision lissée (%{count})",
+        "linkGoal": "objectif d'épargne (%{count})",
+        "linkWithdrawal": "retrait d'épargne (%{count})",
+        "confirm": "Supprimer",
+        "loadError": "Les détails du mois n'ont pas pu être chargés. Réessaie.",
+        "failure": "Le mois n'a pas pu être supprimé. Réessaie."
+      },
       "filters": {
         "all": "Tout",
         "checked": "Pointé",
@@ -338,7 +350,8 @@
       "yearSelector": "Choisir l'année",
       "ongoing": "en cours",
       "notCreated": "Pas encore de budget",
-      "createMonth": "Créer le budget"
+      "createMonth": "Créer le budget",
+      "monthDeleted": "Mois supprimé"
     },
     "plan": {
       "default": "par défaut",

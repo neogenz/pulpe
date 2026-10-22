@@ -169,6 +169,7 @@ extension ConnectionDetailView {
         "update_forecast": "Prévision modifiée",
         "spread_expense": "Dépense lissée",
         "create_month_from_template": "Budget mensuel créé",
+        "delete_month": "Mois supprimé",
         "toggle_check": "Pointage modifié",
         "create_tag": "Tag créé",
         "rename_tag": "Tag renommé",

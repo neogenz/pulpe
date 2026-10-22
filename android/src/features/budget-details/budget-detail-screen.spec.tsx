@@ -385,6 +385,14 @@ jest.mock("./components/details-filter-bar", () => {
     ),
   };
 });
+jest.mock("./components/delete-month-action", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    DeleteMonthAction: ({ budgetId }: { budgetId: string }) => (
+      <Text>{`delete-month:${budgetId}`}</Text>
+    ),
+  };
+});
 jest.mock("./components/month-pager", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
@@ -536,6 +544,8 @@ beforeEach(() => {
   mockPeriodsByYear.clear();
 });
 
+afterEach(() => jest.useRealTimers());
+
 it("distinguishes loading, retryable failure and a deleted budget", async () => {
   mockDetails.isPending = true;
   const view = await render(<BudgetDetailScreen />);
@@ -677,3 +687,30 @@ it("restores cached detail when the optimistic point request is rejected", async
   await hook.unmount();
   client.clear();
 });
+
+// Today is 2026-10-26. With no payday, October is the month being lived in.
+// With a payday on the 25th the quinzaine rule names the period after the month
+// it ends in, so November is live and December is the first plan.
+it.each([
+  { payDay: null, month: 8, canDelete: false },
+  { payDay: null, month: 10, canDelete: false },
+  { payDay: null, month: 11, canDelete: true },
+  { payDay: 25, month: 10, canDelete: false },
+  { payDay: 25, month: 11, canDelete: false },
+  { payDay: 25, month: 12, canDelete: true },
+])(
+  "month $month with payday $payDay shows the delete action: $canDelete",
+  async ({ payDay, month, canDelete }) => {
+    jest.useFakeTimers({ now: new Date(2026, 9, 26, 12), advanceTimers: true });
+    const details = readyDetails();
+    details.budget.month = month;
+    mockDetails.data = details;
+    Object.assign(mockSettings, {
+      data: { currency: "CHF", payDayOfMonth: payDay },
+    });
+
+    const view = await render(<BudgetDetailScreen />);
+
+    expect(view.queryByText("delete-month:budget-1") !== null).toBe(canDelete);
+  },
+);

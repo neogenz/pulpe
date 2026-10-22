@@ -7,6 +7,8 @@ import {
   budgetResponseSchema,
   budgetListResponseSchema,
   budgetDeleteResponseSchema,
+  budgetDeleteQuerySchema,
+  budgetDeletionImpactResponseSchema,
   budgetDetailsResponseSchema,
   listBudgetsQuerySchema,
   budgetSparseListResponseSchema,
@@ -24,6 +26,12 @@ export class BudgetListResponseDto extends createZodDto(
 ) {}
 export class BudgetDeleteResponseDto extends createZodDto(
   budgetDeleteResponseSchema,
+) {}
+export class BudgetDeleteQueryDto extends createZodDto(
+  budgetDeleteQuerySchema,
+) {}
+export class BudgetDeletionImpactResponseDto extends createZodDto(
+  budgetDeletionImpactResponseSchema,
 ) {}
 export class BudgetDetailsResponseDto extends createZodDto(
   budgetDetailsResponseSchema,

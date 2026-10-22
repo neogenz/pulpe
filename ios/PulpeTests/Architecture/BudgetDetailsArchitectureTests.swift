@@ -295,7 +295,8 @@ struct BudgetDetailsArchitectureTests {
         #expect(button.contains(".primaryButtonStyle()"))
         #expect(source.contains("router.present(.realizedBalance)"))
         #expect(source.contains(#".accessibilityIdentifier("budgetTrackingButton")"#))
-        // The bar carries the reading action alone; a plus back beside it is the regression.
+        // The bar carries the reading action, plus the overflow menu of a future month
+        // (`DeleteMonthMenu`); a plus back beside them is the regression.
         #expect(!source.contains("Image(systemName: \"plus\")"))
         #expect(!source.contains(".overlay(alignment: .bottomTrailing)"))
         #expect(!FileManager.default.fileExists(atPath: fabPath))

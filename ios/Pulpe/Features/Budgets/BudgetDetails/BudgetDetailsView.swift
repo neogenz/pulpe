@@ -202,6 +202,7 @@ struct BudgetDetailsView: View {
         ) { tx in
             Task { await coordinator.dispatch(.softDeleteTransaction(tx, toastContext)) }
         })
+        .modifier(DeleteMonthMenu(coordinator: coordinator, screenState: screenState, toastContext: toastContext))
     }
 
     private var content: some View {

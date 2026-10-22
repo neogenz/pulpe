@@ -1,10 +1,12 @@
 import {
+  type BudgetDeletionImpact,
   type BudgetGenerate,
   type BudgetGenerateResponse,
   type BudgetDetailsResponse,
   type BudgetSparse,
   budgetGenerateResponseSchema,
   budgetGenerateSchema,
+  budgetDeletionImpactResponseSchema,
   budgetDetailsResponseSchema,
   budgetSparseListResponseSchema,
 } from "pulpe-shared";
@@ -59,5 +61,17 @@ export function fetchBudgetPeriods(year: number): Promise<BudgetSparse[]> {
 export function fetchBudgetDetails(budgetId: string): Promise<BudgetDetails> {
   return api
     .get(ENDPOINTS.budgetDetails(budgetId), budgetDetailsResponseSchema)
+    .then((response) => response.data);
+}
+
+/** What deleting the month takes with it, read before the user confirms. */
+export function fetchBudgetDeletionImpact(
+  budgetId: string,
+): Promise<BudgetDeletionImpact> {
+  return api
+    .get(
+      ENDPOINTS.budgetDeletionImpact(budgetId),
+      budgetDeletionImpactResponseSchema,
+    )
     .then((response) => response.data);
 }

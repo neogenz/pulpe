@@ -15,9 +15,11 @@ final class BudgetDetailsCoordinator {
     let syncStore: SyncStateStore
     let mutationQueue: MutationQueue
 
-    @ObservationIgnored private let budgetService: any BudgetServicing
+    @ObservationIgnored let budgetService: any BudgetServicing
     @ObservationIgnored let budgetLineService: any BudgetLineServicing
     @ObservationIgnored let transactionService: any TransactionServicing
+    /// True while a month deletion is on the wire, so a second confirm sends no second DELETE.
+    @ObservationIgnored var isDeletingMonth = false
 
     init(
         budgetId: String,
@@ -45,6 +47,7 @@ final class BudgetDetailsCoordinator {
         if await dispatchBudgetLineMutation(action) { return }
         if await dispatchTransactionMutation(action) { return }
         if await dispatchPostpone(action) { return }
+        if await dispatchMonthDeletion(action) { return }
         await dispatchSideEffect(action)
     }
 
@@ -130,17 +133,6 @@ final class BudgetDetailsCoordinator {
             return false
         }
         return true
-    }
-
-    private func dispatchSideEffect(_ action: BudgetDetailsAction) async {
-        switch action {
-        case .showCheckToastIfNeeded(let line, let ctx, let amountsHidden):
-            showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
-        case .resetCheckAllState:
-            syncStore.resetCheckAllState()
-        default:
-            break
-        }
     }
 
     // MARK: - Loading

@@ -81,6 +81,18 @@
         "remaining": "übrig von %{amount}"
       },
       "deletedGoal": "Dieses Ziel wurde gelöscht. Die Einnahme bleibt in deinem Budget.",
+      "deleteMonth": {
+        "action": "Diesen Monat löschen",
+        "title": "%{month} löschen?",
+        "body": "Seine Planungen (%{forecastCount}) und seine Bewegungen (%{movementCount}) werden gelöscht. Das lässt sich nicht rückgängig machen.",
+        "links": "Dieser Monat ist auch mit anderen Monaten oder einem Sparziel verknüpft: %{links}. Die anderen Monate behalten ihren Anteil.",
+        "linkSpread": "verteilter Planposten (%{count})",
+        "linkGoal": "Sparziel (%{count})",
+        "linkWithdrawal": "Entnahme aus Ersparnissen (%{count})",
+        "confirm": "Löschen",
+        "loadError": "Die Details des Monats konnten nicht geladen werden. Versuche es erneut.",
+        "failure": "Der Monat konnte nicht gelöscht werden. Versuche es erneut."
+      },
       "filters": {
         "all": "Alle",
         "checked": "Abgehakt",
@@ -338,7 +350,8 @@
       "yearSelector": "Jahr wählen",
       "ongoing": "laufend",
       "notCreated": "Noch kein Budget",
-      "createMonth": "Budget erstellen"
+      "createMonth": "Budget erstellen",
+      "monthDeleted": "Monat gelöscht"
     },
     "plan": {
       "default": "Standard",

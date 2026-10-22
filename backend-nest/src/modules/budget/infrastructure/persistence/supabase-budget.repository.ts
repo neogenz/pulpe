@@ -39,6 +39,7 @@ import type {
 } from '../../domain/ports/budget-repository.port';
 import { computeTargetMonths } from '../../domain/budget.formulas';
 import type { HistoryMonth } from '../../domain/drift-history';
+import type { BudgetDeletionLinkRows } from '../../domain/budget-deletion';
 import type {
   MaterializedBudgetPeriod,
   SavingsGoalHorizonPort,
@@ -476,6 +477,48 @@ export class SupabaseBudgetRepository
         budgetLineId: row.budget_line_id,
       })),
     };
+  }
+
+  async fetchDeletionLinkRows(
+    budgetId: string,
+  ): Promise<BudgetDeletionLinkRows> {
+    const supabase = this.supabaseProvider.client;
+    const [lines, movements] = await Promise.all([
+      this.readPagedRows(
+        [budgetId],
+        (ids, from, to) =>
+          supabase
+            .from('budget_line')
+            .select(
+              'id, spread_group_id, savings_goal_id, savings_withdrawal_group_id, source_savings_goal_id',
+            )
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          operation: 'fetchDeletionLinkRows',
+          entityType: 'budgetLines',
+        },
+      ),
+      this.readPagedRows(
+        [budgetId],
+        (ids, from, to) =>
+          supabase
+            .from('transaction')
+            .select('budget_line_id, source_savings_goal_id')
+            .in('budget_id', ids)
+            .order('id', { ascending: true })
+            .range(from, to),
+        {
+          errorDef: ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          operation: 'fetchDeletionLinkRows',
+          entityType: 'transactions',
+        },
+      ),
+    ]);
+
+    return this.#toDeletionLinkRows(lines, movements);
   }
 
   async createBudgetFromTemplateRpc(payload: {
@@ -1069,6 +1112,35 @@ export class SupabaseBudgetRepository
       updatedAt: decrypted.updated_at,
       sourceSavingsGoalId: decrypted.source_savings_goal_id,
       sourceSavingsGoalName: decrypted.source_savings_goal_name,
+    };
+  }
+
+  #toDeletionLinkRows(
+    lines: Pick<
+      BudgetLineRow,
+      | 'id'
+      | 'spread_group_id'
+      | 'savings_goal_id'
+      | 'savings_withdrawal_group_id'
+      | 'source_savings_goal_id'
+    >[],
+    movements: Pick<
+      TransactionRow,
+      'budget_line_id' | 'source_savings_goal_id'
+    >[],
+  ): BudgetDeletionLinkRows {
+    return {
+      lines: lines.map((row) => ({
+        id: row.id,
+        spreadGroupId: row.spread_group_id,
+        savingsGoalId: row.savings_goal_id,
+        savingsWithdrawalGroupId: row.savings_withdrawal_group_id,
+        sourceSavingsGoalId: row.source_savings_goal_id,
+      })),
+      movements: movements.map((row) => ({
+        budgetLineId: row.budget_line_id,
+        sourceSavingsGoalId: row.source_savings_goal_id,
+      })),
     };
   }
 
