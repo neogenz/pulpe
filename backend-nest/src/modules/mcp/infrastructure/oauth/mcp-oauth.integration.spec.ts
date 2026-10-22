@@ -1345,6 +1345,31 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'existe déjà',
       );
       expect((await call('list_tags')).match(/Matrix A/g)).toHaveLength(1);
+      // A kind the forecast refuses reaches both tools in French and writes nothing.
+      const movementCount = async () =>
+        (await normal(`budgets/${budgetId}/details`)).transactions.length;
+      const movementsBefore = await movementCount();
+      const kindRefusal =
+        'Nature refusée : un mouvement rattaché à une prévision « Épargne »';
+      expect(
+        await failure('add_movement', {
+          budgetId,
+          name: 'Matrix wrong kind',
+          amount: 5,
+          kind: 'expense',
+          budgetLineId: savingId,
+        }),
+      ).toStartWith(kindRefusal);
+      expect(
+        await failure('update_movement', {
+          movementId: contributionId,
+          kind: 'expense',
+        }),
+      ).toStartWith(kindRefusal);
+      expect((await normal(`transactions/${contributionId}`)).kind).toBe(
+        'saving',
+      );
+      expect(await movementCount()).toBe(movementsBefore);
       const tagIdsOnItems = async () => {
         const details = await normal(`budgets/${budgetId}/details`);
         const sorted = (ids?: string[]) => [...(ids ?? [])].sort();
