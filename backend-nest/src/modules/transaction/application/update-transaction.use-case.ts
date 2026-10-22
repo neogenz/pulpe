@@ -128,8 +128,19 @@ export class UpdateTransactionUseCase {
     const line = await this.repo.fetchBudgetLineForAllocation(
       context.budgetLineId,
     );
-    if (line)
-      TransactionInvariants.validateKindMatchesLine(line.kind, dto.kind);
+    // Unreadable forecast: refuse, as at creation, rather than skip the rule.
+    if (!line) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id: context.budgetLineId },
+        {
+          operation: 'transaction.update.assertKindKeepsForecast',
+          entityId: context.budgetLineId,
+          entityType: 'budget_line',
+        },
+      );
+    }
+    TransactionInvariants.validateKindMatchesLine(line.kind, dto.kind);
   }
 
   /**

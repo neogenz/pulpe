@@ -221,6 +221,20 @@ describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => 
       expect(mockRepo.update).not.toHaveBeenCalled();
     });
 
+    it('should refuse a kind change when the forecast cannot be read, writing nothing', async () => {
+      allocated('expense');
+      mockRepo.fetchBudgetLineForAllocation.mockResolvedValue(null);
+
+      const caught = await useCase
+        .execute('txn-1', { kind: 'income' }, mockUser)
+        .catch((error: unknown) => error);
+
+      expect((caught as BusinessException).code).toBe(
+        'ERR_BUDGET_LINE_NOT_FOUND',
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
     it('should let a drifted movement return to its forecast kind', async () => {
       allocated('income');
 
