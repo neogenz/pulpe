@@ -98,6 +98,13 @@ async function openAddBudgetLineDialog(
       '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
     ),
   ).toBeVisible();
+  // MatDialog moves focus to its first field ~150 ms after opening; a fill
+  // racing that move types into the name instead of the amount.
+  await expect(
+    page.locator(
+      '[data-testid="add-budget-line-dialog"] [data-testid="new-line-name"]',
+    ),
+  ).toBeFocused();
 }
 
 function currencyPicker(page: Page) {
