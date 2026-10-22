@@ -4,6 +4,7 @@ import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-s
 import type { BudgetLineWritePort } from '../domain/ports/budget-line-write.port';
 import type { SpreadFanOutResult } from '../domain/ports/budget-line-spread.port';
 import type { BudgetLine } from '../domain/budget-line.entity';
+import { FindBudgetLineUseCase } from './find-budget-line.use-case';
 import { CreateBudgetLineUseCase } from './create-budget-line.use-case';
 import { UpdateBudgetLineUseCase } from './update-budget-line.use-case';
 import { ToggleBudgetLineCheckUseCase } from './toggle-budget-line-check.use-case';
@@ -13,6 +14,7 @@ import { SpreadBudgetLineFromLineUseCase } from './spread-budget-line-from-line.
 @Injectable()
 export class WriteBudgetLinesInProcessUseCase implements BudgetLineWritePort {
   constructor(
+    private readonly findBudgetLine: FindBudgetLineUseCase,
     private readonly createBudgetLine: CreateBudgetLineUseCase,
     private readonly updateBudgetLine: UpdateBudgetLineUseCase,
     private readonly toggleBudgetLineCheck: ToggleBudgetLineCheckUseCase,
@@ -20,12 +22,26 @@ export class WriteBudgetLinesInProcessUseCase implements BudgetLineWritePort {
     private readonly session: AuthenticatedSupabaseProvider,
   ) {}
 
+  find(id: string): Promise<BudgetLine> {
+    return this.findBudgetLine.execute(id, this.session.user);
+  }
+
   create(dto: BudgetLineCreate): Promise<BudgetLine> {
     return this.createBudgetLine.execute(dto, this.session.user);
   }
 
   update(id: string, patch: BudgetLineUpdate): Promise<BudgetLine> {
-    return this.updateBudgetLine.execute(id, patch, this.session.user);
+    // An agent edit of a value is a manual adjustment, like the web and iOS
+    // edit forms: Mois Type propagation and a goal stop leave the line alone.
+    // A tags-only patch is not one: tagging must not freeze a forecast.
+    const editsValue = Object.entries(patch).some(
+      ([key, value]) => key !== 'id' && key !== 'tagIds' && value !== undefined,
+    );
+    return this.updateBudgetLine.execute(
+      id,
+      editsValue ? { ...patch, isManuallyAdjusted: true } : patch,
+      this.session.user,
+    );
   }
 
   toggleCheck(id: string): Promise<BudgetLine> {

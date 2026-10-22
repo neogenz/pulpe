@@ -341,6 +341,60 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
       );
     });
 
+    describe('with a month range', () => {
+      const range = {
+        from: { month: 10, year: 2026 },
+        to: { month: 12, year: 2026 },
+      };
+
+      it('should propagate only to the budgets inside the range', async () => {
+        await useCase.execute('template-1', createPayload, mockUser, range);
+
+        expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
+          expect.objectContaining({
+            budgetIds: ['budget-10-2026', 'budget-11-2026'],
+          }),
+        );
+      });
+
+      it('should resolve savings-goal exclusions against the ranged budgets only', async () => {
+        const goalId = '8a0f6c80-1234-4e5f-89ab-111111111111';
+
+        await useCase.execute(
+          'template-1',
+          {
+            ...createPayload,
+            create: [{ ...createPayload.create![0], savingsGoalId: goalId }],
+          },
+          mockUser,
+          range,
+        );
+
+        expect(
+          mockSavingsGoalHorizon.periodsOutsideInterval,
+        ).toHaveBeenCalledWith(
+          [goalId],
+          [
+            { id: 'budget-10-2026', month: 10, year: 2026 },
+            { id: 'budget-11-2026', month: 11, year: 2026 },
+          ],
+        );
+      });
+
+      it('should send no budget when propagation is disabled', async () => {
+        await useCase.execute(
+          'template-1',
+          { ...createPayload, propagateToBudgets: false },
+          mockUser,
+          range,
+        );
+
+        expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
+          expect.objectContaining({ budgetIds: [] }),
+        );
+      });
+    });
+
     it('starts propagation at the active pay-day period before payday', async () => {
       const realNow = new Date();
       jest.setSystemTime(new Date(2026, 6, 4, 12));

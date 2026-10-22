@@ -12,6 +12,8 @@ export interface McpToolAnnotations {
 export interface McpToolResult {
   /** Plain text rendered to the model. Never the raw entity. */
   readonly text: string;
+  /** Present only on a reply that changed nothing (a question back to the user, or a write that applied nothing): the activity log skips it. */
+  readonly wrote?: false;
 }
 
 export interface McpTool<Args = Record<string, unknown>> {

@@ -7,6 +7,7 @@ import { UserModule } from '@modules/user/user.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { SavingsGoalModule } from '@modules/savings-goal/savings-goal.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
+import { TagModule } from '@modules/tag/tag.module';
 import { ListToolsUseCase } from './application/list-tools.use-case';
 import { CallToolUseCase } from './application/call-tool.use-case';
 import { ApproveConnectionUseCase } from './application/approve-connection.use-case';
@@ -27,6 +28,8 @@ import { SearchMovementsTool } from './infrastructure/tools/read/search-movement
 import { ListSavingsGoalsTool } from './infrastructure/tools/read/list-savings-goals.tool';
 import { GetSavingsGoalOutlookTool } from './infrastructure/tools/read/get-savings-goal-outlook.tool';
 import { ListTemplatesTool } from './infrastructure/tools/read/list-templates.tool';
+import { ListTagsTool } from './infrastructure/tools/read/list-tags.tool';
+import { GetTemplateTool } from './infrastructure/tools/read/get-template.tool';
 import { AddMovementTool } from './infrastructure/tools/write/add-movement.tool';
 import { UpdateMovementTool } from './infrastructure/tools/write/update-movement.tool';
 import { DeleteMovementTool } from './infrastructure/tools/write/delete-movement.tool';
@@ -35,7 +38,18 @@ import { UpdateForecastTool } from './infrastructure/tools/write/update-forecast
 import { SpreadExpenseTool } from './infrastructure/tools/write/spread-expense.tool';
 import { CreateMonthFromTemplateTool } from './infrastructure/tools/write/create-month-from-template.tool';
 import { ToggleCheckTool } from './infrastructure/tools/write/toggle-check.tool';
+import { CreateTagTool } from './infrastructure/tools/write/create-tag.tool';
+import { RenameTagTool } from './infrastructure/tools/write/rename-tag.tool';
+import { DeleteTagTool } from './infrastructure/tools/write/delete-tag.tool';
+import { TagItemsTool } from './infrastructure/tools/write/tag-items.tool';
+import { CreateTemplateTool } from './infrastructure/tools/write/create-template.tool';
+import { UpdateTemplateTool } from './infrastructure/tools/write/update-template.tool';
+import { DeleteTemplateTool } from './infrastructure/tools/write/delete-template.tool';
+import { DuplicateTemplateTool } from './infrastructure/tools/write/duplicate-template.tool';
+import { EditTemplateLinesTool } from './infrastructure/tools/write/edit-template-lines.tool';
+import { AdjustOverMonthsTool } from './infrastructure/tools/write/adjust-over-months.tool';
 import { ResolveCurrencyUseCase } from './application/resolve-currency.use-case';
+import { AdjustOverMonthsUseCase } from './application/adjust-over-months.use-case';
 import { McpRevocationModule } from './mcp-revocation.module';
 import { MCP_ACTIVITY_REPOSITORY, MCP_TOOLS } from './mcp.tokens';
 
@@ -47,6 +61,8 @@ const TOOLS = [
   ListSavingsGoalsTool,
   GetSavingsGoalOutlookTool,
   ListTemplatesTool,
+  ListTagsTool,
+  GetTemplateTool,
   AddMovementTool,
   UpdateMovementTool,
   DeleteMovementTool,
@@ -55,6 +71,16 @@ const TOOLS = [
   SpreadExpenseTool,
   CreateMonthFromTemplateTool,
   ToggleCheckTool,
+  CreateTagTool,
+  RenameTagTool,
+  DeleteTagTool,
+  TagItemsTool,
+  CreateTemplateTool,
+  UpdateTemplateTool,
+  DeleteTemplateTool,
+  DuplicateTemplateTool,
+  EditTemplateLinesTool,
+  AdjustOverMonthsTool,
 ];
 
 @Module({
@@ -67,6 +93,7 @@ const TOOLS = [
     UserModule,
     SavingsGoalModule,
     TransactionModule,
+    TagModule,
   ],
   controllers: [
     McpController,
@@ -77,6 +104,7 @@ const TOOLS = [
   providers: [
     ListToolsUseCase,
     ResolveCurrencyUseCase,
+    AdjustOverMonthsUseCase,
     CallToolUseCase,
     ApproveConnectionUseCase,
     DenyConnectionUseCase,

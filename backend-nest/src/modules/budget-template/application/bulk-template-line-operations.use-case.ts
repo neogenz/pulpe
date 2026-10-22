@@ -5,7 +5,9 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
+  type BudgetPeriod,
   getBudgetPeriodForDate,
+  periodIndex,
   type TemplateLinesBulkOperations,
   type TemplateLinesPropagationSummary,
   templateLinesBulkOperationsSchema,
@@ -59,6 +61,7 @@ export class BulkTemplateLineOperationsUseCase {
     templateId: string,
     bulkOperationsDto: TemplateLinesBulkOperations,
     user: Pick<AuthenticatedUser, 'id' | 'payDayOfMonth'>,
+    range?: { from: BudgetPeriod; to: BudgetPeriod },
   ): Promise<BulkTemplateLineOperationsResult> {
     const startTime = Date.now();
 
@@ -89,6 +92,7 @@ export class BulkTemplateLineOperationsUseCase {
           templateId,
           user.id,
           user.payDayOfMonth ?? null,
+          range,
         )
       : [];
     const budgetIds = propagationBudgets.map((budget) => budget.id);
@@ -170,13 +174,21 @@ export class BulkTemplateLineOperationsUseCase {
     templateId: string,
     userId: string,
     payDayOfMonth: number | null,
+    range?: { from: BudgetPeriod; to: BudgetPeriod },
   ): Promise<MaterializedBudgetPeriod[]> {
     const budgets = await this.repo.fetchFutureBudgets(
       templateId,
       userId,
       getBudgetPeriodForDate(new Date(), payDayOfMonth),
     );
-    return budgets;
+    if (!range) return budgets;
+    // The range only narrows the current-and-future selection above.
+    const first = periodIndex(range.from);
+    const last = periodIndex(range.to);
+    return budgets.filter((budget) => {
+      const index = periodIndex(budget);
+      return index >= first && index <= last;
+    });
   }
 
   private async withHorizonExclusions(

@@ -6,6 +6,8 @@ export const OAUTH_AUTHORIZATION_PORT = Symbol('OAUTH_AUTHORIZATION_PORT');
 export interface OAuthAuthorizationRequest {
   readonly clientId: string;
   readonly clientName: string;
+  /** Hostname of the redirect URI held by the server, never taken from the browser. */
+  readonly redirectHost: string;
 }
 
 /**

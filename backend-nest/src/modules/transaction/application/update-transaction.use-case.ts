@@ -52,6 +52,8 @@ export class UpdateTransactionUseCase {
       TransactionInvariants.validateWithdrawalUpdate(dto);
     }
 
+    await this.#assertKindKeepsForecast(dto, context, user.id);
+
     const withRate = await this.currencyService.overrideExchangeRate(dto);
 
     const patch: TransactionUpdatePatch = {
@@ -106,6 +108,41 @@ export class UpdateTransactionUseCase {
     );
 
     return entity;
+  }
+
+  /**
+   * An allocated movement keeps its forecast's kind, as at creation. Only a
+   * real change of kind pays for the lookup.
+   */
+  async #assertKindKeepsForecast(
+    dto: TransactionUpdate,
+    context: TransactionMutationContext | null,
+    userId: string,
+  ): Promise<void> {
+    if (
+      dto.kind === undefined ||
+      !context?.budgetLineId ||
+      dto.kind === context.kind
+    ) {
+      return;
+    }
+    const line = await this.repo.fetchBudgetLineForAllocation(
+      context.budgetLineId,
+    );
+    // Unreadable forecast: refuse, as at creation, rather than skip the rule.
+    if (!line) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id: context.budgetLineId },
+        {
+          operation: 'transaction.update.assertKindKeepsForecast',
+          userId,
+          entityId: context.budgetLineId,
+          entityType: 'budget_line',
+        },
+      );
+    }
+    TransactionInvariants.validateKindMatchesLine(line.kind, dto.kind);
   }
 
   /**

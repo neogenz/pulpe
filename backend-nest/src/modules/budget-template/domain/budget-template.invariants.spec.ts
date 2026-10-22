@@ -32,19 +32,24 @@ describe('BudgetTemplateInvariants', () => {
   describe('validateTemplateNotUsed', () => {
     it('should throw when template is used in at least one budget', () => {
       expect(() =>
-        BudgetTemplateInvariants.validateTemplateNotUsed('template-1', 1),
+        BudgetTemplateInvariants.validateTemplateNotUsed('template-1', [
+          { month: 10, year: 2026 },
+        ]),
       ).toThrow(BusinessException);
     });
 
-    it('should throw when template is used in multiple budgets', () => {
+    it('should name every month built from the template in the message', () => {
       expect(() =>
-        BudgetTemplateInvariants.validateTemplateNotUsed('template-1', 3),
-      ).toThrow(BusinessException);
+        BudgetTemplateInvariants.validateTemplateNotUsed('template-1', [
+          { month: 10, year: 2026 },
+          { month: 11, year: 2026 },
+        ]),
+      ).toThrow('Used by: 10/2026, 11/2026');
     });
 
     it('should not throw when template is not used in any budget', () => {
       expect(() =>
-        BudgetTemplateInvariants.validateTemplateNotUsed('template-1', 0),
+        BudgetTemplateInvariants.validateTemplateNotUsed('template-1', []),
       ).not.toThrow();
     });
   });

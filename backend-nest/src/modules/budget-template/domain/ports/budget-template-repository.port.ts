@@ -50,7 +50,6 @@ export interface BudgetTemplateRepositoryPort {
   deleteLine(lineId: string): Promise<void>;
 
   // Validation queries
-  isTemplateInUse(templateId: string): Promise<boolean>;
   fetchTemplateBudgets(templateId: string): Promise<TemplateUsageBudget[]>;
   validateLinesExist(templateId: string, lineIds: string[]): Promise<string[]>;
   fetchFutureBudgets(

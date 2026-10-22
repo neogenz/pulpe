@@ -1678,6 +1678,8 @@ export const transactionSearchResultSchema = z.object({
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   monthLabel: z.string(),
+  // Always filled by the backend; optional so existing clients and fixtures stay valid.
+  tagIds: z.array(z.uuid()).optional(),
 });
 export type TransactionSearchResult = z.infer<
   typeof transactionSearchResultSchema
@@ -2943,9 +2945,15 @@ export type FeedbackStatusResponse = z.infer<
 export const mcpAccessModeSchema = z.enum(['read', 'read_write']);
 export type McpAccessMode = z.infer<typeof mcpAccessModeSchema>;
 
-/** GET /mcp/consent/:authorizationId — the client as declared to Supabase */
+/**
+ * GET /mcp/consent/:authorizationId — the client as declared to Supabase, and
+ * the host its callback (code and data) goes to, read from the stored request.
+ * `redirectHost` stays optional so a web build deployed before its API still
+ * opens the consent page.
+ */
 export const mcpConsentDetailsResponseSchema = z.object({
   clientName: z.string(),
+  redirectHost: z.string().min(1).optional(),
 });
 export type McpConsentDetailsResponse = z.infer<
   typeof mcpConsentDetailsResponseSchema

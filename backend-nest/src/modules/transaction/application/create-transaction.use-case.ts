@@ -161,18 +161,17 @@ export class CreateTransactionUseCase {
     if (budgetLine.budgetId !== budgetId) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        { reason: 'Transaction budget must match budget line budget' },
-      );
-    }
-
-    if (budgetLine.kind !== transactionKind) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
         {
-          reason: `Transaction kind must match budget line kind (expected: ${budgetLine.kind}, got: ${transactionKind})`,
+          reason: 'Transaction budget must match budget line budget',
+          lineBudgetId: budgetLine.budgetId,
         },
       );
     }
+
+    TransactionInvariants.validateKindMatchesLine(
+      budgetLine.kind,
+      transactionKind,
+    );
 
     // Le nom survit à la suppression de l'objectif, l'identifiant non. Sans
     // cette garde, réaliser une prévision orpheline la transformerait en revenu

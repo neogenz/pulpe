@@ -11,6 +11,9 @@ import { TemplateLinePropagationAdapter } from './infrastructure/adapters/templa
 import { FindAllTemplatesUseCase } from './application/find-all-templates.use-case';
 import { ReadTemplatesInProcessUseCase } from './application/read-templates-in-process.use-case';
 import { BUDGET_TEMPLATE_READ_PORT } from './domain/ports/budget-template-read.port';
+import { WriteTemplatesInProcessUseCase } from './application/write-templates-in-process.use-case';
+import { BUDGET_TEMPLATE_WRITE_PORT } from './domain/ports/budget-template-write.port';
+import { DuplicateTemplateUseCase } from './application/duplicate-template.use-case';
 import { FindTemplateUseCase } from './application/find-template.use-case';
 import { CreateTemplateUseCase } from './application/create-template.use-case';
 import { CreateTemplateFromOnboardingUseCase } from './application/create-template-from-onboarding.use-case';
@@ -39,6 +42,11 @@ import { BulkTemplateLineOperationsUseCase } from './application/bulk-template-l
       provide: BUDGET_TEMPLATE_READ_PORT,
       useExisting: ReadTemplatesInProcessUseCase,
     },
+    WriteTemplatesInProcessUseCase,
+    {
+      provide: BUDGET_TEMPLATE_WRITE_PORT,
+      useExisting: WriteTemplatesInProcessUseCase,
+    },
     FindTemplateUseCase,
     CreateTemplateUseCase,
     CreateTemplateFromOnboardingUseCase,
@@ -51,6 +59,7 @@ import { BulkTemplateLineOperationsUseCase } from './application/bulk-template-l
     UpdateTemplateLineUseCase,
     DeleteTemplateLineUseCase,
     BulkTemplateLineOperationsUseCase,
+    DuplicateTemplateUseCase,
     {
       provide: TEMPLATE_LINE_PROPAGATION_PORT,
       useClass: TemplateLinePropagationAdapter,
@@ -69,11 +78,13 @@ import { BulkTemplateLineOperationsUseCase } from './application/bulk-template-l
     createInfoLoggerProvider(UpdateTemplateLineUseCase.name),
     createInfoLoggerProvider(DeleteTemplateLineUseCase.name),
     createInfoLoggerProvider(BulkTemplateLineOperationsUseCase.name),
+    createInfoLoggerProvider(DuplicateTemplateUseCase.name),
   ],
   exports: [
     BUDGET_TEMPLATE_REPOSITORY,
     TEMPLATE_LINE_PROPAGATION_PORT,
     BUDGET_TEMPLATE_READ_PORT,
+    BUDGET_TEMPLATE_WRITE_PORT,
   ],
 })
 export class BudgetTemplateModule {}

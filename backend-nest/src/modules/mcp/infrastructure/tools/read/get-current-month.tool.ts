@@ -6,8 +6,12 @@ import {
   BUDGET_MONTH_READ_PORT,
   type BudgetMonthReadPort,
 } from '@modules/budget/domain/ports/budget-month-read.port';
+import {
+  TAG_READ_PORT,
+  type TagReadPort,
+} from '@modules/tag/domain/ports/tag-read.port';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
-import { renderMonth } from './month-report';
+import { renderMonth, tagNames } from './month-report';
 
 @Injectable()
 export class GetCurrentMonthTool implements McpTool {
@@ -27,6 +31,8 @@ export class GetCurrentMonthTool implements McpTool {
   constructor(
     @Inject(BUDGET_MONTH_READ_PORT)
     private readonly budgets: BudgetMonthReadPort,
+    @Inject(TAG_READ_PORT)
+    private readonly tags: TagReadPort,
     private readonly session: AuthenticatedSupabaseProvider,
   ) {}
 
@@ -35,10 +41,13 @@ export class GetCurrentMonthTool implements McpTool {
       parseIsoDateLocal(formatBusinessCalendarDate()),
       this.session.user.payDayOfMonth,
     );
-    const details = await this.budgets.readMonth(month, year);
+    const [details, tags] = await Promise.all([
+      this.budgets.readMonth(month, year),
+      this.tags.list(),
+    ]);
     if (!details) {
       return { text: `Aucun budget pour ${month}/${year}.` };
     }
-    return { text: renderMonth(details) };
+    return { text: renderMonth(details, tagNames(tags)) };
   }
 }
