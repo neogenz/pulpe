@@ -202,6 +202,37 @@ describe('EditTemplateLinesTool', () => {
     expect(editLines).not.toHaveBeenCalled();
   });
 
+  it('refuses the same forecast twice in update and writes nothing', async () => {
+    const { tool, editLines } = setup();
+
+    const failure = await tool
+      .execute({
+        templateId: TEMPLATE,
+        scope: 'template_only',
+        update: [
+          { id: LINE, amount: 1700 },
+          { id: LINE, tagIds: [TAG] },
+        ],
+      })
+      .catch((e) => e);
+
+    expect(failure.code).toBe(API_ERROR_CODES.VALIDATION_FAILED);
+    expect(failure.message).toContain('une seule entrée');
+    expect(editLines).not.toHaveBeenCalled();
+  });
+
+  it('sends a forecast repeated in delete only once', async () => {
+    const { tool, editLines } = setup();
+
+    await tool.execute({
+      templateId: TEMPLATE,
+      scope: 'template_only',
+      delete: [LINE, LINE],
+    });
+
+    expect(editLines.mock.calls[0][1]).toMatchObject({ delete: [LINE] });
+  });
+
   it('converts an amount in another currency and keeps its FX fields on the line', async () => {
     const { tool, editLines, resolveCurrency } = setup();
 

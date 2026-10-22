@@ -49,14 +49,14 @@ describe('CreateTemplateTool', () => {
     });
   });
 
-  it('should be a non-destructive write tool', () => {
+  it('should be a destructive write tool, since isDefault unsets the current default', () => {
     const { tool } = setup();
 
     expect(tool.name).toBe('create_template');
     expect(tool.mode).toBe('read_write');
     expect(tool.annotations).toEqual({
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: false,
       openWorldHint: false,
     });

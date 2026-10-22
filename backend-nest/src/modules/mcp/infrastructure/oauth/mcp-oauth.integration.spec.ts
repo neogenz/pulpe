@@ -970,6 +970,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'rename_tag',
         'delete_tag',
         'tag_items',
+        'create_template',
         'update_template',
         'delete_template',
         'edit_template_lines',
@@ -994,7 +995,6 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
               'tag_items',
               'update_template',
               'delete_template',
-              'adjust_over_months',
             ].includes(tool.name),
         );
         expect(tool.annotations.openWorldHint).toBe(false);

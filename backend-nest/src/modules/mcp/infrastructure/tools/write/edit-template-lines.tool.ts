@@ -140,6 +140,13 @@ export class EditTemplateLinesTool implements McpTool<Args> {
         'Plage inversée : from doit précéder to ou lui être égal. Rien n’a été modifié.',
       );
     }
+    const updateIds = (args.update ?? []).map((line) => line.id);
+    if (new Set(updateIds).size < updateIds.length) {
+      throw agentError(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        'Une même prévision revient plusieurs fois dans update : regroupe ses changements en une seule entrée. Rien n’a été modifié.',
+      );
+    }
 
     const ops = await this.#operations(args);
     const result = await this.templates.editLines(
@@ -183,7 +190,7 @@ export class EditTemplateLinesTool implements McpTool<Args> {
           }),
         ),
       ),
-      delete: args.delete ?? [],
+      delete: [...new Set(args.delete ?? [])],
       propagateToBudgets:
         args.scope === 'current_and_future' || args.scope === 'range',
     };

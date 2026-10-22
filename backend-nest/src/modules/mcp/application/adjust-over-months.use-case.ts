@@ -73,25 +73,28 @@ interface Found<T> {
 }
 
 /**
- * Items named like the reference. Once one matches, items that already carry
- * the new name join it: after a rename that failed part way, a month where the
- * user had picked one of several siblings asks again (or takes the same pick)
- * instead of silently renaming the sibling left under the old name. Alone, an
- * item carrying the new name is never written: it may be another item.
+ * Items named like the reference. After a rename that failed part way, the
+ * user's pick in a month may already carry the new name: it joins the matches,
+ * so the retry keeps that pick instead of renaming the sibling left under the
+ * old name. Any other item carrying the new name is never written: it may be
+ * another item.
  */
-function byName<T extends { name: string }>(
+function byName<T extends { id: string; name: string }>(
   items: T[],
   name: string,
   newName: string | undefined,
+  chosenIds: readonly string[] = [],
 ): Found<T> {
   const named = (n: string) =>
     items.filter((item) => normalized(item.name) === normalized(n));
   const matches = named(name);
   const renamed =
     newName && normalized(newName) !== normalized(name) ? named(newName) : [];
-  return matches.length > 0
-    ? { matches: [...matches, ...renamed], alreadyNamed: false }
-    : { matches: [], alreadyNamed: renamed.length > 0 };
+  if (matches.length === 0) {
+    return { matches: [], alreadyNamed: renamed.length > 0 };
+  }
+  const picked = renamed.filter((item) => chosenIds.includes(item.id));
+  return { matches: [...matches, ...picked], alreadyNamed: false };
 }
 
 /**
@@ -102,6 +105,7 @@ function equivalentForecasts(
   lines: BudgetLineDecrypted[],
   forecast: BudgetLineDecrypted,
   newName?: string,
+  chosenIds?: readonly string[],
 ): Found<BudgetLineDecrypted> {
   const sameTemplateLine = forecast.templateLineId
     ? lines.filter((line) => line.templateLineId === forecast.templateLineId)
@@ -113,6 +117,7 @@ function equivalentForecasts(
     lines.filter((line) => line.kind === forecast.kind),
     forecast.name,
     newName,
+    chosenIds,
   );
 }
 
@@ -183,7 +188,7 @@ export class AdjustOverMonthsUseCase {
         targets.push({ period, id: input.id });
         return;
       }
-      const found = this.#candidates(details, input.name, forecast, movement);
+      const found = this.#candidates(details, input, forecast, movement);
       const candidates = found.matches;
       if (found.alreadyNamed) {
         alreadyNamed.push(period);
@@ -224,7 +229,7 @@ export class AdjustOverMonthsUseCase {
     // RPC if 12 months ever proves slow. The other months are matched on the
     // first one, so it is written last: after a server failure part way, a
     // retry still matches on its old values, and byName keeps a month already
-    // renamed from losing the user's pick.
+    // renamed on the user's pick.
     const [reference, ...others] = targets;
     for (const { period, id } of [...others, reference]) {
       try {
@@ -297,12 +302,17 @@ export class AdjustOverMonthsUseCase {
 
   #candidates(
     details: BudgetWithDetails,
-    newName: string | undefined,
+    { name: newName, chosenIds }: AdjustOverMonthsInput,
     forecast: BudgetLineDecrypted,
     movement?: TransactionDecrypted,
   ): Found<AdjustCandidate> {
     if (!movement) {
-      return equivalentForecasts(details.budgetLines, forecast, newName);
+      return equivalentForecasts(
+        details.budgetLines,
+        forecast,
+        newName,
+        chosenIds,
+      );
     }
     // A movement rename leaves its forecast's name alone.
     const { matches: forecasts } = equivalentForecasts(
@@ -316,6 +326,7 @@ export class AdjustOverMonthsUseCase {
       ),
       movement.name,
       newName,
+      chosenIds,
     );
   }
 }

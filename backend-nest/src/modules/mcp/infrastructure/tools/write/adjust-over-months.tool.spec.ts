@@ -164,6 +164,14 @@ describe('AdjustOverMonthsTool', () => {
     expect(result.text).toContain('ajustées à la main');
   });
 
+  it('words the manual-adjustment note for a single forecast', async () => {
+    const { tool } = setup();
+
+    const result = await tool.execute({ ...base, months: 1 });
+
+    expect(result.text).toContain('Cette prévision est désormais ajustée');
+  });
+
   it('keeps the manual-adjustment note for forecasts only', async () => {
     const { tool } = setup();
 

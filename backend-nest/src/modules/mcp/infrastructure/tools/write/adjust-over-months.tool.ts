@@ -77,10 +77,12 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
   readonly description =
     'Applique le même changement d’intitulé ou de montant à une prévision, ou à un mouvement rattaché à une prévision, sur plusieurs mois consécutifs (12 au plus) à partir du mois donné, sans toucher au modèle. Pour changer aussi le modèle, utiliser edit_template_lines. Si l’utilisateur n’a pas dit s’il veut changer le modèle ou seulement ces mois, lui demander avant d’appeler l’un ou l’autre. Dans chaque mois, l’équivalent est la prévision issue de la même prévision du modèle, sinon celle de même intitulé et de même nature. Un mois sans budget n’est jamais créé : la réponse le liste. Les prévisions modifiées sont marquées ajustées à la main : une modification du modèle ne les changera plus.';
   readonly mode = 'read_write' as const;
+  // Months are matched on the first month's name, which a rename changes: a
+  // repeat matches by the new name and may write an item the first call left alone.
   readonly annotations = {
     readOnlyHint: false,
     destructiveHint: true,
-    idempotentHint: true,
+    idempotentHint: false,
     openWorldHint: false as const,
   };
   readonly inputSchema = inputSchema;
@@ -180,7 +182,9 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
         `Mois refusés : ${failed.map((f) => `${label(f.period)} (${f.reason})`).join(', ')}.`,
       updated.length > 0 &&
         target === 'forecast' &&
-        'Ces prévisions sont désormais ajustées à la main : une modification du modèle ne les changera plus.',
+        (updated.length === 1
+          ? 'Cette prévision est désormais ajustée à la main : une modification du modèle ne la changera plus.'
+          : 'Ces prévisions sont désormais ajustées à la main : une modification du modèle ne les changera plus.'),
     ]
       .filter(Boolean)
       .join('\n');

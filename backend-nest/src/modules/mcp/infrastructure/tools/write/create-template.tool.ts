@@ -31,9 +31,10 @@ export class CreateTemplateTool implements McpTool<Args> {
   readonly description =
     'Crée un modèle de mois vide, à remplir ensuite avec edit_template_lines. 5 modèles au plus par utilisateur.';
   readonly mode = 'read_write' as const;
+  // isDefault takes the default flag off the current default template.
   readonly annotations = {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     idempotentHint: false,
     openWorldHint: false as const,
   };

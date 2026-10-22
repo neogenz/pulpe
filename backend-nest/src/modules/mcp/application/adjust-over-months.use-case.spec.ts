@@ -473,6 +473,25 @@ describe('AdjustOverMonthsUseCase', () => {
     ]);
   });
 
+  it('writes the old-name item on a first call even when another one already carries the new name', async () => {
+    const { useCase, updateLine } = setup([
+      month([line('a')]),
+      month([line('b'), line('x', { name: 'Loyer 2027', amount: 9 })]),
+    ]);
+
+    const result = await useCase.execute({
+      target: 'forecast',
+      id: 'a',
+      from,
+      count: 2,
+      name: 'Loyer 2027',
+      amount: 1700,
+    });
+
+    expect(result).toMatchObject({ status: 'done', updated: periods(3, 4) });
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'a']);
+  });
+
   it('rethrows an unexpected error', async () => {
     const { useCase, updateLine } = setup([month([line('a')])]);
     updateLine.mockImplementation(async () => {
