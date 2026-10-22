@@ -11,7 +11,8 @@ function describeMovementRefusal(details: Details): string | undefined {
     const kind =
       KIND_LABEL[details.lineKind as keyof typeof KIND_LABEL] ??
       String(details.lineKind);
-    return `Nature refusée : un mouvement rattaché à une prévision « ${kind} » en garde la nature. Garde cette nature, ou crée le mouvement sans prévision ou sur une prévision de la nature voulue.`;
+    // Reached by add_movement and update_movement: the advice must hold for both.
+    return `Nature refusée : un mouvement rattaché à une prévision « ${kind} » en garde la nature, et un mouvement existant ne change pas de prévision. Garde cette nature ; pour un nouveau mouvement, choisis une prévision de la nature voulue ; sinon demande à l’utilisateur.`;
   }
   if (details?.lineBudgetId) {
     return `Cette prévision appartient à un autre mois (budget ${String(details.lineBudgetId)}). Reprends une prévision du mois visé dans get_month, ou omets budgetLineId.`;

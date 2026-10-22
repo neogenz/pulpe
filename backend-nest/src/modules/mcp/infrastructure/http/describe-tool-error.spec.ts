@@ -53,14 +53,21 @@ describe('describeToolError', () => {
     expect(
       refusal(ERROR_DEFINITIONS.TEMPLATE_LIMIT_EXCEEDED, { limit: 5 }),
     ).toContain('limite de 5 modèles est atteinte');
-    expect(
-      refusal(ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED, {
+    const kindRefusal = refusal(
+      ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+      {
         reason: 'Transaction kind must match budget line kind',
         lineKind: 'expense',
-      }),
-    ).toStartWith(
+      },
+    );
+    expect(kindRefusal).toStartWith(
       'Nature refusée : un mouvement rattaché à une prévision « Dépense »',
     );
+    // update_movement meets it too: never steer the agent into a duplicate.
+    expect(kindRefusal).toContain(
+      'un mouvement existant ne change pas de prévision',
+    );
+    expect(kindRefusal).not.toContain('crée le mouvement');
     expect(
       refusal(ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED, {
         reason: 'Transaction budget must match budget line budget',
