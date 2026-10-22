@@ -98,7 +98,14 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
     const count = args.until
       ? periodIndex(args.until) - periodIndex(from) + 1
       : args.months!;
-    if (count < 1 || count > MAX_MONTHS) {
+    // An inverted range is an order mistake, not a span to shorten: say which.
+    if (count < 1) {
+      throw agentError(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        `until (${label(args.until!)}) précède le mois de départ (${label(from)}) : until doit être ce mois ou un mois suivant. Rien n’a été modifié.`,
+      );
+    }
+    if (count > MAX_MONTHS) {
       throw agentError(
         ERROR_DEFINITIONS.VALIDATION_FAILED,
         `until doit tomber entre le mois de départ et ${MAX_MONTHS - 1} mois plus tard (${MAX_MONTHS} mois au plus, mois de départ compris). Rien n’a été modifié.`,

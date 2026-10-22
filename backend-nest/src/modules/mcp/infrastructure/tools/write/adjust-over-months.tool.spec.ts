@@ -94,14 +94,17 @@ describe('AdjustOverMonthsTool', () => {
   it('refuses an until before the start or more than 12 months away', async () => {
     const { tool, execute } = setup();
 
-    for (const until of [
-      { month: 2, year: 2027 },
-      { month: 3, year: 2028 },
-    ]) {
-      const error = await tool.execute({ ...base, until }).catch((e) => e);
-      expect(error.code).toBe(API_ERROR_CODES.VALIDATION_FAILED);
-      expect(error.message).toContain('11 mois plus tard (12 mois au plus');
-    }
+    const refuse = (until: { month: number; year: number }) =>
+      tool.execute({ ...base, until }).catch((e) => e);
+    const inverted = await refuse({ month: 2, year: 2027 });
+    const tooWide = await refuse({ month: 3, year: 2028 });
+
+    expect(inverted.code).toBe(API_ERROR_CODES.VALIDATION_FAILED);
+    expect(inverted.message).toStartWith(
+      'until (2/2027) précède le mois de départ (3/2027)',
+    );
+    expect(tooWide.code).toBe(API_ERROR_CODES.VALIDATION_FAILED);
+    expect(tooWide.message).toContain('11 mois plus tard (12 mois au plus');
     expect(execute).not.toHaveBeenCalled();
   });
 
