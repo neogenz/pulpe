@@ -67,6 +67,18 @@ function setup(months: (BudgetWithDetails | null)[]) {
   return { useCase, updateLine, updateMovement, resolve };
 }
 
+/** An update port that writes the patch into the fixtures; the ids in `down` fail like a server error. */
+function writeInto(months: BudgetWithDetails[], down: ReadonlySet<string>) {
+  return async (id: string, patch: unknown) => {
+    if (down.has(id)) throw new Error('db down');
+    const item = months
+      .flatMap((m) => [...m.budgetLines, ...m.transactions])
+      .find((x) => x.id === id);
+    Object.assign(item as object, patch);
+    return { id };
+  };
+}
+
 const from = { month: 3, year: 2027 };
 const periods = (...ms: number[]) => ms.map((m) => ({ month: m, year: 2027 }));
 
@@ -94,6 +106,7 @@ describe('AdjustOverMonthsUseCase', () => {
       updated: periods(3, 4),
       missingMonths: [],
       unmatched: periods(5),
+      alreadyNamed: [],
       failed: [],
     });
     expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'a']);
@@ -326,17 +339,38 @@ describe('AdjustOverMonthsUseCase', () => {
 
     expect(result).toMatchObject({
       updated: periods(3, 5),
-      failed: [{ period: periods(4)[0], reason: expect.stringContaining('b') }],
+      failed: [{ period: periods(4)[0], reason: 'introuvable' }],
     });
   });
 
-  it('writes the first month last, so a retry after a server failure finds the same months', async () => {
+  it('lists refused months in month order, the first one included', async () => {
+    const { useCase, updateLine } = setup([
+      month([line('a')]),
+      month([line('b')]),
+    ]);
+    updateLine.mockImplementation(async () => {
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
+    });
+
+    const result = await useCase.execute({
+      target: 'forecast',
+      id: 'a',
+      from,
+      count: 2,
+      amount: 5,
+    });
+
+    expect(result).toMatchObject({ updated: [] });
+    expect(
+      (result as { failed: { period: unknown }[] }).failed.map((f) => f.period),
+    ).toEqual(periods(3, 4));
+  });
+
+  it('writes the first month last, so a retry after a server failure still finds it', async () => {
     const months = [month([line('a')]), month([line('b')]), month([line('c')])];
     const { useCase, updateLine } = setup(months);
-    updateLine.mockImplementation(async (id: string) => {
-      if (id === 'c') throw new Error('db down');
-      return { id };
-    });
+    const down = new Set(['c']);
+    updateLine.mockImplementation(writeInto(months, down));
     const input = {
       target: 'forecast' as const,
       id: 'a',
@@ -349,12 +383,94 @@ describe('AdjustOverMonthsUseCase', () => {
     // The reference month, matched on by name, is still untouched.
     expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'c']);
 
+    down.clear();
     updateLine.mockClear();
-    updateLine.mockImplementation(async (id: string) => ({ id }));
     const retried = await useCase.execute(input);
 
-    expect(retried).toMatchObject({ updated: periods(3, 4, 5), unmatched: [] });
-    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b', 'c', 'a']);
+    // April was renamed by the failed attempt: said so, not called unmatched.
+    expect(retried).toMatchObject({
+      updated: periods(3, 5),
+      unmatched: [],
+      alreadyNamed: periods(4),
+    });
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['c', 'a']);
+  });
+
+  it('keeps the user pick on a retry after a rename failed part way', async () => {
+    const months = [
+      month([line('a')]),
+      month([line('b1'), line('b2')]),
+      month([line('c')]),
+    ];
+    const { useCase, updateLine } = setup(months);
+    const down = new Set(['c']);
+    updateLine.mockImplementation(writeInto(months, down));
+    const input = {
+      target: 'forecast' as const,
+      id: 'a',
+      from,
+      count: 3,
+      name: 'Loyer 2027',
+      chosenIds: ['b2'],
+    };
+
+    await expect(useCase.execute(input)).rejects.toThrow('db down');
+    down.clear();
+    updateLine.mockClear();
+    const retried = await useCase.execute(input);
+
+    expect(retried).toMatchObject({ updated: periods(3, 4, 5) });
+    expect(updateLine.mock.calls.map((c) => c[0])).toEqual(['b2', 'c', 'a']);
+    expect(months[1].budgetLines.map((l) => l.name)).toEqual([
+      'Loyer',
+      'Loyer 2027',
+    ]);
+  });
+
+  it('keeps the user pick among same-name movements on a retry', async () => {
+    const months = [
+      month(
+        [line('fa', { templateLineId: TEMPLATE_LINE })],
+        [movement('ma', { budgetLineId: 'fa' })],
+      ),
+      month(
+        [line('fb', { templateLineId: TEMPLATE_LINE })],
+        [
+          movement('mb1', { budgetLineId: 'fb' }),
+          movement('mb2', { budgetLineId: 'fb' }),
+        ],
+      ),
+      month(
+        [line('fc', { templateLineId: TEMPLATE_LINE })],
+        [movement('mc', { budgetLineId: 'fc' })],
+      ),
+    ];
+    const { useCase, updateMovement } = setup(months);
+    const down = new Set(['mc']);
+    updateMovement.mockImplementation(writeInto(months, down));
+    const input = {
+      target: 'movement' as const,
+      id: 'ma',
+      from,
+      count: 3,
+      name: 'Migros',
+      chosenIds: ['mb2'],
+    };
+
+    await expect(useCase.execute(input)).rejects.toThrow('db down');
+    down.clear();
+    updateMovement.mockClear();
+    await useCase.execute(input);
+
+    expect(updateMovement.mock.calls.map((c) => c[0])).toEqual([
+      'mb2',
+      'mc',
+      'ma',
+    ]);
+    expect(months[1].transactions.map((t) => t.name)).toEqual([
+      'Courses',
+      'Migros',
+    ]);
   });
 
   it('rethrows an unexpected error', async () => {

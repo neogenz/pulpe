@@ -19,6 +19,7 @@ const done = (
     updated: [{ month: 3, year: 2027 }],
     missingMonths: [],
     unmatched: [],
+    alreadyNamed: [],
     failed: [],
     ...over,
   }) as AdjustOverMonthsResult;
@@ -99,6 +100,7 @@ describe('AdjustOverMonthsTool', () => {
     ]) {
       const error = await tool.execute({ ...base, until }).catch((e) => e);
       expect(error.code).toBe(API_ERROR_CODES.VALIDATION_FAILED);
+      expect(error.message).toContain('11 mois plus tard (12 mois au plus');
     }
     expect(execute).not.toHaveBeenCalled();
   });
@@ -144,17 +146,21 @@ describe('AdjustOverMonthsTool', () => {
         ],
         missingMonths: [{ month: 5, year: 2027 }],
         unmatched: [{ month: 6, year: 2027 }],
+        alreadyNamed: [{ month: 8, year: 2027 }],
         failed: [{ period: { month: 7, year: 2027 }, reason: 'locked' }],
       }),
     );
 
-    const result = await tool.execute({ ...base, months: 5 });
+    const result = await tool.execute({ ...base, months: 6 });
 
     expect(result.wrote).toBeUndefined();
     expect(result.text).toContain('Ajusté sur 2 mois : 3/2027, 4/2027.');
     expect(result.text).toContain('Mois sans budget, non créés : 5/2027.');
     expect(result.text).toContain('Mois sans équivalent : 6/2027.');
     expect(result.text).toContain('Mois refusés : 7/2027 (locked).');
+    expect(result.text).toContain(
+      'Mois où un élément porte déjà le nouvel intitulé, laissés tels quels : 8/2027.',
+    );
     expect(result.text).toContain('ajustées à la main');
   });
 

@@ -99,7 +99,7 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
     if (count < 1 || count > MAX_MONTHS) {
       throw agentError(
         ERROR_DEFINITIONS.VALIDATION_FAILED,
-        `until doit tomber entre le mois de départ et ${MAX_MONTHS} mois plus tard, mois de départ compris. Rien n’a été modifié.`,
+        `until doit tomber entre le mois de départ et ${MAX_MONTHS - 1} mois plus tard (${MAX_MONTHS} mois au plus, mois de départ compris). Rien n’a été modifié.`,
       );
     }
 
@@ -163,6 +163,7 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
       updated,
       missingMonths,
       unmatched,
+      alreadyNamed,
       failed,
     }: Extract<AdjustOverMonthsResult, { status: 'done' }>,
   ): McpToolResult {
@@ -173,6 +174,8 @@ export class AdjustOverMonthsTool implements McpTool<Args> {
       missingMonths.length > 0 &&
         `Mois sans budget, non créés : ${labels(missingMonths)}.`,
       unmatched.length > 0 && `Mois sans équivalent : ${labels(unmatched)}.`,
+      alreadyNamed.length > 0 &&
+        `Mois où un élément porte déjà le nouvel intitulé, laissés tels quels : ${labels(alreadyNamed)}.`,
       failed.length > 0 &&
         `Mois refusés : ${failed.map((f) => `${label(f.period)} (${f.reason})`).join(', ')}.`,
       updated.length > 0 &&

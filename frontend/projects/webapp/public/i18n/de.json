@@ -244,9 +244,9 @@
     "mcpConsent": {
       "title": "Pulpe mit {{client}} verbinden",
       "subtitle": "{{client}} bittet um Zugriff auf dein Budget.",
-      "redirectHost": "Zugriff geht an {{host}}",
+      "redirectHost": "Der Zugriff wird an {{host}} gesendet",
       "redirectHostHint": "Prüf, ob diese Adresse wirklich zu {{client}} gehört, bevor du deinen Code eingibst.",
-      "redirectHostLocal": "Zugriff geht an eine App auf diesem Gerät ({{host}})",
+      "redirectHostLocal": "Der Zugriff wird an eine App auf diesem Gerät gesendet ({{host}})",
       "redirectHostLocalHint": "Erlaube den Zugriff nur, wenn du die Verbindung gerade in {{client}} auf diesem Gerät gestartet hast.",
       "modeRead": "Nur lesen",
       "modeReadDescription": "Ansehen und auswerten, nichts ändern.",

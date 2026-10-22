@@ -189,7 +189,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ (non riuscito)"
+            "value" : "%@ (fallita)"
           }
         }
       }

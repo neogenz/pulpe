@@ -59,10 +59,40 @@ export type AdjustOverMonthsResult =
       missingMonths: BudgetPeriod[];
       /** A budget, but nothing equivalent to the reference. */
       unmatched: BudgetPeriod[];
+      /** Nothing equivalent, but an item already carries the new name: left as is. */
+      alreadyNamed: BudgetPeriod[];
       failed: { period: BudgetPeriod; reason: string }[];
     };
 
 const normalized = (name: string): string => name.trim().toLowerCase();
+
+interface Found<T> {
+  matches: T[];
+  /** No match, but an item already carries the new name. */
+  alreadyNamed: boolean;
+}
+
+/**
+ * Items named like the reference. Once one matches, items that already carry
+ * the new name join it: after a rename that failed part way, a month where the
+ * user had picked one of several siblings asks again (or takes the same pick)
+ * instead of silently renaming the sibling left under the old name. Alone, an
+ * item carrying the new name is never written: it may be another item.
+ */
+function byName<T extends { name: string }>(
+  items: T[],
+  name: string,
+  newName: string | undefined,
+): Found<T> {
+  const named = (n: string) =>
+    items.filter((item) => normalized(item.name) === normalized(n));
+  const matches = named(name);
+  const renamed =
+    newName && normalized(newName) !== normalized(name) ? named(newName) : [];
+  return matches.length > 0
+    ? { matches: [...matches, ...renamed], alreadyNamed: false }
+    : { matches: [], alreadyNamed: renamed.length > 0 };
+}
 
 /**
  * The same template line first; failing that, the same name and kind (a month
@@ -71,15 +101,18 @@ const normalized = (name: string): string => name.trim().toLowerCase();
 function equivalentForecasts(
   lines: BudgetLineDecrypted[],
   forecast: BudgetLineDecrypted,
-): BudgetLineDecrypted[] {
+  newName?: string,
+): Found<BudgetLineDecrypted> {
   const sameTemplateLine = forecast.templateLineId
     ? lines.filter((line) => line.templateLineId === forecast.templateLineId)
     : [];
-  if (sameTemplateLine.length > 0) return sameTemplateLine;
-  return lines.filter(
-    (line) =>
-      normalized(line.name) === normalized(forecast.name) &&
-      line.kind === forecast.kind,
+  if (sameTemplateLine.length > 0) {
+    return { matches: sameTemplateLine, alreadyNamed: false };
+  }
+  return byName(
+    lines.filter((line) => line.kind === forecast.kind),
+    forecast.name,
+    newName,
   );
 }
 
@@ -119,6 +152,7 @@ export class AdjustOverMonthsUseCase {
       updated,
       missingMonths: plan.missingMonths,
       unmatched: plan.unmatched,
+      alreadyNamed: plan.alreadyNamed,
       failed,
     };
   }
@@ -133,6 +167,7 @@ export class AdjustOverMonthsUseCase {
     const targets: { period: BudgetPeriod; id: string }[] = [];
     const missingMonths: BudgetPeriod[] = [];
     const unmatched: BudgetPeriod[] = [];
+    const alreadyNamed: BudgetPeriod[] = [];
     const ambiguous: Extract<
       AdjustOverMonthsResult,
       { status: 'ambiguous' }
@@ -144,11 +179,15 @@ export class AdjustOverMonthsUseCase {
         missingMonths.push(period);
         return;
       }
-      const candidates: AdjustCandidate[] =
-        i === 0
-          ? [{ id: input.id, name: '', amount: 0 }]
-          : this.#candidates(details, forecast, movement);
-      if (candidates.length === 0) {
+      if (i === 0) {
+        targets.push({ period, id: input.id });
+        return;
+      }
+      const found = this.#candidates(details, input.name, forecast, movement);
+      const candidates = found.matches;
+      if (found.alreadyNamed) {
+        alreadyNamed.push(period);
+      } else if (candidates.length === 0) {
         unmatched.push(period);
       } else if (candidates.length === 1) {
         targets.push({ period, id: candidates[0].id });
@@ -167,7 +206,7 @@ export class AdjustOverMonthsUseCase {
         else ambiguous.push({ period, candidates });
       }
     });
-    return { targets, missingMonths, unmatched, ambiguous };
+    return { targets, missingMonths, unmatched, alreadyNamed, ambiguous };
   }
 
   async #write(
@@ -183,8 +222,9 @@ export class AdjustOverMonthsUseCase {
     const failed: { period: BudgetPeriod; reason: string }[] = [];
     // ponytail: sequential and non-atomic, one recalculation per month; a batch
     // RPC if 12 months ever proves slow. The other months are matched on the
-    // first one, so it is written last: a server failure part way leaves it
-    // unchanged and a retry finds the same months again.
+    // first one, so it is written last: after a server failure part way, a
+    // retry still matches on its old values, and byName keeps a month already
+    // renamed from losing the user's pick.
     const [reference, ...others] = targets;
     for (const { period, id } of [...others, reference]) {
       try {
@@ -199,10 +239,16 @@ export class AdjustOverMonthsUseCase {
         if (!(error instanceof BusinessException) || error.getStatus() >= 500) {
           throw error;
         }
-        failed.push({ period, reason: error.message });
+        failed.push({
+          period,
+          reason: error.getStatus() === 404 ? 'introuvable' : error.message,
+        });
       }
     }
-    updated.sort((a, b) => periodIndex(a) - periodIndex(b));
+    const byMonth = (a: BudgetPeriod, b: BudgetPeriod) =>
+      periodIndex(a) - periodIndex(b);
+    updated.sort(byMonth);
+    failed.sort((a, b) => byMonth(a.period, b.period));
     return { updated, failed };
   }
 
@@ -251,17 +297,25 @@ export class AdjustOverMonthsUseCase {
 
   #candidates(
     details: BudgetWithDetails,
+    newName: string | undefined,
     forecast: BudgetLineDecrypted,
     movement?: TransactionDecrypted,
-  ): AdjustCandidate[] {
-    const forecasts = equivalentForecasts(details.budgetLines, forecast);
-    if (!movement) return forecasts;
+  ): Found<AdjustCandidate> {
+    if (!movement) {
+      return equivalentForecasts(details.budgetLines, forecast, newName);
+    }
+    // A movement rename leaves its forecast's name alone.
+    const { matches: forecasts } = equivalentForecasts(
+      details.budgetLines,
+      forecast,
+    );
     const ids = new Set(forecasts.map((line) => line.id));
-    return details.transactions.filter(
-      (t) =>
-        t.budgetLineId &&
-        ids.has(t.budgetLineId) &&
-        normalized(t.name) === normalized(movement.name),
+    return byName(
+      details.transactions.filter(
+        (t) => t.budgetLineId && ids.has(t.budgetLineId),
+      ),
+      movement.name,
+      newName,
     );
   }
 }
