@@ -6,7 +6,7 @@ import {
   convertToParamMap,
   provideRouter,
 } from '@angular/router';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { API_ERROR_CODES } from 'pulpe-shared';
 import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
@@ -15,6 +15,8 @@ import McpConsent from './mcp-consent';
 import { McpConsentStore } from './mcp-consent-store';
 
 describe('McpConsent', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   let fixture: ComponentFixture<McpConsent>;
   let store: {
     authorizationId: ReturnType<typeof signal<string | null>>;
@@ -172,7 +174,6 @@ describe('McpConsent', () => {
       fixture.nativeElement.querySelector('[data-testid="mcp-consent-deny"]')
         .disabled,
     ).toBe(false);
-    vi.unstubAllGlobals();
   });
 
   it('sends the browser to the client callback after an explicit decision', async () => {
@@ -199,6 +200,5 @@ describe('McpConsent', () => {
       fixture.nativeElement.querySelector('[data-testid="mcp-consent-deny"]')
         .disabled,
     ).toBe(true);
-    vi.unstubAllGlobals();
   });
 });
