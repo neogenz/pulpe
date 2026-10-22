@@ -20,14 +20,16 @@ export class McpConsentStore {
 
   readonly authorizationId = signal<string | null>(null);
   readonly clientName = signal<string | null>(null);
+  readonly redirectHost = signal<string | null>(null);
   readonly mode = signal<McpAccessMode>('read');
 
   async load(authorizationId: string): Promise<void> {
     this.authorizationId.set(authorizationId);
-    const { clientName } = await firstValueFrom(
+    const { clientName, redirectHost } = await firstValueFrom(
       this.#api.getConsent$(this.#requestId()),
     );
     this.clientName.set(clientName);
+    this.redirectHost.set(redirectHost ?? null);
   }
 
   /** @returns the URL the client expects the browser back on (carries the code). */

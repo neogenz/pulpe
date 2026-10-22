@@ -34,7 +34,9 @@ const inputSchema = {
   savingsGoalId: z
     .uuid()
     .optional()
-    .describe('Objectif d’épargne alimenté par cette prévision, si demandé'),
+    .describe(
+      'Objectif d’épargne alimenté par cette prévision, seulement avec kind saving. Identifiant tiré de list_savings_goals',
+    ),
 };
 
 type Args = z.infer<z.ZodObject<typeof inputSchema>>;
@@ -66,6 +68,14 @@ export class AddForecastTool implements McpTool<Args> {
     if (!args.recurrence) {
       return askUser(
         'si cette prévision revient chaque mois (Mensuel) ou concerne ce mois seulement (Ponctuel), puis rappelle add_forecast avec recurrence.',
+      );
+    }
+
+    // A goal only rides on an Épargne forecast; dropping the link silently
+    // would leave the user thinking the goal is being fed.
+    if (args.savingsGoalId && args.kind !== 'saving') {
+      return askUser(
+        'si cette prévision est une Épargne qui alimente cet objectif (kind saving), ou une prévision sans objectif. Rappelle add_forecast en conséquence.',
       );
     }
 

@@ -11,7 +11,11 @@ function harness(saveFails = false) {
   const authorizations: OAuthAuthorizationPort = {
     getDetails: async () => {
       calls.push('details');
-      return { clientId: 'client-1', clientName: 'ChatGPT' };
+      return {
+        clientId: 'client-1',
+        clientName: 'ChatGPT',
+        redirectHost: 'chatgpt.com',
+      };
     },
     approve: async (_id, _token, grant) => {
       calls.push('approve');

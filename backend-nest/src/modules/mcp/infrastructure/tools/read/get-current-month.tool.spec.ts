@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, mock, setSystemTime } from 'bun:test';
 import type { BudgetMonthReadPort } from '@modules/budget/domain/ports/budget-month-read.port';
+import type { TagReadPort } from '@modules/tag/domain/ports/tag-read.port';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import { GetCurrentMonthTool } from './get-current-month.tool';
 
@@ -22,11 +23,16 @@ describe('GetCurrentMonthTool business timezone', () => {
         readMonth: mock(async () => null),
         listMonths: async () => [],
       } satisfies BudgetMonthReadPort;
+      const tags = { list: async () => [] } satisfies TagReadPort;
       const session = {
         user: { payDayOfMonth },
       } as unknown as AuthenticatedSupabaseProvider;
 
-      const result = await new GetCurrentMonthTool(budgets, session).execute();
+      const result = await new GetCurrentMonthTool(
+        budgets,
+        tags,
+        session,
+      ).execute();
 
       expect(budgets.readMonth).toHaveBeenCalledWith(month, year);
       expect(result.text).toBe(`Aucun budget pour ${month}/${year}.`);

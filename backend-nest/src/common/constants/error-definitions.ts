@@ -317,10 +317,12 @@ export const ERROR_DEFINITIONS = {
   },
   TEMPLATE_IN_USE: {
     code: API_ERROR_CODES.TEMPLATE_IN_USE,
-    message: (details?: Record<string, unknown>) =>
-      details?.id
+    message: (details?: Record<string, unknown>) => {
+      const base = details?.id
         ? `Template with ID '${details.id}' is in use and cannot be deleted`
-        : 'Template is in use and cannot be deleted',
+        : 'Template is in use and cannot be deleted';
+      return details?.months ? `${base}. Used by: ${details.months}` : base;
+    },
     httpStatus: HttpStatus.BAD_REQUEST,
   },
   TEMPLATE_LINES_BULK_OPERATIONS_FAILED: {

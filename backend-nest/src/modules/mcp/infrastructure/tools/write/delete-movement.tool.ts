@@ -7,7 +7,11 @@ import {
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 
 const inputSchema = {
-  movementId: z.uuid().describe('Identifiant du mouvement à supprimer'),
+  movementId: z
+    .uuid()
+    .describe(
+      'Identifiant d’un mouvement (ligne Mouvement de get_month, get_current_month ou search_movements). Un identifiant de prévision est refusé',
+    ),
 };
 
 type Args = z.infer<z.ZodObject<typeof inputSchema>>;

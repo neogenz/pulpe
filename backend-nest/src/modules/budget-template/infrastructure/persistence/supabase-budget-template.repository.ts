@@ -434,17 +434,6 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     }
   }
 
-  async isTemplateInUse(templateId: string): Promise<boolean> {
-    const supabase = this.supabaseProvider.client;
-    const { data } = await supabase
-      .from('monthly_budget')
-      .select('id')
-      .eq('template_id', templateId)
-      .limit(1);
-
-    return (data?.length ?? 0) > 0;
-  }
-
   async fetchTemplateBudgets(
     templateId: string,
   ): Promise<TemplateUsageBudget[]> {

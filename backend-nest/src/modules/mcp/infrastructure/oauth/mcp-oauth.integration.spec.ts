@@ -263,6 +263,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         .auth(owner.token, { type: 'bearer' })
         .expect(200);
       expect(details.body.clientName).toBe('Integration client');
+      expect(details.body.redirectHost).toBe('client.example');
       const consent = await request(app.getHttpServer())
         .post(`/api/v1/mcp/consent/${id}/approve`)
         .auth(owner.token, { type: 'bearer' })
@@ -378,7 +379,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       ]);
     }
 
-    it('associates through the production consent API and lists the 15 tools with an opaque credential', async () => {
+    it('associates through the production consent API and lists the 27 tools with an opaque credential', async () => {
       const preflight = await request(app.getHttpServer())
         .options('/mcp')
         .set('Origin', 'https://assistant.example')
@@ -417,7 +418,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }).expect(200);
       expect(initialized.body.result.serverInfo.name).toBe('pulpe');
       const catalog = await mcp(active.access_token).expect(200);
-      expect(catalog.body.result.tools).toHaveLength(15);
+      expect(catalog.body.result.tools).toHaveLength(27);
     });
 
     it('rejects unsafe redirect registrations and keeps the native public registration route closed', async () => {
@@ -654,7 +655,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       await mcp(previous.access_token).expect(401);
       await refresh(client, previous.refresh_token!).expect(400);
       const catalog = await mcp(active.access_token).expect(200);
-      expect(catalog.body.result.tools).toHaveLength(7);
+      expect(catalog.body.result.tools).toHaveLength(9);
       expect(
         catalog.body.result.tools.every(
           (tool: { annotations: { readOnlyHint: boolean } }) =>
@@ -921,7 +922,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         await refresh(client, rotated.body.refresh_token).expect(400);
       }
     });
-    it('advertises all 15 tools honestly and refuses every write tool in read-only mode', async () => {
+    it('advertises all 27 tools honestly and refuses every write tool in read-only mode', async () => {
       app.getHttpServer().closeAllConnections();
       await app.close();
       await boot();
@@ -934,6 +935,8 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'get_month',
         'list_months',
         'list_templates',
+        'get_template',
+        'list_tags',
         'search_movements',
         'list_savings_goals',
         'get_savings_goal_outlook',
@@ -947,6 +950,16 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'create_month_from_template',
         'spread_expense',
         'toggle_check',
+        'create_tag',
+        'rename_tag',
+        'delete_tag',
+        'tag_items',
+        'create_template',
+        'update_template',
+        'delete_template',
+        'duplicate_template',
+        'edit_template_lines',
+        'adjust_over_months',
       ];
       const destructive = [
         'update_movement',
@@ -954,6 +967,14 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'update_forecast',
         'spread_expense',
         'toggle_check',
+        'rename_tag',
+        'delete_tag',
+        'tag_items',
+        'create_template',
+        'update_template',
+        'delete_template',
+        'edit_template_lines',
+        'adjust_over_months',
       ];
       expect(catalog.map((tool: { name: string }) => tool.name).sort()).toEqual(
         [...reads, ...writes].sort(),
@@ -965,9 +986,16 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         );
         expect(tool.annotations.idempotentHint).toBe(
           reads.includes(tool.name) ||
-            ['update_movement', 'update_forecast', 'delete_movement'].includes(
-              tool.name,
-            ),
+            [
+              'update_movement',
+              'update_forecast',
+              'delete_movement',
+              'rename_tag',
+              'delete_tag',
+              'tag_items',
+              'update_template',
+              'delete_template',
+            ].includes(tool.name),
         );
         expect(tool.annotations.openWorldHint).toBe(false);
       }
@@ -1075,7 +1103,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }
     });
 
-    it('executes all 15 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
+    it('executes all 27 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
       const owner = owners[1];
       const token = (
         await exchange(client, await authorize(client, owner)).expect(200)
@@ -1117,6 +1145,14 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           }),
         );
       const before = await normal(`budgets/${budgetId}/details`);
+      const activityRows = async () =>
+        (
+          await admin
+            .from('mcp_activity')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', owner.id)
+        ).count;
+      const rowsBefore = await activityRows();
       expect(await call('create_month_from_template', future)).toContain(
         'Information manquante',
       );
@@ -1136,6 +1172,12 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           kind: 'saving',
         }),
       ).toContain('Information manquante');
+      expect(
+        await call('tag_items', {
+          items: [{ target: 'movement', id: crypto.randomUUID() }],
+        }),
+      ).toContain('Information manquante');
+      expect(await activityRows()).toBe(rowsBefore);
       const after = await normal(`budgets/${budgetId}/details`);
       expect(after.budgetLines).toHaveLength(before.budgetLines.length);
       expect(after.transactions).toHaveLength(before.transactions.length);
@@ -1254,6 +1296,13 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       const month = await call('get_month', { ...period });
       expect(month).toContain(totals);
       expect(await call('get_current_month')).toBe(month);
+      const withoutArguments = (
+        await mcp(token, 'tools/call', { name: 'get_current_month' }).expect(
+          200,
+        )
+      ).body.result;
+      expect(withoutArguments.isError).toBeUndefined();
+      expect(withoutArguments.content[0].text).toBe(month);
       expect(await call('list_months', { limit: 60 })).toContain(totals);
       expect(month).not.toContain('Isolated test expense');
       expect(
@@ -1269,6 +1318,126 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           years: [period.year],
         }),
       ).toContain(expenseId);
+      // Tags: CRUD, bulk tagging and rendering, proven on the stored rows.
+      const tagForecastId = resultId(
+        await call('add_forecast', {
+          budgetId,
+          name: 'Matrix tagged forecast',
+          amount: 10,
+          kind: 'expense',
+          recurrence: 'one_off',
+        }),
+      );
+      const tagA = resultId(await call('create_tag', { name: 'Matrix A' }));
+      const tagB = resultId(await call('create_tag', { name: 'Matrix B' }));
+      const listedTags = await call('list_tags');
+      expect(listedTags).toContain(`[${tagA}] Matrix A`);
+      expect(listedTags).toContain(`[${tagB}] Matrix B`);
+      const failure = async (name: string, args: Record<string, unknown>) => {
+        used.add(name);
+        const { result } = (
+          await mcp(token, 'tools/call', { name, arguments: args }).expect(200)
+        ).body;
+        expect(result.isError).toBe(true);
+        return result.content[0].text as string;
+      };
+      expect(await failure('create_tag', { name: 'MATRIX a' })).toContain(
+        'existe déjà',
+      );
+      expect((await call('list_tags')).match(/Matrix A/g)).toHaveLength(1);
+      // A kind the forecast refuses reaches both tools in French and writes nothing.
+      const movementCount = async () =>
+        (await normal(`budgets/${budgetId}/details`)).transactions.length;
+      const movementsBefore = await movementCount();
+      const kindRefusal =
+        'Nature refusée : un mouvement rattaché à une prévision « Épargne »';
+      expect(
+        await failure('add_movement', {
+          budgetId,
+          name: 'Matrix wrong kind',
+          amount: 5,
+          kind: 'expense',
+          budgetLineId: savingId,
+        }),
+      ).toStartWith(kindRefusal);
+      expect(
+        await failure('update_movement', {
+          movementId: contributionId,
+          kind: 'expense',
+        }),
+      ).toStartWith(kindRefusal);
+      expect((await normal(`transactions/${contributionId}`)).kind).toBe(
+        'saving',
+      );
+      expect(await movementCount()).toBe(movementsBefore);
+      const tagIdsOnItems = async () => {
+        const details = await normal(`budgets/${budgetId}/details`);
+        const sorted = (ids?: string[]) => [...(ids ?? [])].sort();
+        return {
+          movement: sorted(
+            (details.transactions as Transaction[]).find(
+              (t) => t.id === expenseId,
+            )?.tagIds,
+          ),
+          forecast: sorted(
+            (details.budgetLines as BudgetLine[]).find(
+              (l) => l.id === tagForecastId,
+            )?.tagIds,
+          ),
+        };
+      };
+      const rowOf = (text: string, id: string) =>
+        text.split('\n').find((row) => row.includes(`[${id}]`)) ?? '';
+      await call('tag_items', {
+        items: [
+          { target: 'movement', id: expenseId },
+          { target: 'forecast', id: tagForecastId },
+        ],
+        addTagIds: [tagA, tagB],
+      });
+      const both = [tagA, tagB].sort();
+      expect(await tagIdsOnItems()).toEqual({ movement: both, forecast: both });
+      const byTag = await call('search_movements', {
+        tagIds: [tagA],
+        years: [period.year],
+      });
+      for (const id of [expenseId, tagForecastId]) {
+        expect(rowOf(byTag, id)).toContain('Matrix A');
+        expect(rowOf(byTag, id)).toContain('Matrix B');
+      }
+      const tagged = await call('get_month', { ...period });
+      for (const id of [expenseId, tagForecastId]) {
+        expect(rowOf(tagged, id)).toContain('Tags : ');
+        expect(rowOf(tagged, id)).toContain('Matrix A');
+      }
+      const mixed = await call('tag_items', {
+        items: [
+          { target: 'movement', id: expenseId },
+          { target: 'forecast', id: crypto.randomUUID() },
+        ],
+        removeTagIds: [tagA],
+      });
+      expect(mixed).toContain('Appliqués (1)');
+      expect(mixed).toContain('En échec (1)');
+      expect(mixed).toContain('introuvable');
+      await call('tag_items', {
+        items: [{ target: 'forecast', id: tagForecastId }],
+        removeTagIds: [tagA],
+      });
+      expect(await tagIdsOnItems()).toEqual({
+        movement: [tagB],
+        forecast: [tagB],
+      });
+      await call('rename_tag', { tagId: tagB, name: 'Matrix C' });
+      const renamed = await call('get_month', { ...period });
+      expect(rowOf(renamed, expenseId)).toContain('Matrix C');
+      expect(rowOf(renamed, expenseId)).not.toContain('Matrix B');
+      await call('delete_tag', { tagId: tagB });
+      expect(await tagIdsOnItems()).toEqual({ movement: [], forecast: [] });
+      expect(await failure('delete_tag', { tagId: tagB })).toContain(
+        'Tag introuvable',
+      );
+      await call('delete_tag', { tagId: tagA });
       await call('delete_movement', { movementId: expenseId });
       const removed = await admin
         .from('transaction')
@@ -1282,7 +1451,158 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         .single();
       expect(encrypted.data?.target_amount === '1000').toBe(false);
       expect(encrypted.data?.initial_amount === '100').toBe(false);
-      expect(used.size).toBe(15);
+      // Templates: read, copy, rename, create and delete; a template with
+      // months built from it refuses deletion and says which.
+      expect(
+        await call('get_template', { templateId: owner.templateId }),
+      ).toContain(`${future.month}/${future.year}`);
+      const templateLines = async (id: string) =>
+        (
+          await admin
+            .from('template_line')
+            .select('id', { count: 'exact', head: true })
+            .eq('template_id', id)
+        ).count;
+      const copyId = resultId(
+        await call('duplicate_template', {
+          templateId: owner.templateId,
+          name: 'Matrix copie',
+        }),
+      );
+      const copyRow = await admin
+        .from('template')
+        .select('is_default')
+        .eq('id', copyId)
+        .single();
+      expect(copyRow.data?.is_default).toBe(false);
+      expect(await templateLines(copyId)).toBe(
+        await templateLines(owner.templateId),
+      );
+      await call('update_template', {
+        templateId: copyId,
+        name: 'Matrix copie renommée',
+      });
+      expect(await call('list_templates')).toContain('Matrix copie renommée');
+      const emptyTemplateId = resultId(
+        await call('create_template', { name: 'Matrix vide' }),
+      );
+      await call('delete_template', { templateId: emptyTemplateId });
+      expect(
+        (await admin.from('template').select('id').eq('id', emptyTemplateId))
+          .data,
+      ).toHaveLength(0);
+      expect(
+        await failure('delete_template', { templateId: owner.templateId }),
+      ).toContain(`${future.month}/${future.year}`);
+      expect(
+        (await admin.from('template').select('id').eq('id', owner.templateId))
+          .data,
+      ).toHaveLength(1);
+      await call('delete_template', { templateId: copyId });
+      // Template lines: the scope is always asked, then a range reaches exactly
+      // one month and a template-only edit reaches none.
+      const linesBefore = await templateLines(owner.templateId);
+      expect(
+        await call('edit_template_lines', {
+          templateId: owner.templateId,
+          update: [{ id: crypto.randomUUID(), amount: 1 }],
+        }),
+      ).toContain('Information manquante');
+      expect(await templateLines(owner.templateId)).toBe(linesBefore);
+      const ranged = await call('edit_template_lines', {
+        templateId: owner.templateId,
+        scope: 'range',
+        from: future,
+        to: future,
+        create: [
+          {
+            name: 'Matrix template rent',
+            amount: 400,
+            kind: 'expense',
+            recurrence: 'fixed',
+          },
+        ],
+      });
+      expect(ranged).toContain('1 mois mis à jour');
+      const templateLineId = resultId(ranged);
+      const propagated = await admin
+        .from('budget_line')
+        .select('id')
+        .eq('budget_id', futureId)
+        .eq('template_line_id', templateLineId);
+      expect(propagated.data).toHaveLength(1);
+      const currentCopies = await admin
+        .from('budget_line')
+        .select('id')
+        .eq('budget_id', budgetId)
+        .eq('template_line_id', templateLineId);
+      expect(currentCopies.data).toHaveLength(0);
+      await call('edit_template_lines', {
+        templateId: owner.templateId,
+        scope: 'template_only',
+        update: [{ id: templateLineId, amount: 450 }],
+      });
+      const futureForecast = (
+        (await normal(`budgets/${futureId}/details`))
+          .budgetLines as BudgetLine[]
+      ).find((line) => line.id === propagated.data![0].id);
+      expect(futureForecast?.amount).toBe(400);
+      // Adjusting over months: the span is asked, a month without budget is
+      // listed and never created, and an adjusted forecast survives a later
+      // template edit that reaches its month.
+      const nextMonth =
+        future.month === 12
+          ? { month: 1, year: future.year + 1 }
+          : { month: future.month + 1, year: future.year };
+      const nextBudget = async () =>
+        (
+          await admin
+            .from('monthly_budget')
+            .select('id')
+            .eq('user_id', owner.id)
+            .eq('month', nextMonth.month)
+            .eq('year', nextMonth.year)
+        ).data;
+      expect(await nextBudget()).toHaveLength(0);
+      expect(
+        await call('adjust_over_months', {
+          target: 'forecast',
+          id: futureForecast!.id,
+          ...future,
+          amount: 450,
+        }),
+      ).toContain('Information manquante');
+      const adjusted = await call('adjust_over_months', {
+        target: 'forecast',
+        id: futureForecast!.id,
+        ...future,
+        amount: 450,
+        months: 2,
+      });
+      expect(adjusted).toContain(
+        `Ajusté sur 1 mois : ${future.month}/${future.year}.`,
+      );
+      expect(adjusted).toContain(
+        `Mois sans budget, non créés : ${nextMonth.month}/${nextMonth.year}.`,
+      );
+      const adjustedRow = await admin
+        .from('budget_line')
+        .select('is_manually_adjusted')
+        .eq('id', futureForecast!.id)
+        .single();
+      expect(adjustedRow.data?.is_manually_adjusted).toBe(true);
+      expect(await nextBudget()).toHaveLength(0);
+      await call('edit_template_lines', {
+        templateId: owner.templateId,
+        scope: 'current_and_future',
+        update: [{ id: templateLineId, amount: 500 }],
+      });
+      const afterTemplateEdit = (
+        (await normal(`budgets/${futureId}/details`))
+          .budgetLines as BudgetLine[]
+      ).find((line) => line.id === futureForecast!.id);
+      expect(afterTemplateEdit?.amount).toBe(450);
+      expect(used.size).toBe(27);
     });
 
     it('searches literal punctuation and tag names consistently through MCP and ordinary REST', async () => {
