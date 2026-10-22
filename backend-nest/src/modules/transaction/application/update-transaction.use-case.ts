@@ -52,7 +52,7 @@ export class UpdateTransactionUseCase {
       TransactionInvariants.validateWithdrawalUpdate(dto);
     }
 
-    await this.#assertKindKeepsForecast(dto, context);
+    await this.#assertKindKeepsForecast(dto, context, user.id);
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
 
@@ -117,6 +117,7 @@ export class UpdateTransactionUseCase {
   async #assertKindKeepsForecast(
     dto: TransactionUpdate,
     context: TransactionMutationContext | null,
+    userId: string,
   ): Promise<void> {
     if (
       dto.kind === undefined ||
@@ -135,6 +136,7 @@ export class UpdateTransactionUseCase {
         { id: context.budgetLineId },
         {
           operation: 'transaction.update.assertKindKeepsForecast',
+          userId,
           entityId: context.budgetLineId,
           entityType: 'budget_line',
         },
