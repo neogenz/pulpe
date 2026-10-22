@@ -1,3 +1,6 @@
+-- pulpe:migration-phase contract
+-- pulpe:safe-after v0.54.1
+--
 -- An allocated transaction carries the kind of its budget_line: creation and
 -- PATCH /transactions/:id already refuse anything else. Nothing held the rule
 -- from the other side, so a budget_line changing kind left its transactions
@@ -33,7 +36,6 @@ $$;
 REVOKE ALL ON FUNCTION public.align_allocated_transaction_kind()
   FROM PUBLIC, anon, authenticated;
 
-DROP TRIGGER IF EXISTS align_allocated_transaction_kind ON public.budget_line;
 CREATE TRIGGER align_allocated_transaction_kind
   AFTER UPDATE OF kind ON public.budget_line
   FOR EACH ROW
