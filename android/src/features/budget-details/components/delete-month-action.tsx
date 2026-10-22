@@ -149,7 +149,11 @@ export function DeleteMonthAction({
                     setDialogOpen(false);
                     // The stack can hold this month twice (rollover push, then
                     // the pager's replace): popping one would land on the other.
-                    router.dismissTo("/budgets");
+                    // The list says « Mois supprimé », as web and iOS do.
+                    router.dismissTo({
+                      pathname: "/budgets",
+                      params: { deletedMonth: "1" },
+                    });
                   },
                   // Links may have appeared since the read: confirm waits for
                   // a fresh one, so the retry sends what the user is shown.

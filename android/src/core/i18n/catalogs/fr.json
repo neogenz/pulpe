@@ -350,7 +350,8 @@
       "yearSelector": "Choisir l'année",
       "ongoing": "en cours",
       "notCreated": "Pas encore de budget",
-      "createMonth": "Créer le budget"
+      "createMonth": "Créer le budget",
+      "monthDeleted": "Mois supprimé"
     },
     "plan": {
       "default": "par défaut",

@@ -126,6 +126,10 @@ const mockedGet = jest.mocked(api.get);
 const mockedDeleteVoid = jest.mocked(api.deleteVoid);
 
 const PREFIX = "budgets.detail.deleteMonth";
+const DELETED_MONTH_HREF = {
+  pathname: "/budgets",
+  params: { deletedMonth: "1" },
+};
 
 function impact(
   overrides: Partial<BudgetDeletionImpact["links"]> = {},
@@ -196,7 +200,7 @@ it("lists the counts, then deletes without confirming links and leaves the scree
   await fireEvent.press(confirmButton(view));
 
   await waitFor(() =>
-    expect(router.dismissTo).toHaveBeenCalledWith("/budgets"),
+    expect(router.dismissTo).toHaveBeenCalledWith(DELETED_MONTH_HREF),
   );
   expect(mockedDeleteVoid).toHaveBeenCalledWith(ENDPOINTS.budget("budget-1"), {
     confirmLinks: false,
@@ -225,7 +229,7 @@ it("names the links that are present, adds forecasts to movements for a withdraw
   await fireEvent.press(confirmButton(view));
 
   await waitFor(() =>
-    expect(router.dismissTo).toHaveBeenCalledWith("/budgets"),
+    expect(router.dismissTo).toHaveBeenCalledWith(DELETED_MONTH_HREF),
   );
   expect(mockedDeleteVoid).toHaveBeenCalledWith(ENDPOINTS.budget("budget-1"), {
     confirmLinks: true,
@@ -296,7 +300,7 @@ it("reads the impact again after a failed delete, so the retry confirms the link
   await fireEvent.press(confirmButton(view));
 
   await waitFor(() =>
-    expect(router.dismissTo).toHaveBeenCalledWith("/budgets"),
+    expect(router.dismissTo).toHaveBeenCalledWith(DELETED_MONTH_HREF),
   );
   expect(mockedDeleteVoid).toHaveBeenLastCalledWith(
     ENDPOINTS.budget("budget-1"),
