@@ -25,7 +25,9 @@ export class CallToolUseCase {
    * Dispatch against the mode-filtered catalog: a direct call to a hidden
    * tool is refused. Every write the tool performed lands in the activity log,
    * with its outcome and nothing of its arguments; a reply that changed nothing
-   * (`wrote: false`) does not.
+   * (`wrote: false`) does not. The outcome is the reply the assistant got: a
+   * tool that throws after part of its work landed (a tag_items batch cut
+   * short, a recalculation failing after its write) is logged as `error`.
    */
   async execute(
     connection: ActiveMcpConnection,
