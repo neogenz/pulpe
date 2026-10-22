@@ -6991,6 +6991,28 @@
         }
       }
     },
+    "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : %@. Les autres mois gardent leur part." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Monat ist auch mit anderen Monaten oder einem Sparziel verknüpft: %@. Die anderen Monate behalten ihren Anteil."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This month is also linked to other months or to a savings goal: %@. The other months keep their share."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo mese è collegato anche ad altri mesi o a un obiettivo di risparmio: %@. Gli altri mesi mantengono la loro parte."
+          }
+        }
+      }
+    },
     "Ce mois est un peu juste." : {
       "localizations" : {
         "de" : {
@@ -14729,6 +14751,28 @@
         }
       }
     },
+    "Le mois n'a pas pu être supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Monat liess sich nicht löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The month couldn’t be deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il mese non è stato eliminato"
+          }
+        }
+      }
+    },
     "Le mois suivant n'a pas de modèle par défaut — impossible d'y placer le remboursement" : {
       "localizations" : {
         "de" : {
@@ -16709,6 +16753,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mese iniziale, non modificabile"
+          }
+        }
+      }
+    },
+    "Mois supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monat gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mese eliminato"
           }
         }
       }
@@ -23561,6 +23627,28 @@
       "localizations" : {},
       "shouldTranslate" : false
     },
+    "Ses prévisions (%lld) et ses mouvements (%lld) seront supprimés. Cette action est irréversible." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seine Planposten (%lld) und seine Bewegungen (%lld) werden gelöscht. Das lässt sich nicht rückgängig machen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its planned items (%lld) and its activity (%lld) will be deleted. This can't be undone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le sue previsioni (%lld) e i suoi movimenti (%lld) verranno eliminati. Non si può tornare indietro."
+          }
+        }
+      }
+    },
     "Session expirée — reconnecte-toi pour continuer" : {
       "localizations" : {
         "de" : {
@@ -24167,6 +24255,28 @@
         }
       }
     },
+    "Supprimer %@ ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete %@?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare %@?"
+          }
+        }
+      }
+    },
     "Supprimer %@ et %@" : {
       "localizations" : {
         "de" : {
@@ -24285,6 +24395,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eliminare questo modello?"
+          }
+        }
+      }
+    },
+    "Supprimer ce mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Monat löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina questo mese"
           }
         }
       }
@@ -29375,6 +29507,28 @@
         }
       }
     },
+    "objectif d'épargne (%lld)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparziel (%lld)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "savings goal (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "obiettivo di risparmio (%lld)"
+          }
+        }
+      }
+    },
     "ou" : {
       "localizations" : {
         "de" : {
@@ -29551,6 +29705,28 @@
         }
       }
     },
+    "prévision lissée (%lld)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "verteilter Planposten (%lld)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "spread planned item (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "previsione ripartita (%lld)"
+          }
+        }
+      }
+    },
     "prévu" : {
       "localizations" : {
         "de" : {
@@ -29685,6 +29861,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "resta %@"
+          }
+        }
+      }
+    },
+    "retrait d'épargne (%lld)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entnahme aus dem Sparen (%lld)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "savings withdrawal (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "prelievo dal risparmio (%lld)"
           }
         }
       }

@@ -81,6 +81,18 @@
         "remaining": "left from %{amount}"
       },
       "deletedGoal": "This goal was deleted. The income remains in your budget.",
+      "deleteMonth": {
+        "action": "Delete this month",
+        "title": "Delete %{month}?",
+        "body": "Its planned items (%{forecastCount}) and its activity (%{movementCount}) will be deleted. This can't be undone.",
+        "links": "This month is also linked to other months or to a savings goal: %{links}. The other months keep their share.",
+        "linkSpread": "spread planned item (%{count})",
+        "linkGoal": "savings goal (%{count})",
+        "linkWithdrawal": "savings withdrawal (%{count})",
+        "confirm": "Delete",
+        "loadError": "The month's details couldn't be loaded. Try again.",
+        "failure": "The month couldn't be deleted. Try again."
+      },
       "filters": {
         "all": "All",
         "checked": "Checked off",
@@ -338,7 +350,8 @@
       "yearSelector": "Choose the year",
       "ongoing": "ongoing",
       "notCreated": "No budget yet",
-      "createMonth": "Create the budget"
+      "createMonth": "Create the budget",
+      "monthDeleted": "Month deleted"
     },
     "plan": {
       "default": "default",

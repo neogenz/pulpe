@@ -203,6 +203,18 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Le budget du mois suivant doit exister avant de reporter',
     httpStatus: HttpStatus.CONFLICT,
   },
+  // Refusals are French: the MCP controller forwards messages under 500 to the agent.
+  BUDGET_NOT_DELETABLE: {
+    code: API_ERROR_CODES.BUDGET_NOT_DELETABLE,
+    message: () => 'Seuls les mois à venir peuvent être supprimés',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_DELETION_LINKS_UNCONFIRMED: {
+    code: API_ERROR_CODES.BUDGET_DELETION_LINKS_UNCONFIRMED,
+    message: () =>
+      "Ce mois est lié à d'autres mois ou à un objectif d'épargne : confirme la suppression de ces liens",
+    httpStatus: HttpStatus.CONFLICT,
+  },
   BUDGET_INVALID_MONTH_FORMAT: {
     code: API_ERROR_CODES.BUDGET_INVALID_MONTH,
     message: (details?: Record<string, unknown>) =>

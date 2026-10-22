@@ -8,6 +8,7 @@ import type {
   BudgetAggregates,
 } from '../budget.entity';
 import type { HistoryMonth } from '../drift-history';
+import type { BudgetDeletionLinkRows } from '../budget-deletion';
 
 export const BUDGET_REPOSITORY = Symbol('BUDGET_REPOSITORY');
 
@@ -64,6 +65,12 @@ export interface BudgetRepositoryPort {
    * legitimately null amount still maps to 0.
    */
   fetchBudgetDataForRecalc(budgetId: string): Promise<BudgetDataForRecalc>;
+
+  /**
+   * Link columns of one month's forecasts and movements, for the deletion
+   * impact. Read through the user-scoped client, so RLS still applies.
+   */
+  fetchDeletionLinkRows(budgetId: string): Promise<BudgetDeletionLinkRows>;
 
   fetchBudgetAggregates(
     budgetIds: string[],

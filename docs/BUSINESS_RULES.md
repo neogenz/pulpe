@@ -28,6 +28,15 @@ Ce fichier contient uniquement les invariants qui traversent plusieurs fonctionn
 - Lisser explicitement un Réel libre est l'unique exception au modèle additif : le Réel source est remplacé atomiquement par les Prévisions lissées afin d'éviter le double comptage.
 - Le contrat complet vit dans [`docs/SPREAD.md`](./SPREAD.md).
 
+## Suppression d'un mois
+
+- Seul un mois situé après la période courante peut être supprimé. La période courante tient compte du jour de paie et s'appuie sur la date du calendrier `Europe/Zurich`. Le mois courant et les mois passés sont refusés (409 `ERR_BUDGET_NOT_DELETABLE`).
+- Les Prévisions et les Mouvements du mois partent avec lui, ainsi que leurs liens de tags. Les tags eux-mêmes restent.
+- Les autres mois gardent leur part d'une prévision lissée, d'un objectif d'épargne ou d'un retrait d'épargne.
+- Le report n'a pas à être recalculé : il se déduit à la lecture du `ending_balance` de chaque mois.
+- Un mois lié à d'autres mois ou à un objectif d'épargne n'est supprimé qu'avec `confirmLinks=true`. Sans cette confirmation, le serveur répond 409 `ERR_BUDGET_DELETION_LINKS_UNCONFIRMED`, détaille les liens et ne supprime rien. `GET /v1/budgets/:id/deletion-impact` liste ce que la suppression emporte, sans rien modifier.
+- La règle vit dans [`budget-deletion.ts`](../backend-nest/src/modules/budget/domain/budget-deletion.ts) (garde `assertDeletableMonth`) et [`remove-budget.use-case.ts`](../backend-nest/src/modules/budget/application/remove-budget.use-case.ts).
+
 ## Import d'un export bancaire
 
 - Un import part d'un fichier choisi par l'utilisateur et ne demande aucun accès au compte. Le premier format lu est camt.053 (ISO 20022). Chaque format est un parseur ajouté à `STATEMENT_PARSERS` dans [`transaction-import.module.ts`](../backend-nest/src/modules/transaction-import/transaction-import.module.ts).

@@ -3,6 +3,10 @@ import {
   type Budget,
   type BudgetCreate,
   budgetCreateSchema,
+  type BudgetDeleteResponse,
+  budgetDeleteResponseSchema,
+  type BudgetDeletionImpact,
+  budgetDeletionImpactResponseSchema,
   type BudgetDetailsResponse,
   budgetDetailsResponseSchema,
   budgetExistsResponseSchema,
@@ -126,6 +130,30 @@ export class BudgetApi {
     return this.#api.get$(
       `/budgets/${budgetId}/details`,
       budgetDetailsResponseSchema,
+    );
+  }
+
+  /** What deleting this month takes with it, links to other months included. */
+  getDeletionImpact$(budgetId: string): Observable<BudgetDeletionImpact> {
+    return this.#api
+      .get$(
+        `/budgets/${budgetId}/deletion-impact`,
+        budgetDeletionImpactResponseSchema,
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  /**
+   * `confirmLinks` is the second half of the handshake: the server refuses a
+   * linked month (409) until the caller says it read the impact.
+   */
+  deleteBudget$(
+    budgetId: string,
+    confirmLinks: boolean,
+  ): Observable<BudgetDeleteResponse> {
+    return this.#api.delete$(
+      `/budgets/${budgetId}?confirmLinks=${confirmLinks}`,
+      budgetDeleteResponseSchema,
     );
   }
 

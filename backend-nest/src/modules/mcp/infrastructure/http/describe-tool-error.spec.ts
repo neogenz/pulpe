@@ -76,6 +76,18 @@ describe('describeToolError', () => {
     ).toContain(`autre mois (budget ${ID})`);
   });
 
+  it('says why a month was not deleted and what delete_month needs next', () => {
+    const notDeletable = refusal(ERROR_DEFINITIONS.BUDGET_NOT_DELETABLE);
+    expect(notDeletable).toStartWith('Mois non supprimé');
+    expect(notDeletable).toContain('seuls les mois à venir');
+    expect(notDeletable).toContain('list_months');
+    const unconfirmed = refusal(
+      ERROR_DEFINITIONS.BUDGET_DELETION_LINKS_UNCONFIRMED,
+    );
+    expect(unconfirmed).toStartWith('Mois non supprimé');
+    expect(unconfirmed).toContain('confirmLinks: true');
+  });
+
   it('keeps the definition text for a movement refusal it does not reword', () => {
     expect(
       refusal(ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED, {

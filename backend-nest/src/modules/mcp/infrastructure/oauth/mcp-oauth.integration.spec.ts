@@ -379,7 +379,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       ]);
     }
 
-    it('associates through the production consent API and lists the 27 tools with an opaque credential', async () => {
+    it('associates through the production consent API and lists the 28 tools with an opaque credential', async () => {
       const preflight = await request(app.getHttpServer())
         .options('/mcp')
         .set('Origin', 'https://assistant.example')
@@ -418,7 +418,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }).expect(200);
       expect(initialized.body.result.serverInfo.name).toBe('pulpe');
       const catalog = await mcp(active.access_token).expect(200);
-      expect(catalog.body.result.tools).toHaveLength(27);
+      expect(catalog.body.result.tools).toHaveLength(28);
     });
 
     it('rejects unsafe redirect registrations and keeps the native public registration route closed', async () => {
@@ -922,7 +922,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         await refresh(client, rotated.body.refresh_token).expect(400);
       }
     });
-    it('advertises all 27 tools honestly and refuses every write tool in read-only mode', async () => {
+    it('advertises all 28 tools honestly and refuses every write tool in read-only mode', async () => {
       app.getHttpServer().closeAllConnections();
       await app.close();
       await boot();
@@ -948,6 +948,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
         'add_forecast',
         'update_forecast',
         'create_month_from_template',
+        'delete_month',
         'spread_expense',
         'toggle_check',
         'create_tag',
@@ -964,6 +965,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       const destructive = [
         'update_movement',
         'delete_movement',
+        'delete_month',
         'update_forecast',
         'spread_expense',
         'toggle_check',
@@ -1103,7 +1105,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }
     });
 
-    it('executes all 27 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
+    it('executes all 28 tools on encrypted owner data with matching month and savings figures and non-mutating missing-input replies', async () => {
       const owner = owners[1];
       const token = (
         await exchange(client, await authorize(client, owner)).expect(200)
@@ -1602,7 +1604,33 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
           .budgetLines as BudgetLine[]
       ).find((line) => line.id === futureForecast!.id);
       expect(afterTemplateEdit?.amount).toBe(450);
-      expect(used.size).toBe(27);
+      // Deleting a month: last, since the template steps above build on it.
+      expect(await call('delete_month', future)).toContain(
+        'Information manquante',
+      );
+      expect(
+        await call('delete_month', { ...future, confirmLinks: true }),
+      ).toContain('supprimé');
+      const deletedFuture = await admin
+        .from('monthly_budget')
+        .select('id')
+        .eq('id', futureId);
+      expect(deletedFuture.data).toHaveLength(0);
+      const keptShare = await admin
+        .from('budget_line')
+        .select('id')
+        .eq('budget_id', budgetId)
+        .like('name', 'Matrix rent%');
+      expect(keptShare.data).toHaveLength(1);
+      const refusedCurrent = await mcp(token, 'tools/call', {
+        name: 'delete_month',
+        arguments: period,
+      }).expect(200);
+      expect(refusedCurrent.body.result.isError).toBe(true);
+      expect(refusedCurrent.body.result.content[0].text).toContain(
+        'Mois non supprimé : seuls les mois à venir',
+      );
+      expect(used.size).toBe(28);
     });
 
     it('searches literal punctuation and tag names consistently through MCP and ordinary REST', async () => {
