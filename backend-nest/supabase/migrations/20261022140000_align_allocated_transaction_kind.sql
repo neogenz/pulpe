@@ -6,10 +6,13 @@
 -- from the other side, so a budget_line changing kind left its transactions
 -- on the old one, where the envelope formulas filter them out of every total.
 --
--- A budget_line changes kind through four paths: update_budget_line_with_tags
--- (web, iOS, Android, the MCP update_forecast tool), reset from the template,
--- and Mois Type propagation inside apply_template_line_operations. One trigger
--- covers them all and moves the transactions in the same statement.
+-- A budget_line changes kind through three statements: a plain budget_line
+-- update (PATCH /budget-lines/:id without tags, the MCP update_forecast tool,
+-- reset from the template), update_budget_line_with_tags (the same PATCH with
+-- tags), and apply_template_line_operations, called by
+-- apply_template_line_operations_with_tags (Mois Type propagation). One
+-- trigger on the table covers all three and moves the transactions in the
+-- same statement.
 --
 -- A planned-withdrawal line is pinned to 'income' by
 -- budget_line_source_savings_goal_one_off_income, so a withdrawal transaction

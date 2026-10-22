@@ -156,18 +156,27 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   if (!env) return;
-  await admin
-    .from('template_line')
-    .update({ kind: 'expense' })
-    .eq('id', templateLineId);
-  await admin
-    .from('budget_line')
-    .update({ kind: 'expense', is_manually_adjusted: false })
-    .in('id', [lineId, otherLineId]);
-  await admin
-    .from('transaction')
-    .update({ kind: 'expense' })
-    .in('id', [...allocatedIds, freeId, otherAllocatedId]);
+  const resets = [
+    () =>
+      admin
+        .from('template_line')
+        .update({ kind: 'expense' })
+        .eq('id', templateLineId),
+    () =>
+      admin
+        .from('budget_line')
+        .update({ kind: 'expense', is_manually_adjusted: false })
+        .in('id', [lineId, otherLineId]),
+    () =>
+      admin
+        .from('transaction')
+        .update({ kind: 'expense' })
+        .in('id', [...allocatedIds, freeId, otherAllocatedId]),
+  ];
+  for (const reset of resets) {
+    const { error } = await reset();
+    if (error) throw error;
+  }
 });
 
 afterAll(async () => {
