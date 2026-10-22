@@ -59,6 +59,8 @@ describe('DeleteMonthTool', () => {
     expect(result.text).toBe(
       'Budget de 3/2027 supprimé (prévisions : 4, mouvements : 2).',
     );
+    // A deletion is a write: it lands in the activity log.
+    expect(result.wrote).toBeUndefined();
   });
 
   it('should delete a linked month once the user confirmed the links', async () => {
@@ -96,6 +98,8 @@ describe('DeleteMonthTool', () => {
         'puis rappelle delete_month avec confirmLinks: true s’il accepte.',
       );
       expect(result.text.toLowerCase()).not.toContain('transaction');
+      // A question changed nothing: it stays out of the activity log.
+      expect(result.wrote).toBe(false);
     }
     expect(budgets.removeMonth).not.toHaveBeenCalled();
   });

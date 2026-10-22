@@ -1628,7 +1628,7 @@ describe.skipIf(!IS_DEDICATED_INTEGRATION_RUN)(
       }).expect(200);
       expect(refusedCurrent.body.result.isError).toBe(true);
       expect(refusedCurrent.body.result.content[0].text).toContain(
-        'Seuls les mois à venir',
+        'Mois non supprimé : seuls les mois à venir',
       );
       expect(used.size).toBe(28);
     });
