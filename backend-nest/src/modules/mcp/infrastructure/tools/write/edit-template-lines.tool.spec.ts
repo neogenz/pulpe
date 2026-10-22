@@ -217,7 +217,23 @@ describe('EditTemplateLinesTool', () => {
       .catch((e) => e);
 
     expect(failure.code).toBe(API_ERROR_CODES.VALIDATION_FAILED);
-    expect(failure.message).toContain('une seule entrée');
+    expect(failure.message).toContain('une seule opération par prévision');
+    expect(editLines).not.toHaveBeenCalled();
+  });
+
+  it('refuses a forecast both updated and deleted and writes nothing', async () => {
+    const { tool, editLines } = setup();
+
+    const failure = await tool
+      .execute({
+        templateId: TEMPLATE,
+        scope: 'template_only',
+        update: [{ id: LINE, tagIds: [TAG] }],
+        delete: [LINE],
+      })
+      .catch((e) => e);
+
+    expect(failure.code).toBe(API_ERROR_CODES.VALIDATION_FAILED);
     expect(editLines).not.toHaveBeenCalled();
   });
 

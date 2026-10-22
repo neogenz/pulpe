@@ -140,11 +140,17 @@ export class EditTemplateLinesTool implements McpTool<Args> {
         'Plage inversée : from doit précéder to ou lui être égal. Rien n’a été modifié.',
       );
     }
+    // One operation per forecast: a repeat or an update of a deleted line
+    // would come back from the database as a wrong "introuvable".
     const updateIds = (args.update ?? []).map((line) => line.id);
-    if (new Set(updateIds).size < updateIds.length) {
+    const deleting = new Set(args.delete ?? []);
+    if (
+      new Set(updateIds).size < updateIds.length ||
+      updateIds.some((id) => deleting.has(id))
+    ) {
       throw agentError(
         ERROR_DEFINITIONS.VALIDATION_FAILED,
-        'Une même prévision revient plusieurs fois dans update : regroupe ses changements en une seule entrée. Rien n’a été modifié.',
+        'Une même prévision revient plusieurs fois dans update, ou y est modifiée et supprimée à la fois : une seule opération par prévision. Rien n’a été modifié.',
       );
     }
 
