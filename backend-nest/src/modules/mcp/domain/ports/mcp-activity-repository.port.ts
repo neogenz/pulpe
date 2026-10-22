@@ -9,6 +9,7 @@ export interface McpActivityPage {
 }
 
 export interface McpActivityRepositoryPort {
+  /** Never rejects: the tool call already happened, so a failed write is logged and the caller sees the tool's own outcome. */
   record(activity: NewMcpActivity): Promise<void>;
   /** Newest first. Scoped by `userId` so a foreign connection id reads as empty. */
   listByConnection(

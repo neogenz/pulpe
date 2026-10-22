@@ -430,8 +430,11 @@ describe('MainLayout', () => {
             FeedbackDialog,
             {
               data: { promptNumber: 1 },
-              width: '440px',
-              maxWidth: 'calc(100vw - 32px)',
+              width: '660px',
+              maxWidth: '100dvw',
+              height: 'min(840px, calc(100dvh - 48px))',
+              maxHeight: '100dvh',
+              panelClass: '',
             },
           );
         });

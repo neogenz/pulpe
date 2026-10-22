@@ -1,6 +1,6 @@
 {
   "name": "backend-nest",
-  "version": "0.54.0",
+  "version": "0.55.0",
   "packageManager": "pnpm@10.12.1",
   "description": "NestJS backend for Pulpe Budget API",
   "main": "dist/main.js",
@@ -49,6 +49,7 @@
     "@nestjs/common": "^11.2.3",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.2.3",
+    "@nestjs/observe": "^0.3.16",
     "@nestjs/platform-express": "^11.2.3",
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/swagger": "^11.4.7",

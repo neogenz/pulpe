@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
-import { budgetSchema } from 'pulpe-shared';
+import { budgetLineSpreadFromLineCreateSchema } from 'pulpe-shared';
 import {
   BUDGET_LINE_WRITE_PORT,
   type BudgetLineWritePort,
@@ -9,18 +9,10 @@ import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 
 const inputSchema = {
   forecastId: z.uuid().describe('Identifiant de la prévision à lisser'),
-  months: z
-    .array(
-      z.object({
-        month: budgetSchema.shape.month.describe('Mois, 1 pour janvier'),
-        year: budgetSchema.shape.year,
-      }),
-    )
-    .min(2)
-    .max(36)
-    .describe(
-      'Mois sur lesquels étaler la dépense, deux au minimum. Les mois sans budget sont créés depuis le modèle par défaut',
-    ),
+  // Same rule as `POST /budget-lines/:id/spread`: two months at least, each once.
+  months: budgetLineSpreadFromLineCreateSchema.shape.periods.describe(
+    'Mois sur lesquels étaler la dépense ({ month: 1 pour janvier, year }), deux au minimum, chacun une seule fois. Les mois sans budget sont créés depuis le modèle par défaut',
+  ),
 };
 
 type Args = z.infer<z.ZodObject<typeof inputSchema>>;

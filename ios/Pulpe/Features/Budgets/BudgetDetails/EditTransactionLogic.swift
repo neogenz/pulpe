@@ -30,12 +30,13 @@ enum EditTransactionLogic {
     }
 
     /// A transaction funded by a savings goal stays an income, whether its link is
-    /// still active or broken (PUL-329). The server rejects any other kind and the
-    /// origin can never be re-pointed, so the editor freezes the type instead of
-    /// offering a choice that would only come back as an error. Amount, name, date
-    /// and tags stay editable.
+    /// still active or broken (PUL-329). A transaction allocated to a forecast may
+    /// only take the kind of that forecast (PUL-362). The server rejects any other
+    /// kind in both cases, and the origin can never be re-pointed, so the editor
+    /// freezes the type instead of offering a choice that would mostly come back as
+    /// an error. Amount, name, date and tags stay editable.
     static func isKindEditable(for transaction: Transaction) -> Bool {
-        transaction.savingsGoalSource == nil
+        transaction.savingsGoalSource == nil && transaction.budgetLineId == nil
     }
 
     static func isFormValid(name: String, amount: Decimal?, isLoading: Bool) -> Bool {

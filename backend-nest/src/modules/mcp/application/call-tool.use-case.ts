@@ -23,8 +23,11 @@ export class CallToolUseCase {
 
   /**
    * Dispatch against the mode-filtered catalog: a direct call to a hidden
-   * tool is refused. Every write tool call lands in the activity log, with
-   * its outcome and nothing of its arguments.
+   * tool is refused. Every write the tool performed lands in the activity log,
+   * with its outcome and nothing of its arguments; a reply that changed nothing
+   * (`wrote: false`) does not. The outcome is the reply the assistant got: a
+   * tool that throws after part of its work landed (a tag_items batch cut
+   * short, a recalculation failing after its write) is logged as `error`.
    */
   async execute(
     connection: ActiveMcpConnection,
@@ -37,14 +40,18 @@ export class CallToolUseCase {
       .find((t) => t.name === name);
     if (!tool) throw new McpToolNotAvailableError(name);
     if (tool.mode !== 'read_write') return tool.execute(args);
+    let result: McpToolResult;
     try {
-      const result = await tool.execute(args);
-      await this.#record(connection, userId, name, 'ok');
-      return result;
+      result = await tool.execute(args);
     } catch (error) {
       await this.#record(connection, userId, name, 'error');
       throw error;
     }
+    // Outside the try, and `record` never rejects: a write that happened is never reported as failed.
+    if (result.wrote !== false) {
+      await this.#record(connection, userId, name, 'ok');
+    }
+    return result;
   }
 
   #record(

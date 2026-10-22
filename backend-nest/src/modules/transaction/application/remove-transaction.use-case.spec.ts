@@ -111,6 +111,21 @@ describe('RemoveTransactionUseCase — cache invalidation ordering (R1)', () => 
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
   });
 
+  it('should refuse an id that is not a movement when the caller requires one', async () => {
+    mockRepo.findMutationContext.mockResolvedValueOnce(null);
+
+    const caught = await useCase
+      .execute('forecast-id', mockUser, { mustExist: true })
+      .catch((error: unknown) => error);
+
+    expect((caught as BusinessException).code).toBe(
+      'ERR_TRANSACTION_NOT_FOUND',
+    );
+    expect(mockRepo.delete).not.toHaveBeenCalled();
+    expect(mockRepo.deleteWithdrawal).not.toHaveBeenCalled();
+    expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
+  });
+
   describe('savings-goal withdrawal (PUL-329)', () => {
     it('should return the stock under the revision, debiting nothing', async () => {
       mockRepo.findMutationContext.mockResolvedValueOnce({

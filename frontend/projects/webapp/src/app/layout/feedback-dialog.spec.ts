@@ -64,6 +64,46 @@ describe('FeedbackDialog', () => {
     );
   });
 
+  it('should allow the overall rating alone with all details visible and empty', async () => {
+    const submit = vi.fn(() => Promise.resolve());
+    const { click, el } = await setup(submit);
+    expect(el.querySelectorAll('fieldset')).toHaveLength(6);
+    expect(el.querySelectorAll('input:checked')).toHaveLength(0);
+    expect(
+      el.querySelector<HTMLButtonElement>('[data-testid="submit-button"]')!
+        .disabled,
+    ).toBe(true);
+    await click('rating-4-input');
+    await click('submit-button');
+    expect(submit).toHaveBeenCalledWith(4, '', {});
+  });
+
+  it('should retain details after failure and omit a cleared rating on retry', async () => {
+    const submit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(undefined);
+    const { click, analytics, el } = await setup(submit);
+    await click('rating-4-input');
+    await click('onboarding-2-input');
+    await click('homeClarity-5-input');
+    await click('submit-button');
+    expect(
+      el.querySelector<HTMLInputElement>('[data-testid="homeClarity-5-input"]')!
+        .checked,
+    ).toBe(true);
+    await click('onboarding-clear');
+    await click('submit-button');
+    expect(submit).toHaveBeenLastCalledWith(4, '', {
+      onboarding: undefined,
+      homeClarity: 5,
+    });
+    expect(analytics.captureEvent).toHaveBeenLastCalledWith(
+      ANALYTICS_EVENTS.FEEDBACK_SUBMITTED,
+      { ...source, rating: 4, has_comment: false, has_details: true },
+    );
+  });
+
   it('should show the selected rating label under the stars', async () => {
     const { click, el } = await setup(() => Promise.resolve());
     const label = () =>

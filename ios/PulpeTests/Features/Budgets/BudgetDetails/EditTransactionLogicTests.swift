@@ -121,6 +121,15 @@ struct EditTransactionLogicTests {
         #expect(EditTransactionLogic.isKindEditable(for: TestDataFactory.createTransaction()))
     }
 
+    /// The server refuses a kind that differs from the forecast the movement is
+    /// allocated to, so the picker is frozen instead of ending in an error.
+    @Test("a movement allocated to a forecast cannot change type")
+    func isKindEditable_frozenForAnAllocatedMovement() {
+        let allocated = TestDataFactory.createTransaction(budgetLineId: "line-1")
+
+        #expect(!EditTransactionLogic.isKindEditable(for: allocated))
+    }
+
     // MARK: - Currency Edit Mode (PUL-99 v1)
 
     private static func makeTransaction(

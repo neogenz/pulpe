@@ -1327,8 +1327,11 @@
     },
     "repeatPin": "Saisis-le une seconde fois",
     "setup": {
-      "subtitle": "%{count} chiffres — tes montants sont chiffrés avec ce code",
-      "title": "Choisis ton code"
+      "title": "Crée ton code à %{count} chiffres",
+      "subtitle": "Il protégera tes montants.",
+      "confirmHint": "Saisis à nouveau les %{count} chiffres que tu viens de choisir.",
+      "mismatch": "Ce code est différent du premier. Réessaie.",
+      "changeCode": "Modifier mon code"
     },
     "unlock": {
       "biometric": "Déverrouiller avec la biométrie",

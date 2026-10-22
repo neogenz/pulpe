@@ -965,8 +965,11 @@ export default class MainLayout {
     if (promptNumber === null) return;
     this.#dialog.open(FeedbackDialog, {
       data: { promptNumber } satisfies FeedbackDialogData,
-      width: '440px',
-      maxWidth: 'calc(100vw - 32px)',
+      width: this.isHandset() ? '100dvw' : '660px',
+      maxWidth: '100dvw',
+      height: this.isHandset() ? '100dvh' : 'min(840px, calc(100dvh - 48px))',
+      maxHeight: '100dvh',
+      panelClass: this.isHandset() ? 'full-screen-dialog' : '',
     });
   }
 

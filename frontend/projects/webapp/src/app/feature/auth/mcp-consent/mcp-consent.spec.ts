@@ -6,7 +6,7 @@ import {
   convertToParamMap,
   provideRouter,
 } from '@angular/router';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { API_ERROR_CODES } from 'pulpe-shared';
 import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
@@ -15,10 +15,13 @@ import McpConsent from './mcp-consent';
 import { McpConsentStore } from './mcp-consent-store';
 
 describe('McpConsent', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   let fixture: ComponentFixture<McpConsent>;
   let store: {
     authorizationId: ReturnType<typeof signal<string | null>>;
     clientName: ReturnType<typeof signal<string | null>>;
+    redirectHost: ReturnType<typeof signal<string | null>>;
     mode: ReturnType<typeof signal<'read' | 'read_write'>>;
     load: ReturnType<typeof vi.fn>;
     approve: ReturnType<typeof vi.fn>;
@@ -29,9 +32,11 @@ describe('McpConsent', () => {
     store = {
       authorizationId: signal<string | null>(null),
       clientName: signal<string | null>(null),
+      redirectHost: signal<string | null>(null),
       mode: signal<'read' | 'read_write'>('read'),
       load: vi.fn(async () => {
         store.clientName.set('ChatGPT');
+        store.redirectHost.set('attacker.example');
       }),
       approve: vi.fn(),
       deny: vi.fn(),
@@ -73,10 +78,52 @@ describe('McpConsent', () => {
       ?.textContent ?? '';
 
   it('names the client from the authorization request, not from the URL', async () => {
-    await setup({ authorization_id: 'auth-1', client: 'Evil Corp' });
+    await setup({
+      authorization_id: 'auth-1',
+      client: 'Evil Corp',
+      host: 'evil.example',
+    });
     expect(store.load).toHaveBeenCalledWith('auth-1');
     expect(text('mcp-consent-title')).toContain('ChatGPT');
     expect(fixture.nativeElement.textContent).not.toContain('Evil Corp');
+    expect(fixture.nativeElement.textContent).not.toContain('evil.example');
+  });
+
+  it('shows the host the access is sent to next to the declared name', async () => {
+    await setup({ authorization_id: 'auth-1' });
+    expect(text('mcp-consent-title')).toContain('ChatGPT');
+    expect(text('mcp-consent-redirect-host')).toContain(
+      'L’accès sera envoyé à attacker.example',
+    );
+  });
+
+  it('says a loopback callback stays on this device', async () => {
+    await setup({ authorization_id: 'auth-1' });
+    store.redirectHost.set('127.0.0.1');
+    await fixture.whenStable();
+
+    expect(text('mcp-consent-redirect-host')).toContain(
+      'une application de cet appareil (127.0.0.1)',
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      'Autorise seulement si tu viens de lancer la connexion depuis ChatGPT',
+    );
+  });
+
+  it('drops the host lines but keeps the form when the API sends no host', async () => {
+    await setup({ authorization_id: 'auth-1' });
+    store.redirectHost.set(null);
+    await fixture.whenStable();
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="mcp-consent-redirect-host"]',
+      ),
+    ).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Vérifie');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="mcp-consent-pin"]'),
+    ).not.toBeNull();
   });
 
   it('shows an error and no form when the request id is missing', async () => {
@@ -127,7 +174,6 @@ describe('McpConsent', () => {
       fixture.nativeElement.querySelector('[data-testid="mcp-consent-deny"]')
         .disabled,
     ).toBe(false);
-    vi.unstubAllGlobals();
   });
 
   it('sends the browser to the client callback after an explicit decision', async () => {
@@ -154,6 +200,5 @@ describe('McpConsent', () => {
       fixture.nativeElement.querySelector('[data-testid="mcp-consent-deny"]')
         .disabled,
     ).toBe(true);
-    vi.unstubAllGlobals();
   });
 });

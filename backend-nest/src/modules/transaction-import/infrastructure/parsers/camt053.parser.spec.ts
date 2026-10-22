@@ -5,7 +5,7 @@ import { MalformedStatementError } from '../../domain/bank-statement.entity';
 import { Camt053Parser } from './camt053.parser';
 
 const sample = readFileSync(
-  join(import.meta.dir, '__fixtures__', 'camt053-001-04.xml'),
+  join(__dirname, '__fixtures__', 'camt053-001-04.xml'),
   'utf8',
 );
 

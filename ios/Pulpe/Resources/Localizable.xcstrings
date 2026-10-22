@@ -172,6 +172,28 @@
       },
       "shouldTranslate" : false
     },
+    "%@ (échec)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (fehlgeschlagen)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (failed)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (fallita)"
+          }
+        }
+      }
+    },
     "%@ / %@" : {
       "localizations" : {
         "fr" : {
@@ -4627,6 +4649,28 @@
         }
       }
     },
+    "Ajusté sur plusieurs mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über mehrere Monate angepasst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjusted over several months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modificato su più mesi"
+          }
+        }
+      }
+    },
     "Aller aux opérations à pointer" : {
       "localizations" : {
         "de" : {
@@ -6203,6 +6247,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Budget superato"
+          }
+        }
+      }
+    },
+    "Budget mensuel créé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatsbudget erstellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly budget created"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget mensile creato"
           }
         }
       }
@@ -16405,6 +16471,50 @@
         }
       }
     },
+    "Modèle dupliqué" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage dupliziert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template duplicated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello duplicato"
+          }
+        }
+      }
+    },
+    "Modèle modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello aggiornato"
+          }
+        }
+      }
+    },
     "Modèle par défaut" : {
       "localizations" : {
         "de" : {
@@ -16423,6 +16533,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modello predefinito"
+          }
+        }
+      }
+    },
+    "Modèle supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello eliminato"
           }
         }
       }
@@ -17131,6 +17263,28 @@
         }
       }
     },
+    "Mouvement ajouté" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry added"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento aggiunto"
+          }
+        }
+      }
+    },
     "Mouvement de l’objectif, %@ %@" : {
       "localizations" : {
         "de" : {
@@ -17155,6 +17309,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Movimento dell'obiettivo, %@ %@"
+          }
+        }
+      }
+    },
+    "Mouvement modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento modificato"
+          }
+        }
+      }
+    },
+    "Mouvement supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento eliminato"
           }
         }
       }
@@ -19579,6 +19777,28 @@
         }
       }
     },
+    "Pointage modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abhaken geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked status changed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta modificata"
+          }
+        }
+      }
+    },
     "Pointe ce qui est déjà passé sur tes comptes : ton solde pointé suit." : {
       "localizations" : {
         "de" : {
@@ -20459,6 +20679,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previsione eliminata"
+          }
+        }
+      }
+    },
+    "Prévisions du modèle modifiées" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planung der Vorlage aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template planned items updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsioni del modello aggiornate"
           }
         }
       }
@@ -24737,6 +24979,72 @@
       "localizations" : {},
       "shouldTranslate" : false
     },
+    "Tag créé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag erstellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag created"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag creato"
+          }
+        }
+      }
+    },
+    "Tag renommé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag umbenannt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag renamed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag rinominato"
+          }
+        }
+      }
+    },
+    "Tag supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag eliminato"
+          }
+        }
+      }
+    },
     "Tags" : {
       "localizations" : {
         "de" : {
@@ -24777,6 +25085,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tag: %@"
+          }
+        }
+      }
+    },
+    "Tags modifiés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag aggiornati"
           }
         }
       }
