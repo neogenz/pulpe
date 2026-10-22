@@ -229,7 +229,8 @@ export class AdjustOverMonthsUseCase {
     // RPC if 12 months ever proves slow. The other months are matched on the
     // first one, so it is written last: after a server failure part way, a
     // retry still matches on its old values, and byName keeps a month already
-    // renamed on the user's pick.
+    // renamed on the user's pick. targets[0] is always that first month:
+    // #reference throws when it has no budget.
     const [reference, ...others] = targets;
     for (const { period, id } of [...others, reference]) {
       try {

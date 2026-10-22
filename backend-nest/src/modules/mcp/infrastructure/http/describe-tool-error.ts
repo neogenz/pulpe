@@ -34,7 +34,7 @@ export function describeToolError(error: unknown): string {
   if (!status || status >= 500 || !(error instanceof Error)) {
     return 'Pulpe n’a pas pu traiter cette demande.';
   }
-  if (!(error instanceof BusinessException) || error instanceof AgentError) {
+  if (error instanceof AgentError || !(error instanceof BusinessException)) {
     return error.message;
   }
   return AGENT_MESSAGES[error.code]?.(error.details) ?? error.message;
