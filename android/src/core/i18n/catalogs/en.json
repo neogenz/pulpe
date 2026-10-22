@@ -86,7 +86,7 @@
         "title": "Delete %{month}?",
         "body": "Its planned items (%{forecastCount}) and its activity (%{movementCount}) will be deleted. This can't be undone.",
         "links": "This month is also linked to other months or to a savings goal: %{links}. The other months keep their share.",
-        "linkSpread": "spread forecast (%{count})",
+        "linkSpread": "spread planned item (%{count})",
         "linkGoal": "savings goal (%{count})",
         "linkWithdrawal": "savings withdrawal (%{count})",
         "confirm": "Delete",
