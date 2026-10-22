@@ -55,7 +55,7 @@ struct DeleteMonthMenuTests {
         #expect(message.hasPrefix("Ses prévisions (5) et ses mouvements (2) seront supprimés."))
         #expect(message.contains(
             "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : "
-                + "dépense lissée (2), objectif d'épargne (1). Les autres mois gardent leur part."
+                + "prévision lissée (2), objectif d'épargne (1). Les autres mois gardent leur part."
         ))
         #expect(!message.contains("retrait d'épargne"))
     }
@@ -67,8 +67,22 @@ struct DeleteMonthMenuTests {
         )
 
         #expect(message.contains("retrait d'épargne (3)"))
-        #expect(!message.contains("dépense lissée"))
+        #expect(!message.contains("prévision lissée"))
         #expect(!message.contains("objectif d'épargne ("))
+    }
+
+    // MARK: - Title
+
+    /// Mid-sentence the month keeps its language's own casing: "Supprimer novembre 2026 ?",
+    /// not the capitalized header form.
+    @Test(arguments: [
+        (SupportedLocale.fr, "novembre 2026"),
+        (.en, "November 2026"),
+        (.de, "November 2026"),
+        (.it, "novembre 2026"),
+    ])
+    func monthLabel_keepsTheLanguagesInSentenceCasing(language: SupportedLocale, expected: String) {
+        #expect(DeleteMonthMenu.monthLabel(month: 11, year: 2026, in: language) == expected)
     }
 
     // MARK: - Helpers

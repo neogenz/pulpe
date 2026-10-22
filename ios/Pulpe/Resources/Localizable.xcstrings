@@ -28789,28 +28789,6 @@
         }
       }
     },
-    "dépense lissée (%lld)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "verteilte Ausgabe (%lld)"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "spread expense (%lld)"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "spesa ripartita (%lld)"
-          }
-        }
-      }
-    },
     "dépenses" : {
       "localizations" : {
         "de" : {
@@ -29393,6 +29371,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "previsto %@"
+          }
+        }
+      }
+    },
+    "prévision lissée (%lld)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "verteilter Planposten (%lld)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "spread planned item (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "previsione ripartita (%lld)"
           }
         }
       }

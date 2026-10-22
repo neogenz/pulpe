@@ -1,23 +1,24 @@
 import Foundation
 
-/// Deleting the open month (PUL-361). The view only offers it on a future month;
-/// the server owns that rule and the link handshake, so a refusal lands in the
+/// Deleting a month from its detail screen (PUL-361). The view only offers it on a future
+/// month; the server owns that rule and the link handshake, so a refusal lands in the
 /// failure toast.
 extension BudgetDetailsCoordinator {
-    /// What the delete would remove, read fresh before the confirmation alert.
-    func monthDeletionImpact() async throws -> BudgetDeletionImpact {
-        try await budgetService.getDeletionImpact(id: dataStore.budgetId)
+    /// What the delete would remove, read fresh before the confirmation alert. The id is the
+    /// caller's, captured at tap time: the open month can change while the request is on the wire.
+    func monthDeletionImpact(budgetId: String) async throws -> BudgetDeletionImpact {
+        try await budgetService.getDeletionImpact(id: budgetId)
     }
 
     /// Applied AFTER the server confirms (no optimistic removal): a failure leaves the
     /// screen and its cache untouched and shows an error toast.
     func dispatchMonthDeletion(_ action: BudgetDetailsAction) async -> Bool {
-        guard case .deleteMonth(let confirmLinks, let context, let onDeleted) = action else { return false }
+        guard case .deleteMonth(let budgetId, let confirmLinks, let context, let onDeleted) = action else {
+            return false
+        }
         guard !isDeletingMonth else { return true }
         isDeletingMonth = true
         defer { isDeletingMonth = false }
-        // Read before any await: a pager swipe swaps the store's budget under a suspended call.
-        let budgetId = dataStore.budgetId
         // A still-pending undo toast would otherwise commit after the month is gone and
         // write the deleted month back into the detail cache.
         await commitPendingSoftDeletionsBeforeNavigation()

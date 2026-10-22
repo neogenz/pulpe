@@ -5,15 +5,24 @@ import SwiftUI
 /// the view stays inside its line budget, like `PlannedWithdrawalUndoAlert`.
 ///
 /// The impact is read when the entry is tapped, not when the screen opens, so the counts
-/// and the links sentence are fresh at the moment of confirming. The server enforces the
-/// "future month only" rule; the menu is a courtesy, not the guard.
+/// and the links sentence are fresh at the moment of confirming. The month id and its name
+/// are captured at that same tap and carried to the DELETE: a pager swipe while the request
+/// is on the wire must not retarget the confirmation. The server enforces the "future month
+/// only" rule; the menu is a courtesy, not the guard.
 struct DeleteMonthMenu: ViewModifier {
+    /// What the confirmation alert names and, once confirmed, deletes.
+    private struct PendingDeletion {
+        let budgetId: String
+        let monthLabel: String
+        let impact: BudgetDeletionImpact
+    }
+
     let coordinator: BudgetDetailsCoordinator
     let screenState: BudgetDetailsScreenState
     let toastContext: ToastContext
     @Environment(BudgetDetailsRouter.self) private var router
     @Environment(UserSettingsStore.self) private var userSettingsStore
-    @State private var impact: BudgetDeletionImpact?
+    @State private var pending: PendingDeletion?
 
     // MARK: - Rules
 
@@ -24,6 +33,11 @@ struct DeleteMonthMenu: ViewModifier {
             BudgetPeriod(month: month, year: year),
             BudgetPeriodCalculator.periodForDate(now, payDayOfMonth: payDayOfMonth)
         ) > 0
+    }
+
+    /// The month as it reads inside the title sentence: "novembre 2026", "November 2026".
+    static func monthLabel(month: Int, year: Int, in language: SupportedLocale = AppLocale.current) -> String {
+        "\(Formatters.monthNameInText(for: month, in: language)) \(year)"
     }
 
     /// The counts sentence, plus the links sentence when the month is tied to others. A
@@ -42,7 +56,7 @@ struct DeleteMonthMenu: ViewModifier {
         let withdrawals = links.savingsWithdrawalForecasts + links.savingsWithdrawalMovements
         var labels: [String] = []
         if links.spreadForecasts > 0 {
-            labels.append(AppLocale.string("dépense lissée (\(links.spreadForecasts))"))
+            labels.append(AppLocale.string("prévision lissée (\(links.spreadForecasts))"))
         }
         if links.savingsGoalForecasts > 0 {
             labels.append(AppLocale.string("objectif d'épargne (\(links.savingsGoalForecasts))"))
@@ -66,7 +80,7 @@ struct DeleteMonthMenu: ViewModifier {
     }
 
     private var isAlertPresented: Binding<Bool> {
-        Binding(get: { impact != nil }, set: { if !$0 { impact = nil } })
+        Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })
     }
 
     func body(content: Content) -> some View {
@@ -85,31 +99,39 @@ struct DeleteMonthMenu: ViewModifier {
                 }
             }
             .alert(
-                "Supprimer \(screenState.monthYear) ?",
+                "Supprimer \(pending?.monthLabel ?? "") ?",
                 isPresented: isAlertPresented,
-                presenting: impact
-            ) { impact in
+                presenting: pending
+            ) { deletion in
                 Button("Annuler", role: .cancel) {}
                 Button("Supprimer", role: .destructive) {
                     Task {
                         await coordinator.dispatch(.deleteMonth(
-                            confirmLinks: impact.hasLinks,
+                            budgetId: deletion.budgetId,
+                            confirmLinks: deletion.impact.hasLinks,
                             toastContext,
                             onDeleted: { router.popToRoot() }
                         ))
                     }
                 }
-            } message: { impact in
-                Text(Self.message(for: impact))
+            } message: { deletion in
+                Text(Self.message(for: deletion.impact))
             }
     }
 
     private func loadImpact() {
+        guard let month = screenState.hero.month, let year = screenState.hero.year else { return }
+        // Everything the alert needs is read from the same snapshot, before the await.
+        let budgetId = screenState.budgetId
+        let monthLabel = Self.monthLabel(month: month, year: year)
         Task {
             do {
-                impact = try await coordinator.monthDeletionImpact()
+                let impact = try await coordinator.monthDeletionImpact(budgetId: budgetId)
+                pending = PendingDeletion(budgetId: budgetId, monthLabel: monthLabel, impact: impact)
             } catch {
-                toastContext.toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+                // A fixed string: the server's own message is English with a UUID, or French
+                // whatever the app language.
+                toastContext.toastManager.show(AppLocale.string("Le mois n'a pas pu être supprimé"), type: .error)
             }
         }
     }
