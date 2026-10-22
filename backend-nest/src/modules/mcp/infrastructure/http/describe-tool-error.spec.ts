@@ -49,6 +49,34 @@ describe('describeToolError', () => {
     ).toContain('(3/2027, 4/2027)');
   });
 
+  it('words the template limit and the movement refusals an agent can fix', () => {
+    expect(
+      refusal(ERROR_DEFINITIONS.TEMPLATE_LIMIT_EXCEEDED, { limit: 5 }),
+    ).toContain('limite de 5 modèles est atteinte');
+    expect(
+      refusal(ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED, {
+        reason: 'Transaction kind must match budget line kind',
+        lineKind: 'expense',
+      }),
+    ).toStartWith(
+      'Nature refusée : un mouvement rattaché à une prévision « Dépense »',
+    );
+    expect(
+      refusal(ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED, {
+        reason: 'Transaction budget must match budget line budget',
+        lineBudgetId: ID,
+      }),
+    ).toContain(`autre mois (budget ${ID})`);
+  });
+
+  it('keeps the definition text for a movement refusal it does not reword', () => {
+    expect(
+      refusal(ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED, {
+        reason: 'Amount cannot exceed 1000000',
+      }),
+    ).toBe('Transaction validation failed: Amount cannot exceed 1000000');
+  });
+
   it('relays a refusal a tool already worded for the agent', () => {
     const error = agentError(
       ERROR_DEFINITIONS.VALIDATION_FAILED,

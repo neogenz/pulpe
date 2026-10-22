@@ -125,6 +125,7 @@ export class TransactionInvariants {
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
         {
           reason: `Transaction kind must match budget line kind (expected: ${lineKind}, got: ${kind})`,
+          lineKind,
         },
       );
     }

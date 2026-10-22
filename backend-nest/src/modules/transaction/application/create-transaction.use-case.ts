@@ -161,7 +161,10 @@ export class CreateTransactionUseCase {
     if (budgetLine.budgetId !== budgetId) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        { reason: 'Transaction budget must match budget line budget' },
+        {
+          reason: 'Transaction budget must match budget line budget',
+          lineBudgetId: budgetLine.budgetId,
+        },
       );
     }
 
