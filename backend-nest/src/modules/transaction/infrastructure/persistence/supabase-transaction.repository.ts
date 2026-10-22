@@ -769,9 +769,22 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       .eq('id', budgetLineId)
       .single();
 
-    if (error || !data) {
-      return null;
+    // Only a missing row is "not found": a failed read must not refuse as 404.
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchBudgetLineForAllocation',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
     }
+    if (!data) return null;
 
     return {
       id: data.id,

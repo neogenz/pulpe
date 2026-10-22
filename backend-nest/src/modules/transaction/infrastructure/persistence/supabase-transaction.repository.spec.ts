@@ -762,6 +762,42 @@ describe('SupabaseTransactionRepository', () => {
     });
   });
 
+  describe('fetchBudgetLineForAllocation', () => {
+    const repoReading = (result: { data: unknown; error: unknown }) =>
+      new SupabaseTransactionRepository(
+        createMockProvider(() => ({
+          select: () => ({
+            eq: () => ({ single: jest.fn().mockResolvedValue(result) }),
+          }),
+        })),
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+    it('should return null only when the forecast is missing (PGRST116)', async () => {
+      const result = await repoReading({
+        data: null,
+        error: { code: 'PGRST116', message: 'No rows' },
+      }).fetchBudgetLineForAllocation('missing');
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw BUDGET_LINE_FETCH_FAILED on a failed read, never null', async () => {
+      const error = await repoReading({
+        data: null,
+        error: { code: '57014', message: 'statement timeout' },
+      })
+        .fetchBudgetLineForAllocation('line-1')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(BusinessException);
+      expect((error as BusinessException).code).toBe(
+        'ERR_BUDGET_LINE_FETCH_FAILED',
+      );
+    });
+  });
+
   describe('fetchTransactionsByPattern', () => {
     const searchRow = (id: string, date: string) => ({
       id,
