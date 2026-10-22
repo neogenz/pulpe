@@ -63,7 +63,7 @@ import { McpConsentStore } from './mcp-consent-store';
           <!-- An API older than this page sends no host: nothing to verify, so no line. -->
           @if (store.redirectHost(); as host) {
             <p
-              class="mt-3 text-body-medium font-medium text-on-surface break-all"
+              class="mt-3 text-body-medium font-medium text-on-surface break-words"
               data-testid="mcp-consent-redirect-host"
             >
               @if (isLocalRedirect()) {
