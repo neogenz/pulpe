@@ -85,7 +85,7 @@ struct EditTransactionPage: View {
             total: tx.amount,
             month: budget.month,
             year: budget.year
-        )))
+        )), from: coordinator)
     }
 
     // MARK: - Body
@@ -162,7 +162,7 @@ struct EditTransactionPage: View {
                         .spreadOccurrences(
                             spreadGroupId: spreadGroupId.uuidString,
                             kind: tx.kind
-                        )
+                        ), from: coordinator
                     )
                 }
             }

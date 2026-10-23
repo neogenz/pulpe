@@ -5,6 +5,19 @@ import SwiftUI
 /// Month-jump helpers for the navigation title menu, split out to keep the main
 /// view file under the feature's 350-LOC budget (same precedent as `+Routing`).
 extension BudgetDetailsView {
+    /// Pay-day-aware elapsed percentage. Computed in the view (not the
+    /// projector) so the projection layer stays independent of
+    /// `UserSettingsStore` — its only consumer is the hero.
+    var timeElapsedPercentage: Double {
+        guard let month = projector.screenState.hero.month,
+              let year = projector.screenState.hero.year else { return 0 }
+        return BudgetPeriodCalculator.timeElapsedPercentage(
+            month: month,
+            year: year,
+            payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+    }
+
     /// Same routing as the sticky pager's `onSelect` — one navigation semantic,
     /// two affordances.
     var monthSelection: Binding<String> {

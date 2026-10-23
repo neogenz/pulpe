@@ -107,20 +107,28 @@ enum UITestLaunchScenario {
 @MainActor
 private final class BudgetGoalSpreadUITestService: BudgetServicing, BudgetLineServicing, TagServicing {
     private let details: BudgetDetails
+    private let additionalDetails: [BudgetDetails]
     private let budgets: [BudgetSparse]
     private let spreadGroupId: String
     private let occurrences: [SpreadOccurrence]
 
-    init(details: BudgetDetails, budgets: [BudgetSparse], spreadGroupId: String, occurrences: [SpreadOccurrence]) {
+    init(
+        details: BudgetDetails, budgets: [BudgetSparse], spreadGroupId: String,
+        occurrences: [SpreadOccurrence], additionalDetails: [BudgetDetails] = []
+    ) {
         self.details = details
+        self.additionalDetails = additionalDetails
         self.budgets = budgets
         self.spreadGroupId = spreadGroupId
         self.occurrences = occurrences
     }
 
     func getBudgetWithDetails(id: String) async throws -> BudgetDetails {
-        guard id == details.budget.id else { throw URLError(.badServerResponse) }
-        return details
+        if id == details.budget.id { return details }
+        guard let other = additionalDetails.first(where: { $0.budget.id == id }) else {
+            throw URLError(.badServerResponse)
+        }
+        return other
     }
 
     func getBudgetsSparse(fields _: String, limit _: Int?, year _: Int?) async throws -> [BudgetSparse] {
@@ -184,16 +192,18 @@ struct BudgetGoalSpreadUITestHarness: View {
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore: BudgetListStore
     @State private var dashboardStore = DashboardStore()
+    @State private var appVersionStore = AppVersionStore()
+    @State private var whatsNewStore = WhatsNewStore()
     @State private var tagStore: TagStore
+    private var usesNativeTabs: Bool { ProcessInfo.processInfo.environment["UITEST_NATIVE_NAVIGATION"] == "1" }
 
     init(scenario: UITestLaunchScenario = .budgetGoalSpreadMetadata) {
         let appState = AppState()
-        // This harness shows the budgets branch alone; `pushOnActiveStack` routes by
-        // `selectedTab`, so the default `.currentMonth` would push onto a stack
-        // nobody is looking at and every tap-to-detail would silently do nothing.
+        // Both the standalone branch and the continuity fixture start on Budgets.
         appState.selectedTab = .budgets
         let savingsGoalService = SavingsGoalIntervalUITestService(scenario: .budgetGoalSpreadMetadata)
         let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let nativeTabs = ProcessInfo.processInfo.environment["UITEST_NATIVE_NAVIGATION"] == "1"
         let seed: (budget: Budget, line: BudgetLine)
         let occurrences: [SpreadOccurrence]
         switch scenario {
@@ -202,7 +212,7 @@ struct BudgetGoalSpreadUITestHarness: View {
             seed = Self.linkedForecastDeleteSeed(now: now)
             occurrences = []
         default:
-            seed = Self.goalSpreadSeed(now: now)
+            seed = Self.goalSpreadSeed(now: now, remaining: nativeTabs ? -413 : 413)
             occurrences = [
                 Self.occurrence(
                     budgetLineId: "goal-spread-july", budgetId: "goal-spread-july-budget", month: 7, amount: 137
@@ -211,11 +221,20 @@ struct BudgetGoalSpreadUITestHarness: View {
             ]
         }
         let sparse = BudgetSparse(from: seed.budget)
+        let second = Budget(
+            id: "duo-next-year-budget", month: 1, year: 2027, description: "Janvier 2027",
+            userId: "ui-test", templateId: "ui-test-template", endingBalance: nil, rollover: nil,
+            remaining: 0, previousBudgetId: seed.budget.id, createdAt: now, updatedAt: now
+        )
+        let extra = nativeTabs
+            ? [BudgetDetails(budget: second, transactions: [], budgetLines: [])] : []
+        let budgets = [sparse] + extra.map { BudgetSparse(from: $0.budget) }
         let routeService = BudgetGoalSpreadUITestService(
             details: BudgetDetails(budget: seed.budget, transactions: [], budgetLines: [seed.line]),
-            budgets: [sparse],
+            budgets: budgets,
             spreadGroupId: Self.spreadGroupIdString,
-            occurrences: occurrences
+            occurrences: occurrences,
+            additionalDetails: extra
         )
         ProductTips.tourDismissed = true
 
@@ -224,7 +243,7 @@ struct BudgetGoalSpreadUITestHarness: View {
         _appState = State(initialValue: appState)
         _userSettingsStore = State(initialValue: UserSettingsStore())
         _budgetListStore = State(
-            initialValue: BudgetListStore(budgetService: routeService, initialBudgets: [sparse])
+            initialValue: BudgetListStore(budgetService: routeService, initialBudgets: budgets)
         )
         _savingsGoalStore = State(initialValue: SavingsGoalStore(service: savingsGoalService))
         _tagStore = State(initialValue: TagStore(service: routeService))
@@ -240,7 +259,7 @@ struct BudgetGoalSpreadUITestHarness: View {
         )
     }
 
-    private static func goalSpreadSeed(now: Date) -> (budget: Budget, line: BudgetLine) {
+    private static func goalSpreadSeed(now: Date, remaining: Decimal) -> (budget: Budget, line: BudgetLine) {
         var line = BudgetLine(
             id: Self.lineId,
             budgetId: Self.budgetId,
@@ -265,7 +284,7 @@ struct BudgetGoalSpreadUITestHarness: View {
             templateId: "ui-test-template",
             endingBalance: nil,
             rollover: nil,
-            remaining: 413,
+            remaining: remaining,
             previousBudgetId: nil,
             createdAt: now,
             updatedAt: now
@@ -307,12 +326,41 @@ struct BudgetGoalSpreadUITestHarness: View {
         return (budget, line)
     }
 
+    private static var draftTemplates: [BudgetTemplate] {
+        ["Mois standard", "Mois vacances"].enumerated().map { index, name in
+            BudgetTemplate(
+                id: "draft-template-\(index)", name: name, description: nil, userId: "ui-test",
+                isDefault: index == 0, createdAt: .distantPast, updatedAt: .distantPast
+            )
+        }
+    }
+
     var body: some View {
-        BudgetsTab(
-            budgetService: routeService,
-            budgetLineService: routeService,
-            savingsGoalService: savingsGoalService
-        )
+        let templates = Self.draftTemplates
+        return Group {
+            if usesNativeTabs {
+                MainTabView(
+                    budgetService: routeService, budgetLineService: routeService,
+                    savingsGoalService: savingsGoalService,
+                    makeCreateBudgetModel: { month, year in
+                        CreateBudgetViewModel(
+                            month: month, year: year, loadTemplates: { templates },
+                            loadTemplateLines: { _ in [] }
+                        )
+                    },
+                    makePlanBudgetsModel: {
+                        PlanBudgetsViewModel(payDayOfMonth: nil, loadTemplates: { templates }, generate: { _ in
+                            throw URLError(.unsupportedURL)
+                        })
+                    }
+                )
+            } else {
+                BudgetsTab(
+                    budgetService: routeService, budgetLineService: routeService,
+                    savingsGoalService: savingsGoalService
+                )
+            }
+        }
         .environment(\.dynamicTypeSize, dynamicTypeSize)
         .preferredColorScheme(preferredColorScheme)
         .environment(appState)
@@ -320,6 +368,8 @@ struct BudgetGoalSpreadUITestHarness: View {
         .environment(currentMonthStore)
         .environment(budgetListStore)
         .environment(dashboardStore)
+        .environment(appVersionStore)
+        .environment(whatsNewStore)
         .environment(savingsGoalStore)
         .environment(tagStore)
         .environment(appState.toastManager)

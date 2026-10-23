@@ -15,16 +15,13 @@ private func availabilityLabel(
 // MARK: - Budget Month Row
 
 /// One month of the yearly ledger (The One Ledger Rule): month name, a status caption,
-/// the amount block and a chevron. Current, past and future months share the row; only
+/// the amount block. The native navigation link owns selection and its chevron; only
 /// the ink changes.
 struct BudgetMonthRow: View {
     let budget: BudgetSparse
     var periodLabel: String?
     var isCurrent: Bool = false
     var isPast: Bool = false
-    let action: () -> Void
-
-    @State private var tapTrigger = false
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
@@ -47,47 +44,33 @@ struct BudgetMonthRow: View {
         "budgetMonthRow-\(budget.id)"
     }
 
-    static func accessibilityTraits(isCurrent: Bool) -> AccessibilityTraits {
-        isCurrent ? [.isButton, .isSelected] : .isButton
-    }
-
     private var accessibilityStatus: String {
         isCurrent ? ", " + AppLocale.string("en cours") : (isPast ? ", " + AppLocale.string("clos") : "")
     }
 
     var body: some View {
-        Button {
-            tapTrigger.toggle()
-            action()
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    Text(monthName)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(titleColor)
-                    if !caption.isEmpty {
-                        Text(caption)
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.textSecondary)
-                    }
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(monthName)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(titleColor)
+                if !caption.isEmpty {
+                    Text(caption)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
                 }
-                Spacer(minLength: DesignTokens.Spacing.sm)
-                BudgetAmountBlock(
-                    remaining: budget.remaining,
-                    emotionColor: budget.emotionState.color,
-                    isPast: isPast
-                )
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityHidden(true)
             }
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
-            .contentShape(Rectangle())
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            BudgetAmountBlock(
+                remaining: budget.remaining,
+                emotionColor: budget.emotionState.color,
+                isPast: isPast
+            )
         }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: tapTrigger)
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(
             monthName
             + accessibilityStatus
@@ -99,7 +82,6 @@ struct BudgetMonthRow: View {
             )
         )
         .accessibilityHint("Appuie pour voir les détails")
-        .accessibilityAddTraits(Self.accessibilityTraits(isCurrent: isCurrent))
         .accessibilityIdentifier(Self.accessibilityIdentifier(for: budget))
     }
 }

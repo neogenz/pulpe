@@ -46,7 +46,7 @@ extension BudgetDetailsView {
             BudgetLineDetailPage(
                 lineId: lineId,
                 tagNamesById: tagStore.namesById,
-                onEditLine: { line in router.present(.editBudgetLine(line)) }
+                onEditLine: { line in router.present(.editBudgetLine(line), from: coordinator) }
             )
             .ignoresForeignKeyboardInset()
         // Bare below: both own the field that raises the keyboard.

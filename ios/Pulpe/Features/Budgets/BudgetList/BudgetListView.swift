@@ -1,15 +1,16 @@
 import SwiftUI
 
 struct BudgetListView: View {
+    var makeCreateBudgetModel: ((Int, Int) -> CreateBudgetViewModel)?
+    var makePlanBudgetsModel: (() -> PlanBudgetsViewModel)?
     @Environment(AppState.self) private var appState
     @Environment(BudgetListStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var showsBudgetPlanner = false
     @State private var hasAppeared = false
-    @State private var isHeroUnderBar = true
-    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var templateBalance: Decimal?
 
     var body: some View {
@@ -38,17 +39,14 @@ struct BudgetListView: View {
             }
         }
         .trackScreen("BudgetList")
-        .trackingHeroUnderBar($isHeroUnderBar)
         .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
         .localizedNavigationTitle("Budgets")
         .navigationBarTitleDisplayMode(.inline)
-        .heroNavigationBar(isOnHeroSurface: isOnHeroSurface)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 planButton
                 createButton
             }
-            .heroToolbarGroup(isOnHeroSurface)
         }
         .sheet(isPresented: Binding(
             get: { createBudgetTarget != nil },
@@ -57,15 +55,17 @@ struct BudgetListView: View {
             if let target = createBudgetTarget {
                 CreateBudgetView(
                     month: target.month,
-                    year: target.year
+                    year: target.year,
+                    viewModel: makeCreateBudgetModel?(target.month, target.year)
                 ) { budget in
                     store.addBudget(budget)
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+                    appState.openBudget(budget.id, year: budget.year)
                 }
             }
         }
         .sheet(isPresented: $showsBudgetPlanner) {
-            PlanBudgetsView(payDayOfMonth: userSettingsStore.payDayOfMonth) { response in
+            PlanBudgetsView(viewModel: makePlanBudgetsModel?()
+                ?? PlanBudgetsViewModel(payDayOfMonth: userSettingsStore.payDayOfMonth)) { response in
                 Task {
                     await store.forceRefresh()
                     AccessibilityNotification.Announcement(
@@ -88,10 +88,10 @@ struct BudgetListView: View {
                 Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
             )
             let available = store.availableYears
-            if available.contains(currentPeriod.year) {
-                selectedYear = currentPeriod.year
-            } else if let latest = available.last {
-                selectedYear = latest
+            if appState.budgetYear == nil {
+                let defaultYear = available.contains(currentPeriod.year) ? currentPeriod.year : available.last
+                selectedYear = store.budgets.first { $0.id == appState.selectedBudgetId }?.year
+                    ?? defaultYear ?? currentPeriod.year
             }
             if reduceMotion {
                 hasAppeared = true
@@ -106,9 +106,12 @@ struct BudgetListView: View {
                 selectedYear = latest
             }
         }
+        .onChange(of: appState.selectedBudgetId) { _, id in
+            if let year = store.budgets.first(where: { $0.id == id })?.year { selectedYear = year }
+        }
         .onChange(of: appState.selectedTab) { oldTab, newTab in
             guard BudgetListRefreshPolicy.shouldLoadAfterTabChange(
-                from: oldTab, to: newTab, pathCount: appState.budgetPath.count
+                from: oldTab, to: newTab
             ) else { return }
             Task { await store.loadIfNeeded() }
         }
@@ -120,31 +123,46 @@ struct BudgetListView: View {
         }
         .onChange(of: store.invalidationGeneration) {
             guard BudgetListRefreshPolicy.shouldLoadAfterInvalidation(
-                selectedTab: appState.selectedTab, pathCount: appState.budgetPath.count
+                selectedTab: appState.selectedTab
             ) else { return }
             Task { await store.loadIfNeeded() }
         }
     }
 
-    /// The list and its skeleton both paint the forest, the bar follows it while it is under
-    /// the bar; error and empty keep a flat canvas.
-    private var isOnHeroSurface: Bool { (!store.budgets.isEmpty || showsSkeleton) && isHeroUnderBar }
+    private var selectedYear: Int {
+        get { appState.budgetYear ?? Calendar.current.component(.year, from: Date()) }
+        nonmutating set { appState.budgetYear = newValue }
+    }
+
+    private var canChangeMonth: Bool { appState.canChangeBudgetRoot }
+
+    private var monthSelection: Binding<String?> {
+        Binding(get: { appState.selectedBudgetId }, set: { id in
+            guard canChangeMonth else { return }
+            // Expanding a split view can clear its selection. Only compact Back clears the month.
+            guard id != nil || horizontalSizeClass != .regular else { return }
+            appState.selectedBudgetId = id
+        })
+    }
 
     private var showsSkeleton: Bool {
         !store.hasLoadedOnce && store.budgets.isEmpty && store.error == nil
     }
 
     private var createButton: some View {
-        Button(action: { createBudgetTarget = store.nextAvailableMonth }, label: { Image(systemName: "plus") })
-        .disabled(store.nextAvailableMonth == nil)
-        .heroToolbarButtonStyle(isOnHeroSurface)
+        Button { createBudgetTarget = store.nextAvailableMonth } label: {
+            Label("Créer un nouveau budget", systemImage: "plus")
+        }
+        .disabled(store.nextAvailableMonth == nil || !canChangeMonth)
         .accessibilityLabel(BudgetListAccessibility.createOneLabel)
     }
 
     private var planButton: some View {
-        Button(action: { showsBudgetPlanner = true }, label: { Image(systemName: "calendar.badge.plus") })
-            .heroToolbarButtonStyle(isOnHeroSurface)
-            .accessibilityLabel(BudgetListAccessibility.planSeveralLabel)
+        Button { showsBudgetPlanner = true } label: {
+            Label("Planifier plusieurs budgets", systemImage: "calendar.badge.plus")
+        }
+        .disabled(!canChangeMonth)
+        .accessibilityLabel(BudgetListAccessibility.planSeveralLabel)
     }
 
     // MARK: - Month Slots
@@ -205,59 +223,44 @@ struct BudgetListView: View {
         let yearBudgets = store.budgets(forYear: selectedYear)
         let slots = monthSlots(from: yearBudgets, currentPeriod: currentPeriod)
 
-        return ScrollView {
-            VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    YearPicker(years: store.availableYears, selectedYear: $selectedYear)
-                    YearRecapCard(
-                        year: selectedYear,
-                        budgets: yearBudgets,
-                        isPastYear: isPastYear
-                    )
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
+        return List(selection: monthSelection) {
+            Section {
+                YearPicker(years: store.availableYears, selectedYear: Binding(
+                    get: { selectedYear }, set: { selectedYear = $0 }
+                ))
+                .disabled(!canChangeMonth)
+                DisclosureGroup("Bilan de l'année") {
+                    YearRecapCard(year: selectedYear, budgets: yearBudgets, isPastYear: isPastYear)
+                        .padding(DesignTokens.Spacing.lg)
+                        .heroZone()
                 }
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl)
-                .heroZone()
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    SectionHeader(title: AppLocale.string("Mois"), count: yearBudgets.count)
-
-                    VStack(spacing: 0) {
-                        ForEach(slots, id: \.month) { slot in
-                            if slot.month != slots.first?.month {
-                                Divider()
-                            }
-                            if let budget = slot.budget {
-                                BudgetMonthRow(
-                                    budget: budget,
-                                    periodLabel: periodLabel(for: budget),
-                                    isCurrent: budget.isCurrentPeriod(payDayOfMonth: userSettingsStore.payDayOfMonth),
-                                    isPast: selectedYear < currentPeriod.year
-                                        || (selectedYear == currentPeriod.year && slot.month < currentPeriod.month)
-                                ) {
-                                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
-                                }
-                            } else {
-                                NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
-                                    createBudgetTarget = (slot.month, selectedYear)
-                                }
-                            }
+            }
+            Section("Mois") {
+                ForEach(slots, id: \.month) { slot in
+                    if let budget = slot.budget {
+                        NavigationLink(value: budget.id) {
+                            BudgetMonthRow(
+                                budget: budget,
+                                periodLabel: periodLabel(for: budget),
+                                isCurrent: budget.isCurrentPeriod(payDayOfMonth: userSettingsStore.payDayOfMonth),
+                                isPast: isPastYear
+                                    || (selectedYear == currentPeriod.year && slot.month < currentPeriod.month)
+                            )
                         }
+                        .disabled(!canChangeMonth)
+                        .accessibilityIdentifier(BudgetMonthRow.accessibilityIdentifier(for: budget))
+                    } else {
+                        NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
+                            createBudgetTarget = (slot.month, selectedYear)
+                        }
+                        .disabled(!canChangeMonth)
                     }
                 }
-                // The content zone is the card: rows sit bare on it, a second surface
-                // under the zone's own curve would read as a card inside a card.
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.top, DesignTokens.Spacing.xxl)
-                .padding(.bottom, DesignTokens.Spacing.lg)
-                .contentZone()
             }
-            .opacity(hasAppeared ? 1 : 0)
-            .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
         }
-        .scrollIndicators(.automatic)
-        .background { Color.appBackground.ignoresSafeArea() }
+        .listStyle(.sidebar)
+        .opacity(hasAppeared ? 1 : 0)
+        .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
     }
 }
 

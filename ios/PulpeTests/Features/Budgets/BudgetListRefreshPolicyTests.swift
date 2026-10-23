@@ -3,21 +3,14 @@ import Testing
 
 struct BudgetListRefreshPolicyTests {
     @Test
-    func navigationRefreshPolicy_onlyAcceptsVisibleReturnsToRoot() {
+    func navigationRefreshPolicy_refreshesTheActiveSidebar() {
         #expect(BudgetListRefreshPolicy.shouldLoadAfterTabChange(
             from: .currentMonth,
-            to: .budgets,
-            pathCount: 0
+            to: .budgets
         ))
         #expect(!BudgetListRefreshPolicy.shouldLoadAfterTabChange(
             from: .budgets,
-            to: .currentMonth,
-            pathCount: 0
-        ))
-        #expect(!BudgetListRefreshPolicy.shouldLoadAfterTabChange(
-            from: .currentMonth,
-            to: .budgets,
-            pathCount: 1
+            to: .currentMonth
         ))
 
         #expect(BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 0, selectedTab: .budgets))
@@ -25,8 +18,7 @@ struct BudgetListRefreshPolicyTests {
         #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 0, to: 1, selectedTab: .budgets))
         #expect(!BudgetListRefreshPolicy.shouldLoadAfterPathChange(from: 1, to: 2, selectedTab: .budgets))
 
-        #expect(BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0))
-        #expect(!BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .currentMonth, pathCount: 0))
-        #expect(!BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 1))
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets))
+        #expect(!BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .currentMonth))
     }
 }

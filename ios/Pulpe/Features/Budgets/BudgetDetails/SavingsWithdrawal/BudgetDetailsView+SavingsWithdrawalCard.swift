@@ -52,7 +52,7 @@ extension BudgetDetailsView {
     @ViewBuilder
     func tightMonthCard(prefill: SavingsWithdrawalPrefill) -> some View {
         TightMonthCard(
-            onWithdraw: { router.present(.savingsWithdrawal(prefill)) },
+            onWithdraw: { router.present(.savingsWithdrawal(prefill), from: coordinator) },
             onDismiss: {
                 dismissedWithdrawalBudgetIds = SavingsWithdrawalCardGate.appendingDismissal(
                     budgetId: prefill.budgetId,

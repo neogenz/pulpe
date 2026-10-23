@@ -5,6 +5,7 @@ import SwiftUI
         BudgetListView()
     }
     .environment(AppState())
+    .environment(BudgetDetailsRouter())
     .environment(CurrentMonthStore())
     .environment(BudgetListStore())
     .environment(UserSettingsStore())
@@ -25,12 +26,12 @@ import SwiftUI
                 totalExpenses: 1931.48, totalIncome: 5000, remaining: 3068.52
             ),
             isPast: true
-        ) {}
+        )
         Divider()
         BudgetMonthRow(
             budget: BudgetSparse(id: "2", month: 2, year: 2026, remaining: -450.25),
             isCurrent: true
-        ) {}
+        )
         Divider()
         NextMonthRow(month: 3, adjustment: 1200) {}
     }

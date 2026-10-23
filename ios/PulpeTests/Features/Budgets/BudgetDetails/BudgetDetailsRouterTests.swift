@@ -77,4 +77,80 @@ struct BudgetDetailsRouterTests {
         #expect(appState.currentMonthPath.isEmpty)
         #expect(appState.budgetPath.isEmpty)
     }
+    @Test func rootEntry_selectsMonthAndKeepsOtherStacks() {
+        let appState = AppState()
+        appState.currentMonthPath.append("origin")
+
+        appState.openBudget("new-month", year: 2027)
+
+        #expect(appState.selectedTab == .budgets)
+        #expect(appState.selectedBudgetId == "new-month")
+        #expect(appState.budgetYear == 2027)
+        #expect(appState.budgetPath.isEmpty)
+        #expect(appState.currentMonthPath.count == 1)
+    }
+
+    @Test(arguments: [Tab.currentMonth, .budgets, .savingsGoals])
+    func nestedBudgetAndPop_preserveTheirOrigin(_ tab: Tab) {
+        let appState = AppState()
+        appState.openBudget("selected-month", year: 2026)
+        appState.selectedTab = tab
+        let router = BudgetDetailsRouter()
+        router.bind(to: appState)
+        appState.pushOnActiveStack(BudgetDestination.details(budgetId: "nested-month"))
+        #expect(appState.selectedBudgetId == "selected-month")
+
+        router.popToRoot()
+
+        #expect(appState.selectedBudgetId == (tab == .budgets ? nil : "selected-month"))
+        #expect(appState.budgetYear == 2026)
+        #expect(appState.currentMonthPath.isEmpty)
+        #expect(appState.budgetPath.isEmpty)
+        #expect(appState.savingsGoalsPath.isEmpty)
+    }
+
+    @Test func reopeningTheSameMonth_keepsItsYearAndColdDetailsResolveTheirs() {
+        let appState = AppState()
+        appState.openBudget("january", year: 2027)
+        appState.openBudget("january")
+        #expect(appState.budgetYear == 2027)
+        appState.openBudget("cold-month")
+        #expect(appState.budgetYear == nil)
+        appState.updateBudgetSelection("cold-month", year: 2028)
+        #expect(appState.budgetYear == 2028)
+    }
+
+    @Test(arguments: [false, true])
+    func rootEntry_refusesToReplaceAnOpenDraft(pushed: Bool) {
+        let appState = AppState()
+        appState.openBudget("draft-month", year: 2027)
+        appState.budgetRouter.bind(to: appState)
+        if pushed {
+            appState.budgetRouter.push(.editTx(transactionId: "draft"))
+        } else {
+            appState.budgetRouter.present(.addBudgetLine)
+        }
+
+        appState.openBudget("other-month", year: 2028)
+
+        #expect(appState.selectedBudgetId == "draft-month")
+        #expect(appState.budgetYear == 2027)
+        #expect(appState.budgetPath.count == (pushed ? 1 : 0))
+        #expect((appState.budgetRouter.sheet != nil) == !pushed)
+        #expect(appState.toastManager.currentToast?.type == .error)
+    }
+    @Test func sheetPresentation_retainsTheExactNestedBudgetUntilDismissal() {
+        let appState = AppState()
+        appState.openBudget("root-month", year: 2026)
+        let nested = BudgetDetailsCoordinator(budgetId: "nested-month")
+        let router = appState.budgetRouter
+        router.present(.addBudgetLine, from: nested)
+
+        appState.updateBudgetSelection("root-month", year: 2026)
+
+        #expect(router.sheetPresentation?.coordinator === nested)
+        #expect(router.sheetPresentation?.destination.id == "addBudgetLine")
+        router.dismissSheet()
+        #expect(router.sheetPresentation == nil)
+    }
 }

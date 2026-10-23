@@ -354,6 +354,7 @@ extension AppState {
         sessionDataResetter?.resetStores()
 
         if scope.clearsUIState {
+            budgetRouter.dismissSheet()
             recoveryFlowCoordinator.reset()
             enrollmentPolicy.resetForNewTransition()
         }
@@ -361,6 +362,8 @@ extension AppState {
         if scope.clearsNavigation {
             currentMonthPath = NavigationPath()
             budgetPath = NavigationPath()
+            selectedBudgetId = nil
+            budgetYear = nil
             savingsGoalsPath = NavigationPath()
             templatePath = NavigationPath()
             selectedTab = .currentMonth

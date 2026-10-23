@@ -70,56 +70,19 @@ struct YearRecapCard: View {
 
 // MARK: - Year Picker
 
-/// Horizontal year selector in hero ink: the selection is a `heroTile` tile, the others
-/// plain `heroInkSecondary` text.
+/// Native year control, shared by the compact list and the expanded sidebar.
 struct YearPicker: View {
     let years: [Int]
     @Binding var selectedYear: Int
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    ForEach(years, id: \.self) { year in
-                        let isSelected = selectedYear == year
-                        Button {
-                            withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
-                                selectedYear = year
-                            }
-                        } label: {
-                            Text(String(year))
-                                .font(PulpeTypography.labelLargeBold)
-                                .foregroundStyle(isSelected ? Color.heroInk : Color.heroInkSecondary)
-                                .padding(.horizontal, DesignTokens.Spacing.lg)
-                                .padding(.vertical, DesignTokens.Spacing.sm)
-                                .background(
-                                    isSelected ? Color.heroTile : Color.clear,
-                                    in: .rect(cornerRadius: DesignTokens.CornerRadius.button)
-                                )
-                        }
-                        .id(year)
-                        .frame(minHeight: DesignTokens.TapTarget.minimum)
-                        .contentShape(Rectangle())
-                        .plainPressedButtonStyle()
-                        .accessibilityLabel("Année \(year)")
-                        .accessibilityAddTraits(
-                            isSelected ? [.isButton, .isSelected] : .isButton
-                        )
-                    }
-                }
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-            }
-            .scrollClipDisabled()
-            .sensoryFeedback(.selection, trigger: selectedYear)
-            .task {
-                await Task.yield()
-                proxy.scrollTo(selectedYear, anchor: .center)
-            }
-            .onChange(of: selectedYear) { _, newYear in
-                withAnimation(DesignTokens.Animation.smoothEaseInOut) {
-                    proxy.scrollTo(newYear, anchor: .center)
-                }
+        Picker("Année", selection: $selectedYear) {
+            ForEach(years, id: \.self) { year in
+                Text(String(year)).tag(year)
             }
         }
+        .pickerStyle(.menu)
+        .accessibilityIdentifier("budgetYearPicker")
+        .sensoryFeedback(.selection, trigger: selectedYear)
     }
 }

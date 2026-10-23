@@ -58,8 +58,10 @@ struct AppStateResetMatrixTests {
             biometricCapability: { false }
         )
 
+        sut.budgetRouter.present(.addBudgetLine)
         await executeReset(sut, scenario: scenario)
 
+        #expect(sut.budgetRouter.sheet == nil)
         #expect(sut.authState == .unauthenticated, "\(scenario): authState must be .unauthenticated")
         #expect(sut.currentUser == nil, "\(scenario): currentUser must be nil")
     }
@@ -78,10 +80,14 @@ struct AppStateResetMatrixTests {
         await sut.resolvePostAuth(user: user)
         sut.selectedTab = .budgets
         sut.budgetPath.append("test-budget")
+        sut.selectedBudgetId = "test-budget"
+        sut.budgetYear = 2026
         sut.savingsGoalsPath.append("test-goal")
 
         await executeReset(sut, scenario: scenario)
 
+        #expect(sut.selectedBudgetId == nil)
+        #expect(sut.budgetYear == nil)
         #expect(sut.budgetPath.isEmpty, "\(scenario): budgetPath must be empty")
         #expect(sut.savingsGoalsPath.isEmpty, "\(scenario): savingsGoalsPath must be empty")
         #expect(sut.selectedTab == .currentMonth, "\(scenario): selectedTab must be .currentMonth")
@@ -99,10 +105,14 @@ struct AppStateResetMatrixTests {
         await sut.resolvePostAuth(user: user)
         sut.selectedTab = .budgets
         sut.budgetPath.append("keep-budget")
+        sut.selectedBudgetId = "keep-budget"
+        sut.budgetYear = 2026
         sut.savingsGoalsPath.append("keep-goal")
 
         await executeReset(sut, scenario: scenario)
 
+        #expect(sut.selectedBudgetId == "keep-budget")
+        #expect(sut.budgetYear == 2026)
         #expect(sut.selectedTab == .budgets, "\(scenario): selectedTab must be preserved")
         #expect(sut.budgetPath.count == 1, "\(scenario): budgetPath must be preserved")
         #expect(sut.savingsGoalsPath.count == 1, "\(scenario): savingsGoalsPath must be preserved")

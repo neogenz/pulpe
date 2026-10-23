@@ -2,6 +2,11 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
+    var budgetService: any BudgetServicing = BudgetService.shared
+    var budgetLineService: any BudgetLineServicing = BudgetLineService.shared
+    var savingsGoalService: any SavingsGoalServicing = SavingsGoalService.shared
+    var makeCreateBudgetModel: ((Int, Int) -> CreateBudgetViewModel)?
+    var makePlanBudgetsModel: (() -> PlanBudgetsViewModel)?
 
     var body: some View {
         @Bindable var state = appState
@@ -20,7 +25,12 @@ struct MainTabView: View {
                 systemImage: Tab.budgets.icon,
                 value: Tab.budgets
             ) {
-                BudgetsTab()
+                BudgetsTab(
+                    budgetService: budgetService,
+                    budgetLineService: budgetLineService,
+                    savingsGoalService: savingsGoalService,
+                    makeCreateBudgetModel: makeCreateBudgetModel, makePlanBudgetsModel: makePlanBudgetsModel
+                )
             }
 
             SwiftUI.Tab(
@@ -189,41 +199,63 @@ struct BudgetsTab: View {
     private let budgetService: any BudgetServicing
     private let budgetLineService: any BudgetLineServicing
     private let savingsGoalService: any SavingsGoalServicing
-    /// Tab-scoped router instance. Owns sheet state and provides the typed
-    /// push API used inside the BudgetDetails feature; `appState.budgetPath`
-    /// remains the underlying NavigationPath surface for cross-feature
-    /// entries (deep link, BudgetList CTA, CurrentMonth CTA).
-    @State private var router = BudgetDetailsRouter()
+    private let makeCreateBudgetModel: ((Int, Int) -> CreateBudgetViewModel)?
+    private let makePlanBudgetsModel: (() -> PlanBudgetsViewModel)?
+    /// Shared with explicit root entries so a deep link cannot replace an open draft.
+    private var router: BudgetDetailsRouter { appState.budgetRouter }
 
     init(
         budgetService: any BudgetServicing = BudgetService.shared,
         budgetLineService: any BudgetLineServicing = BudgetLineService.shared,
-        savingsGoalService: any SavingsGoalServicing = SavingsGoalService.shared
+        savingsGoalService: any SavingsGoalServicing = SavingsGoalService.shared,
+        makeCreateBudgetModel: ((Int, Int) -> CreateBudgetViewModel)? = nil,
+        makePlanBudgetsModel: (() -> PlanBudgetsViewModel)? = nil
     ) {
         self.budgetService = budgetService
         self.budgetLineService = budgetLineService
         self.savingsGoalService = savingsGoalService
+        self.makeCreateBudgetModel = makeCreateBudgetModel
+        self.makePlanBudgetsModel = makePlanBudgetsModel
     }
 
     var body: some View {
         @Bindable var state = appState
+        @Bindable var router = router
 
-        NavigationStack(path: $state.budgetPath) {
-            BudgetListView()
+        NavigationSplitView {
+            BudgetListView(makeCreateBudgetModel: makeCreateBudgetModel, makePlanBudgetsModel: makePlanBudgetsModel)
                 .ignoresForeignKeyboardInset()
-                .navigationDestination(for: BudgetDestination.self) { destination in
-                    budgetDestination(
-                        destination,
-                        budgetService: budgetService,
-                        budgetLineService: budgetLineService
-                    )
+        } detail: {
+            NavigationStack(path: $state.budgetPath) {
+                Group {
+                    if let id = state.selectedBudgetId {
+                        BudgetDetailsView(
+                            budgetId: id,
+                            budgetService: budgetService,
+                            budgetLineService: budgetLineService,
+                            onBudgetChange: { id, year in
+                                state.updateBudgetSelection(id, year: year)
+                            }
+                        )
+                        .ignoresForeignKeyboardInset()
+                    } else {
+                        ContentUnavailableView("Budgets", systemImage: "calendar", description: Text("Choisis un mois"))
+                    }
                 }
-                // A saving prévision's detail can push its linked goal's
-                // progression (PUL-12) — same destination as the CurrentMonth
-                // stack, registered here for the budget branch.
+                .navigationDestination(for: BudgetDestination.self) { destination in
+                    budgetDestination(destination, budgetService: budgetService, budgetLineService: budgetLineService)
+                }
                 .navigationDestination(for: SavingsGoalDestination.self) { destination in
                     savingsGoalDestination(destination, service: savingsGoalService)
                 }
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+        .sheet(item: $router.sheetPresentation) { presentation in
+            if let coordinator = presentation.coordinator {
+                BudgetDetailSheetContent(destination: presentation.destination)
+                    .environment(coordinator)
+            }
         }
         .environment(router)
         .task { router.bind(to: appState) }

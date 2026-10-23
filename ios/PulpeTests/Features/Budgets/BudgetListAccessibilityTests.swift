@@ -128,11 +128,6 @@ struct BudgetListAccessibilityTests {
         #expect(BudgetMonthRow.accessibilityIdentifier(for: budget) == "budgetMonthRow-\(budget.id)")
     }
 
-    @Test func monthRow_currentMonthCarriesSelectedTrait() {
-        #expect(BudgetMonthRow.accessibilityTraits(isCurrent: true).contains(.isSelected))
-        #expect(!BudgetMonthRow.accessibilityTraits(isCurrent: false).contains(.isSelected))
-    }
-
     @Test func creationActionsHaveDistinctAccessibleLabels() {
         #expect(!BudgetListAccessibility.createOneLabel.isEmpty)
         #expect(!BudgetListAccessibility.planSeveralLabel.isEmpty)

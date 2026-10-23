@@ -20,7 +20,7 @@ extension BudgetLineDetailPage {
                                 .spreadOccurrences(
                                     spreadGroupId: spreadGroupId.uuidString,
                                     kind: line.kind
-                                )
+                                ), from: coordinator
                             )
                         }
                     }

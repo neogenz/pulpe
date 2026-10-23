@@ -237,7 +237,7 @@ private extension BudgetLineDetailPage {
             total: line.amount,
             month: budget.month,
             year: budget.year
-        )))
+        )), from: coordinator)
     }
 
     func deleteBudgetLine(_ line: BudgetLine) {

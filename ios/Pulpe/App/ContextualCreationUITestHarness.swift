@@ -142,7 +142,7 @@ struct ContextualCreationUITestHarness: View {
     private var content: some View {
         switch scenario {
         case .contextualCreationHome:
-            if isHomeSkeletonEnabled {
+            if isHomeSkeletonEnabled || ProcessInfo.processInfo.environment["UITEST_NATIVE_NAVIGATION"] == "1" {
                 MainTabView()
             } else if isChartMatrixEnabled {
                 chartMatrixContent

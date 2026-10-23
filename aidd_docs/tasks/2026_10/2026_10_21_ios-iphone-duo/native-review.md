@@ -169,3 +169,24 @@ failure; the split-container candidate remains unsuitable for distribution until
 stable presenter passes the unchanged rotation scenario. Evidence is in
 `/private/tmp/pulpe-ios-duo-native-phase2b-ui-v1.xcresult` and its adjacent log and exported
 attachments. No fold or inner-screen coverage is inferred from these rotations.
+
+## Stable presentation candidate
+
+The Budgets tab now owns the detail sheet presenter above the adaptive split view.
+Each presentation carries its original coordinator, including nested budget entries;
+the other tabs retain their existing local presenters and back stacks. The complete
+unit target builds successfully and SwiftLint reports no violations in the 29 changed
+Swift files. The final independent static review reports no actionable finding.
+
+Local `phase2b-ui-v2` passes the cold month-entry regression. Its continuity scenario
+preserves the chosen year through compact Back, switches from 2026 to January 2027
+and back, and retains both `12 CHF` and `Repas test` through all three rotations with
+the keyboard present. The final save-reachability assertion fails: XCTest reports the
+button hittable while its frame remains below the viewport after keyboard dismissal.
+The run is not green. The next candidate must scroll until the button is actually
+inside the viewport and also exercise the sidebar's creation/planning sheets.
+Evidence: `/private/tmp/pulpe-ios-duo-native-phase2b-ui-v2.xcresult` and adjacent log.
+
+Version `1.11.0 (1)` is selected in the candidate after checking App Store Connect;
+no build has been uploaded. The signed export and remote SDK 27.1 validation remain
+required. These local rotations do not establish Duo fold or inner-display coverage.
