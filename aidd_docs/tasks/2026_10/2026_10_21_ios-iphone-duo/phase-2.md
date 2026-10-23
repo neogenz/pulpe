@@ -1,8 +1,12 @@
 ---
-status: in-progress
+status: implemented
 ---
 
 # Instruction: Adapt budget navigation without losing context
+
+## Recorded outcome
+
+Implemented with native list/detail selection, stable sheet ownership and navigation/undo regressions. Recorded tests pass; full physical fold continuity remains unqualified. See [validation.md](validation.md) for exact evidence and limits.
 
 ## Architecture projection
 

@@ -1,8 +1,12 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Verify continuity, capture and deliver TestFlight
+
+## Recorded outcome
+
+Internal beta delivered: 1.11.0 (1), source `d93e69614`, available to `Moi` with French test notes. Native evidence, signing/provenance and the TestFlight readback are recorded in [validation.md](validation.md). The full five-pose and accessibility qualification remains partial; delivery does not certify the entire planned matrix.
 
 ## Architecture projection
 

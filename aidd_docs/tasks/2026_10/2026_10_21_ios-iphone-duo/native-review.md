@@ -1,372 +1,80 @@
-# Native baseline review
-
-Evidence date: 2026-10-23. Phase 1 remains in progress; no Duo rendering is validated here.
-
-## Source and toolchain
-
-- Branch: `codex/ios-duo-native`, based on `origin/main` at `0e1b64afa587cd7794403883c01ac0458e0e545c`.
-- Local Xcode: 26.6 (`17F113`); simulator SDK: 26.5; XcodeGen: 2.44.1.
-- The local developer directory was selected per command, without changing the global setting.
-- Installed simulator inventory has iOS 26.5 and older 18.x runtimes, with no iOS 27.1 or Duo device.
-- The existing user simulator remains untouched. Local UI tests use the isolated `Pulpe Tests` device `E6A58690-8539-4A37-8E20-DE179B84166F`.
-
-## Orientation prerequisite
-
-`ios/project.yml` now declares portrait, landscape left and landscape right. Running
-`xcodegen generate --use-cache` regenerated the same three orientations in
-`ios/Pulpe/Resources/Info.plist`. iOS 18 deployment and iPhone device family 1 are unchanged.
-No runtime orientation override was found in the iOS source.
-
-| Check                                | Result                                                       |
-| ------------------------------------ | ------------------------------------------------------------ |
-| XcodeGen generation                  | Passed; second run reports unchanged cached project          |
-| Generated plist orientation parity   | Passed: three expected orientations                          |
-| Deployment/device target check       | Passed: iOS 18 / iPhone                                      |
-| `git diff --check`                   | Passed                                                       |
-| PulpeLocal generic simulator build   | Passed: exit 0 and `BUILD SUCCEEDED`, SDK 26.5               |
-| PulpeProd unsigned device build      | Passed: exit 0 and `BUILD SUCCEEDED`, SDK 26.5, no signature |
-| Duo screenshots and five-pose review | Not run; requires a verified SDK 27.1 runtime                |
-
-Build data and package checkouts are isolated in `/private/tmp/pulpe-ios-duo-native-derived-data`
-and `/private/tmp/pulpe-ios-duo-native-source-packages`. Local log:
-`/private/tmp/pulpe-ios-duo-native-local-build.log`. The built simulator app plist confirms
-`DTXcode=2660`, `DTSDKName=iphonesimulator26.5`, `MinimumOSVersion=18.0`,
-`UIDeviceFamily=[1]` and the three declared orientations.
-
-From `ios/`, the Local command was:
-
-```sh
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild build \
-  -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local \
-  -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath /private/tmp/pulpe-ios-duo-native-derived-data \
-  -clonedSourcePackagesDirPath /private/tmp/pulpe-ios-duo-native-source-packages \
-  CODE_SIGNING_ALLOWED=NO
-```
-
-The unsigned Prod command used the same paths and developer directory, with
-`-scheme PulpeProd -configuration Prod -destination 'generic/platform=iOS'`,
-`-disableAutomaticPackageResolution -skipPackageUpdates` and `CODE_SIGNING_ALLOWED=NO`.
-Its log is `/private/tmp/pulpe-ios-duo-native-prod-build.log`. The device app plist confirms
-`DTSDKName=iphoneos26.5`, iOS 18, iPhone family 1 and the same orientations; `_CodeSignature`
-is absent. Neither build launched an application, changed simulator state or distributed an archive.
-
-## Static inspection targets for native review
-
-These are code observations, not proven visual defects.
-
-| Surface       | Existing behavior to preserve or inspect                                                                                                                                                                                                                                                |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MainTabView` | Four native tabs, independent typed stacks, shared budget destinations, foreign-keyboard inset handling.                                                                                                                                                                                |
-| Home          | Preserve the current forest `HomeHeroCard`, its estimate and chart. The older mint description at `ios/DESIGN.md:437` conflicts with the current implementation and the Two-Zone Rule; it is not a visual target. Inspect the custom `ProfileAvatar` toolbar label under vertical bars. |
-| Budget list   | Preserve year selection, annual recap, current-period semantics, creation and planning actions. Selection must use the future native container without the rejected card/stripe styling.                                                                                                |
-| Budget detail | Sticky pager paints above the top safe area and compares global vertical geometry to the navigation bottom. Verify these assumptions when bars move to a vertical edge.                                                                                                                 |
-| Shared hero   | `HeroZoneSurface` tracks the content zone against a top navigation boundary; verify pane-relative behavior before changing it.                                                                                                                                                          |
-| Forms         | Reuse `SheetFormContainer`, amount fields and existing presentation. Verify focus, keyboard and unsaved values across genuine resize/fold transitions.                                                                                                                                  |
-
-## Evidence still required
-
-A verified Xcode 27.1+ environment must build Local and unsigned Prod and capture actual
-SwiftUI home, annual budget, budget detail and entry forms across outer, inner portrait,
-inner landscape, book and tabletop poses. Native captures must identify real chrome, fold, camera, scroll and keyboard defects
-before Duo visual acceptance. Stabilized local captures may guide the standard native
-container proposal while remote compilation proceeds. Legacy compilation or
-resized images do not satisfy this gate.
-
-## Remote prerequisite checkpoint
-
-Local baseline builds pass, but Xcode 27.1 requires macOS 26.6 or later. The published
-GitHub `xcode-27` image contains Xcode 27.1; CI selects it and downloads the matching
-27.1 runtime explicitly. The existing unit/smoke job and all distribution authorization
-gates remain in place. Actionlint's runner-label allowlist records the new hosted label.
-
-The draft branch temporarily preserves an unsigned production archive after tests.
-It accepts the tested PR merge tree only when identical to the source branch tree and
-records both commits. This instrumentation must be removed after internal TestFlight
-delivery. Local workflow lint and all 36 CI security tests pass. A checkpoint is required
-to run the PR-only CI; it does not complete this phase or validate Duo rendering.
-
-The first remote run, `39952873392`, verified Xcode 27.1 (`27A9275`), SDK 27.1 and
-runtime 27.1 (`24A94425`). Its simulator creation failed before tests: this runtime's
-`supportedDeviceTypes` contains only `com.apple.CoreSimulator.SimDeviceType.iPhone-Duo`.
-The resolver now uses that observed type. No tests or archive from that failed run are
-counted as passed. The public simctl help has no fold/pose control; native pose coverage
-must remain explicit until Device Hub control is demonstrated.
-
-## Local native captures (iOS 26.5)
-
-The v2 XCTest result bundle is
-`/private/tmp/pulpe-ios-duo-native-baseline-local-v2.xcresult`; its exported attachment
-manifest is in the adjacent `-attachments` directory. Six screenshots show the actual
-home, annual list and budget detail in portrait and landscape. These fixtures render
-production tabs individually, without the enclosing `TabView`, so they do not prove
-full app navigation or Duo behavior.
-
-| Observed surface      | Native evidence                                                                                                       | Decision                                                                                                             |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Home landscape        | White side bands; the light account avatar loses contrast outside the forest background.                              | Keep the forest content and fix width/background and semantic toolbar handling.                                      |
-| Annual list landscape | The large annual summary pushes month rows below the first viewport; the trailing plus is clipped.                    | Native selection list with compact access to the existing annual summary and semantic toolbar actions.               |
-| Detail landscape      | The hero uses most of the short viewport; the system search overlaps the visible filter area.                         | Inspect the real tab container and Duo bars before changing content geometry.                                        |
-| Amount entry          | The keypad is present, but the hidden input has no accessible text-field focus; two elements announce only “Montant”. | Enter through real keypad keys; expose one amount control with its amount and currency, preserving focus activation. |
-
-This run executed one test and failed at amount input, after the six captures. It is
-not a passing continuity check. The next run must assert the exact amount through
-rotation and preserve the disabled submission state for an incomplete draft.
-
-Remote run `39956002261` successfully booted Duo on runtime 27.1, but the inherited
-13-minute unit-step watchdog interrupted compilation before any test ran. Its preserved
-`test-output.log` ends with `SwiftEmitModule` and `BUILD INTERRUPTED`, with no compiler
-error or passing test. The cold-build budget is now 30 minutes inside a 75-minute job;
-result checks and the post-test hang guard are unchanged. No Duo rendering is inferred
-from this run.
-
-## Navigation concurrency prerequisite
-
-The first state increment coalesces pending deletion commits, keeps the latest requested
-month, and ignores loading/error completion from an older month. Local focused testing
-passed 30 tests in seven suites, including four deletion/navigation combinations and
-two stale-load cases. Evidence:
-`/private/tmp/pulpe-ios-duo-native-phase2a-tests-v1.xcresult` and its adjacent `.log`.
-This validates state ordering, not the future split container or fold continuity.
-
-The stabilized v3 UI run passed one test with zero failures and produced eight expected
-captures in `/private/tmp/pulpe-ios-duo-native-baseline-local-v3.xcresult`. The amount
-control reports exactly `12 CHF` after real keypad input and both rotations; the keyboard
-remains present and incomplete submission remains disabled. Stable-frame polling still
-shows the landscape width/toolbar defects above. The form amount is partly obscured by
-the landscape keyboard: state continuity passes, complete visual reachability remains
-open. An extra attachment named `failure` is a teardown naming mistake, not a failed
-assertion; teardown now checks `totalFailureCount` instead of premature `hasSucceeded`.
-
-Remote run `39960217562` compiled the SDK 27.1 simulator app and executed 2,490 tests
-in 273 suites. Its only reported issue was the architecture line limit: the coordinator
-has 350 newline characters, counted as 351 segments by the existing invariant. Smoke
-captures and archive correctly remained gated. The independent review also found a
-new-deletion undo-window regression in the first concurrency increment; that candidate
-must not be distributed until the batch boundary is corrected and regression-tested.
-
-## Shared fixes and adaptive presentation check
-
-Deletion callbacks now confirm a snapshot of operation UUIDs; a previous toast cannot
-consume a later deletion of the same entity. Navigation checks its generation before
-starting another deletion batch, so returning to the current month preserves a later
-undo window. The independent static review found no remaining issue in this increment;
-the local `common-v4` run then passed 51 tests in eight suites, including the new
-undo/navigation cases, root-entry locks, session resets and architecture invariants.
-Evidence: `/private/tmp/pulpe-ios-duo-native-common-v4.xcresult` and its adjacent log.
-
-The shared amount input keeps its real typographic height while transparent. Earlier
-native form captures show the amount and underline fully above the keyboard in both
-landscapes. The common `phase2b-ui-v1` captures also confirm that removing the home
-container's fixed relative width restores the available landscape width, and that the
-account action renders with the system button. These are iOS 26.5 observations.
-
-The first native split-container run executed two UI tests: the cold budget-entry test
-passed, while continuity failed. After entering `12` in landscape, rotating to portrait
-closed the form entirely. The presentation host inside the adapting detail column is
-the primary suspect. This is a real draft-preservation failure, not an amount-selector
-failure; the split-container candidate remains unsuitable for distribution until a
-stable presenter passes the unchanged rotation scenario. Evidence is in
-`/private/tmp/pulpe-ios-duo-native-phase2b-ui-v1.xcresult` and its adjacent log and exported
-attachments. No fold or inner-screen coverage is inferred from these rotations.
-
-## Stable presentation candidate
-
-The Budgets tab now owns the detail sheet presenter above the adaptive split view.
-Each presentation carries its original coordinator, including nested budget entries;
-the other tabs retain their existing local presenters and back stacks. The complete
-unit target builds successfully and SwiftLint reports no violations in the 29 changed
-Swift files. The final independent static review reports no actionable finding.
-
-Local `phase2b-ui-v2` passes the cold month-entry regression. Its continuity scenario
-preserves the chosen year through compact Back, switches from 2026 to January 2027
-and back, and retains both `12 CHF` and `Repas test` through all three rotations with
-the keyboard present. The final save-reachability assertion fails: XCTest reports the
-button hittable while its frame remains below the viewport after keyboard dismissal.
-The run is not green. The next candidate must scroll until the button is actually
-inside the viewport and also exercise the sidebar's creation/planning sheets.
-Evidence: `/private/tmp/pulpe-ios-duo-native-phase2b-ui-v2.xcresult` and adjacent log.
-
-Version `1.11.0 (1)` is selected in the candidate after checking App Store Connect;
-no build has been uploaded. The signed export and remote SDK 27.1 validation remain
-required. These local rotations do not establish Duo fold or inner-display coverage.
-
-
-## SDK 27.1 review disposition
-
-Candidate `71ebac3a02c0efe45ed613e3732cf37eae095e47` retains an observable
-`isNavigating`. The automated review proposed `@ObservationIgnored`, but independent
-caller review rejects that change: `BudgetDetailsView` reads the property in
-`.disabled(coordinator.isNavigating)`. It must invalidate the UI before an awaited
-pending deletion and on cancellation/completion. Re-selecting the current month can
-make clearing this flag the only observable mutation; ignoring it can leave stale
-interaction state. The internal generation counters do not have this UI role.
-
-Static review accepts the separate strict-orientation and current-geometry journeys
-and the exact CI selector. Local regression passes both tests (240.074 seconds).
-SDK 27.1 visual acceptance still requires the rail and horizontal title to be legible
-simultaneously; no conclusion is inferred from a successful compile alone.
-
-## Cold revisit lifecycle correction
-
-Local instrumentation reproduces the SDK 27.1 failure on iOS 26.5. On the second
-August entry, the SwiftUI task starts uncancelled, becomes cancelled during the
-fixture fetch, and exits through the skeleton delay's cancellation catch without
-restarting. The coordinator/projector store identities match. The task is now owned
-by the existing view state, with appearance, disappearance and visible-month changes
-controlling its lifetime. Coordinator identity, mutation generations, pending Undo
-and store-owned tag refresh remain intact. Instrumentation is removed. Independent
-review and the unchanged navigation journeys are the acceptance gate for this repair.
-
-The first view-owned-task attempt is rejected by its unchanged current-geometry
-journey: it still fails after the year round-trip. The strict rotation journey passes,
-so neither that pass nor the lifecycle diagnosis proves the repair. Further isolation
-checks the actual appearance/disappearance sequence and the transparent root `Group`.
-
-## Detail navigation session boundary
-
-A stable `ZStack` alone did not repair the native remount. Both experimental loading
-changes are removed. `BudgetsTab` now creates its detail `NavigationStack` inside the
-selected-budget branch. Returning to the list ends that stack; direct non-nil month
-changes preserve its structural identity and coordinator. Independent review checked
-all selection/path writers: deep links and creation select first; nested destinations
-start from a selection; Back cannot clear it while a sheet or child path is active;
-session reset closes those presentations before clearing selection. No normal route
-requires an active Budgets child stack with no selected month.
-
-The unchanged current-geometry journey passes (1 test, 0 failures, 121.481 seconds),
-including the previously failing cold revisit and draft entry. The final strict
-rotation and native Back run passes two tests in 242.149 seconds. Nested goal/spread
-navigation passes in 26.731 seconds; the eight navigation/keyboard contracts also pass.
-The eight local captures were inspected and refreshed without image edits. SDK 27.1
-visual verification remains required before delivery.
-
-Automated review of `75cfa5879` reports no blocking or important finding
-([comment](https://github.com/neogenz/pulpe/pull/830#issuecomment-6371920868)).
-Its suggestion to add feedback to the selection binding does not establish a defect:
-month links are already disabled while root replacement is forbidden, and native
-selection-clearing callbacks are intentionally rejected without user-facing noise.
-The temporary archive steps remain scheduled for removal immediately after internal
-delivery; no additional feature or approval action is implied by the review verdict.
-
-## SDK 27.1 candidate 75cfa5879 outcome
-
-The cold revisit is repaired in the actual Duo run. Native Back passes, and the
-continuity journey reaches a preserved draft; its next failure comes from asking
-XCTest whether the navigation-bar container has an activation point. Native title
-and control frames, not container hittability or its broad bounding rectangle,
-are the relevant collision geometry. The last recorded frame shows the amount and
-description present above the keyboard; the subsequent AX frames were not exported.
-
-The home title remains black on forest despite the visible native bar background.
-This candidate is not visually accepted. The next candidate must retain the hero's
-dark scheme together with the visible native vertical background, and prove both
-title and control contrast in fresh screenshots. No archive or TestFlight upload
-was produced from the failed run.
-
-## Hero and native-control repair review
-
-Independent static review accepts retaining the hero's dark bar scheme with a visible
-native background in vertical context. It also accepts checking actual title/button
-frames without activating their navigation-bar container. The same amount, description,
-keyboard, viewport, geometry stability and action reachability checks remain in place.
-No product form or loading behavior changed. The two local journeys pass (2 tests,
-0 failures, 340.998 seconds); SDK 27.1 screenshots must still prove simultaneous title
-and rail contrast. Neither local success nor static approval establishes that result.
-
-## SDK 27.1 candidate 08f4de502 outcome
-
-The actual title, native list, preserved draft and reachable submit action pass visual
-inspection. The reviewer refuses delivery because the dark scheme now forces white
-rail glyphs onto light native capsules: Back measures about 2.05:1 and unselected tabs
-about 2.03:1. The expected graphical-control reference is 3:1
-([W3C](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast)).
-The two UI tests and 2,487 unit tests pass; that does not supersede this visual defect.
-No signing/export/upload was performed; this candidate is ineligible for delivery.
-
-## Contained hero surface candidate
-
-Apple's native rail has no bar background outside Reduce Transparency, so forcing
-the hero scheme onto its controls cannot establish contrast against the light canvas.
-The next candidate uses one stable rectangular mask: it includes container safe areas
-in horizontal layout and bounds content to its viewport in vertical layout. The canvas
-is painted behind the mask, and vertical title/control appearance follows the screen.
-This contains both the hero's upper bleed and the sticky pager's background without
-moving their content or adding a custom title. The Objectif caller uses a semantic
-label, with its existing horizontal treatment and automatic vertical styling.
-
-Independent static review finds no concrete defect in these three source changes.
-The enriched UI journey retains all continuity assertions and visits the linked goal.
-The home pending-items capture requires visible content and uses the existing
-pointing shortcut only when needed; it does not certify a manual landscape pan or
-guarantee that a shortcut was activated when the row was already visible. Budget
-captures follow a gesture but do not automatically prove a revealed sticky pager. New SDK 27.1 images must establish the mask's
-actual effect and control contrast; the horizontal SDK 27.1 path remains a separate
-coverage limit from the local SDK 26.5 rotation tests.
-
-## Horizontal goal-button contrast
-
-The first native-only goal button renders a mint pencil on a mint capsule on iOS 26.5.
-Interior pixels measure 2.067:1, so that attempt is rejected. The existing hero button
-and hidden-glass treatment are restored for horizontal bars. A private derived
-environment value selects automatic button styling and the system background only
-when the SDK 27.1 vertical edge is present. The semantic label and existing action/ID
-remain unchanged. Both helpers retain their previous behavior on older SDKs/OSes.
-The fresh local capture `05B76908-F683-4693-B2DB-4B1152F61C35.png` in
-`/private/tmp/pulpe-ios-duo-native-v10-mask-ui-v4-attachments` restores 4.675:1
-pencil/disc contrast. The label renders as an icon without title collision. This
-acceptance excludes the existing horizontal Back/status appearance and the SDK 27.1
-rail; those pixels are not validated by the pencil measurement.
-
-## Draft geometry diagnostics
-
-The enriched strict journey exposed two test-geometry mistakes without establishing a
-product defect: whole-group padding was compared against floating accessory controls,
-and the isolated keyboard snapshot returned portrait coordinates after landscape
-rotation. Instrumented probes confirm five valid controls, the amount/currency children
-and no overlap between their visible frames. The keyboard must use XCTest's normalized
-element frame. Its presence and finite, nonempty frame remain required, as do complete
-amount-group containment, keyboard separation, preserved values and reachable actions.
-
-Independent static review accepts the normalized keyboard-frame correction. The final
-strict local journey passes one test with zero failures in 326.590 seconds, with
-`TEST SUCCEEDED` and exit 0. The SDK 27.1 mask and rail still require fresh native images
-before the candidate becomes eligible for distribution.
-
-## Horizontal hero coverage
-
-The strict v10 images expose a second boundary condition: the native goal edit button
-straddles the forest and lateral safe-area canvas. Adding an opaque token under its disc
-still produces a light half after native compositing, despite two passing contrast tests
-and a passing strict v11 journey (318.994 seconds). That attempt is rejected and removed.
-Static review accepts extending only the background of six full-screen hero/skeleton
-callers into horizontal safe areas. The two annual-summary callers remain unchanged via
-an explicit opt-in. Content and navigation retain their layout and identity. Fresh
-landscape captures and the SDK 27.1 mask/rail gate remain required.
-
-## SDK 27.1 candidate 43405c5bf
-
-[Run 40027993962](https://github.com/neogenz/pulpe/actions/runs/40027993962) passes
-2,487 unit tests with the same nine skips on iOS 27.1 (24A94425), Xcode 27.1
-(27A9275). Native Back passes; the current-geometry journey fails at its first
-draft check after 175.019 seconds. Its accessibility tree contains exactly one
-“Fermer” button in a separate native `Toolbar`, outside the title's `NavigationBar`.
-The test incorrectly queried it under that bar, making the required geometry
-result nil. The screenshot shows `12 CHF` above the visible keyboard.
-The correction changes only that query to `app.buttons["Fermer"]`; all five
-controls, finite frames, keyboard separation and draft assertions remain required.
-Evidence: `/private/tmp/pulpe-duo-ci-v10-native`. No archive, signed export or
-TestFlight upload was produced. The corrected journey still requires a passing run.
-
-Independent review accepts the product rendering in the six SDK 27.1 captures:
-black titles on canvas, the forest contained below the title and outside the rail,
-and readable native controls. Interior-pixel samples measure title 18.7:1, Back
-18.1:1, goal pencil 6.26:1 and active tabs 5.1–5.6:1. This accepts the observed
-outer geometry only; it does not certify all postures, the sticky pager or the
-full accessibility matrix. The one-expression test correction is also accepted
-statically; delivery remains gated on the corrected run.
-
-The corrected current-geometry journey passes locally: one test, zero failures,
-161.620 seconds, `TEST SUCCEEDED` (xcodebuild operation 236.578 seconds). Evidence:
-`/private/tmp/pulpe-ios-duo-native-close-scope-v1.xcresult`. No product source changed
-after the accepted SDK 27.1 captures. The remote corrected journey and archive remain pending.
+# Native review disposition
+
+Disposition: native product and draft accepted for the observed geometry; internal beta delivered.
+Delivered source: `d93e69614e4bf795c6cd020e5e466edeaef1010c`, version `1.11.0 (1)`.
+Product source remains `43405c5b`; only the test query and reports changed afterward.
+Review basis: production SwiftUI, synthetic native journeys and unmodified screenshots.
+The rejected HTML concept is not a design reference.
+
+## Native structure and state
+
+The budget list uses system selection and split navigation, with year/annual-summary
+access and semantic creation/planning actions. Root navigation respects active drafts;
+nested routes retain their originating coordinator and the other tabs keep their stacks.
+The stable sheet host survives column adaptation. The detail stack's selected-budget
+boundary prevents the cold-revisit loading failure while preserving direct month changes.
+Operation-level deletion batches preserve independent undo windows and cancellation.
+No replacement loading framework, financial formula change or global UIKit styling is introduced.
+
+## Surfaces and controls
+
+The shared bar modifier keeps one structural shape while adapting to the actual vertical
+edge. In vertical context it bounds the hero/pager backgrounds, leaves canvas under the
+native title and uses the screen appearance. Horizontal rendering keeps the hero theme.
+The six screen/skeleton backgrounds opt into horizontal safe areas; annual-summary cards do not.
+The goal action retains its label, identifier and behavior, with the existing horizontal
+button treatment and automatic vertical treatment. Local v12 images show the entire pencil
+on a uniform disc in both landscapes, with a distinct light native sidebar.
+
+The accepted 4.675:1 pencil/disc measurement is a sampled control result, not a universal
+contrast certification. It excludes horizontal Back/status appearance, other controls,
+and the SDK 27.1 rail. The separate native SDK 27.1 review below establishes the
+observed rail contrast; local measurements alone do not prove it.
+
+## Evidence and interpretation
+
+- Earlier shared-logic checkpoint: 51 tests / 8 suites passed; evidence covers concurrency, navigation guards, reset and architecture at that checkpoint.
+- Current v12 contracts: 20 tests / 2 suites passed; token and home contracts do not measure every rendered control.
+- Current v12 strict journey: 1 pass, 326.401 s, exit 0; covers real iOS 26.5 rotations, navigation, template choices and preserved amount/description with keyboard.
+- Native geometry checks require finite frames, full amount-group containment, keyboard presence/separation and non-overlap of visible amount content with required controls.
+- Visual evidence: `/private/tmp/pulpe-ios-duo-native-v12-ui-attachments/`; source bundles are listed in `validation.md`.
+
+The home pending-items view proves visible content, not manual pan behavior. A shortcut
+may be unnecessary when the row is already visible. Budget screenshots after a gesture
+do not prove sticky-pager visibility. Neither successful local rotations nor current-
+geometry Duo automation establishes all five poses or any fold transition.
+Broader accessibility, physical-device and older-system combinations are not certified.
+
+## SDK 27.1 acceptance
+
+The six native captures from product `43405c5b` show black titles on the canvas,
+forest bounded below the title and outside the rail, and readable native controls.
+Interior-pixel samples measure title 18.7:1, Back 18.1:1, goal pencil 6.26:1 and
+active tabs 5.1–5.6:1. These are sampled results for this outer geometry only.
+
+The corrected `d93e69614` journey passes both UI tests in 267.379 seconds. Independent
+review also accepts its three final draft captures: the amount is above the keyboard,
+`Repas test` is retained and Ajouter is fully visible after keyboard dismissal.
+The close button remains required and is found in the system's separate toolbar;
+its accessibility tree contains exactly one matching button. No assertion was relaxed.
+
+The final outcome challenge finds no further demonstrated product blocker for this
+internal beta. It does not certify submission, folding or the complete accessibility
+matrix. Evidence and the 13-image manifest are linked in [validation.md](validation.md).
+
+## Delivery receipt and scope
+
+The prepared archive copy exports through standard Xcode distribution signing. Actual
+app/widget entitlements now match the source capabilities and expected distribution keys;
+all three native signatures and actual signing certificates verify. Code, SDK, dependencies,
+UUIDs, symbols and metadata remain unchanged. This limited intermediate preparation is not
+presented as an officially supported Apple workflow; the final IPA was never patched.
+
+TestFlight readback confirms build `73c0f535-66b2-4cc9-a52f-5b92ec77e45f`, version
+`1.11.0 (1)`, is `VALID`, `INTERNAL_ONLY` and `IN_BETA_TESTING` for `Moi`. French
+notes match the approved content. There was one upload and no App Review submission.
+The temporary archive steps are removed; cleanup does not change the delivered iOS source.
+
+The final signing/provenance challenge found no blocking issue. Implementation and internal
+beta delivery are complete; the full Duo configuration/accessibility qualification remains
+partial. Full provenance and limits are recorded in [validation.md](validation.md).

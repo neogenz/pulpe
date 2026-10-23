@@ -1,8 +1,12 @@
 ---
-status: pending
+status: implemented
 ---
 
 # Instruction: Adapt home, forms and fold-sensitive content
+
+## Recorded outcome
+
+Implemented with adaptive native bars, bounded hero backgrounds, the wider home chart and preserved form state. Current Duo geometry and classic-device rotations pass; broader fold/accessibility combinations remain unqualified. See [validation.md](validation.md) for exact evidence and limits.
 
 ## Architecture projection
 

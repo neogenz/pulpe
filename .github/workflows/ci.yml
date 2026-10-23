@@ -779,33 +779,6 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-      # Temporary branch evidence; remove after the internal TestFlight build.
-      - name: Archive unsigned production application
-        if: github.head_ref == 'codex/ios-duo-native'
-        working-directory: ios
-        env:
-          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          # A PR merge build is deliverable only when its tree matches the branch.
-          test "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "$SOURCE_SHA^{tree}")"
-          xcodebuild archive -project Pulpe.xcodeproj -scheme PulpeProd \
-            -configuration Prod -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/Pulpe.xcarchive" CODE_SIGNING_ALLOWED=NO
-          tar -czf "$RUNNER_TEMP/Pulpe-unsigned.xcarchive.tar.gz" -C "$RUNNER_TEMP" Pulpe.xcarchive
-          printf 'source=%s\ntested=%s\ntree=%s\n' "$SOURCE_SHA" "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" > "$RUNNER_TEMP/ios-source-sha.txt"
-
-      - name: Preserve unsigned production archive
-        if: github.head_ref == 'codex/ios-duo-native'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: ios-unsigned-${{ github.event.pull_request.head.sha }}
-          path: |
-            ${{ runner.temp }}/Pulpe-unsigned.xcarchive.tar.gz
-            ${{ runner.temp }}/ios-source-sha.txt
-          retention-days: 3
-          if-no-files-found: error
-
       - name: 🧹 Cleanup Simulator
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true

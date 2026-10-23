@@ -1,8 +1,12 @@
 ---
-status: in-progress
+status: implemented
 ---
 
 # Instruction: Establish the SDK and native baseline
+
+## Recorded outcome
+
+Implemented with SDK 27.1 CI evidence and real native captures. Local rotation evidence uses iOS 26.5; the complete Duo pose matrix remains unqualified. See [validation.md](validation.md) for exact evidence and limits.
 
 ## Architecture projection
 

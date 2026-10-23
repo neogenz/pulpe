@@ -1,6 +1,6 @@
 ---
 objective: "Pulpe preserves its native iOS identity, navigation and financial state across iPhone Duo displays, rotations and folds, with the verified build available in TestFlight."
-status: in-progress
+status: done
 ---
 
 # Plan: Native iPhone Duo adaptation
@@ -11,6 +11,10 @@ status: in-progress
 | --- | --- |
 | **Goal** | Make existing journeys resize naturally, then add useful budget context using native SwiftUI containers. |
 | **Source** | User conversation dated 2026-10-21; Apple links below; rejected sidebar in “Screenshot 2026-10-21 at 15.06.08.png”. The HTML exploration is not a visual specification. On 2026-10-23 the user authorized full implementation and TestFlight from a dedicated branch/worktree based on fresh origin/main. |
+
+## Outcome
+
+Implemented on `codex/ios-duo-native` and delivered as internal TestFlight 1.11.0 (1) to `Moi`. The delivered source is `d93e69614`; subsequent documentation/CI cleanup leaves iOS source unchanged. Native validation and the delivery receipt are recorded in [validation.md](validation.md). The complete Duo pose, physical-device and accessibility matrix remains partially qualified; the validation report records these limits. TestFlight notes explicitly identify the remaining Duo pose and rotation checks.
 
 ## Phases
 
