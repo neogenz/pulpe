@@ -174,6 +174,18 @@ extension BudgetDetailsCoordinator {
         )
     }
 
+    /// Rapid requests share the same flush; only the latest may replace the current month.
+    func prepareNavigation(to budgetId: String) async {
+        navigationGeneration += 1
+        let request = navigationGeneration
+        await commitPendingSoftDeletions()
+        guard request == navigationGeneration else { return }
+        loadGeneration += 1
+        syncStore.setLoading(false)
+        syncStore.clearError()
+        dataStore.prepareNavigation(to: budgetId)
+    }
+
     /// Finalize pending soft-deletions before the screen navigates to another
     /// month. Commits them against the still-current store and drops any stale
     /// error, so neither the undo/rollback paths nor an error banner can target
@@ -186,6 +198,17 @@ extension BudgetDetailsCoordinator {
     }
 
     private func commitPendingSoftDeletions() async {
+        if softDeletionCommit == nil, !mutationQueue.isEmpty {
+            softDeletionCommit = Task {
+                defer { softDeletionCommit = nil }
+                while !mutationQueue.isEmpty { await commitPendingSoftDeletionBatch() }
+            }
+        }
+        // A toast may already have drained the queue while its DELETE is still on the wire.
+        while let commit = softDeletionCommit { await commit.value }
+    }
+
+    private func commitPendingSoftDeletionBatch() async {
         // The queue is the source of truth: undo already removed any restored
         // item via `popLast`, so everything still pending must be committed —
         // even if a reload re-injected the line into the store in the meantime

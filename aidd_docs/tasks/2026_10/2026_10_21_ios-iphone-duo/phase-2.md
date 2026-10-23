@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in-progress
 ---
 
 # Instruction: Adapt budget navigation without losing context
@@ -73,13 +73,14 @@ Inner landscape / book
 Implementation is split into two reviewable increments: shared selection/navigation guards
 and their regressions first, then the native container and continuity capture. The state
 increment may start after the local build prerequisites while remote baseline captures run;
-only the container/presentation increment depends on reviewing those captures. Neither
-increment completes this phase on its own. Preserve nested goal-to-budget pushes and
+stabilized local native captures may inform the standard container proposal while the
+cold SDK 27.1 build completes remotely. The container is not Duo-validated until remote
+captures have been reviewed. Neither increment completes this phase on its own. Preserve nested goal-to-budget pushes and
 `SessionResetScope.clearsNavigation`; block root month selection while a child editor or
 sheet is active so local drafts are not silently discarded.
 
 ### `1)` Let the native container manage the extra hierarchy
-1. After phase 1, compare a native two-pane capture with the baseline, then use `NavigationSplitView` with a native `List(selection:)` and the existing typed detail stack. Keep one stable hierarchy across widths; no conditional replacement stacks or copied detail view. Compact width presents the selected pane; narrow regular width and accessibility text may collapse.
+1. Compare a native two-pane capture with the available baseline, then use `NavigationSplitView` with a native `List(selection:)` and the existing typed detail stack. Keep one stable hierarchy across widths; no conditional replacement stacks or copied detail view. Compact width presents the selected pane; narrow regular width and accessibility text may collapse.
 2. Reuse existing month labels, amounts, masking, payday periods, creation/planning sheets and annual recap access. Selection uses native treatment, without the rejected inset card/green stripe; no fixed mockup width. Current-period and selected-month states remain distinct.
 3. Give the selected budget one owner at the tab/app boundary; synchronize list, title menu, pager and coordinator after successful month navigation. Preserve the existing pending-change checks, error handling and latest-request cancellation. Explicitly handle year changes, creation, missing/deleted budgets and rapid selections.
 4. Route direct Budgets entries and deep links through the same selection contract. Keep Accueil and Objectifs entries on their existing stacks; inspect their callers in `CurrentMonthView`, `MonthRecapCard` and `SavingsGoalDetailView`. Reset selection on session reset; do not decode opaque `NavigationPath` contents.

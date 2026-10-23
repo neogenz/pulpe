@@ -20,6 +20,9 @@ final class BudgetDetailsCoordinator {
     @ObservationIgnored let transactionService: any TransactionServicing
     /// True while a month deletion is on the wire, so a second confirm sends no second DELETE.
     @ObservationIgnored var isDeletingMonth = false
+    @ObservationIgnored var navigationGeneration = 0
+    @ObservationIgnored var loadGeneration = 0
+    @ObservationIgnored var softDeletionCommit: Task<Void, Never>?
 
     init(
         budgetId: String,
@@ -58,8 +61,7 @@ final class BudgetDetailsCoordinator {
         case .reloadCurrentBudget:
             await reloadCurrentBudget()
         case .prepareNavigation(let id):
-            await commitPendingSoftDeletionsBeforeNavigation()
-            dataStore.prepareNavigation(to: id)
+            await prepareNavigation(to: id)
         case .setCheckedFilter(let filter):
             filtersStore.setCheckedFilter(filter)
         case .setTypeFilter(let filter):
@@ -147,15 +149,18 @@ final class BudgetDetailsCoordinator {
             return
         }
 
+        loadGeneration += 1
+        let load = loadGeneration
+        let budgetId = dataStore.budgetId
         let showsSkeleton = dataStore.budget == nil
         syncStore.setLoading(true)
         syncStore.clearError()
         let loadStart = ContinuousClock.now
-        defer { syncStore.setLoading(false) }
+        defer { if load == loadGeneration { syncStore.setLoading(false) } }
 
         let generation = dataStore.mutationGeneration
         do {
-            async let detailsTask = budgetService.getBudgetWithDetails(id: dataStore.budgetId)
+            async let detailsTask = budgetService.getBudgetWithDetails(id: budgetId)
             async let budgetsTask = budgetService.getBudgetsSparse(fields: "month,year", limit: nil, year: nil)
 
             let (details, budgets) = try await (detailsTask, budgetsTask)
@@ -166,20 +171,23 @@ final class BudgetDetailsCoordinator {
 
             // Drop the snapshot if an optimistic mutation landed mid-fetch (PUL-257).
             // Strip rows pending soft-deletion — the server still has them (PUL-271).
+            guard load == loadGeneration else { return }
             dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
             dataStore.applyAllBudgets(budgets)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {
-            syncStore.setError(error)
+            if load == loadGeneration { syncStore.setError(error) }
         }
     }
 
     /// Light reload: only current budget details (after toggle/update/navigation).
     func reloadCurrentBudget() async {
+        loadGeneration += 1
+        let load = loadGeneration
         syncStore.setLoading(dataStore.budget == nil)
         syncStore.clearError()
-        defer { syncStore.setLoading(false) }
+        defer { if load == loadGeneration { syncStore.setLoading(false) } }
 
         // Capture the generation BEFORE the fetch so an optimistic mutation
         // landing mid-flight drops the stale snapshot instead of reverting it
@@ -188,11 +196,12 @@ final class BudgetDetailsCoordinator {
         do {
             let details = try await budgetService.getBudgetWithDetails(id: dataStore.budgetId)
             // Strip rows pending soft-deletion — the server still has them (PUL-271).
+            guard load == loadGeneration else { return }
             dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
         } catch is CancellationError {
             // Task was cancelled, don't update error state
         } catch {
-            syncStore.setError(error)
+            if load == loadGeneration { syncStore.setError(error) }
         }
     }
 

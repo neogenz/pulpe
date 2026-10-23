@@ -6,7 +6,7 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
 
     @MainActor
     override func tearDown() async throws {
-        if let testRun, !testRun.hasSucceeded { capture("failure") }
+        if let testRun, testRun.totalFailureCount > 0 { capture("failure") }
         app.terminate()
         XCUIDevice.shared.orientation = .portrait
         try await super.tearDown()
@@ -32,8 +32,14 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         let submit = app.buttons["addBudgetLineSubmit"].firstMatch
         XCTAssertTrue(submit.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10), app.debugDescription)
-        app.typeText("12")
-        captureBothOrientations("entry-draft", landmark: app.staticTexts["12"], expectsKeyboard: true)
+        for digit in ["1", "2"] {
+            let key = app.keyboards.keys[digit]
+            XCTAssertTrue(key.waitForExistence(timeout: 5), app.debugDescription)
+            key.tap()
+        }
+        let amount = app.buttons.matching(NSPredicate(format: "label == %@ AND value == %@", "Montant", "12 CHF"))
+            .firstMatch
+        captureBothOrientations("entry-draft", landmark: amount, expectsKeyboard: true)
         XCTAssertFalse(submit.isEnabled, "An amount without a description must remain an unfinished draft.")
     }
 
@@ -56,9 +62,14 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         for orientation in [UIDeviceOrientation.portrait, .landscapeLeft] {
             XCUIDevice.shared.orientation = orientation
             XCTAssertTrue(landmark.waitForExistence(timeout: 15), app.debugDescription)
+            var previousContentFrame: CGRect?
             let geometry = NSPredicate { _, _ in
                 let frame = self.app.windows.firstMatch.frame
-                return orientation.isLandscape ? frame.width > frame.height : frame.height > frame.width
+                let contentFrame = landmark.frame
+                defer { previousContentFrame = contentFrame }
+                let rotated = orientation.isLandscape ? frame.width > frame.height : frame.height > frame.width
+                return rotated && !contentFrame.isEmpty && frame.intersects(contentFrame)
+                    && contentFrame == previousContentFrame
             }
             let rotation = XCTNSPredicateExpectation(predicate: geometry, object: nil)
             XCTAssertEqual(XCTWaiter.wait(for: [rotation], timeout: 10), .completed, app.debugDescription)

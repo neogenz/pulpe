@@ -13,6 +13,8 @@ final class MockTransactionService: TransactionServicing {
     private(set) var deletedIds: [String] = []
     private(set) var postponeCallCount = 0
     private(set) var postponedIds: [String] = []
+    private var deleteGate: CheckedContinuation<Void, Never>?
+    private var isDeleteGated = false
     var deleteError: Error?
     var postponeError: Error?
     var stubbedToggle: Transaction?
@@ -28,9 +30,18 @@ final class MockTransactionService: TransactionServicing {
     var spreadError: Error?
     private(set) var spreadFromTxnCalls: [(id: String, periods: [SpreadFromExistingPeriod])] = []
 
+    func gateDelete() { isDeleteGated = true }
+
+    func releaseDelete() {
+        isDeleteGated = false
+        deleteGate?.resume()
+        deleteGate = nil
+    }
+
     func deleteTransaction(id: String) async throws {
         deleteTransactionCallCount += 1
         deletedIds.append(id)
+        if isDeleteGated { await withCheckedContinuation { deleteGate = $0 } }
         if let deleteError { throw deleteError }
     }
 

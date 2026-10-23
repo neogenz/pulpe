@@ -576,7 +576,7 @@ jobs:
   test-ios:
     name: 🍎 iOS Tests
     runs-on: xcode-27
-    timeout-minutes: 60
+    timeout-minutes: 75
     needs: [classify]
     if: needs.classify.outputs.ios == 'true'
     steps:
@@ -665,11 +665,11 @@ jobs:
           tail -f test-output.log | grep --line-buffered -E '(✔|✘|Test Case|passed|failed|error:|Suite|TEST SUCCEEDED|TEST FAILED)' &
           TAIL_PID=$!
 
-          # Wait for test completion or timeout (13 min, leaving time for the smoke).
+          # Allow the cold SDK 27.1 build, then leave time for smoke tests and the archive.
           ELAPSED=0
           LAST_SIZE=0
           IDLE=0
-          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 780 ]; do
+          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 1800 ]; do
             if grep -q '\*\* TEST SUCCEEDED \*\*\|\*\* TEST FAILED \*\*' test-output.log 2>/dev/null; then
               echo "📋 Tests finished, cleaning up xcodebuild..."
               sleep 5

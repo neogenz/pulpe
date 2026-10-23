@@ -92,13 +92,15 @@ final class MockBudgetService: BudgetServicing {
     func getBudgetWithDetails(id: String) async throws -> BudgetDetails {
         getBudgetWithDetailsCallCount += 1
         didEnterDetails = true
+        let response = (stubbedDetails, detailsError)
         if isGated {
+            isGated = false
             await withCheckedContinuation { continuation in
                 gateContinuation = continuation
             }
         }
-        if let detailsError { throw detailsError }
-        return stubbedDetails
+        if let error = response.1 { throw error }
+        return response.0
     }
 
     func getBudgetsSparse(fields: String, limit: Int?, year: Int?) async throws -> [BudgetSparse] {
