@@ -624,13 +624,6 @@ jobs:
             xcodebuild -downloadPlatform iOS -buildVersion 27.1 -architectureVariant arm64
           fi
           xcrun simctl list runtimes -j
-          xcrun simctl list devicetypes -j
-          xcrun simctl help
-          xcrun simctl help io
-          xcrun simctl help ui
-          xcode-select -p
-          ls -d /Applications/*.app || true
-          rg -n -i 'fold|hinge|pose|display' "$(xcode-select -p)/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework/Headers/XCUIDevice.h" || true
 
       - name: 📱 Resolve iOS Simulator
         id: sim

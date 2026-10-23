@@ -79,7 +79,7 @@ struct CurrentMonthView: View {
         }
         .background { Color.appBackground.ignoresSafeArea() }
         .trackingHeroUnderBar($isHeroUnderBar)
-        // The hero runs under the navigation bar: its title and avatar go to light ink
+        // The hero runs under the navigation bar: its title and account action go to light ink
         // while the forest is under the bar, and back to the default on the light canvas.
         .heroNavigationBar(isOnHeroSurface: paintsHeroSurface)
         .trackScreen("Dashboard")
@@ -93,20 +93,11 @@ struct CurrentMonthView: View {
                 Button {
                     activeSheet = .account
                 } label: {
-                    ProfileAvatar(
-                        firstName: appState.currentUser?.firstName,
-                        email: appState.currentUser?.email,
-                        avatarUrl: appState.currentUser?.avatarUrl,
-                        diameter: DesignTokens.IconSize.compact,
-                        background: paintsHeroSurface ? .heroDisc : .surfaceContainerLowest,
-                        foreground: paintsHeroSurface ? .heroInk : .textTertiary
-                    )
+                    Label(AppLocale.string("Mon compte"), systemImage: "person.crop.circle")
                 }
-                .heroToolbarButtonStyle(paintsHeroSurface)
                 .accessibilityLabel("Mon compte")
                 .accessibilityIdentifier("homeAccountButton")
             }
-            .heroToolbarGroup(paintsHeroSurface)
         }
         .sheet(item: $activeSheet, onDismiss: handOverPendingWithdrawal) { sheet in
             Group {
@@ -247,7 +238,6 @@ struct CurrentMonthView: View {
                         .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
                         .contentZone()
                 }
-                .containerRelativeFrame(.horizontal)
             }
             .refreshable {
                 await store.forceRefresh()

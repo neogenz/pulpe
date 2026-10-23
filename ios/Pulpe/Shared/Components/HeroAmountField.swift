@@ -32,10 +32,10 @@ struct HeroAmountField<Field: Hashable>: View {
 
             ZStack {
                 TextField("", text: $amountText)
+                    .font(PulpeTypography.amountHero)
                     .keyboardType(.decimalPad)
                     .focused(focus, equals: field)
                     .opacity(0)
-                    .frame(width: 0, height: 0)
                     .onChange(of: amountText) { _, newValue in
                         if let value = newValue.parsedAsAmount {
                             amount = value

@@ -17,15 +17,15 @@ Evidence date: 2026-10-23. Phase 1 remains in progress; no Duo rendering is vali
 `ios/Pulpe/Resources/Info.plist`. iOS 18 deployment and iPhone device family 1 are unchanged.
 No runtime orientation override was found in the iOS source.
 
-| Check | Result |
-| --- | --- |
-| XcodeGen generation | Passed; second run reports unchanged cached project |
-| Generated plist orientation parity | Passed: three expected orientations |
-| Deployment/device target check | Passed: iOS 18 / iPhone |
-| `git diff --check` | Passed |
-| PulpeLocal generic simulator build | Passed: exit 0 and `BUILD SUCCEEDED`, SDK 26.5 |
-| PulpeProd unsigned device build | Passed: exit 0 and `BUILD SUCCEEDED`, SDK 26.5, no signature |
-| Duo screenshots and five-pose review | Not run; requires a verified SDK 27.1 runtime |
+| Check                                | Result                                                       |
+| ------------------------------------ | ------------------------------------------------------------ |
+| XcodeGen generation                  | Passed; second run reports unchanged cached project          |
+| Generated plist orientation parity   | Passed: three expected orientations                          |
+| Deployment/device target check       | Passed: iOS 18 / iPhone                                      |
+| `git diff --check`                   | Passed                                                       |
+| PulpeLocal generic simulator build   | Passed: exit 0 and `BUILD SUCCEEDED`, SDK 26.5               |
+| PulpeProd unsigned device build      | Passed: exit 0 and `BUILD SUCCEEDED`, SDK 26.5, no signature |
+| Duo screenshots and five-pose review | Not run; requires a verified SDK 27.1 runtime                |
 
 Build data and package checkouts are isolated in `/private/tmp/pulpe-ios-duo-native-derived-data`
 and `/private/tmp/pulpe-ios-duo-native-source-packages`. Local log:
@@ -34,6 +34,7 @@ and `/private/tmp/pulpe-ios-duo-native-source-packages`. Local log:
 `UIDeviceFamily=[1]` and the three declared orientations.
 
 From `ios/`, the Local command was:
+
 ```sh
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild build \
   -project Pulpe.xcodeproj -scheme PulpeLocal -configuration Local \
@@ -54,14 +55,14 @@ is absent. Neither build launched an application, changed simulator state or dis
 
 These are code observations, not proven visual defects.
 
-| Surface | Existing behavior to preserve or inspect |
-| --- | --- |
-| `MainTabView` | Four native tabs, independent typed stacks, shared budget destinations, foreign-keyboard inset handling. |
-| Home | Preserve the current forest `HomeHeroCard`, its estimate and chart. The older mint description at `ios/DESIGN.md:437` conflicts with the current implementation and the Two-Zone Rule; it is not a visual target. Inspect the custom `ProfileAvatar` toolbar label under vertical bars. |
-| Budget list | Preserve year selection, annual recap, current-period semantics, creation and planning actions. Selection must use the future native container without the rejected card/stripe styling. |
-| Budget detail | Sticky pager paints above the top safe area and compares global vertical geometry to the navigation bottom. Verify these assumptions when bars move to a vertical edge. |
-| Shared hero | `HeroZoneSurface` tracks the content zone against a top navigation boundary; verify pane-relative behavior before changing it. |
-| Forms | Reuse `SheetFormContainer`, amount fields and existing presentation. Verify focus, keyboard and unsaved values across genuine resize/fold transitions. |
+| Surface       | Existing behavior to preserve or inspect                                                                                                                                                                                                                                                |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MainTabView` | Four native tabs, independent typed stacks, shared budget destinations, foreign-keyboard inset handling.                                                                                                                                                                                |
+| Home          | Preserve the current forest `HomeHeroCard`, its estimate and chart. The older mint description at `ios/DESIGN.md:437` conflicts with the current implementation and the Two-Zone Rule; it is not a visual target. Inspect the custom `ProfileAvatar` toolbar label under vertical bars. |
+| Budget list   | Preserve year selection, annual recap, current-period semantics, creation and planning actions. Selection must use the future native container without the rejected card/stripe styling.                                                                                                |
+| Budget detail | Sticky pager paints above the top safe area and compares global vertical geometry to the navigation bottom. Verify these assumptions when bars move to a vertical edge.                                                                                                                 |
+| Shared hero   | `HeroZoneSurface` tracks the content zone against a top navigation boundary; verify pane-relative behavior before changing it.                                                                                                                                                          |
+| Forms         | Reuse `SheetFormContainer`, amount fields and existing presentation. Verify focus, keyboard and unsaved values across genuine resize/fold transitions.                                                                                                                                  |
 
 ## Evidence still required
 
@@ -101,12 +102,12 @@ home, annual list and budget detail in portrait and landscape. These fixtures re
 production tabs individually, without the enclosing `TabView`, so they do not prove
 full app navigation or Duo behavior.
 
-| Observed surface | Native evidence | Decision |
-| --- | --- | --- |
-| Home landscape | White side bands; the light account avatar loses contrast outside the forest background. | Keep the forest content and fix width/background and semantic toolbar handling. |
-| Annual list landscape | The large annual summary pushes month rows below the first viewport; the trailing plus is clipped. | Native selection list with compact access to the existing annual summary and semantic toolbar actions. |
-| Detail landscape | The hero uses most of the short viewport; the system search overlaps the visible filter area. | Inspect the real tab container and Duo bars before changing content geometry. |
-| Amount entry | The keypad is present, but the hidden input has no accessible text-field focus; two elements announce only “Montant”. | Enter through real keypad keys; expose one amount control with its amount and currency, preserving focus activation. |
+| Observed surface      | Native evidence                                                                                                       | Decision                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Home landscape        | White side bands; the light account avatar loses contrast outside the forest background.                              | Keep the forest content and fix width/background and semantic toolbar handling.                                      |
+| Annual list landscape | The large annual summary pushes month rows below the first viewport; the trailing plus is clipped.                    | Native selection list with compact access to the existing annual summary and semantic toolbar actions.               |
+| Detail landscape      | The hero uses most of the short viewport; the system search overlaps the visible filter area.                         | Inspect the real tab container and Duo bars before changing content geometry.                                        |
+| Amount entry          | The keypad is present, but the hidden input has no accessible text-field focus; two elements announce only “Montant”. | Enter through real keypad keys; expose one amount control with its amount and currency, preserving focus activation. |
 
 This run executed one test and failed at amount input, after the six captures. It is
 not a passing continuity check. The next run must assert the exact amount through
@@ -136,3 +137,35 @@ shows the landscape width/toolbar defects above. The form amount is partly obscu
 the landscape keyboard: state continuity passes, complete visual reachability remains
 open. An extra attachment named `failure` is a teardown naming mistake, not a failed
 assertion; teardown now checks `totalFailureCount` instead of premature `hasSucceeded`.
+
+Remote run `39960217562` compiled the SDK 27.1 simulator app and executed 2,490 tests
+in 273 suites. Its only reported issue was the architecture line limit: the coordinator
+has 350 newline characters, counted as 351 segments by the existing invariant. Smoke
+captures and archive correctly remained gated. The independent review also found a
+new-deletion undo-window regression in the first concurrency increment; that candidate
+must not be distributed until the batch boundary is corrected and regression-tested.
+
+## Shared fixes and adaptive presentation check
+
+Deletion callbacks now confirm a snapshot of operation UUIDs; a previous toast cannot
+consume a later deletion of the same entity. Navigation checks its generation before
+starting another deletion batch, so returning to the current month preserves a later
+undo window. The independent static review found no remaining issue in this increment;
+the local `common-v4` run then passed 51 tests in eight suites, including the new
+undo/navigation cases, root-entry locks, session resets and architecture invariants.
+Evidence: `/private/tmp/pulpe-ios-duo-native-common-v4.xcresult` and its adjacent log.
+
+The shared amount input keeps its real typographic height while transparent. Earlier
+native form captures show the amount and underline fully above the keyboard in both
+landscapes. The common `phase2b-ui-v1` captures also confirm that removing the home
+container's fixed relative width restores the available landscape width, and that the
+account action renders with the system button. These are iOS 26.5 observations.
+
+The first native split-container run executed two UI tests: the cold budget-entry test
+passed, while continuity failed. After entering `12` in landscape, rotating to portrait
+closed the form entirely. The presentation host inside the adapting detail column is
+the primary suspect. This is a real draft-preservation failure, not an amount-selector
+failure; the split-container candidate remains unsuitable for distribution until a
+stable presenter passes the unchanged rotation scenario. Evidence is in
+`/private/tmp/pulpe-ios-duo-native-phase2b-ui-v1.xcresult` and its adjacent log and exported
+attachments. No fold or inner-screen coverage is inferred from these rotations.

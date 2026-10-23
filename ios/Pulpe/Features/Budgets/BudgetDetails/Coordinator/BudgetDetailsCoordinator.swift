@@ -14,7 +14,7 @@ final class BudgetDetailsCoordinator {
     let filtersStore: FiltersStore
     let syncStore: SyncStateStore
     let mutationQueue: MutationQueue
-
+    var isNavigating = false
     @ObservationIgnored let budgetService: any BudgetServicing
     @ObservationIgnored let budgetLineService: any BudgetLineServicing
     @ObservationIgnored let transactionService: any TransactionServicing
@@ -22,8 +22,7 @@ final class BudgetDetailsCoordinator {
     @ObservationIgnored var isDeletingMonth = false
     @ObservationIgnored var navigationGeneration = 0
     @ObservationIgnored var loadGeneration = 0
-    @ObservationIgnored var softDeletionCommit: Task<Void, Never>?
-
+    @ObservationIgnored var softDeletionCommit: (id: UUID, task: Task<Void, Never>)?
     init(
         budgetId: String,
         budgetService: any BudgetServicing = BudgetService.shared,
