@@ -28,7 +28,7 @@ async function mockUserCurrency(
   // The auth-bypass fixture registers a default /users/settings handler that
   // omits `currency` and `showCurrencySelector`. Remove it first so our
   // currency-aware response is the only match.
-  await page.unroute('**/api/v1/users/settings').catch(() => {});
+  await page.unroute('**/api/v1/users/settings');
   await page.route('**/api/v1/users/settings', (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
