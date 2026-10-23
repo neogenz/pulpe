@@ -733,7 +733,7 @@ jobs:
             -scheme PulpeUITests \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
             -only-testing:PulpeUITests/BudgetOpensFromListUITests \
-            -only-testing:PulpeUITests/IPhoneDuoContinuityUITests \
+            -only-testing:PulpeUITests/IPhoneDuoContinuityUITests/testNativeBudgetJourneyOnCurrentGeometry \
             -resultBundlePath DuoResults \
             CODE_SIGNING_ALLOWED=NO \
             -parallel-testing-enabled NO \

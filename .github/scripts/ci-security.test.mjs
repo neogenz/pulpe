@@ -883,7 +883,7 @@ test("one macOS CI job proves units and the targeted iOS smoke", () => {
   assert.match(iosJob, /Executed 1 test/);
   assert.match(
     iosJob,
-    /-only-testing:PulpeUITests\/IPhoneDuoContinuityUITests/,
+    /-only-testing:PulpeUITests\/IPhoneDuoContinuityUITests\/testNativeBudgetJourneyOnCurrentGeometry/,
   );
   assert.match(iosJob, /Executed 2 tests/);
   assert.match(iosJob, /SimDeviceType\.iPhone-Duo/);

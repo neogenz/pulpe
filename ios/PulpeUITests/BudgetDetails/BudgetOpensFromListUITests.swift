@@ -14,7 +14,7 @@ final class BudgetOpensFromListUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-\(Self.scenario)"]
+        app.launchArguments = ["-\(Self.scenario)", "-AppleLanguages", "(fr)", "-AppleLocale", "fr_CH"]
         app.launchEnvironment["UITEST_SCENARIO"] = Self.scenario
         app.launch()
     }
@@ -29,8 +29,8 @@ final class BudgetOpensFromListUITests: XCTestCase {
         XCTAssertTrue(hero.waitForExistence(timeout: 15), app.debugDescription)
 
         let back = app.buttons["BackButton"]
-        XCTAssertTrue(back.exists, app.debugDescription)
-        XCTAssertEqual(back.label, "Budgets", app.debugDescription)
+        XCTAssertTrue(back.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(back.isHittable, app.debugDescription)
 
         // The seed budget is August 2026; the scheme runs in French. SwiftUI puts
         // the title on the bar itself; its title view may be a button (title menu).
@@ -38,5 +38,9 @@ final class BudgetOpensFromListUITests: XCTestCase {
             NSPredicate(format: "identifier MATCHES[c] %@", "ao[uû]t 2026|august 2026")
         ).firstMatch
         XCTAssertTrue(title.exists, app.debugDescription)
+        back.tap()
+        XCTAssertTrue(app.buttons["budgetYearPicker"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(row.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(hero.waitForNonExistence(timeout: 5), app.debugDescription)
     }
 }

@@ -3,6 +3,7 @@ import XCTest
 @MainActor
 final class IPhoneDuoContinuityUITests: XCTestCase {
     private var app = XCUIApplication()
+    private var orientations: [UIDeviceOrientation] = []
 
     @MainActor
     override func tearDown() async throws {
@@ -13,6 +14,20 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
     }
 
     func testNativeBaselineAcrossOrientations() {
+        orientations = [.portrait, .landscapeLeft, .landscapeRight]
+        verifyNativeBudgetJourney()
+    }
+
+    func testNativeBudgetJourneyOnCurrentGeometry() {
+        orientations = [.portrait]
+        verifyNativeBudgetJourney()
+        let coverage = XCTAttachment(string: "Current geometry only: rotations and fold transitions are not validated.")
+        coverage.name = "current-geometry-coverage"
+        coverage.lifetime = .keepAlways
+        add(coverage)
+    }
+
+    private func verifyNativeBudgetJourney() {
         continueAfterFailure = false
         launch("UITEST_CONTEXTUAL_CREATION_HOME")
         captureOrientations(
@@ -22,7 +37,7 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
 
         // A fresh process and the unseeded detail cache exercise the cold list-to-detail route.
         launch("UITEST_BUDGET_GOAL_SPREAD_METADATA")
-        XCTAssertTrue(app.tabBars.buttons["Budgets"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.buttons["Budgets"].waitForExistence(timeout: 10), app.debugDescription)
         let month = app.buttons["budgetMonthRow-goal-spread-budget"]
         captureOrientations("annual-budget", landmark: month)
         verifySidebarDrafts()
@@ -74,7 +89,10 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
             scrollUntilHittable(template)
             template.tap()
             captureOrientations(title, landmark: template, preservingSelection: true)
-            app.navigationBars[title].buttons["Fermer"].tap()
+            let close = app.buttons["Fermer"].firstMatch
+            XCTAssertTrue(close.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(close.isHittable, app.debugDescription)
+            close.tap()
             XCTAssertTrue(app.navigationBars[title].waitForNonExistence(timeout: 5))
         }
     }
@@ -102,12 +120,11 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
     private func returnToMonthList() {
         XCUIDevice.shared.orientation = .portrait
         let back = app.buttons["BackButton"]
-        let compact = NSPredicate { _, _ in
-            let frame = self.app.windows.firstMatch.frame
-            return frame.height > frame.width && back.exists && back.isHittable
+        let backAvailable = NSPredicate { _, _ in
+            back.exists && !back.frame.isEmpty && back.isHittable
         }
-        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: compact, object: nil)], timeout: 10),
-                       .completed, app.debugDescription)
+        let backReady = XCTNSPredicateExpectation(predicate: backAvailable, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [backReady], timeout: 10), .completed, app.debugDescription)
         back.tap()
         XCTAssertTrue(app.buttons["budgetYearPicker"].waitForExistence(timeout: 5), app.debugDescription)
     }
@@ -115,7 +132,7 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
     private func launch(_ scenario: String) {
         XCUIDevice.shared.orientation = .portrait
         app = XCUIApplication()
-        app.launchArguments = ["-\(scenario)", "-AppleLanguages", "(fr)"]
+        app.launchArguments = ["-\(scenario)", "-AppleLanguages", "(fr)", "-AppleLocale", "fr_CH"]
         app.launchEnvironment["UITEST_SCENARIO"] = scenario
         app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "large"
         app.launchEnvironment["UITEST_NATIVE_NAVIGATION"] = "1"
@@ -133,7 +150,7 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
     ) {
         var portraitWidth: CGFloat = 0
         // These are real rotations, not assertions about the active Duo display or fold angle.
-        for orientation in [UIDeviceOrientation.portrait, .landscapeLeft, .landscapeRight] {
+        for orientation in orientations {
             XCUIDevice.shared.orientation = orientation
             XCTAssertTrue(landmark.waitForExistence(timeout: 15), app.debugDescription)
             var previousContentFrame: CGRect?
@@ -141,7 +158,8 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
                 let frame = self.app.windows.firstMatch.frame
                 let contentFrame = landmark.frame
                 defer { previousContentFrame = contentFrame }
-                let rotated = orientation.isLandscape ? frame.width > frame.height : frame.height > frame.width
+                let rotated = self.orientations.count == 1
+                    || (orientation.isLandscape ? frame.width > frame.height : frame.height > frame.width)
                 let keyboard = self.app.keyboards.firstMatch
                 let coveredByBar = self.app.navigationBars.allElementsBoundByIndex.contains {
                     $0.isHittable && $0.frame.intersects(contentFrame)
@@ -169,8 +187,8 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
             if let preservingDescription {
                 XCTAssertEqual(app.textFields["Description de la prévision"].value as? String, preservingDescription)
             }
-            let suffix = orientation == .portrait ? "portrait"
-                : (orientation == .landscapeLeft ? "landscape-left" : "landscape-right")
+            let suffix = orientations.count == 1 ? "current-geometry" : (orientation == .portrait ? "portrait"
+                : (orientation == .landscapeLeft ? "landscape-left" : "landscape-right"))
             capture("\(screen)-\(suffix)")
         }
     }

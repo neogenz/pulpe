@@ -195,9 +195,7 @@ private struct HeroNavigationBarModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
-        // Named off the forest, never nil: going back to nil leaves the bar's light ink on.
-        let bare = content
-            .toolbarColorScheme(isOnHeroSurface ? .dark : colorScheme, for: .navigationBar)
+        let bare = barColorScheme(content)
             .toolbarBackground(.hidden, for: .navigationBar)
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
@@ -209,7 +207,38 @@ private struct HeroNavigationBarModifier: ViewModifier {
         bare
         #endif
     }
+
+    @ViewBuilder
+    private func barColorScheme(_ content: Content) -> some View {
+        // Returning to the explicit screen scheme clears the hero's light ink after scrolling.
+        let horizontal = content.toolbarColorScheme(isOnHeroSurface ? .dark : colorScheme, for: .navigationBar)
+        #if compiler(>=6.4)
+        if #available(iOS 27.1, *) {
+            content.modifier(HeroAdaptiveBarColorScheme(isOnHeroSurface: isOnHeroSurface))
+        } else {
+            horizontal
+        }
+        #else
+        horizontal
+        #endif
+    }
 }
+
+#if compiler(>=6.4)
+@available(iOS 27.1, *)
+private struct HeroAdaptiveBarColorScheme: ViewModifier {
+    let isOnHeroSurface: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.toolbarVerticalEdge) private var toolbarVerticalEdge
+
+    func body(content: Content) -> some View {
+        // A vertical rail sits on the screen canvas, outside the forest hero.
+        content.toolbarColorScheme(
+            toolbarVerticalEdge == nil && isOnHeroSurface ? .dark : colorScheme, for: .navigationBar
+        )
+    }
+}
+#endif
 
 private struct HeroToolbarButtonModifier: ViewModifier {
     let isOnHeroSurface: Bool

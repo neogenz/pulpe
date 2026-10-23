@@ -21,10 +21,10 @@ Evidence date: 2026-10-23. Distribution is still pending.
 | Contract repair units | 8 tests / 2 suites passed: keyboard-inset inventory and navigation ownership. |
 | Complete unit-target compilation | Passed with SDK 26.5. |
 | Commit quality hooks | Passed, including strict SwiftLint. |
-| Local native UI | 2 tests passed, 0 failures, 235.255 seconds on the dedicated iOS 26.5 simulator, including the new chart-width/viewport assertions. |
+| Local native UI | Latest repair run: 2 tests passed, 0 failures, 240.074 seconds on the dedicated iOS 26.5 simulator; actual Back plus strict three-orientation chart-width/viewport and draft assertions. |
 | Existing UI regressions | Four scenarios passed in the five-test run; the fifth passed on its targeted rerun after correcting the test activation target. |
 | Independent static review | No actionable finding on the complete candidate, including the final fixture injection. |
-| SDK 27.1 CI | App compiled; 2,497 tests / 273 suites executed with two contract failures. Corrections and another run are required. [Run](https://github.com/neogenz/pulpe/actions/runs/39975579885). |
+| SDK 27.1 CI | Candidate `a41f0ec9`: 2,487 unit tests passed, 9 existing skips, no unit failure; both UI tests failed. The corrections below require a new run. [Run](https://github.com/neogenz/pulpe/actions/runs/39982353588). |
 | Signed export / TestFlight | Pending. |
 
 The local UI journey opens a cold budget, changes year to January 2027 and returns to
@@ -60,6 +60,33 @@ the enriched UI check passes in `/private/tmp/pulpe-ios-duo-native-contracts-ui-
 (2 tests, 0 failures). Full SDK 27.1 CI still gates delivery. No build from the failed
 candidate is eligible for distribution.
 
+## SDK 27.1 follow-up
+
+Candidate `a41f0ec9` resolves both earlier unit contracts: the result bundle records
+2,496 total tests, 2,487 passed, 9 existing skips and no failures. Seven skips require
+Keychain availability, one is the legacy biometric token-copy check under the same
+condition, and one is the explicitly manual production PBKDF performance check.
+
+Its UI run fails two assumptions. The native vertical rail exposes a hittable Back
+button with an empty label, and `XCUIDevice.orientation` changes without the Duo
+window rotating. The first test now checks actual Back navigation instead of its
+label. The strict three-orientation journey remains available and runs locally;
+CI selects an explicitly separate current-geometry journey, preserving the same
+selection, draft, keyboard, viewport and navigation checks. It does not certify
+rotation or fold transitions. [Apple documents](https://developer.apple.com/documentation/xcuiautomation/xcuidevice/orientation)
+that physical and interface orientation are distinct; an independent
+[XCTest reproduction](https://github.com/appium/appium/issues/22857) records this
+Duo simulator behavior outside Appium's driver.
+
+Actual 27.1 images also reveal pale rail controls on a light surface: the shared
+hero navigation theme forced dark appearance beyond the forest background. The
+candidate uses `toolbarVerticalEdge` to choose the screen appearance when controls
+move into that rail. Acceptance requires a new 27.1 capture proving both rail and
+horizontal title contrast; compilation alone is insufficient. The repaired Back and
+strict rotation tests pass locally in
+`/private/tmp/pulpe-ios-duo-native-v6-repair-ui-v1.xcresult` (2 tests, 0 failures). No archive from the
+failed run was produced or distributed.
+
 ## Native captures
 
 These eight unmodified RGB PNGs come from the passing local UI run; the
@@ -80,8 +107,9 @@ scrolling; this capture does not prove the density of the wider Duo inner displa
 
 ## Coverage limits
 
-Orientation changes are genuine simulator rotations. They do not establish which Duo
-display is active or simulate a fold. The local machine runs Xcode 26.6 / SDK 26.5;
+Local iOS 26.5 orientation changes are genuine simulator rotations. The separate
+Duo CI journey validates only its current geometry. Neither establishes all Duo
+displays or simulates a fold. The local machine runs Xcode 26.6 / SDK 26.5;
 Xcode 27.1 requires a newer local macOS, so the matching SDK/runtime are tested in CI.
 No global developer-directory change or OS upgrade was performed.
 
@@ -90,3 +118,25 @@ checks until supported pose control is available. Public XCTest/simctl controls 
 for this task do not expose a verified fold-angle operation. No resized image is presented
 as evidence of another display or posture. The broader accessibility/legacy-device matrix
 and physical-device review must be distinguished from the recorded tests above.
+
+## Manual checks on the internal beta
+
+Use Device Hub's actual display and posture controls, or an iPhone Duo. Keep a
+synthetic/test account for input scenarios. Orientation alone is not a substitute.
+
+1. Open a budget on the outer display, open the device, rotate the inner display,
+   then close it. Check the same month/year, one coherent Back path and reachable
+   system controls at every transition.
+2. In the book and tabletop positions, inspect the home chart, selected month,
+   summary and ledger for clipping at the fold/camera region. Scroll to the last
+   item and the creation action.
+3. Start a forecast with an amount and description. Change posture with the keyboard
+   open; check both values, focus and reachable save/cancel, then discard the draft.
+   Repeat while a nested detail editor is open.
+4. Open creation/planning, select a non-default template, then resize and rotate.
+   Check the selection remains intact and close without saving.
+5. Repeat the relevant journey with large text, hidden amounts and dark appearance.
+   Check VoiceOver order, Reduce Motion/Transparency, background locking and an older
+   supported iPhone separately; those combinations are not certified by this report.
+
+These are recorded checks still to perform, not passing evidence.
