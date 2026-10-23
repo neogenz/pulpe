@@ -225,7 +225,7 @@ struct BudgetDetailsView: View {
                     of: { $0.frame(in: .global).maxY },
                     action: { maxY in scrollTracker.update(heroMaxY: maxY) }
                 )
-                .heroZone()
+                .heroZone(extendsHorizontally: true)
 
                 VStack(spacing: 0) {
                     // Above the tip and the rail: adding a forecast is what this screen is

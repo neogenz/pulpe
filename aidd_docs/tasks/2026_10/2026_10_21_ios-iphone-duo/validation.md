@@ -1,10 +1,11 @@
 # Native adaptation validation
 
-Version: `1.11.0 (1)`. Candidate: the hero contrast and native-control geometry repair
-after `75cfa587920dbeadebcf8aa57e7128494d000899`. The commit containing this report
+Version: `1.11.0 (1)`. Candidate: the contained hero surface and native goal-toolbar repair
+after `08f4de502fcb2ad41a31523be481bafd7d4b2f15`. The commit containing this report
 is the next SDK 27.1 candidate; earlier runs are diagnostic evidence, not delivery proof.
 Branch: `codex/ios-duo-native`; draft PR: <https://github.com/neogenz/pulpe/pull/830>.
-Evidence date: 2026-10-23. Distribution is still pending.
+Evidence date: 2026-10-23. Distribution is still pending; candidate `08f4de502`
+passes the SDK 27.1 tests but fails the rail-contrast visual gate.
 
 ## Implemented behavior
 
@@ -25,7 +26,7 @@ Evidence date: 2026-10-23. Distribution is still pending.
 | Local native UI | Navigation-session repair: current-geometry journey passed (1 test, 121.481 seconds); native Back and strict three-orientation journey passed (2 tests, 242.149 seconds); nested goal/spread navigation passed (1 test, 26.731 seconds). No failures. |
 | Existing UI regressions | Four scenarios passed in the five-test run; the fifth passed on its targeted rerun after correcting the test activation target. |
 | Independent static review | No actionable finding on the complete candidate or the subsequent hero/native-control repair. SDK 27.1 appearance remains a visual gate. |
-| SDK 27.1 CI | Candidate `75cfa5879`: 2,487 unit tests passed, 9 existing skips; native Back passed. Continuity passed the cold revisit, then failed querying the navigation-bar container's hittability. [Run 40002300116](https://github.com/neogenz/pulpe/actions/runs/40002300116). No archive was produced. |
+| SDK 27.1 CI | Candidate `08f4de502`: 2,487 unit tests passed, nine existing skips; both UI tests passed and the unsigned Prod archive was produced. [Run 40008374593](https://github.com/neogenz/pulpe/actions/runs/40008374593). Rail contrast still fails visual review, so no distribution. |
 | Signed export / TestFlight | Pending. |
 
 The local UI journey opens a cold budget, changes year to January 2027 and returns to
@@ -177,6 +178,78 @@ The two local journeys pass on this source: strict three-orientation continuity 
 `/private/tmp/pulpe-ios-duo-native-v8-controls-ui-v1.xcresult` and its adjacent log.
 Independent review accepts the scoped changes. Actual SDK 27.1 title and rail contrast
 must still be inspected together before signing or delivery.
+
+## SDK 27.1 candidate 08f4de502
+
+Run [40008374593](https://github.com/neogenz/pulpe/actions/runs/40008374593) passes
+2,487 unit tests with the same nine skips, and both native UI tests with zero failures.
+The result bundles and unmodified captures are in `/private/tmp/pulpe-duo-ci-v9-native`.
+The title is now white on forest; the amount and description survive the complete
+journey, and the final submit action is fully visible after dismissing the keyboard.
+
+Independent visual review rejects the rail contrast. The Back glyph is white on a
+capsule near RGB(178,182,177), about 2.05:1 on interior pixels; unselected tab glyphs
+are about 2.03:1. These are below the 3:1 graphical-control reference. The forced dark
+scheme affects the vertical controls, while their visible native background remains
+light. Native materials do not establish sufficient contrast by themselves.
+A new candidate must preserve both title and rail readability. The production archive
+was produced and remains diagnostic only: `/private/tmp/pulpe-duo-ci-v9-archive/Pulpe.xcarchive`.
+Its source is `08f4de502`, tested merge `005049a76cf6dd25847b372f7287685cb1696f1d`,
+and tree `233184045547986def4cf48f0ee3d04dbfbd6002`; the archive gate and GitHub readback
+confirm the same tree. App and widget are 1.11.0 (1), SDK 27.1, minimum iOS 18.0.
+Lottie is the existing precompiled SDK 18.5 framework; no SwiftSupport/runtime library
+is bundled. No export, signing or upload was performed. The full CI is green; web
+E2E records 252 passes and one successful retry outside this iOS change.
+
+## Contained hero and goal-toolbar repair
+
+The candidate bounds hero and pager backgrounds to the vertical content viewport,
+paints the canvas behind the native title and lets the rail use the screen scheme.
+Horizontal rendering retains the hero scheme and a mask extended through container
+safe areas. The modifier structure stays stable across changes of axis. The goal's
+semantic toolbar label retains its action and identifiers, with the existing horizontal
+style and automatic vertical styling. The native-only horizontal attempt was rejected
+at 2.067:1; restoring the existing pencil measured 4.675:1 in one v4 capture, which did
+not certify its other orientations or other controls.
+
+The enriched journey captures visible home items to point, using the existing shortcut
+when needed, budget content after a gesture, and the linked goal. It does not certify
+manual home panning, shortcut activation when the row is already visible, or the sticky
+pager being revealed by the short budget fixture. Local attempts v1-v6 fail while
+correcting the oversized carousel landmark and gesture targeting. Current-geometry v4
+passes in 160.765 seconds, but that suite fails overall. Failed logs/bundles are retained
+under `/private/tmp/pulpe-ios-duo-native-v10-mask-ui-v*.{log,xcresult}`.
+
+V7-v9 isolate two false draft collisions: empty amount-group padding was compared with
+floating accessory controls, and an isolated keyboard snapshot reports portrait
+coordinates `(2,117,162,722)` against a `956x440` landscape window. The final tree places
+the visible keyboard at `(117,276,722,162)`. Instrumented probes find all five controls,
+the three amount children, finite frames and no visible-content overlap. The repair uses
+XCTest's normalized `XCUIElement.frame` for the keyboard, without a rotation transform.
+Presence, full amount-group containment, keyboard separation and preserved values remain
+required. Temporary diagnostics are removed.
+
+The corrected strict v10 journey passes one test with zero failures in 326.590 seconds,
+`TEST SUCCEEDED`, exit 0. The amount, currency and description survive three orientations
+with the keyboard, and the final submit action is reachable. V11 adds an opaque token
+under the goal button: both contrast tests pass and the strict journey passes again in
+318.994 seconds, but native compositing still leaves the disc lighter on its half over
+the canvas (RGB 166,200,176 versus 68,128,88). Binary equality was verified. That attempted
+button repair is rejected despite passing tests; its evidence is in
+`/private/tmp/pulpe-ios-duo-native-v11-ui.xcresult` and adjacent attachments.
+
+The next repair removes that ineffective button layer and extends only full-screen hero
+backgrounds into horizontal container safe areas. Six loaded/skeleton callers opt in;
+the two embedded annual-summary callers retain their previous behavior. Content layout,
+parallax, data and navigation stay unchanged. Static review accepts this limited scope.
+V12 passes 20 tests across the two hero/contrast suites, then the unchanged strict UI
+journey: one test, zero failures, 326.401 seconds, `TEST SUCCEEDED`, exit 0. Evidence is
+`/private/tmp/pulpe-ios-duo-native-v12-hero-contracts.xcresult` and
+`/private/tmp/pulpe-ios-duo-native-v12-ui.xcresult`. Both landscape captures now show the
+complete pencil against a uniform forest/disc background. Forest also extends behind
+the native translucent sidebar; its light panel and black text remain distinct. The
+standalone annual list retains its white canvas. SDK 27.1 title/rail images remain
+required before signing or delivery; local tests cannot validate the SDK-only mask.
 
 ## Native captures
 

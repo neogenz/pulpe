@@ -273,3 +273,73 @@ keyboard, viewport, geometry stability and action reachability checks remain in 
 No product form or loading behavior changed. The two local journeys pass (2 tests,
 0 failures, 340.998 seconds); SDK 27.1 screenshots must still prove simultaneous title
 and rail contrast. Neither local success nor static approval establishes that result.
+
+## SDK 27.1 candidate 08f4de502 outcome
+
+The actual title, native list, preserved draft and reachable submit action pass visual
+inspection. The reviewer refuses delivery because the dark scheme now forces white
+rail glyphs onto light native capsules: Back measures about 2.05:1 and unselected tabs
+about 2.03:1. The expected graphical-control reference is 3:1
+([W3C](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast)).
+The two UI tests and 2,487 unit tests pass; that does not supersede this visual defect.
+No signing/export/upload was performed; this candidate is ineligible for delivery.
+
+## Contained hero surface candidate
+
+Apple's native rail has no bar background outside Reduce Transparency, so forcing
+the hero scheme onto its controls cannot establish contrast against the light canvas.
+The next candidate uses one stable rectangular mask: it includes container safe areas
+in horizontal layout and bounds content to its viewport in vertical layout. The canvas
+is painted behind the mask, and vertical title/control appearance follows the screen.
+This contains both the hero's upper bleed and the sticky pager's background without
+moving their content or adding a custom title. The Objectif caller uses a semantic
+label, with its existing horizontal treatment and automatic vertical styling.
+
+Independent static review finds no concrete defect in these three source changes.
+The enriched UI journey retains all continuity assertions and visits the linked goal.
+The home pending-items capture requires visible content and uses the existing
+pointing shortcut only when needed; it does not certify a manual landscape pan or
+guarantee that a shortcut was activated when the row was already visible. Budget
+captures follow a gesture but do not automatically prove a revealed sticky pager. New SDK 27.1 images must establish the mask's
+actual effect and control contrast; the horizontal SDK 27.1 path remains a separate
+coverage limit from the local SDK 26.5 rotation tests.
+
+## Horizontal goal-button contrast
+
+The first native-only goal button renders a mint pencil on a mint capsule on iOS 26.5.
+Interior pixels measure 2.067:1, so that attempt is rejected. The existing hero button
+and hidden-glass treatment are restored for horizontal bars. A private derived
+environment value selects automatic button styling and the system background only
+when the SDK 27.1 vertical edge is present. The semantic label and existing action/ID
+remain unchanged. Both helpers retain their previous behavior on older SDKs/OSes.
+The fresh local capture `05B76908-F683-4693-B2DB-4B1152F61C35.png` in
+`/private/tmp/pulpe-ios-duo-native-v10-mask-ui-v4-attachments` restores 4.675:1
+pencil/disc contrast. The label renders as an icon without title collision. This
+acceptance excludes the existing horizontal Back/status appearance and the SDK 27.1
+rail; those pixels are not validated by the pencil measurement.
+
+## Draft geometry diagnostics
+
+The enriched strict journey exposed two test-geometry mistakes without establishing a
+product defect: whole-group padding was compared against floating accessory controls,
+and the isolated keyboard snapshot returned portrait coordinates after landscape
+rotation. Instrumented probes confirm five valid controls, the amount/currency children
+and no overlap between their visible frames. The keyboard must use XCTest's normalized
+element frame. Its presence and finite, nonempty frame remain required, as do complete
+amount-group containment, keyboard separation, preserved values and reachable actions.
+
+Independent static review accepts the normalized keyboard-frame correction. The final
+strict local journey passes one test with zero failures in 326.590 seconds, with
+`TEST SUCCEEDED` and exit 0. The SDK 27.1 mask and rail still require fresh native images
+before the candidate becomes eligible for distribution.
+
+## Horizontal hero coverage
+
+The strict v10 images expose a second boundary condition: the native goal edit button
+straddles the forest and lateral safe-area canvas. Adding an opaque token under its disc
+still produces a light half after native compositing, despite two passing contrast tests
+and a passing strict v11 journey (318.994 seconds). That attempt is rejected and removed.
+Static review accepts extending only the background of six full-screen hero/skeleton
+callers into horizontal safe areas. The two annual-summary callers remain unchanged via
+an explicit opt-in. Content and navigation retain their layout and identity. Fresh
+landscape captures and the SDK 27.1 mask/rail gate remain required.

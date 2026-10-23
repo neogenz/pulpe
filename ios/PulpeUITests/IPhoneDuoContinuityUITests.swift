@@ -33,6 +33,10 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         captureOrientations(
             "home", landmark: app.descendants(matching: .any)["home-balance-chart"], expandsInLandscape: true
         )
+        captureOrientations(
+            "home-pending-items", landmark: app.staticTexts["homeUncheckedOperationRow"].firstMatch,
+            revealUsing: app.buttons["homeHeroUnchecked"].staticTexts.firstMatch
+        )
         app.terminate()
 
         // A fresh process and the unseeded detail cache exercise the cold list-to-detail route.
@@ -44,8 +48,16 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         scrollUntilHittable(month)
         month.tap()
         captureOrientations("budget-detail", landmark: app.staticTexts["budgetDetailHeroAmount"])
+        captureOrientations(
+            "budget-detail-scrolled", landmark: app.staticTexts["budgetLineMixedRowMetadata-goal-spread-line"],
+            afterScroll: true
+        )
+        verifyLinkedGoal()
         verifyMonthSelectionRoundTrip(originalMonth: month)
+        verifyEntryDraft()
+    }
 
+    private func verifyEntryDraft() {
         let addForecast = app.buttons["budgetAddLineButton"]
         scrollUntilHittable(addForecast)
         addForecast.tap()
@@ -78,6 +90,29 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         XCTAssertTrue(app.windows.firstMatch.frame.contains(submit.frame), app.debugDescription)
         XCTAssertTrue(submit.isEnabled, "The complete draft must be ready without submitting it.")
         capture("entry-draft-submit")
+    }
+
+    private func verifyLinkedGoal() {
+        let openingText = app.staticTexts["budgetLineMixedRowMetadata-goal-spread-line"]
+        scrollUntilHittable(openingText)
+        openingText.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["budgetLineDetailPageRoot"].waitForExistence(timeout: 10))
+        let goal = app.buttons["budgetLineDetailGoalLink"]
+        scrollUntilHittable(goal)
+        goal.tap()
+        XCTAssertTrue(app.scrollViews["savingsGoalDetailRoot"].waitForExistence(timeout: 10), app.debugDescription)
+        captureOrientations(
+            "savings-goal", landmark: app.descendants(matching: .any)["savingsGoalProgressCard"].firstMatch
+        )
+        let edit = app.buttons["savingsGoalEditButton"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(!edit.frame.isEmpty && app.windows.firstMatch.frame.contains(edit.frame) && edit.isHittable)
+        for _ in 0..<2 {
+            let back = app.buttons["BackButton"].firstMatch
+            XCTAssertTrue(back.waitForExistence(timeout: 5), app.debugDescription)
+            back.tap()
+        }
+        XCTAssertTrue(app.buttons["budgetAddLineButton"].waitForExistence(timeout: 10), app.debugDescription)
     }
 
     private func verifySidebarDrafts() {
@@ -146,13 +181,15 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         expectsKeyboard: Bool = false,
         preservingDescription: String? = nil,
         preservingSelection: Bool = false,
-        expandsInLandscape: Bool = false
+        expandsInLandscape: Bool = false,
+        afterScroll: Bool = false,
+        revealUsing: XCUIElement? = nil
     ) {
         var portraitWidth: CGFloat = 0
         // These are real rotations, not assertions about the active Duo display or fold angle.
         for orientation in orientations {
             XCUIDevice.shared.orientation = orientation
-            XCTAssertTrue(landmark.waitForExistence(timeout: 15), app.debugDescription)
+            prepareCapture(landmark: landmark, afterScroll: afterScroll, revealUsing: revealUsing)
             var previousContentFrame: CGRect?
             var geometryDetails = ""
             let geometry = NSPredicate { _, _ in
@@ -161,15 +198,15 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
                 defer { previousContentFrame = contentFrame }
                 let rotated = self.orientations.count == 1
                     || (orientation.isLandscape ? frame.width > frame.height : frame.height > frame.width)
-                let keyboard = self.app.keyboards.firstMatch
-                let barFrames = expectsKeyboard ? self.navigationControlFrames(in: frame) : []
-                let keyboardFrame = expectsKeyboard && keyboard.exists ? keyboard.frame : nil
-                let coveredByBar = barFrames.contains { $0.intersects(contentFrame) }
-                let aboveKeyboard = !expectsKeyboard || (keyboardFrame.map {
-                    frame.contains(contentFrame) && !$0.intersects(contentFrame) && !coveredByBar
+                let stable = contentFrame == previousContentFrame
+                let entry = expectsKeyboard && rotated && stable ? self.entryGeometry(for: landmark) : nil
+                let keyboardFrame = entry?.keyboard
+                let aboveKeyboard = !expectsKeyboard || (entry.map { entry in
+                    frame.contains(contentFrame) && !entry.keyboard.intersects(contentFrame) && entry.overlaps.isEmpty
                 } ?? false)
                 geometryDetails = "window=\(frame) field=\(contentFrame) keyboard=\(String(describing: keyboardFrame))"
-                    + " barControls=\(barFrames) rotated=\(rotated) aboveKeyboard=\(aboveKeyboard)"
+                    + " overlappingControls=\(String(describing: entry?.overlaps))"
+                    + " rotated=\(rotated) aboveKeyboard=\(aboveKeyboard)"
                 return rotated && !contentFrame.isEmpty && frame.intersects(contentFrame)
                     && contentFrame == previousContentFrame && aboveKeyboard
             }
@@ -201,13 +238,15 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         }
     }
 
-    private func navigationControlFrames(in viewport: CGRect) -> [CGRect] {
-        // A vertical bar's container can span the viewport; inspect its native controls.
-        let controls = app.navigationBars.buttons.allElementsBoundByIndex
-            + app.navigationBars.staticTexts.allElementsBoundByIndex + app.toolbars.buttons.allElementsBoundByIndex
-        return controls.map(\.frame).filter {
-            !$0.isEmpty && [$0.minX, $0.minY, $0.width, $0.height].allSatisfy(\.isFinite) && viewport.intersects($0)
+    private func prepareCapture(landmark: XCUIElement, afterScroll: Bool, revealUsing: XCUIElement?) {
+        XCTAssertTrue(landmark.waitForExistence(timeout: 15), app.debugDescription)
+        if let revealUsing, !app.windows.firstMatch.frame.contains(landmark.frame) || !landmark.isHittable {
+            XCTAssertTrue(revealUsing.waitForExistence(timeout: 5), app.debugDescription)
+            revealUsing.tap()
         }
+        guard afterScroll || revealUsing != nil else { return }
+        if afterScroll { scrollUp(towards: landmark) }
+        scrollUntilHittable(landmark)
     }
 
     private func capture(_ name: String, diagnostic: String? = nil) {
@@ -223,14 +262,36 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         add(attachment)
     }
 
+    private func scrollUp(towards element: XCUIElement) {
+        let identifier = element.identifier.isEmpty ? element.label : element.identifier
+        let scroll = app.scrollViews.containing(.any, identifier: identifier).firstMatch
+        XCTAssertTrue(scroll.waitForExistence(timeout: 5), app.debugDescription)
+        var viewport = scroll.frame.intersection(app.windows.firstMatch.frame)
+        for bar in [app.navigationBars.firstMatch, app.tabBars.firstMatch] where bar.exists {
+            let frame = bar.frame
+            guard frame.width > frame.height, frame.intersects(viewport) else { continue }
+            if frame.midY < viewport.midY {
+                viewport = CGRect(x: viewport.minX, y: frame.maxY, width: viewport.width,
+                                  height: viewport.maxY - frame.maxY)
+            } else {
+                viewport.size.height = frame.minY - viewport.minY
+            }
+        }
+        XCTAssertFalse(viewport.isEmpty, app.debugDescription)
+        let origin = scroll.coordinate(withNormalizedOffset: .zero)
+        let xOffset = viewport.midX - scroll.frame.minX
+        let yOffset = viewport.minY - scroll.frame.minY
+        let start = origin.withOffset(CGVector(dx: xOffset, dy: yOffset + viewport.height * 0.75))
+        let end = origin.withOffset(CGVector(dx: xOffset, dy: yOffset + viewport.height * 0.25))
+        start.press(forDuration: 0.01, thenDragTo: end)
+    }
+
     private func scrollUntilHittable(_ element: XCUIElement) {
         XCTAssertTrue(element.waitForExistence(timeout: 10), app.debugDescription)
         for _ in 0..<8 {
             let frame = element.frame
             if !frame.isEmpty && app.windows.firstMatch.frame.contains(frame) && element.isHittable { break }
-            let identifier = element.identifier.isEmpty ? element.label : element.identifier
-            let scroll = app.scrollViews.containing(.button, identifier: identifier).firstMatch
-            if scroll.exists { scroll.swipeUp() } else { app.swipeUp() }
+            scrollUp(towards: element)
         }
         var previousFrame: CGRect?
         let visible = NSPredicate { _, _ in
@@ -241,5 +302,31 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         }
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: visible, object: nil)], timeout: 5),
                        .completed, app.debugDescription)
+    }
+}
+
+private extension IPhoneDuoContinuityUITests {
+    func entryGeometry(for amount: XCUIElement) -> (keyboard: CGRect, overlaps: [CGRect])? {
+        // The keyboard lives in another window: XCUIElement normalizes its frame after rotation.
+        let keyboard = app.keyboards.firstMatch
+        guard keyboard.exists else { return nil }
+        let keyboardFrame = keyboard.frame
+        guard let amount = try? amount.snapshot() else { return nil }
+        let bar = app.navigationBars["Prévoir une dépense"]
+        let required = [bar.buttons["Fermer"], bar.staticTexts["Prévoir une dépense"],
+                        app.buttons["Champ précédent"], app.buttons["Champ suivant"],
+                        app.buttons["keyboardDismissButton"]]
+        let controls = required.compactMap { try? $0.snapshot() }
+        let display = amount.children.filter {
+            $0.elementType == .textField || ($0.elementType == .staticText && ["CHF", "12"].contains($0.label))
+        }
+        let frames = [keyboardFrame] + (controls + display).map(\.frame)
+        guard controls.count == required.count,
+              display.contains(where: { $0.elementType == .textField }),
+              display.contains(where: { $0.label == "CHF" }), display.contains(where: { $0.label == "12" }),
+              frames.allSatisfy({ !$0.isEmpty && [$0.minX, $0.minY, $0.width, $0.height].allSatisfy(\.isFinite) })
+        else { return nil }
+        let overlaps = controls.map(\.frame).filter { control in display.contains { control.intersects($0.frame) } }
+        return (keyboardFrame, overlaps)
     }
 }

@@ -233,19 +233,38 @@ private struct HeroAdaptiveBarAppearance: ViewModifier {
     @Environment(\.toolbarVerticalEdge) private var toolbarVerticalEdge
 
     func body(content: Content) -> some View {
-        // Keep native title and rail ink on a system background when the controls are vertical.
+        // Bound the hero and sticky pager below the native title when controls move to the side.
+        // Keep the same view structure as the axis changes so navigation and drafts survive.
         content
-            .toolbarColorScheme(isOnHeroSurface ? .dark : colorScheme, for: .navigationBar)
+            .mask {
+                Rectangle().ignoresSafeArea(.container, edges: toolbarVerticalEdge == nil ? .all : [])
+            }
+            .background { Color.appBackground.ignoresSafeArea() }
+            .toolbarColorScheme(
+                toolbarVerticalEdge == nil && isOnHeroSurface ? .dark : colorScheme, for: .navigationBar
+            )
             .toolbarBackground(toolbarVerticalEdge == nil ? .hidden : .visible, for: .navigationBar)
     }
 }
 #endif
 
+private extension EnvironmentValues {
+    var hasVerticalHeroToolbar: Bool {
+        #if compiler(>=6.4)
+        if #available(iOS 27.1, *) { return toolbarVerticalEdge != nil }
+        #endif
+        return false
+    }
+}
+
 private struct HeroToolbarButtonModifier: ViewModifier {
     let isOnHeroSurface: Bool
+    @Environment(\.hasVerticalHeroToolbar) private var hasVerticalToolbar
 
     func body(content: Content) -> some View {
-        if isOnHeroSurface {
+        if hasVerticalToolbar {
+            content.buttonStyle(.automatic)
+        } else if isOnHeroSurface {
             content.buttonStyle(HeroToolbarButtonStyle())
         } else {
             content.buttonStyle(IconButtonStyle())
@@ -256,16 +275,26 @@ private struct HeroToolbarButtonModifier: ViewModifier {
 extension ToolbarContent {
     /// On the hero surface the discs are the only shapes: hides the toolbar's own glass
     /// behind the items on iOS 26. No-op on earlier systems and on a flat canvas.
-    @ToolbarContentBuilder
     func heroToolbarGroup(_ isOnHeroSurface: Bool) -> some ToolbarContent {
+        HeroToolbarGroup(content: self, isOnHeroSurface: isOnHeroSurface)
+    }
+}
+
+private struct HeroToolbarGroup<Content: ToolbarContent>: ToolbarContent {
+    let content: Content
+    let isOnHeroSurface: Bool
+    @Environment(\.hasVerticalHeroToolbar) private var hasVerticalToolbar
+
+    @ToolbarContentBuilder
+    var body: some ToolbarContent {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, *), isOnHeroSurface {
-            sharedBackgroundVisibility(.hidden)
+        if #available(iOS 26.0, *), isOnHeroSurface && !hasVerticalToolbar {
+            content.sharedBackgroundVisibility(.hidden)
         } else {
-            self
+            content
         }
         #else
-        self
+        content
         #endif
     }
 }

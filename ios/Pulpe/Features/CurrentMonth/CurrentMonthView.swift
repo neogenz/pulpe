@@ -230,7 +230,7 @@ struct CurrentMonthView: View {
                     .padding(.horizontal, DesignTokens.Spacing.xxl)
                     .padding(.top, DesignTokens.Spacing.lg)
                     .padding(.bottom, DesignTokens.Spacing.xxl)
-                    .heroZone(parallax: true)
+                    .heroZone(parallax: true, extendsHorizontally: true)
 
                     dashboardDetails
                         .padding(.top, DesignTokens.Spacing.xxl)

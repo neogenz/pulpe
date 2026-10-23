@@ -79,7 +79,7 @@ struct SavingsGoalDetailView: View {
                 Button {
                     editTarget = currentGoal
                 } label: {
-                    Image(systemName: "pencil")
+                    Label("Modifier l'objectif", systemImage: "pencil")
                 }
                 .heroToolbarButtonStyle(paintsHeroSurface)
                 .accessibilityLabel("Modifier l'objectif")
@@ -150,7 +150,7 @@ struct SavingsGoalDetailView: View {
                 hero(progress)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.lg)
-                    .heroZone()
+                    .heroZone(extendsHorizontally: true)
 
                 sections(progress)
                     .padding(.horizontal, DesignTokens.Spacing.lg)

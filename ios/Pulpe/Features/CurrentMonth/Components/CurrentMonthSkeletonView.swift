@@ -33,7 +33,7 @@ struct CurrentMonthSkeletonView: View {
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xxl)
-        .heroZone(parallax: true)
+        .heroZone(parallax: true, extendsHorizontally: true)
     }
 
     /// The filled CTA, at its own height: a card-shaped placeholder would hand the slot
