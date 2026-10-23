@@ -240,6 +240,7 @@ struct BudgetsTab: View {
                         .ignoresForeignKeyboardInset()
                     } else {
                         ContentUnavailableView("Budgets", systemImage: "calendar", description: Text("Choisis un mois"))
+                            .ignoresForeignKeyboardInset()
                     }
                 }
                 .navigationDestination(for: BudgetDestination.self) { destination in

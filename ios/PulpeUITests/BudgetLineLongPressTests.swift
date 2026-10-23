@@ -132,10 +132,14 @@ final class BudgetLineLongPressTests: XCTestCase {
 
     func testGoalAndSpreadMetadataRoutesOpenExpectedDestinations() {
         launchGoalSpreadScenario(DisplayMode(name: "routes", dynamicType: false, darkMode: false))
-        let rowButton = goalSpreadRow()
-        XCTAssertTrue(rowButton.waitForExistence(timeout: 10))
-        scrollUntilHittable(rowButton)
-        rowButton.tap()
+        // Open through the descriptive text, away from the contained pointing disc.
+        let openingText = app.staticTexts["budgetLineMixedRowMetadata-\(Self.goalSpreadLineId)"]
+        XCTAssertTrue(openingText.waitForExistence(timeout: 10))
+        scrollUntilFullyVisible(
+            openingText, below: app.navigationBars.firstMatch.frame.maxY, above: app.windows.firstMatch.frame.maxY
+        )
+        openingText.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["budgetLineDetailPageRoot"].waitForExistence(timeout: 10))
 
         let goal = app.buttons["budgetLineDetailGoalLink"]
         scrollUntilHittable(goal)
@@ -144,9 +148,7 @@ final class BudgetLineLongPressTests: XCTestCase {
         // goal was opened, where the root identifier only says that one was.
         XCTAssertTrue(app.navigationBars[Self.goalName].waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollViews["savingsGoalDetailRoot"].waitForExistence(timeout: 10))
-        XCTAssertTrue(
-            app.descendants(matching: .any)["savingsGoalProgressCard"].waitForExistence(timeout: 10)
-        )
+        XCTAssertTrue(app.descendants(matching: .any)["savingsGoalProgressCard"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["savingsGoalEmptyGuidanceCard"].exists)
         let linkedPlanMonth = app.descendants(matching: .any)
             .matching(identifier: "savingsGoalPlanMonthRow-\(Self.goalSpreadPlanMonth)")

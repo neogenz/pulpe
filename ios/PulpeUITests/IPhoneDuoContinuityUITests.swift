@@ -15,7 +15,9 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
     func testNativeBaselineAcrossOrientations() {
         continueAfterFailure = false
         launch("UITEST_CONTEXTUAL_CREATION_HOME")
-        captureOrientations("home", landmark: app.descendants(matching: .any)["home-balance-chart"])
+        captureOrientations(
+            "home", landmark: app.descendants(matching: .any)["home-balance-chart"], expandsInLandscape: true
+        )
         app.terminate()
 
         // A fresh process and the unseeded detail cache exercise the cold list-to-detail route.
@@ -126,8 +128,10 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         landmark: XCUIElement,
         expectsKeyboard: Bool = false,
         preservingDescription: String? = nil,
-        preservingSelection: Bool = false
+        preservingSelection: Bool = false,
+        expandsInLandscape: Bool = false
     ) {
+        var portraitWidth: CGFloat = 0
         // These are real rotations, not assertions about the active Duo display or fold angle.
         for orientation in [UIDeviceOrientation.portrait, .landscapeLeft, .landscapeRight] {
             XCUIDevice.shared.orientation = orientation
@@ -149,6 +153,15 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
             }
             let rotation = XCTNSPredicateExpectation(predicate: geometry, object: nil)
             XCTAssertEqual(XCTWaiter.wait(for: [rotation], timeout: 10), .completed, app.debugDescription)
+            if orientation == .portrait {
+                portraitWidth = landmark.frame.width
+            } else if expandsInLandscape {
+                XCTAssertGreaterThan(landmark.frame.width, portraitWidth, "The chart must use the wider viewport.")
+            }
+            if expandsInLandscape {
+                XCTAssertGreaterThanOrEqual(landmark.frame.minX, app.windows.firstMatch.frame.minX)
+                XCTAssertLessThanOrEqual(landmark.frame.maxX, app.windows.firstMatch.frame.maxX)
+            }
             if expectsKeyboard {
                 XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), app.debugDescription)
             }
