@@ -3,6 +3,7 @@ import TipKit
 
 struct BudgetDetailsView: View {
     let budgetId: String
+    let onBudgetChange: ((String, Int?) -> Void)?
     @Environment(AppState.self) var appState
     // Internal so the same-type routing extension can read these dependencies.
     @Environment(BudgetDetailsRouter.self) var router
@@ -27,9 +28,11 @@ struct BudgetDetailsView: View {
     init(
         budgetId: String,
         budgetService: any BudgetServicing = BudgetService.shared,
-        budgetLineService: any BudgetLineServicing = BudgetLineService.shared
+        budgetLineService: any BudgetLineServicing = BudgetLineService.shared,
+        onBudgetChange: ((String, Int?) -> Void)? = nil
     ) {
         self.budgetId = budgetId
+        self.onBudgetChange = onBudgetChange
         let initialCoordinator = BudgetDetailsCoordinator(
             budgetId: budgetId,
             budgetService: budgetService,
@@ -42,19 +45,6 @@ struct BudgetDetailsView: View {
                 filtersStore: initialCoordinator.filtersStore,
                 syncStore: initialCoordinator.syncStore
             )
-        )
-    }
-
-    /// Pay-day-aware elapsed percentage. Computed in the view (not the
-    /// projector) so the projection layer stays independent of
-    /// `UserSettingsStore` — its only consumer is the hero.
-    private var timeElapsedPercentage: Double {
-        guard let month = projector.screenState.hero.month,
-              let year = projector.screenState.hero.year else { return 0 }
-        return BudgetPeriodCalculator.timeElapsedPercentage(
-            month: month,
-            year: year,
-            payDayOfMonth: userSettingsStore.payDayOfMonth
         )
     }
 
@@ -124,8 +114,8 @@ struct BudgetDetailsView: View {
                 // bar: the content zone spends its one filled shape on the action that
                 // changes something. Bare, so iOS 26 dresses it in its own Liquid Glass —
                 // the hero's tinted disc was our shape where the system already has one.
-                Button { router.present(.realizedBalance) } label: {
-                    Image(systemName: "chart.bar")
+                Button { router.present(.realizedBalance, from: coordinator) } label: {
+                    Label("Suivi du budget", systemImage: "chart.bar")
                 }
                 .accessibilityLabel(AppLocale.string("Suivi du budget"))
                 .accessibilityIdentifier("budgetTrackingButton")
@@ -165,8 +155,16 @@ struct BudgetDetailsView: View {
             await tagStore.loadIfNeeded()
         }
         .task(id: screenState.referencedTagIds) { await tagStore.loadIfNeeded(for: screenState.referencedTagIds) }
+        .onChange(of: budgetId) { _, id in
+            Task { await coordinator.dispatch(.prepareNavigation(to: id)) }
+        }
+        .onChange(of: screenState.budgetId) { _, id in onBudgetChange?(id, screenState.hero.year) }
+        .onChange(of: screenState.hero.year, initial: true) { _, year in
+            guard budgetId == screenState.budgetId else { return }
+            onBudgetChange?(screenState.budgetId, year)
+        }
         .onChange(of: searchText) { _, newValue in projector.setSearchText(newValue) }
-        .sheet(item: $router.sheet) { destination in
+        .sheet(item: router.hostsSheetsAtTab ? .constant(nil) : $router.sheet) { destination in
             BudgetDetailSheetContent(destination: destination)
                 .environment(coordinator)
         }
@@ -203,6 +201,7 @@ struct BudgetDetailsView: View {
             Task { await coordinator.dispatch(.softDeleteTransaction(tx, toastContext)) }
         })
         .modifier(DeleteMonthMenu(coordinator: coordinator, screenState: screenState, toastContext: toastContext))
+        .disabled(coordinator.isNavigating)
     }
 
     private var content: some View {
@@ -218,7 +217,7 @@ struct BudgetDetailsView: View {
                     rolloverAmount: screenState.rollover?.amount,
                     previousBudgetMonth: screenState.rollover?.previousBudgetMonth,
                     onRolloverTap: screenState.rollover?.previousBudgetId.map { id in
-                        { router.present(.previousBudget(PreviousBudgetItem(id: id))) }
+                        { router.present(.previousBudget(PreviousBudgetItem(id: id)), from: coordinator) }
                     }
                 )
                 .onGeometryChange(
@@ -226,13 +225,13 @@ struct BudgetDetailsView: View {
                     of: { $0.frame(in: .global).maxY },
                     action: { maxY in scrollTracker.update(heroMaxY: maxY) }
                 )
-                .heroZone()
+                .heroZone(extendsHorizontally: true)
 
                 VStack(spacing: 0) {
                     // Above the tip and the rail: adding a forecast is what this screen is
                     // for, and a reader who has to scroll past a filter to find it reads it
                     // as belonging to the list rather than to the budget.
-                    BudgetDetailsAddLineButton { router.present(.addBudgetLine) }
+                    BudgetDetailsAddLineButton { router.present(.addBudgetLine, from: coordinator) }
                     .padding(.horizontal, DesignTokens.Spacing.xxl)
                     .padding(.bottom, DesignTokens.Spacing.md)
 

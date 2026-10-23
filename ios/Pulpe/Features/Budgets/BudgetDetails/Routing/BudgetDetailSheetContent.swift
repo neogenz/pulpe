@@ -84,7 +84,7 @@ struct BudgetDetailSheetContent: View {
             anchorMonth: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
             anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date()),
             onRequestSavingsWithdrawal: { prefill in
-                router.present(.savingsWithdrawal(prefill))
+                router.present(.savingsWithdrawal(prefill), from: coordinator)
             },
             onAdd: { budgetLine in
                 Task { await coordinator.dispatch(.addBudgetLine(budgetLine)) }

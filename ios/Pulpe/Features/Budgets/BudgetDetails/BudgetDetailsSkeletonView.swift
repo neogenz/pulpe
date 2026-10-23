@@ -75,7 +75,7 @@ struct BudgetDetailsSkeletonView: View {
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .heroZone()
+        .heroZone(extendsHorizontally: true)
     }
 
     // MARK: - Filter rail

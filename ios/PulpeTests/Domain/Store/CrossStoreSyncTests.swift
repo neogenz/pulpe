@@ -141,7 +141,7 @@ struct BudgetListStoreCacheInvalidationTests {
         mockService.stubbedSparse = sparseBudgets(september: "-2096.80", october: "39.18")
         store.invalidateCache()
         #expect(store.invalidationGeneration == 1)
-        #expect(BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets, pathCount: 0))
+        #expect(BudgetListRefreshPolicy.shouldLoadAfterInvalidation(selectedTab: .budgets))
         await store.loadIfNeeded()
 
         #expect(mockService.getBudgetsSparseCallCount == 2)

@@ -52,7 +52,7 @@ permissions:
 jobs:
   distribute:
     name: Archive & Upload iOS
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 75
     environment: ios-distribution
     defaults:
@@ -319,7 +319,7 @@ jobs:
         if: steps.asc.outputs.state == 'not_found'
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
-          xcode-version: "26.2"
+          xcode-version: "27.1"
 
       - name: Install XcodeGen
         if: steps.asc.outputs.state == 'not_found'

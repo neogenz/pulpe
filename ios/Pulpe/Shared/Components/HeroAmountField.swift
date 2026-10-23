@@ -32,10 +32,10 @@ struct HeroAmountField<Field: Hashable>: View {
 
             ZStack {
                 TextField("", text: $amountText)
+                    .font(PulpeTypography.amountHero)
                     .keyboardType(.decimalPad)
                     .focused(focus, equals: field)
                     .opacity(0)
-                    .frame(width: 0, height: 0)
                     .onChange(of: amountText) { _, newValue in
                         if let value = newValue.parsedAsAmount {
                             amount = value
@@ -72,8 +72,10 @@ struct HeroAmountField<Field: Hashable>: View {
         .contentShape(Rectangle())
         // Same pattern as `FormTextField` / `CurrencyField`: tap anywhere to focus the amount field.
         .onTapGesture { focus.wrappedValue = field }
+        .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("Montant")
+        .accessibilityValue("\(displayAmount) \(currency.symbol)")
         .animation(DesignTokens.Animation.smoothEaseInOut, value: amount)
     }
 }

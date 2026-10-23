@@ -481,11 +481,7 @@ struct RootView: View {
             case .viewBudget(let budgetId):
                 guard appState.authState == .authenticated else { break }
                 deepLinkDestination = nil
-                appState.budgetPath = NavigationPath()
-                Task { @MainActor in
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-                    appState.selectedTab = .budgets
-                }
+                appState.openBudget(budgetId)
             }
         }
 

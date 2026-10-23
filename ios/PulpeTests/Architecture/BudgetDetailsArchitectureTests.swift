@@ -290,10 +290,10 @@ struct BudgetDetailsArchitectureTests {
         let fabPath = directory.appendingPathComponent("BudgetDetailsAddFAB.swift").path
         let cardsPath = directory.appendingPathComponent("BudgetDetailsActionCards.swift").path
 
-        #expect(source.contains("BudgetDetailsAddLineButton { router.present(.addBudgetLine) }"))
+        #expect(source.contains("BudgetDetailsAddLineButton { router.present(.addBudgetLine, from: coordinator) }"))
         #expect(button.contains(#"AppLocale.string("Ajouter une prévision")"#))
         #expect(button.contains(".primaryButtonStyle()"))
-        #expect(source.contains("router.present(.realizedBalance)"))
+        #expect(source.contains("router.present(.realizedBalance, from: coordinator)"))
         #expect(source.contains(#".accessibilityIdentifier("budgetTrackingButton")"#))
         // The bar carries the reading action, plus the overflow menu of a future month
         // (`DeleteMonthMenu`); a plus back beside them is the regression.

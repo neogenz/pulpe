@@ -11,6 +11,8 @@ struct ContextualCreationUITestHarness: View {
     @State private var savingsGoalStore = SavingsGoalStore()
     @State private var tagStore = TagStore()
     @State private var router = BudgetDetailsRouter()
+    @State private var appVersionStore = AppVersionStore()
+    @State private var whatsNewStore = WhatsNewStore()
 
     private let budgetId = "contextual-creation-budget"
 
@@ -89,6 +91,8 @@ struct ContextualCreationUITestHarness: View {
             .environment(savingsGoalStore)
             .environment(tagStore)
             .environment(router)
+            .environment(appVersionStore)
+            .environment(whatsNewStore)
             .environment(appState.toastManager)
             // Injecting the router is only half its wiring: `push` and `popToRoot` go
             // through a weak `AppState` the router only gets from `bind`, so an unbound
@@ -138,7 +142,7 @@ struct ContextualCreationUITestHarness: View {
     private var content: some View {
         switch scenario {
         case .contextualCreationHome:
-            if isHomeSkeletonEnabled {
+            if isHomeSkeletonEnabled || ProcessInfo.processInfo.environment["UITEST_NATIVE_NAVIGATION"] == "1" {
                 MainTabView()
             } else if isChartMatrixEnabled {
                 chartMatrixContent

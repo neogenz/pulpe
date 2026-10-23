@@ -575,21 +575,23 @@ jobs:
   # 🍎 iOS TESTS
   test-ios:
     name: 🍎 iOS Tests
-    runs-on: macos-26
-    timeout-minutes: 30
+    runs-on: xcode-27
+    timeout-minutes: 75
     needs: [classify]
     if: needs.classify.outputs.ios == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
 
       - name: 🔧 Setup Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
-          xcode-version: "26.6"
+          xcode-version: "27.1"
 
       - name: 📦 Install XcodeGen and SwiftLint
-        # The macos-26 image ships neither; the lint step below needs swiftlint on PATH.
+        # Keep lint and project generation reproducible on the selected image.
         run: brew install xcodegen swiftlint
 
       # lefthook lints staged files only and skips on merge/rebase; this is the
@@ -606,31 +608,33 @@ jobs:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
             ~/Library/Caches/org.swift.swiftpm
-          key: spm-${{ hashFiles('ios/project.yml') }}
-          restore-keys: spm-
+          key: spm-xcode27.1-${{ hashFiles('ios/project.yml') }}
+          restore-keys: spm-xcode27.1-
 
       - name: 🔨 Generate Xcode project
         working-directory: ios
-        run: xcodegen generate
+        run: xcodegen generate --use-cache
+
+      - name: Install iOS 27.1 simulator runtime
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild -showsdks
+          if ! xcrun simctl list runtimes -j | python3 -c 'import json,sys; sys.exit(not any(r["version"] == "27.1" and r["isAvailable"] for r in json.load(sys.stdin)["runtimes"]))'; then
+            xcodebuild -downloadPlatform iOS -buildVersion 27.1 -architectureVariant arm64
+          fi
+          xcrun simctl list runtimes -j
 
       - name: 📱 Resolve iOS Simulator
         id: sim
         run: |
-          # Newest iOS 26 runtime the image ships, first iPhone 17 in it: the
-          # store build runs on the runtime users have, not on a pinned old one.
-          xcodebuild -version
-          UDID=$(xcrun simctl list devices available -j \
-            | python3 -c "
-          import re, sys, json
-          devices = json.load(sys.stdin)['devices']
-          def minor(rt): return int(re.search(r'iOS-26-(\d+)', rt).group(1))
-          for rt in sorted((k for k in devices if 'iOS-26-' in k), key=minor, reverse=True):
-            for d in devices[rt]:
-              if d['name'] == 'iPhone 17':
-                print(rt, file=sys.stderr); print(d['udid']); sys.exit(0)
-          sys.exit(1)
-          ")
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          runtime=$(xcrun simctl list runtimes -j | python3 -c 'import json,sys; print(next(r["identifier"] for r in json.load(sys.stdin)["runtimes"] if r["version"] == "27.1" and r["isAvailable"]))')
+          udid=$(xcrun simctl create "Pulpe Tests" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo "$runtime")
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl io "$udid" enumerate
 
       - name: 🧪 Run Unit Tests
         working-directory: ios
@@ -654,11 +658,11 @@ jobs:
           tail -f test-output.log | grep --line-buffered -E '(✔|✘|Test Case|passed|failed|error:|Suite|TEST SUCCEEDED|TEST FAILED)' &
           TAIL_PID=$!
 
-          # Wait for test completion or timeout (13 min, leaving time for the smoke).
+          # Allow the cold SDK 27.1 build, then leave time for smoke tests and the archive.
           ELAPSED=0
           LAST_SIZE=0
           IDLE=0
-          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 780 ]; do
+          while kill -0 $XCODE_PID 2>/dev/null && [ $ELAPSED -lt 1800 ]; do
             if grep -q '\*\* TEST SUCCEEDED \*\*\|\*\* TEST FAILED \*\*' test-output.log 2>/dev/null; then
               echo "📋 Tests finished, cleaning up xcodebuild..."
               sleep 5
@@ -729,6 +733,8 @@ jobs:
             -scheme PulpeUITests \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
             -only-testing:PulpeUITests/BudgetOpensFromListUITests \
+            -only-testing:PulpeUITests/IPhoneDuoContinuityUITests/testNativeBudgetJourneyOnCurrentGeometry \
+            -resultBundlePath DuoResults \
             CODE_SIGNING_ALLOWED=NO \
             -parallel-testing-enabled NO \
             -collect-test-diagnostics never \
@@ -752,12 +758,26 @@ jobs:
             tail -40 smoke-output.log
             exit 1
           fi
+          grep -q 'Executed 2 tests' smoke-output.log
           grep -q '\*\* TEST SUCCEEDED \*\*' smoke-output.log
 
       - name: 📋 Show the tree on failure
         if: failure()
         working-directory: ios
         run: grep -B2 -A60 'XCTAssert' smoke-output.log | head -200 || tail -80 smoke-output.log
+
+      - name: Preserve native Duo test evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ios-native-${{ github.event.pull_request.head.sha }}
+          path: |
+            ios/TestResults.xcresult
+            ios/DuoResults.xcresult
+            ios/test-output.log
+            ios/smoke-output.log
+          retention-days: 3
+          if-no-files-found: warn
 
       - name: 🧹 Cleanup Simulator
         if: always()

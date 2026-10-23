@@ -30,6 +30,7 @@ struct NavigationKeyboardInsetTests {
         "SavingsGoalsListView": .resets,
         "SavingsGoalDetailView": .resets,
         "BudgetListView": .resets,
+        "ContentUnavailableView": .resets,
         "BudgetDetailsView": .resets,
         "TemplateListView": .resets,
         "TemplateDetailsView": .resets,

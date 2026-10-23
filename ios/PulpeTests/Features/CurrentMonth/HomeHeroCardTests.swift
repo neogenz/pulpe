@@ -249,7 +249,7 @@ struct HomeHeroCardTests {
             encoding: .utf8
         )
 
-        #expect(viewSource.contains(".heroZone(parallax: true)"))
+        #expect(viewSource.contains(".heroZone(parallax: true, extendsHorizontally: true)"))
         #expect(viewSource.contains(".contentZone()"))
         #expect(!viewSource.contains(".background(Color.homeBackground)"))
         #expect(!viewSource.contains("HeroZoneTracker"))

@@ -11,11 +11,13 @@ struct CreateBudgetView: View {
     @State private var hasAppeared = false
     @State private var showCreateTemplate = false
 
-    init(month: Int, year: Int, onCreate: @escaping (Budget) -> Void) {
+    init(
+        month: Int, year: Int, viewModel: CreateBudgetViewModel? = nil, onCreate: @escaping (Budget) -> Void
+    ) {
         self.month = month
         self.year = year
         self.onCreate = onCreate
-        self._viewModel = State(initialValue: CreateBudgetViewModel(month: month, year: year))
+        self._viewModel = State(initialValue: viewModel ?? CreateBudgetViewModel(month: month, year: year))
     }
 
     var body: some View {
@@ -403,12 +405,23 @@ final class CreateBudgetViewModel {
     private(set) var isCreating = false
     var error: Error?
 
-    private let templateService = TemplateService.shared
+    private let loadTemplatesAction: @Sendable () async throws -> [BudgetTemplate]
+    private let loadTemplateLines: @Sendable (String) async throws -> [TemplateLine]
     private let budgetService = BudgetService.shared
 
-    init(month: Int, year: Int) {
+    init(
+        month: Int, year: Int,
+        loadTemplates: @escaping @Sendable () async throws -> [BudgetTemplate] = {
+            try await TemplateService.shared.getAllTemplates()
+        },
+        loadTemplateLines: @escaping @Sendable (String) async throws -> [TemplateLine] = {
+            try await TemplateService.shared.getTemplateLines(templateId: $0)
+        }
+    ) {
         self.month = month
         self.year = year
+        self.loadTemplatesAction = loadTemplates
+        self.loadTemplateLines = loadTemplateLines
     }
 
     var monthYearFormatted: String {
@@ -423,13 +436,13 @@ final class CreateBudgetViewModel {
         isLoadingTemplates = true
 
         do {
-            templates = try await templateService.getAllTemplates()
+            templates = try await loadTemplatesAction()
 
             // Load totals for each template in parallel
             await withTaskGroup(of: (String, BudgetFormulas.TemplateTotals?).self) { group in
                 for template in templates {
                     group.addTask {
-                        let lines = try? await self.templateService.getTemplateLines(templateId: template.id)
+                        let lines = try? await self.loadTemplateLines(template.id)
                         let totals = lines.map { BudgetFormulas.calculateTemplateTotals(lines: $0) }
                         return (template.id, totals)
                     }

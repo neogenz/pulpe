@@ -8255,6 +8255,28 @@
         }
       }
     },
+    "Choisis un mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle einen Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli un mese"
+          }
+        }
+      }
+    },
     "Choisis au moins deux mois" : {
       "localizations" : {
         "de" : {
@@ -12723,6 +12745,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "FAQ e supporto"
+          }
+        }
+      }
+    },
+    "Ferme cet écran avant de changer de mois." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schliesse diesen Bildschirm, bevor du den Monat wechselst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close this screen before changing months."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiudi questa schermata prima di cambiare mese."
           }
         }
       }

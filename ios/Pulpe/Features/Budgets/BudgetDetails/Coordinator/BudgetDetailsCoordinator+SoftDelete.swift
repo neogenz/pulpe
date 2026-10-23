@@ -92,10 +92,11 @@ extension BudgetDetailsCoordinator {
         let undo: @MainActor () async -> Void = {
             await self.restoreLastPendingDeletion(context: context)
         }
+        let confirmed = mutationQueue.pendingSoftDeletions
         let commit: @MainActor () async -> Void = {
-            await self.commitPendingSoftDeletions()
+            await self.commitPendingSoftDeletions(confirmed)
         }
-        if mutationQueue.count == 1 {
+        if mutationQueue.count == 1 || context.toastManager.currentToast?.type != .undo {
             context.toastManager.showWithUndo(
                 copy.title,
                 detail: copy.detail,
@@ -115,11 +116,11 @@ extension BudgetDetailsCoordinator {
     private func restoreLastPendingDeletion(context: ToastContext) async {
         guard let pending = mutationQueue.popLast() else { return }
         switch pending {
-        case .transaction(let restored):
+        case .transaction(let restored, _):
             if !dataStore.transactions.contains(where: { $0.id == restored.id }) {
                 dataStore.appendTransaction(restored)
             }
-        case .budgetLine(let restored):
+        case .budgetLine(let restored, _):
             if !dataStore.budgetLines.contains(where: { $0.id == restored.id }) {
                 dataStore.appendBudgetLine(restored)
             }
@@ -136,8 +137,9 @@ extension BudgetDetailsCoordinator {
         let undo: @MainActor () async -> Void = {
             await self.restoreLastPendingDeletion(context: context)
         }
+        let confirmed = mutationQueue.pendingSoftDeletions
         let commit: @MainActor () async -> Void = {
-            await self.commitPendingSoftDeletions()
+            await self.commitPendingSoftDeletions(confirmed)
         }
         context.toastManager.showWithUndo(
             copy.title,
@@ -161,9 +163,9 @@ extension BudgetDetailsCoordinator {
         var txIds = Set<String>()
         for pending in mutationQueue.pendingSoftDeletions {
             switch pending {
-            case .transaction(let tx):
+            case .transaction(let tx, _):
                 txIds.insert(tx.id)
-            case .budgetLine(let line):
+            case .budgetLine(let line, _):
                 lineIds.insert(line.id)
             }
         }
@@ -174,29 +176,59 @@ extension BudgetDetailsCoordinator {
         )
     }
 
+    /// Rapid requests share the same flush; only the latest may replace the current month.
+    func prepareNavigation(to budgetId: String) async {
+        navigationGeneration += 1
+        let request = navigationGeneration
+        // Re-selecting the current month cancels an older request still waiting on a DELETE.
+        isNavigating = budgetId != dataStore.budgetId
+        guard isNavigating else { return }
+        defer { if request == navigationGeneration { isNavigating = false } }
+        await commitPendingSoftDeletionsBeforeNavigation(request: request)
+        guard request == navigationGeneration else { return }
+        loadGeneration += 1
+        syncStore.setLoading(false)
+        syncStore.clearError()
+        dataStore.prepareNavigation(to: budgetId)
+    }
+
     /// Finalize pending soft-deletions before the screen navigates to another
     /// month. Commits them against the still-current store and drops any stale
     /// error, so neither the undo/rollback paths nor an error banner can target
     /// the next month's data (PUL-258). Must be awaited BEFORE
     /// `dataStore.prepareNavigation` swaps the budget — otherwise a failed
     /// commit re-injects into, and a stale error surfaces on, the wrong month.
-    func commitPendingSoftDeletionsBeforeNavigation() async {
-        await commitPendingSoftDeletions()
+    func commitPendingSoftDeletionsBeforeNavigation(request: Int? = nil) async {
+        repeat {
+            guard request == nil || request == navigationGeneration else { return }
+            await commitPendingSoftDeletions(mutationQueue.pendingSoftDeletions)
+        } while !mutationQueue.isEmpty || softDeletionCommit != nil
         syncStore.clearError()
     }
 
-    private func commitPendingSoftDeletions() async {
-        // The queue is the source of truth: undo already removed any restored
-        // item via `popLast`, so everything still pending must be committed —
-        // even if a reload re-injected the line into the store in the meantime
-        // (PUL-264). A store-membership guard here would let that reload cancel
-        // a deletion the user confirmed.
-        let batch = mutationQueue.drainAll()
+    private func commitPendingSoftDeletions(_ confirmed: [PendingBudgetDetailSoftDeletion]) async {
+        let batch = mutationQueue.drain(confirmed)
+        let previous = softDeletionCommit?.task
+        guard !batch.isEmpty else {
+            await previous?.value
+            return
+        }
+        let id = UUID()
+        let task = Task {
+            await previous?.value
+            await commitPendingSoftDeletionBatch(batch)
+            if softDeletionCommit?.id == id { softDeletionCommit = nil }
+        }
+        softDeletionCommit = (id, task)
+        await task.value
+    }
+
+    private func commitPendingSoftDeletionBatch(_ batch: [PendingBudgetDetailSoftDeletion]) async {
         for item in batch {
             switch item {
-            case .transaction(let tx):
+            case .transaction(let tx, _):
                 await commitDeleteTransaction(tx)
-            case .budgetLine(let line):
+            case .budgetLine(let line, _):
                 await commitDeleteBudgetLine(line)
             }
         }

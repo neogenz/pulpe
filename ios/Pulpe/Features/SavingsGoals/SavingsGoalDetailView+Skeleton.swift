@@ -11,7 +11,7 @@ struct SavingsGoalDetailSkeletonView: View {
                     .environment(\.skeletonTint, Color.heroTile)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.lg)
-                    .heroZone()
+                    .heroZone(extendsHorizontally: true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                     cardSkeleton

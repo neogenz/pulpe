@@ -73,6 +73,9 @@ final class AppState {
     var selectedTab: Tab = .currentMonth
     var currentMonthPath = NavigationPath()
     var budgetPath = NavigationPath()
+    var selectedBudgetId: String?
+    var budgetYear: Int?
+    let budgetRouter = BudgetDetailsRouter(hostsSheetsAtTab: true)
     var savingsGoalsPath = NavigationPath()
     var templatePath = NavigationPath()
     // Pushing and popping these live in `AppState+Navigation.swift`.

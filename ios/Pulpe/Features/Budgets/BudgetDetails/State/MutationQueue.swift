@@ -9,8 +9,14 @@ import SwiftUI
 /// is a pure derivation of the queue contents (single vs plural, all-tx vs
 /// all-line vs mixed, last-item label).
 enum PendingBudgetDetailSoftDeletion {
-    case transaction(Transaction)
-    case budgetLine(BudgetLine)
+    case transaction(Transaction, operationId: UUID = UUID())
+    case budgetLine(BudgetLine, operationId: UUID = UUID())
+
+    var id: UUID {
+        switch self {
+        case .transaction(_, let id), .budgetLine(_, let id): id
+        }
+    }
 }
 
 @Observable @MainActor
@@ -29,10 +35,11 @@ final class MutationQueue {
         pendingSoftDeletions.popLast()
     }
 
-    /// Returns the full pending list and clears the queue.
-    func drainAll() -> [PendingBudgetDetailSoftDeletion] {
-        let batch = pendingSoftDeletions
-        pendingSoftDeletions = []
+    /// A finished toast confirms its own snapshot, never later undoable items.
+    func drain(_ confirmed: [PendingBudgetDetailSoftDeletion]) -> [PendingBudgetDetailSoftDeletion] {
+        let ids = Set(confirmed.map(\.id))
+        let batch = pendingSoftDeletions.filter { ids.contains($0.id) }
+        pendingSoftDeletions.removeAll { ids.contains($0.id) }
         return batch
     }
 
@@ -72,12 +79,12 @@ final class MutationQueue {
         presentationCurrency: SupportedCurrency
     ) -> (name: String, detailAmount: String) {
         switch last {
-        case .transaction(let transaction):
+        case .transaction(let transaction, _):
             (
                 transaction.name,
                 transaction.amount.asSignedCurrency(presentationCurrency, for: transaction.kind)
             )
-        case .budgetLine(let budgetLine):
+        case .budgetLine(let budgetLine, _):
             (
                 budgetLine.name,
                 budgetLine.amount.asSignedCurrency(presentationCurrency, for: budgetLine.kind)

@@ -1,0 +1,107 @@
+{
+  "sourceCommit": "75cfa587920dbeadebcf8aa57e7128494d000899",
+  "runtime": "iOS 26.5",
+  "sdk": "26.5",
+  "resultBundle": "/private/tmp/pulpe-ios-duo-native-v7-detail-session-strict-v1.xcresult",
+  "syntheticFixtures": true,
+  "imagesUnmodified": true,
+  "captures": [
+    {
+      "file": "home-portrait.png",
+      "attachment": "native-baseline-home-portrait.png",
+      "pngColorType": 2,
+      "sha256": "e8f18848d85c00e50fcd333511c52abb039973a98838ca9dfb92bd224342f03f",
+      "encodedWidth": 1320,
+      "encodedHeight": 2868,
+      "exifOrientation": 1,
+      "displayWidth": 1320,
+      "displayHeight": 2868,
+      "exportedFileName": "4728ADC9-DF70-4EA4-83BE-C7B9C7BE4C50.png"
+    },
+    {
+      "file": "home-landscape.png",
+      "attachment": "native-baseline-home-landscape-left.png",
+      "pngColorType": 2,
+      "sha256": "adcaf3d5252a654b1db03bab76a3b0b5a29fe433539e8398755bab338d7ab412",
+      "encodedWidth": 1320,
+      "encodedHeight": 2868,
+      "exifOrientation": 8,
+      "displayWidth": 2868,
+      "displayHeight": 1320,
+      "exportedFileName": "D6AB8F87-E6E9-444C-9EF7-8417FA2081D8.png"
+    },
+    {
+      "file": "budgets-portrait.png",
+      "attachment": "native-baseline-annual-budget-portrait.png",
+      "pngColorType": 2,
+      "sha256": "855bcbd1e39b5c149d16d041ee6eb1ba7b11cae4b1dec20425f78b6cc983505e",
+      "encodedWidth": 1320,
+      "encodedHeight": 2868,
+      "exifOrientation": 1,
+      "displayWidth": 1320,
+      "displayHeight": 2868,
+      "exportedFileName": "ECCC3DA7-E992-4890-9711-C35E8D3662DC.png"
+    },
+    {
+      "file": "budgets-split-landscape.png",
+      "attachment": "native-baseline-budget-detail-landscape-right.png",
+      "pngColorType": 2,
+      "sha256": "b88bc07b2a16a4b031f91ead30649b9ed112c0f5832c7a3babb20c4be568bba2",
+      "encodedWidth": 1320,
+      "encodedHeight": 2868,
+      "exifOrientation": 6,
+      "displayWidth": 2868,
+      "displayHeight": 1320,
+      "exportedFileName": "E63A4B54-FDF8-4A9B-BC30-178C138C6DDF.png"
+    },
+    {
+      "file": "draft-keyboard-landscape.png",
+      "attachment": "native-baseline-entry-draft-restored-landscape-right.png",
+      "pngColorType": 2,
+      "sha256": "379c191a5b5e4541fac9d16cfe12762c19a050f113ba7034615751b3b35e27b8",
+      "encodedWidth": 1320,
+      "encodedHeight": 2868,
+      "exifOrientation": 6,
+      "displayWidth": 2868,
+      "displayHeight": 1320,
+      "exportedFileName": "28AFAB7C-8C5C-4AB9-B99E-B257A2E37C20.png"
+    },
+    {
+      "file": "draft-submit-landscape.png",
+      "attachment": "native-baseline-entry-draft-submit.png",
+      "pngColorType": 2,
+      "sha256": "a23c4dc4243e86f4178272601f9210eef6fdbee75f6be55d990abd82f6227eef",
+      "encodedWidth": 1320,
+      "encodedHeight": 2868,
+      "exifOrientation": 6,
+      "displayWidth": 2868,
+      "displayHeight": 1320,
+      "exportedFileName": "354201C1-F5A9-4E47-B601-58ED56A0A234.png"
+    },
+    {
+      "file": "create-budget-landscape.png",
+      "attachment": "native-baseline-Nouveau budget-landscape-left.png",
+      "pngColorType": 2,
+      "sha256": "5a6661497441818c1b1e1bf1813ea1733f3b3b528d5a1000033e8b5dfa35f563",
+      "encodedWidth": 1320,
+      "encodedHeight": 2868,
+      "exifOrientation": 8,
+      "displayWidth": 2868,
+      "displayHeight": 1320,
+      "exportedFileName": "C321FDD5-73A3-43B8-B1F0-B897D2F3195D.png"
+    },
+    {
+      "file": "plan-budgets-landscape.png",
+      "attachment": "native-baseline-Planifier des budgets-landscape-left.png",
+      "pngColorType": 2,
+      "sha256": "b4df9e45fd6bfb8c9214bb6486e6529e1bb06a4100eb418582a0599d96203443",
+      "encodedWidth": 1320,
+      "encodedHeight": 2868,
+      "exifOrientation": 8,
+      "displayWidth": 2868,
+      "displayHeight": 1320,
+      "exportedFileName": "927A94AC-C55E-46CB-9BD4-5CD7FE7F0C9D.png"
+    }
+  ],
+  "captureDirectory": "evidence/ios-26-5 (relative to the task directory; local evidence, excluded from Git)"
+}

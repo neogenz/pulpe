@@ -13,8 +13,8 @@ extension View {
     /// Apply to the hero block, after its own paddings, inside the screen's `ScrollView`.
     /// `parallax` makes the hero drift at `Motion.heroParallax` of the scroll so the card
     /// appears to cover it; off under Reduce Motion.
-    func heroZone(parallax: Bool = false) -> some View {
-        modifier(HeroZoneModifier(parallax: parallax))
+    func heroZone(parallax: Bool = false, extendsHorizontally: Bool = false) -> some View {
+        modifier(HeroZoneModifier(parallax: parallax, extendsHorizontally: extendsHorizontally))
     }
 
     /// Apply to the block directly under the hero, after its own paddings.
@@ -59,6 +59,7 @@ private struct HeroUnderBarModifier: ViewModifier {
 
 private struct HeroZoneModifier: ViewModifier {
     let parallax: Bool
+    let extendsHorizontally: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
@@ -77,6 +78,7 @@ private struct HeroZoneModifier: ViewModifier {
                     )
                 }
                 .padding(.top, -DesignTokens.Layout.overscrollBleed)
+                .ignoresSafeArea(.container, edges: extendsHorizontally ? .horizontal : [])
             }
             // Only while scrolled past the top (negative minY): never pushes the hero up
             // into the bleed, so the overscroll region stays forest during a refresh.

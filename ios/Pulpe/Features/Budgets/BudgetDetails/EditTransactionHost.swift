@@ -69,7 +69,7 @@ struct EditTransactionHost: View {
         .navigationBarTitleDisplayMode(.inline)
         .environment(coordinator)
         .environment(projector)
-        .sheet(item: $router.sheet) { destination in
+        .sheet(item: router.hostsSheetsAtTab ? .constant(nil) : $router.sheet) { destination in
             BudgetDetailSheetContent(destination: destination)
                 .environment(coordinator)
         }
