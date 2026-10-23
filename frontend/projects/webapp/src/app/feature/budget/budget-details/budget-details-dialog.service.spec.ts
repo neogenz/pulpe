@@ -2,13 +2,17 @@ import { TestBed } from '@angular/core/testing';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-import { createMockTransaction } from '@app/testing/mock-factories';
+import {
+  createMockBudgetLine,
+  createMockTransaction,
+} from '@app/testing/mock-factories';
 import { of } from 'rxjs';
 import type { TransactionUpdate } from 'pulpe-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 import { EditTransactionDialog } from './components/edit-transaction-form';
 import { SavingsWithdrawalDialog } from './budget-line/savings-withdrawal/dialog';
+import { CreateAllocatedTransactionDialog } from './allocated-transactions/create-dialog/dialog';
 
 describe('BudgetDetailsDialogService', () => {
   it('locks the allocated transaction kind but keeps tags editable', async () => {
@@ -86,4 +90,46 @@ describe('BudgetDetailsDialogService', () => {
       expect.objectContaining({ data }),
     );
   });
+
+  it.each([
+    {
+      realization: {
+        goalId: '44444444-4444-4444-8444-444444444444',
+        goalName: "Fonds d'urgence",
+        remainingAmount: 500,
+      },
+      autoFocus: '[inputmode="decimal"]',
+    },
+    { realization: null, autoFocus: 'first-tabbable' },
+  ])(
+    'should focus $autoFocus when opening the create dialog on desktop',
+    async ({ realization, autoFocus }) => {
+      const open = vi
+        .fn()
+        .mockReturnValue({ afterClosed: () => of(undefined) });
+      TestBed.configureTestingModule({
+        providers: [
+          ...provideTranslocoForTest(),
+          BudgetDetailsDialogService,
+          { provide: MatDialog, useValue: { open } },
+          { provide: MatBottomSheet, useValue: { open: vi.fn() } },
+        ],
+      });
+
+      await TestBed.inject(
+        BudgetDetailsDialogService,
+      ).openCreateAllocatedTransactionDialog(
+        createMockBudgetLine(),
+        false,
+        { budgetMonth: 10, budgetYear: 2026, payDayOfMonth: 1 },
+        vi.fn(),
+        realization,
+      );
+
+      expect(open).toHaveBeenCalledWith(
+        CreateAllocatedTransactionDialog,
+        expect.objectContaining({ autoFocus }),
+      );
+    },
+  );
 });

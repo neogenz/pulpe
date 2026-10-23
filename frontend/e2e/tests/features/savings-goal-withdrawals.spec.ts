@@ -1077,7 +1077,10 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
 
 /** Saisit et confirme le revenu réel, depuis la boîte déjà ouverte. */
 async function realizeAmount(page: Page, amount: string): Promise<void> {
-  await realizationAmountInput(page).fill(amount);
+  // The dialog focuses the amount and selects the prefilled value, so typing
+  // replaces it the way a user would.
+  await page.keyboard.type(amount);
+  await expect(realizationAmountInput(page)).toHaveValue(amount);
   await page.getByTestId('save-transaction').click();
   await expect(page.getByTestId('realize-withdrawal-context')).toBeHidden();
 }
