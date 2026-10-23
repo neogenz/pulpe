@@ -575,21 +575,23 @@ jobs:
   # 🍎 iOS TESTS
   test-ios:
     name: 🍎 iOS Tests
-    runs-on: macos-26
-    timeout-minutes: 30
+    runs-on: xcode-27
+    timeout-minutes: 60
     needs: [classify]
     if: needs.classify.outputs.ios == 'true'
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
 
       - name: 🔧 Setup Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
-          xcode-version: "26.6"
+          xcode-version: "27.1"
 
       - name: 📦 Install XcodeGen and SwiftLint
-        # The macos-26 image ships neither; the lint step below needs swiftlint on PATH.
+        # Keep lint and project generation reproducible on the selected image.
         run: brew install xcodegen swiftlint
 
       # lefthook lints staged files only and skips on merge/rebase; this is the
@@ -606,31 +608,34 @@ jobs:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
             ~/Library/Caches/org.swift.swiftpm
-          key: spm-${{ hashFiles('ios/project.yml') }}
-          restore-keys: spm-
+          key: spm-xcode27.1-${{ hashFiles('ios/project.yml') }}
+          restore-keys: spm-xcode27.1-
 
       - name: 🔨 Generate Xcode project
         working-directory: ios
-        run: xcodegen generate
+        run: xcodegen generate --use-cache
+
+      - name: Install iOS 27.1 simulator runtime
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild -showsdks
+          if ! xcrun simctl list runtimes -j | python3 -c 'import json,sys; sys.exit(not any(r["version"] == "27.1" and r["isAvailable"] for r in json.load(sys.stdin)["runtimes"]))'; then
+            xcodebuild -downloadPlatform iOS -buildVersion 27.1 -architectureVariant arm64
+          fi
+          xcrun simctl list runtimes -j
+          xcrun simctl list devicetypes -j
+          xcrun simctl help
+          xcrun simctl help io
+          xcrun simctl help ui
 
       - name: 📱 Resolve iOS Simulator
         id: sim
         run: |
-          # Newest iOS 26 runtime the image ships, first iPhone 17 in it: the
-          # store build runs on the runtime users have, not on a pinned old one.
-          xcodebuild -version
-          UDID=$(xcrun simctl list devices available -j \
-            | python3 -c "
-          import re, sys, json
-          devices = json.load(sys.stdin)['devices']
-          def minor(rt): return int(re.search(r'iOS-26-(\d+)', rt).group(1))
-          for rt in sorted((k for k in devices if 'iOS-26-' in k), key=minor, reverse=True):
-            for d in devices[rt]:
-              if d['name'] == 'iPhone 17':
-                print(rt, file=sys.stderr); print(d['udid']); sys.exit(0)
-          sys.exit(1)
-          ")
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          runtime=$(xcrun simctl list runtimes -j | python3 -c 'import json,sys; print(next(r["identifier"] for r in json.load(sys.stdin)["runtimes"] if r["version"] == "27.1" and r["isAvailable"]))')
+          udid=$(xcrun simctl create "Pulpe Tests" com.apple.CoreSimulator.SimDeviceType.iPhone-17 "$runtime")
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
 
       - name: 🧪 Run Unit Tests
         working-directory: ios
@@ -758,6 +763,33 @@ jobs:
         if: failure()
         working-directory: ios
         run: grep -B2 -A60 'XCTAssert' smoke-output.log | head -200 || tail -80 smoke-output.log
+
+      # Temporary branch evidence; remove after the internal TestFlight build.
+      - name: Archive unsigned production application
+        if: github.head_ref == 'codex/ios-duo-native'
+        working-directory: ios
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # A PR merge build is deliverable only when its tree matches the branch.
+          test "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "$SOURCE_SHA^{tree}")"
+          xcodebuild archive -project Pulpe.xcodeproj -scheme PulpeProd \
+            -configuration Prod -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Pulpe.xcarchive" CODE_SIGNING_ALLOWED=NO
+          tar -czf "$RUNNER_TEMP/Pulpe-unsigned.xcarchive.tar.gz" -C "$RUNNER_TEMP" Pulpe.xcarchive
+          printf 'source=%s\ntested=%s\ntree=%s\n' "$SOURCE_SHA" "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" > "$RUNNER_TEMP/ios-source-sha.txt"
+
+      - name: Preserve unsigned production archive
+        if: github.head_ref == 'codex/ios-duo-native'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ios-unsigned-${{ github.event.pull_request.head.sha }}
+          path: |
+            ${{ runner.temp }}/Pulpe-unsigned.xcarchive.tar.gz
+            ${{ runner.temp }}/ios-source-sha.txt
+          retention-days: 3
+          if-no-files-found: error
 
       - name: 🧹 Cleanup Simulator
         if: always()
