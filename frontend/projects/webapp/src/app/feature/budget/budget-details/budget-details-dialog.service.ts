@@ -216,6 +216,12 @@ export class BudgetDetailsDialogService {
       data,
       width: '600px',
       maxWidth: '90vw',
+      // Realizing a withdrawal is about adjusting the prefilled amount; the
+      // name is already filled. Mobile keeps the sheet default: focusing a
+      // field there opens the keyboard over the sheet.
+      autoFocus: withdrawalRealization
+        ? '[inputmode="decimal"]'
+        : 'first-tabbable',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

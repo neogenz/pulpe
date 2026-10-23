@@ -51,6 +51,7 @@ export interface CreateAllocatedTransactionDialogData extends CreateAllocatedTra
         class="block pt-4"
         [data]="data"
         (created)="onCreated($event)"
+        (focusin)="selectPrefilledAmount($event)"
       />
     </mat-dialog-content>
 
@@ -96,6 +97,26 @@ export class CreateAllocatedTransactionDialog {
 
   protected readonly isSubmitting = signal(false);
   protected readonly submitError = signal<string | null>(null);
+
+  #hasSelectedPrefilledAmount = false;
+
+  // Realizing a withdrawal opens on the prefilled amount (autoFocus set by
+  // the dialog service). Chrome and Firefox put the caret at the start on
+  // that programmatic focus, so typing "300" over "500" would give "300500".
+  // Only that first focus selects: later clicks keep the caret where they land.
+  protected selectPrefilledAmount(event: FocusEvent): void {
+    const target = event.target;
+    if (
+      this.#hasSelectedPrefilledAmount ||
+      !this.data.withdrawalRealization ||
+      !(target instanceof HTMLInputElement) ||
+      !target.matches('[inputmode="decimal"]')
+    ) {
+      return;
+    }
+    this.#hasSelectedPrefilledAmount = true;
+    target.select();
+  }
 
   cancel(): void {
     this.#dialogRef.close();
