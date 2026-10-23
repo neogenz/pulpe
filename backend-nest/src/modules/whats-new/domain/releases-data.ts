@@ -54,6 +54,54 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.55.0',
+    date: '2026-10-21',
+    platforms: ['android'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Confirmation du code',
+          description:
+            'Sur Android, une erreur de confirmation conserve le code choisi et te permet de réessayer sans tout recommencer.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [],
+        fixes: [
+          {
+            title: 'Code confirmation',
+            description:
+              'On Android, a confirmation mismatch preserves your chosen code so you can retry without starting over.',
+          },
+        ],
+      },
+      de: {
+        features: [],
+        fixes: [
+          {
+            title: 'Code bestätigen',
+            description:
+              'Unter Android bleibt dein gewählter Code bei einer falschen Bestätigung erhalten, damit du es erneut versuchen kannst, ohne von vorne anzufangen.',
+          },
+        ],
+      },
+      it: {
+        features: [],
+        fixes: [
+          {
+            title: 'Conferma del codice',
+            description:
+              'Su Android, un errore di conferma conserva il codice scelto e ti permette di riprovare senza ricominciare da capo.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.54.0',
     iosVersion: '1.10.0',
     date: '2026-10-20',

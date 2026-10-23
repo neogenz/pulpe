@@ -1,5 +1,149 @@
 [
   {
+    "version": "0.55.0",
+    "date": "2026-10-21",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.55.0",
+    "platforms": ["web", "android"],
+    "changes": {
+      "features": [
+        {
+          "title": "Avis détaillés",
+          "description": "Tu peux compléter ta note globale par des notes facultatives sur les différentes parties de l’application web."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Menu des prévisions",
+          "description": "Sur le web mobile, le solde ambigu a été retiré du menu des prévisions."
+        },
+        {
+          "title": "Confirmation du code",
+          "description": "Sur Android, une erreur de confirmation conserve le code choisi et te permet de réessayer sans tout recommencer."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Detailed feedback",
+              "description": "You can supplement your overall rating with optional ratings for different parts of the web app."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Forecast menu",
+              "description": "The confusing balance has been removed from the forecast menu on mobile web."
+            },
+            {
+              "title": "Code confirmation",
+              "description": "On Android, a confirmation mismatch preserves your chosen code so you can retry without starting over."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Detailliertes Feedback",
+              "description": "Du kannst deine Gesamtbewertung durch freiwillige Bewertungen einzelner Bereiche der Web-App ergänzen."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Menü der Planungseinträge",
+              "description": "Der missverständliche Saldo wurde auf der mobilen Website aus dem Menü der Planungseinträge entfernt."
+            },
+            {
+              "title": "Code bestätigen",
+              "description": "Unter Android bleibt dein gewählter Code bei einer falschen Bestätigung erhalten, damit du es erneut versuchen kannst, ohne von vorne anzufangen."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Opinioni dettagliate",
+              "description": "Puoi integrare la valutazione complessiva con valutazioni facoltative delle diverse parti dell’app web."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Menu delle previsioni",
+              "description": "Il saldo poco chiaro è stato rimosso dal menu delle previsioni nella versione web mobile."
+            },
+            {
+              "title": "Conferma del codice",
+              "description": "Su Android, un errore di conferma conserva il codice scelto e ti permette di riprovare senza ricominciare da capo."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
+    "version": "0.54.1",
+    "date": "2026-10-21",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.54.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Affichage du formulaire d’ajout",
+          "description": "Le formulaire s’adapte aux petites fenêtres et garde les options d’épargne et de pointage bien alignées."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Entry form layout",
+              "description": "The form adapts to smaller windows and keeps the savings and checked-status options neatly aligned."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Darstellung des Eingabeformulars",
+              "description": "Das Formular passt sich kleinen Fenstern an und richtet die Optionen für Ersparnisse und den Abhakstatus übersichtlich aus."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Visualizzazione del modulo di aggiunta",
+              "description": "Il modulo si adatta alle finestre più piccole e mantiene ben allineate le opzioni di risparmio e spunta."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
     "version": "0.54.0",
     "iosVersion": "1.10.0",
     "date": "2026-10-20",

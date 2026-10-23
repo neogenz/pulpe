@@ -23,7 +23,7 @@ env:
   # 22.22.2, so the whole pipeline runs on 24 to match engines.node.
   NODE_VERSION: "24"
   PNPM_VERSION: "10.12.1"
-  BUN_VERSION: "1.2.17"
+  BUN_VERSION: "1.4.3"
   # Pinned: "latest" resolves via unauthenticated GitHub Releases API and can rate-limit setup jobs.
   SUPABASE_CLI_VERSION: "2.113.0"
 

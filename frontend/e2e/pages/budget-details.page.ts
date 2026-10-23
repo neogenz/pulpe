@@ -104,6 +104,11 @@ export class BudgetDetailsPage {
     await expect(
       this.page.getByTestId('realize-withdrawal-context'),
     ).toBeVisible();
+    // MatDialog moves focus to its first field ~150 ms after opening; a fill
+    // racing that move types into the name instead of the amount.
+    await expect(
+      this.page.getByRole('dialog').getByTestId('transaction-name'),
+    ).toBeFocused();
   }
 
   transactionDialogSourceLink(): Locator {

@@ -6,6 +6,7 @@ import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
+import { ObserveInstrument } from './observe';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import {
   isProductionLike,
@@ -525,6 +526,7 @@ function logApplicationInfo(
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    instrument: ObserveInstrument,
     bufferLogs: true,
   });
 

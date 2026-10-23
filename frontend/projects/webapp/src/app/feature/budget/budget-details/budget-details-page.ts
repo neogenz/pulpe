@@ -12,11 +12,13 @@ import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { BreadcrumbState } from '@core/shell/breadcrumb-state';
+import { ROUTES } from '@core/routing/routes-constants';
 import { formatDate } from 'date-fns';
 import { dateFnsLocaleFor } from '@core/locale';
 import { BaseLoading } from '@ui/loading';
@@ -31,7 +33,11 @@ import {
   submitSavingsWithdrawalWithRetry,
   submitSpreadWithRetry,
 } from './utils/budget-details-snackbar.utils';
-import { formatBudgetPeriod, type SupportedCurrency } from 'pulpe-shared';
+import {
+  type BudgetDeletionImpact,
+  formatBudgetPeriod,
+  type SupportedCurrency,
+} from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 
@@ -41,6 +47,7 @@ import { CURRENCY_CONFIG } from '@core/currency';
     MatCardModule,
     MatIconModule,
     MatButtonModule,
+    MatMenuModule,
     DatePipe,
     TranslocoPipe,
     BudgetItemsContainer,
@@ -129,6 +136,7 @@ export default class BudgetDetailsPage {
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  #isDeletingMonth = false;
 
   protected readonly currencyLocale = computed(
     () => CURRENCY_CONFIG[this.userSettingsStore.currency()].numberLocale,
@@ -208,6 +216,77 @@ export default class BudgetDetailsPage {
     if (id) {
       this.#router.navigate(['/', 'budget', id]);
     }
+  }
+
+  // Two hops (read the impact, then delete) leave room for a second tap on the
+  // menu item: one run at a time.
+  protected async deleteMonth(): Promise<void> {
+    if (this.#isDeletingMonth) return;
+    this.#isDeletingMonth = true;
+    // Navigating to another month while the impact loads or the dialog is open
+    // re-points the store: the month confirmed is the one captured here.
+    const id = this.id();
+    try {
+      const impact = await this.store.deletionImpact(id);
+      if (this.id() !== id) return;
+      if (!impact) {
+        this.#notifyMonthDeleteError();
+        return;
+      }
+      const hasLinks = Object.values(impact.links).some((count) => count > 0);
+      const confirmed = await this.#dialogService.confirmDelete({
+        title: this.#transloco.translate('budget.deleteMonthTitle', {
+          month: this.displayName(),
+        }),
+        message: this.#deleteMonthMessage(impact),
+      });
+      if (!confirmed || this.id() !== id) return;
+
+      const isDeleted = await this.store.deleteMonth(id, hasLinks, () =>
+        this.#router.navigate(['/', ROUTES.BUDGET]),
+      );
+      if (!isDeleted) {
+        this.#notifyMonthDeleteError();
+        return;
+      }
+      this.#snackBar.open(
+        this.#transloco.translate('budget.monthDeleted'),
+        this.#transloco.translate('common.close'),
+        { duration: 3000 },
+      );
+    } finally {
+      this.#isDeletingMonth = false;
+    }
+  }
+
+  #deleteMonthMessage(impact: BudgetDeletionImpact): string {
+    const counts = this.#transloco.translate('budget.deleteMonthMessage', {
+      forecastCount: impact.forecastCount,
+      movementCount: impact.movementCount,
+    });
+    const { links } = impact;
+    const linkLabels: [key: string, count: number][] = [
+      ['budget.deleteMonthLinkSpread', links.spreadForecasts],
+      ['budget.deleteMonthLinkGoal', links.savingsGoalForecasts],
+      [
+        'budget.deleteMonthLinkWithdrawal',
+        links.savingsWithdrawalForecasts + links.savingsWithdrawalMovements,
+      ],
+    ];
+    const linked = linkLabels
+      .filter(([, count]) => count > 0)
+      .map(([key, count]) => this.#transloco.translate(key, { count }))
+      .join(', ');
+    if (!linked) return counts;
+    return `${counts} ${this.#transloco.translate('budget.deleteMonthLinks', { links: linked })}`;
+  }
+
+  #notifyMonthDeleteError(): void {
+    openMutationErrorSnackbar(
+      this.#transloco.translate('budget.monthDeleteError'),
+      this.#snackBar,
+      this.#transloco,
+    );
   }
 
   protected async openAddBudgetLineDialog(): Promise<void> {

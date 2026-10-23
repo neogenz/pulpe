@@ -19,10 +19,7 @@ import { PreviewTransactionImportUseCase } from './preview-transaction-import.us
 import { ConfirmTransactionImportUseCase } from './confirm-transaction-import.use-case';
 
 const sample = readFileSync(
-  join(
-    import.meta.dir,
-    '../infrastructure/parsers/__fixtures__/camt053-001-04.xml',
-  ),
+  join(__dirname, '../infrastructure/parsers/__fixtures__/camt053-001-04.xml'),
   'utf8',
 );
 

@@ -15,23 +15,34 @@ export default function VaultSetupScreen() {
   const signOut = useSessionStore((state) => state.signOut);
   // Nothing to do on success: the store flips to `unlocked` and the router
   // leaves this screen on its own.
-  const { pin, setPin, errorMessage, isBusy, isConfirming } = usePinCeremony(
-    () => {},
-  );
+  const { pin, setPin, errorMessage, isBusy, isConfirming, restart } =
+    usePinCeremony(() => {});
 
   return (
     <PinScreen
       testID="vault-setup"
-      title={t(isConfirming ? "vault.confirmPin" : "vault.setup.title")}
+      title={t(isConfirming ? "vault.confirmPin" : "vault.setup.title", {
+        count: PIN_LENGTH,
+      })}
       subtitle={
         isConfirming
-          ? t("vault.repeatPin")
+          ? t("vault.setup.confirmHint", { count: PIN_LENGTH })
           : t("vault.setup.subtitle", { count: PIN_LENGTH })
       }
       footer={
-        <Button onPress={() => void signOut().catch(() => undefined)}>
-          {t("common.signOut")}
-        </Button>
+        <>
+          {isConfirming && (
+            <Button disabled={isBusy} onPress={restart}>
+              {t("vault.setup.changeCode")}
+            </Button>
+          )}
+          <Button
+            disabled={isBusy}
+            onPress={() => void signOut().catch(() => undefined)}
+          >
+            {t("common.signOut")}
+          </Button>
+        </>
       }
     >
       <PinPad

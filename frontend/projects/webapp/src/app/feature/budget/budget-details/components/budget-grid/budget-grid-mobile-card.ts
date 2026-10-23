@@ -108,9 +108,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
       <ng-container ngProjectAs="[menu]">
         <pulpe-budget-action-menu
           [item]="item()"
-          [currency]="currency()"
           menuIcon="more_horiz"
-          [showBalance]="true"
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"

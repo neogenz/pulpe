@@ -24,8 +24,9 @@ import { McpConsentStore } from './mcp-consent-store';
 
 /**
  * OAuth consent page for AI agents: the only screen that asks the vault
- * code on behalf of a third party. The client name comes from the
- * authorization request, never from the URL or the user.
+ * code on behalf of a third party. The client name and the host its callback
+ * goes to both come from the authorization request, never from the URL or the
+ * user: the name is self-declared, the host is where the access really goes.
  */
 @Component({
   selector: 'pulpe-mcp-consent',
@@ -59,6 +60,29 @@ import { McpConsentStore } from './mcp-consent-store';
           <p class="text-body-medium text-on-surface-variant">
             {{ 'auth.mcpConsent.subtitle' | transloco: { client } }}
           </p>
+          <!-- An API older than this page sends no host: nothing to verify, so no line. -->
+          @if (store.redirectHost(); as host) {
+            <p
+              class="mt-3 text-body-medium font-medium text-on-surface break-words"
+              data-testid="mcp-consent-redirect-host"
+            >
+              @if (isLocalRedirect()) {
+                {{ 'auth.mcpConsent.redirectHostLocal' | transloco: { host } }}
+              } @else {
+                {{ 'auth.mcpConsent.redirectHost' | transloco: { host } }}
+              }
+            </p>
+            <p class="text-body-small text-on-surface-variant">
+              @if (isLocalRedirect()) {
+                {{
+                  'auth.mcpConsent.redirectHostLocalHint'
+                    | transloco: { client }
+                }}
+              } @else {
+                {{ 'auth.mcpConsent.redirectHostHint' | transloco: { client } }}
+              }
+            </p>
+          }
         </div>
 
         <form [formGroup]="form" (ngSubmit)="onApprove()" class="space-y-6">
@@ -213,6 +237,12 @@ export default class McpConsent {
     },
   ];
   protected readonly clientName = computed(() => this.store.clientName());
+  // Same loopback hosts the server accepts over http: the code stays on this device.
+  protected readonly isLocalRedirect = computed(() =>
+    ['localhost', '127.0.0.1', '[::1]'].includes(
+      this.store.redirectHost() ?? '',
+    ),
+  );
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
 

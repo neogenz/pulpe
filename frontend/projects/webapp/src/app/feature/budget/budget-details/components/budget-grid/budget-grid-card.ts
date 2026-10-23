@@ -140,7 +140,6 @@ import { BudgetActionMenu } from '../budget-action-menu';
 
         <pulpe-budget-action-menu
           [item]="item()"
-          [currency]="currency()"
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"

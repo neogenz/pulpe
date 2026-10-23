@@ -49,17 +49,19 @@ export class McpConsentController {
 
   @SkipClientKey()
   @Get(':authorizationId')
-  @ApiOperation({ summary: 'Name of the agent client asking for access' })
+  @ApiOperation({
+    summary: 'Agent client asking for access, and where its callback goes',
+  })
   @ApiResponse({ status: 200, type: McpConsentDetailsResponseDto })
   async getDetails(
     @User() user: AuthenticatedUser,
     @Param('authorizationId') authorizationId: string,
   ): Promise<McpConsentDetailsResponse> {
-    const { clientName } = await this.authorizations.getDetails(
+    const { clientName, redirectHost } = await this.authorizations.getDetails(
       authorizationId,
       user.accessToken,
     );
-    return { clientName };
+    return { clientName, redirectHost };
   }
 
   @Post(':authorizationId/approve')

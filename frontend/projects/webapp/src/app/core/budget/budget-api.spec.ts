@@ -158,6 +158,82 @@ describe('BudgetApi', () => {
     });
   });
 
+  describe('getDeletionImpact$', () => {
+    it('should GET /budgets/:id/deletion-impact and unwrap the impact', async () => {
+      const { service, httpTesting } = createTestBed();
+      const id = '550e8400-e29b-41d4-a716-446655440000';
+      const impact = {
+        forecastCount: 4,
+        movementCount: 2,
+        links: {
+          spreadForecasts: 1,
+          savingsGoalForecasts: 0,
+          savingsWithdrawalForecasts: 0,
+          savingsWithdrawalMovements: 1,
+        },
+      };
+
+      const resultPromise = firstValueFrom(service.getDeletionImpact$(id));
+
+      const req = httpTesting.expectOne(
+        `http://localhost:3000/api/v1/budgets/${id}/deletion-impact`,
+      );
+      expect(req.request.method).toBe('GET');
+      req.flush({ success: true, data: impact });
+
+      expect(await resultPromise).toEqual(impact);
+    });
+  });
+
+  describe('deleteBudget$', () => {
+    it.each([true, false])(
+      'should DELETE /budgets/:id carrying confirmLinks=%s',
+      async (confirmLinks) => {
+        const { service, httpTesting } = createTestBed();
+        const id = '550e8400-e29b-41d4-a716-446655440000';
+
+        const resultPromise = firstValueFrom(
+          service.deleteBudget$(id, confirmLinks),
+        );
+
+        const req = httpTesting.expectOne(
+          `http://localhost:3000/api/v1/budgets/${id}?confirmLinks=${confirmLinks}`,
+        );
+        expect(req.request.method).toBe('DELETE');
+        req.flush({ success: true, message: 'Budget deleted' });
+
+        expect(await resultPromise).toEqual({
+          success: true,
+          message: 'Budget deleted',
+        });
+      },
+    );
+
+    it('should surface a 409 refusal as an ApiError', () => {
+      const { service, httpTesting } = createTestBed();
+      const id = '550e8400-e29b-41d4-a716-446655440000';
+      let error: unknown;
+
+      service.deleteBudget$(id, false).subscribe({ error: (e) => (error = e) });
+
+      httpTesting
+        .expectOne(
+          `http://localhost:3000/api/v1/budgets/${id}?confirmLinks=false`,
+        )
+        .flush(
+          {
+            success: false,
+            error: 'Links must be confirmed',
+            code: 'ERR_BUDGET_DELETION_LINKS_UNCONFIRMED',
+          },
+          { status: 409, statusText: 'Conflict' },
+        );
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(409);
+    });
+  });
+
   describe('getAllBudgets$', () => {
     it('should return sorted budgets without writing to cache', async () => {
       const { service, httpTesting, cacheSetSpy } = createTestBed();

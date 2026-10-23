@@ -11,6 +11,7 @@ import {
 } from '@modules/budget-line/domain/ports/budget-line-write.port';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
 import { ResolveCurrencyUseCase } from '../../../application/resolve-currency.use-case';
+import { askUser } from './elicitation';
 
 const inputSchema = {
   forecastId: z.uuid().describe('Identifiant de la prévision à modifier'),
@@ -38,7 +39,7 @@ export class UpdateForecastTool implements McpTool<Args> {
   readonly name = 'update_forecast';
   readonly title = 'Modifier une prévision';
   readonly description =
-    'Modifie une prévision existante : intitulé, montant, nature ou fréquence. Seuls les champs fournis changent.';
+    'Modifie une prévision existante : intitulé, montant, nature ou fréquence. Seuls les champs fournis changent. La prévision est alors marquée ajustée à la main : une modification du modèle ne la changera plus. Pour plusieurs mois : adjust_over_months ; pour le modèle : edit_template_lines.';
   readonly mode = 'read_write' as const;
   readonly annotations = {
     readOnlyHint: false,
@@ -56,6 +57,20 @@ export class UpdateForecastTool implements McpTool<Args> {
 
   async execute(args: Args): Promise<McpToolResult> {
     const { forecastId, currency, amount, ...rest } = args;
+    if (currency !== undefined && amount === undefined) {
+      return askUser(
+        'le montant dans cette devise : une devise seule ne change rien. Rappelle update_forecast avec amount et currency.',
+      );
+    }
+    // Written over `rest`, not a field list: a field added later counts as a change.
+    if (
+      amount === undefined &&
+      Object.values(rest).every((v) => v === undefined)
+    ) {
+      return askUser(
+        'ce qu’il faut modifier sur cette prévision (intitulé, montant, nature ou fréquence), puis rappelle update_forecast.',
+      );
+    }
     const money =
       amount == null
         ? {}
