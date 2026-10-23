@@ -83,3 +83,10 @@ It accepts the tested PR merge tree only when identical to the source branch tre
 records both commits. This instrumentation must be removed after internal TestFlight
 delivery. Local workflow lint and all 36 CI security tests pass. A checkpoint is required
 to run the PR-only CI; it does not complete this phase or validate Duo rendering.
+
+The first remote run, `39952873392`, verified Xcode 27.1 (`27A9275`), SDK 27.1 and
+runtime 27.1 (`24A94425`). Its simulator creation failed before tests: this runtime's
+`supportedDeviceTypes` contains only `com.apple.CoreSimulator.SimDeviceType.iPhone-Duo`.
+The resolver now uses that observed type. No tests or archive from that failed run are
+counted as passed. The public simctl help has no fold/pose control; native pose coverage
+must remain explicit until Device Hub control is demonstrated.

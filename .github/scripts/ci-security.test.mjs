@@ -881,6 +881,12 @@ test("one macOS CI job proves units and the targeted iOS smoke", () => {
     /-only-testing:PulpeUITests\/BudgetOpensFromListUITests/,
   );
   assert.match(iosJob, /Executed 1 test/);
+  assert.match(
+    iosJob,
+    /-only-testing:PulpeUITests\/IPhoneDuoContinuityUITests/,
+  );
+  assert.match(iosJob, /Executed 2 tests/);
+  assert.match(iosJob, /SimDeviceType\.iPhone-Duo/);
   assert.doesNotMatch(iosJob, /-scheme PulpeTests|xcodebuild build/);
   assert.equal(
     [...iosJob.matchAll(/xcodebuild test/g)].length,

@@ -628,14 +628,19 @@ jobs:
           xcrun simctl help
           xcrun simctl help io
           xcrun simctl help ui
+          ls -d /Applications/Xcode_27.1.app/Contents/Developer/Applications/*.app
+          rg -n -i 'fold|hinge|pose|display' /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework/Headers/XCUIDevice.h || true
 
       - name: 📱 Resolve iOS Simulator
         id: sim
         run: |
           set -euo pipefail
           runtime=$(xcrun simctl list runtimes -j | python3 -c 'import json,sys; print(next(r["identifier"] for r in json.load(sys.stdin)["runtimes"] if r["version"] == "27.1" and r["isAvailable"]))')
-          udid=$(xcrun simctl create "Pulpe Tests" com.apple.CoreSimulator.SimDeviceType.iPhone-17 "$runtime")
+          udid=$(xcrun simctl create "Pulpe Tests" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo "$runtime")
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl io "$udid" enumerate
 
       - name: 🧪 Run Unit Tests
         working-directory: ios
@@ -734,6 +739,8 @@ jobs:
             -scheme PulpeUITests \
             -destination 'id=${{ steps.sim.outputs.udid }}' \
             -only-testing:PulpeUITests/BudgetOpensFromListUITests \
+            -only-testing:PulpeUITests/IPhoneDuoContinuityUITests \
+            -resultBundlePath DuoResults \
             CODE_SIGNING_ALLOWED=NO \
             -parallel-testing-enabled NO \
             -collect-test-diagnostics never \
@@ -757,12 +764,26 @@ jobs:
             tail -40 smoke-output.log
             exit 1
           fi
+          grep -q 'Executed 2 tests' smoke-output.log
           grep -q '\*\* TEST SUCCEEDED \*\*' smoke-output.log
 
       - name: 📋 Show the tree on failure
         if: failure()
         working-directory: ios
         run: grep -B2 -A60 'XCTAssert' smoke-output.log | head -200 || tail -80 smoke-output.log
+
+      - name: Preserve native Duo test evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ios-native-${{ github.event.pull_request.head.sha }}
+          path: |
+            ios/TestResults.xcresult
+            ios/DuoResults.xcresult
+            ios/test-output.log
+            ios/smoke-output.log
+          retention-days: 3
+          if-no-files-found: warn
 
       # Temporary branch evidence; remove after the internal TestFlight build.
       - name: Archive unsigned production application

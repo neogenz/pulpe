@@ -70,6 +70,12 @@ Inner landscape / book
 
 ## Tasks to do
 
+Implementation is split into two reviewable increments: shared selection/navigation guards
+and their regressions first, then the native container and continuity capture. Neither
+increment completes this phase on its own. Preserve nested goal-to-budget pushes and
+`SessionResetScope.clearsNavigation`; block root month selection while a child editor or
+sheet is active so local drafts are not silently discarded.
+
 ### `1)` Let the native container manage the extra hierarchy
 1. After phase 1, compare a native two-pane capture with the baseline, then use `NavigationSplitView` with a native `List(selection:)` and the existing typed detail stack. Keep one stable hierarchy across widths; no conditional replacement stacks or copied detail view. Compact width presents the selected pane; narrow regular width and accessibility text may collapse.
 2. Reuse existing month labels, amounts, masking, payday periods, creation/planning sheets and annual recap access. Selection uses native treatment, without the rejected inset card/green stripe; no fixed mockup width. Current-period and selected-month states remain distinct.
