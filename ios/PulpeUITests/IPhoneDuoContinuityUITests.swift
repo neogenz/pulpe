@@ -313,7 +313,7 @@ private extension IPhoneDuoContinuityUITests {
         let keyboardFrame = keyboard.frame
         guard let amount = try? amount.snapshot() else { return nil }
         let bar = app.navigationBars["Prévoir une dépense"]
-        let required = [bar.buttons["Fermer"], bar.staticTexts["Prévoir une dépense"],
+        let required = [app.buttons["Fermer"], bar.staticTexts["Prévoir une dépense"],
                         app.buttons["Champ précédent"], app.buttons["Champ suivant"],
                         app.buttons["keyboardDismissButton"]]
         let controls = required.compactMap { try? $0.snapshot() }

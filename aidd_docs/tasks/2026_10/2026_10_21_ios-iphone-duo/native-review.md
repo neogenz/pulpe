@@ -343,3 +343,30 @@ Static review accepts extending only the background of six full-screen hero/skel
 callers into horizontal safe areas. The two annual-summary callers remain unchanged via
 an explicit opt-in. Content and navigation retain their layout and identity. Fresh
 landscape captures and the SDK 27.1 mask/rail gate remain required.
+
+## SDK 27.1 candidate 43405c5bf
+
+[Run 40027993962](https://github.com/neogenz/pulpe/actions/runs/40027993962) passes
+2,487 unit tests with the same nine skips on iOS 27.1 (24A94425), Xcode 27.1
+(27A9275). Native Back passes; the current-geometry journey fails at its first
+draft check after 175.019 seconds. Its accessibility tree contains exactly one
+“Fermer” button in a separate native `Toolbar`, outside the title's `NavigationBar`.
+The test incorrectly queried it under that bar, making the required geometry
+result nil. The screenshot shows `12 CHF` above the visible keyboard.
+The correction changes only that query to `app.buttons["Fermer"]`; all five
+controls, finite frames, keyboard separation and draft assertions remain required.
+Evidence: `/private/tmp/pulpe-duo-ci-v10-native`. No archive, signed export or
+TestFlight upload was produced. The corrected journey still requires a passing run.
+
+Independent review accepts the product rendering in the six SDK 27.1 captures:
+black titles on canvas, the forest contained below the title and outside the rail,
+and readable native controls. Interior-pixel samples measure title 18.7:1, Back
+18.1:1, goal pencil 6.26:1 and active tabs 5.1–5.6:1. This accepts the observed
+outer geometry only; it does not certify all postures, the sticky pager or the
+full accessibility matrix. The one-expression test correction is also accepted
+statically; delivery remains gated on the corrected run.
+
+The corrected current-geometry journey passes locally: one test, zero failures,
+161.620 seconds, `TEST SUCCEEDED` (xcodebuild operation 236.578 seconds). Evidence:
+`/private/tmp/pulpe-ios-duo-native-close-scope-v1.xcresult`. No product source changed
+after the accepted SDK 27.1 captures. The remote corrected journey and archive remain pending.
