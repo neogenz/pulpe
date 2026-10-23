@@ -154,6 +154,7 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
             XCUIDevice.shared.orientation = orientation
             XCTAssertTrue(landmark.waitForExistence(timeout: 15), app.debugDescription)
             var previousContentFrame: CGRect?
+            var geometryDetails = ""
             let geometry = NSPredicate { _, _ in
                 let frame = self.app.windows.firstMatch.frame
                 let contentFrame = landmark.frame
@@ -161,16 +162,23 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
                 let rotated = self.orientations.count == 1
                     || (orientation.isLandscape ? frame.width > frame.height : frame.height > frame.width)
                 let keyboard = self.app.keyboards.firstMatch
-                let coveredByBar = self.app.navigationBars.allElementsBoundByIndex.contains {
-                    $0.isHittable && $0.frame.intersects(contentFrame)
-                }
-                let aboveKeyboard = !expectsKeyboard || (keyboard.exists && frame.contains(contentFrame)
-                    && !keyboard.frame.intersects(contentFrame) && !coveredByBar)
+                let barFrames = expectsKeyboard ? self.navigationControlFrames(in: frame) : []
+                let keyboardFrame = expectsKeyboard && keyboard.exists ? keyboard.frame : nil
+                let coveredByBar = barFrames.contains { $0.intersects(contentFrame) }
+                let aboveKeyboard = !expectsKeyboard || (keyboardFrame.map {
+                    frame.contains(contentFrame) && !$0.intersects(contentFrame) && !coveredByBar
+                } ?? false)
+                geometryDetails = "window=\(frame) field=\(contentFrame) keyboard=\(String(describing: keyboardFrame))"
+                    + " barControls=\(barFrames) rotated=\(rotated) aboveKeyboard=\(aboveKeyboard)"
                 return rotated && !contentFrame.isEmpty && frame.intersects(contentFrame)
                     && contentFrame == previousContentFrame && aboveKeyboard
             }
             let rotation = XCTNSPredicateExpectation(predicate: geometry, object: nil)
-            XCTAssertEqual(XCTWaiter.wait(for: [rotation], timeout: 10), .completed, app.debugDescription)
+            let result = XCTWaiter.wait(for: [rotation], timeout: 10)
+            if result != .completed {
+                capture("geometry-failure-\(screen)", diagnostic: geometryDetails)
+            }
+            XCTAssertEqual(result, .completed, app.debugDescription)
             if orientation == .portrait {
                 portraitWidth = landmark.frame.width
             } else if expandsInLandscape {
@@ -193,7 +201,22 @@ final class IPhoneDuoContinuityUITests: XCTestCase {
         }
     }
 
-    private func capture(_ name: String) {
+    private func navigationControlFrames(in viewport: CGRect) -> [CGRect] {
+        // A vertical bar's container can span the viewport; inspect its native controls.
+        let controls = app.navigationBars.buttons.allElementsBoundByIndex
+            + app.navigationBars.staticTexts.allElementsBoundByIndex + app.toolbars.buttons.allElementsBoundByIndex
+        return controls.map(\.frame).filter {
+            !$0.isEmpty && [$0.minX, $0.minY, $0.width, $0.height].allSatisfy(\.isFinite) && viewport.intersects($0)
+        }
+    }
+
+    private func capture(_ name: String, diagnostic: String? = nil) {
+        if let diagnostic {
+            let details = XCTAttachment(string: diagnostic)
+            details.name = name
+            details.lifetime = .keepAlways
+            add(details)
+        }
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = "native-baseline-\(name)"
         attachment.lifetime = .keepAlways

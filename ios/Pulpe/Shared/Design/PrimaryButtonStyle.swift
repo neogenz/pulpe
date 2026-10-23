@@ -235,9 +235,7 @@ private struct HeroAdaptiveBarAppearance: ViewModifier {
     func body(content: Content) -> some View {
         // Keep native title and rail ink on a system background when the controls are vertical.
         content
-            .toolbarColorScheme(
-                toolbarVerticalEdge == nil && isOnHeroSurface ? .dark : colorScheme, for: .navigationBar
-            )
+            .toolbarColorScheme(isOnHeroSurface ? .dark : colorScheme, for: .navigationBar)
             .toolbarBackground(toolbarVerticalEdge == nil ? .hidden : .visible, for: .navigationBar)
     }
 }

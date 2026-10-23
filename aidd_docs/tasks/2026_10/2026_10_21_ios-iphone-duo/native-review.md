@@ -235,5 +235,41 @@ session reset closes those presentations before clearing selection. No normal ro
 requires an active Budgets child stack with no selected month.
 
 The unchanged current-geometry journey passes (1 test, 0 failures, 121.481 seconds),
-including the previously failing cold revisit and draft entry. The final candidate
-still needs the strict rotation run and SDK 27.1 visual verification.
+including the previously failing cold revisit and draft entry. The final strict
+rotation and native Back run passes two tests in 242.149 seconds. Nested goal/spread
+navigation passes in 26.731 seconds; the eight navigation/keyboard contracts also pass.
+The eight local captures were inspected and refreshed without image edits. SDK 27.1
+visual verification remains required before delivery.
+
+Automated review of `75cfa5879` reports no blocking or important finding
+([comment](https://github.com/neogenz/pulpe/pull/830#issuecomment-6371920868)).
+Its suggestion to add feedback to the selection binding does not establish a defect:
+month links are already disabled while root replacement is forbidden, and native
+selection-clearing callbacks are intentionally rejected without user-facing noise.
+The temporary archive steps remain scheduled for removal immediately after internal
+delivery; no additional feature or approval action is implied by the review verdict.
+
+## SDK 27.1 candidate 75cfa5879 outcome
+
+The cold revisit is repaired in the actual Duo run. Native Back passes, and the
+continuity journey reaches a preserved draft; its next failure comes from asking
+XCTest whether the navigation-bar container has an activation point. Native title
+and control frames, not container hittability or its broad bounding rectangle,
+are the relevant collision geometry. The last recorded frame shows the amount and
+description present above the keyboard; the subsequent AX frames were not exported.
+
+The home title remains black on forest despite the visible native bar background.
+This candidate is not visually accepted. The next candidate must retain the hero's
+dark scheme together with the visible native vertical background, and prove both
+title and control contrast in fresh screenshots. No archive or TestFlight upload
+was produced from the failed run.
+
+## Hero and native-control repair review
+
+Independent static review accepts retaining the hero's dark bar scheme with a visible
+native background in vertical context. It also accepts checking actual title/button
+frames without activating their navigation-bar container. The same amount, description,
+keyboard, viewport, geometry stability and action reachability checks remain in place.
+No product form or loading behavior changed. The two local journeys pass (2 tests,
+0 failures, 340.998 seconds); SDK 27.1 screenshots must still prove simultaneous title
+and rail contrast. Neither local success nor static approval establishes that result.

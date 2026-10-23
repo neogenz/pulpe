@@ -1,7 +1,8 @@
 # Native adaptation validation
 
-Version: `1.11.0 (1)`. Baseline source: `c06cc7c1a82164cf2bb785ec68260b29ef2691f4`;
-the contract repairs below are part of the subsequent candidate on this branch.
+Version: `1.11.0 (1)`. Candidate: the hero contrast and native-control geometry repair
+after `75cfa587920dbeadebcf8aa57e7128494d000899`. The commit containing this report
+is the next SDK 27.1 candidate; earlier runs are diagnostic evidence, not delivery proof.
 Branch: `codex/ios-duo-native`; draft PR: <https://github.com/neogenz/pulpe/pull/830>.
 Evidence date: 2026-10-23. Distribution is still pending.
 
@@ -18,13 +19,13 @@ Evidence date: 2026-10-23. Distribution is still pending.
 | Check | Result |
 | --- | --- |
 | Local focused Swift Testing | 51 tests / 8 suites passed, including undo races, root-entry guards, reset and architecture invariants. |
-| Contract repair units | 8 tests / 2 suites passed: keyboard-inset inventory and navigation ownership. |
+| Contract repair units | 8 tests / 2 suites passed on the final source (0.306 seconds): keyboard-inset inventory and navigation ownership. |
 | Complete unit-target compilation | Passed with SDK 26.5. |
 | Commit quality hooks | Passed, including strict SwiftLint. |
-| Local native UI | Latest repair run: 2 tests passed, 0 failures, 240.074 seconds on the dedicated iOS 26.5 simulator; actual Back plus strict three-orientation chart-width/viewport and draft assertions. |
+| Local native UI | Navigation-session repair: current-geometry journey passed (1 test, 121.481 seconds); native Back and strict three-orientation journey passed (2 tests, 242.149 seconds); nested goal/spread navigation passed (1 test, 26.731 seconds). No failures. |
 | Existing UI regressions | Four scenarios passed in the five-test run; the fifth passed on its targeted rerun after correcting the test activation target. |
-| Independent static review | No actionable finding on the complete candidate, including the final fixture injection. |
-| SDK 27.1 CI | Candidate `71ebac3a`: 2,487 unit tests passed, 9 existing skips, no unit failure. The Back regression passed; current-geometry continuity failed on a cold month revisit. [Run](https://github.com/neogenz/pulpe/actions/runs/39988248570). |
+| Independent static review | No actionable finding on the complete candidate or the subsequent hero/native-control repair. SDK 27.1 appearance remains a visual gate. |
+| SDK 27.1 CI | Candidate `75cfa5879`: 2,487 unit tests passed, 9 existing skips; native Back passed. Continuity passed the cold revisit, then failed querying the navigation-bar container's hittability. [Run 40002300116](https://github.com/neogenz/pulpe/actions/runs/40002300116). No archive was produced. |
 | Signed export / TestFlight | Pending. |
 
 The local UI journey opens a cold budget, changes year to January 2027 and returns to
@@ -125,14 +126,57 @@ remain inside the stack and the sheet presenter remains above the split containe
 The unchanged current-geometry journey passes with this structural correction:
 1 test, 0 failures, 121.481 seconds. Evidence:
 `/private/tmp/pulpe-ios-duo-native-v7-detail-session-ui-v1.xcresult`.
-The strict rotation journey and exact SDK 27.1 candidate still require validation.
-No new loading property, detached task, cache rule or diagnostic logging remains.
+The final strict rotation plus native Back run also passes: 2 tests, 0 failures,
+242.149 seconds in `/private/tmp/pulpe-ios-duo-native-v7-detail-session-strict-v1.xcresult`.
+The nested goal/spread route passes separately (26.731 seconds, `-routes-v1.xcresult`),
+and the eight navigation/keyboard contracts pass in `-contracts-v1.xcresult` (0.306 seconds).
+All four commands report `TEST SUCCEEDED` and exit zero. The exact SDK 27.1 candidate
+still requires validation. No new loading property, detached task, cache rule or
+diagnostic logging remains.
 
 The actual 27.1 home image confirms the rail's improved contrast but a black native
 title on the forest surface. This candidate is not visually accepted. The next shared
 bar change requests the native system background in vertical context while preserving
 the existing horizontal hero behavior. It requires new 27.1 visual verification.
 No archive or TestFlight upload was produced from this failed candidate.
+
+## SDK 27.1 candidate 75cfa5879
+
+The result bundle records 2,496 unit tests: 2,487 passed and the same nine skips,
+with 2,783 parameter-expanded successful executions. The native Back test passes
+in 22.496 seconds. Continuity now passes the year round-trip and enters the draft;
+it fails at line 165 while evaluating `NavigationBar.isHittable`, with an invalid
+activation point, after 135.174 seconds. A navigation-bar container is not a control
+requiring activation. The draft capture and last recorded video frame show `12 CHF`
+and `Repas test` preserved above the keyboard, but no final accessibility snapshot
+was exported to explain the preceding geometry wait. Evidence is stored in
+`/private/tmp/pulpe-duo-ci-v8-native`.
+
+The replacement collision check must inspect actual native button/title frames
+instead of treating the entire rail's bounding rectangle as opaque, and preserve
+viewport, keyboard, state and action-reachability assertions. The home capture still
+shows a black title over the forest hero: requesting the native background alone
+did not fix its contrast. The next appearance correction keeps the hero's dark bar
+scheme with a visible native background in vertical context. This remains unaccepted
+until another SDK 27.1 image proves the result. The failed candidate was neither
+archived nor distributed.
+
+## Hero and native-control repair
+
+The hero retains its dark navigation-bar scheme. In a vertical-bar context the
+native bar background remains visible; no custom glass layer or drawn rail is added.
+The UI collision check inspects native title/button rectangles, including toolbar
+buttons, rather than requesting an activation point from the navigation-bar container.
+It retains viewport containment, keyboard presence and non-overlap, stable geometry,
+amount/description preservation and submit reachability. Failure attachments now
+include the observed geometry.
+
+The two local journeys pass on this source: strict three-orientation continuity in
+227.287 seconds and current-geometry continuity in 113.711 seconds (2 tests, 0 failures,
+340.998 seconds total). Evidence:
+`/private/tmp/pulpe-ios-duo-native-v8-controls-ui-v1.xcresult` and its adjacent log.
+Independent review accepts the scoped changes. Actual SDK 27.1 title and rail contrast
+must still be inspected together before signing or delivery.
 
 ## Native captures
 
