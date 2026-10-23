@@ -195,8 +195,7 @@ private struct HeroNavigationBarModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
-        let bare = barColorScheme(content)
-            .toolbarBackground(.hidden, for: .navigationBar)
+        let bare = barAppearance(content)
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             bare.scrollEdgeEffectStyle(.soft, for: .top)
@@ -209,12 +208,14 @@ private struct HeroNavigationBarModifier: ViewModifier {
     }
 
     @ViewBuilder
-    private func barColorScheme(_ content: Content) -> some View {
+    private func barAppearance(_ content: Content) -> some View {
         // Returning to the explicit screen scheme clears the hero's light ink after scrolling.
-        let horizontal = content.toolbarColorScheme(isOnHeroSurface ? .dark : colorScheme, for: .navigationBar)
+        let horizontal = content
+            .toolbarColorScheme(isOnHeroSurface ? .dark : colorScheme, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
         #if compiler(>=6.4)
         if #available(iOS 27.1, *) {
-            content.modifier(HeroAdaptiveBarColorScheme(isOnHeroSurface: isOnHeroSurface))
+            content.modifier(HeroAdaptiveBarAppearance(isOnHeroSurface: isOnHeroSurface))
         } else {
             horizontal
         }
@@ -226,16 +227,18 @@ private struct HeroNavigationBarModifier: ViewModifier {
 
 #if compiler(>=6.4)
 @available(iOS 27.1, *)
-private struct HeroAdaptiveBarColorScheme: ViewModifier {
+private struct HeroAdaptiveBarAppearance: ViewModifier {
     let isOnHeroSurface: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.toolbarVerticalEdge) private var toolbarVerticalEdge
 
     func body(content: Content) -> some View {
-        // A vertical rail sits on the screen canvas, outside the forest hero.
-        content.toolbarColorScheme(
-            toolbarVerticalEdge == nil && isOnHeroSurface ? .dark : colorScheme, for: .navigationBar
-        )
+        // Keep native title and rail ink on a system background when the controls are vertical.
+        content
+            .toolbarColorScheme(
+                toolbarVerticalEdge == nil && isOnHeroSurface ? .dark : colorScheme, for: .navigationBar
+            )
+            .toolbarBackground(toolbarVerticalEdge == nil ? .hidden : .visible, for: .navigationBar)
     }
 }
 #endif

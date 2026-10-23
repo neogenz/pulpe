@@ -190,3 +190,50 @@ Evidence: `/private/tmp/pulpe-ios-duo-native-phase2b-ui-v2.xcresult` and adjacen
 Version `1.11.0 (1)` is selected in the candidate after checking App Store Connect;
 no build has been uploaded. The signed export and remote SDK 27.1 validation remain
 required. These local rotations do not establish Duo fold or inner-display coverage.
+
+
+## SDK 27.1 review disposition
+
+Candidate `71ebac3a02c0efe45ed613e3732cf37eae095e47` retains an observable
+`isNavigating`. The automated review proposed `@ObservationIgnored`, but independent
+caller review rejects that change: `BudgetDetailsView` reads the property in
+`.disabled(coordinator.isNavigating)`. It must invalidate the UI before an awaited
+pending deletion and on cancellation/completion. Re-selecting the current month can
+make clearing this flag the only observable mutation; ignoring it can leave stale
+interaction state. The internal generation counters do not have this UI role.
+
+Static review accepts the separate strict-orientation and current-geometry journeys
+and the exact CI selector. Local regression passes both tests (240.074 seconds).
+SDK 27.1 visual acceptance still requires the rail and horizontal title to be legible
+simultaneously; no conclusion is inferred from a successful compile alone.
+
+## Cold revisit lifecycle correction
+
+Local instrumentation reproduces the SDK 27.1 failure on iOS 26.5. On the second
+August entry, the SwiftUI task starts uncancelled, becomes cancelled during the
+fixture fetch, and exits through the skeleton delay's cancellation catch without
+restarting. The coordinator/projector store identities match. The task is now owned
+by the existing view state, with appearance, disappearance and visible-month changes
+controlling its lifetime. Coordinator identity, mutation generations, pending Undo
+and store-owned tag refresh remain intact. Instrumentation is removed. Independent
+review and the unchanged navigation journeys are the acceptance gate for this repair.
+
+The first view-owned-task attempt is rejected by its unchanged current-geometry
+journey: it still fails after the year round-trip. The strict rotation journey passes,
+so neither that pass nor the lifecycle diagnosis proves the repair. Further isolation
+checks the actual appearance/disappearance sequence and the transparent root `Group`.
+
+## Detail navigation session boundary
+
+A stable `ZStack` alone did not repair the native remount. Both experimental loading
+changes are removed. `BudgetsTab` now creates its detail `NavigationStack` inside the
+selected-budget branch. Returning to the list ends that stack; direct non-nil month
+changes preserve its structural identity and coordinator. Independent review checked
+all selection/path writers: deep links and creation select first; nested destinations
+start from a selection; Back cannot clear it while a sheet or child path is active;
+session reset closes those presentations before clearing selection. No normal route
+requires an active Budgets child stack with no selected month.
+
+The unchanged current-geometry journey passes (1 test, 0 failures, 121.481 seconds),
+including the previously failing cold revisit and draft entry. The final candidate
+still needs the strict rotation run and SDK 27.1 visual verification.

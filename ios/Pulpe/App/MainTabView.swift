@@ -226,29 +226,29 @@ struct BudgetsTab: View {
             BudgetListView(makeCreateBudgetModel: makeCreateBudgetModel, makePlanBudgetsModel: makePlanBudgetsModel)
                 .ignoresForeignKeyboardInset()
         } detail: {
-            NavigationStack(path: $state.budgetPath) {
-                Group {
-                    if let id = state.selectedBudgetId {
-                        BudgetDetailsView(
-                            budgetId: id,
-                            budgetService: budgetService,
-                            budgetLineService: budgetLineService,
-                            onBudgetChange: { id, year in
-                                state.updateBudgetSelection(id, year: year)
-                            }
+            if let id = state.selectedBudgetId {
+                NavigationStack(path: $state.budgetPath) {
+                    BudgetDetailsView(
+                        budgetId: id,
+                        budgetService: budgetService,
+                        budgetLineService: budgetLineService,
+                        onBudgetChange: { id, year in
+                            state.updateBudgetSelection(id, year: year)
+                        }
+                    )
+                    .ignoresForeignKeyboardInset()
+                    .navigationDestination(for: BudgetDestination.self) { destination in
+                        budgetDestination(
+                            destination, budgetService: budgetService, budgetLineService: budgetLineService
                         )
-                        .ignoresForeignKeyboardInset()
-                    } else {
-                        ContentUnavailableView("Budgets", systemImage: "calendar", description: Text("Choisis un mois"))
-                            .ignoresForeignKeyboardInset()
+                    }
+                    .navigationDestination(for: SavingsGoalDestination.self) { destination in
+                        savingsGoalDestination(destination, service: savingsGoalService)
                     }
                 }
-                .navigationDestination(for: BudgetDestination.self) { destination in
-                    budgetDestination(destination, budgetService: budgetService, budgetLineService: budgetLineService)
-                }
-                .navigationDestination(for: SavingsGoalDestination.self) { destination in
-                    savingsGoalDestination(destination, service: savingsGoalService)
-                }
+            } else {
+                ContentUnavailableView("Budgets", systemImage: "calendar", description: Text("Choisis un mois"))
+                    .ignoresForeignKeyboardInset()
             }
         }
         .navigationSplitViewStyle(.balanced)

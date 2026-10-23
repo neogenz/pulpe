@@ -24,7 +24,7 @@ Evidence date: 2026-10-23. Distribution is still pending.
 | Local native UI | Latest repair run: 2 tests passed, 0 failures, 240.074 seconds on the dedicated iOS 26.5 simulator; actual Back plus strict three-orientation chart-width/viewport and draft assertions. |
 | Existing UI regressions | Four scenarios passed in the five-test run; the fifth passed on its targeted rerun after correcting the test activation target. |
 | Independent static review | No actionable finding on the complete candidate, including the final fixture injection. |
-| SDK 27.1 CI | Candidate `a41f0ec9`: 2,487 unit tests passed, 9 existing skips, no unit failure; both UI tests failed. The corrections below require a new run. [Run](https://github.com/neogenz/pulpe/actions/runs/39982353588). |
+| SDK 27.1 CI | Candidate `71ebac3a`: 2,487 unit tests passed, 9 existing skips, no unit failure. The Back regression passed; current-geometry continuity failed on a cold month revisit. [Run](https://github.com/neogenz/pulpe/actions/runs/39988248570). |
 | Signed export / TestFlight | Pending. |
 
 The local UI journey opens a cold budget, changes year to January 2027 and returns to
@@ -86,6 +86,53 @@ horizontal title contrast; compilation alone is insufficient. The repaired Back 
 strict rotation tests pass locally in
 `/private/tmp/pulpe-ios-duo-native-v6-repair-ui-v1.xcresult` (2 tests, 0 failures). No archive from the
 failed run was produced or distributed.
+
+The next candidate, `71ebac3a`, compiles the vertical-edge API and again passes all
+2,487 eligible unit tests. Its Back regression passes, and continuity reaches both
+sidebar sheets and the year round-trip. Reopening August after January remains on a
+skeleton with no error. The same current-geometry journey reproduces this failure on
+local iOS 26.5 in 98.200 seconds; the restarted runner's subsequent zero-test summary
+is not a pass. The fixture resolves both months immediately. Cache expiry (30 seconds)
+and the detail load's cancellation/lifecycle are being isolated before a correction.
+Evidence: `/private/tmp/pulpe-duo-ci-v7-native` and
+`/private/tmp/pulpe-ios-duo-native-v7-current-geometry-v1.xcresult`.
+
+Temporary local lifecycle traces establish the cancellation mechanism: the second
+August entry starts with `Task.isCancelled == false`, then returns from the fixture
+fetch with cancellation set about 43 ms later. The skeleton delay throws, the catch
+runs, and no replacement load starts. Coordinator and projector reference the same
+store and month; this is not an identity or fixture mismatch. The earlier successful
+August and January entries appear in the same trace. Evidence:
+`/private/tmp/pulpe-ios-duo-native-v7-lifecycle-diag-v2-system.log`.
+
+The first repair retains the coordinator and owns only its loading task in view
+state, starting on appearance or visible month change and cancelling on disappearance.
+It is not accepted: the strict rotation journey passes in 217.998 seconds, but the
+current-geometry journey still fails at the same cold revisit in 91.727 seconds.
+Evidence: `/private/tmp/pulpe-ios-duo-native-v7-lifecycle-fix-ui-v1.xcresult`.
+The appearance/disappearance callbacks and root container are being isolated. The
+separate tag refresh already delegates to a store-owned task.
+
+The owned-task trace then records `onAppear` and `onDisappear` for January's same
+loading coordinator in the same millisecond, cancelling its task before execution.
+A stable `ZStack` alone also fails the unchanged cold-revisit test (98.483 seconds).
+Both attempts are removed. The final correction scopes the detail `NavigationStack`
+to the selected-budget branch: compact Back destroys that navigation session; opening
+a month creates a fresh one. Switching directly between two selected months keeps the
+same branch, coordinator, pending Undo and generation protections. Nested destinations
+remain inside the stack and the sheet presenter remains above the split container.
+
+The unchanged current-geometry journey passes with this structural correction:
+1 test, 0 failures, 121.481 seconds. Evidence:
+`/private/tmp/pulpe-ios-duo-native-v7-detail-session-ui-v1.xcresult`.
+The strict rotation journey and exact SDK 27.1 candidate still require validation.
+No new loading property, detached task, cache rule or diagnostic logging remains.
+
+The actual 27.1 home image confirms the rail's improved contrast but a black native
+title on the forest surface. This candidate is not visually accepted. The next shared
+bar change requests the native system background in vertical context while preserving
+the existing horizontal hero behavior. It requires new 27.1 visual verification.
+No archive or TestFlight upload was produced from this failed candidate.
 
 ## Native captures
 
