@@ -20,7 +20,7 @@ export interface ConfirmationDialogData {
   host: { 'data-testid': 'confirmation-dialog' },
   imports: [MatDialogModule, MatButtonModule, TranslocoPipe],
   template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
+    <h2 mat-dialog-title class="ph-no-capture">{{ data.title }}</h2>
 
     <mat-dialog-content>
       <p class="ph-no-capture text-body-large text-on-surface">
