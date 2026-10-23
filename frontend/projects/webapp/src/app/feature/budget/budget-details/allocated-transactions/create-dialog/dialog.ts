@@ -29,6 +29,9 @@ export interface CreateAllocatedTransactionDialogData extends CreateAllocatedTra
   submit: (transaction: TransactionCreate) => Promise<string | null>;
 }
 
+/** The amount field, which a withdrawal realization opens on and selects. */
+export const AMOUNT_FIELD_SELECTOR = '[inputmode="decimal"]';
+
 @Component({
   selector: 'pulpe-create-allocated-transaction-dialog',
   imports: [
@@ -110,7 +113,7 @@ export class CreateAllocatedTransactionDialog {
       this.#hasSelectedPrefilledAmount ||
       !this.data.withdrawalRealization ||
       !(target instanceof HTMLInputElement) ||
-      !target.matches('[inputmode="decimal"]')
+      !target.matches(AMOUNT_FIELD_SELECTOR)
     ) {
       return;
     }

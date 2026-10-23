@@ -40,6 +40,7 @@ import {
 } from './allocated-transactions/details-dialog/dialog';
 import { AllocatedTransactionsBottomSheet } from './allocated-transactions/details-dialog/bottom-sheet';
 import {
+  AMOUNT_FIELD_SELECTOR,
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
 } from './allocated-transactions/create-dialog/dialog';
@@ -220,7 +221,7 @@ export class BudgetDetailsDialogService {
       // name is already filled. Mobile keeps the sheet default: focusing a
       // field there opens the keyboard over the sheet.
       autoFocus: withdrawalRealization
-        ? '[inputmode="decimal"]'
+        ? AMOUNT_FIELD_SELECTOR
         : 'first-tabbable',
     });
     return firstValueFrom(dialogRef.afterClosed());
