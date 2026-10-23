@@ -15,6 +15,7 @@ import { createMockDataCache } from '@core/testing';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
 import type { BudgetLine, TransactionCreate } from 'pulpe-shared';
+import { of } from 'rxjs';
 import {
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
@@ -30,6 +31,7 @@ const TRANSACTION = {
 
 function configureDialog(
   submit: CreateAllocatedTransactionDialogData['submit'],
+  withdrawalRealization: CreateAllocatedTransactionDialogData['withdrawalRealization'] = null,
 ) {
   const dialogRef = { close: vi.fn() };
 
@@ -47,7 +49,12 @@ function configureDialog(
       { provide: TagStore, useValue: createMockTagStore() },
       {
         provide: SavingsGoalApi,
-        useValue: { cache: createMockDataCache(), getProgress$: vi.fn() },
+        useValue: {
+          cache: createMockDataCache(),
+          getProgress$: vi
+            .fn()
+            .mockReturnValue(of({ success: true, data: { confirmed: 3_600 } })),
+        },
       },
       { provide: MatDialogRef, useValue: dialogRef },
       {
@@ -64,6 +71,7 @@ function configureDialog(
           budgetYear: 2026,
           payDayOfMonth: null,
           submit,
+          withdrawalRealization,
         } satisfies CreateAllocatedTransactionDialogData,
       },
     ],
@@ -72,8 +80,42 @@ function configureDialog(
   // No fixture.detectChanges(): onCreated — the method under test — never reads
   // the child form, so its inputs need not be bound.
   const fixture = TestBed.createComponent(CreateAllocatedTransactionDialog);
-  return { component: fixture.componentInstance, dialogRef };
+  return { fixture, component: fixture.componentInstance, dialogRef };
 }
+
+describe('CreateAllocatedTransactionDialog — the prefilled amount', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const focusAmountTwice = (
+    realization: CreateAllocatedTransactionDialogData['withdrawalRealization'],
+  ) => {
+    const { fixture } = configureDialog(vi.fn(), realization);
+    fixture.detectChanges();
+    const amount: HTMLInputElement = fixture.nativeElement.querySelector(
+      '[data-testid="amount-input-value"]',
+    );
+    const select = vi.spyOn(amount, 'select');
+
+    amount.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    amount.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    return select;
+  };
+
+  it('should select it on the first focus only when realizing a withdrawal', () => {
+    const select = focusAmountTwice({
+      goalId: '44444444-4444-4444-8444-444444444444',
+      goalName: "Fonds d'urgence",
+      remainingAmount: 500,
+    });
+
+    expect(select).toHaveBeenCalledTimes(1);
+  });
+
+  it('should leave it alone on an ordinary allocated entry', () => {
+    expect(focusAmountTwice(null)).not.toHaveBeenCalled();
+  });
+});
 
 // PUL-329 v2 — realizing an announced withdrawal debits the goal, so the server
 // can refuse it. Closing on refusal would throw away everything the user typed.
