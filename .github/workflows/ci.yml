@@ -628,8 +628,9 @@ jobs:
           xcrun simctl help
           xcrun simctl help io
           xcrun simctl help ui
-          ls -d /Applications/Xcode_27.1.app/Contents/Developer/Applications/*.app
-          rg -n -i 'fold|hinge|pose|display' /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework/Headers/XCUIDevice.h || true
+          xcode-select -p
+          ls -d /Applications/*.app || true
+          rg -n -i 'fold|hinge|pose|display' "$(xcode-select -p)/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework/Headers/XCUIDevice.h" || true
 
       - name: 📱 Resolve iOS Simulator
         id: sim

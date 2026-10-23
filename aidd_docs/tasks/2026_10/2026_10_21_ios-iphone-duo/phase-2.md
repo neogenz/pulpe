@@ -71,7 +71,9 @@ Inner landscape / book
 ## Tasks to do
 
 Implementation is split into two reviewable increments: shared selection/navigation guards
-and their regressions first, then the native container and continuity capture. Neither
+and their regressions first, then the native container and continuity capture. The state
+increment may start after the local build prerequisites while remote baseline captures run;
+only the container/presentation increment depends on reviewing those captures. Neither
 increment completes this phase on its own. Preserve nested goal-to-budget pushes and
 `SessionResetScope.clearsNavigation`; block root month selection while a child editor or
 sheet is active so local drafts are not silently discarded.
