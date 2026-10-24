@@ -49,11 +49,9 @@ struct ReconcileAccountsEntryStep: View {
                 .accessibilityIdentifier("reconcileContinueButton")
         }
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(action: onLeave) {
-                    Image(systemName: "chevron.backward")
-                }
-                .accessibilityLabel("Retour")
+            // A custom back sits on `.cancellationAction` so a vertical bar keeps it on top.
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Retour", systemImage: "chevron.backward", action: onLeave)
             }
         }
         .task {

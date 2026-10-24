@@ -124,10 +124,9 @@ struct BudgetDetailsView: View {
                 // bar: the content zone spends its one filled shape on the action that
                 // changes something. Bare, so iOS 26 dresses it in its own Liquid Glass —
                 // the hero's tinted disc was our shape where the system already has one.
-                Button { router.present(.realizedBalance) } label: {
-                    Image(systemName: "chart.bar")
+                Button(AppLocale.string("Suivi du budget"), systemImage: "chart.bar") {
+                    router.present(.realizedBalance)
                 }
-                .accessibilityLabel(AppLocale.string("Suivi du budget"))
                 .accessibilityIdentifier("budgetTrackingButton")
             }
         }

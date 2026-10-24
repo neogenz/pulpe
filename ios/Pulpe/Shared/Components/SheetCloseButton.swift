@@ -13,12 +13,11 @@ struct SheetCloseButton: View {
     }
 
     var body: some View {
-        Button {
+        // Title + symbol: the symbol shows in the bar, the title feeds VoiceOver and the
+        // overflow menu, and both let iPhone Duo move it into a vertical bar.
+        Button("Fermer", systemImage: "xmark") {
             if let action { action() } else { dismiss() }
-        } label: {
-            Image(systemName: "xmark")
         }
-        .accessibilityLabel("Fermer")
     }
 }
 

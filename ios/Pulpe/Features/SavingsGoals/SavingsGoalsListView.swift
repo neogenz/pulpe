@@ -31,12 +31,9 @@ struct SavingsGoalsListView: View {
         .pulpeBackground()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
+                Button("Ajouter un objectif", systemImage: "plus") {
                     isCreatingGoal = true
-                } label: {
-                    Image(systemName: "plus")
                 }
-                .accessibilityLabel("Ajouter un objectif")
             }
         }
         .sheet(isPresented: $isCreatingGoal) {

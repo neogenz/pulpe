@@ -262,7 +262,9 @@ struct CurrentMonthView: View {
         // Wider than the gap inside a section: a section is now a heading on the page
         // plus a card, so the space between two of them has to beat the space between a
         // heading and the card it introduces, or the pairing reads the wrong way round.
-        VStack(spacing: DesignTokens.Spacing.xxl) {
+        // Open iPhone Duo: drift and activity side by side; the deck stays full width,
+        // its neighbours peek past the rail.
+        ReflowingCardStack(spacing: DesignTokens.Spacing.xxl) {
             // Bilan du mois clôturé (PUL-111): the forest above belongs to the hero alone.
             MonthRecapSection()
             if store.budget != nil {
@@ -316,6 +318,7 @@ struct CurrentMonthView: View {
                     onCatchUp: { navigateToBudget = true }
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
+                .reflowColumn(.leading)
             } else if store.savingsSummary.isComplete {
                 SavingsDoneCard(
                     amount: store.savingsSummary.totalRealized,
@@ -324,6 +327,7 @@ struct CurrentMonthView: View {
                     appState.pushOnActiveStack(SavingsGoalDestination.list)
                 }
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
+                .reflowColumn(.leading)
             }
 
             // Activité — recent transactions with 7j/Mois window
@@ -335,6 +339,7 @@ struct CurrentMonthView: View {
                     onEdit: editTransaction
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 3)
+                .reflowColumn(.trailing)
             }
         }
         // One content margin for the whole screen, aligned with the hero above, so the
@@ -480,19 +485,4 @@ extension CurrentMonthView {
         guard let payDay = userSettingsStore.payDayOfMonth else { return }
         await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
     }
-}
-
-#Preview {
-    NavigationStack {
-        CurrentMonthView()
-    }
-    .environment(AppState())
-    .environment(CurrentMonthStore())
-    .environment(BudgetListStore())
-    .environment(UserSettingsStore())
-    .environment(SavingsGoalStore())
-    .environment(TagStore())
-    .environment(ToastManager())
-    .environment(AppVersionStore())
-    .environment(WhatsNewStore())
 }

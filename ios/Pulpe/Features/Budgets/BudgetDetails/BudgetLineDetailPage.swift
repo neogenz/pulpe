@@ -177,7 +177,7 @@ struct BudgetLineDetailPage: View {
 
 private extension BudgetLineDetailPage {
     func headerMenu(for line: BudgetLine) -> some View {
-        Menu {
+        Menu("Plus d'options", systemImage: "ellipsis.circle") {
             Button {
                 onEditLine(line)
             } label: {
@@ -209,11 +209,8 @@ private extension BudgetLineDetailPage {
                     deleteBudgetLine(line)
                 }
             }
-        } label: {
-            Image(systemName: "ellipsis.circle")
         }
         .pulpeMenuContent()
-        .accessibilityLabel("Plus d'options")
     }
 
     /// A prévision is spreadable only when it's a one-off expense/épargne that

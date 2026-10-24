@@ -41,13 +41,10 @@ struct TemplateListView: View {
         .localizedNavigationTitle("Modèles")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
+                Button("Créer un modèle", systemImage: "plus") {
                     showCreateTemplate = true
-                } label: {
-                    Image(systemName: "plus")
                 }
                 .disabled(viewModel.isLimitReached)
-                .accessibilityLabel("Créer un modèle")
             }
         }
         .sheet(isPresented: $showCreateTemplate) {
