@@ -160,16 +160,18 @@ struct BudgetListView: View {
     }
 
     private var createButton: some View {
-        Button(action: { createBudgetTarget = store.nextAvailableMonth }, label: { Image(systemName: "plus") })
+        Button(BudgetListAccessibility.createOneLabel, systemImage: "plus") {
+            createBudgetTarget = store.nextAvailableMonth
+        }
         .disabled(store.nextAvailableMonth == nil)
         .heroToolbarButtonStyle(isOnHeroSurface)
-        .accessibilityLabel(BudgetListAccessibility.createOneLabel)
     }
 
     private var planButton: some View {
-        Button(action: { showsBudgetPlanner = true }, label: { Image(systemName: "calendar.badge.plus") })
-            .heroToolbarButtonStyle(isOnHeroSurface)
-            .accessibilityLabel(BudgetListAccessibility.planSeveralLabel)
+        Button(BudgetListAccessibility.planSeveralLabel, systemImage: "calendar.badge.plus") {
+            showsBudgetPlanner = true
+        }
+        .heroToolbarButtonStyle(isOnHeroSurface)
     }
 
     // MARK: - Month Slots
