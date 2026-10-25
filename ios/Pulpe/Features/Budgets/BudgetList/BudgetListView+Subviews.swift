@@ -59,8 +59,8 @@ struct BudgetMonthRow: View {
 
     /// Beside the month it opens, the row marks what is on screen rather than the calendar.
     private var traits: AccessibilityTraits {
-        guard let selection else { return Self.accessibilityTraits(isCurrent: isCurrent) }
-        return selection.isSelected ? [.isButton, .isSelected] : .isButton
+        // Beside the month, `selectsBesidePane` already carries the button and selected traits.
+        selection == nil ? Self.accessibilityTraits(isCurrent: isCurrent) : []
     }
 
     private var accessibilityStatus: String {
@@ -129,6 +129,7 @@ struct BudgetMonthRow: View {
                     currency: userSettingsStore.currency
                 ),
             traits: traits,
+            hint: selection == nil ? "Appuie pour voir les détails" : "Appuie pour l'afficher à côté",
             identifier: Self.accessibilityIdentifier(for: budget),
             tapTrigger: tapTrigger
         )
@@ -138,6 +139,7 @@ struct BudgetMonthRow: View {
 private struct RowAccessibility: ViewModifier {
     let label: String
     let traits: AccessibilityTraits
+    let hint: LocalizedStringKey
     let identifier: String
     let tapTrigger: Bool
 
@@ -145,7 +147,7 @@ private struct RowAccessibility: ViewModifier {
         content
             .sensoryFeedback(.selection, trigger: tapTrigger)
             .accessibilityLabel(label)
-            .accessibilityHint("Appuie pour voir les détails")
+            .accessibilityHint(hint)
             .accessibilityAddTraits(traits)
             .accessibilityIdentifier(identifier)
     }

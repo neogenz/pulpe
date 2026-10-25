@@ -156,8 +156,16 @@ struct BudgetListView: View {
     private func revealSelectedMonth(_ budgetId: String?, proxy: ScrollViewProxy) {
         guard selectsInPlace, let budgetId,
               let year = store.budgets.first(where: { $0.id == budgetId })?.year else { return }
-        selectedYear = year
-        withAnimation(DesignTokens.Animation.smoothEaseInOut) { proxy.scrollTo(budgetId) }
+        // Another year's rows do not exist yet: the scroll waits for the year to show.
+        guard year == selectedYear else { selectedYear = year; return }
+        scrollToSelectedMonth(proxy: proxy)
+    }
+
+    /// Never changes the year, so picking another year's chip is not undone.
+    private func scrollToSelectedMonth(proxy: ScrollViewProxy) {
+        guard selectsInPlace, let selectedBudgetId,
+              store.budgets.first(where: { $0.id == selectedBudgetId })?.year == selectedYear else { return }
+        withAnimation(DesignTokens.Animation.smoothEaseInOut) { proxy.scrollTo(selectedBudgetId) }
     }
 
     private var showsSkeleton: Bool {
@@ -268,6 +276,7 @@ struct BudgetListView: View {
             .onChange(of: selectedBudgetId, initial: true) { _, id in
                 revealSelectedMonth(id, proxy: proxy)
             }
+            .onChange(of: selectedYear) { scrollToSelectedMonth(proxy: proxy) }
         }
     }
 

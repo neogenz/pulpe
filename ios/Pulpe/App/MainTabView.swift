@@ -295,6 +295,7 @@ struct BudgetsTab: View {
 
     private var monthsBesideMonth: some View {
         @Bindable var state = appState
+        let shownBudgetId = shownBudgetId
 
         return ListBesideDetail {
             BudgetListView(selectsInPlace: true, selectedBudgetId: shownBudgetId)
@@ -335,7 +336,9 @@ struct BudgetsTab: View {
         if let selection, budgets.contains(where: { $0.id == selection }) {
             return selection
         }
-        return budgets.first { $0.isCurrentPeriod(payDayOfMonth: payDayOfMonth) }?.id ?? budgets.last?.id
+        // The list arrives newest first from the API, so the latest month is found, not indexed.
+        let latest = budgets.max { ($0.year ?? 0, $0.month ?? 0) < ($1.year ?? 0, $1.month ?? 0) }
+        return budgets.first { $0.isCurrentPeriod(payDayOfMonth: payDayOfMonth) }?.id ?? latest?.id
     }
 
     private var budgetStackDestinations: BudgetStackDestinations {

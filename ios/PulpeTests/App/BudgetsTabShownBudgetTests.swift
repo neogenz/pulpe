@@ -31,6 +31,11 @@ struct BudgetsTabShownBudgetTests {
         #expect(BudgetsTab.shownBudgetId(selection: nil, budgets: withoutCurrent, payDayOfMonth: nil) == "future")
     }
 
+    @Test func shownBudgetId_noMonthInProgress_newestFirst_showsLatest() {
+        let newestFirst = budgets.filter { $0.id != "current" }.reversed()
+        #expect(BudgetsTab.shownBudgetId(selection: nil, budgets: Array(newestFirst), payDayOfMonth: nil) == "future")
+    }
+
     @Test func shownBudgetId_noBudgets_showsNothing() {
         #expect(BudgetsTab.shownBudgetId(selection: "past", budgets: [], payDayOfMonth: nil) == nil)
     }
