@@ -85,6 +85,20 @@ struct BudgetDetailsCoordinatorReloadRaceTests {
 
         BudgetDetailCache.shared.invalidate(budgetId: budgetId)
     }
+
+    /// Picking another month cancels the previous month's request. URLSession reports it
+    /// wrapped as a network error: it must not paint « Connexion impossible » over the
+    /// next month's skeleton.
+    @Test
+    func reload_cancelledRequest_leavesNoError() async {
+        let budgetService = MockBudgetService()
+        budgetService.detailsError = APIError.networkError(URLError(.cancelled))
+        let coord = BudgetDetailsCoordinator(budgetId: "cancelled-reload", budgetService: budgetService)
+
+        await coord.reloadCurrentBudget()
+
+        #expect(coord.syncStore.error == nil)
+    }
 }
 
 /// Unit-level lock on the generation token mechanism that backs the fix above.

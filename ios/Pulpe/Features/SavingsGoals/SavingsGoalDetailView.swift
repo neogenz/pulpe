@@ -76,13 +76,10 @@ struct SavingsGoalDetailView: View {
         .heroNavigationBar(isOnHeroSurface: paintsHeroSurface)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
+                Button("Modifier l'objectif", systemImage: "pencil") {
                     editTarget = currentGoal
-                } label: {
-                    Image(systemName: "pencil")
                 }
                 .heroToolbarButtonStyle(paintsHeroSurface)
-                .accessibilityLabel("Modifier l'objectif")
                 .accessibilityIdentifier("savingsGoalEditButton")
             }
             .heroToolbarGroup(paintsHeroSurface)

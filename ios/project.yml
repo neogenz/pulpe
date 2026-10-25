@@ -132,8 +132,12 @@ targets:
         # in-app selector cannot reach, at the cost of restarting the app.
         UIPrefersShowingLanguageSettings: true
         UILaunchStoryboardName: LaunchScreen
+        # Landscape is only ever granted on a regular-width window (the open iPhone Duo):
+        # PulpeAppDelegate keeps every compact window in portrait.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UIRequiredDeviceCapabilities:
           - arm64
         ITSAppUsesNonExemptEncryption: false
