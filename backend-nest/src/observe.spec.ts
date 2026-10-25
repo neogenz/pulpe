@@ -22,6 +22,15 @@ test('Observe sends useful diagnostics without the sensitive request values', as
   expect(payload).toContain('privacy/:id');
   expect(payload).toContain('Database write failed (23505)');
   expect(payload).toContain('PrivacyController');
+  expect(payload).toContain('LibraryConsumerService');
+  expect(payload).toContain('"sc":200');
+  for (const provider of [
+    'ConfigService',
+    'ClsService',
+    'FixtureConfigService',
+    'FixtureClsService',
+  ])
+    expect(payload).not.toContain(provider);
   expect(payload).toContain('"m":"fail"');
   expect(payload).toContain('observe-privacy.fixture.ts:');
   expect(payload).not.toContain('http.url');
