@@ -168,8 +168,9 @@ final class BudgetDetailsCoordinator {
             // Strip rows pending soft-deletion — the server still has them (PUL-271).
             dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
             dataStore.applyAllBudgets(budgets)
-        } catch is CancellationError {
-            // Task was cancelled, don't update error state
+        } catch where error.isCancellationOrURLCancellation {
+            // Leaving the month cancels its request; URLSession reports that as a network
+            // error, which would flash « Connexion impossible » over the next month's load.
         } catch {
             syncStore.setError(error)
         }
@@ -189,8 +190,9 @@ final class BudgetDetailsCoordinator {
             let details = try await budgetService.getBudgetWithDetails(id: dataStore.budgetId)
             // Strip rows pending soft-deletion — the server still has them (PUL-271).
             dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
-        } catch is CancellationError {
-            // Task was cancelled, don't update error state
+        } catch where error.isCancellationOrURLCancellation {
+            // Leaving the month cancels its request; URLSession reports that as a network
+            // error, which would flash « Connexion impossible » over the next month's load.
         } catch {
             syncStore.setError(error)
         }
