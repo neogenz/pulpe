@@ -204,6 +204,7 @@ struct BudgetDetailsView: View {
         })
         .modifier(DeleteMonthMenu(coordinator: coordinator, screenState: screenState, toastContext: toastContext))
         .modifier(BudgetSidebarSelectionSync(budgetId: budgetId, coordinator: coordinator))
+        .modifier(AddLineInVerticalBar { router.present(.addBudgetLine) })
     }
 
     private var content: some View {
