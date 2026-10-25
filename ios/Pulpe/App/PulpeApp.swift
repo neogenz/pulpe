@@ -15,6 +15,7 @@ struct RecoveryKeySheetItem: Identifiable, Equatable {
 
 @main
 struct PulpeApp: App {
+    @UIApplicationDelegateAdaptor(PulpeAppDelegate.self) private var appDelegate
     @State private var appState: AppState
     @State private var uiPreferences = UIPreferencesState()
     @State private var currentMonthStore: CurrentMonthStore
