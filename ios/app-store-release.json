@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.54.0",
-  "marketingVersion": "1.10.0",
-  "buildNumber": "1",
+  "productVersion": "0.56.0",
+  "marketingVersion": "1.11.0",
+  "buildNumber": "2",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "• Sur un revenu, l’interrupteur « Cet argent vient de mon épargne » dit d’où vient l’argent : un retrait sur un objectif, ou une avance sur ton épargne que tu remettras le mois suivant.\n• La trajectoire d’un objectif s’affiche dès sa création.\n• Le bouton « Fermer le clavier » ferme aussi le clavier des champs montant."
+    "frFR": "• Supprime le budget d’un mois à venir depuis son détail : la confirmation indique ce qui part et les liens avec tes objectifs.\n• Quand tu changes la nature d’une prévision, ses mouvements rattachés la suivent et restent comptés dans tes totaux."
   },
-  "reviewNotes": "Sign in with the demo account. From Home, tap + and choose an income. Turn on \"Cet argent vient de mon épargne\", then choose \"D'un objectif\" or \"À remettre\". \"À remettre\" closes the sheet and opens the month's budget with the cover-from-savings preview prefilled. The same switch appears when adding an income forecast with + in the Budget tab. Create a new savings goal: its trajectory chart shows immediately. In any amount field, the \"Fermer le clavier\" button dismisses the keyboard."
+  "reviewNotes": "Sign in with the demo account. In the Budget tab, open a future month (not the current one); if none exists, create one with +. Open the ⋯ menu and choose \"Supprimer ce mois\". The confirmation lists the forecasts and movements that will be removed; confirm to return to the budget list with \"Mois supprimé\". The option is absent on the current and past months. To check the second change, edit a forecast that has a linked movement and change its type: the movement follows it."
 }
