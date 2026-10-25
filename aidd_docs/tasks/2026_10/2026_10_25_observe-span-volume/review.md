@@ -13,7 +13,7 @@
 - [x] Task 1: library providers and subclasses lose method spans while application diagnostics and privacy remain — `backend-nest/src/observe.ts:31`, `backend-nest/src/observe.spec.ts:25`, `backend-nest/src/test/fixtures/observe-privacy.fixture.ts:157`.
 - [ ] Task 2: 25% dashboard sampling — not-applicable to this code candidate; orchestrator owns the external setting.
 
-### Phase 2 — Publish a silent minor release
+### Phase 2 — Publish a silent patch release
 
 - [ ] Release version alignment, silence and production publication — not-applicable to this implementation review; separate release candidate follows integration.
 

@@ -1,5 +1,5 @@
 ---
-objective: "Reduce Observe event volume without losing application diagnostics, then ship a silent minor release."
+objective: "Reduce Observe event volume without losing application diagnostics, then ship a silent patch release."
 status: in-progress
 ---
 
@@ -9,7 +9,7 @@ status: in-progress
 
 | Field      | Value                                                                                                                          |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Goal**   | Exclude library providers from spans, sample ordinary waterfalls at 25%, and release the next minor without public What's New. |
+| **Goal**   | Exclude library providers from spans, sample ordinary waterfalls at 25%, and release the next patch without public What's New. |
 | **Source** | User request following NestJS Observe's 2026-10-25 usage email.                                                                |
 
 ## Phases
@@ -17,7 +17,7 @@ status: in-progress
 | #   | Phase                          | File                       |
 | --- | ------------------------------ | -------------------------- |
 | 1   | Configure and validate Observe | [phase-1.md](./phase-1.md) |
-| 2   | Publish a silent minor release | [phase-2.md](./phase-2.md) |
+| 2   | Publish a silent patch release | [phase-2.md](./phase-2.md) |
 
 ## Resources
 

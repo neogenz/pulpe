@@ -2,12 +2,12 @@
 status: pending
 ---
 
-# Instruction: Publish a silent minor release
+# Instruction: Publish a silent patch release
 
 ## Architecture projection
 
 ```txt
-package.json                                      modify: next product minor
+package.json                                      modify: next product patch
 {frontend,landing,backend-nest,shared,android}/
   package.json                                    modify: Changesets fixed version alignment
   CHANGELOG.md                                    modify: mechanical release history
@@ -33,7 +33,7 @@ journey
 ### `1)` Publish through the trusted release chain
 
 1. Integrate reviewed implementation through a PR to main.
-2. Follow the release skill preflight, proposal and authorization rules for the next minor, with What's New skipped.
+2. Follow the release skill preflight, proposal and authorization rules for the next patch, with What's New skipped.
 3. Keep iOS version, App Store submission, public landing notes and in-app feeds untouched; record web silence explicitly.
 4. Validate release contracts and quality, then create the mechanical release PR with immutable manifest and exact marker.
 5. Use the existing automated staging, production and publication chain and verify its outcome.
@@ -42,4 +42,4 @@ journey
 
 | Task | Acceptance criteria                                                                                                                                                                                                    |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | All seven product version fields agree on the approved minor; landing and mobile novelty feeds have no new entry; web toast is explicitly silent; trusted CI proves the exact deployed version before tag publication. |
+| 1    | All seven product version fields agree on the approved patch; landing and mobile novelty feeds have no new entry; web toast is explicitly silent; trusted CI proves the exact deployed version before tag publication. |
