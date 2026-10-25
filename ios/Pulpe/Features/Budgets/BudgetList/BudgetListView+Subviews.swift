@@ -68,65 +68,98 @@ struct BudgetMonthRow: View {
     }
 
     var body: some View {
-        Button {
-            tapTrigger.toggle()
-            action()
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    Text(monthName)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(titleColor)
-                        // A month name never hyphenates: « Sep-tembre » stops reading as a date.
-                        .lineLimit(1)
-                    if !caption.isEmpty {
-                        Text(caption)
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.textSecondary)
-                    }
-                }
-                Spacer(minLength: DesignTokens.Spacing.sm)
-                BudgetAmountBlock(
-                    remaining: budget.remaining,
-                    emotionColor: budget.emotionState.color,
-                    isPast: isPast
-                )
-                .layoutPriority(1)
-                // A chevron promises a push; beside the month, the row only selects.
-                if selection == nil {
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.textTertiary)
-                        .accessibilityHidden(true)
-                }
-            }
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
-            .background {
-                if selection?.isSelected == true {
-                    // Bleeds past the text column so the month reads as a lifted tile.
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                        .fill(Color.surfaceContainerLowest)
-                        .padding(.horizontal, -DesignTokens.Spacing.sm)
-                }
-            }
-            .contentShape(Rectangle())
+        if selection != nil {
+            // Beside the month, a swipe that starts on the list means « back » on the page:
+            // a Button still fires when the finger lifts inside a wide row, a tap does not.
+            rowContent
+                .onTapGesture(perform: activate)
+                .accessibilityElement(children: .ignore)
+                .accessibilityAction(.default, activate)
+                .modifier(accessibility)
+        } else {
+            Button(action: activate) { rowContent }
+                .buttonStyle(.plain)
+                .modifier(accessibility)
         }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: tapTrigger)
-        .accessibilityLabel(
-            monthName
-            + accessibilityStatus
-            + ", "
-            + availabilityLabel(
+    }
+
+    private func activate() {
+        tapTrigger.toggle()
+        action()
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(monthName)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(titleColor)
+                    // A month name never hyphenates: « Sep-tembre » stops reading as a date.
+                    .lineLimit(1)
+                if !caption.isEmpty {
+                    Text(caption)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
+                }
+            }
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            BudgetAmountBlock(
                 remaining: budget.remaining,
-                amountsHidden: amountsHidden,
-                currency: userSettingsStore.currency
+                emotionColor: budget.emotionState.color,
+                isPast: isPast
             )
+            .layoutPriority(1)
+            // A chevron promises a push; beside the month, the row only selects.
+            if selection == nil {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
+            }
+        }
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+        .background {
+            if selection?.isSelected == true {
+                // Bleeds past the text column so the month reads as a lifted tile.
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                    .fill(Color.surfaceContainerLowest)
+                    .padding(.horizontal, -DesignTokens.Spacing.sm)
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
+    private var accessibility: RowAccessibility {
+        RowAccessibility(
+            label: monthName
+                + accessibilityStatus
+                + ", "
+                + availabilityLabel(
+                    remaining: budget.remaining,
+                    amountsHidden: amountsHidden,
+                    currency: userSettingsStore.currency
+                ),
+            traits: traits,
+            identifier: Self.accessibilityIdentifier(for: budget),
+            tapTrigger: tapTrigger
         )
-        .accessibilityHint("Appuie pour voir les détails")
-        .accessibilityAddTraits(traits)
-        .accessibilityIdentifier(Self.accessibilityIdentifier(for: budget))
+    }
+}
+
+private struct RowAccessibility: ViewModifier {
+    let label: String
+    let traits: AccessibilityTraits
+    let identifier: String
+    let tapTrigger: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .sensoryFeedback(.selection, trigger: tapTrigger)
+            .accessibilityLabel(label)
+            .accessibilityHint("Appuie pour voir les détails")
+            .accessibilityAddTraits(traits)
+            .accessibilityIdentifier(identifier)
     }
 }
 
