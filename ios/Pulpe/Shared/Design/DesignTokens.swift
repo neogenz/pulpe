@@ -389,6 +389,10 @@ enum DesignTokens {
         /// (pull-to-refresh, rubber-banding) and the status bar never show the canvas behind
         /// it. Any value taller than a screen works; 1000pt is just comfortably past it.
         static let overscrollBleed: CGFloat = 1000
+        /// Narrowest card column a two-column reflow may create: an Activité row (name,
+        /// « Hors prévision », amount) still fits on one line. The open iPhone Duo in
+        /// portrait (~290pt columns) truncates, so it keeps one column; landscape splits.
+        static let minReflowColumnWidth: CGFloat = 360
     }
 
     enum Motion {

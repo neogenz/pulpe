@@ -23,9 +23,11 @@ extension View {
 /// compact `VStackLayout` it is swapped with through `AnyLayout`, and card `@State`
 /// survives the swap.
 ///
-/// When only one column has cards, they span the full width instead of leaving a hole.
+/// When only one column has cards, or the columns would fall under `minColumnWidth`, the
+/// cards span the full width and stack like a VStack.
 struct TwoColumnReflowLayout: Layout {
     var spacing: CGFloat
+    var minColumnWidth: CGFloat = DesignTokens.Layout.minReflowColumnWidth
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? 0
@@ -45,8 +47,9 @@ struct TwoColumnReflowLayout: Layout {
 
     private func place(_ subviews: Subviews, width: CGFloat) -> [CGRect] {
         let columns = subviews.map { $0[ReflowColumnKey.self] }
-        let splits = columns.contains(.leading) && columns.contains(.trailing)
         let columnWidth = max(0, (width - spacing) / 2)
+        let splits = columns.contains(.leading) && columns.contains(.trailing)
+            && columnWidth >= minColumnWidth
         var leadingY: CGFloat = 0
         var trailingY: CGFloat = 0
         var frames: [CGRect] = []
