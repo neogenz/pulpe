@@ -35,3 +35,29 @@ struct BudgetsTabShownBudgetTests {
         #expect(BudgetsTab.shownBudgetId(selection: "past", budgets: [], payDayOfMonth: nil) == nil)
     }
 }
+
+/// The widget opens a month: pushed on top of the list, or made the selection when the list
+/// sits beside its month, where a push would stack a second copy of the page.
+@MainActor
+@Suite("Opening a month from the widget")
+struct OpenBudgetMonthTests {
+    @Test func openBudgetMonth_listBesideMonth_selectsWithoutPushing() async {
+        let appState = AppState()
+        appState.showsBudgetMonthBesideList = true
+
+        appState.openBudgetMonth("budget-1")
+        await waitForCondition { appState.selectedTab == .budgets }
+
+        #expect(appState.budgetSelection == "budget-1")
+        #expect(appState.budgetPath.isEmpty)
+    }
+
+    @Test func openBudgetMonth_listAlone_pushesTheMonth() async {
+        let appState = AppState()
+
+        appState.openBudgetMonth("budget-1")
+        await waitForCondition { appState.selectedTab == .budgets }
+
+        #expect(appState.budgetPath.count == 1)
+    }
+}

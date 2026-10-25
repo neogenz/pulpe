@@ -33,12 +33,6 @@ extension AppState {
         }
     }
 
-    /// The open iPhone Duo shows a month beside the list, the closed one pushes it: the two
-    /// stacks hold different screens, so changing width starts the section over from its list.
-    func resetBudgetStack() {
-        budgetPath = NavigationPath()
-    }
-
     /// Unwinds the on-screen section back to its root, for the same reason.
     func popActiveStackToRoot() {
         switch selectedTab {
@@ -46,6 +40,25 @@ extension AppState {
         case .budgets: budgetPath = NavigationPath()
         case .savingsGoals: savingsGoalsPath = NavigationPath()
         case .templates: templatePath = NavigationPath()
+        }
+    }
+
+    /// The open iPhone Duo shows a month beside the list, the closed one pushes it: the two
+    /// stacks hold different screens, so changing width starts the section over from its list.
+    func resetBudgetStack() {
+        budgetPath = NavigationPath()
+    }
+
+    /// Opens a month from outside the budgets list (the widget). The page is pushed on the
+    /// next turn, once the stack has taken the reset.
+    func openBudgetMonth(_ budgetId: String) {
+        resetBudgetStack()
+        budgetSelection = budgetId
+        Task { @MainActor in
+            if !showsBudgetMonthBesideList {
+                budgetPath.append(BudgetDestination.details(budgetId: budgetId))
+            }
+            selectedTab = .budgets
         }
     }
 }

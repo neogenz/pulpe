@@ -220,7 +220,12 @@ struct BudgetsTab: View {
         }
         .environment(router)
         .task { router.bind(to: appState) }
-        .onChange(of: horizontalSizeClass) { appState.resetBudgetStack() }
+        .onChange(of: horizontalSizeClass, initial: true) { oldClass, newClass in
+            appState.showsBudgetMonthBesideList = newClass == .regular
+            // Beside the list, the month is the selection: a page pushed before this tab
+            // first showed (the widget, opened with the Duo open) would stack a copy on it.
+            if oldClass != newClass || newClass == .regular { appState.resetBudgetStack() }
+        }
     }
 
     private var monthsThenMonth: some View {
@@ -267,6 +272,7 @@ struct BudgetsTab: View {
                     } else {
                         ContentUnavailableView("Choisis un mois", systemImage: "calendar")
                             .pulpeBackground()
+                            .ignoresForeignKeyboardInset()
                     }
                 }
                 .modifier(budgetStackDestinations)

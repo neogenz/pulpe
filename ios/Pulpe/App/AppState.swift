@@ -75,6 +75,9 @@ final class AppState {
     var budgetPath = NavigationPath()
     /// Month shown beside the budgets list on a regular-width window (the open iPhone Duo).
     var budgetSelection: String?
+    /// Set by `BudgetsTab` while that list sits beside its month: a month opened from outside
+    /// (the widget) then becomes the selection instead of a second page pushed on top.
+    var showsBudgetMonthBesideList = false
     var savingsGoalsPath = NavigationPath()
     var templatePath = NavigationPath()
     // Pushing and popping these live in `AppState+Navigation.swift`.
