@@ -20,6 +20,7 @@ struct CurrentMonthView: View {
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
     @State private var isHeroUnderBar = true
+    @State private var viewportWidth: CGFloat?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.requestSavingsWithdrawal) var requestSavingsWithdrawal
     @State var pendingWithdrawal: SavingsWithdrawalRequest?
@@ -247,7 +248,12 @@ struct CurrentMonthView: View {
                         .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
                         .contentZone()
                 }
+                // Pinned to the viewport so nothing inside widens the page and lets it pan
+                // sideways (#704). Measured rather than `containerRelativeFrame`, which kept the
+                // open iPhone Duo's width once it closed.
+                .frame(width: viewportWidth)
             }
+            .onGeometryChange(for: CGFloat.self, of: \.size.width) { viewportWidth = $0 }
             .refreshable {
                 await store.forceRefresh()
             }
