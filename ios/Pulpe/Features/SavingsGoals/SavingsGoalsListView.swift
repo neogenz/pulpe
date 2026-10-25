@@ -158,6 +158,9 @@ private struct SavingsGoalRow: View {
                 .font(PulpeTypography.listRowTitle)
                 .monospacedDigit()
                 .foregroundStyle(Color.textPrimary)
+                // The name wraps first: an amount split over two lines misreads.
+                .lineLimit(1)
+                .layoutPriority(1)
                 .sensitiveAmount()
         }
     }

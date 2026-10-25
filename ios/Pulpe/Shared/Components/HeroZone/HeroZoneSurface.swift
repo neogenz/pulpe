@@ -77,6 +77,8 @@ private struct HeroZoneModifier: ViewModifier {
                     )
                 }
                 .padding(.top, -DesignTokens.Layout.overscrollBleed)
+                // Under a side bar too (the closed iPhone Duo's vertical tab bar).
+                .ignoresSafeArea(edges: .horizontal)
             }
             // Only while scrolled past the top (negative minY): never pushes the hero up
             // into the bleed, so the overscroll region stays forest during a refresh.
@@ -103,6 +105,7 @@ private struct ContentZoneModifier: ViewModifier {
                 // A short ledger still paints the canvas down past the screen edge, and the
                 // card's bottom edge (and its shadow) never comes into view.
                 .padding(.bottom, -DesignTokens.Layout.overscrollBleed)
+                .ignoresSafeArea(edges: .horizontal)
             }
             // The card's top edge, measured here rather than on the hero, whose parallax
             // offset would move it: the forest is under the bar until this edge reaches it.
