@@ -145,6 +145,8 @@ struct BudgetListView: View {
             appState.budgetPath = NavigationPath()
             appState.budgetSelection = budgetId
         } else {
+            // Unfolding the Duo keeps this month beside the list.
+            appState.budgetSelection = budgetId
             appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
         }
     }

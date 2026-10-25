@@ -194,14 +194,20 @@ struct SavingsGoalsTab: View {
                 NavigationStack(path: $state.savingsGoalsPath) {
                     SavingsGoalsListView()
                         .ignoresForeignKeyboardInset()
-                        .modifier(SectionStackDestinations())
+                        .modifier(SectionStackDestinations { selectedGoalId = $0 })
                 }
             }
         }
         .environment(router)
         .task { router.bind(to: appState) }
-        // A goal pushed on the list would stack a copy on the one shown beside it.
-        .onChange(of: horizontalSizeClass) { appState.savingsGoalsPath = NavigationPath() }
+        // A goal pushed on the list would stack a copy on the one shown beside it; folding
+        // keeps the goal that was open beside the list, now pushed on it.
+        .onChange(of: horizontalSizeClass) { oldClass, newClass in
+            appState.savingsGoalsPath = NavigationPath()
+            if oldClass == .regular, newClass == .compact, let shownGoal {
+                appState.savingsGoalsPath.append(SavingsGoalDestination.detail(shownGoal))
+            }
+        }
     }
 
     /// The goal picked in the list, else the first: a deleted goal falls back the same way.
@@ -212,10 +218,14 @@ struct SavingsGoalsTab: View {
 
 /// Destinations the accueil and objectifs stacks resolve with the shared services.
 private struct SectionStackDestinations: ViewModifier {
+    /// Told which goal a pushed page shows, so unfolding the Duo keeps it beside the list.
+    var onShowGoal: ((String) -> Void)?
+
     func body(content: Content) -> some View {
         content
             .navigationDestination(for: SavingsGoalDestination.self) { destination in
                 savingsGoalDestination(destination)
+                    .onAppear { if case .detail(let goal) = destination { onShowGoal?(goal.id) } }
             }
             .navigationDestination(for: BudgetDestination.self) { destination in
                 budgetDestination(destination)
@@ -265,7 +275,11 @@ struct BudgetsTab: View {
             appState.showsBudgetMonthBesideList = newClass == .regular
             // Beside the list, the month is the selection: a page pushed before this tab
             // first showed (the widget, opened with the Duo open) would stack a copy on it.
-            if oldClass != newClass || newClass == .regular { appState.resetBudgetStack() }
+            if oldClass != newClass || newClass == .regular {
+                // Folding keeps the month that was open beside the list, now pushed on it.
+                let folds = oldClass == .regular && newClass == .compact
+                appState.resetBudgetStack(showing: folds ? shownBudgetId : nil)
+            }
         }
     }
 
@@ -397,12 +411,20 @@ struct TemplatesTab: View {
                                 TemplateDetailsView(templateId: templateId)
                                     .accessibilityIdentifier("templateDetailsRoot")
                                     .ignoresForeignKeyboardInset()
+                                    // Unfolding the Duo keeps this model beside the list.
+                                    .onAppear { selectedTemplateId = templateId }
                             }
                         }
                 }
             }
         }
-        // A model pushed on the list would stack a copy on the one shown beside it.
-        .onChange(of: horizontalSizeClass) { appState.templatePath = NavigationPath() }
+        // A model pushed on the list would stack a copy on the one shown beside it; folding
+        // keeps the model that was open beside the list, now pushed on it.
+        .onChange(of: horizontalSizeClass) { oldClass, newClass in
+            appState.templatePath = NavigationPath()
+            if oldClass == .regular, newClass == .compact, let selectedTemplateId {
+                appState.templatePath.append(TemplateDestination.details(templateId: selectedTemplateId))
+            }
+        }
     }
 }

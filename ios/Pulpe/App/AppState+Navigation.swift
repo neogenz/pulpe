@@ -44,9 +44,11 @@ extension AppState {
     }
 
     /// The open iPhone Duo shows a month beside the list, the closed one pushes it: the two
-    /// stacks hold different screens, so changing width starts the section over from its list.
-    func resetBudgetStack() {
+    /// stacks hold different screens, so changing width rebuilds the stack. Folding passes the
+    /// month that was beside the list, which the stack then opens on.
+    func resetBudgetStack(showing budgetId: String? = nil) {
         budgetPath = NavigationPath()
+        if let budgetId { budgetPath.append(BudgetDestination.details(budgetId: budgetId)) }
     }
 
     /// Opens a month from outside the budgets list (the widget). The page is pushed on the

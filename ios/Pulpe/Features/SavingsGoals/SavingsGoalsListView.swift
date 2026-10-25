@@ -46,7 +46,9 @@ struct SavingsGoalsListView: View {
             SavingsGoalFormSheet(
                 goal: nil,
                 userCurrency: userSettingsStore.currency,
-                payDayOfMonth: userSettingsStore.payDayOfMonth
+                payDayOfMonth: userSettingsStore.payDayOfMonth,
+                // Beside the list, the goal just created is the one to look at.
+                onCreate: onSelect.map { select in { select($0.id) } }
             )
         }
         .fullScreenCover(
