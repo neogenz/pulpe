@@ -112,9 +112,8 @@ struct BudgetDetailsView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.content)
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
-        // Hero under the nav bar on the forest surface: light ink when loaded, default ink on
-        // error / skeleton. Once the content zone has scrolled under the bar, the sticky
-        // pager takes over the forest, so the ink stays light whenever the pager shows.
+        // Light ink on the forest: the hero under the bar, then the sticky pager once the content
+        // zone has scrolled under it (no pager beside the months list). Default on error / skeleton.
         .heroNavigationBar(
             isOnHeroSurface: screenState.content == .loaded
                 && (isHeroUnderBar || (!coordinator.dataStore.pagerMonths.isEmpty && !monthsInSidebar))
