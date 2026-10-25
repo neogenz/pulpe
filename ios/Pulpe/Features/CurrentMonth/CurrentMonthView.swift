@@ -247,7 +247,6 @@ struct CurrentMonthView: View {
                         .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
                         .contentZone()
                 }
-                .containerRelativeFrame(.horizontal)
             }
             .refreshable {
                 await store.forceRefresh()
