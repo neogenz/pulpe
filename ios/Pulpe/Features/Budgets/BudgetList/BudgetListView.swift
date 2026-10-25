@@ -226,74 +226,103 @@ struct BudgetListView: View {
         let currentPeriod = BudgetPeriodCalculator.periodForDate(
             Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
         )
-        let isPastYear = selectedYear < currentPeriod.year
         let yearBudgets = store.budgets(forYear: selectedYear)
-        let slots = monthSlots(from: yearBudgets, currentPeriod: currentPeriod)
-        let payDay = userSettingsStore.payDayOfMonth
 
         return ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 0) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        YearPicker(years: store.availableYears, selectedYear: $selectedYear)
-                        YearRecapCard(
-                            year: selectedYear,
-                            budgets: yearBudgets,
-                            isPastYear: isPastYear,
-                            // Beside a month, the list's job is the months: the balance stays,
-                            // the tiles give their height back to the rows.
-                            showsDetails: !selectsInPlace
-                        )
-                        .padding(.horizontal, DesignTokens.Spacing.lg)
+            Group {
+                if selectsInPlace {
+                    // Beside a month the year header stays put and only the months scroll:
+                    // nothing ever passes under the bar, and the year's balance stays in view
+                    // while the list follows the month picked on the other side.
+                    VStack(spacing: 0) {
+                        yearHeader(budgets: yearBudgets, currentPeriod: currentPeriod)
+                        ScrollView {
+                            monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
+                        }
+                        .clipShape(UnevenRoundedRectangle(
+                            topLeadingRadius: DesignTokens.CornerRadius.zone,
+                            topTrailingRadius: DesignTokens.CornerRadius.zone,
+                            style: .continuous
+                        ))
+                        .contentZone()
+                        // Rows run to the screen edge; the scroll view still insets the last one.
+                        .ignoresSafeArea(.container, edges: .bottom)
                     }
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xl)
-                    .heroZone()
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        SectionHeader(title: AppLocale.string("Mois"), count: yearBudgets.count)
-
+                } else {
+                    ScrollView {
                         VStack(spacing: 0) {
-                            ForEach(slots, id: \.month) { slot in
-                                if slot.month != slots.first?.month {
-                                    Divider()
-                                }
-                                if let budget = slot.budget {
-                                    BudgetMonthRow(
-                                        budget: budget,
-                                        periodLabel: periodLabel(for: budget),
-                                        isCurrent: budget.isCurrentPeriod(payDayOfMonth: payDay),
-                                        isPast: selectedYear < currentPeriod.year
-                                            || (selectedYear == currentPeriod.year && slot.month < currentPeriod.month),
-                                        selection: rowSelection(for: budget)
-                                    ) {
-                                        open(budget.id)
-                                    }
-                                    .id(budget.id)
-                                } else {
-                                    NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
-                                        createBudgetTarget = (slot.month, selectedYear)
-                                    }
-                                }
-                            }
+                            yearHeader(budgets: yearBudgets, currentPeriod: currentPeriod)
+                            monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
+                                .contentZone()
                         }
                     }
-                    // The content zone is the card: rows sit bare on it, a second surface
-                    // under the zone's own curve would read as a card inside a card.
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.top, DesignTokens.Spacing.xxl)
-                    .padding(.bottom, DesignTokens.Spacing.lg)
-                    .contentZone()
                 }
-                .opacity(hasAppeared ? 1 : 0)
-                .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
             }
+            .opacity(hasAppeared ? 1 : 0)
+            .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
             .scrollIndicators(.automatic)
             .background { Color.appBackground.ignoresSafeArea() }
             .onChange(of: selectedBudgetId, initial: true) { _, id in
                 revealSelectedMonth(id, proxy: proxy)
             }
         }
+    }
+
+    private func yearHeader(budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            YearPicker(years: store.availableYears, selectedYear: $selectedYear)
+            YearRecapCard(
+                year: selectedYear,
+                budgets: budgets,
+                isPastYear: selectedYear < currentPeriod.year,
+                // Beside a month, the list's job is the months: the balance stays,
+                // the tiles give their height back to the rows.
+                showsDetails: !selectsInPlace
+            )
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+        }
+        .padding(.top, DesignTokens.Spacing.lg)
+        .padding(.bottom, DesignTokens.Spacing.xl)
+        .heroZone()
+    }
+
+    private func monthsSection(budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> some View {
+        let slots = monthSlots(from: budgets, currentPeriod: currentPeriod)
+        let payDay = userSettingsStore.payDayOfMonth
+
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            SectionHeader(title: AppLocale.string("Mois"), count: budgets.count)
+
+            VStack(spacing: 0) {
+                ForEach(slots, id: \.month) { slot in
+                    if slot.month != slots.first?.month {
+                        Divider()
+                    }
+                    if let budget = slot.budget {
+                        BudgetMonthRow(
+                            budget: budget,
+                            periodLabel: periodLabel(for: budget),
+                            isCurrent: budget.isCurrentPeriod(payDayOfMonth: payDay),
+                            isPast: selectedYear < currentPeriod.year
+                                || (selectedYear == currentPeriod.year && slot.month < currentPeriod.month),
+                            selection: rowSelection(for: budget)
+                        ) {
+                            open(budget.id)
+                        }
+                        .id(budget.id)
+                    } else {
+                        NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
+                            createBudgetTarget = (slot.month, selectedYear)
+                        }
+                    }
+                }
+            }
+        }
+        // The content zone is the card: rows sit bare on it, a second surface
+        // under the zone's own curve would read as a card inside a card.
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.xxl)
+        .padding(.bottom, DesignTokens.Spacing.lg)
     }
 }
 
