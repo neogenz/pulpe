@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.56.0
+
+### Minor Changes
+
+- Supprimer un mois à venir, avis détaillés, assistant connecté (tags et modèles), mouvements rattachés qui suivent leur prévision.
+
+### Patch Changes
+
+- pulpe-shared@0.56.0
+
 ## 0.55.0
 
 ### Minor Changes
