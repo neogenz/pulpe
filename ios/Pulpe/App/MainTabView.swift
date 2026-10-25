@@ -127,12 +127,7 @@ struct CurrentMonthTab: View {
             CurrentMonthView()
                 .environment(\.requestSavingsWithdrawal, openSavingsWithdrawal)
                 .ignoresForeignKeyboardInset()
-                .navigationDestination(for: BudgetDestination.self) { destination in
-                    budgetDestination(destination)
-                }
-                .navigationDestination(for: SavingsGoalDestination.self) { destination in
-                    savingsGoalDestination(destination)
-                }
+                .modifier(SectionStackDestinations())
         }
         .environment(router)
         .task { router.bind(to: appState) }
@@ -159,26 +154,72 @@ struct CurrentMonthTab: View {
 
 struct SavingsGoalsTab: View {
     @Environment(AppState.self) private var appState
+    @Environment(SavingsGoalStore.self) private var store
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     /// A goal's withdrawal history leads into the budgets it funded (PUL-329), so
     /// this stack hosts budget screens too — and they need the same router the
     /// other two tabs provide.
     @State private var router = BudgetDetailsRouter()
+    @State private var selectedGoalId: String?
 
     var body: some View {
         @Bindable var state = appState
 
-        NavigationStack(path: $state.savingsGoalsPath) {
-            SavingsGoalsListView()
-                .ignoresForeignKeyboardInset()
-                .navigationDestination(for: SavingsGoalDestination.self) { destination in
-                    savingsGoalDestination(destination)
+        Group {
+            // The open iPhone Duo compares goals: the list stays beside the one projected.
+            if horizontalSizeClass == .regular {
+                ListBesideDetail {
+                    SavingsGoalsListView(selectedGoalId: shownGoal?.id) { id in
+                        appState.savingsGoalsPath = NavigationPath()
+                        selectedGoalId = id
+                    }
+                    .ignoresForeignKeyboardInset()
+                } detail: {
+                    NavigationStack(path: $state.savingsGoalsPath) {
+                        Group {
+                            if let shownGoal {
+                                SavingsGoalDetailView(goal: shownGoal)
+                                    .id(shownGoal.id)
+                                    .ignoresForeignKeyboardInset()
+                            } else {
+                                ContentUnavailableView("Choisis un objectif", systemImage: "target")
+                                    .pulpeBackground()
+                                    .ignoresForeignKeyboardInset()
+                            }
+                        }
+                        .modifier(SectionStackDestinations())
+                    }
                 }
-                .navigationDestination(for: BudgetDestination.self) { destination in
-                    budgetDestination(destination)
+            } else {
+                NavigationStack(path: $state.savingsGoalsPath) {
+                    SavingsGoalsListView()
+                        .ignoresForeignKeyboardInset()
+                        .modifier(SectionStackDestinations())
                 }
+            }
         }
         .environment(router)
         .task { router.bind(to: appState) }
+        // A goal pushed on the list would stack a copy on the one shown beside it.
+        .onChange(of: horizontalSizeClass) { appState.savingsGoalsPath = NavigationPath() }
+    }
+
+    /// The goal picked in the list, else the first: a deleted goal falls back the same way.
+    private var shownGoal: SavingsGoal? {
+        store.goals.first { $0.id == selectedGoalId } ?? store.goals.first
+    }
+}
+
+/// Destinations the accueil and objectifs stacks resolve with the shared services.
+private struct SectionStackDestinations: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .navigationDestination(for: SavingsGoalDestination.self) { destination in
+                savingsGoalDestination(destination)
+            }
+            .navigationDestination(for: BudgetDestination.self) { destination in
+                budgetDestination(destination)
+            }
     }
 }
 
@@ -241,26 +282,10 @@ struct BudgetsTab: View {
     private var monthsBesideMonth: some View {
         @Bindable var state = appState
 
-        // Two stacks rather than a NavigationSplitView: on the Duo the split view keeps its
-        // own 320pt sidebar and, in portrait, slides it over the month instead of beside it.
-        return HStack(spacing: 0) {
-            NavigationStack {
-                BudgetListView(selectsInPlace: true, selectedBudgetId: shownBudgetId)
-                    .ignoresForeignKeyboardInset()
-                    // The list never reaches the window's trailing edge, yet its stack inherits
-                    // the landscape tab bar's inset there and squeezed every row by that much.
-                    .ignoresSafeArea(.container, edges: .trailing)
-            }
-            .containerRelativeFrame(.horizontal) { width, _ in
-                min(
-                    max(width * DesignTokens.Layout.budgetSidebarWidthRatio, DesignTokens.Layout.budgetSidebarMinWidth),
-                    DesignTokens.Layout.budgetSidebarMaxWidth
-                )
-            }
-
-            Divider()
-                .ignoresSafeArea()
-
+        return ListBesideDetail {
+            BudgetListView(selectsInPlace: true, selectedBudgetId: shownBudgetId)
+                .ignoresForeignKeyboardInset()
+        } detail: {
             NavigationStack(path: $state.budgetPath) {
                 Group {
                     if let shownBudgetId {
@@ -279,9 +304,6 @@ struct BudgetsTab: View {
             }
         }
         .environment(\.budgetMonthsInSidebar, true)
-        // Panes meet at a straight seam: a rounded corner beside the divider or the bar
-        // reads as a stray curve, not as the zone's shape.
-        .environment(\.contentZoneSquareCorners, [.leading, .trailing])
     }
 
     /// The month picked in the list, else the one in progress: the open Duo never shows
@@ -339,21 +361,48 @@ private struct BudgetStackDestinations: ViewModifier {
 
 struct TemplatesTab: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var selectedTemplateId: String?
 
     var body: some View {
         @Bindable var state = appState
 
-        NavigationStack(path: $state.templatePath) {
-            TemplateListView()
-                .ignoresForeignKeyboardInset()
-                .navigationDestination(for: TemplateDestination.self) { destination in
-                    switch destination {
-                    case .details(let templateId):
-                        TemplateDetailsView(templateId: templateId)
-                            .accessibilityIdentifier("templateDetailsRoot")
-                            .ignoresForeignKeyboardInset()
+        Group {
+            // The open iPhone Duo keeps the models beside the lines of the one opened.
+            if horizontalSizeClass == .regular {
+                ListBesideDetail {
+                    TemplateListView(selectedTemplateId: $selectedTemplateId)
+                        .ignoresForeignKeyboardInset()
+                } detail: {
+                    NavigationStack(path: $state.templatePath) {
+                        if let selectedTemplateId {
+                            TemplateDetailsView(templateId: selectedTemplateId)
+                                .id(selectedTemplateId)
+                                .accessibilityIdentifier("templateDetailsRoot")
+                                .ignoresForeignKeyboardInset()
+                        } else {
+                            ContentUnavailableView("Choisis un modèle", systemImage: "doc.on.doc")
+                                .pulpeBackground()
+                                .ignoresForeignKeyboardInset()
+                        }
                     }
                 }
+            } else {
+                NavigationStack(path: $state.templatePath) {
+                    TemplateListView()
+                        .ignoresForeignKeyboardInset()
+                        .navigationDestination(for: TemplateDestination.self) { destination in
+                            switch destination {
+                            case .details(let templateId):
+                                TemplateDetailsView(templateId: templateId)
+                                    .accessibilityIdentifier("templateDetailsRoot")
+                                    .ignoresForeignKeyboardInset()
+                            }
+                        }
+                }
+            }
         }
+        // A model pushed on the list would stack a copy on the one shown beside it.
+        .onChange(of: horizontalSizeClass) { appState.templatePath = NavigationPath() }
     }
 }

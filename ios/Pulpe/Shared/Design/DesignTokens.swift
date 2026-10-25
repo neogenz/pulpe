@@ -393,12 +393,17 @@ enum DesignTokens {
         /// « Hors prévision », amount) still fits on one line. The open iPhone Duo in
         /// portrait (~290pt columns) truncates, so it keeps one column; landscape splits.
         static let minReflowColumnWidth: CGFloat = 360
-        /// Budgets list beside a month on the open iPhone Duo: a third of the window, so the
-        /// month keeps an iPhone width in portrait, between a floor where « Septembre » and a
+        /// A list beside the page it opens on the open iPhone Duo: a third of the window, so the
+        /// page keeps an iPhone width in portrait, between a floor where « Septembre » and a
         /// four-digit balance still share a row and a ceiling past which rows only stretch.
-        static let budgetSidebarWidthRatio: CGFloat = 0.36
-        static let budgetSidebarMinWidth: CGFloat = 280
-        static let budgetSidebarMaxWidth: CGFloat = 320
+        static let listPaneWidthRatio: CGFloat = 0.36
+        static let listPaneMinWidth: CGFloat = 280
+        static let listPaneMaxWidth: CGFloat = 320
+        /// The accueil's forest pane beside its queue on the open iPhone Duo: under half, so the
+        /// operations keep the wider side, with a floor where the hero's two tiles still sit
+        /// side by side.
+        static let heroPaneWidthRatio: CGFloat = 0.42
+        static let heroPaneMinWidth: CGFloat = 280
     }
 
     enum Motion {

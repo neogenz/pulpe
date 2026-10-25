@@ -2,7 +2,7 @@ import SwiftUI
 import TipKit
 import WidgetKit
 
-private enum SheetDestination: Identifiable, Hashable {
+enum CurrentMonthSheet: Identifiable, Hashable {
     case realizedBalance, account, createBudget, notificationPrime
     case addTransaction(FirstTransactionTracker.Source), feedback(promptNumber: Int)
     var id: Self { self }
@@ -12,16 +12,18 @@ struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var store
     @Environment(BudgetListStore.self) private var budgetListStore
-    @Environment(UserSettingsStore.self) private var userSettingsStore
+    // Internal, with `activeSheet` and `reminderPrefs`, for the reminders extension.
+    @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @Environment(TagStore.self) private var tagStore
     @Environment(ToastManager.self) private var toastManager
-    @State private var activeSheet: SheetDestination?
+    @State var activeSheet: CurrentMonthSheet?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
     @State private var isHeroUnderBar = true
     @State private var viewportWidth: CGFloat?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.requestSavingsWithdrawal) var requestSavingsWithdrawal
     @State var pendingWithdrawal: SavingsWithdrawalRequest?
 
@@ -47,7 +49,7 @@ struct CurrentMonthView: View {
     private let postOnboardingFlags = PostOnboardingFlagsStore()
 
     /// Local reminder opt-in state. Stateless UserDefaults wrapper.
-    private let reminderPrefs = ReminderPreferences()
+    let reminderPrefs = ReminderPreferences()
 
     var body: some View {
         ZStack {
@@ -72,10 +74,12 @@ struct CurrentMonthView: View {
                 }
                 .transition(.opacity)
             case .loaded:
-                dashboardContent
-                    // The skeleton already holds every slot; the data arrives by coming into
-                    // focus over it rather than popping in. Reduce Motion gets a plain fade.
-                    .transition(loadedTransition)
+                Group {
+                    if showsPanes { dashboardPanes } else { dashboardContent }
+                }
+                // The skeleton already holds every slot; the data arrives by coming into
+                // focus over it rather than popping in. Reduce Motion gets a plain fade.
+                .transition(loadedTransition)
             }
         }
         .background { Color.appBackground.ignoresSafeArea() }
@@ -87,6 +91,7 @@ struct CurrentMonthView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
         .navigationTitle(currentMonthName.capitalized)
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(PaneTitleRemoval(isRemoved: showsPanes))
         .toolbar {
             // One account affordance for every content state, in the bar that already
             // exists — the dashboard no longer rebuilds a header inside its own scroll.
@@ -99,15 +104,15 @@ struct CurrentMonthView: View {
                         email: appState.currentUser?.email,
                         avatarUrl: appState.currentUser?.avatarUrl,
                         diameter: DesignTokens.IconSize.compact,
-                        background: paintsHeroSurface ? .heroDisc : .surfaceContainerLowest,
-                        foreground: paintsHeroSurface ? .heroInk : .textTertiary
+                        background: avatarOnHero ? .heroDisc : .surfaceContainerLowest,
+                        foreground: avatarOnHero ? .heroInk : .textTertiary
                     )
                 }
-                .heroToolbarButtonStyle(paintsHeroSurface)
+                .heroToolbarButtonStyle(avatarOnHero)
                 .accessibilityLabel("Mon compte")
                 .accessibilityIdentifier("homeAccountButton")
             }
-            .heroToolbarGroup(paintsHeroSurface)
+            .heroToolbarGroup(avatarOnHero)
         }
         .sheet(item: $activeSheet, onDismiss: handOverPendingWithdrawal) { sheet in
             Group {
@@ -221,26 +226,9 @@ struct CurrentMonthView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.none) {
-                    HomeHeroCard(
-                        metrics: store.metrics,
-                        fallbackPlannedBalance: store.plannedRemaining,
-                        trajectory: store.balanceTrajectory,
-                        monthName: currentMonthName,
-                        uncheckedCount: store.uncheckedCount,
-                        isSettling: store.isSettling,
-                        onTapUnchecked: {
-                            withAnimation(DesignTokens.Animation.gentleSpring) {
-                                proxy.scrollTo(Self.uncheckedDeckId, anchor: .top)
-                            }
-                        },
-                        onTapVariance: { activeSheet = .realizedBalance },
-                        onTapDetail: { navigateToBudget = true }
-                    )
-                    .staggeredEntrance(isVisible: hasAppeared, index: 0)
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xxl)
-                    .heroZone(parallax: true)
+                    heroCard(proxy: proxy)
+                        .padding(.bottom, DesignTokens.Spacing.xxl)
+                        .heroZone(parallax: true)
 
                     dashboardDetails
                         .padding(.top, DesignTokens.Spacing.xxl)
@@ -307,7 +295,8 @@ struct CurrentMonthView: View {
                             }
                         }
                     },
-                    onViewAll: { navigateToBudget = true }
+                    onViewAll: { navigateToBudget = true },
+                    showsAllAtOnce: showsPanes
                 )
                 .id(Self.uncheckedDeckId)
                 .staggeredEntrance(isVisible: hasAppeared, index: 1)
@@ -373,6 +362,11 @@ extension CurrentMonthView {
         case .loaded: 3
         }
     }
+
+    fileprivate var showsPanes: Bool { horizontalSizeClass == .regular }
+
+    /// Beside the forest pane the account button sits over the light canvas.
+    fileprivate var avatarOnHero: Bool { paintsHeroSurface && !showsPanes }
 
     /// Crossfade only: `blurReplace` washed the forest to a pale haze for a frame.
     fileprivate var loadedTransition: AnyTransition { .opacity }
@@ -441,53 +435,66 @@ extension CurrentMonthView {
         postOnboardingFlags.setHasSeenPostOnboardingHandoff()
         appState.justCompletedOnboarding = false
     }
+}
 
-    /// After the user's first real "pointer", offer reminders exactly once — behind a
-    /// value-framed sheet, and only while the OS prompt is still undecided so we never
-    /// burn the one-shot iOS permission cold.
-    private func maybePrimeReminders() async {
-        guard !reminderPrefs.hasPrimedReminders else { return }
-        guard await NotificationScheduler.shared.authorizationStatus() == .notDetermined,
-              !reminderPrefs.hasPrimedReminders
-        else { return }
-        reminderPrefs.setHasPrimedReminders()
-        AnalyticsService.shared.capture(.notificationPrimeShown)
-        activeSheet = .notificationPrime
+// MARK: - Open iPhone Duo panes
+
+extension CurrentMonthView {
+    /// The open iPhone Duo: the hero holds still on the left while the queue is worked
+    /// through on the right, so where the month ends stays in view and moves with each check.
+    private var dashboardPanes: some View {
+        // Shares of the space offered, read before anything inside is laid out: a chart or a
+        // card asking for more room can never widen a pane (#704), and they follow a resize.
+        GeometryReader { geometry in
+            let heroWidth = max(
+                geometry.size.width * DesignTokens.Layout.heroPaneWidthRatio,
+                DesignTokens.Layout.heroPaneMinWidth
+            )
+            let detailsWidth = geometry.size.width - heroWidth
+            ScrollViewReader { proxy in
+                HStack(spacing: DesignTokens.Spacing.none) {
+                    ScrollView {
+                        heroCard(proxy: proxy)
+                            .heroZone()
+                            .frame(width: heroWidth)
+                    }
+                    // Forest down to the bottom edge, past the hero's own gradient.
+                    .background { Color.heroSurface.ignoresSafeArea() }
+                    .frame(width: heroWidth)
+
+                    ScrollView {
+                        dashboardDetails
+                            .padding(.vertical, DesignTokens.Spacing.xxl)
+                            .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+                            .frame(width: detailsWidth)
+                    }
+                    .frame(width: detailsWidth)
+                    .refreshable {
+                        await store.forceRefresh()
+                    }
+                }
+            }
+        }
     }
 
-    /// Fires the real OS prompt (from the "Activer" tap) and schedules the monthly
-    /// reminder on grant. On denial we only record it — the toggle in Préférences
-    /// stays the recovery path. Permission events gate on `promptShown` like
-    /// `applyReminderPreference`: the sheet only appears on `.notDetermined`, but the
-    /// status can settle from iOS Settings while it sits open, and a replayed verdict
-    /// must not count as a fresh grant/denial.
-    private func enableReminders() async {
-        let promptShown = await NotificationScheduler.shared.authorizationStatus() == .notDetermined
-        let granted = await NotificationScheduler.shared.requestAuthorization()
-        guard granted else {
-            if promptShown {
-                AnalyticsService.shared.capture(.notificationPermissionDenied)
-            }
-            return
-        }
-        // Same event order as `applyReminderPreference` — permission verdict, then
-        // toggle — so an ordered PostHog funnel captures both activation paths.
-        if promptShown {
-            AnalyticsService.shared.capture(.notificationPermissionGranted)
-        }
-        reminderPrefs.setRemindersEnabled(true)
-        // The sheet's copy promises both. The recap needs a fresh snapshot: the one taken
-        // after the pointing that opened this sheet ran while it was still off.
-        reminderPrefs.setWeeklyRecapEnabled(true)
-        Task { await WidgetDataSyncService.shared.syncAll(payDayOfMonth: userSettingsStore.payDayOfMonth) }
-        for reminder in [NotificationScheduler.Reminder.monthly, .weeklyRecap] {
-            AnalyticsService.shared.capture(
-                .reminderToggled, properties: ["enabled": true, "reminder": reminder.rawValue]
-            )
-        }
-        // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
-        // so the next foreground reschedule heals with the real pay-day.
-        guard let payDay = userSettingsStore.payDayOfMonth else { return }
-        await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
+    private func heroCard(proxy: ScrollViewProxy) -> some View {
+        HomeHeroCard(
+            metrics: store.metrics,
+            fallbackPlannedBalance: store.plannedRemaining,
+            trajectory: store.balanceTrajectory,
+            monthName: currentMonthName,
+            uncheckedCount: store.uncheckedCount,
+            isSettling: store.isSettling,
+            onTapUnchecked: {
+                withAnimation(DesignTokens.Animation.gentleSpring) {
+                    proxy.scrollTo(Self.uncheckedDeckId, anchor: .top)
+                }
+            },
+            onTapVariance: { activeSheet = .realizedBalance },
+            onTapDetail: { navigateToBudget = true }
+        )
+        .staggeredEntrance(isVisible: hasAppeared, index: 0)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.top, DesignTokens.Spacing.lg)
     }
 }

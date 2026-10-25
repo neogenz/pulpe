@@ -68,13 +68,9 @@ struct BudgetMonthRow: View {
     }
 
     var body: some View {
-        if selection != nil {
-            // Beside the month, a swipe that starts on the list means « back » on the page:
-            // a Button still fires when the finger lifts inside a wide row, a tap does not.
+        if let selection {
             rowContent
-                .onTapGesture(perform: activate)
-                .accessibilityElement(children: .ignore)
-                .accessibilityAction(.default, activate)
+                .selectsBesidePane(isSelected: selection.isSelected, action: activate)
                 .modifier(accessibility)
         } else {
             Button(action: activate) { rowContent }
@@ -119,14 +115,6 @@ struct BudgetMonthRow: View {
         }
         .padding(.vertical, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
-        .background {
-            if selection?.isSelected == true {
-                // Bleeds past the text column so the month reads as a lifted tile.
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(Color.surfaceContainerLowest)
-                    .padding(.horizontal, -DesignTokens.Spacing.sm)
-            }
-        }
         .contentShape(Rectangle())
     }
 
