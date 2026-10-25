@@ -9,6 +9,7 @@ struct BudgetListView: View {
     @Environment(BudgetListStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.contentZoneSquareCorners) private var contentZoneSquareCorners
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var showsBudgetPlanner = false
     @State private var hasAppeared = false
@@ -140,6 +141,8 @@ struct BudgetListView: View {
 
     private func open(_ budgetId: String) {
         if selectsInPlace {
+            // A page pushed beside the list belongs to the month being left.
+            appState.budgetPath = NavigationPath()
             appState.budgetSelection = budgetId
         } else {
             appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
@@ -241,11 +244,7 @@ struct BudgetListView: View {
                         ScrollView {
                             monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
                         }
-                        .clipShape(UnevenRoundedRectangle(
-                            topLeadingRadius: DesignTokens.CornerRadius.zone,
-                            topTrailingRadius: DesignTokens.CornerRadius.zone,
-                            style: .continuous
-                        ))
+                        .clipShape(contentZoneShape(squaring: contentZoneSquareCorners))
                         .contentZone()
                         // Rows run to the screen edge; the scroll view still insets the last one.
                         .ignoresSafeArea(.container, edges: .bottom)

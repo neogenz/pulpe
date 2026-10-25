@@ -246,6 +246,7 @@ struct BudgetsTab: View {
                     // the landscape tab bar's inset there and squeezed every row by that much.
                     .ignoresSafeArea(.container, edges: .trailing)
             }
+            .environment(\.contentZoneSquareCorners, .trailing)
             .containerRelativeFrame(.horizontal) { width, _ in
                 min(
                     max(width * DesignTokens.Layout.budgetSidebarWidthRatio, DesignTokens.Layout.budgetSidebarMinWidth),
@@ -271,6 +272,7 @@ struct BudgetsTab: View {
                 }
                 .modifier(budgetStackDestinations)
             }
+            .environment(\.contentZoneSquareCorners, .leading)
         }
         .environment(\.budgetMonthsInSidebar, true)
     }
