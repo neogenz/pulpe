@@ -246,7 +246,6 @@ struct BudgetsTab: View {
                     // the landscape tab bar's inset there and squeezed every row by that much.
                     .ignoresSafeArea(.container, edges: .trailing)
             }
-            .environment(\.contentZoneSquareCorners, [.leading, .trailing])
             .containerRelativeFrame(.horizontal) { width, _ in
                 min(
                     max(width * DesignTokens.Layout.budgetSidebarWidthRatio, DesignTokens.Layout.budgetSidebarMinWidth),
@@ -272,9 +271,11 @@ struct BudgetsTab: View {
                 }
                 .modifier(budgetStackDestinations)
             }
-            .environment(\.contentZoneSquareCorners, .leading)
         }
         .environment(\.budgetMonthsInSidebar, true)
+        // Panes meet at a straight seam: a rounded corner beside the divider or the bar
+        // reads as a stray curve, not as the zone's shape.
+        .environment(\.contentZoneSquareCorners, [.leading, .trailing])
     }
 
     /// The month picked in the list, else the one in progress: the open Duo never shows
