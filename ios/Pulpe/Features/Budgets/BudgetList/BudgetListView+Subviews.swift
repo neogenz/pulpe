@@ -22,7 +22,13 @@ struct BudgetMonthRow: View {
     var periodLabel: String?
     var isCurrent: Bool = false
     var isPast: Bool = false
+    /// Present when the row picks the month shown beside the list instead of pushing it.
+    var selection: Selection?
     let action: () -> Void
+
+    struct Selection {
+        let isSelected: Bool
+    }
 
     @State private var tapTrigger = false
     @Environment(\.amountsHidden) private var amountsHidden
@@ -51,6 +57,12 @@ struct BudgetMonthRow: View {
         isCurrent ? [.isButton, .isSelected] : .isButton
     }
 
+    /// Beside the month it opens, the row marks what is on screen rather than the calendar.
+    private var traits: AccessibilityTraits {
+        guard let selection else { return Self.accessibilityTraits(isCurrent: isCurrent) }
+        return selection.isSelected ? [.isButton, .isSelected] : .isButton
+    }
+
     private var accessibilityStatus: String {
         isCurrent ? ", " + AppLocale.string("en cours") : (isPast ? ", " + AppLocale.string("clos") : "")
     }
@@ -65,6 +77,8 @@ struct BudgetMonthRow: View {
                     Text(monthName)
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(titleColor)
+                        // A month name never hyphenates: « Sep-tembre » stops reading as a date.
+                        .lineLimit(1)
                     if !caption.isEmpty {
                         Text(caption)
                             .font(PulpeTypography.caption)
@@ -77,13 +91,25 @@ struct BudgetMonthRow: View {
                     emotionColor: budget.emotionState.color,
                     isPast: isPast
                 )
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityHidden(true)
+                .layoutPriority(1)
+                // A chevron promises a push; beside the month, the row only selects.
+                if selection == nil {
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.textTertiary)
+                        .accessibilityHidden(true)
+                }
             }
             .padding(.vertical, DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+            .background {
+                if selection?.isSelected == true {
+                    // Bleeds past the text column so the month reads as a lifted tile.
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                        .fill(Color.surfaceContainerLowest)
+                        .padding(.horizontal, -DesignTokens.Spacing.sm)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -99,7 +125,7 @@ struct BudgetMonthRow: View {
             )
         )
         .accessibilityHint("Appuie pour voir les détails")
-        .accessibilityAddTraits(Self.accessibilityTraits(isCurrent: isCurrent))
+        .accessibilityAddTraits(traits)
         .accessibilityIdentifier(Self.accessibilityIdentifier(for: budget))
     }
 }
@@ -127,6 +153,8 @@ struct BudgetAmountBlock: View {
                     .font(PulpeTypography.listRowTitle)
                     .monospacedDigit()
                     .foregroundStyle(isPast ? .secondary : emotionColor)
+                    // The month name wraps first: an amount split over two lines misreads.
+                    .lineLimit(1)
                     .sensitiveAmount()
                 Text(amountLabel)
                     .font(PulpeTypography.caption)

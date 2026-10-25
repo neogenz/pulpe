@@ -73,6 +73,8 @@ final class AppState {
     var selectedTab: Tab = .currentMonth
     var currentMonthPath = NavigationPath()
     var budgetPath = NavigationPath()
+    /// Month shown beside the budgets list on a regular-width window (the open iPhone Duo).
+    var budgetSelection: String?
     var savingsGoalsPath = NavigationPath()
     var templatePath = NavigationPath()
     // Pushing and popping these live in `AppState+Navigation.swift`.

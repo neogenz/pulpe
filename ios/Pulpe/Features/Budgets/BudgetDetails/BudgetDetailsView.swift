@@ -15,6 +15,7 @@ struct BudgetDetailsView: View {
     // Internal so the routing extension can read it when it dispatches a toggle.
     @Environment(\.amountsHidden) var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.budgetMonthsInSidebar) private var monthsInSidebar
     @State var coordinator: BudgetDetailsCoordinator
     // Internal so the savings-withdrawal extension can read its screen state.
     @State var projector: BudgetDetailsProjector
@@ -113,10 +114,10 @@ struct BudgetDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
         // Hero under the nav bar on the forest surface: light ink when loaded, default ink on
         // error / skeleton. Once the content zone has scrolled under the bar, the sticky
-        // pager takes over the forest, so the ink stays light whenever it has months.
+        // pager takes over the forest, so the ink stays light whenever the pager shows.
         .heroNavigationBar(
             isOnHeroSurface: screenState.content == .loaded
-                && (isHeroUnderBar || !coordinator.dataStore.pagerMonths.isEmpty)
+                && (isHeroUnderBar || (!coordinator.dataStore.pagerMonths.isEmpty && !monthsInSidebar))
         )
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -202,6 +203,7 @@ struct BudgetDetailsView: View {
             Task { await coordinator.dispatch(.softDeleteTransaction(tx, toastContext)) }
         })
         .modifier(DeleteMonthMenu(coordinator: coordinator, screenState: screenState, toastContext: toastContext))
+        .modifier(BudgetSidebarSelectionSync(budgetId: budgetId, coordinator: coordinator))
     }
 
     private var content: some View {

@@ -33,6 +33,12 @@ extension AppState {
         }
     }
 
+    /// The open iPhone Duo shows a month beside the list, the closed one pushes it: the two
+    /// stacks hold different screens, so changing width starts the section over from its list.
+    func resetBudgetStack() {
+        budgetPath = NavigationPath()
+    }
+
     /// Unwinds the on-screen section back to its root, for the same reason.
     func popActiveStackToRoot() {
         switch selectedTab {

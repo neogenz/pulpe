@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct BudgetListView: View {
+    /// Set when a month opens beside the list (the open iPhone Duo) rather than on top of it.
+    var selectsInPlace = false
+    var selectedBudgetId: String?
+
     @Environment(AppState.self) private var appState
     @Environment(BudgetListStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -60,7 +64,7 @@ struct BudgetListView: View {
                     year: target.year
                 ) { budget in
                     store.addBudget(budget)
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+                    open(budget.id)
                 }
             }
         }
@@ -129,6 +133,27 @@ struct BudgetListView: View {
     /// The list and its skeleton both paint the forest, the bar follows it while it is under
     /// the bar; error and empty keep a flat canvas.
     private var isOnHeroSurface: Bool { (!store.budgets.isEmpty || showsSkeleton) && isHeroUnderBar }
+
+    private func rowSelection(for budget: BudgetSparse) -> BudgetMonthRow.Selection? {
+        selectsInPlace ? .init(isSelected: budget.id == selectedBudgetId) : nil
+    }
+
+    private func open(_ budgetId: String) {
+        if selectsInPlace {
+            appState.budgetSelection = budgetId
+        } else {
+            appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
+        }
+    }
+
+    /// A month picked from the page beside the list (title menu) may sit in another year or
+    /// off screen: the list follows it, scrolling no further than needed.
+    private func revealSelectedMonth(_ budgetId: String?, proxy: ScrollViewProxy) {
+        guard selectsInPlace, let budgetId,
+              let year = store.budgets.first(where: { $0.id == budgetId })?.year else { return }
+        selectedYear = year
+        withAnimation(DesignTokens.Animation.smoothEaseInOut) { proxy.scrollTo(budgetId) }
+    }
 
     private var showsSkeleton: Bool {
         !store.hasLoadedOnce && store.budgets.isEmpty && store.error == nil
@@ -204,60 +229,71 @@ struct BudgetListView: View {
         let isPastYear = selectedYear < currentPeriod.year
         let yearBudgets = store.budgets(forYear: selectedYear)
         let slots = monthSlots(from: yearBudgets, currentPeriod: currentPeriod)
+        let payDay = userSettingsStore.payDayOfMonth
 
-        return ScrollView {
-            VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    YearPicker(years: store.availableYears, selectedYear: $selectedYear)
-                    YearRecapCard(
-                        year: selectedYear,
-                        budgets: yearBudgets,
-                        isPastYear: isPastYear
-                    )
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                }
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl)
-                .heroZone()
+        return ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        YearPicker(years: store.availableYears, selectedYear: $selectedYear)
+                        YearRecapCard(
+                            year: selectedYear,
+                            budgets: yearBudgets,
+                            isPastYear: isPastYear,
+                            // Beside a month, the list's job is the months: the balance stays,
+                            // the tiles give their height back to the rows.
+                            showsDetails: !selectsInPlace
+                        )
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                    }
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xl)
+                    .heroZone()
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    SectionHeader(title: AppLocale.string("Mois"), count: yearBudgets.count)
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        SectionHeader(title: AppLocale.string("Mois"), count: yearBudgets.count)
 
-                    VStack(spacing: 0) {
-                        ForEach(slots, id: \.month) { slot in
-                            if slot.month != slots.first?.month {
-                                Divider()
-                            }
-                            if let budget = slot.budget {
-                                BudgetMonthRow(
-                                    budget: budget,
-                                    periodLabel: periodLabel(for: budget),
-                                    isCurrent: budget.isCurrentPeriod(payDayOfMonth: userSettingsStore.payDayOfMonth),
-                                    isPast: selectedYear < currentPeriod.year
-                                        || (selectedYear == currentPeriod.year && slot.month < currentPeriod.month)
-                                ) {
-                                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+                        VStack(spacing: 0) {
+                            ForEach(slots, id: \.month) { slot in
+                                if slot.month != slots.first?.month {
+                                    Divider()
                                 }
-                            } else {
-                                NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
-                                    createBudgetTarget = (slot.month, selectedYear)
+                                if let budget = slot.budget {
+                                    BudgetMonthRow(
+                                        budget: budget,
+                                        periodLabel: periodLabel(for: budget),
+                                        isCurrent: budget.isCurrentPeriod(payDayOfMonth: payDay),
+                                        isPast: selectedYear < currentPeriod.year
+                                            || (selectedYear == currentPeriod.year && slot.month < currentPeriod.month),
+                                        selection: rowSelection(for: budget)
+                                    ) {
+                                        open(budget.id)
+                                    }
+                                    .id(budget.id)
+                                } else {
+                                    NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
+                                        createBudgetTarget = (slot.month, selectedYear)
+                                    }
                                 }
                             }
                         }
                     }
+                    // The content zone is the card: rows sit bare on it, a second surface
+                    // under the zone's own curve would read as a card inside a card.
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.xxl)
+                    .padding(.bottom, DesignTokens.Spacing.lg)
+                    .contentZone()
                 }
-                // The content zone is the card: rows sit bare on it, a second surface
-                // under the zone's own curve would read as a card inside a card.
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.top, DesignTokens.Spacing.xxl)
-                .padding(.bottom, DesignTokens.Spacing.lg)
-                .contentZone()
+                .opacity(hasAppeared ? 1 : 0)
+                .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
             }
-            .opacity(hasAppeared ? 1 : 0)
-            .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
+            .scrollIndicators(.automatic)
+            .background { Color.appBackground.ignoresSafeArea() }
+            .onChange(of: selectedBudgetId, initial: true) { _, id in
+                revealSelectedMonth(id, proxy: proxy)
+            }
         }
-        .scrollIndicators(.automatic)
-        .background { Color.appBackground.ignoresSafeArea() }
     }
 }
 
