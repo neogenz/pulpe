@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.57.0
+
+### Minor Changes
+
+- Pulpe s'adapte à l'iPhone Duo.
+
+### Patch Changes
+
+- pulpe-shared@0.57.0
+
 ## 0.56.1
 
 ### Patch Changes

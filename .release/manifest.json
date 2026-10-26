@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.56.1",
-  "githubReleaseNotes": "## v0.56.1\n\n### Technique\n\n- Réduction des traces internes de l’observabilité serveur, avec conservation des diagnostics applicatifs et des protections de confidentialité.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.57.0",
+  "githubReleaseNotes": "## v0.57.0\n\n### Nouveautés\n\n- **Pulpe s’adapte à l’iPhone Duo** — Ouvert, l’écran intérieur affiche tes mois, objectifs et modèles à côté de leur détail, et la page ouverte reste à l’écran quand tu plies ou déplies.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }
