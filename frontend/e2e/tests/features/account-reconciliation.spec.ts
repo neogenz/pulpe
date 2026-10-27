@@ -1,3 +1,4 @@
+import { createMockBudgetDetailsResponse } from '../../mocks/api-responses';
 import { test, expect } from '../../fixtures/test-fixtures';
 
 test('keeps the live account total visible while editing several accounts on a short mobile viewport', async ({
@@ -54,3 +55,46 @@ test('keeps reconciliation navigation usable while an error toast is visible', a
     '100.10',
   );
 });
+
+for (const year of [2020, 2030]) {
+  test(`reconciles the viewed ${year} budget and refreshes its balance`, async ({
+    authenticatedPage: page,
+    budgetDetailsPage,
+  }) => {
+    const response = structuredClone(createMockBudgetDetailsResponse());
+    response.data.budget.year = year;
+    response.data.budget.rollover = -20;
+    await page.route('**/budgets/*/details', (route) =>
+      route.fulfill({ json: response }),
+    );
+    await page.route('**/api/v1/transactions', async (route) => {
+      const payload = route.request().postDataJSON();
+      expect(payload).toMatchObject({
+        budgetId: response.data.budget.id,
+        amount: 50,
+        kind: 'income',
+      });
+      expect(payload.checkedAt).toBeTruthy();
+      const transaction = {
+        ...payload,
+        budgetLineId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      response.data.transactions.push(transaction);
+      await route.fulfill({ json: { success: true, data: transaction } });
+    });
+    await budgetDetailsPage.goto(response.data.budget.id);
+    await page.getByTestId('budget-reconcile-button').click();
+    await page.getByTestId('reconcile-amount-input').fill('30');
+    await page.getByTestId('reconcile-next-button').click();
+    await page.getByTestId('reconcile-next-button').click();
+    await page.getByTestId('reconcile-record-button').click();
+    await expect(page.getByTestId('reconcile-record-button')).toBeHidden();
+    await page.getByTestId('budget-reconcile-button').click();
+    await page.getByTestId('reconcile-amount-input').fill('30');
+    await page.getByTestId('reconcile-next-button').click();
+    await page.getByTestId('reconcile-next-button').click();
+    await expect(page.getByTestId('reconcile-finish-button')).toBeVisible();
+  });
+}

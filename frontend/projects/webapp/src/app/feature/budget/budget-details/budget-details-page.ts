@@ -8,6 +8,10 @@ import {
   effect,
   isDevMode,
 } from '@angular/core';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { MatDialog } from '@angular/material/dialog';
+import { formatLocalDate } from '@core/date/format-local-date';
+import { openReconcileAccountsDialog } from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -36,6 +40,8 @@ import {
 import {
   type BudgetDeletionImpact,
   formatBudgetPeriod,
+  getBudgetPeriodDates,
+  transactionCreateSchema,
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
@@ -136,6 +142,8 @@ export default class BudgetDetailsPage {
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #dialog = inject(MatDialog);
+  readonly #breakpoints = inject(BreakpointObserver);
   #isDeletingMonth = false;
 
   protected readonly currencyLocale = computed(
@@ -202,6 +210,60 @@ export default class BudgetDetailsPage {
         });
       }
     });
+  }
+
+  protected openReconcileAccounts(): void {
+    const budget = this.store.budgetDetails();
+    if (!budget || budget.id !== this.id()) return;
+    const matches = () =>
+      !this.#destroyRef.destroyed &&
+      this.id() === budget.id &&
+      this.store.budgetDetails()?.id === budget.id;
+    openReconcileAccountsDialog(
+      this.#dialog,
+      {
+        realized: computed(() =>
+          matches()
+            ? {
+                balance:
+                  this.store.realizedBalance() +
+                  this.store.previousMonthRollover(),
+                checkedIncome: this.store.realizedIncome(),
+                checkedOutflows: this.store.realizedExpenses(),
+                rollover: this.store.previousMonthRollover(),
+              }
+            : null,
+        ),
+        currency: this.userSettingsStore.currency,
+        periodDates: computed(() =>
+          getBudgetPeriodDates(
+            budget.month,
+            budget.year,
+            this.userSettingsStore.payDayOfMonth(),
+          ),
+        ),
+        recordAdjustment: async (adjustment) => {
+          if (!matches()) return false;
+          const now = new Date();
+          const error = await this.store.createAllocatedTransaction(
+            transactionCreateSchema.parse({
+              ...adjustment,
+              budgetId: budget.id,
+              transactionDate: formatLocalDate(now),
+              checkedAt: now.toISOString(),
+            }),
+          );
+          this.#snackBar.open(
+            error ?? this.#transloco.translate('budget.transactionAdded'),
+            this.#transloco.translate('common.close'),
+            { duration: 5000, verticalPosition: 'top' },
+          );
+          return error === null;
+        },
+        viewItemsToCheck: () => undefined,
+      },
+      this.#breakpoints.isMatched(Breakpoints.Handset),
+    );
   }
 
   navigateToPrevious(): void {

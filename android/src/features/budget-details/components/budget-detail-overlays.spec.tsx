@@ -1,3 +1,4 @@
+import { buildCurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
 import type { Transaction } from "pulpe-shared";
 import { createRef } from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
@@ -50,11 +51,38 @@ jest.mock("./budget-line-sheet", () => {
 jest.mock("../savings-withdrawal/components/savings-withdrawal-sheet", () => ({
   SavingsWithdrawalSheet: () => null,
 }));
-jest.mock("@/features/current-month/components/realized-balance-sheet", () => ({
-  RealizedBalanceSheet: () => null,
-}));
+jest.mock("@/features/current-month/components/realized-balance-sheet", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    RealizedBalanceSheet: ({
+      isVisible,
+      onReconcile,
+    }: {
+      isVisible: boolean;
+      onReconcile: () => void;
+    }) => (isVisible ? <Text onPress={onReconcile}>reconcile</Text> : null),
+  };
+});
+jest.mock(
+  "@/features/current-month/components/reconcile-accounts-sheet",
+  () => {
+    const { Text } = jest.requireActual("react-native");
+    return {
+      ReconcileAccountsSheet: ({
+        isVisible,
+        budgetId,
+        month,
+      }: {
+        isVisible: boolean;
+        budgetId: string;
+        month: { rollover: number } | null;
+      }) =>
+        isVisible ? <Text>{`${budgetId}:${month?.rollover}`}</Text> : null,
+    };
+  },
+);
 
-async function renderOverlays() {
+async function renderOverlays(month = 10) {
   const ref = createRef<BudgetDetailOverlaysHandle>();
   const view = await render(
     <SafeAreaProvider
@@ -66,12 +94,29 @@ async function renderOverlays() {
       <PaperProvider>
         <BudgetDetailOverlays
           ref={ref}
-          budgetId="budget-1"
-          period={{ year: 2026, month: 10 }}
+          budgetId={`budget-${month}`}
+          period={{ year: 2026, month }}
           currency="CHF"
           payDayOfMonth={null}
           missingAmount={0}
-          viewModel={null}
+          viewModel={buildCurrentMonthViewModel(
+            {
+              budget: {
+                id: `budget-${month}`,
+                year: 2026,
+                month,
+                rollover: -120,
+                description: "",
+                templateId: "t",
+                createdAt: "2026-01-01",
+                updatedAt: "2026-01-01",
+              },
+              history: null,
+              budgetLines: [],
+              transactions: [],
+            },
+            { now: new Date(2026, 9, 27) },
+          )}
         />
       </PaperProvider>
     </SafeAreaProvider>,
@@ -131,3 +176,14 @@ it("folds the open speed dial on Back instead of leaving the budget", async () =
     addListener.mockRestore();
   }
 });
+
+it.each([1, 10, 12])(
+  "reconciles the viewed month %s with its own rollover",
+  async (month) => {
+    const { ref, view } = await renderOverlays(month);
+    await act(() => ref.current?.showRealizedBalance());
+    await fireEvent.press(view.getByText("reconcile"));
+    expect(view.getByText(`budget-${month}:-120`)).toBeTruthy();
+    expect(view.queryByText("reconcile")).toBeNull();
+  },
+);

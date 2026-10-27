@@ -11,6 +11,7 @@ import { FAB, Menu, useTheme } from "react-native-paper";
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";
 import type { CurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
+import { ReconcileAccountsSheet } from "@/features/current-month/components/reconcile-accounts-sheet";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
 import { useTransactionRemoval } from "@/features/transactions/use-transaction-removal";
@@ -60,6 +61,10 @@ export const BudgetDetailOverlays = forwardRef<
   } | null>(null);
   const [isWithdrawalVisible, setWithdrawalVisible] = useState(false);
   const [isRealizedVisible, setRealizedVisible] = useState(false);
+  const [reconcileBudgetId, setReconcileBudgetId] = useState<string | null>(
+    null,
+  );
+  const [reconcileNotice, setReconcileNotice] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<
     | "forecastAdded"
     | "activityAdded"
@@ -140,7 +145,11 @@ export const BudgetDetailOverlays = forwardRef<
       {/* One slot, the most pressing news first. Four snackbars in the same
           spot drew over one another — a failure could hide under the "Annuler"
           of a deletion, or a confirmation over it. */}
-      {removal.failure !== null ? (
+      {reconcileNotice !== null ? (
+        <Notice clearsFab visible onDismiss={() => setReconcileNotice(null)}>
+          {t(reconcileNotice)}
+        </Notice>
+      ) : removal.failure !== null ? (
         <Notice clearsFab visible onDismiss={removal.dismissFailure}>
           {t(`budgets.mutations.removal.${removal.failure}Error`)}
         </Notice>
@@ -278,10 +287,37 @@ export const BudgetDetailOverlays = forwardRef<
         }}
       />
 
+      <ReconcileAccountsSheet
+        isVisible={reconcileBudgetId !== null}
+        onDismiss={() => setReconcileBudgetId(null)}
+        onRecorded={() => {
+          setReconcileBudgetId(null);
+          setReconcileNotice("home.reconcile.recorded");
+        }}
+        onRecordFailed={() =>
+          setReconcileNotice("budgets.mutations.activity.error")
+        }
+        onViewItemsToCheck={() => setReconcileBudgetId(null)}
+        budgetId={reconcileBudgetId ?? ""}
+        month={
+          viewModel !== null && budgetId === reconcileBudgetId
+            ? {
+                realized: viewModel.realized,
+                rollover: viewModel.metrics.rollover,
+                period: periodDates,
+              }
+            : null
+        }
+        currency={currency}
+      />
       {viewModel !== null && (
         <RealizedBalanceSheet
           isVisible={isRealizedVisible}
           onDismiss={() => setRealizedVisible(false)}
+          onReconcile={() => {
+            setRealizedVisible(false);
+            setReconcileBudgetId(budgetId);
+          }}
           metrics={viewModel.metrics}
           realized={viewModel.realized}
           currency={currency}

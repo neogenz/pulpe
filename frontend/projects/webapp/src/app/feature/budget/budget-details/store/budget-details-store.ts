@@ -463,6 +463,13 @@ export class BudgetDetailsStore {
     return details?.previousBudgetId ?? null;
   });
 
+  readonly realizedIncome = computed(() =>
+    BudgetFormulas.calculateRealizedIncome(
+      this.displayBudgetLines(),
+      this.budgetDetails()?.transactions ?? [],
+    ),
+  );
+
   readonly realizedBalance = computed<number>(() => {
     const details = this.budgetDetails();
     if (!details) return 0;

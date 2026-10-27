@@ -2,8 +2,7 @@ import SwiftUI
 
 /// The home screen's "Suivi du budget": the shared `RealizedBalanceSheet`, plus
 /// "Rapprocher mes comptes" (PUL-351) pinned under it and presented over it with the
-/// month this store has loaded. The budget page shows the shared sheet alone — only the
-/// current month is reconciled, and never through a second resolution of which month.
+/// month this store has loaded. Budget details supplies its own viewed month.
 struct CurrentMonthRealizedBalanceSheet: View {
     @Environment(CurrentMonthStore.self) private var store
     @State private var isReconciling = false

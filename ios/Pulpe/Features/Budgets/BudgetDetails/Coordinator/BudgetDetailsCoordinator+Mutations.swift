@@ -48,6 +48,17 @@ extension BudgetDetailsCoordinator {
         dataStore.invalidateAdjacentCache()
     }
 
+    func addReconciliationAdjustment(_ tx: Transaction) async {
+        // A submitted sheet can finish after programmatic navigation to another month.
+        guard tx.budgetId == dataStore.budgetId else {
+            dataStore.invalidateAllCache()
+            await reloadCurrentBudget()
+            dataStore.syncCache()
+            return
+        }
+        addTransaction(tx)
+    }
+
     func addTransaction(_ tx: Transaction) {
         dataStore.appendTransaction(tx)
         dataStore.recomputeMetrics()

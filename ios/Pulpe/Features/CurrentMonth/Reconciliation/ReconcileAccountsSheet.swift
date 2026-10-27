@@ -1,12 +1,11 @@
 import SwiftUI
 
 /// "Rapprocher mes comptes" (PUL-351): the bank balances typed by the user, the month's
-/// checked balance, then the gap and its one adjustment. Presented over the home
-/// screen's "Suivi du budget" with the month the home screen has loaded — the flow never
-/// resolves a month of its own. Every input lives in `flow`, owned here, so closing at
+/// checked balance, then the gap and its one adjustment. Presented with the month
+/// the caller has loaded — the flow never resolves a month of its own. Every input lives in `flow`, owned here, so closing at
 /// any step discards it and writes nothing.
 struct ReconcileAccountsSheet: View {
-    /// The loaded month as `CurrentMonthStore` holds it, read again on every render.
+    /// The loaded month, read again on every render.
     struct Month {
         let budgetId: String
         let realizedMetrics: BudgetFormulas.RealizedMetrics

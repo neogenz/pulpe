@@ -123,6 +123,8 @@ final class BudgetDetailsCoordinator {
         switch action {
         case .addTransaction(let tx):
             addTransaction(tx)
+        case .addReconciliationAdjustment(let tx):
+            await addReconciliationAdjustment(tx)
         case .softDeleteTransaction(let tx, let ctx):
             softDeleteTransaction(tx, context: ctx)
         case .deleteTransaction(let tx):

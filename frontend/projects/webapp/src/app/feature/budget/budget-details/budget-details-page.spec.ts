@@ -12,6 +12,8 @@ import {
 } from '@angular/core';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import type { ReconcileAccountsDialogData } from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslocoService } from '@jsverse/transloco';
 import {
@@ -205,6 +207,7 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
   let store: {
     deletionImpact: ReturnType<typeof vi.fn>;
     deleteMonth: ReturnType<typeof vi.fn>;
+    createAllocatedTransaction: ReturnType<typeof vi.fn>;
   };
   let dialogService: { confirmDelete: ReturnType<typeof vi.fn> };
   let router: { navigate: ReturnType<typeof vi.fn> };
@@ -216,9 +219,10 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
   const query = (testId: string): HTMLElement | null =>
     document.querySelector(`[data-testid="${testId}"]`);
 
-  const setup = async (): Promise<void> => {
+  const setup = async (month = 11, budgetId = 'budget-1'): Promise<void> => {
     isViewedMonthFuture = signal(true);
     store = {
+      createAllocatedTransaction: vi.fn().mockResolvedValue(null),
       deletionImpact: vi.fn().mockResolvedValue(NO_LINKS_IMPACT),
       // The real store hands the page over to `leave` before it reports success.
       deleteMonth: vi.fn(
@@ -275,15 +279,18 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
                 isStale: signal(false),
                 budgetDetails: signal({
                   ...createMockBudget({
-                    id: 'budget-1',
-                    month: 11,
+                    id: budgetId,
+                    month,
                     year: 2026,
                   }),
                   budgetLines: [],
                   transactions: [],
                 }),
                 financialTotals: signal(null),
-                previousMonthRollover: signal(0),
+                realizedIncome: signal(100),
+                realizedExpenses: signal(40),
+                realizedBalance: signal(60),
+                previousMonthRollover: signal(-20),
                 shouldShowSavingsWithdrawalAction: signal(false),
                 hasPrevious: signal(false),
                 hasNext: signal(false),
@@ -312,9 +319,47 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       .compileComponents();
 
     fixture = TestBed.createComponent(BudgetDetailsPage);
-    fixture.componentRef.setInput('id', 'budget-1');
+    fixture.componentRef.setInput('id', budgetId);
     await fixture.whenStable();
   };
+
+  it.each([1, 10, 12])(
+    'reconciles month %s and refuses writes after navigation',
+    async (month) => {
+      TestBed.resetTestingModule();
+      const budgetId = '11111111-1111-4111-8111-111111111111';
+      await setup(month, budgetId);
+      let data!: ReconcileAccountsDialogData;
+      vi.spyOn(TestBed.inject(MatDialog), 'open').mockImplementation(
+        (_component, config) => {
+          data = config!.data as ReconcileAccountsDialogData;
+          return {} as never;
+        },
+      );
+      query('budget-reconcile-button')!.click();
+      expect(data.realized()).toEqual({
+        balance: 40,
+        checkedIncome: 100,
+        checkedOutflows: 40,
+        rollover: -20,
+      });
+      const adjustment = { name: 'Écart', amount: 10, kind: 'income' as const };
+      store.createAllocatedTransaction.mockResolvedValueOnce('Réessaie');
+      expect(await data.recordAdjustment(adjustment)).toBe(false);
+      expect(await data.recordAdjustment(adjustment)).toBe(true);
+      expect(store.createAllocatedTransaction).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          ...adjustment,
+          budgetId,
+          checkedAt: expect.any(String),
+        }),
+      );
+      fixture.componentRef.setInput('id', 'another-month');
+      expect(data.realized()).toBeNull();
+      expect(await data.recordAdjustment(adjustment)).toBe(false);
+      expect(store.createAllocatedTransaction).toHaveBeenCalledTimes(2);
+    },
+  );
 
   const openMenuAndDelete = async (): Promise<void> => {
     query('budget-month-menu')?.click();
@@ -323,7 +368,7 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
     await settle();
   };
 
-  beforeEach(setup);
+  beforeEach(() => setup());
 
   describe('menu', () => {
     it('should offer the menu on a future month', () => {
