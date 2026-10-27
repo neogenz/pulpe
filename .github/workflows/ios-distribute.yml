@@ -603,7 +603,7 @@ jobs:
           python3 -c 'import json,os; json.dump({"repository":os.environ["GITHUB_REPOSITORY"],"source_sha":os.environ["SOURCE_SHA"],"marketing_version":os.environ["EXPECTED_MARKETING_VERSION"],"build_number":os.environ["BUILD_NUMBER"],"channel":os.environ["CHANNEL"],"state":"uploading","run_id":int(os.environ["GITHUB_RUN_ID"]),"run_attempt":int(os.environ["GITHUB_RUN_ATTEMPT"])},open(os.environ["RUNNER_TEMP"]+"/ios-distribution-intent.json","w"))'
       - name: Upload iOS distribution intent
         if: steps.asc.outputs.state == 'not_found'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ios-distribution-intent-${{ inputs.marketing_version }}-${{ inputs.build_number }}-${{ inputs.source_sha }}-${{ inputs.channel }}
           path: ${{ runner.temp }}/ios-distribution-intent.json
@@ -668,7 +668,7 @@ jobs:
         run: |
           python3 -c 'import json,os; json.dump({"repository":os.environ["GITHUB_REPOSITORY"],"source_sha":os.environ["SOURCE_SHA"],"marketing_version":os.environ["EXPECTED_MARKETING_VERSION"],"build_number":os.environ["BUILD_NUMBER"],"channel":os.environ["CHANNEL"],"state":"valid","uploaded":os.environ["ASC_INITIAL_STATE"]=="not_found","run_id":int(os.environ["GITHUB_RUN_ID"]),"run_attempt":int(os.environ["GITHUB_RUN_ATTEMPT"])},open(os.environ["RUNNER_TEMP"]+"/ios-distribution-proof.json","w"))'
       - name: Upload iOS distribution proof
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ios-distribution-proof-${{ inputs.marketing_version }}-${{ inputs.build_number }}-${{ inputs.source_sha }}
           path: ${{ runner.temp }}/ios-distribution-proof.json
