@@ -264,7 +264,7 @@ struct BudgetDetailsView: View {
                     )
                     .padding(.top, -DesignTokens.Spacing.lg)
 
-                    if !searchText.isEmpty && sections.isEmpty && free.isEmpty {
+                    if !searchText.isEmpty && sections.isEmpty && free.isEmpty && screenState.pointedAllocated.isEmpty {
                         ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, DesignTokens.Spacing.xxl)
@@ -297,21 +297,7 @@ struct BudgetDetailsView: View {
                         )
                     }
 
-                    if !free.isEmpty {
-                        BudgetDetailsFreeTransactionsList(
-                            items: free,
-                            currency: userSettingsStore.currency,
-                            tagNamesById: tagStore.namesById,
-                            onTap: { transaction in
-                                router.push(.editTx(transactionId: transaction.id))
-                            },
-                            onTogglePointed: { transaction in
-                                Task {
-                                    await coordinator.dispatch(.toggleTransaction(transaction))
-                                }
-                            }
-                        )
-                    }
+                    movementLists
 
                     Color.clear.frame(height: DesignTokens.Spacing.lg)
                 }

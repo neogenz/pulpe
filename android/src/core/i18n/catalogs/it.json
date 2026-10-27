@@ -123,6 +123,7 @@
           "deficit": "Questo mese spendi più di quanto guadagni."
         }
       },
+      "inEnvelope": "Nella previsione %{name}",
       "loadErrorHint": "Controlla la connessione e riprova.",
       "loadErrorTitle": "Non è stato possibile caricare questo budget",
       "missingHint": "Potrebbe essere stato eliminato da un altro dispositivo.",
@@ -135,7 +136,8 @@
       "protectedTitle": "Budget protetto",
       "search": "Cerca",
       "sections": {
-        "free": "Fuori previsione"
+        "free": "Fuori previsione",
+        "pointedAllocated": "Spuntati in una previsione"
       },
       "spread": "Distribuito",
       "status": {
