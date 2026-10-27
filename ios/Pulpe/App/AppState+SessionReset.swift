@@ -361,6 +361,7 @@ extension AppState {
         if scope.clearsNavigation {
             currentMonthPath = NavigationPath()
             budgetPath = NavigationPath()
+            budgetSelection = nil
             savingsGoalsPath = NavigationPath()
             templatePath = NavigationPath()
             selectedTab = .currentMonth

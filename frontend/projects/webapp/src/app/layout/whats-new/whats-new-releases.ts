@@ -49,6 +49,16 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.57.0',
+    reason:
+      'Release iOS uniquement : adaptation à l’iPhone Duo, sans changement visible dans la webapp',
+  },
+  {
+    version: '0.56.1',
+    reason:
+      'Réduction des traces internes Observe du serveur, sans changement visible dans la webapp',
+  },
+  {
     version: '0.54.1',
     reason:
       'Correction mineure de la disposition du formulaire d’ajout, publiée dans l’historique sans notification Nouveautés selon la décision de release',

@@ -217,7 +217,7 @@ struct EditTransactionPage: View {
 
     @ViewBuilder
     private func headerMenu(for tx: Transaction) -> some View {
-        Menu {
+        Menu("Plus d'options", systemImage: "ellipsis.circle") {
             if canSpread(tx) {
                 Button {
                     presentSpread(for: tx)
@@ -232,11 +232,8 @@ struct EditTransactionPage: View {
                 onPostpone: { pendingPostpone = .transaction(tx) }
             )
             DeleteMenuButton { showDeleteConfirmation = true }
-        } label: {
-            Image(systemName: "ellipsis.circle")
         }
         .pulpeMenuContent()
-        .accessibilityLabel("Plus d'options")
     }
 
     // MARK: - Logic

@@ -9,6 +9,9 @@ struct UncheckedOperationsCard: View {
     let syncingTransactionIds: Set<String>
     var onToggle: (CurrentMonthStore.CheckableItem) -> Void
     var onViewAll: () -> Void
+    /// Lays every operation out at once instead of a deck to turn: the open iPhone Duo has
+    /// the height for the whole queue, and what is left to check stays in view.
+    let showsAllAtOnce: Bool
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     // Internal, not private: `UncheckedOperationsCard+Row.swift` reads both to build the row.
@@ -46,7 +49,8 @@ struct UncheckedOperationsCard: View {
         syncingBudgetLineIds: Set<String>,
         syncingTransactionIds: Set<String>,
         onToggle: @escaping (CurrentMonthStore.CheckableItem) -> Void,
-        onViewAll: @escaping () -> Void
+        onViewAll: @escaping () -> Void,
+        showsAllAtOnce: Bool = false
     ) {
         self.items = items
         self.tagNamesById = tagNamesById
@@ -54,6 +58,7 @@ struct UncheckedOperationsCard: View {
         self.syncingTransactionIds = syncingTransactionIds
         self.onToggle = onToggle
         self.onViewAll = onViewAll
+        self.showsAllAtOnce = showsAllAtOnce
         _displayItems = State(initialValue: items)
     }
 
@@ -110,7 +115,11 @@ struct UncheckedOperationsCard: View {
                 link: (label: AppLocale.string("Tout voir"), action: onViewAll)
             )
 
-            deck
+            if showsAllAtOnce {
+                queue
+            } else {
+                deck
+            }
         }
         .sensoryFeedback(.success, trigger: checkTrigger)
         .sensoryFeedback(.selection, trigger: skipTrigger)
@@ -224,6 +233,21 @@ struct UncheckedOperationsCard: View {
         .padding(.horizontal, -DesignTokens.Spacing.xxl)
     }
 
+    /// Every operation stacked: checked one after another, no deck to turn, so neither
+    /// « Plus tard » nor the « 1 / 4 » count has anything left to say.
+    private var queue: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            ForEach(deckItems, id: \.id) { item in
+                inlinePane(item)
+                    .pulpeRowCard()
+                    .transition(paneTransition(for: item))
+            }
+        }
+    }
+
+    /// A deck of more than one card turns; the queue and a lone card do not.
+    private var turnsAsDeck: Bool { !showsAllAtOnce && displayItems.count > 1 }
+
     // MARK: - Inline Quick-Check
 
     private func inlinePane(_ item: CurrentMonthStore.CheckableItem) -> some View {
@@ -251,7 +275,7 @@ struct UncheckedOperationsCard: View {
         if dynamicTypeSize >= .xxLarge {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 confirmButton(item)
-                if displayItems.count > 1 {
+                if turnsAsDeck {
                     skipButton(item)
                 }
                 positionIndicator(item)
@@ -262,7 +286,7 @@ struct UncheckedOperationsCard: View {
             // read as one question with two answers, the affirmative first.
             HStack(spacing: DesignTokens.Spacing.md) {
                 confirmButton(item)
-                if displayItems.count > 1 {
+                if turnsAsDeck {
                     skipButton(item)
                 }
                 Spacer(minLength: DesignTokens.Spacing.none)
@@ -276,7 +300,7 @@ struct UncheckedOperationsCard: View {
     @ViewBuilder
     private func positionIndicator(_ item: CurrentMonthStore.CheckableItem) -> some View {
         let count = displayItems.count
-        if count > 1, let index = displayItems.firstIndex(where: { $0.id == item.id }) {
+        if turnsAsDeck, let index = displayItems.firstIndex(where: { $0.id == item.id }) {
             Text(verbatim: "\(index + 1) / \(count)")
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textSecondary)

@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.56.0",
-  "marketingVersion": "1.11.0",
-  "buildNumber": "2",
+  "productVersion": "0.57.0",
+  "marketingVersion": "1.12.0",
+  "buildNumber": "5",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "• Supprime le budget d’un mois à venir depuis son détail : la confirmation indique ce qui part et les liens avec tes objectifs.\n• Quand tu changes la nature d’une prévision, ses mouvements rattachés la suivent et restent comptés dans tes totaux."
+    "frFR": "Pulpe s’adapte à l’iPhone Duo : ouvert, tes mois, objectifs et modèles s’affichent à côté de leur détail, et ta page reste ouverte quand tu plies ou déplies."
   },
-  "reviewNotes": "Sign in with the demo account. In the Budget tab, open a future month (not the current one); if none exists, create one with +. Open the ⋯ menu and choose \"Supprimer ce mois\". The confirmation lists the forecasts and movements that will be removed; confirm to return to the budget list with \"Mois supprimé\". The option is absent on the current and past months. To check the second change, edit a forecast that has a linked movement and change its type: the movement follows it."
+  "reviewNotes": "Sign in with the demo account. On iPhone Duo, unfold the device: the Budget, Goals and Templates tabs show the list beside the selected item; fold it again and the open item stays on screen."
 }
