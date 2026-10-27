@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.51.1",
-  "marketingVersion": "1.7.0",
-  "buildNumber": "2",
+  "productVersion": "0.57.0",
+  "marketingVersion": "1.12.0",
+  "buildNumber": "5",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "• Rapprocher mes comptes : Compare le solde de tes comptes à ton solde pointé et ajuste l’écart en un geste.\n• Bilan du mois : À l’ouverture d’un nouveau mois, un bilan résume le mois terminé et le montant reporté.\n• Pointage priorisé : L’accueil propose d’abord les prévisions que tu pointes d’habitude à cette période du mois.\n• Première dépense : Après l’inscription, l’accueil t’invite à noter ta première dépense.\n• Jour de paie : Modifier un modèle annonce le bon nombre de budgets concernés.\n• Barre de navigation : Le titre et les boutons restent lisibles quand tu fais défiler l’écran."
+    "frFR": "Pulpe s’adapte à l’iPhone Duo : ouvert, tes mois, objectifs et modèles s’affichent à côté de leur détail, et ta page reste ouverte quand tu plies ou déplies."
   },
-  "reviewNotes": "Sign in with the demo account. On Home, tap the right-hand tile below the balance to open the budget tracking sheet, then tap \"Rapprocher mes comptes\" and enter any account balance to walk through the three steps. Nothing connects to a bank. The month recap card appears at the top of Home once a new month has started. The first-expense invitation only appears on a brand-new account with no movement."
+  "reviewNotes": "Sign in with the demo account. On iPhone Duo, unfold the device: the Budget, Goals and Templates tabs show the list beside the selected item; fold it again and the open item stays on screen."
 }

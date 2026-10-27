@@ -122,13 +122,21 @@ describe("projectionSeries", () => {
     ]);
   });
 
-  it("withholds the trend until a month has elapsed", () => {
+  it("draws the planned curve from day one", () => {
     const fresh = projectionSeries(
       progress([month({ state: "current" }), month({ month: 9 })]),
     );
 
-    expect(fresh.hasConfirmedTrend).toBe(false);
-    expect(projectionSeries(progress(PLAN)).hasConfirmedTrend).toBe(true);
+    expect(fresh.hasDrawableLine).toBe(true);
+    expect(projectionSeries(progress(PLAN)).hasDrawableLine).toBe(true);
+  });
+
+  it("hides a lone dot and a plan no prévision feeds", () => {
+    const loneDot = projectionSeries(progress([month({ state: "current" })]));
+    const unfed = projectionSeries(progress(PLAN, { linkedLineCount: 0 }));
+
+    expect(loneDot.hasDrawableLine).toBe(false);
+    expect(unfed.hasDrawableLine).toBe(false);
   });
 
   it("labels the start, the current month and the end", () => {

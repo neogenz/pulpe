@@ -20,6 +20,7 @@ import {
   ApiQuery,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
+  ApiConflictResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
   ApiCreatedResponse,
@@ -28,6 +29,7 @@ import {
   type BudgetListResponse,
   type BudgetResponse,
   type BudgetDeleteResponse,
+  type BudgetDeletionImpactResponse,
   type BudgetDetailsResponse,
   type BudgetGenerateResponse,
   type BudgetSparseListResponse,
@@ -49,6 +51,8 @@ import {
   BudgetGenerateResponseDto,
   BudgetResponseDto,
   BudgetDeleteResponseDto,
+  BudgetDeleteQueryDto,
+  BudgetDeletionImpactResponseDto,
   BudgetDetailsResponseDto,
   ListBudgetsQueryDto,
   BudgetSparseListResponseDto,
@@ -60,6 +64,7 @@ import { FindBudgetWithDetailsUseCase } from '../../application/find-budget-with
 import { CreateBudgetUseCase } from '../../application/create-budget.use-case';
 import { UpdateBudgetUseCase } from '../../application/update-budget.use-case';
 import { RemoveBudgetUseCase } from '../../application/remove-budget.use-case';
+import { GetBudgetDeletionImpactUseCase } from '../../application/get-budget-deletion-impact.use-case';
 import { GenerateBudgetsUseCase } from '../../application/generate-budgets.use-case';
 import { ExportAllBudgetsUseCase } from '../../application/export-all-budgets.use-case';
 import { BudgetMapper } from '../mappers/budget.mapper';
@@ -86,6 +91,7 @@ export class BudgetController {
     private readonly createBudgetUseCase: CreateBudgetUseCase,
     private readonly updateBudgetUseCase: UpdateBudgetUseCase,
     private readonly removeBudgetUseCase: RemoveBudgetUseCase,
+    private readonly getBudgetDeletionImpactUseCase: GetBudgetDeletionImpactUseCase,
     private readonly generateBudgetsUseCase: GenerateBudgetsUseCase,
     private readonly exportAllBudgetsUseCase: ExportAllBudgetsUseCase,
     private readonly mapper: BudgetMapper,
@@ -315,6 +321,43 @@ export class BudgetController {
     return this.mapper.toBudgetDetailsResponse(composite);
   }
 
+  @Get(':id/deletion-impact')
+  @ApiOperation({
+    summary: 'Preview what deleting a future month removes',
+    description:
+      'Read-only. Counts the forecasts and movements of the month and the ones linked to other months (spread, savings goal, savings withdrawal). Only a month after the live pay-day-aware period can be deleted.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Deletion impact retrieved successfully',
+    type: BudgetDeletionImpactResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget not found',
+    type: ErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description:
+      'Budget is the current or a past month (ERR_BUDGET_NOT_DELETABLE)',
+    type: ErrorResponseDto,
+  })
+  async deletionImpact(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<BudgetDeletionImpactResponse> {
+    return {
+      success: true,
+      data: await this.getBudgetDeletionImpactUseCase.execute(id, user),
+    };
+  }
+
   @Patch(':id')
   @ApiOperation({
     summary: 'Update existing budget',
@@ -356,7 +399,8 @@ export class BudgetController {
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete existing budget',
-    description: 'Permanently deletes a budget and all associated data',
+    description:
+      'Permanently deletes a future month and its forecasts, movements and tags. The current and past months are refused. A month linked to other months or to a savings goal is refused unless confirmLinks=true.',
   })
   @ApiParam({
     name: 'id',
@@ -370,15 +414,32 @@ export class BudgetController {
     description: 'Budget deleted successfully',
     type: BudgetDeleteResponseDto,
   })
+  @ApiQuery({
+    name: 'confirmLinks',
+    required: false,
+    description:
+      'Must be "true" to delete a month linked to other months or to a savings goal (ERR_BUDGET_DELETION_LINKS_UNCONFIRMED otherwise)',
+    enum: ['true', 'false'],
+  })
   @ApiNotFoundResponse({
     description: 'Budget not found',
     type: ErrorResponseDto,
   })
+  @ApiConflictResponse({
+    description:
+      'Not a future month (ERR_BUDGET_NOT_DELETABLE) or links not confirmed (ERR_BUDGET_DELETION_LINKS_UNCONFIRMED)',
+    type: ErrorResponseDto,
+  })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: BudgetDeleteQueryDto,
     @User() user: AuthenticatedUser,
   ): Promise<BudgetDeleteResponse> {
-    await this.removeBudgetUseCase.execute(id, user);
+    await this.removeBudgetUseCase.execute(
+      id,
+      user,
+      query.confirmLinks === 'true',
+    );
     return { success: true, message: 'Budget deleted successfully' };
   }
 }

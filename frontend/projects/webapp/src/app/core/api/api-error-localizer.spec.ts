@@ -171,11 +171,7 @@ describe('ApiErrorLocalizer', () => {
       409,
       "Certaines opérations ont été importées entre-temps — rien n'a été créé, relance l'aperçu",
     ],
-    [
-      'ERR_TRANSACTION_IMPORT_FAILED',
-      500,
-      "L'import a échoué — rien n'a été créé, réessaie",
-    ],
+    ['ERR_TRANSACTION_IMPORT_FAILED', 500, "Rien n'a été créé, réessaie"],
     [
       'ERR_TRANSACTION_IMPORT_RECALCULATION_FAILED',
       500,

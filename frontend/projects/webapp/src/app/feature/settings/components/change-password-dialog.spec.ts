@@ -40,11 +40,10 @@ describe('ChangePasswordDialog', () => {
     expect(component['passwordForm'].valid).toBe(false);
   });
 
-  it('should have valid form when all fields filled and passwords match', () => {
+  it('should accept the current password and a single new password', () => {
     component['passwordForm'].patchValue({
       currentPassword: 'currentPass123',
       newPassword: 'newPass123',
-      confirmPassword: 'newPass123',
     });
     expect(component['passwordForm'].valid).toBe(true);
   });
@@ -58,7 +57,6 @@ describe('ChangePasswordDialog', () => {
     component['passwordForm'].patchValue({
       currentPassword: 'wrongPassword',
       newPassword: 'newPass123',
-      confirmPassword: 'newPass123',
     });
 
     // Access protected method via bracket notation for testing
@@ -78,7 +76,6 @@ describe('ChangePasswordDialog', () => {
     component['passwordForm'].patchValue({
       currentPassword: 'currentPass123',
       newPassword: 'newPass123',
-      confirmPassword: 'newPass123',
     });
 
     await component['onSubmit']();
@@ -94,7 +91,6 @@ describe('ChangePasswordDialog', () => {
     component['passwordForm'].patchValue({
       currentPassword: 'currentPass123',
       newPassword: 'newPass123',
-      confirmPassword: 'newPass123',
     });
 
     await component['onSubmit']();
@@ -113,7 +109,6 @@ describe('ChangePasswordDialog', () => {
     component['passwordForm'].patchValue({
       currentPassword: 'currentPass123',
       newPassword: 'newPass123',
-      confirmPassword: 'newPass123',
     });
 
     await component['onSubmit']();
@@ -130,7 +125,6 @@ describe('ChangePasswordDialog', () => {
     component['passwordForm'].patchValue({
       currentPassword: 'wrongPassword',
       newPassword: 'newPass123',
-      confirmPassword: 'newPass123',
     });
 
     await component['onSubmit']();
@@ -149,11 +143,10 @@ describe('ChangePasswordDialog', () => {
     expect(errors?.['minlength']).toBeTruthy();
   });
 
-  it('should keep submit button disabled when passwords do not match', () => {
+  it('should keep submit disabled without the current password', () => {
     component['passwordForm'].patchValue({
-      currentPassword: 'currentPass123',
+      currentPassword: '',
       newPassword: 'newPass123',
-      confirmPassword: 'differentPass123',
     });
 
     expect(component['isFormValid']()).toBe(false);
@@ -166,7 +159,6 @@ describe('ChangePasswordDialog', () => {
     component['passwordForm'].patchValue({
       currentPassword: 'currentPass123',
       newPassword: 'newPass123',
-      confirmPassword: 'newPass123',
     });
 
     await component['onSubmit']();

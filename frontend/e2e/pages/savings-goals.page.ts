@@ -46,13 +46,11 @@ export class SavingsGoalsPage {
       .toContain(normalizeAmount(expected));
   }
 
-  /** La sous-ligne « Retrait prévu · −500 » du mois qui le porte. */
+  /** Les retraits annoncés (liés à un budget ou hors budget) de « Mois par mois ». */
   plannedWithdrawalRows(): Locator {
-    return this.page.getByTestId('goal-plan-row-planned-withdrawal');
-  }
-
-  withdrawalsSection(): Locator {
-    return this.page.getByTestId('savings-goal-withdrawals');
+    return this.page.locator(
+      '[data-testid="savings-goal-planned-withdrawal-row"], [data-testid="savings-goal-plan-only-withdrawal-row"]',
+    );
   }
 
   withdrawalRows(): Locator {

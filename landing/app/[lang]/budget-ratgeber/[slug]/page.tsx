@@ -79,7 +79,7 @@ const premiumsFaq = [
     question:
       "Musst du die Krankenkasse wechseln, um die Erhöhung aufzufangen?",
     answer:
-      "Nein, das ist nicht das Thema dieser Seite. Ein Wechsel kann helfen, aber hier geht es um die Rückstellung in deiner Planung, damit Januar keine Überraschung wird.",
+      "Nicht unbedingt. Ein Wechsel kann helfen, aber diese Seite behandelt die Rückstellung in deiner Planung, damit Januar keine Überraschung wird.",
   },
 ];
 
@@ -97,7 +97,7 @@ function ComparisonArticle() {
         Grenzen von Pulpe.
       </p>
 
-      <h2>Wonach der Vergleich geht</h2>
+      <h2>Die Kriterien des Vergleichs</h2>
       <p>
         Eine App aus einem anderen Markt zwingt dich oft ins Englische, in den
         Dollar oder in eine Bankanbindung, die hier fehlt. Die Kriterien: Preis,
@@ -235,14 +235,14 @@ function PremiumsArticle() {
         statt einer Rechnung, die auf einmal kommt.
       </p>
 
-      <h2>Was diese Seite nicht behandelt</h2>
+      <h2>Grenzen dieser Seite</h2>
       <p>
         Prämienverbilligung und Priminfo sind nützlich, wenn du subventioniert
-        wirst oder die Kasse vergleichen willst. Das ist hier nicht das Thema:
-        es geht nur um die Rückstellung in deiner Planung.
+        wirst oder die Kasse vergleichen willst. Diese Seite behandelt nur die
+        Rückstellung in deiner Planung.
       </p>
 
-      <h2>Wo das in Pulpe landet</h2>
+      <h2>Die Prämie in Pulpe</h2>
       <p>
         In Pulpe ist die Prämie ein wiederkehrender Planposten. Passt du den
         Betrag an, rechnen die nächsten Monate neu. Du siehst das Verfügbar zum

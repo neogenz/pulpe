@@ -16,6 +16,7 @@ import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
+import type { TransactionMutationContext } from '../domain/transaction.entity';
 
 @Injectable()
 export class RemoveTransactionUseCase {
@@ -31,26 +32,32 @@ export class RemoveTransactionUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(id: string, user: AuthenticatedUser): Promise<void> {
+  /**
+   * `DELETE /transactions/:id` is idempotent: an unknown id succeeds. An
+   * in-process caller that must not report a deletion that never happened
+   * passes `mustExist`.
+   */
+  async execute(
+    id: string,
+    user: AuthenticatedUser,
+    options: { mustExist?: boolean } = {},
+  ): Promise<void> {
     const context = await this.repo.findMutationContext(id);
+    if (!context && options.mustExist) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+        { id },
+        {
+          operation: 'transaction.remove',
+          userId: user.id,
+          entityId: id,
+          entityType: 'transaction',
+        },
+      );
+    }
     const budgetId = context?.budgetId ?? null;
 
-    // Supprimer un retrait rend son montant au pot : la suppression passe donc
-    // par le même verrou que la création. `debit: 0` — rien n'est prélevé, mais
-    // la révision reste vérifiée, sinon deux suppressions concurrentes du même
-    // retrait le rendraient deux fois. Un lien CASSÉ (objectif supprimé) n'a
-    // plus de solde à défendre et repart par le chemin ordinaire.
-    if (context?.sourceSavingsGoalId) {
-      await this.withdrawalPolicy.runAgainstBalance({
-        goalId: context.sourceSavingsGoalId,
-        debit: 0,
-        user,
-        write: (expectedRevision) =>
-          this.repo.deleteWithdrawal(id, expectedRevision),
-      });
-    } else {
-      await this.repo.delete(id);
-    }
+    await this.#deleteRow(id, context, user);
 
     // Cache invalidation BEFORE recalc — if recalc fails, the about-to-be-stale
     // ending_balance won't be locked in as the new cached authoritative read.
@@ -79,5 +86,30 @@ export class RemoveTransactionUseCase {
       { transactionId: id, userId: user.id, operation: 'transaction.remove' },
       'Transaction deleted',
     );
+  }
+
+  /**
+   * Supprimer un retrait rend son montant au pot : la suppression passe donc
+   * par le même verrou que la création. `debit: 0` — rien n'est prélevé, mais
+   * la révision reste vérifiée, sinon deux suppressions concurrentes du même
+   * retrait le rendraient deux fois. Un lien CASSÉ (objectif supprimé) n'a
+   * plus de solde à défendre et repart par le chemin ordinaire.
+   */
+  async #deleteRow(
+    id: string,
+    context: TransactionMutationContext | null,
+    user: AuthenticatedUser,
+  ): Promise<void> {
+    if (!context?.sourceSavingsGoalId) {
+      await this.repo.delete(id);
+      return;
+    }
+    await this.withdrawalPolicy.runAgainstBalance({
+      goalId: context.sourceSavingsGoalId,
+      debit: 0,
+      user,
+      write: (expectedRevision) =>
+        this.repo.deleteWithdrawal(id, expectedRevision),
+    });
   }
 }

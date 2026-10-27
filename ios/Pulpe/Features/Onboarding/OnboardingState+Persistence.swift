@@ -197,9 +197,27 @@ extension OnboardingState {
     }
 }
 
-// MARK: - Step completion analytics
+// MARK: - Onboarding analytics
 
 extension OnboardingState {
+    /// `send` is a test seam; production always captures through `AnalyticsService`.
+    func capturePaused(
+        send: (AnalyticsEvent, [String: Any]) -> Void = {
+            AnalyticsService.shared.capture($0, properties: $1)
+        }
+    ) {
+        guard currentStep != .welcome, !hasCompleted, !isSubmitting, !hasAbandoned else { return }
+        send(
+            .onboardingPaused,
+            [
+                "last_step": currentStep.analyticsName,
+                "pause_method": "background",
+                "was_authenticated": isAuthenticated,
+                "auth_method": authMethodProperty
+            ]
+        )
+    }
+
     /// Fire `onboarding_step_completed` with `step_index` (1-based), `step_count`,
     /// and `auth_method` so PostHog funnels survive step reordering.
     func captureStepCompleted(_ step: OnboardingStep) {

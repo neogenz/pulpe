@@ -17,6 +17,7 @@ import { FindBudgetUseCase } from './application/find-budget.use-case';
 import { FindBudgetWithDetailsUseCase } from './application/find-budget-with-details.use-case';
 import { UpdateBudgetUseCase } from './application/update-budget.use-case';
 import { RemoveBudgetUseCase } from './application/remove-budget.use-case';
+import { GetBudgetDeletionImpactUseCase } from './application/get-budget-deletion-impact.use-case';
 import { RecalculateBudgetBalancesUseCase } from './application/recalculate-budget-balances.use-case';
 import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-budget.use-case';
 import { EnsureBudgetsForPeriodsUseCase } from './application/ensure-budgets-for-periods.use-case';
@@ -25,7 +26,7 @@ import { SAVINGS_GOAL_HORIZON_PORT } from './domain/ports/savings-goal-horizon.p
 import { BUDGET_MONTH_READ_PORT } from './domain/ports/budget-month-read.port';
 import { ReadBudgetMonthUseCase } from './application/read-budget-month.use-case';
 import { BUDGET_WRITE_PORT } from './domain/ports/budget-write.port';
-import { CreateBudgetInProcessUseCase } from './application/create-budget-in-process.use-case';
+import { WriteBudgetsInProcessUseCase } from './application/write-budgets-in-process.use-case';
 
 @Module({
   imports: [EncryptionModule],
@@ -41,11 +42,12 @@ import { CreateBudgetInProcessUseCase } from './application/create-budget-in-pro
     FindBudgetWithDetailsUseCase,
     UpdateBudgetUseCase,
     RemoveBudgetUseCase,
+    GetBudgetDeletionImpactUseCase,
     RecalculateBudgetBalancesUseCase,
     ResolveNextMonthBudgetUseCase,
     EnsureBudgetsForPeriodsUseCase,
     ReadBudgetMonthUseCase,
-    CreateBudgetInProcessUseCase,
+    WriteBudgetsInProcessUseCase,
     SupabaseBudgetRepository,
     { provide: BUDGET_REPOSITORY, useExisting: SupabaseBudgetRepository },
     {
@@ -65,7 +67,7 @@ import { CreateBudgetInProcessUseCase } from './application/create-budget-in-pro
       useExisting: EnsureBudgetsForPeriodsUseCase,
     },
     { provide: BUDGET_MONTH_READ_PORT, useExisting: ReadBudgetMonthUseCase },
-    { provide: BUDGET_WRITE_PORT, useExisting: CreateBudgetInProcessUseCase },
+    { provide: BUDGET_WRITE_PORT, useExisting: WriteBudgetsInProcessUseCase },
     BudgetMapper,
     createInfoLoggerProvider(BudgetController.name),
     createInfoLoggerProvider(HasBudgetsUseCase.name),

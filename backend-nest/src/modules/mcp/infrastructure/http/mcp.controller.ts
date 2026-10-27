@@ -26,6 +26,7 @@ import { CallToolUseCase } from '../../application/call-tool.use-case';
 import type { McpTool } from '../../domain/mcp-tool.entity';
 import type { ActiveMcpConnection } from '../../domain/ports/mcp-connection-repository.port';
 import { McpTokenGuard, type McpRequest } from '../auth/mcp-token.guard';
+import { describeToolError } from './describe-tool-error';
 
 /**
  * Streamable HTTP endpoint, stateless: one `McpServer` per request, no
@@ -65,7 +66,7 @@ export class McpController {
     // middleware is mounted under the global prefix only.
     await this.cls.runWith(
       { user: request.user, supabase: request.supabase } as never,
-      () => transport.handleRequest(request, response, body),
+      () => transport.handleRequest(request, response, withToolArguments(body)),
     );
   }
 
@@ -104,7 +105,7 @@ export class McpController {
       } catch (error) {
         return {
           isError: true,
-          content: [{ type: 'text', text: describe(error) }],
+          content: [{ type: 'text', text: describeToolError(error) }],
         };
       }
     };
@@ -121,9 +122,21 @@ export class McpController {
   }
 }
 
-/** Business messages are safe for the model; anything else stays generic. */
-function describe(error: unknown): string {
-  const status = (error as { getStatus?: () => number })?.getStatus?.();
-  if (status && status < 500 && error instanceof Error) return error.message;
-  return 'Pulpe n’a pas pu traiter cette demande.';
+/**
+ * `arguments` is optional on `tools/call`, but the SDK parses an absent one
+ * against the tool's object schema and refuses even a tool without parameters.
+ */
+function withToolArguments(body: unknown): unknown {
+  const message = body as {
+    method?: unknown;
+    params?: { arguments?: unknown };
+  } | null;
+  if (
+    message?.method !== 'tools/call' ||
+    !message.params ||
+    message.params.arguments !== undefined
+  ) {
+    return body;
+  }
+  return { ...message, params: { ...message.params, arguments: {} } };
 }

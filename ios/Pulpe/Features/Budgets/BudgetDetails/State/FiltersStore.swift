@@ -77,9 +77,7 @@ final class FiltersStore {
         _ line: BudgetLine,
         consumptionByLineId: [String: BudgetFormulas.Consumption]
     ) -> Bool {
-        if line.checkedAt != nil { return true }
-        guard line.isPlannedSavingsWithdrawal else { return false }
-        return (consumptionByLineId[line.id]?.allocated ?? 0) >= line.amount
+        line.isPointed(allocated: consumptionByLineId[line.id]?.allocated ?? 0)
     }
 
     /// Sections to display after applying BOTH filters (checked + type), in
@@ -217,6 +215,39 @@ final class FiltersStore {
             $0.name.localizedStandardContains(searchText) ||
                 amountMatches($0.amount, needle: amountNeedle)
         }
+    }
+
+    /// Pointed allocated transactions the "Pointé" filter would otherwise hide:
+    /// only their envelope can appear in a section, and an envelope still to point
+    /// is filtered out. `openLineById` holds only those envelopes — a pointed
+    /// envelope's row already stands for its transactions. Empty under any other
+    /// checked filter.
+    static func pointedAllocatedTransactions(
+        _ transactions: [Transaction],
+        openLineById: [String: BudgetLine],
+        typeFilter: BudgetLineKindFilter,
+        checkedFilter: CheckedFilterOption,
+        searchText: String
+    ) -> [Transaction] {
+        guard checkedFilter == .checked else { return [] }
+        let amountNeedle = amountSearchKey(searchText)
+        return transactions.filter { tx in
+            guard tx.checkedAt != nil,
+                  let line = tx.budgetLineId.flatMap({ openLineById[$0] })
+            else { return false }
+            let matchesType = switch typeFilter {
+            case .all: true
+            case .income: line.kind == .income
+            case .saving: line.kind == .saving
+            case .expense: line.kind == .expense
+            }
+            guard matchesType else { return false }
+            return searchText.isEmpty
+                || tx.name.localizedStandardContains(searchText)
+                || line.name.localizedStandardContains(searchText)
+                || amountMatches(tx.amount, needle: amountNeedle)
+        }
+        .sorted { $0.transactionDate > $1.transactionDate }
     }
 
     // MARK: - Amount search matching (PUL-247)

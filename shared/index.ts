@@ -51,6 +51,7 @@ export {
   budgetListResponseSchema,
   budgetExistsResponseSchema,
   budgetDeleteResponseSchema,
+  budgetDeleteQuerySchema,
   budgetSummarySchema,
   budgetDetailsResponseSchema,
   budgetWithDetailsSchema,
@@ -107,6 +108,8 @@ export {
   savingsGoalDeletionBudgetSchema,
   savingsGoalDeletionImpactSchema,
   savingsGoalDeletionImpactResponseSchema,
+  budgetDeletionImpactSchema,
+  budgetDeletionImpactResponseSchema,
   savingsGoalWithdrawalOptionSchema,
   savingsGoalWithdrawalOptionsResponseSchema,
   savingsGoalWithdrawalSchema,
@@ -211,6 +214,7 @@ export {
   // Feedback
   feedbackRatingSchema,
   feedbackCreateSchema,
+  feedbackStatusResponseSchema,
   // MCP agent connector
   mcpAccessModeSchema,
   mcpConsentDetailsResponseSchema,
@@ -425,6 +429,7 @@ export type {
   BudgetResponse,
   BudgetListResponse,
   BudgetDeleteResponse,
+  BudgetDeleteQuery,
   BudgetSummary,
   BudgetDetailsResponse,
   BudgetWithDetails,
@@ -484,6 +489,8 @@ export type {
   SavingsGoalDeletionBudget,
   SavingsGoalDeletionImpact,
   SavingsGoalDeletionImpactResponse,
+  BudgetDeletionImpact,
+  BudgetDeletionImpactResponse,
   SavingsGoalWithdrawalOption,
   SavingsGoalWithdrawalOptionsResponse,
   SavingsGoalWithdrawal,
@@ -579,6 +586,7 @@ export type {
 
   // Feedback
   FeedbackCreate,
+  FeedbackStatusResponse,
   McpAccessMode,
   McpConsentDetailsResponse,
   McpConsentApproveRequest,

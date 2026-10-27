@@ -6,7 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { describe, it, expect, vi } from 'vitest';
 import { of } from 'rxjs';
-import type { McpConnection } from 'pulpe-shared';
+import type { McpActivity, McpConnection } from 'pulpe-shared';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import Connections from './connections';
@@ -153,22 +153,6 @@ describe('Connections', () => {
     expect(query('connection-card')).not.toBeNull();
   });
 
-  it('loads the selected connection history and never displays an unknown raw tool key', async () => {
-    await setup([chatgpt]);
-    store.loadActivity.mockResolvedValue([
-      { tool: 'future_tool', outcome: 'ok', createdAt: '2026-09-06T00:00:00Z' },
-    ]);
-    (query('connection-load-activity') as HTMLButtonElement).click();
-    await fixture.whenStable();
-    expect(store.loadActivity).toHaveBeenCalledWith(chatgpt.id, 5);
-    expect(query('connection-activity-row')?.textContent).toContain(
-      'Action de l’assistant',
-    );
-    expect(query('connection-activity-row')?.textContent).not.toContain(
-      'future_tool',
-    );
-  });
-
   it('drops the card once the cut is confirmed, without reloading', async () => {
     await setup([chatgpt]);
     dialogResult.value = true;
@@ -179,4 +163,77 @@ describe('Connections', () => {
     expect(query('connection-card')).toBeNull();
     expect(query('connections-empty')).not.toBeNull();
   });
+
+  it('announces activity loading and lets a failed request be retried', async () => {
+    await setup([chatgpt]);
+    let reject!: (reason: Error) => void;
+    store.loadActivity.mockReturnValueOnce(
+      new Promise<McpActivity[]>((_, rejectRequest) => {
+        reject = rejectRequest;
+      }),
+    );
+    query('connection-load-activity')!.click();
+    fixture.detectChanges();
+    expect(
+      query('connection-load-activity')?.getAttribute('aria-expanded'),
+    ).toBe('true');
+    expect(fixture.nativeElement.textContent).toContain('Chargement');
+    reject(new Error('Network unavailable'));
+    await Promise.resolve();
+    await fixture.whenStable();
+    expect(query('connection-retry-activity')).not.toBeNull();
+    query('connection-retry-activity')!.click();
+    await fixture.whenStable();
+    expect(store.loadActivity).toHaveBeenCalledTimes(2);
+    expect(query('connection-no-activity')).not.toBeNull();
+  });
+
+  it.each([12, 50])(
+    'reuses %i cached actions after reducing and reopening history',
+    async (count) => {
+      await setup([chatgpt]);
+      const entries: McpActivity[] = Array.from({ length: count }, () => ({
+        tool: 'future_tool',
+        outcome: 'ok',
+        createdAt: '2026-09-06T00:00:00Z',
+      }));
+      store.loadActivity
+        .mockResolvedValueOnce(entries.slice(0, 5))
+        .mockResolvedValueOnce(entries);
+      const rowCount = () =>
+        fixture.nativeElement.querySelectorAll(
+          '[data-testid="connection-activity-row"]',
+        ).length;
+      query('connection-load-activity')!.click();
+      await fixture.whenStable();
+      expect(rowCount()).toBe(5);
+      expect(store.loadActivity).toHaveBeenCalledWith(chatgpt.id, 5);
+      const firstRow = query('connection-activity-row')?.textContent;
+      expect(firstRow).toContain('Action de l’assistant');
+      expect(firstRow).not.toContain('future_tool');
+      expect(query('connection-see-all')?.textContent).toContain(
+        'Voir les 50 dernières actions',
+      );
+      query('connection-see-all')!.click();
+      await fixture.whenStable();
+      expect(store.loadActivity).toHaveBeenLastCalledWith(chatgpt.id, 50);
+      expect(rowCount()).toBe(count);
+      query('connection-show-less')!.click();
+      await fixture.whenStable();
+      expect(rowCount()).toBe(5);
+      query('connection-load-activity')!.click();
+      await fixture.whenStable();
+      expect(
+        query('connection-load-activity')?.getAttribute('aria-expanded'),
+      ).toBe('false');
+      query('connection-load-activity')!.click();
+      await fixture.whenStable();
+      expect(rowCount()).toBe(5);
+      expect(store.loadActivity).toHaveBeenCalledTimes(2);
+      query('connection-see-all')!.click();
+      await fixture.whenStable();
+      expect(rowCount()).toBe(count);
+      expect(store.loadActivity).toHaveBeenCalledTimes(2);
+    },
+  );
 });

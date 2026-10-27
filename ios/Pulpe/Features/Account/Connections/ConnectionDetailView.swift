@@ -159,14 +159,35 @@ extension ConnectionDetailView {
         }
     }
 
+    /// Every write tool of the agent connector, in plain words. A table rather than
+    /// a switch: one case per tool would exceed the cyclomatic complexity ceiling.
+    private static let toolLabels: [String: String.LocalizationValue] = [
+        "add_movement": "Mouvement ajouté",
+        "update_movement": "Mouvement modifié",
+        "delete_movement": "Mouvement supprimé",
+        "add_forecast": "Prévision ajoutée",
+        "update_forecast": "Prévision modifiée",
+        "spread_expense": "Dépense lissée",
+        "create_month_from_template": "Budget mensuel créé",
+        "delete_month": "Mois supprimé",
+        "toggle_check": "Pointage modifié",
+        "create_tag": "Tag créé",
+        "rename_tag": "Tag renommé",
+        "delete_tag": "Tag supprimé",
+        "tag_items": "Tags modifiés",
+        "create_template": "Modèle créé",
+        "update_template": "Modèle modifié",
+        "delete_template": "Modèle supprimé",
+        "duplicate_template": "Modèle dupliqué",
+        "edit_template_lines": "Prévisions du modèle modifiées",
+        "adjust_over_months": "Ajusté sur plusieurs mois"
+    ]
+
     /// The tool name in plain words. An unknown tool falls back to its raw name
     /// rather than a vague "Action": a wrong reassurance is worse than a slug.
-    private static func label(for entry: MCPActivity) -> String {
-        let name = switch entry.tool {
-        case "add_movement": AppLocale.string("Mouvement ajouté")
-        default: entry.tool
-        }
-        return entry.outcome == .error ? AppLocale.string("\(name) (échec)") : name
+    static func label(for entry: MCPActivity, locale: Locale = AppLocale.currentUILocale) -> String {
+        let name = toolLabels[entry.tool].map { AppLocale.string($0, locale: locale) } ?? entry.tool
+        return entry.outcome == .error ? AppLocale.string("\(name) (échec)", locale: locale) : name
     }
 
     private static func timestamp(_ date: Date) -> String {

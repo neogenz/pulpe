@@ -17,7 +17,7 @@ const MOCK_NEW_CLIENT_KEY = 'b'.repeat(64);
 describe('ChangePinDialog', () => {
   let component: ChangePinDialog;
   let mockedDeriveClientKey: Mock;
-  let mockDialogRef: { close: Mock };
+  let mockDialogRef: { close: Mock; disableClose: boolean };
   let mockEncryptionApi: {
     getSalt$: Mock;
     changePin$: Mock;
@@ -28,7 +28,7 @@ describe('ChangePinDialog', () => {
   let mockLogger: { error: Mock };
 
   beforeEach(() => {
-    mockDialogRef = { close: vi.fn() };
+    mockDialogRef = { close: vi.fn(), disableClose: false };
     mockEncryptionApi = {
       getSalt$: vi
         .fn()
@@ -158,13 +158,36 @@ describe('ChangePinDialog', () => {
   });
 
   describe('Step 2 - New PIN', () => {
-    it('form valid when exactly 4 digits', () => {
+    it('requires a matching confirmation before changing the encryption key', async () => {
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
+      await component['onSubmitOldPin']();
       component['newPinForm'].patchValue({ newPin: '4321' });
+      expect(component['isNewPinValid']()).toBe(false);
+
+      component['newPinForm'].patchValue({ confirmPin: '4322' });
+      expect(
+        component['newPinForm'].controls.confirmPin.hasError('pinsMismatch'),
+      ).toBe(true);
+      await component['onSubmitNewPin']();
+      expect(mockEncryptionApi.changePin$).not.toHaveBeenCalled();
+
+      component['newPinForm'].patchValue({ confirmPin: '4321' });
+      expect(component['isNewPinValid']()).toBe(true);
+    });
+
+    it('form valid when exactly 4 digits', () => {
+      component['newPinForm'].patchValue({
+        newPin: '4321',
+        confirmPin: '4321',
+      });
       expect(component['newPinForm'].valid).toBe(true);
     });
 
     it('form invalid when more than 4 digits', () => {
-      component['newPinForm'].patchValue({ newPin: '654321' });
+      component['newPinForm'].patchValue({
+        newPin: '654321',
+        confirmPin: '654321',
+      });
       expect(component['newPinForm'].valid).toBe(false);
     });
   });
@@ -173,11 +196,13 @@ describe('ChangePinDialog', () => {
     beforeEach(async () => {
       component['oldPinForm'].patchValue({ oldPin: '1234' });
       await component['onSubmitOldPin']();
+      component['newPinForm'].patchValue({
+        newPin: '4321',
+        confirmPin: '4321',
+      });
     });
 
     it('calls changePin$ with derived keys', async () => {
-      component['newPinForm'].patchValue({ newPin: '4321' });
-
       await component['onSubmitNewPin']();
 
       expect(mockEncryptionApi.changePin$).toHaveBeenCalledWith(
@@ -187,8 +212,6 @@ describe('ChangePinDialog', () => {
     });
 
     it('calls setDirectKey with new client key', async () => {
-      component['newPinForm'].patchValue({ newPin: '4321' });
-
       await component['onSubmitNewPin']();
 
       expect(mockClientKeyService.setDirectKey).toHaveBeenCalledWith(
@@ -199,7 +222,6 @@ describe('ChangePinDialog', () => {
 
     it('calls setDirectKey with useLocalStorage true when local key exists', async () => {
       mockStorage.getString.mockReturnValue('some-key');
-      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -210,8 +232,6 @@ describe('ChangePinDialog', () => {
     });
 
     it('closes dialog with recoveryKey result', async () => {
-      component['newPinForm'].patchValue({ newPin: '4321' });
-
       await component['onSubmitNewPin']();
 
       expect(mockDialogRef.close).toHaveBeenCalledWith({
@@ -224,6 +244,10 @@ describe('ChangePinDialog', () => {
     beforeEach(async () => {
       component['oldPinForm'].patchValue({ oldPin: '1234' });
       await component['onSubmitOldPin']();
+      component['newPinForm'].patchValue({
+        newPin: '4321',
+        confirmPin: '4321',
+      });
     });
 
     it('shows error and goes back to step 1 on wrong PIN', async () => {
@@ -238,7 +262,6 @@ describe('ChangePinDialog', () => {
             ),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -253,7 +276,6 @@ describe('ChangePinDialog', () => {
             new ApiError('Same key', 'ERR_ENCRYPTION_SAME_KEY', 400, undefined),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -268,7 +290,6 @@ describe('ChangePinDialog', () => {
           () => new ApiError('Too many requests', undefined, 429, undefined),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -289,7 +310,6 @@ describe('ChangePinDialog', () => {
             ),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -312,7 +332,6 @@ describe('ChangePinDialog', () => {
             ),
         ),
       );
-      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -328,7 +347,6 @@ describe('ChangePinDialog', () => {
       mockEncryptionApi.changePin$.mockReturnValue(
         throwError(() => new Error('Unknown')),
       );
-      component['newPinForm'].patchValue({ newPin: '4321' });
 
       await component['onSubmitNewPin']();
 
@@ -340,6 +358,29 @@ describe('ChangePinDialog', () => {
   });
 
   describe('Loading state', () => {
+    it('prevents dismissing while the PIN change is pending, then restores dismissal on failure', async () => {
+      component['oldPinForm'].patchValue({ oldPin: '1234' });
+      await component['onSubmitOldPin']();
+      let rejectDerivation!: (reason: Error) => void;
+      mockedDeriveClientKey.mockReturnValueOnce(
+        new Promise<string>((_, reject) => {
+          rejectDerivation = reject;
+        }),
+      );
+      component['newPinForm'].patchValue({
+        newPin: '4321',
+        confirmPin: '4321',
+      });
+
+      const submission = component['onSubmitNewPin']();
+      expect(mockDialogRef.disableClose).toBe(true);
+      rejectDerivation(new Error('Derivation failed'));
+      await submission;
+
+      expect(mockDialogRef.disableClose).toBe(false);
+      expect(component['isSubmitting']()).toBe(false);
+    });
+
     it('isSubmitting true during submission', async () => {
       let resolvePromise: () => void;
       const blockingPromise = new Promise<void>((resolve) => {

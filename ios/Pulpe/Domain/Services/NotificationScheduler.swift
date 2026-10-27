@@ -20,7 +20,20 @@ actor NotificationScheduler {
     /// duplicates — safe to call on every foreground.
     private static let monthlyReminderId = "pulpe.reminder.monthly"
 
+    /// The `reminder` analytics dimension. Stable once shipped: dashboards compare it
+    /// across releases.
+    enum Reminder: String {
+        case monthly
+        case weeklyRecap = "weekly_recap"
+    }
+
     private init() {}
+
+    /// Which reminder a delivered request is, nil for anything Pulpe didn't schedule.
+    static func reminder(ofRequest identifier: String) -> Reminder? {
+        if identifier == monthlyReminderId { return .monthly }
+        return weeklyRecapIds.contains(identifier) ? .weeklyRecap : nil
+    }
 
     // MARK: - Authorization
 
@@ -72,6 +85,130 @@ actor NotificationScheduler {
 
     func cancelMonthlyReminder() {
         center.removePendingNotificationRequests(withIdentifiers: [Self.monthlyReminderId])
+    }
+
+    // MARK: - Weekly recap
+
+    /// One slot per upcoming Monday, so a reschedule replaces all of them.
+    private static let weeklyRecapIds = (0..<3).map { "pulpe.reminder.weekly-recap.\($0)" }
+
+    /// Bumped by every cancel, so a schedule suspended across one knows its figures are stale.
+    private var weeklyRecapGeneration = 0
+
+    /// (Re)schedules the next three Monday recaps, each computed for its own date from the
+    /// budget snapshot held now. Called on every fresh snapshot (`WidgetDataSyncService.sync`,
+    /// background refresh included), which replaces them all. Content is frozen at scheduling,
+    /// and that is what keeps the later two exact: they only survive if nothing new was
+    /// recorded since, which is the state they describe. The series ends only when no sync
+    /// runs for three weeks, rather than repeat figures that old. No-op unless authorized
+    /// and signed in.
+    func scheduleWeeklyRecaps(
+        transactions: [Transaction],
+        current: BudgetDetails,
+        payDayOfMonth: Int?,
+        currency: SupportedCurrency
+    ) async {
+        // A sync still in flight when the session ends must not bring the figures back. Captured
+        // before the session check: every session end signs out first, then cancels.
+        let generation = weeklyRecapGeneration
+        guard await AuthService.shared.hasPersistedSession() else { return }
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized else { return }
+        // Lock-screen privacy, like the widget's `.privacySensitive()`: amounts and forecast
+        // names only when iOS keeps previews hidden until the phone is unlocked.
+        let showDetails = settings.showPreviewsSetting != .always
+
+        center.removePendingNotificationRequests(withIdentifiers: Self.weeklyRecapIds)
+        let calendar = Calendar.current
+        let firstMonday = Self.nextWeeklyRecapDate(after: Date(), calendar: calendar)
+        for (week, id) in Self.weeklyRecapIds.enumerated() {
+            guard let fireDate = calendar.date(byAdding: .day, value: 7 * week, to: firstMonday) else { continue }
+            let recap = WeeklyRecap.make(
+                on: fireDate, transactions: transactions, current: current, payDayOfMonth: payDayOfMonth
+            )
+            let content = UNMutableNotificationContent()
+            content.title = AppLocale.string("Ta semaine en bref")
+            content.body = Self.weeklyRecapBody(recap, currency: currency, showDetails: showDetails)
+            content.sound = .default
+
+            let trigger = UNCalendarNotificationTrigger(
+                dateMatching: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
+                repeats: false
+            )
+            try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+        // A cancel that ran while this call was suspended wins over what it added since.
+        if generation != weeklyRecapGeneration {
+            center.removePendingNotificationRequests(withIdentifiers: Self.weeklyRecapIds)
+        }
+    }
+
+    /// Delivered ones too: a recap left in Notification Center keeps showing its amounts.
+    func cancelWeeklyRecaps() {
+        weeklyRecapGeneration += 1
+        center.removePendingNotificationRequests(withIdentifiers: Self.weeklyRecapIds)
+        center.removeDeliveredNotifications(withIdentifiers: Self.weeklyRecapIds)
+    }
+
+    /// Identity boundary: every request, pending or delivered, belongs to the account leaving.
+    func cancelAllReminders() {
+        weeklyRecapGeneration += 1
+        center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
+    }
+
+    /// Next Monday 8:30, today included while 8:30 hasn't passed. Half an hour ahead of
+    /// the monthly 9:00 reminder, so a pay-day Monday never stacks both at once.
+    static func nextWeeklyRecapDate(after date: Date, calendar: Calendar = .current) -> Date {
+        calendar.nextDate(
+            after: date,
+            matching: DateComponents(hour: 8, minute: 30, weekday: 2),
+            matchingPolicy: .nextTime
+        ) ?? date
+    }
+
+    /// Resolved with `AppLocale` at scheduling, like the monthly copy: delivery-time
+    /// localization would follow the device language, not the one chosen in the app.
+    /// The next snapshot after a language change re-renders it.
+    static func weeklyRecapBody(_ recap: WeeklyRecap, currency: SupportedCurrency, showDetails: Bool) -> String {
+        let lastWeek = recap.movementCount > 0
+            ? AppLocale.string("Semaine passée : \(recap.movementCount) mouvements notés.")
+            : AppLocale.string("Nouvelle semaine : une minute pour noter tes derniers mouvements ?")
+        guard showDetails else { return lastWeek }
+
+        var sentences: [String] = []
+        if let allowance = recap.weekAllowance {
+            // Rounded once to the whole units the compact format shows, so the wording follows
+            // the figure: 0.25 left reads as exhausted, never "environ 0 CHF à dépenser".
+            let shownAllowance = allowance.rounded(0)
+            let amount = shownAllowance.asCompactCurrency(currency)
+            let sentence = if shownAllowance <= 0 {
+                AppLocale.string("Ton disponible est épuisé : un coup d'œil pour ajuster ta semaine ?")
+            } else if let usual = recap.usualWeekSpending?.rounded(0), usual > 0 {
+                AppLocale.string("""
+                    Cette semaine : environ \(amount) à dépenser (d'habitude, tu en dépenses \
+                    \(usual.asCompactCurrency(currency))).
+                    """)
+            } else {
+                AppLocale.string("Cette semaine : environ \(amount) à dépenser.")
+            }
+            sentences.append(sentence)
+        }
+        if !recap.expectedLineNames.isEmpty {
+            // ponytail: no cap, a week rarely holds more than a few pointed lines and iOS
+            // truncates the collapsed banner itself.
+            let names = recap.expectedLineNames.joined(separator: ", ")
+            sentences.append(AppLocale.string("Prévu cette semaine : \(names)."))
+        }
+        // The collapsed banner shows two lines: the week ahead goes first so they carry the
+        // amount. A week with nothing noted leads with the nudge, since the figures assume
+        // nothing went unrecorded.
+        if recap.movementCount > 0 {
+            sentences.append(lastWeek)
+        } else {
+            sentences.insert(lastWeek, at: 0)
+        }
+        return sentences.joined(separator: " ")
     }
 
     /// Pay-day is stored 1–31, but a `day` of 29/30/31 would silently skip months

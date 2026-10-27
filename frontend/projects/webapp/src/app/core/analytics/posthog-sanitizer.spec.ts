@@ -50,6 +50,10 @@ describe('posthog-sanitizer', () => {
       ],
       ['/api/v1/budgets/example-budget-id', '/api/v1/budgets/[id]'],
       [
+        '/api/v1/budgets/example-budget-id/deletion-impact',
+        '/api/v1/budgets/[id]/deletion-impact',
+      ],
+      [
         '/api/v1/transactions/example-transaction-id',
         '/api/v1/transactions/[id]',
       ],

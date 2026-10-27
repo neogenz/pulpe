@@ -5,7 +5,7 @@ import { MalformedStatementError } from '../../domain/bank-statement.entity';
 import { Camt053Parser } from './camt053.parser';
 
 const sample = readFileSync(
-  join(import.meta.dir, '__fixtures__', 'camt053-001-04.xml'),
+  join(__dirname, '__fixtures__', 'camt053-001-04.xml'),
   'utf8',
 );
 
@@ -187,10 +187,37 @@ describe('Camt053Parser', () => {
       v08Entry(`
         <Amt Ccy="CHF">1.00</Amt>
         <CdtDbtInd>DBIT</CdtDbtInd>
-        <NtryRef>000123</NtryRef>`),
+        <AcctSvcrRef>000123</AcctSvcrRef>`),
     );
 
     expect(statement.operations[0].bankReference).toBe('000123');
+  });
+
+  it('never takes a shared NtryRef for the identity of an operation', () => {
+    const credit = (amount: string, detailRef: string) => `<Ntry>
+      <NtryRef>CH4431999123000889012</NtryRef>
+      <Amt Ccy="CHF">${amount}</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+      <NtryDtls><TxDtls>
+        <Refs><AcctSvcrRef>${detailRef}</AcctSvcrRef></Refs>
+      </TxDtls></NtryDtls>
+    </Ntry>`;
+    const statement = parser.parse(`<?xml version="1.0"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.04">
+  <BkToCstmrStmt><Stmt>
+    <Acct><Id><IBAN>CH11</IBAN></Id></Acct>
+    ${credit('120.00', 'DETAIL-1')}${credit('80.00', 'DETAIL-2')}
+    <Ntry>
+      <NtryRef>CH4431999123000889012</NtryRef>
+      <Amt Ccy="CHF">50.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+    </Ntry>
+  </Stmt></BkToCstmrStmt>
+</Document>`);
+
+    expect(statement.operations.map((op) => op.bankReference)).toEqual([
+      'DETAIL-1',
+      'DETAIL-2',
+      null,
+    ]);
   });
 
   it('refuses broken XML, DTDs and documents without statement', () => {

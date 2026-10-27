@@ -67,7 +67,8 @@ const envSchema = z
     MCP_UPSTREAM_CLIENT_ID: z.uuid().optional(),
     MCP_UPSTREAM_CLIENT_SECRET: z.string().min(1).optional(),
     // Wraps each agent connection's vault key at rest. Distinct from the
-    // master key so rotating one never exposes the other.
+    // master key so rotating one never exposes the other. Only MCP reads it,
+    // so a local stack without MCP boots without it (required below otherwise).
     MCP_WRAPPING_KEY: z
       .string()
       .length(64, {
@@ -75,7 +76,8 @@ const envSchema = z
       })
       .regex(/^[0-9a-f]+$/i, {
         error: 'MCP_WRAPPING_KEY must be a valid hex string',
-      }),
+      })
+      .optional(),
     CORS_ORIGIN: z.string().optional(),
     DEBUG_HTTP_FULL: z.string().optional(),
     RAILWAY_ENVIRONMENT_NAME: z.string().optional(),
@@ -128,6 +130,18 @@ const envSchema = z
         path: ['MCP_UPSTREAM_CLIENT_SECRET'],
         message:
           'MCP upstream client ID and secret must be configured together',
+      });
+    }
+    if (
+      !env.MCP_WRAPPING_KEY &&
+      (!!env.MCP_UPSTREAM_CLIENT_ID ||
+        isProductionLike(env.NODE_ENV, env.RAILWAY_ENVIRONMENT_NAME))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['MCP_WRAPPING_KEY'],
+        message:
+          'MCP_WRAPPING_KEY is required when MCP is configured or in production',
       });
     }
     for (const field of ['MCP_RESOURCE_URL', 'MCP_CONSENT_URL'] as const) {

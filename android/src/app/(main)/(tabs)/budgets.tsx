@@ -90,9 +90,10 @@ export default function BudgetsScreen() {
   useAmountMasking();
   const theme = useTheme();
   const { locale, t } = useTranslation();
-  const generationResult = useLocalSearchParams<{
+  const navigationResult = useLocalSearchParams<{
     createdCount?: string;
     skippedCount?: string;
+    deletedMonth?: string;
   }>();
   const settings = useUserSettings();
   const budgets = useBudgetList();
@@ -141,9 +142,10 @@ export default function BudgetsScreen() {
   );
   const years = useMemo(() => budgetYears(budgets.data ?? []), [budgets.data]);
 
-  const createdCount = navigationCount(generationResult.createdCount);
-  const skippedCount = navigationCount(generationResult.skippedCount);
+  const createdCount = navigationCount(navigationResult.createdCount);
+  const skippedCount = navigationCount(navigationResult.skippedCount);
   const showsGenerationResult = createdCount !== null && skippedCount !== null;
+  const showsMonthDeleted = navigationResult.deletedMonth === "1";
 
   const header = (
     <HeroAppBar title={t("budgets.list.title")}>
@@ -351,6 +353,14 @@ export default function BudgetsScreen() {
               }),
             })
           : ""}
+      </Notice>
+
+      <Notice
+        clearsFab
+        visible={showsMonthDeleted}
+        onDismiss={() => router.setParams({ deletedMonth: undefined })}
+      >
+        {t("budgets.list.monthDeleted")}
       </Notice>
     </View>
   );

@@ -83,3 +83,16 @@ struct SavingsWithdrawalResponse: Decodable, Sendable {
     let savingLine: BudgetLine
     let createdBudget: Budget?
 }
+
+/// "Couvrir ce mois avec mon épargne" asked from outside the budget page — the
+/// accueil's add sheet with « À remettre » picked. Plain values so the asking
+/// feature never names the budget feature's sheet; the app shell turns it into
+/// a push of that month's budget page with the withdrawal preview on top.
+struct SavingsWithdrawalRequest: Equatable, Sendable {
+    let budgetId: String
+    let month: Int
+    let year: Int
+    let amount: Decimal
+    let inputCurrency: SupportedCurrency
+    let source: String?
+}

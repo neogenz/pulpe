@@ -54,6 +54,367 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.57.0',
+    iosVersion: '1.12.0',
+    date: '2026-10-25',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Pulpe s’adapte à l’iPhone Duo',
+          description:
+            'Ouvert, l’écran intérieur affiche tes mois, objectifs et modèles à côté de leur détail, et la page ouverte reste à l’écran quand tu plies ou déplies.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Pulpe adapts to iPhone Duo',
+            description:
+              'When open, the inner display shows your months, goals and templates beside their details, and the page you opened stays on screen when you fold or unfold.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: 'Pulpe passt sich dem iPhone Duo an',
+            description:
+              'Aufgeklappt zeigt der innere Bildschirm deine Monate, Ziele und Vorlagen neben ihren Details, und die geöffnete Seite bleibt sichtbar, wenn du zu- oder aufklappst.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: 'Pulpe si adatta a iPhone Duo',
+            description:
+              'Da aperto, lo schermo interno mostra mesi, obiettivi e modelli accanto ai loro dettagli, e la pagina aperta resta visibile quando pieghi o apri.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
+    version: '0.56.0',
+    iosVersion: '1.11.0',
+    date: '2026-10-25',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Supprimer un mois à venir',
+          description:
+            'Depuis le détail d’un mois futur, tu peux supprimer son budget ; la confirmation indique ce qui part et les liens avec tes objectifs.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Mouvements rattachés',
+          description:
+            'Quand tu changes la nature d’une prévision, ses mouvements la suivent et restent comptés dans tes totaux.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Delete an upcoming month',
+            description:
+              'From a future month’s details, you can delete its budget; the confirmation shows what goes and any links to your savings goals.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Linked entries',
+            description:
+              'When you change a forecast’s type, its entries follow it and stay counted in your totals.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Kommenden Monat löschen',
+            description:
+              'In den Details eines künftigen Monats kannst du sein Budget löschen; die Bestätigung zeigt, was wegfällt und welche Verknüpfungen zu deinen Sparzielen bestehen.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Verknüpfte Bewegungen',
+            description:
+              'Wenn du die Art eines Planungseintrags änderst, folgen ihm seine Bewegungen und zählen weiter in deinen Summen.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Eliminare un mese futuro',
+            description:
+              'Dal dettaglio di un mese futuro puoi eliminarne il budget; la conferma indica cosa viene rimosso e gli eventuali legami con i tuoi obiettivi di risparmio.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Movimenti collegati',
+            description:
+              'Quando cambi la natura di una previsione, i suoi movimenti la seguono e restano conteggiati nei totali.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    version: '0.56.0',
+    date: '2026-10-25',
+    platforms: ['android'],
+    changes: {
+      features: [
+        {
+          title: 'Supprimer un mois à venir',
+          description:
+            'Depuis le détail d’un mois futur, tu peux supprimer son budget ; la confirmation indique ce qui part et les liens avec tes objectifs.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Mouvements rattachés',
+          description:
+            'Quand tu changes la nature d’une prévision, ses mouvements la suivent et restent comptés dans tes totaux.',
+        },
+        {
+          title: 'Confirmation du code',
+          description:
+            'Sur Android, une erreur de confirmation conserve le code choisi et te permet de réessayer sans tout recommencer.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Delete an upcoming month',
+            description:
+              'From a future month’s details, you can delete its budget; the confirmation shows what goes and any links to your savings goals.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Linked entries',
+            description:
+              'When you change a forecast’s type, its entries follow it and stay counted in your totals.',
+          },
+          {
+            title: 'Code confirmation',
+            description:
+              'On Android, a confirmation mismatch preserves your chosen code so you can retry without starting over.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Kommenden Monat löschen',
+            description:
+              'In den Details eines künftigen Monats kannst du sein Budget löschen; die Bestätigung zeigt, was wegfällt und welche Verknüpfungen zu deinen Sparzielen bestehen.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Verknüpfte Bewegungen',
+            description:
+              'Wenn du die Art eines Planungseintrags änderst, folgen ihm seine Bewegungen und zählen weiter in deinen Summen.',
+          },
+          {
+            title: 'Code bestätigen',
+            description:
+              'Unter Android bleibt dein gewählter Code bei einer falschen Bestätigung erhalten, damit du es erneut versuchen kannst, ohne von vorne anzufangen.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Eliminare un mese futuro',
+            description:
+              'Dal dettaglio di un mese futuro puoi eliminarne il budget; la conferma indica cosa viene rimosso e gli eventuali legami con i tuoi obiettivi di risparmio.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Movimenti collegati',
+            description:
+              'Quando cambi la natura di una previsione, i suoi movimenti la seguono e restano conteggiati nei totali.',
+          },
+          {
+            title: 'Conferma del codice',
+            description:
+              'Su Android, un errore di conferma conserva il codice scelto e ti permette di riprovare senza ricominciare da capo.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    version: '0.54.0',
+    iosVersion: '1.10.0',
+    date: '2026-10-20',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: '« Cet argent vient de mon épargne »',
+          description:
+            'Sur un revenu, active cet interrupteur pour dire d’où vient l’argent : un retrait sur un objectif, ou une avance sur ton épargne que tu remettras le mois suivant.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: '“This money comes from my savings”',
+            description:
+              'On an income, turn on this switch to say where the money comes from: a withdrawal from a goal, or an advance on your savings that you’ll put back the following month.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: '«Dieses Geld kommt aus meinem Ersparten»',
+            description:
+              'Bei einer Einnahme zeigt dieser Schalter, woher das Geld kommt: eine Entnahme aus einem Ziel oder ein Vorschuss aus deinem Ersparten, den du im Folgemonat zurücklegst.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: '«Questi soldi vengono dai miei risparmi»',
+            description:
+              'Su un’entrata, attiva questo interruttore per indicare da dove arrivano i soldi: un prelievo da un obiettivo o un anticipo sui tuoi risparmi da rimettere il mese successivo.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
+    version: '0.53.0',
+    iosVersion: '1.9.0',
+    date: '2026-10-16',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Pointer un retrait d’objectif en un clic',
+          description:
+            'Sur un revenu prévu depuis un objectif, active « Pointé » : le revenu est créé pour le montant restant, déjà pointé. Désactive-le pour l’annuler, l’argent retourne sur l’objectif.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Check a goal withdrawal in one click',
+            description:
+              'On an income planned from a goal, turn on “Checked”: the income is created for the remaining amount, already checked. Turn it off to cancel it; the money goes back to the goal.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: 'Zielentnahme mit einem Klick abhaken',
+            description:
+              'Bei einer aus einem Ziel geplanten Einnahme «Abgehakt» einschalten: Die Einnahme wird für den Restbetrag erfasst, bereits abgehakt. Ausschalten macht sie rückgängig, das Geld geht zurück ins Ziel.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: 'Spunta un prelievo da un obiettivo con un clic',
+            description:
+              'Su un’entrata pianificata da un obiettivo, attiva «Spuntato»: l’entrata viene registrata per l’importo restante, già spuntata. Disattivala per annullarla; il denaro torna sull’obiettivo.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
+    version: '0.52.0',
+    iosVersion: '1.8.0',
+    date: '2026-10-13',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Récap du lundi',
+          description:
+            'Chaque lundi matin, une notification te dit combien tu peux dépenser cette semaine et quelles prévisions t’attendent. À activer dans Préférences.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Monday recap',
+            description:
+              'Every Monday morning, a notification tells you how much you can spend this week and which planned items are coming up. Turn it on in Preferences.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: 'Montags-Rückblick',
+            description:
+              'Jeden Montagmorgen zeigt dir eine Mitteilung, wie viel du diese Woche ausgeben kannst und welche Planposten anstehen. In den Einstellungen aktivierbar.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: 'Riepilogo del lunedì',
+            description:
+              'Ogni lunedì mattina, una notifica ti dice quanto puoi spendere questa settimana e quali previsioni ti aspettano. Da attivare nelle Preferenze.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
     version: '0.51.0',
     iosVersion: '1.7.0',
     date: '2026-10-11',

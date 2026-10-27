@@ -185,8 +185,8 @@ export default async function PrimesMaladieGuidePage() {
       <p>
         Ces moyennes cachent de grands écarts entre cantons et entre modèles
         (médecin de famille, Telmed, HMO). Ton avis de prime reste la source
-        pour <em>ton</em> budget. Les moyennes servent à vérifier que tu n’es
-        pas hors sol, pas à remplacer ta facture.
+        pour <em>ton</em> budget. Les moyennes servent seulement à vérifier que
+        tu n’es pas hors sol.
       </p>
 
       <h2>Et si je touche un subside ?</h2>
@@ -203,8 +203,8 @@ export default async function PrimesMaladieGuidePage() {
         >
           relayés par watson
         </a>
-        . C’est un taux de recours observé, pas une estimation de « ceux qui y
-        auraient droit sans le savoir ». Si tu touches déjà une réduction
+        . C’est un taux de recours observé : il ne dit rien de ceux qui y
+        auraient droit sans le savoir. Si tu touches déjà une réduction
         cantonale, provisionne la prime <em>après</em> subside. Si tu n’en
         touches pas, ne compte pas dessus dans le budget de l’année.
       </p>

@@ -18,33 +18,48 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
   template: `
     <section
       aria-labelledby="connection-setup-title"
-      class="space-y-4"
+      class="space-y-4 border-t border-outline-variant pt-8"
       data-testid="connection-setup"
     >
       <h2 id="connection-setup-title" class="text-title-large">
         {{ 'settings.connections.setup.title' | transloco }}
       </h2>
-      <p class="text-body-medium text-on-surface-variant">
+      <p class="text-body-medium text-on-surface-variant max-w-3xl">
         {{ 'settings.connections.setup.sharing' | transloco }}
       </p>
-      <div class="grid gap-4 md:grid-cols-2">
+      <div class="grid items-start gap-4 md:grid-cols-2">
         @for (client of clients(); track client.id) {
           <article
-            class="bg-surface-container-low rounded-corner-large p-4 flex flex-col gap-4"
+            class="bg-surface-container-low rounded-2xl p-5 flex flex-col gap-3 min-w-0"
           >
             <h3 class="text-title-medium">{{ client.name }}</h3>
-            <ol
-              class="list-decimal pl-5 space-y-2 text-body-medium text-on-surface-variant"
-            >
-              @for (step of [1, 2, 3]; track step) {
-                <li>
-                  {{
-                    'settings.connections.setup.' + client.id + 'Step' + step
-                      | transloco
-                  }}
-                </li>
-              }
-            </ol>
+            <details class="group">
+              <summary
+                class="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg text-label-large text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                [attr.aria-label]="
+                  'settings.connections.setup.stepsFor'
+                    | transloco: { client: client.name }
+                "
+                [attr.data-testid]="'setup-steps-' + client.id"
+              >
+                {{ 'settings.connections.setup.steps' | transloco }}
+                <mat-icon class="group-open:rotate-180" aria-hidden="true"
+                  >expand_more</mat-icon
+                >
+              </summary>
+              <ol
+                class="list-decimal pl-5 pt-2 pb-3 space-y-3 text-body-medium text-on-surface-variant"
+              >
+                @for (step of [1, 2, 3]; track step) {
+                  <li>
+                    {{
+                      'settings.connections.setup.' + client.id + 'Step' + step
+                        | transloco
+                    }}
+                  </li>
+                }
+              </ol>
+            </details>
             <a
               matButton="outlined"
               [href]="client.url"
@@ -65,12 +80,16 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
           </article>
         }
       </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <p class="text-body-medium min-w-0">
+      <div
+        class="rounded-2xl border border-outline-variant p-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+      >
+        <p class="text-body-small text-on-surface-variant min-w-0">
           {{ 'settings.connections.setup.address' | transloco }}
-          <span class="select-all break-all" data-testid="mcp-address">{{
-            mcpUrl()
-          }}</span>
+          <span
+            class="block mt-1 text-body-medium text-on-surface select-all break-all"
+            data-testid="mcp-address"
+            >{{ mcpUrl() }}</span
+          >
         </p>
         <button
           matButton
@@ -83,7 +102,7 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
         </button>
         <p
           role="status"
-          class="text-body-small text-on-surface-variant"
+          class="text-body-small text-on-surface-variant w-full"
           data-testid="mcp-copy-status"
         >
           @if (copySucceeded() !== null) {
@@ -103,6 +122,14 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
         {{ 'settings.connections.setup.availability' | transloco }}
       </p>
     </section>
+  `,
+  styles: `
+    summary {
+      list-style: none;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
   `,
 })
 export class ConnectionSetup {

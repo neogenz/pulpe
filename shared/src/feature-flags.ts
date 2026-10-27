@@ -73,7 +73,9 @@ export const ANALYTICS_EVENTS = {
    * so there is no history to preserve.
    */
   ONBOARDING_STEP_COMPLETED: 'onboarding_step_completed',
-  /** Fires when onboarding is exited early. Properties: `last_step`, `exit_method`, `was_authenticated`, `auth_method`. */
+  /** Fires when iOS onboarding pauses in the background. Properties: `last_step`, `pause_method`, `was_authenticated`, `auth_method`. */
+  ONBOARDING_PAUSED: 'onboarding_paused',
+  /** Fires when the user confirms an early exit from onboarding. Properties: `last_step`, `exit_method`, `was_authenticated`, `auth_method`. */
   ONBOARDING_ABANDONED: 'onboarding_abandoned',
   /** Fires when an incomplete signup resumes. Properties: `method`, `source`, `resumed_at_step`. */
   ONBOARDING_RESUMED: 'onboarding_resumed',
@@ -132,8 +134,14 @@ export const ANALYTICS_EVENTS = {
   NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',
   /** Fires when notification permission is denied. Properties: none. */
   NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
-  /** Fires when the reminders preference changes. Properties: `enabled`. */
+  /**
+   * Fires when a reminder preference changes. Properties: `enabled`, `reminder`
+   * (`'monthly' | 'weekly_recap'`). Events sent before the weekly recap carry no
+   * `reminder` and are all `monthly`.
+   */
   REMINDER_TOGGLED: 'reminder_toggled',
+  /** Fires when a tap on a delivered reminder opens the app. Properties: `reminder`. */
+  REMINDER_OPENED: 'reminder_opened',
   /** Fires when iOS release notes are shown after an update. Properties: `version`. */
   IOS_WHATS_NEW_SHOWN: 'ios_whats_new_shown',
   /** Fires after a successful currency change in settings. Properties: `from`, `to`. */
@@ -164,6 +172,18 @@ export const ANALYTICS_EVENTS = {
   SAVINGS_GOALS_INTRO_COMPLETED: 'savings_goals_intro_completed',
   /** Fires when the savings-goals intro is skipped. Properties: none. */
   SAVINGS_GOALS_INTRO_SKIPPED: 'savings_goals_intro_skipped',
+  /**
+   * Feedback form, web and iOS. `viewed` fires on open, then exactly one of
+   * `submitted` or `cancelled`. Properties on all three: `source`
+   * (`'automatic' | 'settings'`; the web only offers `automatic`) and, for
+   * `automatic` only, `prompt_number`
+   * (1 for the first invitation, 2 for the reminder three active days later...).
+   * `submitted` adds `rating` (overall, 1-5), `has_comment` and `has_details`.
+   * Never the comment text.
+   */
+  FEEDBACK_VIEWED: 'feedback_viewed',
+  FEEDBACK_SUBMITTED: 'feedback_submitted',
+  FEEDBACK_CANCELLED: 'feedback_cancelled',
 } as const;
 
 export type AnalyticsEventName =

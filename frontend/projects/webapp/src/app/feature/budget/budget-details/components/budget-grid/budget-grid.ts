@@ -148,7 +148,6 @@ export function budgetDetailPanelLayout(
             (resetFromTemplate)="resetFromTemplate.emit($event)"
             (postpone)="postpone.emit($event)"
             (toggleCheck)="toggleCheck.emit($event)"
-            (realizeWithdrawal)="realizeWithdrawal.emit($event)"
           />
         } @empty {
           @if (transactionItems().length === 0) {
@@ -203,7 +202,6 @@ export function budgetDetailPanelLayout(
                     (resetFromTemplate)="resetFromTemplate.emit($event)"
                     (postpone)="postpone.emit($event)"
                     (toggleCheck)="toggleCheck.emit($event)"
-                    (realizeWithdrawal)="realizeWithdrawal.emit($event)"
                   />
                 }
               </pulpe-budget-grid-section>
@@ -483,7 +481,6 @@ export class BudgetGrid {
   readonly postpone = output<string>();
   readonly postponeTransaction = output<string>();
   readonly toggleCheck = output<string>();
-  readonly realizeWithdrawal = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
   protected readonly freeTransactionItems = computed(() =>
@@ -504,7 +501,6 @@ export class BudgetGrid {
       onResetBudgetLine: (line) => this.resetFromTemplate.emit(line),
       onPostponeBudgetLine: (id) => this.postpone.emit(id),
       onToggleBudgetLineCheck: (id) => this.toggleCheck.emit(id),
-      onRealizeWithdrawal: (id) => this.realizeWithdrawal.emit(id),
       onDeleteTransaction: (id) => this.deleteTransaction.emit(id),
       onToggleTransactionCheck: (id) => this.toggleTransactionCheck.emit(id),
       onEditTransaction: (tx) => this.editTransaction.emit(tx),

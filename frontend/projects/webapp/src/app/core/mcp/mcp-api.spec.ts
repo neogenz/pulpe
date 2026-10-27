@@ -66,6 +66,14 @@ describe('McpApi', () => {
     expect(api.cache.inspect().size).toBe(0);
   });
 
+  it('opens consent from an API that predates the redirect host', async () => {
+    const consent = firstValueFrom(api.getConsent$('auth'));
+    http
+      .expectOne(`${baseUrl}/mcp/consent/auth`)
+      .flush({ clientName: 'ChatGPT' });
+    expect(await consent).toEqual({ clientName: 'ChatGPT' });
+  });
+
   it('clears connection metadata between authenticated sessions', () => {
     api.cache.set(['connections'], [{ clientName: 'Previous owner' }]);
     api.clearCache();

@@ -151,6 +151,12 @@ describe('MCP confidential upstream session', () => {
         wrongKey,
       ).readSession(grant),
     ).toThrow();
+    const keyless = new SupabaseMcpOAuthRepository(
+      new SupabaseService(config),
+      // ConfigService falls back to process.env, which the test setup fills.
+      { get: () => undefined } as unknown as ConfigService,
+    );
+    expect(() => keyless.readSession(grant)).toThrow(/MCP_WRAPPING_KEY/);
     const tampered = Buffer.from(grant.encrypted_upstream, 'base64');
     tampered[tampered.length - 1] ^= 1;
     expect(() =>

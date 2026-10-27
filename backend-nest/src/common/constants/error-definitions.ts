@@ -203,6 +203,18 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Le budget du mois suivant doit exister avant de reporter',
     httpStatus: HttpStatus.CONFLICT,
   },
+  // Refusals are French: the MCP controller forwards messages under 500 to the agent.
+  BUDGET_NOT_DELETABLE: {
+    code: API_ERROR_CODES.BUDGET_NOT_DELETABLE,
+    message: () => 'Seuls les mois à venir peuvent être supprimés',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  BUDGET_DELETION_LINKS_UNCONFIRMED: {
+    code: API_ERROR_CODES.BUDGET_DELETION_LINKS_UNCONFIRMED,
+    message: () =>
+      "Ce mois est lié à d'autres mois ou à un objectif d'épargne : confirme la suppression de ces liens",
+    httpStatus: HttpStatus.CONFLICT,
+  },
   BUDGET_INVALID_MONTH_FORMAT: {
     code: API_ERROR_CODES.BUDGET_INVALID_MONTH,
     message: (details?: Record<string, unknown>) =>
@@ -317,10 +329,12 @@ export const ERROR_DEFINITIONS = {
   },
   TEMPLATE_IN_USE: {
     code: API_ERROR_CODES.TEMPLATE_IN_USE,
-    message: (details?: Record<string, unknown>) =>
-      details?.id
+    message: (details?: Record<string, unknown>) => {
+      const base = details?.id
         ? `Template with ID '${details.id}' is in use and cannot be deleted`
-        : 'Template is in use and cannot be deleted',
+        : 'Template is in use and cannot be deleted';
+      return details?.months ? `${base}. Used by: ${details.months}` : base;
+    },
     httpStatus: HttpStatus.BAD_REQUEST,
   },
   TEMPLATE_LINES_BULK_OPERATIONS_FAILED: {
@@ -862,6 +876,11 @@ export const ERROR_DEFINITIONS = {
   FEEDBACK_SUBMIT_FAILED: {
     code: API_ERROR_CODES.FEEDBACK_SUBMIT_FAILED,
     message: () => 'Failed to submit feedback',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  FEEDBACK_STATUS_FAILED: {
+    code: API_ERROR_CODES.FEEDBACK_STATUS_FAILED,
+    message: () => 'Failed to read feedback status',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
 

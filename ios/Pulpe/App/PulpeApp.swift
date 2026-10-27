@@ -15,6 +15,7 @@ struct RecoveryKeySheetItem: Identifiable, Equatable {
 
 @main
 struct PulpeApp: App {
+    @UIApplicationDelegateAdaptor(PulpeAppDelegate.self) private var appDelegate
     @State private var appState: AppState
     @State private var uiPreferences = UIPreferencesState()
     @State private var currentMonthStore: CurrentMonthStore
@@ -30,6 +31,7 @@ struct PulpeApp: App {
 
     init() {
         AnalyticsService.shared.initialize()
+        ReminderTapHandler.install()
 
         let appState = AppState()
         let currentMonthStore = CurrentMonthStore()
@@ -88,9 +90,7 @@ struct PulpeApp: App {
             onAppOpened: { [weak appState] in Self.recordActiveDay(for: appState) }
         ))
 
-        try? Tips.configure([
-            .datastoreLocation(.applicationDefault)
-        ])
+        try? Tips.configure([.datastoreLocation(.applicationDefault)])
         BackgroundTaskService.shared.registerTasks()
     }
 
@@ -133,9 +133,9 @@ struct PulpeApp: App {
                         }
                     }
                     .onChange(of: userSettingsStore.locale) { _, _ in
-                        // The monthly reminder's copy is frozen at scheduling time, so
-                        // without this the user reads a French nudge months after switching.
-                        Task { await rescheduleRemindersIfEnabled() }
+                        // Reminder copy is frozen at scheduling time, so without this the user
+                        // reads a French nudge months later. The weekly recap re-renders on a sync.
+                        Task { await rescheduleRemindersIfEnabled(); await WidgetDataSyncService.shared.syncAll() }
                     }
                     .onOpenURL { url in
                         handleDeepLink(url)
@@ -482,11 +482,7 @@ struct RootView: View {
             case .viewBudget(let budgetId):
                 guard appState.authState == .authenticated else { break }
                 deepLinkDestination = nil
-                appState.budgetPath = NavigationPath()
-                Task { @MainActor in
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-                    appState.selectedTab = .budgets
-                }
+                appState.openBudgetMonth(budgetId)
             }
         }
 

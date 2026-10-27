@@ -22,6 +22,8 @@ import { AnalyticsService } from '@core/analytics';
 import { ROUTES } from '@core/routing';
 
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import { RecoveryKeyDialog } from '@ui/dialogs/recovery-key-dialog';
+import { ChangePinDialog } from './components/change-pin-dialog';
 import SettingsPage from './settings-page';
 import { SettingsDialogService } from './settings-dialog.service';
 
@@ -161,8 +163,8 @@ describe('SettingsPage', () => {
     ) as HTMLButtonElement;
 
     expect(entry).not.toBeNull();
-    expect(entry.getAttribute('aria-label')).toBe('Voir mes tags personnels');
-    expect(entry.textContent?.trim()).toBe('Gérer');
+    expect(entry.hasAttribute('aria-label')).toBe(false);
+    expect(entry.textContent).toContain('Mes tags');
 
     entry.click();
     await fixture.whenStable();
@@ -172,6 +174,64 @@ describe('SettingsPage', () => {
       ROUTES.SETTINGS,
       ROUTES.SETTINGS_TAGS,
     ]);
+  });
+
+  it('keeps draft preferences when the language selector would reload the page', async () => {
+    fixture.componentInstance.selectedPayDay.set(15);
+    await fixture.whenStable();
+    const language = () =>
+      fixture.nativeElement.querySelector('[data-testid="language-select"]');
+    expect(language().getAttribute('aria-disabled')).toBe('true');
+    expect(fixture.nativeElement.textContent).toContain('Enregistre ou annule');
+    fixture.componentInstance.resetChanges();
+    await fixture.whenStable();
+    expect(language().getAttribute('aria-disabled')).toBe('false');
+  });
+
+  it('names the actual currency and diagnostic switch controls', () => {
+    const names = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '[role="switch"]',
+      ) as NodeListOf<HTMLElement>,
+      (element) => element.getAttribute('aria-label'),
+    );
+    expect(names).toEqual(['Sélecteur de devise', 'Partager les diagnostics']);
+  });
+
+  it('should name the PIN action with a label containing its visible text', () => {
+    const button = fixture.nativeElement.querySelector(
+      '[data-testid="change-pin-button"]',
+    ) as HTMLButtonElement;
+
+    expect(button.textContent?.trim()).toBe('Modifier');
+    expect(button.getAttribute('aria-label')).toBe('Modifier le code PIN');
+  });
+
+  it('should keep the PIN change and its new recovery key open across a browser Back', async () => {
+    mockDialog.open
+      .mockReturnValueOnce({ afterClosed: () => of({ recoveryKey: 'KEY' }) })
+      .mockReturnValueOnce({ afterClosed: () => of(true) });
+
+    await fixture.componentInstance.onChangePin();
+
+    expect(mockDialog.open).toHaveBeenNthCalledWith(
+      1,
+      ChangePinDialog,
+      expect.objectContaining({ closeOnNavigation: false }),
+    );
+    expect(mockDialog.open).toHaveBeenNthCalledWith(
+      2,
+      RecoveryKeyDialog,
+      expect.objectContaining({ disableClose: true, closeOnNavigation: false }),
+    );
+  });
+
+  it('shows the default budget cycle instead of an empty payday field', async () => {
+    await fixture.whenStable();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="pay-day-select"]')
+        .textContent,
+    ).toContain('1er du mois');
   });
 
   describe('onDeleteAccount - ApiError handling', () => {

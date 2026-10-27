@@ -63,6 +63,10 @@ Le chiffrement étant par utilisateur (DEK dérivée), ce lien n'est exploitable
 
 `transaction.import_fingerprint` (PUL-25) n'est pas chiffrée : c'est un HMAC-SHA256 hexadécimal de l'identité de l'opération bancaire (compte, puis référence de la banque, ou date, sens, montant, libellé et rang), calculé par `ENCRYPTION_PORT.fingerprints`. Sa clé dérive par HKDF de `ENCRYPTION_MASTER_KEY` et de l'identifiant utilisateur, sans la DEK : elle ne dépend pas du code PIN, donc un rekey n'a pas à la recalculer et une opération déjà importée le reste. Sans la master key, l'empreinte ne permet pas de retrouver le montant. Une rotation de `ENCRYPTION_MASTER_KEY` ferait en revanche réapparaître comme nouvelles les opérations déjà importées.
 
+L'empreinte est aussi recopiée dans `transaction_import_fingerprint`, le registre qui répond à « déjà importée ? ». Un trigger l'y inscrit dans la même instruction que l'import ; elle y survit au lissage, au report ou à la suppression du Réel, et ne disparaît qu'avec le budget mensuel qui la porte. L'API ne fait que lire ce registre.
+
+Risque résiduel accepté : sans référence bancaire, le matériau de l'empreinte contient la date, le sens, le montant au centime, le libellé et l'IBAN du compte, et seule la master key protège le HMAC. Qui détient un dump de la base, `ENCRYPTION_MASTER_KEY` et l'IBAN du compte (absent de la base) peut retrouver ces montants par force brute. Ce risque est accepté parce que l'IBAN n'est pas stocké et que la déduplication a besoin du montant.
+
 ## Mode démo
 
 Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY_BUFFER`) pour emprunter le même chemin de code que les vrais utilisateurs. Ce n'est pas un secret — les données démo sont publiques.

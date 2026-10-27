@@ -28,6 +28,7 @@ struct AnalyticsServiceTests {
             "signup_started",
             "signup_completed",
             "onboarding_step_completed",
+            "onboarding_paused",
             "onboarding_abandoned",
             "onboarding_resumed",
             "onboarding_suggestion_toggled",
@@ -52,6 +53,7 @@ struct AnalyticsServiceTests {
             "notification_permission_granted",
             "notification_permission_denied",
             "reminder_toggled",
+            "reminder_opened",
             "ios_whats_new_shown",
             "currency_changed",
             "currency_selector_toggled",
@@ -59,7 +61,10 @@ struct AnalyticsServiceTests {
             "language_changed",
             "savings_goals_intro_viewed",
             "savings_goals_intro_completed",
-            "savings_goals_intro_skipped"
+            "savings_goals_intro_skipped",
+            "feedback_viewed",
+            "feedback_submitted",
+            "feedback_cancelled"
         ]
 
         #expect(Set(AnalyticsEvent.allCases.map(\.rawValue)) == expected)

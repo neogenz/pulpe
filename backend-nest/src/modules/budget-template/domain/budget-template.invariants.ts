@@ -14,11 +14,12 @@ export class BudgetTemplateInvariants {
 
   static validateTemplateNotUsed(
     templateId: string,
-    budgetCount: number,
+    budgets: readonly { month: number; year: number }[],
   ): void {
-    if (budgetCount > 0) {
+    if (budgets.length > 0) {
       throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_IN_USE, {
         id: templateId,
+        months: budgets.map((b) => `${b.month}/${b.year}`).join(', '),
       });
     }
   }

@@ -68,6 +68,17 @@ extension BudgetDetailsCoordinator {
         }
     }
 
+    func dispatchSideEffect(_ action: BudgetDetailsAction) async {
+        switch action {
+        case .showCheckToastIfNeeded(let line, let ctx, let amountsHidden):
+            showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
+        case .resetCheckAllState:
+            syncStore.resetCheckAllState()
+        default:
+            break
+        }
+    }
+
     // MARK: - Toast presentation
 
     private func presentOrRefreshDeletionToast(context: ToastContext) {

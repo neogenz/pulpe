@@ -931,6 +931,29 @@ export type SavingsGoalDeletionImpact = z.infer<
 >;
 
 /**
+ * Ce que la suppression d'un mois emporte. `links` compte les Prévisions et
+ * Mouvements du mois qui sont liés à d'autres mois ou à un objectif (dépense
+ * lissée, objectif d'épargne, retrait d'épargne) : chaque Prévision est
+ * comptée dans une seule catégorie.
+ */
+export const budgetDeletionImpactSchema = z.object({
+  forecastCount: z.number().int().nonnegative(),
+  movementCount: z.number().int().nonnegative(),
+  links: z.object({
+    spreadForecasts: z.number().int().nonnegative(),
+    savingsGoalForecasts: z.number().int().nonnegative(),
+    savingsWithdrawalForecasts: z.number().int().nonnegative(),
+    /**
+     * Retraits réalisés sans Prévision de retrait dans le mois. Un Mouvement
+     * alloué à un retrait annoncé du mois est déjà compté par sa Prévision :
+     * la somme des deux compteurs donne le nombre de retraits.
+     */
+    savingsWithdrawalMovements: z.number().int().nonnegative(),
+  }),
+});
+export type BudgetDeletionImpact = z.infer<typeof budgetDeletionImpactSchema>;
+
+/**
  * BUDGET LINE - Ligne budgétaire planifiée
  *
  * Selon SPECS.md section 2 "Concepts Métier":
@@ -1678,6 +1701,8 @@ export const transactionSearchResultSchema = z.object({
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   monthLabel: z.string(),
+  // Always filled by the backend; optional so existing clients and fixtures stay valid.
+  tagIds: z.array(z.uuid()).optional(),
 });
 export type TransactionSearchResult = z.infer<
   typeof transactionSearchResultSchema
@@ -2180,6 +2205,12 @@ export type BudgetExistsResponse = z.infer<typeof budgetExistsResponseSchema>;
 export const budgetDeleteResponseSchema = deleteResponseSchema;
 export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 
+// Plain enum, not z.stringbool: a codec through createZodDto is untested here.
+export const budgetDeleteQuerySchema = z.strictObject({
+  confirmLinks: z.enum(['true', 'false']).optional(),
+});
+export type BudgetDeleteQuery = z.infer<typeof budgetDeleteQuerySchema>;
+
 // Budget summary schema with rollover calculations
 export const budgetSummarySchema = z.object({
   endingBalance: z.number(),
@@ -2558,6 +2589,13 @@ export type SavingsGoalDeletionImpactResponse = z.infer<
   typeof savingsGoalDeletionImpactResponseSchema
 >;
 
+export const budgetDeletionImpactResponseSchema = createSuccessResponse(
+  budgetDeletionImpactSchema,
+);
+export type BudgetDeletionImpactResponse = z.infer<
+  typeof budgetDeletionImpactResponseSchema
+>;
+
 // Tag response schemas (PUL-18)
 export const tagResponseSchema = createSuccessResponse(tagSchema);
 export type TagResponse = z.infer<typeof tagResponseSchema>;
@@ -2885,7 +2923,8 @@ export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;
  * FEEDBACK — Private in-app feedback
  *
  * Authenticated clients submit an overall rating and may add area ratings or
- * a short comment. Identity is always derived from the access token.
+ * a short comment. Identity is always derived from the access token. iOS builds
+ * that predate `platform` omit it and always send `iosVersion`.
  */
 export const feedbackRatingSchema = z.number().int().min(1).max(5);
 
@@ -2897,25 +2936,42 @@ const maximumFeedbackCommentCodePointCount = 1_000;
 const hasValidFeedbackCommentLength = (value: string): boolean =>
   Array.from(value).length <= maximumFeedbackCommentCodePointCount;
 
-export const feedbackCreateSchema = z.strictObject({
-  overallRating: feedbackRatingSchema,
-  onboarding: optionalFeedbackRatingSchema,
-  budgetClarity: optionalFeedbackRatingSchema,
-  currentMonth: optionalFeedbackRatingSchema,
-  futurePlanning: optionalFeedbackRatingSchema,
-  homeClarity: optionalFeedbackRatingSchema,
-  comment: z
-    .string()
-    .trim()
-    .refine(hasValidFeedbackCommentLength, {
-      message: `Too big: expected string to have <=${maximumFeedbackCommentCodePointCount} Unicode code points`,
-    })
-    .optional()
-    .transform((value) => value || undefined),
-  appVersion: z.string().trim().min(1).max(32),
-  iosVersion: z.string().trim().min(1).max(32),
-});
+export const feedbackCreateSchema = z
+  .strictObject({
+    overallRating: feedbackRatingSchema,
+    onboarding: optionalFeedbackRatingSchema,
+    budgetClarity: optionalFeedbackRatingSchema,
+    currentMonth: optionalFeedbackRatingSchema,
+    futurePlanning: optionalFeedbackRatingSchema,
+    homeClarity: optionalFeedbackRatingSchema,
+    comment: z
+      .string()
+      .trim()
+      .refine(hasValidFeedbackCommentLength, {
+        message: `Too big: expected string to have <=${maximumFeedbackCommentCodePointCount} Unicode code points`,
+      })
+      .optional()
+      .transform((value) => value || undefined),
+    appVersion: z.string().trim().min(1).max(32),
+    platform: z.enum(['ios', 'web']).default('ios'),
+    iosVersion: z.string().trim().min(1).max(32).optional(),
+  })
+  .refine((feedback) => feedback.platform !== 'ios' || feedback.iosVersion, {
+    message: 'iosVersion is required for iOS feedback',
+    path: ['iosVersion'],
+  });
 export type FeedbackCreate = z.infer<typeof feedbackCreateSchema>;
+
+/**
+ * `GET /feedback/status` — whether the account has ever submitted feedback, on
+ * any platform. Stops the automatic invitation everywhere once answered.
+ */
+export const feedbackStatusResponseSchema = z.object({
+  hasSubmitted: z.boolean(),
+});
+export type FeedbackStatusResponse = z.infer<
+  typeof feedbackStatusResponseSchema
+>;
 
 // ============================================================================
 // MCP agent connector — consent page (OAuth 2.1 authorization on Supabase)
@@ -2925,9 +2981,15 @@ export type FeedbackCreate = z.infer<typeof feedbackCreateSchema>;
 export const mcpAccessModeSchema = z.enum(['read', 'read_write']);
 export type McpAccessMode = z.infer<typeof mcpAccessModeSchema>;
 
-/** GET /mcp/consent/:authorizationId — the client as declared to Supabase */
+/**
+ * GET /mcp/consent/:authorizationId — the client as declared to Supabase, and
+ * the host its callback (code and data) goes to, read from the stored request.
+ * `redirectHost` stays optional so a web build deployed before its API still
+ * opens the consent page.
+ */
 export const mcpConsentDetailsResponseSchema = z.object({
   clientName: z.string(),
+  redirectHost: z.string().min(1).optional(),
 });
 export type McpConsentDetailsResponse = z.infer<
   typeof mcpConsentDetailsResponseSchema

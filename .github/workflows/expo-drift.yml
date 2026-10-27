@@ -1,0 +1,102 @@
+name: Expo Drift
+
+# `expo install --check` compares android/package.json with the versions Expo
+# publishes today, so it cannot gate PRs: each SDK patch release would fail
+# every PR regardless of its content. This job owns the alignment instead: it
+# applies `expo install --fix` and opens (or refreshes) one PR with the release
+# App token, so the PR CI runs on it like any other change, and auto-merge
+# lands it once ✅ CI Success is green.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: expo-drift
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "10.12.1"
+  BRANCH: bot/expo-patch-alignment
+
+jobs:
+  align:
+    name: Expo SDK patch alignment
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Detect drift
+        id: drift
+        run: |
+          if pnpm deps:check:expo; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply Expo alignment
+        if: steps.drift.outputs.found == 'true'
+        run: |
+          set -euo pipefail
+          pnpm --dir android exec expo install --fix
+          pnpm install --no-frozen-lockfile
+          pnpm deps:check:expo
+          # The fix only ever touches these two files; anything else means Expo
+          # changed behaviour and a human should look.
+          unexpected=$(git status --porcelain | awk '{print $2}' | grep -vxE 'android/package.json|pnpm-lock.yaml' || true)
+          if [ -n "$unexpected" ]; then
+            echo "::error::expo install --fix touched unexpected files: $unexpected"
+            exit 1
+          fi
+
+      - name: Create short-lived GitHub App token
+        if: steps.drift.outputs.found == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.PULPE_RELEASE_APP_ID }}
+          private-key: ${{ secrets.PULPE_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pulpe
+
+      - name: Open or refresh the alignment PR
+        if: steps.drift.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -am "chore(android): aligner les patchs Expo sur expo install --check"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
+          if [ -z "$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')" ]; then
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+              --title "chore(android): aligner les patchs Expo sur expo install --check" \
+              --body "Ouverte par \`expo-drift.yml\` : \`expo install --fix\` sur les patchs du SDK Expo courant. Fusion automatique dès que ✅ CI Success est vert."
+          fi
+          gh pr merge "$BRANCH" --repo "$GITHUB_REPOSITORY" --auto --squash

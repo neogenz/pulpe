@@ -21,9 +21,24 @@ final class MockBudgetService: BudgetServicing {
     var stubbedSparse: [BudgetSparse] = []
     var detailsError: Error?
     var sparseError: Error?
+    /// Impact returned by `getDeletionImpact` — what deleting the month would remove.
+    var stubbedDeletionImpact = BudgetDeletionImpact(
+        forecastCount: 0,
+        movementCount: 0,
+        links: .init(
+            spreadForecasts: 0,
+            savingsGoalForecasts: 0,
+            savingsWithdrawalForecasts: 0,
+            savingsWithdrawalMovements: 0
+        )
+    )
+    var deletionImpactError: Error?
+    var deleteError: Error?
 
     private(set) var getBudgetWithDetailsCallCount = 0
     private(set) var getBudgetsSparseCallCount = 0
+    private(set) var deletionImpactRequests: [String] = []
+    private(set) var deletedBudgets: [(id: String, confirmLinks: Bool)] = []
     /// Flips true the moment a reload enters `getBudgetWithDetails`. Tests poll
     /// this with `waitForCondition` to know the reload reached the gate.
     private(set) var didEnterDetails = false
@@ -33,6 +48,18 @@ final class MockBudgetService: BudgetServicing {
     private var isGated = false
     private var sparseGateContinuations: [CheckedContinuation<Void, Never>] = []
     private var isSparseGated = false
+    private var deleteGateContinuation: CheckedContinuation<Void, Never>?
+    private var isDeleteGated = false
+
+    /// Arm a one-shot gate: the next `deleteBudget` call records itself, then suspends
+    /// until `releaseDelete()` — a month deletion caught on the wire.
+    func gateDelete() { isDeleteGated = true }
+
+    func releaseDelete() {
+        isDeleteGated = false
+        deleteGateContinuation?.resume()
+        deleteGateContinuation = nil
+    }
 
     /// Arm a one-shot gate: the next `getBudgetWithDetails` call suspends until
     /// `releaseDetails()`. One-shot by design — drive at most one gated call per
@@ -85,5 +112,19 @@ final class MockBudgetService: BudgetServicing {
         }
         if let error = response.1 { throw error }
         return response.0
+    }
+
+    func getDeletionImpact(id: String) async throws -> BudgetDeletionImpact {
+        deletionImpactRequests.append(id)
+        if let deletionImpactError { throw deletionImpactError }
+        return stubbedDeletionImpact
+    }
+
+    func deleteBudget(id: String, confirmLinks: Bool) async throws {
+        deletedBudgets.append((id, confirmLinks))
+        if isDeleteGated {
+            await withCheckedContinuation { deleteGateContinuation = $0 }
+        }
+        if let deleteError { throw deleteError }
     }
 }

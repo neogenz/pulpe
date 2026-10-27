@@ -35,38 +35,23 @@ import type {
   template: `
     <div class="flex h-8 items-center justify-end gap-1">
       @if (line().metadata.itemType === 'budget_line') {
-        <!-- Un retrait annoncé se réalise par une action distincte du pointage. -->
-        @if (line().metadata.sourceWithdrawalCtaKey; as ctaKey) {
-          <button
-            matButton
-            class="text-primary"
-            (click)="
-              realizeWithdrawal.emit(line().data.id); $event.stopPropagation()
-            "
-            [attr.data-testid]="'realize-withdrawal-' + line().data.id"
-          >
-            {{ ctaKey | transloco }}
-          </button>
-        } @else if (line().metadata.isSourceWithdrawalRealized) {
-          <span class="text-label-medium text-on-surface-variant">
-            {{ 'budgetLine.withdrawalRealized' | transloco }}
-          </span>
-        } @else {
-          <mat-slide-toggle
-            [checked]="!!line().data.checkedAt"
-            [pulpeCheckReward]="!!line().data.checkedAt"
-            (change)="toggleCheck.emit(line().data.id)"
-            (click)="$event.stopPropagation()"
-            [attr.data-testid]="'toggle-check-' + line().data.id"
-          >
-            {{
-              (line().data.checkedAt
-                ? 'budgetLine.checkedStatus'
-                : 'budgetLine.uncheckedStatus'
-              ) | transloco
-            }}
-          </mat-slide-toggle>
-        }
+        <mat-slide-toggle
+          [checked]="!!line().metadata.isPointed"
+          [pulpeCheckReward]="!!line().metadata.isPointed"
+          (change)="
+            $event.source.checked = !$event.checked;
+            toggleCheck.emit(line().data.id)
+          "
+          (click)="$event.stopPropagation()"
+          [attr.data-testid]="'toggle-check-' + line().data.id"
+        >
+          {{
+            (line().metadata.isPointed
+              ? 'budgetLine.checkedStatus'
+              : 'budgetLine.uncheckedStatus'
+            ) | transloco
+          }}
+        </mat-slide-toggle>
       } @else if (line().metadata.itemType === 'transaction') {
         <mat-slide-toggle
           [checked]="!!line().data.checkedAt"
@@ -104,16 +89,14 @@ import type {
         </div>
         <mat-divider />
         @if (line().metadata.itemType === 'budget_line') {
-          @if (!budgetLineData().sourceSavingsGoalId) {
-            <button
-              mat-menu-item
-              (click)="addTransaction.emit(budgetLineData())"
-              [attr.data-testid]="'add-transaction-' + line().data.id"
-            >
-              <mat-icon matMenuItemIcon>add</mat-icon>
-              <span>{{ line().metadata.allocationLabel }}</span>
-            </button>
-          }
+          <button
+            mat-menu-item
+            (click)="addTransaction.emit(budgetLineData())"
+            [attr.data-testid]="'add-transaction-' + line().data.id"
+          >
+            <mat-icon matMenuItemIcon>add</mat-icon>
+            <span>{{ line().metadata.allocationLabel }}</span>
+          </button>
           <button
             mat-menu-item
             (click)="edit.emit(asBudgetLineItem())"
@@ -238,7 +221,6 @@ export class ActionsCell {
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
-  readonly realizeWithdrawal = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
   readonly asBudgetLineItem = computed(

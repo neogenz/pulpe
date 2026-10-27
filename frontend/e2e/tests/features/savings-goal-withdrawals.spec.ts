@@ -288,7 +288,7 @@ test.describe('Savings goal as the source of an income', () => {
     await savingsGoalsPage.gotoDetail(GOAL_ID);
     await savingsGoalsPage.expectConfirmedAmount('10 000');
     // A goal nobody drew from says nothing rather than announcing an emptiness.
-    await expect(savingsGoalsPage.withdrawalsSection()).toBeHidden();
+    await expect(savingsGoalsPage.withdrawalRows()).toHaveCount(0);
 
     await currentMonthPage.goto();
     await currentMonthPage.openTransactionForm('4500', INCOME_NAME);
@@ -320,7 +320,7 @@ test.describe('Savings goal as the source of an income', () => {
     await savingsGoalsPage.gotoDetail(GOAL_ID);
     await savingsGoalsPage.expectConfirmedAmount('5 500');
     await savingsGoalsPage.expectWithdrawalCount(1);
-    await expect(savingsGoalsPage.withdrawalRows()).toContainText(/4.500\.00/);
+    await expect(savingsGoalsPage.withdrawalRows()).toContainText(/-4.500 CHF/);
 
     // Une seule transition : le retrait ouvre son budget, jamais un éditeur
     // poussé après attente. L'URL ne porte donc plus de transaction ciblée.
@@ -368,7 +368,7 @@ test.describe('Savings goal as the source of an income', () => {
     await savingsGoalsPage.gotoDetail(GOAL_ID);
     await savingsGoalsPage.expectConfirmedAmount('10 000');
     // The history entry goes with the money: nothing left to explain.
-    await expect(savingsGoalsPage.withdrawalsSection()).toBeHidden();
+    await expect(savingsGoalsPage.withdrawalRows()).toHaveCount(0);
   });
 
   test('an amount over the balance is refused before it can be sent', async ({
@@ -960,7 +960,12 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     await savingsGoalsPage.gotoDetail(GOAL_ID);
     await savingsGoalsPage.expectConfirmedAmount('3 300');
     await savingsGoalsPage.expectProjectedAmount('3 100');
-    await savingsGoalsPage.expectWithdrawalCount(1);
+    // The real income is the « Réel » of its forecast's row, never a second row.
+    await savingsGoalsPage.expectWithdrawalCount(0);
+    await expect(savingsGoalsPage.plannedWithdrawalRows()).toHaveCount(1);
+    await expect(savingsGoalsPage.plannedWithdrawalRows()).toContainText(
+      '-300',
+    );
 
     // 4. Un réel au-delà du prévu ne crée pas de reliquat négatif : 700 sortis,
     //    aucun reliquat, projeté = confirmé. Jamais 2'400.
@@ -1072,7 +1077,10 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
 
 /** Saisit et confirme le revenu réel, depuis la boîte déjà ouverte. */
 async function realizeAmount(page: Page, amount: string): Promise<void> {
-  await realizationAmountInput(page).fill(amount);
+  // The dialog focuses the amount and selects the prefilled value, so typing
+  // replaces it the way a user would.
+  await page.keyboard.type(amount);
+  await expect(realizationAmountInput(page)).toHaveValue(amount);
   await page.getByTestId('save-transaction').click();
   await expect(page.getByTestId('realize-withdrawal-context')).toBeHidden();
 }

@@ -16,6 +16,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import type { ErrorStateMatcher } from '@angular/material/core';
 import {
@@ -90,6 +91,7 @@ const LEADING_MINUS = /^\s*[-−]/;
   imports: [
     FormsModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -242,7 +244,7 @@ export class ReconcileAccountsDialog {
     );
   }
 
-  // The keypad has no minus key on most phones, so the sign is a button. It
+  // The keypad has no minus key on most phones, so the sign is a checkbox. It
   // edits the typed text rather than a separate flag: what the field shows is
   // what gets summed.
   protected toggleNegative(id: number): void {

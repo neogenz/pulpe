@@ -81,6 +81,18 @@
         "remaining": "rimanenti su %{amount}"
       },
       "deletedGoal": "Questo obiettivo è stato eliminato. L'entrata resta nel tuo budget.",
+      "deleteMonth": {
+        "action": "Elimina questo mese",
+        "title": "Eliminare %{month}?",
+        "body": "Le sue previsioni (%{forecastCount}) e i suoi movimenti (%{movementCount}) verranno eliminati. Questa azione è irreversibile.",
+        "links": "Questo mese è collegato anche ad altri mesi o a un obiettivo di risparmio: %{links}. Gli altri mesi mantengono la loro parte.",
+        "linkSpread": "previsione ripartita (%{count})",
+        "linkGoal": "obiettivo di risparmio (%{count})",
+        "linkWithdrawal": "prelievo dai risparmi (%{count})",
+        "confirm": "Elimina",
+        "loadError": "Non è stato possibile caricare i dettagli del mese. Riprova.",
+        "failure": "Non è stato possibile eliminare il mese. Riprova."
+      },
       "filters": {
         "all": "Tutto",
         "checked": "Spuntato",
@@ -111,6 +123,7 @@
           "deficit": "Questo mese spendi più di quanto guadagni."
         }
       },
+      "inEnvelope": "Nella previsione %{name}",
       "loadErrorHint": "Controlla la connessione e riprova.",
       "loadErrorTitle": "Non è stato possibile caricare questo budget",
       "missingHint": "Potrebbe essere stato eliminato da un altro dispositivo.",
@@ -123,7 +136,8 @@
       "protectedTitle": "Budget protetto",
       "search": "Cerca",
       "sections": {
-        "free": "Fuori previsione"
+        "free": "Fuori previsione",
+        "pointedAllocated": "Spuntati in una previsione"
       },
       "spread": "Distribuito",
       "status": {
@@ -338,7 +352,8 @@
       "yearSelector": "Scegli l'anno",
       "ongoing": "in corso",
       "notCreated": "Ancora nessun budget",
-      "createMonth": "Crea il budget"
+      "createMonth": "Crea il budget",
+      "monthDeleted": "Mese eliminato"
     },
     "plan": {
       "default": "predefinito",
@@ -1315,8 +1330,11 @@
     },
     "repeatPin": "Inseriscilo una seconda volta",
     "setup": {
-      "subtitle": "%{count} cifre — i tuoi importi sono crittografati con questo codice",
-      "title": "Scegli il tuo codice"
+      "title": "Crea il tuo codice a %{count} cifre",
+      "subtitle": "Proteggerà i tuoi importi.",
+      "confirmHint": "Inserisci di nuovo le %{count} cifre che hai appena scelto.",
+      "mismatch": "Questo codice è diverso dal primo. Riprova.",
+      "changeCode": "Modifica il mio codice"
     },
     "unlock": {
       "biometric": "Sblocca con la biometria",

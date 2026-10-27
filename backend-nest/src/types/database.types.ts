@@ -741,6 +741,32 @@ export type Database = {
           },
         ]
       }
+      transaction_import_fingerprint: {
+        Row: {
+          budget_id: string
+          created_at: string
+          fingerprint: string
+        }
+        Insert: {
+          budget_id: string
+          created_at?: string
+          fingerprint: string
+        }
+        Update: {
+          budget_id?: string
+          created_at?: string
+          fingerprint?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_import_fingerprint_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_budget"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_tag: {
         Row: {
           created_at: string
@@ -814,9 +840,10 @@ export type Database = {
           future_planning: number | null
           home_clarity: number | null
           id: string
-          ios_version: string
+          ios_version: string | null
           onboarding: number | null
           overall_rating: number
+          platform: string
           user_id: string
         }
         Insert: {
@@ -828,9 +855,10 @@ export type Database = {
           future_planning?: number | null
           home_clarity?: number | null
           id?: string
-          ios_version: string
+          ios_version?: string | null
           onboarding?: number | null
           overall_rating: number
+          platform?: string
           user_id: string
         }
         Update: {
@@ -842,9 +870,10 @@ export type Database = {
           future_planning?: number | null
           home_clarity?: number | null
           id?: string
-          ios_version?: string
+          ios_version?: string | null
           onboarding?: number | null
           overall_rating?: number
+          platform?: string
           user_id?: string
         }
         Relationships: []

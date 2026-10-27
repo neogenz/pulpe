@@ -42,7 +42,7 @@ import { ErrorAlert } from '@ui/error-alert';
     </h2>
 
     <mat-dialog-content>
-      <p class="text-body-small text-on-surface-variant leading-relaxed mb-4">
+      <p class="text-body-medium text-on-surface-variant mb-4">
         {{ 'settings.verifyRecoveryKeyHint' | transloco }}
       </p>
 

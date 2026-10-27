@@ -78,11 +78,30 @@ describe('Environment Validation', () => {
       }
     });
 
-    it('should refuse to boot when MCP_WRAPPING_KEY is missing or mis-sized', () => {
+    it('should boot without MCP_WRAPPING_KEY only while MCP is off outside production', () => {
       const { MCP_WRAPPING_KEY: _omitted, ...without } = baseConfig;
-      expect(() => validateConfig({ ...without, NODE_ENV: 'test' })).toThrow(
-        /MCP_WRAPPING_KEY/,
-      );
+      expect(() =>
+        validateConfig({ ...without, NODE_ENV: 'development' }),
+      ).not.toThrow();
+      expect(() =>
+        validateConfig({
+          ...without,
+          NODE_ENV: 'development',
+          MCP_UPSTREAM_CLIENT_ID: '10000000-0000-4000-8000-000000000001',
+          MCP_UPSTREAM_CLIENT_SECRET: 'test-private-secret',
+        }),
+      ).toThrow(/MCP_WRAPPING_KEY/);
+      expect(() =>
+        validateConfig({
+          ...without,
+          NODE_ENV: 'production',
+          MCP_RESOURCE_URL: 'https://api.example/mcp',
+          MCP_CONSENT_URL: 'https://app.example/mcp-consent',
+        }),
+      ).toThrow(/MCP_WRAPPING_KEY/);
+    });
+
+    it('should refuse to boot when MCP_WRAPPING_KEY is mis-sized', () => {
       expect(() =>
         validateConfig({
           ...baseConfig,

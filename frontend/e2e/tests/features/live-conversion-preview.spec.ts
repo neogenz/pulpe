@@ -28,7 +28,7 @@ async function mockUserCurrency(
   // The auth-bypass fixture registers a default /users/settings handler that
   // omits `currency` and `showCurrencySelector`. Remove it first so our
   // currency-aware response is the only match.
-  await page.unroute('**/api/v1/users/settings').catch(() => {});
+  await page.unroute('**/api/v1/users/settings');
   await page.route('**/api/v1/users/settings', (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
@@ -98,6 +98,13 @@ async function openAddBudgetLineDialog(
       '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
     ),
   ).toBeVisible();
+  // MatDialog moves focus to its first field ~150 ms after opening; a fill
+  // racing that move types into the name instead of the amount.
+  await expect(
+    page.locator(
+      '[data-testid="add-budget-line-dialog"] [data-testid="new-line-name"]',
+    ),
+  ).toBeFocused();
 }
 
 function currencyPicker(page: Page) {

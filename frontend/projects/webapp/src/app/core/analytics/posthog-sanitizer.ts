@@ -356,6 +356,7 @@ const API_ROUTE_TEMPLATES: readonly RouteTemplate[] = [
   ['budgets', 'export'],
   ['budgets', 'exists'],
   ['budgets', ':id', 'details'],
+  ['budgets', ':id', 'deletion-impact'],
   ['budgets', ':id'],
   ['tags'],
   ['tags', ':id', 'history'],

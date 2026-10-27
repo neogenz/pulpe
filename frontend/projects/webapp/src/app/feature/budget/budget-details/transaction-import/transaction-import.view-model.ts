@@ -232,20 +232,11 @@ type AttachableOperation = Pick<
   'position' | 'kind' | 'status' | 'suggestion'
 >;
 
-export function isLineCompatible(
+function isLineCompatible(
   operationKind: TransactionImportOperation['kind'],
   lineKind: TransactionKind,
 ): boolean {
   return TRANSACTION_IMPORT_ATTACHABLE_KINDS[operationKind].includes(lineKind);
-}
-
-export function compatibleBudgetLines(
-  operation: Pick<TransactionImportOperation, 'kind'>,
-  budgetLines: readonly TransactionImportBudgetLine[],
-): TransactionImportBudgetLine[] {
-  return budgetLines.filter((line) =>
-    isLineCompatible(operation.kind, line.kind),
-  );
 }
 
 /** The suggested Prévision, when it is still offered and can carry the operation. */
@@ -398,8 +389,10 @@ export function buildAttachmentOptions(
     .filter((group) => group.lines.length > 0);
 }
 
-const MATCH_REASON_KEYS: Record<TransactionImportMatchReason, string> = {
-  kind: 'transactionImport.attachment.reason.kind',
+const MATCH_REASON_KEYS: Record<
+  Exclude<TransactionImportMatchReason, 'kind'>,
+  string
+> = {
   amount: 'transactionImport.attachment.reason.amount',
   label: 'transactionImport.attachment.reason.label',
 };
@@ -460,8 +453,9 @@ export function buildAttachmentViews(
       views.set(operation.position, {
         state: 'suggested',
         line: suggested,
-        reasonKeys: operation.suggestion.reasons.map(
-          (reason) => MATCH_REASON_KEYS[reason],
+        // `kind` is a precondition of every suggestion: it explains nothing.
+        reasonKeys: operation.suggestion.reasons.flatMap((reason) =>
+          reason === 'kind' ? [] : [MATCH_REASON_KEYS[reason]],
         ),
         options,
       });

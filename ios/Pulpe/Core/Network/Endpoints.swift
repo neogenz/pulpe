@@ -28,6 +28,8 @@ enum Endpoint {
     case budgetsGenerate
     case budget(id: String)
     case budgetDetails(id: String)
+    case budgetDelete(id: String, confirmLinks: Bool)
+    case budgetDeletionImpact(id: String)
     case budgetsExport
     case budgetsSparse(fields: String, limit: Int?, year: Int?)
 
@@ -93,6 +95,7 @@ enum Endpoint {
     // MARK: - Feedback
 
     case feedback
+    case feedbackStatus
 
     // MARK: - Encryption
 
@@ -135,6 +138,8 @@ enum Endpoint {
         case .budgetsGenerate: return "/budgets/generate"
         case .budget(let id): return "/budgets/\(id)"
         case .budgetDetails(let id): return "/budgets/\(id)/details"
+        case .budgetDelete(let id, _): return "/budgets/\(id)"
+        case .budgetDeletionImpact(let id): return "/budgets/\(id)/deletion-impact"
         case .budgetsExport: return "/budgets/export"
         case .budgetsSparse: return "/budgets"
 
@@ -192,6 +197,7 @@ enum Endpoint {
 
         // Feedback
         case .feedback: return "/feedback"
+        case .feedbackStatus: return "/feedback/status"
 
         // Encryption
         case .encryptionVaultStatus: return "/encryption/vault-status"
@@ -226,9 +232,9 @@ enum Endpoint {
              .savingsGoalPlanApply, .savingsGoalGenerationStop, .savingsGoalDeletion:
             return .post
 
-        case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
+        case .validateSession, .userProfile, .budget, .budgetDetails, .budgetDeletionImpact, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
-             .transactionsByBudget, .transactionsExists, .budgetsSparse,
+             .transactionsByBudget, .transactionsExists, .budgetsSparse, .feedbackStatus,
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,
@@ -243,7 +249,7 @@ enum Endpoint {
         case .updateProfile:
             return .patch
 
-        case .deleteAccount, .budgetLinesSavingsWithdrawalDelete, .mcpConnection:
+        case .deleteAccount, .budgetDelete, .budgetLinesSavingsWithdrawalDelete, .mcpConnection:
             return .delete
         }
     }
@@ -251,7 +257,7 @@ enum Endpoint {
     // MARK: - URL Request
 
     func urlRequest(baseURL: URL) -> URLRequest {
-        var url = baseURL.appendingPathComponent(path)
+        var url = urlWithConfirmLinks(baseURL.appendingPathComponent(path))
 
         // Add query parameters
         switch self {
@@ -299,6 +305,17 @@ enum Endpoint {
         request.httpMethod = method.rawValue
         request.timeoutInterval = AppConfiguration.requestTimeout
         return request
+    }
+}
+
+private extension Endpoint {
+    /// The link handshake of a month deletion (PUL-361). Kept out of the switch in
+    /// `urlRequest`, which sits at the `cyclomatic_complexity` ceiling.
+    func urlWithConfirmLinks(_ url: URL) -> URL {
+        guard case let .budgetDelete(_, confirmLinks) = self else { return url }
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "confirmLinks", value: confirmLinks ? "true" : "false")]
+        return components?.url ?? url
     }
 }
 

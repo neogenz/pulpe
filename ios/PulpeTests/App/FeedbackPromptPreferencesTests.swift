@@ -21,152 +21,99 @@ struct FeedbackPromptPreferencesTests {
     }
 
     @Test
-    func eligibility_requiresSevenElapsedDays_andFiveActiveDaysInTheRecentWindow() throws {
+    func firstInvitation_onTheThirdActiveDay_andSameDayRelaunchesCountOnce() throws {
         let fixture = try makeFixture()
         defer { fixture.cleanup() }
         let base = try date(year: 2026, month: 3, day: 1, hour: 12, calendar: fixture.calendar)
 
-        fixture.store.recordActiveDay(for: "eligible", now: base, calendar: fixture.calendar)
-        for offset in [1, 2, 3, 4] {
-            fixture.store.recordActiveDay(
-                for: "eligible",
-                now: try day(offset, after: base, calendar: fixture.calendar),
-                calendar: fixture.calendar
-            )
+        for hour in [12, 13, 18, 23] {
+            let sameDay = try date(year: 2026, month: 3, day: 1, hour: hour, calendar: fixture.calendar)
+            fixture.store.recordActiveDay(for: "user", now: sameDay, calendar: fixture.calendar)
         }
+        // Gaps between active days do not matter, only their number.
+        try recordActiveDays(fixture, "user", offsets: [5], from: base)
+        #expect(!fixture.store.isEligible(for: "user"))
 
-        let sixDaysLater = try day(6, after: base, calendar: fixture.calendar)
-        #expect(!fixture.store.isEligible(for: "eligible", now: sixDaysLater, calendar: fixture.calendar))
-
-        let sevenDaysLater = try day(7, after: base, calendar: fixture.calendar)
-        fixture.store.recordActiveDay(for: "eligible", now: sevenDaysLater, calendar: fixture.calendar)
-        #expect(fixture.store.isEligible(for: "eligible", now: sevenDaysLater, calendar: fixture.calendar))
-
-        fixture.store.recordActiveDay(for: "four-days", now: base, calendar: fixture.calendar)
-        for offset in [1, 3, 5, 7] {
-            fixture.store.recordActiveDay(
-                for: "four-days",
-                now: try day(offset, after: base, calendar: fixture.calendar),
-                calendar: fixture.calendar
-            )
-        }
-        #expect(!fixture.store.isEligible(for: "four-days", now: sevenDaysLater, calendar: fixture.calendar))
+        try recordActiveDays(fixture, "user", offsets: [9], from: base)
+        #expect(fixture.store.isEligible(for: "user"))
     }
 
     @Test
-    func repeatedActivationsSameDay_countOnce_andMidnightCreatesANewDay() throws {
+    func unansweredInvitation_returnsEveryThreeActiveDays() throws {
         let fixture = try makeFixture()
         defer { fixture.cleanup() }
         let base = try date(year: 2026, month: 4, day: 1, hour: 12, calendar: fixture.calendar)
+        try recordActiveDays(fixture, "user", offsets: [0, 1, 2], from: base)
 
-        for hour in [12, 13, 18, 23] {
-            let sameDay = try date(year: 2026, month: 4, day: 1, hour: hour, calendar: fixture.calendar)
-            fixture.store.recordActiveDay(for: "user", now: sameDay, calendar: fixture.calendar)
-        }
-        for offset in [1, 2, 7] {
-            fixture.store.recordActiveDay(
-                for: "user",
-                now: try day(offset, after: base, calendar: fixture.calendar),
-                calendar: fixture.calendar
-            )
-        }
+        #expect(fixture.store.isEligible(for: "user"))
+        #expect(fixture.store.markAutomaticPromptShown(for: "user") == 1)
+        #expect(!fixture.store.isEligible(for: "user"))
 
-        let sevenDaysLater = try day(7, after: base, calendar: fixture.calendar)
-        #expect(!fixture.store.isEligible(for: "user", now: sevenDaysLater, calendar: fixture.calendar))
+        try recordActiveDays(fixture, "user", offsets: [3, 4], from: base)
+        #expect(!fixture.store.isEligible(for: "user"))
 
-        fixture.store.recordActiveDay(for: "midnight", now: base, calendar: fixture.calendar)
-        for offset in [1, 2] {
-            fixture.store.recordActiveDay(
-                for: "midnight",
-                now: try day(offset, after: base, calendar: fixture.calendar),
-                calendar: fixture.calendar
-            )
-        }
-        let beforeMidnight = try date(year: 2026, month: 4, day: 4, hour: 23, minute: 59, calendar: fixture.calendar)
-        let afterMidnight = try date(year: 2026, month: 4, day: 5, hour: 0, minute: 1, calendar: fixture.calendar)
-        fixture.store.recordActiveDay(for: "midnight", now: beforeMidnight, calendar: fixture.calendar)
-        fixture.store.recordActiveDay(for: "midnight", now: afterMidnight, calendar: fixture.calendar)
-        fixture.store.recordActiveDay(for: "midnight", now: sevenDaysLater, calendar: fixture.calendar)
-        #expect(fixture.store.isEligible(for: "midnight", now: sevenDaysLater, calendar: fixture.calendar))
+        try recordActiveDays(fixture, "user", offsets: [5], from: base)
+        #expect(fixture.store.isEligible(for: "user"))
+        #expect(fixture.store.markAutomaticPromptShown(for: "user") == 2)
     }
 
     @Test
-    func handledState_persistsAcrossInstances_andAccountsRemainIndependent() throws {
+    func submittedState_stopsInvitations_persistsAcrossInstances_andStaysPerAccount() throws {
         let fixture = try makeFixture()
         defer { fixture.cleanup() }
         let base = try date(year: 2026, month: 5, day: 1, hour: 12, calendar: fixture.calendar)
-        let eligibleDate = try seedEligible(
-            store: fixture.store,
-            userID: "account-a",
-            base: base,
-            calendar: fixture.calendar
-        )
+        try recordActiveDays(fixture, "account-a", offsets: [0, 1, 2], from: base)
+        try recordActiveDays(fixture, "account-b", offsets: [0, 1, 2], from: base)
 
-        #expect(fixture.store.isEligible(for: "account-a", now: eligibleDate, calendar: fixture.calendar))
-        fixture.store.markAutomaticPromptHandled(for: "account-a", now: eligibleDate)
-        fixture.store.markAutomaticPromptHandled(for: "account-a", now: eligibleDate)
+        fixture.store.markSubmitted(for: "account-a")
+        try recordActiveDays(fixture, "account-a", offsets: [3, 4, 5, 6], from: base)
 
         let afterRelaunchOrUpdate = FeedbackPromptPreferences(defaults: fixture.defaults)
-        #expect(!afterRelaunchOrUpdate.isEligible(
-            for: "account-a",
-            now: eligibleDate,
-            calendar: fixture.calendar
-        ))
-        #expect(!afterRelaunchOrUpdate.isEligible(
-            for: "account-b",
-            now: eligibleDate,
-            calendar: fixture.calendar
-        ))
-
-        let accountBEligibleDate = try seedEligible(
-            store: afterRelaunchOrUpdate,
-            userID: "account-b",
-            base: base,
-            calendar: fixture.calendar
-        )
-        #expect(afterRelaunchOrUpdate.isEligible(
-            for: "account-b",
-            now: accountBEligibleDate,
-            calendar: fixture.calendar
-        ))
+        #expect(!afterRelaunchOrUpdate.isEligible(for: "account-a"))
+        #expect(afterRelaunchOrUpdate.isEligible(for: "account-b"))
     }
 
     @Test
-    func calendarHistory_remainsReadableAfterATimeZoneChange() throws {
+    func activeDayHistory_survivesATimeZoneChange() throws {
         let fixture = try makeFixture(timeZoneID: "Europe/Zurich")
         defer { fixture.cleanup() }
         let base = try date(year: 2026, month: 6, day: 1, hour: 12, calendar: fixture.calendar)
-        let eligibleDate = try seedEligible(
-            store: fixture.store,
-            userID: "traveller",
-            base: base,
-            calendar: fixture.calendar
-        )
-        let newYorkCalendar = makeCalendar(timeZoneID: "America/New_York")
+        try recordActiveDays(fixture, "traveller", offsets: [0, 1], from: base)
 
-        let afterTimeZoneChange = FeedbackPromptPreferences(defaults: fixture.defaults)
-        #expect(afterTimeZoneChange.isEligible(
+        let newYorkCalendar = makeCalendar(timeZoneID: "America/New_York")
+        fixture.store.recordActiveDay(
             for: "traveller",
-            now: eligibleDate,
+            now: try day(2, after: base, calendar: fixture.calendar),
             calendar: newYorkCalendar
-        ))
+        )
+        #expect(fixture.store.isEligible(for: "traveller"))
     }
 
-    private func seedEligible(
-        store: FeedbackPromptPreferences,
-        userID: String,
-        base: Date,
-        calendar: Calendar
-    ) throws -> Date {
-        store.recordActiveDay(for: userID, now: base, calendar: calendar)
-        for offset in [1, 2, 3, 4, 7] {
-            store.recordActiveDay(
+    @Test
+    func v1History_isRemovedByTheFirstWrite() throws {
+        let fixture = try makeFixture()
+        defer { fixture.cleanup() }
+        let v1Key = "pulpe.feedback-prompt.account-states"
+        fixture.defaults.set(Data("{}".utf8), forKey: v1Key)
+
+        fixture.store.recordActiveDay(for: "user", calendar: fixture.calendar)
+
+        #expect(fixture.defaults.object(forKey: v1Key) == nil)
+    }
+
+    private func recordActiveDays(
+        _ fixture: Fixture,
+        _ userID: String,
+        offsets: [Int],
+        from base: Date
+    ) throws {
+        for offset in offsets {
+            fixture.store.recordActiveDay(
                 for: userID,
-                now: try day(offset, after: base, calendar: calendar),
-                calendar: calendar
+                now: try day(offset, after: base, calendar: fixture.calendar),
+                calendar: fixture.calendar
             )
         }
-        return try day(7, after: base, calendar: calendar)
     }
 
     private func makeFixture(timeZoneID: String = "UTC") throws -> Fixture {

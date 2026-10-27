@@ -111,23 +111,20 @@ export class SupabaseTransactionImportRepository implements TransactionImportRep
     const supabase = this.supabaseProvider.client;
 
     try {
-      // RLS scopes the read to the caller's Réels; fingerprints are per-user
-      // anyway, so another account's row could never match.
+      // The ledger, not the Réels: a Réel spread, postponed or deleted after
+      // its import keeps its operation imported. RLS scopes the read to the
+      // caller's budgets; fingerprints are per-user anyway.
       const rows = await fetchRowsByParentIds(
         [...new Set(fingerprints)],
         (chunk, from, to) =>
           supabase
-            .from('transaction')
-            .select('id, import_fingerprint')
-            .in('import_fingerprint', chunk)
-            .order('id', { ascending: true })
+            .from('transaction_import_fingerprint')
+            .select('fingerprint')
+            .in('fingerprint', chunk)
+            .order('fingerprint', { ascending: true })
             .range(from, to),
       );
-      return new Set(
-        rows
-          .map((row) => row.import_fingerprint)
-          .filter((value): value is string => value !== null),
-      );
+      return new Set(rows.map((row) => row.fingerprint));
     } catch (cause) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,

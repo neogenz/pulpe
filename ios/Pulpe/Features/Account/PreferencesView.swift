@@ -5,9 +5,11 @@ struct PreferencesView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPayDayPicker = false
     @State private var remindersEnabled = ReminderPreferences().remindersEnabled
+    @State private var weeklyRecapEnabled = ReminderPreferences().weeklyRecapEnabled
     @State private var diagnosticSharingEnabled =
         AnalyticsService.shared.isDiagnosticSharingEnabled
     @State private var reminderTask: Task<Void, Never>?
+    @State private var weeklyRecapTask: Task<Void, Never>?
     @FocusState private var currencyConverterFocus: CurrencySettingView.ConverterField?
 
     private let reminderPrefs = ReminderPreferences()
@@ -35,11 +37,16 @@ struct PreferencesView: View {
             Section {
                 Toggle("Rappels mensuels", isOn: reminderBinding)
                     .tint(Color.pulpePrimary)
+                Toggle("Récap du lundi", isOn: weeklyRecapBinding)
+                    .tint(Color.pulpePrimary)
             } header: {
                 Text("RAPPELS")
                     .font(PulpeTypography.labelLarge)
             } footer: {
-                Text("Un rappel par mois, le jour de paie, pour pointer tes dépenses. Tu peux couper quand tu veux.")
+                Text("""
+                    Le jour de paie, ton nouveau mois. Le lundi matin, le récap \
+                    de ta semaine et ce qu'il te reste pour la suivante. Tu peux couper quand tu veux.
+                    """)
             }
             .listRowSettingsBackground()
 
@@ -93,6 +100,20 @@ struct PreferencesView: View {
         )
     }
 
+    /// Same latest-wins shape as `reminderBinding`.
+    private var weeklyRecapBinding: Binding<Bool> {
+        Binding(
+            get: { weeklyRecapEnabled },
+            set: { newValue in
+                weeklyRecapEnabled = newValue
+                weeklyRecapTask?.cancel()
+                weeklyRecapTask = Task(name: "PreferencesView.weeklyRecap") {
+                    await applyWeeklyRecapPreference(newValue)
+                }
+            }
+        )
+    }
+
     private var diagnosticSharingBinding: Binding<Bool> {
         Binding(
             get: { diagnosticSharingEnabled },
@@ -119,18 +140,11 @@ struct PreferencesView: View {
         guard !Task.isCancelled else { return }
         guard enabled else {
             reminderPrefs.setRemindersEnabled(false)
-            AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": false])
+            captureToggle(.monthly, enabled: false)
             await NotificationScheduler.shared.cancelMonthlyReminder()
             return
         }
-        let promptShown = await NotificationScheduler.shared.authorizationStatus() == .notDetermined
-        guard !Task.isCancelled else { return }  // don't fire the one-shot OS prompt for a toggle already superseded
-        let granted = await NotificationScheduler.shared.requestAuthorization()
-        if promptShown {
-            AnalyticsService.shared.capture(
-                granted ? .notificationPermissionGranted : .notificationPermissionDenied
-            )
-        }
+        let granted = await authorizeNotifications()
         guard !Task.isCancelled else { return }
         guard granted else {
             reminderPrefs.setRemindersEnabled(false)
@@ -138,23 +152,66 @@ struct PreferencesView: View {
             return
         }
         reminderPrefs.setRemindersEnabled(true)
-        AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
+        captureToggle(.monthly, enabled: true)
         // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
         // so the next foreground reschedule heals with the real pay-day.
         guard let payDay = userSettingsStore.payDayOfMonth else { return }
         await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
     }
 
-    /// Reconciles a stale ON toggle: if reminders were enabled but notifications have
-    /// since been revoked in iOS Settings, flip the toggle off so it never lies about
+    /// Same contract as `applyReminderPreference`. The recap needs budget figures, so a
+    /// fresh snapshot schedules it: the one taken on leaving the app is not guaranteed to
+    /// finish.
+    private func applyWeeklyRecapPreference(_ enabled: Bool) async {
+        guard !Task.isCancelled else { return }
+        guard enabled else {
+            reminderPrefs.setWeeklyRecapEnabled(false)
+            captureToggle(.weeklyRecap, enabled: false)
+            await NotificationScheduler.shared.cancelWeeklyRecaps()
+            return
+        }
+        let granted = await authorizeNotifications()
+        guard !Task.isCancelled else { return }
+        reminderPrefs.setWeeklyRecapEnabled(granted)
+        guard granted else {
+            weeklyRecapEnabled = false  // revert; direct write skips the binding setter
+            return
+        }
+        captureToggle(.weeklyRecap, enabled: true)
+        await WidgetDataSyncService.shared.syncAll()
+    }
+
+    private func captureToggle(_ reminder: NotificationScheduler.Reminder, enabled: Bool) {
+        AnalyticsService.shared.capture(
+            .reminderToggled, properties: ["enabled": enabled, "reminder": reminder.rawValue]
+        )
+    }
+
+    /// Fires the one-shot OS prompt, unless the toggle was already superseded: then
+    /// `false`, and the caller's cancellation check bails before touching anything.
+    /// Permission events only when the prompt actually resolved (see above).
+    private func authorizeNotifications() async -> Bool {
+        let promptShown = await NotificationScheduler.shared.authorizationStatus() == .notDetermined
+        guard !Task.isCancelled else { return false }
+        let granted = await NotificationScheduler.shared.requestAuthorization()
+        if promptShown {
+            AnalyticsService.shared.capture(
+                granted ? .notificationPermissionGranted : .notificationPermissionDenied
+            )
+        }
+        return granted
+    }
+
+    /// Reconciles stale ON toggles: if reminders were enabled but notifications have
+    /// since been revoked in iOS Settings, flip the toggles off so they never lie about
     /// reminders the system won't deliver. Silent — not a user action, no analytics.
     private func reconcileReminderState() async {
-        let wasEnabled = reminderPrefs.remindersEnabled
         let isAuthorized = await NotificationScheduler.shared.authorizationStatus() == .authorized
         remindersEnabled = reminderPrefs.reconcileAuthorization(isAuthorized: isAuthorized)
+        weeklyRecapEnabled = reminderPrefs.weeklyRecapEnabled
 
-        if wasEnabled, !remindersEnabled {
-            await NotificationScheduler.shared.cancelMonthlyReminder()
+        if !isAuthorized {
+            await NotificationScheduler.shared.cancelAllReminders()
         }
     }
 }

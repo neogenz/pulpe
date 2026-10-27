@@ -81,6 +81,18 @@
         "remaining": "left from %{amount}"
       },
       "deletedGoal": "This goal was deleted. The income remains in your budget.",
+      "deleteMonth": {
+        "action": "Delete this month",
+        "title": "Delete %{month}?",
+        "body": "Its planned items (%{forecastCount}) and its activity (%{movementCount}) will be deleted. This can't be undone.",
+        "links": "This month is also linked to other months or to a savings goal: %{links}. The other months keep their share.",
+        "linkSpread": "spread planned item (%{count})",
+        "linkGoal": "savings goal (%{count})",
+        "linkWithdrawal": "savings withdrawal (%{count})",
+        "confirm": "Delete",
+        "loadError": "The month's details couldn't be loaded. Try again.",
+        "failure": "The month couldn't be deleted. Try again."
+      },
       "filters": {
         "all": "All",
         "checked": "Checked off",
@@ -111,6 +123,7 @@
           "deficit": "You're spending more than you earn this month."
         }
       },
+      "inEnvelope": "In forecast %{name}",
       "loadErrorHint": "Check your connection, then try again.",
       "loadErrorTitle": "We couldn't load this budget",
       "missingHint": "It may have been deleted from another device.",
@@ -123,7 +136,8 @@
       "protectedTitle": "Protected budget",
       "search": "Search",
       "sections": {
-        "free": "Outside forecasts"
+        "free": "Outside forecasts",
+        "pointedAllocated": "Checked within a forecast"
       },
       "spread": "Spread",
       "status": {
@@ -338,7 +352,8 @@
       "yearSelector": "Choose the year",
       "ongoing": "ongoing",
       "notCreated": "No budget yet",
-      "createMonth": "Create the budget"
+      "createMonth": "Create the budget",
+      "monthDeleted": "Month deleted"
     },
     "plan": {
       "default": "default",
@@ -1315,8 +1330,11 @@
     },
     "repeatPin": "Enter it one more time",
     "setup": {
-      "subtitle": "%{count} digits — your amounts are encrypted with this code",
-      "title": "Choose your code"
+      "title": "Create your %{count}-digit code",
+      "subtitle": "It will protect your amounts.",
+      "confirmHint": "Enter the %{count} digits you just chose again.",
+      "mismatch": "This code is different from the first. Try again.",
+      "changeCode": "Change my code"
     },
     "unlock": {
       "biometric": "Unlock with biometrics",

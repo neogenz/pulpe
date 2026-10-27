@@ -41,16 +41,15 @@ export default async function EpargnerSalairePage() {
           OFS, ESS 2024
         </a>
         ), 10&nbsp;% du net, c’est déjà une ligne qui se voit. 20&nbsp;% est un
-        plafond confortable, pas une norme. Le taux d’épargne des ménages se
-        situe autour de 17,5 à 20&nbsp;% ; le quintile le plus bas reste sous
-        5&nbsp;% (OFS).
+        plafond confortable. Le taux d’épargne des ménages se situe autour de
+        17,5 à 20&nbsp;% ; le quintile le plus bas reste sous 5&nbsp;% (OFS).
       </p>
 
       <h2>Payer son épargne d’abord</h2>
       <p>
-        Le jour où le salaire arrive, tu vire le montant choisi. Ce qui reste
-        paie le quotidien. Inverser l’ordre — « j’épargne s’il reste quelque
-        chose » — revient à n’épargner que les mois trop calmes.
+        Le jour où le salaire arrive, tu vires le montant choisi. Ce qui reste
+        paie le quotidien. Inverser l’ordre (« j’épargne s’il reste quelque
+        chose ») revient à n’épargner que les mois trop calmes.
       </p>
       <p>
         Un ordre simple : fonds de secours (trois mois de dépenses), puis
@@ -69,9 +68,9 @@ export default async function EpargnerSalairePage() {
       <h2>Les primes sont une dépense fixe</h2>
       <p>
         Avant de viser 20&nbsp;%, pose la prime maladie. En 2026, la prime
-        moyenne, tous âges confondus, est à 393.30 CHF (OFSP). Ce n’est pas de
-        l’épargne. C’est une prévision, au même titre que le loyer. Un budget
-        qui « épargne 20&nbsp;% » en oubliant les primes ment sur le disponible.
+        moyenne, tous âges confondus, est à 393.30 CHF (OFSP). La prime se pose
+        comme une prévision, au même titre que le loyer. Un budget qui « épargne
+        20&nbsp;% » en oubliant les primes ment sur le disponible.
       </p>
 
       <h2>Si 10 % ne passe pas</h2>

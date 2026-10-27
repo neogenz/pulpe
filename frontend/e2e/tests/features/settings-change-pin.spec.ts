@@ -37,6 +37,7 @@ const submitOldPin = async (page: Page, pin: string): Promise<void> => {
 
 const submitNewPin = async (page: Page, pin: string): Promise<void> => {
   await page.getByTestId('change-pin-new-pin-input').fill(pin);
+  await page.getByTestId('change-pin-confirm-pin-input').fill(pin);
   await page.getByTestId('change-pin-submit-button').click();
 };
 
@@ -56,7 +57,9 @@ test.describe('Settings Change PIN', () => {
 
     // Step 2: enter new PIN → change-pin (mock returns 200 with recoveryKey)
     await expect(page.getByTestId('change-pin-new-pin-input')).toBeVisible();
-    await submitNewPin(page, VALID_NEW_PIN);
+    await page.getByTestId('change-pin-new-pin-input').fill(VALID_NEW_PIN);
+    await page.getByTestId('change-pin-confirm-pin-input').fill(VALID_NEW_PIN);
+    await page.getByTestId('change-pin-confirm-pin-input').press('Enter');
 
     // Recovery key dialog appears
     const recoveryDialog = page.getByTestId('recovery-key-dialog');

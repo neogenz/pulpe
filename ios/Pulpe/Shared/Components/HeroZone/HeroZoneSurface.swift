@@ -77,6 +77,8 @@ private struct HeroZoneModifier: ViewModifier {
                     )
                 }
                 .padding(.top, -DesignTokens.Layout.overscrollBleed)
+                // Under a side bar too (the closed iPhone Duo's vertical tab bar).
+                .ignoresSafeArea(edges: .horizontal)
             }
             // Only while scrolled past the top (negative minY): never pushes the hero up
             // into the bleed, so the overscroll region stays forest during a refresh.
@@ -86,23 +88,37 @@ private struct HeroZoneModifier: ViewModifier {
     }
 }
 
+extension EnvironmentValues {
+    /// Top corners of the content zone that meet a pane divider instead of the screen edge
+    /// (two panes side by side on the open iPhone Duo): drawn square, so the panes read as
+    /// one surface split in two rather than two cards curling toward each other.
+    @Entry var contentZoneSquareCorners: Edge.Set = []
+}
+
+/// The content zone's outline, for a pane that clips its own scrolling content to it.
+func contentZoneShape(squaring corners: Edge.Set) -> UnevenRoundedRectangle {
+    UnevenRoundedRectangle(
+        topLeadingRadius: corners.contains(.leading) ? 0 : DesignTokens.CornerRadius.zone,
+        topTrailingRadius: corners.contains(.trailing) ? 0 : DesignTokens.CornerRadius.zone,
+        style: .continuous
+    )
+}
+
 private struct ContentZoneModifier: ViewModifier {
     @State private var isHeroUnderBar = true
+    @Environment(\.contentZoneSquareCorners) private var squareCorners
 
     func body(content: Content) -> some View {
         content
             .frame(maxWidth: .infinity)
             .background {
-                UnevenRoundedRectangle(
-                    topLeadingRadius: DesignTokens.CornerRadius.zone,
-                    topTrailingRadius: DesignTokens.CornerRadius.zone,
-                    style: .continuous
-                )
+                contentZoneShape(squaring: squareCorners)
                 .fill(Color.appBackground)
                 .shadow(DesignTokens.Shadow.zoneBoundary)
                 // A short ledger still paints the canvas down past the screen edge, and the
                 // card's bottom edge (and its shadow) never comes into view.
                 .padding(.bottom, -DesignTokens.Layout.overscrollBleed)
+                .ignoresSafeArea(edges: .horizontal)
             }
             // The card's top edge, measured here rather than on the hero, whose parallax
             // offset would move it: the forest is under the bar until this edge reaches it.

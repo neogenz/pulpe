@@ -22,6 +22,32 @@ struct OnboardingStateTests {
     private static let allSuggestions: [OnboardingTransaction] =
         OnboardingState.chargeSuggestions + OnboardingState.savingSuggestions(for: .chf)
 
+    @Test func backgroundPause_keepsOnboardingActiveAcrossResumes() throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.currentStep = .income
+        state.monthlyIncome = 3000
+        var sent: [(event: AnalyticsEvent, properties: [String: Any])] = []
+        let record = { (event: AnalyticsEvent, properties: [String: Any]) in sent.append((event, properties)) }
+
+        state.capturePaused(send: record)
+        state.capturePaused(send: record)
+
+        // One pause per background, and a background never counts as an abandon.
+        let events = sent.map(\.event)
+        #expect(events == [.onboardingPaused, .onboardingPaused])
+        let properties = try #require(sent.first?.properties)
+        #expect(properties["last_step"] as? String == "income")
+        #expect(properties["pause_method"] as? String == "background")
+        #expect(properties["was_authenticated"] as? Bool == false)
+        #expect(properties["auth_method"] as? String == "email")
+        #expect(!state.hasAbandoned)
+        #expect(!state.hasCompleted)
+        #expect(state.currentStep == .income)
+        state.nextStep()
+        #expect(state.currentStep == .charges)
+    }
+
     // MARK: - canProceed: Required Steps
 
     @Test

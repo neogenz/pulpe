@@ -44,6 +44,10 @@ test.describe('Current Month Transactions', () => {
     authenticatedPage,
     currentMonthPage,
   }) => {
+    await authenticatedPage.route(
+      '**/api/v1/savings-goals/withdrawal-options',
+      (route) => route.fulfill({ json: { success: true, data: [] } }),
+    );
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       const response = createBudgetDetailsMock(budgetId, {
         budget: { rollover: 0, month: currentMonth, year: currentYear },
@@ -63,6 +67,7 @@ test.describe('Current Month Transactions', () => {
 
     for (const viewport of [
       { width: 600, height: 900, expectedSurface: 'dialog' },
+      { width: 767, height: 900, expectedSurface: 'dialog' },
       { width: 768, height: 1024, expectedSurface: 'dialog' },
       { width: 1440, height: 900, expectedSurface: 'dialog' },
       { width: 390, height: 844, expectedSurface: 'bottom-sheet' },
@@ -105,13 +110,77 @@ test.describe('Current Month Transactions', () => {
         .evaluate((element) =>
           getComputedStyle(element).gridTemplateColumns.split(' '),
         );
-      expect(formColumns).toHaveLength(
-        viewport.expectedSurface === 'dialog' ? 2 : 1,
-      );
+      expect(formColumns).toHaveLength(viewport.width >= 768 ? 2 : 1);
+
+      const checked = surface.getByRole('switch', { name: 'Déjà pointé' });
+      for (const kind of ['Dépense', 'Revenu']) {
+        await surface.getByTestId('transaction-type-select').click();
+        await authenticatedPage.getByRole('option', { name: kind }).click();
+        await expect(authenticatedPage.getByRole('listbox')).toBeHidden();
+        await checked.scrollIntoViewIfNeeded();
+
+        const [descriptionBox, hintBox, toggleBox, formBox] = await Promise.all(
+          [
+            surface.getByTestId('transaction-description-input').boundingBox(),
+            surface
+              .getByText('Le montant est déjà passé sur ton compte.')
+              .boundingBox(),
+            checked.boundingBox(),
+            surface.getByTestId('transaction-form').boundingBox(),
+          ],
+        );
+        if (!descriptionBox || !hintBox || !toggleBox || !formBox) {
+          throw new Error('Checked row geometry is unavailable');
+        }
+        expect(Math.abs(hintBox.x - descriptionBox.x)).toBeLessThan(20);
+        expect(
+          toggleBox.x - (hintBox.x + hintBox.width),
+        ).toBeGreaterThanOrEqual(8);
+        expect(toggleBox.x + toggleBox.width).toBeLessThanOrEqual(
+          formBox.x + formBox.width,
+        );
+        if (kind === 'Revenu') {
+          const savings = surface.getByRole('switch', {
+            name: "Ce revenu vient d'un objectif d'épargne",
+          });
+          const [savingsBox, savingsHintBox] = await Promise.all([
+            savings.boundingBox(),
+            surface
+              .getByText("Le montant sera retiré de l'objectif choisi.")
+              .boundingBox(),
+          ]);
+          if (!savingsBox || !savingsHintBox)
+            throw new Error('Savings switch geometry is unavailable');
+          expect(Math.abs(savingsBox.x - toggleBox.x)).toBeLessThanOrEqual(1);
+          expect(Math.abs(savingsHintBox.x - hintBox.x)).toBeLessThanOrEqual(1);
+          await savings.click();
+          await expect(savings).toBeChecked();
+          await savings.click();
+          await expect(savings).not.toBeChecked();
+          await authenticatedPage.keyboard.press('Tab');
+          await expect(checked).toBeFocused();
+        }
+        await expect(checked).toBeChecked();
+        await checked.click();
+        await expect(checked).not.toBeChecked();
+        await checked.press('Space');
+        await expect(checked).toBeChecked();
+      }
 
       const submit = surface.getByTestId('transaction-submit-button');
       await expect(submit).toBeInViewport();
-
+      const scrollOwner = authenticatedPage.locator(
+        viewport.expectedSurface === 'dialog'
+          ? 'mat-dialog-content'
+          : 'mat-bottom-sheet-container',
+      );
+      const { scrollWidth, clientWidth } = await scrollOwner.evaluate(
+        (element) => ({
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        }),
+      );
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
       await surface.getByTestId('transaction-cancel-button').click();
       await expect(surface).toBeHidden();
     }

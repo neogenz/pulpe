@@ -63,6 +63,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 import { dateFnsLocaleFor } from '@core/locale';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+
 import { firstValueFrom } from 'rxjs';
 
 // Longer than the plain notification below: this toast is not read, it is

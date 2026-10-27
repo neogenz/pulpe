@@ -5,6 +5,7 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 export interface ConfirmationDialogData {
   title: string;
@@ -17,12 +18,14 @@ export interface ConfirmationDialogData {
 @Component({
   selector: 'pulpe-confirmation-dialog',
   host: { 'data-testid': 'confirmation-dialog' },
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [MatDialogModule, MatButtonModule, TranslocoPipe],
   template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
+    <h2 mat-dialog-title class="ph-no-capture">{{ data.title }}</h2>
 
     <mat-dialog-content>
-      <p class="text-body-large text-on-surface">{{ data.message }}</p>
+      <p class="ph-no-capture text-body-large text-on-surface">
+        {{ data.message }}
+      </p>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" class="gap-2">
@@ -31,7 +34,7 @@ export interface ConfirmationDialogData {
         (click)="onCancel()"
         data-testid="confirmation-cancel-button"
       >
-        {{ data.cancelText || 'Annuler' }}
+        {{ data.cancelText || ('common.cancel' | transloco) }}
       </button>
       <button
         matButton="filled"
@@ -39,7 +42,7 @@ export interface ConfirmationDialogData {
         (click)="onConfirm()"
         data-testid="confirmation-confirm-button"
       >
-        {{ data.confirmText || 'Confirmer' }}
+        {{ data.confirmText || ('common.confirm' | transloco) }}
       </button>
     </mat-dialog-actions>
   `,

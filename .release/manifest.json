@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.51.1",
-  "githubReleaseNotes": "## v0.51.1\n\n### Technique\n\n- **Soumission de l’app iOS 1.7.0** — La 0.51.0 n’a pas pu soumettre l’app iOS à l’App Store : la chaîne de publication ne parvenait pas à s’authentifier auprès d’App Store Connect. Cette version corrige cette authentification et soumet le build 2 de la 1.7.0, qui porte le contenu exact de la 0.51.0. Rien d’autre ne change : ni la webapp, ni le site, ni l’API.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.57.0",
+  "githubReleaseNotes": "## v0.57.0\n\n### Nouveautés\n\n- **Pulpe s’adapte à l’iPhone Duo** — Ouvert, l’écran intérieur affiche tes mois, objectifs et modèles à côté de leur détail, et la page ouverte reste à l’écran quand tu plies ou déplies.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }

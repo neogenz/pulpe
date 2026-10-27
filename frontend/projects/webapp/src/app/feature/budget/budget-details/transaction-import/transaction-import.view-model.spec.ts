@@ -14,7 +14,6 @@ import {
   buildAttachmentViews,
   buildPlanSummary,
   buildStatusSummary,
-  compatibleBudgetLines,
   countPendingSuggestions,
   decisionFor,
   emptyAttachmentDecisions,
@@ -299,11 +298,11 @@ describe('transaction import view model', () => {
 
     describe('kind compatibility', () => {
       it('should offer only Revenus to money in', () => {
+        const groups = buildAttachmentOptions({ kind: 'income' }, budgetLines);
+
         expect(
-          compatibleBudgetLines({ kind: 'income' }, budgetLines).map(
-            (line) => line.id,
-          ),
-        ).toEqual([SALARY_ID]);
+          groups.map((group) => [group.kind, group.lines.map((l) => l.id)]),
+        ).toEqual([['income', [SALARY_ID]]]);
       });
 
       it('should offer Dépenses and Épargnes to money out, grouped by kind', () => {
@@ -407,7 +406,7 @@ describe('transaction import view model', () => {
     });
 
     describe('buildAttachmentViews', () => {
-      it('should show a pending suggestion with its reasons', () => {
+      it('should show a pending suggestion with its reasons, kind left out', () => {
         const views = buildAttachmentViews(
           empty,
           [suggested(1, RENT_ID)],
@@ -417,10 +416,7 @@ describe('transaction import view model', () => {
         expect(views.get(1)).toMatchObject({
           state: 'suggested',
           line: rent,
-          reasonKeys: [
-            'transactionImport.attachment.reason.kind',
-            'transactionImport.attachment.reason.amount',
-          ],
+          reasonKeys: ['transactionImport.attachment.reason.amount'],
         });
       });
 

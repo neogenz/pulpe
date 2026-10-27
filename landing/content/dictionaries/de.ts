@@ -6,14 +6,14 @@ import type { Dictionary } from "../dictionary";
 // die Kurzform. Produktbegriffe folgen dem Lexikon in `docs/I18N.md`.
 const de: Dictionary = {
   site: {
-    titleDefault: "Pulpe – Budget-App | Plane dein Jahr, sieh, was dir bleibt",
+    titleDefault: "Pulpe: Budget-App | Plane dein Jahr, sieh, was dir bleibt",
     titleTemplate: "%s | Pulpe",
     description:
-      "Eine Budget-App, um Einnahmen, Ausgaben und Sparen zu planen. Pulpe zeigt dir, was dir jeden Monat bleibt — ohne Bankverbindung.",
+      "Eine Budget-App, um Einnahmen, Ausgaben und Sparen zu planen. Pulpe zeigt dir, was dir jeden Monat bleibt, ohne Bankverbindung.",
     socialImageAlt:
       "Pulpe projiziert dein Budget über das Jahr und zeigt, was dir bleibt",
     graphDescription:
-      "Pulpe ist eine Budget-App, um dein Jahr zu planen — ohne Bankverbindung.",
+      "Pulpe ist eine Budget-App, um dein Jahr zu planen, ohne Bankverbindung.",
     featureList: [
       "Jahresplanung",
       "Verfügbar zum Ausgeben jeden Monat",
@@ -127,7 +127,7 @@ const de: Dictionary = {
             " Einnahmen bleiben nach 1’600 wiederkehrenden Ausgaben und 500 Sparen jeden Monat 1’400 verfügbar",
         },
         year: {
-          title: "Setze ein, was sich ändert",
+          title: "Plane einmalige Ausgaben ein",
           description:
             "Trage Steuern, Ferien und grosse Anschaffungen in den Monaten ein, in denen sie anfallen.",
           captionLead: "Dein Jahr: zwölf Monate mit 1’400 ",
@@ -223,7 +223,7 @@ const de: Dictionary = {
     },
 
     platforms: {
-      heading: "Dein Budget folgt dir. Nicht umgekehrt.",
+      heading: "Dein Budget ist überall dabei.",
       intro:
         "Auf dem iPhone oder im Browser findest du dasselbe Jahr und dieselben Zahlen.",
       ios: {
@@ -248,9 +248,9 @@ const de: Dictionary = {
     whyFree: {
       portraitAlt: "Maxime, der Entwickler von Pulpe",
       eyebrow: "Eine Notiz vom Entwickler",
-      heading: "Ich brauchte ein Budget, das nach vorne schaut.",
+      heading: "Ich brauchte den Blick auf die kommenden Monate.",
       paragraphs: [
-        "Ich habe Pulpe gebaut, nachdem ich viel zu viel Zeit damit verbracht hatte, meine Tabellen aktuell zu halten. Ich wollte wissen, was eine Entscheidung in den folgenden Monaten ändert — nicht nur verstehen, wohin mein Geld geflossen war.",
+        "Ich habe Pulpe gebaut, nachdem ich viel zu viel Zeit damit verbracht hatte, meine Tabellen aktuell zu halten. Ich wollte wissen, was eine Entscheidung in den folgenden Monaten ändert, statt nur zu verstehen, wohin mein Geld geflossen war.",
         "Das Projekt ist heute gratis, ohne Werbung und ohne Abo. Sein Code bleibt öffentlich, damit du nachprüfen kannst, wie er arbeitet.",
       ],
       signature: "Maxime, der Entwickler von Pulpe",
@@ -272,7 +272,7 @@ const de: Dictionary = {
     },
 
     faq: {
-      heading: "Die Fragen, die mir am häufigsten gestellt werden.",
+      heading: "Häufige Fragen.",
       items: [
         {
           question: "Ist Pulpe eine Budget-App?",
@@ -340,12 +340,12 @@ const de: Dictionary = {
       title: "Pulpe mit einem KI-Assistenten verbinden",
       text: "Schliess ChatGPT, Claude oder Claude Code an dein Budget an, nur lesend oder mit dem Recht zu schreiben.",
     },
-    faqHeading: "Die Fragen, die mir am häufigsten gestellt werden.",
+    faqHeading: "Häufige Fragen.",
     faq: {
       purpose: {
         question: "Wozu dient Pulpe konkret?",
         answer:
-          "Du legst dein Jahr einmal an und passt es danach laufend an. Wenn du eine Ausgabe verschiebst, Sparen umleitest oder ein Vorhaben vertagst, siehst du, was das an den folgenden Monaten ändert — ohne von vorne zu beginnen.",
+          "Du legst dein Jahr einmal an und passt es danach laufend an. Wenn du eine Ausgabe verschiebst, Sparen umleitest oder ein Vorhaben vertagst, siehst du, was das an den folgenden Monaten ändert, ohne von vorne zu beginnen.",
       },
       excel: {
         question: "Warum Pulpe statt Excel?",
@@ -407,7 +407,7 @@ const de: Dictionary = {
   guide: {
     metaTitle: "Vorlage oder Budget: Was musst du ändern?",
     metaDescription:
-      "Den Unterschied zwischen einer Vorlage und einem Monatsbudget in Pulpe verstehen — und wissen, was du auf dem iPhone änderst.",
+      "Den Unterschied zwischen einer Vorlage und einem Monatsbudget in Pulpe verstehen und wissen, was du auf dem iPhone änderst.",
     backToSupport: "Hilfe",
     eyebrow: "Vorlagen und Budgets",
     heading: "Vorlage oder Budget: Was musst du ändern?",
@@ -476,7 +476,7 @@ const de: Dictionary = {
       intro:
         "Frage ChatGPT oder Claude nach deinem Monat, finde eine Ausgabe oder bitte den Assistenten, sie in Pulpe einzutragen.",
       cta: "Verbindung entdecken",
-      examplesTitle: "Was du fragen kannst",
+      examplesTitle: "Beispielfragen",
       examples: [
         "Wie viel kann ich diesen Monat noch ausgeben?",
         "Finde meine Lebensmitteleinkäufe.",

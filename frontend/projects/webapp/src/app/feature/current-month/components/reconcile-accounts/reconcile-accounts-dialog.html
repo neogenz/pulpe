@@ -44,34 +44,33 @@
         role="group"
         [attr.aria-label]="'currentMonth.reconcile.accounts.numbered' | transloco: { index: index + 1 }"
       >
-        <div class="account-header flex items-center justify-between h-9 mb-2">
-          @if (index === 0) {
-          <span class="account-number text-sm font-semibold"
-            >{{ 'currentMonth.reconcile.accounts.numbered' | transloco: { index:
-            index + 1 } }}</span
+        <div class="account-header flex items-start gap-1 mb-3">
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="ph-no-capture flex-1 min-w-0"
           >
-          } @else {
-          <label class="account-label ph-no-capture block flex-1 min-w-0 m-0">
-            <span class="sr-only"
+            <mat-label
               >{{ 'currentMonth.reconcile.accounts.accountName' | transloco
-              }}</span
+              }}</mat-label
             >
             <input
               #labelInput
-              class="account-name-input"
+              matInput
               autocomplete="off"
               maxlength="60"
-              [placeholder]="'currentMonth.reconcile.accounts.accountName' | transloco"
+              [placeholder]="'currentMonth.reconcile.accounts.numbered' | transloco: { index: index + 1 }"
               [ngModel]="account.label"
               (ngModelChange)="updateAccount(account.id, { label: $event })"
               (keydown.enter)="addAccountFromKeyboard($event)"
               data-testid="reconcile-label-input"
             />
-          </label>
+          </mat-form-field>
+          @if (index > 0) {
           <button
             matIconButton
             type="button"
-            class="remove-account -mr-2"
+            class="remove-account mt-1 -mr-2"
             [attr.aria-label]="'currentMonth.reconcile.accounts.removeNumbered' | transloco: { index: index + 1 }"
             [matTooltip]="'currentMonth.reconcile.accounts.removeNumbered' | transloco: { index: index + 1 }"
             (click)="removeAccount(account.id)"
@@ -113,21 +112,14 @@
             }}</mat-error
           >
         </mat-form-field>
-        <button
-          matButton
-          type="button"
-          class="overdraft-toggle"
-          [attr.aria-pressed]="account.isNegative"
-          [class.is-negative]="account.isNegative"
-          [attr.aria-label]="'currentMonth.reconcile.accounts.negative' | transloco"
-          (click)="toggleNegative(account.id)"
-          data-testid="reconcile-negative-toggle"
+        <mat-checkbox
+          class="mt-1 -ml-2"
+          [checked]="account.isNegative"
+          (change)="toggleNegative(account.id)"
+          data-testid="reconcile-overdraft-checkbox"
         >
-          <mat-icon aria-hidden="true"
-            >{{ account.isNegative ? 'check' : 'remove' }}</mat-icon
-          >
-          {{ 'currentMonth.reconcile.accounts.overdraft' | transloco }}
-        </button>
+          {{ 'currentMonth.reconcile.accounts.negative' | transloco }}
+        </mat-checkbox>
       </div>
       }
     </div>

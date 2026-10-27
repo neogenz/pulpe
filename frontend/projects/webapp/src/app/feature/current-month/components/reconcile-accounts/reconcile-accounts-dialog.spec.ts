@@ -189,7 +189,7 @@ describe('ReconcileAccountsDialog', () => {
       );
 
       await view.click(view.byTestId('reconcile-add-account-button'));
-      await view.type(view.allByTestId('reconcile-label-input')[0], 'Épargne');
+      await view.type(view.allByTestId('reconcile-label-input')[1], 'Épargne');
       await view.type(view.allByTestId('reconcile-amount-input')[1], '-250.5');
       expect(view.byTestId('reconcile-total')?.textContent).toContain('749.50');
 
@@ -201,7 +201,7 @@ describe('ReconcileAccountsDialog', () => {
 
       expect(view.allByTestId('reconcile-amount-input')).toHaveLength(3);
       expect(document.activeElement).toBe(
-        view.allByTestId('reconcile-label-input')[1],
+        view.allByTestId('reconcile-label-input')[2],
       );
       expect(view.byTestId('reconcile-accounts-step')).not.toBeNull();
       expect(view.data.recordAdjustment).not.toHaveBeenCalled();
@@ -211,7 +211,7 @@ describe('ReconcileAccountsDialog', () => {
       const view = await setup();
       await view.type(view.byTestId('reconcile-amount-input'), '1000');
       await view.click(view.byTestId('reconcile-add-account-button'));
-      await view.type(view.allByTestId('reconcile-label-input')[0], 'Épargne');
+      await view.type(view.allByTestId('reconcile-label-input')[1], 'Épargne');
       await view.type(view.allByTestId('reconcile-amount-input')[1], '300');
       await view.click(view.byTestId('reconcile-add-account-button'));
 
@@ -234,7 +234,7 @@ describe('ReconcileAccountsDialog', () => {
     it('should keep a typed account name out of everything session replay records', async () => {
       const view = await setup();
       await view.click(view.byTestId('reconcile-add-account-button'));
-      const label = view.byTestId('reconcile-label-input');
+      const label = view.allByTestId('reconcile-label-input')[1];
       await view.type(label, PRIVATE_ACCOUNT_NAME);
 
       expect(label?.closest('.ph-no-capture')).not.toBeNull();
@@ -247,17 +247,19 @@ describe('ReconcileAccountsDialog', () => {
       ).toBe('Retirer le compte 2');
     });
 
-    it('should take an overdraft through the sign toggle and refuse an unreadable amount', async () => {
+    it('should take an overdraft through the overdraft checkbox and refuse an unreadable amount', async () => {
       const view = await setup();
       const amount = view.byTestId<HTMLInputElement>('reconcile-amount-input');
       await view.type(amount, '80');
 
-      const toggle = view.byTestId('reconcile-negative-toggle');
-      expect(toggle?.getAttribute('aria-pressed')).toBe('false');
-      await view.click(toggle);
+      const checkbox = view
+        .byTestId('reconcile-overdraft-checkbox')
+        ?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+      expect(checkbox?.checked).toBe(false);
+      await view.click(checkbox);
 
       expect(amount?.value).toBe('-80');
-      expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+      expect(checkbox?.checked).toBe(true);
       expect(view.byTestId('reconcile-total')?.textContent).toContain('-80.00');
 
       await view.click(view.byTestId('reconcile-add-account-button'));
@@ -369,7 +371,7 @@ describe('ReconcileAccountsDialog', () => {
       const view = await setup();
       await view.type(view.byTestId('reconcile-amount-input'), '1500');
       await view.click(view.byTestId('reconcile-add-account-button'));
-      await view.type(view.allByTestId('reconcile-label-input')[0], 'Joint');
+      await view.type(view.allByTestId('reconcile-label-input')[1], 'Joint');
       await view.type(view.allByTestId('reconcile-amount-input')[1], '-20');
       await view.click(view.byTestId('reconcile-next-button'));
 
@@ -380,7 +382,7 @@ describe('ReconcileAccountsDialog', () => {
         .map((input) => input.value);
       expect(amounts).toEqual(['1500', '-20']);
       expect(
-        view.byTestId<HTMLInputElement>('reconcile-label-input')?.value,
+        view.allByTestId<HTMLInputElement>('reconcile-label-input')[1]?.value,
       ).toBe('Joint');
       expect(view.dialogRef.close).not.toHaveBeenCalled();
     });

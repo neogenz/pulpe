@@ -17,6 +17,8 @@ enum AnalyticsEvent: String, CaseIterable {
     case signupStarted = "signup_started"
     case signupCompleted = "signup_completed"
     case onboardingStepCompleted = "onboarding_step_completed"
+    /// Backgrounding pauses the flow without marking it abandoned.
+    case onboardingPaused = "onboarding_paused"
     case onboardingAbandoned = "onboarding_abandoned"
     /// Fires when an email user cold-starts an in-progress signup after
     /// killing or backgrounding the app. Source disambiguates the pending-user
@@ -70,8 +72,12 @@ enum AnalyticsEvent: String, CaseIterable {
     case notificationPrimeShown = "notification_prime_shown"
     case notificationPermissionGranted = "notification_permission_granted"
     case notificationPermissionDenied = "notification_permission_denied"
-    /// Fires when the "Rappels" preference toggle changes. Property `enabled` (Bool).
+    /// Fires when a reminder preference changes. Properties `enabled` (Bool) and `reminder`
+    /// (`NotificationScheduler.Reminder`); events before the weekly recap carry no
+    /// `reminder` and are all `monthly`.
     case reminderToggled = "reminder_toggled"
+    /// Fires when a tap on a delivered reminder opens the app. Property `reminder`.
+    case reminderOpened = "reminder_opened"
 
     // MARK: - What's New
     /// Fires when the post-update release-notes dialog is shown. Property:
@@ -98,4 +104,12 @@ enum AnalyticsEvent: String, CaseIterable {
     case savingsGoalsIntroViewed = "savings_goals_intro_viewed"
     case savingsGoalsIntroCompleted = "savings_goals_intro_completed"
     case savingsGoalsIntroSkipped = "savings_goals_intro_skipped"
+
+    // MARK: - Feedback
+    /// `viewed` fires on open, then exactly one of `submitted` or `cancelled`.
+    /// Properties: `source` (`automatic` | `settings`), `prompt_number` for `automatic`.
+    /// `submitted` adds `rating`, `has_comment`, `has_details`. Never the comment.
+    case feedbackViewed = "feedback_viewed"
+    case feedbackSubmitted = "feedback_submitted"
+    case feedbackCancelled = "feedback_cancelled"
 }

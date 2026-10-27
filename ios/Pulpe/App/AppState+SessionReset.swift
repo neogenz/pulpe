@@ -267,7 +267,7 @@ extension AppState {
         ReminderPreferences().reset()
         PostOnboardingFlagsStore().reset()
         MonthRecapFlagsStore().reset()
-        await NotificationScheduler.shared.cancelMonthlyReminder()
+        await NotificationScheduler.shared.cancelAllReminders()
         clearManualBiometricRetryRequiredFlag()
         await biometric.disable()
         // Account deletion / signup abandon → revoke JWT server-side so a
@@ -361,6 +361,7 @@ extension AppState {
         if scope.clearsNavigation {
             currentMonthPath = NavigationPath()
             budgetPath = NavigationPath()
+            budgetSelection = nil
             savingsGoalsPath = NavigationPath()
             templatePath = NavigationPath()
             selectedTab = .currentMonth
@@ -368,7 +369,8 @@ extension AppState {
         // Tout scope aboutit à `.unauthenticated` : le solde caché dans l'app
         // group vit HORS du périmètre PIN et ne doit survivre à aucune fin de
         // session — expiration comprise, pas seulement le logout explicite.
-        widgetSyncing.clearAndReload()
+        // Les récaps du lundi figent les mêmes montants : la purge les annule aussi.
+        widgetSyncing.purgeDataOutsidePin()
         if scope.setsManualBiometricRetry {
             setManualBiometricRetryRequiredFlag(true)
         }

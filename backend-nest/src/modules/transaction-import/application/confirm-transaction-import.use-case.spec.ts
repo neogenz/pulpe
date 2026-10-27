@@ -19,10 +19,7 @@ import { PreviewTransactionImportUseCase } from './preview-transaction-import.us
 import { ConfirmTransactionImportUseCase } from './confirm-transaction-import.use-case';
 
 const sample = readFileSync(
-  join(
-    import.meta.dir,
-    '../infrastructure/parsers/__fixtures__/camt053-001-04.xml',
-  ),
+  join(__dirname, '../infrastructure/parsers/__fixtures__/camt053-001-04.xml'),
   'utf8',
 );
 
@@ -238,6 +235,29 @@ describe('PreviewTransactionImportUseCase', () => {
     ]);
   });
 
+  it('creates distinct credits that share an NtryRef (Swiss QR payments)', async () => {
+    const credit = (amount: string, detailRef: string) => `<Ntry>
+      <NtryRef>CH4431999123000889012</NtryRef>
+      <Amt Ccy="CHF">${amount}</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+      <BookgDt><Dt>2026-03-02</Dt></BookgDt><AddtlNtryInf>Paiement QR</AddtlNtryInf>
+      <NtryDtls><TxDtls>
+        <Refs><AcctSvcrRef>${detailRef}</AcctSvcrRef></Refs>
+      </TxDtls></NtryDtls>
+    </Ntry>`;
+    const qrCredits = `<?xml version="1.0"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.04">
+  <BkToCstmrStmt><Stmt>
+    <Acct><Id><IBAN>CH11</IBAN></Id></Acct>
+    ${credit('120.00', 'DETAIL-1')}${credit('80.00', 'DETAIL-2')}
+  </Stmt></BkToCstmrStmt>
+</Document>`;
+    const { preview } = setup();
+
+    const result = await preview.execute(qrCredits, BUDGET_ID);
+
+    expect(result.operations.map((op) => op.status)).toEqual(['new', 'new']);
+  });
+
   it('flags an unknown format without guessing', async () => {
     const { preview } = setup();
 
@@ -388,6 +408,26 @@ describe('ConfirmTransactionImportUseCase', () => {
     });
     expect(ctx.repo.insertAll).not.toHaveBeenCalled();
     expect(ctx.recalculation.recalculate).not.toHaveBeenCalled();
+  });
+
+  it('still skips an imported operation once its Réel is spread or deleted', async () => {
+    // "Already imported" reads the fingerprint ledger the import writes, not
+    // the Réels. That the ledger outlives a deleted Réel is proven against
+    // Postgres in supabase/tests/transaction_import_fingerprint_ledger.sql.
+    ctx = setup();
+    const ledger = new Set<string>();
+    ctx.repo.insertAll.mockImplementation(async (_budgetId, planned) => {
+      planned.forEach((entry) => ledger.add(entry.fingerprint));
+    });
+    ctx.repo.findImportedFingerprints.mockImplementation(
+      async (fingerprints) =>
+        new Set(fingerprints.filter((fp) => ledger.has(fp))),
+    );
+    await ctx.confirm.execute(sample, BUDGET_ID, [], user);
+
+    const result = await ctx.preview.execute(sample, BUDGET_ID);
+
+    expect(result.operations[0].status).toBe('already_imported');
   });
 
   it('lets a concurrent-import conflict through untouched', async () => {

@@ -15,9 +15,11 @@ final class BudgetDetailsCoordinator {
     let syncStore: SyncStateStore
     let mutationQueue: MutationQueue
 
-    @ObservationIgnored private let budgetService: any BudgetServicing
+    @ObservationIgnored let budgetService: any BudgetServicing
     @ObservationIgnored let budgetLineService: any BudgetLineServicing
     @ObservationIgnored let transactionService: any TransactionServicing
+    /// True while a month deletion is on the wire, so a second confirm sends no second DELETE.
+    @ObservationIgnored var isDeletingMonth = false
 
     init(
         budgetId: String,
@@ -45,6 +47,7 @@ final class BudgetDetailsCoordinator {
         if await dispatchBudgetLineMutation(action) { return }
         if await dispatchTransactionMutation(action) { return }
         if await dispatchPostpone(action) { return }
+        if await dispatchMonthDeletion(action) { return }
         await dispatchSideEffect(action)
     }
 
@@ -132,17 +135,6 @@ final class BudgetDetailsCoordinator {
         return true
     }
 
-    private func dispatchSideEffect(_ action: BudgetDetailsAction) async {
-        switch action {
-        case .showCheckToastIfNeeded(let line, let ctx, let amountsHidden):
-            showCheckToastIfNeeded(for: line, context: ctx, amountsHidden: amountsHidden)
-        case .resetCheckAllState:
-            syncStore.resetCheckAllState()
-        default:
-            break
-        }
-    }
-
     // MARK: - Loading
 
     /// Full load: budget details + all-budgets list (initial load / pull-to-refresh).
@@ -176,8 +168,9 @@ final class BudgetDetailsCoordinator {
             // Strip rows pending soft-deletion — the server still has them (PUL-271).
             dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
             dataStore.applyAllBudgets(budgets)
-        } catch is CancellationError {
-            // Task was cancelled, don't update error state
+        } catch where error.isCancellationOrURLCancellation {
+            // Leaving the month cancels its request; URLSession reports that as a network
+            // error, which would flash « Connexion impossible » over the next month's load.
         } catch {
             syncStore.setError(error)
         }
@@ -197,8 +190,9 @@ final class BudgetDetailsCoordinator {
             let details = try await budgetService.getBudgetWithDetails(id: dataStore.budgetId)
             // Strip rows pending soft-deletion — the server still has them (PUL-271).
             dataStore.applyDetails(filteringPendingSoftDeletions(from: details), ifGenerationMatches: generation)
-        } catch is CancellationError {
-            // Task was cancelled, don't update error state
+        } catch where error.isCancellationOrURLCancellation {
+            // Leaving the month cancels its request; URLSession reports that as a network
+            // error, which would flash « Connexion impossible » over the next month's load.
         } catch {
             syncStore.setError(error)
         }
@@ -213,12 +207,12 @@ final class BudgetDetailsCoordinator {
         return await performToggleBudgetLine(line)
     }
 
-    /// Returns false after presenting the linked-movements alert when confirmation is required.
+    /// Returns false after presenting the linked-movements alert (never on an announced withdrawal).
     func prepareToggleBudgetLine(_ line: BudgetLine) -> Bool {
         guard !(line.isRollover ?? false) else { return false }
         guard !syncStore.isSyncing(lineId: line.id) else { return false }
 
-        if !line.isChecked,
+        if !line.isChecked, !line.isPlannedSavingsWithdrawal,
            dataStore.transactions.contains(where: {
                 $0.budgetLineId == line.id && !$0.isChecked
            }) {

@@ -1,9 +1,16 @@
 # Dependency security
 
-Run `pnpm deps:check` after changing the Android dependency graph and
-`pnpm audit` after refreshing the lockfile. Expo-compatible packages stay on the
-versions reported by `expo install --check`; transitive fixes are accepted only
-when their declared semver ranges allow them.
+Run `pnpm deps:check` and `pnpm deps:check:expo` after changing the Android
+dependency graph, and `pnpm audit` after refreshing the lockfile. Expo-compatible
+packages stay on the versions reported by `expo install --check`; transitive
+fixes are accepted only when their declared semver ranges allow them.
+
+`expo install --check` compares against what Expo publishes today, so it is not
+a PR gate: a new SDK patch would turn every PR red without any change on its
+side. `.github/workflows/expo-drift.yml` runs it daily instead: on drift it
+applies `expo install --fix` and opens (or refreshes) the
+`bot/expo-patch-alignment` PR, which auto-merges once the regular PR CI is
+green.
 
 Reviewed on 2026-08-27: `expo install --fix` aligned the SDK 57 patch levels,
 `expo-doctor` passes 21/21, `pnpm deps:check` exits 0.

@@ -119,10 +119,10 @@ final class MockAppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
 // MARK: - Mock WidgetSync
 
 final class MockWidgetSync: WidgetSyncing, @unchecked Sendable {
-    let clearAndReloadCalled = AtomicFlag()
+    let purgeDataOutsidePinCalled = AtomicFlag()
 
-    func clearAndReload() {
-        clearAndReloadCalled.set()
+    func purgeDataOutsidePin() {
+        purgeDataOutsidePinCalled.set()
     }
 }
 

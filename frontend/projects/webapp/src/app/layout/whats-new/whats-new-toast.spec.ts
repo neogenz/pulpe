@@ -9,6 +9,7 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TranslocoService } from '@jsverse/transloco';
 import { SUPPORTED_LOCALES, type SupportedLocale } from 'pulpe-shared';
 import { LATEST_RELEASE } from './whats-new-releases';
+import { WHATS_NEW_ANNOUNCING } from '@core/feedback/feedback-prompt';
 
 describe('WhatsNewToast', () => {
   let fixture: ComponentFixture<WhatsNewToast>;
@@ -26,9 +27,12 @@ describe('WhatsNewToast', () => {
   function setup(
     dismissedVersion: string | null = null,
     locale: SupportedLocale = 'fr',
+    shownVersion: string | null = null,
   ) {
     mockStorageService = {
-      get: vi.fn().mockReturnValue(dismissedVersion),
+      get: vi.fn((key: string) =>
+        key === STORAGE_KEYS.WHATS_NEW_SHOWN ? shownVersion : dismissedVersion,
+      ),
       set: vi.fn(),
     };
 
@@ -116,6 +120,42 @@ describe('WhatsNewToast', () => {
         expect(link.getAttribute('rel')).toBe('noopener noreferrer');
       },
     );
+  });
+
+  describe('feedback invitation gate', () => {
+    const isAnnouncing = () => TestBed.inject(WHATS_NEW_ANNOUNCING)();
+
+    it('should hold it back on the load that first shows this version', () => {
+      setup(null);
+
+      expect(isAnnouncing()).toBe(true);
+      expect(mockStorageService.set).toHaveBeenCalledWith(
+        STORAGE_KEYS.WHATS_NEW_SHOWN,
+        LATEST_RELEASE.version,
+      );
+    });
+
+    it('should not hold it back on a later load while the toast is still on screen', () => {
+      setup(null, 'fr', LATEST_RELEASE.version);
+
+      expect(queryToast()).toBeTruthy();
+      expect(isAnnouncing()).toBe(false);
+      expect(mockStorageService.set).not.toHaveBeenCalled();
+    });
+
+    it('should release it once the toast is dismissed', () => {
+      setup(null);
+      queryDismissButton()!.click();
+
+      expect(isAnnouncing()).toBe(false);
+    });
+
+    it('should not hold it back when the toast stays hidden', () => {
+      setup(LATEST_RELEASE.version);
+
+      expect(isAnnouncing()).toBe(false);
+      expect(mockStorageService.set).not.toHaveBeenCalled();
+    });
   });
 
   describe('dismiss', () => {

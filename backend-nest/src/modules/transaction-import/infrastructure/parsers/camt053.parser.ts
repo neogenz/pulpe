@@ -118,9 +118,11 @@ function readEntry(
     direction: kind,
     label: readLabel(entry, singleDetail, kind),
     isBooked: readStatus(entry) === 'BOOK',
+    // Only the bank's servicer reference names one operation. `NtryRef` can
+    // group several (Swiss SPS puts the QR-IBAN or QR reference there), so
+    // trusting it would hide distinct credits as already imported.
     bankReference:
       text(child(entry, 'AcctSvcrRef')) ??
-      text(child(entry, 'NtryRef')) ??
       text(child(singleDetail, 'Refs', 'AcctSvcrRef')),
     accountId: account.id,
   };

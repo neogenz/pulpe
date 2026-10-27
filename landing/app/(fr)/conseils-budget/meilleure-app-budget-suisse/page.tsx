@@ -43,7 +43,7 @@ export default async function MeilleureAppPage() {
         et un assistant. Les autres restent utiles dans des cas précis.
       </p>
 
-      <h2>Les critères qui comptent en Suisse</h2>
+      <h2>Cinq critères pour choisir en Suisse</h2>
       <p>
         Une app pensée pour un autre pays te force souvent l’anglais, le dollar
         ou une synchro bancaire qui n’existe pas ici. Les cinq critères de ce

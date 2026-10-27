@@ -56,10 +56,8 @@ import {
 import { type GoalGenerationStopDecision } from './components/goal-generation-stop-dialog';
 import { GoalPlanSimulatorStore } from './services/goal-plan-simulator-store';
 import { GoalProjectionChart } from './components/goal-projection-chart';
-import { GoalPlanTimeline } from './components/goal-plan-timeline';
+import { GoalMonthTimeline } from './components/goal-month-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
-import { GoalContributionsList } from './components/goal-contributions-list';
-import { GoalWithdrawalsList } from './components/goal-withdrawals-list';
 import { GoalPlanRepairCallout } from './components/goal-plan-repair-callout';
 
 type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
@@ -77,10 +75,8 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
     BaseLoading,
     StateCard,
     GoalProjectionChart,
-    GoalPlanTimeline,
+    GoalMonthTimeline,
     GoalPlanSimulatorToolbar,
-    GoalContributionsList,
-    GoalWithdrawalsList,
     GoalPlanRepairCallout,
   ],
   providers: [GoalPlanSimulatorStore, AppCurrencyPipe],
@@ -587,29 +583,67 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [targetReached]="targetReached()"
               />
             }
+          }
 
-            <!-- Pilier B — « Ton plan, mois par mois » -->
+          <!-- Pilier B — « Mois par mois » : le plan, son réel et les retraits
+               sur une seule ligne de temps. Un retrait fait descendre le même
+               stock que les contributions font monter : c'est dans l'ordre où
+               ils arrivent que « Solde après » se lit juste. La section survit
+               à un plan vide quand il reste un historique de retraits. -->
+          @if (chartMonths().length > 0 || hasWithdrawals()) {
             <section
               class="mt-4 flex flex-col gap-3"
               aria-labelledby="goal-plan-heading"
               data-testid="savings-goal-plan"
             >
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <h2
-                  id="goal-plan-heading"
-                  class="text-title-large font-semibold"
-                >
-                  {{ 'savingsGoals.plan.timelineTitle' | transloco }}
-                </h2>
-                @if (!simulator.isSimulating() && simulator.canSimulate()) {
-                  <button
-                    matButton="outlined"
-                    (click)="onEnterSimulation()"
-                    data-testid="goal-plan-adjust-button"
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex min-w-0 flex-col">
+                  <h2
+                    id="goal-plan-heading"
+                    class="text-title-large font-semibold"
                   >
-                    <mat-icon>tune</mat-icon>
-                    {{ 'savingsGoals.plan.adjustCta' | transloco }}
-                  </button>
+                    {{ 'savingsGoals.plan.timelineTitle' | transloco }}
+                  </h2>
+                  <p
+                    class="text-body-medium text-on-surface-variant"
+                    data-testid="goal-contributions-summary"
+                  >
+                    @if (checkedCount() > 0) {
+                      {{
+                        'savingsGoals.detail.contributionsSummary'
+                          | transloco: { checked: checkedCount() }
+                      }}
+                    } @else {
+                      {{
+                        'savingsGoals.detail.contributionsSummaryEmpty'
+                          | transloco
+                      }}
+                    }
+                  </p>
+                </div>
+                @if (!simulator.isSimulating() && simulator.canSimulate()) {
+                  <div class="hidden shrink-0 sm:block">
+                    <button
+                      matButton="outlined"
+                      (click)="onEnterSimulation()"
+                      data-testid="goal-plan-adjust-button"
+                    >
+                      <mat-icon>tune</mat-icon>
+                      {{ 'savingsGoals.plan.adjustCta' | transloco }}
+                    </button>
+                  </div>
+                  <div class="shrink-0 sm:hidden">
+                    <button
+                      matIconButton
+                      (click)="onEnterSimulation()"
+                      [attr.aria-label]="
+                        'savingsGoals.plan.adjustCta' | transloco
+                      "
+                      data-testid="goal-plan-adjust-button-mobile"
+                    >
+                      <mat-icon>tune</mat-icon>
+                    </button>
+                  </div>
                 }
               </div>
               @if (!simulator.isSimulating() && repairableMonths().length > 0) {
@@ -619,69 +653,25 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   (previewRequested)="onPreviewPlanRepair()"
                 />
               }
-              <pulpe-goal-plan-timeline
+              <pulpe-goal-month-timeline
                 [months]="chartMonths()"
                 [simulatedMonths]="
                   simulator.isSimulating() ? simulator.draftRows() : null
                 "
+                [contributions]="store.contributions()"
+                [plannedWithdrawals]="store.plannedWithdrawals()"
+                [planOnlyWithdrawals]="store.planOnlyWithdrawals()"
+                [withdrawals]="store.withdrawals()"
+                [isWithdrawalsLoading]="store.isWithdrawalsLoading()"
+                [hasWithdrawalsError]="!!store.withdrawalsError()"
                 [currency]="currency()"
-                [locale]="locale"
                 [payDayOfMonth]="payDayOfMonth()"
                 [editable]="simulator.isSimulating()"
                 [expanded]="timelineExpanded()"
                 [canRepair]="repairableMonths().length > 0"
-                [plannedWithdrawals]="store.plannedWithdrawals()"
                 (amountChange)="onTimelineAmountChange($event)"
                 (invalidChange)="simulator.setMonthAmountInvalid($event)"
                 (toggleExpanded)="toggleTimeline()"
-              />
-            </section>
-          }
-
-          <!-- « Ton suivi » — masqué en simulation (loi de Hick) -->
-          @if (!isEmpty() && !simulator.isSimulating()) {
-            <section
-              class="mt-4 flex flex-col gap-3"
-              aria-labelledby="goal-contributions-heading"
-              data-testid="savings-goal-contributions"
-            >
-              <h2
-                id="goal-contributions-heading"
-                class="text-title-large font-semibold"
-              >
-                {{ 'savingsGoals.detail.contributionsTitle' | transloco }}
-              </h2>
-              <pulpe-goal-contributions-list
-                [contributions]="store.contributions()"
-                [currency]="currency()"
-              />
-            </section>
-          }
-
-          <!-- « Retraits » — l'argent sorti de l'objectif. Section propre, jamais
-               fondue dans « Ton suivi » : contributions et retraits vont dans des
-               sens opposés. Elle survit au cas vide (un objectif peut n'avoir
-               plus aucune prévision et garder son historique de retraits), mais
-               disparaît en simulation comme les autres surfaces de lecture. -->
-          @if (!simulator.isSimulating() && hasWithdrawalsSection()) {
-            <section
-              class="mt-4 flex flex-col gap-3"
-              aria-labelledby="goal-withdrawals-heading"
-              data-testid="savings-goal-withdrawals"
-            >
-              <h2
-                id="goal-withdrawals-heading"
-                class="text-title-large font-semibold"
-              >
-                {{ 'savingsGoals.detail.withdrawalsTitle' | transloco }}
-              </h2>
-              <pulpe-goal-withdrawals-list
-                [withdrawals]="store.withdrawals()"
-                [plannedWithdrawals]="store.plannedWithdrawals()"
-                [planOnlyWithdrawals]="store.planOnlyWithdrawals()"
-                [currency]="currency()"
-                [isLoading]="store.isWithdrawalsLoading()"
-                [hasError]="!!store.withdrawalsError()"
                 (retryRequested)="store.reloadWithdrawals()"
               />
             </section>
@@ -848,9 +838,15 @@ export default class SavingsGoalDetailPage {
     () => this.progress()?.linkedLineCount === 0,
   );
 
-  // Une section vide n'apprend rien : on ne la montre que si elle a quelque chose
-  // à dire — des retraits, un chargement en cours ou un échec à signaler.
-  protected readonly hasWithdrawalsSection = computed(
+  /** « N mois mis de côté » = contributions pointées : un titre positif, jamais
+   *  un décompte de mois « à pointer » qui se lirait comme une corvée. */
+  protected readonly checkedCount = computed(
+    () => this.store.contributions().filter((c) => c.checkedAt != null).length,
+  );
+
+  // Sans plan, la liste ne s'affiche que si les retraits ont quelque chose à
+  // dire — un historique, un chargement en cours ou un échec à signaler.
+  protected readonly hasWithdrawals = computed(
     () =>
       this.store.withdrawals().length > 0 ||
       this.store.plannedWithdrawals().length > 0 ||
