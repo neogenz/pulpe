@@ -1,6 +1,6 @@
 # Dockerfile optimisé pour Railway - NestJS + pnpm monorepo
-# node:24-slim (LTS) pinné par digest multi-arch — Node 20 est EOL depuis mars 2026.
-FROM node:24-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS base
+# node:24.22.1-slim (LTS) pinné par digest multi-arch — Node 20 est EOL depuis mars 2026.
+FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS base
 
 # Configuration pnpm
 ENV PNPM_HOME="/pnpm"
@@ -37,7 +37,7 @@ FROM base AS deploy
 RUN pnpm --filter=backend-nest --prod deploy --legacy /prod/backend
 
 # Stage production
-FROM node:24-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS production
+FROM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS production
 WORKDIR /app
 
 # Copier l'artifact minimal (sans devDependencies)

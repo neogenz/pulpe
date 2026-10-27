@@ -108,8 +108,8 @@ test("public CI guide mirrors the enforced workflow contracts", () => {
 
   assert.doesNotMatch(workflow, /pull-requests:\s*write/);
   assert.match(guide, /`contents: read`/);
-  assert.match(workflow, /NODE_VERSION:\s*["']24["']/);
-  assert.match(guide, /NODE_VERSION:\s*["']24["']/);
+  assert.match(workflow, /NODE_VERSION:\s*["']24\.22\.1["']/);
+  assert.match(guide, /NODE_VERSION:\s*["']24\.22\.1["']/);
 });
 
 test("active tracked context does not reference the retired memory bank", () => {
