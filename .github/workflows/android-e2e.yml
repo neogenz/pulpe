@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: "24"
+  NODE_VERSION: "24.22.1"
   PNPM_VERSION: "10.12.1"
   MAESTRO_VERSION: "2.7.0"
   MAESTRO_SHA256: a4ccab6b604617e7aef6db4f885666056eabe5cfa32befaa3bc994041b8fcbb5

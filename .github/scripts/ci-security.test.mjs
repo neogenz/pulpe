@@ -948,8 +948,34 @@ test("Expo patch alignment stays out of the PR gate", () => {
   assert.match(expoDrift, /app-id: \$\{\{ secrets\.PULPE_RELEASE_APP_ID \}\}/);
 });
 
+test("Node runtimes include the October 2026 security fixes", () => {
+  const version = read(".nvmrc").trim();
+  assert.equal(version, "24.22.1");
+  for (const path of [
+    ".github/workflows/ci.yml",
+    ".github/workflows/android-e2e.yml",
+    ".github/workflows/expo-drift.yml",
+  ]) {
+    assert.ok(read(path).includes(`NODE_VERSION: "${version}"`), path);
+  }
+  const images = [...dockerfile.matchAll(/^FROM (node:\S+) AS /gm)];
+  assert.equal(images.length, 2);
+  assert.ok(images[0][1].startsWith(`node:${version}-slim@sha256:`));
+  assert.equal(images[0][1], images[1][1]);
+});
+
 test("the backend image does not install Bun", () => {
   assert.doesNotMatch(dockerfile, /bun\.sh\/install|\/root\/\.bun/);
+});
+
+test("schema consumers use the same Zod version as shared", () => {
+  for (const consumer of [frontendPackage, backendPackage, androidPackage]) {
+    assert.equal(
+      consumer.dependencies.zod,
+      sharedPackage.dependencies.zod,
+      consumer.name,
+    );
+  }
 });
 
 test("critical dependency audit stays in CI", () => {
