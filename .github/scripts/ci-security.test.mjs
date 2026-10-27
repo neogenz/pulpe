@@ -952,6 +952,12 @@ test("the backend image does not install Bun", () => {
   assert.doesNotMatch(dockerfile, /bun\.sh\/install|\/root\/\.bun/);
 });
 
+test("schema consumers use the same Zod version as shared", () => {
+  for (const consumer of [frontendPackage, backendPackage, androidPackage]) {
+    assert.equal(consumer.dependencies.zod, sharedPackage.dependencies.zod);
+  }
+});
+
 test("critical dependency audit stays in CI", () => {
   assert.equal(
     rootPackage.scripts["audit:critical"],
