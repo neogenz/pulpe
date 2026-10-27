@@ -346,10 +346,13 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       const adjustment = { name: 'Écart', amount: 10, kind: 'income' as const };
       store.createAllocatedTransaction.mockResolvedValueOnce('Réessaie');
       expect(await data.recordAdjustment(adjustment)).toBe(false);
+      const attemptedId = store.createAllocatedTransaction.mock.calls[0][0].id;
+      expect(attemptedId).toEqual(expect.any(String));
       expect(await data.recordAdjustment(adjustment)).toBe(true);
       expect(store.createAllocatedTransaction).toHaveBeenLastCalledWith(
         expect.objectContaining({
           ...adjustment,
+          id: attemptedId,
           budgetId,
           checkedAt: expect.any(String),
         }),

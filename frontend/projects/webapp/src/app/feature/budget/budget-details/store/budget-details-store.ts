@@ -54,7 +54,7 @@ import type {
   SpreadTracker,
 } from '@ui/spread-occurrences-list';
 
-import { firstValueFrom, map } from 'rxjs';
+import { catchError, firstValueFrom, map, throwError } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { type BudgetDetailsViewModel } from '../view-models/budget-details.view-model';
 import {
@@ -1111,7 +1111,30 @@ export class BudgetDetailsStore {
     >({
       cache: this.#budgetApi.cache,
       invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-      mutationFn: (data) => this.#budgetApi.createTransaction$(data),
+      mutationFn: (data) =>
+        this.#budgetApi.createTransaction$(data).pipe(
+          // A lost response or failed recalculation can follow a committed insert.
+          catchError((error) =>
+            this.#budgetApi.getBudgetWithDetails$(data.budgetId).pipe(
+              map((response) => {
+                const written = response.data.transactions.find(
+                  (tx) => tx.id === data.id,
+                );
+                if (
+                  !written ||
+                  written.name !== data.name ||
+                  written.amount !== data.amount ||
+                  written.kind !== data.kind ||
+                  written.budgetLineId !== (data.budgetLineId ?? null) ||
+                  (written.checkedAt !== null) !== (data.checkedAt != null)
+                )
+                  throw error;
+                return { data: written };
+              }),
+              catchError(() => throwError(() => error)),
+            ),
+          ),
+        ),
       onMutate: (data) => {
         const previous = this.budgetDetails();
         const optimisticTransaction: Transaction = {
@@ -1156,6 +1179,7 @@ export class BudgetDetailsStore {
         if (isApiError(error) && WITHDRAWAL_ERROR_CODES.has(error.code ?? '')) {
           this.#savingsGoalApi.cache.invalidate(['savings-goals']);
         }
+        this.reloadBudgetDetails();
         this.#logUnexpectedFailure(
           'Allocated transaction create failed',
           error,

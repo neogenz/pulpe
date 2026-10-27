@@ -13,6 +13,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { openReconcileAccountsDialog } from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
 import { Router } from '@angular/router';
+import { v4 as uuidv4 } from 'uuid';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -215,6 +216,7 @@ export default class BudgetDetailsPage {
   protected openReconcileAccounts(): void {
     const budget = this.store.budgetDetails();
     if (!budget || budget.id !== this.id()) return;
+    const adjustmentId = uuidv4();
     const matches = () =>
       !this.#destroyRef.destroyed &&
       this.id() === budget.id &&
@@ -248,6 +250,7 @@ export default class BudgetDetailsPage {
           const error = await this.store.createAllocatedTransaction(
             transactionCreateSchema.parse({
               ...adjustment,
+              id: adjustmentId,
               budgetId: budget.id,
               transactionDate: formatLocalDate(now),
               checkedAt: now.toISOString(),

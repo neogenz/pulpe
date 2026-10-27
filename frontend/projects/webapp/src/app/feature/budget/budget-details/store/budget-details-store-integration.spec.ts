@@ -952,6 +952,86 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
   });
 
   describe('User creates allocated transactions', () => {
+    it.each(['lost response', 'recalculation failure'])(
+      'recovers the committed adjustment after %s without another insert',
+      async (failure) => {
+        service.setBudgetId(mockBudgetId);
+        TestBed.tick();
+        await waitForResourceStable();
+        const written = createMockTransaction({
+          id: 'adjustment-id',
+          budgetId: mockBudgetId,
+          budgetLineId: null,
+          name: 'Ajustement',
+          amount: 25,
+          kind: 'income',
+          checkedAt: '2026-10-27T10:00:00Z',
+        });
+        mockBudgetApi.createTransaction$ = vi
+          .fn()
+          .mockReturnValue(throwError(() => new Error(failure)));
+        mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+          of(
+            createMockBudgetDetailsResponse({
+              budget: { id: mockBudgetId },
+              budgetLines: [],
+              transactions: [written],
+            }),
+          ),
+        );
+        expect(
+          await service.createAllocatedTransaction({
+            id: written.id,
+            budgetId: written.budgetId,
+            name: written.name,
+            amount: written.amount,
+            kind: written.kind,
+            checkedAt: written.checkedAt,
+          }),
+        ).toBeNull();
+        expect(
+          service
+            .budgetDetails()
+            ?.transactions.filter((tx) => tx.id === written.id),
+        ).toEqual([written]);
+        expect(mockBudgetApi.createTransaction$).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it.each(['absent', 'read failed', 'different amount'])(
+      'keeps a failed adjustment retryable when read-back is %s',
+      async (outcome) => {
+        service.setBudgetId(mockBudgetId);
+        TestBed.tick();
+        await waitForResourceStable();
+        const payload = {
+          id: 'adjustment-id',
+          budgetId: mockBudgetId,
+          name: 'Ajustement',
+          amount: 25,
+          kind: 'income' as const,
+        };
+        mockBudgetApi.createTransaction$ = vi
+          .fn()
+          .mockReturnValue(throwError(() => new Error('Lost response')));
+        mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+          outcome === 'read failed'
+            ? throwError(() => new Error('Offline'))
+            : of(
+                createMockBudgetDetailsResponse({
+                  budget: { id: mockBudgetId },
+                  transactions:
+                    outcome === 'absent'
+                      ? []
+                      : [createMockTransaction({ ...payload, amount: 50 })],
+                }),
+              ),
+        );
+        expect(await service.createAllocatedTransaction(payload)).toBeTruthy();
+        expect(mockBudgetApi.createTransaction$).toHaveBeenCalledTimes(1);
+      },
+    );
+
     it('keeps id stable from optimistic to server-confirmed (client UUID = server id)', async () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
