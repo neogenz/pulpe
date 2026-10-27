@@ -123,6 +123,7 @@
           "deficit": "You're spending more than you earn this month."
         }
       },
+      "inEnvelope": "In forecast %{name}",
       "loadErrorHint": "Check your connection, then try again.",
       "loadErrorTitle": "We couldn't load this budget",
       "missingHint": "It may have been deleted from another device.",
@@ -135,7 +136,8 @@
       "protectedTitle": "Protected budget",
       "search": "Search",
       "sections": {
-        "free": "Outside forecasts"
+        "free": "Outside forecasts",
+        "pointedAllocated": "Checked within a forecast"
       },
       "spread": "Spread",
       "status": {

@@ -5,6 +5,7 @@ import {
   detailsSections,
   freeTransactions,
   kindCounts,
+  pointedAllocatedTransactions,
   type DetailsFilters,
 } from "./budget-details-selectors";
 
@@ -222,6 +223,45 @@ describe("freeTransactions", () => {
     expect(
       freeTransactions(transactions, filters()).map((row) => row.id),
     ).toEqual(["newer", "older"]);
+  });
+});
+
+describe("pointedAllocatedTransactions", () => {
+  const checkedAt = "2026-08-06T00:00:00.000Z";
+  const lines = [
+    line("courses", "expense", 400, { name: "Courses" }),
+    line("loyer", "expense", 1500, { checkedAt }),
+  ];
+  const transactions = [
+    transaction("visible", 50, { budgetLineId: "courses", checkedAt }),
+    transaction("unpointed", 20, { budgetLineId: "courses" }),
+    transaction("covered", 1500, { budgetLineId: "loyer", checkedAt }),
+    transaction("free", 10, { checkedAt }),
+  ];
+  const ids = (overrides: Partial<DetailsFilters>) =>
+    pointedAllocatedTransactions(lines, transactions, filters(overrides)).map(
+      (item) => item.transaction.id,
+    );
+
+  it("surfaces pointed operations of envelopes still to point, with their envelope", () => {
+    expect(
+      pointedAllocatedTransactions(
+        lines,
+        transactions,
+        filters({ checked: "checked" }),
+      ),
+    ).toEqual([{ transaction: transactions[0], envelopeName: "Courses" }]);
+  });
+
+  it("stays empty outside the Pointé filter", () => {
+    expect(ids({ checked: "all" })).toEqual([]);
+    expect(ids({ checked: "unchecked" })).toEqual([]);
+  });
+
+  it("follows the kind filter and searches the envelope name too", () => {
+    expect(ids({ checked: "checked", kind: "income" })).toEqual([]);
+    expect(ids({ checked: "checked", search: "courses" })).toEqual(["visible"]);
+    expect(ids({ checked: "checked", search: "loyer" })).toEqual([]);
   });
 });
 

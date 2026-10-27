@@ -1,10 +1,12 @@
 import SwiftUI
 
-/// Inline free-transactions list for the budget detail screen.
+/// Inline transactions list for the budget detail screen: the free ones
+/// ("Hors prévisions") and, under the "Pointé" filter, the pointed ones of an
+/// envelope still to point — those rows name their envelope.
 ///
 /// Replaces the List-bound `TransactionSection` when the parent uses
-/// `ScrollView/LazyVStack`. Each row is a tap target that opens the
-/// transaction edit sheet (matching the budget-line detail flow).
+/// `ScrollView/LazyVStack`. Each row is a tap target; the parent decides
+/// whether it opens the edit sheet or the envelope.
 ///
 /// Visual: rows mirror `BudgetLineMixedRow` (point circle · kind tag · name ·
 /// date subtitle · amount + currency suffix · chevron). Pointing a free
@@ -15,6 +17,7 @@ import SwiftUI
 /// the `isSyncing` flag so the view stays free of `.contains` over a syncing
 /// id set in the body.
 struct BudgetDetailsFreeTransactionsList: View {
+    var title = AppLocale.string("Hors prévisions")
     let items: [BudgetDetailsScreenState.FreeTransactionItem]
     let currency: SupportedCurrency
     let tagNamesById: [String: String]
@@ -39,7 +42,7 @@ struct BudgetDetailsFreeTransactionsList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SectionHeader(title: AppLocale.string("Hors prévisions"), count: items.count)
+            SectionHeader(title: title, count: items.count)
 
             VStack(spacing: 0) {
                 ForEach(displayedItems) { item in
@@ -48,6 +51,7 @@ struct BudgetDetailsFreeTransactionsList: View {
                     }
                     BudgetDetailsFreeTransactionRow(
                         transaction: item.transaction,
+                        envelopeName: item.envelopeName,
                         isSyncing: item.isSyncing,
                         currency: currency,
                         tagNames: TagChips.names(for: item.transaction.tagIds, namesById: tagNamesById),
@@ -91,13 +95,14 @@ struct BudgetDetailsFreeTransactionsList: View {
 
 // MARK: - Row
 
-/// Free-transaction row visually aligned with `BudgetLineMixedRow`: a leading
-/// `PointCircle` disc, then name + date subtitle on the left,
-/// kind-tinted amount + currency suffix on the right, chevron. Tapping the
-/// circle points/unpoints the transaction (`onTogglePointed`); tapping the row
-/// surface opens the edit sheet (`onTap`).
+/// Transaction row visually aligned with `BudgetLineMixedRow`: a leading
+/// `PointCircle` disc, then name + date subtitle (+ envelope line when
+/// allocated) on the left, kind-tinted amount + currency suffix on the right,
+/// chevron. Tapping the circle points/unpoints the transaction
+/// (`onTogglePointed`); tapping the row surface runs `onTap`.
 private struct BudgetDetailsFreeTransactionRow: View {
     let transaction: Transaction
+    let envelopeName: String?
     let isSyncing: Bool
     let currency: SupportedCurrency
     let tagNames: [String]
@@ -151,7 +156,8 @@ private struct BudgetDetailsFreeTransactionRow: View {
             ? ""
             : " · " + AppLocale.string("Tags : \(tagNames.joined(separator: ", "))")
         let origin = transaction.savingsGoalSource.map { " · \($0.accessibilityLabel)" } ?? ""
-        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(tags)\(origin)"
+        let envelope = envelopeName.map { " · " + AppLocale.string("Dans la prévision \($0)") } ?? ""
+        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(envelope)\(tags)\(origin)"
     }
 
     var body: some View {
@@ -194,7 +200,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint("Touche pour modifier")
+        .accessibilityHint(envelopeName == nil ? "Touche pour modifier" : "Touche pour ouvrir le détail")
     }
 
     private var centerColumn: some View {
@@ -221,6 +227,21 @@ private struct BudgetDetailsFreeTransactionRow: View {
                 if !tagNames.isEmpty {
                     TagChips(names: tagNames, presentation: .count, followsText: true)
                 }
+            }
+
+            // The envelope the movement belongs to, on its own line so a long name
+            // keeps its room: the one thing that tells it apart from a free movement
+            // drawn in the same visual language. Already in the row's a11y label.
+            if let envelopeName {
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Image(systemName: "arrow.turn.down.right")
+                    Text(envelopeName)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textSecondary)
+                .accessibilityHidden(true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
