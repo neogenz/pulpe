@@ -19,7 +19,7 @@ jobs:
     # the review action fails with an empty credential. Skip bot dep bumps.
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
