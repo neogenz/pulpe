@@ -462,4 +462,37 @@ struct FiltersStorePureTests {
 
         #expect(result.isEmpty)
     }
+
+    // MARK: - Pointed allocated transactions
+
+    @Test
+    func pointedAllocated_surfacesOnlyPointedMovementsOfEnvelopesStillToPoint() {
+        let open = TestDataFactory.createBudgetLine(id: "open", name: "Courses", kind: .expense)
+        let pointed = TestDataFactory.createBudgetLine(id: "pointed", kind: .expense, isChecked: true)
+        // The projector passes only envelopes still to point; `pointed` is left out.
+        let openLineById = [open.id: open]
+        let transactions = [
+            TestDataFactory.createTransaction(id: "visible", budgetLineId: "open", isChecked: true),
+            TestDataFactory.createTransaction(id: "unpointed", budgetLineId: "open"),
+            TestDataFactory.createTransaction(id: "covered", budgetLineId: pointed.id, isChecked: true),
+            TestDataFactory.createTransaction(id: "free", isChecked: true)
+        ]
+
+        func ids(_ filter: CheckedFilterOption, _ type: BudgetLineKindFilter = .all, search: String = "") -> [String] {
+            FiltersStore.pointedAllocatedTransactions(
+                transactions,
+                openLineById: openLineById,
+                typeFilter: type,
+                checkedFilter: filter,
+                searchText: search
+            ).map(\.id)
+        }
+
+        #expect(ids(.checked) == ["visible"])
+        #expect(ids(.unchecked).isEmpty)
+        #expect(ids(.all).isEmpty)
+        #expect(ids(.checked, .income).isEmpty)
+        #expect(ids(.checked, search: "courses") == ["visible"])
+        #expect(ids(.checked, search: "loyer").isEmpty)
+    }
 }

@@ -10367,6 +10367,28 @@
         }
       }
     },
+    "Dans la prévision %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Planung %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In planned item %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nella previsione %@"
+          }
+        }
+      }
+    },
     "Dashboard" : {
       "localizations" : {},
       "shouldTranslate" : false
@@ -19977,6 +19999,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spuntato · %@ — %@ previsti"
+          }
+        }
+      }
+    },
+    "Pointés dans une prévision" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In einer Planung abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked within a planned item"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spuntati in una previsione"
           }
         }
       }
