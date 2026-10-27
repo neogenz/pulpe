@@ -23,7 +23,7 @@ import { type TransactionFormData } from './components/add-transaction-form.sche
 import {
   ReconcileAccountsDialog,
   type ReconcileAccountsDialogData,
-} from './components/reconcile-accounts/reconcile-accounts-dialog';
+} from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 import type { MonthRecap } from './services/dashboard-state';

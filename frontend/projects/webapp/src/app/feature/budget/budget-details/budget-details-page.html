@@ -126,6 +126,15 @@
     data-tour="financial-overview"
   />
 
+  <button
+    matButton
+    (click)="openReconcileAccounts()"
+    data-testid="budget-reconcile-button"
+  >
+    <mat-icon aria-hidden="true">account_balance</mat-icon>
+    {{ 'currentMonth.reconcile.title' | transloco }}
+  </button>
+
   <!-- Budget Items -->
   <pulpe-budget-items data-tour="budget-table" />
 

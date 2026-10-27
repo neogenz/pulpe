@@ -77,6 +77,10 @@ final class BudgetDataStore {
 
     var freeTransactions: [Transaction] { transactions.unallocated }
 
+    var reconciliationItems: [CurrentMonthStore.CheckableItem] {
+        CurrentMonthStore.uncheckedItems(budgetLines: budgetLines, transactions: transactions)
+    }
+
     var metrics: BudgetFormulas.Metrics {
         cachedMetrics ?? BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,

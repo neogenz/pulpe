@@ -503,6 +503,9 @@ it("lets a write already out settle on its own month, claiming nothing meanwhile
   expect(props.onDismiss).toHaveBeenCalledTimes(1);
   // The sheet's own notice closes with it: the screen has to say it.
   expect(props.onRecordFailed).toHaveBeenCalledTimes(1);
+  expect(props.onDismiss.mock.invocationCallOrder[0]).toBeLessThan(
+    props.onRecordFailed.mock.invocationCallOrder[0],
+  );
   expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
   expect(captureEvent).not.toHaveBeenCalled();
   expect(props.onRecorded).not.toHaveBeenCalled();

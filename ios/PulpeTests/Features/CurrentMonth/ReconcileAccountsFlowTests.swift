@@ -260,13 +260,25 @@ struct ReconcileAccountsFlowTests {
         #expect(payloads.map(\.budgetId) == ["budget-current"])
     }
 
+    @Test("reconciliation writes to the viewed month", arguments: ["budget-past", "budget-future"])
+    func submitAdjustment_targetsViewedMonth(budgetId: String) async throws {
+        let recorder = Recorder()
+        let flow = makeFlow(recorder: recorder, id: budgetId)
+        flow.accounts[0].amountText = "50"
+        #expect(await flow.submitAdjustment(realizedBalance: 20, of: budgetId) == .created)
+        let payload = try #require(await recorder.payloads.first)
+        #expect(payload.budgetId == budgetId)
+        #expect(payload.amount == 30)
+        #expect(payload.checkedAt != nil)
+    }
+
     // MARK: - Helpers
 
     private static let now = Date(timeIntervalSince1970: 1_790_000_000)
 
-    private func makeFlow(recorder: Recorder = Recorder()) -> ReconcileAccountsFlow {
+    private func makeFlow(recorder: Recorder = Recorder(), id: String = "budget-current") -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
-            budgetId: "budget-current",
+            budgetId: id,
             adjustmentLabel: "Ajustement",
             createTransaction: { payload in try await recorder.create(payload) },
             onAdjustmentCreated: { recorder.created.append($0) },

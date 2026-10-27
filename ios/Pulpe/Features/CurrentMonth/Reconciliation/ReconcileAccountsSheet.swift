@@ -1,12 +1,11 @@
 import SwiftUI
 
 /// "Rapprocher mes comptes" (PUL-351): the bank balances typed by the user, the month's
-/// checked balance, then the gap and its one adjustment. Presented over the home
-/// screen's "Suivi du budget" with the month the home screen has loaded — the flow never
-/// resolves a month of its own. Every input lives in `flow`, owned here, so closing at
+/// checked balance, then the gap and its one adjustment. Presented with the month
+/// the caller has loaded — the flow never resolves a month of its own. Every input lives in `flow`, owned here, so closing at
 /// any step discards it and writes nothing.
 struct ReconcileAccountsSheet: View {
-    /// The loaded month as `CurrentMonthStore` holds it, read again on every render.
+    /// The loaded month, read again on every render.
     struct Month {
         let budgetId: String
         let realizedMetrics: BudgetFormulas.RealizedMetrics
@@ -21,6 +20,7 @@ struct ReconcileAccountsSheet: View {
     }
 
     let month: Month
+    let checking: ReconciliationChecking
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
@@ -30,10 +30,12 @@ struct ReconcileAccountsSheet: View {
 
     init(
         month: Month,
+        checking: ReconciliationChecking,
         dependencies: AddTransactionDependencies = .live,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void
     ) {
         self.month = month
+        self.checking = checking
         _flow = State(initialValue: ReconcileAccountsFlow(
             budgetId: month.budgetId,
             adjustmentLabel: AppLocale.string("Ajustement"),
@@ -66,6 +68,7 @@ struct ReconcileAccountsSheet: View {
                 case .itemsToCheck:
                     ReconcileItemsToCheckStep(
                         flow: flow,
+                        checking: checking,
                         currency: userSettingsStore.currency,
                         onClose: { dismiss() }
                     )
@@ -198,9 +201,12 @@ extension View {
                     periodLabel: "25 févr. - 24 mars",
                     uncheckedCount: 6
                 ),
+                checking: .init(
+                    items: [], transactions: [], budgetLines: [],
+                    syncingTransactionIds: [], syncingBudgetLineIds: [], toggle: { _ in false }
+                ),
                 onAdjustmentCreated: { _ in }
             )
-            .environment(CurrentMonthStore())
             .environment(ToastManager())
             .environment(UserSettingsStore())
         }

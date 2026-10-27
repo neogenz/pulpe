@@ -50,6 +50,17 @@ struct BudgetDetailsCoordinatorMutationTests {
     }
 
     @Test
+    func lateAdjustment_doesNotEnterAnotherMonth() async {
+        defer { BudgetDetailCache.shared.invalidate(budgetId: "test-budget-1") }
+        let service = MockBudgetService()
+        let coord = BudgetDetailsCoordinator(budgetId: "test-budget-1", budgetService: service)
+        let tx = TestDataFactory.createTransaction(budgetId: "previous-budget")
+        await coord.dispatch(.addReconciliationAdjustment(tx))
+        #expect(coord.dataStore.transactions.isEmpty)
+        #expect(service.getBudgetWithDetailsCallCount == 1)
+    }
+
+    @Test
     func addTransaction_multipleTransactions_appendsAll() async {
         let coord = BudgetDetailsCoordinator(budgetId: "test-budget")
         let tx1 = TestDataFactory.createTransaction(id: "tx-1")

@@ -27,10 +27,7 @@ struct BudgetDetailSheetContent: View {
         case .previousBudget(let item):
             PreviousBudgetSheet(budgetId: item.id)
         case .realizedBalance:
-            RealizedBalanceSheet(
-                metrics: coordinator.dataStore.metrics,
-                realizedMetrics: coordinator.dataStore.realizedMetrics
-            )
+            BudgetDetailsRealizedBalanceSheet()
         case .spreadOccurrences(let spreadGroupId, let kind):
             // The VIEWED budget's period anchors the display axis (past/current,
             // "Ce mois" vs "Ici"); the live period (today) drives realization.

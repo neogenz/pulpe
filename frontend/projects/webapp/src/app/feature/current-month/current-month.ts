@@ -38,10 +38,9 @@ import {
 } from '@core/transaction';
 import { DashboardError } from './components/dashboard-error';
 import {
-  ReconcileAccountsDialog,
-  type ReconcileAccountsDialogData,
+  openReconcileAccountsDialog,
   type ReconciliationAdjustment,
-} from './components/reconcile-accounts/reconcile-accounts-dialog';
+} from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 
@@ -1060,40 +1059,26 @@ export default class Dashboard {
     const budgetId = this.store.dashboardData()?.budget?.id;
     if (!budgetId) return;
     const isHandset = this.#breakpointObserver.isMatched(Breakpoints.Handset);
-    this.#dialog.open<ReconcileAccountsDialog, ReconcileAccountsDialogData>(
-      ReconcileAccountsDialog,
+    openReconcileAccountsDialog(
+      this.#dialog,
       {
-        data: {
-          realized: computed(() =>
-            this.store.dashboardData()?.budget?.id === budgetId
-              ? {
-                  balance: this.store.realizedBalance(),
-                  checkedIncome: this.store.realizedIncome(),
-                  checkedOutflows: this.store.realizedExpenses(),
-                  rollover: this.store.rolloverAmount(),
-                }
-              : null,
-          ),
-          currency: this.currency,
-          periodDates: this.store.periodDates,
-          recordAdjustment: (adjustment) =>
-            this.#recordAdjustment(budgetId, adjustment),
-          viewItemsToCheck: () => this.navigateToBudgetDetails(),
-        },
-        autoFocus: '[inputmode="decimal"]',
-        // The dialog routes Escape and the backdrop through its own close,
-        // which waits for a write in flight.
-        disableClose: true,
-        ...(isHandset
-          ? {
-              panelClass: 'full-screen-dialog',
-              width: '100dvw',
-              maxWidth: '100dvw',
-              height: '100dvh',
-              maxHeight: '100dvh',
-            }
-          : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
+        realized: computed(() =>
+          this.store.dashboardData()?.budget?.id === budgetId
+            ? {
+                balance: this.store.realizedBalance(),
+                checkedIncome: this.store.realizedIncome(),
+                checkedOutflows: this.store.realizedExpenses(),
+                rollover: this.store.rolloverAmount(),
+              }
+            : null,
+        ),
+        currency: this.currency,
+        periodDates: this.store.periodDates,
+        recordAdjustment: (adjustment) =>
+          this.#recordAdjustment(budgetId, adjustment),
+        viewItemsToCheck: () => this.navigateToBudgetDetails(),
       },
+      isHandset,
     );
   }
 

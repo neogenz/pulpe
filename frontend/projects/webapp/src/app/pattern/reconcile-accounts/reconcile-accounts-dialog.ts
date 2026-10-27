@@ -21,6 +21,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import type { ErrorStateMatcher } from '@angular/material/core';
 import {
   MAT_DIALOG_DATA,
+  type MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
@@ -45,7 +46,7 @@ import { AppCurrencyPipe } from '@core/currency';
 import { LoadingButton } from '@ui/loading-button';
 import { StepProgress } from '@ui/step-progress';
 
-/** The pointed side of the active month, as the page already computes it. */
+/** The pointed side of the viewed month, as the page already computes it. */
 export interface RealizedPosition {
   readonly balance: number;
   readonly checkedIncome: number;
@@ -362,4 +363,28 @@ export class ReconcileAccountsDialog {
     if (this.isRecording()) return;
     this.#dialogRef.close();
   }
+}
+
+export function openReconcileAccountsDialog(
+  dialog: MatDialog,
+  data: ReconcileAccountsDialogData,
+  isHandset: boolean,
+): void {
+  dialog.open<ReconcileAccountsDialog, ReconcileAccountsDialogData>(
+    ReconcileAccountsDialog,
+    {
+      data,
+      autoFocus: '[inputmode="decimal"]',
+      disableClose: true,
+      ...(isHandset
+        ? {
+            panelClass: 'full-screen-dialog',
+            width: '100dvw',
+            maxWidth: '100dvw',
+            height: '100dvh',
+            maxHeight: '100dvh',
+          }
+        : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
+    },
+  );
 }
