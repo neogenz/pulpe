@@ -2,6 +2,9 @@ import SwiftUI
 import TipKit
 
 struct TemplateListView: View {
+    /// Set when a model opens beside the list (the open iPhone Duo) rather than on top of it.
+    var selectedTemplateId: Binding<String?>?
+
     @Environment(AppState.self) private var appState
     @Environment(\.openURL) private var openURL
     @State private var viewModel = TemplateListViewModel()
@@ -39,21 +42,19 @@ struct TemplateListView: View {
         .trackScreen("TemplateList")
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .localizedNavigationTitle("Modèles")
+        .navigationBarTitleDisplayMode(selectedTemplateId == nil ? .large : .inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
+                Button("Créer un modèle", systemImage: "plus") {
                     showCreateTemplate = true
-                } label: {
-                    Image(systemName: "plus")
                 }
                 .disabled(viewModel.isLimitReached)
-                .accessibilityLabel("Créer un modèle")
             }
         }
         .sheet(isPresented: $showCreateTemplate) {
             CreateTemplateView { template in
                 viewModel.addTemplate(template)
-                appState.templatePath.append(TemplateDestination.details(templateId: template.id))
+                open(template.id)
             }
         }
         .refreshable {
@@ -61,6 +62,22 @@ struct TemplateListView: View {
         }
         .task {
             await viewModel.loadIfNeeded()
+        }
+        // Beside the list a page is always open: the first model until one is picked, and
+        // again once the one shown is deleted.
+        .onChange(of: viewModel.templates.map(\.id), initial: true) { _, ids in
+            guard let selectedTemplateId, !ids.contains(selectedTemplateId.wrappedValue ?? "") else { return }
+            selectedTemplateId.wrappedValue = ids.first
+        }
+    }
+
+    private func open(_ templateId: String) {
+        if let selectedTemplateId {
+            // A page pushed beside the list belongs to the model being left.
+            appState.templatePath = NavigationPath()
+            selectedTemplateId.wrappedValue = templateId
+        } else {
+            appState.templatePath.append(TemplateDestination.details(templateId: templateId))
         }
     }
 
@@ -86,9 +103,14 @@ struct TemplateListView: View {
 
             Section {
                 ForEach(viewModel.templates) { template in
-                    TemplateRow(template: template) {
-                        appState.templatePath.append(TemplateDestination.details(templateId: template.id))
+                    TemplateRow(
+                        template: template,
+                        isShownBesideList: selectedTemplateId.map { $0.wrappedValue == template.id }
+                    ) {
+                        open(template.id)
                     }
+                    // Beside the page, the rows sit bare on the canvas and the one shown lifts.
+                    .listRowBackground(selectedTemplateId == nil ? nil : Color.clear)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
                             deleteWarningTrigger.toggle()
@@ -210,42 +232,55 @@ private struct TemplateListSkeletonView: View {
 
 struct TemplateRow: View {
     let template: BudgetTemplate
+    /// Whether the model is the one shown beside the list; nil when the row pushes it instead.
+    var isShownBesideList: Bool?
     let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                RowIcon(systemName: "doc.text", tint: .pulpePrimary)
+        if let isShownBesideList {
+            rowContent
+                .selectsBesidePane(isSelected: isShownBesideList, action: onTap)
+                .accessibilityIdentifier("templateRow-\(template.id)")
+        } else {
+            Button(action: onTap) { rowContent }
+                .buttonStyle(.plain)
+                .contentShape(.rect)
+                .accessibilityIdentifier("templateRow-\(template.id)")
+        }
+    }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    Text(template.name)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(Color.textPrimary)
+    private var rowContent: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            RowIcon(systemName: "doc.text", tint: .pulpePrimary)
 
-                    if template.isDefaultTemplate {
-                        Text("Par défaut")
-                            .font(PulpeTypography.listRowSubtitle)
-                            .foregroundStyle(Color.textSecondary)
-                    } else if let description = template.description, !description.isEmpty {
-                        Text(description)
-                            .font(PulpeTypography.listRowSubtitle)
-                            .foregroundStyle(Color.textSecondary)
-                            .lineLimit(1)
-                    }
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(template.name)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(Color.textPrimary)
+
+                if template.isDefaultTemplate {
+                    Text("Par défaut")
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textSecondary)
+                } else if let description = template.description, !description.isEmpty {
+                    Text(description)
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textSecondary)
+                        .lineLimit(1)
                 }
+            }
 
-                Spacer(minLength: DesignTokens.Spacing.sm)
+            Spacer(minLength: DesignTokens.Spacing.sm)
 
+            // A chevron promises a push; beside the page, the row only selects.
+            if isShownBesideList == nil {
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.textTertiary)
                     .accessibilityHidden(true)
             }
-            .padding(.vertical, DesignTokens.Spacing.xs)
         }
-        .buttonStyle(.plain)
-        .contentShape(.rect)
-        .accessibilityIdentifier("templateRow-\(template.id)")
+        .padding(.vertical, DesignTokens.Spacing.xs)
     }
 }
 

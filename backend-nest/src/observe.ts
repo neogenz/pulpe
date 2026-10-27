@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
 import { createObserveModule, type ObserveOptions } from '@nestjs/observe';
+import { ClsService } from 'nestjs-cls';
 
 export const observePrivacyOptions = {
   forwardLogs: false,
@@ -26,6 +28,8 @@ export const observePrivacyOptions = {
 } satisfies Partial<ObserveOptions>;
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule({
+  skipInstrumentation: (instance) =>
+    instance instanceof ConfigService || instance instanceof ClsService,
   // Source snippets can reintroduce values removed from error messages; stacks keep file/line information.
   sourceContext: false,
   // A caller-controlled x-request-id can itself contain personal data.

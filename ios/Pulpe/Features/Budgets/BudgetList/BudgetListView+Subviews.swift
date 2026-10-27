@@ -22,7 +22,13 @@ struct BudgetMonthRow: View {
     var periodLabel: String?
     var isCurrent: Bool = false
     var isPast: Bool = false
+    /// Present when the row picks the month shown beside the list instead of pushing it.
+    var selection: Selection?
     let action: () -> Void
+
+    struct Selection {
+        let isSelected: Bool
+    }
 
     @State private var tapTrigger = false
     @Environment(\.amountsHidden) private var amountsHidden
@@ -51,56 +57,99 @@ struct BudgetMonthRow: View {
         isCurrent ? [.isButton, .isSelected] : .isButton
     }
 
+    /// Beside the month it opens, the row marks what is on screen rather than the calendar.
+    private var traits: AccessibilityTraits {
+        // Beside the month, `selectsBesidePane` already carries the button and selected traits.
+        selection == nil ? Self.accessibilityTraits(isCurrent: isCurrent) : []
+    }
+
     private var accessibilityStatus: String {
         isCurrent ? ", " + AppLocale.string("en cours") : (isPast ? ", " + AppLocale.string("clos") : "")
     }
 
     var body: some View {
-        Button {
-            tapTrigger.toggle()
-            action()
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    Text(monthName)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(titleColor)
-                    if !caption.isEmpty {
-                        Text(caption)
-                            .font(PulpeTypography.caption)
-                            .foregroundStyle(Color.textSecondary)
-                    }
+        if let selection {
+            rowContent
+                .selectsBesidePane(isSelected: selection.isSelected, action: activate)
+                .modifier(accessibility)
+        } else {
+            Button(action: activate) { rowContent }
+                .buttonStyle(.plain)
+                .modifier(accessibility)
+        }
+    }
+
+    private func activate() {
+        tapTrigger.toggle()
+        action()
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(monthName)
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(titleColor)
+                    // A month name never hyphenates: « Sep-tembre » stops reading as a date.
+                    .lineLimit(1)
+                if !caption.isEmpty {
+                    Text(caption)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
                 }
-                Spacer(minLength: DesignTokens.Spacing.sm)
-                BudgetAmountBlock(
-                    remaining: budget.remaining,
-                    emotionColor: budget.emotionState.color,
-                    isPast: isPast
-                )
+            }
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            BudgetAmountBlock(
+                remaining: budget.remaining,
+                emotionColor: budget.emotionState.color,
+                isPast: isPast
+            )
+            .layoutPriority(1)
+            // A chevron promises a push; beside the month, the row only selects.
+            if selection == nil {
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.textTertiary)
                     .accessibilityHidden(true)
             }
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: tapTrigger)
-        .accessibilityLabel(
-            monthName
-            + accessibilityStatus
-            + ", "
-            + availabilityLabel(
-                remaining: budget.remaining,
-                amountsHidden: amountsHidden,
-                currency: userSettingsStore.currency
-            )
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private var accessibility: RowAccessibility {
+        RowAccessibility(
+            label: monthName
+                + accessibilityStatus
+                + ", "
+                + availabilityLabel(
+                    remaining: budget.remaining,
+                    amountsHidden: amountsHidden,
+                    currency: userSettingsStore.currency
+                ),
+            traits: traits,
+            hint: selection == nil ? "Appuie pour voir les détails" : "Appuie pour l'afficher à côté",
+            identifier: Self.accessibilityIdentifier(for: budget),
+            tapTrigger: tapTrigger
         )
-        .accessibilityHint("Appuie pour voir les détails")
-        .accessibilityAddTraits(Self.accessibilityTraits(isCurrent: isCurrent))
-        .accessibilityIdentifier(Self.accessibilityIdentifier(for: budget))
+    }
+}
+
+private struct RowAccessibility: ViewModifier {
+    let label: String
+    let traits: AccessibilityTraits
+    let hint: LocalizedStringKey
+    let identifier: String
+    let tapTrigger: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .sensoryFeedback(.selection, trigger: tapTrigger)
+            .accessibilityLabel(label)
+            .accessibilityHint(hint)
+            .accessibilityAddTraits(traits)
+            .accessibilityIdentifier(identifier)
     }
 }
 
@@ -127,6 +176,8 @@ struct BudgetAmountBlock: View {
                     .font(PulpeTypography.listRowTitle)
                     .monospacedDigit()
                     .foregroundStyle(isPast ? .secondary : emotionColor)
+                    // The month name wraps first: an amount split over two lines misreads.
+                    .lineLimit(1)
                     .sensitiveAmount()
                 Text(amountLabel)
                     .font(PulpeTypography.caption)

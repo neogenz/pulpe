@@ -11,12 +11,32 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.54.0',
+  version: '0.56.0',
   features: {
-    fr: ['Page de suivi d’objectif repensée', 'Correctifs mineurs'],
-    en: ['Redesigned goal tracking page', 'Minor fixes'],
-    de: ['Überarbeitete Seite für Sparziele', 'Kleinere Korrekturen'],
-    it: ['Pagina dell’obiettivo rinnovata', 'Correzioni minori'],
+    fr: [
+      'Supprimer un mois à venir',
+      'Avis détaillés',
+      'Assistant connecté',
+      'Mouvements rattachés',
+    ],
+    en: [
+      'Delete an upcoming month',
+      'Detailed feedback',
+      'Connected assistant',
+      'Linked entries',
+    ],
+    de: [
+      'Kommenden Monat löschen',
+      'Detailliertes Feedback',
+      'Verbundener Assistent',
+      'Verknüpfte Bewegungen',
+    ],
+    it: [
+      'Eliminare un mese futuro',
+      'Opinioni dettagliate',
+      'Assistente collegato',
+      'Movimenti collegati',
+    ],
   },
 };
 
@@ -29,9 +49,14 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
-    version: '0.55.0',
+    version: '0.57.0',
     reason:
-      'Améliorations du formulaire d’avis et du menu des prévisions, publiées dans l’historique sans toast Nouveautés selon la décision de release',
+      'Release iOS uniquement : adaptation à l’iPhone Duo, sans changement visible dans la webapp',
+  },
+  {
+    version: '0.56.1',
+    reason:
+      'Réduction des traces internes Observe du serveur, sans changement visible dans la webapp',
   },
   {
     version: '0.54.1',

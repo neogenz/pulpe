@@ -60,6 +60,34 @@ extension BudgetDetailsProjector {
         }
     }
 
+    static func makePointedAllocatedItems(
+        dataStore: BudgetDataStore,
+        filtersStore: FiltersStore,
+        syncStore: SyncStateStore,
+        searchText: String,
+        index: (lineById: [String: BudgetLine], consumptionByLineId: [String: BudgetFormulas.Consumption])
+    ) -> [BudgetDetailsScreenState.FreeTransactionItem] {
+        // Skips building the open-envelope index on every other filter's projection.
+        guard filtersStore.checkedFilter == .checked else { return [] }
+        let syncing = syncStore.syncingTransactionIds
+        let openLineById = index.lineById.filter { _, line in
+            !FiltersStore.isEffectivelyChecked(line, consumptionByLineId: index.consumptionByLineId)
+        }
+        return FiltersStore.pointedAllocatedTransactions(
+            dataStore.transactions,
+            openLineById: openLineById,
+            typeFilter: filtersStore.typeFilter,
+            checkedFilter: filtersStore.checkedFilter,
+            searchText: searchText
+        ).map { tx in
+            BudgetDetailsScreenState.FreeTransactionItem(
+                transaction: tx,
+                isSyncing: syncing.contains(tx.id),
+                envelopeName: tx.budgetLineId.flatMap { index.lineById[$0]?.name }
+            )
+        }
+    }
+
     private static func zeroConsumption(
         for line: BudgetLine
     ) -> BudgetFormulas.Consumption {

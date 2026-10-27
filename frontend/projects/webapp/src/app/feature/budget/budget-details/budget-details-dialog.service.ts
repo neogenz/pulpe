@@ -40,6 +40,7 @@ import {
 } from './allocated-transactions/details-dialog/dialog';
 import { AllocatedTransactionsBottomSheet } from './allocated-transactions/details-dialog/bottom-sheet';
 import {
+  AMOUNT_FIELD_SELECTOR,
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
 } from './allocated-transactions/create-dialog/dialog';
@@ -216,6 +217,12 @@ export class BudgetDetailsDialogService {
       data,
       width: '600px',
       maxWidth: '90vw',
+      // Realizing a withdrawal is about adjusting the prefilled amount; the
+      // name is already filled. Mobile keeps the sheet default: focusing a
+      // field there opens the keyboard over the sheet.
+      autoFocus: withdrawalRealization
+        ? AMOUNT_FIELD_SELECTOR
+        : 'first-tabbable',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

@@ -54,6 +54,10 @@ struct BudgetDetailsScreenState: Equatable {
     /// filters, in source order.
     let free: [FreeTransactionItem]
 
+    /// Pointed transactions allocated to an envelope still to point, shown only
+    /// under the "Pointé" filter — otherwise nothing on the list surfaces them.
+    let pointedAllocated: [FreeTransactionItem]
+
     let kindCounts: BudgetLineKindCounts
     let checkedCounts: CheckedFilterCounts
     let pagerMonths: [PagerMonth]
@@ -111,6 +115,7 @@ struct BudgetDetailsScreenState: Equatable {
         rollover: nil,
         sections: [],
         free: [],
+        pointedAllocated: [],
         kindCounts: .zero,
         checkedCounts: .zero,
         pagerMonths: [],
@@ -188,6 +193,8 @@ struct BudgetDetailsScreenState: Equatable {
     struct FreeTransactionItem: Identifiable, Equatable {
         let transaction: Transaction
         let isSyncing: Bool
+        /// The envelope the transaction is allocated to; nil for a free one.
+        var envelopeName: String?
         var id: String { transaction.id }
     }
 

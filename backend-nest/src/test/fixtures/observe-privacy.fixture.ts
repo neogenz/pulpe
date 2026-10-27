@@ -1,6 +1,17 @@
 import 'reflect-metadata';
-import { Controller, Post, Module } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  Injectable,
+  Post,
+  Module,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { ClsService } from 'nestjs-cls';
+import { deepStrictEqual } from 'node:assert';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { gunzipSync } from 'node:zlib';
 import { createServer, get } from 'node:http';
 import { once } from 'node:events';
@@ -43,8 +54,50 @@ async function verifyPrivacy() {
       }).on('error', reject);
     });
 
+  class FixtureConfigService extends ConfigService {
+    readConfig() {
+      return this.get<string>('mode');
+    }
+  }
+
+  class FixtureClsService extends ClsService<{ mode: string }> {
+    readContext() {
+      return this.runWith({ mode: 'local-value' }, () => this.get('mode'));
+    }
+  }
+
+  @Injectable()
+  class LibraryConsumerService {
+    constructor(
+      @Inject(ConfigService) private readonly config: ConfigService,
+      @Inject(ClsService) private readonly cls: ClsService<{ mode: string }>,
+      @Inject(FixtureConfigService)
+      private readonly childConfig: FixtureConfigService,
+      @Inject(FixtureClsService) private readonly childCls: FixtureClsService,
+    ) {}
+
+    read() {
+      return [
+        this.config.get<string>('mode'),
+        this.cls.runWith({ mode: 'local-value' }, () => this.cls.get('mode')),
+        this.childConfig.readConfig(),
+        this.childCls.readContext(),
+      ];
+    }
+  }
+
   @Controller('privacy')
   class PrivacyController {
+    constructor(
+      @Inject(LibraryConsumerService)
+      private readonly consumer: LibraryConsumerService,
+    ) {}
+
+    @Get()
+    read() {
+      return this.consumer.read();
+    }
+
     @Post(':id')
     async fail() {
       await outgoing(
@@ -72,6 +125,25 @@ async function verifyPrivacy() {
         runtimeMetrics: false,
       }),
     ],
+    providers: [
+      LibraryConsumerService,
+      {
+        provide: ConfigService,
+        useValue: new ConfigService({ mode: 'local-value' }),
+      },
+      {
+        provide: ClsService,
+        useValue: new ClsService(new AsyncLocalStorage()),
+      },
+      {
+        provide: FixtureConfigService,
+        useValue: new FixtureConfigService({ mode: 'local-value' }),
+      },
+      {
+        provide: FixtureClsService,
+        useValue: new FixtureClsService(new AsyncLocalStorage()),
+      },
+    ],
     controllers: [PrivacyController],
   })
   class PrivacyModule {}
@@ -82,6 +154,9 @@ async function verifyPrivacy() {
   });
   try {
     await app.listen(0, '127.0.0.1');
+    const success = await fetch(`${await app.getUrl()}/privacy`);
+    deepStrictEqual(success.status, 200);
+    deepStrictEqual(await success.json(), Array(4).fill('local-value'));
     await fetch(
       `${await app.getUrl()}/privacy/private-path?search=private-search`,
       {

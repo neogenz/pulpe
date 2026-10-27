@@ -88,13 +88,10 @@ struct DeleteMonthMenu: ViewModifier {
             .toolbar {
                 if isFutureMonth {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Menu {
+                        Menu(AppLocale.string("Plus d'options"), systemImage: "ellipsis.circle") {
                             DeleteMenuButton(title: "Supprimer ce mois") { loadImpact() }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
                         }
                         .pulpeMenuContent()
-                        .accessibilityLabel(AppLocale.string("Plus d'options"))
                     }
                 }
             }

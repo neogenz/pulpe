@@ -54,12 +54,145 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
-    version: '0.55.0',
-    date: '2026-10-21',
+    version: '0.57.0',
+    iosVersion: '1.12.0',
+    date: '2026-10-25',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Pulpe s’adapte à l’iPhone Duo',
+          description:
+            'Ouvert, l’écran intérieur affiche tes mois, objectifs et modèles à côté de leur détail, et la page ouverte reste à l’écran quand tu plies ou déplies.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Pulpe adapts to iPhone Duo',
+            description:
+              'When open, the inner display shows your months, goals and templates beside their details, and the page you opened stays on screen when you fold or unfold.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: 'Pulpe passt sich dem iPhone Duo an',
+            description:
+              'Aufgeklappt zeigt der innere Bildschirm deine Monate, Ziele und Vorlagen neben ihren Details, und die geöffnete Seite bleibt sichtbar, wenn du zu- oder aufklappst.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: 'Pulpe si adatta a iPhone Duo',
+            description:
+              'Da aperto, lo schermo interno mostra mesi, obiettivi e modelli accanto ai loro dettagli, e la pagina aperta resta visibile quando pieghi o apri.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
+    version: '0.56.0',
+    iosVersion: '1.11.0',
+    date: '2026-10-25',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Supprimer un mois à venir',
+          description:
+            'Depuis le détail d’un mois futur, tu peux supprimer son budget ; la confirmation indique ce qui part et les liens avec tes objectifs.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Mouvements rattachés',
+          description:
+            'Quand tu changes la nature d’une prévision, ses mouvements la suivent et restent comptés dans tes totaux.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Delete an upcoming month',
+            description:
+              'From a future month’s details, you can delete its budget; the confirmation shows what goes and any links to your savings goals.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Linked entries',
+            description:
+              'When you change a forecast’s type, its entries follow it and stay counted in your totals.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Kommenden Monat löschen',
+            description:
+              'In den Details eines künftigen Monats kannst du sein Budget löschen; die Bestätigung zeigt, was wegfällt und welche Verknüpfungen zu deinen Sparzielen bestehen.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Verknüpfte Bewegungen',
+            description:
+              'Wenn du die Art eines Planungseintrags änderst, folgen ihm seine Bewegungen und zählen weiter in deinen Summen.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Eliminare un mese futuro',
+            description:
+              'Dal dettaglio di un mese futuro puoi eliminarne il budget; la conferma indica cosa viene rimosso e gli eventuali legami con i tuoi obiettivi di risparmio.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Movimenti collegati',
+            description:
+              'Quando cambi la natura di una previsione, i suoi movimenti la seguono e restano conteggiati nei totali.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    version: '0.56.0',
+    date: '2026-10-25',
     platforms: ['android'],
     changes: {
-      features: [],
+      features: [
+        {
+          title: 'Supprimer un mois à venir',
+          description:
+            'Depuis le détail d’un mois futur, tu peux supprimer son budget ; la confirmation indique ce qui part et les liens avec tes objectifs.',
+        },
+      ],
       fixes: [
+        {
+          title: 'Mouvements rattachés',
+          description:
+            'Quand tu changes la nature d’une prévision, ses mouvements la suivent et restent comptés dans tes totaux.',
+        },
         {
           title: 'Confirmation du code',
           description:
@@ -70,8 +203,19 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
     },
     translations: {
       en: {
-        features: [],
+        features: [
+          {
+            title: 'Delete an upcoming month',
+            description:
+              'From a future month’s details, you can delete its budget; the confirmation shows what goes and any links to your savings goals.',
+          },
+        ],
         fixes: [
+          {
+            title: 'Linked entries',
+            description:
+              'When you change a forecast’s type, its entries follow it and stay counted in your totals.',
+          },
           {
             title: 'Code confirmation',
             description:
@@ -80,8 +224,19 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
         ],
       },
       de: {
-        features: [],
+        features: [
+          {
+            title: 'Kommenden Monat löschen',
+            description:
+              'In den Details eines künftigen Monats kannst du sein Budget löschen; die Bestätigung zeigt, was wegfällt und welche Verknüpfungen zu deinen Sparzielen bestehen.',
+          },
+        ],
         fixes: [
+          {
+            title: 'Verknüpfte Bewegungen',
+            description:
+              'Wenn du die Art eines Planungseintrags änderst, folgen ihm seine Bewegungen und zählen weiter in deinen Summen.',
+          },
           {
             title: 'Code bestätigen',
             description:
@@ -90,8 +245,19 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
         ],
       },
       it: {
-        features: [],
+        features: [
+          {
+            title: 'Eliminare un mese futuro',
+            description:
+              'Dal dettaglio di un mese futuro puoi eliminarne il budget; la conferma indica cosa viene rimosso e gli eventuali legami con i tuoi obiettivi di risparmio.',
+          },
+        ],
         fixes: [
+          {
+            title: 'Movimenti collegati',
+            description:
+              'Quando cambi la natura di una previsione, i suoi movimenti la seguono e restano conteggiati nei totali.',
+          },
           {
             title: 'Conferma del codice',
             description:

@@ -123,6 +123,7 @@
           "deficit": "Du gibst diesen Monat mehr aus, als du verdienst."
         }
       },
+      "inEnvelope": "In der Planung %{name}",
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
       "loadErrorTitle": "Dieses Budget konnte nicht geladen werden",
       "missingHint": "Möglicherweise wurde es auf einem anderen Gerät gelöscht.",
@@ -135,7 +136,8 @@
       "protectedTitle": "Geschütztes Budget",
       "search": "Suchen",
       "sections": {
-        "free": "Ohne Planung"
+        "free": "Ohne Planung",
+        "pointedAllocated": "In einer Planung abgehakt"
       },
       "spread": "Verteilt",
       "status": {
