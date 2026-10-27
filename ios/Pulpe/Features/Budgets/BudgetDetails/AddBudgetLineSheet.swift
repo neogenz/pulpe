@@ -264,6 +264,9 @@ struct AddBudgetLineSheet: View {
                     withdrawalAmount: convertedAmount,
                     style: .row
                 )
+                // The picker ends on its note, free text with no row height of its own:
+                // without this the note sits on the card's bottom edge.
+                .padding(.bottom, DesignTokens.Spacing.lg)
             }
         }
     }

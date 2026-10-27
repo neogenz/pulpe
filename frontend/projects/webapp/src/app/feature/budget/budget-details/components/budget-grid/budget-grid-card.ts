@@ -140,7 +140,6 @@ import { BudgetActionMenu } from '../budget-action-menu';
 
         <pulpe-budget-action-menu
           [item]="item()"
-          [currency]="currency()"
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
@@ -224,45 +223,31 @@ import { BudgetActionMenu } from '../budget-action-menu';
           </span>
         </div>
 
-        @if (item().metadata.sourceWithdrawalCtaKey; as ctaKey) {
-          <button
-            matButton
-            class="text-primary shrink-0"
-            (click)="
-              realizeWithdrawal.emit(item().data.id); $event.stopPropagation()
-            "
-            [attr.data-testid]="'realize-withdrawal-' + item().data.id"
-          >
-            {{ ctaKey | transloco }}
-          </button>
-        } @else if (item().metadata.isSourceWithdrawalRealized) {
-          <span class="text-label-medium text-on-surface-variant shrink-0">
-            {{ 'budgetLine.withdrawalRealized' | transloco }}
-          </span>
-        } @else {
-          <mat-slide-toggle
-            class="shrink-0"
-            [checked]="!!item().data.checkedAt"
-            [pulpeCheckReward]="!!item().data.checkedAt"
-            (change)="toggleCheck.emit(item().data.id)"
-            (click)="$event.stopPropagation()"
-            [attr.data-testid]="'toggle-check-' + item().data.id"
-            [attr.aria-label]="
-              item().data.checkedAt
-                ? ('budgetLine.uncheckLabel'
-                  | transloco: { name: item().data.name })
-                : ('budgetLine.checkLabel'
-                  | transloco: { name: item().data.name })
-            "
-          >
-            {{
-              (item().data.checkedAt
-                ? 'budgetLine.checkedStatus'
-                : 'budgetLine.uncheckedStatus'
-              ) | transloco
-            }}
-          </mat-slide-toggle>
-        }
+        <mat-slide-toggle
+          class="shrink-0"
+          [checked]="!!item().metadata.isPointed"
+          [pulpeCheckReward]="!!item().metadata.isPointed"
+          (change)="
+            $event.source.checked = !$event.checked;
+            toggleCheck.emit(item().data.id)
+          "
+          (click)="$event.stopPropagation()"
+          [attr.data-testid]="'toggle-check-' + item().data.id"
+          [attr.aria-label]="
+            item().metadata.isPointed
+              ? ('budgetLine.uncheckLabel'
+                | transloco: { name: item().data.name })
+              : ('budgetLine.checkLabel'
+                | transloco: { name: item().data.name })
+          "
+        >
+          {{
+            (item().metadata.isPointed
+              ? 'budgetLine.checkedStatus'
+              : 'budgetLine.uncheckedStatus'
+            ) | transloco
+          }}
+        </mat-slide-toggle>
       </div>
     </div>
   `,
@@ -337,5 +322,4 @@ export class BudgetGridCard {
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
-  readonly realizeWithdrawal = output<string>();
 }

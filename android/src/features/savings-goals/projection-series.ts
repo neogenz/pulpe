@@ -4,12 +4,8 @@ const DOMAIN_PADDING_RATIO = 0.08;
 const MINIMUM_DOMAIN_PADDING = 1;
 /** Below this the first tick would collide with the "this month" one. */
 const MINIMUM_TICK_SEPARATION = 3;
-/**
- * Two confirmed points are one elapsed month plus the current one. Below that
- * reality is a single dot and the chart is decoration — axes and a dashed
- * target, intimidating on day one.
- */
-const MINIMUM_CONFIRMED_TREND = 2;
+/** A line needs two points; a lone dot is decoration, not a trajectory. */
+const MINIMUM_LINE_POINTS = 2;
 
 /**
  * A type rather than an interface, against the house rule: victory-native takes
@@ -33,7 +29,12 @@ export interface ProjectionSeries {
   points: ProjectionPoint[];
   target: number | null;
   ticks: ProjectionTick[];
-  hasConfirmedTrend: boolean;
+  /**
+   * Gates "Ta trajectoire", as on iOS and the webapp: a plan fed by at least
+   * one linked prévision, and two points to draw, confirmed or projected. On
+   * day one the planned curve alone already shows the road to the target.
+   */
+  hasDrawableLine: boolean;
 }
 
 /**
@@ -50,7 +51,7 @@ export function projectionSeries(
 ): ProjectionSeries {
   const months = progress.months;
   if (months.length === 0) {
-    return { points: [], target: null, ticks: [], hasConfirmedTrend: false };
+    return { points: [], target: null, ticks: [], hasDrawableLine: false };
   }
 
   const currentIndex = currentMonthIndex(months);
@@ -72,7 +73,10 @@ export function projectionSeries(
     })),
     target: progress.targetAmount,
     ticks: ticksFor(months, currentIndex),
-    hasConfirmedTrend: confirmed.size >= MINIMUM_CONFIRMED_TREND,
+    hasDrawableLine:
+      progress.linkedLineCount > 0 &&
+      (confirmed.size >= MINIMUM_LINE_POINTS ||
+        projection.size >= MINIMUM_LINE_POINTS),
   };
 }
 

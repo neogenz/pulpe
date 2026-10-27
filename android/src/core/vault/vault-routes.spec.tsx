@@ -154,10 +154,10 @@ it("requires matching setup PINs and remains retryable after setup failure", asy
   await fireEvent.press(view.getByText("pin:1234"));
   await waitFor(() => expect(view.getByText("vault.confirmPin")).toBeTruthy());
   await fireEvent.press(view.getByText("pin:5678"));
-  await waitFor(() => expect(view.getByText("vault.pinMismatch")).toBeTruthy());
+  await waitFor(() =>
+    expect(view.getByText("vault.setup.mismatch")).toBeTruthy(),
+  );
 
-  await fireEvent.press(view.getByText("pin:1234"));
-  await waitFor(() => expect(view.getByText("vault.confirmPin")).toBeTruthy());
   await fireEvent.press(view.getByText("pin:1234"));
   await waitFor(() => expect(view.getByText("vault.error")).toBeTruthy());
   expect(mockedSetup).toHaveBeenCalledTimes(1);

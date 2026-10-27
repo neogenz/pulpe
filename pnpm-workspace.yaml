@@ -30,6 +30,7 @@ onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@scarf/scarf'
   - '@tailwindcss/oxide'
+  - bun
   - esbuild
   - lmdb
   - msgpackr-extract

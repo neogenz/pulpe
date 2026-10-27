@@ -15,8 +15,10 @@ struct BudgetDetailsStickyPagerLayer: View {
     let onSelect: (String) -> Void
     let tracker: BudgetDetailsScrollTracker
 
+    @Environment(\.budgetMonthsInSidebar) private var isInSidebarLayout
+
     var body: some View {
-        if !months.isEmpty {
+        if !months.isEmpty && !isInSidebarLayout {
             BudgetMonthPagerBar(
                 months: months,
                 currentBudgetId: currentBudgetId,

@@ -39,7 +39,8 @@ pnpm dev:android
 | `pnpm --filter pulpe-android test:e2e`        | Maestro smoke flow on an installed preview APK            |
 | `pnpm --filter pulpe-android quality`         | tsc + eslint + prettier                                   |
 | `pnpm --filter pulpe-android native:generate` | Regenerates the native project                            |
-| `pnpm deps:check`                             | Expo compatibility and frontend/Android import cycles     |
+| `pnpm deps:check`                             | Frontend/Android import cycles                            |
+| `pnpm deps:check:expo`                        | Expo SDK patch alignment (daily fix PR, `expo-drift.yml`) |
 
 The existing GitHub jobs cover build, unit tests and quality through the
 Turborepo workspace. `.github/workflows/android-e2e.yml` adds the native gap: it

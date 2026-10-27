@@ -56,7 +56,6 @@ export interface BudgetDetailPanelData {
   onResetBudgetLine: (item: BudgetLineTableItem) => void;
   onPostponeBudgetLine: (id: string) => void;
   onToggleBudgetLineCheck: (id: string) => void;
-  onRealizeWithdrawal: (id: string) => void;
   onDeleteTransaction: (id: string) => void;
   onToggleTransactionCheck: (id: string) => void;
   onEditTransaction: (transaction: Transaction) => void;
@@ -180,44 +179,32 @@ const DETAIL_SEGMENT_COUNT = 12;
           class="detail-forecast-toolbar mt-3"
           data-testid="detail-forecast-toolbar"
         >
-          @if (envelope.metadata.sourceWithdrawalCtaKey; as ctaKey) {
-            <button
-              matButton="filled"
-              class="w-full min-w-0 sm:w-auto"
-              (click)="onRealizeWithdrawal()"
-              [attr.data-testid]="
-                'detail-realize-withdrawal-' + envelope.data.id
-              "
-            >
-              <mat-icon>add</mat-icon>
-              <span class="truncate">{{ ctaKey | transloco }}</span>
-            </button>
-          } @else if (!envelope.data.sourceSavingsGoalId) {
-            <mat-slide-toggle
-              class="detail-pointing-toggle"
-              labelPosition="before"
-              [checked]="!!envelope.data.checkedAt"
-              [pulpeCheckReward]="!!envelope.data.checkedAt"
-              (change)="onToggleBudgetLineCheck()"
-              [attr.data-testid]="'detail-toggle-check-' + envelope.data.id"
-              [attr.aria-label]="
-                envelope.data.checkedAt
-                  ? ('budgetLine.uncheckLabel'
-                    | transloco: { name: envelope.data.name })
-                  : ('budgetLine.checkLabel'
-                    | transloco: { name: envelope.data.name })
-              "
-            >
-              <span class="text-label-large font-medium">
-                {{
-                  (envelope.data.checkedAt
-                    ? 'budgetLine.checkedStatus'
-                    : 'budgetLine.uncheckedStatus'
-                  ) | transloco
-                }}
-              </span>
-            </mat-slide-toggle>
-          }
+          <mat-slide-toggle
+            class="detail-pointing-toggle"
+            labelPosition="before"
+            [checked]="!!envelope.metadata.isPointed"
+            [pulpeCheckReward]="!!envelope.metadata.isPointed"
+            (change)="
+              $event.source.checked = !$event.checked; onToggleBudgetLineCheck()
+            "
+            [attr.data-testid]="'detail-toggle-check-' + envelope.data.id"
+            [attr.aria-label]="
+              envelope.metadata.isPointed
+                ? ('budgetLine.uncheckLabel'
+                  | transloco: { name: envelope.data.name })
+                : ('budgetLine.checkLabel'
+                  | transloco: { name: envelope.data.name })
+            "
+          >
+            <span class="text-label-large font-medium">
+              {{
+                (envelope.metadata.isPointed
+                  ? 'budgetLine.checkedStatus'
+                  : 'budgetLine.uncheckedStatus'
+                ) | transloco
+              }}
+            </span>
+          </mat-slide-toggle>
 
           <div class="detail-forecast-actions">
             <button
@@ -438,19 +425,17 @@ const DETAIL_SEGMENT_COUNT = 12;
                 </span>
               }
             </h3>
-            @if (!envelope.data.sourceSavingsGoalId) {
-              <button
-                matButton
-                (click)="onAddTransaction()"
-                class="!rounded-full"
-                [attr.aria-label]="
-                  'budgetLine.addTransactionAriaLabel' | transloco
-                "
-              >
-                <mat-icon>add</mat-icon>
-                {{ 'common.add' | transloco }}
-              </button>
-            }
+            <button
+              matButton
+              (click)="onAddTransaction()"
+              class="!rounded-full"
+              [attr.aria-label]="
+                'budgetLine.addTransactionAriaLabel' | transloco
+              "
+            >
+              <mat-icon>add</mat-icon>
+              {{ 'common.add' | transloco }}
+            </button>
           </div>
 
           @if (allocatedTransactions().length === 0) {
@@ -779,11 +764,6 @@ export class BudgetDetailPanel {
 
   protected onToggleBudgetLineCheck(): void {
     this.data.onToggleBudgetLineCheck(this.envelopeItem().data.id);
-  }
-
-  protected onRealizeWithdrawal(): void {
-    this.#dialogRef.close();
-    this.data.onRealizeWithdrawal(this.envelopeItem().data.id);
   }
 
   protected onDeleteTransaction(id: string): void {

@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.52.0",
-  "githubReleaseNotes": "## v0.52.0\n\n### Nouveautés\n\n- **Récap du lundi** — Chaque lundi matin, une notification te dit combien tu peux dépenser cette semaine et quelles prévisions t’attendent. À activer dans Préférences.\n- **Ton avis** — Sur le web comme sur iPhone, Pulpe te demande de temps en temps ce que tu en penses, jusqu’à ce que tu répondes.\n\n### Corrections\n\n- **Réglages** — Les préférences, les assistants connectés et la sécurité sont plus faciles à parcourir, et un nouveau code PIN se confirme avant d’être enregistré.\n- **Rappels** — Toucher un rappel ouvre directement l’accueil.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.57.0",
+  "githubReleaseNotes": "## v0.57.0\n\n### Nouveautés\n\n- **Pulpe s’adapte à l’iPhone Duo** — Ouvert, l’écran intérieur affiche tes mois, objectifs et modèles à côté de leur détail, et la page ouverte reste à l’écran quand tu plies ou déplies.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }

@@ -77,7 +77,8 @@ export class AesGcmCryptoService {
         `ENCRYPTION_MASTER_KEY must be exactly ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex chars), got ${this.#masterKey.length} bytes`,
       );
     }
-    // Validated by the environment schema at boot; tests build the service by hand.
+    // Absent while MCP is off outside production (environment schema); wrapping
+    // then refuses in #requireWrappingKey. Tests build the service by hand.
     this.#wrappingKey = Buffer.from(
       configService.get<string>('MCP_WRAPPING_KEY') ?? '',
       'hex',

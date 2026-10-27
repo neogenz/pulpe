@@ -8,6 +8,7 @@ import SwiftUI
 struct SavingsGoalFormSheet: View {
     let goal: SavingsGoal?
     private let onUpdate: ((SavingsGoalUpdate) -> Void)?
+    private let onCreate: ((SavingsGoal) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
@@ -40,12 +41,14 @@ struct SavingsGoalFormSheet: View {
         goal: SavingsGoal?,
         userCurrency: SupportedCurrency,
         payDayOfMonth: Int? = nil,
-        onUpdate: ((SavingsGoalUpdate) -> Void)? = nil
+        onUpdate: ((SavingsGoalUpdate) -> Void)? = nil,
+        onCreate: ((SavingsGoal) -> Void)? = nil
     ) {
         self.goal = goal
         self.currency = userCurrency
         self.payDayOfMonth = payDayOfMonth
         self.onUpdate = onUpdate
+        self.onCreate = onCreate
         _name = State(initialValue: goal?.name ?? "")
         _status = State(initialValue: goal?.status ?? .active)
 
@@ -418,7 +421,7 @@ private extension SavingsGoalFormSheet {
         }
 
         do {
-            _ = try await store.create(
+            let created = try await store.create(
                 SavingsGoalCreate(
                     name: trimmedName,
                     targetAmount: amount,
@@ -429,6 +432,7 @@ private extension SavingsGoalFormSheet {
                     startDate: startDateString
                 )
             )
+            onCreate?(created)
             toastManager.show(AppLocale.string("Objectif créé"))
             submitSuccessTrigger += 1
             dismiss()

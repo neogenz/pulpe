@@ -2,40 +2,6 @@ import SwiftUI
 
 /// Sheet for adding a new transaction — fintech-inspired hero amount layout
 struct AddTransactionSheet: View {
-    /// Whether an income is funded by a savings goal (PUL-329), and what that
-    /// implies for the form. A value type so the rule can be tested on its own.
-    struct SavingsGoalOrigin: Equatable {
-        let kind: TransactionKind
-        let isEnabled: Bool
-        let goalId: String?
-        let isWithdrawalReady: Bool
-        /// The typed amount could not be converted into the account currency, so
-        /// there is nothing to weigh the goal's balance against (RG-009).
-        let hasConversionFailed: Bool
-
-        /// Only an income can come out of a goal.
-        var isOffered: Bool { kind == .income }
-
-        var isActive: Bool { isOffered && isEnabled }
-
-        /// The id sent on creation — never sent for a kind that cannot carry one.
-        var sourceSavingsGoalId: String? { isActive ? goalId : nil }
-
-        var blocksSubmission: Bool { isActive && !isWithdrawalReady }
-
-        /// Why this block holds the submission back, when the reason is its own.
-        /// A chosen goal that the picker refuses states itself down there; what
-        /// the picker cannot see is that it was never handed an amount to judge.
-        var blockingReason: String? {
-            guard isActive else { return nil }
-            if goalId == nil { return AppLocale.string("Choisis l'objectif utilisé") }
-            if hasConversionFailed {
-                return AppLocale.string("Le taux de change est indisponible, réessaie dans un instant.")
-            }
-            return nil
-        }
-    }
-
     /// What the details card starts with when nothing is touched: the fact is dated
     /// today and has already left the account. Explicit so the defaults are tested.
     enum Defaults {
@@ -47,6 +13,9 @@ struct AddTransactionSheet: View {
     /// Which control opened the sheet, for `first_transaction_created` (PUL-306).
     let source: FirstTransactionTracker.Source
     let onAdd: (Transaction) -> Void
+    /// « À remettre »: amount, currency and source to hand to the withdrawal flow.
+    /// `nil` where that flow is out of reach (widget deep link) — the segment hides.
+    let onRequestSavingsWithdrawal: ((Decimal, SupportedCurrency, String?) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
@@ -64,9 +33,10 @@ struct AddTransactionSheet: View {
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
     @State private var selectedTagIds: Set<String> = []
-    /// PUL-329 — an income can be funded by a savings goal. Off by default; the
+    /// An income can come from savings: a goal (PUL-329) or « À remettre » (PUL-292). Off by default; the
     /// whole block disappears (and the choice is dropped) for any other kind.
-    @State private var isFromSavingsGoal = false
+    @State private var isFromSavings = false
+    @State private var savingsOrigin: SavingsOrigin = .goal
     @State private var savingsGoalId: String?
     @State private var isWithdrawalReady = false
     @State private var withdrawalRefreshToken = 0
@@ -83,29 +53,35 @@ struct AddTransactionSheet: View {
         budgetId: String,
         source: FirstTransactionTracker.Source = .addButton,
         dependencies: AddTransactionDependencies = .live,
+        onRequestSavingsWithdrawal: ((Decimal, SupportedCurrency, String?) -> Void)? = nil,
         onAdd: @escaping (Transaction) -> Void
     ) {
         self.budgetId = budgetId
         self.source = source
         self.dependencies = dependencies
+        self.onRequestSavingsWithdrawal = onRequestSavingsWithdrawal
         self.onAdd = onAdd
     }
 
-    private var savingsGoalOrigin: SavingsGoalOrigin {
-        SavingsGoalOrigin(
+    private var savingsOriginRule: SavingsOriginRule {
+        SavingsOriginRule(
             kind: kind,
-            isEnabled: isFromSavingsGoal,
+            isEnabled: isFromSavings,
             goalId: savingsGoalId,
             isWithdrawalReady: isWithdrawalReady,
-            hasConversionFailed: hasConversionFailed
+            hasConversionFailed: hasConversionFailed,
+            origin: savingsOrigin
         )
     }
 
+    private var routesToWithdrawal: Bool { savingsOriginRule.routesToWithdrawal }
+
     private var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
+        // The withdrawal names its source itself ("Mon épargne") when none is typed.
+        (routesToWithdrawal || !name.trimmingCharacters(in: .whitespaces).isEmpty) &&
         (amount ?? 0) > 0 &&
         !isLoading &&
-        !savingsGoalOrigin.blocksSubmission
+        !savingsOriginRule.blocksSubmission
     }
 
     private var hasStartedFilling: Bool {
@@ -115,10 +91,10 @@ struct AddTransactionSheet: View {
     private var validationHint: String? {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
         if (amount ?? 0) <= 0 { return AppLocale.string("Ajoute un montant") }
-        if name.trimmingCharacters(in: .whitespaces).isEmpty {
+        if !routesToWithdrawal, name.trimmingCharacters(in: .whitespaces).isEmpty {
             return AppLocale.string("Ajoute une description")
         }
-        return savingsGoalOrigin.blockingReason
+        return savingsOriginRule.blockingReason
     }
 
     var body: some View {
@@ -152,18 +128,23 @@ struct AddTransactionSheet: View {
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
 
             // Three blocks: the amount above, what it is, then the details.
+            // « À remettre » creates no operation here: no tag, date or pointé to set.
             FormCard {
                 descriptionField
-                FormRowDivider()
-                TagPickerField(selection: $selectedTagIds, style: .row)
+                if !routesToWithdrawal {
+                    FormRowDivider()
+                    TagPickerField(selection: $selectedTagIds, style: .row)
+                }
             }
 
             // The date is a detail, today by default.
             FormCard {
-                TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
-                FormRowDivider()
-                CheckedToggle(isOn: $isChecked, tintColor: kind.color, style: .row)
-                savingsGoalOriginSection
+                if !routesToWithdrawal {
+                    TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
+                    FormRowDivider()
+                    CheckedToggle(isOn: $isChecked, tintColor: kind.color, style: .row)
+                }
+                savingsOriginSection
             }
 
             if let error {
@@ -178,7 +159,8 @@ struct AddTransactionSheet: View {
         .onAppear { inputCurrency = userSettingsStore.currency }
         .onChange(of: kind) { _, newKind in
             guard newKind != .income else { return }
-            isFromSavingsGoal = false
+            isFromSavings = false
+            savingsOrigin = .goal
             savingsGoalId = nil
         }
         .task(id: ConversionKey(amount: amount, inputCurrency: inputCurrency)) {
@@ -206,19 +188,21 @@ struct AddTransactionSheet: View {
         )
     }
 
-    // MARK: - Savings-goal origin (PUL-329)
+    // MARK: - Savings origin (PUL-329 / PUL-292)
 
     @ViewBuilder
-    private var savingsGoalOriginSection: some View {
-        if savingsGoalOrigin.isOffered {
-            FormRowDivider()
+    private var savingsOriginSection: some View {
+        if savingsOriginRule.isOffered {
+            if !routesToWithdrawal { FormRowDivider() }
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Toggle("Ce revenu vient d'un objectif d'épargne", isOn: $isFromSavingsGoal)
-                    .font(PulpeTypography.body)
-                    .tint(kind.color)
-                    .frame(minHeight: DesignTokens.ListRow.minHeight)
+                SavingsOriginToggle(
+                    isOn: $isFromSavings,
+                    origin: $savingsOrigin,
+                    offersRepay: onRequestSavingsWithdrawal != nil,
+                    tintColor: kind.color
+                )
 
-                if isFromSavingsGoal {
+                if savingsOriginRule.isActive {
                     Text("Le montant sera retiré de l'objectif choisi.")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
@@ -233,8 +217,8 @@ struct AddTransactionSheet: View {
                     )
                 }
             }
-            .padding(.bottom, isFromSavingsGoal ? DesignTokens.Spacing.lg : 0)
-            .animation(DesignTokens.Animation.smoothEaseInOut, value: isFromSavingsGoal)
+            .padding(.bottom, savingsOriginRule.isActive ? DesignTokens.Spacing.lg : 0)
+            .animation(DesignTokens.Animation.smoothEaseInOut, value: savingsOriginRule.isActive)
         }
     }
 
@@ -243,7 +227,7 @@ struct AddTransactionSheet: View {
     private var addButton: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             Button { Task { await addTransaction() } } label: {
-                Text("Ajouter")
+                Text(routesToWithdrawal ? AppLocale.string("Continuer") : AppLocale.string("Ajouter"))
             }
             .disabled(!canSubmit)
             .primaryButtonStyle(isEnabled: canSubmit)
@@ -287,6 +271,12 @@ struct AddTransactionSheet: View {
 
     private func addTransaction() async {
         guard let amount else { return }
+        if routesToWithdrawal {
+            let trimmed = name.trimmingCharacters(in: .whitespaces)
+            onRequestSavingsWithdrawal?(amount, inputCurrency, trimmed.isEmpty ? nil : trimmed)
+            dismiss()
+            return
+        }
 
         isLoading = true
         defer { isLoading = false }
@@ -311,7 +301,7 @@ struct AddTransactionSheet: View {
                 targetCurrency: conversion?.targetCurrency,
                 exchangeRate: conversion?.exchangeRate,
                 tagIds: TagPickerField.createdTagIds(from: selectedTagIds),
-                sourceSavingsGoalId: savingsGoalOrigin.sourceSavingsGoalId
+                sourceSavingsGoalId: savingsOriginRule.sourceSavingsGoalId
             )
 
             let transaction = try await dependencies.createTransaction(data)

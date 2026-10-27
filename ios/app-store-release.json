@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.52.0",
-  "marketingVersion": "1.8.0",
-  "buildNumber": "1",
+  "productVersion": "0.57.0",
+  "marketingVersion": "1.12.0",
+  "buildNumber": "5",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "• Récap du lundi : Chaque lundi matin, une notification te dit combien tu peux dépenser cette semaine et quelles prévisions t’attendent. À activer dans Préférences.\n• Ton avis : Pulpe te demande de temps en temps ce que tu en penses, jusqu’à ce que tu répondes.\n• Rappels : Toucher un rappel ouvre directement l’accueil."
+    "frFR": "Pulpe s’adapte à l’iPhone Duo : ouvert, tes mois, objectifs et modèles s’affichent à côté de leur détail, et ta page reste ouverte quand tu plies ou déplies."
   },
-  "reviewNotes": "Sign in with the demo account. On Home, tap the account button (top right), open Préférences and turn on \"Récap du lundi\", allowing notifications when asked. A local notification titled \"Ta semaine en bref\" is then scheduled for Monday at 8:30; it is computed on the device. Tapping any Pulpe reminder opens Home. The feedback form is available from the account screen; the automatic invitation only appears on the third day of use."
+  "reviewNotes": "Sign in with the demo account. On iPhone Duo, unfold the device: the Budget, Goals and Templates tabs show the list beside the selected item; fold it again and the open item stays on screen."
 }

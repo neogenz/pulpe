@@ -10,7 +10,14 @@ export const BUDGET_LINE_WRITE_PORT = Symbol('BUDGET_LINE_WRITE_PORT');
  * exactly like an HTTP request does.
  */
 export interface BudgetLineWritePort {
+  /** Lu avant une écriture qui raisonne en ajout/retrait, comme les tags. */
+  find(id: string): Promise<BudgetLine>;
   create(dto: BudgetLineCreate): Promise<BudgetLine>;
+  /**
+   * An agent edit of a value field marks the line `isManuallyAdjusted`
+   * (BUSINESS_RULES: no longer overwritten by Mois Type propagation); a
+   * tags-only patch does not.
+   */
   update(id: string, patch: BudgetLineUpdate): Promise<BudgetLine>;
   /** Pointe ou dépointe : le même geste dans les deux sens. */
   toggleCheck(id: string): Promise<BudgetLine>;

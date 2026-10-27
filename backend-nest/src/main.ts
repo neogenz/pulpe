@@ -6,6 +6,7 @@ import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
+import { ObserveInstrument } from './observe';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import {
   isProductionLike,
@@ -525,6 +526,7 @@ function logApplicationInfo(
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    instrument: ObserveInstrument,
     bufferLogs: true,
   });
 
@@ -540,7 +542,7 @@ async function bootstrap() {
     ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
     MCP_RESOURCE_URL: configService.get('MCP_RESOURCE_URL')!,
     MCP_CONSENT_URL: configService.get('MCP_CONSENT_URL')!,
-    MCP_WRAPPING_KEY: configService.get('MCP_WRAPPING_KEY')!,
+    MCP_WRAPPING_KEY: configService.get('MCP_WRAPPING_KEY'),
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
     RAILWAY_ENVIRONMENT_NAME: configService.get('RAILWAY_ENVIRONMENT_NAME'),
     MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION')!,

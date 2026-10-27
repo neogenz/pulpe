@@ -19,6 +19,7 @@ import {
   McpToolNotAvailableError,
 } from '../../application/call-tool.use-case';
 import type { McpTool } from '../../domain/mcp-tool.entity';
+import { askUser } from '../tools/write/elicitation';
 
 const RESOURCE = 'https://api.pulpe.app/mcp';
 
@@ -136,6 +137,7 @@ describe('tool catalog by access mode', () => {
   const list = new ListToolsUseCase([
     tool('r', 'read'),
     tool('w', 'read_write'),
+    { ...tool('q', 'read_write'), execute: async () => askUser('x') },
   ]);
   const recorded: string[] = [];
   const call = new CallToolUseCase(list, {
@@ -154,7 +156,11 @@ describe('tool catalog by access mode', () => {
 
   it('hides write tools from a read connection and refuses direct calls', async () => {
     expect(list.execute('read').map((t) => t.name)).toEqual(['r']);
-    expect(list.execute('read_write').map((t) => t.name)).toEqual(['r', 'w']);
+    expect(list.execute('read_write').map((t) => t.name)).toEqual([
+      'r',
+      'w',
+      'q',
+    ]);
     expect(call.execute(conn('read'), 'u', 'w', {})).rejects.toBeInstanceOf(
       McpToolNotAvailableError,
     );
@@ -167,6 +173,14 @@ describe('tool catalog by access mode', () => {
     recorded.length = 0;
     await call.execute(conn('read_write'), 'u', 'r', {});
     await call.execute(conn('read_write'), 'u', 'w', { amount: 1234.56 });
+    expect(recorded).toEqual(['w:ok']);
+  });
+
+  it('keeps a question back to the user out of the activity log', async () => {
+    recorded.length = 0;
+    await call.execute(conn('read_write'), 'u', 'q', {});
+    expect(recorded).toEqual([]);
+    await call.execute(conn('read_write'), 'u', 'w', {});
     expect(recorded).toEqual(['w:ok']);
   });
 });

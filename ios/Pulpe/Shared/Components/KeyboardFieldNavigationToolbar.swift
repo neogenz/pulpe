@@ -43,6 +43,14 @@ extension View {
                 if showsKeyboardDismiss {
                     Button {
                         focus.wrappedValue = nil
+                        // Fields with their own internal focus (e.g. `CurrencyField`)
+                        // are not in `focus`: resign whatever holds the keyboard.
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil,
+                            from: nil,
+                            for: nil
+                        )
                     } label: {
                         // Standard Apple icon for dismissing the keyboard
                         Image(systemName: "keyboard.chevron.compact.down")

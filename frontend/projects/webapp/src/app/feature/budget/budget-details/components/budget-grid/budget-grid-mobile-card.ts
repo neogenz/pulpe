@@ -108,9 +108,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
       <ng-container ngProjectAs="[menu]">
         <pulpe-budget-action-menu
           [item]="item()"
-          [currency]="currency()"
           menuIcon="more_horiz"
-          [showBalance]="true"
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (addTransaction)="addTransaction.emit($event)"
@@ -278,58 +276,41 @@ import { BudgetActionMenu } from '../budget-action-menu';
       </ng-container>
 
       <ng-container ngProjectAs="[actions]">
-        @if (!item().data.sourceSavingsGoalId) {
-          <button
-            matIconButton
-            class="text-primary"
-            (click)="addTransaction.emit(item().data); $event.stopPropagation()"
-            [matTooltip]="'budgetLine.addTransaction' | transloco"
-            [attr.aria-label]="'budgetLine.addTransaction' | transloco"
-            [attr.data-testid]="'add-transaction-' + item().data.id"
-          >
-            <mat-icon>add</mat-icon>
-          </button>
-        }
+        <button
+          matIconButton
+          class="text-primary"
+          (click)="addTransaction.emit(item().data); $event.stopPropagation()"
+          [matTooltip]="'budgetLine.addTransaction' | transloco"
+          [attr.aria-label]="'budgetLine.addTransaction' | transloco"
+          [attr.data-testid]="'add-transaction-' + item().data.id"
+        >
+          <mat-icon>add</mat-icon>
+        </button>
 
-        <!-- Un retrait annoncé se réalise par une action distincte du pointage. -->
-        @if (item().metadata.sourceWithdrawalCtaKey; as ctaKey) {
-          <button
-            matButton
-            class="text-primary"
-            (click)="
-              realizeWithdrawal.emit(item().data.id); $event.stopPropagation()
-            "
-            [attr.data-testid]="'realize-withdrawal-' + item().data.id"
-          >
-            {{ ctaKey | transloco }}
-          </button>
-        } @else if (item().metadata.isSourceWithdrawalRealized) {
-          <span class="text-label-medium text-on-surface-variant">
-            {{ 'budgetLine.withdrawalRealized' | transloco }}
-          </span>
-        } @else {
-          <mat-slide-toggle
-            [checked]="!!item().data.checkedAt"
-            [pulpeCheckReward]="!!item().data.checkedAt"
-            (change)="toggleCheck.emit(item().data.id)"
-            (click)="$event.stopPropagation()"
-            [attr.data-testid]="'toggle-check-' + item().data.id"
-            [attr.aria-label]="
-              item().data.checkedAt
-                ? ('budgetLine.uncheckLabel'
-                  | transloco: { name: item().data.name })
-                : ('budgetLine.checkLabel'
-                  | transloco: { name: item().data.name })
-            "
-          >
-            {{
-              (item().data.checkedAt
-                ? 'budgetLine.checkedStatus'
-                : 'budgetLine.uncheckedStatus'
-              ) | transloco
-            }}
-          </mat-slide-toggle>
-        }
+        <mat-slide-toggle
+          [checked]="!!item().metadata.isPointed"
+          [pulpeCheckReward]="!!item().metadata.isPointed"
+          (change)="
+            $event.source.checked = !$event.checked;
+            toggleCheck.emit(item().data.id)
+          "
+          (click)="$event.stopPropagation()"
+          [attr.data-testid]="'toggle-check-' + item().data.id"
+          [attr.aria-label]="
+            item().metadata.isPointed
+              ? ('budgetLine.uncheckLabel'
+                | transloco: { name: item().data.name })
+              : ('budgetLine.checkLabel'
+                | transloco: { name: item().data.name })
+          "
+        >
+          {{
+            (item().metadata.isPointed
+              ? 'budgetLine.checkedStatus'
+              : 'budgetLine.uncheckedStatus'
+            ) | transloco
+          }}
+        </mat-slide-toggle>
       </ng-container>
     </pulpe-financial-line-card>
   `,
@@ -365,5 +346,4 @@ export class BudgetGridMobileCard {
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
-  readonly realizeWithdrawal = output<string>();
 }

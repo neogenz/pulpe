@@ -172,6 +172,28 @@
       },
       "shouldTranslate" : false
     },
+    "%@ (échec)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (fehlgeschlagen)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (failed)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (fallita)"
+          }
+        }
+      }
+    },
     "%@ / %@" : {
       "localizations" : {
         "fr" : {
@@ -794,6 +816,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ riportati su %2$@ → parti da %3$@"
+          }
+        }
+      }
+    },
+    "%@ retourneront sur « %@ »." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ fliessen zurück auf „%@“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ will go back to “%@”."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ retourneront sur « %2$@ »."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ torneranno su «%@»."
           }
         }
       }
@@ -4599,6 +4649,28 @@
         }
       }
     },
+    "Ajusté sur plusieurs mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über mehrere Monate angepasst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjusted over several months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modificato su più mesi"
+          }
+        }
+      }
+    },
     "Aller aux opérations à pointer" : {
       "localizations" : {
         "de" : {
@@ -4643,6 +4715,50 @@
         }
       }
     },
+    "Ce montant retournera sur « %@ »." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Betrag fliesst zurück auf „%@“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This amount will go back to “%@”."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo importo tornerà su «%@»."
+          }
+        }
+      }
+    },
+    "Annuler ce retrait ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Entnahme rückgängig machen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel this withdrawal?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annullare questo prelievo?"
+          }
+        }
+      }
+    },
     "Annuler disponible" : {
       "localizations" : {
         "de" : {
@@ -4683,6 +4799,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Annulla l'eliminazione"
+          }
+        }
+      }
+    },
+    "Annuler le retrait" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entnahme rückgängig machen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel withdrawal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla il prelievo"
           }
         }
       }
@@ -6113,6 +6251,28 @@
         }
       }
     },
+    "Budget mensuel créé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatsbudget erstellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly budget created"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget mensile creato"
+          }
+        }
+      }
+    },
     "Budget protégé" : {
       "localizations" : {
         "de" : {
@@ -6343,6 +6503,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "È in equilibrio ma stretto. Potrai perfezionare più tardi."
+          }
+        }
+      }
+    },
+    "Cet argent vient de mon épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Geld kommt aus meinem Ersparten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This money comes from my savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questi soldi vengono dai miei risparmi"
           }
         }
       }
@@ -6809,6 +6991,28 @@
         }
       }
     },
+    "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : %@. Les autres mois gardent leur part." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Monat ist auch mit anderen Monaten oder einem Sparziel verknüpft: %@. Die anderen Monate behalten ihren Anteil."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This month is also linked to other months or to a savings goal: %@. The other months keep their share."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo mese è collegato anche ad altri mesi o a un obiettivo di risparmio: %@. Gli altri mesi mantengono la loro parte."
+          }
+        }
+      }
+    },
     "Ce mois est un peu juste." : {
       "localizations" : {
         "de" : {
@@ -7047,28 +7251,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questo prelievo è già stato effettuato in parte o del tutto. Modificalo dal budget."
-          }
-        }
-      }
-    },
-    "Ce revenu vient d'un objectif d'épargne" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diese Einnahme kommt aus einem Sparziel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This income comes from a savings goal"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questa entrata arriva da un obiettivo di risparmio"
           }
         }
       }
@@ -10119,6 +10301,28 @@
         }
       }
     },
+    "D'un objectif" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus einem Sparziel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From a goal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da un obiettivo"
+          }
+        }
+      }
+    },
     "DEVISE" : {
       "localizations" : {
         "de" : {
@@ -10159,6 +10363,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DATI E PRIVACY"
+          }
+        }
+      }
+    },
+    "Dans la prévision %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Planung %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In planned item %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nella previsione %@"
           }
         }
       }
@@ -12743,6 +12969,28 @@
         }
       }
     },
+    "Garder le retrait" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entnahme behalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep withdrawal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni il prelievo"
+          }
+        }
+      }
+    },
     "Garder sans objectif" : {
       "localizations" : {
         "de" : {
@@ -14525,6 +14773,28 @@
         }
       }
     },
+    "Le mois n'a pas pu être supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Monat liess sich nicht löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The month couldn’t be deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il mese non è stato eliminato"
+          }
+        }
+      }
+    },
     "Le mois suivant n'a pas de modèle par défaut — impossible d'y placer le remboursement" : {
       "localizations" : {
         "de" : {
@@ -16223,6 +16493,50 @@
         }
       }
     },
+    "Modèle dupliqué" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage dupliziert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template duplicated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello duplicato"
+          }
+        }
+      }
+    },
+    "Modèle modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello aggiornato"
+          }
+        }
+      }
+    },
     "Modèle par défaut" : {
       "localizations" : {
         "de" : {
@@ -16241,6 +16555,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modello predefinito"
+          }
+        }
+      }
+    },
+    "Modèle supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorlage gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello eliminato"
           }
         }
       }
@@ -16439,6 +16775,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mese iniziale, non modificabile"
+          }
+        }
+      }
+    },
+    "Mois supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monat gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mese eliminato"
           }
         }
       }
@@ -16927,6 +17285,28 @@
         }
       }
     },
+    "Mouvement ajouté" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry added"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento aggiunto"
+          }
+        }
+      }
+    },
     "Mouvement de l’objectif, %@ %@" : {
       "localizations" : {
         "de" : {
@@ -16951,6 +17331,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Movimento dell'obiettivo, %@ %@"
+          }
+        }
+      }
+    },
+    "Mouvement modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento modificato"
+          }
+        }
+      }
+    },
+    "Mouvement supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movimento eliminato"
           }
         }
       }
@@ -18599,50 +19023,6 @@
         }
       }
     },
-    "Origine" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Herkunft"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origin"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origine"
-          }
-        }
-      }
-    },
-    "Origine du revenu" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Herkunft der Einnahme"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Where the income comes from"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origine dell'entrata"
-          }
-        }
-      }
-    },
     "Oui, tout pointer" : {
       "localizations" : {
         "de" : {
@@ -19419,6 +19799,28 @@
         }
       }
     },
+    "Pointage modifié" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abhaken geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked status changed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta modificata"
+          }
+        }
+      }
+    },
     "Pointe ce qui est déjà passé sur tes comptes : ton solde pointé suit." : {
       "localizations" : {
         "de" : {
@@ -19601,6 +20003,28 @@
         }
       }
     },
+    "Pointés dans une prévision" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In einer Planung abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked within a planned item"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spuntati in una previsione"
+          }
+        }
+      }
+    },
     "Politique de confidentialité" : {
       "localizations" : {
         "de" : {
@@ -19773,28 +20197,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preso da %@"
-          }
-        }
-      }
-    },
-    "Pris sur mon épargne, à remettre le mois prochain" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Von meinem Sparen geholt, nächsten Monat zurückzulegen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taken from my savings, to put back next month"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Presa dal mio risparmio, da rimettere il mese prossimo"
           }
         }
       }
@@ -20003,6 +20405,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Protezione dei tuoi dati"
+          }
+        }
+      }
+    },
+    "Provenance de l'épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herkunft der Ersparnisse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Savings source"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provenienza del risparmio"
           }
         }
       }
@@ -20299,6 +20723,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previsione eliminata"
+          }
+        }
+      }
+    },
+    "Prévisions du modèle modifiées" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planung der Vorlage aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template planned items updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsioni del modello aggiornate"
           }
         }
       }
@@ -21749,28 +22195,6 @@
         }
       }
     },
-    "Retrait d'un objectif" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aus einem Sparziel geholt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taken from a goal"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Presa da un obiettivo"
-          }
-        }
-      }
-    },
     "Retrait planifié" : {
       "localizations" : {
         "de" : {
@@ -22009,28 +22433,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Entrata nel budget"
-          }
-        }
-      }
-    },
-    "Revenu habituel" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Übliche Einnahme"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usual income"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entrata abituale"
           }
         }
       }
@@ -22365,50 +22767,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Riequilibra il resto"
-          }
-        }
-      }
-    },
-    "Réaliser ce retrait" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diese Entnahme ausführen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Make this withdrawal"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effettua questo prelievo"
-          }
-        }
-      }
-    },
-    "Réaliser le solde" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restbetrag entnehmen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take the balance"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preleva il resto"
           }
         }
       }
@@ -23313,6 +23671,28 @@
       "localizations" : {},
       "shouldTranslate" : false
     },
+    "Ses prévisions (%lld) et ses mouvements (%lld) seront supprimés. Cette action est irréversible." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seine Planposten (%lld) und seine Bewegungen (%lld) werden gelöscht. Das lässt sich nicht rückgängig machen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its planned items (%lld) and its activity (%lld) will be deleted. This can't be undone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le sue previsioni (%lld) e i suoi movimenti (%lld) verranno eliminati. Non si può tornare indietro."
+          }
+        }
+      }
+    },
     "Session expirée — reconnecte-toi pour continuer" : {
       "localizations" : {
         "de" : {
@@ -23919,6 +24299,28 @@
         }
       }
     },
+    "Supprimer %@ ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete %@?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare %@?"
+          }
+        }
+      }
+    },
     "Supprimer %@ et %@" : {
       "localizations" : {
         "de" : {
@@ -24037,6 +24439,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eliminare questo modello?"
+          }
+        }
+      }
+    },
+    "Supprimer ce mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Monat löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina questo mese"
           }
         }
       }
@@ -24599,6 +25023,72 @@
       "localizations" : {},
       "shouldTranslate" : false
     },
+    "Tag créé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag erstellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag created"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag creato"
+          }
+        }
+      }
+    },
+    "Tag renommé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag umbenannt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag renamed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag rinominato"
+          }
+        }
+      }
+    },
+    "Tag supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag eliminato"
+          }
+        }
+      }
+    },
     "Tags" : {
       "localizations" : {
         "de" : {
@@ -24639,6 +25129,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tag: %@"
+          }
+        }
+      }
+    },
+    "Tags modifiés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags updated"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag aggiornati"
           }
         }
       }
@@ -29039,6 +29551,28 @@
         }
       }
     },
+    "objectif d'épargne (%lld)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparziel (%lld)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "savings goal (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "obiettivo di risparmio (%lld)"
+          }
+        }
+      }
+    },
     "ou" : {
       "localizations" : {
         "de" : {
@@ -29215,6 +29749,28 @@
         }
       }
     },
+    "prévision lissée (%lld)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "verteilter Planposten (%lld)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "spread planned item (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "previsione ripartita (%lld)"
+          }
+        }
+      }
+    },
     "prévu" : {
       "localizations" : {
         "de" : {
@@ -29349,6 +29905,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "resta %@"
+          }
+        }
+      }
+    },
+    "retrait d'épargne (%lld)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entnahme aus dem Sparen (%lld)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "savings withdrawal (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "prelievo dal risparmio (%lld)"
           }
         }
       }
@@ -29737,6 +30315,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Da spuntare"
+          }
+        }
+      }
+    },
+    "À remettre" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurückzulegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To put back"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da rimettere"
           }
         }
       }

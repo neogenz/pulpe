@@ -6,6 +6,7 @@ import type {
   TransactionDecrypted,
 } from '@modules/budget/domain/budget.entity';
 import type { BudgetMonthReadPort } from '@modules/budget/domain/ports/budget-month-read.port';
+import type { TagReadPort } from '@modules/tag/domain/ports/tag-read.port';
 import type {
   SavingsGoal,
   SavingsGoalProgressComputation,
@@ -139,14 +140,56 @@ describe('read tools · number concordance', () => {
     ).toBe('06.09.2026');
   });
 
+  it('shows a planned withdrawal as Pointé once its allocated Réel covers it', () => {
+    const withdrawal = line({
+      id: 'withdrawal',
+      name: 'Retrait',
+      kind: 'income',
+      amount: 500,
+      sourceSavingsGoalId: 'goal-1',
+      checkedAt: null,
+    });
+    const rowOf = (allocated: number) =>
+      renderMonth({
+        ...MONTH,
+        budgetLines: [withdrawal],
+        transactions: [
+          movement({
+            kind: 'income',
+            amount: allocated,
+            budgetLineId: 'withdrawal',
+          }),
+        ],
+      })
+        .split('\n')
+        .find((row) => row.startsWith('- [withdrawal]'));
+
+    expect(rowOf(500)).toEndWith(' · Pointé');
+    expect(rowOf(300)).toEndWith(' · À pointer');
+  });
+
+  it('keeps checkedAt as the pointed state of an ordinary forecast', () => {
+    const text = renderMonth({
+      ...MONTH,
+      budgetLines: [
+        line({ id: 'plain', checkedAt: '2026-03-05T00:00:00.000Z' }),
+      ],
+      transactions: [],
+    });
+
+    expect(text).toContain('- [plain] Dépense · Ligne · 0 · Ponctuel · Pointé');
+  });
+
   it('prints the month totals the shared budget formulas produce', async () => {
     const budgets = {
       readMonth: async () => MONTH,
       listMonths: async () => [],
     } satisfies BudgetMonthReadPort;
 
+    const tags = { list: async () => [] } satisfies TagReadPort;
+
     const text = (
-      await new GetMonthTool(budgets).execute({ month: 3, year: 2026 })
+      await new GetMonthTool(budgets, tags).execute({ month: 3, year: 2026 })
     ).text;
 
     const expected = BudgetFormulas.calculateAllMetrics(
@@ -167,6 +210,11 @@ describe('read tools · number concordance', () => {
     expect(text).toContain(
       '[t-3] Dépense · Restaurant · 61.9 · 2026-03-12 · À pointer',
     );
+    // An allocated movement names its forecast; a free one names none.
+    expect(text).toContain(
+      '[t-1] Dépense · Migros · 212.4 · 2026-03-12 · À pointer · Prévision [l-4]',
+    );
+    expect(text).not.toContain('Restaurant · 61.9 · 2026-03-12 · À pointer ·');
   });
 
   it('prints the savings goal figures the shared progress calculator produces', async () => {

@@ -47,6 +47,8 @@ type TransactionKind = Database['public']['Enums']['transaction_kind'];
 /** Embed junction rows so every read maps to Transaction.tagIds in one query. */
 const TRANSACTION_WITH_TAGS_SELECT = '*, transaction_tag(tag_id)';
 
+// `all_tags` is a second, unfiltered embed: the `!inner` embed used to filter
+// by tag only returns the matched links, and a result must show all its tags.
 const SEARCH_TRANSACTION_FIELDS = `
   id,
   name,
@@ -58,7 +60,8 @@ const SEARCH_TRANSACTION_FIELDS = `
     description,
     month,
     year
-  )
+  ),
+  all_tags:transaction_tag(tag_id)
 `;
 
 type TransactionRowWithTags = TransactionRow & {
@@ -766,9 +769,22 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       .eq('id', budgetLineId)
       .single();
 
-    if (error || !data) {
-      return null;
+    // Only a missing row is "not found": a failed read must not refuse as 404.
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchBudgetLineForAllocation',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
     }
+    if (!data) return null;
 
     return {
       id: data.id,
@@ -1005,20 +1021,18 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     options: TransactionTagSearchOptions,
   ): Promise<RawSearchTransactionRow[]> {
     const hasTextTagFilter = Boolean(options.textTagIds?.length);
+    // Aliased: an unaliased filter path would also narrow `all_tags`.
     const tagRelations = hasTextTagFilter
       ? `
         selected_tags:transaction_tag!inner(tag_id),
         text_tags:transaction_tag!inner(tag_id)
       `
-      : 'transaction_tag!inner(tag_id)';
-    const selectedTagsRelation = hasTextTagFilter
-      ? 'selected_tags'
-      : 'transaction_tag';
+      : 'selected_tags:transaction_tag!inner(tag_id)';
     const select: string = `${SEARCH_TRANSACTION_FIELDS}, ${tagRelations}`;
     let query = this.supabaseProvider.client
       .from('transaction')
       .select(select)
-      .in(`${selectedTagsRelation}.tag_id`, tagIds);
+      .in('selected_tags.tag_id', tagIds);
     if (options.textTagIds?.length) {
       query = query.in('text_tags.tag_id', options.textTagIds);
     }
@@ -1069,7 +1083,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
           description,
           month,
           year
-        )
+        ),
+        all_tags:budget_line_tag(tag_id)
       `,
       )
       .filter('name', 'imatch', searchPattern);
@@ -1119,10 +1134,10 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
           month,
           year
         ),
-        budget_line_tag!inner(tag_id)
+        selected_tags:budget_line_tag!inner(tag_id), all_tags:budget_line_tag(tag_id)
       `,
       )
-      .in('budget_line_tag.tag_id', tagIds);
+      .in('selected_tags.tag_id', tagIds);
     if (searchPattern) {
       query = query.filter('name', 'imatch', searchPattern);
     }
@@ -1186,6 +1201,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       transactionDate: row.transaction_date,
       budgetId: row.budget_id,
       budget: row.budget as TransactionSearchTransactionRow['budget'],
+      tagIds: (row.all_tags ?? []).map((link) => link.tag_id),
     };
   }
 
@@ -1203,6 +1219,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       recurrence: row.recurrence,
       budgetId: row.budget_id,
       budget: row.budget as TransactionSearchBudgetLineRow['budget'],
+      tagIds: (row.all_tags ?? []).map((link) => link.tag_id),
     };
   }
 
@@ -1304,6 +1321,7 @@ interface RawSearchTransactionRow {
   transaction_date: string;
   budget_id: string;
   budget: unknown;
+  all_tags?: { tag_id: string }[];
 }
 
 interface RawSearchBudgetLineRow {
@@ -1314,4 +1332,5 @@ interface RawSearchBudgetLineRow {
   recurrence: 'fixed' | 'one_off';
   budget_id: string;
   budget: unknown;
+  all_tags?: { tag_id: string }[];
 }

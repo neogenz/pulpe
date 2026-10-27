@@ -133,10 +133,10 @@ struct GoalProjectionChart: View {
 /// title, chart, and the two metrics (écart de pointage + date d'atteinte estimée).
 /// Both metrics are neutral information (RG-002): a positive gap is a pointing lag,
 /// never an alert. The caller gates the whole section on
-/// `GoalProjectionSeries.hasConfirmedTrend` — nothing replaces it before then.
+/// `GoalProjectionSeries.hasDrawableLine`.
 struct GoalTrajectorySection: View {
     let progress: SavingsGoalProgress
-    /// Injectée par le parent (qui gate déjà sur `hasConfirmedTrend` avec la
+    /// Injectée par le parent (qui gate déjà sur `hasDrawableLine` avec la
     /// même instance) — la re-dériver ici doublait la lecture par render.
     let series: GoalProjectionSeries
     let currency: SupportedCurrency
@@ -250,13 +250,10 @@ struct GoalProjectionSeries: Equatable {
 
     var isEmpty: Bool { confirmed.isEmpty && projection.isEmpty }
 
-    /// Predicate choice for gating « Ta trajectoire »: at least 2 confirmed
-    /// points — one elapsed month plus the current (`read` emits one confirmed
-    /// point per month up to the current). Below that the reality layer is a
-    /// single dot and the chart is pure decoration (axes + dashed target),
-    /// intimidating on day 1. Stricter than `hasClosedPlanMonth` on purpose:
-    /// a current month locked by pointage still has no trend to draw.
-    var hasConfirmedTrend: Bool { confirmed.count >= 2 }
+    /// Gates « Ta trajectoire »: a line needs two points, confirmed or projected.
+    /// On day 1 the planned curve alone already draws the road to the target,
+    /// so the chart shows from creation, as on the webapp. A lone dot stays hidden.
+    var hasDrawableLine: Bool { confirmed.count >= 2 || projection.count >= 2 }
 
     /// Vertical domain of the chart, padded on whichever ends are in play.
     ///

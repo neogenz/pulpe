@@ -215,7 +215,7 @@ interface AnimatingForecast {
                     }}
                   </span>
                   <!-- The pair the app already uses for this exact gesture:
-                       goal-contributions-list draws the same empty ring for a
+                       the savings goal month timeline draws the same pair for a
                        contribution not yet pointed, and the same filled check
                        once it is. An outlined check here made
                        this the one card wearing the "done" symbol for the not

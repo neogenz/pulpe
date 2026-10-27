@@ -81,6 +81,18 @@
         "remaining": "übrig von %{amount}"
       },
       "deletedGoal": "Dieses Ziel wurde gelöscht. Die Einnahme bleibt in deinem Budget.",
+      "deleteMonth": {
+        "action": "Diesen Monat löschen",
+        "title": "%{month} löschen?",
+        "body": "Seine Planungen (%{forecastCount}) und seine Bewegungen (%{movementCount}) werden gelöscht. Das lässt sich nicht rückgängig machen.",
+        "links": "Dieser Monat ist auch mit anderen Monaten oder einem Sparziel verknüpft: %{links}. Die anderen Monate behalten ihren Anteil.",
+        "linkSpread": "verteilter Planposten (%{count})",
+        "linkGoal": "Sparziel (%{count})",
+        "linkWithdrawal": "Entnahme aus Ersparnissen (%{count})",
+        "confirm": "Löschen",
+        "loadError": "Die Details des Monats konnten nicht geladen werden. Versuche es erneut.",
+        "failure": "Der Monat konnte nicht gelöscht werden. Versuche es erneut."
+      },
       "filters": {
         "all": "Alle",
         "checked": "Abgehakt",
@@ -111,6 +123,7 @@
           "deficit": "Du gibst diesen Monat mehr aus, als du verdienst."
         }
       },
+      "inEnvelope": "In der Planung %{name}",
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
       "loadErrorTitle": "Dieses Budget konnte nicht geladen werden",
       "missingHint": "Möglicherweise wurde es auf einem anderen Gerät gelöscht.",
@@ -123,7 +136,8 @@
       "protectedTitle": "Geschütztes Budget",
       "search": "Suchen",
       "sections": {
-        "free": "Ohne Planung"
+        "free": "Ohne Planung",
+        "pointedAllocated": "In einer Planung abgehakt"
       },
       "spread": "Verteilt",
       "status": {
@@ -338,7 +352,8 @@
       "yearSelector": "Jahr wählen",
       "ongoing": "laufend",
       "notCreated": "Noch kein Budget",
-      "createMonth": "Budget erstellen"
+      "createMonth": "Budget erstellen",
+      "monthDeleted": "Monat gelöscht"
     },
     "plan": {
       "default": "Standard",
@@ -1315,8 +1330,11 @@
     },
     "repeatPin": "Gib ihn ein zweites Mal ein",
     "setup": {
-      "subtitle": "%{count} Ziffern — deine Beträge werden mit diesem Code verschlüsselt",
-      "title": "Wähle deinen Code"
+      "title": "Erstelle deinen %{count}-stelligen Code",
+      "subtitle": "Er schützt deine Beträge.",
+      "confirmHint": "Gib die %{count} Ziffern, die du gerade gewählt hast, erneut ein.",
+      "mismatch": "Dieser Code unterscheidet sich vom ersten. Versuche es erneut.",
+      "changeCode": "Meinen Code ändern"
     },
     "unlock": {
       "biometric": "Mit Biometrie entsperren",

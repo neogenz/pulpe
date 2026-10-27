@@ -16,6 +16,7 @@ const mockInvalidateSettings = jest.fn(async () => undefined);
 const mockGenerationResult: {
   createdCount?: string;
   skippedCount?: string;
+  deletedMonth?: string;
 } = {};
 const mockBudgets = {
   data: [] as BudgetSparse[],
@@ -110,6 +111,7 @@ beforeEach(() => {
   });
   delete mockGenerationResult.createdCount;
   delete mockGenerationResult.skippedCount;
+  delete mockGenerationResult.deletedMonth;
 });
 
 afterEach(() => {
@@ -293,6 +295,25 @@ it("announces zero creations and clears both navigation counters", async () => {
       skippedCount: undefined,
     }),
   );
+});
+
+it("confirms a deleted month on arrival, then clears the flag", async () => {
+  mockBudgets.data = [budget(2026, 10)];
+  mockGenerationResult.deletedMonth = "1";
+  const view = await renderScreen();
+
+  expect(view.getByText("budgets.list.monthDeleted")).toBeTruthy();
+  await fireEvent(view.getByText("budgets.list.monthDeleted"), "onDismiss");
+  await waitFor(() =>
+    expect(router.setParams).toHaveBeenCalledWith({ deletedMonth: undefined }),
+  );
+});
+
+it("says nothing about a deletion on an ordinary visit", async () => {
+  mockBudgets.data = [budget(2026, 10)];
+  const view = await renderScreen();
+
+  expect(view.queryByText("budgets.list.monthDeleted")).toBeNull();
 });
 
 it("keeps one stable row when consecutive pages overlap", () => {

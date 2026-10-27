@@ -15,13 +15,20 @@ enum IncomeOrigin: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
-        switch self {
-        case .regular: AppLocale.string("Revenu habituel")
-        case .savingsGoal: AppLocale.string("Retrait d'un objectif")
-        case .repayNextMonth: AppLocale.string("Pris sur mon épargne, à remettre le mois prochain")
+    /// The sheet asks two questions — "from my savings?" then "which?" — over
+    /// this one value, so the three origins stay mutually exclusive.
+    init(isFromSavings: Bool, savingsOrigin: SavingsOrigin) {
+        switch (isFromSavings, savingsOrigin) {
+        case (false, _): self = .regular
+        case (true, .goal): self = .savingsGoal
+        case (true, .repay): self = .repayNextMonth
         }
     }
+
+    var isFromSavings: Bool { self != .regular }
+
+    /// What the segment shows; a regular income has none, so it shows the default.
+    var savingsOrigin: SavingsOrigin { self == .repayNextMonth ? .repay : .goal }
 }
 
 // MARK: - Origine du revenu (PUL-292 / PUL-329 v2)
@@ -60,22 +67,20 @@ extension AddBudgetLineSheet {
         Self.isPlannedWithdrawal(kind: kind, origin: incomeOrigin)
     }
 
-    /// One row of the details card: the title on the left, the origin menu on the right.
+    /// The savings question of the details card (toggle, then goal or repay).
     var originPicker: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Text("Origine")
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-            Spacer()
-            Picker("Origine du revenu", selection: $incomeOrigin) {
-                ForEach(IncomeOrigin.allCases) { origin in
-                    Text(origin.label).tag(origin)
-                }
-            }
-            .pickerStyle(.menu)
-            .tint(kind.color)
-        }
-        .frame(minHeight: DesignTokens.ListRow.minHeight)
+        SavingsOriginToggle(
+            isOn: Binding(
+                get: { incomeOrigin.isFromSavings },
+                set: { incomeOrigin = IncomeOrigin(isFromSavings: $0, savingsOrigin: incomeOrigin.savingsOrigin) }
+            ),
+            origin: Binding(
+                get: { incomeOrigin.savingsOrigin },
+                set: { incomeOrigin = IncomeOrigin(isFromSavings: true, savingsOrigin: $0) }
+            ),
+            offersRepay: true,
+            tintColor: kind.color
+        )
     }
 
     /// A type or origin change drops what the new combination cannot carry —

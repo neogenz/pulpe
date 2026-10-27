@@ -11,12 +11,32 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.51.0',
+  version: '0.56.0',
   features: {
-    fr: ['Rapprocher mes comptes', 'Bilan du mois', 'Pointage priorisé'],
-    en: ['Match my accounts', 'Month recap', 'Smarter checking'],
-    de: ['Konten abgleichen', 'Monatsrückblick', 'Priorisiertes Abhaken'],
-    it: ['Allinea i miei conti', 'Riepilogo del mese', 'Spunta prioritaria'],
+    fr: [
+      'Supprimer un mois à venir',
+      'Avis détaillés',
+      'Assistant connecté',
+      'Mouvements rattachés',
+    ],
+    en: [
+      'Delete an upcoming month',
+      'Detailed feedback',
+      'Connected assistant',
+      'Linked entries',
+    ],
+    de: [
+      'Kommenden Monat löschen',
+      'Detailliertes Feedback',
+      'Verbundener Assistent',
+      'Verknüpfte Bewegungen',
+    ],
+    it: [
+      'Eliminare un mese futuro',
+      'Opinioni dettagliate',
+      'Assistente collegato',
+      'Movimenti collegati',
+    ],
   },
 };
 
@@ -28,6 +48,21 @@ export function featuresForLocale(locale: string): readonly string[] {
 }
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
+  {
+    version: '0.57.0',
+    reason:
+      'Release iOS uniquement : adaptation à l’iPhone Duo, sans changement visible dans la webapp',
+  },
+  {
+    version: '0.56.1',
+    reason:
+      'Réduction des traces internes Observe du serveur, sans changement visible dans la webapp',
+  },
+  {
+    version: '0.54.1',
+    reason:
+      'Correction mineure de la disposition du formulaire d’ajout, publiée dans l’historique sans notification Nouveautés selon la décision de release',
+  },
   {
     version: '0.52.0',
     reason:

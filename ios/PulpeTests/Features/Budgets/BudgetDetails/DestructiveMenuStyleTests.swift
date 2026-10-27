@@ -9,6 +9,7 @@ struct DestructiveMenuStyleTests {
         "EditTransactionPage.swift",
         "BudgetLineDetailPage.swift",
         "BudgetTypeFilter.swift",
+        "DeleteMonthMenu.swift",
     ]
 
     private static func source(named fileName: String) throws -> String {
@@ -32,21 +33,21 @@ struct DestructiveMenuStyleTests {
         // The role reds the title; without the tint the SF Symbol keeps the
         // ambient colour and the trash sits black beside a red label.
         #expect(source.contains(
-            #"Button("Supprimer", systemImage: "trash", role: .destructive) {"#
+            #"Button(title, systemImage: "trash", role: .destructive) {"#
         ))
         #expect(source.contains(".tint(Color.destructivePrimary)"))
     }
 
     @Test(
         "Header menus delegate deletion to the shared entry",
-        arguments: ["EditTransactionPage.swift", "BudgetLineDetailPage.swift"]
+        arguments: ["EditTransactionPage.swift", "BudgetLineDetailPage.swift", "DeleteMonthMenu.swift"]
     )
     func headerMenusUseSharedDeleteEntry(fileName: String) throws {
         let source = try Self.source(named: fileName)
 
-        #expect(source.contains("DeleteMenuButton {"))
+        #expect(source.contains("DeleteMenuButton"))
         // An inlined copy would drift away from the shared tint.
-        #expect(!source.contains(#"Button("Supprimer", systemImage: "trash""#))
+        #expect(!source.contains(#"systemImage: "trash", role: .destructive"#))
     }
 
     @Test(

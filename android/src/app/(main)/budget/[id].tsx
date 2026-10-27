@@ -2,6 +2,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import {
   BudgetFormulas,
+  getBudgetPeriodForDate,
   type SupportedCurrency,
   type Transaction,
 } from "pulpe-shared";
@@ -39,7 +40,10 @@ import { tagSummary } from "@/features/tags/tag-selection";
 import { useTags } from "@/features/tags/tag-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
-import { budgetsInPeriodOrder } from "@/features/budgets/budget-list-selectors";
+import {
+  budgetsInPeriodOrder,
+  budgetTiming,
+} from "@/features/budgets/budget-list-selectors";
 import {
   invalidateBudgetData,
   useBudgetDetails,
@@ -54,6 +58,8 @@ import {
   type DetailsFilters,
   detailsSections,
   freeTransactions,
+  pointedAllocatedTransactions,
+  type PointedAllocatedItem,
   kindCounts,
   type LineItem,
 } from "@/features/budget-details/budget-details-selectors";
@@ -66,6 +72,7 @@ import {
   type BudgetDetailOverlaysHandle,
 } from "@/features/budget-details/components/budget-detail-overlays";
 import { BudgetLineRow } from "@/features/budget-details/components/budget-line-row";
+import { DeleteMonthAction } from "@/features/budget-details/components/delete-month-action";
 import { DetailsFilterBar } from "@/features/budget-details/components/details-filter-bar";
 import { MonthPager } from "@/features/budget-details/components/month-pager";
 import { TightMonthCard } from "@/features/budget-details/savings-withdrawal/components/tight-month-card";
@@ -120,6 +127,8 @@ type DetailRow =
       key: string;
       kind: "transaction";
       transaction: Transaction;
+      /** Set on an allocated operation, named under its date. */
+      envelopeName?: string;
     } & SegmentPosition);
 
 /** Where a row falls in its section's card: which corners it carries. */
@@ -134,6 +143,7 @@ function position(index: number, count: number): SegmentPosition {
 
 function detailRows(
   sections: ReturnType<typeof detailsSections>,
+  pointedAllocated: PointedAllocatedItem[],
   free: Transaction[],
 ): DetailRow[] {
   const rows: DetailRow[] = sections.flatMap((section) => [
@@ -150,6 +160,24 @@ function detailRows(
       ...position(index, section.items.length),
     })),
   ]);
+
+  if (pointedAllocated.length > 0) {
+    rows.push({
+      key: "header-pointed-allocated",
+      kind: "header",
+      titleKey: "budgets.detail.sections.pointedAllocated",
+      count: pointedAllocated.length,
+    });
+    pointedAllocated.forEach(({ transaction, envelopeName }, index) => {
+      rows.push({
+        key: transaction.id,
+        kind: "transaction",
+        transaction,
+        envelopeName,
+        ...position(index, pointedAllocated.length),
+      });
+    });
+  }
 
   if (free.length > 0) {
     rows.push({
@@ -292,6 +320,17 @@ export default function BudgetDetailScreen() {
         : freeTransactions(details.data.transactions, filters),
     [details.data, filters],
   );
+  const pointedAllocated = useMemo(
+    () =>
+      details.data === undefined
+        ? []
+        : pointedAllocatedTransactions(
+            details.data.budgetLines,
+            details.data.transactions,
+            filters,
+          ),
+    [details.data, filters],
+  );
   const counts = useMemo(
     () =>
       details.data === undefined
@@ -382,13 +421,18 @@ export default function BudgetDetailScreen() {
     [...(budgetPeriods.data ?? []), ...(boundaryPeriods.data ?? [])],
     locale,
   );
-  const rows = detailRows(sections, free);
+  const rows = detailRows(sections, pointedAllocated, free);
   const isTight = shouldOfferWithdrawal({
     available: metrics.remaining,
     viewedPeriod: { year: budget.year, month: budget.month },
     payDayOfMonth,
     isDismissed: isCardDismissed,
   });
+  // Only a plan can be deleted: the month being lived in and the past are kept.
+  // The live period follows the payday rule; the server enforces the same cut.
+  const isFutureMonth =
+    budgetTiming(budget, getBudgetPeriodForDate(new Date(), payDayOfMonth)) ===
+    "future";
   const months = budgetsInPeriodOrder([
     ...(budgetPeriods.data ?? []),
     ...(boundaryPeriods.data ?? []),
@@ -398,6 +442,8 @@ export default function BudgetDetailScreen() {
   // scrolls, and the bar is what still names the page once it has.
   const monthName = formatMonthName(budget.month, budget.year, locale);
   const monthTitle = `${monthName.charAt(0).toLocaleUpperCase(locale)}${monthName.slice(1)} ${budget.year}`;
+  // Mid-sentence, the month keeps the casing its language gives it.
+  const monthInSentence = `${monthName} ${budget.year}`;
 
   // Leaving the search puts the whole list back: a term left behind would keep
   // filtering it from a field the user can no longer see.
@@ -443,6 +489,12 @@ export default function BudgetDetailScreen() {
             accessibilityLabel={t("budgets.detail.tracking")}
             onPress={() => overlays.current?.showRealizedBalance()}
           />
+          {isFutureMonth && (
+            <DeleteMonthAction
+              budgetId={budget.id}
+              monthTitle={monthInSentence}
+            />
+          )}
         </HeroAppBar>
       )}
 
@@ -504,8 +556,15 @@ export default function BudgetDetailScreen() {
                     row.transaction.tagIds ?? [],
                     tags.data ?? [],
                   )}
+                  envelopeName={row.envelopeName}
+                  // An allocated operation opens its envelope: that is what
+                  // explains the allocation, the operation is one tap further.
                   onPress={() =>
-                    overlays.current?.editTransaction(row.transaction)
+                    row.transaction.budgetLineId !== null
+                      ? push(
+                          `/budget/${id}/line/${row.transaction.budgetLineId}`,
+                        )
+                      : overlays.current?.editTransaction(row.transaction)
                   }
                   onLongPress={(anchor) =>
                     overlays.current?.showTransactionMenu(

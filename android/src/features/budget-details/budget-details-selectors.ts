@@ -124,6 +124,48 @@ export function freeTransactions(
     .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
 }
 
+export interface PointedAllocatedItem {
+  transaction: Transaction;
+  envelopeName: string;
+}
+
+/**
+ * Under "Pointé", pointed operations whose envelope is still to point: the
+ * envelope is filtered out, so nothing else on the screen surfaces them. Those
+ * under a pointed envelope stay out — its row already stands for them.
+ */
+export function pointedAllocatedTransactions(
+  budgetLines: BudgetLine[],
+  transactions: Transaction[],
+  filters: DetailsFilters,
+): PointedAllocatedItem[] {
+  if (filters.checked !== "checked") return [];
+  const needle = amountSearchKey(filters.search);
+  const lineById = new Map(budgetLines.map((line) => [line.id, line]));
+
+  return transactions
+    .flatMap((transaction) => {
+      const line =
+        transaction.budgetLineId === null
+          ? undefined
+          : lineById.get(transaction.budgetLineId);
+      if (line === undefined) return [];
+      if (transaction.checkedAt === null || line.checkedAt !== null) return [];
+      if (filters.kind !== "all" && line.kind !== filters.kind) return [];
+      const matchesSearch =
+        filters.search === "" ||
+        containsIgnoringCase(transaction.name, filters.search) ||
+        containsIgnoringCase(line.name, filters.search) ||
+        amountMatches(transaction.amount, needle);
+      return matchesSearch ? [{ transaction, envelopeName: line.name }] : [];
+    })
+    .sort((a, b) =>
+      b.transaction.transactionDate.localeCompare(
+        a.transaction.transactionDate,
+      ),
+    );
+}
+
 /**
  * What each kind filter would show against the *checked* filter already in
  * force — so a chip reading "0" is the truth about what tapping it does.

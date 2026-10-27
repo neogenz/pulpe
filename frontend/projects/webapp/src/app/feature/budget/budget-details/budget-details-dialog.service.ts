@@ -40,6 +40,7 @@ import {
 } from './allocated-transactions/details-dialog/dialog';
 import { AllocatedTransactionsBottomSheet } from './allocated-transactions/details-dialog/bottom-sheet';
 import {
+  AMOUNT_FIELD_SELECTOR,
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
 } from './allocated-transactions/create-dialog/dialog';
@@ -216,6 +217,12 @@ export class BudgetDetailsDialogService {
       data,
       width: '600px',
       maxWidth: '90vw',
+      // Realizing a withdrawal is about adjusting the prefilled amount; the
+      // name is already filled. Mobile keeps the sheet default: focusing a
+      // field there opens the keyboard over the sheet.
+      autoFocus: withdrawalRealization
+        ? AMOUNT_FIELD_SELECTOR
+        : 'first-tabbable',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }
@@ -381,6 +388,34 @@ export class BudgetDetailsDialogService {
         }),
         confirmText: this.#transloco.translate('budget.postponeConfirm'),
         confirmColor: 'primary',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+    return confirmed === true;
+  }
+
+  async confirmUnrealizeWithdrawal(
+    amount: string,
+    goalName: string,
+  ): Promise<boolean> {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: {
+        title: this.#transloco.translate(
+          'budgetLine.unrealizeWithdrawal.title',
+        ),
+        message: this.#transloco.translate(
+          'budgetLine.unrealizeWithdrawal.message',
+          { amount, goal: goalName },
+        ),
+        confirmText: this.#transloco.translate(
+          'budgetLine.unrealizeWithdrawal.confirm',
+        ),
+        cancelText: this.#transloco.translate(
+          'budgetLine.unrealizeWithdrawal.keep',
+        ),
+        confirmColor: 'warn',
       } satisfies ConfirmationDialogData,
       width: '400px',
     });

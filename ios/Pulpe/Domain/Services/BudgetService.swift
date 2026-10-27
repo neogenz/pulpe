@@ -7,6 +7,8 @@ import Foundation
 protocol BudgetServicing: Sendable {
     func getBudgetWithDetails(id: String) async throws -> BudgetDetails
     func getBudgetsSparse(fields: String, limit: Int?, year: Int?) async throws -> [BudgetSparse]
+    func getDeletionImpact(id: String) async throws -> BudgetDeletionImpact
+    func deleteBudget(id: String, confirmLinks: Bool) async throws
 }
 
 /// Service for budget-related API operations
@@ -59,9 +61,14 @@ actor BudgetService: BudgetServicing {
         try await apiClient.request(.budget(id: id), body: data, method: .patch)
     }
 
-    /// Delete a budget
-    func deleteBudget(id: String) async throws {
-        try await apiClient.requestVoid(.budget(id: id), method: .delete)
+    /// What deleting a future month would remove, read-only.
+    func getDeletionImpact(id: String) async throws -> BudgetDeletionImpact {
+        try await apiClient.request(.budgetDeletionImpact(id: id), method: .get)
+    }
+
+    /// Delete a future month. The server refuses a linked month unless `confirmLinks` is true.
+    func deleteBudget(id: String, confirmLinks: Bool) async throws {
+        try await apiClient.requestVoid(.budgetDelete(id: id, confirmLinks: confirmLinks), method: .delete)
     }
 
     // MARK: - Queries

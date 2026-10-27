@@ -1,6 +1,8 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   afterNextRender,
+  afterRenderEffect,
+  ApplicationRef,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -9,6 +11,7 @@ import {
   inject,
   isDevMode,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -39,7 +42,10 @@ import { AuthStore } from '@core/auth/auth-store';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { DemoModeService } from '@core/demo/demo-mode.service';
-import { FeedbackPrompt } from '@core/feedback/feedback-prompt';
+import {
+  FeedbackPrompt,
+  WHATS_NEW_ANNOUNCING,
+} from '@core/feedback/feedback-prompt';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
 import {
@@ -57,6 +63,7 @@ import { of } from 'rxjs';
 import { delay, filter, map, switchMap } from 'rxjs/operators';
 import { AboutDialog } from './about-dialog';
 import { EarlyAdopterDialog } from './early-adopter-dialog';
+import { FeedbackDialog, type FeedbackDialogData } from './feedback-dialog';
 import { WhatsNewToast } from './whats-new/whats-new-toast';
 
 const NAVIGATION_LOADER_DELAY_MS = 100;
@@ -775,6 +782,8 @@ export default class MainLayout {
   readonly #productTourService = inject(ProductTourService);
   readonly #document = inject(DOCUMENT);
   readonly #feedbackPrompt = inject(FeedbackPrompt);
+  readonly #whatsNewAnnouncing = inject(WHATS_NEW_ANNOUNCING);
+  readonly #applicationRef = inject(ApplicationRef);
   protected readonly loadingIndicator = inject(LoadingIndicator);
   // Display "Mode Démo" for demo users, otherwise show email
   protected readonly userEmail = computed(() => {
@@ -919,6 +928,12 @@ export default class MainLayout {
     // calendar day, for the feedback invitation cadence.
     this.#feedbackPrompt.recordActiveDay();
 
+    afterRenderEffect(() => {
+      this.#currentRoute();
+      this.#feedbackPrompt.activeDay();
+      untracked(() => void this.#offerFeedback());
+    });
+
     afterNextRender(() => {
       const sentinel = this.scrollSentinel()?.nativeElement;
       if (!sentinel) return;
@@ -930,6 +945,31 @@ export default class MainLayout {
 
       observer.observe(sentinel);
       this.#destroyRef.onDestroy(() => observer.disconnect());
+    });
+  }
+
+  async #offerFeedback(): Promise<void> {
+    // Wait for the routed page's resources without coupling the shell to its store.
+    await this.#applicationRef.whenStable();
+    const promptNumber = await this.#feedbackPrompt.claimAutomaticPrompt(
+      () =>
+        !this.#destroyRef.destroyed &&
+        !this.#router.currentNavigation() &&
+        this.#dialog.openDialogs.length === 0 &&
+        !this.#whatsNewAnnouncing() &&
+        !this.#productTourService.isActive() &&
+        // Only the dashboard can start the introduction tour.
+        (this.currentTourPageId() !== 'dashboard' ||
+          this.#productTourService.hasSeenIntro()),
+    );
+    if (promptNumber === null) return;
+    this.#dialog.open(FeedbackDialog, {
+      data: { promptNumber } satisfies FeedbackDialogData,
+      width: this.isHandset() ? '100dvw' : '660px',
+      maxWidth: '100dvw',
+      height: this.isHandset() ? '100dvh' : 'min(840px, calc(100dvh - 48px))',
+      maxHeight: '100dvh',
+      panelClass: this.isHandset() ? 'full-screen-dialog' : '',
     });
   }
 

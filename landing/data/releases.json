@@ -1,5 +1,571 @@
 [
   {
+    "version": "0.57.0",
+    "iosVersion": "1.12.0",
+    "date": "2026-10-25",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.57.0",
+    "platforms": ["ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Pulpe s’adapte à l’iPhone Duo",
+          "description": "Ouvert, l’écran intérieur affiche tes mois, objectifs et modèles à côté de leur détail, et la page ouverte reste à l’écran quand tu plies ou déplies."
+        }
+      ],
+      "fixes": [],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Pulpe adapts to iPhone Duo",
+              "description": "When open, the inner display shows your months, goals and templates beside their details, and the page you opened stays on screen when you fold or unfold."
+            }
+          ],
+          "fixes": [],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Pulpe passt sich dem iPhone Duo an",
+              "description": "Aufgeklappt zeigt der innere Bildschirm deine Monate, Ziele und Vorlagen neben ihren Details, und die geöffnete Seite bleibt sichtbar, wenn du zu- oder aufklappst."
+            }
+          ],
+          "fixes": [],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Pulpe si adatta a iPhone Duo",
+              "description": "Da aperto, lo schermo interno mostra mesi, obiettivi e modelli accanto ai loro dettagli, e la pagina aperta resta visibile quando pieghi o apri."
+            }
+          ],
+          "fixes": [],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
+    "version": "0.56.0",
+    "iosVersion": "1.11.0",
+    "date": "2026-10-25",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.56.0",
+    "platforms": ["web", "ios", "android"],
+    "changes": {
+      "features": [
+        {
+          "title": "Supprimer un mois à venir",
+          "description": "Depuis le détail d’un mois futur, tu peux supprimer son budget ; la confirmation indique ce qui part et les liens avec tes objectifs."
+        },
+        {
+          "title": "Avis détaillés",
+          "description": "Tu peux compléter ta note globale par des notes facultatives sur les différentes parties de l’application web."
+        },
+        {
+          "title": "Assistant connecté",
+          "description": "Ton assistant IA range tes mouvements avec des tags, gère tes modèles et te pose la question plutôt que d’écrire quelque chose de faux."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Mouvements rattachés",
+          "description": "Quand tu changes la nature d’une prévision, ses mouvements la suivent et restent comptés dans tes totaux."
+        },
+        {
+          "title": "Noter un montant",
+          "description": "Sur ordinateur, la réalisation d’un retrait d’épargne s’ouvre sur le montant, prêt à être remplacé."
+        },
+        {
+          "title": "Menu des prévisions",
+          "description": "Sur le web mobile, le solde ambigu a été retiré du menu des prévisions."
+        },
+        {
+          "title": "Boutons de confirmation",
+          "description": "Les boutons « Annuler » et « Confirmer » des confirmations s’affichent dans la langue de l’application."
+        },
+        {
+          "title": "Confirmation du code",
+          "description": "Sur Android, une erreur de confirmation conserve le code choisi et te permet de réessayer sans tout recommencer."
+        }
+      ],
+      "technical": [
+        {
+          "title": "Sécurité",
+          "description": "Mises à jour de sécurité de plusieurs dépendances et meilleure protection de tes données dans les outils de diagnostic."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Delete an upcoming month",
+              "description": "From a future month’s details, you can delete its budget; the confirmation shows what goes and any links to your savings goals."
+            },
+            {
+              "title": "Detailed feedback",
+              "description": "You can supplement your overall rating with optional ratings for different parts of the web app."
+            },
+            {
+              "title": "Connected assistant",
+              "description": "Your AI assistant sorts your entries with tags, manages your budget templates and asks you rather than writing something wrong."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Linked entries",
+              "description": "When you change a forecast’s type, its entries follow it and stay counted in your totals."
+            },
+            {
+              "title": "Entering an amount",
+              "description": "On desktop, realizing a savings withdrawal opens on the amount, ready to be replaced."
+            },
+            {
+              "title": "Forecast menu",
+              "description": "The confusing balance has been removed from the forecast menu on mobile web."
+            },
+            {
+              "title": "Confirmation buttons",
+              "description": "The Cancel and Confirm buttons in confirmations now appear in the app’s language."
+            },
+            {
+              "title": "Code confirmation",
+              "description": "On Android, a confirmation mismatch preserves your chosen code so you can retry without starting over."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Security",
+              "description": "Security updates for several dependencies and better protection of your data in diagnostic tools."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Kommenden Monat löschen",
+              "description": "In den Details eines künftigen Monats kannst du sein Budget löschen; die Bestätigung zeigt, was wegfällt und welche Verknüpfungen zu deinen Sparzielen bestehen."
+            },
+            {
+              "title": "Detailliertes Feedback",
+              "description": "Du kannst deine Gesamtbewertung durch freiwillige Bewertungen einzelner Bereiche der Web-App ergänzen."
+            },
+            {
+              "title": "Verbundener Assistent",
+              "description": "Dein KI-Assistent ordnet deine Bewegungen mit Tags, verwaltet deine Budgetvorlagen und fragt nach, statt etwas Falsches einzutragen."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Verknüpfte Bewegungen",
+              "description": "Wenn du die Art eines Planungseintrags änderst, folgen ihm seine Bewegungen und zählen weiter in deinen Summen."
+            },
+            {
+              "title": "Betrag erfassen",
+              "description": "Am Computer öffnet sich das Erfassen einer Entnahme aus dem Sparziel direkt beim Betrag, bereit zum Ersetzen."
+            },
+            {
+              "title": "Menü der Planungseinträge",
+              "description": "Der missverständliche Saldo wurde auf der mobilen Website aus dem Menü der Planungseinträge entfernt."
+            },
+            {
+              "title": "Bestätigungsschaltflächen",
+              "description": "Die Schaltflächen «Abbrechen» und «Bestätigen» in Bestätigungen erscheinen in der Sprache der App."
+            },
+            {
+              "title": "Code bestätigen",
+              "description": "Unter Android bleibt dein gewählter Code bei einer falschen Bestätigung erhalten, damit du es erneut versuchen kannst, ohne von vorne anzufangen."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Sicherheit",
+              "description": "Sicherheitsupdates für mehrere Abhängigkeiten und besserer Schutz deiner Daten in Diagnosewerkzeugen."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Eliminare un mese futuro",
+              "description": "Dal dettaglio di un mese futuro puoi eliminarne il budget; la conferma indica cosa viene rimosso e gli eventuali legami con i tuoi obiettivi di risparmio."
+            },
+            {
+              "title": "Opinioni dettagliate",
+              "description": "Puoi integrare la valutazione complessiva con valutazioni facoltative delle diverse parti dell’app web."
+            },
+            {
+              "title": "Assistente collegato",
+              "description": "Il tuo assistente IA ordina i movimenti con i tag, gestisce i modelli di budget e ti chiede conferma invece di registrare qualcosa di sbagliato."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Movimenti collegati",
+              "description": "Quando cambi la natura di una previsione, i suoi movimenti la seguono e restano conteggiati nei totali."
+            },
+            {
+              "title": "Registrare un importo",
+              "description": "Su computer, la realizzazione di un prelievo dai risparmi si apre sull’importo, pronto da sostituire."
+            },
+            {
+              "title": "Menu delle previsioni",
+              "description": "Il saldo poco chiaro è stato rimosso dal menu delle previsioni nella versione web mobile."
+            },
+            {
+              "title": "Pulsanti di conferma",
+              "description": "I pulsanti «Annulla» e «Conferma» delle conferme compaiono nella lingua dell’app."
+            },
+            {
+              "title": "Conferma del codice",
+              "description": "Su Android, un errore di conferma conserva il codice scelto e ti permette di riprovare senza ricominciare da capo."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Sicurezza",
+              "description": "Aggiornamenti di sicurezza di diverse dipendenze e migliore protezione dei tuoi dati negli strumenti di diagnostica."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "version": "0.54.1",
+    "date": "2026-10-21",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.54.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Affichage du formulaire d’ajout",
+          "description": "Le formulaire s’adapte aux petites fenêtres et garde les options d’épargne et de pointage bien alignées."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Entry form layout",
+              "description": "The form adapts to smaller windows and keeps the savings and checked-status options neatly aligned."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Darstellung des Eingabeformulars",
+              "description": "Das Formular passt sich kleinen Fenstern an und richtet die Optionen für Ersparnisse und den Abhakstatus übersichtlich aus."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Visualizzazione del modulo di aggiunta",
+              "description": "Il modulo si adatta alle finestre più piccole e mantiene ben allineate le opzioni di risparmio e spunta."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
+    "version": "0.54.0",
+    "iosVersion": "1.10.0",
+    "date": "2026-10-20",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.54.0",
+    "platforms": ["web", "ios", "android"],
+    "changes": {
+      "features": [
+        {
+          "title": "Suivi d’objectif repensé",
+          "description": "La page d’un objectif réunit le plan, les versements et les retraits dans une seule liste, mois par mois."
+        },
+        {
+          "title": "« Cet argent vient de mon épargne »",
+          "description": "Sur un revenu, active cet interrupteur pour dire d’où vient l’argent : un retrait sur un objectif, ou une avance sur ton épargne que tu remettras le mois suivant."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Trajectoire dès la création",
+          "description": "La courbe d’un objectif s’affiche sans attendre deux mois confirmés."
+        },
+        {
+          "title": "Clavier des montants",
+          "description": "Le bouton « Fermer le clavier » ferme aussi le clavier des champs montant."
+        },
+        {
+          "title": "Réel d’un objectif",
+          "description": "Le Réel compte uniquement les mouvements pointés. Le reste d’un retrait s’affiche en positif et, une fois le retrait expiré, il sort du solde."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Redesigned goal tracking",
+              "description": "A goal’s page brings the plan, contributions and withdrawals together in one list, month by month."
+            },
+            {
+              "title": "“This money comes from my savings”",
+              "description": "On an income, turn on this switch to say where the money comes from: a withdrawal from a goal, or an advance on your savings that you’ll put back the following month."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Trajectory from day one",
+              "description": "A goal’s curve shows without waiting for two confirmed months."
+            },
+            {
+              "title": "Amount keyboard",
+              "description": "The “Close keyboard” button also closes the keyboard of amount fields."
+            },
+            {
+              "title": "Goal actuals",
+              "description": "Actual only counts checked entries. A withdrawal’s remainder shows as positive and leaves the balance once the withdrawal expires."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Sparziel neu gestaltet",
+              "description": "Die Seite eines Ziels vereint Plan, Einzahlungen und Entnahmen in einer Liste, Monat für Monat."
+            },
+            {
+              "title": "«Dieses Geld kommt aus meinem Ersparten»",
+              "description": "Bei einer Einnahme zeigt dieser Schalter, woher das Geld kommt: eine Entnahme aus einem Ziel oder ein Vorschuss aus deinem Ersparten, den du im Folgemonat zurücklegst."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Verlauf ab der Erstellung",
+              "description": "Die Kurve eines Ziels erscheint, ohne auf zwei bestätigte Monate zu warten."
+            },
+            {
+              "title": "Tastatur bei Beträgen",
+              "description": "Die Schaltfläche «Tastatur schliessen» schliesst auch die Tastatur der Betragsfelder."
+            },
+            {
+              "title": "Ist-Wert eines Ziels",
+              "description": "Der Ist-Wert zählt nur abgehakte Bewegungen. Der Rest einer Entnahme erscheint positiv und fällt nach Ablauf der Entnahme aus dem Saldo."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Obiettivo rinnovato",
+              "description": "La pagina di un obiettivo riunisce piano, versamenti e prelievi in un’unica lista, mese per mese."
+            },
+            {
+              "title": "«Questi soldi vengono dai miei risparmi»",
+              "description": "Su un’entrata, attiva questo interruttore per indicare da dove arrivano i soldi: un prelievo da un obiettivo o un anticipo sui tuoi risparmi da rimettere il mese successivo."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Andamento dalla creazione",
+              "description": "La curva di un obiettivo appare senza attendere due mesi confermati."
+            },
+            {
+              "title": "Tastiera degli importi",
+              "description": "Il pulsante «Chiudi la tastiera» chiude anche la tastiera dei campi importo."
+            },
+            {
+              "title": "Effettivo di un obiettivo",
+              "description": "L’Effettivo conta solo i movimenti spuntati. Il resto di un prelievo appare in positivo ed esce dal saldo quando il prelievo scade."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
+    "version": "0.53.0",
+    "iosVersion": "1.9.0",
+    "date": "2026-10-16",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.53.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Pointer un retrait d’objectif en un clic",
+          "description": "Sur un revenu prévu depuis un objectif, active « Pointé » : le revenu est créé pour le montant restant, déjà pointé. Désactive-le pour l’annuler, l’argent retourne sur l’objectif."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Le plan d’objectif déduit tes retraits",
+          "description": "Chaque mois du plan affiche le même solde que le graphique : épargne de départ comprise, retraits prévus déduits."
+        },
+        {
+          "title": "Rapprochement des comptes plus clair",
+          "description": "Chaque compte, le premier compris, a un champ « Nom du compte », et un découvert se signale avec la case « Solde négatif (découvert) »."
+        },
+        {
+          "title": "Les soldes reviennent dans la démo",
+          "description": "Le mode démo affiche de nouveau les soldes de fin de mois."
+        },
+        {
+          "title": "Titre du budget lisible sur iPhone",
+          "description": "En faisant défiler un budget, le titre ne passe plus en noir sur le fond vert."
+        }
+      ],
+      "technical": [
+        {
+          "title": "Démarrage local simplifié",
+          "description": "Le serveur démarre sans clé MCP tant que l’accès des assistants IA n’est pas configuré."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Check a goal withdrawal in one click",
+              "description": "On an income planned from a goal, turn on “Checked”: the income is created for the remaining amount, already checked. Turn it off to cancel it; the money goes back to the goal."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "The goal plan deducts your withdrawals",
+              "description": "Each month of the plan shows the same balance as the chart: starting savings included, planned withdrawals deducted."
+            },
+            {
+              "title": "Clearer account reconciliation",
+              "description": "Every account, including the first, has an “Account name” field, and an overdraft is flagged with the “Negative balance (overdraft)” box."
+            },
+            {
+              "title": "Balances are back in the demo",
+              "description": "Demo mode shows end-of-month balances again."
+            },
+            {
+              "title": "Readable budget title on iPhone",
+              "description": "When you scroll a budget, the title no longer turns black on the green background."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Simpler local start",
+              "description": "The server starts without an MCP key as long as AI assistant access is not configured."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Zielentnahme mit einem Klick abhaken",
+              "description": "Bei einer aus einem Ziel geplanten Einnahme «Abgehakt» einschalten: Die Einnahme wird für den Restbetrag erfasst, bereits abgehakt. Ausschalten macht sie rückgängig, das Geld geht zurück ins Ziel."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Der Zielplan zieht deine Entnahmen ab",
+              "description": "Jeder Monat des Plans zeigt denselben Saldo wie das Diagramm: Anfangssparguthaben inbegriffen, geplante Entnahmen abgezogen."
+            },
+            {
+              "title": "Klarerer Kontenabgleich",
+              "description": "Jedes Konto, auch das erste, hat ein Feld «Kontoname», und eine Überziehung wird mit dem Kästchen «Negativer Saldo (Überziehung)» gekennzeichnet."
+            },
+            {
+              "title": "Die Salden sind zurück in der Demo",
+              "description": "Der Demomodus zeigt wieder die Salden zum Monatsende."
+            },
+            {
+              "title": "Lesbarer Budgettitel auf dem iPhone",
+              "description": "Beim Scrollen durch ein Budget wird der Titel nicht mehr schwarz auf grünem Hintergrund."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Einfacherer lokaler Start",
+              "description": "Der Server startet ohne MCP-Schlüssel, solange der Zugang für KI-Assistenten nicht konfiguriert ist."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Spunta un prelievo da un obiettivo con un clic",
+              "description": "Su un’entrata pianificata da un obiettivo, attiva «Spuntato»: l’entrata viene registrata per l’importo restante, già spuntata. Disattivala per annullarla; il denaro torna sull’obiettivo."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Il piano dell’obiettivo detrae i tuoi prelievi",
+              "description": "Ogni mese del piano mostra lo stesso saldo del grafico: risparmio iniziale incluso, prelievi pianificati detratti."
+            },
+            {
+              "title": "Riconciliazione dei conti più chiara",
+              "description": "Ogni conto, anche il primo, ha un campo «Nome del conto», e uno scoperto si segnala con la casella «Saldo negativo (scoperto)»."
+            },
+            {
+              "title": "I saldi tornano nella demo",
+              "description": "La modalità demo mostra di nuovo i saldi di fine mese."
+            },
+            {
+              "title": "Titolo del budget leggibile su iPhone",
+              "description": "Scorrendo un budget, il titolo non diventa più nero sullo sfondo verde."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Avvio locale semplificato",
+              "description": "Il server si avvia senza chiave MCP finché l’accesso degli assistenti IA non è configurato."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.52.0",
     "iosVersion": "1.8.0",
     "date": "2026-10-13",

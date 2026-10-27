@@ -23,7 +23,7 @@ env:
   # 22.22.2, so the whole pipeline runs on 24 to match engines.node.
   NODE_VERSION: "24"
   PNPM_VERSION: "10.12.1"
-  BUN_VERSION: "1.2.17"
+  BUN_VERSION: "1.4.3"
   # Pinned: "latest" resolves via unauthenticated GitHub Releases API and can rate-limit setup jobs.
   SUPABASE_CLI_VERSION: "2.113.0"
 
@@ -70,7 +70,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -119,7 +119,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -142,7 +142,7 @@ jobs:
           fetch-depth: 0
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -182,7 +182,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -428,7 +428,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -500,7 +500,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: 📦 Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -575,7 +575,8 @@ jobs:
   # 🍎 iOS TESTS
   test-ios:
     name: 🍎 iOS Tests
-    runs-on: macos-26
+    # Same image and Xcode as the App Store archive (ios-distribute.yml).
+    runs-on: xcode-27
     timeout-minutes: 30
     needs: [classify]
     if: needs.classify.outputs.ios == 'true'
@@ -586,10 +587,10 @@ jobs:
       - name: 🔧 Setup Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
-          xcode-version: "26.6"
+          xcode-version: "27.1"
 
       - name: 📦 Install XcodeGen and SwiftLint
-        # The macos-26 image ships neither; the lint step below needs swiftlint on PATH.
+        # The runner image ships neither; the lint step below needs swiftlint on PATH.
         run: brew install xcodegen swiftlint
 
       # lefthook lints staged files only and skips on merge/rebase; this is the
@@ -616,15 +617,15 @@ jobs:
       - name: 📱 Resolve iOS Simulator
         id: sim
         run: |
-          # Newest iOS 26 runtime the image ships, first iPhone 17 in it: the
+          # Newest iOS 27 runtime the image ships that has an iPhone 17: the
           # store build runs on the runtime users have, not on a pinned old one.
           xcodebuild -version
           UDID=$(xcrun simctl list devices available -j \
             | python3 -c "
           import re, sys, json
           devices = json.load(sys.stdin)['devices']
-          def minor(rt): return int(re.search(r'iOS-26-(\d+)', rt).group(1))
-          for rt in sorted((k for k in devices if 'iOS-26-' in k), key=minor, reverse=True):
+          def minor(rt): return int(re.search(r'iOS-27-(\d+)', rt).group(1))
+          for rt in sorted((k for k in devices if 'iOS-27-' in k), key=minor, reverse=True):
             for d in devices[rt]:
               if d['name'] == 'iPhone 17':
                 print(rt, file=sys.stderr); print(d['udid']); sys.exit(0)

@@ -17,6 +17,8 @@ final class MockTransactionService: TransactionServicing {
     var postponeError: Error?
     var stubbedToggle: Transaction?
     var stubbedCreated: Transaction?
+    var createError: Error?
+    private(set) var createdPayloads: [TransactionCreate] = []
     var stubbedUpdated: Transaction?
     /// Transaction ids whose `toggleCheck` should throw — drives partial
     /// bulk-check failures deterministically (PUL-259).
@@ -45,7 +47,9 @@ final class MockTransactionService: TransactionServicing {
     }
 
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction {
-        stubbedCreated ?? TestDataFactory.createTransaction()
+        createdPayloads.append(data)
+        if let createError { throw createError }
+        return stubbedCreated ?? TestDataFactory.createTransaction()
     }
 
     func updateTransaction(id: String, data: TransactionUpdate) async throws -> Transaction {

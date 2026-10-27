@@ -16,6 +16,7 @@ describe('CreateDemoSessionUseCase', () => {
     generateCredentials: ReturnType<typeof mock>;
     createDemoUser: ReturnType<typeof mock>;
     signInDemoUser: ReturnType<typeof mock>;
+    bindDemoUserToRequest: ReturnType<typeof mock>;
     deleteUser: ReturnType<typeof mock>;
     listExpiredDemoUsers: ReturnType<typeof mock>;
     bulkDeleteUsers: ReturnType<typeof mock>;
@@ -42,6 +43,7 @@ describe('CreateDemoSessionUseCase', () => {
         },
         user: { id: 'test-user-id' },
       })),
+      bindDemoUserToRequest: mock(() => {}),
       deleteUser: mock(async () => {}),
       listExpiredDemoUsers: mock(async () => []),
       bulkDeleteUsers: mock(async () => ({ fulfilled: [], rejected: [] })),
@@ -116,6 +118,24 @@ describe('CreateDemoSessionUseCase', () => {
         'demo-uuid@pulpe.app',
         'some-password',
       );
+    });
+
+    it('binds the demo user to the request before seeding, since recalculation reads it from there', async () => {
+      const calls: string[] = [];
+      mockCreds.bindDemoUserToRequest = mock(() => calls.push('bind'));
+      generateDemoData.execute = mock(async () => {
+        calls.push('seed');
+      });
+
+      await useCase.execute();
+
+      expect(mockCreds.bindDemoUserToRequest).toHaveBeenCalledWith(
+        'test-user-id',
+        'demo-uuid@pulpe.app',
+        'mock-access-token',
+        expect.anything(),
+      );
+      expect(calls).toEqual(['bind', 'seed']);
     });
   });
 

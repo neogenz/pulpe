@@ -21,6 +21,15 @@ import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import type { FeedbackPromptState } from '@core/storage/storage-schemas';
 
+export type FeedbackDetails = Pick<
+  FeedbackCreate,
+  | 'onboarding'
+  | 'budgetClarity'
+  | 'currentMonth'
+  | 'futurePlanning'
+  | 'homeClarity'
+>;
+
 const ACTIVE_DAYS_BETWEEN_PROMPTS = 3;
 
 const NEW_STATE: FeedbackPromptState = {
@@ -77,7 +86,7 @@ export class FeedbackPrompt {
   #claimed = false;
 
   readonly #activeDay = signal<string | null>(null);
-  /** The last recorded active day, so the Home can re-offer on a new one. */
+  /** The last recorded active day, so the shell can re-offer on a new one. */
   readonly activeDay = this.#activeDay.asReadonly();
 
   recordActiveDay(now = new Date()): void {
@@ -137,11 +146,16 @@ export class FeedbackPrompt {
     return null;
   }
 
-  async submit(overallRating: number, comment: string): Promise<void> {
+  async submit(
+    overallRating: number,
+    comment: string,
+    details: FeedbackDetails = {},
+  ): Promise<void> {
     await firstValueFrom(
       this.#api.postVoid$<FeedbackCreate>(
         '/feedback',
         {
+          ...details,
           overallRating,
           comment,
           appVersion: this.#appVersion,

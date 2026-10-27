@@ -2182,11 +2182,15 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       );
 
       // `importTransactions` answers with a richer outcome (it keeps the refusal
-      // code) and is covered by its own block below.
+      // code) and is covered by its own block below. `deletionImpact` and
+      // `deleteMonth` (PUL-361) answer a payload and a boolean, not a motive, and
+      // are covered in budget-details-store.spec.ts.
       expect(asyncMethods.sort()).toEqual(
         [
           ...mutations.map((mutation) => mutation.name),
           'importTransactions',
+          'deletionImpact',
+          'deleteMonth',
         ].sort(),
       );
     });

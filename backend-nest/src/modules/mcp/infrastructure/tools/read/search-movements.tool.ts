@@ -9,15 +9,28 @@ import {
   TRANSACTION_SEARCH_PORT,
   type TransactionSearchPort,
 } from '@modules/transaction/domain/ports/transaction-search.port';
+import {
+  TAG_READ_PORT,
+  type TagReadPort,
+} from '@modules/tag/domain/ports/tag-read.port';
 import type { McpTool, McpToolResult } from '../../../domain/mcp-tool.entity';
-import { KIND_LABEL, round } from './month-report';
+import { askUser } from '../write/elicitation';
+import { KIND_LABEL, round, tagNames, tagSuffix } from './month-report';
 
 const inputSchema = {
   query: z
     .string()
     .min(TRANSACTION_SEARCH_QUERY_MIN_LENGTH)
     .max(TRANSACTION_SEARCH_QUERY_MAX_LENGTH)
+    .optional()
     .describe('Terme cherché dans l’intitulé, par exemple « courses »'),
+  tagIds: z
+    .array(z.uuid())
+    .min(1)
+    .optional()
+    .describe(
+      'Ids de tags (voir list_tags) : rend les éléments qui portent au moins un de ces tags',
+    ),
   years: z
     .array(budgetSchema.shape.year)
     .optional()
@@ -31,7 +44,7 @@ export class SearchMovementsTool implements McpTool<Args> {
   readonly name = 'search_movements';
   readonly title = 'Chercher un mouvement ou une prévision';
   readonly description =
-    'Cherche par intitulé dans les mouvements réels et les prévisions de tous les mois. Rend les cinquante résultats les plus récents, avec leur mois.';
+    'Cherche par intitulé ou par tag dans les mouvements réels et les prévisions de tous les mois. Rend les cinquante résultats les plus récents, avec leur mois et leurs tags.';
   readonly mode = 'read' as const;
   readonly annotations = {
     readOnlyHint: true,
@@ -44,22 +57,35 @@ export class SearchMovementsTool implements McpTool<Args> {
   constructor(
     @Inject(TRANSACTION_SEARCH_PORT)
     private readonly search: TransactionSearchPort,
+    @Inject(TAG_READ_PORT)
+    private readonly tags: TagReadPort,
   ) {}
 
   async execute(args: Args): Promise<McpToolResult> {
-    const results = await this.search.search({
-      q: args.query,
-      years: args.years,
-    });
-    if (results.length === 0) {
-      return { text: `Aucun résultat pour « ${args.query} ».` };
+    if (args.query === undefined && !args.tagIds?.length) {
+      return askUser(
+        'Quel intitulé ou quel tag chercher ? Appelle list_tags pour les ids de tags.',
+      );
     }
+    const [results, tags] = await Promise.all([
+      this.search.search({
+        q: args.query,
+        years: args.years,
+        tagIds: args.tagIds,
+      }),
+      this.tags.list(),
+    ]);
+    const subject = args.query === undefined ? '' : ` pour « ${args.query} »`;
+    if (results.length === 0) {
+      return { text: `Aucun résultat${subject}.` };
+    }
+    const names = tagNames(tags);
     return {
       text: [
-        `Résultats pour « ${args.query} » (${results.length})`,
+        `Résultats${subject} (${results.length})`,
         ...results.map(
           (r) =>
-            `- [${r.id}] ${r.itemType === 'transaction' ? 'Mouvement' : 'Prévision'} · ${KIND_LABEL[r.kind]} · ${r.name} · ${round(r.amount)} · ${r.month}/${r.year} (budget ${r.budgetId})`,
+            `- [${r.id}] ${r.itemType === 'transaction' ? 'Mouvement' : 'Prévision'} · ${KIND_LABEL[r.kind]} · ${r.name} · ${round(r.amount)} · ${r.month}/${r.year} (budget ${r.budgetId})${tagSuffix(r.tagIds ?? [], names)}`,
         ),
       ].join('\n'),
     };

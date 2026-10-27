@@ -437,7 +437,9 @@ describe('ProductTourService', () => {
     });
 
     it('starts one short orientation from the dashboard', () => {
+      expect(service.isActive()).toBe(false);
       service.startFirstRunTour();
+      expect(service.isActive()).toBe(true);
 
       const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
       expect(steps.map((step: DriveStep) => step.element)).toEqual([
@@ -464,6 +466,7 @@ describe('ProductTourService', () => {
 
       expect(getStoredTourState('intro')).toBe('dismissed');
       expect(service.hasSeenIntro()).toBe(true);
+      expect(service.isActive()).toBe(false);
     });
 
     it('marks completion only after advancing from the last step', () => {
