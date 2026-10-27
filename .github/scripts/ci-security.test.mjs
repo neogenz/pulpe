@@ -970,7 +970,11 @@ test("the backend image does not install Bun", () => {
 
 test("schema consumers use the same Zod version as shared", () => {
   for (const consumer of [frontendPackage, backendPackage, androidPackage]) {
-    assert.equal(consumer.dependencies.zod, sharedPackage.dependencies.zod);
+    assert.equal(
+      consumer.dependencies.zod,
+      sharedPackage.dependencies.zod,
+      consumer.name,
+    );
   }
 });
 

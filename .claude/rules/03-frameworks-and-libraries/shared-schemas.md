@@ -16,7 +16,7 @@ Persistence-only RPC schemas stay module-local in the backend.
 
 ## Stack
 
-- **Zod 4** (`^4.1.13`) — top-level validators
+- **Zod 4** (`4.6.6`) — top-level validators
 - **ESM** with `moduleResolution: "NodeNext"`
 - Consumed locally as the `pulpe-shared` workspace package; it is not published
 
