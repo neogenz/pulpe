@@ -48,6 +48,27 @@ extension BudgetDetailsCoordinator {
         dataStore.invalidateAdjacentCache()
     }
 
+    func reconciliationChecking(_ context: ToastContext) -> ReconciliationChecking {
+        let budgetId = dataStore.budgetId
+        return ReconciliationChecking(
+            items: dataStore.reconciliationItems,
+            transactions: dataStore.transactions, budgetLines: dataStore.budgetLines,
+            syncingTransactionIds: syncStore.syncingTransactionIds, syncingBudgetLineIds: syncStore.syncingBudgetLineIds
+        ) { [self] item in
+            guard dataStore.budgetId == budgetId else { return false }
+            switch item {
+            case .transaction(let tx, _):
+                guard dataStore.transactions.contains(where: { $0.id == tx.id }) else { return false }
+                await dispatch(.toggleTransaction(tx))
+                return dataStore.transactions.first { $0.id == tx.id }?.isChecked == !tx.isChecked
+            case .budgetLine(let line, _):
+                guard dataStore.budgetLines.contains(where: { $0.id == line.id }) else { return false }
+                await dispatch(.confirmCheckAll(line: line, checkAll: false, context, amountsHidden: false))
+                return dataStore.budgetLines.first { $0.id == line.id }?.isChecked == !line.isChecked
+            }
+        }
+    }
+
     func addReconciliationAdjustment(_ tx: Transaction) async {
         // A submitted sheet can finish after programmatic navigation to another month.
         guard tx.budgetId == dataStore.budgetId else {

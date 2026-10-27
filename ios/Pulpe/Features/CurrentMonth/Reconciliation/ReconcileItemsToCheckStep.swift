@@ -1,13 +1,22 @@
 import SwiftUI
 
+struct ReconciliationChecking {
+    let items: [CurrentMonthStore.CheckableItem]
+    let transactions: [Transaction]
+    let budgetLines: [BudgetLine]
+    let syncingTransactionIds: Set<String>
+    let syncingBudgetLineIds: Set<String>
+    let toggle: @MainActor (CurrentMonthStore.CheckableItem) async -> Bool
+}
+
 /// Pushed from "Ton solde pointé": what the month still has to check, pointed right here,
 /// so the accounts typed before stay in the flow and the checked balance moves under them.
 struct ReconcileItemsToCheckStep: View {
     let flow: ReconcileAccountsFlow
+    let checking: ReconciliationChecking
     let currency: SupportedCurrency
     let onClose: @MainActor () -> Void
 
-    @Environment(CurrentMonthStore.self) private var store
     @Environment(ToastManager.self) private var toastManager
     /// Taken at the first appearance: pointing an item takes it out of the store's
     /// unchecked list, and its row would vanish under the finger. Kept, a row pointed by
@@ -18,11 +27,11 @@ struct ReconcileItemsToCheckStep: View {
 
     /// Leaving mid-pointing would compare against a balance that is still moving.
     private var isPointingSettled: Bool {
-        completingItemIds.isEmpty && !store.hasTogglesInFlight
+        completingItemIds.isEmpty && checking.syncingTransactionIds.isEmpty && checking.syncingBudgetLineIds.isEmpty
     }
 
     var body: some View {
-        let items = (listedItems ?? store.allUncheckedItems).compactMap(liveItem)
+        let items = (listedItems ?? checking.items).compactMap(liveItem)
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             Text("Pointe ce qui est déjà passé sur tes comptes : ton solde pointé suit.")
                 .font(PulpeTypography.subheadline)
@@ -46,7 +55,7 @@ struct ReconcileItemsToCheckStep: View {
                 .accessibilityIdentifier("reconcileCompareButton")
         }
         .onAppear {
-            if listedItems == nil { listedItems = store.allUncheckedItems }
+            if listedItems == nil { listedItems = checking.items }
         }
     }
 
@@ -95,9 +104,9 @@ struct ReconcileItemsToCheckStep: View {
     private func liveItem(_ item: CurrentMonthStore.CheckableItem) -> CurrentMonthStore.CheckableItem? {
         switch item {
         case .transaction(let transaction, let consumption):
-            store.transactions.first { $0.id == transaction.id }.map { .transaction($0, consumption: consumption) }
+            checking.transactions.first { $0.id == transaction.id }.map { .transaction($0, consumption: consumption) }
         case .budgetLine(let line, let consumption):
-            store.budgetLines.first { $0.id == line.id }.map { .budgetLine($0, consumption: consumption) }
+            checking.budgetLines.first { $0.id == line.id }.map { .budgetLine($0, consumption: consumption) }
         }
     }
 
@@ -110,21 +119,15 @@ struct ReconcileItemsToCheckStep: View {
 
     private func isSyncing(_ item: CurrentMonthStore.CheckableItem) -> Bool {
         switch item {
-        case .transaction(let transaction, _): store.syncingTransactionIds.contains(transaction.id)
-        case .budgetLine(let line, _): store.syncingBudgetLineIds.contains(line.id)
+        case .transaction(let transaction, _): checking.syncingTransactionIds.contains(transaction.id)
+        case .budgetLine(let line, _): checking.syncingBudgetLineIds.contains(line.id)
         }
     }
 
     private func toggle(_ item: CurrentMonthStore.CheckableItem) {
         let wasChecked = isChecked(item)
         Task {
-            let didSucceed: Bool
-            switch item {
-            case .transaction(let transaction, _):
-                didSucceed = await store.toggleTransaction(transaction)
-            case .budgetLine(let line, _):
-                didSucceed = await store.toggleBudgetLine(line)
-            }
+            let didSucceed = await checking.toggle(item)
             // ponytail: a refused unpoint only shows as the disc filling back; it gets its
             // own message the day it is more than a rare network refusal.
             guard !didSucceed, !wasChecked else { return }

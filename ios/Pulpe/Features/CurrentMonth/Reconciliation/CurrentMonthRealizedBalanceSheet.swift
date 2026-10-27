@@ -20,6 +20,18 @@ struct CurrentMonthRealizedBalanceSheet: View {
                     // checked balance moves at once and the sibling stores are invalidated.
                     ReconcileAccountsSheet(
                         month: month,
+                        checking: .init(
+                            items: store.allUncheckedItems,
+                            transactions: store.transactions, budgetLines: store.budgetLines,
+                            syncingTransactionIds: store.syncingTransactionIds,
+                            syncingBudgetLineIds: store.syncingBudgetLineIds,
+                            toggle: { item in
+                                switch item {
+                                case .transaction(let tx, _): await store.toggleTransaction(tx)
+                                case .budgetLine(let line, _): await store.toggleBudgetLine(line)
+                                }
+                            }
+                        ),
                         onAdjustmentCreated: { transaction in
                             FirstTransactionTracker.shared.recordCreated(
                                 kind: transaction.kind,

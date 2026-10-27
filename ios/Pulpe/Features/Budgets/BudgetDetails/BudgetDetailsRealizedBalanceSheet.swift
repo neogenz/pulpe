@@ -3,6 +3,7 @@ import SwiftUI
 struct BudgetDetailsRealizedBalanceSheet: View {
     @Environment(BudgetDetailsCoordinator.self) private var coordinator
     @Environment(UserSettingsStore.self) private var settings
+    @Environment(ToastManager.self) private var toastManager
     @State private var isReconciling = false
 
     var body: some View {
@@ -24,7 +25,12 @@ struct BudgetDetailsRealizedBalanceSheet: View {
         }
         .sheet(isPresented: $isReconciling) {
             if let month = reconciledMonth {
-                ReconcileAccountsSheet(month: month) { transaction in
+                ReconcileAccountsSheet(
+                    month: month,
+                    checking: coordinator.reconciliationChecking(
+                        ToastContext(toastManager: toastManager, presentationCurrency: settings.currency)
+                    )
+                ) { transaction in
                     FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
                     Task { await coordinator.dispatch(.addReconciliationAdjustment(transaction)) }
                 }

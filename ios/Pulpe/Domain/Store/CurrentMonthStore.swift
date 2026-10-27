@@ -632,6 +632,13 @@ extension CurrentMonthStore {
     }
 
     private func computeUncheckedItems() -> [CheckableItem] {
+        Self.uncheckedItems(budgetLines: budgetLines, transactions: transactions,
+                            checkingDays: checkingDays, today: periodDayProgress()?.day ?? 1)
+    }
+
+    static func uncheckedItems(
+        budgetLines: [BudgetLine], transactions: [Transaction], checkingDays: [String: Int] = [:], today: Int = 1
+    ) -> [CheckableItem] {
         var items: [CheckableItem] = []
 
         // 1. Free transactions (unchecked, newest first)
@@ -652,7 +659,6 @@ extension CurrentMonthStore {
             }
 
         // 3. Learned due dates first; the existing kind/date order breaks ties.
-        let today = periodDayProgress()?.day ?? 1
         items += budgetLines
             .filter { !$0.isChecked && !($0.isRollover ?? false) }
             .sorted {
