@@ -48,7 +48,7 @@ extension BudgetDetailsCoordinator {
         dataStore.invalidateAdjacentCache()
     }
 
-    func reconciliationChecking(_ context: ToastContext) -> ReconciliationChecking {
+    func reconciliationChecking(_ context: ToastContext, amountsHidden: Bool) -> ReconciliationChecking {
         let budgetId = dataStore.budgetId
         return ReconciliationChecking(
             items: dataStore.reconciliationItems,
@@ -63,7 +63,7 @@ extension BudgetDetailsCoordinator {
                 return dataStore.transactions.first { $0.id == tx.id }?.isChecked == !tx.isChecked
             case .budgetLine(let line, _):
                 guard dataStore.budgetLines.contains(where: { $0.id == line.id }) else { return false }
-                await dispatch(.confirmCheckAll(line: line, checkAll: false, context, amountsHidden: false))
+                await dispatch(.confirmCheckAll(line: line, checkAll: false, context, amountsHidden: amountsHidden))
                 return dataStore.budgetLines.first { $0.id == line.id }?.isChecked == !line.isChecked
             }
         }

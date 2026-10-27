@@ -4,6 +4,7 @@ struct BudgetDetailsRealizedBalanceSheet: View {
     @Environment(BudgetDetailsCoordinator.self) private var coordinator
     @Environment(UserSettingsStore.self) private var settings
     @Environment(ToastManager.self) private var toastManager
+    @Environment(\.amountsHidden) private var amountsHidden
     @State private var isReconciling = false
 
     var body: some View {
@@ -28,7 +29,8 @@ struct BudgetDetailsRealizedBalanceSheet: View {
                 ReconcileAccountsSheet(
                     month: month,
                     checking: coordinator.reconciliationChecking(
-                        ToastContext(toastManager: toastManager, presentationCurrency: settings.currency)
+                        ToastContext(toastManager: toastManager, presentationCurrency: settings.currency),
+                        amountsHidden: amountsHidden
                     )
                 ) { transaction in
                     FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
