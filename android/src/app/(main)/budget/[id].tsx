@@ -58,6 +58,8 @@ import {
   type DetailsFilters,
   detailsSections,
   freeTransactions,
+  pointedAllocatedTransactions,
+  type PointedAllocatedItem,
   kindCounts,
   type LineItem,
 } from "@/features/budget-details/budget-details-selectors";
@@ -125,6 +127,8 @@ type DetailRow =
       key: string;
       kind: "transaction";
       transaction: Transaction;
+      /** Set on an allocated operation, named under its date. */
+      envelopeName?: string;
     } & SegmentPosition);
 
 /** Where a row falls in its section's card: which corners it carries. */
@@ -139,6 +143,7 @@ function position(index: number, count: number): SegmentPosition {
 
 function detailRows(
   sections: ReturnType<typeof detailsSections>,
+  pointedAllocated: PointedAllocatedItem[],
   free: Transaction[],
 ): DetailRow[] {
   const rows: DetailRow[] = sections.flatMap((section) => [
@@ -155,6 +160,24 @@ function detailRows(
       ...position(index, section.items.length),
     })),
   ]);
+
+  if (pointedAllocated.length > 0) {
+    rows.push({
+      key: "header-pointed-allocated",
+      kind: "header",
+      titleKey: "budgets.detail.sections.pointedAllocated",
+      count: pointedAllocated.length,
+    });
+    pointedAllocated.forEach(({ transaction, envelopeName }, index) => {
+      rows.push({
+        key: transaction.id,
+        kind: "transaction",
+        transaction,
+        envelopeName,
+        ...position(index, pointedAllocated.length),
+      });
+    });
+  }
 
   if (free.length > 0) {
     rows.push({
@@ -297,6 +320,17 @@ export default function BudgetDetailScreen() {
         : freeTransactions(details.data.transactions, filters),
     [details.data, filters],
   );
+  const pointedAllocated = useMemo(
+    () =>
+      details.data === undefined
+        ? []
+        : pointedAllocatedTransactions(
+            details.data.budgetLines,
+            details.data.transactions,
+            filters,
+          ),
+    [details.data, filters],
+  );
   const counts = useMemo(
     () =>
       details.data === undefined
@@ -387,7 +421,7 @@ export default function BudgetDetailScreen() {
     [...(budgetPeriods.data ?? []), ...(boundaryPeriods.data ?? [])],
     locale,
   );
-  const rows = detailRows(sections, free);
+  const rows = detailRows(sections, pointedAllocated, free);
   const isTight = shouldOfferWithdrawal({
     available: metrics.remaining,
     viewedPeriod: { year: budget.year, month: budget.month },
@@ -522,8 +556,15 @@ export default function BudgetDetailScreen() {
                     row.transaction.tagIds ?? [],
                     tags.data ?? [],
                   )}
+                  envelopeName={row.envelopeName}
+                  // An allocated operation opens its envelope: that is what
+                  // explains the allocation, the operation is one tap further.
                   onPress={() =>
-                    overlays.current?.editTransaction(row.transaction)
+                    row.transaction.budgetLineId !== null
+                      ? push(
+                          `/budget/${id}/line/${row.transaction.budgetLineId}`,
+                        )
+                      : overlays.current?.editTransaction(row.transaction)
                   }
                   onLongPress={(anchor) =>
                     overlays.current?.showTransactionMenu(
