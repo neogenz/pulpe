@@ -6,7 +6,7 @@ staging proof and the release path reuse that immutable evidence instead of rebu
 the same tree.
 
 Security-sensitive workflow contracts are explicit: a read-only token
-(`contents: read` is the only workflow permission), `NODE_VERSION: "24"`, and
+(`contents: read` is the only workflow permission), `NODE_VERSION: "24.22.1"`, and
 CLI Supabase 2.113.0. E2E failures are diagnosed through the native Playwright
 reporters — GitHub annotations, JUnit and blob — plus the report and
 test-results artifacts uploaded on every outcome; no job writes checks or PR
