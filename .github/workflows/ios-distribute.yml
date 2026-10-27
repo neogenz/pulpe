@@ -52,7 +52,8 @@ permissions:
 jobs:
   distribute:
     name: Archive & Upload iOS
-    runs-on: macos-26
+    # macos-26 only ships Xcode 26; an iOS 26 SDK binary loses iPhone Duo inner-display support.
+    runs-on: xcode-27
     timeout-minutes: 75
     environment: ios-distribution
     defaults:
@@ -201,7 +202,7 @@ jobs:
 
       - name: Setup Ruby
         # The App Store status queries below run .github/scripts/app-store-build-status.rb,
-        # which needs a Ruby macos-26 does not promise. With no `ruby-version` given the
+        # which needs a Ruby the runner image does not promise. With no `ruby-version` given the
         # action reads .ruby-version at the repo root — `defaults.run.working-directory`
         # only applies to `run:` steps, so this step still resolves from there.
         uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
@@ -319,7 +320,7 @@ jobs:
         if: steps.asc.outputs.state == 'not_found'
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
-          xcode-version: "26.2"
+          xcode-version: "27.1"
 
       - name: Install XcodeGen
         if: steps.asc.outputs.state == 'not_found'
@@ -506,6 +507,20 @@ jobs:
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             ONLY_ACTIVE_ARCH=NO
           echo "ARCHIVE_PATH=$archive_path" >> "$GITHUB_ENV"
+
+      - name: Verify archive links the iOS 27 SDK
+        if: steps.asc.outputs.state == 'not_found'
+        run: |
+          set -euo pipefail
+          sdk=$(/usr/libexec/PlistBuddy -c 'Print :DTSDKName' "$ARCHIVE_PATH/Products/Applications/Pulpe.app/Info.plist")
+          echo "DTSDKName=$sdk"
+          case "$sdk" in
+            iphoneos27*) ;;
+            *)
+              echo "::error::Archive linked $sdk; iPhone Duo inner-display support needs the iOS 27 SDK"
+              exit 1
+              ;;
+          esac
 
       - name: Export signed IPA
         if: steps.asc.outputs.state == 'not_found'
