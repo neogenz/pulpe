@@ -15,6 +15,7 @@ struct BudgetDetailsView: View {
     // Internal so the routing extension can read it when it dispatches a toggle.
     @Environment(\.amountsHidden) var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.budgetMonthsInSidebar) private var monthsInSidebar
     @State var coordinator: BudgetDetailsCoordinator
     // Internal so the savings-withdrawal extension can read its screen state.
     @State var projector: BudgetDetailsProjector
@@ -111,12 +112,11 @@ struct BudgetDetailsView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.content)
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
-        // Hero under the nav bar on the forest surface: light ink when loaded, default ink on
-        // error / skeleton. Once the content zone has scrolled under the bar, the sticky
-        // pager takes over the forest, so the ink stays light whenever it has months.
+        // Light ink on the forest: the hero under the bar, then the sticky pager once the content
+        // zone has scrolled under it (no pager beside the months list). Default on error / skeleton.
         .heroNavigationBar(
             isOnHeroSurface: screenState.content == .loaded
-                && (isHeroUnderBar || !coordinator.dataStore.pagerMonths.isEmpty)
+                && (isHeroUnderBar || (!coordinator.dataStore.pagerMonths.isEmpty && !monthsInSidebar))
         )
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -124,10 +124,9 @@ struct BudgetDetailsView: View {
                 // bar: the content zone spends its one filled shape on the action that
                 // changes something. Bare, so iOS 26 dresses it in its own Liquid Glass —
                 // the hero's tinted disc was our shape where the system already has one.
-                Button { router.present(.realizedBalance) } label: {
-                    Image(systemName: "chart.bar")
+                Button(AppLocale.string("Suivi du budget"), systemImage: "chart.bar") {
+                    router.present(.realizedBalance)
                 }
-                .accessibilityLabel(AppLocale.string("Suivi du budget"))
                 .accessibilityIdentifier("budgetTrackingButton")
             }
         }
@@ -203,6 +202,8 @@ struct BudgetDetailsView: View {
             Task { await coordinator.dispatch(.softDeleteTransaction(tx, toastContext)) }
         })
         .modifier(DeleteMonthMenu(coordinator: coordinator, screenState: screenState, toastContext: toastContext))
+        .modifier(BudgetSidebarSelectionSync(budgetId: budgetId, coordinator: coordinator))
+        .modifier(AddLineInVerticalBar { router.present(.addBudgetLine) })
     }
 
     private var content: some View {
@@ -263,7 +264,7 @@ struct BudgetDetailsView: View {
                     )
                     .padding(.top, -DesignTokens.Spacing.lg)
 
-                    if !searchText.isEmpty && sections.isEmpty && free.isEmpty {
+                    if !searchText.isEmpty && sections.isEmpty && free.isEmpty && screenState.pointedAllocated.isEmpty {
                         ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, DesignTokens.Spacing.xxl)
@@ -296,21 +297,7 @@ struct BudgetDetailsView: View {
                         )
                     }
 
-                    if !free.isEmpty {
-                        BudgetDetailsFreeTransactionsList(
-                            items: free,
-                            currency: userSettingsStore.currency,
-                            tagNamesById: tagStore.namesById,
-                            onTap: { transaction in
-                                router.push(.editTx(transactionId: transaction.id))
-                            },
-                            onTogglePointed: { transaction in
-                                Task {
-                                    await coordinator.dispatch(.toggleTransaction(transaction))
-                                }
-                            }
-                        )
-                    }
+                    movementLists
 
                     Color.clear.frame(height: DesignTokens.Spacing.lg)
                 }

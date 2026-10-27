@@ -8,9 +8,9 @@ const releases = JSON.parse(
 ) as Array<Record<string, unknown>>;
 
 const localeMarkers = {
-  en: "Forecast menu",
-  de: "Menü der Planungseinträge",
-  it: "Menu delle previsioni",
+  en: "Pulpe adapts to iPhone Duo",
+  de: "Pulpe passt sich dem iPhone Duo an",
+  it: "Pulpe si adatta a iPhone Duo",
 } as const;
 
 describe("localized release data", () => {
@@ -25,7 +25,8 @@ describe("localized release data", () => {
       assert.deepEqual(
         localized.map(({ version }) => version),
         [
-          "0.55.0",
+          "0.57.0",
+          "0.56.0",
           "0.54.1",
           "0.54.0",
           "0.53.0",
@@ -41,7 +42,7 @@ describe("localized release data", () => {
           "0.44.0",
         ],
       );
-      assert.equal(localized[0]?.changes.fixes[0]?.title, marker);
+      assert.equal(localized[0]?.changes.features[0]?.title, marker);
     });
   }
 

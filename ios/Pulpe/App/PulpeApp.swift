@@ -15,6 +15,7 @@ struct RecoveryKeySheetItem: Identifiable, Equatable {
 
 @main
 struct PulpeApp: App {
+    @UIApplicationDelegateAdaptor(PulpeAppDelegate.self) private var appDelegate
     @State private var appState: AppState
     @State private var uiPreferences = UIPreferencesState()
     @State private var currentMonthStore: CurrentMonthStore
@@ -481,11 +482,7 @@ struct RootView: View {
             case .viewBudget(let budgetId):
                 guard appState.authState == .authenticated else { break }
                 deepLinkDestination = nil
-                appState.budgetPath = NavigationPath()
-                Task { @MainActor in
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-                    appState.selectedTab = .budgets
-                }
+                appState.openBudgetMonth(budgetId)
             }
         }
 

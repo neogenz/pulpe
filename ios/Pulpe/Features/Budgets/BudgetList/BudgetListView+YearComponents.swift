@@ -8,6 +8,7 @@ struct YearRecapCard: View {
     let year: Int
     let budgets: [BudgetSparse]
     var isPastYear: Bool = false
+    var showsDetails = true
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -41,15 +42,17 @@ struct YearRecapCard: View {
                 accessibilityIdentifier: "yearRecapAmount"
             )
 
-            HeroMetricTileRow {
-                HeroMetricTile(
-                    icon: "calendar",
-                    label: AppLocale.string("mois"),
-                    value: "\(budgets.count) / 12"
-                )
-            }
+            if showsDetails {
+                HeroMetricTileRow {
+                    HeroMetricTile(
+                        icon: "calendar",
+                        label: AppLocale.string("mois"),
+                        value: "\(budgets.count) / 12"
+                    )
+                }
 
-            HeroVerdictRow(sentence: subtitle)
+                HeroVerdictRow(sentence: subtitle)
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(

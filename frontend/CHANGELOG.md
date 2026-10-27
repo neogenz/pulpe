@@ -1,5 +1,31 @@
 # pulpe-frontend
 
+## 0.57.0
+
+### Minor Changes
+
+- Pulpe s'adapte à l'iPhone Duo.
+
+### Patch Changes
+
+- pulpe-shared@0.57.0
+
+## 0.56.1
+
+### Patch Changes
+
+- pulpe-shared@0.56.1
+
+## 0.56.0
+
+### Minor Changes
+
+- Supprimer un mois à venir, avis détaillés, assistant connecté (tags et modèles), mouvements rattachés qui suivent leur prévision.
+
+### Patch Changes
+
+- pulpe-shared@0.56.0
+
 ## 0.55.0
 
 ### Minor Changes

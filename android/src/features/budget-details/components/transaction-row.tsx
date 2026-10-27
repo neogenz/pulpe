@@ -1,6 +1,6 @@
 import type { SupportedCurrency, Transaction } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text, useTheme } from "react-native-paper";
+import { Icon, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticCommit } from "@/core/ui/haptics";
@@ -10,6 +10,7 @@ import { formatDayMonth } from "@/core/ui/date-format";
 import { useRipple } from "@/core/ui/ripple";
 import {
   BRAND_TYPE,
+  ICON_SIZE,
   ROW,
   SPACING,
   TABULAR_DIGITS,
@@ -31,6 +32,8 @@ interface TransactionRowProps {
   currency: SupportedCurrency;
   isSyncing: boolean;
   tagSummary: string | null;
+  /** The envelope the operation is allocated to; absent for a free one. */
+  envelopeName?: string;
   onToggle: () => void;
   /** Opens the operation for correction; absent where it cannot be edited. */
   onPress?: () => void;
@@ -51,6 +54,7 @@ export function TransactionRow({
   currency,
   isSyncing,
   tagSummary,
+  envelopeName,
   onToggle,
   onPress,
   onLongPress,
@@ -122,6 +126,28 @@ export function TransactionRow({
             >
               {tagSummary === null ? day : `${day} · ${tagSummary}`}
             </Text>
+            {envelopeName === undefined ? null : (
+              // The envelope it belongs to: what sets it apart from a free
+              // operation drawn in the same grammar.
+              <View style={styles.envelope}>
+                <Icon
+                  source="subdirectory-arrow-right"
+                  size={ICON_SIZE.sm}
+                  color={muted}
+                />
+                <Text
+                  variant="bodySmall"
+                  numberOfLines={1}
+                  style={[styles.envelopeName, { color: muted }]}
+                  // Read as part of the row, with the words the arrow stands for.
+                  accessibilityLabel={t("budgets.detail.inEnvelope", {
+                    name: envelopeName,
+                  })}
+                >
+                  {envelopeName}
+                </Text>
+              </View>
+            )}
           </View>
 
           <Text
@@ -159,6 +185,8 @@ const styles = StyleSheet.create({
   /** Struck through and receding, never faded — a pointed row is re-read. */
   struck: { textDecorationLine: "line-through" },
   labels: { flex: 1, gap: SPACING.xxs, paddingVertical: SPACING.sm },
+  envelope: { flexDirection: "row", alignItems: "center", gap: SPACING.xxs },
+  envelopeName: { flexShrink: 1 },
   // The row's gap is shaved for the disc's touch target; the amount takes the
   // shave back, or a long name ellipsized 6dp from it and the two read as one.
   amount: { maxWidth: "45%", marginLeft: TARGET_INSET },
