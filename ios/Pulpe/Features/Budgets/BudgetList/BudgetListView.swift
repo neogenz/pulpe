@@ -16,6 +16,7 @@ struct BudgetListView: View {
     @State private var isHeroUnderBar = true
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var templateBalance: Decimal?
+    @State private var showsClosedMonths = false
 
     var body: some View {
         Group {
@@ -297,44 +298,95 @@ struct BudgetListView: View {
         .padding(.bottom, DesignTokens.Spacing.xl)
         .heroZone()
     }
+}
 
+// MARK: - Month Blocks
+
+extension BudgetListView {
+    /// The months as they are lived: the one in progress, the ones still ahead, then the
+    /// closed ones — folded, since a closed month is history and the reason the list is
+    /// opened is the month now. Beside a month (the open Duo) they stay unfolded: the
+    /// list has to show whichever month is picked on the other side.
     private func monthsSection(budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> some View {
         let slots = monthSlots(from: budgets, currentPeriod: currentPeriod)
-        let payDay = userSettingsStore.payDayOfMonth
+        let isCurrentYear = selectedYear == currentPeriod.year
+        let isPast: (MonthSlot) -> Bool = { slot in
+            selectedYear < currentPeriod.year || (isCurrentYear && slot.month < currentPeriod.month)
+        }
+        let current = slots.filter { isCurrentYear && $0.month == currentPeriod.month && $0.budget != nil }
+        let upcoming = slots.filter { !isPast($0) && !current.map(\.month).contains($0.month) }
+        let closed = slots.filter(isPast)
+        let foldsClosed = isCurrentYear && !selectsInPlace
 
-        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SectionHeader(title: AppLocale.string("Mois"), count: budgets.count)
-
-            VStack(spacing: 0) {
-                ForEach(slots, id: \.month) { slot in
-                    if slot.month != slots.first?.month {
-                        Divider()
-                    }
-                    if let budget = slot.budget {
-                        BudgetMonthRow(
-                            budget: budget,
-                            periodLabel: periodLabel(for: budget),
-                            isCurrent: budget.isCurrentPeriod(payDayOfMonth: payDay),
-                            isPast: selectedYear < currentPeriod.year
-                                || (selectedYear == currentPeriod.year && slot.month < currentPeriod.month),
-                            selection: rowSelection(for: budget)
-                        ) {
-                            open(budget.id)
-                        }
-                        .id(budget.id)
-                    } else {
-                        NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
-                            createBudgetTarget = (slot.month, selectedYear)
-                        }
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            if !current.isEmpty {
+                monthsBlock(title: AppLocale.string("En cours"), slots: current, isPast: false)
+            }
+            if !upcoming.isEmpty {
+                monthsBlock(title: AppLocale.string("À venir"), count: upcoming.count, slots: upcoming, isPast: false)
+            }
+            if !closed.isEmpty {
+                let isOpen = !foldsClosed || showsClosedMonths
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    SectionHeader(
+                        title: AppLocale.string("Mois clos"),
+                        count: closed.count,
+                        link: foldsClosed
+                            ? (showsClosedMonths ? AppLocale.string("Masquer") : AppLocale.string("Afficher"), {
+                                withAnimation(DesignTokens.Animation.smoothEaseInOut) { showsClosedMonths.toggle() }
+                            })
+                            : nil,
+                        linkAccessibilityIdentifier: "closedMonthsToggle",
+                        linkSystemImage: showsClosedMonths ? "chevron.up" : "chevron.down"
+                    )
+                    if isOpen {
+                        monthsCard(slots: closed, isPast: true)
                     }
                 }
             }
         }
-        // The content zone is the card: rows sit bare on it, a second surface
-        // under the zone's own curve would read as a card inside a card.
+        // The content zone's own curve holds the blocks; each block's card carries its rows.
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.top, DesignTokens.Spacing.xxl)
         .padding(.bottom, DesignTokens.Spacing.lg)
+    }
+
+    private func monthsBlock(title: String, count: Int? = nil, slots: [MonthSlot], isPast: Bool) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            SectionHeader(title: title, count: count)
+            monthsCard(slots: slots, isPast: isPast)
+        }
+    }
+
+    private func monthsCard(slots: [MonthSlot], isPast: Bool) -> some View {
+        let payDay = userSettingsStore.payDayOfMonth
+
+        return VStack(spacing: 0) {
+            ForEach(slots, id: \.month) { slot in
+                if slot.month != slots.first?.month {
+                    Divider()
+                }
+                if let budget = slot.budget {
+                    BudgetMonthRow(
+                        budget: budget,
+                        // The block names the state; a closed month needs no dates under it.
+                        periodLabel: isPast ? nil : periodLabel(for: budget),
+                        isCurrent: budget.isCurrentPeriod(payDayOfMonth: payDay),
+                        isPast: isPast,
+                        selection: rowSelection(for: budget)
+                    ) {
+                        open(budget.id)
+                    }
+                    .id(budget.id)
+                } else {
+                    NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
+                        createBudgetTarget = (slot.month, selectedYear)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .pulpeRowCard()
     }
 }
 

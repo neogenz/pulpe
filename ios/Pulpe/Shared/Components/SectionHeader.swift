@@ -21,6 +21,8 @@ struct SectionHeader: View {
     /// Identifier for the link button, when a screen's tests need to reach it by
     /// name. The header composes the a11y label itself, so this only names the node.
     var linkAccessibilityIdentifier: String?
+    /// The link's glyph: a chevron right goes somewhere, a chevron down unfolds in place.
+    var linkSystemImage = "chevron.right"
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -78,7 +80,7 @@ struct SectionHeader: View {
             Button(action: link.action) {
                 HStack(spacing: DesignTokens.Spacing.xxs) {
                     Text(link.label)
-                    Image(systemName: "chevron.right")
+                    Image(systemName: linkSystemImage)
                         .font(PulpeTypography.metricLabel)
                 }
                 .font(PulpeTypography.labelLarge)

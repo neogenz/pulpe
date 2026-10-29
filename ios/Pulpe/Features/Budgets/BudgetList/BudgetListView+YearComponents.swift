@@ -43,13 +43,9 @@ struct YearRecapCard: View {
             )
 
             if showsDetails {
-                HeroMetricTileRow {
-                    HeroMetricTile(
-                        icon: "calendar",
-                        label: AppLocale.string("mois"),
-                        value: "\(budgets.count) / 12"
-                    )
-                }
+                // The same progress line as the budget page's hero: the year fills month by
+                // month, and the verdict under it says what the count means.
+                HeroProgressRow(progress: Double(budgets.count) / 12, valueText: "\(budgets.count) / 12")
 
                 HeroVerdictRow(sentence: subtitle)
             }
