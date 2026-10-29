@@ -28,7 +28,7 @@ import {
 } from "@/core/ui/amount-visibility";
 import {
   formatCompactAmount,
-  formatSignedCompactCurrency,
+  formatSignedAdaptiveCurrency,
 } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import {
@@ -632,7 +632,7 @@ function BudgetRow({
               { color: amountColor },
             ]}
           >
-            {formatSignedCompactCurrency(remaining, currency)}
+            {formatSignedAdaptiveCurrency(remaining, currency)}
           </Text>
           {/* « Potentiel » and « Ajustement » say what can still be done with
               the money; a closed month only keeps its figure. */}
