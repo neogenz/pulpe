@@ -200,7 +200,7 @@ it("creates a budget from its FAB, over the list as over the empty state", async
   expect(view.getByTestId("budgets-create")).toBeTruthy();
 });
 
-it("reads the year being lived in, January first, and opens a month", async () => {
+it("reads the month in progress first, then the ones ahead, and opens a month", async () => {
   mockBudgets.data = [
     budget(2026, 11, 300),
     budget(2025, 12),
@@ -212,13 +212,38 @@ it("reads the year being lived in, January first, and opens a month", async () =
   const names = view
     .getAllByText(/^(Janvier|Octobre|Novembre|Décembre)$/)
     .map((node) => node.props.children);
-  expect(names).toEqual(["Janvier", "Octobre", "Novembre", "Décembre"]);
+  // December is the next month still missing, slotted in among the ones ahead.
+  expect(names).toEqual(["Octobre", "Novembre", "Décembre"]);
+  expect(view.getByText("budgets.list.current")).toBeTruthy();
+  expect(view.getByText(/^budgets\.list\.upcoming/)).toBeTruthy();
   // The year closes on its last month's remaining.
   expect(view.getByLabelText(/budgets\.list\.yearBalance \+300/)).toBeTruthy();
-  expect(view.getByText("3 / 12")).toBeTruthy();
+  // The count is the verdict's to say; the only bar left is the current month's.
+  expect(view.getByText(/^budgets\.list\.verdict\.some/)).toBeTruthy();
+  expect(view.queryByText("3 / 12")).toBeNull();
+  // The month in progress carries the budget page's consumption: 500 of 1000.
+  expect(view.getByText("50 %")).toBeTruthy();
 
   await fireEvent.press(view.getByTestId("budget-row-budget-2026-10"));
   expect(router.push).toHaveBeenCalledWith("/budget/budget-2026-10");
+});
+
+it("folds the closed months of the year being lived in until asked", async () => {
+  mockBudgets.data = [budget(2026, 1, 50), budget(2026, 10)];
+  const view = await renderScreen();
+
+  expect(view.getByText(/^budgets\.list\.closed/)).toBeTruthy();
+  expect(view.queryByText("Janvier")).toBeNull();
+
+  await fireEvent.press(
+    view.getByLabelText("budgets.list.showClosedAccessibility"),
+  );
+  expect(view.getByText("Janvier")).toBeTruthy();
+
+  await fireEvent.press(
+    view.getByLabelText("budgets.list.hideClosedAccessibility"),
+  );
+  expect(view.queryByText("Janvier")).toBeNull();
 });
 
 it.each([300, -300, 0])(

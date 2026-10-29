@@ -338,22 +338,25 @@
       "loadErrorTitle": "We couldn't load your budgets",
       "planAccessibility": "Plan multiple budgets",
       "potential": "Potential",
-      "result": "Result",
       "title": "Budgets",
       "yearBalance": "Year-end balance",
       "yearReview": "Year in review",
-      "budgetedMonths": "months budgeted",
       "verdict": {
         "none": "No month budgeted yet. Start now.",
         "all": "You've budgeted the whole year. Well done!",
         "some": "You've budgeted %{count} of 12 months this year."
       },
-      "months": "Months",
       "yearSelector": "Choose the year",
-      "ongoing": "ongoing",
       "notCreated": "No budget yet",
       "createMonth": "Create the budget",
-      "monthDeleted": "Month deleted"
+      "monthDeleted": "Month deleted",
+      "current": "In progress",
+      "upcoming": "Upcoming",
+      "closed": "Closed months",
+      "showClosed": "Show",
+      "hideClosed": "Hide",
+      "showClosedAccessibility": "Show closed months",
+      "hideClosedAccessibility": "Hide closed months"
     },
     "plan": {
       "default": "default",

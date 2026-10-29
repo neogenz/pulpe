@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Year Recap (hero zone content)
 
 /// Hero content of the yearly view (ios/DESIGN.md, One Hero per screen): the signed
-/// year-end balance, two tiles and a verdict. Painted on `HeroZoneSurface` by the parent.
+/// year-end balance and a verdict. Painted on `HeroZoneSurface` by the parent.
 struct YearRecapCard: View {
     let year: Int
     let budgets: [BudgetSparse]
@@ -42,15 +42,9 @@ struct YearRecapCard: View {
                 accessibilityIdentifier: "yearRecapAmount"
             )
 
+            // No progress bar for the month count: the current month's row carries the
+            // screen's only bar, the money spent, and two bars read as one measure.
             if showsDetails {
-                HeroMetricTileRow {
-                    HeroMetricTile(
-                        icon: "calendar",
-                        label: AppLocale.string("mois"),
-                        value: "\(budgets.count) / 12"
-                    )
-                }
-
                 HeroVerdictRow(sentence: subtitle)
             }
         }

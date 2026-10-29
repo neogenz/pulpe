@@ -5,6 +5,7 @@ import {
   formatCompactAmount,
   formatCompactCurrency,
   formatCurrency,
+  formatSignedAdaptiveCurrency,
   formatSignedCompactCurrency,
   formatSignedCurrency,
 } from "./amount-format";
@@ -22,6 +23,12 @@ afterEach(() => {
 describe("amount formatting", () => {
   it("should group Swiss thousands with a typographic apostrophe", () => {
     expect(formatCurrency(1234.5, "CHF")).toBe("1’234.50 CHF");
+  });
+
+  it("should show no centimes or both on an adaptive amount, never one", () => {
+    expect(formatSignedAdaptiveCurrency(1960, "CHF")).toBe("+1’960 CHF");
+    expect(formatSignedAdaptiveCurrency(1960.5, "CHF")).toBe("+1’960.50 CHF");
+    expect(formatSignedAdaptiveCurrency(-0.05, "CHF")).toBe("-0.05 CHF");
   });
 
   it("should sign only what went up", () => {
@@ -51,6 +58,7 @@ describe("amount formatting", () => {
     expect(formatSignedCompactCurrency(1234.5, "CHF")).toBe(MASK);
     expect(formatAmount(1234.5, "CHF")).toBe(MASK);
     expect(formatSignedCurrency(1234.5, "CHF")).toBe(MASK);
+    expect(formatSignedAdaptiveCurrency(1234.5, "CHF")).toBe(MASK);
   });
 
   it("should come back unmasked", () => {

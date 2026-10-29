@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   CURRENCY_METADATA,
+  hasCents,
   moneyDifference,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -51,7 +52,7 @@ export interface FinancialTotals {
         <div
           class="mt-2 text-display-medium font-bold tracking-tight tabular-nums ph-no-capture sm:text-display-large"
         >
-          {{ remainingAbsolute() | number: '1.0-2' : locale() }}
+          {{ remainingAbsolute() | number: remainingDigits() : locale() }}
           <span class="text-headline-small font-normal">{{
             currencySymbol()
           }}</span>
@@ -181,6 +182,11 @@ export class BudgetFinancialOverview {
 
   readonly remainingAbsolute = computed(() =>
     Math.abs(this.remainingDifference()),
+  );
+
+  /** 0 decimals on a whole amount, 2 once it carries cents — never one. */
+  protected readonly remainingDigits = computed(() =>
+    hasCents(this.remainingAbsolute()) ? '1.2-2' : '1.0-0',
   );
 
   // `rollover` is only non-zero when a previous budget exists — the backend derives

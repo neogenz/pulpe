@@ -155,7 +155,7 @@ struct BudgetLinePresentationTests {
 
         #expect(
             BudgetLineRow.consumptionSummary(consumption: consumption, currency: .chf)
-                == "58.5 CHF dépensés · 100% utilisé"
+                == "58.50 CHF dépensés · 100% utilisé"
         )
     }
 }

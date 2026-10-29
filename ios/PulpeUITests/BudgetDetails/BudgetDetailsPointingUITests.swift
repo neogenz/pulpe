@@ -21,7 +21,7 @@ final class BudgetDetailsPointingUITests: XCTestCase {
 
     /// The harness lands on the budgets list; the month row opens the ledger.
     private func waitForRow() -> XCUIElement {
-        let budget = app.buttons["budgetMonthRow-\(Self.budgetId)"]
+        let budget = app.budgetMonthRow(Self.budgetId)
         XCTAssertTrue(budget.waitForExistence(timeout: 15), app.debugDescription)
         budget.tap()
         let row = app.buttons["budgetLineMixedRowButton-\(Self.lineId)"].firstMatch

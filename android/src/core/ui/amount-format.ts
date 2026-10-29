@@ -1,4 +1,8 @@
-import { CURRENCY_METADATA, type SupportedCurrency } from "pulpe-shared";
+import {
+  CURRENCY_METADATA,
+  hasCents,
+  type SupportedCurrency,
+} from "pulpe-shared";
 
 import { areAmountsHidden } from "./amount-visibility";
 
@@ -85,6 +89,21 @@ export function formatSignedCompactCurrency(
   if (areAmountsHidden()) return MASK;
   const sign = value > 0 ? "+" : "";
   return `${sign}${formatCompactCurrency(value, currency)}`;
+}
+
+/**
+ * `+1’960 CHF` / `+1’960.50 CHF` — no centimes on a whole amount, both once it
+ * carries some, never one. The budget list's month cards, like
+ * `asAdaptiveCurrency` on iOS and `'1.0-2'` on the web.
+ */
+export function formatSignedAdaptiveCurrency(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  if (areAmountsHidden()) return MASK;
+  const sign = value > 0 ? "+" : "";
+  const digits = hasCents(value) ? FULL_DIGITS : WHOLE_DIGITS;
+  return `${sign}${withSymbol(format(value, currency, digits), currency)}`;
 }
 
 /**

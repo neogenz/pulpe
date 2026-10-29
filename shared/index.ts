@@ -236,7 +236,7 @@ export { REQUEST_ID_HEADER } from './src/http-headers.js';
 export { checkingPriority } from './src/checking-order.js';
 
 // Export monetary comparison primitive
-export { moneyDifference } from './src/money.js';
+export { hasCents, moneyDifference } from './src/money.js';
 
 // Export analytics contracts
 export {

@@ -137,6 +137,9 @@ struct BudgetLineMixedRow: View {
         )
         // Explicit, or the button inherits the metadata Text's identifier from its label.
         .accessibilityIdentifier("budgetLineMixedRowButton-\(line.id)")
+        // Left to itself the activation point lands on the nested PointCircle, so Voice
+        // Control's "tap" (and XCUITest's) points the line instead of opening it.
+        .accessibilityActivationPoint(.center)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
         .accessibilityElement(children: .contain)

@@ -14,7 +14,7 @@ private func availabilityLabel(
 
 // MARK: - Budget Month Row
 
-/// One month of the yearly ledger (The One Ledger Rule): month name, a status caption,
+/// One month of the yearly ledger (The One Ledger Rule): month name, its dates,
 /// the amount block and a chevron. Current, past and future months share the row; only
 /// the ink changes.
 struct BudgetMonthRow: View {
@@ -38,15 +38,24 @@ struct BudgetMonthRow: View {
         Formatters.monthName(for: budget.month ?? 0)
     }
 
+    /// The block the row sits in names the month in progress; the ink only steps back
+    /// for a month that is over.
     private var titleColor: Color {
-        if isCurrent { return .pulpePrimary }
-        return isPast ? .textSecondary : .textPrimary
+        isPast ? .textSecondary : .textPrimary
     }
 
+    /// How much of the month's money is already planned out, as the budget page's hero
+    /// measures it: expenses against income plus what came over from the month before.
+    private var usage: Double {
+        let available = (budget.totalIncome ?? 0) + (budget.rollover ?? 0)
+        guard available > 0 else { return 0 }
+        return Double(truncating: ((budget.totalExpenses ?? 0) / available) as NSDecimalNumber)
+    }
+
+    /// The block a row sits in already says « en cours » or « clos »; the caption keeps
+    /// what the block cannot: the dates a month spans.
     private var caption: String {
-        if isCurrent { return AppLocale.string("en cours") }
-        if isPast { return AppLocale.string("clos") }
-        return periodLabel ?? ""
+        isPast ? "" : periodLabel ?? ""
     }
 
     static func accessibilityIdentifier(for budget: BudgetSparse) -> String {
@@ -86,25 +95,34 @@ struct BudgetMonthRow: View {
 
     private var rowContent: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(monthName)
-                    .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(titleColor)
-                    // A month name never hyphenates: « Sep-tembre » stops reading as a date.
-                    .lineLimit(1)
-                if !caption.isEmpty {
-                    Text(caption)
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textSecondary)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                        Text(monthName)
+                            .font(PulpeTypography.listRowTitle)
+                            .foregroundStyle(titleColor)
+                            // A month name never hyphenates: « Sep-tembre » stops reading as a date.
+                            .lineLimit(1)
+                        if !caption.isEmpty {
+                            Text(caption)
+                                .font(PulpeTypography.caption)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                    }
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    BudgetAmountBlock(
+                        remaining: budget.remaining,
+                        emotionColor: budget.emotionState.color,
+                        isPast: isPast
+                    )
+                    .layoutPriority(1)
+                }
+                // The month in progress is the one still moving: its card carries the bar
+                // the budget page opens on.
+                if isCurrent {
+                    usageBar
                 }
             }
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            BudgetAmountBlock(
-                remaining: budget.remaining,
-                emotionColor: budget.emotionState.color,
-                isPast: isPast
-            )
-            .layoutPriority(1)
             // A chevron promises a push; beside the month, the row only selects.
             if selection == nil {
                 Image(systemName: "chevron.right")
@@ -116,6 +134,25 @@ struct BudgetMonthRow: View {
         .padding(.vertical, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
         .contentShape(Rectangle())
+    }
+
+    private var usageBar: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            ZStack {
+                Rectangle()
+                    .fill(Color.progressTrack)
+                ProgressBarShape(progress: CGFloat(min(max(usage, 0), 1)))
+                    .fill(budget.emotionState.color)
+            }
+            .frame(height: DesignTokens.ProgressBar.height)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.progressBar))
+
+            Text("\(Int(usage * 100))%")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+                .monospacedDigit()
+        }
+        .accessibilityHidden(true)
     }
 
     private var accessibility: RowAccessibility {
@@ -172,16 +209,29 @@ struct BudgetAmountBlock: View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             if let remaining {
                 let amount = remaining.rounded(2)
-                Text("\(amount > 0 ? "+" : "")\(amount.asAdaptiveCurrency(userSettingsStore.currency))")
-                    .font(PulpeTypography.listRowTitle)
-                    .monospacedDigit()
-                    .foregroundStyle(isPast ? .secondary : emotionColor)
-                    // The month name wraps first: an amount split over two lines misreads.
-                    .lineLimit(1)
-                    .sensitiveAmount()
-                Text(amountLabel)
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textSecondary)
+                let color: Color = isPast ? .textSecondary : emotionColor
+                // The budget page's amount style, the currency set small after it; adaptive decimals, as
+                // a month card's remaining carries a state (webapp-currency-formatting rule).
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
+                    Text("\(amount > 0 ? "+" : "")\(amount.asAdaptiveAmount(for: userSettingsStore.currency))")
+                        .font(PulpeTypography.amountCard)
+                        .monospacedDigit()
+                        .foregroundStyle(color)
+                    Text(userSettingsStore.currency.symbol)
+                        .font(PulpeTypography.metricMini)
+                        .foregroundStyle(color)
+                        .opacity(DesignTokens.Opacity.pressed)
+                }
+                // The month name wraps first: an amount split over two lines misreads.
+                .lineLimit(1)
+                .sensitiveAmount()
+                // « Potentiel » and « Ajustement » say what can still be done with the
+                // money; a closed month only keeps its figure, on one line.
+                if !isPast {
+                    Text(amountLabel)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
+                }
             }
         }
     }

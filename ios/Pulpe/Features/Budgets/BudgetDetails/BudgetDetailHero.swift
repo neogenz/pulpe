@@ -130,25 +130,7 @@ struct BudgetDetailHero: View {
     // MARK: - Progress
 
     private var progressRow: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ZStack(alignment: .leading) {
-                // A progress track, not a chip: `.rect(cornerRadius:)` keeps the pill shape
-                // without tripping the ad-hoc chip lint.
-                Rectangle()
-                    .fill(Color.heroInk.opacity(DesignTokens.Opacity.heroTile))
-                    .clipShape(.rect(cornerRadius: DesignTokens.ProgressBar.heroHeight / 2))
-                ProgressBarShape(progress: fillPercentage)
-                    .fill(Color.heroInkSecondary)
-                    .animation(DesignTokens.Animation.smoothEaseInOut, value: fillPercentage)
-            }
-            .frame(height: DesignTokens.ProgressBar.heroHeight)
-
-            Text(usagePercentageText)
-                .font(PulpeTypography.progressValue)
-                .foregroundStyle(Color.heroInkSecondary)
-                .monospacedDigit()
-                .accessibilityHidden(true)
-        }
+        HeroProgressRow(progress: fillPercentage, valueText: usagePercentageText)
     }
 
     // MARK: - Rollover Disclosure

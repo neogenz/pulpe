@@ -63,16 +63,15 @@ extension Decimal {
         asCompactCurrency(.chf)
     }
 
-    /// Format as amount only (no currency symbol), fraction digits flexible 0–2 — no
-    /// forced decimals on a round value, decimals only when the value carries them.
-    /// Reuses `Formatters.amountInput`, whose config already matches this need (see
-    /// its doc comment). EUR → `1 235` / `1 235,15`, CHF → `1'235` / `1'235.15`.
+    /// Format as amount only (no currency symbol), 0 or 2 decimals — none on a round
+    /// value, both once it carries cents, never the single one `1'960.5` would show.
+    /// EUR → `1 235` / `1 235,50`, CHF → `1'235` / `1'235.50`. Mirrors the webapp's
+    /// adaptive `'1.0-2'`.
     func asAdaptiveAmount(for currency: SupportedCurrency) -> String {
-        let formatter = Formatters.amountInput(for: currency)
-        return formatter.string(from: self as NSDecimalNumber) ?? "0"
+        rounded(2) == rounded(0) ? asCompactAmount(for: currency) : asAmount(for: currency)
     }
 
-    /// Format as currency with flexible 0–2 decimals (see `asAdaptiveAmount`) — the
+    /// Format as currency with 0 or 2 decimals (see `asAdaptiveAmount`) — the
     /// display analog of an amount the user could re-type, e.g. a withdrawable
     /// balance: round without noise, exact when it isn't round.
     /// EUR → `1 235 €` / `1 235,15 €`, CHF → `1'235 CHF` / `1'235.15 CHF`.

@@ -65,8 +65,8 @@ function createDialog(currency: SupportedCurrency, deficitAmount = 0.3) {
 
 describe('SavingsWithdrawalDialog', () => {
   it.each([
-    ['CHF', '0.3 CHF'],
-    ['EUR', '0,3 €'],
+    ['CHF', '0.30 CHF'],
+    ['EUR', '0,30 €'],
   ] as const)(
     'keeps the displayed, prefilled and submitted deficit exact in %s',
     async (currency, display) => {

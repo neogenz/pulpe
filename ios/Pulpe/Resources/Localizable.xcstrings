@@ -16757,6 +16757,28 @@
         }
       }
     },
+    "Mois clos" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgeschlossene Monate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closed months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesi chiusi"
+          }
+        }
+      }
+    },
     "Mois de départ, non modifiable" : {
       "localizations" : {
         "de" : {

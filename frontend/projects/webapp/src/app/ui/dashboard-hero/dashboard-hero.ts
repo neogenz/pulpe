@@ -13,6 +13,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
   CURRENCY_METADATA,
+  hasCents,
   moneyDifference,
   type BudgetPeriodDates,
   type SupportedCurrency,
@@ -91,7 +92,10 @@ let heroInstanceCount = 0;
             class="font-extrabold text-display-medium sm:text-display-large tracking-tighter leading-none tabular-nums ph-no-capture"
             data-testid="hero-remaining-amount"
           >
-            {{ displayedRemaining() | number: '1.0-2' : locale() }}
+            {{
+              displayedRemaining()
+                | number: displayedRemainingDigits() : locale()
+            }}
           </span>
           <!-- 80%, not 70%: at 22px/600 the suffix is too small and too light
                to earn WCAG's large-text exemption, and 70% white over the
@@ -752,6 +756,11 @@ export class DashboardHero {
   // "il manque" over "−500" is a double negative, which reads as a surplus.
   protected readonly displayedRemaining = computed(() =>
     Math.abs(this.remainingDifference()),
+  );
+
+  /** 0 decimals on a whole amount, 2 once it carries cents — never one. */
+  protected readonly displayedRemainingDigits = computed(() =>
+    hasCents(this.displayedRemaining()) ? '1.2-2' : '1.0-0',
   );
 
   readonly isWarning = computed(

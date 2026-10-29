@@ -20,7 +20,7 @@ final class BudgetOpensFromListUITests: XCTestCase {
     }
 
     func testColdMonthOpensOnItsHeroWithTitleAndBack() {
-        let row = app.buttons["budgetMonthRow-\(Self.budgetId)"]
+        let row = app.budgetMonthRow(Self.budgetId)
         XCTAssertTrue(row.waitForExistence(timeout: 15), app.debugDescription)
         row.tap()
 

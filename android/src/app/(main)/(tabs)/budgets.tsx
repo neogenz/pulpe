@@ -28,7 +28,7 @@ import {
 } from "@/core/ui/amount-visibility";
 import {
   formatCompactAmount,
-  formatSignedCompactCurrency,
+  formatSignedAdaptiveCurrency,
 } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import {
@@ -36,7 +36,6 @@ import {
   HeroAppBar,
   HeroAppBarAction,
   HeroFigure,
-  HeroTile,
   HeroVerdict,
   HeroZone,
 } from "@/core/ui/hero";
@@ -71,18 +70,23 @@ import {
   refetchStaleBudgetList,
   useBudgetList,
 } from "@/features/budgets/budget-queries";
+import { budgetUsagePercentage } from "@/features/budget-details/budget-details-selectors";
 import { monthSubtitle } from "@/features/budgets/month-subtitle";
 import { useNow } from "@/features/current-month/current-month-queries";
 
 /** Below this, the period is the calendar month and printing its dates says nothing. */
 const CALENDAR_PAY_DAY = 1;
 const MONTHS_PER_YEAR = 12;
+/** The drift card's bar: the content zone's thinner sibling of the hero's. */
+const USAGE_BAR_HEIGHT = 8;
 
 /**
  * The year as a whole, then its months — `BudgetListView.swift`. The hero says
- * where the year closes and how much of it is planned; the list reads the
- * months January first, like a calendar, and names the next one still missing
- * so the way forward is in the list rather than behind an icon.
+ * where the year closes and how much of it is planned; the months follow as
+ * they are lived: the one in progress, the ones still ahead (the next one
+ * missing included, so the way forward is in the list rather than behind an
+ * icon), then the closed ones — folded in the year being lived in, since a
+ * closed month is history and the list is opened for the month now.
  */
 export default function BudgetsScreen() {
   // Repaints this screen when amounts are hidden or shown; the masking
@@ -98,6 +102,7 @@ export default function BudgetsScreen() {
   const settings = useUserSettings();
   const budgets = useBudgetList();
   const [chosenYear, setChosenYear] = useState<number | null>(null);
+  const [showsClosedMonths, setShowsClosedMonths] = useState(false);
   // Read again on every return to the foreground: a period frozen at mount
   // kept "en cours" on last month after the pay day.
   const [now, readClock] = useNow();
@@ -214,6 +219,56 @@ export default function BudgetsScreen() {
   const recap = yearRecap(yearBudgets);
   const missingMonth = nextMissingMonth(yearBudgets, year, currentPeriod);
   const isPastYear = year < currentPeriod.year;
+  const rows = buildRows(yearBudgets, missingMonth, year);
+  // The missing month is never behind today: `nextMissingMonth` starts there.
+  const timingOf = (row: ListRow): BudgetTiming =>
+    row.kind === "budget" ? budgetTiming(row.budget, currentPeriod) : "future";
+  const currentRows = rows.filter((row) => timingOf(row) === "current");
+  const upcomingRows = rows.filter((row) => timingOf(row) === "future");
+  const closedRows = rows.filter((row) => timingOf(row) === "past");
+  // A past year is nothing but closed months: folding them would hide it all.
+  const foldsClosed = year === currentPeriod.year;
+  const monthsCard = (blockRows: ListRow[]) => (
+    <LedgerCard dividerInset={SPACING.md}>
+      {blockRows.map((row) =>
+        row.kind === "budget" ? (
+          <BudgetRow
+            key={row.budget.id}
+            budget={row.budget}
+            currency={currency}
+            payDayOfMonth={payDayOfMonth}
+            timing={budgetTiming(row.budget, currentPeriod)}
+            locale={locale}
+            t={t}
+          />
+        ) : (
+          <LedgerRow
+            key={`missing-${row.month}`}
+            testID="budgets-create-missing"
+            title={capitalized(
+              formatMonthName(row.month, year, locale),
+              locale,
+            )}
+            subtitle={t("budgets.list.notCreated")}
+            trailing={
+              <Text
+                variant="labelLarge"
+                style={{ color: theme.colors.primary }}
+              >
+                {t("budgets.list.createMonth")}
+              </Text>
+            }
+            onPress={() =>
+              router.push({
+                pathname: "/budget/create",
+                params: { month: row.month, year },
+              })
+            }
+          />
+        ),
+      )}
+    </LedgerCard>
+  );
 
   return (
     // The app bar carries the status bar inset; asking the safe area for the
@@ -252,13 +307,9 @@ export default function BudgetsScreen() {
               amount={signedCompact(recap.closingBalance, currency)}
               currency={CURRENCY_METADATA[currency].symbol}
             />
-            <View style={styles.tile}>
-              <HeroTile
-                icon="calendar-month-outline"
-                value={`${recap.budgetedMonths} / ${MONTHS_PER_YEAR}`}
-                label={t("budgets.list.budgetedMonths")}
-              />
-            </View>
+            {/* No progress bar for the month count: the current month's row
+                carries the screen's only bar, the money spent, and two bars
+                read as one measure. */}
             <HeroVerdict
               sentence={
                 recap.budgetedMonths === 0
@@ -273,51 +324,51 @@ export default function BudgetsScreen() {
           </HeroZone>
 
           <ContentZone style={styles.content}>
-            <View style={styles.section}>
-              <SectionHeader
-                title={t("budgets.list.months")}
-                count={yearBudgets.length}
-              />
-              <LedgerCard dividerInset={SPACING.md}>
-                {buildRows(yearBudgets, missingMonth, year).map((row) =>
-                  row.kind === "budget" ? (
-                    <BudgetRow
-                      key={row.budget.id}
-                      budget={row.budget}
-                      currency={currency}
-                      payDayOfMonth={payDayOfMonth}
-                      timing={budgetTiming(row.budget, currentPeriod)}
-                      locale={locale}
-                      t={t}
-                    />
-                  ) : (
-                    <LedgerRow
-                      key={`missing-${row.month}`}
-                      testID="budgets-create-missing"
-                      title={capitalized(
-                        formatMonthName(row.month, year, locale),
-                        locale,
-                      )}
-                      subtitle={t("budgets.list.notCreated")}
-                      trailing={
-                        <Text
-                          variant="labelLarge"
-                          style={{ color: theme.colors.primary }}
-                        >
-                          {t("budgets.list.createMonth")}
-                        </Text>
-                      }
-                      onPress={() =>
-                        router.push({
-                          pathname: "/budget/create",
-                          params: { month: row.month, year },
-                        })
-                      }
-                    />
-                  ),
-                )}
-              </LedgerCard>
-            </View>
+            {currentRows.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader title={t("budgets.list.current")} />
+                {monthsCard(currentRows)}
+              </View>
+            )}
+            {upcomingRows.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader
+                  title={t("budgets.list.upcoming")}
+                  count={upcomingRows.length}
+                />
+                {monthsCard(upcomingRows)}
+              </View>
+            )}
+            {closedRows.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader
+                  title={t("budgets.list.closed")}
+                  count={closedRows.length}
+                  link={
+                    foldsClosed
+                      ? {
+                          label: t(
+                            showsClosedMonths
+                              ? "budgets.list.hideClosed"
+                              : "budgets.list.showClosed",
+                          ),
+                          accessibilityLabel: t(
+                            showsClosedMonths
+                              ? "budgets.list.hideClosedAccessibility"
+                              : "budgets.list.showClosedAccessibility",
+                          ),
+                          icon: showsClosedMonths
+                            ? "chevron-up"
+                            : "chevron-down",
+                          onPress: () =>
+                            setShowsClosedMonths((shown) => !shown),
+                        }
+                      : undefined
+                  }
+                />
+                {(!foldsClosed || showsClosedMonths) && monthsCard(closedRows)}
+              </View>
+            )}
           </ContentZone>
         </ScrollView>
       )}
@@ -466,7 +517,7 @@ function YearSkeleton() {
     >
       <View style={[styles.bone, styles.boneEyebrow, tone]} />
       <View style={[styles.bone, styles.boneFigure, tone]} />
-      <View style={[styles.bone, styles.boneTile, tone]} />
+      <View style={[styles.bone, styles.boneProgress, tone]} />
     </View>
   );
 }
@@ -492,8 +543,10 @@ function capitalized(value: string, locale: string): string {
  * the dates it actually spans. On a pay day of 1 that range restates the month
  * name, and the encouragement iOS prints there says more.
  *
- * The month being lived in is named in the brand green; a month that is over
- * steps back to the quiet ink, figure included — it is a record, not a state.
+ * The block a row sits in already names it in progress, ahead or closed. A
+ * month that is over steps back to the quiet ink on one line, figure included —
+ * it is a record, not a state; the month in progress carries the budget page's
+ * consumption bar, as the one still moving.
  */
 function BudgetRow({
   budget,
@@ -529,9 +582,10 @@ function BudgetRow({
         ? financial.expense
         : financial.overBudget;
   const name = capitalized(formatMonthName(month, year, locale), locale);
-  const subtitle = isCurrent
-    ? `${t("budgets.list.ongoing")} · ${periodLabel(t, locale, month, year, payDayOfMonth, isPositive)}`
-    : periodLabel(t, locale, month, year, payDayOfMonth, isPositive);
+  const usagePercentage = budgetUsagePercentage({
+    totalExpenses: budget.totalExpenses ?? 0,
+    available: (budget.totalIncome ?? 0) + (budget.rollover ?? 0),
+  });
 
   return (
     <Pressable
@@ -541,48 +595,81 @@ function BudgetRow({
       accessibilityRole="button"
       style={styles.row}
     >
-      <View style={styles.rowText}>
-        <Text
-          variant="titleMedium"
-          style={{
-            color: isCurrent
-              ? theme.colors.primary
-              : isPast
+      <View style={styles.rowLine}>
+        <View style={styles.rowText}>
+          <Text
+            variant="titleMedium"
+            style={{
+              color: isPast
                 ? theme.colors.onSurfaceVariant
                 : theme.colors.onSurface,
-          }}
-        >
-          {name}
-        </Text>
-        <Text
-          variant="bodySmall"
-          numberOfLines={1}
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {subtitle}
-        </Text>
+            }}
+          >
+            {name}
+          </Text>
+          {!isPast && (
+            <Text
+              variant="bodySmall"
+              numberOfLines={1}
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {periodLabel(t, locale, month, year, payDayOfMonth, isPositive)}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.amount}>
+          <Text
+            numberOfLines={1}
+            style={[
+              BRAND_TYPE.rowAmount,
+              TABULAR_DIGITS,
+              { color: amountColor },
+            ]}
+          >
+            {formatSignedAdaptiveCurrency(remaining, currency)}
+          </Text>
+          {/* « Potentiel » and « Ajustement » say what can still be done with
+              the money; a closed month only keeps its figure. */}
+          {!isPast && (
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {isPositive
+                ? t("budgets.list.potential")
+                : t("budgets.list.adjustment")}
+            </Text>
+          )}
+        </View>
       </View>
 
-      <View style={styles.amount}>
-        <Text
-          numberOfLines={1}
-          style={[BRAND_TYPE.rowAmount, TABULAR_DIGITS, { color: amountColor }]}
-        >
-          {formatSignedCompactCurrency(remaining, currency)}
-        </Text>
-        <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {/* A month that is over settled at this figure; the two other
-              tenses are still describing something that has not happened. */}
-          {isPast
-            ? t("budgets.list.result")
-            : isPositive
-              ? t("budgets.list.potential")
-              : t("budgets.list.adjustment")}
-        </Text>
-      </View>
+      {isCurrent && (
+        <View style={styles.usage}>
+          <View
+            style={[
+              styles.usageTrack,
+              { backgroundColor: theme.colors.surfaceVariant },
+            ]}
+          >
+            <View
+              style={[
+                styles.usageFill,
+                {
+                  backgroundColor: amountColor,
+                  width: `${Math.min(Math.max(usagePercentage, 0), 100)}%`,
+                },
+              ]}
+            />
+          </View>
+          <Text
+            variant="labelMedium"
+            style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {`${Math.round(usagePercentage)} %`}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -611,7 +698,6 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1 },
   content: { paddingBottom: FAB_CLEARANCE },
   section: { gap: SPACING.sm },
-  tile: { flexDirection: "row" },
   // The hero's gutter moves onto each tab, so the first label lines up with the
   // figure below while its target still reaches the display edge.
   years: { marginHorizontal: -SPACING.md, flexGrow: 0 },
@@ -631,19 +717,27 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 3,
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "center",
     gap: SPACING.sm,
     minHeight: 64,
     paddingVertical: SPACING.sm + SPACING.xs,
     paddingHorizontal: SPACING.md,
   },
+  rowLine: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  usage: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  usageTrack: {
+    flex: 1,
+    height: USAGE_BAR_HEIGHT,
+    borderRadius: RADIUS.full,
+    overflow: "hidden",
+  },
+  usageFill: { height: "100%", borderRadius: RADIUS.full },
   rowText: { flex: 1, gap: SPACING.xxs },
   amount: { alignItems: "flex-end", gap: SPACING.xxs },
   skeleton: { gap: SPACING.md },
   bone: { borderRadius: RADIUS.sm },
   boneEyebrow: { width: 140, height: 14 },
   boneFigure: { width: 180, height: 48 },
-  boneTile: { width: 180, height: 56, borderRadius: RADIUS.card },
+  boneProgress: { alignSelf: "stretch", height: 10, borderRadius: RADIUS.full },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

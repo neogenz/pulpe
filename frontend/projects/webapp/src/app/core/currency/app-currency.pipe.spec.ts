@@ -65,6 +65,14 @@ describe('AppCurrencyPipe', () => {
       expect(result).toContain('234');
       expect(result).not.toContain('.00');
     });
+
+    it('should show 0 or 2 decimals for the adaptive 1.0-2, never one', () => {
+      expect(pipe.transform(1960, 'CHF', '1.0-2')).toBe('1’960 CHF');
+      expect(pipe.transform(1960.5, 'CHF', '1.0-2')).toBe('1’960.50 CHF');
+      expect(pipe.transform(112.22999999999999, 'CHF', '1.0-2')).toBe(
+        '112.23 CHF',
+      );
+    });
   });
 
   describe('edge cases', () => {

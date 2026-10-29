@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moneyDifference } from './money.js';
+import { hasCents, moneyDifference } from './money.js';
 
 describe('moneyDifference', () => {
   it('ignores binary floating-point dust', () => {
@@ -18,5 +18,19 @@ describe('moneyDifference', () => {
 
   it.each(['CHF', 'EUR'])('uses two-decimal precision for %s', () => {
     expect(moneyDifference(10.01, 10)).toBe(0.01);
+  });
+});
+
+describe('hasCents', () => {
+  it('is false on a whole amount, including float dust below the cent', () => {
+    expect(hasCents(5_500)).toBe(false);
+    expect(hasCents(1_960.004)).toBe(false);
+    expect(hasCents(-120)).toBe(false);
+  });
+
+  it('is true as soon as one cent survives the rounding', () => {
+    expect(hasCents(1_960.5)).toBe(true);
+    expect(hasCents(112.22999999999999)).toBe(true);
+    expect(hasCents(-0.05)).toBe(true);
   });
 });

@@ -27,6 +27,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   CURRENCY_METADATA,
   formatBudgetPeriod,
+  hasCents,
   type SavingsGoalContribution,
   type SavingsGoalPlanMonth,
   type SavingsGoalPlannedWithdrawal,
@@ -838,7 +839,11 @@ export class GoalMonthTimeline {
       );
     }
     if (!row.isChecked || row.amount === null) return null;
-    const amount = `${formatNumber(row.amount, this.#appLocale, '1.0-2')} ${this.currency()}`;
+    const amount = `${formatNumber(
+      row.amount,
+      this.#appLocale,
+      hasCents(row.amount) ? '1.2-2' : '1.0-0',
+    )} ${this.currency()}`;
     return this.#transloco.translate('savingsGoals.detail.lockedAmountAria', {
       amount,
     });

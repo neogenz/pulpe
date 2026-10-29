@@ -566,7 +566,7 @@ describe('SavingsGoalDetailPage', () => {
     );
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('12’345.6 CHF');
+    expect(fixture.nativeElement.textContent).toContain('12’345.60 CHF');
     const stat = query('stat-initial-amount');
     expect(stat.nativeElement.textContent).toContain('5’001 CHF');
   });

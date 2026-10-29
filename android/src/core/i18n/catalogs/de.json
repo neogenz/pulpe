@@ -338,22 +338,25 @@
       "loadErrorTitle": "Deine Budgets konnten nicht geladen werden",
       "planAccessibility": "Mehrere Budgets planen",
       "potential": "Potenzial",
-      "result": "Ergebnis",
       "title": "Budgets",
       "yearBalance": "Saldo zum Jahresende",
       "yearReview": "Jahresbilanz",
-      "budgetedMonths": "budgetierte Monate",
       "verdict": {
         "none": "Noch kein Monat budgetiert. Fang jetzt an.",
         "all": "Du hast das ganze Jahr budgetiert. Bravo!",
         "some": "Du hast %{count} von 12 Monaten des Jahres budgetiert."
       },
-      "months": "Monate",
       "yearSelector": "Jahr wählen",
-      "ongoing": "laufend",
       "notCreated": "Noch kein Budget",
       "createMonth": "Budget erstellen",
-      "monthDeleted": "Monat gelöscht"
+      "monthDeleted": "Monat gelöscht",
+      "current": "Laufend",
+      "upcoming": "Kommend",
+      "closed": "Abgeschlossene Monate",
+      "showClosed": "Anzeigen",
+      "hideClosed": "Ausblenden",
+      "showClosedAccessibility": "Abgeschlossene Monate anzeigen",
+      "hideClosedAccessibility": "Abgeschlossene Monate ausblenden"
     },
     "plan": {
       "default": "Standard",
