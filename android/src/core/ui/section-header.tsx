@@ -10,7 +10,13 @@ interface SectionHeaderProps {
   /** One amount under the title that sums the section up. */
   subtitle?: string;
   /** Where the section leads, named — `Tout voir`. */
-  link?: { label: string; onPress: () => void; accessibilityLabel?: string };
+  link?: {
+    label: string;
+    onPress: () => void;
+    accessibilityLabel?: string;
+    /** Trails the label — Material's `chevron-down` for a section that unfolds in place. */
+    icon?: string;
+  };
 }
 
 /**
@@ -64,6 +70,8 @@ export function SectionHeader({
           compact
           onPress={link.onPress}
           accessibilityLabel={link.accessibilityLabel ?? link.label}
+          icon={link.icon}
+          contentStyle={styles.linkContent}
           style={styles.link}
         >
           {link.label}
@@ -84,4 +92,5 @@ const styles = StyleSheet.create({
   title: { fontWeight: "500" },
   // The button's own padding would push its label off the content's right edge.
   link: { marginRight: -SPACING.sm },
+  linkContent: { flexDirection: "row-reverse" },
 });

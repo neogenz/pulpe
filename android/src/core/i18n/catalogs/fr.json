@@ -338,7 +338,6 @@
       "loadErrorTitle": "On n'a pas pu charger tes budgets",
       "planAccessibility": "Planifier plusieurs budgets",
       "potential": "Potentiel",
-      "result": "Résultat",
       "title": "Budgets",
       "yearBalance": "Solde fin d'année",
       "yearReview": "Bilan de l'année",
@@ -348,12 +347,17 @@
         "all": "Tu as budgétisé toute l'année. Bravo !",
         "some": "Tu as budgétisé %{count} mois sur 12 sur l'année."
       },
-      "months": "Mois",
       "yearSelector": "Choisir l'année",
-      "ongoing": "en cours",
       "notCreated": "Pas encore de budget",
       "createMonth": "Créer le budget",
-      "monthDeleted": "Mois supprimé"
+      "monthDeleted": "Mois supprimé",
+      "current": "En cours",
+      "upcoming": "À venir",
+      "closed": "Mois clos",
+      "showClosed": "Afficher",
+      "hideClosed": "Masquer",
+      "showClosedAccessibility": "Afficher les mois clos",
+      "hideClosedAccessibility": "Masquer les mois clos"
     },
     "plan": {
       "default": "par défaut",

@@ -338,7 +338,6 @@
       "loadErrorTitle": "Non è stato possibile caricare i tuoi budget",
       "planAccessibility": "Pianifica più budget",
       "potential": "Potenziale",
-      "result": "Risultato",
       "title": "Budget",
       "yearBalance": "Saldo di fine anno",
       "yearReview": "Bilancio dell'anno",
@@ -348,12 +347,17 @@
         "all": "Hai messo a budget tutto l'anno. Ottimo lavoro!",
         "some": "Hai messo a budget %{count} mesi su 12 quest'anno."
       },
-      "months": "Mesi",
       "yearSelector": "Scegli l'anno",
-      "ongoing": "in corso",
       "notCreated": "Ancora nessun budget",
       "createMonth": "Crea il budget",
-      "monthDeleted": "Mese eliminato"
+      "monthDeleted": "Mese eliminato",
+      "current": "In corso",
+      "upcoming": "In arrivo",
+      "closed": "Mesi chiusi",
+      "showClosed": "Mostra",
+      "hideClosed": "Nascondi",
+      "showClosedAccessibility": "Mostra i mesi chiusi",
+      "hideClosedAccessibility": "Nascondi i mesi chiusi"
     },
     "plan": {
       "default": "predefinito",
