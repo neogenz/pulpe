@@ -411,12 +411,12 @@ test.describe('Savings goal as the source of an income', () => {
     );
     await expect(
       recoveryAction.locator('xpath=ancestor::section'),
-    ).toContainText('0.3 CHF');
+    ).toContainText('0.30 CHF');
     await recoveryAction.click();
 
     const dialog = authenticatedPage.getByTestId('savings-withdrawal-dialog');
     const deficitChip = dialog.getByTestId('withdrawal-deficit-chip');
-    await expect(deficitChip).toContainText('0.3 CHF');
+    await expect(deficitChip).toContainText('0.30 CHF');
     await deficitChip.click();
     await expect(dialog.getByTestId('amount-input-value')).toHaveValue('0.3');
     await dialog.getByTestId('withdrawal-continue').click();
