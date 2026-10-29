@@ -1,8 +1,7 @@
 import SwiftUI
 
 /// The hero's progress line: a track in hero ink, its fill, and the value beside it. The
-/// budget page measures the month's consumption with it, the budget list the year's
-/// budgeted months — one line, so the two heroes read the same way.
+/// budget page measures the month's consumption with it.
 struct HeroProgressRow: View {
     /// 0...1; clamped here so callers can pass a raw ratio.
     let progress: Double

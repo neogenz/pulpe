@@ -341,7 +341,6 @@
       "title": "Budgets",
       "yearBalance": "Saldo zum Jahresende",
       "yearReview": "Jahresbilanz",
-      "budgetedMonths": "budgetierte Monate",
       "verdict": {
         "none": "Noch kein Monat budgetiert. Fang jetzt an.",
         "all": "Du hast das ganze Jahr budgetiert. Bravo!",

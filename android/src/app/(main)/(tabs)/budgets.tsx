@@ -36,7 +36,6 @@ import {
   HeroAppBar,
   HeroAppBarAction,
   HeroFigure,
-  HeroProgress,
   HeroVerdict,
   HeroZone,
 } from "@/core/ui/hero";
@@ -308,13 +307,9 @@ export default function BudgetsScreen() {
               amount={signedCompact(recap.closingBalance, currency)}
               currency={CURRENCY_METADATA[currency].symbol}
             />
-            {/* The budget page's progress line: the year fills month by month,
-                and the verdict under it says what the count means. */}
-            <HeroProgress
-              progress={recap.budgetedMonths / MONTHS_PER_YEAR}
-              label={`${recap.budgetedMonths} / ${MONTHS_PER_YEAR}`}
-              accessibilityLabel={`${recap.budgetedMonths} / ${MONTHS_PER_YEAR} ${t("budgets.list.budgetedMonths")}`}
-            />
+            {/* No progress bar for the month count: the current month's row
+                carries the screen's only bar, the money spent, and two bars
+                read as one measure. */}
             <HeroVerdict
               sentence={
                 recap.budgetedMonths === 0

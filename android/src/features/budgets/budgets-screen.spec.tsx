@@ -218,7 +218,9 @@ it("reads the month in progress first, then the ones ahead, and opens a month", 
   expect(view.getByText(/^budgets\.list\.upcoming/)).toBeTruthy();
   // The year closes on its last month's remaining.
   expect(view.getByLabelText(/budgets\.list\.yearBalance \+300/)).toBeTruthy();
-  expect(view.getByText("3 / 12")).toBeTruthy();
+  // The count is the verdict's to say; the only bar left is the current month's.
+  expect(view.getByText(/^budgets\.list\.verdict\.some/)).toBeTruthy();
+  expect(view.queryByText("3 / 12")).toBeNull();
   // The month in progress carries the budget page's consumption: 500 of 1000.
   expect(view.getByText("50 %")).toBeTruthy();
 

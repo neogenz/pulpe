@@ -341,7 +341,6 @@
       "title": "Budget",
       "yearBalance": "Saldo di fine anno",
       "yearReview": "Bilancio dell'anno",
-      "budgetedMonths": "mesi a budget",
       "verdict": {
         "none": "Nessun mese a budget. Inizia ora.",
         "all": "Hai messo a budget tutto l'anno. Ottimo lavoro!",

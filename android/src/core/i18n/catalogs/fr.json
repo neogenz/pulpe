@@ -341,7 +341,6 @@
       "title": "Budgets",
       "yearBalance": "Solde fin d'année",
       "yearReview": "Bilan de l'année",
-      "budgetedMonths": "mois budgétés",
       "verdict": {
         "none": "Aucun mois budgétisé. Commence dès maintenant.",
         "all": "Tu as budgétisé toute l'année. Bravo !",

@@ -341,7 +341,6 @@
       "title": "Budgets",
       "yearBalance": "Year-end balance",
       "yearReview": "Year in review",
-      "budgetedMonths": "months budgeted",
       "verdict": {
         "none": "No month budgeted yet. Start now.",
         "all": "You've budgeted the whole year. Well done!",
