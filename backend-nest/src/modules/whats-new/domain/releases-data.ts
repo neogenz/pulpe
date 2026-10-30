@@ -54,6 +54,229 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.58.0',
+    iosVersion: '1.13.0',
+    date: '2026-10-30',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Rapprocher tes comptes depuis chaque mois',
+          description:
+            'Depuis le détail d’un mois passé, en cours ou à venir, tu rapproches tes comptes sur ce mois-là, report compris.',
+        },
+        {
+          title: 'Liste des budgets par statut',
+          description:
+            'Le mois en cours s’affiche en premier, puis les mois à venir ; les mois clos sont repliés.',
+        },
+        {
+          title: 'Le filtre « Pointé » montre tous tes mouvements pointés',
+          description:
+            'Les mouvements pointés d’une prévision encore à pointer apparaissent dans leur propre section.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Toucher une prévision l’ouvre',
+          description:
+            'Dans le détail d’un budget, toucher une prévision avec des mouvements l’ouvre au lieu de la pointer.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Match your accounts from any month',
+            description:
+              'From a past, current or upcoming month’s details, you match your accounts for that month, carry-over included.',
+          },
+          {
+            title: 'Budget list by status',
+            description:
+              'The current month comes first, then upcoming months; closed months are folded away.',
+          },
+          {
+            title: 'The “Checked” filter shows all your checked entries',
+            description:
+              'Checked entries in a forecast that is still to check now appear in their own section.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Tapping a forecast opens it',
+            description:
+              'In a budget’s details, tapping a forecast with entries opens it instead of checking it.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Konten aus jedem Monat abgleichen',
+            description:
+              'In den Details eines vergangenen, laufenden oder kommenden Monats gleichst du deine Konten für diesen Monat ab, Übertrag inbegriffen.',
+          },
+          {
+            title: 'Budgetliste nach Status',
+            description:
+              'Der laufende Monat steht zuoberst, danach die kommenden Monate; abgeschlossene Monate sind eingeklappt.',
+          },
+          {
+            title: 'Der Filter «Abgehakt» zeigt alle abgehakten Bewegungen',
+            description:
+              'Abgehakte Bewegungen eines noch nicht abgehakten Planungseintrags erscheinen in einem eigenen Abschnitt.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Antippen öffnet den Planungseintrag',
+            description:
+              'In den Budgetdetails öffnet das Antippen eines Planungseintrags mit Bewegungen diesen, statt ihn abzuhaken.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Allinea i tuoi conti da ogni mese',
+            description:
+              'Dal dettaglio di un mese passato, in corso o futuro, allinei i conti su quel mese, riporto incluso.',
+          },
+          {
+            title: 'Elenco dei budget per stato',
+            description:
+              'Il mese in corso appare per primo, poi i mesi futuri; i mesi chiusi sono compressi.',
+          },
+          {
+            title: 'Il filtro «Spuntato» mostra tutti i movimenti spuntati',
+            description:
+              'I movimenti spuntati di una previsione ancora da spuntare appaiono in una sezione dedicata.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Toccare una previsione la apre',
+            description:
+              'Nel dettaglio di un budget, toccare una previsione con movimenti la apre invece di spuntarla.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    version: '0.58.0',
+    date: '2026-10-30',
+    platforms: ['android'],
+    changes: {
+      features: [
+        {
+          title: 'Rapprocher tes comptes depuis chaque mois',
+          description:
+            'Depuis le détail d’un mois passé, en cours ou à venir, tu rapproches tes comptes sur ce mois-là, report compris.',
+        },
+        {
+          title: 'Liste des budgets par statut',
+          description:
+            'Le mois en cours s’affiche en premier, puis les mois à venir ; les mois clos sont repliés.',
+        },
+        {
+          title: 'Le filtre « Pointé » montre tous tes mouvements pointés',
+          description:
+            'Les mouvements pointés d’une prévision encore à pointer apparaissent dans leur propre section.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Montants à 0 ou 2 décimales',
+          description:
+            'Les montants ne s’affichent plus avec une seule décimale.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Match your accounts from any month',
+            description:
+              'From a past, current or upcoming month’s details, you match your accounts for that month, carry-over included.',
+          },
+          {
+            title: 'Budget list by status',
+            description:
+              'The current month comes first, then upcoming months; closed months are folded away.',
+          },
+          {
+            title: 'The “Checked” filter shows all your checked entries',
+            description:
+              'Checked entries in a forecast that is still to check now appear in their own section.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Amounts with 0 or 2 decimals',
+            description: 'Amounts no longer show a single decimal.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Konten aus jedem Monat abgleichen',
+            description:
+              'In den Details eines vergangenen, laufenden oder kommenden Monats gleichst du deine Konten für diesen Monat ab, Übertrag inbegriffen.',
+          },
+          {
+            title: 'Budgetliste nach Status',
+            description:
+              'Der laufende Monat steht zuoberst, danach die kommenden Monate; abgeschlossene Monate sind eingeklappt.',
+          },
+          {
+            title: 'Der Filter «Abgehakt» zeigt alle abgehakten Bewegungen',
+            description:
+              'Abgehakte Bewegungen eines noch nicht abgehakten Planungseintrags erscheinen in einem eigenen Abschnitt.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Beträge mit 0 oder 2 Dezimalstellen',
+            description:
+              'Beträge erscheinen nicht mehr mit nur einer Dezimalstelle.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Allinea i tuoi conti da ogni mese',
+            description:
+              'Dal dettaglio di un mese passato, in corso o futuro, allinei i conti su quel mese, riporto incluso.',
+          },
+          {
+            title: 'Elenco dei budget per stato',
+            description:
+              'Il mese in corso appare per primo, poi i mesi futuri; i mesi chiusi sono compressi.',
+          },
+          {
+            title: 'Il filtro «Spuntato» mostra tutti i movimenti spuntati',
+            description:
+              'I movimenti spuntati di una previsione ancora da spuntare appaiono in una sezione dedicata.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Importi con 0 o 2 decimali',
+            description: 'Gli importi non mostrano più un solo decimale.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.57.0',
     iosVersion: '1.12.0',
     date: '2026-10-25',

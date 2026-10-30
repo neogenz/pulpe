@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.58.0
+
+### Minor Changes
+
+- Rapprochement des comptes depuis chaque mois, liste des budgets par statut, filtre « Pointé » complet et montants à 0 ou 2 décimales.
+
+### Patch Changes
+
+- pulpe-shared@0.58.0
+
 ## 0.57.0
 
 ### Minor Changes

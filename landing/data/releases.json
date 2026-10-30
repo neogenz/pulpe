@@ -1,10 +1,175 @@
 [
   {
+    "version": "0.58.0",
+    "iosVersion": "1.13.0",
+    "date": "2026-10-30",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.58.0",
+    "platforms": [
+      "web",
+      "ios",
+      "android"
+    ],
+    "changes": {
+      "features": [
+        {
+          "title": "Rapprocher tes comptes depuis chaque mois",
+          "description": "Depuis le détail d’un mois passé, en cours ou à venir, tu rapproches tes comptes sur ce mois-là, report compris."
+        },
+        {
+          "title": "Liste des budgets par statut",
+          "description": "Le mois en cours s’affiche en premier, puis les mois à venir ; les mois clos sont repliés."
+        },
+        {
+          "title": "Le filtre « Pointé » montre tous tes mouvements pointés",
+          "description": "Les mouvements pointés d’une prévision encore à pointer apparaissent dans leur propre section."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Montants à 0 ou 2 décimales",
+          "description": "Les montants ne s’affichent plus avec une seule décimale."
+        },
+        {
+          "title": "Toucher une prévision l’ouvre",
+          "description": "Dans le détail d’un budget, toucher une prévision avec des mouvements l’ouvre au lieu de la pointer."
+        },
+        {
+          "title": "Sélecteur de mois sur iPhone Duo plié",
+          "description": "Faire glisser les mois en haut du détail d’un budget les fait défiler au lieu de revenir en arrière."
+        }
+      ],
+      "technical": [
+        {
+          "title": "Sécurité du serveur",
+          "description": "Mise à jour de sécurité de l’environnement serveur."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Match your accounts from any month",
+              "description": "From a past, current or upcoming month’s details, you match your accounts for that month, carry-over included."
+            },
+            {
+              "title": "Budget list by status",
+              "description": "The current month comes first, then upcoming months; closed months are folded away."
+            },
+            {
+              "title": "The “Checked” filter shows all your checked entries",
+              "description": "Checked entries in a forecast that is still to check now appear in their own section."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Amounts with 0 or 2 decimals",
+              "description": "Amounts no longer show a single decimal."
+            },
+            {
+              "title": "Tapping a forecast opens it",
+              "description": "In a budget’s details, tapping a forecast with entries opens it instead of checking it."
+            },
+            {
+              "title": "Month picker on folded iPhone Duo",
+              "description": "Swiping the months at the top of a budget’s details scrolls them instead of going back."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Server security",
+              "description": "Security update to the server environment."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Konten aus jedem Monat abgleichen",
+              "description": "In den Details eines vergangenen, laufenden oder kommenden Monats gleichst du deine Konten für diesen Monat ab, Übertrag inbegriffen."
+            },
+            {
+              "title": "Budgetliste nach Status",
+              "description": "Der laufende Monat steht zuoberst, danach die kommenden Monate; abgeschlossene Monate sind eingeklappt."
+            },
+            {
+              "title": "Der Filter «Abgehakt» zeigt alle abgehakten Bewegungen",
+              "description": "Abgehakte Bewegungen eines noch nicht abgehakten Planungseintrags erscheinen in einem eigenen Abschnitt."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Beträge mit 0 oder 2 Dezimalstellen",
+              "description": "Beträge erscheinen nicht mehr mit nur einer Dezimalstelle."
+            },
+            {
+              "title": "Antippen öffnet den Planungseintrag",
+              "description": "In den Budgetdetails öffnet das Antippen eines Planungseintrags mit Bewegungen diesen, statt ihn abzuhaken."
+            },
+            {
+              "title": "Monatsauswahl auf dem zugeklappten iPhone Duo",
+              "description": "Wischen über die Monate oben in den Budgetdetails blättert durch sie, statt zurückzugehen."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Serversicherheit",
+              "description": "Sicherheitsupdate der Serverumgebung."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Allinea i tuoi conti da ogni mese",
+              "description": "Dal dettaglio di un mese passato, in corso o futuro, allinei i conti su quel mese, riporto incluso."
+            },
+            {
+              "title": "Elenco dei budget per stato",
+              "description": "Il mese in corso appare per primo, poi i mesi futuri; i mesi chiusi sono compressi."
+            },
+            {
+              "title": "Il filtro «Spuntato» mostra tutti i movimenti spuntati",
+              "description": "I movimenti spuntati di una previsione ancora da spuntare appaiono in una sezione dedicata."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Importi con 0 o 2 decimali",
+              "description": "Gli importi non mostrano più un solo decimale."
+            },
+            {
+              "title": "Toccare una previsione la apre",
+              "description": "Nel dettaglio di un budget, toccare una previsione con movimenti la apre invece di spuntarla."
+            },
+            {
+              "title": "Selettore dei mesi su iPhone Duo chiuso",
+              "description": "Scorrere i mesi in cima al dettaglio di un budget li fa scorrere invece di tornare indietro."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Sicurezza del server",
+              "description": "Aggiornamento di sicurezza dell’ambiente server."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.57.0",
     "iosVersion": "1.12.0",
     "date": "2026-10-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.57.0",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -59,7 +224,11 @@
     "iosVersion": "1.11.0",
     "date": "2026-10-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.56.0",
-    "platforms": ["web", "ios", "android"],
+    "platforms": [
+      "web",
+      "ios",
+      "android"
+    ],
     "changes": {
       "features": [
         {
@@ -249,7 +418,9 @@
     "version": "0.54.1",
     "date": "2026-10-21",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.54.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -304,7 +475,11 @@
     "iosVersion": "1.10.0",
     "date": "2026-10-20",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.54.0",
-    "platforms": ["web", "ios", "android"],
+    "platforms": [
+      "web",
+      "ios",
+      "android"
+    ],
     "changes": {
       "features": [
         {
@@ -427,7 +602,10 @@
     "iosVersion": "1.9.0",
     "date": "2026-10-16",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.53.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -570,7 +748,10 @@
     "iosVersion": "1.8.0",
     "date": "2026-10-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.52.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -677,7 +858,10 @@
     "iosVersion": "1.7.0",
     "date": "2026-10-11",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.51.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -867,7 +1051,9 @@
     "version": "0.50.0",
     "date": "2026-09-09",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.50.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -958,7 +1144,11 @@
     "iosVersion": "1.6.0",
     "date": "2026-09-08",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.49.0",
-    "platforms": ["web", "ios", "android"],
+    "platforms": [
+      "web",
+      "ios",
+      "android"
+    ],
     "changes": {
       "features": [
         {
@@ -1065,7 +1255,10 @@
     "iosVersion": "1.5.0",
     "date": "2026-09-03",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.48.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1172,7 +1365,10 @@
     "iosVersion": "1.4.3",
     "date": "2026-08-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.47.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1315,7 +1511,10 @@
     "iosVersion": "1.4.2",
     "date": "2026-08-22",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.46.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1442,7 +1641,9 @@
     "iosVersion": "1.4.1",
     "date": "2026-08-18",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.45.1",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -1497,7 +1698,10 @@
     "iosVersion": "1.4.0",
     "date": "2026-08-18",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.45.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1652,7 +1856,10 @@
     "iosVersion": "1.3.2",
     "date": "2026-08-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.44.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1874,7 +2081,10 @@
     "version": "0.43.0",
     "date": "2026-08-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.43.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -1920,7 +2130,10 @@
     "iosVersion": "1.3.1",
     "date": "2026-07-30",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.42.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -1954,7 +2167,9 @@
     "version": "0.41.0",
     "date": "2026-07-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.41.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -1984,7 +2199,10 @@
     "iosVersion": "1.3.0",
     "date": "2026-07-28",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.40.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2026,7 +2244,10 @@
     "iosVersion": "1.2.2",
     "date": "2026-07-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.39.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2052,7 +2273,10 @@
     "iosVersion": "1.2.1",
     "date": "2026-07-26",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.3",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -2080,7 +2304,9 @@
     "version": "0.38.1",
     "date": "2026-07-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -2106,7 +2332,10 @@
     "iosVersion": "1.2.0",
     "date": "2026-07-24",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2180,7 +2409,9 @@
     "version": "0.37.1",
     "date": "2026-07-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -2197,7 +2428,10 @@
     "iosVersion": "1.1.0",
     "date": "2026-07-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2232,7 +2466,10 @@
     "iosVersion": "1.0.4",
     "date": "2026-06-19",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.36.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2283,7 +2520,10 @@
     "iosVersion": "1.0.3",
     "date": "2026-05-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.35.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2333,7 +2573,9 @@
     "version": "0.34.1",
     "date": "2026-05-06",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -2359,7 +2601,10 @@
     "iosVersion": "1.0.0",
     "date": "2026-05-05",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2461,7 +2706,9 @@
     "version": "0.33.1",
     "date": "2026-04-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -2487,7 +2734,9 @@
     "iosVersion": "1.0.0",
     "date": "2026-04-08",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.0",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2512,7 +2761,10 @@
     "version": "0.32.1",
     "date": "2026-04-03",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.1",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -2536,7 +2788,10 @@
     "version": "0.32.0",
     "date": "2026-04-02",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2586,7 +2841,9 @@
     "version": "0.31.2",
     "date": "2026-03-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.2",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -2614,7 +2871,9 @@
     "version": "0.31.1",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.1",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -2650,7 +2909,10 @@
     "version": "0.31.0",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2724,7 +2986,10 @@
     "version": "0.30.0",
     "date": "2026-03-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.30.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2798,7 +3063,10 @@
     "version": "0.29.0",
     "date": "2026-03-04",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.29.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2852,7 +3120,10 @@
     "version": "0.28.0",
     "date": "2026-02-28",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.28.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2893,7 +3164,10 @@
     "version": "0.27.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.27.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -2946,7 +3220,9 @@
     "version": "0.26.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.26.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -2984,7 +3260,9 @@
     "version": "0.25.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.25.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -3004,7 +3282,9 @@
     "version": "0.24.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.24.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -3029,7 +3309,9 @@
     "version": "0.23.1",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -3049,7 +3331,9 @@
     "version": "0.23.0",
     "date": "2026-02-20",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -3082,7 +3366,10 @@
     "version": "0.22.0",
     "date": "2026-02-15",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.22.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -3144,7 +3431,9 @@
     "version": "0.21.0",
     "date": "2026-02-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.21.0",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [
         {
@@ -3178,7 +3467,10 @@
     "version": "0.20.0",
     "date": "2026-02-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.20.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -3202,7 +3494,9 @@
     "version": "0.19.1",
     "date": "2026-02-11",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.1",
-    "platforms": ["web"],
+    "platforms": [
+      "web"
+    ],
     "changes": {
       "features": [],
       "fixes": [
@@ -3218,7 +3512,10 @@
     "version": "0.19.0",
     "date": "2026-02-10",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.0",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
@@ -3270,7 +3567,10 @@
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.18.0",
     "headline": "Premiere release officielle",
     "description": "Pulpe est une application de gestion budgetaire personnelle pour le marche suisse. Cette premiere release regroupe l'ensemble des fonctionnalites developpees depuis la creation du projet.",
-    "platforms": ["web", "ios"],
+    "platforms": [
+      "web",
+      "ios"
+    ],
     "changes": {
       "features": [
         {
