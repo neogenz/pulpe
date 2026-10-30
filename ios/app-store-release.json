@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.57.0",
-  "marketingVersion": "1.12.0",
-  "buildNumber": "5",
+  "productVersion": "0.58.0",
+  "marketingVersion": "1.13.0",
+  "buildNumber": "3",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "Pulpe s’adapte à l’iPhone Duo : ouvert, tes mois, objectifs et modèles s’affichent à côté de leur détail, et ta page reste ouverte quand tu plies ou déplies."
+    "frFR": "Nouveautés :\n- « Rapprocher mes comptes » est disponible dans chaque mois, passé ou à venir.\n- Dans ta liste de budgets, le mois en cours apparaît en premier.\n- Le filtre « Pointé » affiche tous tes mouvements pointés.\n\nCorrections :\n- Montants plus lisibles : jamais une seule décimale.\n- Toucher une prévision l’ouvre, sans la pointer par erreur.\n- Les mois défilent correctement sur l’iPhone Duo plié."
   },
-  "reviewNotes": "Sign in with the demo account. On iPhone Duo, unfold the device: the Budget, Goals and Templates tabs show the list beside the selected item; fold it again and the open item stays on screen."
+  "reviewNotes": "Sign in with the demo account. Budgets tab: the current month is listed first, closed months unfold with « Afficher ». Open a past or upcoming month, open its balance sheet and tap « Rapprocher mes comptes ». In a budget's details, choose the « Pointé » filter to see checked entries of unchecked forecasts in their own section."
 }
