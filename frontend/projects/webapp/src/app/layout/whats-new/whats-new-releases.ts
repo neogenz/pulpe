@@ -11,32 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.56.0',
+  version: '0.58.0',
   features: {
-    fr: [
-      'Supprimer un mois à venir',
-      'Avis détaillés',
-      'Assistant connecté',
-      'Mouvements rattachés',
-    ],
-    en: [
-      'Delete an upcoming month',
-      'Detailed feedback',
-      'Connected assistant',
-      'Linked entries',
-    ],
-    de: [
-      'Kommenden Monat löschen',
-      'Detailliertes Feedback',
-      'Verbundener Assistent',
-      'Verknüpfte Bewegungen',
-    ],
-    it: [
-      'Eliminare un mese futuro',
-      'Opinioni dettagliate',
-      'Assistente collegato',
-      'Movimenti collegati',
-    ],
+    fr: ['Rapprocher tes comptes sur chaque mois', 'Montants plus lisibles'],
+    en: ['Match your accounts in any month', 'Easier-to-read amounts'],
+    de: ['Konten in jedem Monat abgleichen', 'Besser lesbare Beträge'],
+    it: ['Allinea i conti in ogni mese', 'Importi più leggibili'],
   },
 };
 
