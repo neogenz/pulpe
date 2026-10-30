@@ -18,7 +18,7 @@ paths:
 
 `AuthGuard` validates the bearer token and stores the authenticated client in CLS.
 Repositories inject `AuthenticatedSupabaseProvider` and read `.client`; use cases do not receive
-or inject Supabase clients. `@SupabaseClient()` remains only in legacy controller paths.
+or inject Supabase clients. `@SupabaseClient()` remains only in legacy controller paths; never reproduce it in new code.
 
 The service-role client bypasses RLS. Keep it limited to explicit administrative infrastructure
 such as encryption-key management and account deletion; never use it for ordinary user data.
