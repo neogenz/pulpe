@@ -248,13 +248,23 @@ Rules for writing notes:
 - Build the GitHub Release exclusively from the approved French copy. Never append the other languages to it.
 - No emojis, no package names
 - Grouped by type (Nouveautés / Corrections / Technique), NOT by package
-- User-focused: describe what changed for the user, not technical details
+- User-focused: describe what changed for the user, not technical details (see "Writing for users" below)
 - Each entry: **bold short title** + em dash + one sentence description
 - Omit empty sections (if no corrections, skip "Corrections")
 - Footer with links to roadmap and issues
 - Release title is always `vX.Y.Z` — nothing else added
 - Keep an internal scope for every proposed feature/fix (`web`, `ios`, `android`, or a combination), derived from the actual diff and consumers. Do not publish these scope labels.
 - Never assume every note applies to every platform because the release-level `platforms` array contains both. Ask before approval when an item's scope is ambiguous.
+
+**Writing for users.** Readers use Pulpe without knowing its code, its tickets or how a feature works. Each item answers one question: what can I do now, or what no longer goes wrong for me? Before showing the proposal, reread every French item against these rules and rewrite the ones that fail; translate only the rewritten French.
+
+- Write French that a French speaker would actually say. Read it aloud. Reject calques and empty verbs: "Ajuste tes comptes" means nothing.
+- Describe exactly what the user sees. "Le mois en cours apparaît en premier" is true; "la liste s'ouvre sur le mois en cours" is not.
+- One idea per sentence, and never the same word twice in it. "Les mouvements pointés d'une prévision encore à pointer" forces a second read.
+- Show a change with an example rather than its rule: "1 960,50 au lieu de 1 960,5" beats "montants à 0 ou 2 décimales".
+- When a feature sits behind a button or a menu, quote its on-screen label (« Rapprocher mes comptes ») so the reader can find it.
+- Leave out internal vocabulary and conditions only the code cares about: statut, report, mixte, projection, "avec des mouvements".
+- Toast and dialog titles must make sense on their own, without the description.
 
 Then ask: "Approuves-tu cette proposition et son déploiement automatique jusqu'en production et, si applicable, sa soumission App Store ?" → "Oui, publier automatiquement" / "Non, ajuster" using the current agent's available user-input mechanism. This is the only routine approval in the release.
 
@@ -428,7 +438,7 @@ Only when Step 4 approved a new iOS marketing version, prepare `ios/app-store-re
 }
 ```
 
-The French notes must describe only iOS-visible changes and stay within 4000 characters. Review instructions explain how to exercise the changed paths using the already-configured demo account; never put credentials in this file. A build-only release or release without iOS must leave an older contract untouched: production ignores it unless `productVersion` equals the current release.
+The French notes must describe only iOS-visible changes and stay within 4000 characters. Write them as short dashed lists under "Nouveautés :" and "Corrections :", never as one dense paragraph, following the "Writing for users" rules. Review instructions explain how to exercise the changed paths using the already-configured demo account; never put credentials in this file. A build-only release or release without iOS must leave an older contract untouched: production ignores it unless `productVersion` equals the current release.
 
 ### Step 5e: Freeze the approved GitHub Release notes
 
