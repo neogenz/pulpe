@@ -49,8 +49,9 @@ Do not extend the doctrine. A **new** formula belongs server-side unless it must
 1. Edit the TypeScript calculator + its `*.spec.ts`.
 2. Edit the Swift twin + its suite in `ios/PulpeTests/Domain/Formulas/`, or `ios/PulpeTests/Features/CurrentMonth/AccountReconciliationTests.swift` for reconciliation.
 3. Give both suites the **same numeric fixture**, so a divergence shows up as a failing assertion and not as a reading exercise.
-4. Run both: `cd shared && pnpm test` and the iOS `PulpeTests` target.
-5. If the change alters the shape of a payload the server sends, update `ios/Pulpe/Domain/Models/SavingsGoalPlan.swift` too — it decodes what the timeline produces.
+4. Watch each new assertion fail once: break the line it covers on its side (flip an operator, drop a term), see it red, then restore. An assertion that stays green under the break proves nothing, however plausible it reads.
+5. Run both: `cd shared && pnpm test` and the iOS `PulpeTests` target.
+6. If the change alters the shape of a payload the server sends, update `ios/Pulpe/Domain/Models/SavingsGoalPlan.swift` too — it decodes what the timeline produces.
 
 ## Anti-patterns
 
