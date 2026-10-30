@@ -49,7 +49,8 @@ mat-mini-fab        <!-- → same component as matMiniFab -->
 ```
 
 Write new code with the `matButton` / `matIconButton` / `matFab` / `matMiniFab` form.
-Legacy usages already in the codebase are not broken and need no urgent migration.
+Legacy usages already in the codebase are not broken and need no urgent migration, but they are
+not a precedent: never copy a neighbouring `mat-button` into new code.
 
 ## Form Fields
 
