@@ -52,3 +52,21 @@ struct BudgetDetailsStickyPagerLayer: View {
         }
     }
 }
+
+/// iOS 27 minimizes the navigation bar on scroll where the screen is short (the closed iPhone
+/// Duo), but the minimized bar keeps claiming touches over the band it left: the sticky pager,
+/// pinned under that band, loses its taps and its horizontal drags turn into a back swipe.
+/// The pager is this page's chrome, so the bar stays whole here.
+struct KeepNavigationBarUnderStickyPager: ViewModifier {
+    func body(content: Content) -> some View {
+        #if compiler(>=6.4)
+        if #available(iOS 27.0, *) {
+            content.toolbarMinimizationBehavior(.never, for: .navigationBar)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
