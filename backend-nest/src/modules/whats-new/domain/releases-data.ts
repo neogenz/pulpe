@@ -54,6 +54,224 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.58.0',
+    iosVersion: '1.13.0',
+    date: '2026-10-30',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Compare avec ta banque, quel que soit le mois',
+          description:
+            '« Rapprocher mes comptes » est maintenant disponible dans chaque mois, passé ou à venir, et plus seulement dans le mois en cours.',
+        },
+        {
+          title: 'Le mois en cours en premier',
+          description:
+            'Dans ta liste de budgets, le mois en cours apparaît en premier, suivi des mois à venir ; les mois passés sont regroupés en bas.',
+        },
+        {
+          title: 'Le filtre « Pointé » n’oublie plus rien',
+          description:
+            'Il affiche maintenant tous tes mouvements pointés, même ceux d’une prévision que tu n’as pas encore pointée en entier.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Toucher une prévision l’ouvre',
+          description: 'Elle ne se pointe plus par erreur.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Match with your bank, whatever the month',
+            description:
+              '“Match my accounts” is now available in every month, past or upcoming, not just the current one.',
+          },
+          {
+            title: 'Current month first',
+            description:
+              'In your budget list, the current month appears first, followed by upcoming months; past months are grouped at the bottom.',
+          },
+          {
+            title: 'The “Checked” filter misses nothing',
+            description:
+              'It now shows all your checked entries, even those in a forecast you haven’t fully checked yet.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Tapping a forecast opens it',
+            description: 'It no longer gets checked by mistake.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Mit deiner Bank vergleichen, in jedem Monat',
+            description:
+              '«Konten abgleichen» ist jetzt in jedem Monat verfügbar, vergangen oder kommend, und nicht mehr nur im laufenden Monat.',
+          },
+          {
+            title: 'Der laufende Monat zuerst',
+            description:
+              'In deiner Budgetliste erscheint der laufende Monat zuerst, gefolgt von den kommenden Monaten; vergangene Monate sind unten gruppiert.',
+          },
+          {
+            title: 'Der Filter «Abgehakt» vergisst nichts mehr',
+            description:
+              'Er zeigt jetzt alle deine abgehakten Bewegungen, auch die eines Planungseintrags, den du noch nicht ganz abgehakt hast.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Antippen öffnet den Planungseintrag',
+            description: 'Er wird nicht mehr aus Versehen abgehakt.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Confronta con la tua banca, in ogni mese',
+            description:
+              '«Allinea i miei conti» è ora disponibile in ogni mese, passato o futuro, e non più solo nel mese in corso.',
+          },
+          {
+            title: 'Prima il mese in corso',
+            description:
+              'Nell’elenco dei budget, il mese in corso appare per primo, seguito dai mesi futuri; i mesi passati sono raggruppati in fondo.',
+          },
+          {
+            title: 'Il filtro «Spuntato» non dimentica più nulla',
+            description:
+              'Ora mostra tutti i movimenti spuntati, anche quelli di una previsione che non hai ancora spuntato del tutto.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Toccare una previsione la apre',
+            description: 'Non viene più spuntata per errore.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    version: '0.58.0',
+    date: '2026-10-30',
+    platforms: ['android'],
+    changes: {
+      features: [
+        {
+          title: 'Compare avec ta banque, quel que soit le mois',
+          description:
+            '« Rapprocher mes comptes » est maintenant disponible dans chaque mois, passé ou à venir, et plus seulement dans le mois en cours.',
+        },
+        {
+          title: 'Le mois en cours en premier',
+          description:
+            'Dans ta liste de budgets, le mois en cours apparaît en premier, suivi des mois à venir ; les mois passés sont regroupés en bas.',
+        },
+        {
+          title: 'Le filtre « Pointé » n’oublie plus rien',
+          description:
+            'Il affiche maintenant tous tes mouvements pointés, même ceux d’une prévision que tu n’as pas encore pointée en entier.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Montants plus lisibles',
+          description:
+            '1 960,50 au lieu de 1 960,5 : jamais une seule décimale.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Match with your bank, whatever the month',
+            description:
+              '“Match my accounts” is now available in every month, past or upcoming, not just the current one.',
+          },
+          {
+            title: 'Current month first',
+            description:
+              'In your budget list, the current month appears first, followed by upcoming months; past months are grouped at the bottom.',
+          },
+          {
+            title: 'The “Checked” filter misses nothing',
+            description:
+              'It now shows all your checked entries, even those in a forecast you haven’t fully checked yet.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Easier-to-read amounts',
+            description: '1,960.50 instead of 1,960.5: never a single decimal.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Mit deiner Bank vergleichen, in jedem Monat',
+            description:
+              '«Konten abgleichen» ist jetzt in jedem Monat verfügbar, vergangen oder kommend, und nicht mehr nur im laufenden Monat.',
+          },
+          {
+            title: 'Der laufende Monat zuerst',
+            description:
+              'In deiner Budgetliste erscheint der laufende Monat zuerst, gefolgt von den kommenden Monaten; vergangene Monate sind unten gruppiert.',
+          },
+          {
+            title: 'Der Filter «Abgehakt» vergisst nichts mehr',
+            description:
+              'Er zeigt jetzt alle deine abgehakten Bewegungen, auch die eines Planungseintrags, den du noch nicht ganz abgehakt hast.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Besser lesbare Beträge',
+            description: '1’960.50 statt 1’960.5: nie nur eine Dezimalstelle.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Confronta con la tua banca, in ogni mese',
+            description:
+              '«Allinea i miei conti» è ora disponibile in ogni mese, passato o futuro, e non più solo nel mese in corso.',
+          },
+          {
+            title: 'Prima il mese in corso',
+            description:
+              'Nell’elenco dei budget, il mese in corso appare per primo, seguito dai mesi futuri; i mesi passati sono raggruppati in fondo.',
+          },
+          {
+            title: 'Il filtro «Spuntato» non dimentica più nulla',
+            description:
+              'Ora mostra tutti i movimenti spuntati, anche quelli di una previsione che non hai ancora spuntato del tutto.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Importi più leggibili',
+            description: '1’960.50 invece di 1’960.5: mai un solo decimale.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.57.0',
     iosVersion: '1.12.0',
     date: '2026-10-25',
