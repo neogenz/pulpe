@@ -112,6 +112,7 @@ struct BudgetDetailsView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.content)
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(KeepNavigationBarUnderStickyPager())
         // Light ink on the forest: the hero under the bar, then the sticky pager once the content
         // zone has scrolled under it (no pager beside the months list). Default on error / skeleton.
         .heroNavigationBar(

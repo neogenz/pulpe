@@ -31,6 +31,7 @@ cd backend-nest && supabase start
 - **AFTER** DB schema change: `bun run generate-types:local` in backend
 - **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `ENCRYPTION_PORT` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
 - **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. Android is not a third side: it imports `shared/src/calculators/` directly. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)
+- **A written rule beats the code next to it.** When `.claude/rules/` or a doc contradicts an existing pattern, follow the rule and do not copy the precedent, even when the old pattern is the majority.
 - **ALWAYS** use `import * as z from 'zod'` for frontend/shared runtime schemas. Keep Zod errors in default English, never configure locales, and remeasure the Angular bundle after Zod or esbuild upgrades.
 
 ## Vocabulary
