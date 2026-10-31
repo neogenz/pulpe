@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
+import { ZodError } from 'zod';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -28,7 +29,7 @@ interface ErrorContext {
 
 interface ErrorData {
   readonly status: number;
-  readonly message: string | object;
+  readonly message: string;
   readonly error: string;
   readonly code: string;
   readonly originalError?: Error;
@@ -43,7 +44,7 @@ interface ErrorResponse {
   readonly timestamp: string;
   readonly path: string;
   readonly method: string;
-  readonly message: string | object;
+  readonly message: string;
   readonly error: string;
   readonly code: string;
   readonly context?: ErrorContext;
@@ -174,11 +175,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private handleZodValidation(exception: ZodValidationException): ErrorData {
+    // nestjs-zod types it `unknown` to stay zod-version agnostic.
+    const zodError = exception.getZodError();
     return {
       status: exception.getStatus(),
-      message: exception.getResponse(),
+      message: ERROR_DEFINITIONS.VALIDATION_ZOD_FAILED.message(),
       error: 'ZodValidationException',
       code: ERROR_DEFINITIONS.VALIDATION_ZOD_FAILED.code,
+      ...(zodError instanceof ZodError && {
+        details: { issues: zodError.issues },
+      }),
       originalError: exception,
       stack: this.getStackInDevelopment(exception),
     };
@@ -238,13 +244,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private handleHttpException(exception: HttpException): ErrorData {
-    const response = exception.getResponse();
-    const message = this.extractHttpMessage(response);
-
     return {
       status: exception.getStatus(),
-      message,
-      error: this.extractHttpError(response, exception),
+      message: exception.message,
+      error: this.extractHttpError(exception.getResponse(), exception),
       code: `HTTP_${exception.getStatus()}`,
       originalError: exception,
       stack: this.getStackInDevelopment(exception),
@@ -273,10 +276,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error: 'UnknownException',
       code: ERROR_DEFINITIONS.UNKNOWN_EXCEPTION.code,
     };
-  }
-
-  private extractHttpMessage(response: string | object): string | object {
-    return response;
   }
 
   private extractHttpError(
