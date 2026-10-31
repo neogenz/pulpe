@@ -4,6 +4,14 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database.types';
 import type { SupabaseClient } from '../../types/supabase-helpers';
 
+// Server-side clients hold no session; auto-refresh would start a 30 s interval
+// that is never cleared and keeps every per-request client in memory.
+const SERVER_AUTH_OPTIONS = {
+  persistSession: false,
+  autoRefreshToken: false,
+  detectSessionInUrl: false,
+};
+
 export type AuthenticatedSupabaseClient = SupabaseClient;
 
 @Injectable()
@@ -28,6 +36,7 @@ export class SupabaseService {
     this.#baseClient = createClient<Database>(
       this.#supabaseUrl,
       this.#supabaseAnonKey,
+      { auth: SERVER_AUTH_OPTIONS },
     );
   }
 
@@ -36,6 +45,7 @@ export class SupabaseService {
    */
   createAuthenticatedClient(accessToken: string): AuthenticatedSupabaseClient {
     return createClient<Database>(this.#supabaseUrl, this.#supabaseAnonKey, {
+      auth: SERVER_AUTH_OPTIONS,
       global: {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -59,6 +69,8 @@ export class SupabaseService {
       throw new Error('Service role key not configured');
     }
 
-    return createClient<Database>(this.#supabaseUrl, this.#supabaseServiceKey);
+    return createClient<Database>(this.#supabaseUrl, this.#supabaseServiceKey, {
+      auth: SERVER_AUTH_OPTIONS,
+    });
   }
 }
