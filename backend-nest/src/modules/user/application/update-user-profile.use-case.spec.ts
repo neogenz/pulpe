@@ -42,15 +42,27 @@ describe('UpdateUserProfileUseCase', () => {
 
     const result = await useCase.execute(
       { firstName: 'Jane', lastName: 'Doe' },
-      createMockAuthenticatedUser(),
+      createMockAuthenticatedUser({ id: 'authenticated-user' }),
     );
 
     expect(result).toEqual(expected);
-    expect(mockRepo.updateProfile).toHaveBeenCalledWith({
+    expect(mockRepo.updateProfile).toHaveBeenCalledWith('authenticated-user', {
       firstName: 'Jane',
       lastName: 'Doe',
     });
     expect(mockLogger.info).toHaveBeenCalled();
+  });
+
+  it('targets the authenticated user even when the input carries another id', async () => {
+    await useCase.execute(
+      { firstName: 'Jane', lastName: 'Doe', id: 'other-user' } as never,
+      createMockAuthenticatedUser({ id: 'authenticated-user' }),
+    );
+
+    expect(mockRepo.updateProfile).toHaveBeenCalledWith(
+      'authenticated-user',
+      expect.anything(),
+    );
   });
 
   it('throws BusinessException without calling the repository when invariants fail', async () => {

@@ -12,16 +12,21 @@ export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
  *
  * Each implementation owns the choice of Supabase client (authenticated vs
  * service-role) per method:
- * - profile reads/writes go through the authenticated (JWT-scoped) client;
+ * - reads go through the authenticated (JWT-scoped) client;
  * - locale reads/writes use the authenticated client and owner-only RLS;
- * - legacy budget-setting writes and deletion scheduling use service role.
+ * - profile and legacy budget-setting writes and deletion scheduling use
+ *   service role, keyed by the authenticated user's id.
  */
 export interface UserRepositoryPort {
   /**
    * Update the authenticated user's profile (firstName/lastName) in
-   * `auth.users.user_metadata`. Uses the JWT-scoped authenticated client.
+   * `auth.users.user_metadata`, leaving other metadata untouched. `userId`
+   * must come from the authenticated user. Uses the service-role admin client.
    */
-  updateProfile(input: UpdateUserProfileInput): Promise<UserProfile>;
+  updateProfile(
+    userId: string,
+    input: UpdateUserProfileInput,
+  ): Promise<UserProfile>;
 
   /**
    * Read the authenticated user's settings from their persisted sources.

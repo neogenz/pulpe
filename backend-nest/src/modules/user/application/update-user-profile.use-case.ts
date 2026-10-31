@@ -25,7 +25,7 @@ export class UpdateUserProfileUseCase {
     user: AuthenticatedUser,
   ): Promise<UserProfile> {
     UserInvariants.validateProfileUpdate(input);
-    const profile = await this.repo.updateProfile(input);
+    const profile = await this.repo.updateProfile(user.id, input);
     this.logger.info(
       { userId: user.id, operation: 'user.updateProfile' },
       'User profile updated',
