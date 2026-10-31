@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { API_ERROR_CODES } from "pulpe-shared";
 
 import { ApiClient, CLIENT_KEY_HEADER } from "./api-client";
 import { CLIENT_ERROR_CODES, isApiError } from "./api-error";
@@ -247,6 +248,31 @@ describe("ApiClient", () => {
 
     expect(failure).toBeInstanceOf(Error);
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("should word a request validation failure in French and keep its code", async () => {
+    const fetchFn = jest.fn().mockImplementation(
+      jsonResponse(
+        {
+          success: false,
+          error: "ZodValidationException",
+          message: "Request validation failed",
+          code: API_ERROR_CODES.ZOD_VALIDATION_FAILED,
+        },
+        400,
+      ),
+    );
+
+    const failure = await createClient(fetchFn)
+      .get("/budgets", budgetsSchema)
+      .catch((error: unknown) => error);
+
+    expect(isApiError(failure) && failure.code).toBe(
+      API_ERROR_CODES.ZOD_VALIDATION_FAILED,
+    );
+    expect(isApiError(failure) && failure.message).toContain(
+      "Vérifie ta saisie",
+    );
   });
 
   it("should report an unreachable server in French", async () => {

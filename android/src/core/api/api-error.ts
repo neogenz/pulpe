@@ -1,4 +1,4 @@
-import { errorResponseSchema } from "pulpe-shared";
+import { API_ERROR_CODES, errorResponseSchema } from "pulpe-shared";
 import { ZodError } from "zod";
 
 export const CLIENT_ERROR_CODES = {
@@ -27,6 +27,14 @@ const CLIENT_ERROR_MESSAGES_FR = {
   invalidResponse: "Réponse inattendue du serveur. Réessaie dans un instant.",
   unknown: "Une erreur est survenue. Réessaie dans un instant.",
 } as const;
+
+/** Codes whose server message is English plumbing, not copy written for the user. */
+const TECHNICAL_CODE_MESSAGES_FR: Partial<Record<string, string>> = {
+  [API_ERROR_CODES.ZOD_VALIDATION_FAILED]:
+    "Quelque chose ne colle pas. Vérifie ta saisie.",
+  // Nest's route-not-found answer ("Cannot GET …").
+  HTTP_404: CLIENT_ERROR_MESSAGES_FR.unknown,
+};
 
 export class ApiError extends Error {
   constructor(
@@ -75,9 +83,12 @@ export function apiErrorFromResponse(
 ): ApiError {
   const parsed = errorResponseSchema.safeParse(body);
   if (parsed.success) {
+    const { code } = parsed.data;
     return new ApiError(
-      parsed.data.message ?? parsed.data.error,
-      parsed.data.code,
+      (code && TECHNICAL_CODE_MESSAGES_FR[code]) ??
+        parsed.data.message ??
+        parsed.data.error,
+      code,
       status,
       parsed.data.details,
       requestId,

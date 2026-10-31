@@ -2,27 +2,18 @@ import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test';
 import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
-import { ZodError } from 'zod';
+import { ZodError, type core } from 'zod';
+import { errorResponseSchema } from 'pulpe-shared';
 import type { PinoLogger } from 'nestjs-pino';
 import { GlobalExceptionFilter } from './global-exception.filter';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
-// Helper to create a proper ZodValidationException
-const createZodValidationException = (response: any) => {
-  const zodError = new ZodError([
-    {
-      code: 'custom',
-      path: ['test'],
-      message: 'Test validation error',
-    },
-  ]);
-
-  const exception = new ZodValidationException(zodError);
-  exception.getResponse = () => response;
-
-  return exception;
-};
+const createZodValidationException = (
+  issues: core.$ZodIssue[] = [
+    { code: 'custom', path: ['test'], message: 'Test validation error' },
+  ],
+) => new ZodValidationException(new ZodError(issues));
 
 // Mock helpers
 const createMockRequest = (overrides: any = {}): Request => {
@@ -219,22 +210,20 @@ describe('GlobalExceptionFilter', () => {
   describe('Exception processing', () => {
     describe('ZodValidationException handling', () => {
       it('should process ZodValidationException with correct error structure', async () => {
-        const validationErrors = {
-          message: 'Validation failed',
-          errors: [
-            { path: ['email'], message: 'Invalid email format' },
-            { path: ['name'], message: 'Name is required' },
-          ],
-        };
-        const zodException = createZodValidationException(validationErrors);
+        const issues: core.$ZodIssue[] = [
+          { code: 'custom', path: ['email'], message: 'Invalid email format' },
+          { code: 'custom', path: ['name'], message: 'Name is required' },
+        ];
+        const zodException = createZodValidationException(issues);
 
         const result = (filter as any).processException(zodException);
 
         expect(result).toMatchObject({
           status: 400,
-          message: validationErrors,
+          message: 'Request validation failed',
           error: 'ZodValidationException',
           code: 'ERR_ZOD_VALIDATION_FAILED',
+          details: { issues },
           stack: undefined,
         });
         expect(result.originalError).toBeDefined();
@@ -242,8 +231,7 @@ describe('GlobalExceptionFilter', () => {
 
       it('should include stack trace in development for ZodValidationException', async () => {
         process.env.NODE_ENV = 'development';
-        const validationErrors = { message: 'Test validation' };
-        const zodException = createZodValidationException(validationErrors);
+        const zodException = createZodValidationException();
         zodException.stack = 'ZodValidationException stack trace';
 
         const result = (filter as any).processException(zodException);
@@ -252,22 +240,18 @@ describe('GlobalExceptionFilter', () => {
       });
 
       it('should keep validation details in the response but not the log message', async () => {
-        const validationErrors = {
-          message: 'Validation failed',
-          errors: [
-            {
-              code: 'too_small',
-              path: ['amount'],
-              message: 'Number must be greater than 0',
-            },
-            {
-              code: 'invalid_type',
-              path: ['name'],
-              message: 'Expected string, received number',
-            },
-          ],
-        };
-        const zodException = createZodValidationException(validationErrors);
+        const zodException = createZodValidationException([
+          {
+            code: 'custom',
+            path: ['amount'],
+            message: 'Number must be greater than 0',
+          },
+          {
+            code: 'custom',
+            path: ['name'],
+            message: 'Expected string, received number',
+          },
+        ]);
 
         const mockRequest = createMockRequest();
         const mockResponse = createMockResponse();
@@ -325,7 +309,7 @@ describe('GlobalExceptionFilter', () => {
 
         expect(result).toMatchObject({
           status: 400,
-          message: errorResponse,
+          message: 'Multiple validation errors',
           error: 'HttpException',
           code: 'HTTP_400',
           stack: undefined,
@@ -559,35 +543,6 @@ describe('GlobalExceptionFilter', () => {
         },
         stack: 'Error stack trace',
       });
-    });
-
-    it('should handle complex message objects', async () => {
-      const complexMessage = {
-        message: 'Multiple validation errors',
-        errors: [
-          { field: 'email', error: 'Invalid format' },
-          { field: 'password', error: 'Too short' },
-        ],
-        code: 'COMPLEX_VALIDATION',
-      };
-      const errorData = {
-        status: 422,
-        message: complexMessage,
-        error: 'ValidationException',
-        code: 'VALIDATION_COMPLEX',
-      };
-      const request = createMockRequest();
-      const context = { requestId: 'req-123' };
-
-      const result = (filter as any).buildErrorResponse(
-        errorData,
-        request,
-        context,
-      );
-
-      expect(result.message).toEqual(complexMessage);
-      expect(result.statusCode).toBe(422);
-      expect(result.code).toBe('VALIDATION_COMPLEX');
     });
 
     it('should exclude stack trace when not provided', async () => {
@@ -848,8 +803,7 @@ describe('GlobalExceptionFilter', () => {
     });
 
     it('should handle ZodValidationException logging gracefully', async () => {
-      const validationErrors = { message: 'Email validation failed' };
-      const zodException = createZodValidationException(validationErrors);
+      const zodException = createZodValidationException();
 
       const request = createMockRequest({
         method: 'PUT',
@@ -868,7 +822,7 @@ describe('GlobalExceptionFilter', () => {
       expect(responseData).toMatchObject({
         success: false,
         statusCode: 400,
-        message: validationErrors,
+        message: 'Request validation failed',
         code: 'ERR_ZOD_VALIDATION_FAILED',
       });
     });
@@ -947,11 +901,9 @@ describe('GlobalExceptionFilter', () => {
 
   describe('Full integration behavior', () => {
     it('should handle complete flow for ZodValidationException', async () => {
-      const validationErrors = {
-        message: 'Validation failed',
-        errors: [{ path: ['email'], message: 'Invalid email' }],
-      };
-      const zodException = createZodValidationException(validationErrors);
+      const zodException = createZodValidationException([
+        { code: 'custom', path: ['email'], message: 'Invalid email' },
+      ]);
       const request = createMockRequest();
       const response = createMockResponse();
       const host = createMockArgumentsHost(request, response);
@@ -964,10 +916,13 @@ describe('GlobalExceptionFilter', () => {
       expect(responseData).toMatchObject({
         success: false,
         statusCode: 400,
-        message: validationErrors,
+        message: 'Request validation failed',
         error: 'ZodValidationException',
         code: 'ERR_ZOD_VALIDATION_FAILED',
       });
+      // The clients parse this shared contract; a non-string message makes
+      // them drop the code.
+      expect(errorResponseSchema.safeParse(responseData).success).toBe(true);
       expect(responseData.context).toMatchObject({
         requestId: 'req-123-456',
         userId: 'user-abc-123',

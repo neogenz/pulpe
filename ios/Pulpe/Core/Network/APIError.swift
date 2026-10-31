@@ -208,6 +208,8 @@ enum APIError: LocalizedError {
         "weak_password": .weakPassword,
         "over_request_rate_limit": .rateLimited,
         "MAINTENANCE": .maintenance,
+        // Nest's route-not-found 404: its "Cannot GET …" message is plumbing, not copy.
+        "HTTP_404": .notFound,
         "ERR_ENCRYPTION_KEY_CHECK_FAILED": .clientKeyInvalid,
         "ERR_RECOVERY_KEY_INVALID": .recoveryKeyInvalid,
         "ERR_RECOVERY_KEY_NOT_CONFIGURED": .recoveryKeyNotConfigured,
@@ -243,6 +245,11 @@ enum APIError: LocalizedError {
                 return .serverError(message: message ?? code)
             }
             return .savingsGoalPlanConflict
+        }
+
+        // The backend message names the failure in English; the user needs to fix the input.
+        if code == "ERR_ZOD_VALIDATION_FAILED" {
+            return .validationError(details: [AppLocale.string("Quelque chose ne colle pas — vérifie ta saisie")])
         }
 
         if let error = codeMapping[code] {
