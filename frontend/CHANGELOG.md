@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 0.58.1
+
+### Patch Changes
+
+- pulpe-shared@0.58.1
+
 ## 0.58.0
 
 ### Minor Changes

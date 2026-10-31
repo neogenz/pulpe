@@ -1,5 +1,12 @@
 # backend-nest
 
+## 0.58.1
+
+### Patch Changes
+
+- Corrections serveur : enregistrement du prénom et du nom, mémoire du serveur.
+  - pulpe-shared@0.58.1
+
 ## 0.58.0
 
 ### Patch Changes
