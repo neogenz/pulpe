@@ -47,23 +47,30 @@ export class SupabaseUserRepository implements UserRepositoryPort {
   ) {}
 
   /**
-   * Profile updates use the JWT-scoped client because the user is mutating
-   * their own metadata via `supabase.auth.updateUser()`.
+   * Service-role admin write: the JWT-scoped client carries the token only as a
+   * header, with no SDK session, so `auth.updateUser()` fails before any
+   * request. GoTrue merges `user_metadata` keys, so other keys are preserved.
    */
-  async updateProfile(input: UpdateUserProfileInput): Promise<UserProfile> {
-    const supabase = this.authenticatedProvider.client;
-    const { data, error } = await supabase.auth.updateUser({
-      data: {
-        firstName: input.firstName,
-        lastName: input.lastName,
+  async updateProfile(
+    userId: string,
+    input: UpdateUserProfileInput,
+  ): Promise<UserProfile> {
+    const serviceClient = this.supabaseService.getServiceRoleClient();
+    const { data, error } = await serviceClient.auth.admin.updateUserById(
+      userId,
+      {
+        user_metadata: {
+          firstName: input.firstName,
+          lastName: input.lastName,
+        },
       },
-    });
+    );
 
     if (error || !data.user) {
       throw new BusinessException(
         ERROR_DEFINITIONS.USER_PROFILE_UPDATE_FAILED,
         undefined,
-        { operation: 'user.updateProfile' },
+        { operation: 'user.updateProfile', userId },
         { cause: error },
       );
     }

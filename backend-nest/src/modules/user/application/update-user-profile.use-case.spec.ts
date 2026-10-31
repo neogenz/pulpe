@@ -42,11 +42,11 @@ describe('UpdateUserProfileUseCase', () => {
 
     const result = await useCase.execute(
       { firstName: 'Jane', lastName: 'Doe' },
-      createMockAuthenticatedUser(),
+      createMockAuthenticatedUser({ id: 'authenticated-user' }),
     );
 
     expect(result).toEqual(expected);
-    expect(mockRepo.updateProfile).toHaveBeenCalledWith({
+    expect(mockRepo.updateProfile).toHaveBeenCalledWith('authenticated-user', {
       firstName: 'Jane',
       lastName: 'Doe',
     });

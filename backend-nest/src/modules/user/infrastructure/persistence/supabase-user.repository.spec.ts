@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import { SupabaseService } from '@modules/supabase/supabase.service';
@@ -168,46 +168,97 @@ describe('SupabaseUserRepository', () => {
   });
 
   describe('updateProfile', () => {
-    it('returns the updated profile when supabase succeeds', async () => {
-      const client = buildAuthenticatedClient({});
-      Object.defineProperty(authenticatedProvider, 'client', {
-        get: () => client,
-      });
+    // Real SDK clients built by the real SupabaseService; only the network is
+    // stubbed. A mocked `auth.updateUser()` hid that the JWT-header client has
+    // no SDK session and fails before any request.
+    const USER_ID = '11111111-1111-4111-8111-111111111111';
+    const realFetch = globalThis.fetch;
+    let requests: { method: string; url: string; body: unknown }[];
+    let adminResponse: () => Response;
 
-      const result = await repo.updateProfile({
+    beforeEach(() => {
+      requests = [];
+      adminResponse = () =>
+        Response.json({
+          id: USER_ID,
+          email: 'jane@example.com',
+          app_metadata: { provider: 'email' },
+          user_metadata: {
+            firstName: 'Jane',
+            lastName: 'Doe',
+            currency: 'EUR',
+          },
+        });
+      globalThis.fetch = (async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ) => {
+        requests.push({
+          method: init?.method ?? 'GET',
+          url: String(input),
+          body: init?.body ? JSON.parse(String(init.body)) : undefined,
+        });
+        return adminResponse();
+      }) as typeof fetch;
+
+      const realService = new SupabaseService({
+        get: (key: string) =>
+          ({
+            SUPABASE_URL: 'http://supabase.test',
+            SUPABASE_ANON_KEY: 'anon-key',
+            SUPABASE_SERVICE_ROLE_KEY: 'service-key',
+          })[key],
+      } as never);
+      const jwtClient = realService.createAuthenticatedClient('user-jwt');
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => jwtClient,
+      });
+      supabaseService.getServiceRoleClient = () =>
+        realService.getServiceRoleClient();
+    });
+
+    afterEach(() => {
+      globalThis.fetch = realFetch;
+    });
+
+    it('updates the authenticated user without an SDK session or refresh token', async () => {
+      const result = await repo.updateProfile(USER_ID, {
         firstName: 'Jane',
         lastName: 'Doe',
       });
 
       expect(result).toEqual({
-        id: 'user-1',
-        email: 'test@example.com',
+        id: USER_ID,
+        email: 'jane@example.com',
         firstName: 'Jane',
         lastName: 'Doe',
       });
-      expect(client.auth.updateUser).toHaveBeenCalledWith({
-        data: { firstName: 'Jane', lastName: 'Doe' },
-      });
+      expect(requests).toEqual([
+        {
+          method: 'PUT',
+          url: `http://supabase.test/auth/v1/admin/users/${USER_ID}`,
+          body: { user_metadata: { firstName: 'Jane', lastName: 'Doe' } },
+        },
+      ]);
     });
 
-    it('throws BusinessException when supabase returns an error', async () => {
-      const client = {
-        auth: {
-          updateUser: mock(() =>
-            Promise.resolve({
-              data: { user: null },
-              error: new Error('boom'),
-            }),
-          ),
-        },
-      };
-      Object.defineProperty(authenticatedProvider, 'client', {
-        get: () => client,
-      });
+    it('keeps the Supabase error as cause when the write fails', async () => {
+      adminResponse = () =>
+        Response.json(
+          { code: 500, error_code: 'unexpected_failure', msg: 'db down' },
+          { status: 500 },
+        );
 
-      await expect(
-        repo.updateProfile({ firstName: 'Jane', lastName: 'Doe' }),
-      ).rejects.toBeInstanceOf(BusinessException);
+      const error = await repo
+        .updateProfile(USER_ID, { firstName: 'Jane', lastName: 'Doe' })
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(BusinessException);
+      expect((error as BusinessException).cause).toMatchObject({
+        name: 'AuthApiError',
+        status: 500,
+        message: 'db down',
+      });
     });
   });
 
