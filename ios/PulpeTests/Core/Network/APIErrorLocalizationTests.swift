@@ -24,6 +24,24 @@ struct APIErrorLocalizationTests {
         #expect(APIError.conflict(message: fromServer).message(in: german) == fromServer)
     }
 
+    /// These two codes carry an English technical message; showing it would leak plumbing.
+    @Test func from_technicalBackendCodes_mapToLocalizedCases() {
+        guard case .validationError(let details) = APIError.from(
+            code: "ERR_ZOD_VALIDATION_FAILED",
+            message: "Request validation failed",
+            statusCode: 400
+        ) else {
+            Issue.record("Expected a validation error")
+            return
+        }
+        #expect(details == [AppLocale.string("Quelque chose ne colle pas — vérifie ta saisie")])
+
+        guard case .notFound = APIError.from(code: "HTTP_404", message: "Cannot GET /v1/old", statusCode: 404) else {
+            Issue.record("Expected not found")
+            return
+        }
+    }
+
     @Test func message_interpolatedCase_keepsItsArgument() {
         #expect(APIError.unknown(statusCode: 503).message(in: german) == "Etwas hat nicht geklappt (Code: 503)")
     }
