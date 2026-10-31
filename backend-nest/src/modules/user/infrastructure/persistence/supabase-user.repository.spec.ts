@@ -25,27 +25,6 @@ function buildAuthenticatedClient(
     upsertError?: Error;
   } = {},
 ) {
-  const updateUser = mock(
-    (payload: {
-      data: MockUserMetadata;
-    }): Promise<{
-      data: {
-        user: { id: string; email: string; user_metadata: MockUserMetadata };
-      };
-      error: null;
-    }> =>
-      Promise.resolve({
-        data: {
-          user: {
-            id: userOverrides.id ?? 'user-1',
-            email: userOverrides.email ?? 'test@example.com',
-            user_metadata: { ...metadata, ...payload.data },
-          },
-        },
-        error: null,
-      }),
-  );
-
   let upsertedLocale: string | undefined;
   const localeQuery = {
     select: mock(() => localeQuery),
@@ -86,7 +65,6 @@ function buildAuthenticatedClient(
           error: null,
         }),
       ),
-      updateUser,
     },
     from: mock(() => localeQuery),
     localeQuery,
@@ -173,7 +151,12 @@ describe('SupabaseUserRepository', () => {
     // no SDK session and fails before any request.
     const USER_ID = '11111111-1111-4111-8111-111111111111';
     const realFetch = globalThis.fetch;
-    let requests: { method: string; url: string; body: unknown }[];
+    let requests: {
+      method: string;
+      url: string;
+      authorization: string | null;
+      body: unknown;
+    }[];
     let adminResponse: () => Response;
 
     beforeEach(() => {
@@ -196,6 +179,7 @@ describe('SupabaseUserRepository', () => {
         requests.push({
           method: init?.method ?? 'GET',
           url: String(input),
+          authorization: new Headers(init?.headers).get('Authorization'),
           body: init?.body ? JSON.parse(String(init.body)) : undefined,
         });
         return adminResponse();
@@ -237,6 +221,7 @@ describe('SupabaseUserRepository', () => {
         {
           method: 'PUT',
           url: `http://supabase.test/auth/v1/admin/users/${USER_ID}`,
+          authorization: 'Bearer service-key',
           body: { user_metadata: { firstName: 'Jane', lastName: 'Doe' } },
         },
       ]);
