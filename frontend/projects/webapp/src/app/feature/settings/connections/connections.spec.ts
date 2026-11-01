@@ -71,6 +71,11 @@ describe('Connections', () => {
   const query = (testId: string): HTMLElement | null =>
     fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
 
+  async function pickClient(id: 'chatgpt' | 'claude'): Promise<void> {
+    query(`setup-client-${id}`)!.querySelector('button')!.click();
+    await fixture.whenStable();
+  }
+
   it('shows an explicit empty state, not an empty list', async () => {
     await setup([]);
     expect(query('connections-empty')).not.toBeNull();
@@ -87,10 +92,23 @@ describe('Connections', () => {
       expect(query('connect-chatgpt')?.getAttribute('href')).toBe(
         'https://chatgpt.com/plugins',
       );
-      expect(query('connect-claude')?.getAttribute('rel')).toBe(
-        'noopener noreferrer',
-      );
     }
+    await pickClient('claude');
+    expect(query('connect-chatgpt')).toBeNull();
+    expect(query('connect-claude')?.getAttribute('rel')).toBe(
+      'noopener noreferrer',
+    );
+  });
+
+  it('should show the guide open until an assistant is connected, then fold it', async () => {
+    await setup([]);
+    expect(query('setup-fold')).toBeNull();
+    expect(query('connect-chatgpt')).not.toBeNull();
+    store.connections.set([chatgpt]);
+    await fixture.whenStable();
+    const fold = query('setup-fold') as HTMLDetailsElement;
+    expect(fold.open).toBe(false);
+    expect(fold.textContent).toContain('Brancher un autre assistant');
   });
 
   it('prefills only the public name and the current environment MCP endpoint', async () => {
@@ -101,7 +119,9 @@ describe('Connections', () => {
       'https://api.preview.example',
     ]) {
       config.backendApiUrl.set(origin + '/api/v1');
-      await fixture.whenStable();
+      await pickClient('chatgpt');
+      expect(query('mcp-address')?.textContent?.trim()).toBe(origin + '/mcp');
+      await pickClient('claude');
       const url = new URL(query('connect-claude')!.getAttribute('href')!);
       expect(url.origin + url.pathname).toBe(
         'https://claude.ai/customize/connectors',
@@ -111,7 +131,6 @@ describe('Connections', () => {
         connectorName: 'Pulpe',
         connectorUrl: origin + '/mcp',
       });
-      expect(query('mcp-address')?.textContent?.trim()).toBe(origin + '/mcp');
     }
   });
 
