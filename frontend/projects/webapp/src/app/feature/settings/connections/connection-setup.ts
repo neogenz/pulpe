@@ -33,7 +33,7 @@ type ClientId = 'chatgpt' | 'claude';
       class="border-t border-outline-variant pt-8"
       data-testid="connection-setup"
     >
-      @if (folded()) {
+      @if (isFolded()) {
         <details class="group" data-testid="setup-fold">
           <summary
             class="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -64,7 +64,7 @@ type ClientId = 'chatgpt' | 'claude';
         </p>
         <mat-button-toggle-group
           [value]="client()"
-          (change)="client.set($event.value)"
+          (change)="client.set($event.value); copySucceeded.set(null)"
           hideSingleSelectionIndicator
           [attr.aria-label]="
             'settings.connections.setup.clientLabel' | transloco
@@ -185,7 +185,7 @@ type ClientId = 'chatgpt' | 'claude';
 export class ConnectionSetup {
   readonly #config = inject(ApplicationConfiguration);
   /** Once an assistant is connected, the guide steps aside behind a disclosure. */
-  readonly folded = input(false);
+  readonly isFolded = input(false);
   protected readonly mcpUrl = computed(
     () => new URL('/mcp', this.#config.backendApiUrl()).href,
   );
@@ -204,6 +204,7 @@ export class ConnectionSetup {
     },
   ]);
   protected readonly current = computed(
-    () => this.clients().find((c) => c.id === this.client())!,
+    () =>
+      this.clients().find((c) => c.id === this.client()) ?? this.clients()[0],
   );
 }

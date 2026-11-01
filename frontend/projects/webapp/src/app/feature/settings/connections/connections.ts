@@ -96,7 +96,7 @@ import { ConnectionSetup } from './connection-setup';
         }
       }
 
-      <pulpe-connection-setup [folded]="store.connections().length > 0" />
+      <pulpe-connection-setup [isFolded]="store.connections().length > 0" />
     </div>
   `,
   styles: `

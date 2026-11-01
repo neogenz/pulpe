@@ -143,6 +143,9 @@ describe('Connections', () => {
     await fixture.whenStable();
     expect(copy).toHaveBeenCalledWith('https://api.pulpe.app/mcp');
     expect(query('mcp-copy-status')?.textContent).toContain('Adresse copiée.');
+    await pickClient('claude');
+    await pickClient('chatgpt');
+    expect(query('mcp-copy-status')?.textContent?.trim()).toBe('');
     copy.mockReturnValue(false);
     query('copy-mcp-address')!.click();
     await fixture.whenStable();
