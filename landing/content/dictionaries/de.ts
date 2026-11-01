@@ -523,14 +523,14 @@ const de: Dictionary = {
     connectHeading: "Pulpe anschliessen, ein einziges Mal.",
     addressLabel: "Die Adresse zum Einfügen, überall dieselbe",
     availabilityNote:
-      "Claude unterstützt entfernte Verbindungen im Web, auf dem Computer und auf dem Handy. Beginne die Einrichtung für ChatGPT im Web, falls der Entwicklermodus für dein Konto verfügbar ist. Die Möglichkeiten hängen vom Assistenten, deinem Konto und der verwendeten App ab. Pulpe ist noch nicht in ihren Verzeichnissen veröffentlicht.",
+      "Claude unterstützt entfernte Verbindungen im Web, auf dem Computer und auf dem Handy. ChatGPT richtest du im Web ein. Die Möglichkeiten hängen vom Assistenten, deinem Konto und der verwendeten App ab. Pulpe ist noch nicht in ihren Verzeichnissen veröffentlicht.",
     clients: [
       {
         name: "ChatGPT",
         steps: [
-          "Öffne in ChatGPT im Web Einstellungen > Sicherheit und Anmeldung und aktiviere den Entwicklermodus, falls verfügbar.",
-          "Verwende unter Plugins die Schaltfläche + und füge die Adresse von oben ein.",
-          "Erlaube den Zugriff in Pulpe und wähle den Connector im Gespräch.",
+          "Öffne in ChatGPT im Web Plugins, klicke auf Hinzufügen und füge einen eigenen MCP-Server hinzu.",
+          "Nenne ihn Pulpe, füge die Adresse von oben ein, lass OAuth eingestellt und erstelle das Plugin.",
+          "Klicke auf Pulpe verbinden, erlaube den Zugriff in Pulpe und wähle Pulpe im Gespräch.",
         ],
       },
       {

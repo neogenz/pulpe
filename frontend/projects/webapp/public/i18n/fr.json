@@ -470,9 +470,9 @@
       "setup": {
         "title": "Brancher un assistant",
         "sharing": "Les données de ton budget consultées par l’assistant lui sont envoyées. Tu choisis ses autorisations dans Pulpe avant tout partage.",
-        "chatgptStep1": "Sur le site ChatGPT, ouvre Paramètres → Sécurité et connexion et active le mode développeur, si ton compte le permet.",
-        "chatgptStep2": "Ouvre les plugins avec le bouton ci-dessous, puis clique sur +. Nomme la connexion Pulpe et colle l’adresse ci-dessous.",
-        "chatgptStep3": "Choisis OAuth si demandé, sans renseigner d’identifiant ni de secret client, puis crée la connexion.",
+        "chatgptStep1": "Ouvre les plugins ChatGPT sur le web avec le bouton ci-dessous, clique sur Ajouter, puis ajoute un serveur MCP personnalisé.",
+        "chatgptStep2": "Nomme-le Pulpe et colle l’adresse ci-dessous comme URL du serveur. Laisse OAuth : ChatGPT trouve seul les réglages.",
+        "chatgptStep3": "Accepte l’avertissement, crée le plugin, puis clique sur Connecter Pulpe.",
         "claudeStep1": "Ouvre Claude avec le bouton ci-dessous : le nom Pulpe et l’adresse sont déjà remplis.",
         "claudeStep2": "Confirme l’ajout du connecteur personnalisé. Laisse les paramètres avancés vides.",
         "claudeStep3": "Clique sur Connecter pour choisir les autorisations dans Pulpe.",

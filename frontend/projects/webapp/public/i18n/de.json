@@ -470,9 +470,9 @@
       "setup": {
         "title": "Einen Assistenten verbinden",
         "sharing": "Budgetdaten, die der Assistent abruft, werden an ihn gesendet. Du legst die Berechtigungen in Pulpe fest, bevor Daten geteilt werden.",
-        "chatgptStep1": "Öffne auf der ChatGPT-Website Einstellungen → Sicherheit und Anmeldung und aktiviere den Entwicklermodus, falls dein Konto dies erlaubt.",
-        "chatgptStep2": "Öffne die Plugins über die Schaltfläche unten und klicke auf +. Nenne die Verbindung Pulpe und füge die Adresse unten ein.",
-        "chatgptStep3": "Wähle bei Nachfrage OAuth, lasse Client-ID und Client-Secret leer und erstelle die Verbindung.",
+        "chatgptStep1": "Öffne die ChatGPT-Plugins im Web über die Schaltfläche unten, klicke auf Hinzufügen und füge einen eigenen MCP-Server hinzu.",
+        "chatgptStep2": "Nenne ihn Pulpe und füge die Adresse unten als Server-URL ein. Lass OAuth eingestellt: ChatGPT findet die Einstellungen selbst.",
+        "chatgptStep3": "Bestätige die Warnung, erstelle das Plugin und klicke auf Pulpe verbinden.",
         "claudeStep1": "Öffne Claude über die Schaltfläche unten: Name und Adresse von Pulpe sind bereits ausgefüllt.",
         "claudeStep2": "Bestätige das Hinzufügen des benutzerdefinierten Connectors. Lasse die erweiterten Einstellungen leer.",
         "claudeStep3": "Klicke auf Verbinden, um die Berechtigungen in Pulpe festzulegen.",

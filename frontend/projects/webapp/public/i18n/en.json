@@ -470,9 +470,9 @@
       "setup": {
         "title": "Connect an assistant",
         "sharing": "Budget data accessed by the assistant is sent to it. You choose its permissions in Pulpe before any sharing.",
-        "chatgptStep1": "On the ChatGPT website, open Settings → Security and login and enable Developer mode, if your account allows it.",
-        "chatgptStep2": "Open plugins using the button below, then click +. Name the connection Pulpe and paste the address below.",
-        "chatgptStep3": "Choose OAuth if prompted, leaving the client ID and secret empty, then create the connection.",
+        "chatgptStep1": "Open ChatGPT plugins on the web with the button below, click Add, then add a custom MCP server.",
+        "chatgptStep2": "Name it Pulpe and paste the address below as the server URL. Keep OAuth: ChatGPT finds the settings on its own.",
+        "chatgptStep3": "Accept the warning, create the plugin, then click Connect Pulpe.",
         "claudeStep1": "Open Claude using the button below: the Pulpe name and address are already filled in.",
         "claudeStep2": "Confirm adding the custom connector. Leave advanced settings empty.",
         "claudeStep3": "Click Connect to choose permissions in Pulpe.",
