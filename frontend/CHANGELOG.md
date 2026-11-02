@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.59.0
+
+### Minor Changes
+
+- Guide de connexion ChatGPT à jour et branchement des assistants étape par étape.
+
+### Patch Changes
+
+- pulpe-shared@0.59.0
+
 ## 0.58.1
 
 ### Patch Changes

@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.58.0",
-  "marketingVersion": "1.13.0",
-  "buildNumber": "3",
+  "productVersion": "0.59.0",
+  "marketingVersion": "1.13.1",
+  "buildNumber": "1",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "Nouveautés :\n- « Rapprocher mes comptes » est disponible dans chaque mois, passé ou à venir.\n- Dans ta liste de budgets, le mois en cours apparaît en premier.\n- Le filtre « Pointé » affiche tous tes mouvements pointés.\n\nCorrections :\n- Toucher une prévision l’ouvre, sans la pointer par erreur.\n- Les mois défilent correctement sur l’iPhone Duo plié."
+    "frFR": "Corrections :\n- Si le serveur refuse une saisie, l’erreur s’affiche dans la langue de l’app."
   },
-  "reviewNotes": "Sign in with the demo account. Budgets tab: the current month is listed first, closed months unfold with « Afficher ». Open a past or upcoming month, open its balance sheet and tap « Rapprocher mes comptes ». In a budget's details, choose the « Pointé » filter to see checked entries of unchecked forecasts in their own section."
+  "reviewNotes": "This update only changes error wording: when the server rejects invalid input or an unknown route, the app shows a localized message instead of the raw server text. There are no new screens. Sign in with the configured demo account; all budget flows work as before."
 }

@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.58.1",
-  "githubReleaseNotes": "## v0.58.1\n\n### Technique\n\n- **Modification du prénom et du nom** — Le serveur enregistre de nouveau le prénom et le nom sans erreur.\n- **Stabilité du serveur** — La mémoire du serveur ne grossit plus au fil des jours.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.59.0",
+  "githubReleaseNotes": "## v0.59.0\n\n### Nouveautés\n\n- **Guide de connexion à ChatGPT et Claude repensé** — Dans Paramètres › Connexions, suis les étapes numérotées pour laisser ChatGPT ou Claude t’aider avec ton budget. Pulpe n’utilise aucune IA par défaut : rien ne se passe sans ton accord.\n\n### Technique\n\n- **Erreurs dans ta langue** — Si le serveur refuse une saisie, iOS et Android affichent l’erreur dans la langue de l’app.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }

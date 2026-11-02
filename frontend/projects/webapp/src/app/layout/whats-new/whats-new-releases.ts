@@ -11,12 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.58.0',
+  version: '0.59.0',
   features: {
-    fr: ['Rapprocher tes comptes sur chaque mois', 'Montants plus lisibles'],
-    en: ['Match your accounts in any month', 'Easier-to-read amounts'],
-    de: ['Konten in jedem Monat abgleichen', 'Besser lesbare Beträge'],
-    it: ['Allinea i conti in ogni mese', 'Importi più leggibili'],
+    fr: ['Guide de connexion ChatGPT et Claude repensé'],
+    en: ['Improved ChatGPT and Claude connection guide'],
+    de: ['Überarbeitete Anleitung für ChatGPT und Claude'],
+    it: ['Guida di collegamento ChatGPT e Claude migliorata'],
   },
 };
 
