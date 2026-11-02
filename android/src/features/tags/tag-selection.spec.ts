@@ -4,6 +4,7 @@ import {
   canCreateTag,
   findTagByName,
   tagNameIssue,
+  tagsMatching,
   tagsSelectedFirst,
   tagSummary,
   toggledTagIds,
@@ -48,6 +49,27 @@ describe("toggledTagIds", () => {
     expect(toggledTagIds("tag-0", full)).toHaveLength(
       MAX_TAGS_PER_TRANSACTION - 1,
     );
+  });
+});
+
+describe("tagsMatching", () => {
+  const tags = [...TAGS, tag("tag-3", "École")];
+
+  it("keeps every tag while nothing is typed", () => {
+    expect(tagsMatching("  ", tags)).toEqual(tags);
+  });
+
+  it("keeps the tags containing the query, case and accents aside", () => {
+    expect(tagsMatching("OUR", tags).map((found) => found.id)).toEqual([
+      "tag-1",
+    ]);
+    expect(tagsMatching("eco", tags).map((found) => found.id)).toEqual([
+      "tag-3",
+    ]);
+  });
+
+  it("finds nothing for a name no tag contains", () => {
+    expect(tagsMatching("Vacances", tags)).toEqual([]);
   });
 });
 

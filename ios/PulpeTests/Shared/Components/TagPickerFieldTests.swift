@@ -23,6 +23,17 @@ struct TagPickerFieldTests {
         #expect(TagPickerField.hasValidLength(String(repeating: "a", count: 31)) == false)
     }
 
+    @Test("Typing narrows the list, case and accents aside, and an empty query keeps everything")
+    func matching() {
+        let tags = ["Courses", "Loisirs", "École"].map {
+            Tag(id: $0, userId: "user-1", name: $0, createdAt: .distantPast, updatedAt: .distantPast)
+        }
+        #expect(TagPickerField.matching("  ", in: tags).map(\.id) == ["Courses", "Loisirs", "École"])
+        #expect(TagPickerField.matching("OUR", in: tags).map(\.id) == ["Courses"])
+        #expect(TagPickerField.matching("eco", in: tags).map(\.id) == ["École"])
+        #expect(TagPickerField.matching("Vacances", in: tags).isEmpty)
+    }
+
     @Test("Selection is unique and capped at ten tags")
     func selectionLimit() {
         let tenTags = Set((0..<AppConfiguration.maxTagsPerTransaction).map { "tag-\($0)" })

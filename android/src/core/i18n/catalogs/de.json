@@ -1169,7 +1169,7 @@
       "add": "Hinzufügen",
       "available": "Verfügbare Tags",
       "createError": "Der Tag konnte nicht erstellt werden. Versuche es erneut.",
-      "createSelect": "Diesen Tag erstellen und auswählen",
+      "createNamed": "„%{name}“ erstellen",
       "delete": "Löschen",
       "deleteA11y": "%{name} löschen",
       "deleteDescription": "„%{name}“ wird von den Planungen und Vorgängen entfernt, die ihn verwenden. Diese bleiben bestehen.",
@@ -1179,17 +1179,16 @@
       "empty": "Noch keine Tags.",
       "loadError": "Deine Tags konnten nicht geladen werden.",
       "name": "Name",
-      "new": "Neu",
       "newTag": "Neuer Tag",
       "pickerTitle": "Tags",
       "rename": "Umbenennen",
       "renameA11y": "%{name} umbenennen",
       "renameError": "Der Tag konnte nicht umbenannt werden. Versuche es erneut.",
       "renameTitle": "Tag umbenennen",
+      "searchOrCreate": "Tag suchen oder erstellen",
       "selectionCount": "%{count} von %{total}",
       "title": "Meine Tags",
       "validation": {
-        "duplicate": "Dieser Tag existiert bereits",
         "selectionLimit": "Maximal %{count} Tags",
         "tooLong": "Maximal %{count} Zeichen"
       }
