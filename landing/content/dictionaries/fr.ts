@@ -547,14 +547,14 @@ const fr = {
     connectHeading: "Brancher Pulpe, une seule fois.",
     addressLabel: "L’adresse à coller, la même partout",
     availabilityNote:
-      "Claude propose les connexions distantes sur le web, sur ordinateur et sur mobile. Pour ChatGPT, commence la configuration sur le web si le mode développeur est disponible pour ton compte. Les possibilités varient selon l’assistant, ton compte et l’application utilisée. Pulpe n’est pas encore publié dans leurs catalogues.",
+      "Claude propose les connexions distantes sur le web, sur ordinateur et sur mobile. Pour ChatGPT, l’ajout se fait sur le web. Les possibilités varient selon l’assistant, ton compte et l’application utilisée. Pulpe n’est pas encore publié dans leurs catalogues.",
     clients: [
       {
         name: "ChatGPT",
         steps: [
-          "Sur ChatGPT web, ouvre Paramètres > Sécurité et connexion, puis active le mode développeur s’il est disponible.",
-          "Dans Plugins, utilise le bouton + et colle l’adresse ci-dessus.",
-          "Autorise l’accès dans Pulpe, puis sélectionne le connecteur dans ta conversation.",
+          "Sur ChatGPT web, ouvre Plugins, clique sur Ajouter, puis ajoute un serveur MCP personnalisé.",
+          "Nomme-le Pulpe, colle l’adresse ci-dessus et garde OAuth, puis crée le plugin.",
+          "Clique sur Connecter Pulpe, autorise l’accès dans Pulpe, puis sélectionne Pulpe dans ta conversation.",
         ],
       },
       {
