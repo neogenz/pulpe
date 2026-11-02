@@ -1,4 +1,3 @@
-import Charts
 import SwiftUI
 
 struct RealizedBalanceSheet: View {
@@ -7,23 +6,13 @@ struct RealizedBalanceSheet: View {
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
-    private var isPositiveBalance: Bool {
-        realizedMetrics.realizedBalance >= 0
-    }
-
-    private var statusColor: Color {
-        isPositiveBalance ? .financialSavings : .financialOverBudget
-    }
-
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xl) {
-                    balanceSection
-                    completionSection
-                    progressSection
-                    trendSection
-                    tipSection
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                    CheckedBalanceCard(realizedMetrics: realizedMetrics, currency: userSettingsStore.currency)
+                    plannedSection
+                    ForecastSection(forecasts: dashboardStore.balanceForecasts, currency: userSettingsStore.currency)
                 }
                 .padding(.horizontal)
                 .padding(.top, DesignTokens.Spacing.sm)
@@ -45,444 +34,309 @@ struct RealizedBalanceSheet: View {
         }
     }
 
-    // MARK: - Balance Section
+    // MARK: - Planned vs Real
 
-    private var balanceSection: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            Text("Solde à date")
-                .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondary)
+    private var plannedSection: some View {
+        let currency = userSettingsStore.currency
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            SectionHeader(title: AppLocale.string("Prévu et réel"))
 
-            Text(realizedMetrics.realizedBalance.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
-                .font(PulpeTypography.amountHero)
-                .monospacedDigit()
-                .foregroundStyle(isPositiveBalance ? .primary : Color.financialOverBudget)
-                .contentTransition(.numericText())
-                .sensitiveAmount()
-
-            // Status badge
-            HStack(spacing: DesignTokens.Spacing.tightGap) {
-                Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .font(PulpeTypography.caption)
-                Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
-                    .font(PulpeTypography.inputHelper)
-            }
-            .foregroundStyle(statusColor)
-            .padding(.horizontal, DesignTokens.Spacing.md)
-            .padding(.vertical, DesignTokens.Spacing.tightGap)
-            .background(statusColor.opacity(DesignTokens.Opacity.badgeBackground))
-            .clipShape(Capsule())
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.xxl)
-    }
-
-    // MARK: - Completion Section
-
-    private var completionSection: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            HStack {
-                Text("Pointage")
-                    .font(PulpeTypography.labelLarge)
-
-                Spacer()
-
-                Text("\(realizedMetrics.checkedItemsCount) / \(realizedMetrics.totalItemsCount)")
-                    .font(PulpeTypography.labelLargeBold)
-                    .monospacedDigit()
-                    .foregroundStyle(statusColor)
-            }
-
-            // Segmented progress bar
-            CompletionBar(
-                checked: realizedMetrics.checkedItemsCount,
-                total: realizedMetrics.totalItemsCount,
-                color: statusColor
-            )
-        }
-        .padding(DesignTokens.Spacing.lg)
-        .pulpeCardBackground()
-    }
-
-    // MARK: - Progress Section
-
-    private var progressSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            Text("Prévu vs Réalisé")
-                .font(PulpeTypography.headline)
-
-            VStack(spacing: 0) {
-                CategoryRow(
-                    kind: .income,
-                    realized: realizedMetrics.realizedIncome,
-                    planned: metrics.totalIncome
-                )
-
-                Divider()
-                    .padding(.leading, DesignTokens.IconSize.listRow + DesignTokens.Spacing.md)
-
-                CategoryRow(
-                    kind: .expense,
-                    realized: realizedMetrics.realizedSpending,
-                    planned: metrics.totalExpenses - metrics.totalSavings
-                )
-
-                Divider()
-                    .padding(.leading, DesignTokens.IconSize.listRow + DesignTokens.Spacing.md)
-
-                CategoryRow(
-                    kind: .saving,
-                    realized: realizedMetrics.checkedSavingsAmount,
-                    planned: metrics.totalSavings
-                )
-            }
-            .padding(DesignTokens.Spacing.lg)
-            .pulpeCardBackground()
-        }
-    }
-
-    // MARK: - Trend Section
-
-    @ViewBuilder
-    private var trendSection: some View {
-        let forecasts = dashboardStore.balanceForecasts
-        if forecasts.count >= 2 {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                Text("Tendance")
-                    .font(PulpeTypography.headline)
-
-                VStack(spacing: DesignTokens.Spacing.sm) {
-                    // Month labels
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        ForEach(forecasts) { point in
-                            Text(point.shortMonthName)
-                                .font(PulpeTypography.caption2)
-                                .foregroundStyle(point.isCurrentMonth ? .primary : .secondary)
-                                .fontWeight(point.isCurrentMonth ? .semibold : .regular)
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-
-                    BalanceTrendChart(forecasts: forecasts)
-                        .clipped()
-                }
-                .padding(DesignTokens.Spacing.lg)
-                .pulpeCardBackground()
-                .sensitiveAmount()
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Graphique de tendance du solde")
-        } else {
-            Text("Crée des budgets futurs pour voir la tendance")
-                .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .pulpeCard()
-        }
-    }
-
-    // MARK: - Tip Section
-
-    private var tipSection: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "lightbulb.fill")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.warningPrimary)
-                .frame(width: 28, height: 28)
-                .background(Color.warningPrimary.opacity(DesignTokens.Opacity.badgeBackground))
-                .clipShape(Circle())
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text("Astuce")
-                    .font(PulpeTypography.labelLarge)
-
-                Text("""
-                    Compare ce solde avec ton compte bancaire. S'il y a un écart, \
-                    vérifie que toutes tes dépenses sont bien pointées.
-                    """)
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textSecondary)
-            }
-        }
-        .padding(DesignTokens.Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .pulpeCardBackground()
-    }
-}
-
-// MARK: - Completion Bar (segmented)
-
-private struct CompletionBar: View {
-    let checked: Int
-    let total: Int
-    let color: Color
-
-    private let segmentCount = 10
-    private let segmentSpacing: CGFloat = 3
-    private let segmentHeight: CGFloat = 8
-
-    private var filledSegments: Int {
-        guard total > 0 else { return 0 }
-        return Int((Double(checked) / Double(total)) * Double(segmentCount))
-    }
-
-    var body: some View {
-        HStack(spacing: segmentSpacing) {
-            ForEach(0..<segmentCount, id: \.self) { index in
-                Capsule()
-                    .fill(index < filledSegments ? color : Color.progressTrack)
-                    .frame(height: segmentHeight)
-            }
-        }
-        .animation(DesignTokens.Animation.gentleSpring, value: filledSegments)
-    }
-}
-
-// MARK: - Balance Trend Chart
-
-private struct BalanceTrendChart: View {
-    let forecasts: [MonthlyForecast]
-
-    @Environment(UserSettingsStore.self) private var userSettingsStore
-
-    private var yMin: Double { forecasts.map(\.availableBalance).min() ?? 0 }
-    private var yMax: Double {
-        let max = forecasts.map(\.availableBalance).max() ?? 1
-        // Ensure non-zero range — Swift Charts crashes on empty domain
-        return max <= yMin ? yMin + 1 : max
-    }
-
-    private var yPadding: Double {
-        let range = yMax - yMin
-        return max(range * 0.08, 1)
-    }
-
-    var body: some View {
-        Chart {
-            RuleMark(y: .value("Zero", 0))
-                .foregroundStyle(.secondary.opacity(0.3))
-                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
-
-            ForEach(forecasts) { point in
-                AreaMark(
-                    x: .value("Mois", point.shortMonthName),
-                    y: .value("Solde", point.availableBalance)
-                )
-                .interpolationMethod(.monotone)
-                .foregroundStyle(areaGradient)
-
-                LineMark(
-                    x: .value("Mois", point.shortMonthName),
-                    y: .value("Solde", point.availableBalance)
-                )
-                .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thick, lineCap: .round))
-                .foregroundStyle(Color.pulpePrimary)
-                .accessibilityLabel("Mois \(point.shortMonthName)")
-                .accessibilityValue(Decimal(point.availableBalance).asCompactCurrency(userSettingsStore.currency))
-            }
-        }
-        .chartXAxis(.hidden)
-        .chartYAxis {
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
-                AxisGridLine()
-                    .foregroundStyle(.secondary.opacity(0.2))
-                AxisValueLabel {
-                    if let amount = value.as(Double.self) {
-                        Text(Formatters.compactAxisLabel(amount, currency: userSettingsStore.currency))
-                            .font(PulpeTypography.caption2)
-                            .foregroundStyle(Color.textSecondary)
-                    }
-                }
-            }
-        }
-        .chartLegend(.hidden)
-        .chartYScale(domain: (yMin - yPadding) ... (yMax + yPadding))
-        .frame(height: 150)
-    }
-
-    private var areaGradient: LinearGradient {
-        LinearGradient(
-            stops: [
-                .init(color: Color.pulpePrimary.opacity(0.25), location: 0),
-                .init(color: Color.pulpePrimary.opacity(0), location: 0.9),
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-}
-
-// MARK: - Category Row
-
-private struct CategoryRow: View {
-    let kind: TransactionKind
-    let realized: Decimal
-    let planned: Decimal
-
-    @Environment(UserSettingsStore.self) private var userSettingsStore
-
-    private var percentage: Double {
-        guard planned > 0 else { return 0 }
-        return min(Double(truncating: NSDecimalNumber(decimal: realized / planned)), 1.0)
-    }
-
-    private var percentageText: String {
-        let pct = Int(percentage * 100)
-        return "\(min(pct, 999))%"
-    }
-
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            // Icon circle (Revolut-style — matches BudgetLineRow, TemplateLineRow)
-            Circle()
-                .fill(kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
-                .overlay {
-                    Image(systemName: kind.icon)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(kind.color)
-                }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                // Label + amounts
-                HStack(alignment: .firstTextBaseline) {
-                    Text(kind.label)
-                        .font(PulpeTypography.listRowTitle)
-
-                    Spacer()
-
-                    let realizedFormatted = realized.asCompactCurrency(userSettingsStore.currency)
-                    let plannedFormatted = planned.asCompactCurrency(userSettingsStore.currency)
-                    Text("\(realizedFormatted) / \(plannedFormatted)")
+            KindTile(kind: .expense, title: "Dépenses") {
+                let spent = realizedMetrics.realizedSpending
+                let planned = metrics.totalExpenses - metrics.totalSavings
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    tileAmount(spent, kind: .expense, font: PulpeTypography.amountDisplayLarge)
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    Text("sur \(planned.asAdaptiveCurrency(currency)) prévus")
                         .font(PulpeTypography.caption)
                         .foregroundStyle(Color.textSecondary)
                         .sensitiveAmount()
                 }
-
-                // Progress bar + percentage
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    ZStack {
-                        Capsule()
-                            .fill(Color.progressTrack)
-
-                        ProgressBarShape(progress: CGFloat(percentage))
-                            .fill(kind.color)
-                            .animation(DesignTokens.Animation.gentleSpring, value: percentage)
+                PlanBar(
+                    actual: spent,
+                    planned: planned,
+                    tint: .financialExpense,
+                    track: Color.financialExpense.opacity(DesignTokens.Opacity.secondary),
+                    height: DesignTokens.ProgressBar.flowBarHeight,
+                    showsOverrun: true
+                )
+                Group {
+                    if spent > planned {
+                        Text("+\((spent - planned).asAdaptiveCurrency(currency)) au-delà du prévu")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.financialOverBudget)
+                    } else {
+                        Text("Encore \((planned - spent).asAdaptiveCurrency(currency)) de marge")
+                            .foregroundStyle(Color.textSecondary)
                     }
-                    .frame(height: DesignTokens.ProgressBar.thickHeight)
+                }
+                .font(PulpeTypography.caption)
+                .sensitiveAmount()
+            }
 
-                    Text(percentageText)
-                        .font(PulpeTypography.progressUnit)
-                        .foregroundStyle(Color.textTertiary)
-                        .monospacedDigit()
-                        .frame(minWidth: 28, alignment: .trailing)
+            HeroMetricTileRow {
+                KindTile(kind: .income, title: "Revenus") {
+                    let pending = metrics.totalIncome - realizedMetrics.realizedIncome
+                    tileAmount(realizedMetrics.realizedIncome, kind: .income, font: PulpeTypography.amountCard)
+                    Label {
+                        if pending > 0 {
+                            Text("\(pending.asAdaptiveCurrency(currency)) encore attendus")
+                        } else {
+                            Text("Tout est arrivé")
+                        }
+                    } icon: {
+                        Image(systemName: pending > 0 ? "clock" : "checkmark")
+                    }
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .sensitiveAmount()
+                }
+
+                KindTile(kind: .saving, title: "Épargne") {
+                    tileAmount(realizedMetrics.checkedSavingsAmount, kind: .saving, font: PulpeTypography.amountCard)
+                    PlanBar(
+                        actual: realizedMetrics.checkedSavingsAmount,
+                        planned: metrics.totalSavings,
+                        tint: .financialSavings,
+                        track: .surfaceContainerLowest,
+                        height: DesignTokens.ProgressBar.height,
+                        showsOverrun: false
+                    )
+                    Text("sur \(metrics.totalSavings.asAdaptiveCurrency(currency)) prévus")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
+                        .sensitiveAmount()
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func tileAmount(_ amount: Decimal, kind: TransactionKind, font: Font) -> some View {
+        Text(amount.asAdaptiveCurrency(userSettingsStore.currency))
+            .font(font)
+            .foregroundStyle(kind.color)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(DesignTokens.TextScale.floor)
+            .contentTransition(.numericText())
+            .sensitiveAmount()
+    }
+}
+
+// MARK: - Checked Balance Card
+
+/// The pointed balance on the forest, and how much of the month is pointed: one dot per item.
+private struct CheckedBalanceCard: View {
+    let realizedMetrics: BudgetFormulas.RealizedMetrics
+    let currency: SupportedCurrency
+
+    private var checked: Int { realizedMetrics.checkedItemsCount }
+    private var total: Int { realizedMetrics.totalItemsCount }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HeroFigure(
+                eyebrow: AppLocale.string("Solde pointé"),
+                amount: realizedMetrics.realizedBalance,
+                currency: currency,
+                alignment: .leading
+            )
+
+            sentence
+                .font(PulpeTypography.subheadline)
+                .foregroundStyle(Color.heroInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if total > 0 {
+                checkProgress
+                    .padding(.top, DesignTokens.Spacing.xs)
+                    .accessibilityHidden(true)
+                HStack {
+                    Text("**\(checked)** pointées")
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    Text("**\(total - checked)** à pointer")
+                }
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.heroInkSecondary)
+                .monospacedDigit()
+            }
+        }
+        .padding(DesignTokens.Spacing.xl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(colors: [.heroSurfaceTop, .heroSurface], startPoint: .top, endPoint: .bottom),
+            in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The state lives in the sentence, never in the surface (The Two-Zone Rule).
+    private var sentence: Text {
+        let promise = Text("Une fois tout pointé, ta banque devrait afficher la même chose.")
+        guard realizedMetrics.realizedBalance < 0 else { return promise }
+        return Text("Sous zéro pour l'instant.").bold().foregroundStyle(Color.heroAccentCaution)
+            + Text(verbatim: " ") + promise
+    }
+
+    @ViewBuilder
+    private var checkProgress: some View {
+        if total > DesignTokens.Chart.checkDotLimit {
+            HeroProgressRow(
+                progress: Double(checked) / Double(total),
+                valueText: (Double(checked) / Double(total)).formatted(.percent.precision(.fractionLength(0)))
+            )
+        } else {
+            LazyVGrid(
+                columns: Array(
+                    repeating: GridItem(.flexible(), spacing: DesignTokens.Spacing.xs),
+                    count: DesignTokens.Chart.checkDotColumns
+                ),
+                alignment: .leading,
+                spacing: DesignTokens.Spacing.xs
+            ) {
+                ForEach(0..<total, id: \.self) { index in
+                    Circle()
+                        .fill(index < checked ? Color.heroAccentPositive : .clear)
+                        .overlay {
+                            if index >= checked {
+                                Circle().strokeBorder(
+                                    Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted),
+                                    lineWidth: DesignTokens.BorderWidth.medium
+                                )
+                            }
+                        }
+                        .aspectRatio(1, contentMode: .fit)
+                }
+            }
+            .animation(DesignTokens.Animation.gentleSpring, value: checked)
+        }
+    }
+}
+
+// MARK: - Kind Tile
+
+private struct KindTile<Content: View>: View {
+    let kind: TransactionKind
+    let title: LocalizedStringKey
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack(spacing: DesignTokens.Spacing.compactGap) {
+                Image(systemName: kind.icon)
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(kind.color)
+                    .frame(width: DesignTokens.IconSize.compact, height: DesignTokens.IconSize.compact)
+                    .background(Color.surfaceContainerLowest, in: Circle())
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(PulpeTypography.labelLarge)
+            }
+            content
+        }
+        .padding(DesignTokens.Spacing.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(
+            kind.color.opacity(DesignTokens.Opacity.badgeBackground),
+            in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+        )
+        .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Plan Bar
+
+/// Real against plan. Past the plan, `showsOverrun` turns the bar into the whole real amount:
+/// the plan's share in the tint, the excess in `financialOverBudget`. Without it the bar stops full.
+private struct PlanBar: View {
+    let actual: Decimal
+    let planned: Decimal
+    let tint: Color
+    let track: Color
+    let height: CGFloat
+    let showsOverrun: Bool
+
+    private var isOverrun: Bool { showsOverrun && actual > planned }
+
+    private var fill: CGFloat {
+        let share = isOverrun ? planned / actual : planned > 0 ? actual / planned : 0
+        return CGFloat(min(max(NSDecimalNumber(decimal: share).doubleValue, 0), 1))
+    }
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(isOverrun ? Color.financialOverBudget : track)
+                .clipShape(.rect(cornerRadius: height / 2))
+            ProgressBarShape(progress: fill)
+                .fill(tint)
+        }
+        .frame(height: height)
+        // The two ambers sit too close in dark mode to tell plan from excess: the tick does.
+        .overlay(alignment: .leading) {
+            if isOverrun {
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(Color.textPrimary)
+                        .frame(width: DesignTokens.BorderWidth.thick)
+                        .offset(x: geometry.size.width * fill - DesignTokens.BorderWidth.thick / 2)
                 }
             }
         }
-        .padding(.vertical, DesignTokens.Spacing.md)
+        .animation(DesignTokens.Animation.gentleSpring, value: fill)
+        .accessibilityHidden(true)
     }
 }
-
-// MARK: - Preview Helpers
-
-@MainActor private let previewDashboardStore: DashboardStore = {
-    let calendar = Calendar.current
-    let currentMonth = calendar.component(.month, from: Date())
-    let currentYear = calendar.component(.year, from: Date())
-
-    let remainingValues: [Decimal] = [1274, 2583, 2583, 4419, 2583, 2583, -777, 532, 532, 3398]
-    let budgets = (0..<min(10, 13 - currentMonth)).map { offset -> BudgetSparse in
-        let month = currentMonth + offset
-        return BudgetSparse(
-            id: "preview-\(month)",
-            month: month,
-            year: currentYear,
-            remaining: remainingValues[offset]
-        )
-    }
-    return DashboardStore(initialBudgets: budgets)
-}()
 
 // MARK: - Previews
 
-#Preview("Positive Balance") {
-    Color.clear
+@MainActor private func previewSheet(
+    _ metrics: BudgetFormulas.Metrics,
+    _ realized: BudgetFormulas.RealizedMetrics,
+    forecasts: [Decimal]
+) -> some View {
+    let calendar = Calendar.current
+    let budgets = forecasts.enumerated().compactMap { offset, remaining -> BudgetSparse? in
+        guard let date = calendar.date(byAdding: .month, value: offset, to: Date()) else { return nil }
+        let month = calendar.component(.month, from: date)
+        let year = calendar.component(.year, from: date)
+        return BudgetSparse(id: "preview-\(year)-\(month)", month: month, year: year, remaining: remaining)
+    }
+    return Color.clear
         .sheet(isPresented: .constant(true)) {
-            RealizedBalanceSheet(
-                metrics: .init(
-                    totalIncome: 7956,
-                    totalExpenses: 4861.30,
-                    totalSavings: 500,
-                    available: 7956,
-                    endingBalance: 3094.70,
-                    remaining: 3094.70,
-                    rollover: 0
-                ),
-                realizedMetrics: .init(
-                    realizedIncome: 7956,
-                    realizedExpenses: 2500,
-                    realizedBalance: 5456,
-                    checkedItemsCount: 12,
-                    totalItemsCount: 25,
-                    checkedSavingsAmount: 250
-                )
-            )
-            .environment(previewDashboardStore)
-            .environment(UserSettingsStore())
+            RealizedBalanceSheet(metrics: metrics, realizedMetrics: realized)
+                .environment(DashboardStore(initialBudgets: budgets))
+                .environment(UserSettingsStore())
         }
+}
+
+#Preview("Positive Balance") {
+    previewSheet(
+        .init(totalIncome: 7956, totalExpenses: 4861.30, totalSavings: 500, available: 7956,
+              endingBalance: 3094.70, remaining: 3094.70, rollover: 0),
+        .init(realizedIncome: 7956, realizedExpenses: 2500, realizedBalance: 5456,
+              checkedItemsCount: 12, totalItemsCount: 25, checkedSavingsAmount: 250),
+        forecasts: [1180, 640, 1420, 1960, 2310, 2720]
+    )
 }
 
 #Preview("Negative Balance") {
-    Color.clear
-        .sheet(isPresented: .constant(true)) {
-            RealizedBalanceSheet(
-                metrics: .init(
-                    totalIncome: 5000,
-                    totalExpenses: 5500,
-                    totalSavings: 200,
-                    available: 5000,
-                    endingBalance: -500,
-                    remaining: -500,
-                    rollover: 0
-                ),
-                realizedMetrics: .init(
-                    realizedIncome: 5000,
-                    realizedExpenses: 5200,
-                    realizedBalance: -200,
-                    checkedItemsCount: 18,
-                    totalItemsCount: 20,
-                    checkedSavingsAmount: 200
-                )
-            )
-            .environment(previewDashboardStore)
-            .environment(UserSettingsStore())
-        }
+    previewSheet(
+        .init(totalIncome: 5000, totalExpenses: 5500, totalSavings: 200, available: 5000,
+              endingBalance: -500, remaining: -500, rollover: 0),
+        .init(realizedIncome: 5000, realizedExpenses: 5600, realizedBalance: -600,
+              checkedItemsCount: 18, totalItemsCount: 20, checkedSavingsAmount: 200),
+        forecasts: [-200, -650, 120, 480, 900, 1300]
+    )
 }
 
 #Preview("All Checked") {
-    Color.clear
-        .sheet(isPresented: .constant(true)) {
-            RealizedBalanceSheet(
-                metrics: .init(
-                    totalIncome: 6000,
-                    totalExpenses: 4000,
-                    totalSavings: 800,
-                    available: 6000,
-                    endingBalance: 2000,
-                    remaining: 2000,
-                    rollover: 0
-                ),
-                realizedMetrics: .init(
-                    realizedIncome: 6000,
-                    realizedExpenses: 4000,
-                    realizedBalance: 2000,
-                    checkedItemsCount: 15,
-                    totalItemsCount: 15,
-                    checkedSavingsAmount: 800
-                )
-            )
-            .environment(previewDashboardStore)
-            .environment(UserSettingsStore())
-        }
+    previewSheet(
+        .init(totalIncome: 6000, totalExpenses: 4000, totalSavings: 800, available: 6000,
+              endingBalance: 2000, remaining: 2000, rollover: 0),
+        .init(realizedIncome: 6000, realizedExpenses: 4000, realizedBalance: 2000,
+              checkedItemsCount: 15, totalItemsCount: 15, checkedSavingsAmount: 800),
+        forecasts: [2000]
+    )
 }

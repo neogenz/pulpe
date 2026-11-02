@@ -757,16 +757,38 @@
     },
     "prepareNextMonth": "Nächsten Monat vorbereiten",
     "realized": {
-      "balanceToDate": "Aktueller Saldo",
-      "checking": "Abgleich",
+      "bankPromise": "Sobald alles abgehakt ist, sollte deine Bank denselben Betrag zeigen.",
+      "belowZero": "Vorerst im Minus.",
+      "checkedBalance": "Abgehakter Saldo",
+      "checkedCount": {
+        "one": "abgehakt",
+        "other": "abgehakt"
+      },
       "expense": "Ausgaben",
+      "forecast": {
+        "empty": "Leg künftige Budgets an, um den Trend zu sehen",
+        "endOf": "Ende %{month}",
+        "footnote": "Geplanter Saldo am Monatsende, laut deinen Budgets. Tippe auf einen Monat, um ihn zu sehen.",
+        "outlook": {
+          "recovers": "Zurück im Plus im %{month}",
+          "staysNegative": "Im Minus bis %{month}",
+          "staysPositive": "Alles bleibt im Plus bis %{month}",
+          "tightens": "Im %{month} wird es knapp"
+        },
+        "tightest": "Knappster Monat: %{month}, %{amount}",
+        "tightestTag": "am knappsten",
+        "title": "Die nächsten Monate"
+      },
       "income": "Einnahmen",
-      "negativeStatus": "Negativer Saldo — gehen wir ihn gemeinsam an?",
-      "plannedVsActual": "Geplant vs. tatsächlich",
-      "positiveStatus": "Alles im grünen Bereich",
+      "incomeArrived": "Alles eingegangen",
+      "incomePending": "%{amount} noch erwartet",
+      "margin": "Noch %{amount} Spielraum",
+      "ofPlanned": "von %{amount} geplant",
+      "overPlan": "+%{amount} über Plan",
+      "plannedVsActual": "Geplant und tatsächlich",
       "savings": "Sparen",
-      "tip": "Vergleiche diesen Saldo mit deinem Bankkonto. Bei einer Abweichung prüfe, ob alle Ausgaben abgeglichen sind.",
-      "title": "Budgetverlauf"
+      "title": "Budgetverlauf",
+      "toCheck": "offen"
     },
     "reconcile": {
       "accounts": {

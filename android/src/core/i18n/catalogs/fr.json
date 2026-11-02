@@ -757,16 +757,38 @@
     },
     "prepareNextMonth": "Préparer le mois suivant",
     "realized": {
-      "balanceToDate": "Solde à date",
-      "checking": "Pointage",
-      "expense": "Dépense",
-      "income": "Revenu",
-      "negativeStatus": "Solde négatif — on y remédie ensemble ?",
-      "plannedVsActual": "Prévu vs réalisé",
-      "positiveStatus": "Tout va bien",
+      "bankPromise": "Une fois tout pointé, ta banque devrait afficher la même chose.",
+      "belowZero": "Sous zéro pour l'instant.",
+      "checkedBalance": "Solde pointé",
+      "checkedCount": {
+        "one": "pointée",
+        "other": "pointées"
+      },
+      "expense": "Dépenses",
+      "forecast": {
+        "empty": "Crée des budgets futurs pour voir la tendance",
+        "endOf": "fin %{month}",
+        "footnote": "Solde prévu en fin de mois, d'après tes budgets. Touche un mois pour le voir.",
+        "outlook": {
+          "recovers": "Retour au vert en %{month}",
+          "staysNegative": "Sous zéro jusqu'en %{month}",
+          "staysPositive": "Tout reste au vert jusqu'en %{month}",
+          "tightens": "Ça se resserre en %{month}"
+        },
+        "tightest": "Mois le plus serré : %{month}, %{amount}",
+        "tightestTag": "le plus serré",
+        "title": "Les prochains mois"
+      },
+      "income": "Revenus",
+      "incomeArrived": "Tout est arrivé",
+      "incomePending": "%{amount} encore attendus",
+      "margin": "Encore %{amount} de marge",
+      "ofPlanned": "sur %{amount} prévus",
+      "overPlan": "+%{amount} au-delà du prévu",
+      "plannedVsActual": "Prévu et réel",
       "savings": "Épargne",
-      "tip": "Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien pointées.",
-      "title": "Suivi du budget"
+      "title": "Suivi du budget",
+      "toCheck": "à pointer"
     },
     "reconcile": {
       "accounts": {

@@ -1,27 +1,47 @@
-import type { SupportedCurrency } from "pulpe-shared";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { LinearGradient } from "expo-linear-gradient";
+import type { ReactNode } from "react";
+import {
+  CURRENCY_METADATA,
+  type SupportedCurrency,
+  type TransactionKind,
+} from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
-import { Button, Divider, Text, useTheme } from "react-native-paper";
+import { Button, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
-import {
-  formatCompactCurrency,
-  formatSignedCompactCurrency,
-} from "@/core/ui/amount-format";
 import { Amount } from "@/core/ui/amount";
-import { useFinancialColors } from "@/core/ui/scheme-colors";
+import {
+  formatCompactAmount,
+  formatCompactCurrency,
+} from "@/core/ui/amount-format";
+import { HeroFigure, HeroProgress } from "@/core/ui/hero";
+import { useFinancialColors, useHeroColors } from "@/core/ui/scheme-colors";
 import { FormModal } from "@/core/ui/sheet";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import {
+  ICON_SIZE,
+  RADIUS,
+  SPACING,
+  TABULAR_DIGITS,
+  TINT_ALPHA,
+} from "@/core/ui/theme";
+import { KIND_ICONS } from "@/core/ui/vocabulary";
 
 import type {
   CurrentMonthViewModel,
   RealizedMetrics,
 } from "../current-month-view-model";
+import { ForecastSection } from "./forecast-section";
 
-const SEGMENT_COUNT = 10;
-const SEGMENT_HEIGHT = 8;
-const BAR_HEIGHT = 6;
+/** One dot per item up to this many; past it, a dot is too small to count. */
+const CHECK_DOT_LIMIT = 50;
+const CHECK_DOT_COLUMNS = 25;
+const CHECK_DOT_BORDER = 2;
 const PERCENT = 100;
-const MAX_PERCENT_SHOWN = 999;
+const FLOW_BAR_HEIGHT = 12;
+const BAR_HEIGHT = 6;
+const PLAN_TICK_WIDTH = 2;
+const TILE_DISC = 28;
 
 interface RealizedBalanceSheetProps {
   isVisible: boolean;
@@ -37,9 +57,10 @@ interface RealizedBalanceSheetProps {
 }
 
 /**
- * What the month has actually done, as against what it planned. The headline is
- * the balance the user can compare against their bank app — which is the whole
- * point of pointing operations, and what the tip at the bottom says out loud.
+ * What the month has actually done, as against what it planned, then where the
+ * coming months land. The forest card holds the balance the user can compare
+ * against their bank app — the whole point of pointing operations. Mirrors
+ * `RealizedBalanceSheet` on iOS.
  */
 export function RealizedBalanceSheet({
   isVisible,
@@ -52,8 +73,11 @@ export function RealizedBalanceSheet({
   const { t } = useTranslation();
   const theme = useTheme();
   const financial = useFinancialColors();
-  const isPositive = realized.realizedBalance >= 0;
-  const statusColor = isPositive ? financial.savings : financial.overBudget;
+  const muted = { color: theme.colors.onSurfaceVariant };
+  const spent = realized.realizedSpending;
+  const plannedSpending = metrics.totalExpenses - metrics.totalSavings;
+  const pendingIncome = metrics.totalIncome - realized.realizedIncome;
+  const amount = (value: number) => formatCompactCurrency(value, currency);
 
   return (
     <FormModal
@@ -68,181 +92,317 @@ export function RealizedBalanceSheet({
         )
       }
     >
-      <View style={styles.balanceBlock}>
-        <Text
-          variant="bodyMedium"
-          style={{ color: theme.colors.onSurfaceVariant }}
+      <CheckedBalanceCard realized={realized} currency={currency} />
+
+      <View style={styles.section}>
+        <Text variant="titleLarge">{t("home.realized.plannedVsActual")}</Text>
+        <KindTile
+          kind="expense"
+          title={t("home.realized.expense")}
+          tint={financial.expense}
         >
-          {t("home.realized.balanceToDate")}
-        </Text>
-        <Amount
-          size="hero"
-          style={{ color: isPositive ? theme.colors.onSurface : statusColor }}
-        >
-          {formatSignedCompactCurrency(realized.realizedBalance, currency)}
-        </Amount>
-        <Text variant="bodySmall" style={{ color: statusColor }}>
-          {t(
-            isPositive
-              ? "home.realized.positiveStatus"
-              : "home.realized.negativeStatus",
+          <View style={styles.amountRow}>
+            <Amount size="hero" tone="expense" style={styles.shrink}>
+              {amount(spent)}
+            </Amount>
+            <Text variant="bodySmall" style={muted}>
+              {t("home.realized.ofPlanned", {
+                amount: amount(plannedSpending),
+              })}
+            </Text>
+          </View>
+          <PlanBar
+            actual={spent}
+            planned={plannedSpending}
+            tint={financial.expense}
+            track={`${financial.expense}${TINT_ALPHA.icon}`}
+            overrun={financial.overBudget}
+            height={FLOW_BAR_HEIGHT}
+          />
+          {spent > plannedSpending ? (
+            <Text variant="labelMedium" style={{ color: financial.overBudget }}>
+              {t("home.realized.overPlan", {
+                amount: amount(spent - plannedSpending),
+              })}
+            </Text>
+          ) : (
+            <Text variant="bodySmall" style={muted}>
+              {t("home.realized.margin", {
+                amount: amount(plannedSpending - spent),
+              })}
+            </Text>
           )}
-        </Text>
-      </View>
+        </KindTile>
 
-      <View
-        style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
-      >
-        <View style={styles.row}>
-          <Text variant="labelLarge">{t("home.realized.checking")}</Text>
-          <Amount size="meta" style={{ color: statusColor }}>
-            {`${realized.checkedItemsCount} / ${realized.totalItemsCount}`}
-          </Amount>
+        <View style={styles.tileRow}>
+          <KindTile
+            kind="income"
+            title={t("home.realized.income")}
+            tint={financial.income}
+          >
+            <Amount size="row" tone="income">
+              {amount(realized.realizedIncome)}
+            </Amount>
+            <View style={styles.label}>
+              <MaterialCommunityIcons
+                name={pendingIncome > 0 ? "clock-outline" : "check"}
+                size={ICON_SIZE.sm}
+                color={theme.colors.onSurfaceVariant}
+              />
+              <Text variant="bodySmall" style={[styles.shrink, muted]}>
+                {pendingIncome > 0
+                  ? t("home.realized.incomePending", {
+                      amount: amount(pendingIncome),
+                    })
+                  : t("home.realized.incomeArrived")}
+              </Text>
+            </View>
+          </KindTile>
+          <KindTile
+            kind="saving"
+            title={t("home.realized.savings")}
+            tint={financial.savings}
+          >
+            <Amount size="row" tone="savings">
+              {amount(realized.realizedSavings)}
+            </Amount>
+            <PlanBar
+              actual={realized.realizedSavings}
+              planned={metrics.totalSavings}
+              tint={financial.savings}
+              track={theme.colors.surface}
+              height={BAR_HEIGHT}
+            />
+            <Text variant="bodySmall" style={muted}>
+              {t("home.realized.ofPlanned", {
+                amount: amount(metrics.totalSavings),
+              })}
+            </Text>
+          </KindTile>
         </View>
-        <CompletionBar
-          checked={realized.checkedItemsCount}
-          total={realized.totalItemsCount}
-          color={statusColor}
-          trackColor={theme.colors.outlineVariant}
-        />
       </View>
 
-      <Text variant="titleSmall">{t("home.realized.plannedVsActual")}</Text>
-      <View
-        style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
-      >
-        <CategoryRow
-          label={t("home.realized.income")}
-          realized={realized.realizedIncome}
-          planned={metrics.totalIncome}
-          color={financial.income}
-          trackColor={theme.colors.outlineVariant}
-          currency={currency}
-        />
-        <Divider />
-        <CategoryRow
-          label={t("home.realized.expense")}
-          realized={realized.realizedSpending}
-          planned={metrics.totalExpenses - metrics.totalSavings}
-          color={financial.expense}
-          trackColor={theme.colors.outlineVariant}
-          currency={currency}
-        />
-        <Divider />
-        <CategoryRow
-          label={t("home.realized.savings")}
-          realized={realized.realizedSavings}
-          planned={metrics.totalSavings}
-          color={financial.savings}
-          trackColor={theme.colors.outlineVariant}
-          currency={currency}
-        />
-      </View>
-
-      <Text
-        variant="bodySmall"
-        style={{ color: theme.colors.onSurfaceVariant }}
-      >
-        {t("home.realized.tip")}
-      </Text>
+      <ForecastSection currency={currency} />
     </FormModal>
   );
 }
 
-/** Ten segments rather than a continuous bar: pointing is counted, not poured. */
-function CompletionBar({
-  checked,
-  total,
-  color,
-  trackColor,
+/** The pointed balance on the forest, and how much of the month is pointed: one dot per item. */
+function CheckedBalanceCard({
+  realized,
+  currency,
 }: {
-  checked: number;
-  total: number;
-  color: string;
-  trackColor: string;
+  realized: RealizedMetrics;
+  currency: SupportedCurrency;
 }) {
-  const filled = total > 0 ? Math.floor((checked / total) * SEGMENT_COUNT) : 0;
+  const { t } = useTranslation();
+  const hero = useHeroColors();
+  const checked = realized.checkedItemsCount;
+  const total = realized.totalItemsCount;
+  const share = total > 0 ? checked / total : 0;
 
   return (
-    <View style={styles.segments}>
-      {Array.from({ length: SEGMENT_COUNT }, (_, index) => (
+    <LinearGradient
+      colors={[hero.surfaceTop, hero.surface]}
+      style={styles.heroCard}
+    >
+      <HeroFigure
+        eyebrow={t("home.realized.checkedBalance")}
+        amount={formatCompactAmount(realized.realizedBalance, currency)}
+        currency={CURRENCY_METADATA[currency].symbol}
+      />
+      {/* The state lives in the sentence, never in the surface (The Two-Zone Rule). */}
+      <Text variant="bodyMedium" style={{ color: hero.support }}>
+        {realized.realizedBalance < 0 && (
+          <Text style={[styles.bold, { color: hero.caution }]}>
+            {`${t("home.realized.belowZero")} `}
+          </Text>
+        )}
+        {t("home.realized.bankPromise")}
+      </Text>
+
+      {total > 0 && (
+        <>
+          {total > CHECK_DOT_LIMIT ? (
+            <HeroProgress
+              progress={share}
+              label={`${Math.round(share * PERCENT)}%`}
+            />
+          ) : (
+            <View
+              style={styles.dots}
+              importantForAccessibility="no-hide-descendants"
+              accessibilityElementsHidden
+            >
+              {Array.from({ length: total }, (_, index) => (
+                <View key={index} style={styles.dotCell}>
+                  <View
+                    style={[
+                      styles.dot,
+                      index < checked
+                        ? { backgroundColor: hero.positive }
+                        : {
+                            borderColor: hero.muted,
+                            borderWidth: CHECK_DOT_BORDER,
+                          },
+                    ]}
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+          <View style={styles.counts}>
+            <Text
+              variant="labelMedium"
+              style={[TABULAR_DIGITS, { color: hero.support }]}
+            >
+              <Text style={styles.bold}>{checked}</Text>
+              {` ${t("home.realized.checkedCount", { count: checked })}`}
+            </Text>
+            <Text
+              variant="labelMedium"
+              style={[TABULAR_DIGITS, { color: hero.support }]}
+            >
+              <Text style={styles.bold}>{total - checked}</Text>
+              {` ${t("home.realized.toCheck")}`}
+            </Text>
+          </View>
+        </>
+      )}
+    </LinearGradient>
+  );
+}
+
+/** A nature's tile: its glyph and name, then whatever the nature has to say. */
+function KindTile({
+  kind,
+  title,
+  tint,
+  children,
+}: {
+  kind: TransactionKind;
+  title: string;
+  tint: string;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View
+      accessible
+      style={[styles.tile, { backgroundColor: `${tint}${TINT_ALPHA.surface}` }]}
+    >
+      <View style={styles.label}>
         <View
-          key={index}
-          style={[
-            styles.segment,
-            { backgroundColor: index < filled ? color : trackColor },
-          ]}
-        />
-      ))}
+          style={[styles.tileDisc, { backgroundColor: theme.colors.surface }]}
+        >
+          <MaterialCommunityIcons
+            name={KIND_ICONS[kind]}
+            size={ICON_SIZE.sm}
+            color={tint}
+          />
+        </View>
+        <Text variant="labelLarge">{title}</Text>
+      </View>
+      {children}
     </View>
   );
 }
 
-function CategoryRow({
-  label,
-  realized,
+/**
+ * Actual against plan. Past the plan the whole track turns over-budget and the
+ * fill shrinks to the plan's share of it, with a tick where the plan ends: the
+ * two ambers alone are too close to tell apart in the dark.
+ */
+function PlanBar({
+  actual,
   planned,
-  color,
-  trackColor,
-  currency,
+  tint,
+  track,
+  overrun,
+  height,
 }: {
-  label: string;
-  realized: number;
+  actual: number;
   planned: number;
-  color: string;
-  trackColor: string;
-  currency: SupportedCurrency;
+  tint: string;
+  track: string;
+  overrun?: string;
+  height: number;
 }) {
-  const ratio = planned > 0 ? Math.min(realized / planned, 1) : 0;
-  const percent =
-    planned > 0
-      ? Math.min(Math.round((realized / planned) * PERCENT), MAX_PERCENT_SHOWN)
-      : 0;
+  const theme = useTheme();
+  const isOver = overrun !== undefined && actual > planned;
+  const ratio = isOver ? planned / actual : planned > 0 ? actual / planned : 0;
+  const fill = `${Math.min(Math.max(ratio, 0), 1) * PERCENT}%` as const;
 
   return (
-    <View style={styles.category}>
-      <View style={styles.row}>
-        <Text variant="bodyMedium">{label}</Text>
-        <Amount size="meta">
-          {`${formatCompactCurrency(realized, currency)} / ${formatCompactCurrency(planned, currency)}`}
-        </Amount>
-      </View>
-      <View style={styles.row}>
-        <View style={[styles.track, { backgroundColor: trackColor }]}>
-          <View
-            style={[
-              styles.fill,
-              { backgroundColor: color, width: `${ratio * PERCENT}%` },
-            ]}
-          />
-        </View>
-        <Amount size="meta" style={styles.percent}>
-          {`${percent}%`}
-        </Amount>
-      </View>
+    <View
+      style={[
+        styles.track,
+        { height, backgroundColor: isOver ? overrun : track },
+      ]}
+    >
+      <View style={[styles.fill, { width: fill, backgroundColor: tint }]} />
+      {isOver && (
+        <View
+          style={[
+            styles.planTick,
+            { left: fill, backgroundColor: theme.colors.onSurface },
+          ]}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  balanceBlock: { alignItems: "center", gap: SPACING.xs },
-  card: { borderRadius: RADIUS.card, padding: SPACING.md, gap: SPACING.md },
-  row: {
-    flexDirection: "row",
+  heroCard: {
+    borderRadius: RADIUS.md,
+    padding: SPACING.lg,
+    gap: SPACING.md,
+  },
+  bold: { fontWeight: "700" },
+  dots: { flexDirection: "row", flexWrap: "wrap", rowGap: SPACING.xs },
+  dotCell: {
+    width: `${PERCENT / CHECK_DOT_COLUMNS}%`,
+    aspectRatio: 1,
+    padding: SPACING.xxs,
+  },
+  dot: { flex: 1, borderRadius: RADIUS.full },
+  counts: { flexDirection: "row", justifyContent: "space-between" },
+  section: { gap: SPACING.sm, marginTop: SPACING.sm },
+  tileRow: { flexDirection: "row", gap: SPACING.sm },
+  tile: {
+    flex: 1,
+    borderRadius: RADIUS.card,
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  tileDisc: {
+    width: TILE_DISC,
+    height: TILE_DISC,
+    borderRadius: RADIUS.full,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  label: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  amountRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
     justifyContent: "space-between",
     gap: SPACING.sm,
   },
-  segments: { flexDirection: "row", gap: SPACING.xs },
-  segment: { flex: 1, height: SEGMENT_HEIGHT, borderRadius: RADIUS.xs },
-  category: { gap: SPACING.sm, paddingVertical: SPACING.sm },
+  shrink: { flexShrink: 1 },
   track: {
-    flex: 1,
     flexDirection: "row",
-    height: BAR_HEIGHT,
-    borderRadius: RADIUS.xs,
+    borderRadius: RADIUS.full,
     overflow: "hidden",
   },
-  fill: { height: "100%", borderRadius: RADIUS.xs },
-  percent: { minWidth: 40, textAlign: "right" },
+  fill: { height: "100%", borderRadius: RADIUS.full },
+  planTick: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: PLAN_TICK_WIDTH,
+    marginLeft: -PLAN_TICK_WIDTH / 2,
+  },
 });

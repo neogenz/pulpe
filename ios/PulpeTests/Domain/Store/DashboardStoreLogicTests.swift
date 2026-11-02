@@ -300,18 +300,25 @@ struct DashboardStoreLogicTests {
         #expect(makeStore(budgets: []).balanceForecasts.isEmpty)
     }
 
+    @Test func balanceForecasts_coversTheHorizonAcrossTheYearBoundary() {
+        let store = makeStore(budgets: (0...8).map { sparseBudget(monthOffset: $0, remaining: Decimal($0 * 100)) })
+
+        let expected = (0..<DashboardStore.forecastHorizonMonths).compactMap { offset in
+            calendar.date(byAdding: .month, value: offset, to: Date()).map {
+                "\(calendar.component(.year, from: $0))-\(calendar.component(.month, from: $0))"
+            }
+        }
+        #expect(store.balanceForecasts.map(\.id) == expected)
+        #expect(store.balanceForecasts.filter(\.isCurrentMonth).map(\.id) == [expected[0]])
+    }
+
     @Test func hasEnoughDataForBalanceChart_trueWith2OrMore() {
-        // Use monthOffset helper to avoid December collapse
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: 0, remaining: 2500),
             sparseBudget(monthOffset: 1, remaining: 3000),
         ])
 
-        // The store computes forecasts from currentMonth..12, so both must land in that range
-        let forecasts = store.balanceForecasts
-        if forecasts.count >= 2 {
-            #expect(store.hasEnoughDataForBalanceChart)
-        }
+        #expect(store.hasEnoughDataForBalanceChart)
     }
 
     @Test func hasEnoughDataForBalanceChart_falseWith0Or1() {
@@ -324,5 +331,20 @@ struct DashboardStoreLogicTests {
             ),
         ])
         #expect(!storeWith1.hasEnoughDataForBalanceChart)
+    }
+
+    // MARK: - Forecast Outlook
+
+    @Test func forecastOutlook_namesWhereTheBalanceTurns() {
+        let nov = MonthlyForecast(month: 11, year: 2026, availableBalance: 1180, isCurrentMonth: true)
+        let dec = MonthlyForecast(month: 12, year: 2026, availableBalance: -40, isCurrentMonth: false)
+        let jan = MonthlyForecast(month: 1, year: 2027, availableBalance: 0, isCurrentMonth: false)
+        let feb = MonthlyForecast(month: 2, year: 2027, availableBalance: -300, isCurrentMonth: false)
+
+        #expect(ForecastOutlook([nov, jan]) == .staysPositive(through: jan))
+        #expect(ForecastOutlook([nov, dec, jan]) == .tightens(in: dec))
+        #expect(ForecastOutlook([dec, jan, feb]) == .recovers(in: jan))
+        #expect(ForecastOutlook([dec, feb]) == .staysNegative(through: feb))
+        #expect(ForecastOutlook([]) == nil)
     }
 }

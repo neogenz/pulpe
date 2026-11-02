@@ -1,31 +1,56 @@
 import { fireEvent, render } from "@testing-library/react-native";
+import { getBudgetPeriodForDate } from "pulpe-shared";
 
 import { RealizedBalanceSheet } from "./realized-balance-sheet";
 
 jest.mock("@/core/i18n/locale-store", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => key, locale: "fr" }),
 }));
 jest.mock("@/core/ui/amount-visibility", () => ({
   areAmountsHidden: () => false,
 }));
+jest.mock("@/core/ui/haptics", () => ({ hapticSelection: jest.fn() }));
 jest.mock("@/core/ui/scheme-colors", () => ({
   useFinancialColors: () => ({
-    income: "blue",
-    expense: "amber",
-    savings: "green",
-    overBudget: "orange",
+    income: "#0000FF",
+    expense: "#FFBF00",
+    savings: "#008000",
+    overBudget: "#FFA500",
+  }),
+  useHeroColors: () => ({
+    surfaceTop: "darkgreen",
+    surface: "green",
+    support: "mint",
+    muted: "gray",
+    positive: "lime",
+    caution: "amber",
   }),
 }));
 jest.mock("@/core/ui/theme", () => ({
-  RADIUS: { card: 18, xs: 4 },
-  SPACING: { md: 16, sm: 8, xs: 4 },
+  ICON_SIZE: { sm: 16, md: 20 },
+  RADIUS: { card: 18, md: 24, full: 999 },
+  SPACING: { xxs: 2, xs: 4, sm: 8, md: 16, lg: 24 },
+  TABULAR_DIGITS: {},
+  TINT_ALPHA: { surface: "1F", icon: "26" },
 }));
 jest.mock("@/core/ui/amount", () => {
   const { Text } = jest.requireActual("react-native");
   return { Amount: Text };
 });
+jest.mock("@/core/ui/hero", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    HeroFigure: ({ amount }: { amount: string }) => <Text>{amount}</Text>,
+    HeroProgress: ({ label }: { label: string }) => <Text>{label}</Text>,
+  };
+});
+jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => () => null);
+jest.mock("expo-linear-gradient", () => {
+  const { View } = jest.requireActual("react-native");
+  return { LinearGradient: View };
+});
 jest.mock("react-native-paper", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
+  const { Pressable, Text } = jest.requireActual("react-native");
   return {
     Button: ({
       children,
@@ -38,14 +63,13 @@ jest.mock("react-native-paper", () => {
         <Text>{children}</Text>
       </Pressable>
     ),
-    Divider: () => <View />,
     Text,
     useTheme: () => ({
       colors: {
         onSurface: "black",
         onSurfaceVariant: "gray",
-        surfaceVariant: "beige",
         outlineVariant: "silver",
+        surface: "white",
       },
     }),
   };
@@ -67,6 +91,23 @@ jest.mock("@/core/ui/sheet", () => {
     ),
   };
 });
+jest.mock("@/core/user-settings/user-settings-queries", () => ({
+  useUserSettings: () => ({ data: { payDayOfMonth: null } }),
+}));
+
+const period = getBudgetPeriodForDate(new Date(), null);
+const mockBudgets = [1180, -640, 1420].map((remaining, offset) => {
+  const date = new Date(period.year, period.month - 1 + offset, 1);
+  return {
+    id: `budget-${offset}`,
+    month: date.getMonth() + 1,
+    year: date.getFullYear(),
+    remaining,
+  };
+});
+jest.mock("@/features/budgets/budget-queries", () => ({
+  useBudgetList: () => ({ data: mockBudgets }),
+}));
 
 const props = {
   isVisible: true,
@@ -99,4 +140,26 @@ it("offers nothing where no active budget can be reconciled", async () => {
   const view = await render(<RealizedBalanceSheet {...props} />);
 
   expect(view.queryByText("home.reconcile.title")).toBeNull();
+});
+
+it("labels each coming month's bar with its amount", async () => {
+  const view = await render(<RealizedBalanceSheet {...props} />);
+
+  for (const label of ["1’180", "-640", "1’420"]) {
+    expect(view.getByText(label)).toBeTruthy();
+  }
+  expect(
+    view.getByText("home.realized.forecast.outlook.tightens"),
+  ).toBeTruthy();
+});
+
+it("reads the tapped month above the bars", async () => {
+  const view = await render(<RealizedBalanceSheet {...props} />);
+  const [, tapped] = view.getAllByRole("button");
+
+  await fireEvent.press(tapped);
+
+  expect(tapped.props.accessibilityState).toEqual({ selected: true });
+  expect(view.getByText("-640 CHF")).toBeTruthy();
+  expect(view.queryByText("1’180 CHF")).toBeNull();
 });

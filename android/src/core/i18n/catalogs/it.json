@@ -757,16 +757,38 @@
     },
     "prepareNextMonth": "Prepara il mese successivo",
     "realized": {
-      "balanceToDate": "Saldo a oggi",
-      "checking": "Spunta",
+      "bankPromise": "Una volta spuntato tutto, la tua banca dovrebbe mostrare lo stesso importo.",
+      "belowZero": "Sotto zero per ora.",
+      "checkedBalance": "Saldo spuntato",
+      "checkedCount": {
+        "one": "spuntata",
+        "other": "spuntate"
+      },
       "expense": "Spese",
+      "forecast": {
+        "empty": "Crea budget futuri per vedere l'andamento",
+        "endOf": "fine %{month}",
+        "footnote": "Saldo previsto a fine mese, secondo i tuoi budget. Tocca un mese per vederlo.",
+        "outlook": {
+          "recovers": "Di nuovo in positivo in %{month}",
+          "staysNegative": "Sotto zero fino a %{month}",
+          "staysPositive": "Tutto resta in positivo fino a %{month}",
+          "tightens": "Si fa stretto in %{month}"
+        },
+        "tightest": "Mese più stretto: %{month}, %{amount}",
+        "tightestTag": "il più stretto",
+        "title": "I prossimi mesi"
+      },
       "income": "Entrate",
-      "negativeStatus": "Saldo negativo — lo sistemiamo insieme?",
-      "plannedVsActual": "Previsto vs effettivo",
-      "positiveStatus": "Tutto procede bene",
+      "incomeArrived": "È arrivato tutto",
+      "incomePending": "%{amount} ancora attesi",
+      "margin": "Ancora %{amount} di margine",
+      "ofPlanned": "su %{amount} previsti",
+      "overPlan": "+%{amount} oltre il previsto",
+      "plannedVsActual": "Previsto ed effettivo",
       "savings": "Risparmio",
-      "tip": "Confronta questo saldo con il tuo conto bancario. Se c'è una differenza, verifica di aver spuntato tutte le spese.",
-      "title": "Andamento del budget"
+      "title": "Andamento del budget",
+      "toCheck": "da spuntare"
     },
     "reconcile": {
       "accounts": {
