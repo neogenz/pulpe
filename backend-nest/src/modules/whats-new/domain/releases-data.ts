@@ -1755,6 +1755,11 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
  */
 export const SILENT_IOS_RELEASES: readonly SilentIosReleaseEntry[] = [
   {
+    version: '0.59.0',
+    reason:
+      'La 1.13.1 ne change que la formulation de messages d’erreur rares (saisie refusée par le serveur, adresse inconnue), pour qu’ils restent dans la langue de l’app : rien qui mérite d’interrompre les utilisateurs au lancement',
+  },
+  {
     version: '0.45.1',
     reason:
       'Hotfix 1.4.1 limité à la fluidité du scroll vertical de l’accueil : ne pas interrompre à nouveau les utilisateurs et conserver la feuille complète des nouveautés 1.4.0 pour ceux qui ne l’ont pas encore vue',

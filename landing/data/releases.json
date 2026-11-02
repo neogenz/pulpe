@@ -1,5 +1,84 @@
 [
   {
+    "version": "0.59.0",
+    "iosVersion": "1.13.1",
+    "date": "2026-11-02",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.59.0",
+    "platforms": [
+      "web",
+      "ios",
+      "android"
+    ],
+    "changes": {
+      "features": [
+        {
+          "title": "Guide de connexion à ChatGPT et Claude repensé",
+          "description": "Dans Paramètres › Connexions, suis les étapes numérotées pour laisser ChatGPT ou Claude t’aider avec ton budget. Pulpe n’utilise aucune IA par défaut : rien ne se passe sans ton accord."
+        }
+      ],
+      "fixes": [],
+      "technical": [
+        {
+          "title": "Erreurs dans ta langue",
+          "description": "Si le serveur refuse une saisie, iOS et Android affichent l’erreur dans la langue de l’app."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Improved ChatGPT and Claude connection guide",
+              "description": "In Settings › Connections, follow the numbered steps to let ChatGPT or Claude help with your budget. Pulpe uses no AI by default: nothing happens without your consent."
+            }
+          ],
+          "fixes": [],
+          "technical": [
+            {
+              "title": "Errors in your language",
+              "description": "When the server rejects an entry, iOS and Android show the error in the app’s language."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Überarbeitete Anleitung für ChatGPT und Claude",
+              "description": "Folge unter Einstellungen › Verbindungen den nummerierten Schritten, damit dir ChatGPT oder Claude bei deinem Budget hilft. Pulpe nutzt standardmässig keine KI: Ohne deine Zustimmung passiert nichts."
+            }
+          ],
+          "fixes": [],
+          "technical": [
+            {
+              "title": "Fehler in deiner Sprache",
+              "description": "Lehnt der Server eine Eingabe ab, zeigen iOS und Android den Fehler in der Sprache der App an."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "Guida di collegamento a ChatGPT e Claude migliorata",
+              "description": "In Impostazioni › Connessioni segui i passaggi numerati per farti aiutare da ChatGPT o Claude con il tuo budget. Pulpe non usa alcuna IA per impostazione predefinita: senza il tuo consenso non succede nulla."
+            }
+          ],
+          "fixes": [],
+          "technical": [
+            {
+              "title": "Errori nella tua lingua",
+              "description": "Se il server rifiuta un inserimento, iOS e Android mostrano l’errore nella lingua dell’app."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.58.0",
     "iosVersion": "1.13.0",
     "date": "2026-10-30",
