@@ -3699,28 +3699,6 @@
         }
       }
     },
-    "1 à %lld caractères · ajouté à la sélection" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 bis %lld Zeichen · zur Auswahl hinzugefügt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 to %lld characters · added to the selection"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Da 1 a %lld caratteri · aggiunto alla selezione"
-          }
-        }
-      }
-    },
     "12 janvier" : {
       "localizations" : {},
       "shouldTranslate" : false
@@ -5731,6 +5709,28 @@
         }
       }
     },
+    "Aucun tag ne correspond" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein passendes Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching tag"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun tag corrispondente"
+          }
+        }
+      }
+    },
     "Aucun tag personnel" : {
       "localizations" : {
         "de" : {
@@ -7391,28 +7391,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questo prelievo è già stato effettuato in parte o del tutto. Modificalo dal budget."
-          }
-        }
-      }
-    },
-    "Ce tag existe déjà" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieses Tag gibt es schon"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This tag already exists"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questo tag esiste già"
           }
         }
       }
@@ -10045,28 +10023,6 @@
         }
       }
     },
-    "Créer et sélectionner" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erstellen und auswählen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create and select"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Crea e seleziona"
-          }
-        }
-      }
-    },
     "Créer l'objectif" : {
       "localizations" : {
         "de" : {
@@ -10349,6 +10305,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crea un obiettivo"
+          }
+        }
+      }
+    },
+    "Créer « %@ »" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create “%@”"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea «%@»"
           }
         }
       }
@@ -11923,6 +11901,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Email"
+          }
+        }
+      }
+    },
+    "Effacer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear text"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancella testo"
           }
         }
       }
@@ -17815,28 +17815,6 @@
         }
       }
     },
-    "Nom du nouveau tag" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name des neuen Tags"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New tag name"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nome del nuovo tag"
-          }
-        }
-      }
-    },
     "Non connecté(e)" : {
       "localizations" : {
         "de" : {
@@ -18343,28 +18321,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nuovo su Pulpe?"
-          }
-        }
-      }
-    },
-    "Nouveau tag" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neues Tag"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New tag"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuovo tag"
           }
         }
       }
@@ -21753,6 +21709,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recupera lo sforamento"
+          }
+        }
+      }
+    },
+    "Rechercher ou créer un tag" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag suchen oder erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search or create a tag"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca o crea un tag"
           }
         }
       }

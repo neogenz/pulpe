@@ -169,7 +169,8 @@ describe("sheets", () => {
       const consumer = readFileSync(path, "utf8");
       return (
         consumer.includes('from "@/core/ui/sheet"') &&
-        !consumer.includes("FormModal")
+        !consumer.includes("FormModal") &&
+        !consumer.includes("useRevealInSheet")
       );
     });
 

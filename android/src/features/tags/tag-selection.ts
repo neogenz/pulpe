@@ -34,6 +34,24 @@ export function tagsSelectedFirst(tags: Tag[], selection: string[]): Tag[] {
   return [...selected, ...rest];
 }
 
+/**
+ * The tags whose name contains what is typed, ignoring case and accents so that
+ * "ecole" finds "École" on a keyboard that makes accents a long press. An empty
+ * query matches everything: the field is cleared, the whole list comes back.
+ */
+export function tagsMatching(query: string, tags: Tag[]): Tag[] {
+  const needle = foldedForSearch(query.trim());
+  if (needle.length === 0) return tags;
+  return tags.filter((tag) => foldedForSearch(tag.name).includes(needle));
+}
+
+function foldedForSearch(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase();
+}
+
 /** Case-insensitive, because the backend treats "Courses" and "courses" alike. */
 export function findTagByName(name: string, tags: Tag[]): Tag | undefined {
   const normalized = name.trim().toLocaleLowerCase();

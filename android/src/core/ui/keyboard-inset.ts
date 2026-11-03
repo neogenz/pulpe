@@ -79,3 +79,28 @@ export function sheetBox({
     paddingBottom: keyboardHeight === 0 ? safeBottom : 0,
   };
 }
+
+interface RevealInput {
+  /** The block's top edge and height, in the body's content coordinates. */
+  top: number;
+  height: number;
+  /** The body's visible height and how far it has scrolled. */
+  visible: number;
+  offset: number;
+}
+
+/**
+ * Where the body has to scroll for a block to show whole, or `undefined` when
+ * it already does. Only ever down: a block above the fold is the one the user
+ * just tapped. A block taller than the body keeps its top in view, where its
+ * text field is.
+ */
+export function revealOffset({
+  top,
+  height,
+  visible,
+  offset,
+}: RevealInput): number | undefined {
+  const target = Math.min(top, top + height - visible);
+  return target > offset ? target : undefined;
+}

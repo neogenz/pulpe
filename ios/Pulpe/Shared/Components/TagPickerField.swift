@@ -111,6 +111,14 @@ struct TagPickerField: View {
         tags.first { $0.name.caseInsensitiveCompare(normalizedName(name)) == .orderedSame }
     }
 
+    /// Tags whose name contains the query, ignoring case and accents so that "ecole" finds "École".
+    /// An empty query keeps every tag: clearing the field brings the whole list back.
+    static func matching(_ query: String, in tags: [Tag]) -> [Tag] {
+        let needle = normalizedName(query)
+        guard !needle.isEmpty else { return tags }
+        return tags.filter { $0.name.localizedStandardContains(needle) }
+    }
+
     static func hasValidLength(_ name: String) -> Bool {
         (1...AppConfiguration.maxTagNameLength).contains(normalizedName(name).count)
     }
@@ -138,44 +146,53 @@ struct TagPickerField: View {
     }
 }
 
+/// One field that both finds and creates: typing narrows the list, and a name no tag carries
+/// becomes a "Créer" row. Picking or creating a tag selects it and clears the field.
 private struct TagPickerSheet: View {
     @Binding var selection: Set<String>
 
     @Environment(\.dismiss) private var dismiss
     @Environment(TagStore.self) private var store
-    @State private var newTagName = ""
+    @State private var query = ""
     @State private var createError: String?
     @State private var isCreating = false
-    @FocusState private var isNewTagNameFocused: Bool
+    @FocusState private var isQueryFocused: Bool
 
     private var normalizedName: String {
-        TagPickerField.normalizedName(newTagName)
+        TagPickerField.normalizedName(query)
+    }
+
+    private var exactMatch: Tag? {
+        TagPickerField.duplicate(named: normalizedName, in: store.tags)
+    }
+
+    private var matches: [Tag] {
+        TagPickerField.matching(query, in: store.tags)
+    }
+
+    private var isFull: Bool {
+        selection.count >= AppConfiguration.maxTagsPerTransaction
+    }
+
+    /// An exact match is the answer, not a mistake: that tag is right there in the list.
+    private var offersCreation: Bool {
+        TagPickerField.hasValidLength(normalizedName) && exactMatch == nil && !isFull
     }
 
     private var validationMessage: String? {
         if normalizedName.count > AppConfiguration.maxTagNameLength {
             return AppLocale.string("\(AppConfiguration.maxTagNameLength) caractères maximum")
         }
-        if TagPickerField.duplicate(named: normalizedName, in: store.tags) != nil {
-            return AppLocale.string("Ce tag existe déjà")
-        }
-        if !normalizedName.isEmpty, selection.count >= AppConfiguration.maxTagsPerTransaction {
+        if !normalizedName.isEmpty, exactMatch == nil, isFull {
             return AppLocale.string("\(AppConfiguration.maxTagsPerTransaction) tags maximum")
         }
         return createError
     }
 
-    private var canCreate: Bool {
-        TagPickerField.hasValidLength(normalizedName)
-            && TagPickerField.duplicate(named: normalizedName, in: store.tags) == nil
-            && selection.count < AppConfiguration.maxTagsPerTransaction
-            && !isCreating
-    }
-
     var body: some View {
         NavigationStack {
             List {
-                createSection
+                searchSection
                 tagList
             }
             .listStyle(.insetGrouped)
@@ -189,10 +206,46 @@ private struct TagPickerSheet: View {
                         .disabled(isCreating)
                 }
             }
-            .disabled(isCreating)
         }
         .standardSheetPresentation(detents: [.medium, .large])
         .interactiveDismissDisabled(isCreating)
+    }
+
+    private var searchSection: some View {
+        Section {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .accessibilityHidden(true)
+
+                TextField("Rechercher ou créer un tag", text: $query)
+                    .textInputAutocapitalization(.sentences)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .focused($isQueryFocused)
+                    .onSubmit { Task { await submit() } }
+                    .onChange(of: query) { _, _ in createError = nil }
+
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color.onSurfaceVariant)
+                    }
+                    .plainPressedButtonStyle()
+                    .accessibilityLabel("Effacer")
+                }
+            }
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(.interaction, Rectangle())
+            .onTapGesture { isQueryFocused = true }
+        } footer: {
+            if let validationMessage {
+                Text(validationMessage)
+                    .foregroundStyle(Color.destructivePrimary)
+            }
+        }
     }
 
     @ViewBuilder
@@ -206,35 +259,19 @@ private struct TagPickerSheet: View {
                 } label: {
                     Label("Réessayer", systemImage: "arrow.clockwise")
                 }
-            } else if store.tags.isEmpty {
+            } else if store.tags.isEmpty, query.isEmpty {
                 Text("Crée ton premier tag ci-dessus.")
                     .foregroundStyle(Color.onSurfaceVariant)
             } else {
-                ForEach(store.tags) { tag in
-                    let isSelected = selection.contains(tag.id)
-                    Button {
-                        selection = TagPickerField.toggledTag(tag.id, in: selection)
-                    } label: {
-                        HStack(spacing: DesignTokens.Spacing.md) {
-                            Image(systemName: "tag")
-                                .foregroundStyle(isSelected ? Color.pulpePrimary : Color.onSurfaceVariant)
-                                .accessibilityHidden(true)
-                            Text(tag.name)
-                                .foregroundStyle(Color.textPrimary)
-                            Spacer()
-                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                                .font(PulpeTypography.actionIcon)
-                                .foregroundStyle(isSelected ? Color.pulpePrimary : Color.outlineVariant)
-                                .contentTransition(.symbolEffect(.replace))
-                                .accessibilityHidden(true)
-                        }
-                    }
-                    .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    .contentShape(Rectangle())
-                    .plainPressedButtonStyle()
-                    .disabled(!isSelected && selection.count >= AppConfiguration.maxTagsPerTransaction)
-                    .accessibilityLabel(tag.name)
-                    .accessibilityValue(isSelected ? "Sélectionné" : "Non sélectionné")
+                ForEach(matches) { tag in
+                    tagRow(tag)
+                }
+                // After the matches: on a partial match the existing tag is the likelier intent.
+                if offersCreation {
+                    createRow
+                } else if matches.isEmpty {
+                    Text("Aucun tag ne correspond")
+                        .foregroundStyle(Color.onSurfaceVariant)
                 }
             }
         } header: {
@@ -247,65 +284,85 @@ private struct TagPickerSheet: View {
         }
     }
 
-    private var createSection: some View {
-        Section {
+    private func tagRow(_ tag: Tag) -> some View {
+        let isSelected = selection.contains(tag.id)
+        return Button {
+            selection = TagPickerField.toggledTag(tag.id, in: selection)
+            query = ""
+        } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "tag")
-                    .foregroundStyle(Color.onSurfaceVariant)
+                    .foregroundStyle(isSelected ? Color.pulpePrimary : Color.onSurfaceVariant)
                     .accessibilityHidden(true)
+                Text(tag.name)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(PulpeTypography.actionIcon)
+                    .foregroundStyle(isSelected ? Color.pulpePrimary : Color.outlineVariant)
+                    .contentTransition(.symbolEffect(.replace))
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
+        .disabled(!isSelected && isFull)
+        .accessibilityLabel(tag.name)
+        .accessibilityValue(isSelected ? "Sélectionné" : "Non sélectionné")
+    }
 
-                TextField("Nom du nouveau tag", text: $newTagName)
-                    .textInputAutocapitalization(.sentences)
-                    .submitLabel(.done)
-                    .focused($isNewTagNameFocused)
-                    .onSubmit {
-                        guard canCreate else { return }
-                        Task { await createTag() }
-                    }
-                    .onChange(of: newTagName) { _, _ in createError = nil }
-
+    private var createRow: some View {
+        Button {
+            Task { await createTag() }
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.md) {
                 if isCreating {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Button {
-                        Task { await createTag() }
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(PulpeTypography.actionIcon)
-                            .foregroundStyle(canCreate ? Color.pulpePrimary : Color.onSurfaceVariant)
-                    }
-                    .circleIconButtonStyle()
-                    .disabled(!canCreate)
-                    .accessibilityLabel("Créer et sélectionner")
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundStyle(Color.pulpePrimary)
+                        .accessibilityHidden(true)
                 }
-            }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(.interaction, Rectangle())
-            .onTapGesture { isNewTagNameFocused = true }
-        } header: {
-            Text("Nouveau tag")
-        } footer: {
-            if let validationMessage {
-                Text(validationMessage)
-                    .foregroundStyle(Color.destructivePrimary)
-            } else {
-                Text("1 à \(AppConfiguration.maxTagNameLength) caractères · ajouté à la sélection")
+                Text("Créer « \(normalizedName) »")
+                    .foregroundStyle(Color.pulpePrimary)
+                Spacer()
             }
         }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .plainPressedButtonStyle()
+    }
+
+    /// The return key takes the tag of that exact name, or creates it.
+    private func submit() async {
+        // Return resigns the field, and several tags in a row is the common case.
+        isQueryFocused = true
+        guard let exactMatch else {
+            await createTag()
+            return
+        }
+        if !selection.contains(exactMatch.id) {
+            selection = TagPickerField.toggledTag(exactMatch.id, in: selection)
+        }
+        query = ""
     }
 
     private func createTag() async {
-        guard canCreate else { return }
+        guard offersCreation, !isCreating else { return }
+        let name = normalizedName
         isCreating = true
-        defer { isCreating = false }
 
         do {
-            let tag = try await store.create(name: normalizedName)
+            let tag = try await store.create(name: name)
             selection = TagPickerField.selection(afterCreating: tag, current: selection)
-            newTagName = ""
+            // The field stays live during the request: keep anything typed after the submit.
+            if normalizedName == name { query = "" }
         } catch {
             createError = DomainErrorLocalizer.localize(error)
         }
+
+        isCreating = false
     }
 }

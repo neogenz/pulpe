@@ -1198,7 +1198,7 @@
       "add": "Add",
       "available": "Available tags",
       "createError": "The tag could not be created. Try again.",
-      "createSelect": "Create and select this tag",
+      "createNamed": "Create “%{name}”",
       "delete": "Delete",
       "deleteA11y": "Delete %{name}",
       "deleteDescription": "“%{name}” will be removed from the forecasts and activity that use it. They will remain.",
@@ -1208,17 +1208,16 @@
       "empty": "No tags yet.",
       "loadError": "Your tags could not be loaded.",
       "name": "Name",
-      "new": "New",
       "newTag": "New tag",
       "pickerTitle": "Tags",
       "rename": "Rename",
       "renameA11y": "Rename %{name}",
       "renameError": "The tag could not be renamed. Try again.",
       "renameTitle": "Rename tag",
+      "searchOrCreate": "Search or create a tag",
       "selectionCount": "%{count} of %{total}",
       "title": "My tags",
       "validation": {
-        "duplicate": "This tag already exists",
         "selectionLimit": "%{count} tags maximum",
         "tooLong": "%{count} characters maximum"
       }

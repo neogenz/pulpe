@@ -1,5 +1,5 @@
 import { MAX_TAGS_PER_TRANSACTION } from "pulpe-shared";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -15,12 +15,15 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import { useRevealInSheet } from "@/core/ui/sheet";
 
 import { useCreateTag, useTags } from "./tag-queries";
 import {
   canCreateTag,
+  findTagByName,
   TAG_NAME_MAX_LENGTH,
   tagNameIssue,
+  tagsMatching,
   tagsSelectedFirst,
   toggledTagIds,
 } from "./tag-selection";
@@ -34,39 +37,64 @@ interface TagPickerProps {
 }
 
 /**
- * Up to ten tags, chosen from the user's own list or created on the spot. A new
- * tag is selected the moment it exists — creating one and then having to find
- * it in the list would be a second step for a decision already made.
+ * Up to ten tags, found or created from one field. Typing narrows the row to
+ * the tags that match; when none carries that exact name, the row offers to
+ * create it. Picking or creating a tag selects it and clears the field, so the
+ * whole row is back for the next one.
  */
 export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
   const theme = useTheme();
   const { t } = useTranslation();
   const tags = useTags();
   const createTag = useCreateTag();
-  const [name, setName] = useState("");
-  const [isCreating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
+  const field = useRef<View>(null);
+  const revealInSheet = useRevealInSheet();
 
   const available = tags.data ?? [];
   const hasLoadError = tags.isError && tags.data === undefined;
-  const ordered = tagsSelectedFirst(available, selectedIds);
-  const issue = tagNameIssue(name, available, selectedIds.length);
-  const isCreatable =
-    canCreateTag(name, available, selectedIds.length) &&
-    !createTag.isPending &&
-    !hasLoadError;
+  const matches = tagsMatching(
+    query,
+    tagsSelectedFirst(available, selectedIds),
+  );
+  const exactMatch = findTagByName(query, available);
+  // An exact match is the answer, not a mistake: the tag is right there in the row.
+  const issue = exactMatch
+    ? null
+    : tagNameIssue(query, available, selectedIds.length);
+  const offersCreation =
+    canCreateTag(query, available, selectedIds.length) && !hasLoadError;
+
+  function pick(tagId: string) {
+    onChange(toggledTagIds(tagId, selectedIds));
+    setQuery("");
+  }
 
   function create() {
-    if (!isCreatable) return;
-    createTag.mutate(name.trim(), {
+    if (!offersCreation || createTag.isPending) return;
+    const name = query.trim();
+    createTag.mutate(name, {
       onSuccess: (tag) => {
         onChange(toggledTagIds(tag.id, selectedIds));
-        setName("");
+        // The field stays live during the request: keep anything typed after the submit.
+        setQuery((current) => (current.trim() === name ? "" : current));
       },
     });
   }
 
+  /** The keyboard's return key takes the tag of that exact name, or creates it. */
+  function submit() {
+    if (exactMatch === undefined) {
+      create();
+    } else if (selectedIds.includes(exactMatch.id)) {
+      setQuery("");
+    } else {
+      pick(exactMatch.id);
+    }
+  }
+
   return (
-    <View style={styles.field}>
+    <View ref={field} style={styles.field}>
       <View style={styles.heading}>
         <Text variant="labelLarge">{t("settings.tags.pickerTitle")}</Text>
         <Text
@@ -80,10 +108,6 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
         </Text>
       </View>
 
-      {/* One scrolling row, not a wrapping wall: sixteen tags stacked into six
-          rows pushed the rest of the form — the submit button included — off
-          the bottom of the sheet. It runs to the sheet's own edges so a chip
-          scrolls past the gutter instead of being clipped by it. */}
       {tags.isPending ? (
         <ActivityIndicator accessibilityLabel={t("common.loading")} />
       ) : hasLoadError ? (
@@ -96,73 +120,83 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
           />
         </View>
       ) : (
-        <View style={styles.rail}>
-          <FadingRail
-            inset={SHEET_PADDING}
-            background={theme.colors.surface}
-            accessibilityLabel={t("settings.tags.available")}
-          >
-            {ordered.map((tag) => {
-              const isSelected = selectedIds.includes(tag.id);
-              return (
-                <FilterChip
-                  key={tag.id}
-                  selected={isSelected}
-                  icon={isSelected ? "check" : "tag-outline"}
-                  // Held while a tag is created: its success adds to the selection
-                  // it captured, and would undo a chip toggled meanwhile.
-                  disabled={
-                    createTag.isPending ||
-                    (!isSelected &&
-                      selectedIds.length >= MAX_TAGS_PER_TRANSACTION)
-                  }
-                  onPress={() => onChange(toggledTagIds(tag.id, selectedIds))}
-                  accessibilityState={{ selected: isSelected }}
-                >
-                  {tag.name}
-                </FilterChip>
-              );
-            })}
-
-            {/* Creating a tag is the rare act, so it costs a tap rather than a
-                permanent field sitting under every list. */}
-            {!isCreating && (
-              <Chip icon="plus" onPress={() => setCreating(true)}>
-                {t("settings.tags.new")}
-              </Chip>
-            )}
-          </FadingRail>
-        </View>
-      )}
-
-      {isCreating && !hasLoadError && (
-        <View style={styles.create}>
+        <>
           <TextInput
             mode="outlined"
             dense
-            autoFocus
-            label={t("settings.tags.newTag")}
-            value={name}
-            onChangeText={setName}
-            onSubmitEditing={create}
+            placeholder={t("settings.tags.searchOrCreate")}
+            accessibilityLabel={t("settings.tags.searchOrCreate")}
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={submit}
+            // The matches sit under the field, where the keyboard would hide them.
+            onFocus={() => revealInSheet(field.current)}
+            onBlur={() => revealInSheet(null)}
+            // Several tags in a row is the common case: the keyboard stays up.
+            submitBehavior="submit"
             returnKeyType="done"
-            style={styles.nameField}
+            left={<TextInput.Icon icon="magnify" />}
+            right={
+              query.length > 0 ? (
+                <TextInput.Icon
+                  icon="close-circle"
+                  onPress={() => setQuery("")}
+                  accessibilityLabel={t("common.clear")}
+                />
+              ) : undefined
+            }
           />
-          {createTag.isPending ? (
-            <ActivityIndicator
-              style={styles.creating}
-              accessibilityLabel={t("common.loading")}
-            />
-          ) : (
-            <IconButton
-              icon="plus"
-              mode="contained-tonal"
-              disabled={!isCreatable}
-              onPress={create}
-              accessibilityLabel={t("settings.tags.createSelect")}
-            />
+
+          {/* One scrolling row, not a wrapping wall: sixteen tags stacked into
+              six rows pushed the rest of the form — the submit button included —
+              off the bottom of the sheet. It runs to the sheet's own edges so a
+              chip scrolls past the gutter instead of being clipped by it. */}
+          {(offersCreation || matches.length > 0) && (
+            <View style={styles.rail}>
+              <FadingRail
+                inset={SHEET_PADDING}
+                background={theme.colors.surface}
+                accessibilityLabel={t("settings.tags.available")}
+              >
+                {matches.map((tag) => {
+                  const isSelected = selectedIds.includes(tag.id);
+                  return (
+                    <FilterChip
+                      key={tag.id}
+                      selected={isSelected}
+                      icon={isSelected ? "check" : "tag-outline"}
+                      // Held while a tag is created: its success adds to the
+                      // selection it captured, and would undo a chip toggled
+                      // meanwhile.
+                      disabled={
+                        createTag.isPending ||
+                        (!isSelected &&
+                          selectedIds.length >= MAX_TAGS_PER_TRANSACTION)
+                      }
+                      onPress={() => pick(tag.id)}
+                      accessibilityState={{ selected: isSelected }}
+                    >
+                      {tag.name}
+                    </FilterChip>
+                  );
+                })}
+                {/* After the matches: on a partial match the existing tag is the
+                    likelier intent, and it stays the first chip under the thumb. */}
+                {offersCreation &&
+                  (createTag.isPending ? (
+                    <ActivityIndicator
+                      style={styles.creating}
+                      accessibilityLabel={t("common.loading")}
+                    />
+                  ) : (
+                    <Chip icon="plus" onPress={create}>
+                      {t("settings.tags.createNamed", { name: query.trim() })}
+                    </Chip>
+                  ))}
+              </FadingRail>
+            </View>
           )}
-        </View>
+        </>
       )}
 
       {issue !== null && !hasLoadError && (
@@ -190,8 +224,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   rail: { marginHorizontal: -SHEET_PADDING },
-  create: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
-  nameField: { flex: 1 },
   creating: { marginHorizontal: SPACING.md },
   errorState: { flexDirection: "row", alignItems: "center" },
 });
