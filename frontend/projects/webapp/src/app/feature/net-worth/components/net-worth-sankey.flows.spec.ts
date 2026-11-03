@@ -15,6 +15,7 @@ function asset(overrides: Partial<Asset> & Pick<Asset, 'id' | 'name'>): Asset {
     latestValue: 0,
     latestRecordedAt: '2026-11-03T10:00:00.000Z',
     convertedValue: 0,
+    suggestion: null,
     ...overrides,
   };
 }

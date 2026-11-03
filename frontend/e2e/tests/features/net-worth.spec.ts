@@ -33,6 +33,7 @@ const asset = (
   latestValue: value,
   latestRecordedAt: new Date().toISOString(),
   convertedValue: value,
+  suggestion: null,
 });
 
 const populatedNetWorth = {

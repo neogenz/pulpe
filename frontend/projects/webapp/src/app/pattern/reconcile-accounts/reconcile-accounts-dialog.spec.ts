@@ -52,6 +52,7 @@ function linkedAsset(overrides: Partial<Asset>): Asset {
     latestValue: 12000,
     latestRecordedAt: daysAgo(3),
     convertedValue: 12000,
+    suggestion: null,
     ...overrides,
   };
 }

@@ -22,6 +22,8 @@ import type {
   AssetSnapshotInput,
   AssetUpdatePatch,
   AssetWithValue,
+  CheckedLinesCutoff,
+  CheckedLinkedLine,
 } from '../../domain/asset.entity';
 
 const POSTGRES_FOREIGN_KEY_VIOLATION = '23503';
@@ -182,8 +184,47 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
         ...this.toAsset(row),
         latestValue: this.encryption.decryptAmount(latest.value, dek),
         latestRecordedAt: latest.recorded_at,
+        suggestionDismissedAt: row.suggestion_dismissed_at,
       };
     });
+  }
+
+  async findCheckedLinkedLines(
+    cutoffs: CheckedLinesCutoff[],
+  ): Promise<CheckedLinkedLine[]> {
+    if (cutoffs.length === 0) return [];
+    const supabase = this.supabaseProvider.client;
+
+    // `budget_line` has no user column: the asset ids come from the user's own
+    // assets, and the link trigger keeps a line on an asset of its owner.
+    // `gt` also drops the lines that are not checked (`checked_at` is null).
+    const rowsByAsset = await Promise.all(
+      cutoffs.map(async ({ assetId, since }) => ({
+        assetId,
+        rows: await fetchAllPages((from, to) =>
+          supabase
+            .from('budget_line')
+            .select('id, kind, amount')
+            .eq('asset_id', assetId)
+            .gt('checked_at', since)
+            .order('id', { ascending: true })
+            .range(from, to),
+        ),
+      })),
+    ).catch((error: unknown) => {
+      throw this.fetchFailed('listCheckedLinkedLines', error);
+    });
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return rowsByAsset.flatMap(({ assetId, rows }) =>
+      rows.map((row) => ({
+        assetId,
+        kind: row.kind,
+        amount: row.amount
+          ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
+          : 0,
+      })),
+    );
   }
 
   async insertAsset(input: AssetCreateInput): Promise<Asset> {
@@ -237,6 +278,7 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
         category_id: patch.categoryId,
         in_pulpe: patch.inPulpe,
         archived_at: patch.archivedAt,
+        suggestion_dismissed_at: patch.suggestionDismissedAt,
       })
       .eq('id', id)
       .eq('user_id', this.supabaseProvider.user.id)

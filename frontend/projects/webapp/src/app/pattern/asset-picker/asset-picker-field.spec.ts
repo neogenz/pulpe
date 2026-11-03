@@ -25,6 +25,7 @@ const buildAsset = (overrides: Partial<Asset>): Asset => ({
   latestValue: 1_000,
   latestRecordedAt: '2026-11-01T08:00:00.000Z',
   convertedValue: 1_000,
+  suggestion: null,
   ...overrides,
 });
 

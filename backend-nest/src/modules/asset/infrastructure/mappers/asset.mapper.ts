@@ -52,6 +52,7 @@ export class AssetMapper {
       latestValue: entity.latestValue,
       latestRecordedAt: entity.latestRecordedAt,
       convertedValue: entity.convertedValue,
+      suggestion: entity.suggestion,
     };
   }
 }

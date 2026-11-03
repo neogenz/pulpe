@@ -14,7 +14,7 @@ import {
   EXCHANGE_RATE_PORT,
   type ExchangeRatePort,
 } from '../domain/ports/exchange-rate.port';
-import { computeNetWorth } from '../domain/asset.formulas';
+import { checkedLinesCutoffs, computeNetWorth } from '../domain/asset.formulas';
 import type { NetWorth } from '../domain/asset.entity';
 
 @Injectable()
@@ -37,6 +37,10 @@ export class GetNetWorthUseCase {
       this.userRepo.findSettings(),
     ]);
     const baseCurrency = settings.currency;
+
+    const checkedLines = await this.repo.findCheckedLinkedLines(
+      checkedLinesCutoffs(assets),
+    );
 
     const foreignCurrencies = [
       ...new Set(assets.map((asset) => asset.currency)),
@@ -64,6 +68,12 @@ export class GetNetWorthUseCase {
       }),
     );
 
-    return computeNetWorth({ baseCurrency, categories, assets, rates });
+    return computeNetWorth({
+      baseCurrency,
+      categories,
+      assets,
+      rates,
+      checkedLines,
+    });
   }
 }

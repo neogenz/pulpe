@@ -16,6 +16,7 @@ import { CreateAssetUseCase } from './application/create-asset.use-case';
 import { UpdateAssetUseCase } from './application/update-asset.use-case';
 import { RemoveAssetUseCase } from './application/remove-asset.use-case';
 import { RecordAssetSnapshotsUseCase } from './application/record-asset-snapshots.use-case';
+import { DismissAssetSuggestionUseCase } from './application/dismiss-asset-suggestion.use-case';
 import { CreateAssetCategoryUseCase } from './application/create-asset-category.use-case';
 import { UpdateAssetCategoryUseCase } from './application/update-asset-category.use-case';
 import { RemoveAssetCategoryUseCase } from './application/remove-asset-category.use-case';
@@ -31,6 +32,7 @@ import { RemoveAssetCategoryUseCase } from './application/remove-asset-category.
     UpdateAssetUseCase,
     RemoveAssetUseCase,
     RecordAssetSnapshotsUseCase,
+    DismissAssetSuggestionUseCase,
     CreateAssetCategoryUseCase,
     UpdateAssetCategoryUseCase,
     RemoveAssetCategoryUseCase,
@@ -42,6 +44,7 @@ import { RemoveAssetCategoryUseCase } from './application/remove-asset-category.
     createInfoLoggerProvider(UpdateAssetUseCase.name),
     createInfoLoggerProvider(RemoveAssetUseCase.name),
     createInfoLoggerProvider(RecordAssetSnapshotsUseCase.name),
+    createInfoLoggerProvider(DismissAssetSuggestionUseCase.name),
     createInfoLoggerProvider(CreateAssetCategoryUseCase.name),
     createInfoLoggerProvider(UpdateAssetCategoryUseCase.name),
     createInfoLoggerProvider(RemoveAssetCategoryUseCase.name),

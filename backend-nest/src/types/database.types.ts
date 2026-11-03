@@ -44,6 +44,7 @@ export type Database = {
           id: string
           in_pulpe: boolean
           name: string
+          suggestion_dismissed_at: string | null
           updated_at: string
           user_id: string
         }
@@ -56,6 +57,7 @@ export type Database = {
           id?: string
           in_pulpe?: boolean
           name: string
+          suggestion_dismissed_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -68,6 +70,7 @@ export type Database = {
           id?: string
           in_pulpe?: boolean
           name?: string
+          suggestion_dismissed_at?: string | null
           updated_at?: string
           user_id?: string
         }

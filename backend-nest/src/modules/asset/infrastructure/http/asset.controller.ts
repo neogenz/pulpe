@@ -8,6 +8,8 @@ import {
   Param,
   ParseUUIDPipe,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,6 +17,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiNotFoundResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -44,6 +47,7 @@ import { CreateAssetUseCase } from '../../application/create-asset.use-case';
 import { UpdateAssetUseCase } from '../../application/update-asset.use-case';
 import { RemoveAssetUseCase } from '../../application/remove-asset.use-case';
 import { RecordAssetSnapshotsUseCase } from '../../application/record-asset-snapshots.use-case';
+import { DismissAssetSuggestionUseCase } from '../../application/dismiss-asset-suggestion.use-case';
 import { AssetMapper } from '../mappers/asset.mapper';
 
 @ApiTags('Assets')
@@ -65,6 +69,7 @@ export class AssetController {
     private readonly updateUseCase: UpdateAssetUseCase,
     private readonly removeUseCase: RemoveAssetUseCase,
     private readonly recordSnapshotsUseCase: RecordAssetSnapshotsUseCase,
+    private readonly dismissSuggestionUseCase: DismissAssetSuggestionUseCase,
     private readonly mapper: AssetMapper,
   ) {}
 
@@ -121,6 +126,31 @@ export class AssetController {
       user,
     );
     return { success: true, data: { recordedAt } };
+  }
+
+  @Post(':id/dismiss-suggestion')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Écarte la valeur proposée',
+    description:
+      "Les Prévisions déjà pointées sont oubliées : la prochaine proposition ne compte que celles pointées ensuite. Pour accepter une proposition, l'enregistrer avec `POST /assets/snapshots`.",
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'avoir" })
+  @ApiResponse({
+    status: 200,
+    description: 'Proposition écartée avec succès',
+    type: AssetResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Avoir introuvable',
+    type: ErrorResponseDto,
+  })
+  async dismissSuggestion(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<AssetResponse> {
+    const entity = await this.dismissSuggestionUseCase.execute(id, user);
+    return { success: true, data: this.mapper.toApi(entity) };
   }
 
   @Patch(':id')

@@ -38,6 +38,7 @@ const netWorth: NetWorth = {
       latestValue: 1000,
       latestRecordedAt: '2026-11-03T10:00:00.000Z',
       convertedValue: 1000,
+      suggestion: null,
     },
   ],
 };

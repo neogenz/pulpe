@@ -66,6 +66,9 @@ function createRepository(
     getDekFor: jest.fn().mockResolvedValue(Buffer.alloc(32)),
     encryptAmount: jest.fn((amount: number) => `enc:${amount}`),
     decryptAmount: jest.fn((ciphertext: string) => Number(ciphertext.slice(4))),
+    tryDecryptAmount: jest.fn((ciphertext: string) =>
+      Number(ciphertext.slice(4)),
+    ),
     ...encryption,
   } as unknown as EncryptionPort;
   return {
@@ -84,6 +87,7 @@ function assetRow(id: string, overrides: Partial<AssetRow> = {}): AssetRow {
     direction: 'own',
     in_pulpe: false,
     archived_at: null,
+    suggestion_dismissed_at: null,
     created_at: '2026-11-01T00:00:00Z',
     updated_at: '2026-11-01T00:00:00Z',
     ...overrides,
@@ -191,6 +195,38 @@ describe('SupabaseAssetRepository', () => {
       ]);
     });
 
+    it('carries the dismissal instant of each asset', async () => {
+      const { repo } = createRepository({
+        asset: [
+          query(() => ({
+            data: [
+              assetRow('a', {
+                suggestion_dismissed_at: '2026-11-02T08:00:00Z',
+              }),
+              assetRow('b'),
+            ],
+            error: null,
+          })),
+        ],
+        asset_snapshot: [
+          query(() => ({
+            data: [
+              snapshotRow('a', 1, '2026-11-01T10:00:00Z'),
+              snapshotRow('b', 2, '2026-11-01T10:00:00Z'),
+            ],
+            error: null,
+          })),
+        ],
+      });
+
+      const assets = await repo.findAllWithLatestValue();
+
+      expect(assets.map((a) => a.suggestionDismissedAt)).toEqual([
+        '2026-11-02T08:00:00Z',
+        null,
+      ]);
+    });
+
     it('does not swallow a decryption failure', async () => {
       const failure = new Error(
         'Unsupported state or unable to authenticate data',
@@ -222,6 +258,121 @@ describe('SupabaseAssetRepository', () => {
       });
 
       await expect(repo.findAllWithLatestValue()).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_FETCH_FAILED.code,
+      });
+    });
+  });
+
+  describe('findCheckedLinkedLines', () => {
+    function lineRow(id: number, amount: number | null, kind = 'saving') {
+      return { id: `line-${id}`, kind, amount: amount && `enc:${amount}` };
+    }
+
+    it('reads each asset after its own cutoff and decrypts the amounts', async () => {
+      const livret = query(() => ({
+        data: [lineRow(1, 500), lineRow(2, 200.5)],
+        error: null,
+      }));
+      const leasing = query(() => ({
+        data: [lineRow(3, 400, 'expense')],
+        error: null,
+      }));
+      const { repo, encryption } = createRepository({
+        budget_line: [livret, leasing],
+      });
+
+      const lines = await repo.findCheckedLinkedLines([
+        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+        { assetId: 'leasing', since: '2026-11-04T08:00:00+00:00' },
+      ]);
+
+      expect(lines).toEqual([
+        { assetId: 'livret', kind: 'saving', amount: 500 },
+        { assetId: 'livret', kind: 'saving', amount: 200.5 },
+        { assetId: 'leasing', kind: 'expense', amount: 400 },
+      ]);
+      expect(livret.argsOf('eq')).toEqual([['asset_id', 'livret']]);
+      expect(livret.argsOf('gt')).toEqual([
+        ['checked_at', '2026-11-03T10:00:00+00:00'],
+      ]);
+      expect(leasing.argsOf('eq')).toEqual([['asset_id', 'leasing']]);
+      expect(leasing.argsOf('gt')).toEqual([
+        ['checked_at', '2026-11-04T08:00:00+00:00'],
+      ]);
+      expect(encryption.tryDecryptAmount).toHaveBeenCalledTimes(3);
+    });
+
+    it('counts every line of an asset past the 1000-row PostgREST page', async () => {
+      const firstPage = query((calls) => {
+        const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
+        expect([from, to]).toEqual([0, POSTGREST_PAGE_SIZE - 1]);
+        return {
+          data: Array.from({ length: POSTGREST_PAGE_SIZE }, (_, i) =>
+            lineRow(i, 1),
+          ),
+          error: null,
+        };
+      });
+      const secondPage = query((calls) => {
+        const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
+        expect([from, to]).toEqual([
+          POSTGREST_PAGE_SIZE,
+          2 * POSTGREST_PAGE_SIZE - 1,
+        ]);
+        return {
+          data: Array.from({ length: 5 }, (_, i) => lineRow(10_000 + i, 2)),
+          error: null,
+        };
+      });
+      const { repo } = createRepository({
+        budget_line: [firstPage, secondPage],
+      });
+
+      const lines = await repo.findCheckedLinkedLines([
+        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+      ]);
+
+      expect(lines).toHaveLength(POSTGREST_PAGE_SIZE + 5);
+      expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(
+        POSTGREST_PAGE_SIZE + 10,
+      );
+      expect(firstPage.argsOf('order')).toEqual([['id', { ascending: true }]]);
+    });
+
+    it('does not query anything without an active asset', async () => {
+      const { repo } = createRepository({ budget_line: [] });
+
+      await expect(repo.findCheckedLinkedLines([])).resolves.toEqual([]);
+    });
+
+    it('reads a line without a stored amount as zero', async () => {
+      const { repo, encryption } = createRepository({
+        budget_line: [query(() => ({ data: [lineRow(1, null)], error: null }))],
+      });
+
+      const lines = await repo.findCheckedLinkedLines([
+        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+      ]);
+
+      expect(lines).toEqual([{ assetId: 'livret', kind: 'saving', amount: 0 }]);
+      expect(encryption.tryDecryptAmount).not.toHaveBeenCalled();
+    });
+
+    it('fails with ASSET_FETCH_FAILED when a read fails', async () => {
+      const { repo } = createRepository({
+        budget_line: [
+          query(() => ({
+            data: null,
+            error: { code: '08006', message: 'down' },
+          })),
+        ],
+      });
+
+      await expect(
+        repo.findCheckedLinkedLines([
+          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+        ]),
+      ).rejects.toMatchObject({
         code: ERROR_DEFINITIONS.ASSET_FETCH_FAILED.code,
       });
     });
@@ -303,6 +454,19 @@ describe('SupabaseAssetRepository', () => {
       await expect(repo.insertAsset(input)).rejects.toMatchObject({
         code: ERROR_DEFINITIONS.ASSET_CATEGORY_NOT_FOUND.code,
       });
+    });
+  });
+
+  describe('update', () => {
+    it('writes the dismissal instant and leaves the other columns out', async () => {
+      const update = query(() => ({ data: assetRow('a'), error: null }));
+      const { repo } = createRepository({ asset: [update] });
+
+      await repo.update('a', { suggestionDismissedAt: '2026-11-03T10:00:00Z' });
+
+      expect(
+        JSON.parse(JSON.stringify(update.argsOf('update')[0]?.[0])),
+      ).toEqual({ suggestion_dismissed_at: '2026-11-03T10:00:00Z' });
     });
   });
 

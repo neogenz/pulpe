@@ -30,6 +30,7 @@ function makeAsset(overrides: Partial<Asset> & Pick<Asset, 'id' | 'name'>) {
     latestValue: 0,
     latestRecordedAt: new Date().toISOString(),
     convertedValue: 0,
+    suggestion: null,
     ...overrides,
   } satisfies Asset;
 }
@@ -52,12 +53,14 @@ const populated: NetWorth = {
       name: 'UBS',
       latestValue: 10_000,
       convertedValue: 10_000,
+      suggestion: null,
     }),
     makeAsset({
       id: 'a2',
       name: 'Compte à découvert',
       latestValue: -300,
       convertedValue: -300,
+      suggestion: null,
     }),
     makeAsset({
       id: 'a3',
@@ -66,12 +69,14 @@ const populated: NetWorth = {
       direction: 'owe',
       latestValue: 3000,
       convertedValue: 3000,
+      suggestion: null,
     }),
     makeAsset({
       id: 'a4',
       name: 'Ancien compte',
       latestValue: 50,
       convertedValue: 50,
+      suggestion: null,
       archivedAt: '2026-10-01T00:00:00.000Z',
     }),
   ],

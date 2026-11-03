@@ -27,6 +27,7 @@ const assets = [
     latestValue: 100,
     latestRecordedAt: '2026-11-03T10:00:00.000Z',
     convertedValue: 100,
+    suggestion: null,
   },
 ] satisfies Asset[];
 

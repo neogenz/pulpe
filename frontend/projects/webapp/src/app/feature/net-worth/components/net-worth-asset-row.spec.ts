@@ -20,6 +20,7 @@ const asset: Asset = {
   latestValue: 1234.5,
   latestRecordedAt: new Date().toISOString(),
   convertedValue: 1234.5,
+  suggestion: null,
 };
 
 @Component({

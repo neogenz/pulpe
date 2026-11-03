@@ -2,6 +2,7 @@ import type {
   AssetDirection,
   NetWorthTotals,
   SupportedCurrency,
+  TransactionKind,
 } from 'pulpe-shared';
 import type { Database } from '../../../types/database.types';
 
@@ -35,6 +36,33 @@ export interface Asset {
 export interface AssetWithValue extends Asset {
   latestValue: number;
   latestRecordedAt: string;
+  /** When the user last dismissed a suggestion; never exposed by the API. */
+  suggestionDismissedAt: string | null;
+}
+
+/**
+ * A prévision of the user, linked to an asset and checked. `amount` is decrypted
+ * and in the account currency, the one the totals are converted into.
+ */
+export interface CheckedLinkedLine {
+  assetId: string;
+  kind: TransactionKind;
+  amount: number;
+}
+
+/** Lines are read when checked strictly after `since` (an ISO instant). */
+export interface CheckedLinesCutoff {
+  assetId: string;
+  since: string;
+}
+
+/**
+ * The value checked prévisions propose for an asset, in the asset's currency.
+ * `delta` is signed: `proposedValue` is the latest value plus `delta`.
+ */
+export interface AssetSuggestion {
+  delta: number;
+  proposedValue: number;
 }
 
 export interface AssetCreateInput {
@@ -53,6 +81,7 @@ export interface AssetUpdatePatch {
   categoryId?: string;
   inPulpe?: boolean;
   archivedAt?: string | null;
+  suggestionDismissedAt?: string;
 }
 
 export interface AssetSnapshotInput {
@@ -68,6 +97,7 @@ export interface NetWorthCategory extends AssetCategory {
 /** Asset with its value in base currency at today's rate; `null` without a rate. */
 export interface NetWorthAsset extends AssetWithValue {
   convertedValue: number | null;
+  suggestion: AssetSuggestion | null;
 }
 
 export interface NetWorth {

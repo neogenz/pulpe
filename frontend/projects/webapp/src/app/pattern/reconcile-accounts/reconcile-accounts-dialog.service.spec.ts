@@ -32,6 +32,7 @@ function makeAsset(overrides: Partial<Asset> = {}): Asset {
     latestValue: 12000,
     latestRecordedAt: '2026-11-01T10:00:00.000Z',
     convertedValue: 12000,
+    suggestion: null,
     ...overrides,
   };
 }

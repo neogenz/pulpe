@@ -3099,14 +3099,27 @@ export const assetRecordSchema = z.object({
 export type AssetRecord = z.infer<typeof assetRecordSchema>;
 
 /**
+ * Valeur que proposent les Prévisions pointées depuis la dernière photo de
+ * l'avoir (ou depuis le dernier « Écarter »). Les deux montants sont dans la
+ * devise de l'avoir ; `delta` est signé (une dette qui se rembourse baisse).
+ */
+export const assetSuggestionSchema = z.object({
+  delta: z.number(),
+  proposedValue: z.number(),
+});
+export type AssetSuggestion = z.infer<typeof assetSuggestionSchema>;
+
+/**
  * Avoir tel que lu sur la page. `latestValue` est dans la devise de l'avoir ;
  * `convertedValue` est en devise de base au taux du jour, `null` quand aucun
- * taux n'est disponible (l'avoir est alors hors des totaux).
+ * taux n'est disponible (l'avoir est alors hors des totaux). `suggestion` est
+ * `null` quand rien ne la justifie (avoir archivé, aucun taux, rien de pointé).
  */
 export const assetSchema = assetRecordSchema.extend({
   latestValue: z.number(),
   latestRecordedAt: z.iso.datetime({ offset: true }),
   convertedValue: z.number().nullable(),
+  suggestion: assetSuggestionSchema.nullable(),
 });
 export type Asset = z.infer<typeof assetSchema>;
 
