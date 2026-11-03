@@ -1152,7 +1152,9 @@
         "removeNumbered": "Konto {{ index }} entfernen",
         "total": "Summe deiner Konten",
         "numbered": "Konto {{ index }}",
-        "privateHint": "Die eingegebenen Konten werden nicht gespeichert."
+        "privateHint": "Die eingegebenen Konten werden nicht gespeichert.",
+        "lastBalance": "Letzter Saldo: {{ amount }}, {{ when }}",
+        "linkedHint": "Den Saldo deiner Konten „In Pulpe“ behalte ich in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert."
       },
       "realized": {
         "heading": "Dein abgehakter Saldo",
@@ -1184,6 +1186,7 @@
       },
       "cancel": "Abbrechen",
       "compare": "Differenz ansehen",
+      "balancesNotSaved": "Abgleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern.",
       "steps": {
         "accounts": "Konten",
         "realized": "Abgehakt",

@@ -21,27 +21,32 @@ import { MatChipsModule } from '@angular/material/chips';
 import type { ErrorStateMatcher } from '@angular/material/core';
 import {
   MAT_DIALOG_DATA,
-  type MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { differenceInCalendarDays } from 'date-fns';
+import { cachedMutation } from 'ngx-ziflux';
 import {
   ANALYTICS_EVENTS,
   CURRENCY_METADATA,
   parseAccountAmount,
   reconciliationVerdict,
   summarizeAccounts,
+  type Asset,
+  type AssetSnapshotsCreate,
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { filter, merge } from 'rxjs';
 
 import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
 import { AppCurrencyPipe } from '@core/currency';
 import { LoadingButton } from '@ui/loading-button';
 import { StepProgress } from '@ui/step-progress';
@@ -74,12 +79,19 @@ export interface ReconcileAccountsDialogData {
     adjustment: ReconciliationAdjustment,
   ) => Promise<boolean>;
   readonly viewItemsToCheck: () => void;
+  /**
+   * The « Dans Pulpe » accounts of the budget's currency, resolved before the
+   * dialog opens: its rows are built once from them, never re-read.
+   */
+  readonly linkedAccounts: readonly Asset[];
 }
 
 interface AccountRow {
   readonly id: number;
   readonly label: string;
   readonly amountText: string;
+  /** The account this balance refreshes in « Mon patrimoine »; `null` for a free row. */
+  readonly assetId: string | null;
 }
 
 type Step = 1 | 2 | 3;
@@ -113,9 +125,15 @@ export class ReconcileAccountsDialog {
   readonly #dialogRef = inject(MatDialogRef<ReconcileAccountsDialog>);
   readonly #injector = inject(Injector);
   readonly #postHog = inject(PostHogService);
+  readonly #assetApi = inject(AssetApi);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #transloco = inject(TranslocoService);
   readonly #dayMonthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
     day: 'numeric',
     month: 'short',
+  });
+  readonly #relativeTime = new Intl.RelativeTimeFormat(inject(LOCALE_ID), {
+    numeric: 'auto',
   });
   protected readonly data =
     inject<ReconcileAccountsDialogData>(MAT_DIALOG_DATA);
@@ -137,10 +155,38 @@ export class ReconcileAccountsDialog {
     { labelKey: 'currentMonth.reconcile.steps.verdict' },
   ] as const;
   protected readonly step = signal<Step>(1);
-  protected readonly accounts = signal<AccountRow[]>([
-    { id: 0, label: '', amountText: '' },
-  ]);
-  #nextAccountId = 1;
+  protected readonly accounts = signal<AccountRow[]>(
+    this.data.linkedAccounts.length === 0
+      ? [{ id: 0, label: '', amountText: '', assetId: null }]
+      : this.data.linkedAccounts.map((asset, id) => ({
+          id,
+          label: asset.name,
+          amountText: '',
+          assetId: asset.id,
+        })),
+  );
+  #nextAccountId = this.accounts().length;
+  protected readonly lastBalances = new Map(
+    this.data.linkedAccounts.map((asset) => [
+      asset.id,
+      {
+        amount: asset.latestValue,
+        when: this.#relativeTime.format(
+          -differenceInCalendarDays(
+            new Date(),
+            new Date(asset.latestRecordedAt),
+          ),
+          'day',
+        ),
+      },
+    ]),
+  );
+  readonly #recordBalances = cachedMutation({
+    cache: this.#assetApi.cache,
+    mutationFn: (items: AssetSnapshotsCreate['items']) =>
+      this.#assetApi.recordSnapshots$({ items }),
+    invalidateKeys: () => [['assets']],
+  });
 
   // Flagged once the field is left, never mid-keystroke: "12." is on its way
   // to "12.50". It never counts in the total either way.
@@ -169,9 +215,7 @@ export class ReconcileAccountsDialog {
   });
 
   protected readonly adjustmentLabel = signal(
-    inject(TranslocoService).translate(
-      'currentMonth.reconcile.verdict.defaultLabel',
-    ),
+    this.#transloco.translate('currentMonth.reconcile.verdict.defaultLabel'),
   );
   protected readonly blankLabel: ErrorStateMatcher = {
     isErrorState: (control) =>
@@ -260,7 +304,7 @@ export class ReconcileAccountsDialog {
   protected addAccount(): void {
     this.accounts.update((accounts) => [
       ...accounts,
-      { id: this.#nextAccountId++, label: '', amountText: '' },
+      { id: this.#nextAccountId++, label: '', amountText: '', assetId: null },
     ]);
     afterNextRender(() => this.labelInputs().at(-1)?.nativeElement.focus(), {
       injector: this.#injector,
@@ -336,6 +380,7 @@ export class ReconcileAccountsDialog {
         ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED,
         { adjustment_kind: adjustment.kind },
       );
+      void this.#saveBalances();
       this.#dialogRef.close();
     } finally {
       this.isRecording.set(false);
@@ -351,7 +396,27 @@ export class ReconcileAccountsDialog {
         adjustment_kind: 'none',
       },
     );
+    void this.#saveBalances();
     this.close();
+  }
+
+  // The reconciliation is done by the time this runs, so a failure changes
+  // nothing about how the dialog ends: the rows are read before the first
+  // await, and only a toast says the balances did not reach « Mon patrimoine ».
+  async #saveBalances(): Promise<void> {
+    const items = this.accounts().flatMap(({ assetId, amountText }) => {
+      const amount = parseAccountAmount(amountText);
+      return assetId !== null && amount.status === 'valid'
+        ? [{ assetId, value: amount.cents / CENTS_PER_UNIT }]
+        : [];
+    });
+    if (items.length === 0 || (await this.#recordBalances.mutate(items)))
+      return;
+    this.#snackBar.open(
+      this.#transloco.translate('currentMonth.reconcile.balancesNotSaved'),
+      this.#transloco.translate('common.close'),
+      { duration: 5000 },
+    );
   }
 
   protected viewItemsToCheck(): void {
@@ -363,28 +428,4 @@ export class ReconcileAccountsDialog {
     if (this.isRecording()) return;
     this.#dialogRef.close();
   }
-}
-
-export function openReconcileAccountsDialog(
-  dialog: MatDialog,
-  data: ReconcileAccountsDialogData,
-  isHandset: boolean,
-): void {
-  dialog.open<ReconcileAccountsDialog, ReconcileAccountsDialogData>(
-    ReconcileAccountsDialog,
-    {
-      data,
-      autoFocus: '[inputmode="decimal"]',
-      disableClose: true,
-      ...(isHandset
-        ? {
-            panelClass: 'full-screen-dialog',
-            width: '100dvw',
-            maxWidth: '100dvw',
-            height: '100dvh',
-            maxHeight: '100dvh',
-          }
-        : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
-    },
-  );
 }

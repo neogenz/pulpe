@@ -1152,7 +1152,9 @@
         "removeNumbered": "Retirer le compte {{ index }}",
         "total": "Total de tes comptes",
         "numbered": "Compte {{ index }}",
-        "privateHint": "Les comptes saisis ne sont pas enregistrés."
+        "privateHint": "Les comptes saisis ne sont pas enregistrés.",
+        "lastBalance": "Dernier solde : {{ amount }}, {{ when }}",
+        "linkedHint": "Je garde le solde de tes comptes « Dans Pulpe » dans Mon patrimoine. Les autres lignes ne sont pas enregistrées."
       },
       "realized": {
         "heading": "Ton solde pointé",
@@ -1184,6 +1186,7 @@
       },
       "cancel": "Annuler",
       "compare": "Voir l'écart",
+      "balancesNotSaved": "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine.",
       "steps": {
         "accounts": "Comptes",
         "realized": "Pointé",

@@ -1152,7 +1152,9 @@
         "removeNumbered": "Rimuovi il conto {{ index }}",
         "total": "Totale dei tuoi conti",
         "numbered": "Conto {{ index }}",
-        "privateHint": "I conti inseriti non vengono salvati."
+        "privateHint": "I conti inseriti non vengono salvati.",
+        "lastBalance": "Ultimo saldo: {{ amount }}, {{ when }}",
+        "linkedHint": "Conservo il saldo dei tuoi conti «In Pulpe» in Il mio patrimonio. Le altre righe non vengono salvate."
       },
       "realized": {
         "heading": "Il tuo saldo spuntato",
@@ -1184,6 +1186,7 @@
       },
       "cancel": "Annulla",
       "compare": "Vedi la differenza",
+      "balancesNotSaved": "Allineamento fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio.",
       "steps": {
         "accounts": "Conti",
         "realized": "Spuntato",

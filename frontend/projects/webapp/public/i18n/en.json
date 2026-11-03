@@ -1152,7 +1152,9 @@
         "removeNumbered": "Remove account {{ index }}",
         "total": "Total of your accounts",
         "numbered": "Account {{ index }}",
-        "privateHint": "The accounts you enter are not saved."
+        "privateHint": "The accounts you enter are not saved.",
+        "lastBalance": "Last balance: {{ amount }}, {{ when }}",
+        "linkedHint": "I keep the balance of your “In Pulpe” accounts in My net worth. The other rows are not saved."
       },
       "realized": {
         "heading": "Your checked balance",
@@ -1184,6 +1186,7 @@
       },
       "cancel": "Cancel",
       "compare": "See the difference",
+      "balancesNotSaved": "Matching done, but I couldn't save your balances in My net worth.",
       "steps": {
         "accounts": "Accounts",
         "realized": "Checked",

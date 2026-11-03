@@ -8,7 +8,7 @@ import type {
   AssetUpdate,
   NetWorthTotals,
 } from 'pulpe-shared';
-import { AssetApi } from '@core/asset/asset-api';
+import { AssetApi, NET_WORTH_CACHE_KEY } from '@core/asset/asset-api';
 
 /** An existing category, or a starter suggestion to create on save. */
 export type CategoryChoice = { id: string } | { name: string };
@@ -35,7 +35,7 @@ export class NetWorthStore {
 
   readonly netWorth = cachedResource({
     cache: this.#api.cache,
-    cacheKey: ['assets', 'net-worth'],
+    cacheKey: NET_WORTH_CACHE_KEY,
     loader: () =>
       this.#api.getNetWorth$().pipe(map((response) => response.data)),
   });

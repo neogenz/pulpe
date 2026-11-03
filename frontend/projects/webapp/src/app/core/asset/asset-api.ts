@@ -27,6 +27,9 @@ import {
 import { ApiClient } from '@core/api/api-client';
 import { DataCache } from 'ngx-ziflux';
 
+/** The entry the page and the reconciliation read, one request for both. */
+export const NET_WORTH_CACHE_KEY = ['assets', 'net-worth'];
+
 /**
  * « Mon patrimoine » client. Every figure comes from `getNetWorth$` (the
  * server computes totals, subtotals and conversions at today's rate): the web
