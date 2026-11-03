@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Fragment, type ReactNode } from "react";
 import {
   CURRENCY_METADATA,
+  hasCents,
   moneyDifference,
   type SupportedCurrency,
   type TransactionKind,
@@ -53,10 +54,7 @@ interface RealizedBalanceSheetProps {
   currency: SupportedCurrency;
   /** The month this sheet reads; the period in force when absent. */
   period?: { month: number; year: number };
-  /**
-   * Offered only where the month is the one being lived: a past balance has no
-   * bank account left to be held against.
-   */
+  /** "Rapprocher mes comptes", offered wherever a budget is loaded to hold against the bank. */
   onReconcile?: () => void;
 }
 
@@ -245,7 +243,13 @@ function CheckedBalanceCard({
     >
       <HeroFigure
         eyebrow={t("home.realized.checkedBalance")}
-        amount={formatCompactAmount(realized.realizedBalance, currency)}
+        // Centimes when the balance has some, as on iOS: the bridge below adds
+        // up to the centime and the hero has to be one of its terms.
+        amount={
+          hasCents(realized.realizedBalance)
+            ? formatAmount(realized.realizedBalance, currency)
+            : formatCompactAmount(realized.realizedBalance, currency)
+        }
         currency={CURRENCY_METADATA[currency].symbol}
       />
       {/* The state lives in the sentence, never in the surface (The Two-Zone Rule). */}
