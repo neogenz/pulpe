@@ -8,22 +8,13 @@ struct BudgetDetailsRealizedBalanceSheet: View {
     @State private var isReconciling = false
 
     var body: some View {
+        let budget = coordinator.dataStore.budget
         RealizedBalanceSheet(
             metrics: coordinator.dataStore.metrics,
-            realizedMetrics: coordinator.dataStore.realizedMetrics
+            realizedMetrics: coordinator.dataStore.realizedMetrics,
+            period: budget.map { BudgetPeriod(month: $0.month, year: $0.year) },
+            onReconcile: budget == nil ? nil : { isReconciling = true }
         )
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if coordinator.dataStore.budget != nil {
-                Button { isReconciling = true } label: {
-                    Label("Rapprocher mes comptes", systemImage: "building.columns")
-                }
-                .secondaryButtonStyle()
-                .accessibilityIdentifier("reconcileAccountsButton")
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.md)
-                .background(Color.sheetBackground)
-            }
-        }
         .sheet(isPresented: $isReconciling) {
             if let month = reconciledMonth {
                 ReconcileAccountsSheet(

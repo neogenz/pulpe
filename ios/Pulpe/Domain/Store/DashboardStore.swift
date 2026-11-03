@@ -38,6 +38,8 @@ final class DashboardStore: StoreProtocol {
 
     private static let historicalMonthsCount = 3
     private static let maxHistoricalToFetch = 6 // Enough for trends + YTD lookback
+    /// Periods the forecast covers, the current one included.
+    static let forecastHorizonMonths = 6
 
     // MARK: - Initialization
 
@@ -89,7 +91,8 @@ final class DashboardStore: StoreProtocol {
             do {
                 let currentYear = Calendar.current.component(.year, from: Date())
 
-                // Fetch current year (all months including future) + recent history in parallel
+                // Fetch current year (all months including future), recent history, and next
+                // year for forecasts that cross into January, in parallel
                 async let currentYearBudgets = budgetService.getBudgetsSparse(
                     fields: BudgetService.defaultSparseFields,
                     limit: nil,
@@ -100,8 +103,15 @@ final class DashboardStore: StoreProtocol {
                     limit: Self.maxHistoricalToFetch,
                     year: currentYear - 1
                 )
+                async let nextYearBudgets = budgetService.getBudgetsSparse(
+                    fields: BudgetService.defaultSparseFields,
+                    limit: nil,
+                    year: currentYear + 1
+                )
 
-                let (yearBudgets, pastBudgets) = try await (currentYearBudgets, recentBudgets)
+                let (yearBudgets, pastBudgets, aheadBudgets) = try await (
+                    currentYearBudgets, recentBudgets, nextYearBudgets
+                )
 
                 // Check for cancellation before updating state
                 try Task.checkCancellation()
@@ -109,7 +119,7 @@ final class DashboardStore: StoreProtocol {
                 // Merge and deduplicate by id
                 var seen = Set<String>()
                 var merged: [BudgetSparse] = []
-                for budget in pastBudgets + yearBudgets where seen.insert(budget.id).inserted {
+                for budget in pastBudgets + yearBudgets + aheadBudgets where seen.insert(budget.id).inserted {
                     merged.append(budget)
                 }
 
@@ -212,31 +222,25 @@ final class DashboardStore: StoreProtocol {
         historicalExpenses.count >= 2
     }
 
-    /// Projected remaining balance from current month through December.
-    /// Uses the backend-computed `remaining` field (income + rollover - expenses)
-    /// to match the "disponible" amounts shown in the budget list.
-    var balanceForecasts: [MonthlyForecast] {
-        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-        let currentYear = currentPeriod.year
-
-        return (currentPeriod.month...12).compactMap { month -> MonthlyForecast? in
-            guard let budget = sparseBudgets.first(where: { $0.month == month && $0.year == currentYear }),
+    /// Projected remaining balance over `forecastHorizonMonths` periods, `start` first,
+    /// crossing into the next year when the horizon does. Uses the backend-computed
+    /// `remaining` field (income + rollover - expenses) to match the "disponible" amounts
+    /// shown in the budget list.
+    func balanceForecasts(from start: BudgetPeriod) -> [MonthlyForecast] {
+        let startIndex = BudgetPeriodCalculator.periodIndex(start)
+        return (0..<Self.forecastHorizonMonths).compactMap { offset -> MonthlyForecast? in
+            let period = BudgetPeriodCalculator.periodFromIndex(startIndex + offset)
+            guard let budget = sparseBudgets.first(where: { $0.month == period.month && $0.year == period.year }),
                   let remaining = budget.remaining else {
                 return nil
             }
 
             return MonthlyForecast(
-                month: month,
-                year: currentYear,
-                availableBalance: Double(truncating: remaining as NSDecimalNumber),
-                isCurrentMonth: month == currentPeriod.month
+                month: period.month,
+                year: period.year,
+                availableBalance: Double(truncating: remaining as NSDecimalNumber)
             )
         }
-    }
-
-    /// At least 2 forecast entries needed for a meaningful chart
-    var hasEnoughDataForBalanceChart: Bool {
-        balanceForecasts.count >= 2
     }
 }
 
@@ -248,6 +252,9 @@ protocol MonthlyDataPoint {
 }
 
 extension MonthlyDataPoint {
+    /// "novembre", as running text writes it in the interface language.
+    var monthName: String { Formatters.monthNameInText(for: month) }
+
     var shortMonthName: String {
         var components = DateComponents()
         components.month = month
@@ -296,11 +303,34 @@ struct ExpenseVariation {
     }
 }
 
-struct MonthlyForecast: Identifiable, MonthlyDataPoint {
+struct MonthlyForecast: Identifiable, Equatable, MonthlyDataPoint {
     let month: Int
     let year: Int
     let availableBalance: Double
-    let isCurrentMonth: Bool
 
     var id: String { "\(year)-\(month)" }
+}
+
+/// Where the forecast is heading, read from the sign of each month's balance: the turn
+/// the sheet's headline names. A balance of exactly zero counts as positive.
+enum ForecastOutlook: Equatable {
+    /// Every month stays at or above zero; carries the last one.
+    case staysPositive(through: MonthlyForecast)
+    /// Starts at or above zero, then a month dips below; carries that month.
+    case tightens(in: MonthlyForecast)
+    /// Starts below zero, then a month climbs back; carries that month.
+    case recovers(in: MonthlyForecast)
+    /// Every month stays below zero; carries the last one.
+    case staysNegative(through: MonthlyForecast)
+
+    init?(_ forecasts: [MonthlyForecast]) {
+        guard let first = forecasts.first, let last = forecasts.last else { return nil }
+        if first.availableBalance >= 0 {
+            let dip = forecasts.first { $0.availableBalance < 0 }
+            self = dip.map(Self.tightens(in:)) ?? .staysPositive(through: last)
+        } else {
+            let climb = forecasts.first { $0.availableBalance >= 0 }
+            self = climb.map(Self.recovers(in:)) ?? .staysNegative(through: last)
+        }
+    }
 }

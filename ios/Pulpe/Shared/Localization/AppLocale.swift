@@ -74,4 +74,12 @@ enum AppLocale {
         resource.locale = locale
         return String(localized: resource)
     }
+
+    /// `string(_:)` keeping the catalog's Markdown. `Text` shows the `**` of a plural
+    /// variation as literal asterisks; this resolves the plural first, then parses it.
+    static func attributed(_ key: String.LocalizationValue, locale: Locale = currentUILocale) -> AttributedString {
+        var resource = LocalizedStringResource(key)
+        resource.locale = locale
+        return AttributedString(localized: resource)
+    }
 }

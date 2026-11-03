@@ -38,5 +38,18 @@ extension DesignTokens {
         /// drift history yet: a week, so the first few days of a month bend the projection
         /// without throwing it. With a history, `DriftHistory.priorStrength` takes over.
         static let trendPriorDays = 7
+
+        /// The forecast bars of the budget-tracking sheet: both sides of zero share this
+        /// height, and a month near zero keeps a stub so its column never reads as missing.
+        static let forecastPlotHeight: CGFloat = 132
+        static let forecastBarWidth: CGFloat = 26
+        static let forecastBarMinHeight: CGFloat = 10
+        /// The dot under the selected month's name.
+        static let forecastSelectionDot: CGFloat = 6
+
+        /// One dot per budget item on the pointed-balance card. Past `checkDotLimit` (two
+        /// rows) the dots stop being countable and the card falls back to a progress bar.
+        static let checkDotColumns = 25
+        static let checkDotLimit = 50
     }
 }

@@ -258,8 +258,8 @@ struct CurrentMonthStoreMutationSeamTests {
         await dashboardStore.loadIfNeeded()
         #expect(listService.getBudgetsSparseCallCount == 2)
         #expect(
-            dashboardService.getBudgetsSparseCallCount == dashboardFetchBaseline + 2,
-            "Dashboard invalidation must trigger a full refresh (current year + recent history = 2 API calls)"
+            dashboardService.getBudgetsSparseCallCount == dashboardFetchBaseline + 3,
+            "Dashboard invalidation must trigger a full refresh (recent history + current + next year = 3 API calls)"
         )
     }
 
