@@ -9,7 +9,6 @@ import {
   formatCompactAmount,
   formatCompactCurrency,
 } from "@/core/ui/amount-format";
-import { formatMonthName } from "@/core/ui/date-format";
 import { hapticSelection } from "@/core/ui/haptics";
 import { useRipple } from "@/core/ui/ripple";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
@@ -74,12 +73,15 @@ export function ForecastSection({
       min === undefined || forecast.balance < min.balance ? forecast : min,
     undefined,
   );
+  // One formatter per style and render: every bar names its month twice.
+  const longMonth = new Intl.DateTimeFormat(locale, { month: "long" });
+  const shortMonth = new Intl.DateTimeFormat(locale, { month: "short" });
+  const firstDay = (forecast: MonthlyForecast) =>
+    new Date(forecast.year, forecast.month - 1, 1);
   const monthName = (forecast: MonthlyForecast) =>
-    formatMonthName(forecast.month, forecast.year, locale);
+    longMonth.format(firstDay(forecast));
   const shortMonthName = (forecast: MonthlyForecast) =>
-    new Intl.DateTimeFormat(locale, { month: "short" }).format(
-      new Date(forecast.year, forecast.month - 1, 1),
-    );
+    shortMonth.format(firstDay(forecast));
   const tint = (forecast: MonthlyForecast) =>
     forecast.balance < 0 ? financial.overBudget : financial.savings;
 

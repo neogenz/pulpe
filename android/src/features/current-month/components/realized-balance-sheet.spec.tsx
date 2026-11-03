@@ -24,6 +24,7 @@ jest.mock("@/core/ui/scheme-colors", () => ({
     muted: "gray",
     positive: "lime",
     caution: "amber",
+    ink: "white",
   }),
 }));
 jest.mock("@/core/ui/theme", () => ({
