@@ -10,6 +10,7 @@ import { firstValueFrom } from 'rxjs';
 import type { NetWorth } from 'pulpe-shared';
 import { createMockPostHogService } from '@app/testing/mock-posthog';
 import { PostHogService } from '@core/analytics/posthog';
+import { BudgetApi } from '@core/budget/budget-api';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { AssetApi } from './asset-api';
 
@@ -134,6 +135,18 @@ describe('AssetApi', () => {
     expect((await response).data.recordedAt).toBe('2026-11-03T10:00:00.000Z');
   });
 
+  it('dismissSuggestion$ POSTs to the asset dismissal and parses the asset record', async () => {
+    const response = firstValueFrom(api.dismissSuggestion$(ASSET_ID));
+
+    const req = httpTesting.expectOne(
+      `${BASE_URL}/assets/${ASSET_ID}/dismiss-suggestion`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush({ success: true, data: netWorth.assets[0] });
+
+    expect((await response).data.id).toBe(ASSET_ID);
+  });
+
   it('delete$ DELETEs the asset', async () => {
     const response = firstValueFrom(api.delete$(ASSET_ID));
 
@@ -183,5 +196,15 @@ describe('AssetApi', () => {
     api.clearCache();
 
     expect(api.cache.get(['assets', 'net-worth'])).toBeNull();
+  });
+
+  // Checking a prévision elsewhere moves the suggestion, but not the asset cache.
+  it('marks the asset cache stale when the budget cache version changes', () => {
+    api.cache.set(['assets', 'net-worth'], netWorth);
+
+    TestBed.inject(BudgetApi).cache.invalidate(['budget', 'details']);
+    TestBed.flushEffects();
+
+    expect(api.cache.get(['assets', 'net-worth'])?.fresh).toBe(false);
   });
 });

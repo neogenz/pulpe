@@ -21,7 +21,9 @@ export type AssetRowAction =
   | 'edit'
   | 'archive'
   | 'unarchive'
-  | 'delete';
+  | 'delete'
+  | 'applySuggestion'
+  | 'dismissSuggestion';
 
 export interface AssetRowEvent {
   asset: Asset;
@@ -35,7 +37,7 @@ const DAYS_PER_YEAR = 365;
   selector: 'pulpe-net-worth-asset-row',
   host: {
     class:
-      'flex items-center gap-3 border-t border-outline-variant py-3 pl-5 pr-2',
+      'flex flex-wrap items-center gap-3 border-t border-outline-variant py-3 pl-5 pr-2',
     'data-testid': 'asset-row',
   },
   imports: [
@@ -114,6 +116,55 @@ const DAYS_PER_YEAR = 365;
     >
       <mat-icon>more_vert</mat-icon>
     </button>
+    @if (visibleSuggestion(); as suggestion) {
+      <div
+        class="mr-3 flex w-full flex-wrap items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-low py-3 pl-3.5 pr-3"
+        data-testid="asset-suggestion"
+      >
+        <mat-icon class="text-primary" aria-hidden="true"
+          >auto_awesome</mat-icon
+        >
+        <div class="ph-no-capture min-w-0 flex-[1_1_14rem] tabular-nums">
+          <p class="m-0 text-body-medium">
+            {{ 'netWorth.suggestion.proposes' | transloco }}
+            <strong data-testid="asset-suggestion-value">{{
+              suggestion.proposedValue | appCurrency: asset().currency : '1.2-2'
+            }}</strong>
+          </p>
+          @let delta = suggestion.delta;
+          <p
+            class="m-0 text-body-small text-on-surface-variant"
+            data-testid="asset-suggestion-detail"
+          >
+            {{
+              suggestionDetailKey()
+                | transloco
+                  : {
+                      amount:
+                        (delta > 0 ? '+' : '') +
+                        (delta | appCurrency: asset().currency : '1.2-2'),
+                    }
+            }}
+          </p>
+        </div>
+        <div class="ml-auto flex gap-1">
+          <button
+            matButton
+            (click)="emit('dismissSuggestion')"
+            data-testid="asset-suggestion-dismiss-button"
+          >
+            {{ 'netWorth.suggestion.dismiss' | transloco }}
+          </button>
+          <button
+            matButton="tonal"
+            (click)="emit('applySuggestion')"
+            data-testid="asset-suggestion-apply-button"
+          >
+            {{ 'netWorth.suggestion.apply' | transloco }}
+          </button>
+        </div>
+      </div>
+    }
     <mat-menu #menu="matMenu">
       @if (asset().archivedAt) {
         <button
@@ -201,6 +252,19 @@ export class NetWorthAssetRow {
   protected readonly isDebt = computed(
     () => this.asset().direction === 'owe' || this.isOverdraft(),
   );
+
+  // An archived asset never offers one, whatever the payload carries.
+  protected readonly visibleSuggestion = computed(() =>
+    this.asset().archivedAt ? null : this.asset().suggestion,
+  );
+  protected readonly suggestionDetailKey = computed(() => {
+    if (this.asset().direction === 'owe') {
+      return 'netWorth.suggestion.detailRepaid';
+    }
+    return (this.visibleSuggestion()?.delta ?? 0) < 0
+      ? 'netWorth.suggestion.detailDrawn'
+      : 'netWorth.suggestion.detailSaved';
+  });
 
   protected readonly updatedWhen = computed(() => {
     const days = differenceInCalendarDays(

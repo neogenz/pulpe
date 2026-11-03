@@ -1543,6 +1543,14 @@
       "oweLabel": "Debt repaid",
       "oweHint": "Once checked, I'll suggest lowering what's still owed on {{debt}}."
     },
+    "suggestion": {
+      "proposes": "Pulpe suggests",
+      "detailSaved": "{{amount}} of checked savings since the last value",
+      "detailDrawn": "{{amount}} of income drawn since the last value",
+      "detailRepaid": "{{amount}} of checked repayment since the last value",
+      "dismiss": "Dismiss",
+      "apply": "Apply"
+    },
     "starter": {
       "accounts": "Accounts",
       "savings": "Savings",

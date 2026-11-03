@@ -1,4 +1,4 @@
-import { inject, Service } from '@angular/core';
+import { effect, inject, Service, untracked } from '@angular/core';
 import type { Observable } from 'rxjs';
 import {
   type AssetCategoryCreate,
@@ -25,6 +25,7 @@ import {
   netWorthResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
+import { BudgetApi } from '@core/budget/budget-api';
 import { DataCache } from 'ngx-ziflux';
 
 /** The entry the page and the reconciliation read, one request for both. */
@@ -39,11 +40,22 @@ export const NET_WORTH_CACHE_KEY = ['assets', 'net-worth'];
 @Service()
 export class AssetApi {
   readonly #api = inject(ApiClient);
+  readonly #budgetApi = inject(BudgetApi);
   readonly cache = new DataCache({
     name: 'assets',
     staleTime: 30_000,
     expireTime: 300_000,
   });
+
+  constructor() {
+    // Value suggestions are computed server-side from the checked prévisions
+    // linked to an asset: any budget-domain mutation (checking one, linking
+    // one…) makes them stale, so returning to the page shows them unreloaded.
+    effect(() => {
+      if (this.#budgetApi.cache.version() === 0) return;
+      untracked(() => this.cache.invalidate(['assets']));
+    });
+  }
 
   clearCache(): void {
     this.cache.clear();
@@ -83,6 +95,14 @@ export class AssetApi {
       snapshots,
       assetSnapshotsResponseSchema,
       assetSnapshotsCreateSchema,
+    );
+  }
+
+  dismissSuggestion$(id: string): Observable<AssetResponse> {
+    return this.#api.post$(
+      `/assets/${id}/dismiss-suggestion`,
+      {},
+      assetResponseSchema,
     );
   }
 

@@ -1543,6 +1543,14 @@
       "oweLabel": "Getilgte Schuld",
       "oweHint": "Sobald er abgehakt ist, schlage ich dir vor, den noch offenen Betrag bei {{debt}} zu senken."
     },
+    "suggestion": {
+      "proposes": "Pulpe schlägt vor:",
+      "detailSaved": "{{amount}} Sparen abgehakt seit dem letzten Wert",
+      "detailDrawn": "{{amount}} Einnahme entnommen seit dem letzten Wert",
+      "detailRepaid": "{{amount}} Rückzahlung abgehakt seit dem letzten Wert",
+      "dismiss": "Verwerfen",
+      "apply": "Übernehmen"
+    },
     "starter": {
       "accounts": "Konten",
       "savings": "Sparen",

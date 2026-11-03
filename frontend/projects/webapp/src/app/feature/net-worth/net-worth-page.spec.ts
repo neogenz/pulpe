@@ -110,6 +110,8 @@ describe('NetWorthPage', () => {
     ),
     isEmpty: computed(() => (value()?.assets ?? []).length === 0),
     setArchived: vi.fn(),
+    recordValue: vi.fn(),
+    dismissSuggestion: vi.fn(),
   };
   const dialogs = { openCreate: vi.fn() };
   const snackBar = { open: vi.fn() };
@@ -141,6 +143,8 @@ describe('NetWorthPage', () => {
     status.set('resolved');
     dialogs.openCreate.mockResolvedValue(undefined);
     store.setArchived.mockResolvedValue(undefined);
+    store.recordValue.mockResolvedValue(undefined);
+    store.dismissSuggestion.mockResolvedValue(undefined);
 
     await TestBed.configureTestingModule({
       imports: [NetWorthPage],
@@ -261,5 +265,51 @@ describe('NetWorthPage', () => {
 
     expect(store.setArchived).toHaveBeenCalledWith('a1', true);
     expect(snackBar.open).toHaveBeenCalledOnce();
+  });
+
+  describe('suggestion', () => {
+    const withSuggestion: NetWorth = {
+      ...populated,
+      assets: [
+        makeAsset({
+          id: 'a1',
+          name: 'Livret',
+          latestValue: 3000,
+          convertedValue: 3000,
+          suggestion: { delta: 500, proposedValue: 3500 },
+        }),
+      ],
+    };
+    const click = (id: string) => byTestId(id)!.click();
+
+    it('applies the proposed value as a new snapshot', async () => {
+      render(withSuggestion);
+
+      click('asset-suggestion-apply-button');
+      await fixture.whenStable();
+
+      expect(store.recordValue).toHaveBeenCalledWith('a1', 3500);
+      expect(store.dismissSuggestion).not.toHaveBeenCalled();
+    });
+
+    it('dismisses the suggestion without recording a value', async () => {
+      render(withSuggestion);
+
+      click('asset-suggestion-dismiss-button');
+      await fixture.whenStable();
+
+      expect(store.dismissSuggestion).toHaveBeenCalledWith('a1');
+      expect(store.recordValue).not.toHaveBeenCalled();
+    });
+
+    it('surfaces a refused apply in a snackbar', async () => {
+      render(withSuggestion);
+      store.recordValue.mockRejectedValue(new Error('boom'));
+
+      click('asset-suggestion-apply-button');
+      await fixture.whenStable();
+
+      expect(snackBar.open).toHaveBeenCalledOnce();
+    });
   });
 });

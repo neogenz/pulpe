@@ -70,6 +70,9 @@ describe('NetWorthStore', () => {
         .fn()
         .mockReturnValue(of({ success: true, data: makeAsset() })),
       delete$: vi.fn().mockReturnValue(of({ success: true, message: 'ok' })),
+      dismissSuggestion$: vi
+        .fn()
+        .mockReturnValue(of({ success: true, data: makeAsset() })),
       recordSnapshots$: vi.fn().mockReturnValue(
         of({
           success: true,
@@ -199,6 +202,13 @@ describe('NetWorthStore', () => {
     expect(api['recordSnapshots$']).toHaveBeenCalledWith({
       items: [{ assetId: ASSET_ID, value: -300 }],
     });
+  });
+
+  it('dismisses a suggestion through the API and refreshes the assets', async () => {
+    await store.dismissSuggestion(ASSET_ID);
+
+    expect(api['dismissSuggestion$']).toHaveBeenCalledWith(ASSET_ID);
+    expect(cache.invalidate).toHaveBeenCalledWith(['assets']);
   });
 
   it('archives, unarchives and deletes through the API', async () => {

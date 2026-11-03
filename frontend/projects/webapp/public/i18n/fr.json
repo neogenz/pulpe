@@ -1543,6 +1543,14 @@
       "oweLabel": "Dette remboursée",
       "oweHint": "Une fois pointée, je te propose de baisser ce qu'il reste dû sur {{debt}}."
     },
+    "suggestion": {
+      "proposes": "Pulpe propose",
+      "detailSaved": "{{amount}} d'épargne pointée depuis la dernière valeur",
+      "detailDrawn": "{{amount}} de revenu tiré depuis la dernière valeur",
+      "detailRepaid": "{{amount}} de remboursement pointé depuis la dernière valeur",
+      "dismiss": "Écarter",
+      "apply": "Appliquer"
+    },
     "starter": {
       "accounts": "Comptes",
       "savings": "Épargne",

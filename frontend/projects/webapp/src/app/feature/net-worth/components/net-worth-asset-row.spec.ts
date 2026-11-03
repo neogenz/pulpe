@@ -122,6 +122,65 @@ describe('NetWorthAssetRow', () => {
     expect(text('asset-row-meta')).toContain('Prêts');
   });
 
+  describe('suggestion', () => {
+    const suggestion = { delta: 500, proposedValue: 3500 };
+    const click = (id: string) =>
+      fixture.nativeElement.querySelector(`[data-testid="${id}"]`).click();
+
+    it('proposes the new value in the asset currency with its signed detail', () => {
+      render({ suggestion });
+
+      expect(text('asset-suggestion')).toContain('Pulpe propose');
+      expect(text('asset-suggestion-value')).toBe('3’500.00 CHF');
+      expect(text('asset-suggestion-detail')).toBe(
+        "+500.00 CHF d'épargne pointée depuis la dernière valeur",
+      );
+    });
+
+    it('words a negative delta as income drawn from an own asset', () => {
+      render({ suggestion: { delta: -200, proposedValue: 3000 } });
+
+      expect(text('asset-suggestion-detail')).toBe(
+        '-200.00 CHF de revenu tiré depuis la dernière valeur',
+      );
+    });
+
+    it('words a debt delta as a checked repayment', () => {
+      render({
+        direction: 'owe',
+        suggestion: { delta: -400, proposedValue: 7600 },
+      });
+
+      expect(text('asset-suggestion-detail')).toBe(
+        '-400.00 CHF de remboursement pointé depuis la dernière valeur',
+      );
+    });
+
+    it('shows nothing without a suggestion', () => {
+      render();
+
+      expect(text('asset-suggestion')).toBeNull();
+    });
+
+    it('never shows a suggestion on an archived asset', () => {
+      render({ suggestion, archivedAt: '2026-10-01T00:00:00.000Z' });
+
+      expect(text('asset-suggestion')).toBeNull();
+    });
+
+    it('emits apply and dismiss with the asset', () => {
+      render({ suggestion });
+
+      click('asset-suggestion-apply-button');
+      click('asset-suggestion-dismiss-button');
+
+      expect(fixture.componentInstance.events).toEqual([
+        { asset: { ...asset, suggestion }, action: 'applySuggestion' },
+        { asset: { ...asset, suggestion }, action: 'dismissSuggestion' },
+      ]);
+    });
+  });
+
   it('emits the chosen menu action with its asset', () => {
     render();
 

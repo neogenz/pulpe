@@ -1543,6 +1543,14 @@
       "oweLabel": "Debito rimborsato",
       "oweHint": "Una volta spuntata, ti propongo di abbassare quanto resta da pagare su {{debt}}."
     },
+    "suggestion": {
+      "proposes": "Pulpe propone",
+      "detailSaved": "{{amount}} di risparmio spuntato dall'ultimo valore",
+      "detailDrawn": "{{amount}} di entrata prelevata dall'ultimo valore",
+      "detailRepaid": "{{amount}} di rimborso spuntato dall'ultimo valore",
+      "dismiss": "Scarta",
+      "apply": "Applica"
+    },
     "starter": {
       "accounts": "Conti",
       "savings": "Risparmio",
