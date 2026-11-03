@@ -211,7 +211,10 @@ function CheckedBalanceCard({
   const total = realized.totalItemsCount;
   const share = total > 0 ? checked / total : 0;
   // From the pointed balance to the "Disponible à dépenser" budget details
-  // shows. The outflow is the rest of the gap, so the line always adds up.
+  // shows. The outflow is the rest of the gap, so the line always adds up. It
+  // is never negative: the rollover cancels out, leaving totalExpenses −
+  // realizedExpenses (plus any income beyond plan), and a pointed envelope
+  // never exceeds its envelope.
   const incoming = Math.max(
     moneyDifference(metrics.totalIncome, realized.realizedIncome),
     0,

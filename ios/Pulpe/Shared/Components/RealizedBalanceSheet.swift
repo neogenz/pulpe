@@ -227,7 +227,9 @@ private struct CheckedBalanceCard: View {
 
     /// From the pointed balance to the "Disponible à dépenser" budget details shows: plus what
     /// is still to come in, minus what is still to go out. The outflow is the rest of the gap,
-    /// so the line always adds up to that figure.
+    /// so the line always adds up to that figure. It is never negative: the rollover cancels
+    /// out, leaving totalExpenses − realizedExpenses (plus any income beyond plan), and a
+    /// pointed envelope never exceeds its envelope.
     private var bridge: Text? {
         let incoming = max(metrics.totalIncome - realizedMetrics.realizedIncome, 0)
         let outgoing = realizedMetrics.realizedBalance + incoming - metrics.remaining
