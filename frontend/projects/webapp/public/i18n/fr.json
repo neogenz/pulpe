@@ -1462,7 +1462,7 @@
     "gross": "Ce que j'ai",
     "debts": "Ce que je dois",
     "fxNote": "{{asset}} converti au taux du jour : 1 {{foreign}} = {{rate}} {{base}}",
-    "negativeNote": "Ce que je dois dépasse ce que j'ai aujourd'hui. Chaque remboursement pointé ramène ce chiffre vers zéro.",
+    "negativeNote": "Ce que je dois dépasse ce que j'ai aujourd'hui. Chaque remboursement pointé rapproche ce chiffre de zéro.",
     "incompleteNotice": "Je n'ai pas le taux {{currency}} du jour : le total ne compte pas {{assets}}. Il reviendra dès que le taux sera disponible.",
     "excluded": "Hors total",
     "inPulpe": "Dans Pulpe",
