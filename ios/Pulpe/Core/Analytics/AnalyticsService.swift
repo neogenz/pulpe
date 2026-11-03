@@ -440,6 +440,37 @@ extension AnalyticsService {
     }
 }
 
+// MARK: - Account identity
+
+extension AnalyticsService {
+    /// Identifies an authenticated account with the person properties PostHog shows.
+    /// Apple's private relay can leave the email empty: sending "" would overwrite a
+    /// valid email identified earlier, so blank values are dropped (same as the webapp).
+    func identify(user: UserInfo) {
+        var properties: [String: Any] = [
+            Self.supabaseUserIdProperty: user.id,
+            Self.earlyAdopterProperty: user.isEarlyAdopter
+        ]
+        let email = user.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !email.isEmpty {
+            properties[Self.emailProperty] = email
+        }
+        if let name = user.firstName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
+            properties[Self.nameProperty] = name
+        }
+        identify(userId: user.id, properties: properties)
+    }
+
+    /// A new account is identified before its signup event: post-auth identification
+    /// only runs on the next launch, so a user who never came back stayed anonymous
+    /// and dropped out of every account-based cohort.
+    func captureSignupCompleted(user: UserInfo, method: String) {
+        identify(user: user)
+        reloadFeatureFlags()
+        capture(.signupCompleted, properties: ["method": method])
+    }
+}
+
 // MARK: - PostHog configuration
 
 extension AnalyticsService {

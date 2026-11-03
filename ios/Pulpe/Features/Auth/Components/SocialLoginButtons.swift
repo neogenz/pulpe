@@ -90,7 +90,7 @@ struct SocialLoginSection: View {
                 switch result {
                 case .newUser(var user):
                     let persistError = await patchFirstName(on: &user, from: givenName)
-                    AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "apple"])
+                    AnalyticsService.shared.captureSignupCompleted(user: user, method: "apple")
                     await onAuthenticated(user, persistError)
                 case .existingUserRedirected:
                     // Already had a vault — this was a login disguised as signup.
@@ -140,7 +140,7 @@ struct SocialLoginSection: View {
                 switch result {
                 case .newUser(var user):
                     let persistError = await patchFirstName(on: &user, from: givenName)
-                    AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "google"])
+                    AnalyticsService.shared.captureSignupCompleted(user: user, method: "google")
                     await onAuthenticated(user, persistError)
                 case .existingUserRedirected:
                     // Already had a vault — this was a login disguised as signup.
