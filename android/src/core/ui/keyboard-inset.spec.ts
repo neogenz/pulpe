@@ -1,6 +1,6 @@
 import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 
-import { sheetBox, SHEET_HEIGHT_RATIO } from "./keyboard-inset";
+import { revealOffset, sheetBox, SHEET_HEIGHT_RATIO } from "./keyboard-inset";
 
 const WINDOW_HEIGHT = 800;
 const NAV_BAR = 24;
@@ -85,5 +85,25 @@ describe("screens that scroll around a field", () => {
     });
 
     expect(blind).toEqual([]);
+  });
+});
+
+describe("revealOffset", () => {
+  it("scrolls down just enough to bring the block's bottom edge into view", () => {
+    expect(
+      revealOffset({ top: 500, height: 200, visible: 400, offset: 0 }),
+    ).toBe(300);
+  });
+
+  it("leaves a block that already shows whole where it is", () => {
+    expect(
+      revealOffset({ top: 500, height: 200, visible: 400, offset: 320 }),
+    ).toBeUndefined();
+  });
+
+  it("keeps the top of a block taller than the body in view", () => {
+    expect(
+      revealOffset({ top: 500, height: 600, visible: 400, offset: 0 }),
+    ).toBe(500);
   });
 });
