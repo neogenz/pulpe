@@ -4,6 +4,8 @@ import {
   assetCreateSchema,
   assetSnapshotsCreateSchema,
   assetUpdateSchema,
+  budgetLineSchema,
+  templateLineSchema,
 } from '../schemas.js';
 
 const CATEGORY_ID = '550e8400-e29b-41d4-a716-446655440001';
@@ -128,5 +130,43 @@ describe('assetCategoryCreateSchema', () => {
     });
 
     expect(result.data?.name).toBe('a'.repeat(30));
+  });
+});
+
+describe('asset link on read schemas', () => {
+  const timestamps = {
+    createdAt: '2026-11-01T00:00:00+00:00',
+    updatedAt: '2026-11-01T00:00:00+00:00',
+  };
+  const line = {
+    id: ASSET_ID,
+    name: 'Loyer',
+    amount: 800,
+    kind: 'expense',
+    recurrence: 'fixed',
+    savingsGoalId: null,
+    ...timestamps,
+  };
+
+  it('should read a budget line without assetId as unlinked (older backend)', () => {
+    const result = budgetLineSchema.parse({
+      ...line,
+      budgetId: CATEGORY_ID,
+      templateLineId: null,
+      isManuallyAdjusted: false,
+      checkedAt: null,
+    });
+
+    expect(result.assetId).toBeNull();
+  });
+
+  it('should read a template line without assetId as unlinked (older backend)', () => {
+    const result = templateLineSchema.parse({
+      ...line,
+      templateId: CATEGORY_ID,
+      description: '',
+    });
+
+    expect(result.assetId).toBeNull();
   });
 });

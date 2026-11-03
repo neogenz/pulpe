@@ -1511,8 +1511,6 @@
       "readOnlyHint": "Art und Währung bleiben wie bei der Erstellung.",
       "editNote": "Um den Wert zu ändern, nutze „Wert aktualisieren“ im Menü der Zeile.",
       "nameRequired": "Gib einen Namen ein",
-      "categoryRequired": "Wähle eine Kategorie",
-      "valueRequired": "Gib einen Wert ein",
       "add": "Hinzufügen"
     },
     "value": {
@@ -1521,8 +1519,7 @@
       "subtitleOwe": "{{name}} · was ich heute schulde",
       "label": "Neuer Wert",
       "lastValue": "Letzter Wert: {{amount}}, am {{date}}",
-      "overdraft": "Negativer Saldo (überzogen)",
-      "valueRequired": "Gib einen Wert ein"
+      "overdraft": "Negativer Saldo (überzogen)"
     },
     "categoriesDialog": {
       "title": "Meine Kategorien",

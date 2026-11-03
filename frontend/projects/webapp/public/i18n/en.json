@@ -1511,8 +1511,6 @@
       "readOnlyHint": "The type and the currency stay as they were at creation.",
       "editNote": "To change its value, use “Update value” in the row menu.",
       "nameRequired": "Give it a name",
-      "categoryRequired": "Pick a category",
-      "valueRequired": "Enter a value",
       "add": "Add"
     },
     "value": {
@@ -1521,8 +1519,7 @@
       "subtitleOwe": "{{name}} · what I owe today",
       "label": "New value",
       "lastValue": "Last value: {{amount}}, on {{date}}",
-      "overdraft": "Negative balance (overdraft)",
-      "valueRequired": "Enter a value"
+      "overdraft": "Negative balance (overdraft)"
     },
     "categoriesDialog": {
       "title": "My categories",

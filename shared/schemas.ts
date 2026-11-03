@@ -972,7 +972,9 @@ export const budgetLineSchema = z.object({
   savingsGoalId: z.uuid().nullable(),
   // Lien optionnel vers un avoir (own pour épargne et revenu) ou une dette (owe
   // pour dépense), indépendant du lien objectif. Absent d'un PATCH = lien gardé.
-  assetId: z.uuid().nullable(),
+  // Absent d'une réponse = aucun lien : un backend plus ancien ne l'envoie pas
+  // pendant le déploiement.
+  assetId: z.uuid().nullable().default(null),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
@@ -2001,8 +2003,9 @@ export const templateLineSchema = z.object({
   // line stays tagged across monthly regenerations.
   savingsGoalId: z.uuid().nullable(),
   // Link to an asset or a debt, independent from the goal. Copied onto the
-  // budget lines like the goal link.
-  assetId: z.uuid().nullable(),
+  // budget lines like the goal link. Missing from a response means no link: an
+  // older backend omits it while it deploys.
+  assetId: z.uuid().nullable().default(null),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,

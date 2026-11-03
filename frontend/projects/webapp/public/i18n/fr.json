@@ -1511,8 +1511,6 @@
       "readOnlyHint": "Le sens et la devise restent ceux de la création.",
       "editNote": "Pour changer sa valeur, passe par « Mettre à jour la valeur » dans le menu de la ligne.",
       "nameRequired": "Donne-lui un nom",
-      "categoryRequired": "Choisis une catégorie",
-      "valueRequired": "Indique une valeur",
       "add": "Ajouter"
     },
     "value": {
@@ -1521,8 +1519,7 @@
       "subtitleOwe": "{{name}} · ce que je dois aujourd'hui",
       "label": "Nouvelle valeur",
       "lastValue": "Dernière valeur : {{amount}}, le {{date}}",
-      "overdraft": "Solde négatif (découvert)",
-      "valueRequired": "Indique une valeur"
+      "overdraft": "Solde négatif (découvert)"
     },
     "categoriesDialog": {
       "title": "Mes catégories",
