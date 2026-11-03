@@ -73,6 +73,15 @@ struct AppLocaleTests {
         #expect(AppLocale.string("\(4) périodes", locale: english) == "4 periods")
     }
 
+    /// `Text` shows the `**` of a plural variation as literal asterisks ("**12** pointées").
+    @Test func attributed_resolvesThePluralThenParsesItsMarkdown() {
+        let italian = AppLocale.attributed("**\(1)** pointées", locale: Locale(identifier: "it"))
+        let bold = italian.runs.first { $0.inlinePresentationIntent == .stronglyEmphasized }
+
+        #expect(String(italian.characters) == "1 spuntata")
+        #expect(bold.map { String(italian[$0.range].characters) } == "1")
+    }
+
     @Test func string_fallsBackToFrenchForAnUntranslatedKey() {
         let key: String.LocalizationValue = "Pulpe"
 

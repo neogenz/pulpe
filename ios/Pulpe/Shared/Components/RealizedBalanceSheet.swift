@@ -183,7 +183,7 @@ private struct CheckedBalanceCard: View {
                     .padding(.top, DesignTokens.Spacing.xs)
                     .accessibilityHidden(true)
                 HStack {
-                    Text("**\(checked)** pointées")
+                    Text(AppLocale.attributed("**\(checked)** pointées"))
                     Spacer(minLength: DesignTokens.Spacing.sm)
                     Text("**\(total - checked)** à pointer")
                 }
