@@ -4,7 +4,7 @@ import {
   signal,
   type Provider,
 } from '@angular/core';
-import { Subject } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import {
   MatDialogRef,
@@ -23,7 +23,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { createMockPostHogService } from '@app/testing/mock-posthog';
-import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
+import type { Asset, BudgetLine, SupportedCurrency } from 'pulpe-shared';
 import { EditBudgetLineDialog, type EditBudgetLineDialogData } from './dialog';
 
 const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
@@ -355,5 +355,133 @@ describe('EditBudgetLineDialog — asset link', () => {
     expect(direction()).toBe('owe');
     component['model'].update((m) => ({ ...m, kind: 'income' }));
     expect(direction()).toBeNull();
+  });
+});
+
+// Un revenu tiré du patrimoine garde son origine en lecture seule : elle se
+// fixe à la création, aucune API ne la déplace.
+describe('EditBudgetLineDialog — income drawn from an asset', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const livret: Asset = {
+    id: ASSET_ID,
+    categoryId: '00000000-0000-4000-8000-0000000000c1',
+    name: 'Livret',
+    currency: 'CHF',
+    direction: 'own',
+    inPulpe: false,
+    archivedAt: null,
+    latestValue: 3_000,
+    latestRecordedAt: '2026-11-01T08:00:00.000Z',
+    convertedValue: 3_000,
+    suggestion: null,
+  };
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+  const open = async (line: BudgetLine, isEnabled = true) => {
+    const postHog = createMockPostHogService();
+    postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+    const context = configureDialog(line, {
+      userCurrency: 'CHF',
+      providers: [
+        { provide: PostHogService, useValue: postHog },
+        {
+          provide: AssetApi,
+          useValue: {
+            cache: createMockDataCache(),
+            getNetWorth$: () =>
+              of({
+                success: true,
+                data: {
+                  totals: {
+                    baseCurrency: 'CHF',
+                    gross: 0,
+                    debts: 0,
+                    net: 0,
+                    incomplete: false,
+                  },
+                  categories: [],
+                  assets: [livret],
+                },
+              }),
+          },
+        },
+      ],
+    });
+    context.converter.convertWithMetadata.mockResolvedValue({
+      convertedAmount: line.amount,
+      metadata: null,
+    });
+    context.fixture.detectChanges();
+    await settle();
+    context.fixture.detectChanges();
+    return context;
+  };
+  const originLine = (fixture: { nativeElement: HTMLElement }) =>
+    fixture.nativeElement.querySelector('[data-testid="asset-origin-line"]');
+
+  it('names the asset read-only, with no picker, for a linked Revenu', async () => {
+    const { fixture } = await open(
+      createMockBudgetLine({ kind: 'income', assetId: ASSET_ID }),
+    );
+
+    const line = originLine(fixture)!;
+    expect(line.textContent?.replace(/\s+/g, ' ')).toContain(
+      'Pris sur · Livret',
+    );
+    expect(line.querySelector('mat-icon')?.textContent?.trim()).toBe(
+      'account_balance_wallet',
+    );
+    expect(
+      fixture.nativeElement.querySelector('pulpe-asset-picker-field'),
+    ).toBeNull();
+  });
+
+  it('shows no origin for a Revenu without a link, or with the flag off', async () => {
+    const unlinked = await open(
+      createMockBudgetLine({ kind: 'income', assetId: null }),
+    );
+    expect(originLine(unlinked.fixture)).toBeNull();
+
+    TestBed.resetTestingModule();
+    const flagOff = await open(
+      createMockBudgetLine({ kind: 'income', assetId: ASSET_ID }),
+      false,
+    );
+    expect(originLine(flagOff.fixture)).toBeNull();
+  });
+
+  it('shows no origin line for an Épargne, which has its picker instead', async () => {
+    const { fixture } = await open(
+      createMockBudgetLine({ kind: 'saving', assetId: ASSET_ID }),
+    );
+
+    expect(originLine(fixture)).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('pulpe-asset-picker-field'),
+    ).not.toBeNull();
+  });
+
+  it('keeps the link when the Revenu is saved', async () => {
+    const { component, dialogRef } = await open(
+      createMockBudgetLine({ kind: 'income', assetId: ASSET_ID }),
+    );
+
+    await component.handleSubmit();
+
+    expect(dialogRef.close.mock.calls[0][0].assetId).toBe(ASSET_ID);
+  });
+
+  it('drops the origin line along with the link when the kind changes', async () => {
+    const { fixture, component } = await open(
+      createMockBudgetLine({ kind: 'income', assetId: ASSET_ID }),
+    );
+
+    component['model'].update((m) => ({ ...m, kind: 'expense' }));
+    component['onKindChange']();
+    fixture.detectChanges();
+
+    expect(originLine(fixture)).toBeNull();
+    expect(component['model']().assetId).toBeNull();
   });
 });

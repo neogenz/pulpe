@@ -5,7 +5,12 @@ import { MatSelect, type MatSelectChange } from '@angular/material/select';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Asset, AssetDirection, NetWorth } from 'pulpe-shared';
+import type {
+  Asset,
+  AssetDirection,
+  NetWorth,
+  TransactionKind,
+} from 'pulpe-shared';
 import { AssetApi } from '@core/asset/asset-api';
 import { createMockDataCache } from '@core/testing';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -99,9 +104,11 @@ describe('AssetPickerField', () => {
   const render = async (
     direction: AssetDirection,
     value: string | null = null,
+    kind: TransactionKind | null = null,
   ): Promise<ComponentFixture<AssetPickerField>> => {
     const fixture = TestBed.createComponent(AssetPickerField);
     fixture.componentRef.setInput('direction', direction);
+    fixture.componentRef.setInput('kind', kind);
     fixture.componentRef.setInput('value', value);
     fixture.detectChanges();
     await settle();
@@ -207,6 +214,33 @@ describe('AssetPickerField', () => {
     expect(
       fixture.debugElement.query(By.css('[data-testid="asset-picker-hint"]')),
     ).toBeNull();
+  });
+
+  it('labels the field « Tiré de » for a Revenu, over the owned assets only', async () => {
+    getNetWorth$.mockReturnValue(of(netWorth([livret, oldLivret, leasing])));
+    const fixture = await render('own', null, 'income');
+
+    expect(label(fixture)).toBe('Tiré de');
+    expect(await openAndReadOptions(fixture)).toEqual([
+      'Aucun',
+      'Livret · Épargne',
+    ]);
+  });
+
+  it('shows the value hint for a Revenu only once an asset is chosen', async () => {
+    getNetWorth$.mockReturnValue(of(netWorth([livret])));
+    const fixture = await render('own', null, 'income');
+    const hint = () =>
+      fixture.debugElement.query(By.css('[data-testid="asset-picker-hint"]'));
+
+    expect(hint()).toBeNull();
+
+    fixture.componentRef.setInput('value', livret.id);
+    fixture.detectChanges();
+
+    expect(hint().nativeElement.textContent.trim()).toBe(
+      'Une fois pointé, je te propose de baisser la valeur de Livret.',
+    );
   });
 
   it('renders nothing when no asset fits the direction', async () => {

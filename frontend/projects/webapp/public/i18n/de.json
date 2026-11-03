@@ -760,7 +760,8 @@
       "label": "Herkunft der Einnahme",
       "regular": "Übliche Einnahme",
       "savingsGoal": "Aus einem Sparziel geholt",
-      "repayNextMonth": "Von meinem Sparen geholt, nächsten Monat zurückzulegen"
+      "repayNextMonth": "Von meinem Sparen geholt, nächsten Monat zurückzulegen",
+      "asset": "Aus meinem Vermögen geholt"
     },
     "savingsGoalSource": {
       "activeLabel": "Geholt von",
@@ -1541,7 +1542,10 @@
       "none": "Keine",
       "ownLabel": "Eingezahlt auf",
       "oweLabel": "Getilgte Schuld",
-      "oweHint": "Sobald er abgehakt ist, schlage ich dir vor, den noch offenen Betrag bei {{debt}} zu senken."
+      "oweHint": "Sobald er abgehakt ist, schlage ich dir vor, den noch offenen Betrag bei {{debt}} zu senken.",
+      "drawnLabel": "Entnommen aus",
+      "drawnHint": "Sobald sie abgehakt ist, schlage ich dir vor, den Wert von {{asset}} zu senken.",
+      "drawnFrom": "Geholt von"
     },
     "suggestion": {
       "proposes": "Pulpe schlägt vor:",

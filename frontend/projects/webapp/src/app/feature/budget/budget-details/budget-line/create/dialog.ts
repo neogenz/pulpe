@@ -48,6 +48,7 @@ import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import {
   AssetPickerField,
   assetDirectionForKind,
+  injectNetWorthResource,
 } from '@app/pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import {
@@ -83,9 +84,10 @@ type AmountMode = 'total' | 'perMonth';
  * PUL-329 v2 — d'où vient un revenu, en un seul contrôle exclusif. Les deux
  * bascules qui coexistaient (PUL-292 « je rembourse le mois prochain » et le
  * retrait d'objectif) pouvaient être armées ensemble alors qu'elles décrivent
- * deux provenances incompatibles.
+ * deux provenances incompatibles. `asset` est « Tiré de mon patrimoine » :
+ * derrière le flag, et seulement s'il existe un élément à débiter.
  */
-type IncomeOrigin = 'regular' | 'savingsGoal' | 'repayNextMonth';
+type IncomeOrigin = 'regular' | 'savingsGoal' | 'repayNextMonth' | 'asset';
 
 interface AddBudgetLineModel {
   name: string;
@@ -294,6 +296,11 @@ interface AddBudgetLineModel {
                 <mat-option value="repayNextMonth">{{
                   'budget.incomeOrigin.repayNextMonth' | transloco
                 }}</mat-option>
+                @if (isAssetOriginOffered()) {
+                  <mat-option value="asset">{{
+                    'budget.incomeOrigin.asset' | transloco
+                  }}</mat-option>
+                }
               </mat-select>
             </mat-form-field>
 
@@ -305,6 +312,17 @@ interface AddBudgetLineModel {
                 [withdrawalAmount]="plannedWithdrawalAmount()"
                 (valueChanged)="
                   model.update((m) => ({ ...m, sourceSavingsGoalId: $event }))
+                "
+              />
+            }
+
+            @if (incomeOrigin() === 'asset') {
+              <pulpe-asset-picker-field
+                kind="income"
+                direction="own"
+                [value]="model().assetId"
+                (valueChanged)="
+                  model.update((m) => ({ ...m, assetId: $event }))
                 "
               />
             }
@@ -553,9 +571,23 @@ export class AddBudgetLineDialog {
   });
 
   // Which assets the kind can be linked to; null hides the field (flag off, or
-  // a Revenu, which gets its own origin later).
+  // a Revenu, which only gets the picker through its « Tiré de mon patrimoine »
+  // origin).
   protected readonly assetDirection = computed(() =>
     this.#isAssetLinkEnabled ? assetDirectionForKind(this.model().kind) : null,
+  );
+
+  // Same cached read as the picker: nothing to fetch with the flag off.
+  readonly #netWorth = this.#isAssetLinkEnabled
+    ? injectNetWorthResource()
+    : null;
+  protected readonly isAssetOriginOffered = computed(
+    () =>
+      this.#netWorth
+        ?.value()
+        ?.assets.some(
+          (asset) => asset.direction === 'own' && asset.archivedAt === null,
+        ) ?? false,
   );
 
   protected readonly nameErrors = touchedFieldErrors(
@@ -742,12 +774,13 @@ export class AddBudgetLineDialog {
     if (kind !== 'income') this.setIncomeOrigin('regular');
   }
 
-  /** Une origine efface l'état des deux autres : elles s'excluent. */
+  /** Une origine efface l'état des autres : elles s'excluent. */
   protected setIncomeOrigin(origin: IncomeOrigin): void {
     this.#incomeOrigin.set(origin);
     this.model.update((model) => ({
       ...model,
       sourceSavingsGoalId: null,
+      assetId: null,
       isChecked: origin === 'savingsGoal' ? false : model.isChecked,
     }));
   }

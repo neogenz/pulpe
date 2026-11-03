@@ -17,8 +17,10 @@ import { AssetApi, NET_WORTH_CACHE_KEY } from '@core/asset/asset-api';
 
 /**
  * Which assets a prévision of this kind can be linked to: an Épargne lands on
- * something I own, a Dépense repays something I owe. A Revenu gets no field
- * yet. Mirrors the `asset_id` guard trigger, which refuses any other pairing.
+ * something I own, a Dépense repays something I owe. A Revenu has no field of
+ * its own: it only gets the picker through its origin « Tiré de mon patrimoine »
+ * (`kind="income"`, `direction="own"`). Mirrors the `asset_id` guard trigger,
+ * which refuses any other pairing.
  */
 export function assetDirectionForKind(
   kind: TransactionKind,
@@ -29,7 +31,22 @@ export function assetDirectionForKind(
 }
 
 /**
- * « Versée sur » / « Dette remboursée » picker: the asset a prévision feeds.
+ * The net-worth read the picker and the dialogs share. Same key and loader as
+ * NetWorthStore: one request for the page, the reconciliation and every
+ * consumer. Call it from an injection context.
+ */
+export function injectNetWorthResource() {
+  const api = inject(AssetApi);
+  return cachedResource({
+    cache: api.cache,
+    cacheKey: NET_WORTH_CACHE_KEY,
+    loader: () => api.getNetWorth$().pipe(map((response) => response.data)),
+  });
+}
+
+/**
+ * « Versée sur » / « Dette remboursée » / « Tiré de » picker: the asset a
+ * prévision feeds or is drawn from.
  *
  * Value-based like the savings-goal picker: the caller passes the current
  * `assetId` via `[value]` and reacts to `(valueChanged)`; the first option maps
@@ -76,9 +93,9 @@ export function assetDirectionForKind(
             </mat-option>
           }
         </mat-select>
-        @if (direction() === 'owe' && selectedOption(); as debt) {
+        @if (hint(); as copy) {
           <mat-hint class="ph-no-capture" data-testid="asset-picker-hint">{{
-            'netWorth.link.oweHint' | transloco: { debt: debt.name }
+            copy.key | transloco: copy.params
           }}</mat-hint>
         }
       </mat-form-field>
@@ -87,25 +104,19 @@ export function assetDirectionForKind(
 })
 export class AssetPickerField {
   readonly direction = input.required<AssetDirection>();
+  /** `income` for a Revenu drawn from an asset; the other kinds derive from `direction`. */
+  readonly kind = input<TransactionKind | null>(null);
   readonly value = input<string | null>(null);
   readonly valueChanged = output<string | null>();
 
-  readonly #api = inject(AssetApi);
+  readonly #netWorth = injectNetWorthResource();
 
-  // Same key and loader as NetWorthStore: one request for the page, the
-  // reconciliation and this picker.
-  readonly #netWorth = cachedResource({
-    cache: this.#api.cache,
-    cacheKey: NET_WORTH_CACHE_KEY,
-    loader: () =>
-      this.#api.getNetWorth$().pipe(map((response) => response.data)),
-  });
-
-  protected readonly labelKey = computed(() =>
-    this.direction() === 'own'
+  protected readonly labelKey = computed(() => {
+    if (this.kind() === 'income') return 'netWorth.link.drawnLabel';
+    return this.direction() === 'own'
       ? 'netWorth.link.ownLabel'
-      : 'netWorth.link.oweLabel',
-  );
+      : 'netWorth.link.oweLabel';
+  });
 
   protected readonly options = computed(() => {
     const netWorth = this.#netWorth.value();
@@ -129,4 +140,19 @@ export class AssetPickerField {
   protected readonly selectedOption = computed(
     () => this.options().find((option) => option.id === this.value()) ?? null,
   );
+
+  // An Épargne on an asset has no hint: only the two flows that lower a value do.
+  protected readonly hint = computed(() => {
+    const selected = this.selectedOption();
+    if (!selected) return null;
+    if (this.kind() === 'income') {
+      return {
+        key: 'netWorth.link.drawnHint',
+        params: { asset: selected.name },
+      };
+    }
+    return this.direction() === 'owe'
+      ? { key: 'netWorth.link.oweHint', params: { debt: selected.name } }
+      : null;
+  });
 }

@@ -760,7 +760,8 @@
       "label": "Where the income comes from",
       "regular": "Usual income",
       "savingsGoal": "Taken from a goal",
-      "repayNextMonth": "Taken from my savings, to put back next month"
+      "repayNextMonth": "Taken from my savings, to put back next month",
+      "asset": "Taken from my net worth"
     },
     "savingsGoalSource": {
       "activeLabel": "Taken from",
@@ -1541,7 +1542,10 @@
       "none": "None",
       "ownLabel": "Saved to",
       "oweLabel": "Debt repaid",
-      "oweHint": "Once checked, I'll suggest lowering what's still owed on {{debt}}."
+      "oweHint": "Once checked, I'll suggest lowering what's still owed on {{debt}}.",
+      "drawnLabel": "Drawn from",
+      "drawnHint": "Once checked, I'll suggest lowering the value of {{asset}}.",
+      "drawnFrom": "Taken from"
     },
     "suggestion": {
       "proposes": "Pulpe suggests",

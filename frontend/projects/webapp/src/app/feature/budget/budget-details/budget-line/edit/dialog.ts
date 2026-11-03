@@ -45,6 +45,7 @@ import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import {
   AssetPickerField,
   assetDirectionForKind,
+  injectNetWorthResource,
 } from '@app/pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
@@ -189,6 +190,26 @@ interface EditBudgetLineModel {
               [goalName]="sourceSavingsGoalName"
             />
           }
+          <!--
+            Même règle pour un revenu tiré du patrimoine : son origine se fixe
+            à la création, aucune API ne la déplace.
+          -->
+          @if (originAssetName(); as assetName) {
+            <span
+              class="inline-flex items-center gap-1 min-w-0 text-on-surface-variant"
+              data-testid="asset-origin-line"
+            >
+              <mat-icon
+                class="text-sm! shrink-0 h-auto! w-auto!"
+                aria-hidden="true"
+                >account_balance_wallet</mat-icon
+              >
+              <span>
+                {{ 'netWorth.link.drawnFrom' | transloco }}
+                · <span class="ph-no-capture">{{ assetName }}</span>
+              </span>
+            </span>
+          }
         </div>
       </div>
     </mat-dialog-content>
@@ -269,10 +290,27 @@ export class EditBudgetLineDialog {
   );
 
   // Which assets the kind can be linked to; null hides the field (flag off, or
-  // a Revenu, which gets its own origin later).
+  // a Revenu: its asset origin is read-only here).
   protected readonly assetDirection = computed(() =>
     this.#isAssetLinkEnabled ? assetDirectionForKind(this.model().kind) : null,
   );
+
+  // The origin line only names a link the Revenu already had on opening, so the
+  // net-worth read (same cached one as the picker) is made for that case alone.
+  readonly #netWorth =
+    this.#isAssetLinkEnabled &&
+    this.#data.budgetLine.kind === 'income' &&
+    this.#data.budgetLine.assetId
+      ? injectNetWorthResource()
+      : null;
+  protected readonly originAssetName = computed(() => {
+    const { kind, assetId } = this.model();
+    if (kind !== 'income') return null;
+    return (
+      this.#netWorth?.value()?.assets.find((asset) => asset.id === assetId)
+        ?.name ?? null
+    );
+  });
 
   // Épargne and Dépense list different assets: a pick never survives the switch.
   protected onKindChange(): void {

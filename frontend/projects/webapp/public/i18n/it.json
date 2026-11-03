@@ -760,7 +760,8 @@
       "label": "Origine dell'entrata",
       "regular": "Entrata abituale",
       "savingsGoal": "Presa da un obiettivo",
-      "repayNextMonth": "Presa dal mio risparmio, da rimettere il mese prossimo"
+      "repayNextMonth": "Presa dal mio risparmio, da rimettere il mese prossimo",
+      "asset": "Prelevata dal mio patrimonio"
     },
     "savingsGoalSource": {
       "activeLabel": "Presa da",
@@ -1541,7 +1542,10 @@
       "none": "Nessuno",
       "ownLabel": "Versato su",
       "oweLabel": "Debito rimborsato",
-      "oweHint": "Una volta spuntata, ti propongo di abbassare quanto resta da pagare su {{debt}}."
+      "oweHint": "Una volta spuntata, ti propongo di abbassare quanto resta da pagare su {{debt}}.",
+      "drawnLabel": "Prelevata da",
+      "drawnHint": "Una volta spuntata, ti propongo di abbassare il valore di {{asset}}.",
+      "drawnFrom": "Presa da"
     },
     "suggestion": {
       "proposes": "Pulpe propone",
