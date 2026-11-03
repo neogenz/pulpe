@@ -295,7 +295,7 @@ struct AnalyticsServiceTests {
         )
     }
 
-    @Test func captureSignupCompleted_newAccount_isIdentifiedBeforeTheEvent() {
+    @Test func captureSignupCompleted_newAccount_identifiesTheAccount() {
         let service = AnalyticsService(isConfiguredEnabled: true)
         let user = UserInfo(id: "CD123456-1234-1234-1234-123456789ABC", email: "", firstName: "Lea")
         service.initialize()
