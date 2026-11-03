@@ -522,6 +522,70 @@ export const ERROR_DEFINITIONS = {
     httpStatus: HttpStatus.CONFLICT,
   },
 
+  // Net worth Errors (PUL-366). The *_FAILED codes cover assets, categories and
+  // snapshots alike: `details.entity` names which one in the message.
+  ASSET_NOT_FOUND: {
+    code: API_ERROR_CODES.ASSET_NOT_FOUND,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Asset with ID '${details.id}' not found`
+        : 'Asset not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
+  ASSET_CATEGORY_NOT_FOUND: {
+    code: API_ERROR_CODES.ASSET_CATEGORY_NOT_FOUND,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Asset category with ID '${details.id}' not found`
+        : 'Asset category not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
+  ASSET_CATEGORY_NOT_EMPTY: {
+    code: API_ERROR_CODES.ASSET_CATEGORY_NOT_EMPTY,
+    message: () =>
+      'Asset category still holds assets; move or delete them first',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  ASSET_CATEGORY_DUPLICATE: {
+    code: API_ERROR_CODES.ASSET_CATEGORY_DUPLICATE,
+    message: (details?: Record<string, unknown>) =>
+      details?.name
+        ? `An asset category named '${details.name}' already exists`
+        : 'An asset category with this name already exists',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  ASSET_VALUE_INVALID: {
+    code: API_ERROR_CODES.ASSET_VALUE_INVALID,
+    message: (details?: Record<string, unknown>) =>
+      details?.reason
+        ? `Invalid asset value: ${details.reason}`
+        : 'Invalid asset value',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  ASSET_FETCH_FAILED: {
+    code: API_ERROR_CODES.ASSET_FETCH_FAILED,
+    message: () => 'Failed to fetch assets',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  ASSET_CREATE_FAILED: {
+    code: API_ERROR_CODES.ASSET_CREATE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      `Failed to create ${details?.entity ?? 'asset'}`,
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  ASSET_UPDATE_FAILED: {
+    code: API_ERROR_CODES.ASSET_UPDATE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      `Failed to update ${details?.entity ?? 'asset'}`,
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  ASSET_DELETE_FAILED: {
+    code: API_ERROR_CODES.ASSET_DELETE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      `Failed to delete ${details?.entity ?? 'asset'}`,
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+
   // Budget Line Errors
   BUDGET_LINE_NOT_FOUND: {
     code: API_ERROR_CODES.BUDGET_LINE_NOT_FOUND,

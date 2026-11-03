@@ -133,6 +133,26 @@ export {
   tagHistoryResponseSchema,
   tagDeleteResponseSchema,
 
+  // Net worth (PUL-366)
+  assetDirectionSchema,
+  assetCategoryRecordSchema,
+  assetCategorySchema,
+  assetRecordSchema,
+  assetSchema,
+  netWorthTotalsSchema,
+  netWorthSchema,
+  assetCreateSchema,
+  assetUpdateSchema,
+  assetSnapshotsCreateSchema,
+  assetCategoryCreateSchema,
+  assetCategoryUpdateSchema,
+  netWorthResponseSchema,
+  assetResponseSchema,
+  assetDeleteResponseSchema,
+  assetSnapshotsResponseSchema,
+  assetCategoryResponseSchema,
+  assetCategoryDeleteResponseSchema,
+
   // Budget Line schemas
   budgetLineSchema,
   budgetLineCreateSchema,
@@ -510,6 +530,26 @@ export type {
   TagHistory,
   TagHistoryResponse,
   TagDeleteResponse,
+
+  // Net worth types (PUL-366)
+  AssetDirection,
+  AssetCategoryRecord,
+  AssetCategory,
+  AssetRecord,
+  Asset,
+  NetWorthTotals,
+  NetWorth,
+  AssetCreate,
+  AssetUpdate,
+  AssetSnapshotsCreate,
+  AssetCategoryCreate,
+  AssetCategoryUpdate,
+  NetWorthResponse,
+  AssetResponse,
+  AssetDeleteResponse,
+  AssetSnapshotsResponse,
+  AssetCategoryResponse,
+  AssetCategoryDeleteResponse,
 
   // Budget Line types
   BudgetLine,
