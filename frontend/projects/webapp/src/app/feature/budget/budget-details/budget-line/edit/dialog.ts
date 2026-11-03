@@ -17,6 +17,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FormField, form, minLength, required } from '@angular/forms/signals';
 import {
+  FEATURE_FLAGS,
   type BudgetLine,
   type BudgetLineUpdate,
   type BudgetPeriod,
@@ -35,11 +36,16 @@ import {
   runFormSubmit,
   StaleRateNotifier,
 } from '@core/currency';
+import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
+import {
+  AssetPickerField,
+  assetDirectionForKind,
+} from '@app/pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { budgetLineUpdateFromFormSchema } from './dialog.schema';
@@ -57,6 +63,7 @@ interface EditBudgetLineModel {
   recurrence: TransactionRecurrence;
   tagIds: string[];
   savingsGoalId: string | null;
+  assetId: string | null;
 }
 
 @Component({
@@ -75,6 +82,7 @@ interface EditBudgetLineModel {
     AmountInput,
     TagPicker,
     SavingsGoalPickerField,
+    AssetPickerField,
     SavingsGoalSourceLine,
   ],
   host: { 'data-testid': 'edit-budget-line-dialog' },
@@ -123,6 +131,7 @@ interface EditBudgetLineModel {
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select
               [formField]="editForm.kind"
+              (selectionChange)="onKindChange()"
               data-testid="edit-line-kind"
             >
               <mat-option value="income">
@@ -159,6 +168,13 @@ interface EditBudgetLineModel {
               (valueChanged)="
                 model.update((m) => ({ ...m, savingsGoalId: $event }))
               "
+            />
+          }
+          @if (assetDirection(); as direction) {
+            <pulpe-asset-picker-field
+              [direction]="direction"
+              [value]="model().assetId"
+              (valueChanged)="model.update((m) => ({ ...m, assetId: $event }))"
             />
           }
           <!--
@@ -207,6 +223,9 @@ export class EditBudgetLineDialog {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #isAssetLinkEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
 
   protected readonly originalCurrency =
     this.#data.budgetLine.originalCurrency ?? null;
@@ -232,6 +251,7 @@ export class EditBudgetLineDialog {
     recurrence: this.#data.budgetLine.recurrence,
     tagIds: this.#data.budgetLine.tagIds ?? [],
     savingsGoalId: this.#data.budgetLine.savingsGoalId,
+    assetId: this.#data.budgetLine.assetId,
   });
 
   protected readonly editForm = form(this.model, (path) => {
@@ -247,6 +267,17 @@ export class EditBudgetLineDialog {
   protected readonly canSubmit = computed(
     () => this.editForm().valid() && !this.isSubmitting(),
   );
+
+  // Which assets the kind can be linked to; null hides the field (flag off, or
+  // a Revenu, which gets its own origin later).
+  protected readonly assetDirection = computed(() =>
+    this.#isAssetLinkEnabled ? assetDirectionForKind(this.model().kind) : null,
+  );
+
+  // Épargne and Dépense list different assets: a pick never survives the switch.
+  protected onKindChange(): void {
+    this.model.update((model) => ({ ...model, assetId: null }));
+  }
 
   protected readonly nameErrors = touchedFieldErrors(
     () => this.editForm.name,
@@ -289,6 +320,7 @@ export class EditBudgetLineDialog {
               recurrence: m.recurrence,
               tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
+              assetId: this.#isAssetLinkEnabled ? m.assetId : undefined,
               conversion: metadata,
             });
             return {

@@ -1537,6 +1537,12 @@
       "add": "Aggiungi",
       "notEmpty": "Sposta prima {{names}} in un'altra categoria."
     },
+    "link": {
+      "none": "Nessuno",
+      "ownLabel": "Versato su",
+      "oweLabel": "Debito rimborsato",
+      "oweHint": "Una volta spuntata, ti propongo di abbassare quanto resta da pagare su {{debt}}."
+    },
     "starter": {
       "accounts": "Conti",
       "savings": "Risparmio",

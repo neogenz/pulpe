@@ -58,6 +58,9 @@ Ce fichier contient uniquement les invariants qui traversent plusieurs fonctionn
 - Une catégorie est créée par l'utilisateur, renommable et supprimable. Les six noms de départ (Comptes, Épargne, Placements, Cash, Objets de valeur, Biens) ne sont que des suggestions traduites, proposées tant qu'aucune catégorie ne porte déjà ce nom : la catégorie n'existe qu'au moment où un élément y est enregistré. Supprimer une catégorie qui contient encore un élément, archivé compris, est refusé (clé étrangère `RESTRICT`).
 - Le formulaire de création n'accepte qu'une première valeur positive ou nulle. Un découvert se saisit ensuite, dans la mise à jour de valeur.
 - La page est derrière le flag `net_worth` : l'entrée du menu disparaît flag éteint, mais la route `/net-worth` reste ouverte par son URL.
+- Une Prévision (et la ligne de modèle qui la génère) peut être liée à un élément du patrimoine (`asset_id`), selon son type : une Épargne ne se lie qu'à un `own`, une Dépense qu'à un `owe` (une dette qu'elle rembourse, jamais un compte), un Revenu à un `own` (le champ n'arrive qu'avec l'origine du revenu, hors de cette étape). Le trigger de la base refuse tout autre couple et l'élément d'un autre utilisateur ; le web ne propose que les éléments actifs du bon sens, derrière le flag `net_worth`.
+- Changer le type d'une Prévision sans lui donner de nouvel élément coupe le lien ; une mise à jour qui ne porte pas `assetId` le garde. Supprimer l'élément garde ses Prévisions et remet leur `asset_id` à `null` ; l'archiver garde le lien.
+- Ce lien est indépendant de l'objectif d'épargne : une Épargne peut porter les deux, aucun ne déduit ni ne remplace l'autre.
 
 ## Montants et devises
 

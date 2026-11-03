@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type Provider,
+} from '@angular/core';
+import { Subject } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import {
   MatDialogRef,
@@ -10,14 +15,20 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockBudgetLine } from '@app/testing/mock-factories';
+import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
 import { CurrencyConverterService } from '@core/currency';
+import { createMockDataCache } from '@core/testing';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
 import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
 import { EditBudgetLineDialog, type EditBudgetLineDialogData } from './dialog';
 
 const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
+const ASSET_ID = '00000000-0000-4000-8000-0000000000f3';
+const OTHER_ASSET_ID = '00000000-0000-4000-8000-0000000000f4';
 
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
@@ -32,7 +43,10 @@ interface DialogRefMock {
 
 function configureDialog(
   budgetLine: BudgetLine,
-  { userCurrency }: { userCurrency: SupportedCurrency },
+  {
+    userCurrency,
+    providers = [],
+  }: { userCurrency: SupportedCurrency; providers?: Provider[] },
 ) {
   const dialogRef: DialogRefMock = { close: vi.fn() };
   const settings: SettingsMock = {
@@ -59,6 +73,7 @@ function configureDialog(
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
+      ...providers,
     ],
   });
 
@@ -246,5 +261,99 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
     });
 
     expect(component['originalCurrency']).toBe(null);
+  });
+});
+
+describe('EditBudgetLineDialog — asset link', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const withNetWorthFlag = (isEnabled: boolean): Provider[] => {
+    const postHog = createMockPostHogService();
+    postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+    return [
+      { provide: PostHogService, useValue: postHog },
+      {
+        provide: AssetApi,
+        useValue: {
+          cache: createMockDataCache(),
+          getNetWorth$: () => new Subject(),
+        },
+      },
+    ];
+  };
+  const submit = async (
+    line: BudgetLine,
+    isEnabled: boolean,
+    edit?: (model: ReturnType<typeof configureDialog>['component']) => void,
+  ) => {
+    const { fixture, component, dialogRef, converter } = configureDialog(line, {
+      userCurrency: 'CHF',
+      providers: withNetWorthFlag(isEnabled),
+    });
+    converter.convertWithMetadata.mockResolvedValue({
+      convertedAmount: line.amount,
+      metadata: null,
+    });
+    edit?.(component);
+    fixture.detectChanges();
+    await component.handleSubmit();
+    return {
+      fixture,
+      patch: dialogRef.close.mock.calls[0][0],
+    };
+  };
+
+  it('should offer no asset field and add no assetId key with the flag off', async () => {
+    const line = createMockBudgetLine({ kind: 'saving', assetId: ASSET_ID });
+
+    const { fixture, patch } = await submit(line, false);
+
+    expect(
+      fixture.nativeElement.querySelector('pulpe-asset-picker-field'),
+    ).toBeNull();
+    expect(patch).not.toHaveProperty('assetId');
+  });
+
+  it('should keep the linked asset in the patch when nothing changes', async () => {
+    const line = createMockBudgetLine({ kind: 'saving', assetId: ASSET_ID });
+
+    const { patch } = await submit(line, true);
+
+    expect(patch.assetId).toBe(ASSET_ID);
+  });
+
+  it('should send the newly chosen asset', async () => {
+    const line = createMockBudgetLine({ kind: 'saving', assetId: ASSET_ID });
+
+    const { patch } = await submit(line, true, (component) =>
+      component['model'].update((m) => ({ ...m, assetId: OTHER_ASSET_ID })),
+    );
+
+    expect(patch.assetId).toBe(OTHER_ASSET_ID);
+  });
+
+  it('should clear the asset when the kind changes, so an Épargne turned Dépense is not sent an own asset', async () => {
+    const line = createMockBudgetLine({ kind: 'saving', assetId: ASSET_ID });
+
+    const { patch } = await submit(line, true, (component) => {
+      component['model'].update((m) => ({ ...m, kind: 'expense' }));
+      component['onKindChange']();
+    });
+
+    expect(patch.assetId).toBeNull();
+  });
+
+  it('should offer own assets to a saving, debts to an expense, nothing to an income', () => {
+    const { component } = configureDialog(
+      createMockBudgetLine({ kind: 'saving' }),
+      { userCurrency: 'CHF', providers: withNetWorthFlag(true) },
+    );
+    const direction = () => component['assetDirection']();
+
+    expect(direction()).toBe('own');
+    component['model'].update((m) => ({ ...m, kind: 'expense' }));
+    expect(direction()).toBe('owe');
+    component['model'].update((m) => ({ ...m, kind: 'income' }));
+    expect(direction()).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
+  FEATURE_FLAGS,
   splitTotalPreserving,
   type BudgetPeriod,
   type TransactionKind,
@@ -37,12 +38,17 @@ import {
   runFormSubmit,
   StaleRateNotifier,
 } from '@core/currency';
+import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { dateFnsLocaleFor } from '@core/locale';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
+import {
+  AssetPickerField,
+  assetDirectionForKind,
+} from '@app/pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import {
   TransactionIconPipe,
@@ -89,6 +95,7 @@ interface AddBudgetLineModel {
   tagIds: string[];
   savingsGoalId: string | null;
   sourceSavingsGoalId: string | null;
+  assetId: string | null;
   money: AmountFormSlice;
 }
 
@@ -111,6 +118,7 @@ interface AddBudgetLineModel {
     AmountInput,
     TagPicker,
     SavingsGoalPickerField,
+    AssetPickerField,
   ],
   host: { 'data-testid': 'add-budget-line-dialog' },
   template: `
@@ -252,6 +260,14 @@ interface AddBudgetLineModel {
               (valueChanged)="
                 model.update((m) => ({ ...m, savingsGoalId: $event }))
               "
+            />
+          }
+
+          @if (assetDirection(); as direction) {
+            <pulpe-asset-picker-field
+              [direction]="direction"
+              [value]="model().assetId"
+              (valueChanged)="model.update((m) => ({ ...m, assetId: $event }))"
             />
           }
 
@@ -511,6 +527,9 @@ export class AddBudgetLineDialog {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #isAssetLinkEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
 
   protected readonly currency = this.#settings.currency;
 
@@ -522,6 +541,7 @@ export class AddBudgetLineDialog {
     tagIds: [],
     savingsGoalId: null,
     sourceSavingsGoalId: null,
+    assetId: null,
     money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
 
@@ -531,6 +551,12 @@ export class AddBudgetLineDialog {
     applyAmountValidators(path.money);
     required(path.kind, { message: 'budget.forecastTypeRequired' });
   });
+
+  // Which assets the kind can be linked to; null hides the field (flag off, or
+  // a Revenu, which gets its own origin later).
+  protected readonly assetDirection = computed(() =>
+    this.#isAssetLinkEnabled ? assetDirectionForKind(this.model().kind) : null,
+  );
 
   protected readonly nameErrors = touchedFieldErrors(
     () => this.addForm.name,
@@ -711,6 +737,8 @@ export class AddBudgetLineDialog {
     if (kind !== 'saving') {
       this.model.update((model) => ({ ...model, savingsGoalId: null }));
     }
+    // Épargne and Dépense list different assets: a pick never survives the switch.
+    this.model.update((model) => ({ ...model, assetId: null }));
     if (kind !== 'income') this.setIncomeOrigin('regular');
   }
 
@@ -838,6 +866,7 @@ export class AddBudgetLineDialog {
               sourceSavingsGoalId: this.#isPlannedWithdrawal()
                 ? lineDraft.sourceSavingsGoalId
                 : null,
+              assetId: this.#isAssetLinkEnabled ? lineDraft.assetId : undefined,
               conversion: metadata,
             }),
         };
@@ -871,6 +900,7 @@ export class AddBudgetLineDialog {
               conversion: metadata,
               savingsGoalId:
                 lineDraft.kind === 'saving' ? lineDraft.savingsGoalId : null,
+              assetId: this.#isAssetLinkEnabled ? lineDraft.assetId : undefined,
               spreadGroupId: this.#spreadGroupId,
             }),
         };

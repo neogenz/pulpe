@@ -1537,6 +1537,12 @@
       "add": "Add",
       "notEmpty": "First move {{names}} to another category."
     },
+    "link": {
+      "none": "None",
+      "ownLabel": "Saved to",
+      "oweLabel": "Debt repaid",
+      "oweHint": "Once checked, I'll suggest lowering what's still owed on {{debt}}."
+    },
     "starter": {
       "accounts": "Accounts",
       "savings": "Savings",

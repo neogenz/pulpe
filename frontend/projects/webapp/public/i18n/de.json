@@ -1537,6 +1537,12 @@
       "add": "Hinzufügen",
       "notEmpty": "Verschiebe zuerst {{names}} in eine andere Kategorie."
     },
+    "link": {
+      "none": "Keine",
+      "ownLabel": "Eingezahlt auf",
+      "oweLabel": "Getilgte Schuld",
+      "oweHint": "Sobald er abgehakt ist, schlage ich dir vor, den noch offenen Betrag bei {{debt}} zu senken."
+    },
     "starter": {
       "accounts": "Konten",
       "savings": "Sparen",

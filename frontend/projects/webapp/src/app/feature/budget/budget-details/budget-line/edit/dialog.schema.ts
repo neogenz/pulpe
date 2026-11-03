@@ -14,6 +14,8 @@ import { conversionFormSchema } from '@core/currency';
  * parsing — these are server-trusted identity fields, not user-edited values.
  * `savingsGoalId` IS user-editable (CA26): it comes from the savings-goal picker
  * and is parsed here so an explicit null (untag) wins over the source value.
+ * `assetId` is user-editable too, but only sent with the `net_worth` flag on:
+ * an absent key keeps the link, as iOS and Android do.
  *
  * Note: the edit dialog has no isChecked toggle — checkedAt is owned by a
  * separate toggle endpoint, mirroring transactionUpdateFromFormSchema.
@@ -26,6 +28,7 @@ export const budgetLineUpdateFromFormSchema = z
     recurrence: transactionRecurrenceSchema,
     tagIds: z.array(z.uuid()).optional(),
     savingsGoalId: z.uuid().nullable().optional(),
+    assetId: z.uuid().nullable().optional(),
     conversion: conversionFormSchema.nullable(),
   })
   .transform(
@@ -35,6 +38,7 @@ export const budgetLineUpdateFromFormSchema = z
       kind: input.kind,
       recurrence: input.recurrence,
       savingsGoalId: input.savingsGoalId,
+      ...(input.assetId !== undefined ? { assetId: input.assetId } : {}),
       isManuallyAdjusted: true,
       tagIds: input.tagIds,
       ...(input.conversion ?? {}),

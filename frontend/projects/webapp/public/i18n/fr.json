@@ -1537,6 +1537,12 @@
       "add": "Ajouter",
       "notEmpty": "Déplace d'abord {{names}} vers une autre catégorie."
     },
+    "link": {
+      "none": "Aucun",
+      "ownLabel": "Versée sur",
+      "oweLabel": "Dette remboursée",
+      "oweHint": "Une fois pointée, je te propose de baisser ce qu'il reste dû sur {{debt}}."
+    },
     "starter": {
       "accounts": "Comptes",
       "savings": "Épargne",

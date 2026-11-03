@@ -1,20 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type Provider,
+} from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { Subject } from 'rxjs';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
 import { CurrencyConverterService } from '@core/currency';
+import { createMockDataCache } from '@core/testing';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
 import type { SupportedCurrency, SupportedLocale } from 'pulpe-shared';
 import { AddBudgetLineDialog, type BudgetLineDialogData } from './dialog';
 
 const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 const SAVINGS_GOAL_ID = '00000000-0000-4000-8000-0000000000f2';
+const ASSET_ID = '00000000-0000-4000-8000-0000000000f3';
 
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
@@ -33,9 +43,11 @@ interface DialogRefMock {
 function configureDialog({
   userCurrency = 'CHF',
   showCurrencyPref = true,
+  providers = [],
 }: {
   userCurrency?: SupportedCurrency;
   showCurrencyPref?: boolean;
+  providers?: Provider[];
 } = {}) {
   const dialogRef: DialogRefMock = { close: vi.fn() };
   const settings: SettingsMock = {
@@ -72,6 +84,7 @@ function configureDialog({
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
+      ...providers,
     ],
   });
 
@@ -368,6 +381,149 @@ describe('AddBudgetLineDialog', () => {
       component['setMode']('spread');
 
       expect(component['budgetPeriod']()).toEqual({ year: 2026, month: 11 });
+    });
+  });
+
+  describe('asset link', () => {
+    const withNetWorthFlag = (isEnabled: boolean): Provider[] => {
+      const postHog = createMockPostHogService();
+      postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+      return [
+        { provide: PostHogService, useValue: postHog },
+        {
+          provide: AssetApi,
+          useValue: {
+            cache: createMockDataCache(),
+            getNetWorth$: () => new Subject(),
+          },
+        },
+      ];
+    };
+    const pickerOf = (fixture: { nativeElement: HTMLElement }) =>
+      fixture.nativeElement.querySelector('pulpe-asset-picker-field');
+
+    it('should offer no asset field and add no assetId key with the flag off', async () => {
+      const { fixture, component, dialogRef } = configureDialog({
+        providers: withNetWorthFlag(false),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Épargne mensuelle',
+        kind: 'saving',
+        assetId: ASSET_ID,
+        money: { amount: 500, inputCurrency: 'CHF' },
+      }));
+
+      fixture.detectChanges();
+      await component['handleSubmit']();
+
+      expect(pickerOf(fixture)).toBeNull();
+      const { value } = dialogRef.close.mock.calls[0][0];
+      expect(value).not.toHaveProperty('assetId');
+    });
+
+    it('should offer own assets to a saving and debts to an expense, nothing to an income', () => {
+      const { fixture, component } = configureDialog({
+        providers: withNetWorthFlag(true),
+      });
+      const direction = () => component['assetDirection']();
+
+      component['model'].update((m) => ({ ...m, kind: 'saving' }));
+      expect(direction()).toBe('own');
+      fixture.detectChanges();
+      expect(pickerOf(fixture)).not.toBeNull();
+
+      component['model'].update((m) => ({ ...m, kind: 'expense' }));
+      expect(direction()).toBe('owe');
+
+      component['model'].update((m) => ({ ...m, kind: 'income' }));
+      expect(direction()).toBeNull();
+      fixture.detectChanges();
+      expect(pickerOf(fixture)).toBeNull();
+    });
+
+    it('should clear the chosen asset when the kind changes', () => {
+      const { component } = configureDialog({
+        providers: withNetWorthFlag(true),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        kind: 'saving',
+        assetId: ASSET_ID,
+      }));
+
+      component['onKindChange']('expense');
+
+      expect(component['model']().assetId).toBeNull();
+    });
+
+    it('should send the chosen asset with a single line', async () => {
+      const { component, dialogRef } = configureDialog({
+        providers: withNetWorthFlag(true),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Épargne mensuelle',
+        kind: 'saving',
+        assetId: ASSET_ID,
+        money: { amount: 500, inputCurrency: 'CHF' },
+      }));
+
+      await component['handleSubmit']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'single',
+        value: expect.objectContaining({ assetId: ASSET_ID }),
+      });
+    });
+
+    it('should send an explicit null when no asset is chosen', async () => {
+      const { component, dialogRef } = configureDialog({
+        providers: withNetWorthFlag(true),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Loyer',
+        money: { amount: 1200, inputCurrency: 'CHF' },
+      }));
+
+      await component['handleSubmit']();
+
+      const { value } = dialogRef.close.mock.calls[0][0];
+      expect(value.assetId).toBeNull();
+    });
+
+    it('should send the chosen asset with a spread, and none with the flag off', async () => {
+      const on = configureDialog({ providers: withNetWorthFlag(true) });
+      on.component['model'].update((m) => ({
+        ...m,
+        name: 'Épargne',
+        kind: 'saving',
+        assetId: ASSET_ID,
+        money: { amount: 600, inputCurrency: 'CHF' },
+      }));
+      on.component['setMode']('spread');
+      await on.component['handleSubmit']();
+
+      expect(on.dialogRef.close).toHaveBeenCalledWith({
+        mode: 'spread',
+        value: expect.objectContaining({ assetId: ASSET_ID }),
+      });
+
+      TestBed.resetTestingModule();
+      const off = configureDialog({ providers: withNetWorthFlag(false) });
+      off.component['model'].update((m) => ({
+        ...m,
+        name: 'Épargne',
+        kind: 'saving',
+        assetId: ASSET_ID,
+        money: { amount: 600, inputCurrency: 'CHF' },
+      }));
+      off.component['setMode']('spread');
+      await off.component['handleSubmit']();
+
+      const { value } = off.dialogRef.close.mock.calls[0][0];
+      expect(value).not.toHaveProperty('assetId');
     });
   });
 

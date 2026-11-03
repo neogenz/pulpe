@@ -29,6 +29,8 @@ import { conversionFormSchema } from '@core/currency';
  *   `conversion.originalAmount` maps to the mode-correct original-amount field
  *   (`totalOriginalAmount` in total mode, `perMonthOriginalAmount` otherwise).
  * - `savingsGoalId`: optional goal shared by every saving tranche.
+ * - `assetId`: optional asset shared by every tranche; absent when the
+ *   `net_worth` flag is off, so the body stays what it was.
  * - `spreadGroupId`: the idempotency key (PUL-17). The dialog mints ONE stable
  *   uuid per create intent and reuses it across submit retries, so a double-tap
  *   or a retry after a post-commit failure replays the same group server-side
@@ -45,6 +47,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
     months: z.array(spreadFromExistingPeriodSchema).min(1),
     conversion: conversionFormSchema.nullable(),
     savingsGoalId: z.uuid().nullable().optional(),
+    assetId: z.uuid().nullable().optional(),
     spreadGroupId: z.uuid(),
   })
   .transform((input): BudgetLineSpreadCreate => {
@@ -56,6 +59,8 @@ export const budgetLineSpreadCreateFromFormSchema = z
           exchangeRate: conversion.exchangeRate,
         }
       : {};
+    const assetFields =
+      input.assetId !== undefined ? { assetId: input.assetId } : {};
 
     if (input.mode === 'total') {
       return {
@@ -66,6 +71,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
         months: input.months,
         spreadGroupId: input.spreadGroupId,
         savingsGoalId: input.savingsGoalId,
+        ...assetFields,
         ...fxFields,
         ...(conversion
           ? { totalOriginalAmount: conversion.originalAmount }
@@ -81,6 +87,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
       months: input.months,
       spreadGroupId: input.spreadGroupId,
       savingsGoalId: input.savingsGoalId,
+      ...assetFields,
       ...fxFields,
       ...(conversion
         ? { perMonthOriginalAmount: conversion.originalAmount }
