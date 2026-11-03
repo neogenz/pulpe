@@ -15,6 +15,7 @@ const makeLine = (
   id,
   templateId: 'template-1',
   savingsGoalId: null,
+  assetId: null,
   name,
   amount,
   kind,

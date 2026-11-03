@@ -47,6 +47,7 @@ export class CreateBudgetLineUseCase {
         withRate.kind,
         withRate.savingsGoalId,
       ),
+      assetId: withRate.assetId ?? null,
       sourceSavingsGoalId: withRate.sourceSavingsGoalId ?? null,
       name: withRate.name,
       amount: withRate.amount,

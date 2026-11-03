@@ -240,6 +240,7 @@ export class TemplateLineStore {
       id: tempId,
       templateId: template?.id ?? '',
       savingsGoalId: payload.savingsGoalId ?? null,
+      assetId: payload.assetId ?? null,
       name: payload.name,
       amount: payload.amount,
       kind: payload.kind,

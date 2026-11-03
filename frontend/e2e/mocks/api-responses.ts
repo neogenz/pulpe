@@ -68,6 +68,7 @@ export interface MockBudgetDetailsResponse {
       isManuallyAdjusted: boolean;
       templateLineId: string | null;
       savingsGoalId: string | null;
+      assetId: string | null;
       checkedAt: string | null;
       createdAt: string;
       updatedAt: string;
@@ -108,6 +109,7 @@ export interface MockTemplateLinesResponse {
     id: string;
     templateId: string;
     savingsGoalId: string | null;
+    assetId: string | null;
     name: string;
     amount: number;
     kind: 'income' | 'expense' | 'saving';
@@ -173,6 +175,7 @@ export const createMockTemplateLinesResponse =
         id: TEST_UUIDS.LINE_1,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
         savingsGoalId: null,
+        assetId: null,
         name: 'Salaire',
         amount: 5000,
         kind: 'income',
@@ -185,6 +188,7 @@ export const createMockTemplateLinesResponse =
         id: TEST_UUIDS.LINE_2,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
         savingsGoalId: null,
+        assetId: null,
         name: 'Loyer',
         amount: 1800,
         kind: 'expense',
@@ -197,6 +201,7 @@ export const createMockTemplateLinesResponse =
         id: TEST_UUIDS.LINE_3,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
         savingsGoalId: null,
+        assetId: null,
         name: 'Courses',
         amount: 600,
         kind: 'expense',
@@ -209,6 +214,7 @@ export const createMockTemplateLinesResponse =
         id: TEST_UUIDS.LINE_4,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
         savingsGoalId: null,
+        assetId: null,
         name: 'Transport',
         amount: 200,
         kind: 'expense',
@@ -221,6 +227,7 @@ export const createMockTemplateLinesResponse =
         id: TEST_UUIDS.LINE_5,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
         savingsGoalId: null,
+        assetId: null,
         name: 'Épargne',
         amount: 500,
         kind: 'saving',

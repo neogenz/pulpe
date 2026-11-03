@@ -35,6 +35,7 @@ const budgetLineRow: BudgetLineRow = {
   budget_id: 'budget-1',
   template_line_id: null,
   savings_goal_id: null,
+  asset_id: null,
   spread_group_id: null,
   savings_withdrawal_group_id: null,
   source_savings_goal_id: null,

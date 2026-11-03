@@ -16,6 +16,7 @@ const mockEntity: BudgetLine = {
   budgetId: '123e4567-e89b-12d3-a456-426614174001',
   templateLineId: null,
   savingsGoalId: null,
+  assetId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
@@ -220,6 +221,61 @@ describe('UpdateBudgetLineUseCase', () => {
 
     expect(mockRepo.update).toHaveBeenCalledWith(mockEntity.id, {
       name: 'Retrait vacances',
+    });
+  });
+
+  describe('asset link', () => {
+    const assetId = '8a0f6c80-1234-4e5f-89ab-444444444444';
+    const patchSentToRepo = () => mockRepo.update.mock.calls[0][1];
+
+    it('keeps the link when the patch has no assetId and no new kind', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, name: 'Loyer Q1' },
+        mockUser,
+      );
+
+      expect(patchSentToRepo()).not.toHaveProperty('assetId');
+    });
+
+    it('keeps the link when the line current kind is sent again', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, kind: 'expense' },
+        mockUser,
+      );
+
+      expect(patchSentToRepo()).not.toHaveProperty('assetId');
+    });
+
+    it('clears the link on a kind change without a new asset', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, kind: 'income' },
+        mockUser,
+      );
+
+      expect(patchSentToRepo().assetId).toBeNull();
+    });
+
+    it('writes the new asset, with or without a kind change', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, kind: 'income', assetId },
+        mockUser,
+      );
+
+      expect(patchSentToRepo().assetId).toBe(assetId);
+    });
+
+    it('unlinks on an explicit null', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, assetId: null },
+        mockUser,
+      );
+
+      expect(patchSentToRepo().assetId).toBeNull();
     });
   });
 

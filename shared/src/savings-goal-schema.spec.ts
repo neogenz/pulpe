@@ -718,6 +718,7 @@ describe('PUL-12 — template line schemas carry savingsGoalId', () => {
       id: UUID,
       templateId: UUID,
       savingsGoalId: null,
+      assetId: null,
       name: 'Épargne',
       amount: 0,
       kind: 'saving',

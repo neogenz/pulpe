@@ -14,6 +14,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { throwIfAssetLinkRefused } from '@common/utils/asset-link';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import { updateTaggedEntity } from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
@@ -268,6 +269,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
           {
             id: lineId,
             savingsGoalId: input.savingsGoalId ?? null,
+            assetId: input.assetId ?? null,
             name: input.name,
             amount: input.amount,
             originalAmount: input.originalAmount ?? null,
@@ -396,6 +398,11 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const { data, error } = await query;
 
     if (error || !data) {
+      // enforce_asset_line_link trigger: foreign asset or wrong direction.
+      throwIfAssetLinkRefused(error, {
+        operation: 'updateLine',
+        entityId: lineId,
+      });
       // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
       if (isSavingsGoalLinkDenied(error)) {
         throw new BusinessException(
@@ -552,6 +559,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     if (error) {
       this.throwIfTemplateLimitExceeded(error);
       this.throwIfSavingsGoalLinkDenied(error, 'createTemplateWithLines');
+      throwIfAssetLinkRefused(error, { operation: 'createTemplateWithLines' });
       this.throwIfTagLinkDenied(error, 'createTemplateWithLines');
       if (error.code === '23503' || error.code === '42501') {
         throw new BusinessException(
@@ -627,6 +635,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     operation = 'bulkApplyTemplateLineOperations',
   ): never {
     this.throwIfSavingsGoalLinkDenied(error, operation);
+    throwIfAssetLinkRefused(error, { operation });
     this.throwIfTagLinkDenied(error, operation);
 
     const loggingContext = {
@@ -782,6 +791,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       id: row.id,
       templateId: row.template_id,
       savingsGoalId: row.savings_goal_id ?? null,
+      assetId: row.asset_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
@@ -811,6 +821,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     if (patch.savingsGoalId !== undefined) {
       updateData.savings_goal_id = patch.savingsGoalId;
     }
+    if (patch.assetId !== undefined) updateData.asset_id = patch.assetId;
     if (patch.kind !== undefined) updateData.kind = patch.kind;
     if (patch.recurrence !== undefined)
       updateData.recurrence = patch.recurrence;
@@ -875,6 +886,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       kind: line.kind,
       recurrence: line.recurrence,
       savings_goal_id: line.savingsGoalId ?? null,
+      asset_id: line.assetId ?? null,
       tag_ids: line.tagIds ?? [],
       description: line.description,
       original_amount: encryptedOriginalAmounts[index],
@@ -907,6 +919,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         if (line.savingsGoalId !== undefined) {
           payload.savings_goal_id = line.savingsGoalId;
         }
+        if (line.assetId !== undefined) payload.asset_id = line.assetId;
         if (line.originalAmount !== undefined) {
           payload.original_amount = await this.encryption.encryptOptionalAmount(
             line.originalAmount,

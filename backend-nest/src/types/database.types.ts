@@ -140,6 +140,7 @@ export type Database = {
       budget_line: {
         Row: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -163,6 +164,7 @@ export type Database = {
         }
         Insert: {
           amount?: string | null
+          asset_id?: string | null
           budget_id: string
           checked_at?: string | null
           created_at?: string
@@ -186,6 +188,7 @@ export type Database = {
         }
         Update: {
           amount?: string | null
+          asset_id?: string | null
           budget_id?: string
           checked_at?: string | null
           created_at?: string
@@ -208,6 +211,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "budget_line_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "budget_line_budget_id_fkey"
             columns: ["budget_id"]
@@ -666,6 +676,7 @@ export type Database = {
       template_line: {
         Row: {
           amount: string | null
+          asset_id: string | null
           created_at: string
           description: string | null
           exchange_rate: number | null
@@ -682,6 +693,7 @@ export type Database = {
         }
         Insert: {
           amount?: string | null
+          asset_id?: string | null
           created_at?: string
           description?: string | null
           exchange_rate?: number | null
@@ -698,6 +710,7 @@ export type Database = {
         }
         Update: {
           amount?: string | null
+          asset_id?: string | null
           created_at?: string
           description?: string | null
           exchange_rate?: number | null
@@ -713,6 +726,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "template_line_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "template_line_savings_goal_id_fkey"
             columns: ["savings_goal_id"]
@@ -1034,6 +1054,7 @@ export type Database = {
         }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1071,6 +1092,7 @@ export type Database = {
         }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1199,6 +1221,7 @@ export type Database = {
         }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1410,6 +1433,7 @@ export type Database = {
         Args: { p_budget_line_id: string }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1470,6 +1494,7 @@ export type Database = {
         Args: { p_budget_line_id: string; p_patch: Json; p_tag_ids: string[] }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1535,6 +1560,7 @@ export type Database = {
         Args: { p_patch: Json; p_tag_ids: string[]; p_template_line_id: string }
         Returns: {
           amount: string | null
+          asset_id: string | null
           created_at: string
           description: string | null
           exchange_rate: number | null

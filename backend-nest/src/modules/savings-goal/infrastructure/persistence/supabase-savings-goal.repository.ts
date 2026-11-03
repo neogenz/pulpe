@@ -1122,6 +1122,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       budgetId: decrypted.budget_id,
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
+      assetId: decrypted.asset_id,
       spreadGroupId: decrypted.spread_group_id,
       savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
       name: decrypted.name,

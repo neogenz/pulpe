@@ -16,6 +16,7 @@ const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
   isManuallyAdjusted: false,
   templateLineId: null,
   savingsGoalId: null,
+  assetId: null,
   checkedAt: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',

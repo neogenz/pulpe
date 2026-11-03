@@ -11,6 +11,7 @@ const mockTemplateLine: TemplateLine = {
   id: 'line-1',
   templateId: 'template-1',
   savingsGoalId: null,
+  assetId: null,
   name: 'Salaire',
   amount: 5000,
   originalAmount: null,
@@ -88,6 +89,27 @@ describe('CreateTemplateLineUseCase', () => {
       mockUser.id,
     );
     expect(mockRepo.insertLine).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the asset link to the repository', async () => {
+    const assetId = '8a0f6c80-1234-4e5f-89ab-444444444444';
+
+    await useCase.execute(
+      'template-1',
+      {
+        name: 'Prêt auto',
+        amount: 300,
+        kind: 'expense',
+        recurrence: 'fixed',
+        description: '',
+        assetId,
+      },
+      mockUser,
+    );
+
+    expect(mockRepo.insertLine).toHaveBeenCalledWith(
+      expect.objectContaining({ assetId }),
+    );
   });
 
   it('should validate template access before inserting', async () => {

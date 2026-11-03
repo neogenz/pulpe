@@ -24,6 +24,7 @@ describe('DashboardUncheckedForecasts', () => {
       budgetId: 'b1',
       templateLineId: null,
       savingsGoalId: null,
+      assetId: null,
       name: 'Test Forecast',
       amount: 100,
       kind: 'expense',

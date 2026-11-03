@@ -13,6 +13,7 @@ import {
   templateLinesBulkOperationsSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { assetIdPatchForKind } from '@common/utils/asset-link';
 import {
   savingsGoalIdForKind,
   savingsGoalIdPatchForKind,
@@ -234,7 +235,7 @@ export class BulkTemplateLineOperationsUseCase {
     if (!updates?.length) return [];
 
     const currentKindByLineId =
-      await this.fetchCurrentKindsForLinkOnlyUpdates(updates);
+      await this.fetchCurrentKindsForLinkUpdates(updates);
 
     return Promise.all(
       updates.map(async (line) => {
@@ -248,24 +249,31 @@ export class BulkTemplateLineOperationsUseCase {
             overridden.kind ?? currentKindByLineId.get(id),
             overridden.savingsGoalId,
           ),
+          assetId: assetIdPatchForKind(
+            overridden.kind,
+            currentKindByLineId.get(id),
+            overridden.assetId,
+          ),
         };
       }),
     );
   }
 
-  private async fetchCurrentKindsForLinkOnlyUpdates(
+  private async fetchCurrentKindsForLinkUpdates(
     updates: NonNullable<TemplateLinesBulkOperations['update']>,
   ): Promise<Map<string, TemplateLineRpcUpdate['kind']>> {
-    // The current kind only gates SETTING a link — an explicit untag
-    // (savingsGoalId: null) clears it whatever the kind, no fetch needed.
-    const linkOnlyUpdates = updates.filter(
+    // The current kind only gates SETTING a goal link — an explicit untag
+    // (savingsGoalId: null) clears it whatever the kind, no fetch needed. It
+    // also tells a kind change (which clears the asset) from a repeated kind.
+    const linkUpdates = updates.filter(
       (line) =>
-        line.kind === undefined && typeof line.savingsGoalId === 'string',
+        (line.kind === undefined && typeof line.savingsGoalId === 'string') ||
+        (line.kind !== undefined && line.assetId === undefined),
     );
-    if (!linkOnlyUpdates.length) return new Map();
+    if (!linkUpdates.length) return new Map();
 
     const currentLines = await Promise.all(
-      linkOnlyUpdates.map((line) => this.repo.findLineById(line.id)),
+      linkUpdates.map((line) => this.repo.findLineById(line.id)),
     );
 
     return new Map(

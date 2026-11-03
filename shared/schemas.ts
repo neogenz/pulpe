@@ -970,6 +970,9 @@ export const budgetLineSchema = z.object({
   templateLineId: z.uuid().nullable(),
   // Lien optionnel vers un objectif, autorisé uniquement pour kind=saving.
   savingsGoalId: z.uuid().nullable(),
+  // Lien optionnel vers un avoir (own pour épargne et revenu) ou une dette (owe
+  // pour dépense), indépendant du lien objectif. Absent d'un PATCH = lien gardé.
+  assetId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
@@ -1029,6 +1032,7 @@ const budgetLineCreateBaseSchema = z.strictObject({
   budgetId: z.uuid(),
   templateLineId: z.uuid().nullable().optional(),
   savingsGoalId: z.uuid().nullable().optional(),
+  assetId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -1169,6 +1173,7 @@ export const budgetLineSpreadCreateSchema = z
     name: z.string().min(1).max(100).trim(),
     kind: transactionKindSchema.exclude(['income']),
     savingsGoalId: z.uuid().nullable().optional(),
+    assetId: z.uuid().nullable().optional(),
     mode: z.enum(['perMonth', 'total']),
     months: z
       .array(spreadFromExistingPeriodSchema)
@@ -1995,6 +2000,9 @@ export const templateLineSchema = z.object({
   // Link to a savings goal (PUL-12). Lives on the model so a recurring saving
   // line stays tagged across monthly regenerations.
   savingsGoalId: z.uuid().nullable(),
+  // Link to an asset or a debt, independent from the goal. Copied onto the
+  // budget lines like the goal link.
+  assetId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
@@ -2015,6 +2023,7 @@ export type TemplateLine = z.infer<typeof templateLineSchema>;
 export const templateLineCreateSchema = z.strictObject({
   templateId: z.uuid(),
   savingsGoalId: z.uuid().nullable().optional(),
+  assetId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -2037,6 +2046,7 @@ export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 // Template line create without templateId (for batch creation)
 export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
   savingsGoalId: z.uuid().nullable().optional(),
+  assetId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -2088,6 +2098,7 @@ export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
 // Template line update schema
 export const templateLineUpdateSchema = z.strictObject({
   savingsGoalId: z.uuid().nullable().optional(),
+  assetId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),

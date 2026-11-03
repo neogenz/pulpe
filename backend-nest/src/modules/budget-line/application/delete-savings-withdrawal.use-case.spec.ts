@@ -22,6 +22,7 @@ const makeLine = (
 ): BudgetLine => ({
   templateLineId: null,
   savingsGoalId: null,
+  assetId: null,
   spreadGroupId: null,
   savingsWithdrawalGroupId: GROUP_ID,
   sourceSavingsGoalId: null,

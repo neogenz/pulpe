@@ -16,6 +16,7 @@ const mockEntity: BudgetLine = {
   budgetId: '123e4567-e89b-12d3-a456-426614174001',
   templateLineId: null,
   savingsGoalId: null,
+  assetId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
@@ -102,6 +103,27 @@ describe('CreateBudgetLineUseCase', () => {
     expect(mockRepo.insert).toHaveBeenCalledTimes(1);
     expect(mockBudget.recalculate).toHaveBeenCalledTimes(1);
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it('should hand the asset link to the repository', async () => {
+    const assetId = '8a0f6c80-1234-4e5f-89ab-444444444444';
+
+    await useCase.execute(
+      {
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Prêt auto',
+        amount: 300,
+        kind: 'expense',
+        recurrence: 'fixed',
+        isManuallyAdjusted: false,
+        assetId,
+      },
+      mockUser,
+    );
+
+    expect(mockRepo.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ assetId }),
+    );
   });
 
   it('should throw when budgetId is missing', async () => {
