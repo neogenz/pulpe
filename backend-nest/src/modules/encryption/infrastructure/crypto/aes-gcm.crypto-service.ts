@@ -22,6 +22,7 @@ import { DEMO_CLIENT_KEY_BUFFER } from '../../domain/encryption.constants';
 import { SupabaseEncryptionKeyRepository } from '../persistence/supabase-encryption-key.repository';
 import type { UserEncryptionKey } from '../../domain/encryption.entity';
 import {
+  rekeyAssetSnapshotsRpcPayloadSchema,
   rekeyBudgetLinesRpcPayloadSchema,
   rekeyMonthlyBudgetsRpcPayloadSchema,
   rekeyPlanWithdrawalsRpcPayloadSchema,
@@ -580,6 +581,13 @@ export class AesGcmCryptoService {
           .eq('user_id', userId)
           .limit(1),
       ),
+      this.#queryHasRows(
+        supabase
+          .from('asset_snapshot')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1),
+      ),
     ]);
     return results.some(Boolean);
   }
@@ -1008,12 +1016,14 @@ export class AesGcmCryptoService {
       templateLines,
       savingsGoals,
       planWithdrawals,
+      assetSnapshots,
     ] = await Promise.all([
       this.#fetchBudgetLines(budgetIds, supabase),
       this.#fetchTransactions(budgetIds, supabase),
       this.#fetchTemplateLines(templateIds, supabase),
       this.#fetchSavingsGoals(userId, supabase),
       this.#fetchPlanWithdrawals(userId, supabase),
+      this.#fetchAssetSnapshots(userId, supabase),
     ]);
 
     const payloads = this.#buildRekeyPayloads(
@@ -1024,6 +1034,7 @@ export class AesGcmCryptoService {
         savingsGoals,
         monthlyBudgets,
         planWithdrawals,
+        assetSnapshots,
       },
       oldDek,
       newDek,
@@ -1046,6 +1057,7 @@ export class AesGcmCryptoService {
           savings_goal: payloads.savingsGoals.length,
           monthly_budget: payloads.monthlyBudgets.length,
           savings_goal_plan_withdrawal: payloads.planWithdrawals.length,
+          asset_snapshot: payloads.assetSnapshots.length,
         },
       },
       'All user data re-encrypted',
@@ -1062,6 +1074,7 @@ export class AesGcmCryptoService {
       savingsGoals: unknown;
       monthlyBudgets: unknown;
       planWithdrawals: unknown;
+      assetSnapshots: unknown;
     },
     userId: string,
   ) {
@@ -1084,6 +1097,9 @@ export class AesGcmCryptoService {
         ),
         planWithdrawals: rekeyPlanWithdrawalsRpcPayloadSchema.parse(
           payloads.planWithdrawals,
+        ),
+        assetSnapshots: rekeyAssetSnapshotsRpcPayloadSchema.parse(
+          payloads.assetSnapshots,
         ),
       };
     } catch (validationError) {
@@ -1129,6 +1145,7 @@ export class AesGcmCryptoService {
         ending_balance: string | null;
       }>;
       planWithdrawals: Array<{ id: string; amount: string }>;
+      assetSnapshots: Array<{ id: string; value: string }>;
     },
     oldDek: Buffer,
     newDek: Buffer,
@@ -1167,6 +1184,10 @@ export class AesGcmCryptoService {
       planWithdrawals: rows.planWithdrawals.map((r) => ({
         id: r.id,
         amount: this.#reEncryptAmountStrict(r.amount, oldDek, newDek),
+      })),
+      assetSnapshots: rows.assetSnapshots.map((r) => ({
+        id: r.id,
+        value: this.#reEncryptAmountStrict(r.value, oldDek, newDek),
       })),
     };
   }
@@ -1279,6 +1300,20 @@ export class AesGcmCryptoService {
       supabase
         .from('savings_goal_plan_withdrawal')
         .select('id, amount')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
+  }
+
+  async #fetchAssetSnapshots(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    return fetchAllPages((from, to) =>
+      supabase
+        .from('asset_snapshot')
+        .select('id, value')
         .eq('user_id', userId)
         .order('id', { ascending: true })
         .range(from, to),

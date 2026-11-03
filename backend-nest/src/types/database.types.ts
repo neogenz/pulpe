@@ -34,6 +34,109 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset: {
+        Row: {
+          archived_at: string | null
+          category_id: string
+          created_at: string
+          currency: string
+          direction: string
+          id: string
+          in_pulpe: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          category_id: string
+          created_at?: string
+          currency: string
+          direction: string
+          id?: string
+          in_pulpe?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          category_id?: string
+          created_at?: string
+          currency?: string
+          direction?: string
+          id?: string
+          in_pulpe?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_category_id_user_id_fkey"
+            columns: ["category_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "asset_category"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      asset_category: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asset_snapshot: {
+        Row: {
+          asset_id: string
+          id: string
+          recorded_at: string
+          user_id: string
+          value: string
+        }
+        Insert: {
+          asset_id: string
+          id?: string
+          recorded_at?: string
+          user_id: string
+          value: string
+        }
+        Update: {
+          asset_id?: string
+          id?: string
+          recorded_at?: string
+          user_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_snapshot_asset_id_user_id_fkey"
+            columns: ["asset_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       budget_line: {
         Row: {
           amount: string | null
@@ -1257,6 +1360,20 @@ export type Database = {
           p_budget_lines?: Json
           p_key_check?: string
           p_monthly_budgets?: Json
+          p_savings_goals?: Json
+          p_template_lines?: Json
+          p_transactions?: Json
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      rekey_user_encrypted_data_with_asset_snapshots: {
+        Args: {
+          p_asset_snapshots?: Json
+          p_budget_lines?: Json
+          p_key_check?: string
+          p_monthly_budgets?: Json
+          p_plan_withdrawals?: Json
           p_savings_goals?: Json
           p_template_lines?: Json
           p_transactions?: Json

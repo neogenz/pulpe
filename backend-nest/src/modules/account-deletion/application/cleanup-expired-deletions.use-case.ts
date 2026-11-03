@@ -30,6 +30,7 @@ interface CleanupSummary {
  * - template (user_id) -> template_line (template_id)
  * - monthly_budget (user_id) -> budget_line (budget_id), transaction (budget_id)
  * - savings_goal (user_id)
+ * - asset_category (user_id), asset (user_id), asset_snapshot (user_id)
  *
  * Alerting: failure paths emit `severity: 'critical'` with `op` tag —
  * matchable in PostHog and structured logs to escalate RGPD-impacting
