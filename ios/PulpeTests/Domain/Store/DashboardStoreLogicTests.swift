@@ -312,6 +312,23 @@ struct DashboardStoreLogicTests {
         #expect(store.balanceForecasts.filter(\.isCurrentMonth).map(\.id) == [expected[0]])
     }
 
+    @Test func balanceForecasts_fromAViewedMonth_startsThere() throws {
+        let store = makeStore(budgets: (0...8).map { sparseBudget(monthOffset: $0, remaining: Decimal($0 * 100)) })
+        let viewed = try #require(calendar.date(byAdding: .month, value: 2, to: Date()))
+        let start = BudgetPeriod(
+            month: calendar.component(.month, from: viewed),
+            year: calendar.component(.year, from: viewed)
+        )
+
+        let forecasts = store.balanceForecasts(from: start)
+
+        #expect(forecasts.first?.id == "\(start.year)-\(start.month)")
+        #expect(forecasts.first?.availableBalance == 200)
+        #expect(forecasts.count == DashboardStore.forecastHorizonMonths)
+        let readsTheCurrentMonth = forecasts.contains(where: \.isCurrentMonth)
+        #expect(!readsTheCurrentMonth)
+    }
+
     @Test func hasEnoughDataForBalanceChart_trueWith2OrMore() {
         let store = makeStore(budgets: [
             sparseBudget(monthOffset: 0, remaining: 2500),

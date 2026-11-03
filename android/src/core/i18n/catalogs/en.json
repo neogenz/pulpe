@@ -759,6 +759,13 @@
     "realized": {
       "bankPromise": "Once everything is checked, your bank should show the same amount.",
       "belowZero": "Below zero for now.",
+      "bridge": {
+        "available": "available to spend",
+        "checked": "checked",
+        "deficit": "shortfall",
+        "incoming": "to receive",
+        "outgoing": "to go out"
+      },
       "checkedBalance": "Checked balance",
       "checkedCount": {
         "one": "checked",

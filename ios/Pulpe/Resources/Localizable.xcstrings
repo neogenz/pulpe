@@ -538,6 +538,28 @@
         }
       }
     },
+    "%@ de déficit" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Fehlbetrag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ shortfall"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ di ammanco"
+          }
+        }
+      }
+    },
     "%@ disponible à dépenser" : {
       "localizations" : {
         "de" : {
@@ -1038,6 +1060,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ da ricevere"
+          }
+        }
+      }
+    },
+    "%@ à venir" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ gehen noch ab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ to go out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in uscita"
           }
         }
       }

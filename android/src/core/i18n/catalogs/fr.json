@@ -759,6 +759,13 @@
     "realized": {
       "bankPromise": "Une fois tout pointé, ta banque devrait afficher la même chose.",
       "belowZero": "Sous zéro pour l'instant.",
+      "bridge": {
+        "available": "disponible à dépenser",
+        "checked": "pointé",
+        "deficit": "de déficit",
+        "incoming": "à recevoir",
+        "outgoing": "à venir"
+      },
       "checkedBalance": "Solde pointé",
       "checkedCount": {
         "one": "pointée",

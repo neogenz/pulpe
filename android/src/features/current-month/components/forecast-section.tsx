@@ -1,5 +1,5 @@
 import { getBudgetPeriodForDate, type SupportedCurrency } from "pulpe-shared";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
@@ -28,15 +28,23 @@ const BAR_WIDTH = 26;
 const BAR_MIN_HEIGHT = 10;
 const BASELINE_HEIGHT = 1;
 const SELECTION_DOT = 6;
+const MONTHS_PER_YEAR = 12;
 /** Unselected bars step back through their ink (~70%), still 3:1 against the card, as on iOS. */
 const UNSELECTED_ALPHA = "B3";
 
 /**
- * The coming months' planned end balances as bars around zero. The headline
- * names where the balance turns; each bar carries its amount, and a tap reads
- * the month in full above the bars. Mirrors `ForecastSection` on iOS.
+ * The coming months' planned end balances as bars around zero, from `period`
+ * on (the period in force when absent); a past month has none ahead. The
+ * headline names where the balance turns; each bar carries its amount, and a
+ * tap reads the month in full above the bars. Mirrors `ForecastSection` on iOS.
  */
-export function ForecastSection({ currency }: { currency: SupportedCurrency }) {
+export function ForecastSection({
+  currency,
+  period,
+}: {
+  currency: SupportedCurrency;
+  period?: { month: number; year: number };
+}) {
   const { t, locale } = useTranslation();
   const theme = useTheme();
   const financial = useFinancialColors();
@@ -45,16 +53,20 @@ export function ForecastSection({ currency }: { currency: SupportedCurrency }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const muted = { color: theme.colors.onSurfaceVariant };
 
-  const forecasts = useMemo(
-    () =>
-      settings.data === undefined || budgets.data === undefined
-        ? []
-        : balanceForecasts(
-            budgets.data,
-            getBudgetPeriodForDate(new Date(), settings.data.payDayOfMonth),
-          ),
-    [settings.data, budgets.data],
-  );
+  const current =
+    settings.data === undefined
+      ? undefined
+      : getBudgetPeriodForDate(new Date(), settings.data.payDayOfMonth);
+  const start = period ?? current;
+  const isPast =
+    start !== undefined &&
+    current !== undefined &&
+    start.year * MONTHS_PER_YEAR + start.month <
+      current.year * MONTHS_PER_YEAR + current.month;
+  const forecasts =
+    start === undefined || budgets.data === undefined
+      ? []
+      : balanceForecasts(budgets.data, start);
   const outlook = forecastOutlook(forecasts);
   const selected = forecasts[selectedIndex] ?? forecasts[0];
   const lowest = forecasts.reduce<MonthlyForecast | undefined>(
@@ -70,6 +82,8 @@ export function ForecastSection({ currency }: { currency: SupportedCurrency }) {
     );
   const tint = (forecast: MonthlyForecast) =>
     forecast.balance < 0 ? financial.overBudget : financial.savings;
+
+  if (isPast) return null;
 
   return (
     <View style={styles.section}>

@@ -112,7 +112,12 @@ jest.mock("@/features/budgets/budget-queries", () => ({
 const props = {
   isVisible: true,
   onDismiss: jest.fn(),
-  metrics: { totalIncome: 5000, totalExpenses: 4000, totalSavings: 300 },
+  metrics: {
+    totalIncome: 5000,
+    totalExpenses: 4000,
+    totalSavings: 300,
+    remaining: 1000,
+  },
   realized: {
     realizedIncome: 5000,
     realizedExpenses: 3380.01,
@@ -140,6 +145,28 @@ it("offers nothing where no active budget can be reconciled", async () => {
   const view = await render(<RealizedBalanceSheet {...props} />);
 
   expect(view.queryByText("home.reconcile.title")).toBeNull();
+});
+
+it("adds the pointed balance up to what is left to spend", async () => {
+  const view = await render(<RealizedBalanceSheet {...props} />);
+
+  expect(
+    view.getByText(
+      "1’499.99 home.realized.bridge.checked − 499.99 home.realized.bridge.outgoing = 1’000.00 home.realized.bridge.available",
+    ),
+  ).toBeTruthy();
+});
+
+it("leaves the coming months out of a past month", async () => {
+  const past = new Date(period.year, period.month - 2, 1);
+  const view = await render(
+    <RealizedBalanceSheet
+      {...props}
+      period={{ month: past.getMonth() + 1, year: past.getFullYear() }}
+    />,
+  );
+
+  expect(view.queryByText("home.realized.forecast.title")).toBeNull();
 });
 
 it("labels each coming month's bar with its amount", async () => {

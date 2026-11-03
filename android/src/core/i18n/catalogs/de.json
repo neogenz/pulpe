@@ -759,6 +759,13 @@
     "realized": {
       "bankPromise": "Sobald alles abgehakt ist, sollte deine Bank denselben Betrag zeigen.",
       "belowZero": "Vorerst im Minus.",
+      "bridge": {
+        "available": "verfügbar zum Ausgeben",
+        "checked": "abgehakt",
+        "deficit": "Fehlbetrag",
+        "incoming": "zu erhalten",
+        "outgoing": "gehen noch ab"
+      },
       "checkedBalance": "Abgehakter Saldo",
       "checkedCount": {
         "one": "abgehakt",

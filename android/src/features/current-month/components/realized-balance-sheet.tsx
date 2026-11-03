@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import {
   CURRENCY_METADATA,
+  moneyDifference,
   type SupportedCurrency,
   type TransactionKind,
 } from "pulpe-shared";
@@ -12,6 +13,7 @@ import { Button, Text, useTheme } from "react-native-paper";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import {
+  formatAmount,
   formatCompactAmount,
   formatCompactCurrency,
 } from "@/core/ui/amount-format";
@@ -49,6 +51,8 @@ interface RealizedBalanceSheetProps {
   metrics: CurrentMonthViewModel["metrics"];
   realized: RealizedMetrics;
   currency: SupportedCurrency;
+  /** The month this sheet reads; the period in force when absent. */
+  period?: { month: number; year: number };
   /**
    * Offered only where the month is the one being lived: a past balance has no
    * bank account left to be held against.
@@ -68,6 +72,7 @@ export function RealizedBalanceSheet({
   metrics,
   realized,
   currency,
+  period,
   onReconcile,
 }: RealizedBalanceSheetProps) {
   const { t } = useTranslation();
@@ -84,15 +89,18 @@ export function RealizedBalanceSheet({
       isVisible={isVisible}
       onDismiss={onDismiss}
       title={t("home.realized.title")}
-      footer={
-        onReconcile === undefined ? undefined : (
-          <Button mode="contained" icon="bank-outline" onPress={onReconcile}>
-            {t("home.reconcile.title")}
-          </Button>
-        )
-      }
     >
-      <CheckedBalanceCard realized={realized} currency={currency} />
+      <CheckedBalanceCard
+        metrics={metrics}
+        realized={realized}
+        currency={currency}
+      />
+      {/* Right under the balance it checks against the bank. */}
+      {onReconcile !== undefined && (
+        <Button mode="contained" icon="bank-outline" onPress={onReconcile}>
+          {t("home.reconcile.title")}
+        </Button>
+      )}
 
       <View style={styles.section}>
         <Text variant="titleLarge">{t("home.realized.plannedVsActual")}</Text>
@@ -182,16 +190,18 @@ export function RealizedBalanceSheet({
         </View>
       </View>
 
-      <ForecastSection currency={currency} />
+      <ForecastSection currency={currency} period={period} />
     </FormModal>
   );
 }
 
 /** The pointed balance on the forest, and how much of the month is pointed: one dot per item. */
 function CheckedBalanceCard({
+  metrics,
   realized,
   currency,
 }: {
+  metrics: CurrentMonthViewModel["metrics"];
   realized: RealizedMetrics;
   currency: SupportedCurrency;
 }) {
@@ -200,6 +210,30 @@ function CheckedBalanceCard({
   const checked = realized.checkedItemsCount;
   const total = realized.totalItemsCount;
   const share = total > 0 ? checked / total : 0;
+  // From the pointed balance to the "Disponible à dépenser" budget details
+  // shows. The outflow is the rest of the gap, so the line always adds up.
+  const incoming = Math.max(
+    moneyDifference(metrics.totalIncome, realized.realizedIncome),
+    0,
+  );
+  const outgoing = moneyDifference(
+    realized.realizedBalance + incoming,
+    metrics.remaining,
+  );
+  const bridge = [
+    { sign: "", amount: realized.realizedBalance, label: "checked" },
+    ...(incoming > 0
+      ? [{ sign: " + ", amount: incoming, label: "incoming" }]
+      : []),
+    ...(outgoing > 0
+      ? [{ sign: " − ", amount: outgoing, label: "outgoing" }]
+      : []),
+    {
+      sign: " = ",
+      amount: Math.abs(metrics.remaining),
+      label: metrics.remaining < 0 ? "deficit" : "available",
+    },
+  ] as const;
 
   return (
     <LinearGradient
@@ -268,6 +302,26 @@ function CheckedBalanceCard({
             </Text>
           </View>
         </>
+      )}
+
+      {(incoming > 0 || outgoing > 0) && (
+        <View style={[styles.bridge, { borderTopColor: hero.muted }]}>
+          {/* Centimes always: rounded terms would stop adding up. */}
+          <Text
+            variant="bodySmall"
+            style={[TABULAR_DIGITS, { color: hero.support }]}
+          >
+            {bridge.map((term) => (
+              <Fragment key={term.label}>
+                {term.sign}
+                <Text style={[styles.bold, { color: hero.ink }]}>
+                  {formatAmount(term.amount, currency)}
+                </Text>
+                {` ${t(`home.realized.bridge.${term.label}`)}`}
+              </Fragment>
+            ))}
+          </Text>
+        </View>
       )}
     </LinearGradient>
   );
@@ -369,6 +423,7 @@ const styles = StyleSheet.create({
   },
   dot: { flex: 1, borderRadius: RADIUS.full },
   counts: { flexDirection: "row", justifyContent: "space-between" },
+  bridge: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: SPACING.md },
   section: { gap: SPACING.sm, marginTop: SPACING.sm },
   tileRow: { flexDirection: "row", gap: SPACING.sm },
   tile: {

@@ -222,17 +222,22 @@ final class DashboardStore: StoreProtocol {
         historicalExpenses.count >= 2
     }
 
-    /// Projected remaining balance over the next `forecastHorizonMonths` periods, the
-    /// current one first, crossing into the next year when the horizon does. Uses the
-    /// backend-computed `remaining` field (income + rollover - expenses) to match the
-    /// "disponible" amounts shown in the budget list.
+    /// The forecast from the current period on.
     var balanceForecasts: [MonthlyForecast] {
+        balanceForecasts(from: BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth))
+    }
+
+    /// Projected remaining balance over `forecastHorizonMonths` periods, `start` first,
+    /// crossing into the next year when the horizon does. Uses the backend-computed
+    /// `remaining` field (income + rollover - expenses) to match the "disponible" amounts
+    /// shown in the budget list.
+    func balanceForecasts(from start: BudgetPeriod) -> [MonthlyForecast] {
         let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
 
         return (0..<Self.forecastHorizonMonths).compactMap { offset -> MonthlyForecast? in
-            let monthIndex = currentPeriod.month - 1 + offset
+            let monthIndex = start.month - 1 + offset
             let month = monthIndex % 12 + 1
-            let year = currentPeriod.year + monthIndex / 12
+            let year = start.year + monthIndex / 12
             guard let budget = sparseBudgets.first(where: { $0.month == month && $0.year == year }),
                   let remaining = budget.remaining else {
                 return nil
@@ -242,7 +247,7 @@ final class DashboardStore: StoreProtocol {
                 month: month,
                 year: year,
                 availableBalance: Double(truncating: remaining as NSDecimalNumber),
-                isCurrentMonth: offset == 0
+                isCurrentMonth: month == currentPeriod.month && year == currentPeriod.year
             )
         }
     }

@@ -759,6 +759,13 @@
     "realized": {
       "bankPromise": "Una volta spuntato tutto, la tua banca dovrebbe mostrare lo stesso importo.",
       "belowZero": "Sotto zero per ora.",
+      "bridge": {
+        "available": "disponibile da spendere",
+        "checked": "spuntato",
+        "deficit": "di ammanco",
+        "incoming": "da ricevere",
+        "outgoing": "in uscita"
+      },
       "checkedBalance": "Saldo spuntato",
       "checkedCount": {
         "one": "spuntata",

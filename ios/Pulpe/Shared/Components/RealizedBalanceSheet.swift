@@ -3,6 +3,10 @@ import SwiftUI
 struct RealizedBalanceSheet: View {
     let metrics: BudgetFormulas.Metrics
     let realizedMetrics: BudgetFormulas.RealizedMetrics
+    /// The month this sheet reads; the current period when nil.
+    var period: BudgetPeriod?
+    /// "Rapprocher mes comptes", right under the balance it checks against the bank.
+    var onReconcile: (() -> Void)?
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
@@ -10,9 +14,27 @@ struct RealizedBalanceSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-                    CheckedBalanceCard(realizedMetrics: realizedMetrics, currency: userSettingsStore.currency)
+                    VStack(spacing: DesignTokens.Spacing.md) {
+                        CheckedBalanceCard(
+                            metrics: metrics,
+                            realizedMetrics: realizedMetrics,
+                            currency: userSettingsStore.currency
+                        )
+                        if let onReconcile {
+                            Button(action: onReconcile) {
+                                Label("Rapprocher mes comptes", systemImage: "building.columns")
+                            }
+                            .secondaryButtonStyle()
+                            .accessibilityIdentifier("reconcileAccountsButton")
+                        }
+                    }
                     plannedSection
-                    ForecastSection(forecasts: dashboardStore.balanceForecasts, currency: userSettingsStore.currency)
+                    if let forecastStart {
+                        ForecastSection(
+                            forecasts: dashboardStore.balanceForecasts(from: forecastStart),
+                            currency: userSettingsStore.currency
+                        )
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, DesignTokens.Spacing.sm)
@@ -32,6 +54,13 @@ struct RealizedBalanceSheet: View {
             dashboardStore.setPayDay(userSettingsStore.payDayOfMonth)
             await dashboardStore.loadIfNeeded()
         }
+    }
+
+    /// "Les prochains mois" start at the month read here. A past month has none ahead.
+    private var forecastStart: BudgetPeriod? {
+        let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: userSettingsStore.payDayOfMonth)
+        guard let period else { return current }
+        return (period.year, period.month) < (current.year, current.month) ? nil : period
     }
 
     // MARK: - Planned vs Real
@@ -128,6 +157,7 @@ struct RealizedBalanceSheet: View {
 
 /// The pointed balance on the forest, and how much of the month is pointed: one dot per item.
 private struct CheckedBalanceCard: View {
+    let metrics: BudgetFormulas.Metrics
     let realizedMetrics: BudgetFormulas.RealizedMetrics
     let currency: SupportedCurrency
 
@@ -161,6 +191,22 @@ private struct CheckedBalanceCard: View {
                 .foregroundStyle(Color.heroInkSecondary)
                 .monospacedDigit()
             }
+
+            if let bridge {
+                bridge
+                    .font(PulpeTypography.footnote)
+                    .foregroundStyle(Color.heroInkSecondary)
+                    .monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, DesignTokens.Spacing.md)
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
+                            .frame(height: DesignTokens.BorderWidth.thin)
+                    }
+                    .sensitiveAmount()
+            }
         }
         .padding(DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -177,6 +223,31 @@ private struct CheckedBalanceCard: View {
         guard realizedMetrics.realizedBalance < 0 else { return promise }
         return Text("Sous zéro pour l'instant.").bold().foregroundStyle(Color.heroAccentCaution)
             + Text(verbatim: " ") + promise
+    }
+
+    /// From the pointed balance to the "Disponible à dépenser" budget details shows: plus what
+    /// is still to come in, minus what is still to go out. The outflow is the rest of the gap,
+    /// so the line always adds up to that figure.
+    private var bridge: Text? {
+        let incoming = max(metrics.totalIncome - realizedMetrics.realizedIncome, 0)
+        let outgoing = realizedMetrics.realizedBalance + incoming - metrics.remaining
+        guard incoming > 0 || outgoing > 0 else { return nil }
+        var line = Text("\(figure(realizedMetrics.realizedBalance)) pointé")
+        if incoming > 0 {
+            line = line + Text(verbatim: " + ") + Text("\(figure(incoming)) à recevoir")
+        }
+        if outgoing > 0 {
+            line = line + Text(verbatim: " − ") + Text("\(figure(outgoing)) à venir")
+        }
+        let result = metrics.remaining < 0
+            ? Text("\(figure(-metrics.remaining)) de déficit")
+            : Text("\(figure(metrics.remaining)) disponible à dépenser")
+        return line + Text(verbatim: " = ") + result
+    }
+
+    /// Centimes always: rounded terms would stop adding up.
+    private func figure(_ amount: Decimal) -> Text {
+        Text(amount.asAmount(for: currency)).bold().foregroundStyle(Color.heroInk)
     }
 
     @ViewBuilder
