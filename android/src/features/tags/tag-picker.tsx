@@ -1,5 +1,5 @@
 import { MAX_TAGS_PER_TRANSACTION } from "pulpe-shared";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -15,6 +15,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import { useRevealInSheet } from "@/core/ui/sheet";
 
 import { useCreateTag, useTags } from "./tag-queries";
 import {
@@ -47,6 +48,8 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
   const tags = useTags();
   const createTag = useCreateTag();
   const [query, setQuery] = useState("");
+  const field = useRef<View>(null);
+  const revealInSheet = useRevealInSheet();
 
   const available = tags.data ?? [];
   const hasLoadError = tags.isError && tags.data === undefined;
@@ -91,7 +94,7 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
   }
 
   return (
-    <View style={styles.field}>
+    <View ref={field} style={styles.field}>
       <View style={styles.heading}>
         <Text variant="labelLarge">{t("settings.tags.pickerTitle")}</Text>
         <Text
@@ -126,6 +129,9 @@ export function TagPicker({ selectedIds, onChange }: TagPickerProps) {
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={submit}
+            // The matches sit under the field, where the keyboard would hide them.
+            onFocus={() => revealInSheet(field.current)}
+            onBlur={() => revealInSheet(null)}
             // Several tags in a row is the common case: the keyboard stays up.
             submitBehavior="submit"
             returnKeyType="done"

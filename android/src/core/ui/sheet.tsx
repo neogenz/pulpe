@@ -1,4 +1,10 @@
-import type { ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import {
   Modal,
   Pressable,
@@ -18,10 +24,26 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 
-import { sheetBox, useKeyboardHeight } from "./keyboard-inset";
+import { revealOffset, sheetBox, useKeyboardHeight } from "./keyboard-inset";
 import { useRipple } from "./ripple";
 import { useSheetColors } from "./scheme-colors";
 import { RADIUS, SPACING } from "./theme";
+
+const RevealContext = createContext<(target: View | null) => void>(
+  () => undefined,
+);
+
+/**
+ * Keeps a whole block of the sheet on screen while it holds the focus, not just
+ * its text field. Android's ScrollView only scrolls the focused input itself
+ * into view, so whatever a field shows right under it — the tags that match
+ * what is being typed — stays under the keyboard. Pass the block on focus and
+ * `null` on blur; the sheet scrolls it back into view each time the keyboard
+ * or the content resizes the body.
+ */
+export function useRevealInSheet() {
+  return useContext(RevealContext);
+}
 
 interface FormModalProps {
   isVisible: boolean;
@@ -79,6 +101,25 @@ export function FormModal({
     keyboardHeight,
     safeBottom: bottom,
   });
+  const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
+  const revealed = useRef<View | null>(null);
+  const viewport = useRef({ visible: 0, offset: 0 });
+
+  function reveal() {
+    const scroll = scrollRef.current;
+    const content = contentRef.current;
+    if (revealed.current === null || scroll == null || content == null) return;
+    revealed.current.measureLayout(content, (_x, top, _width, height) => {
+      const y = revealOffset({ top, height, ...viewport.current });
+      if (y !== undefined) scroll.scrollTo({ y });
+    });
+  }
+
+  function setRevealed(target: View | null) {
+    revealed.current = target;
+    reveal();
+  }
 
   return (
     <Modal
@@ -137,10 +178,24 @@ export function FormModal({
             }}
           >
             <ScrollView
+              ref={scrollRef}
+              // The typings want a ref that is never null; the runtime sets null on unmount.
+              innerViewRef={contentRef as RefObject<View>}
               contentContainerStyle={styles.body}
               keyboardShouldPersistTaps="handled"
+              scrollEventThrottle={16}
+              onScroll={(event) => {
+                viewport.current.offset = event.nativeEvent.contentOffset.y;
+              }}
+              onLayout={(event) => {
+                viewport.current.visible = event.nativeEvent.layout.height;
+                reveal();
+              }}
+              onContentSizeChange={reveal}
             >
-              {children}
+              <RevealContext.Provider value={setRevealed}>
+                {children}
+              </RevealContext.Provider>
             </ScrollView>
           </ThemeProvider>
 
