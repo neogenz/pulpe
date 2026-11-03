@@ -46,7 +46,10 @@
     "budgetsTooltip": "Plan all deine Monate",
     "templatesTooltip": "Bereite deine monatliche Basis vor",
     "savingsGoalsTooltip": "Verfolg deine Sparziele",
-    "designSystem": "Design System"
+    "designSystem": "Design System",
+    "netWorth": "Mein Vermögen",
+    "netWorthShort": "Vermögen",
+    "netWorthTooltip": "Behalte im Blick, was du hast und was du schuldest"
   },
   "productTour": {
     "controls": {
@@ -1443,6 +1446,103 @@
       "discard": "Verwerfen"
     }
   },
+  "netWorth": {
+    "addButton": "Hinzufügen",
+    "categoriesButton": "Kategorien",
+    "loadError": "Dein Vermögen konnte nicht geladen werden — versuche es nochmal",
+    "emptyTitle": "Dein Vermögen beginnt hier",
+    "emptyMessage": "Füge ein Konto, ein Sparbuch oder eine Schuld hinzu, um dein heutiges Nettovermögen zu sehen.",
+    "emptyAction": "Mein erstes Konto hinzufügen",
+    "heroTitle": "Mein Nettovermögen",
+    "heroSubtitle": "Was ich habe minus was ich schulde, am {{date}}",
+    "gross": "Was ich habe",
+    "debts": "Was ich schulde",
+    "fxNote": "{{asset}} zum Tageskurs umgerechnet: 1 {{foreign}} = {{rate}} {{base}}",
+    "negativeNote": "Was ich schulde, übersteigt heute, was ich habe. Jede abgehakte Rückzahlung bringt diese Zahl näher an null.",
+    "incompleteNotice": "Mir fehlt der heutige {{currency}}-Kurs: Die Summe enthält {{assets}} nicht. Das ändert sich, sobald der Kurs verfügbar ist.",
+    "excluded": "Nicht in der Summe",
+    "inPulpe": "In Pulpe",
+    "overdraft": "Überzogen",
+    "updated": "Aktualisiert {{when}}",
+    "updatedDebt": "{{category}} · aktualisiert {{when}}",
+    "showArchived": "Archiv anzeigen ({{count}})",
+    "hideArchived": "Archiv ausblenden",
+    "archivedTitle": "Archiviert",
+    "sankey": {
+      "title": "Verteilung heute",
+      "subtitle": "Von dem, was ich habe, bis zu meinem Nettovermögen",
+      "subtitleDebts": "Von dem, was ich habe, bis zu dem, was ich schulde",
+      "gross": "Bruttovermögen",
+      "net": "Nettovermögen",
+      "mobileHint": "Zieh, um bis zu deinem Nettovermögen zu sehen",
+      "ariaNet": "Verteilung dessen, was ich habe: Bruttovermögen {{gross}}, aufgeteilt in {{debts}} Schulden und {{net}} Nettovermögen.",
+      "ariaDebts": "Was ich habe, {{gross}}, gegenüber {{debts}} Schulden."
+    },
+    "menu": {
+      "actions": "Aktionen für {{name}}",
+      "updateValue": "Wert aktualisieren",
+      "edit": "Bearbeiten",
+      "archive": "Archivieren",
+      "unarchive": "Wiederherstellen",
+      "delete": "Löschen"
+    },
+    "deleteTitle": "{{name}} löschen?",
+    "deleteMessage": "Auch der ganze Wertverlauf wird gelöscht. Archiviere stattdessen, um den Eintrag aus den Summen zu nehmen und den Verlauf zu behalten.",
+    "form": {
+      "createTitle": "Zu meinem Vermögen hinzufügen",
+      "editTitle": "{{name}} bearbeiten",
+      "name": "Name",
+      "direction": "Art",
+      "own": "Was ich habe",
+      "owe": "Was ich schulde",
+      "category": "Kategorie",
+      "myCategories": "Meine Kategorien",
+      "suggestions": "Vorschläge",
+      "newTag": "Neu",
+      "newCategoryHint": "Neue Kategorie: Ich lege sie beim Speichern an.",
+      "currency": "Währung",
+      "value": "Aktueller Wert",
+      "inPulpe": "In Pulpe",
+      "inPulpeHint": "Für das Konto, das du in deinem Budget abhakst. Ich fülle es vor, wenn du deine Konten abgleichst.",
+      "readOnlyHint": "Art und Währung bleiben wie bei der Erstellung.",
+      "editNote": "Um den Wert zu ändern, nutze „Wert aktualisieren“ im Menü der Zeile.",
+      "nameRequired": "Gib einen Namen ein",
+      "categoryRequired": "Wähle eine Kategorie",
+      "valueRequired": "Gib einen Wert ein",
+      "add": "Hinzufügen"
+    },
+    "value": {
+      "title": "Wert aktualisieren",
+      "subtitleOwn": "{{name}} · was ich heute habe",
+      "subtitleOwe": "{{name}} · was ich heute schulde",
+      "label": "Neuer Wert",
+      "lastValue": "Letzter Wert: {{amount}}, am {{date}}",
+      "overdraft": "Negativer Saldo (überzogen)",
+      "valueRequired": "Gib einen Wert ein"
+    },
+    "categoriesDialog": {
+      "title": "Meine Kategorien",
+      "description": "Kategorien ordnen deine Konten, dein Erspartes und deine Schulden auf der Seite.",
+      "empty": "Noch keine Kategorie: Du legst sie an, wenn du ein Konto hinzufügst, oder hier.",
+      "rename": "{{name}} umbenennen",
+      "delete": "{{name}} löschen",
+      "nameLabel": "Kategoriename",
+      "saveName": "Namen speichern",
+      "cancelRename": "Umbenennen abbrechen",
+      "newLabel": "Neue Kategorie",
+      "newPlaceholder": "z. B. Krypto",
+      "add": "Hinzufügen",
+      "notEmpty": "Verschiebe zuerst {{names}} in eine andere Kategorie."
+    },
+    "starter": {
+      "accounts": "Konten",
+      "savings": "Sparen",
+      "investments": "Anlagen",
+      "cash": "Bargeld",
+      "valuables": "Wertgegenstände",
+      "property": "Sachwerte"
+    }
+  },
   "completeProfile": {
     "loading": "Dein Freiraum wird vorbereitet...",
     "greetingWithName": "Hallo {{ name }} 👋",
@@ -1931,7 +2031,8 @@
     "designSystem": "Design System",
     "maintenance": "Wartung",
     "mcpConsent": "KI-Assistenten verbinden",
-    "settingsConnections": "Verbindungen"
+    "settingsConnections": "Verbindungen",
+    "netWorth": "Mein Vermögen"
   },
   "authError": {
     "generic": "Etwas hat nicht funktioniert — versuch es nochmal",
@@ -2029,7 +2130,16 @@
     "transactionImportInvalid": "Der Auszug enthält Fehler — nichts wurde importiert, starte die Vorschau neu, um sie zu sehen",
     "transactionImportConflict": "Einige Umsätze wurden zwischenzeitlich importiert — nichts wurde erstellt, starte die Vorschau neu",
     "transactionImportFailed": "Nichts wurde erstellt, versuch es nochmal",
-    "transactionImportRecalculationFailed": "Die Bewegungen wurden importiert, aber die Salden konnten nicht aktualisiert werden — lade die Seite neu, ohne die Datei erneut zu importieren"
+    "transactionImportRecalculationFailed": "Die Bewegungen wurden importiert, aber die Salden konnten nicht aktualisiert werden — lade die Seite neu, ohne die Datei erneut zu importieren",
+    "assetNotFound": "Dieser Eintrag wurde nicht gefunden — vielleicht ist er schon gelöscht",
+    "assetCategoryNotFound": "Diese Kategorie wurde nicht gefunden — vielleicht ist sie schon gelöscht",
+    "assetCategoryNotEmpty": "Diese Kategorie enthält noch Einträge — verschiebe sie zuerst in eine andere Kategorie",
+    "assetCategoryDuplicate": "Eine Kategorie trägt schon diesen Namen",
+    "assetValueInvalid": "Dieser Wert ist ungültig — eine Schuld kann nicht negativ sein",
+    "assetFetchFailed": "Dein Vermögen konnte nicht geladen werden — versuche es nochmal",
+    "assetCreateFailed": "Hinzufügen fehlgeschlagen — versuche es nochmal",
+    "assetUpdateFailed": "Änderung fehlgeschlagen — versuche es nochmal",
+    "assetDeleteFailed": "Löschen fehlgeschlagen — versuche es nochmal"
   },
   "logout": {
     "inProgress": "Abmeldung...",

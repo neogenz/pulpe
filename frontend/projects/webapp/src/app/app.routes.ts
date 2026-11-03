@@ -139,6 +139,16 @@ export const routes: Routes = [
           import('./feature/savings-goals/savings-goals.routes'),
       },
       {
+        path: ROUTES.NET_WORTH,
+        title: PAGE_TITLES.NET_WORTH,
+        canActivate: [hasBudgetGuard],
+        data: {
+          breadcrumb: 'navigation.netWorth',
+          icon: 'account_balance_wallet',
+        },
+        loadChildren: () => import('./feature/net-worth/net-worth.routes'),
+      },
+      {
         path: ROUTES.SETTINGS,
         title: PAGE_TITLES.SETTINGS,
         data: { breadcrumb: 'navigation.settings', icon: 'settings' },

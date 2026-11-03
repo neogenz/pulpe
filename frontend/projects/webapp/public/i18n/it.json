@@ -46,7 +46,10 @@
     "budgetsTooltip": "Pianifica tutti i tuoi mesi",
     "templatesTooltip": "Prepara le tue basi mensili",
     "savingsGoalsTooltip": "Segui i tuoi obiettivi di risparmio",
-    "designSystem": "Design System"
+    "designSystem": "Design System",
+    "netWorth": "Il mio patrimonio",
+    "netWorthShort": "Patrimonio",
+    "netWorthTooltip": "Tieni traccia di ciò che hai e di ciò che devi"
   },
   "productTour": {
     "controls": {
@@ -1443,6 +1446,103 @@
       "discard": "Abbandona"
     }
   },
+  "netWorth": {
+    "addButton": "Aggiungi",
+    "categoriesButton": "Categorie",
+    "loadError": "Impossibile caricare il tuo patrimonio — riprova",
+    "emptyTitle": "Il tuo patrimonio comincia qui",
+    "emptyMessage": "Aggiungi un conto, un libretto o un debito per vedere il tuo patrimonio netto di oggi.",
+    "emptyAction": "Aggiungi il mio primo conto",
+    "heroTitle": "Il mio patrimonio netto",
+    "heroSubtitle": "Ciò che ho meno ciò che devo, al {{date}}",
+    "gross": "Ciò che ho",
+    "debts": "Ciò che devo",
+    "fxNote": "{{asset}} convertito al tasso del giorno: 1 {{foreign}} = {{rate}} {{base}}",
+    "negativeNote": "Ciò che devo supera ciò che ho oggi. Ogni rimborso spuntato avvicina questa cifra allo zero.",
+    "incompleteNotice": "Non ho il tasso {{currency}} di oggi: il totale non conta {{assets}}. Tornerà non appena il tasso sarà disponibile.",
+    "excluded": "Fuori dal totale",
+    "inPulpe": "In Pulpe",
+    "overdraft": "Scoperto",
+    "updated": "Aggiornato {{when}}",
+    "updatedDebt": "{{category}} · aggiornato {{when}}",
+    "showArchived": "Mostra gli archiviati ({{count}})",
+    "hideArchived": "Nascondi gli archiviati",
+    "archivedTitle": "Archiviati",
+    "sankey": {
+      "title": "Ripartizione di oggi",
+      "subtitle": "Da ciò che ho al mio patrimonio netto",
+      "subtitleDebts": "Da ciò che ho a ciò che devo",
+      "gross": "Patrimonio lordo",
+      "net": "Patrimonio netto",
+      "mobileHint": "Trascina per vedere fino al tuo patrimonio netto",
+      "ariaNet": "Ripartizione di ciò che ho: patrimonio lordo {{gross}}, diviso tra {{debts}} di debiti e {{net}} di patrimonio netto.",
+      "ariaDebts": "Ciò che ho, {{gross}}, a fronte di {{debts}} di debiti."
+    },
+    "menu": {
+      "actions": "Azioni per {{name}}",
+      "updateValue": "Aggiorna il valore",
+      "edit": "Modifica",
+      "archive": "Archivia",
+      "unarchive": "Ripristina",
+      "delete": "Elimina"
+    },
+    "deleteTitle": "Eliminare {{name}}?",
+    "deleteMessage": "Viene eliminata anche tutta la cronologia dei valori. Archivialo invece per toglierlo dai totali e conservare la cronologia.",
+    "form": {
+      "createTitle": "Aggiungi al mio patrimonio",
+      "editTitle": "Modifica {{name}}",
+      "name": "Nome",
+      "direction": "Tipo",
+      "own": "Ciò che ho",
+      "owe": "Ciò che devo",
+      "category": "Categoria",
+      "myCategories": "Le mie categorie",
+      "suggestions": "Suggerimenti",
+      "newTag": "Nuova",
+      "newCategoryHint": "Nuova categoria: la creo al salvataggio.",
+      "currency": "Valuta",
+      "value": "Valore attuale",
+      "inPulpe": "In Pulpe",
+      "inPulpeHint": "Per il conto che spunti nel tuo budget. Lo precompilo quando allinei i tuoi conti.",
+      "readOnlyHint": "Il tipo e la valuta restano quelli della creazione.",
+      "editNote": "Per cambiarne il valore, usa «Aggiorna il valore» nel menu della riga.",
+      "nameRequired": "Dagli un nome",
+      "categoryRequired": "Scegli una categoria",
+      "valueRequired": "Indica un valore",
+      "add": "Aggiungi"
+    },
+    "value": {
+      "title": "Aggiorna il valore",
+      "subtitleOwn": "{{name}} · ciò che ho oggi",
+      "subtitleOwe": "{{name}} · ciò che devo oggi",
+      "label": "Nuovo valore",
+      "lastValue": "Ultimo valore: {{amount}}, il {{date}}",
+      "overdraft": "Saldo negativo (scoperto)",
+      "valueRequired": "Indica un valore"
+    },
+    "categoriesDialog": {
+      "title": "Le mie categorie",
+      "description": "Ordinano i tuoi conti, i tuoi risparmi e i tuoi debiti nella pagina.",
+      "empty": "Ancora nessuna categoria: si creano quando aggiungi un conto, o qui.",
+      "rename": "Rinomina {{name}}",
+      "delete": "Elimina {{name}}",
+      "nameLabel": "Nome della categoria",
+      "saveName": "Salva il nome",
+      "cancelRename": "Annulla la rinomina",
+      "newLabel": "Nuova categoria",
+      "newPlaceholder": "Es. Crypto",
+      "add": "Aggiungi",
+      "notEmpty": "Sposta prima {{names}} in un'altra categoria."
+    },
+    "starter": {
+      "accounts": "Conti",
+      "savings": "Risparmio",
+      "investments": "Investimenti",
+      "cash": "Contanti",
+      "valuables": "Oggetti di valore",
+      "property": "Beni"
+    }
+  },
   "completeProfile": {
     "loading": "Preparo il tuo spazio di libertà...",
     "greetingWithName": "Ciao {{ name }} 👋",
@@ -1931,7 +2031,8 @@
     "designSystem": "Design System",
     "maintenance": "Manutenzione",
     "mcpConsent": "Collegare un assistente IA",
-    "settingsConnections": "Connessioni"
+    "settingsConnections": "Connessioni",
+    "netWorth": "Il mio patrimonio"
   },
   "authError": {
     "generic": "Qualcosa non ha funzionato — riprova",
@@ -2029,7 +2130,16 @@
     "transactionImportInvalid": "L'estratto conto contiene errori — non è stato importato nulla, rilancia l'anteprima per vederli",
     "transactionImportConflict": "Alcune operazioni sono state importate nel frattempo — non è stato creato nulla, rilancia l'anteprima",
     "transactionImportFailed": "Non è stato creato nulla, riprova",
-    "transactionImportRecalculationFailed": "I movimenti sono stati importati, ma i saldi non hanno potuto essere aggiornati — ricarica la pagina senza importare di nuovo il file"
+    "transactionImportRecalculationFailed": "I movimenti sono stati importati, ma i saldi non hanno potuto essere aggiornati — ricarica la pagina senza importare di nuovo il file",
+    "assetNotFound": "Questo elemento non è stato trovato — forse è già stato eliminato",
+    "assetCategoryNotFound": "Questa categoria non è stata trovata — forse è già stata eliminata",
+    "assetCategoryNotEmpty": "Questa categoria contiene ancora degli elementi — spostali prima in un'altra categoria",
+    "assetCategoryDuplicate": "Esiste già una categoria con questo nome",
+    "assetValueInvalid": "Questo valore non è valido — un debito non può essere negativo",
+    "assetFetchFailed": "Impossibile caricare il tuo patrimonio — riprova",
+    "assetCreateFailed": "Aggiunta non riuscita — riprova",
+    "assetUpdateFailed": "Modifica non riuscita — riprova",
+    "assetDeleteFailed": "Eliminazione non riuscita — riprova"
   },
   "logout": {
     "inProgress": "Disconnessione...",
