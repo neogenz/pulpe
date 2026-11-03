@@ -1,6 +1,6 @@
 ---
 objective: "On the web, a user declares assets and debts in CHF or EUR, sees today's net worth as a Sankey, refreshes in-Pulpe balances from the reconciliation, and links prévisions to assets that propose their new value."
-status: pending
+status: implemented
 ---
 
 # Plan: Mon patrimoine (web)
