@@ -158,6 +158,40 @@ it("adds the pointed balance up to what is left to spend", async () => {
   ).toBeTruthy();
 });
 
+it("adds what is still to come in before what is still to go out", async () => {
+  const view = await render(
+    <RealizedBalanceSheet
+      {...props}
+      realized={{
+        ...props.realized,
+        realizedIncome: 4000,
+        realizedBalance: 499.99,
+      }}
+    />,
+  );
+
+  expect(
+    view.getByText(
+      "499.99 home.realized.bridge.checked + 1’000.00 home.realized.bridge.incoming − 499.99 home.realized.bridge.outgoing = 1’000.00 home.realized.bridge.available",
+    ),
+  ).toBeTruthy();
+});
+
+it("lands on the deficit when the plan is overspent", async () => {
+  const view = await render(
+    <RealizedBalanceSheet
+      {...props}
+      metrics={{ ...props.metrics, remaining: -200 }}
+    />,
+  );
+
+  expect(
+    view.getByText(
+      "1’499.99 home.realized.bridge.checked − 1’699.99 home.realized.bridge.outgoing = 200.00 home.realized.bridge.deficit",
+    ),
+  ).toBeTruthy();
+});
+
 it("leaves the coming months out of a past month", async () => {
   const past = new Date(period.year, period.month - 2, 1);
   const view = await render(

@@ -8,10 +8,6 @@ struct DashboardStoreLogicTests {
 
     private let calendar = Calendar.current
 
-    private var currentMonth: Int {
-        calendar.component(.month, from: Date())
-    }
-
     private var currentYear: Int {
         calendar.component(.year, from: Date())
     }
@@ -245,118 +241,45 @@ struct DashboardStoreLogicTests {
 
     // MARK: - Balance Forecasts
 
-    @Test func balanceForecasts_withFutureBudgets_returnsCorrectSequence() {
-        // Use hardcoded months to avoid time-dependent behavior at year boundaries
-        let store = makeStore(budgets: [
-            TestDataFactory.createBudgetSparse(id: "fc-cur", month: currentMonth, year: currentYear, remaining: 2583),
-            sparseBudget(monthOffset: 1, remaining: 3000),
-            sparseBudget(monthOffset: 2, remaining: 3500),
-        ])
-
-        let forecasts = store.balanceForecasts
-
-        #expect(forecasts.first?.month == currentMonth)
-        #expect(forecasts.first?.isCurrentMonth == true)
-        #expect(forecasts.first?.availableBalance == 2583.0)
-        #expect(forecasts.count >= 1)
+    /// Fixed periods, so the horizon crosses the new year whatever month the suite runs in.
+    private func forecastBudget(_ year: Int, _ month: Int, remaining: Decimal?) -> BudgetSparse {
+        TestDataFactory.createBudgetSparse(id: "fc-\(year)-\(month)", month: month, year: year, remaining: remaining)
     }
 
-    @Test func balanceForecasts_excludesMonthsWithoutBudgets() {
-        // Only current month — no future budgets
-        let store = makeStore(budgets: [
-            TestDataFactory.createBudgetSparse(
-                id: "fc-cur", month: currentMonth, year: currentYear,
-                remaining: 1500
-            ),
-        ])
+    @Test func balanceForecasts_startsAtTheGivenMonthAndCrossesTheYearBoundary() {
+        let periods = [(2026, 11), (2026, 12), (2027, 1), (2027, 2), (2027, 3), (2027, 4), (2027, 5), (2027, 6)]
+        let store = makeStore(budgets: periods.enumerated().map { offset, period in
+            forecastBudget(period.0, period.1, remaining: Decimal(offset * 100))
+        })
 
-        let forecasts = store.balanceForecasts
-        let forecastMonths = forecasts.map(\.month)
+        let forecasts = store.balanceForecasts(from: BudgetPeriod(month: 12, year: 2026))
 
-        #expect(forecastMonths.contains(currentMonth))
-        // Months without budgets should not appear
-        let allValid = forecasts.allSatisfy {
-            $0.month == currentMonth || sparseBudgetExists(month: $0.month, year: currentYear, in: store)
-        }
-        #expect(allValid)
+        #expect(forecasts.map(\.id) == ["2026-12", "2027-1", "2027-2", "2027-3", "2027-4", "2027-5"])
+        #expect(forecasts.first?.availableBalance == 100)
     }
 
-    private func sparseBudgetExists(month: Int, year: Int, in store: DashboardStore) -> Bool {
-        store.sparseBudgets.contains { $0.month == month && $0.year == year }
-    }
-
-    @Test func balanceForecasts_excludesMonthsWithNilRemaining() {
+    @Test func balanceForecasts_leavesOutMonthsWithoutABudgetOrARemaining() {
         let store = makeStore(budgets: [
-            TestDataFactory.createBudgetSparse(
-                id: "fc-1", month: currentMonth, year: currentYear,
-                remaining: nil
-            ),
+            forecastBudget(2026, 12, remaining: 40),
+            forecastBudget(2027, 1, remaining: nil),
         ])
 
-        #expect(store.balanceForecasts.isEmpty)
+        let forecasts = store.balanceForecasts(from: BudgetPeriod(month: 11, year: 2026))
+
+        #expect(forecasts == [MonthlyForecast(month: 12, year: 2026, availableBalance: 40)])
     }
 
     @Test func balanceForecasts_emptyWhenNoData() {
-        #expect(makeStore(budgets: []).balanceForecasts.isEmpty)
-    }
-
-    @Test func balanceForecasts_coversTheHorizonAcrossTheYearBoundary() {
-        let store = makeStore(budgets: (0...8).map { sparseBudget(monthOffset: $0, remaining: Decimal($0 * 100)) })
-
-        let expected = (0..<DashboardStore.forecastHorizonMonths).compactMap { offset in
-            calendar.date(byAdding: .month, value: offset, to: Date()).map {
-                "\(calendar.component(.year, from: $0))-\(calendar.component(.month, from: $0))"
-            }
-        }
-        #expect(store.balanceForecasts.map(\.id) == expected)
-        #expect(store.balanceForecasts.filter(\.isCurrentMonth).map(\.id) == [expected[0]])
-    }
-
-    @Test func balanceForecasts_fromAViewedMonth_startsThere() throws {
-        let store = makeStore(budgets: (0...8).map { sparseBudget(monthOffset: $0, remaining: Decimal($0 * 100)) })
-        let viewed = try #require(calendar.date(byAdding: .month, value: 2, to: Date()))
-        let start = BudgetPeriod(
-            month: calendar.component(.month, from: viewed),
-            year: calendar.component(.year, from: viewed)
-        )
-
-        let forecasts = store.balanceForecasts(from: start)
-
-        #expect(forecasts.first?.id == "\(start.year)-\(start.month)")
-        #expect(forecasts.first?.availableBalance == 200)
-        #expect(forecasts.count == DashboardStore.forecastHorizonMonths)
-        let readsTheCurrentMonth = forecasts.contains(where: \.isCurrentMonth)
-        #expect(!readsTheCurrentMonth)
-    }
-
-    @Test func hasEnoughDataForBalanceChart_trueWith2OrMore() {
-        let store = makeStore(budgets: [
-            sparseBudget(monthOffset: 0, remaining: 2500),
-            sparseBudget(monthOffset: 1, remaining: 3000),
-        ])
-
-        #expect(store.hasEnoughDataForBalanceChart)
-    }
-
-    @Test func hasEnoughDataForBalanceChart_falseWith0Or1() {
-        #expect(!makeStore(budgets: []).hasEnoughDataForBalanceChart)
-
-        let storeWith1 = makeStore(budgets: [
-            TestDataFactory.createBudgetSparse(
-                id: "fc-1", month: currentMonth, year: currentYear,
-                remaining: 2500
-            ),
-        ])
-        #expect(!storeWith1.hasEnoughDataForBalanceChart)
+        #expect(makeStore(budgets: []).balanceForecasts(from: BudgetPeriod(month: 11, year: 2026)).isEmpty)
     }
 
     // MARK: - Forecast Outlook
 
     @Test func forecastOutlook_namesWhereTheBalanceTurns() {
-        let nov = MonthlyForecast(month: 11, year: 2026, availableBalance: 1180, isCurrentMonth: true)
-        let dec = MonthlyForecast(month: 12, year: 2026, availableBalance: -40, isCurrentMonth: false)
-        let jan = MonthlyForecast(month: 1, year: 2027, availableBalance: 0, isCurrentMonth: false)
-        let feb = MonthlyForecast(month: 2, year: 2027, availableBalance: -300, isCurrentMonth: false)
+        let nov = MonthlyForecast(month: 11, year: 2026, availableBalance: 1180)
+        let dec = MonthlyForecast(month: 12, year: 2026, availableBalance: -40)
+        let jan = MonthlyForecast(month: 1, year: 2027, availableBalance: 0)
+        let feb = MonthlyForecast(month: 2, year: 2027, availableBalance: -300)
 
         #expect(ForecastOutlook([nov, jan]) == .staysPositive(through: jan))
         #expect(ForecastOutlook([nov, dec, jan]) == .tightens(in: dec))

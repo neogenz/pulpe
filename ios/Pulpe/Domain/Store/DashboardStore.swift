@@ -222,39 +222,25 @@ final class DashboardStore: StoreProtocol {
         historicalExpenses.count >= 2
     }
 
-    /// The forecast from the current period on.
-    var balanceForecasts: [MonthlyForecast] {
-        balanceForecasts(from: BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth))
-    }
-
     /// Projected remaining balance over `forecastHorizonMonths` periods, `start` first,
     /// crossing into the next year when the horizon does. Uses the backend-computed
     /// `remaining` field (income + rollover - expenses) to match the "disponible" amounts
     /// shown in the budget list.
     func balanceForecasts(from start: BudgetPeriod) -> [MonthlyForecast] {
-        let currentPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDayOfMonth)
-
+        let startIndex = BudgetPeriodCalculator.periodIndex(start)
         return (0..<Self.forecastHorizonMonths).compactMap { offset -> MonthlyForecast? in
-            let monthIndex = start.month - 1 + offset
-            let month = monthIndex % 12 + 1
-            let year = start.year + monthIndex / 12
-            guard let budget = sparseBudgets.first(where: { $0.month == month && $0.year == year }),
+            let period = BudgetPeriodCalculator.periodFromIndex(startIndex + offset)
+            guard let budget = sparseBudgets.first(where: { $0.month == period.month && $0.year == period.year }),
                   let remaining = budget.remaining else {
                 return nil
             }
 
             return MonthlyForecast(
-                month: month,
-                year: year,
-                availableBalance: Double(truncating: remaining as NSDecimalNumber),
-                isCurrentMonth: month == currentPeriod.month && year == currentPeriod.year
+                month: period.month,
+                year: period.year,
+                availableBalance: Double(truncating: remaining as NSDecimalNumber)
             )
         }
-    }
-
-    /// At least 2 forecast entries needed for a meaningful chart
-    var hasEnoughDataForBalanceChart: Bool {
-        balanceForecasts.count >= 2
     }
 }
 
@@ -267,10 +253,7 @@ protocol MonthlyDataPoint {
 
 extension MonthlyDataPoint {
     /// "novembre", as running text writes it in the interface language.
-    var monthName: String {
-        Calendar.current.date(from: DateComponents(year: year, month: month, day: 1))
-            .map { Formatters.month.string(from: $0) } ?? "\(month)"
-    }
+    var monthName: String { Formatters.monthNameInText(for: month) }
 
     var shortMonthName: String {
         var components = DateComponents()
@@ -324,7 +307,6 @@ struct MonthlyForecast: Identifiable, Equatable, MonthlyDataPoint {
     let month: Int
     let year: Int
     let availableBalance: Double
-    let isCurrentMonth: Bool
 
     var id: String { "\(year)-\(month)" }
 }

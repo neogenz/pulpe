@@ -1,4 +1,8 @@
-import { getBudgetPeriodForDate, type SupportedCurrency } from "pulpe-shared";
+import {
+  compareBudgetPeriods,
+  getBudgetPeriodForDate,
+  type SupportedCurrency,
+} from "pulpe-shared";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
@@ -27,7 +31,6 @@ const BAR_WIDTH = 26;
 const BAR_MIN_HEIGHT = 10;
 const BASELINE_HEIGHT = 1;
 const SELECTION_DOT = 6;
-const MONTHS_PER_YEAR = 12;
 /** Unselected bars step back through their ink (~70%), still 3:1 against the card, as on iOS. */
 const UNSELECTED_ALPHA = "B3";
 
@@ -60,8 +63,7 @@ export function ForecastSection({
   const isPast =
     start !== undefined &&
     current !== undefined &&
-    start.year * MONTHS_PER_YEAR + start.month <
-      current.year * MONTHS_PER_YEAR + current.month;
+    compareBudgetPeriods(start, current) < 0;
   const forecasts =
     start === undefined || budgets.data === undefined
       ? []

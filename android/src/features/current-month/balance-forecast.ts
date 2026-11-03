@@ -1,8 +1,7 @@
-import type { BudgetSparse } from "pulpe-shared";
+import { type BudgetSparse, periodFromIndex, periodIndex } from "pulpe-shared";
 
 /** As far ahead as the forecast looks, the period in force included. */
 export const FORECAST_HORIZON_MONTHS = 6;
-const MONTHS_PER_YEAR = 12;
 
 export interface MonthlyForecast {
   month: number;
@@ -21,10 +20,9 @@ export function balanceForecasts(
   budgets: BudgetSparse[],
   period: { month: number; year: number },
 ): MonthlyForecast[] {
+  const start = periodIndex(period);
   return Array.from({ length: FORECAST_HORIZON_MONTHS }, (_, offset) => {
-    const index = period.month - 1 + offset;
-    const month = (index % MONTHS_PER_YEAR) + 1;
-    const year = period.year + Math.floor(index / MONTHS_PER_YEAR);
+    const { month, year } = periodFromIndex(start + offset);
     const balance = budgets.find(
       (budget) => budget.month === month && budget.year === year,
     )?.remaining;

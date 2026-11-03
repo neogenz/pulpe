@@ -44,6 +44,8 @@ extension DesignTokens {
         static let forecastPlotHeight: CGFloat = 132
         static let forecastBarWidth: CGFloat = 26
         static let forecastBarMinHeight: CGFloat = 10
+        /// The dot under the selected month's name.
+        static let forecastSelectionDot: CGFloat = 6
 
         /// One dot per budget item on the pointed-balance card. Past `checkDotLimit` (two
         /// rows) the dots stop being countable and the card falls back to a progress bar.

@@ -60,7 +60,7 @@ struct RealizedBalanceSheet: View {
     private var forecastStart: BudgetPeriod? {
         let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: userSettingsStore.payDayOfMonth)
         guard let period else { return current }
-        return (period.year, period.month) < (current.year, current.month) ? nil : period
+        return BudgetPeriodCalculator.comparePeriods(period, current) < 0 ? nil : period
     }
 
     // MARK: - Planned vs Real

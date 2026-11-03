@@ -134,7 +134,7 @@ struct ForecastSection: View {
                 .fixedSize(horizontal: false, vertical: true)
             Circle()
                 .fill(isSelected ? Color.textPrimary : .clear)
-                .frame(width: DesignTokens.ChipMetrics.stateDotSize, height: DesignTokens.ChipMetrics.stateDotSize)
+                .frame(width: DesignTokens.Chart.forecastSelectionDot, height: DesignTokens.Chart.forecastSelectionDot)
         }
         .padding(.top, DesignTokens.Spacing.sm)
     }

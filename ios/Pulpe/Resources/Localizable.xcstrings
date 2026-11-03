@@ -194,17 +194,6 @@
         }
       }
     },
-    "%@ / %@" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ / %2$@"
-          }
-        }
-      },
-      "shouldTranslate" : false
-    },
     "%@ / mois" : {
       "localizations" : {
         "de" : {
@@ -1603,34 +1592,6 @@
         }
       },
       "shouldTranslate" : false
-    },
-    "%lld / %lld" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld / %lld"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld / %lld"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld / %2$lld"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld / %lld"
-          }
-        }
-      }
     },
     "%lld TAGS PERSONNELS" : {
       "localizations" : {
@@ -16809,28 +16770,6 @@
         }
       }
     },
-    "Mois %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Monat %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Month %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mese %@"
-          }
-        }
-      }
-    },
     "Mois Standard" : {
       "localizations" : {
         "de" : {
@@ -19913,28 +19852,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Più tardi per %@"
-          }
-        }
-      }
-    },
-    "Pointage" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abhaken"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spunta"
           }
         }
       }
