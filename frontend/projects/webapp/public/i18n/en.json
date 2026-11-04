@@ -1478,6 +1478,7 @@
       "subtitleDebts": "From what I have to what I owe",
       "gross": "Gross worth",
       "net": "Net worth",
+      "shortfall": "Missing",
       "mobileHint": "Drag to see all the way to your net worth",
       "ariaNet": "Breakdown of what I have: gross worth {{gross}}, split between {{debts}} owed and {{net}} of net worth.",
       "ariaDebts": "What I have, {{gross}}, set against {{debts}} owed."

@@ -1478,6 +1478,7 @@
       "subtitleDebts": "Da ciò che ho a ciò che devo",
       "gross": "Patrimonio lordo",
       "net": "Patrimonio netto",
+      "shortfall": "Mancano",
       "mobileHint": "Trascina per vedere fino al tuo patrimonio netto",
       "ariaNet": "Ripartizione di ciò che ho: patrimonio lordo {{gross}}, diviso tra {{debts}} di debiti e {{net}} di patrimonio netto.",
       "ariaDebts": "Ciò che ho, {{gross}}, a fronte di {{debts}} di debiti."

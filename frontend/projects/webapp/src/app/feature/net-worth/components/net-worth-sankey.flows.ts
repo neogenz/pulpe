@@ -27,6 +27,8 @@ export interface NetWorthSankey {
   nodes: Record<string, SankeyNode>;
   /** Pins a node to a column when the flows alone would misplace it. */
   columns: Record<string, number>;
+  /** Orders nodes inside a column, lowest on top; empty keeps the default. */
+  priorities: Record<string, number>;
 }
 
 export const GROSS_NODE = 'gross';
@@ -49,7 +51,7 @@ export function buildNetWorthSankey({
 }: NetWorth): NetWorthSankey {
   const flows: SankeyFlow[] = [];
   const nodes: NetWorthSankey['nodes'] = {};
-  if (totals.gross <= 0) return { flows, nodes, columns: {} };
+  if (totals.gross <= 0) return { flows, nodes, columns: {}, priorities: {} };
 
   // Share of each debt that gross covers; the shortfall covers the rest.
   const covered = totals.net < 0 ? totals.gross / totals.debts : 1;
@@ -103,12 +105,23 @@ export function buildNetWorthSankey({
     flows.push({ from: GROSS_NODE, to: NET_NODE, flow: totals.net });
   }
   if (totals.net < 0) {
-    nodes[NET_NODE] = { kind: 'shortfall', name: null, value: totals.net };
+    // « Il manque » reads as a magnitude, like the debts it covers.
+    nodes[NET_NODE] = {
+      kind: 'shortfall',
+      name: null,
+      value: Math.abs(totals.net),
+    };
     // Without inflows the chart would start it in the first column; it sits
-    // beside gross, right after the assets (and their categories).
+    // beside gross, right after the assets (and their categories), and under
+    // it so the main flow stays on top.
     const grossColumn = hasCategoryColumn ? 2 : 1;
-    return { flows, nodes, columns: { [NET_NODE]: grossColumn } };
+    return {
+      flows,
+      nodes,
+      columns: { [NET_NODE]: grossColumn },
+      priorities: { [GROSS_NODE]: 0, [NET_NODE]: 1 },
+    };
   }
 
-  return { flows, nodes, columns: {} };
+  return { flows, nodes, columns: {}, priorities: {} };
 }

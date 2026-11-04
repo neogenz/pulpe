@@ -68,7 +68,7 @@ describe('buildNetWorthSankey', () => {
   });
 
   it('covers debts beyond gross with a shortfall node beside gross', () => {
-    const { flows, nodes, columns } = buildNetWorthSankey(
+    const { flows, nodes, columns, priorities } = buildNetWorthSankey(
       netWorth(
         [
           asset({ id: 'a', name: 'UBS', convertedValue: 1000 }),
@@ -97,9 +97,11 @@ describe('buildNetWorthSankey', () => {
     expect(nodes['net']).toEqual({
       kind: 'shortfall',
       name: null,
-      value: -3000,
+      value: 3000,
     });
     expect(columns).toEqual({ net: 1 });
+    // Under gross, so the main flow stays on top.
+    expect(priorities).toEqual({ gross: 0, net: 1 });
   });
 
   it('flows assets straight into gross when no category holds two of them', () => {

@@ -28,8 +28,6 @@ import {
 import { AppCurrencyPipe } from '@core/currency';
 import {
   buildNetWorthSankey,
-  GROSS_NODE,
-  NET_NODE,
   type SankeyNodeKind,
 } from './net-worth-sankey.flows';
 
@@ -157,7 +155,7 @@ export class NetWorthSankey {
   protected readonly chartData = computed<
     ChartData<'sankey', SankeyDataPoint[]>
   >(() => {
-    const { flows, nodes, columns } = this.#sankey();
+    const { flows, nodes, columns, priorities } = this.#sankey();
     const { baseCurrency } = this.netWorth().totals;
     const colors = this.theme();
     const colorOf = (id: string): string => {
@@ -165,9 +163,11 @@ export class NetWorthSankey {
       const isDebtSide = kind === 'debt' || kind === 'shortfall';
       return (isDebtSide ? colors?.amber : colors?.primary) ?? '';
     };
-    const names = {
-      [GROSS_NODE]: this.#transloco.translate('netWorth.sankey.gross'),
-      [NET_NODE]: this.#transloco.translate('netWorth.sankey.net'),
+    // The fixed nodes carry no name: the chart labels them by kind.
+    const fixedNames: Partial<Record<SankeyNodeKind, string>> = {
+      gross: this.#transloco.translate('netWorth.sankey.gross'),
+      net: this.#transloco.translate('netWorth.sankey.net'),
+      shortfall: this.#transloco.translate('netWorth.sankey.shortfall'),
     };
 
     return {
@@ -177,10 +177,11 @@ export class NetWorthSankey {
           data: flows,
           parsing: { from: 'from', to: 'to', flow: 'flow' },
           column: columns,
+          ...(Object.keys(priorities).length > 0 && { priority: priorities }),
           labels: Object.fromEntries(
             Object.entries(nodes).map(([id, node]) => [
               id,
-              `${node.name ?? names[id as keyof typeof names]}\n${wholeAmount.transform(node.value, baseCurrency, '1.0-0')}`,
+              `${node.name ?? fixedNames[node.kind]}\n${wholeAmount.transform(node.value, baseCurrency, '1.0-0')}`,
             ]),
           ),
           nodeLabels: {
