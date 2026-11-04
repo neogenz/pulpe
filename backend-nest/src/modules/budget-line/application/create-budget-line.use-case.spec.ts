@@ -126,6 +126,28 @@ describe('CreateBudgetLineUseCase', () => {
     );
   });
 
+  it('should date a line created checked with the server clock, not the client one', async () => {
+    const before = Date.now();
+
+    await useCase.execute(
+      {
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Virement livret',
+        amount: 500,
+        kind: 'saving',
+        recurrence: 'one_off',
+        isManuallyAdjusted: false,
+        checkedAt: '2099-01-01T00:00:00.000Z',
+      },
+      mockUser,
+    );
+
+    const { checkedAt } = mockRepo.insert.mock.calls[0][0];
+    const stamped = Date.parse(checkedAt);
+    expect(stamped).toBeGreaterThanOrEqual(before);
+    expect(stamped).toBeLessThanOrEqual(Date.now());
+  });
+
   it('should throw when budgetId is missing', async () => {
     const dto = {
       name: 'Loyer',
