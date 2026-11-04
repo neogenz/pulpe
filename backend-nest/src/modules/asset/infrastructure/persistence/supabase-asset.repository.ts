@@ -7,6 +7,7 @@ import {
   type ErrorDefinition,
 } from '@common/constants/error-definitions';
 import { fetchAllPages } from '@common/utils/postgrest-pagination';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
   ENCRYPTION_PORT,
@@ -35,6 +36,8 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
+    @InjectInfoLogger(SupabaseAssetRepository.name)
+    private readonly logger: InfoLogger,
   ) {}
 
   async findAllCategories(): Promise<AssetCategory[]> {
@@ -169,16 +172,15 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
     }
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return rows.map((row) => {
+    return rows.flatMap((row) => {
       const latest = latestByAssetId.get(row.id);
       if (!latest) {
-        throw this.fetchFailed(
-          'listAssets',
-          new Error('Asset has no snapshot'),
-          {
-            entityId: row.id,
-          },
+        // An orphan left by a failed creation must not take the whole list down.
+        this.logger.warn(
+          { operation: 'listAssets', entityId: row.id },
+          'Asset has no snapshot, left out of the list',
         );
+        return [];
       }
       return {
         ...this.toAsset(row),
@@ -220,9 +222,9 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
       rows.map((row) => ({
         assetId,
         kind: row.kind,
-        amount: row.amount
-          ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
-          : 0,
+        // Strict: a value Pulpe proposes and the user can apply must never
+        // come from an amount that failed to decrypt.
+        amount: row.amount ? this.encryption.decryptAmount(row.amount, dek) : 0,
       })),
     );
   }
@@ -264,7 +266,20 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
       await this.insertSnapshots([{ assetId: data.id, value: input.value }]);
     } catch (snapshotError) {
       // Two statements, no transaction: never leave an asset without a value.
-      await supabase.from('asset').delete().eq('id', data.id);
+      const { error: cleanupError } = await supabase
+        .from('asset')
+        .delete()
+        .eq('id', data.id);
+      if (cleanupError) {
+        this.logger.warn(
+          {
+            operation: 'createAsset.compensateSnapshotFailure',
+            entityId: data.id,
+            err: cleanupError,
+          },
+          'Failed to delete asset after first snapshot failure',
+        );
+      }
       throw snapshotError;
     }
     return this.toAsset(data);

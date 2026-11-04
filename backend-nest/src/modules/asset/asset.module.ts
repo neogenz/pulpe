@@ -48,6 +48,7 @@ import { RemoveAssetCategoryUseCase } from './application/remove-asset-category.
     createInfoLoggerProvider(CreateAssetCategoryUseCase.name),
     createInfoLoggerProvider(UpdateAssetCategoryUseCase.name),
     createInfoLoggerProvider(RemoveAssetCategoryUseCase.name),
+    createInfoLoggerProvider(SupabaseAssetRepository.name),
   ],
 })
 export class AssetModule {}

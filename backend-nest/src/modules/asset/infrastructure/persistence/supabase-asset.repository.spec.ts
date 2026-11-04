@@ -4,6 +4,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { POSTGREST_PAGE_SIZE } from '@common/utils/postgrest-pagination';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { InfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
@@ -66,14 +67,18 @@ function createRepository(
     getDekFor: jest.fn().mockResolvedValue(Buffer.alloc(32)),
     encryptAmount: jest.fn((amount: number) => `enc:${amount}`),
     decryptAmount: jest.fn((ciphertext: string) => Number(ciphertext.slice(4))),
-    tryDecryptAmount: jest.fn((ciphertext: string) =>
-      Number(ciphertext.slice(4)),
-    ),
     ...encryption,
   } as unknown as EncryptionPort;
+  const logger = {
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    trace: jest.fn(),
+  } as unknown as InfoLogger;
   return {
-    repo: new SupabaseAssetRepository(provider, port),
+    repo: new SupabaseAssetRepository(provider, port, logger),
     encryption: port,
+    logger,
   };
 }
 
@@ -251,15 +256,26 @@ describe('SupabaseAssetRepository', () => {
       await expect(repo.findAllWithLatestValue()).rejects.toBe(failure);
     });
 
-    it('fails with ASSET_FETCH_FAILED on an asset without any snapshot', async () => {
-      const { repo } = createRepository({
-        asset: [query(() => ({ data: [assetRow('a')], error: null }))],
-        asset_snapshot: [query(() => ({ data: [], error: null }))],
+    it('leaves out an asset without any snapshot and keeps the others', async () => {
+      const { repo, logger } = createRepository({
+        asset: [
+          query(() => ({
+            data: [assetRow('orphan'), assetRow('a')],
+            error: null,
+          })),
+        ],
+        asset_snapshot: [
+          query(() => ({
+            data: [snapshotRow('a', 5, '2026-11-03T10:00:00Z')],
+            error: null,
+          })),
+        ],
       });
 
-      await expect(repo.findAllWithLatestValue()).rejects.toMatchObject({
-        code: ERROR_DEFINITIONS.ASSET_FETCH_FAILED.code,
-      });
+      const assets = await repo.findAllWithLatestValue();
+
+      expect(assets.map((asset) => asset.id)).toEqual(['a']);
+      expect(logger.warn).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -299,7 +315,7 @@ describe('SupabaseAssetRepository', () => {
       expect(leasing.argsOf('gt')).toEqual([
         ['checked_at', '2026-11-04T08:00:00+00:00'],
       ]);
-      expect(encryption.tryDecryptAmount).toHaveBeenCalledTimes(3);
+      expect(encryption.decryptAmount).toHaveBeenCalledTimes(3);
     });
 
     it('counts every line of an asset past the 1000-row PostgREST page', async () => {
@@ -355,7 +371,31 @@ describe('SupabaseAssetRepository', () => {
       ]);
 
       expect(lines).toEqual([{ assetId: 'livret', kind: 'saving', amount: 0 }]);
-      expect(encryption.tryDecryptAmount).not.toHaveBeenCalled();
+      expect(encryption.decryptAmount).not.toHaveBeenCalled();
+    });
+
+    it('does not read an undecryptable amount as zero', async () => {
+      const failure = new Error(
+        'Unsupported state or unable to authenticate data',
+      );
+      const { repo } = createRepository(
+        {
+          budget_line: [
+            query(() => ({ data: [lineRow(1, 500)], error: null })),
+          ],
+        },
+        {
+          decryptAmount: jest.fn(() => {
+            throw failure;
+          }),
+        },
+      );
+
+      await expect(
+        repo.findCheckedLinkedLines([
+          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+        ]),
+      ).rejects.toBe(failure);
     });
 
     it('fails with ASSET_FETCH_FAILED when a read fails', async () => {
@@ -439,6 +479,29 @@ describe('SupabaseAssetRepository', () => {
       });
       expect(compensation.argsOf('delete')).toHaveLength(1);
       expect(compensation.argsOf('eq')[0]).toEqual(['id', 'new']);
+    });
+
+    it('logs a compensation that fails and still throws the snapshot error', async () => {
+      const { repo, logger } = createRepository({
+        asset: [
+          query(() => ({ data: assetRow('new'), error: null })),
+          query(() => ({
+            data: null,
+            error: { code: '08006', message: 'down' },
+          })),
+        ],
+        asset_snapshot: [
+          query(() => ({
+            data: null,
+            error: { code: '08006', message: 'down' },
+          })),
+        ],
+      });
+
+      await expect(repo.insertAsset(input)).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_CREATE_FAILED.code,
+      });
+      expect(logger.warn).toHaveBeenCalledTimes(1);
     });
 
     it('maps a composite foreign key violation to ASSET_CATEGORY_NOT_FOUND', async () => {
