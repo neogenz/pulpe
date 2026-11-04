@@ -46,6 +46,8 @@ const LABEL_SIDE: Record<SankeyNodeKind, SankeyLabelPosition> = {
   category: 'right',
   gross: 'right',
   net: 'right',
+  // Left of its bar: the space under the categories' flows is empty.
+  shortfall: 'left',
   debt: 'right',
 };
 // Room for the labels that sit outside the plot: assets on the left, the
@@ -155,11 +157,14 @@ export class NetWorthSankey {
   protected readonly chartData = computed<
     ChartData<'sankey', SankeyDataPoint[]>
   >(() => {
-    const { flows, nodes } = this.#sankey();
+    const { flows, nodes, columns } = this.#sankey();
     const { baseCurrency } = this.netWorth().totals;
     const colors = this.theme();
-    const colorOf = (id: string): string =>
-      (nodes[id]?.kind === 'debt' ? colors?.amber : colors?.primary) ?? '';
+    const colorOf = (id: string): string => {
+      const kind = nodes[id]?.kind;
+      const isDebtSide = kind === 'debt' || kind === 'shortfall';
+      return (isDebtSide ? colors?.amber : colors?.primary) ?? '';
+    };
     const names = {
       [GROSS_NODE]: this.#transloco.translate('netWorth.sankey.gross'),
       [NET_NODE]: this.#transloco.translate('netWorth.sankey.net'),
@@ -171,6 +176,7 @@ export class NetWorthSankey {
           label: this.#transloco.translate('netWorth.sankey.title'),
           data: flows,
           parsing: { from: 'from', to: 'to', flow: 'flow' },
+          column: columns,
           labels: Object.fromEntries(
             Object.entries(nodes).map(([id, node]) => [
               id,

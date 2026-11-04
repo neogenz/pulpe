@@ -67,8 +67,8 @@ describe('buildNetWorthSankey', () => {
     expect(nodes['net']).toEqual({ kind: 'net', name: null, value: 700 });
   });
 
-  it('drops the net node and scales debts to gross when debts exceed it', () => {
-    const { flows, nodes } = buildNetWorthSankey(
+  it('covers debts beyond gross with a shortfall node beside gross', () => {
+    const { flows, nodes, columns } = buildNetWorthSankey(
       netWorth(
         [
           asset({ id: 'a', name: 'UBS', convertedValue: 1000 }),
@@ -78,14 +78,28 @@ describe('buildNetWorthSankey', () => {
             direction: 'owe',
             convertedValue: 3000,
           }),
+          asset({
+            id: 'd',
+            name: 'Leasing',
+            direction: 'owe',
+            convertedValue: 1000,
+          }),
         ],
-        { gross: 1000, debts: 3000, net: -2000 },
+        { gross: 1000, debts: 4000, net: -3000 },
       ),
     );
 
-    expect(nodes['net']).toBeUndefined();
-    expect(flows).toContainEqual({ from: 'gross', to: 'debt:c', flow: 1000 });
-    expect(nodes['debt:c']?.value).toBe(3000);
+    // Each debt is drawn at its real size: gross covers a quarter of it.
+    expect(flows).toContainEqual({ from: 'gross', to: 'debt:c', flow: 750 });
+    expect(flows).toContainEqual({ from: 'net', to: 'debt:c', flow: 2250 });
+    expect(flows).toContainEqual({ from: 'gross', to: 'debt:d', flow: 250 });
+    expect(flows).toContainEqual({ from: 'net', to: 'debt:d', flow: 750 });
+    expect(nodes['net']).toEqual({
+      kind: 'shortfall',
+      name: null,
+      value: -3000,
+    });
+    expect(columns).toEqual({ net: 2 });
   });
 
   it('sends an overdrawn own asset to the debts side, out of its category', () => {
