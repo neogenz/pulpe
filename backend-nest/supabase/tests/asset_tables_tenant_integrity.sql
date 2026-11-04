@@ -139,6 +139,24 @@ BEGIN
   EXCEPTION WHEN foreign_key_violation THEN NULL;
   END;
 
+  -- Direction and currency are fixed at creation; the editable columns stay
+  -- writable.
+  BEGIN
+    UPDATE public.asset SET direction = 'owe' WHERE id = v_asset_id;
+    RAISE EXCEPTION 'FAIL: changing the direction must be refused';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.asset SET currency = 'CHF' WHERE id = v_asset_id;
+    RAISE EXCEPTION 'FAIL: changing the currency must be refused';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  UPDATE public.asset
+  SET name = 'Compte joint', in_pulpe = true, archived_at = now(),
+      suggestion_dismissed_at = now(), category_id = v_category_id
+  WHERE id = v_asset_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'FAIL: editable asset columns must stay writable'; END IF;
+
   -- anon holds no privilege at all.
   IF has_table_privilege('anon', 'public.asset', 'SELECT')
     OR has_table_privilege('anon', 'public.asset_category', 'SELECT')
