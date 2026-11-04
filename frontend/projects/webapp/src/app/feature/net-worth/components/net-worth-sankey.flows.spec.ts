@@ -99,7 +99,37 @@ describe('buildNetWorthSankey', () => {
       name: null,
       value: -3000,
     });
-    expect(columns).toEqual({ net: 2 });
+    expect(columns).toEqual({ net: 1 });
+  });
+
+  it('flows assets straight into gross when no category holds two of them', () => {
+    const { flows, nodes } = buildNetWorthSankey(
+      netWorth(
+        [
+          asset({ id: 'a', name: 'UBS', convertedValue: 900 }),
+          asset({
+            id: 's',
+            name: 'Livret',
+            categoryId: SAVINGS,
+            convertedValue: 100,
+          }),
+        ],
+        { gross: 1000, debts: 0, net: 1000 },
+        [
+          { id: CHECKING, name: 'Comptes', total: 900 },
+          { id: SAVINGS, name: 'Épargne', total: 100 },
+        ],
+      ),
+    );
+
+    expect(flows).toEqual([
+      { from: 'asset:a', to: 'gross', flow: 900 },
+      { from: 'asset:s', to: 'gross', flow: 100 },
+      { from: 'gross', to: 'net', flow: 1000 },
+    ]);
+    expect(Object.values(nodes).map((node) => node.kind)).not.toContain(
+      'category',
+    );
   });
 
   it('sends an overdrawn own asset to the debts side, out of its category', () => {
@@ -147,10 +177,8 @@ describe('buildNetWorthSankey', () => {
       ),
     );
 
-    expect(Object.keys(nodes).sort()).toEqual(
-      ['asset:a', `category:${CHECKING}`, 'gross', 'net'].sort(),
-    );
-    expect(flows).toHaveLength(3);
+    expect(Object.keys(nodes).sort()).toEqual(['asset:a', 'gross', 'net']);
+    expect(flows).toHaveLength(2);
   });
 
   it('returns an empty diagram when there is no gross', () => {
