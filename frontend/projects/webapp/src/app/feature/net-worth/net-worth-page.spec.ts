@@ -99,6 +99,7 @@ describe('NetWorthPage', () => {
   const status = signal<'loading' | 'resolved' | 'error'>('resolved');
   const store = {
     refresh: vi.fn(),
+    isSaving: signal(false),
     netWorth: { status, value },
     totals: computed(() => value()?.totals ?? null),
     categories: computed(() => value()?.categories ?? []),

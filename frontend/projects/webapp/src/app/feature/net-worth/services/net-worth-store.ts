@@ -63,6 +63,9 @@ export class NetWorthStore {
     onError: () => this.#api.cache.invalidate(['assets']),
   });
 
+  /** True while a write is in flight; a second one is dropped meanwhile. */
+  readonly isSaving = this.#write.isPending;
+
   refresh(): void {
     this.netWorth.reload();
   }
@@ -118,8 +121,13 @@ export class NetWorthStore {
     return this.#run(() => firstValueFrom(this.#api.deleteCategory$(id)));
   }
 
-  /** Resolves once the write and the refetch it triggers are done; throws on failure. */
+  /**
+   * Resolves once the write is done and the asset cache invalidated; the
+   * refetch lands after. Throws on failure. Ignored while another write is in
+   * flight, so a double click never records twice.
+   */
   async #run(run: () => Promise<unknown>): Promise<void> {
+    if (this.isSaving()) return;
     const done = await this.#write.mutate(run);
     if (!done) {
       throw this.#write.error() ?? new Error('Net worth write failed');

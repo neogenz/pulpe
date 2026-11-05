@@ -75,7 +75,7 @@ const MAX_CATEGORY_NAME_LENGTH = 30;
                 </mat-form-field>
                 <button
                   matIconButton
-                  [disabled]="draftName().trim() === ''"
+                  [disabled]="draftName().trim() === '' || isSaving()"
                   [attr.aria-label]="
                     'netWorth.categoriesDialog.saveName' | transloco
                   "
@@ -178,7 +178,7 @@ const MAX_CATEGORY_NAME_LENGTH = 30;
         <button
           matButton="outlined"
           class="mt-1"
-          [disabled]="newName().trim() === ''"
+          [disabled]="newName().trim() === '' || isSaving()"
           (click)="add()"
           data-testid="asset-category-add-button"
         >
@@ -201,6 +201,7 @@ const MAX_CATEGORY_NAME_LENGTH = 30;
 })
 export class AssetCategoriesDialog {
   readonly #store = inject(NetWorthStore);
+  protected readonly isSaving = this.#store.isSaving;
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
   readonly #errorLocalizer = inject(ApiErrorLocalizer);

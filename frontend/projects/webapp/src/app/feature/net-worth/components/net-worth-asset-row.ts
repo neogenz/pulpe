@@ -150,6 +150,7 @@ const DAYS_PER_YEAR = 365;
         <div class="ml-auto flex gap-1">
           <button
             matButton
+            [disabled]="busy()"
             (click)="emit('dismissSuggestion')"
             data-testid="asset-suggestion-dismiss-button"
           >
@@ -157,6 +158,7 @@ const DAYS_PER_YEAR = 365;
           </button>
           <button
             matButton="tonal"
+            [disabled]="busy()"
             (click)="emit('applySuggestion')"
             data-testid="asset-suggestion-apply-button"
           >
@@ -243,6 +245,7 @@ export class NetWorthAssetRow {
   readonly baseCurrency = input.required<SupportedCurrency>();
   /** Set on rows of the debts section, which name the category in their meta line. */
   readonly categoryName = input<string | null>(null);
+  readonly busy = input(false);
   readonly action = output<AssetRowEvent>();
 
   // An overdrawn `own` account is counted on the debts side by the API.

@@ -42,6 +42,7 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
             <pulpe-net-worth-asset-row
               [asset]="asset"
               [baseCurrency]="baseCurrency()"
+              [busy]="busy()"
               [categoryName]="
                 showCategory()
                   ? (categoryNames().get(asset.categoryId) ?? null)
@@ -74,5 +75,7 @@ export class NetWorthSection {
   /** Debts and archives mix categories, so their rows name the category. */
   readonly showCategory = input(false);
   readonly categoryNames = input<ReadonlyMap<string, string>>(new Map());
+  /** A write is in flight: the rows' quick actions wait for it. */
+  readonly busy = input(false);
   readonly action = output<AssetRowEvent>();
 }

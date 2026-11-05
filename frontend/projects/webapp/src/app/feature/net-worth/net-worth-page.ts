@@ -204,6 +204,7 @@ import { NetWorthStore } from './services/net-worth-store';
                     [total]="section.total"
                     [assets]="section.assets"
                     [baseCurrency]="totals.baseCurrency"
+                    [busy]="store.isSaving()"
                     (action)="onAction($event)"
                   />
                 }
@@ -216,6 +217,7 @@ import { NetWorthStore } from './services/net-worth-store';
                     [total]="totals.debts"
                     [assets]="debtAssets()"
                     [baseCurrency]="totals.baseCurrency"
+                    [busy]="store.isSaving()"
                     [isDebts]="true"
                     [showCategory]="true"
                     [categoryNames]="categoryNames()"
@@ -244,6 +246,7 @@ import { NetWorthStore } from './services/net-worth-store';
                       [title]="'netWorth.archivedTitle' | transloco"
                       [assets]="store.archivedAssets()"
                       [baseCurrency]="totals.baseCurrency"
+                      [busy]="store.isSaving()"
                       [showCategory]="true"
                       [categoryNames]="categoryNames()"
                       (action)="onAction($event)"

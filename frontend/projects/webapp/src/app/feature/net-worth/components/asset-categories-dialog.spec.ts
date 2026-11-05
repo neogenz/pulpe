@@ -39,6 +39,7 @@ describe('AssetCategoriesDialog', () => {
     addCategory: vi.fn(),
     renameCategory: vi.fn(),
     deleteCategory: vi.fn(),
+    isSaving: signal(false),
   };
   const snackBar = { open: vi.fn() };
 

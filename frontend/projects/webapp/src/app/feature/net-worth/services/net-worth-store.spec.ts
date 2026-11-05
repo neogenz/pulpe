@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import type { Asset, NetWorth } from 'pulpe-shared';
 import { AssetApi } from '@core/asset/asset-api';
 import { createMockDataCache } from '@core/testing';
@@ -202,6 +202,27 @@ describe('NetWorthStore', () => {
     expect(api['recordSnapshots$']).toHaveBeenCalledWith({
       items: [{ assetId: ASSET_ID, value: -300 }],
     });
+  });
+
+  it('drops a second write while the first is in flight', async () => {
+    const pending = new Subject<{
+      success: true;
+      data: { recordedAt: string };
+    }>();
+    api['recordSnapshots$'].mockReturnValueOnce(pending);
+
+    const first = store.recordValue(ASSET_ID, 100);
+    expect(store.isSaving()).toBe(true);
+    await store.recordValue(ASSET_ID, 100);
+    pending.next({
+      success: true,
+      data: { recordedAt: '2026-11-03T10:00:00.000Z' },
+    });
+    pending.complete();
+    await first;
+
+    expect(api['recordSnapshots$']).toHaveBeenCalledOnce();
+    expect(store.isSaving()).toBe(false);
   });
 
   it('dismisses a suggestion through the API and refreshes the assets', async () => {
