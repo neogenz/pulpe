@@ -1,5 +1,5 @@
 import { effect, inject, Service, untracked } from '@angular/core';
-import type { Observable } from 'rxjs';
+import { type Observable, tap } from 'rxjs';
 import {
   type AssetCategoryCreate,
   assetCategoryCreateSchema,
@@ -26,6 +26,7 @@ import {
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { DataCache } from 'ngx-ziflux';
 
 /** The entry the page and the reconciliation read, one request for both. */
@@ -34,13 +35,14 @@ export const NET_WORTH_CACHE_KEY = ['assets', 'net-worth'];
 /**
  * « Mon patrimoine » client. Every figure comes from `getNetWorth$` (the
  * server computes totals, subtotals and conversions at today's rate): the web
- * only displays them. One cache, shared by the page and, later, the
- * reconciliation and prévision pickers.
+ * only displays them. One cache, shared by the page, the reconciliation and
+ * the prévision pickers.
  */
 @Service()
 export class AssetApi {
   readonly #api = inject(ApiClient);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #templatesApi = inject(BudgetTemplatesApi);
   readonly cache = new DataCache({
     name: 'assets',
     staleTime: 30_000,
@@ -84,7 +86,14 @@ export class AssetApi {
   }
 
   delete$(id: string): Observable<AssetDeleteResponse> {
-    return this.#api.delete$(`/assets/${id}`, assetDeleteResponseSchema);
+    // The server unlinks the prévisions that pointed at it: cached budgets and
+    // templates would otherwise send the deleted id back on their next edit.
+    return this.#api.delete$(`/assets/${id}`, assetDeleteResponseSchema).pipe(
+      tap(() => {
+        this.#budgetApi.cache.invalidate(['budget']);
+        this.#templatesApi.cache.invalidate(['templates']);
+      }),
+    );
   }
 
   recordSnapshots$(

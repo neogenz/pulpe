@@ -11,6 +11,7 @@ import type { NetWorth } from 'pulpe-shared';
 import { createMockPostHogService } from '@app/testing/mock-posthog';
 import { PostHogService } from '@core/analytics/posthog';
 import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { AssetApi } from './asset-api';
 
@@ -155,6 +156,24 @@ describe('AssetApi', () => {
     req.flush({ success: true, message: 'deleted' });
 
     expect((await response).success).toBe(true);
+  });
+
+  it('delete$ marks budgets and templates stale, since their links to it are gone', async () => {
+    const budgetVersion = TestBed.inject(BudgetApi).cache.version();
+    const templatesVersion = TestBed.inject(BudgetTemplatesApi).cache.version();
+    const response = firstValueFrom(api.delete$(ASSET_ID));
+
+    httpTesting
+      .expectOne(`${BASE_URL}/assets/${ASSET_ID}`)
+      .flush({ success: true, message: 'deleted' });
+    await response;
+
+    expect(TestBed.inject(BudgetApi).cache.version()).toBeGreaterThan(
+      budgetVersion,
+    );
+    expect(TestBed.inject(BudgetTemplatesApi).cache.version()).toBeGreaterThan(
+      templatesVersion,
+    );
   });
 
   it('manages categories under /asset-categories', async () => {
