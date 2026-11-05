@@ -50,6 +50,7 @@ DECLARE
   v_category_id uuid := gen_random_uuid();
   v_asset_id uuid := gen_random_uuid();
   v_count integer;
+  v_created public.asset;
 BEGIN
   -- The owner writes and reads their own rows, and sees none of the other's.
   INSERT INTO public.asset_category (id, user_id, name)
@@ -175,6 +176,34 @@ BEGIN
   THEN
     RAISE EXCEPTION 'FAIL: a dismissal must be dated by the database';
   END IF;
+
+  -- An asset and its first value land together, or neither does.
+  v_created := public.create_asset_with_first_snapshot(
+    v_category_id, 'Livret', 'CHF', 'own', true, 'first-ciphertext'
+  );
+  IF v_created.user_id <> v_owner_id OR NOT EXISTS (
+    SELECT 1 FROM public.asset_snapshot
+    WHERE asset_id = v_created.id AND value = 'first-ciphertext'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: the asset must be created with its first value';
+  END IF;
+  BEGIN
+    PERFORM public.create_asset_with_first_snapshot(
+      v_category_id, 'Sans valeur', 'CHF', 'own', false, ' '
+    );
+    RAISE EXCEPTION 'FAIL: a blank first value must be rejected';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  IF EXISTS (SELECT 1 FROM public.asset WHERE name = 'Sans valeur') THEN
+    RAISE EXCEPTION 'FAIL: a refused first value must not leave the asset behind';
+  END IF;
+  BEGIN
+    PERFORM public.create_asset_with_first_snapshot(
+      v_other_category_id, 'Intrus', 'CHF', 'own', false, 'x'
+    );
+    RAISE EXCEPTION 'FAIL: another user''s category must be refused';
+  EXCEPTION WHEN foreign_key_violation THEN NULL;
+  END;
 
   -- A snapshot is written once: only the rekey (SECURITY DEFINER) rewrites it.
   IF has_table_privilege('authenticated', 'public.asset_snapshot', 'UPDATE') THEN

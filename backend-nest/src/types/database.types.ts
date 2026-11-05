@@ -1220,6 +1220,35 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      create_asset_with_first_snapshot: {
+        Args: {
+          p_category_id: string
+          p_currency: string
+          p_direction: string
+          p_in_pulpe: boolean
+          p_name: string
+          p_value: string
+        }
+        Returns: {
+          archived_at: string | null
+          category_id: string
+          created_at: string
+          currency: string
+          direction: string
+          id: string
+          in_pulpe: boolean
+          name: string
+          suggestion_dismissed_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "asset"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_budget_from_template: {
         Args: {
           p_description: string

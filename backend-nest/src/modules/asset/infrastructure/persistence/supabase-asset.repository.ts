@@ -228,19 +228,17 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
   }
 
   async insertAsset(input: AssetCreateInput): Promise<Asset> {
-    const userId = this.supabaseProvider.user.id;
-    const supabase = this.supabaseProvider.client;
-    const { data, error } = await supabase
-      .from('asset')
-      .insert({
-        user_id: userId,
-        category_id: input.categoryId,
-        name: input.name,
-        currency: input.currency,
-        direction: input.direction,
-        in_pulpe: input.inPulpe,
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    // One transaction: an asset never exists without its first value.
+    const { data, error } = await this.supabaseProvider.client
+      .rpc('create_asset_with_first_snapshot', {
+        p_category_id: input.categoryId,
+        p_name: input.name,
+        p_currency: input.currency,
+        p_direction: input.direction,
+        p_in_pulpe: input.inPulpe,
+        p_value: this.encryption.encryptAmount(input.value, dek),
       })
-      .select('*')
       .single();
 
     if (error?.code === POSTGRES_FOREIGN_KEY_VIOLATION) {
@@ -258,27 +256,6 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
         'asset',
         error,
       );
-    }
-
-    try {
-      await this.insertSnapshots([{ assetId: data.id, value: input.value }]);
-    } catch (snapshotError) {
-      // Two statements, no transaction: never leave an asset without a value.
-      const { error: cleanupError } = await supabase
-        .from('asset')
-        .delete()
-        .eq('id', data.id);
-      if (cleanupError) {
-        this.logger.warn(
-          {
-            operation: 'createAsset.compensateSnapshotFailure',
-            entityId: data.id,
-            err: cleanupError,
-          },
-          'Failed to delete asset after first snapshot failure',
-        );
-      }
-      throw snapshotError;
     }
     return this.toAsset(data);
   }

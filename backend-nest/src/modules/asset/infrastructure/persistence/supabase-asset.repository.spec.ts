@@ -56,8 +56,14 @@ function createRepository(
   const queues = Object.fromEntries(
     Object.entries(tables).map(([table, list]) => [table, [...list]]),
   );
+  // An RPC is queued under `rpc:<name>`; its arguments are recorded as a call.
   const client = {
     from: (table: string) => queues[table]?.shift()?.builder,
+    rpc: (name: string, args: unknown) => {
+      const rpc = queues[`rpc:${name}`]?.shift();
+      rpc?.calls.push(['rpc', [args]]);
+      return rpc?.builder;
+    },
   } as unknown as AuthenticatedSupabaseClient;
   const provider = {
     client,
@@ -439,18 +445,13 @@ describe('SupabaseAssetRepository', () => {
       value: 1000,
     };
 
-    it('writes the asset then its encrypted first snapshot', async () => {
-      const assetInsert = query(() => ({
+    it('writes the asset and its encrypted first value in one call', async () => {
+      const create = query(() => ({
         data: assetRow('new', { currency: 'EUR' }),
         error: null,
       }));
-      const snapshotInsert = query(() => ({
-        data: [{ recorded_at: '2026-11-03T10:00:00Z' }],
-        error: null,
-      }));
       const { repo } = createRepository({
-        asset: [assetInsert],
-        asset_snapshot: [snapshotInsert],
+        'rpc:create_asset_with_first_snapshot': [create],
       });
 
       const asset = await repo.insertAsset(input);
@@ -460,64 +461,23 @@ describe('SupabaseAssetRepository', () => {
         currency: 'EUR',
         direction: 'own',
       });
-      expect(assetInsert.argsOf('insert')[0]?.[0]).toMatchObject({
-        user_id: 'user-1',
-        category_id: 'cat-1',
-        in_pulpe: false,
-      });
-      expect(snapshotInsert.argsOf('insert')[0]?.[0]).toEqual([
-        { user_id: 'user-1', asset_id: 'new', value: 'enc:1000' },
+      expect(create.argsOf('rpc')).toEqual([
+        [
+          {
+            p_category_id: 'cat-1',
+            p_name: 'Livret',
+            p_currency: 'EUR',
+            p_direction: 'own',
+            p_in_pulpe: false,
+            p_value: 'enc:1000',
+          },
+        ],
       ]);
-    });
-
-    it('deletes the asset again when the first snapshot cannot be written', async () => {
-      const compensation = query();
-      const { repo } = createRepository({
-        asset: [
-          query(() => ({ data: assetRow('new'), error: null })),
-          compensation,
-        ],
-        asset_snapshot: [
-          query(() => ({
-            data: null,
-            error: { code: '08006', message: 'down' },
-          })),
-        ],
-      });
-
-      await expect(repo.insertAsset(input)).rejects.toMatchObject({
-        code: ERROR_DEFINITIONS.ASSET_CREATE_FAILED.code,
-      });
-      expect(compensation.argsOf('delete')).toHaveLength(1);
-      expect(compensation.argsOf('eq')[0]).toEqual(['id', 'new']);
-    });
-
-    it('logs a compensation that fails and still throws the snapshot error', async () => {
-      const { repo, logger } = createRepository({
-        asset: [
-          query(() => ({ data: assetRow('new'), error: null })),
-          query(() => ({
-            data: null,
-            error: { code: '08006', message: 'down' },
-          })),
-        ],
-        asset_snapshot: [
-          query(() => ({
-            data: null,
-            error: { code: '08006', message: 'down' },
-          })),
-        ],
-      });
-
-      await expect(repo.insertAsset(input)).rejects.toMatchObject({
-        code: ERROR_DEFINITIONS.ASSET_CREATE_FAILED.code,
-      });
-      expect(logger.warn).toHaveBeenCalledTimes(1);
     });
 
     it('maps a composite foreign key violation to ASSET_CATEGORY_NOT_FOUND', async () => {
       const { repo } = createRepository({
-        asset: [
+        'rpc:create_asset_with_first_snapshot': [
           query(() => ({
             data: null,
             error: { code: '23503', message: 'fk' },
@@ -527,6 +487,21 @@ describe('SupabaseAssetRepository', () => {
 
       await expect(repo.insertAsset(input)).rejects.toMatchObject({
         code: ERROR_DEFINITIONS.ASSET_CATEGORY_NOT_FOUND.code,
+      });
+    });
+
+    it('fails with ASSET_CREATE_FAILED when the write fails', async () => {
+      const { repo } = createRepository({
+        'rpc:create_asset_with_first_snapshot': [
+          query(() => ({
+            data: null,
+            error: { code: '08006', message: 'down' },
+          })),
+        ],
+      });
+
+      await expect(repo.insertAsset(input)).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_CREATE_FAILED.code,
       });
     });
   });
