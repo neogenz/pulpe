@@ -312,9 +312,14 @@ export class EditBudgetLineDialog {
     );
   });
 
-  // Épargne and Dépense list different assets: a pick never survives the switch.
+  // Épargne and Dépense list different assets: a pick never survives the switch,
+  // but coming back to the original kind gives the line its own link back.
   protected onKindChange(): void {
-    this.model.update((model) => ({ ...model, assetId: null }));
+    const { kind, assetId } = this.#data.budgetLine;
+    this.model.update((model) => ({
+      ...model,
+      assetId: model.kind === kind ? assetId : null,
+    }));
   }
 
   protected readonly nameErrors = touchedFieldErrors(

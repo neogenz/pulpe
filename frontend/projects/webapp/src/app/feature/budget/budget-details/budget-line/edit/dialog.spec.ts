@@ -343,6 +343,19 @@ describe('EditBudgetLineDialog — asset link', () => {
     expect(patch.assetId).toBeNull();
   });
 
+  it('should give the line its link back when the kind returns to the original', async () => {
+    const line = createMockBudgetLine({ kind: 'income', assetId: ASSET_ID });
+
+    const { patch } = await submit(line, true, (component) => {
+      for (const kind of ['saving', 'income'] as const) {
+        component['model'].update((m) => ({ ...m, kind }));
+        component['onKindChange']();
+      }
+    });
+
+    expect(patch.assetId).toBe(ASSET_ID);
+  });
+
   it('should offer own assets to a saving, debts to an expense, nothing to an income', () => {
     const { component } = configureDialog(
       createMockBudgetLine({ kind: 'saving' }),
