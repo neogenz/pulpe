@@ -117,29 +117,43 @@ struct OnboardingBudgetZone: View {
                 subtitle: subtitle
             )
             if legend != .none {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    OnboardingRingLegendTile(
-                        color: .heroAccentCaution,
-                        label: AppLocale.string("Charges"),
-                        amount: legend == .all ? nil : state.totalCharges.asAmount(for: state.currency)
-                    )
-                    if legend != .charges {
-                        OnboardingRingLegendTile(
-                            color: .heroAccentPositive,
-                            label: AppLocale.string("Épargne"),
-                            amount: legend == .all ? nil : state.totalSavings.asAmount(for: state.currency)
-                        )
-                    }
-                    // The savings step names both outflows instead; the ring centre already says what is left.
-                    if legend != .savings {
-                        OnboardingRingLegendTile(
-                            color: state.availableToSpend < 0 ? .heroAccentDeficit : .heroInk,
-                            label: state.availableToSpend < 0
-                                ? AppLocale.string("Au-delà des revenus") : AppLocale.string("Disponible")
-                        )
+                // One row when it fits; a long deficit label drops the remainder tile to its own row.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: DesignTokens.Spacing.sm) { outflowTiles; remainderTile }
+                    VStack(spacing: DesignTokens.Spacing.sm) {
+                        HStack(spacing: DesignTokens.Spacing.sm) { outflowTiles }
+                        remainderTile
                     }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var outflowTiles: some View {
+        OnboardingRingLegendTile(
+            color: .heroAccentCaution,
+            label: AppLocale.string("Charges"),
+            amount: legend == .all ? nil : state.totalCharges.asAmount(for: state.currency)
+        )
+        if legend != .charges {
+            OnboardingRingLegendTile(
+                color: .heroAccentPositive,
+                label: AppLocale.string("Épargne"),
+                amount: legend == .all ? nil : state.totalSavings.asAmount(for: state.currency)
+            )
+        }
+    }
+
+    /// The savings step names both outflows instead; the ring centre already says what is left.
+    @ViewBuilder
+    private var remainderTile: some View {
+        if legend != .savings {
+            OnboardingRingLegendTile(
+                color: state.availableToSpend < 0 ? .heroAccentDeficit : .heroInk,
+                label: state.availableToSpend < 0
+                    ? AppLocale.string("Au-delà des revenus") : AppLocale.string("Disponible")
+            )
         }
     }
 }
