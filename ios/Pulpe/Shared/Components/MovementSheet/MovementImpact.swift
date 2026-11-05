@@ -25,6 +25,16 @@ struct MovementImpact: Equatable {
         return delta < 0 ? .over : .ok
     }
 
+    /// The impact block's caption: « Ton disponible baisse de 80.00 ».
+    func title(currency: SupportedCurrency) -> String {
+        let step = abs(delta).asAmount(for: currency)
+        return switch tone {
+        case .neutral: AppLocale.string("Ton disponible ne bouge pas")
+        case .over: AppLocale.string("Ton disponible baisse de \(step)")
+        case .ok: AppLocale.string("Ton disponible monte de \(step)")
+        }
+    }
+
     /// `replacing` is the id of the movement being edited: it leaves the "after" ledger
     /// for the draft to take its place.
     static func compute(

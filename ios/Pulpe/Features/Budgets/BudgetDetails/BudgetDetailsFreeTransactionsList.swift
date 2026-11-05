@@ -9,7 +9,7 @@ import SwiftUI
 /// whether it opens the edit sheet or the envelope.
 ///
 /// Visual: rows mirror `BudgetLineMixedRow` (point circle · kind tag · name ·
-/// date subtitle · amount + currency suffix · chevron). Pointing a free
+/// « 5 novembre · pointé » · ink amount · chevron, as `MovementRow`). Pointing a free
 /// transaction is a personal reconciliation marker — like envelopes, it never
 /// changes any total — so the leading slot carries a real `PointCircle`.
 ///
@@ -105,7 +105,7 @@ struct BudgetDetailsFreeTransactionsList: View {
 
 /// Transaction row visually aligned with `BudgetLineMixedRow`: a leading
 /// `PointCircle` disc, then name + date subtitle (+ envelope line when
-/// allocated) on the left, kind-tinted amount + currency suffix on the right,
+/// allocated) on the left, the ink amount on the right (V2: color never codes the kind),
 /// chevron. Tapping the circle points/unpoints the transaction
 /// (`onTogglePointed`); tapping the row surface runs `onTap`.
 private struct BudgetDetailsFreeTransactionRow: View {
@@ -134,26 +134,6 @@ private struct BudgetDetailsFreeTransactionRow: View {
         if isIncome { return .financialIncome }
         if isSaving { return .financialSavings }
         return .financialExpense
-    }
-
-    /// Kind-tinted amount, minus the consumption-driven
-    /// branches (no envelope to overshoot). Expenses fall back to the neutral
-    /// secondary ink so the right column stays readable on the white card.
-    private var amountColor: Color {
-        if isIncome { return .financialIncome }
-        if isSaving { return .financialSavings }
-        return .textSecondary
-    }
-
-    /// Currency suffix tints with the amount when the kind carries a color
-    /// signal (income / saving); falls back to tertiary ink otherwise so
-    /// expenses don't read as a red mark.
-    private var currencySuffixColor: Color {
-        (isIncome || isSaving) ? amountColor : .textTertiary
-    }
-
-    private var currencySuffixOpacity: Double {
-        (isIncome || isSaving) ? DesignTokens.Opacity.pressed : 1
     }
 
     private var accessibilityLabel: String {
@@ -211,15 +191,18 @@ private struct BudgetDetailsFreeTransactionRow: View {
     private var centerColumn: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             Text(transaction.name)
-                .font(PulpeTypography.listRowTitle)
+                .font(PulpeTypography.rowTitle)
                 .foregroundStyle(Color.textPrimary)
                 .lineLimit(1)
                 .truncationMode(.tail)
 
             HStack(spacing: DesignTokens.Spacing.xs) {
-                Text(transaction.transactionDate.dayInMonthFormatted)
-                    .font(PulpeTypography.metricLabelBold)
-                    .foregroundStyle(Color.textTertiary)
+                Text(MovementRowPresentation.subtitle(
+                    for: transaction,
+                    lineName: Formatters.dayMonthLabel(for: transaction.transactionDate)
+                ) ?? "")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
                     .lineLimit(1)
 
                 // Where an income drawn from a savings goal came from (PUL-329) —
@@ -252,20 +235,11 @@ private struct BudgetDetailsFreeTransactionRow: View {
     }
 
     private var amountColumn: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
-            Text(transaction.amount.asAmount(for: currency))
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(amountColor)
-                .monospacedDigit()
-                .lineLimit(1)
-
-            Text(currency.symbol)
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(currencySuffixColor)
-                .opacity(currencySuffixOpacity)
-                .tracking(DesignTokens.Tracking.uppercaseNarrow)
-        }
-        .sensitiveAmount()
-        .layoutPriority(1)
+        Text(MovementRowPresentation.amountText(for: transaction, in: currency))
+            .font(PulpeTypography.rowAmount)
+            .foregroundStyle(Color.textPrimary)
+            .lineLimit(1)
+            .sensitiveAmount()
+            .layoutPriority(1)
     }
 }

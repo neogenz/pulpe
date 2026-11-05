@@ -86,7 +86,7 @@ struct BudgetDetailSheetContent: View {
             initialKind: kind,
             ledger: MonthLedger(
                 lines: coordinator.dataStore.budgetLines,
-                transactions: coordinator.dataStore.transactions,
+                transactions: coordinator.dataStore.ledgerTransactions,
                 rollover: openBudget?.rollover.orZero ?? 0
             ),
             onRequestSavingsWithdrawal: { prefill in

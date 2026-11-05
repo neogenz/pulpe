@@ -4,7 +4,7 @@ import Foundation
 struct Transaction: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let budgetId: String
-    let budgetLineId: String?
+    var budgetLineId: String?
     let name: String
     let amount: Decimal
     let kind: TransactionKind

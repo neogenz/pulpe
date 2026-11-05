@@ -17,7 +17,7 @@ struct BudgetMovementSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private var editedTransaction: Transaction? {
-        transactionId.flatMap { id in coordinator.dataStore.transactions.first { $0.id == id } }
+        transactionId.flatMap { id in coordinator.dataStore.ledgerTransactions.first { $0.id == id } }
     }
 
     private var toastContext: ToastContext {
@@ -34,7 +34,7 @@ struct BudgetMovementSheet: View {
                 context: MovementSheetContext(
                     budgetId: store.budgetId,
                     budgetLines: store.budgetLines,
-                    transactions: store.transactions,
+                    transactions: store.ledgerTransactions,
                     rollover: store.budget?.rollover.orZero ?? 0,
                     preselectedLineId: lineId,
                     editing: editedTransaction,

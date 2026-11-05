@@ -31,8 +31,8 @@ struct BudgetLineDetailPage: View {
     @Environment(\.amountsHidden) var amountsHidden
     @Environment(\.dismiss) var dismiss
 
-    @State private var showDeleteConfirmation = false
-    @State private var pendingPostpone: PostponeTarget?
+    @State private var pendingDelete: BudgetLine?
+    @State private var pendingPostpone: BudgetLine?
 
     // MARK: - Derived
 
@@ -119,24 +119,19 @@ struct BudgetLineDetailPage: View {
             }
         }
         .pulpeRootBottomInset()
-        .alert(
-            "Supprimer la prévision ?",
-            isPresented: $showDeleteConfirmation,
-            presenting: line
-        ) { line in
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                deleteBudgetLine(line)
-            }
-        } message: { _ in
-            Text("Tu auras quelques secondes pour annuler.")
-        }
-        .postponeConfirmation(
-            target: $pendingPostpone,
-            nextMonthLabel: projector.screenState.nextMonthLabel
-        ) { target in
-            postpone(target)
-        }
+        .modifier(DeleteForecastConfirmation(
+            line: $pendingDelete,
+            dataStore: coordinator.dataStore,
+            transactionsByLineId: projector.screenState.transactionsByLineId,
+            currency: userSettingsStore.currency,
+            onConfirm: deleteBudgetLine
+        ))
+        .modifier(PostponeConfirmation(
+            line: $pendingPostpone,
+            dataStore: coordinator.dataStore,
+            currency: userSettingsStore.currency,
+            onConfirm: postpone
+        ))
         // This composite splits into several AX elements; bare, the identifier
         // stamps every one of them and clobbers the buttons' own.
         .accessibilityElement(children: .contain)
@@ -245,7 +240,9 @@ private extension BudgetLineDetailPage {
     func postponeRow(line: BudgetLine) -> some View {
         let screenState = projector.screenState
         if screenState.canPostpone {
-            actionRow(title: AppLocale.string("Reporter au mois suivant")) { pendingPostpone = .budgetLine(line) }
+            let leaving = postponeSubtitle(screenState.hero.month, screenState.nextMonthLabel)
+            actionRow(title: AppLocale.string("Reporter au mois suivant"), subtitle: leaving) { pendingPostpone = line }
+                .accessibilityIdentifier("budgetLinePostponeRow")
         } else {
             let missing = screenState.nextMonthLabel.map { AppLocale.string("Crée d'abord le budget de \($0)") }
                 ?? AppLocale.string("Crée d'abord le budget du mois suivant")
@@ -257,11 +254,17 @@ private extension BudgetLineDetailPage {
         }
     }
 
+    /// « Elle quitte novembre pour décembre ».
+    func postponeSubtitle(_ month: Int?, _ next: String?) -> String? {
+        guard let month, let next else { return nil }
+        return AppLocale.string("Elle quitte \(Formatters.monthNameInText(for: month)) pour \(next)")
+    }
+
     func deleteRow(line: BudgetLine) -> some View {
         Button(role: .destructive) {
             // Linked line → explicit choice alert, not single-line delete (CA9).
             if line.savingsWithdrawalGroupId == nil {
-                showDeleteConfirmation = true
+                pendingDelete = line
             } else {
                 deleteBudgetLine(line)
             }
@@ -318,8 +321,7 @@ private extension BudgetLineDetailPage {
 
     // Optimistic remove → the page auto-pops once the line leaves the store; the
     // coordinator surfaces an error toast on failure (PUL-22).
-    func postpone(_ target: PostponeTarget) {
-        guard case .budgetLine(let line) = target else { return }
+    func postpone(_ line: BudgetLine) {
         let ctx = ToastContext(
             toastManager: appState.toastManager,
             presentationCurrency: userSettingsStore.currency

@@ -43,32 +43,38 @@ struct DeleteMonthMenuTests {
 
     @Test("A month without links only states its counts")
     func message_withoutLinks_statesCountsOnly() {
-        let message = DeleteMonthMenu.message(for: impact(forecasts: 5, movements: 2))
+        let message = DeleteMonthMenu.message(for: impact(forecasts: 12, movements: 0), lines: [], currency: .chf)
 
-        #expect(message == "Ses prévisions (5) et ses mouvements (2) seront supprimés. Cette action est irréversible.")
+        #expect(message == "Ses 12 prévisions partent avec lui. Il n'a encore aucun mouvement.")
     }
 
-    @Test("A linked month adds the links sentence with the counts of each link kind")
-    func message_withLinks_listsOnlyTheLinkedKinds() {
-        let message = DeleteMonthMenu.message(for: impact(forecasts: 5, movements: 2, spread: 2, goal: 1))
+    @Test("A linked month names what each linked prévision loses, not the plain ones")
+    func message_withLinks_namesTheLinkedLines() {
+        var spread = TestDataFactory.createBudgetLine(id: "car", name: "Assurance voiture", amount: 120)
+        spread.spreadGroupId = UUID()
+        let plain = TestDataFactory.createBudgetLine(id: "rent", name: "Loyer", amount: 1850)
 
-        #expect(message.hasPrefix("Ses prévisions (5) et ses mouvements (2) seront supprimés."))
-        #expect(message.contains(
-            "Ce mois est aussi lié à d'autres mois ou à un objectif d'épargne : "
-                + "prévision lissée (2), objectif d'épargne (1). Les autres mois gardent leur part."
-        ))
-        #expect(!message.contains("retrait d'épargne"))
-    }
-
-    @Test("The withdrawal label adds withdrawal forecasts and movements together")
-    func message_withdrawal_sumsForecastsAndMovements() {
         let message = DeleteMonthMenu.message(
-            for: impact(forecasts: 3, movements: 1, withdrawalForecasts: 1, withdrawalMovements: 2)
+            for: impact(forecasts: 12, movements: 3, spread: 1),
+            lines: [spread, plain],
+            currency: .chf
         )
 
-        #expect(message.contains("retrait d'épargne (3)"))
-        #expect(!message.contains("prévision lissée"))
-        #expect(!message.contains("objectif d'épargne ("))
+        #expect(message.hasPrefix("Ses 12 prévisions partent avec lui. Ses 3 mouvements partent aussi."))
+        #expect(message.contains("Assurance voiture y perd sa part lissée (120.00)"))
+        #expect(message.hasSuffix("Les autres mois ne changent pas."))
+        #expect(!message.contains("Loyer"))
+    }
+
+    @Test("A link the loaded lines cannot name still says the month is linked")
+    func message_withUnnamedLinks_keepsTheLinkSentence() {
+        let message = DeleteMonthMenu.message(
+            for: impact(forecasts: 3, movements: 1, withdrawalForecasts: 1, withdrawalMovements: 2),
+            lines: [],
+            currency: .chf
+        )
+
+        #expect(message.hasSuffix("Il est lié à d'autres mois. Les autres mois ne changent pas."))
     }
 
     // MARK: - Title

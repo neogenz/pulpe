@@ -32,7 +32,6 @@ struct ToastView: View {
             Image(systemName: toast.type.icon)
                 .font(PulpeTypography.buttonPrimary)
                 .foregroundStyle(toast.type.color)
-                .frame(width: Self.comfortableTapMin, height: Self.comfortableTapMin)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -66,18 +65,23 @@ struct ToastView: View {
                     .accessibilityLabel("Annuler la suppression")
                 }
 
-                Button {
-                    dismissWithAnimation()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(PulpeTypography.inputHelper)
-                        .foregroundStyle(Color.textSecondary)
+                // V2: an undo toast carries one action; it still leaves on a swipe down, on its
+                // timer, or through the VoiceOver « Fermer » action below.
+                if !toast.hasUndo || onUndo == nil {
+                    Button {
+                        dismissWithAnimation()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(PulpeTypography.inputHelper)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .iconButtonStyle()
+                    .accessibilityLabel("Fermer")
                 }
-                .iconButtonStyle()
-                .accessibilityLabel("Fermer")
             }
             .fixedSize(horizontal: true, vertical: false)
         }
+        .accessibilityAction(named: Text("Fermer")) { dismissWithAnimation() }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.lg)
         .background(Color.surface, in: .rect(cornerRadius: DesignTokens.CornerRadius.toast))

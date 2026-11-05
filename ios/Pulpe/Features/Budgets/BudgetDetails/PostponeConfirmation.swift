@@ -1,82 +1,53 @@
 import SwiftUI
 
-/// The item a postpone confirmation (PUL-22, CA10) is pending for. Carries the
-/// entity so the confirm handler can dispatch the right coordinator action, and
-/// its display name for the dialog title.
-enum PostponeTarget: Identifiable {
-    case budgetLine(BudgetLine)
-    case transaction(Transaction)
-
-    var id: String {
-        switch self {
-        case .budgetLine(let line): "line-\(line.id)"
-        case .transaction(let tx): "tx-\(tx.id)"
-        }
-    }
-
-    var name: String {
-        switch self {
-        case .budgetLine(let line): line.name
-        case .transaction(let tx): tx.name
-        }
-    }
-}
-
-extension View {
-    /// Quick confirmation before reporting an item to next month (PUL-22, CA10).
-    /// Driven by an optional `PostponeTarget` binding the caller sets from the
-    /// detail-page header menu; `onConfirm` fires the coordinator dispatch.
-    func postponeConfirmation(
-        target: Binding<PostponeTarget?>,
-        nextMonthLabel: String?,
-        onConfirm: @escaping (PostponeTarget) -> Void
-    ) -> some View {
-        modifier(
-            PostponeConfirmationModifier(
-                target: target,
-                nextMonthLabel: nextMonthLabel,
-                onConfirm: onConfirm
-            )
-        )
-    }
-}
-
-private struct PostponeConfirmationModifier: ViewModifier {
-    @Binding var target: PostponeTarget?
-    let nextMonthLabel: String?
-    let onConfirm: (PostponeTarget) -> Void
+/// Reporting a one-off prévision to next month (V2 `Reporter`, PUL-22 CA10): what leaves this
+/// month, what it does to its disponible, and that next month keeps its figure because the
+/// report carries the amount over with the line.
+struct PostponeConfirmation: ViewModifier {
+    @Binding var line: BudgetLine?
+    let dataStore: BudgetDataStore
+    let currency: SupportedCurrency
+    let onConfirm: (BudgetLine) -> Void
 
     func body(content: Content) -> some View {
-        // Alert, not a confirmationDialog: the action is reached from the
-        // detail-page header menu while the amount keyboard is often still up.
-        // A bottom action sheet can't anchor over the keyboard and degrades to
-        // a cramped popover near the toolbar button — an alert renders centered
-        // and robustly regardless of keyboard state, matching the sibling
-        // delete confirmation on the same page.
-        content.alert(
-            confirmationTitle,
-            isPresented: isPresentedBinding,
-            presenting: target
-        ) { item in
-            Button("Annuler", role: .cancel) {}
-            Button("Reporter") { onConfirm(item) }
+        content.sheet(item: $line) { line in
+            let next = dataStore.nextMonthLabel
+            ImpactConfirmSheet(
+                title: Self.title(nextMonth: next),
+                message: Self.message(line: line, month: dataStore.budget?.month, nextMonth: next, currency: currency),
+                impact: impact(of: line, nextMonth: next),
+                currency: currency,
+                primary: .init(title: AppLocale.string("Reporter"), accessibilityIdentifier: "postponeConfirmButton") {
+                    onConfirm(line)
+                }
+            )
         }
     }
 
-    private var confirmationTitle: String {
-        guard let target else { return "" }
-        if let nextMonthLabel {
-            return AppLocale.string("Reporter \(target.name) en \(nextMonthLabel) ?")
+    private func impact(of line: BudgetLine, nextMonth: String?) -> ImpactConfirmSheet.Impact {
+        let figures = dataStore.impactOfRemoving(lineId: line.id)
+        var note: String?
+        if let nextMonth, let remaining = dataStore.nextMonthRemaining {
+            note = AppLocale.string("""
+                \(nextMonth.capitalized) reste à \(remaining.asAmount(for: currency)) : \
+                les \(line.amount.asAmount(for: currency)) y arrivent avec le report.
+                """)
         }
-        return AppLocale.string("Reporter \(target.name) au mois suivant ?")
+        return .init(title: figures.title(currency: currency), figures: figures, note: note)
     }
 
-    /// Bridges the `PostponeTarget?` state to the `Bool` binding the alert
-    /// needs: present while a target is set, clear the target on dismissal.
-    private var isPresentedBinding: Binding<Bool> {
-        Binding(
-            get: { target != nil },
-            set: { if !$0 { target = nil } }
+    static func title(nextMonth: String?) -> String {
+        guard let nextMonth else { return AppLocale.string("Reporter au mois suivant ?") }
+        return AppLocale.string("Reporter en \(nextMonth) ?")
+    }
+
+    /// « Les 80.00 prévus pour Cadeau anniversaire quittent novembre et passent en décembre. »
+    static func message(line: BudgetLine, month: Int?, nextMonth: String?, currency: SupportedCurrency) -> String? {
+        guard let month, let nextMonth else { return nil }
+        let amount = line.amount.asAmount(for: currency)
+        let current = Formatters.monthNameInText(for: month)
+        return AppLocale.string(
+            "Les \(amount) prévus pour \(line.name) quittent \(current) et passent en \(nextMonth)."
         )
     }
 }

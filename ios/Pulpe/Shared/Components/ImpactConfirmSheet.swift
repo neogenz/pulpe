@@ -44,11 +44,16 @@ struct ImpactConfirmSheet: View {
                     .foregroundStyle(Color.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                 if let message {
-                    Text(message)
-                        .font(PulpeTypography.subheadline)
-                        .foregroundStyle(Color.textSecondary)
-                        .monospacedDigit()
-                        .sensitiveAmount()
+                    // One line break in `message` = one paragraph, as the V2 dialog sets them.
+                    VStack(spacing: DesignTokens.Spacing.sm) {
+                        ForEach(Array(message.split(separator: "\n").enumerated()), id: \.offset) { _, paragraph in
+                            Text(paragraph)
+                        }
+                    }
+                    .font(PulpeTypography.subheadline)
+                    .foregroundStyle(Color.textSecondary)
+                    .monospacedDigit()
+                    .sensitiveAmount()
                 }
                 if let note {
                     Text(note)

@@ -102,14 +102,8 @@ extension AddBudgetLineSheet {
         if let ledger, let share = monthShare, !isPlannedWithdrawalMode, !isSavingsWithdrawalMode {
             let impact = MovementImpact.forecast(ledger: ledger, budgetId: budgetId, kind: kind, amount: share)
             let currency = userSettingsStore.currency
-            let step = abs(impact.delta).asAmount(for: currency)
-            let title: String = switch impact.tone {
-            case .neutral: AppLocale.string("Ton disponible ne bouge pas")
-            case .over: AppLocale.string("Ton disponible baisse de \(step)")
-            case .ok: AppLocale.string("Ton disponible monte de \(step)")
-            }
             ImpactBlock(
-                title: title,
+                title: impact.title(currency: currency),
                 before: impact.before,
                 after: impact.after,
                 currency: currency,
