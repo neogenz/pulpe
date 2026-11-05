@@ -6,7 +6,6 @@ struct DestructiveMenuStyleTests {
     /// Menus that list actions, as opposed to selection menus (month picker,
     /// savings-goal pickers) where a tinted `checkmark` is the system convention.
     private static let actionMenuFiles = [
-        "BudgetLineDetailPage.swift",
         "DeleteMonthMenu.swift",
     ]
 
@@ -38,7 +37,7 @@ struct DestructiveMenuStyleTests {
 
     @Test(
         "Header menus delegate deletion to the shared entry",
-        arguments: ["BudgetLineDetailPage.swift", "DeleteMonthMenu.swift"]
+        arguments: ["DeleteMonthMenu.swift"]
     )
     func headerMenusUseSharedDeleteEntry(fileName: String) throws {
         let source = try Self.source(named: fileName)

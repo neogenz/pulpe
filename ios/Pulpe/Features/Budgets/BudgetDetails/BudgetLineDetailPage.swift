@@ -13,6 +13,9 @@ import SwiftUI
 ///   tap row     → present `BudgetDetailDestination.movement(transactionId:)`
 ///   tap "Ajouter" → present `BudgetDetailDestination.movement(lineId:)`
 ///
+/// V2 `Enveloppe`: a light page, the line's figure in a white card, its movements in a
+/// second card, and what can be done to the prévision in a last one.
+///
 /// When the underlying line is removed (deleted or filtered out by sync), the
 /// page auto-pops via `dismiss()` from the empty branch — no stale state.
 struct BudgetLineDetailPage: View {
@@ -62,9 +65,11 @@ struct BudgetLineDetailPage: View {
                 AutoPopView { budgetLine == nil }
             }
         }
-        .pulpeBackground()
+        .background { Color.appBackground.ignoresSafeArea() }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle(budgetLine?.name ?? "")
+        // The page states the name in its own header.
+        .toolbar(removing: .title)
         .alert(
             "Quelles prévisions supprimer ?",
             isPresented: $syncStore.showSavingsWithdrawalDeleteChoice,
@@ -82,24 +87,38 @@ struct BudgetLineDetailPage: View {
         } message: { line in Text(savingsWithdrawalDeleteMessage(for: line)) }
     }
 
-    @ViewBuilder
     private func pageContent(for line: BudgetLine, transactions: [Transaction]) -> some View {
-        VStack(spacing: 0) {
-            titleWithKindDot(line: line)
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
+                PageHeader(title: line.name, subtitle: headerSubtitle(for: line))
+                    .padding(.top, DesignTokens.Spacing.sm)
+                    .padding(.bottom, DesignTokens.Spacing.md)
+
+                tagChips(for: line.tagIds)
+
+                BudgetLineHeroCard(
+                    line: line,
+                    // Projector pre-computes consumption once per source change; zero for the
+                    // rare frame that observes the line before it publishes.
+                    consumption: projector.screenState.consumptionByLineId[line.id]
+                        ?? BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0),
+                    currency: userSettingsStore.currency,
+                    // ponytail: back to the month, where another prévision can be lowered;
+                    // the Rattraper sheet (board 17) replaces this.
+                    onCatchUp: { dismiss() }
+                )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.md)
 
-            tagChips(for: line.tagIds)
+                contextualLinks(for: line)
 
-            transactionsList(line: line, transactions: transactions)
-        }
-        .pulpeStickyBottomCTA { addTransactionButton(line: line) }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                headerMenu(for: line)
+                movementsSection(line: line, transactions: transactions)
+                    .padding(.top, DesignTokens.Spacing.xxl)
+
+                forecastSection(line: line, hasMovements: !transactions.isEmpty)
+                    .padding(.top, DesignTokens.Spacing.xxl)
             }
         }
+        .pulpeRootBottomInset()
         .alert(
             "Supprimer la prévision ?",
             isPresented: $showDeleteConfirmation,
@@ -118,99 +137,148 @@ struct BudgetLineDetailPage: View {
         ) { target in
             postpone(target)
         }
-        // This composite (title + list + sticky CTA) splits into several AX elements;
-        // bare, the identifier stamps every one of them and clobbers the CTA's own.
+        // This composite splits into several AX elements; bare, the identifier
+        // stamps every one of them and clobbers the buttons' own.
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("budgetLineDetailPageRoot")
     }
 
-    @ViewBuilder
-    private func transactionsList(line: BudgetLine, transactions: [Transaction]) -> some View {
-        List {
-            Section {
-                heroSection(line: line, transactions: transactions)
-                    .listRowCustomStyled(insets: EdgeInsets())
-            }
-            .listSectionSeparator(.hidden)
-
-            contextualLinksSection(for: line)
-
-            if transactions.isEmpty {
-                Section {
-                    emptyStateView(for: line.kind)
-                        .listRowCustomStyled(insets: EdgeInsets())
-                }
-                .listSectionSeparator(.hidden)
-            } else {
-                Section {
-                    ForEach(transactions) { transaction in
-                        transactionRow(for: transaction)
-                    }
-                } header: {
-                    BudgetLineDetailTransactionsHeader(count: transactions.count)
-                }
-            }
+    /// « Dépense · chaque mois ».
+    private func headerSubtitle(for line: BudgetLine) -> String {
+        switch line.recurrence {
+        case .fixed: AppLocale.string("\(line.kind.label) · chaque mois")
+        case .oneOff: AppLocale.string("\(line.kind.label) · une fois")
         }
-        .listStyle(.plain)
-        .listSectionSpacing(DesignTokens.Spacing.lg)
-        .scrollContentBackground(.hidden)
     }
 
-    private func transactionRow(for transaction: Transaction) -> some View {
-        BudgetLineDetailTransactionRow(
-            transaction: transaction,
-            displayCurrency: userSettingsStore.currency,
-            tagNames: TagChips.names(for: transaction.tagIds, namesById: tagNamesById),
-            onTap: {
-                router.present(.movement(lineId: nil, transactionId: transaction.id))
+    private func movementsSection(line: BudgetLine, transactions: [Transaction]) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            SectionHeader(
+                title: AppLocale.string("Mouvements"),
+                link: (
+                    label: AppLocale.string("Ajouter"),
+                    action: { router.present(.movement(lineId: line.id, transactionId: nil)) }
+                ),
+                linkAccessibilityIdentifier: "budgetLineDetailPrimaryAction",
+                linkSystemImage: "plus"
+            )
+            .padding(.horizontal, DesignTokens.Spacing.xs)
+
+            MovementCard {
+                if transactions.isEmpty {
+                    emptyStateView(for: line.kind)
+                } else {
+                    ForEach(Array(transactions.enumerated()), id: \.element.id) { index, transaction in
+                        if index > 0 {
+                            Divider().overlay(Color.outlineVariant).padding(.leading, DesignTokens.ListRow.dividerInset)
+                        }
+                        movementRow(for: transaction)
+                    }
+                }
             }
-        )
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.visible)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            swipeActions(for: transaction)
         }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+    }
+
+    /// « 3 nov. · pointé »: the date stands where the other lists name the prévision.
+    private func movementRow(for transaction: Transaction) -> some View {
+        MovementRow(
+            transaction: transaction,
+            lineName: Formatters.dayMonthLabel(for: transaction.transactionDate),
+            currency: userSettingsStore.currency,
+            isSyncing: coordinator.syncStore.isSyncing(txId: transaction.id),
+            showsChevron: true,
+            onToggle: { Task { await coordinator.dispatch(.toggleTransaction(transaction)) } },
+            onOpen: { router.present(.movement(lineId: nil, transactionId: transaction.id)) }
+        )
     }
 }
 
-// MARK: - Header Menu / Delete
+// MARK: - Prévision actions
 
 private extension BudgetLineDetailPage {
-    func headerMenu(for line: BudgetLine) -> some View {
-        Menu("Plus d'options", systemImage: "ellipsis.circle") {
-            Button {
-                onEditLine(line)
-            } label: {
-                Label("Modifier", systemImage: "pencil")
-            }
+    /// What can be done to the prévision itself. Spreading and postponing only exist on a
+    /// one-off line; a monthly one says so under the card rather than hiding them silently.
+    func forecastSection(line: BudgetLine, hasMovements: Bool) -> some View {
+        let isPostponeEligible = line.isPostponeEligible(hasAllocatedTransactions: hasMovements)
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            SectionHeader(title: AppLocale.string("Prévision"))
+                .padding(.horizontal, DesignTokens.Spacing.xs)
 
-            if canSpread(line) {
-                Button {
-                    presentSpread(for: line)
-                } label: {
-                    Label("Lisser sur plusieurs mois", systemImage: "calendar")
+            VStack(spacing: DesignTokens.Spacing.none) {
+                actionRow(title: AppLocale.string("Modifier"), subtitle: AppLocale.string("Montant, nom, tags")) {
+                    onEditLine(line)
                 }
-            }
-
-            PostponeMenuButton(
-                isEligible: line.isPostponeEligible(
-                    hasAllocatedTransactions: !transactions.isEmpty
-                ),
-                canPostpone: projector.screenState.canPostpone,
-                nextMonthLabel: projector.screenState.nextMonthLabel,
-                onPostpone: { pendingPostpone = .budgetLine(line) }
-            )
-
-            DeleteMenuButton {
-                // Linked line → explicit choice alert, not single-line delete (CA9).
-                if line.savingsWithdrawalGroupId == nil {
-                    showDeleteConfirmation = true
-                } else {
-                    deleteBudgetLine(line)
+                if canSpread(line) {
+                    FormRowDivider()
+                    actionRow(title: AppLocale.string("Lisser sur plusieurs mois")) { presentSpread(for: line) }
                 }
+                if isPostponeEligible {
+                    FormRowDivider()
+                    postponeRow(line: line)
+                }
+                FormRowDivider()
+                deleteRow(line: line)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .pulpeSurfaceCard()
+
+            if line.recurrence == .fixed {
+                Text("Lisser et reporter se font sur une prévision ponctuelle.")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
             }
         }
-        .pulpeMenuContent()
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+    }
+
+    func actionRow(title: String, subtitle: String? = nil, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            PulpeListRow(title: title, subtitle: subtitle) { EmptyView() }
+        }
+        .plainPressedButtonStyle()
+    }
+
+    /// Without next month's budget the row stays, greyed, and says what is missing (CA5).
+    @ViewBuilder
+    func postponeRow(line: BudgetLine) -> some View {
+        let screenState = projector.screenState
+        if screenState.canPostpone {
+            actionRow(title: AppLocale.string("Reporter au mois suivant")) { pendingPostpone = .budgetLine(line) }
+        } else {
+            let missing = screenState.nextMonthLabel.map { AppLocale.string("Crée d'abord le budget de \($0)") }
+                ?? AppLocale.string("Crée d'abord le budget du mois suivant")
+            PulpeListRow(title: AppLocale.string("Reporter au mois suivant"), subtitle: missing, showsChevron: false) {
+                EmptyView()
+            }
+            .opacity(DesignTokens.Opacity.disabled)
+            .accessibilityAddTraits(.isStaticText)
+        }
+    }
+
+    func deleteRow(line: BudgetLine) -> some View {
+        Button(role: .destructive) {
+            // Linked line → explicit choice alert, not single-line delete (CA9).
+            if line.savingsWithdrawalGroupId == nil {
+                showDeleteConfirmation = true
+            } else {
+                deleteBudgetLine(line)
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.dividerGap) {
+                Text("Supprimer la prévision")
+                    .font(PulpeTypography.rowTitle)
+                    .foregroundStyle(Color.destructivePrimary)
+                Text("Ses mouvements deviennent des imprévus")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
+        }
+        .plainPressedButtonStyle()
+        .accessibilityIdentifier("budgetLineDetailDeleteRow")
     }
 
     /// A prévision is spreadable only when it's a one-off expense/épargne that
@@ -257,82 +325,5 @@ private extension BudgetLineDetailPage {
             presentationCurrency: userSettingsStore.currency
         )
         Task { await coordinator.postponeBudgetLine(line, context: ctx) }
-    }
-}
-
-// MARK: - Transactions section
-
-private extension BudgetLineDetailPage {
-    func emptyStateView(for kind: TransactionKind) -> some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            Image(systemName: "tray")
-                .font(PulpeTypography.amountHeroLight)
-                .foregroundStyle(.quaternary)
-
-            VStack(spacing: DesignTokens.Spacing.xs) {
-                Text("Rien de noté ici")
-                    .font(PulpeTypography.headline)
-                    .foregroundStyle(Color.textSecondary)
-
-                Text(emptyStateMessage(for: kind))
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textTertiary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.stepHeaderTop)
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-    }
-
-    func emptyStateMessage(for kind: TransactionKind) -> String {
-        switch kind {
-        case .income: AppLocale.string("Note ce qui passe sur ton compte pour suivre tes revenus")
-        case .saving: AppLocale.string("Note ce qui passe sur ton compte pour suivre ton épargne")
-        case .expense: AppLocale.string("Note ce qui passe sur ton compte pour suivre tes dépenses")
-        }
-    }
-
-    @ViewBuilder
-    func swipeActions(for transaction: Transaction) -> some View {
-        Button {
-            let ctx = ToastContext(
-                toastManager: appState.toastManager,
-                presentationCurrency: userSettingsStore.currency
-            )
-            Task { await coordinator.dispatch(.softDeleteTransaction(transaction, ctx)) }
-        } label: {
-            Label("Supprimer", systemImage: "trash")
-        }
-        .tint(Color.destructivePrimary)
-
-        Button {
-            Task { await coordinator.dispatch(.toggleTransaction(transaction)) }
-        } label: {
-            Label(
-                transaction.isChecked ? AppLocale.string("Dépointer") : AppLocale.string("Pointer"),
-                systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-            )
-        }
-        .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
-
-        Button {
-            router.present(.movement(lineId: nil, transactionId: transaction.id))
-        } label: {
-            Label("Modifier", systemImage: "pencil")
-        }
-        .tint(.editAction)
-    }
-
-    /// The same entry on every line. On an announced withdrawal still to realize, the
-    /// form opens prefilled with what is left; pointing it from the list skips the form.
-    func addTransactionButton(line: BudgetLine) -> some View {
-        Button {
-            router.present(.movement(lineId: line.id, transactionId: nil))
-        } label: {
-            Label("Noter un montant", systemImage: "plus")
-        }
-        .primaryButtonStyle()
-        .accessibilityIdentifier("budgetLineDetailPrimaryAction")
     }
 }

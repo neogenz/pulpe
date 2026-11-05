@@ -1,114 +1,137 @@
 import SwiftUI
 
-// MARK: - Hero / Title
+/// V2 `Enveloppe` hero: what went through the line over what was planned, the bar, then
+/// one sentence. An overrun reads in the ocre and offers to take it back elsewhere.
+struct BudgetLineHeroCard: View {
+    let line: BudgetLine
+    let consumption: BudgetFormulas.Consumption
+    let currency: SupportedCurrency
+    let onCatchUp: () -> Void
 
-extension BudgetLineDetailPage {
-    @ViewBuilder
-    func heroSection(line: BudgetLine, transactions: [Transaction]) -> some View {
-        // Projector pre-computes consumption for every line in source state
-        // once per source change. Fall back to a zero consumption if a rare
-        // race observes the line before the projector publishes — the page
-        // re-renders one frame later with the real value.
-        let consumption = projector.screenState.consumptionByLineId[line.id]
-            ?? BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
-        let remaining = line.amount - consumption.allocated
-        let clampedProgress = CGFloat(min(max(consumption.percentage / 100, 0), 1))
-        let stateColor = stateColor(for: consumption, kind: line.kind)
-        let currency = userSettingsStore.currency
-        // 2-decimal formatters everywhere on the budget detail page per
-        // `feedback_two_decimals_ios_budget_detail` (2026-05-08): the page
-        // renders ligne-level amounts, so `asCompactCurrency` is proscribed.
-        let remainingLabel = amountsHidden
-            ? AppLocale.string("Montant masqué")
-            : remaining.asCurrency(currency)
-        let spentLabel = amountsHidden
-            ? AppLocale.string("Montant masqué")
-            : consumption.allocated.asCurrency(currency)
-        let plannedLabel = amountsHidden
-            ? AppLocale.string("Montant masqué")
-            : line.amount.asCurrency(currency)
+    var body: some View {
+        let isOverrun = line.kind == .expense && consumption.isOverBudget
+        let progress = CGFloat(min(max(consumption.percentage / 100, 0), 1))
 
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Il reste")
-                    .font(PulpeTypography.detailLabelBold)
-                    .foregroundStyle(Color.textTertiary)
-                    .textCase(.uppercase)
-                    .tracking(DesignTokens.Tracking.uppercase)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                (Text(verbatim: consumption.allocated.asAmount(for: currency))
+                    .font(PulpeTypography.heroAmount)
+                    .tracking(DesignTokens.Tracking.hero)
+                    + Text(verbatim: " \(currency.symbol)")
+                    .font(PulpeTypography.heroCurrencySuffix)
+                    .foregroundStyle(Color.textTertiary))
+                    .foregroundStyle(Color.textPrimary)
+                    .monospacedDigit()
+                    .minimumScaleFactor(DesignTokens.TextScale.floor)
+                    .lineLimit(1)
+                    .contentTransition(.numericText())
+                    .accessibilityIdentifier("budgetLineDetailHeroAmount")
 
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                    Text(remaining.asAmount(for: currency))
-                        .font(PulpeTypography.heroIcon)
-                        .foregroundStyle(Color.textPrimary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-
-                    Text(currency.symbol)
-                        .font(PulpeTypography.labelLargeBold)
-                        .foregroundStyle(Color.textTertiary)
-                }
-                .sensitiveAmount()
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Il reste \(remainingLabel)")
+                Text(plannedCaption(kind: line.kind, planned: line.amount.asAmount(for: currency)))
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textSecondary)
+                    .monospacedDigit()
             }
+            .sensitiveAmount()
 
-            progressRow(progress: clampedProgress, percentage: consumption.percentage, color: stateColor)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.sunk)
+                ProgressBarShape(progress: progress)
+                    .fill(isOverrun ? Color.financialOverBudget : Color.financialColor(for: line.kind))
+            }
+            .frame(height: DesignTokens.ProgressBar.thickHeight)
+            .accessibilityHidden(true)
 
-            Text("\(spentLabel) dépensés sur \(plannedLabel) prévu")
-                .font(PulpeTypography.metricLabel)
+            statusSentence(isOverrun: isOverrun)
+
+            if isOverrun {
+                Button { onCatchUp() } label: {
+                    Text("Rattraper sur une autre prévision")
+                        .frame(maxWidth: .infinity)
+                }
+                .secondaryButtonStyle(size: .small)
+            }
+        }
+        .padding(DesignTokens.Spacing.xl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .pulpeSurfaceCard()
+    }
+
+    private func plannedCaption(kind: TransactionKind, planned: String) -> String {
+        switch kind {
+        case .expense: AppLocale.string("dépensés sur \(planned) prévus")
+        case .income: AppLocale.string("reçus sur \(planned) prévus")
+        case .saving: AppLocale.string("épargnés sur \(planned) prévus")
+        }
+    }
+
+    @ViewBuilder
+    private func statusSentence(isOverrun: Bool) -> some View {
+        let left = line.amount - consumption.allocated
+        if isOverrun {
+            let over = (-left).asAmount(for: currency)
+            (Text("\(over) au-delà du prévu").bold().foregroundStyle(Color.financialOverBudget)
+                + Text(verbatim: ". ")
+                + Text("Ces \(over) sortent de ton disponible, sauf si tu les reprends sur une autre prévision."))
+                .font(PulpeTypography.subheadline)
+                .foregroundStyle(Color.textPrimary)
+                .monospacedDigit()
+                .sensitiveAmount()
+        } else if left > 0 {
+            Text("Reste \(left.asAmount(for: currency))")
+                .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.textSecondary)
                 .monospacedDigit()
                 .sensitiveAmount()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+#Preview {
+    BudgetLineHeroCard(
+        line: BudgetLine(
+            id: "courses", budgetId: "b", templateLineId: nil, savingsGoalId: nil, name: "Courses",
+            amount: 600, kind: .expense, recurrence: .fixed, isManuallyAdjusted: false,
+            checkedAt: nil, createdAt: Date(), updatedAt: Date()
+        ),
+        consumption: BudgetFormulas.Consumption(allocated: 664.20, available: -64.20, percentage: 110.7),
+        currency: .chf,
+        onCatchUp: {}
+    )
+    .padding()
+    .background(Color.appBackground)
+}
+
+// MARK: - Empty movements
+
+extension BudgetLineDetailPage {
+    func emptyStateView(for kind: TransactionKind) -> some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            Image(systemName: "tray")
+                .font(PulpeTypography.amountHeroLight)
+                .foregroundStyle(.quaternary)
+
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Text("Rien de noté ici")
+                    .font(PulpeTypography.headline)
+                    .foregroundStyle(Color.textSecondary)
+
+                Text(emptyStateMessage(for: kind))
+                    .font(PulpeTypography.subheadline)
+                    .foregroundStyle(Color.textTertiary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DesignTokens.Spacing.stepHeaderTop)
         .padding(.horizontal, DesignTokens.Spacing.lg)
     }
 
-    /// 3-state color matching DA §3.1 — comfortable / tight / deficit.
-    func stateColor(for consumption: BudgetFormulas.Consumption, kind: TransactionKind) -> Color {
-        if consumption.isOverBudget { return .financialOverBudget }
-        if consumption.isNearLimit { return .warningPrimary }
-        return Color.financialColor(for: kind)
-    }
-
-    func progressRow(progress: CGFloat, percentage: Double, color: Color) -> some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.progressTrack)
-
-                ProgressBarShape(progress: progress)
-                    .fill(color)
-            }
-            .frame(height: DesignTokens.ProgressBar.thickHeight)
-
-            Text("\(Int(percentage.rounded()))%")
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(color)
-                .monospacedDigit()
+    func emptyStateMessage(for kind: TransactionKind) -> String {
+        switch kind {
+        case .income: AppLocale.string("Note ce qui passe sur ton compte pour suivre tes revenus")
+        case .saving: AppLocale.string("Note ce qui passe sur ton compte pour suivre ton épargne")
+        case .expense: AppLocale.string("Note ce qui passe sur ton compte pour suivre tes dépenses")
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(Int(percentage.rounded()))% utilisé")
-    }
-
-    func titleWithKindDot(line: BudgetLine) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Circle()
-                .fill(Color.financialColor(for: line.kind))
-                .frame(width: DesignTokens.Spacing.sm, height: DesignTokens.Spacing.sm)
-
-            Text(line.name)
-                .font(PulpeTypography.title3)
-                .foregroundStyle(Color.textPrimary)
-                .lineLimit(2)
-                .truncationMode(.tail)
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-        .accessibilityLabel(line.name)
     }
 }

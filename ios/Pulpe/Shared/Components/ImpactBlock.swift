@@ -106,3 +106,24 @@ struct ImpactBlock: View {
     .padding()
     .background(Color.surface)
 }
+
+extension ImpactBlock {
+    /// The block for a computed impact: its tone follows the move, and a figure that does not
+    /// move is not repeated.
+    init(title: String, impact: MovementImpact, currency: SupportedCurrency, note: String? = nil) {
+        let tone: Tone = switch impact.tone {
+        case .neutral: .neutral
+        case .over: .over
+        case .ok: .ok
+        }
+        self.init(
+            title: title,
+            before: impact.before,
+            after: impact.after,
+            currency: currency,
+            note: note,
+            tone: tone,
+            showsFigures: impact.tone != .neutral
+        )
+    }
+}

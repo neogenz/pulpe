@@ -123,28 +123,13 @@ struct BudgetDetailsView: View {
                 .environment(coordinator)
                 .environment(projector)
         }
-        .alert(
-            "Pointer aussi les mouvements ?",
-            isPresented: $syncStore.showCheckAllTransactionsAlert,
-            presenting: coordinator.syncStore.budgetLineToCheckAll
-        ) { line in
-            Button("Non, juste la prévision", role: .cancel) {
-                Task {
-                    await coordinator.dispatch(
-                        .confirmCheckAll(line: line, checkAll: false, toastContext, amountsHidden: amountsHidden)
-                    )
-                }
-            }
-            Button("Oui, tout pointer") {
-                Task {
-                    await coordinator.dispatch(
-                        .confirmCheckAll(line: line, checkAll: true, toastContext, amountsHidden: amountsHidden)
-                    )
-                }
-            }
-        } message: { _ in
-            Text("Cette prévision a des mouvements encore à pointer.")
-        }
+        .modifier(CheckAllConfirmation(
+            coordinator: coordinator,
+            transactionsByLineId: screenState.transactionsByLineId,
+            currency: userSettingsStore.currency,
+            amountsHidden: amountsHidden,
+            toastContext: toastContext
+        ))
         .modifier(PlannedWithdrawalUndoAlert(
             syncStore: syncStore, currency: userSettingsStore.currency, amountsHidden: amountsHidden
         ) { tx in
