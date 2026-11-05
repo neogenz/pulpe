@@ -179,6 +179,9 @@ enum DesignTokens {
         static let heroDisc: Double = 0.2
         /// Area fill under the tracked series on the hero chart
         static let heroArea: Double = 0.22
+        /// Unselected bars of the forecast chart: the savings green on white still clears the
+        /// 3:1 WCAG 1.4.11 floor here (3.4:1), which `pointedDim` (0.62) does not.
+        static let chartUnselected: Double = 0.7
         /// Disabled controls (e.g. type pills with count==0)
         static let disabled: Double = 0.4
         /// Dimmed row card — DM2.1.b.c5 pointed state on per-row card

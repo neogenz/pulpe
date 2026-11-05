@@ -150,7 +150,7 @@ extension RegistrationStep {
                 return
             }
 
-            AnalyticsService.shared.capture(.signupCompleted, properties: ["method": "email"])
+            AnalyticsService.shared.captureSignupCompleted(user: user, method: "email")
 
             var resolvedUser = user
             if FirstNameResolver.normalized(resolvedUser.firstName) == nil {

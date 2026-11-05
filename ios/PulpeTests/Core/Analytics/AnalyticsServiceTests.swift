@@ -295,6 +295,20 @@ struct AnalyticsServiceTests {
         )
     }
 
+    @Test func captureSignupCompleted_newAccount_identifiesTheAccount() {
+        let service = AnalyticsService(isConfiguredEnabled: true)
+        let user = UserInfo(id: "CD123456-1234-1234-1234-123456789ABC", email: "", firstName: "Lea")
+        service.initialize()
+        // The SDK is process-wide and keeps an earlier test's identity until reset;
+        // a fresh signup starts anonymous.
+        service.reset()
+
+        service.captureSignupCompleted(user: user, method: "apple")
+
+        #expect(service.isIdentified)
+        #expect(PostHogSDK.shared.getDistinctId() == user.id.lowercased())
+    }
+
     // MARK: - Guard Paths (not initialized in test environment)
 
     @Test func capture_whenNotInitialized_doesNotCrash() {

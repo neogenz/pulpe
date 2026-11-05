@@ -321,6 +321,7 @@ export const BudgetDetailOverlays = forwardRef<
           metrics={viewModel.metrics}
           realized={viewModel.realized}
           currency={currency}
+          period={period}
         />
       )}
     </>

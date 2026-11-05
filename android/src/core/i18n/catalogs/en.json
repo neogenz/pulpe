@@ -757,16 +757,45 @@
     },
     "prepareNextMonth": "Prepare next month",
     "realized": {
-      "balanceToDate": "Balance to date",
-      "checking": "Checked off",
+      "bankPromise": "Once everything is checked, your bank should show the same amount.",
+      "belowZero": "Below zero for now.",
+      "bridge": {
+        "available": "available to spend",
+        "checked": "checked",
+        "deficit": "shortfall",
+        "incoming": "to receive",
+        "outgoing": "to go out"
+      },
+      "checkedBalance": "Checked balance",
+      "checkedCount": {
+        "one": "checked",
+        "other": "checked"
+      },
       "expense": "Expenses",
+      "forecast": {
+        "empty": "Create future budgets to see the trend",
+        "endOf": "end of %{month}",
+        "footnote": "Planned end-of-month balance, from your budgets. Tap a month to see it.",
+        "outlook": {
+          "recovers": "Back in the green in %{month}",
+          "staysNegative": "Below zero until %{month}",
+          "staysPositive": "Everything stays in the green until %{month}",
+          "tightens": "Things get tight in %{month}"
+        },
+        "tightest": "Tightest month: %{month}, %{amount}",
+        "tightestTag": "tightest",
+        "title": "The coming months"
+      },
       "income": "Income",
-      "negativeStatus": "Negative balance — shall we work through it together?",
-      "plannedVsActual": "Planned vs actual",
-      "positiveStatus": "Everything looks good",
+      "incomeArrived": "Everything has arrived",
+      "incomePending": "%{amount} still expected",
+      "margin": "%{amount} of room left",
+      "ofPlanned": "of %{amount} planned",
+      "overPlan": "+%{amount} over plan",
+      "plannedVsActual": "Planned and actual",
       "savings": "Savings",
-      "tip": "Compare this balance with your bank account. If there is a difference, check that all your expenses are checked off.",
-      "title": "Budget tracking"
+      "title": "Budget tracking",
+      "toCheck": "to check"
     },
     "reconcile": {
       "accounts": {
