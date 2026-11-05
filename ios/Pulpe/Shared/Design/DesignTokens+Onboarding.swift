@@ -28,6 +28,11 @@ extension DesignTokens {
         static let stepBadge: CGFloat = 28
         /// Welcome stickers.
         static let stickerRadius: CGFloat = 14
+        /// Each welcome sticker leans its own way: the tilt is what reads as a sticker laid
+        /// on the page rather than a card that slipped out of the layout.
+        static let stickerTiltTopLeading: Double = -6
+        static let stickerTiltTrailing: Double = 5
+        static let stickerTiltBottomLeading: Double = -3
     }
 }
 
