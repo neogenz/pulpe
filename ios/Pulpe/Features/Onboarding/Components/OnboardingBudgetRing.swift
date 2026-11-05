@@ -45,7 +45,7 @@ struct OnboardingBudgetRing: View {
         .padding(DesignTokens.Entry.ringOverflowGap)
         .animation(reduceMotion ? nil : DesignTokens.Animation.defaultSpring, value: available)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isOverrun ? "À combler" : "Disponible")
+        .accessibilityLabel(centreLabel)
         .accessibilityValue(available.magnitude.asCurrency(currency))
     }
 
@@ -56,13 +56,17 @@ struct OnboardingBudgetRing: View {
             .rotationEffect(.degrees(-90))
     }
 
+    /// Plain words over the coral arc: the arc carries the alarm, the label stays readable on
+    /// the forest (coral text there falls under 4.5:1).
+    private var centreLabel: String {
+        isOverrun ? AppLocale.string("Il manque") : AppLocale.string("Disponible")
+    }
+
     private var centre: some View {
         VStack(spacing: DesignTokens.Spacing.xxs) {
-            Text(isOverrun ? "À combler" : "Disponible")
+            Text(centreLabel)
                 .font(PulpeTypography.detailLabel)
-                .foregroundStyle(
-                    isOverrun ? Color.heroAccentDeficit : Color.heroInk.opacity(DesignTokens.Opacity.overlay)
-                )
+                .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.overlay))
             Text(available.magnitude.asAmount(for: currency))
                 .font(PulpeTypography.ringAmount)
                 .foregroundStyle(Color.heroInk)
@@ -99,9 +103,10 @@ struct OnboardingRingLegendTile: View {
     }
 }
 
-/// Ring of a step with its legend tiles, driven by the onboarding state.
+/// Ring of a step with its legend tiles, driven by the onboarding state. A tile names an
+/// outflow the step is filling, always with its amount; what is left is the ring centre's job.
 struct OnboardingBudgetZone: View {
-    enum Legend { case none, charges, savings, all }
+    enum Legend { case none, charges, savings }
 
     let state: OnboardingState
     var legend: Legend = .none
@@ -117,43 +122,21 @@ struct OnboardingBudgetZone: View {
                 subtitle: subtitle
             )
             if legend != .none {
-                // One row when it fits; a long deficit label drops the remainder tile to its own row.
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: DesignTokens.Spacing.sm) { outflowTiles; remainderTile }
-                    VStack(spacing: DesignTokens.Spacing.sm) {
-                        HStack(spacing: DesignTokens.Spacing.sm) { outflowTiles }
-                        remainderTile
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    OnboardingRingLegendTile(
+                        color: .heroAccentCaution,
+                        label: AppLocale.string("Charges"),
+                        amount: state.totalCharges.asAmount(for: state.currency)
+                    )
+                    if legend == .savings {
+                        OnboardingRingLegendTile(
+                            color: .heroAccentPositive,
+                            label: AppLocale.string("Épargne"),
+                            amount: state.totalSavings.asAmount(for: state.currency)
+                        )
                     }
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private var outflowTiles: some View {
-        OnboardingRingLegendTile(
-            color: .heroAccentCaution,
-            label: AppLocale.string("Charges"),
-            amount: legend == .all ? nil : state.totalCharges.asAmount(for: state.currency)
-        )
-        if legend != .charges {
-            OnboardingRingLegendTile(
-                color: .heroAccentPositive,
-                label: AppLocale.string("Épargne"),
-                amount: legend == .all ? nil : state.totalSavings.asAmount(for: state.currency)
-            )
-        }
-    }
-
-    /// The savings step names both outflows instead; the ring centre already says what is left.
-    @ViewBuilder
-    private var remainderTile: some View {
-        if legend != .savings {
-            OnboardingRingLegendTile(
-                color: state.availableToSpend < 0 ? .heroAccentDeficit : .heroInk,
-                label: state.availableToSpend < 0
-                    ? AppLocale.string("Au-delà des revenus") : AppLocale.string("Disponible")
-            )
         }
     }
 }

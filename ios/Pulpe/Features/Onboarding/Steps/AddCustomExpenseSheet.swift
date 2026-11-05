@@ -70,7 +70,7 @@ struct AddCustomExpenseSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: isEditing ? AppLocale.string("Modifier") : AppLocale.string("Nouvelle prévision"),
+            title: isEditing ? AppLocale.string("Modifier") : kind.newBudgetLineTitle,
             isLoading: false,
             focus: $focusedField,
             focusOrder: [.amount, .description]
@@ -86,7 +86,10 @@ struct AddCustomExpenseSheet: View {
             )
 
             FormTextField(
-                hint: AppLocale.string("Ex : Spotify, Salle de sport..."),
+                // Fixed charges here, so subscriptions rather than the day-to-day examples.
+                hint: kind == .expense
+                    ? AppLocale.string("Ex : Spotify, Salle de sport...")
+                    : kind.descriptionPlaceholder,
                 text: $name,
                 label: AppLocale.string("Description"),
                 accessibilityLabel: AppLocale.string("Description de la prévision"),

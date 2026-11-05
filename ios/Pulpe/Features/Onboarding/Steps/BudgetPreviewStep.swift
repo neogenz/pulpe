@@ -34,7 +34,6 @@ struct BudgetPreviewStep: View {
             zone: { zone },
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    if isDeficit { deficitBanner }
                     FormCard {
                         breakdownRow(
                             step: .income,
@@ -83,14 +82,11 @@ struct BudgetPreviewStep: View {
 
     private var zone: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
+            // No legend: the rows below name each block with its amount.
             OnboardingBudgetZone(
                 state: state,
-                legend: .all,
                 subtitle: isDeficit
-                    ? AppLocale.string("""
-                        \(state.currency.rawValue) · \
-                        \((state.totalExpenses).asAmount(for: state.currency)) prévus
-                        """)
+                    ? AppLocale.string("\(state.currency.rawValue) par mois")
                     : AppLocale.string("\(state.currency.rawValue) · à dépenser")
             )
             VStack(spacing: DesignTokens.Spacing.xs) {
@@ -108,13 +104,15 @@ struct BudgetPreviewStep: View {
         }
     }
 
-    /// Confirm (comfortable), acknowledge (tight) or reassure (deficit), with the first name when known.
+    /// Confirm (comfortable), acknowledge (tight) or name the gap (deficit), with the first name
+    /// when known. One message per state: the deficit says what is wrong and where to fix it,
+    /// and the row to fix carries the same tint.
     private var title: String {
         let base: String
         switch emotionState {
         case .comfortable: base = AppLocale.string("Ton budget respire")
         case .tight: base = AppLocale.string("Ton budget tient debout")
-        case .deficit: base = AppLocale.string("Tu vois où tu en es")
+        case .deficit: base = AppLocale.string("Ton mois ne tient pas encore")
         }
         let name = state.firstName.trimmingCharacters(in: .whitespaces)
         return name.isEmpty ? "\(base)." : "\(base), \(name)."
@@ -124,35 +122,23 @@ struct BudgetPreviewStep: View {
         switch emotionState {
         case .comfortable: AppLocale.string("Belle marge pour le mois. Tu pourras affiner plus tard.")
         case .tight: AppLocale.string("C'est équilibré mais serré. Tu pourras affiner plus tard.")
-        case .deficit: AppLocale.string("Rien n'est figé, tu pourras ajuster ton budget quand tu veux.")
+        case .deficit where chargesExceedIncome:
+            AppLocale.string("Tes charges dépassent tes revenus. Touche-les pour les ajuster.")
+        case .deficit:
+            AppLocale.string("""
+                Baisse ton épargne de \(state.availableToSpend.magnitude.asAmount(for: state.currency)) \
+                et tout tient.
+                """)
         }
     }
 
-    // MARK: - Deficit
+    /// Charges alone past the income cannot be fixed by saving less: the charges are what to fix.
+    private var chargesExceedIncome: Bool { state.totalCharges > state.totalIncome }
 
-    /// Charges alone past the income cannot be fixed by saving less: the banner then points at the charges.
-    private var deficitBanner: some View {
-        let chargesOnly = state.totalCharges > state.totalIncome
-        return InfoBanner(style: .over, systemImage: "exclamationmark.circle") {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text(
-                    chargesOnly
-                        ? AppLocale.string("""
-                            Tes charges dépassent à elles seules tes revenus. Revois-les pour tout \
-                            faire tenir.
-                            """)
-                        : AppLocale.string("""
-                            Ton épargne prévue dépasse ce qui reste après tes charges. La baisser \
-                            de \(state.availableToSpend.magnitude.asAmount(for: state.currency)) \
-                            suffit à tout faire tenir.
-                            """)
-                )
-                Button(chargesOnly ? AppLocale.string("Revoir mes charges") : AppLocale.string("Revoir mon épargne")) {
-                    state.jumpToStepForEdit(chargesOnly ? .charges : .savings)
-                }
-                .secondaryButtonStyle(size: .small)
-            }
-        }
+    /// The block a deficit asks to fix, tinted in its row.
+    private var stepToFix: OnboardingStep? {
+        guard isDeficit else { return nil }
+        return chargesExceedIncome ? .charges : .savings
     }
 
     // MARK: - Rows
@@ -185,7 +171,7 @@ struct BudgetPreviewStep: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Text(amount)
                     .font(PulpeTypography.rowAmount)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(step == stepToFix ? Color.financialOverBudget : Color.textPrimary)
                 RowChevron()
             }
             .frame(minHeight: DesignTokens.ListRow.minHeight)

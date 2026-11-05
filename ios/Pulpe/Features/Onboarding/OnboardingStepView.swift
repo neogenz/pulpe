@@ -137,8 +137,7 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
     private var budgetPreviewButtonTitle: String {
         switch state.emotionState {
         case .comfortable: AppLocale.string("C'est parti")
-        case .tight: AppLocale.string("Valider mon budget")
-        case .deficit: AppLocale.string("Valider et affiner")
+        case .tight, .deficit: AppLocale.string("Valider mon budget")
         }
     }
 }
