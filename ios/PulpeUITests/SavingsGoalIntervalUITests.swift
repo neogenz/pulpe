@@ -6,19 +6,20 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     private static let linkedTemplateLineId = "linked-line"
     private static let freeTemplateLineId = "free-line"
 
+    /// The V2 detail regions each harness state must show: the hero bar, its date line,
+    /// the two grey tiles and the pace sentence (ordinary state only), the derived-state
+    /// cards, and the « Ajuster » link of « Mois par mois ».
     private struct DetailExpectation {
         let scenario: String
         let hasTarget: Bool
-        /// Identifier of the header variant expected for this scenario, `nil` when
-        /// the goal has no dates at all.
+        /// Identifier of the header date line, `nil` when the goal has no dates at all.
         let deadlineIdentifier: String?
-        let hasProjection: Bool
+        let hasPaceTile: Bool
+        let hasDateTile: Bool
         let hasRequiredAmount: Bool
-        let hasEstimation: Bool
         let hasSuggestion: Bool
-        let hasTrajectory: Bool
+        let hasEmptyGuidance: Bool
         let canAdjust: Bool
-        let hasPace: Bool
     }
 
     private static let detailExpectations = [
@@ -26,53 +27,47 @@ final class SavingsGoalIntervalUITests: XCTestCase {
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_NAME_ONLY",
             hasTarget: false,
             deadlineIdentifier: nil,
-            // No linked prévision: there is no plan to project, so the hero
-            // stays silent instead of quoting a figure nothing feeds.
-            hasProjection: false,
+            hasPaceTile: false,
+            hasDateTile: false,
             hasRequiredAmount: false,
-            hasEstimation: false,
             hasSuggestion: false,
-            hasTrajectory: false,
-            canAdjust: false,
-            hasPace: false
+            // No linked prévision: the page says how to start instead of quoting a plan.
+            hasEmptyGuidance: true,
+            canAdjust: false
         ),
         DetailExpectation(
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_TARGET_ONLY",
             hasTarget: true,
             deadlineIdentifier: nil,
-            hasProjection: true,
+            // The cible is already passed: the suggestion card replaces tiles and sentence.
+            hasPaceTile: false,
+            hasDateTile: false,
             hasRequiredAmount: false,
-            hasEstimation: true,
             hasSuggestion: true,
-            hasTrajectory: true,
-            canAdjust: true,
-            hasPace: false
+            hasEmptyGuidance: false,
+            canAdjust: true
         ),
         DetailExpectation(
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_DEADLINE_ONLY",
             hasTarget: false,
             deadlineIdentifier: "savingsGoalDeadlineDate",
-            hasProjection: false,
+            hasPaceTile: false,
+            hasDateTile: true,
             hasRequiredAmount: false,
-            hasEstimation: false,
             hasSuggestion: false,
-            hasTrajectory: false,
-            canAdjust: false,
-            hasPace: false
+            hasEmptyGuidance: true,
+            canAdjust: false
         ),
         DetailExpectation(
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_FULL",
             hasTarget: true,
             deadlineIdentifier: "savingsGoalDeadlineRange",
-            hasProjection: true,
-            // The plan lands on 3 600 for a 3 000 target: advising a required
-            // pace here would only restate the plan under another name.
-            hasRequiredAmount: false,
-            hasEstimation: true,
+            hasPaceTile: true,
+            hasDateTile: true,
+            hasRequiredAmount: true,
             hasSuggestion: false,
-            hasTrajectory: true,
-            canAdjust: true,
-            hasPace: true
+            hasEmptyGuidance: false,
+            canAdjust: true
         ),
     ]
 
@@ -123,19 +118,18 @@ final class SavingsGoalIntervalUITests: XCTestCase {
                 XCTAssertFalse(identified("savingsGoalDeadlineDate").exists)
                 XCTAssertFalse(identified("savingsGoalDeadlineRange").exists)
             }
-            XCTAssertEqual(identified("savingsGoalProjectionStat").exists, expectation.hasProjection)
+            XCTAssertEqual(identified("savingsGoalPaceTile").exists, expectation.hasPaceTile)
+            XCTAssertEqual(identified("savingsGoalDateTile").exists, expectation.hasDateTile)
             XCTAssertEqual(
                 identified("savingsGoalRequiredPaceStat").exists,
                 expectation.hasRequiredAmount
             )
-            XCTAssertEqual(identified("savingsGoalEstimatedCompletion").exists, expectation.hasEstimation)
             XCTAssertEqual(
                 identified("savingsGoalCompletionSuggestionCard").exists,
                 expectation.hasSuggestion
             )
-            XCTAssertEqual(identified("savingsGoalTrajectoryTitle").exists, expectation.hasTrajectory)
+            XCTAssertEqual(identified("savingsGoalEmptyGuidanceCard").exists, expectation.hasEmptyGuidance)
             XCTAssertEqual(app.buttons["savingsGoalAdjustPlanButton"].exists, expectation.canAdjust)
-            XCTAssertEqual(identified("savingsGoalPaceIndicator").exists, expectation.hasPace)
             attachScreenshot("\(expectation.scenario.lowercased())-light-large")
             app.terminate()
         }
@@ -211,16 +205,17 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         attachScreenshot("ios-template-linked-goal-light-large")
     }
 
-    /// The two history sections are below the fold, so nothing ever photographed
-    /// them: the ledger rewrite (one card per group, hairlines inside) is only
-    /// verifiable on a capture taken after scrolling there.
+    /// « Mois par mois » and « Retraits » sit below the hero, so nothing else photographs
+    /// them: their cards are only verifiable on a capture taken after scrolling there.
     func testHistorySectionsRenderBelowTheFold() {
         launch("UITEST_SAVINGS_GOAL_DETAIL_FULL")
 
-        let contributions = identified("savingsGoalContributionsSection")
-        XCTAssertTrue(contributions.waitForExistence(timeout: 10))
-        scrollUntilHittable(contributions)
-        attachScreenshot("ios-detail-full-contributions-light-large")
+        let monthRow = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "savingsGoalPlanMonthRow-"))
+            .firstMatch
+        XCTAssertTrue(monthRow.waitForExistence(timeout: 10))
+        scrollUntilHittable(monthRow)
+        attachScreenshot("ios-detail-full-months-light-large")
 
         let withdrawals = identified("savingsGoalWithdrawalsSection")
         XCTAssertTrue(withdrawals.waitForExistence(timeout: 10))

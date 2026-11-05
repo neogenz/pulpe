@@ -93,10 +93,12 @@ struct GoalGenerationStopSheet: View {
                 }
                 .padding(DesignTokens.Spacing.lg)
             }
+            // On the scroll view itself: placed after the inset, the id would replace the
+            // decision buttons' own identifiers.
+            .accessibilityIdentifier(context.rootIdentifier)
             .safeAreaInset(edge: .bottom) { decisionButtons }
             .scrollContentBackground(.hidden)
             .pulpeBackground()
-            .accessibilityIdentifier(context.rootIdentifier)
             .navigationTitle(context.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -140,9 +140,9 @@ final class BudgetLineLongPressTests: XCTestCase {
         let goal = app.buttons["budgetLineDetailGoalLink"]
         scrollUntilHittable(goal)
         goal.tap()
-        // The bar takes the goal's own name, which the harness seeds: it says which
-        // goal was opened, where the root identifier only says that one was.
-        XCTAssertTrue(app.navigationBars[Self.goalName].waitForExistence(timeout: 10))
+        // The page header carries the goal's own name, which the harness seeds: it says
+        // which goal was opened, where the root identifier only says that one was.
+        XCTAssertTrue(app.staticTexts[Self.goalName].waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollViews["savingsGoalDetailRoot"].waitForExistence(timeout: 10))
         XCTAssertTrue(
             app.descendants(matching: .any)["savingsGoalProgressCard"].waitForExistence(timeout: 10)

@@ -278,7 +278,9 @@ struct GoalPlanTimelineSection: View {
             }
         case .current, .planned, .empty:
             row(segment, chevron: nil)
-                .accessibilityIdentifier("savingsGoalPlanMonthRow-\(segment.id)")
+                .accessibilityIdentifier(segment.months.first.map {
+                    "savingsGoalPlanMonthRow-\($0.year)-\($0.month)"
+                } ?? "savingsGoalPlanMonthRow")
         }
     }
 
@@ -300,6 +302,8 @@ struct GoalPlanTimelineSection: View {
                 }
             }
         }
+        // One VoiceOver stop per range: its months, what they hold, and the amount.
+        .accessibilityElement(children: .combine)
     }
 
     private func budgetAction(for month: SavingsGoalPlanMonth) -> (() -> Void)? {

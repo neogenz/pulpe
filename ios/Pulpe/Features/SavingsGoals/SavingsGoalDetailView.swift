@@ -28,12 +28,11 @@ struct SavingsGoalDetailView: View {
     @State private var isSimulating = false
     @State private var pendingSimulatorBudgetId: String?
     @State private var showRecoveryRecap = false
-    @State private var showGenerationStop = false
-    @State private var generationStopCandidates: [SavingsGoalFutureLine] = []
-    @State private var generationStopContext: GoalGenerationStopContext?
+    @State private var generationStop: GenerationStopRequest?
     @State private var pendingEditUpdate: SavingsGoalUpdate?
     @State private var pendingDeadlineUpdate: SavingsGoalUpdate?
-    @State private var reopenGenerationStop = false
+    /// Shown again once the current advisory finishes dismissing (deadline refresh).
+    @State private var reopenedGenerationStop: GenerationStopRequest?
     @State var showDeletion = false
 
     init(
@@ -110,18 +109,18 @@ struct SavingsGoalDetailView: View {
                 )
             }
         }
-        .sheet(isPresented: $showGenerationStop, onDismiss: handleGenerationStopDismiss) {
+        .sheet(item: $generationStop, onDismiss: handleGenerationStopDismiss) { request in
             GoalGenerationStopSheet(
-                lines: generationStopCandidates,
-                context: generationStopContext ?? .status(currentGoal.status),
+                lines: request.lines,
+                context: request.context,
                 currency: currency,
                 goalName: currentGoal.name,
                 savedAmount: viewModel.progress?.confirmed,
                 onApply: { mode in
-                    if pendingDeadlineUpdate != nil {
-                        try await applyDeadlineReconciliation(mode)
+                    if case .deadline(let targetDate) = request.context {
+                        try await applyDeadlineReconciliation(mode, lines: request.lines, targetDate: targetDate)
                     } else {
-                        try await applyGenerationStop(mode)
+                        try await applyGenerationStop(mode, lines: request.lines)
                     }
                 }
             )
@@ -338,9 +337,7 @@ extension SavingsGoalDetailView {
                 let lines = try await store.getFutureLines(id: goal.id, targetDate: targetDate)
                 if !lines.isEmpty {
                     pendingDeadlineUpdate = update
-                    generationStopCandidates = lines
-                    generationStopContext = .deadline(targetDate: targetDate)
-                    showGenerationStop = true
+                    generationStop = GenerationStopRequest(lines: lines, context: .deadline(targetDate: targetDate))
                     return
                 }
             } catch {
@@ -391,28 +388,25 @@ extension SavingsGoalDetailView {
     private func proposeGenerationStop() async {
         await viewModel.loadFutureLines()
         guard !viewModel.futureLines.isEmpty else { return }
-        generationStopCandidates = viewModel.futureLines
-        generationStopContext = .status(currentGoal.status)
-        showGenerationStop = true
+        generationStop = GenerationStopRequest(lines: viewModel.futureLines, context: .status(currentGoal.status))
     }
 
     private func handleGenerationStopDismiss() {
-        if reopenGenerationStop {
-            reopenGenerationStop = false
-            showGenerationStop = true
+        if let reopened = reopenedGenerationStop {
+            reopenedGenerationStop = nil
+            generationStop = reopened
         } else {
             pendingDeadlineUpdate = nil
-            generationStopContext = nil
         }
     }
 
-    private func applyDeadlineReconciliation(_ mode: SavingsGoalGenerationStopMode) async throws {
-        guard var update = pendingDeadlineUpdate,
-              case .deadline(let targetDate) = generationStopContext else { return }
-        update.reconciliation = SavingsGoalGenerationStop(
-            mode: mode,
-            budgetLineIds: generationStopCandidates.map(\.budgetLineId)
-        )
+    private func applyDeadlineReconciliation(
+        _ mode: SavingsGoalGenerationStopMode,
+        lines: [SavingsGoalFutureLine],
+        targetDate: String
+    ) async throws {
+        guard var update = pendingDeadlineUpdate else { return }
+        update.reconciliation = SavingsGoalGenerationStop(mode: mode, budgetLineIds: lines.map(\.budgetLineId))
         do {
             _ = try await store.update(id: goal.id, data: update)
             await viewModel.load()
@@ -445,25 +439,24 @@ extension SavingsGoalDetailView {
             return
         }
         pendingDeadlineUpdate = decision.update
-        generationStopCandidates = decision.lines
-        generationStopContext = .deadline(targetDate: decision.targetDate)
+        let request = GenerationStopRequest(lines: decision.lines, context: .deadline(targetDate: decision.targetDate))
         if reopenAfterDismiss {
-            reopenGenerationStop = true
+            reopenedGenerationStop = request
         } else {
-            showGenerationStop = true
+            generationStop = request
         }
     }
 
     /// Applies the decision through the store seam, which owns the aggregate
     /// invalidation (frozen or deleted budget lines stale every store projecting
     /// them, PUL-270). Then refetches this goal's progression and candidates.
-    private func applyGenerationStop(_ mode: SavingsGoalGenerationStopMode) async throws {
+    private func applyGenerationStop(
+        _ mode: SavingsGoalGenerationStopMode,
+        lines: [SavingsGoalFutureLine]
+    ) async throws {
         let result = try await store.applyGenerationStop(
             id: goal.id,
-            SavingsGoalGenerationStop(
-                mode: mode,
-                budgetLineIds: generationStopCandidates.map(\.budgetLineId)
-            )
+            SavingsGoalGenerationStop(mode: mode, budgetLineIds: lines.map(\.budgetLineId))
         )
         await viewModel.load()
         await viewModel.loadFutureLines()
@@ -473,4 +466,13 @@ extension SavingsGoalDetailView {
                 : AppLocale.string("\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs")
         )
     }
+}
+
+/// One opening of the generation-stop advisory: its candidates and why it opened. Presented
+/// as a sheet item so the sheet is built from this payload, never from side state that the
+/// presentation can read before it is written.
+private struct GenerationStopRequest: Identifiable {
+    let id = UUID()
+    let lines: [SavingsGoalFutureLine]
+    let context: GoalGenerationStopContext
 }
