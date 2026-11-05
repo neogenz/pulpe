@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import {
-  afterNextRender,
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -26,6 +26,7 @@ import {
   resolveColors,
 } from '@core/chart/chart-theme';
 import { AppCurrencyPipe } from '@core/currency';
+import { ThemeService } from '@core/theme';
 import {
   buildNetWorthSankey,
   type SankeyNodeKind,
@@ -121,6 +122,7 @@ const LABEL_GUTTER = 150;
 export class NetWorthSankey {
   readonly #doc = inject(DOCUMENT);
   readonly #transloco = inject(TranslocoService);
+  readonly #themeService = inject(ThemeService);
 
   readonly netWorth = input.required<NetWorth>();
 
@@ -138,7 +140,10 @@ export class NetWorthSankey {
   );
 
   constructor() {
-    afterNextRender(() =>
+    // The canvas cannot read CSS variables: resolve them again whenever the
+    // theme flips, after the render that applied the new theme class.
+    afterRenderEffect(() => {
+      this.#themeService.isDark();
       this.theme.set(
         resolveColors(
           {
@@ -148,8 +153,8 @@ export class NetWorthSankey {
           },
           this.#doc,
         ),
-      ),
-    );
+      );
+    });
   }
 
   protected readonly chartData = computed<
