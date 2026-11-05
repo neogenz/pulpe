@@ -192,7 +192,7 @@ struct OnboardingFlow: View {
             if state.hasCompletedPinSetup {
                 BudgetPreviewStep(state: state)
             } else {
-                Color.appBackground
+                Color.appBackground.ignoresSafeArea(edges: .bottom)
             }
         }
     }

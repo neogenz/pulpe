@@ -38,6 +38,7 @@ struct BudgetPreviewStep: View {
                     FormCard {
                         breakdownRow(
                             step: .income,
+                            kind: .income,
                             title: AppLocale.string("Revenus"),
                             names: [AppLocale.string("Salaire")] + names(of: .income),
                             amount: state.totalIncome.asSignedAmount(for: .income, in: state.currency)
@@ -46,6 +47,7 @@ struct BudgetPreviewStep: View {
                             FormRowDivider()
                             breakdownRow(
                                 step: .charges,
+                                kind: .expense,
                                 title: AppLocale.string("Charges fixes"),
                                 names: state.fixedChargeLines.map(\.label) + names(of: .expense),
                                 amount: state.totalCharges.asAmount(for: state.currency)
@@ -55,6 +57,7 @@ struct BudgetPreviewStep: View {
                             FormRowDivider()
                             breakdownRow(
                                 step: .savings,
+                                kind: .saving,
                                 title: AppLocale.string("Épargne prévue"),
                                 names: names(of: .saving),
                                 amount: state.totalSavings.asAmount(for: state.currency)
@@ -90,7 +93,7 @@ struct BudgetPreviewStep: View {
                         """)
                     : AppLocale.string("\(state.currency.rawValue) · à dépenser")
             )
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            VStack(spacing: DesignTokens.Spacing.xs) {
                 Text(title)
                     .font(PulpeTypography.onboardingTitle)
                     .foregroundStyle(Color.heroInk)
@@ -99,7 +102,9 @@ struct BudgetPreviewStep: View {
                     .font(PulpeTypography.onboardingSubtitle)
                     .foregroundStyle(Color.heroInkSecondary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -156,9 +161,16 @@ struct BudgetPreviewStep: View {
         state.customTransactions.filter { $0.type == kind }.map(\.name)
     }
 
-    private func breakdownRow(step: OnboardingStep, title: String, names: [String], amount: String) -> some View {
+    private func breakdownRow(
+        step: OnboardingStep,
+        kind: TransactionKind,
+        title: String,
+        names: [String],
+        amount: String
+    ) -> some View {
         Button { state.jumpToStepForEdit(step) } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
+                RowIcon(systemName: kind.icon, tint: kind.color)
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(title)
                         .font(PulpeTypography.rowTitle)
