@@ -32,6 +32,7 @@ const asset: Asset = {
           [asset]="asset()"
           baseCurrency="CHF"
           [categoryName]="categoryName()"
+          [busy]="busy()"
           (action)="events.push($event)"
         />
       </li>
@@ -41,6 +42,7 @@ const asset: Asset = {
 class HostComponent {
   readonly asset = signal<Asset>(asset);
   readonly categoryName = signal<string | null>(null);
+  readonly busy = signal(false);
   readonly events: AssetRowEvent[] = [];
 }
 
@@ -195,6 +197,17 @@ describe('NetWorthAssetRow', () => {
     expect(fixture.componentInstance.events).toEqual([
       { asset, action: 'updateValue' },
     ]);
+  });
+
+  it('locks the actions menu while a write is running', () => {
+    fixture.componentInstance.busy.set(true);
+    render();
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="asset-row-menu-button"]',
+      ).disabled,
+    ).toBe(true);
   });
 
   it('offers unarchive instead of edit actions on an archived asset', () => {

@@ -109,6 +109,7 @@ const DAYS_PER_YEAR = 365;
     <button
       matIconButton
       [matMenuTriggerFor]="menu"
+      [disabled]="busy()"
       [attr.aria-label]="
         'netWorth.menu.actions' | transloco: { name: asset().name }
       "
