@@ -54,8 +54,10 @@ extension MovementSheet {
         }
         if routesToWithdrawal {
             let trimmed = name.trimmingCharacters(in: .whitespaces)
-            onRequestSavingsWithdrawal?(amount, inputCurrency, trimmed.isEmpty ? nil : trimmed)
+            // Dismiss before handing over: on the budget page the host presents the preview in
+            // the very sheet slot this sheet occupies, and a dismiss after it would clear it.
             dismiss()
+            onRequestSavingsWithdrawal?(amount, inputCurrency, trimmed.isEmpty ? nil : trimmed)
             return
         }
 
