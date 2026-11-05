@@ -157,6 +157,11 @@ BEGIN
   WHERE id = v_asset_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'FAIL: editable asset columns must stay writable'; END IF;
 
+  -- A snapshot is written once: only the rekey (SECURITY DEFINER) rewrites it.
+  IF has_table_privilege('authenticated', 'public.asset_snapshot', 'UPDATE') THEN
+    RAISE EXCEPTION 'FAIL: snapshots must not be updatable by the user';
+  END IF;
+
   -- anon holds no privilege at all.
   IF has_table_privilege('anon', 'public.asset', 'SELECT')
     OR has_table_privilege('anon', 'public.asset_category', 'SELECT')
