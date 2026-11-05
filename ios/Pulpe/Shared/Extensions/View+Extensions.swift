@@ -361,6 +361,15 @@ extension View {
         contentMargins(.bottom, DesignTokens.Layout.rootBottomInset, for: .scrollContent)
     }
 
+    /// A root tab screen hides its navigation bar title, so iOS draws no scroll edge effect
+    /// there: this blur keeps scrolled content from running bare under the status bar.
+    func pulpeStatusBarBlur() -> some View {
+        overlay(alignment: .top) {
+            ProgressiveBlurEdge(edge: .top, height: DesignTokens.Blur.topFadeHeight)
+                .ignoresSafeArea(edges: .top)
+        }
+    }
+
     /// V2 card shadow, both layers (`0 1px 2px` contact, `0 6px 20px -10px` ambient).
     func pulpeSurfaceShadow() -> some View {
         shadow(DesignTokens.Shadow.surfaceContact)

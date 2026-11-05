@@ -142,6 +142,7 @@ struct CurrentMonthTab: View {
         NavigationStack(path: $state.currentMonthPath) {
             CurrentMonthView()
                 .pulpeRootBottomInset()
+                .pulpeStatusBarBlur()
                 .environment(\.requestSavingsWithdrawal, openSavingsWithdrawal)
                 .environment(\.requestEditMovement, { budgetId, transactionId in
                     editedMovement = EditedMovement(budgetId: budgetId, transactionId: transactionId)
@@ -233,6 +234,7 @@ struct SavingsGoalsTab: View {
                 NavigationStack(path: $state.savingsGoalsPath) {
                     SavingsGoalsListView()
                         .pulpeRootBottomInset()
+                        .pulpeStatusBarBlur()
                         .ignoresForeignKeyboardInset()
                         .modifier(SectionStackDestinations { selectedGoalId = $0 })
                 }
@@ -329,6 +331,7 @@ struct BudgetsTab: View {
         return NavigationStack(path: $state.budgetPath) {
             BudgetListView()
                 .pulpeRootBottomInset()
+                .pulpeStatusBarBlur()
                 .ignoresForeignKeyboardInset()
                 .modifier(budgetStackDestinations)
         }
@@ -449,6 +452,7 @@ struct TemplatesTab: View {
                 NavigationStack(path: $state.templatePath) {
                     TemplateListView()
                         .pulpeRootBottomInset()
+                        .pulpeStatusBarBlur()
                         .ignoresForeignKeyboardInset()
                         .navigationDestination(for: TemplateDestination.self) { destination in
                             switch destination {
