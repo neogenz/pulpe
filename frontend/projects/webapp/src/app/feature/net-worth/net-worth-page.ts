@@ -9,10 +9,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { isApiError } from '@core/api/api-error';
-import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { AppCurrencyPipe } from '@core/currency';
 import { TitleDisplay } from '@core/routing';
 import { BaseLoading } from '@ui/loading';
@@ -23,6 +20,7 @@ import { NetWorthSankey } from './components/net-worth-sankey';
 import { NetWorthSection } from './components/net-worth-section';
 import { NetWorthDialogService } from './services/net-worth-dialog.service';
 import { NetWorthStore } from './services/net-worth-store';
+import { injectWriteAttempt } from './services/write-attempt';
 
 @Component({
   selector: 'pulpe-net-worth-page',
@@ -303,9 +301,7 @@ export default class NetWorthPage {
   protected readonly store = inject(NetWorthStore);
   protected readonly title = inject(TitleDisplay);
   readonly #dialogs = inject(NetWorthDialogService);
-  readonly #snackBar = inject(MatSnackBar);
-  readonly #transloco = inject(TranslocoService);
-  readonly #errorLocalizer = inject(ApiErrorLocalizer);
+  readonly #attempt = injectWriteAttempt();
   readonly #listFormat = new Intl.ListFormat(inject(LOCALE_ID), {
     style: 'long',
     type: 'conjunction',
@@ -407,20 +403,6 @@ export default class NetWorthPage {
           await this.#attempt(() => this.store.deleteAsset(asset.id));
         }
         return;
-    }
-  }
-
-  async #attempt(write: () => Promise<void>): Promise<void> {
-    try {
-      await write();
-    } catch (error) {
-      const message = isApiError(error)
-        ? this.#errorLocalizer.localizeApiError(error)
-        : this.#transloco.translate('common.error');
-      this.#snackBar.open(message, this.#transloco.translate('common.close'), {
-        duration: 5000,
-        panelClass: ['bg-error-container', 'text-on-error-container'],
-      });
     }
   }
 }

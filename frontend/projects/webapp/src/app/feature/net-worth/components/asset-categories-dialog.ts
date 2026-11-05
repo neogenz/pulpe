@@ -12,11 +12,9 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { isApiError } from '@core/api/api-error';
-import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { NetWorthStore } from '../services/net-worth-store';
+import { injectWriteAttempt } from '../services/write-attempt';
 
 const MAX_CATEGORY_NAME_LENGTH = 30;
 
@@ -202,9 +200,7 @@ const MAX_CATEGORY_NAME_LENGTH = 30;
 export class AssetCategoriesDialog {
   readonly #store = inject(NetWorthStore);
   protected readonly isSaving = this.#store.isSaving;
-  readonly #snackBar = inject(MatSnackBar);
-  readonly #transloco = inject(TranslocoService);
-  readonly #errorLocalizer = inject(ApiErrorLocalizer);
+  readonly #attempt = injectWriteAttempt();
   readonly #listFormat = new Intl.ListFormat(inject(LOCALE_ID), {
     style: 'long',
     type: 'conjunction',
@@ -264,22 +260,6 @@ export class AssetCategoriesDialog {
     if (name === '') return;
     if (await this.#attempt(() => this.#store.addCategory(name))) {
       this.newName.set('');
-    }
-  }
-
-  async #attempt(write: () => Promise<void>): Promise<boolean> {
-    try {
-      await write();
-      return true;
-    } catch (error) {
-      const message = isApiError(error)
-        ? this.#errorLocalizer.localizeApiError(error)
-        : this.#transloco.translate('common.error');
-      this.#snackBar.open(message, this.#transloco.translate('common.close'), {
-        duration: 5000,
-        panelClass: ['bg-error-container', 'text-on-error-container'],
-      });
-      return false;
     }
   }
 }
