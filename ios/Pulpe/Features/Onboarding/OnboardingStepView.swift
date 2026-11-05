@@ -19,6 +19,9 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showContent = false
     @State private var canProceedTrigger = false
+    /// The keyboard leaves room for the zone or for the form, not both: while it is up the zone
+    /// folds to one line so the field, its label and the CTA stay readable.
+    @State private var isKeyboardUp = false
 
     private var isEnabled: Bool {
         // `readyToComplete` / `isSubmitting` close the rapid-double-tap window on the preview CTA:
@@ -29,7 +32,11 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.none) {
-            zone()
+            // A ZStack, not a Group: a Group hands its modifiers to each child, so an empty
+            // compact zone would drop the padding and pull the card over the top bar.
+            ZStack {
+                if isKeyboardUp { compactZone } else { zone() }
+            }
                 .frame(maxWidth: .infinity)
                 .padding(.top, DesignTokens.Spacing.md)
                 .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -40,6 +47,12 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
             card
         }
         .dismissKeyboardOnTap()
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            setKeyboardUp(true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            setKeyboardUp(false)
+        }
         .onChange(of: canProceed) { oldValue, newValue in
             // Celebration haptic only on the false→true flip (CTA just unlocked)
             if !oldValue && newValue { canProceedTrigger.toggle() }
@@ -51,6 +64,47 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
             } else {
                 await delayedAnimation(0.25) { showContent = true }
             }
+        }
+    }
+
+    private func setKeyboardUp(_ isUp: Bool) {
+        guard isUp != isKeyboardUp else { return }
+        withAnimation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseInOut) { isKeyboardUp = isUp }
+    }
+
+    // MARK: - Compact Zone
+
+    /// What the ring says, on one line, for the steps whose input moves it; the other steps
+    /// keep only the zone's margin above the card.
+    @ViewBuilder
+    private var compactZone: some View {
+        switch step {
+        case .income, .charges, .savings:
+            let available = state.availableToSpend
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                Text(available < 0 ? AppLocale.string("Il manque") : AppLocale.string("Disponible"))
+                    .font(PulpeTypography.detailLabel)
+                    .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.overlay))
+                Text(available.magnitude.asCurrency(state.currency))
+                    .font(PulpeTypography.rowAmount)
+                    .foregroundStyle(Color.heroInk)
+                    .contentTransition(.numericText())
+            }
+            .accessibilityElement(children: .combine)
+        case .firstName:
+            // The greeting is this step's answer: it stays, on one line.
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
+                Text("Enchanté,")
+                    .font(PulpeTypography.detailLabel)
+                    .foregroundStyle(Color.heroAccentPositive)
+                Text(FirstNameResolver.normalized(state.firstName) ?? AppLocale.string("toi"))
+                    .font(PulpeTypography.rowAmount)
+                    .foregroundStyle(Color.heroInk)
+                    .lineLimit(1)
+            }
+            .accessibilityElement(children: .combine)
+        default:
+            EmptyView()
         }
     }
 
@@ -91,15 +145,16 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
         .scrollBounceBehavior(.basedOnSize)
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) { cta }
-        // The card's fill runs under the home indicator; a clip on the view would stop it
-        // at the safe area and leave a forest strip at the bottom.
+        // The card's fill runs under the home indicator and the side insets (the open iPhone
+        // Duo's status column); a clip on the view would stop it at the safe area and leave a
+        // forest strip with the zone's hard bottom edge showing.
         .background {
             UnevenRoundedRectangle(
                 topLeadingRadius: DesignTokens.Entry.cardRadius,
                 topTrailingRadius: DesignTokens.Entry.cardRadius
             )
             .fill(Color.appBackground)
-            .ignoresSafeArea(edges: .bottom)
+            .ignoresSafeArea(edges: [.bottom, .horizontal])
         }
         .padding(.top, -DesignTokens.Entry.cardRadius)
     }

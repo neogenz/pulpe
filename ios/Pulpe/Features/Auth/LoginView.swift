@@ -37,15 +37,16 @@ struct LoginView: View {
                     }
                     .scrollBounceBehavior(.basedOnSize)
                     .scrollDismissesKeyboard(.interactively)
-                    // The card's fill runs under the home indicator; a clip on the view would stop it
-                    // at the safe area and leave a forest strip at the bottom.
+                    // The card's fill runs under the home indicator and the side insets (the open
+                    // iPhone Duo's status column); a clip on the view would stop it at the safe area
+                    // and leave a forest strip with the zone's hard bottom edge showing.
                     .background {
                         UnevenRoundedRectangle(
                             topLeadingRadius: DesignTokens.Entry.cardRadius,
                             topTrailingRadius: DesignTokens.Entry.cardRadius
                         )
                         .fill(Color.appBackground)
-                        .ignoresSafeArea(edges: .bottom)
+                        .ignoresSafeArea(edges: [.bottom, .horizontal])
                     }
                     .padding(.top, -DesignTokens.Entry.cardRadius)
                     .onChange(of: viewModel.errorMessage) { _, newValue in
