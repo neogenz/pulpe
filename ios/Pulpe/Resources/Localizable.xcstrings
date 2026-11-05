@@ -24028,13 +24028,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Übertrag aus %@ enthalten"
+            "value" : "Übertrag von %@ enthalten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Carry-over from %@ included"
+            "value" : "Includes %@ carried over"
           }
         },
         "it" : {
@@ -36226,6 +36226,204 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Risparmio versato in parte"
+          }
+        }
+      }
+    },
+    "Dépassées" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überschritten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Over plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Superate"
+          }
+        }
+      }
+    },
+    "Sans prévision, ils sortent de ton disponible" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Planung gehen sie von deinem verfügbaren Betrag ab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With no forecast, they come out of your available amount"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senza previsione, escono dal tuo disponibile"
+          }
+        }
+      }
+    },
+    "Ce qu'il te restait fin %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was dir Ende %@ übrig blieb"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What you had left at the end of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quello che ti restava a fine %@"
+          }
+        }
+      }
+    },
+    "Aller à un autre mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu einem anderen Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to another month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vai a un altro mese"
+          }
+        }
+      }
+    },
+    "Comparer mes comptes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Konten vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare my accounts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confronta i miei conti"
+          }
+        }
+      }
+    },
+    "Seulement un mois à venir" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur ein kommender Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only a month still to come"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo un mese futuro"
+          }
+        }
+      }
+    },
+    "Bien joué ! Passe sur « Tout » pour revoir tes prévisions." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gut gemacht! Wechsle zu „Alle“, um deine Planungen wieder zu sehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Well done! Switch to “All” to see your forecasts again."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ben fatto! Passa a «Tutto» per rivedere le tue previsioni."
+          }
+        }
+      }
+    },
+    "%@ au %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ bis %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ to %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dal %1$@ al %2$@"
+          }
+        }
+      }
+    },
+    "%@ · jour %lld sur %lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Tag %2$lld von %3$lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · day %2$lld of %3$lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · giorno %2$lld di %3$lld"
           }
         }
       }

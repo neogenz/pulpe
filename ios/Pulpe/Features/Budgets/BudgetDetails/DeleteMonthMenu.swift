@@ -1,14 +1,14 @@
 import SwiftUI
 
-/// "Supprimer ce mois" on a future month (PUL-361): a toolbar menu with one destructive
-/// entry, then an alert that states what goes away. Applied to the screen as a modifier so
-/// the view stays inside its line budget, like `PlannedWithdrawalUndoAlert`.
+/// The month's "…" menu (V2 `Mois-menu`): go to another month, compare the accounts, show one
+/// kind, and "Supprimer ce mois", disabled with its reason unless the month is still to come.
+/// Applied to the screen as a modifier so the view stays inside its line budget.
 ///
-/// The impact is read when the entry is tapped, not when the screen opens, so the counts
-/// and the links sentence are fresh at the moment of confirming. The month id and its name
-/// are captured at that same tap and carried to the DELETE: a pager swipe while the request
-/// is on the wire must not retarget the confirmation. The server enforces the "future month
-/// only" rule; the menu is a courtesy, not the guard.
+/// Deleting: the impact is read when the entry is tapped, not when the screen opens, so the
+/// counts and the links sentence are fresh at the moment of confirming. The month id and its
+/// name are captured at that same tap and carried to the DELETE: a month switch while the
+/// request is on the wire must not retarget the confirmation. The server enforces the "future
+/// month only" rule; the menu is a courtesy, not the guard.
 struct DeleteMonthMenu: ViewModifier {
     /// What the confirmation alert names and, once confirmed, deletes.
     private struct PendingDeletion {
@@ -20,6 +20,9 @@ struct DeleteMonthMenu: ViewModifier {
     let coordinator: BudgetDetailsCoordinator
     let screenState: BudgetDetailsScreenState
     let toastContext: ToastContext
+    /// The open month, written back to switch month.
+    let monthSelection: Binding<String>
+    let typeFilter: Binding<BudgetLineKindFilter>
     @Environment(BudgetDetailsRouter.self) private var router
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var pending: PendingDeletion?
@@ -86,13 +89,12 @@ struct DeleteMonthMenu: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if isFutureMonth {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Menu(AppLocale.string("Plus d'options"), systemImage: "ellipsis.circle") {
-                            DeleteMenuButton(title: "Supprimer ce mois") { loadImpact() }
-                        }
-                        .pulpeMenuContent()
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu(AppLocale.string("Plus d'options"), systemImage: "ellipsis") {
+                        menuItems
                     }
+                    .pulpeMenuContent()
+                    .accessibilityIdentifier("budgetMonthMenu")
                 }
             }
             .alert(
@@ -115,6 +117,42 @@ struct DeleteMonthMenu: ViewModifier {
                 Text(Self.message(for: deletion.impact))
             }
     }
+
+    @ViewBuilder
+    private var menuItems: some View {
+        Menu {
+            Picker(AppLocale.string("Mois"), selection: monthSelection) {
+                // Newest first: the recent months are the target in practice.
+                ForEach(coordinator.dataStore.pagerMonths.reversed(), id: \.id) { sparse in
+                    Text(BudgetDetailsView.monthMenuLabel(for: sparse)).tag(sparse.id)
+                }
+            }
+        } label: {
+            Label(AppLocale.string("Aller à un autre mois"), systemImage: "calendar")
+        }
+
+        Button(AppLocale.string("Comparer mes comptes"), systemImage: "building.columns") {
+            router.present(.realizedBalance)
+        }
+        .accessibilityIdentifier("budgetTrackingButton")
+
+        Picker(AppLocale.string("Afficher"), selection: typeFilter) {
+            ForEach(Self.kindOrder) { option in
+                Text(option == .all ? AppLocale.string("Tout voir") : option.label).tag(option)
+            }
+        }
+        .pickerStyle(.inline)
+
+        Section {
+            DeleteMenuButton(
+                title: "Supprimer ce mois",
+                subtitle: isFutureMonth ? nil : "Seulement un mois à venir"
+            ) { loadImpact() }
+            .disabled(!isFutureMonth)
+        }
+    }
+
+    private static let kindOrder: [BudgetLineKindFilter] = [.all, .expense, .income, .saving]
 
     private func loadImpact() {
         guard let month = screenState.hero.month, let year = screenState.hero.year else { return }

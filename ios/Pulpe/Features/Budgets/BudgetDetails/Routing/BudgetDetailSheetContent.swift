@@ -20,8 +20,8 @@ struct BudgetDetailSheetContent: View {
 
     var body: some View {
         switch destination {
-        case .addBudgetLine:
-            addBudgetLineSheet
+        case .addBudgetLine(let kind):
+            addBudgetLineSheet(kind: kind)
         case .movement(let lineId, let transactionId):
             BudgetMovementSheet(lineId: lineId, transactionId: transactionId)
         case .editBudgetLine(let line):
@@ -76,13 +76,14 @@ struct BudgetDetailSheetContent: View {
     /// (PUL-17); the income toggle reroutes to the withdrawal preview via the same
     /// `.sheet(item:)` slot (PUL-292).
     @ViewBuilder
-    private var addBudgetLineSheet: some View {
+    private func addBudgetLineSheet(kind: TransactionKind) -> some View {
         let openBudget = coordinator.dataStore.budget
         AddBudgetLineSheet(
             budgetId: coordinator.dataStore.budgetId,
             anchorMonth: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
             anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date()),
             templateId: openBudget?.templateId,
+            initialKind: kind,
             ledger: MonthLedger(
                 lines: coordinator.dataStore.budgetLines,
                 transactions: coordinator.dataStore.transactions,

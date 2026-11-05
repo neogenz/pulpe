@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Multi-segment bar: each segment a capsule of its own, on a solid capsule track.
-/// Used by the drift card mini-bars.
-struct HomeSegmentedBar: View {
+/// Used by the budget month hero split bar.
+struct SegmentedBar: View {
     struct Segment: Equatable {
         let fraction: Double
         let color: Color

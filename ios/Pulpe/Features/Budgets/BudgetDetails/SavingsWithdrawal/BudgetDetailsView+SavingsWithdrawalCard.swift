@@ -60,7 +60,7 @@ extension BudgetDetailsView {
                 )
             }
         )
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.sm)
     }
 }

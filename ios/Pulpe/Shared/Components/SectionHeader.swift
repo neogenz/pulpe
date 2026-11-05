@@ -13,6 +13,10 @@ struct SectionHeader: View {
     /// Optional figure under the title — a window total, an overrun. Always an amount,
     /// so the header can treat every one of them the same way.
     var amountSubtitle: String?
+    /// One plain sentence under the title, e.g. what a section's rows do to the disponible.
+    var subtitle: String?
+    /// The section total on the right, in secondary ink.
+    var trailingAmount: String?
     /// The way out, named and wired together: a header with a label and no action would
     /// draw nothing, and one with an action and no label would have nothing to draw. One
     /// value means the compiler refuses both halves of that rather than the header
@@ -34,12 +38,14 @@ struct SectionHeader: View {
             if dynamicTypeSize >= .xxLarge {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     titleBlock
+                    trailingAmountText
                     linkButton
                 }
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
                     titleBlock
                     Spacer(minLength: DesignTokens.Spacing.sm)
+                    trailingAmountText
                     linkButton
                 }
             }
@@ -61,6 +67,12 @@ struct SectionHeader: View {
                 }
             }
 
+            if let subtitle {
+                Text(subtitle)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textSecondary)
+            }
+
             if let amountSubtitle {
                 Text(amountSubtitle)
                     .font(PulpeTypography.labelMedium)
@@ -72,6 +84,18 @@ struct SectionHeader: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder
+    private var trailingAmountText: some View {
+        if let trailingAmount {
+            Text(trailingAmount)
+                .font(PulpeTypography.bodyLarge)
+                .foregroundStyle(Color.textSecondary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .sensitiveAmount()
+        }
     }
 
     @ViewBuilder

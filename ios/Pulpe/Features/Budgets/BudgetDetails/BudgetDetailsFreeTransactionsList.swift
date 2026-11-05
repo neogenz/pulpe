@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Inline transactions list for the budget detail screen: the free ones
-/// ("Hors prévisions") and, under the "Pointé" filter, the pointed ones of an
+/// ("Hors prévision") and, under the "Pointé" filter, the pointed ones of an
 /// envelope still to point — those rows name their envelope.
 ///
 /// Replaces the List-bound `TransactionSection` when the parent uses
@@ -17,7 +17,10 @@ import SwiftUI
 /// the `isSyncing` flag so the view stays free of `.contains` over a syncing
 /// id set in the body.
 struct BudgetDetailsFreeTransactionsList: View {
-    var title = AppLocale.string("Hors prévisions")
+    var title = PendingWording.unplanned
+    var subtitle: String?
+    /// Header total; without one the header counts the rows.
+    var total: String?
     let items: [BudgetDetailsScreenState.FreeTransactionItem]
     let currency: SupportedCurrency
     let tagNamesById: [String: String]
@@ -42,7 +45,12 @@ struct BudgetDetailsFreeTransactionsList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SectionHeader(title: title, count: items.count)
+            SectionHeader(
+                title: title,
+                count: total == nil ? items.count : nil,
+                subtitle: subtitle,
+                trailingAmount: total
+            )
 
             VStack(spacing: 0) {
                 ForEach(displayedItems) { item in
@@ -85,10 +93,10 @@ struct BudgetDetailsFreeTransactionsList: View {
                     }
                 }
                 .textLinkButtonStyle()
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.top, DesignTokens.Spacing.xxl)
     }
 }

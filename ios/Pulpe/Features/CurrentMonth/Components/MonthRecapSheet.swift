@@ -22,13 +22,13 @@ struct MonthRecapSheet: View {
     private var closedName: String { Formatters.monthNameInText(for: recap.month) }
 
     private var title: String {
-        CalculationPresentation.elides(closedName)
+        ReportWording.elides(closedName)
             ? AppLocale.string("Bilan d'\(closedName)")
             : AppLocale.string("Bilan de \(closedName)")
     }
 
     private var showBudgetTitle: String {
-        CalculationPresentation.elides(closedName)
+        ReportWording.elides(closedName)
             ? AppLocale.string("Voir le budget d'\(closedName)")
             : AppLocale.string("Voir le budget de \(closedName)")
     }
@@ -105,7 +105,7 @@ struct MonthRecapSheet: View {
             FormulaRow(title: AppLocale.string("Revenus"), amount: recap.income.asFormulaAmount(for: currency))
             FormRowDivider()
             FormulaRow(
-                title: CalculationPresentation.reportTitle(of: recap.month == 1 ? 12 : recap.month - 1),
+                title: ReportWording.reportTitle(of: recap.month == 1 ? 12 : recap.month - 1),
                 amount: recap.previousRollover.asFormulaAmount(for: currency)
             )
             FormRowDivider()

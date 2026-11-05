@@ -1,5 +1,4 @@
 import SwiftUI
-import TipKit
 
 struct BudgetDetailsView: View {
     let budgetId: String
@@ -15,13 +14,9 @@ struct BudgetDetailsView: View {
     // Internal so the routing extension can read it when it dispatches a toggle.
     @Environment(\.amountsHidden) var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.budgetMonthsInSidebar) private var monthsInSidebar
     @State var coordinator: BudgetDetailsCoordinator
     // Internal so the savings-withdrawal extension can read its screen state.
     @State var projector: BudgetDetailsProjector
-    @State private var searchText = ""
-    @State private var scrollTracker = BudgetDetailsScrollTracker()
-    @State private var isHeroUnderBar = true
     /// Budget ids for which the "mois un peu juste" card was dismissed via
     /// "Plus tard" (PUL-292), comma-joined. Non-private for the card extension.
     @AppStorage(SavingsWithdrawalCardGate.storageKey) var dismissedWithdrawalBudgetIds = ""
@@ -43,19 +38,6 @@ struct BudgetDetailsView: View {
                 filtersStore: initialCoordinator.filtersStore,
                 syncStore: initialCoordinator.syncStore
             )
-        )
-    }
-
-    /// Pay-day-aware elapsed percentage. Computed in the view (not the
-    /// projector) so the projection layer stays independent of
-    /// `UserSettingsStore` — its only consumer is the hero.
-    private var timeElapsedPercentage: Double {
-        guard let month = projector.screenState.hero.month,
-              let year = projector.screenState.hero.year else { return 0 }
-        return BudgetPeriodCalculator.timeElapsedPercentage(
-            month: month,
-            year: year,
-            payDayOfMonth: userSettingsStore.payDayOfMonth
         )
     }
 
@@ -108,44 +90,11 @@ struct BudgetDetailsView: View {
             }
         }
         .trackScreen("BudgetDetails")
-        .trackingHeroUnderBar($isHeroUnderBar)
         .animation(DesignTokens.Animation.smoothEaseOut, value: screenState.content)
+        // Kept for the back button of pushed pages; the page states the month in its header.
         .navigationTitle(screenState.monthYear.isEmpty ? "Budget" : screenState.monthYear)
         .navigationBarTitleDisplayMode(.inline)
-        .modifier(KeepNavigationBarUnderStickyPager())
-        // Light ink on the forest: the hero under the bar, then the sticky pager once the content
-        // zone has scrolled under it (no pager beside the months list). Default on error / skeleton.
-        .heroNavigationBar(
-            isOnHeroSurface: screenState.content == .loaded
-                && (isHeroUnderBar || (!coordinator.dataStore.pagerMonths.isEmpty && !monthsInSidebar))
-        )
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                // Reads the month back rather than adding to it, so it stays a glyph in the
-                // bar: the content zone spends its one filled shape on the action that
-                // changes something. Bare, so iOS 26 dresses it in its own Liquid Glass —
-                // the hero's tinted disc was our shape where the system already has one.
-                Button(AppLocale.string("Suivi du budget"), systemImage: "chart.bar") {
-                    router.present(.realizedBalance)
-                }
-                .accessibilityIdentifier("budgetTrackingButton")
-            }
-        }
-        // Scroll-independent month navigation (system title chevron). The sticky
-        // pager only reveals once the hero has scrolled under the bar — a short
-        // filtered list (e.g. "À pointer" fully checked) can never produce that, so
-        // the title menu is the guaranteed path; the pager stays as the scrolled fast path.
-        .toolbarTitleMenu {
-            // Newest first: a title menu is a quick-jump list and the recent
-            // months are the target in practice — chronological order would bury
-            // the current month under years of history (the pager keeps its
-            // ascending rail; different affordance, different reading order).
-            Picker("Mois", selection: monthSelection) {
-                ForEach(coordinator.dataStore.pagerMonths.reversed(), id: \.id) { sparse in
-                    Text(Self.monthMenuLabel(for: sparse)).tag(sparse.id)
-                }
-            }
-        }
+        .toolbar(removing: .title)
         .task(id: screenState.budgetId) {
             coordinator.bind(
                 budgetListStore: budgetListStore,
@@ -165,7 +114,6 @@ struct BudgetDetailsView: View {
             await tagStore.loadIfNeeded()
         }
         .task(id: screenState.referencedTagIds) { await tagStore.loadIfNeeded(for: screenState.referencedTagIds) }
-        .onChange(of: searchText) { _, newValue in projector.setSearchText(newValue) }
         .sheet(item: $router.sheet) { destination in
             BudgetDetailSheetContent(destination: destination)
                 .environment(coordinator)
@@ -202,135 +150,104 @@ struct BudgetDetailsView: View {
         ) { tx in
             Task { await coordinator.dispatch(.softDeleteTransaction(tx, toastContext)) }
         })
-        .modifier(DeleteMonthMenu(coordinator: coordinator, screenState: screenState, toastContext: toastContext))
+        .modifier(DeleteMonthMenu(
+            coordinator: coordinator,
+            screenState: screenState,
+            toastContext: toastContext,
+            monthSelection: monthSelection,
+            typeFilter: typeFilterBinding
+        ))
         .modifier(BudgetSidebarSelectionSync(budgetId: budgetId, coordinator: coordinator))
-        .modifier(AddLineInVerticalBar { router.present(.addBudgetLine) })
+    }
+
+    /// The report as a row of Revenus, under "Tout" only: it is never a thing to point.
+    private var sectionRollover: SectionRollover? {
+        let screenState = projector.screenState
+        guard screenState.checkedFilter == .all,
+              let rollover = screenState.rollover, rollover.amount.rounded(2) != 0,
+              let month = screenState.hero.month else { return nil }
+        return SectionRollover(
+            previousMonth: month == 1 ? 12 : month - 1,
+            amount: rollover.amount,
+            onTap: rollover.previousBudgetId.map { id in
+                { router.present(.previousBudget(PreviousBudgetItem(id: id))) }
+            }
+        )
     }
 
     private var content: some View {
         let screenState = projector.screenState
-        let sections = screenState.sections
-        let free = screenState.free
+        let rollover = sectionRollover
 
         return ScrollView {
-            LazyVStack(spacing: 0) {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                PageHeader(title: pageTitle, subtitle: periodSubtitle)
+                    .padding(.top, DesignTokens.Spacing.sm)
+
                 BudgetDetailHero(
                     metrics: screenState.hero.metrics,
-                    timeElapsedPercentage: timeElapsedPercentage,
                     rolloverAmount: screenState.rollover?.amount,
-                    previousBudgetMonth: screenState.rollover?.previousBudgetMonth,
                     onRolloverTap: screenState.rollover?.previousBudgetId.map { id in
                         { router.present(.previousBudget(PreviousBudgetItem(id: id))) }
-                    }
+                    },
+                    onTapCalculation: { router.present(.realizedBalance) }
                 )
-                .onGeometryChange(
-                    for: CGFloat.self,
-                    of: { $0.frame(in: .global).maxY },
-                    action: { maxY in scrollTracker.update(heroMaxY: maxY) }
-                )
-                .heroZone()
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.lg)
 
-                VStack(spacing: 0) {
-                    // Above the tip and the rail: adding a forecast is what this screen is
-                    // for, and a reader who has to scroll past a filter to find it reads it
-                    // as belonging to the list rather than to the budget.
-                    BudgetDetailsAddLineButton { router.present(.addBudgetLine) }
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
-                    .padding(.bottom, DesignTokens.Spacing.md)
-
-                    TipView(ProductTips.pessimisticCheck)
-                        .pulpeTipBackground()
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .padding(.bottom, DesignTokens.Spacing.sm)
-
-                    if let prefill = tightMonthCardPrefill {
-                        tightMonthCard(prefill: prefill)
-                    }
-
-                    BudgetTypeFilter(
-                        kind: typeFilterBinding,
-                        checked: checkedFilterBinding,
-                        counts: screenState.kindCounts,
-                        checkedCounts: screenState.checkedCounts
-                    )
-                    // The rail sits inside the zone's top curve: a chip scrolled to the edge
-                    // is cut along that same curve rather than drawn over the hero.
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .clipShape(
-                        UnevenRoundedRectangle(
-                            topLeadingRadius: DesignTokens.CornerRadius.zone,
-                            topTrailingRadius: DesignTokens.CornerRadius.zone,
-                            style: .continuous
-                        )
-                    )
-                    .padding(.top, -DesignTokens.Spacing.lg)
-
-                    if !searchText.isEmpty && sections.isEmpty && free.isEmpty && screenState.pointedAllocated.isEmpty {
-                        ContentUnavailableView("Aucune prévision trouvée", systemImage: "magnifyingglass")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, DesignTokens.Spacing.xxl)
-                    }
-
-                    if screenState.canShowEmptyChecked {
-                        ContentUnavailableView {
-                            Label("Tout est pointé", systemImage: "checkmark.circle.fill")
-                        } description: {
-                            Text("Bien joué ! Passe sur « Tout voir » pour revoir tes prévisions.")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignTokens.Spacing.xxl)
-                    }
-
-                    ForEach(sections) { section in
-                        BudgetMixedSection(
-                            kind: section.kind,
-                            items: section.items,
-                            currency: userSettingsStore.currency,
-                            goalNamesById: savingsGoalNamesById,
-                            tagNamesById: tagStore.namesById,
-                            savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
-                            checkingTipLineId: screenState.checkingTipLineId,
-                            onPrepareTogglePointed: coordinator.prepareToggleBudgetLine,
-                            onTap: { line in
-                                router.push(.lineDetail(lineId: line.id))
-                            },
-                            onTogglePointed: { line in handlePointGesture(on: line) }
-                        )
-                    }
-
-                    movementLists
-
-                    Color.clear.frame(height: DesignTokens.Spacing.lg)
+                if let prefill = tightMonthCardPrefill {
+                    tightMonthCard(prefill: prefill)
+                        .padding(.top, DesignTokens.Spacing.lg)
                 }
-                .padding(.top, DesignTokens.Spacing.xxl)
-                .contentZone()
+
+                BudgetTypeFilter(checked: checkedFilterBinding, counts: screenState.checkedCounts)
+                    .padding(.top, DesignTokens.Spacing.xl)
+
+                if screenState.canShowEmptyChecked {
+                    ContentUnavailableView {
+                        Label("Tout est pointé", systemImage: "checkmark.circle.fill")
+                    } description: {
+                        Text("Bien joué ! Passe sur « Tout » pour revoir tes prévisions.")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignTokens.Spacing.xxl)
+                }
+
+                ForEach(screenState.sections) { section in
+                    BudgetMixedSection(
+                        kind: section.kind,
+                        items: section.items,
+                        total: section.total + (section.kind == .income ? rollover?.amount ?? 0 : 0),
+                        rollover: section.kind == .income ? rollover : nil,
+                        onAdd: { router.present(.addBudgetLine(section.kind)) },
+                        currency: userSettingsStore.currency,
+                        goalNamesById: savingsGoalNamesById,
+                        tagNamesById: tagStore.namesById,
+                        savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
+                        checkingTipLineId: screenState.checkingTipLineId,
+                        onPrepareTogglePointed: coordinator.prepareToggleBudgetLine,
+                        onTap: { line in
+                            router.push(.lineDetail(lineId: line.id))
+                        },
+                        onTogglePointed: { line in handlePointGesture(on: line) }
+                    )
+                }
+
+                movementLists
+
+                Color.clear.frame(height: DesignTokens.Spacing.lg)
             }
         }
         .scrollContentBackground(.hidden)
         .refreshable {
             await coordinator.dispatch(.loadDetails(force: true))
         }
-        .overlay(alignment: .top) {
-            BudgetDetailsStickyPagerLayer(
-                months: coordinator.dataStore.pagerMonths,
-                currentBudgetId: coordinator.dataStore.budgetId,
-                onSelect: { id in
-                    guard id != coordinator.dataStore.budgetId else { return }
-                    Task { await coordinator.dispatch(.prepareNavigation(to: id)) }
-                },
-                tracker: scrollTracker
-            )
-        }
         .animation(
             reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut,
             value: screenState.checkedTickHash
         )
+        .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: screenState.checkedFilter)
+        .pulpeRootBottomInset()
         .background { Color.appBackground.ignoresSafeArea() }
-        .searchable(
-            text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .automatic),
-            prompt: "Rechercher..."
-        )
-        .searchPresentationToolbarBehavior(.avoidHidingContent)
     }
 }

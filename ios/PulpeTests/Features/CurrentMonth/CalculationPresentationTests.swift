@@ -68,9 +68,9 @@ struct CalculationPresentationTests {
     }
 
     @Test func reportTitle_elidesBeforeAVowel() {
-        #expect(CalculationPresentation.reportTitle(of: 10) == "Report d'octobre")
-        #expect(CalculationPresentation.reportTitle(of: 9) == "Report de septembre")
-        #expect(CalculationPresentation.reportTitle(of: 8) == "Report d'août")
+        #expect(ReportWording.reportTitle(of: 10) == "Report d'octobre")
+        #expect(ReportWording.reportTitle(of: 9) == "Report de septembre")
+        #expect(ReportWording.reportTitle(of: 8) == "Report d'août")
     }
 
     @Test func formulaAmount_signsByValue() {

@@ -7,7 +7,6 @@ struct DestructiveMenuStyleTests {
     /// savings-goal pickers) where a tinted `checkmark` is the system convention.
     private static let actionMenuFiles = [
         "BudgetLineDetailPage.swift",
-        "BudgetTypeFilter.swift",
         "DeleteMonthMenu.swift",
     ]
 

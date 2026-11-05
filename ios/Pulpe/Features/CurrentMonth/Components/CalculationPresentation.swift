@@ -43,7 +43,7 @@ enum CalculationPresentation {
             ))
         }
         if rollover != 0 {
-            rows.append(Row(title: reportTitle(of: previousMonth), amount: rollover))
+            rows.append(Row(title: ReportWording.reportTitle(of: previousMonth), amount: rollover))
         }
         rows.append(Row(
             title: AppLocale.string("Dépenses prévues"),
@@ -84,18 +84,5 @@ enum CalculationPresentation {
         case 3: AppLocale.string("\(parts[0]), \(parts[1]) et \(parts[2])")
         default: AppLocale.string("\(parts[0]), \(parts[1]) et \(parts.count - 2) autres")
         }
-    }
-
-    /// "Report d'octobre" / "Report de septembre": French elides before a vowel; the other
-    /// languages translate both keys the same.
-    static func reportTitle(of month: Int) -> String {
-        let name = Formatters.monthNameInText(for: month)
-        return elides(name) ? AppLocale.string("Report d'\(name)") : AppLocale.string("Report de \(name)")
-    }
-
-    /// Whether French writes « d' » rather than « de » before this word.
-    static func elides(_ word: String) -> Bool {
-        guard let first = word.lowercased().first else { return false }
-        return "aeiouyàâäéèêëîïôöûüh".contains(first)
     }
 }

@@ -43,7 +43,7 @@ struct BudgetMovementSheet: View {
                 editActions: editedTransaction == nil ? nil : editActions,
                 userCurrency: userSettingsStore.currency,
                 onRequestSavingsWithdrawal: requestSavingsWithdrawal,
-                onRequestNewForecast: { router.present(.addBudgetLine) },
+                onRequestNewForecast: { router.present(.addBudgetLine(.expense)) },
                 onAdd: { coordinator.addTransaction($0) }
             )
         }

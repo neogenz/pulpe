@@ -53,7 +53,8 @@ struct SavingsWithdrawalPrefill: Identifiable {
 /// than stacking multiple `.sheet(...)` siblings — chained presentations
 /// only animate cleanly when the system owns the transition.
 enum BudgetDetailDestination: Identifiable {
-    case addBudgetLine
+    /// « Nouvelle prévision », its kind preselected by the section it was opened from.
+    case addBudgetLine(TransactionKind)
     /// The movement sheet: a new movement (under `lineId` when set) or "Modifier" on `transactionId`.
     case movement(lineId: String?, transactionId: String?)
     case editBudgetLine(BudgetLine)
@@ -68,7 +69,7 @@ enum BudgetDetailDestination: Identifiable {
 
     var id: String {
         switch self {
-        case .addBudgetLine: "addBudgetLine"
+        case .addBudgetLine(let kind): "addBudgetLine-\(kind.rawValue)"
         case .movement(let lineId, let movementId): "movement-\(lineId ?? "")-\(movementId ?? "")"
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"

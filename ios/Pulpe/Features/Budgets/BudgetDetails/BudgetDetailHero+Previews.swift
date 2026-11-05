@@ -16,9 +16,7 @@ import SwiftUI
                     remaining: 4060,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 50,
                 rolloverAmount: 4060,
-                previousBudgetMonth: "mars",
                 onRolloverTap: {}
             )
 
@@ -32,8 +30,7 @@ import SwiftUI
                     endingBalance: 500,
                     remaining: 500,
                     rollover: 0
-                ),
-                timeElapsedPercentage: 65
+                )
             )
 
             // Deficit with negative rollover
@@ -47,12 +44,10 @@ import SwiftUI
                     remaining: -1230,
                     rollover: 0
                 ),
-                timeElapsedPercentage: 85,
-                rolloverAmount: -350,
-                previousBudgetMonth: "février"
+                rolloverAmount: -350
             )
         }
-        .padding(.vertical, DesignTokens.Spacing.lg)
+        .padding(DesignTokens.Spacing.lg)
     }
     .pulpeBackground()
     .environment(UserSettingsStore())

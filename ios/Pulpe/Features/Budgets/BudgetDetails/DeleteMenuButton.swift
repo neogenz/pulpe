@@ -10,11 +10,26 @@ import SwiftUI
 /// title rather than sitting black beside it.
 struct DeleteMenuButton: View {
     var title: LocalizedStringKey = "Supprimer"
+    /// A second line under the title, e.g. why the entry is disabled.
+    var subtitle: LocalizedStringKey?
     let onDelete: () -> Void
 
     var body: some View {
-        Button(title, systemImage: "trash", role: .destructive) {
-            onDelete()
+        Group {
+            if let subtitle {
+                Button(role: .destructive, action: onDelete) {
+                    Label {
+                        Text(title)
+                        Text(subtitle)
+                    } icon: {
+                        Image(systemName: "trash")
+                    }
+                }
+            } else {
+                Button(title, systemImage: "trash", role: .destructive) {
+                    onDelete()
+                }
+            }
         }
         .tint(Color.destructivePrimary)
     }
