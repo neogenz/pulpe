@@ -1,11 +1,11 @@
 import type {
   AssetDirection,
+  AssetSuggestion,
   SupportedCurrency,
   TransactionKind,
 } from 'pulpe-shared';
 import type {
   AssetCategory,
-  AssetSuggestion,
   AssetWithValue,
   CheckedLinesCutoff,
   CheckedLinkedLine,

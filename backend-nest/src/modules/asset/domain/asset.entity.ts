@@ -1,5 +1,6 @@
 import type {
   AssetDirection,
+  AssetSuggestion,
   NetWorthTotals,
   SupportedCurrency,
   TransactionKind,
@@ -51,15 +52,6 @@ export interface CheckedLinkedLine {
 export interface CheckedLinesCutoff {
   assetId: string;
   since: string;
-}
-
-/**
- * The value checked prévisions propose for an asset, in the asset's currency.
- * `delta` is signed: `proposedValue` is the latest value plus `delta`.
- */
-export interface AssetSuggestion {
-  delta: number;
-  proposedValue: number;
 }
 
 export interface AssetCreateInput {
