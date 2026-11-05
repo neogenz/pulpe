@@ -128,7 +128,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
         return .financialExpense
     }
 
-    /// Mirrors `BudgetLineMixedRow.amountColor` minus the consumption-driven
+    /// Kind-tinted amount, minus the consumption-driven
     /// branches (no envelope to overshoot). Expenses fall back to the neutral
     /// secondary ink so the right column stays readable on the white card.
     private var amountColor: Color {

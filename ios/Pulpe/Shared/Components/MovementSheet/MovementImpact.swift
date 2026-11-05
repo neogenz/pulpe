@@ -104,3 +104,20 @@ extension MovementImpact {
         return MovementImpact(before: before, after: after, lineBefore: nil, lineAfter: nil)
     }
 }
+
+extension MovementImpact {
+    /// What any change to the month does to the disponible: the month as it is, then as it
+    /// would be. Confirmations (report, deletion, pointing) build the "after" month and ask.
+    static func between(_ before: MonthLedger, _ after: MonthLedger) -> MovementImpact {
+        MovementImpact(
+            before: BudgetFormulas.calculateAllMetrics(
+                budgetLines: before.lines, transactions: before.transactions, rollover: before.rollover
+            ).remaining,
+            after: BudgetFormulas.calculateAllMetrics(
+                budgetLines: after.lines, transactions: after.transactions, rollover: after.rollover
+            ).remaining,
+            lineBefore: nil,
+            lineAfter: nil
+        )
+    }
+}

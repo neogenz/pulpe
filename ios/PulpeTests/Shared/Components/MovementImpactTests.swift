@@ -77,6 +77,21 @@ struct MovementImpactTests {
         #expect(result.tone == .over)
     }
 
+    @Test("deleting an overspent prévision leaves the disponible alone: its movements still count")
+    func between_deletingAnOverspentLine_isNeutral() {
+        let spent = [
+            TestDataFactory.createTransaction(id: "t1", budgetId: "budget-1", budgetLineId: "courses", amount: 450),
+        ]
+        let detached = [TestDataFactory.createTransaction(id: "t1", budgetId: "budget-1", amount: 450)]
+        let before = MonthLedger(lines: lines, transactions: spent, rollover: 0)
+        let after = MonthLedger(lines: lines.filter { $0.id != "courses" }, transactions: detached, rollover: 0)
+
+        let result = MovementImpact.between(before, after)
+
+        #expect(result.delta == 0)
+        #expect(result.after == 2350)
+    }
+
     @Test("a movement is only offered the prévisions of its own kind")
     func choices_keepTheSameKind() {
         let eligible = MovementLineChoices.eligible(lines: lines, kind: .expense)
