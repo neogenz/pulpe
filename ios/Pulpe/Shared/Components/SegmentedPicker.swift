@@ -3,12 +3,13 @@ import SwiftUI
 /// Reusable segmented picker for CaseIterable enums — the app's single 1-of-N control
 /// (V2 `seg`): a `sunk` capsule track with 3pt padding, 36pt segments, the selected one a
 /// white capsule with a small shadow and `ink` text, the others `ink2`.
-/// `itemLabel` returns a plain `Text` (emoji allowed).
-struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: RandomAccessCollection {
+/// `itemLabel` returns a plain `Text` (emoji allowed). Values that are not an enum (years)
+/// pass their `options`.
+struct SegmentedPicker<T: Hashable>: View {
     @Binding var selection: T
     let title: String?
     /// The segments shown, in order. All cases unless a rule hides some (an income cannot be spread).
-    var options: [T] = Array(T.allCases)
+    var options: [T]
     /// Segments shown but not selectable (an every-month prévision on a closed month).
     var disabledOptions: Set<T> = []
     let itemLabel: (T) -> Text
@@ -72,6 +73,23 @@ struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: Rando
         .disabled(disabledOptions.contains(item))
         .opacity(disabledOptions.contains(item) ? DesignTokens.Opacity.disabled : 1)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+extension SegmentedPicker where T: CaseIterable, T.AllCases: RandomAccessCollection {
+    init(
+        selection: Binding<T>,
+        title: String?,
+        disabledOptions: Set<T> = [],
+        itemLabel: @escaping (T) -> Text
+    ) {
+        self.init(
+            selection: selection,
+            title: title,
+            options: Array(T.allCases),
+            disabledOptions: disabledOptions,
+            itemLabel: itemLabel
+        )
     }
 }
 

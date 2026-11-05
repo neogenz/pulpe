@@ -15,3 +15,13 @@ enum ReportWording {
         return "aeiouyàâäéèêëîïôöûüh".contains(first)
     }
 }
+
+extension ReportWording {
+    /// « Ton disponible de novembre » / « Ton disponible d'avril »: the impact block's title.
+    static func availableTitle(of month: Int) -> String {
+        let name = Formatters.monthNameInText(for: month)
+        return elides(name)
+            ? AppLocale.string("Ton disponible d'\(name)")
+            : AppLocale.string("Ton disponible de \(name)")
+    }
+}

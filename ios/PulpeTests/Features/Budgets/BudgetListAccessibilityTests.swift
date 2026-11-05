@@ -133,12 +133,6 @@ struct BudgetListAccessibilityTests {
         #expect(!BudgetMonthRow.accessibilityTraits(isCurrent: false).contains(.isSelected))
     }
 
-    @Test func creationActionsHaveDistinctAccessibleLabels() {
-        #expect(!BudgetListAccessibility.createOneLabel.isEmpty)
-        #expect(!BudgetListAccessibility.planSeveralLabel.isEmpty)
-        #expect(BudgetListAccessibility.createOneLabel != BudgetListAccessibility.planSeveralLabel)
-    }
-
     @Test func generationAnnouncementIncludesCreatedAndSkippedZeroCounts() {
         let response = BudgetGenerateResponse(
             budgets: [],

@@ -69,7 +69,25 @@ struct BudgetDetailSheetContent: View {
             SavingsWithdrawalSheet(prefill: prefill) { incomeLine in
                 Task { await coordinator.dispatch(.createSavingsWithdrawal(incomeLine: incomeLine)) }
             }
+        case .catchUp(let focusLineId):
+            CatchUpSheet(
+                ledger: monthLedger,
+                focusLineId: focusLineId,
+                month: coordinator.dataStore.budget?.month ?? Calendar.current.component(.month, from: Date()),
+                currency: userSettingsStore.currency
+            ) { updatedLine in
+                Task { await coordinator.dispatch(.updateBudgetLine(updatedLine)) }
+            }
         }
+    }
+
+    /// The opened month as the disponible reads it.
+    private var monthLedger: MonthLedger {
+        MonthLedger(
+            lines: coordinator.dataStore.budgetLines,
+            transactions: coordinator.dataStore.ledgerTransactions,
+            rollover: coordinator.dataStore.budget?.rollover.orZero ?? 0
+        )
     }
 
     /// Anchors the spread on the OPENED budget's period, not the device month
@@ -84,11 +102,7 @@ struct BudgetDetailSheetContent: View {
             anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date()),
             templateId: openBudget?.templateId,
             initialKind: kind,
-            ledger: MonthLedger(
-                lines: coordinator.dataStore.budgetLines,
-                transactions: coordinator.dataStore.ledgerTransactions,
-                rollover: openBudget?.rollover.orZero ?? 0
-            ),
+            ledger: monthLedger,
             onRequestSavingsWithdrawal: { prefill in
                 router.present(.savingsWithdrawal(prefill))
             },
@@ -110,7 +124,9 @@ struct BudgetDetailSheetContent: View {
         EditBudgetLineSheet(
             budgetLine: line,
             userCurrency: userSettingsStore.currency,
-            budgetPeriod: openBudget.map { BudgetPeriod(month: $0.month, year: $0.year) }
+            budgetPeriod: openBudget.map { BudgetPeriod(month: $0.month, year: $0.year) },
+            ledger: monthLedger,
+            templateId: openBudget?.templateId
         ) { updatedLine in
             Task { await coordinator.dispatch(.updateBudgetLine(updatedLine)) }
         }

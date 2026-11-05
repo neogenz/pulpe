@@ -66,6 +66,9 @@ enum BudgetDetailDestination: Identifiable {
     case spreadExisting(SpreadExistingSource)
     /// "Piocher dans son épargne" sheet (PUL-292) — amount → 2-month preview.
     case savingsWithdrawal(SavingsWithdrawalPrefill)
+    /// « Rattraper »: take an overrun back on a dépense with margin. `focusLineId` limits it
+    /// to that prévision's overrun; `nil` takes back every overrun of the month.
+    case catchUp(focusLineId: String?)
 
     var id: String {
         switch self {
@@ -77,6 +80,7 @@ enum BudgetDetailDestination: Identifiable {
         case .spreadOccurrences(let groupId, _): "spreadOccurrences-\(groupId)"
         case .spreadExisting(let source): "spreadExisting-\(source.id)"
         case .savingsWithdrawal(let prefill): "savingsWithdrawal-\(prefill.id)"
+        case .catchUp(let focusLineId): "catchUp-\(focusLineId ?? "")"
         }
     }
 }

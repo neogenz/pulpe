@@ -104,6 +104,51 @@ struct PlanBudgetsViewModelTests {
         #expect((viewModel.error != nil) == shouldFail)
     }
 
+    @Test
+    func gridMarksExistingMonthsAndCountsOnlyNewOnes() {
+        let viewModel = PlanBudgetsViewModel(
+            payDayOfMonth: nil,
+            existingPeriods: [BudgetPeriod(month: 10, year: 2027)]
+        )
+        viewModel.start = BudgetPeriod(month: 10, year: 2027)
+        viewModel.end = BudgetPeriod(month: 3, year: 2028)
+        viewModel.selectedTemplateId = "template-1"
+
+        #expect(viewModel.plannedMonths.count == 6)
+        #expect(viewModel.plannedMonths.first == .init(period: BudgetPeriod(month: 10, year: 2027), exists: true))
+        #expect(viewModel.plannedMonths.last == .init(period: BudgetPeriod(month: 3, year: 2028), exists: false))
+        #expect(viewModel.newCount == 5)
+        #expect(viewModel.coverageSentence != nil)
+        #expect(viewModel.canGenerate)
+    }
+
+    @Test
+    func aRangeAlreadyFullyThereCannotBeGenerated() {
+        let viewModel = PlanBudgetsViewModel(
+            payDayOfMonth: nil,
+            existingPeriods: [BudgetPeriod(month: 1, year: 2027), BudgetPeriod(month: 2, year: 2027)]
+        )
+        viewModel.start = BudgetPeriod(month: 1, year: 2027)
+        viewModel.end = BudgetPeriod(month: 2, year: 2027)
+        viewModel.selectedTemplateId = "template-1"
+
+        #expect(viewModel.newCount == 0)
+        #expect(!viewModel.canGenerate)
+        #expect(viewModel.coverageSentence != nil)
+    }
+
+    @Test
+    func noExistingMonthNeedsNoCoverageSentenceAndAnInvalidRangeNoGrid() {
+        let viewModel = PlanBudgetsViewModel(payDayOfMonth: nil)
+        viewModel.start = BudgetPeriod(month: 1, year: 2027)
+        viewModel.end = BudgetPeriod(month: 2, year: 2027)
+        #expect(viewModel.coverageSentence == nil)
+        #expect(viewModel.newCount == 2)
+
+        viewModel.end = BudgetPeriod(month: 12, year: 2026)
+        #expect(viewModel.plannedMonths.isEmpty)
+    }
+
     private static func template(id: String, isDefault: Bool) -> BudgetTemplate {
         BudgetTemplate(
             id: id,

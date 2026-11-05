@@ -11,6 +11,8 @@ struct HeroAmountField<Field: Hashable>: View {
     /// Caption under the figure while it is empty ("Quel montant ?").
     var hint: String?
     var currency: SupportedCurrency = .chf
+    /// Caption under the figure once it holds an amount ("prévus en novembre · avant 600.00").
+    var caption: String?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -67,6 +69,12 @@ struct HeroAmountField<Field: Hashable>: View {
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textTertiary)
                     .transition(.opacity)
+            } else if let caption, hasAmount {
+                Text(caption)
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .monospacedDigit()
+                    .sensitiveAmount()
             }
         }
         .frame(maxWidth: .infinity)
@@ -77,7 +85,11 @@ struct HeroAmountField<Field: Hashable>: View {
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(AppLocale.string("Montant"))
-        .accessibilityValue(hasAmount ? "\(displayAmount) \(currency.symbol)" : (hint ?? ""))
+        .accessibilityValue(
+            hasAmount
+                ? ["\(displayAmount) \(currency.symbol)", caption].compactMap(\.self).joined(separator: ", ")
+                : (hint ?? "")
+        )
         .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseInOut, value: hasAmount)
     }
 }

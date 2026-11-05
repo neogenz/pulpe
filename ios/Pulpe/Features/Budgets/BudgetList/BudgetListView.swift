@@ -9,14 +9,11 @@ struct BudgetListView: View {
     @Environment(BudgetListStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.contentZoneSquareCorners) private var contentZoneSquareCorners
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var showsBudgetPlanner = false
     @State private var hasAppeared = false
-    @State private var isHeroUnderBar = true
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
-    @State private var templateBalance: Decimal?
-    @State private var showsClosedMonths = false
+    @State private var showsClosedMonths = true
 
     var body: some View {
         Group {
@@ -44,18 +41,11 @@ struct BudgetListView: View {
             }
         }
         .trackScreen("BudgetList")
-        .trackingHeroUnderBar($isHeroUnderBar)
         .animation(DesignTokens.Animation.smoothEaseOut, value: store.isLoading)
+        // The page carries its own large title; the bar keeps it for the back label.
         .localizedNavigationTitle("Budgets")
         .navigationBarTitleDisplayMode(.inline)
-        .heroNavigationBar(isOnHeroSurface: isOnHeroSurface)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                planButton
-                createButton
-            }
-            .heroToolbarGroup(isOnHeroSurface)
-        }
+        .toolbar(removing: .title)
         .sheet(isPresented: Binding(
             get: { createBudgetTarget != nil },
             set: { if !$0 { createBudgetTarget = nil } }
@@ -71,7 +61,12 @@ struct BudgetListView: View {
             }
         }
         .sheet(isPresented: $showsBudgetPlanner) {
-            PlanBudgetsView(payDayOfMonth: userSettingsStore.payDayOfMonth) { response in
+            PlanBudgetsView(
+                payDayOfMonth: userSettingsStore.payDayOfMonth,
+                existingPeriods: Set(store.budgets.compactMap { budget in
+                    budget.month.flatMap { month in budget.year.map { BudgetPeriod(month: month, year: $0) } }
+                })
+            ) { response in
                 Task {
                     await store.forceRefresh()
                     AccessibilityNotification.Announcement(
@@ -82,13 +77,9 @@ struct BudgetListView: View {
         }
         .refreshable {
             await store.forceRefresh()
-            templateBalance = nil
-            await loadDefaultTemplateBalance()
         }
         .task {
-            async let loadBudgets: Void = store.loadIfNeeded()
-            async let loadTemplate: Void = loadDefaultTemplateBalance()
-            _ = await (loadBudgets, loadTemplate)
+            await store.loadIfNeeded()
 
             let currentPeriod = BudgetPeriodCalculator.periodForDate(
                 Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
@@ -132,10 +123,6 @@ struct BudgetListView: View {
         }
     }
 
-    /// The list and its skeleton both paint the forest, the bar follows it while it is under
-    /// the bar; error and empty keep a flat canvas.
-    private var isOnHeroSurface: Bool { (!store.budgets.isEmpty || showsSkeleton) && isHeroUnderBar }
-
     private func rowSelection(for budget: BudgetSparse) -> BudgetMonthRow.Selection? {
         selectsInPlace ? .init(isSelected: budget.id == selectedBudgetId) : nil
     }
@@ -173,69 +160,6 @@ struct BudgetListView: View {
         !store.hasLoadedOnce && store.budgets.isEmpty && store.error == nil
     }
 
-    private var createButton: some View {
-        Button(BudgetListAccessibility.createOneLabel, systemImage: "plus") {
-            createBudgetTarget = store.nextAvailableMonth
-        }
-        .disabled(store.nextAvailableMonth == nil)
-        .heroToolbarButtonStyle(isOnHeroSurface)
-    }
-
-    private var planButton: some View {
-        Button(BudgetListAccessibility.planSeveralLabel, systemImage: "calendar.badge.plus") {
-            showsBudgetPlanner = true
-        }
-        .heroToolbarButtonStyle(isOnHeroSurface)
-    }
-
-    // MARK: - Month Slots
-
-    private struct MonthSlot {
-        let month: Int
-        let budget: BudgetSparse?
-        var adjustment: Decimal?
-    }
-
-    private func monthSlots(from budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> [MonthSlot] {
-        var slots: [MonthSlot] = budgets.compactMap { budget in
-            budget.month.map { MonthSlot(month: $0, budget: budget) }
-        }
-
-        // Add one placeholder for the next missing month if selectedYear >= current year
-        if selectedYear >= currentPeriod.year {
-            let startMonth = (selectedYear == currentPeriod.year) ? currentPeriod.month : 1
-            let lastRemaining = slots.max(by: { $0.month < $1.month })?.budget?.remaining
-            let projectedAmount = (templateBalance ?? 0) + (lastRemaining ?? 0)
-            for month in startMonth...12 where !budgets.contains(where: { $0.month == month }) {
-                slots.append(MonthSlot(
-                    month: month,
-                    budget: nil,
-                    adjustment: projectedAmount != 0 ? projectedAmount : nil
-                ))
-                break
-            }
-        }
-
-        return slots.sorted { $0.month < $1.month }
-    }
-
-    private func loadDefaultTemplateBalance() async {
-        guard templateBalance == nil else { return }
-        do {
-            guard let template = try await TemplateService.shared.getDefaultTemplate() else { return }
-            try Task.checkCancellation()
-            let lines = try await TemplateService.shared.getTemplateLines(templateId: template.id)
-            try Task.checkCancellation()
-            let income = lines.filter { $0.kind == .income }.reduce(Decimal.zero) { $0 + $1.amount }
-            let outflow = lines.filter { $0.kind != .income }.reduce(Decimal.zero) { $0 + $1.amount }
-            templateBalance = income - outflow
-        } catch is CancellationError {
-            return
-        } catch {
-            // Silently fail — placeholder will show without projected amount
-        }
-    }
-
     // MARK: - Budget List
 
     private var budgetList: some View {
@@ -248,26 +172,22 @@ struct BudgetListView: View {
             Group {
                 if selectsInPlace {
                     // Beside a month the year header stays put and only the months scroll:
-                    // nothing ever passes under the bar, and the year's balance stays in view
-                    // while the list follows the month picked on the other side.
-                    VStack(spacing: 0) {
+                    // the year's balance stays in view while the list follows the month
+                    // picked on the other side.
+                    VStack(spacing: DesignTokens.Spacing.none) {
                         yearHeader(budgets: yearBudgets, currentPeriod: currentPeriod)
                         ScrollView {
                             monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
                         }
-                        .clipShape(contentZoneShape(squaring: contentZoneSquareCorners))
-                        .contentZone()
-                        // Rows run to the screen edge; the scroll view still insets the last one.
-                        .ignoresSafeArea(.container, edges: .bottom)
                     }
                 } else {
                     ScrollView {
-                        VStack(spacing: 0) {
+                        VStack(spacing: DesignTokens.Spacing.none) {
                             yearHeader(budgets: yearBudgets, currentPeriod: currentPeriod)
                             monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
-                                .contentZone()
                         }
                     }
+                    .pulpeRootBottomInset()
                 }
             }
             .opacity(hasAppeared ? 1 : 0)
@@ -283,124 +203,121 @@ struct BudgetListView: View {
 
     private func yearHeader(budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            YearPicker(years: store.availableYears, selectedYear: $selectedYear)
+            PageHeader(
+                title: AppLocale.string("Budgets"),
+                subtitle: BudgetListPresentation.payDaySubtitle(payDayOfMonth: userSettingsStore.payDayOfMonth)
+            )
+            .padding(.horizontal, -DesignTokens.Spacing.lg)
+
+            if store.availableYears.count > 1 {
+                SegmentedPicker(
+                    selection: $selectedYear,
+                    title: nil,
+                    options: store.availableYears
+                ) { Text(verbatim: String($0)) }
+                .accessibilityLabel(AppLocale.string("Année"))
+            }
+
             YearRecapCard(
                 year: selectedYear,
                 budgets: budgets,
                 isPastYear: selectedYear < currentPeriod.year,
                 // Beside a month, the list's job is the months: the balance stays,
-                // the tiles give their height back to the rows.
+                // the sentence gives its height back to the rows.
                 showsDetails: !selectsInPlace
             )
-            .padding(.horizontal, DesignTokens.Spacing.lg)
         }
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.xl)
-        .heroZone()
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.sm)
     }
 }
 
 // MARK: - Month Blocks
 
 extension BudgetListView {
-    /// The months as they are lived: the one in progress, the ones still ahead, then the
-    /// closed ones — folded, since a closed month is history and the reason the list is
-    /// opened is the month now. Beside a month (the open Duo) they stay unfolded: the
-    /// list has to show whichever month is picked on the other side.
+    /// The months as they are lived: the one in progress, the ones still ahead with the
+    /// next free month, then the closed ones, folded on the year being lived since a
+    /// closed month is history. Beside a month (the open Duo) they stay unfolded: the list
+    /// has to show whichever month is picked on the other side.
     private func monthsSection(budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> some View {
-        let slots = monthSlots(from: budgets, currentPeriod: currentPeriod)
-        let isCurrentYear = selectedYear == currentPeriod.year
-        let isPast: (MonthSlot) -> Bool = { slot in
-            selectedYear < currentPeriod.year || (isCurrentYear && slot.month < currentPeriod.month)
-        }
-        let current = slots.filter { isCurrentYear && $0.month == currentPeriod.month && $0.budget != nil }
-        let upcoming = slots.filter { !isPast($0) && !current.map(\.month).contains($0.month) }
-        let closed = slots.filter(isPast)
-        let foldsClosed = isCurrentYear && !selectsInPlace
+        let sections = BudgetListPresentation.sections(of: budgets, currentPeriod: currentPeriod)
+        let foldsClosed = selectedYear == currentPeriod.year && !selectsInPlace
 
         return VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-            if !current.isEmpty {
-                monthsBlock(title: AppLocale.string("En cours"), slots: current, isPast: false)
+            if !sections.current.isEmpty {
+                monthsBlock(title: AppLocale.string("En cours"), budgets: sections.current, role: .current)
             }
-            if !upcoming.isEmpty {
-                monthsBlock(title: AppLocale.string("À venir"), count: upcoming.count, slots: upcoming, isPast: false)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                if !sections.upcoming.isEmpty {
+                    SectionHeader(title: AppLocale.string("À venir"))
+                    monthsCard(budgets: sections.upcoming, role: .upcoming)
+                }
+                NextFreeMonthCard(
+                    month: store.nextAvailableMonth,
+                    onCreate: { createBudgetTarget = store.nextAvailableMonth },
+                    onPlan: { showsBudgetPlanner = true }
+                )
             }
-            if !closed.isEmpty {
+            if !sections.closed.isEmpty {
                 let isOpen = !foldsClosed || showsClosedMonths
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     SectionHeader(
                         title: AppLocale.string("Mois clos"),
-                        count: closed.count,
+                        subtitle: AppLocale.string("Ce qu'il restait à la fin de chaque mois"),
                         link: foldsClosed
                             ? (showsClosedMonths ? AppLocale.string("Masquer") : AppLocale.string("Afficher"), {
-                                withAnimation(DesignTokens.Animation.smoothEaseInOut) { showsClosedMonths.toggle() }
+                                withAnimation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseInOut) {
+                                    showsClosedMonths.toggle()
+                                }
                             })
                             : nil,
                         linkAccessibilityIdentifier: "closedMonthsToggle",
                         linkSystemImage: showsClosedMonths ? "chevron.up" : "chevron.down"
                     )
                     if isOpen {
-                        monthsCard(slots: closed, isPast: true)
+                        monthsCard(budgets: sections.closed, role: .closed)
                     }
                 }
             }
         }
-        // The content zone's own curve holds the blocks; each block's card carries its rows.
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.top, DesignTokens.Spacing.xxl)
         .padding(.bottom, DesignTokens.Spacing.lg)
     }
 
-    private func monthsBlock(title: String, count: Int? = nil, slots: [MonthSlot], isPast: Bool) -> some View {
+    private func monthsBlock(title: String, budgets: [BudgetSparse], role: BudgetMonthRow.Role) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SectionHeader(title: title, count: count)
-            monthsCard(slots: slots, isPast: isPast)
+            SectionHeader(title: title)
+            monthsCard(budgets: budgets, role: role)
         }
     }
 
-    private func monthsCard(slots: [MonthSlot], isPast: Bool) -> some View {
-        let payDay = userSettingsStore.payDayOfMonth
-
-        return VStack(spacing: 0) {
-            ForEach(slots, id: \.month) { slot in
-                if slot.month != slots.first?.month {
-                    Divider()
+    private func monthsCard(budgets: [BudgetSparse], role: BudgetMonthRow.Role) -> some View {
+        VStack(spacing: DesignTokens.Spacing.none) {
+            ForEach(budgets) { budget in
+                if budget.id != budgets.first?.id {
+                    FormRowDivider()
                 }
-                if let budget = slot.budget {
-                    BudgetMonthRow(
-                        budget: budget,
-                        // The block names the state; a closed month needs no dates under it.
-                        periodLabel: isPast ? nil : periodLabel(for: budget),
-                        isCurrent: budget.isCurrentPeriod(payDayOfMonth: payDay),
-                        isPast: isPast,
-                        selection: rowSelection(for: budget)
-                    ) {
-                        open(budget.id)
-                    }
-                    .id(budget.id)
-                } else {
-                    NextMonthRow(month: slot.month, adjustment: slot.adjustment) {
-                        createBudgetTarget = (slot.month, selectedYear)
-                    }
+                BudgetMonthRow(
+                    budget: budget,
+                    // A closed month needs no dates under it: the block names its state.
+                    periodLabel: role == .closed ? nil : periodLabel(for: budget),
+                    role: role,
+                    selection: rowSelection(for: budget)
+                ) {
+                    open(budget.id)
                 }
+                .id(budget.id)
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .pulpeRowCard()
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .pulpeSurfaceCard()
     }
-}
 
-enum BudgetListAccessibility {
-    static let createOneLabel = AppLocale.string("Créer un nouveau budget")
-    static let planSeveralLabel = AppLocale.string("Planifier plusieurs budgets")
-}
-
-// MARK: - Period Label
-
-private extension BudgetListView {
-    func periodLabel(for budget: BudgetSparse) -> String? {
+    /// « 25 oct. au 24 nov. · jour 10 sur 31 », the month page's own subtitle.
+    private func periodLabel(for budget: BudgetSparse) -> String? {
         guard let month = budget.month, let year = budget.year else { return nil }
-        return BudgetPeriodCalculator.formatPeriod(
+        return BudgetDetailsView.periodSubtitle(
             month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth
         )
     }

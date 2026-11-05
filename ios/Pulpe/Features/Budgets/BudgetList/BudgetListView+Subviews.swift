@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// One whole-sentence key per variant: "disponible non défini" is a sentence, not
-/// "disponible" glued to "non défini" — word order and agreement differ per language.
+/// "disponible" glued to "non défini": word order and agreement differ per language.
 private func availabilityLabel(
     remaining: Decimal?,
     amountsHidden: Bool,
@@ -14,14 +14,26 @@ private func availabilityLabel(
 
 // MARK: - Budget Month Row
 
-/// One month of the yearly ledger (The One Ledger Rule): month name, its dates,
-/// the amount block and a chevron. Current, past and future months share the row; only
-/// the ink changes.
+/// One month of the yearly ledger (V2 `row`): month name, its dates, the amount in ink
+/// (ocre when the month ends below zero) and a chevron. The month in progress adds the
+/// bar of what is already planned out.
 struct BudgetMonthRow: View {
+    enum Role {
+        case current, upcoming, closed
+
+        /// Under the amount: what the figure is. A closed month only keeps its figure.
+        var amountCaption: String? {
+            switch self {
+            case .current: AppLocale.string("disponible")
+            case .upcoming: AppLocale.string("disponible prévu")
+            case .closed: nil
+            }
+        }
+    }
+
     let budget: BudgetSparse
     var periodLabel: String?
-    var isCurrent: Bool = false
-    var isPast: Bool = false
+    var role: Role = .upcoming
     /// Present when the row picks the month shown beside the list instead of pushing it.
     var selection: Selection?
     let action: () -> Void
@@ -35,27 +47,7 @@ struct BudgetMonthRow: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
     private var monthName: String {
-        Formatters.monthName(for: budget.month ?? 0)
-    }
-
-    /// The block the row sits in names the month in progress; the ink only steps back
-    /// for a month that is over.
-    private var titleColor: Color {
-        isPast ? .textSecondary : .textPrimary
-    }
-
-    /// How much of the month's money is already planned out, as the budget page's hero
-    /// measures it: expenses against income plus what came over from the month before.
-    private var usage: Double {
-        let available = (budget.totalIncome ?? 0) + (budget.rollover ?? 0)
-        guard available > 0 else { return 0 }
-        return Double(truncating: ((budget.totalExpenses ?? 0) / available) as NSDecimalNumber)
-    }
-
-    /// The block a row sits in already says « en cours » or « clos »; the caption keeps
-    /// what the block cannot: the dates a month spans.
-    private var caption: String {
-        isPast ? "" : periodLabel ?? ""
+        Formatters.monthName(for: budget.month ?? 0).capitalized
     }
 
     static func accessibilityIdentifier(for budget: BudgetSparse) -> String {
@@ -66,14 +58,17 @@ struct BudgetMonthRow: View {
         isCurrent ? [.isButton, .isSelected] : .isButton
     }
 
-    /// Beside the month it opens, the row marks what is on screen rather than the calendar.
+    /// Beside the month, `selectsBesidePane` already carries the button and selected traits.
     private var traits: AccessibilityTraits {
-        // Beside the month, `selectsBesidePane` already carries the button and selected traits.
-        selection == nil ? Self.accessibilityTraits(isCurrent: isCurrent) : []
+        selection == nil ? Self.accessibilityTraits(isCurrent: role == .current) : []
     }
 
     private var accessibilityStatus: String {
-        isCurrent ? ", " + AppLocale.string("en cours") : (isPast ? ", " + AppLocale.string("clos") : "")
+        switch role {
+        case .current: ", " + AppLocale.string("en cours")
+        case .closed: ", " + AppLocale.string("clos")
+        case .upcoming: ""
+        }
     }
 
     var body: some View {
@@ -94,63 +89,76 @@ struct BudgetMonthRow: View {
     }
 
     private var rowContent: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                        Text(monthName)
-                            .font(PulpeTypography.listRowTitle)
-                            .foregroundStyle(titleColor)
-                            // A month name never hyphenates: « Sep-tembre » stops reading as a date.
-                            .lineLimit(1)
-                        if !caption.isEmpty {
-                            Text(caption)
-                                .font(PulpeTypography.caption)
-                                .foregroundStyle(Color.textSecondary)
-                        }
-                    }
-                    Spacer(minLength: DesignTokens.Spacing.sm)
-                    BudgetAmountBlock(
-                        remaining: budget.remaining,
-                        emotionColor: budget.emotionState.color,
-                        isPast: isPast
-                    )
-                    .layoutPriority(1)
+        HStack(spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(monthName)
+                    .font(role == .closed ? PulpeTypography.rowTitleRegular : PulpeTypography.rowTitle)
+                    .foregroundStyle(Color.textPrimary)
+                    // A month name never hyphenates: « Sep-tembre » stops reading as a date.
+                    .lineLimit(1)
+                if let periodLabel {
+                    Text(periodLabel)
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
                 }
-                // The month in progress is the one still moving: its card carries the bar
-                // the budget page opens on.
-                if isCurrent {
+                if role == .current {
                     usageBar
+                        .padding(.top, DesignTokens.Spacing.xs)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            amountBlock
+                .layoutPriority(1)
+
             // A chevron promises a push; beside the month, the row only selects.
             if selection == nil {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityHidden(true)
+                RowChevron()
             }
         }
-        .padding(.vertical, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding + DesignTokens.Spacing.xxs)
         .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
         .contentShape(Rectangle())
     }
 
-    private var usageBar: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ZStack {
-                Rectangle()
-                    .fill(Color.progressTrack)
-                ProgressBarShape(progress: CGFloat(min(max(usage, 0), 1)))
-                    .fill(budget.emotionState.color)
+    @ViewBuilder
+    private var amountBlock: some View {
+        if let remaining = budget.remaining {
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                Text(verbatim: remaining.rounded(2).asAmount(for: userSettingsStore.currency))
+                    .font(PulpeTypography.rowAmount)
+                    .monospacedDigit()
+                    .foregroundStyle(remaining.rounded(2) < 0 ? Color.financialOverBudget : Color.textPrimary)
+                    // The month name wraps first: an amount split over two lines misreads.
+                    .lineLimit(1)
+                    .sensitiveAmount()
+                if let caption = role.amountCaption {
+                    Text(caption)
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
+                }
             }
-            .frame(height: DesignTokens.ProgressBar.height)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.progressBar))
+        }
+    }
 
-            Text("\(Int(usage * 100))%")
-                .font(PulpeTypography.caption)
+    private var usageBar: some View {
+        let usage = BudgetListPresentation.usage(of: budget)
+        return HStack(spacing: DesignTokens.Spacing.sm) {
+            SegmentedBar(
+                segments: [.init(
+                    fraction: min(max(usage, 0), 1),
+                    color: usage > 1 ? .financialOverBudget : .textPrimary
+                )],
+                trackColor: .sunk,
+                height: DesignTokens.ProgressBar.height
+            )
+            .frame(height: DesignTokens.ProgressBar.height)
+            Text(BudgetListPresentation.usageLabel(usage))
+                .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textSecondary)
                 .monospacedDigit()
+                .lineLimit(1)
+                .layoutPriority(1)
         }
         .accessibilityHidden(true)
     }
@@ -190,90 +198,39 @@ private struct RowAccessibility: ViewModifier {
     }
 }
 
-// MARK: - Budget Amount Block (shared)
+// MARK: - Next Free Month
 
-struct BudgetAmountBlock: View {
-    let remaining: Decimal?
-    let emotionColor: Color
-    var isPast: Bool = false
+/// Where a month gets created from the list: the next month without a budget, created in
+/// one tap, and the way to plan several at once. Replaces the toolbar's + and calendar,
+/// since the global + opens « Ajouter ».
+struct NextFreeMonthCard: View {
+    let month: (month: Int, year: Int)?
+    let onCreate: () -> Void
+    let onPlan: () -> Void
 
-    @Environment(UserSettingsStore.self) private var userSettingsStore
-
-    private var roundedRemaining: Decimal { (remaining ?? 0).rounded(2) }
-
-    private var amountLabel: String {
-        roundedRemaining >= 0 ? AppLocale.string("Potentiel") : AppLocale.string("Ajustement")
+    private var monthName: String? {
+        month.map { BudgetListPresentation.monthYear(BudgetPeriod(month: $0.month, year: $0.year)) }
     }
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-            if let remaining {
-                let amount = remaining.rounded(2)
-                let color: Color = isPast ? .textSecondary : emotionColor
-                // The budget page's amount style, the currency set small after it; adaptive decimals, as
-                // a month card's remaining carries a state (webapp-currency-formatting rule).
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
-                    Text("\(amount > 0 ? "+" : "")\(amount.asAdaptiveAmount(for: userSettingsStore.currency))")
-                        .font(PulpeTypography.amountCard)
-                        .monospacedDigit()
-                        .foregroundStyle(color)
-                    Text(userSettingsStore.currency.symbol)
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(color)
-                        .opacity(DesignTokens.Opacity.pressed)
-                }
-                // The month name wraps first: an amount split over two lines misreads.
-                .lineLimit(1)
-                .sensitiveAmount()
-                // « Potentiel » and « Ajustement » say what can still be done with the
-                // money; a closed month only keeps its figure, on one line.
-                if !isPast {
-                    Text(amountLabel)
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textSecondary)
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Next Month Row
-
-/// Last row of the ledger: the next month without a budget and the text link that creates it.
-struct NextMonthRow: View {
-    let month: Int
-    var adjustment: Decimal?
-    let action: () -> Void
-
-    @Environment(UserSettingsStore.self) private var userSettingsStore
-
-    private var monthName: String {
-        Formatters.monthName(for: month)
-    }
-
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(monthName)
-                    .font(PulpeTypography.listRowTitle)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            if let monthName {
+                Text("Prochain mois libre : \(monthName)")
+                    .font(PulpeTypography.rowTitle)
                     .foregroundStyle(Color.textPrimary)
-                if let adjustment, adjustment.rounded(2) != 0 {
-                    let projected = adjustment.rounded(2).asAdaptiveCurrency(userSettingsStore.currency)
-                    Text(AppLocale.string("projeté \(projected)"))
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textSecondary)
-                        .sensitiveAmount()
+                Button(action: onCreate) {
+                    Text("Créer \(monthName)")
+                        .frame(maxWidth: .infinity)
                 }
+                .secondaryButtonStyle(size: .small)
+                    .accessibilityIdentifier("budgetListCreateNextMonth")
             }
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            Button(action: action) {
-                Text("Créer le budget")
-            }
-            .textLinkButtonStyle()
-            .accessibilityLabel("Créer un budget pour \(monthName)")
-            .accessibilityIdentifier("nextMonthRow")
+            Button("Planifier plusieurs mois", action: onPlan)
+                .tertiaryButtonStyle()
+                .accessibilityIdentifier("budgetListPlanSeveral")
         }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+        .padding(DesignTokens.Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .pulpeSurfaceCard()
     }
 }

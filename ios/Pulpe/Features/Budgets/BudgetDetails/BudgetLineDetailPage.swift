@@ -103,9 +103,7 @@ struct BudgetLineDetailPage: View {
                     consumption: projector.screenState.consumptionByLineId[line.id]
                         ?? BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0),
                     currency: userSettingsStore.currency,
-                    // ponytail: back to the month, where another prévision can be lowered;
-                    // the Rattraper sheet (board 17) replaces this.
-                    onCatchUp: { dismiss() }
+                    onCatchUp: { router.present(.catchUp(focusLineId: line.id)) }
                 )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
 

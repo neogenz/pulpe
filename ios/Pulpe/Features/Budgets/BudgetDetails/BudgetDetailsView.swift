@@ -188,6 +188,14 @@ struct BudgetDetailsView: View {
                 BudgetTypeFilter(checked: checkedFilterBinding, counts: screenState.checkedCounts)
                     .padding(.top, DesignTokens.Spacing.xl)
 
+                if screenState.checkedFilter == .over, screenState.checkedCounts.over > 0 {
+                    Button("Rattraper le dépassement") { router.present(.catchUp(focusLineId: nil)) }
+                        .secondaryButtonStyle(size: .small)
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.top, DesignTokens.Spacing.md)
+                        .accessibilityIdentifier("budgetCatchUpButton")
+                }
+
                 if screenState.canShowEmptyChecked {
                     ContentUnavailableView {
                         Label("Tout est pointé", systemImage: "checkmark.circle.fill")

@@ -131,3 +131,33 @@ extension MovementImpact {
         )
     }
 }
+
+extension MonthLedger {
+    /// The same month with one prévision planned at another amount (and kind): what an edit or
+    /// a catch-up would make of it. Its movements stay where they are.
+    func replacing(lineId: String, amount: Decimal, kind: TransactionKind? = nil) -> MonthLedger {
+        MonthLedger(
+            lines: lines.map { line in
+                guard line.id == lineId else { return line }
+                var planned = BudgetLine(
+                    id: line.id,
+                    budgetId: line.budgetId,
+                    templateLineId: line.templateLineId,
+                    savingsGoalId: line.savingsGoalId,
+                    name: line.name,
+                    amount: amount,
+                    kind: kind ?? line.kind,
+                    recurrence: line.recurrence,
+                    isManuallyAdjusted: true,
+                    checkedAt: line.checkedAt,
+                    createdAt: line.createdAt,
+                    updatedAt: line.updatedAt
+                )
+                planned.isRollover = line.isRollover
+                return planned
+            },
+            transactions: transactions,
+            rollover: rollover
+        )
+    }
+}
