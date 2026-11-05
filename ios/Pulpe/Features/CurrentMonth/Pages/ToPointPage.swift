@@ -53,7 +53,7 @@ struct ToPointPage: View {
         .toolbar(removing: .title)
         .trackScreen("ToPoint")
         .onAppear { if openingBalance == nil { openingBalance = balance } }
-        .sheet(isPresented: $isReconciling) { CurrentMonthRealizedBalanceSheet() }
+        .sheet(isPresented: $isReconciling) { CurrentMonthReconcileSheet() }
     }
 
     // MARK: - Balance

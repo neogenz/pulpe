@@ -2,21 +2,19 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-/// The state of one "Rapprocher mes comptes" presentation (PUL-351): rows, steps, and
+/// The state of one "Rapprocher mes comptes" presentation (PUL-351): rows, the gap, and
 /// the single write at the end. The create call is the only I/O, faked at its seam.
 @MainActor
 struct ReconcileAccountsFlowTests {
     // MARK: - Accounts step
 
-    @Test("a fresh flow opens on one empty amount, with nothing to continue with")
+    @Test("a fresh flow opens on one empty amount, with no total yet")
     func init_startsWithOneEmptyAccount() {
         let flow = makeFlow()
 
         #expect(flow.accounts.count == 1)
         #expect(flow.accounts.first?.amountText.isEmpty == true)
         #expect(flow.totalCents == nil)
-        #expect(!flow.canContinue)
-        #expect(flow.path.isEmpty)
     }
 
     @Test("an added account can be removed, the first one cannot")
@@ -46,50 +44,43 @@ struct ReconcileAccountsFlowTests {
 
         #expect(flow.totalCents == 510)
         #expect(flow.total == Decimal(string: "5.10"))
-        #expect(flow.canContinue)
     }
 
-    @Test("continuing needs one readable amount, and a refused one blocks it")
-    func continueFromAccounts_requiresReadableAmounts() {
+    @Test("a refused amount blocks the total until it reads")
+    func totalCents_refusedAmount_blocksTotal() {
         let flow = makeFlow()
-        flow.continueFromAccounts()
-        #expect(flow.path.isEmpty)
-
         flow.accounts[0].amountText = "12."
-        flow.continueFromAccounts()
-        #expect(flow.path.isEmpty)
+        #expect(flow.totalCents == nil)
         #expect(flow.hasInvalidAmount(id: flow.accounts[0].id))
 
         flow.accounts[0].amountText = "12.5"
-        flow.continueFromAccounts()
-        #expect(flow.path == [.summary])
+        #expect(flow.totalCents == 1250)
     }
 
-    @Test("the summary leads to the verdict")
-    func continueToVerdict_pushesVerdict() {
-        let flow = makeFlow()
-        flow.accounts[0].amountText = "100"
-        flow.continueFromAccounts()
-        flow.continueToVerdict()
+    // MARK: - Missed movement
 
-        #expect(flow.path == [.summary, .verdict])
+    @Test("the one unpointed outflow of the gap's size is the likely missed movement")
+    func likelyMissedMovement_matchesSizeDirectionAndPointing() throws {
+        let size = try #require(Decimal(string: "84.30"))
+        let migros = TestDataFactory.createTransaction(id: "migros", amount: size, kind: .expense)
+        let pointed = TestDataFactory.createTransaction(
+            id: "pointed", amount: size, kind: .expense, isChecked: true
+        )
+        let salary = TestDataFactory.createTransaction(id: "salary", amount: size, kind: .income)
+        let gap = -size
+
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: gap, among: [pointed, salary, migros])?.id == "migros")
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -gap, among: [pointed, salary, migros])?.id == "salary")
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: 0, among: [migros]) == nil)
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: gap - 1, among: [migros]) == nil)
     }
 
-    @Test("the items to check open inside the flow, keep the accounts, and lead to the verdict")
-    func showItemsToCheck_staysInFlow_thenVerdictReplacesIt() {
-        let flow = makeFlow()
-        flow.showItemsToCheck()
-        #expect(flow.path.isEmpty)
+    @Test("two movements of the same size name no movement: guessing could point the wrong one")
+    func likelyMissedMovement_tie_isNil() {
+        let first = TestDataFactory.createTransaction(id: "a", amount: 20, kind: .expense)
+        let second = TestDataFactory.createTransaction(id: "b", amount: 20, kind: .saving)
 
-        flow.accounts[0].amountText = "100"
-        flow.continueFromAccounts()
-        flow.showItemsToCheck()
-        flow.showItemsToCheck()
-        #expect(flow.path == [.summary, .itemsToCheck])
-        #expect(flow.accounts[0].amountText == "100")
-
-        flow.continueToVerdict()
-        #expect(flow.path == [.summary, .verdict])
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -20, among: [first, second]) == nil)
     }
 
     // MARK: - Adjustment
@@ -120,19 +111,16 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.isCompleted)
     }
 
-    @Test("a refused write keeps every input and the step, then can be retried")
+    @Test("a refused write keeps every input, then can be retried")
     func submitAdjustment_failure_keepsInputsAndAllowsRetry() async throws {
         let recorder = Recorder(failuresBeforeSuccess: 1)
         let flow = makeFlow(recorder: recorder)
         flow.accounts[0].amountText = "200"
         flow.adjustmentLabel = "Écart"
-        flow.continueFromAccounts()
-        flow.continueToVerdict()
         let accountsBefore = flow.accounts
 
         #expect(await flow.submitAdjustment(realizedBalance: 250, of: "budget-current") == .failed)
         #expect(flow.accounts == accountsBefore)
-        #expect(flow.path == [.summary, .verdict])
         #expect(flow.adjustmentLabel == "Écart")
         #expect(!flow.isSubmitting)
         #expect(!flow.isCompleted)

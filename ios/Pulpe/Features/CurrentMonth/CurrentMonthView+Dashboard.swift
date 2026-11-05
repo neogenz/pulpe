@@ -80,7 +80,7 @@ extension CurrentMonthView {
             monthName: currentMonthName,
             isSettling: store.isSettling,
             startsFresh: isFirstMonthStart,
-            onTapCalculation: { activeSheet = .realizedBalance }
+            onTapCalculation: { activeSheet = .calculation }
         )
         .staggeredEntrance(isVisible: hasAppeared, index: 1)
         .padding(.horizontal, DesignTokens.Spacing.xl)

@@ -340,6 +340,7 @@ enum DesignTokens {
         static let addRowDisc: CGFloat = 28
         /// Inline banner glyph.
         static let bannerGlyph: CGFloat = 20
+        static let inlineAmountFieldMinWidth: CGFloat = 112 // V2 `acc-field`
         /// Focused input border (V2: 2pt accent).
         static let inputFocusBorder: CGFloat = 2
         /// Selected chip ring (V2: 1.5pt accent).

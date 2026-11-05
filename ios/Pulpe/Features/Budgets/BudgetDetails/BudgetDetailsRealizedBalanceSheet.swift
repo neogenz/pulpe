@@ -33,15 +33,10 @@ struct BudgetDetailsRealizedBalanceSheet: View {
 
     private var reconciledMonth: ReconcileAccountsSheet.Month? {
         guard let budget = coordinator.dataStore.budget else { return nil }
-        let realized = coordinator.dataStore.realizedMetrics
         return ReconcileAccountsSheet.Month(
             budgetId: budget.id,
-            realizedMetrics: realized,
+            realizedMetrics: coordinator.dataStore.realizedMetrics,
             rollover: coordinator.dataStore.metrics.rollover,
-            periodLabel: BudgetPeriodCalculator.formatPeriod(
-                month: budget.month, year: budget.year, payDayOfMonth: settings.payDayOfMonth
-            ),
-            uncheckedCount: realized.totalItemsCount - realized.checkedItemsCount,
             hasPointingInFlight: !coordinator.syncStore.syncingBudgetLineIds.isEmpty
                 || !coordinator.syncStore.syncingTransactionIds.isEmpty
         )

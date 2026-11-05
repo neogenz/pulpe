@@ -34,6 +34,8 @@ enum PulpeTypography {
     static let rowTitleRegular: Font = .system(.callout)
     /// Trailing amount of a row (Manrope 700, 16pt).
     static let rowAmount = Font.custom("Manrope", size: 16, relativeTo: .callout).weight(.bold).monospacedDigit()
+    /// Total line of a formula card (Manrope 800, 18pt).
+    static let totalAmount = Font.custom("Manrope", size: 18, relativeTo: .callout).weight(.heavy).monospacedDigit()
     /// "After" figure of an impact block (Manrope 700, 17pt).
     static let impactAmount = Font.custom("Manrope", size: 17, relativeTo: .body).weight(.bold).monospacedDigit()
     /// Caption, 13pt minimum, in ink2.

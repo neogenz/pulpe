@@ -3,7 +3,7 @@ import TipKit
 import WidgetKit
 
 enum CurrentMonthSheet: Identifiable, Hashable {
-    case realizedBalance, account, createBudget, notificationPrime
+    case calculation, account, createBudget, notificationPrime
     case addTransaction(FirstTransactionTracker.Source), feedback(promptNumber: Int)
     var id: Self { self }
 }
@@ -124,8 +124,8 @@ struct CurrentMonthView: View {
         .sheet(item: $activeSheet, onDismiss: handOverPendingWithdrawal) { sheet in
             Group {
                 switch sheet {
-                case .realizedBalance:
-                    CurrentMonthRealizedBalanceSheet()
+                case .calculation:
+                    CalculationSheet()
                 case .account:
                     AccountView()
                 case .notificationPrime:

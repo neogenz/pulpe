@@ -1,23 +1,13 @@
 import Foundation
 import Observation
 
-/// State of one "Rapprocher mes comptes" presentation (PUL-351). Owned by
+/// State of one "Comparer avec mes comptes" presentation (PUL-351). Owned by
 /// `ReconcileAccountsSheet` through `@State`, so every account typed here dies with the
-/// sheet: reopening starts on one empty amount. Kept apart from the view because the
-/// three steps outgrow one file; Foundation-only so its rules run without UIKit.
+/// sheet: reopening starts on one empty amount. Foundation-only so its rules run without UIKit.
 @Observable @MainActor
 final class ReconcileAccountsFlow {
-    /// Steps pushed after the accounts step, which is the stack's root.
-    enum Step: Hashable {
-        case summary
-        case itemsToCheck
-        case verdict
-    }
-
     /// Form input, bound field by field.
     var accounts: [AccountReconciliation.Account]
-    /// Bound to the sheet's `NavigationStack`, so the system back pops a step.
-    var path: [Step] = []
     /// Pre-filled, editable before the write. The amount is not: it is what makes the
     /// checked balance equal the accounts.
     var adjustmentLabel: String
@@ -60,13 +50,11 @@ final class ReconcileAccountsFlow {
         self.now = now
     }
 
-    // MARK: - Accounts step
+    // MARK: - Accounts
 
     var totalCents: Int? { AccountReconciliation.totalCents(of: accounts) }
 
     var total: Decimal? { totalCents.map(AccountReconciliation.amount(cents:)) }
-
-    var canContinue: Bool { totalCents != nil }
 
     /// Returns the new row's id so the sheet can focus its amount.
     @discardableResult
@@ -90,24 +78,7 @@ final class ReconcileAccountsFlow {
         accounts.first { $0.id == id }?.amount == .invalid
     }
 
-    func continueFromAccounts() {
-        guard canContinue else { return }
-        path = [.summary]
-    }
-
-    /// Pointing happens inside the flow: leaving for the month's page lost every account.
-    func showItemsToCheck() {
-        guard path == [.summary] else { return }
-        path.append(.itemsToCheck)
-    }
-
-    /// From the summary, or from the items just pointed: the verdict replaces them.
-    func continueToVerdict() {
-        guard canContinue, path == [.summary] || path == [.summary, .itemsToCheck] else { return }
-        path = [.summary, .verdict]
-    }
-
-    // MARK: - Verdict step
+    // MARK: - Verdict
 
     /// The checked balance is read live from the caller, never copied at presentation.
     func difference(realizedBalance: Decimal) -> Decimal? {
@@ -165,6 +136,21 @@ final class ReconcileAccountsFlow {
     /// once no write is in flight: one already out keeps its month and stays the only request.
     func shouldClose(loadedBudgetId: String) -> Bool {
         loadedBudgetId != budgetId && !isSubmitting
+    }
+
+    /// The movement that most likely explains the gap: one not pointed yet, going the way the
+    /// gap goes (money missing from the checked balance is an income, money too much is an
+    /// outflow) and of exactly its size. `nil` when none or several tie: guessing between two
+    /// would point the wrong one.
+    static func likelyMissedMovement(gap: Decimal, among transactions: [Transaction]) -> Transaction? {
+        let size = gap.rounded(2)
+        guard size != 0 else { return nil }
+        let matches = transactions.filter { transaction in
+            !transaction.isChecked
+                && transaction.amount.rounded(2) == size.absoluteValue
+                && (size > 0 ? transaction.kind == .income : transaction.kind.isOutflow)
+        }
+        return matches.count == 1 ? matches.first : nil
     }
 
     private func adjustmentPayload(realizedBalance: Decimal) -> TransactionCreate? {

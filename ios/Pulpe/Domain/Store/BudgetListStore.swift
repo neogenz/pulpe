@@ -76,7 +76,7 @@ final class BudgetListStore: StoreProtocol {
             defer { if loadGeneration == currentGeneration { isLoading = false } }
 
             do {
-                let fields = "month,year,remaining,totalIncome,totalExpenses,rollover"
+                let fields = "month,year,remaining,totalIncome,totalExpenses,totalSavings,rollover"
                 let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: fields, limit: nil, year: nil)
 
                 // Check for cancellation before updating state
