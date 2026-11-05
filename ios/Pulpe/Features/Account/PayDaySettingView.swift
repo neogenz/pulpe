@@ -207,6 +207,7 @@ struct PayDaySettingRow: View {
     var body: some View {
         HStack {
             Text("Jour de paie")
+                .font(PulpeTypography.listRowTitle)
             Spacer()
             Text(displayValue)
                 .foregroundStyle(Color.onSurfaceVariant)

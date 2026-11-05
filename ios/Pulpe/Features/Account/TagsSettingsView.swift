@@ -16,10 +16,10 @@ struct TagsSettingsView: View {
                     await viewModel.load()
                 }
             } else if viewModel.tags.isEmpty {
-                EmptyStateView(
+                PulpeEmptyState(
+                    systemImage: "tag",
                     title: AppLocale.string("Aucun tag personnel"),
-                    description: AppLocale.string("Les tags créés sur le web apparaîtront ici."),
-                    systemImage: "tag"
+                    message: AppLocale.string("Les tags créés sur le web apparaîtront ici.")
                 )
             } else {
                 tagsList

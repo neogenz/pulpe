@@ -44,22 +44,30 @@ struct VerifyRecoveryKeySheet: View {
             if let errorMessage {
                 ErrorBanner(message: errorMessage)
             }
-
-            Button {
-                Task { await verify() }
-            } label: {
-                if isVerifying {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Vérification en cours")
-                } else {
-                    Text("Vérifier")
-                }
-            }
-            .primaryButtonStyle(isEnabled: canSubmit)
-            .disabled(!canSubmit)
+        }
+        .safeAreaInset(edge: .bottom) {
+            verifyButton
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.vertical, DesignTokens.Spacing.md)
+                .background(Color.sheetBackground)
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+    }
+
+    private var verifyButton: some View {
+        Button {
+            Task { await verify() }
+        } label: {
+            if isVerifying {
+                ProgressView()
+                    .tint(.white)
+                    .accessibilityLabel("Vérification en cours")
+            } else {
+                Text("Vérifier")
+            }
+        }
+        .primaryButtonStyle(isEnabled: canSubmit)
+        .disabled(!canSubmit)
     }
 
     private var keyField: some View {

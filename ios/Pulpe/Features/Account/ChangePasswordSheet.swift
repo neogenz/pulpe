@@ -39,35 +39,16 @@ struct ChangePasswordSheet: View {
                     if let error = viewModel.errorMessage {
                         ErrorBanner(message: error)
                     }
-
-                    Spacer(minLength: DesignTokens.Spacing.xl)
-
-                    Button {
-                        Task {
-                            await viewModel.submit(email: appState.currentUser?.email)
-                            if viewModel.isCompleted {
-                                submitSuccessTrigger.toggle()
-                                dismiss()
-                                onSuccess()
-                            }
-                        }
-                    } label: {
-                        if viewModel.isSubmitting {
-                            ProgressView()
-                                .tint(.white)
-                                .accessibilityLabel("Mise à jour en cours")
-                        } else {
-                            Text("Changer le mot de passe")
-                        }
-                    }
-                    .primaryButtonStyle(isEnabled: viewModel.canSubmit)
-                    .disabled(!viewModel.canSubmit)
-                    .accessibilityIdentifier("changePasswordSubmit")
                 }
                 .padding(DesignTokens.Spacing.xl)
             }
-            .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom) {
+                submitButton
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    .padding(.vertical, DesignTokens.Spacing.md)
+                    .background(Color.sheetBackground)
+            }
             .localizedNavigationTitle("Mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -81,6 +62,30 @@ struct ChangePasswordSheet: View {
         }
         .standardSheetPresentation()
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+    }
+
+    private var submitButton: some View {
+        Button {
+            Task {
+                await viewModel.submit(email: appState.currentUser?.email)
+                if viewModel.isCompleted {
+                    submitSuccessTrigger.toggle()
+                    dismiss()
+                    onSuccess()
+                }
+            }
+        } label: {
+            if viewModel.isSubmitting {
+                ProgressView()
+                    .tint(.white)
+                    .accessibilityLabel("Mise à jour en cours")
+            } else {
+                Text("Changer le mot de passe")
+            }
+        }
+        .primaryButtonStyle(isEnabled: viewModel.canSubmit)
+        .disabled(!viewModel.canSubmit)
+        .accessibilityIdentifier("changePasswordSubmit")
     }
 
     private var currentPasswordField: some View {

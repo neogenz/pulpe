@@ -23,11 +23,11 @@ struct SettingsRow: View {
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(title)
-                    .font(PulpeTypography.rowTitleRegular)
+                    .font(PulpeTypography.rowTitle)
                     .foregroundStyle(Color.textPrimary)
                 if let subtitle {
                     Text(subtitle)
-                        .font(PulpeTypography.bannerText)
+                        .font(PulpeTypography.footnote)
                         .foregroundStyle(Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

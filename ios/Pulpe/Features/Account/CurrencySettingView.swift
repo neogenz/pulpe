@@ -80,11 +80,6 @@ struct CurrencySettingView: View {
 
     private var currencyPicker: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Tous tes montants s'affichent dans cette devise.")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.onSurfaceVariant)
-                .fixedSize(horizontal: false, vertical: true)
-
             SegmentedPicker(
                 selection: Binding(
                     get: { viewModel.selectedCurrency },
@@ -98,8 +93,13 @@ struct CurrencySettingView: View {
                 ),
                 title: nil
             ) { currency in
-                Text("\(currency.flag) \(currency.rawValue)")
+                Text(verbatim: "\(currency.rawValue) · \(currency.nativeName)")
             }
+
+            Text("Tous tes montants s'affichent dans cette devise.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.onSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
     }

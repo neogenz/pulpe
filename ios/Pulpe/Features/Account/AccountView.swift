@@ -114,8 +114,10 @@ extension AccountView {
             Button {
                 showEditFirstName = true
             } label: {
-                Text(firstName == nil ? "Ajouter un prénom" : "Modifier")
+                Text(firstName == nil ? "Ajouter" : "Modifier")
                     .font(PulpeTypography.buttonSecondary)
+                    .lineLimit(1)
+                    .fixedSize()
                     .foregroundStyle(Color.accentInk)
                     .padding(.horizontal, DesignTokens.Spacing.md)
                     .padding(.vertical, DesignTokens.Spacing.sm)
@@ -124,6 +126,7 @@ extension AccountView {
             .frame(minHeight: DesignTokens.TapTarget.minimum)
             .contentShape(Capsule())
             .plainPressedButtonStyle()
+            .accessibilityLabel(Text(firstName == nil ? "Ajouter un prénom" : "Modifier"))
             .accessibilityIdentifier(firstName == nil ? "addFirstNameButton" : "editFirstNameButton")
         }
         .padding(DesignTokens.Spacing.lg)
@@ -143,7 +146,7 @@ extension AccountView {
         SettingsGroup(header: AppLocale.string("Réglages")) {
             NavigationLink { SecuritySettingsView() } label: {
                 SettingsRow(
-                    systemImage: "lock.shield",
+                    systemImage: "lock",
                     title: AppLocale.string("Sécurité"),
                     subtitle: AppLocale.string("Code PIN, mot de passe, \(biometricDisplayName)")
                 )
@@ -152,7 +155,7 @@ extension AccountView {
             FormRowDivider()
             NavigationLink { PreferencesView() } label: {
                 SettingsRow(
-                    systemImage: "gearshape",
+                    systemImage: "slider.horizontal.3",
                     title: AppLocale.string("Préférences"),
                     subtitle: AppLocale.string("Devise, langue, jour de paie, rappels")
                 )
@@ -196,7 +199,7 @@ extension AccountView {
             FormRowDivider()
             Button { showFeedback = true } label: {
                 SettingsRow(
-                    systemImage: "bubble.left.and.bubble.right",
+                    systemImage: "bubble.left",
                     title: AppLocale.string("Donner mon avis"),
                     subtitle: AppLocale.string("Une impression en 30 secondes")
                 )
@@ -228,7 +231,7 @@ extension AccountView {
             FormRowDivider()
             Link(destination: AppURLs.privacy) {
                 SettingsRow(
-                    systemImage: "hand.raised",
+                    systemImage: "checkmark.shield",
                     title: AppLocale.string("Avis de confidentialité"),
                     isExternal: true
                 )

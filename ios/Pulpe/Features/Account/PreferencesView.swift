@@ -54,10 +54,10 @@ struct PreferencesView: View {
             .listRowSettingsBackground()
 
             Section {
-                Toggle(
-                    "Partager les diagnostics",
-                    isOn: diagnosticSharingBinding
-                )
+                Toggle(isOn: diagnosticSharingBinding) {
+                    Text("Partager les diagnostics")
+                        .font(PulpeTypography.listRowTitle)
+                }
                 .tint(Color.pulpePrimary)
             } header: {
                 SettingsSectionHeader(text: AppLocale.string("Données et confidentialité"))
@@ -76,6 +76,7 @@ struct PreferencesView: View {
         .pulpeBackground()
         .listStyle(.insetGrouped)
         .localizedNavigationTitle("Préférences")
+        .navigationBarTitleDisplayMode(.large)
         .keyboardFieldNavigation(focus: $currencyConverterFocus, order: [.input])
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
@@ -92,8 +93,9 @@ struct PreferencesView: View {
         Toggle(isOn: isOn) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(title)
+                    .font(PulpeTypography.listRowTitle)
                 Text(detail)
-                    .font(PulpeTypography.bannerText)
+                    .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textSecondary)
             }
         }

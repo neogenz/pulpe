@@ -41,13 +41,13 @@ struct LanguageSettingView: View {
         } label: {
             ViewThatFits(in: .horizontal) {
                 HStack {
-                    Text("Langue de l'app")
+                    Text("Langue de l'app").font(PulpeTypography.listRowTitle)
                     Spacer(minLength: DesignTokens.Spacing.md)
                     selectedLanguage
                 }
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Langue de l'app")
+                    Text("Langue de l'app").font(PulpeTypography.listRowTitle)
                     selectedLanguage
                 }
             }
@@ -65,7 +65,7 @@ struct LanguageSettingView: View {
     private var selectedLanguage: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text(verbatim: userSettingsStore.locale.nativeName)
-            Image(systemName: "chevron.down")
+            Image(systemName: "chevron.up.chevron.down")
                 .font(PulpeTypography.caption)
                 .accessibilityHidden(true)
         }
@@ -103,6 +103,7 @@ struct LanguageSettingView: View {
         } label: {
             HStack {
                 Text("Réglages de langue d'iOS")
+                    .font(PulpeTypography.listRowTitle)
                 Spacer()
                 Image(systemName: "arrow.up.right")
                     .font(PulpeTypography.caption)

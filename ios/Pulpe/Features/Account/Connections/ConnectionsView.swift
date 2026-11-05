@@ -17,15 +17,15 @@ struct ConnectionsView: View {
                     await store.load()
                 }
             } else if store.connections.isEmpty {
-                EmptyStateView(
+                PulpeEmptyState(
+                    systemImage: "link",
                     title: AppLocale.string("Aucun assistant branché"),
-                    description: AppLocale.string(
+                    message: AppLocale.string(
                         """
                         Tu peux brancher Pulpe dans ChatGPT ou Claude pour gérer ton budget \
                         en parlant. Rien n'est partagé tant que tu n'as rien autorisé.
                         """
-                    ),
-                    systemImage: "link"
+                    )
                 )
             } else {
                 connectionsList
