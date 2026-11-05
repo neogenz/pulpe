@@ -1476,7 +1476,6 @@
       "title": "Ripartizione di oggi",
       "subtitle": "Da ciò che ho al mio patrimonio netto",
       "subtitleDebts": "Da ciò che ho a ciò che devo",
-      "gross": "Patrimonio lordo",
       "net": "Patrimonio netto",
       "shortfall": "Mancano",
       "mobileHint": "Trascina per vedere fino al tuo patrimonio netto",
@@ -1547,7 +1546,7 @@
       "drawnFrom": "Presa da"
     },
     "suggestion": {
-      "proposes": "Pulpe propone",
+      "proposes": "Propongo",
       "detailSaved": "{{amount}} di risparmio spuntato dall'ultimo valore",
       "detailDrawn": "{{amount}} di entrata prelevata dall'ultimo valore",
       "detailRepaid": "{{amount}} di rimborso spuntato dall'ultimo valore",

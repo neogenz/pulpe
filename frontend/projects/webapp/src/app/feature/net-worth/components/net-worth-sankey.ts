@@ -55,7 +55,7 @@ const LABEL_GUTTER = 150;
 
 /**
  * « Répartition aujourd'hui »: each asset flows into its category, the
- * categories into Fortune brute, which splits into debts and Fortune nette.
+ * categories into « Ce que j'ai », which splits into debts and Fortune nette.
  * Widths come from the figures the API computed (see `net-worth-sankey.flows`);
  * nothing is summed here.
  */
@@ -175,7 +175,7 @@ export class NetWorthSankey {
     };
     // The fixed nodes carry no name: the chart labels them by kind.
     const fixedNames: Partial<Record<SankeyNodeKind, string>> = {
-      gross: this.#transloco.translate('netWorth.sankey.gross'),
+      gross: this.#transloco.translate('netWorth.gross'),
       net: this.#transloco.translate('netWorth.sankey.net'),
       shortfall: this.#transloco.translate('netWorth.sankey.shortfall'),
     };

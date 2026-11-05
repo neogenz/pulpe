@@ -130,7 +130,7 @@ describe('NetWorthAssetRow', () => {
     it('proposes the new value in the asset currency with its detail', () => {
       render({ suggestion });
 
-      expect(text('asset-suggestion')).toContain('Pulpe propose');
+      expect(text('asset-suggestion')).toContain('Je propose');
       expect(text('asset-suggestion-value')).toBe('3’500.00 CHF');
       expect(text('asset-suggestion-detail')).toBe(
         "500.00 CHF d'épargne pointée depuis la dernière valeur",

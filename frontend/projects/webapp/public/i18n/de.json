@@ -1476,7 +1476,6 @@
       "title": "Verteilung heute",
       "subtitle": "Von dem, was ich habe, bis zu meinem Nettovermögen",
       "subtitleDebts": "Von dem, was ich habe, bis zu dem, was ich schulde",
-      "gross": "Bruttovermögen",
       "net": "Nettovermögen",
       "shortfall": "Es fehlen",
       "mobileHint": "Zieh, um bis zu deinem Nettovermögen zu sehen",
@@ -1547,7 +1546,7 @@
       "drawnFrom": "Geholt von"
     },
     "suggestion": {
-      "proposes": "Pulpe schlägt vor:",
+      "proposes": "Ich schlage vor:",
       "detailSaved": "{{amount}} Sparen abgehakt seit dem letzten Wert",
       "detailDrawn": "{{amount}} Einnahme entnommen seit dem letzten Wert",
       "detailRepaid": "{{amount}} Rückzahlung abgehakt seit dem letzten Wert",

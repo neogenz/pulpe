@@ -109,7 +109,7 @@ status: done
 
 > The asset row offers the proposed value.
 
-1. Row line « Pulpe propose … » with Appliquer and Écarter in `net-worth-page.ts`; store mutations invalidate `['assets']`.
+1. Row line « Je propose … » with Appliquer and Écarter in `net-worth-page.ts`; store mutations invalidate `['assets']`.
 2. `asset-api.ts` invalidates its cache when the budget cache version changes, like `savings-goal-api.ts`, so a check elsewhere shows up on return.
 3. Copy in the four i18n files; `pnpm test:lexicon`; `cd frontend && pnpm exec ng build`.
 4. `docs/BUSINESS_RULES.md`: suggestion rules, that a dismissed movement is forgotten, and that a movement unchecked then checked again after an apply counts again (accepted ceiling).

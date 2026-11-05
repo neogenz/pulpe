@@ -1476,7 +1476,6 @@
       "title": "Breakdown today",
       "subtitle": "From what I have to my net worth",
       "subtitleDebts": "From what I have to what I owe",
-      "gross": "Gross worth",
       "net": "Net worth",
       "shortfall": "Missing",
       "mobileHint": "Drag to see all the way to your net worth",
@@ -1547,7 +1546,7 @@
       "drawnFrom": "Taken from"
     },
     "suggestion": {
-      "proposes": "Pulpe suggests",
+      "proposes": "I suggest",
       "detailSaved": "{{amount}} of checked savings since the last value",
       "detailDrawn": "{{amount}} of income drawn since the last value",
       "detailRepaid": "{{amount}} of checked repayment since the last value",

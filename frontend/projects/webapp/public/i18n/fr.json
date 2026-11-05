@@ -1476,7 +1476,6 @@
       "title": "Répartition aujourd'hui",
       "subtitle": "De ce que j'ai à ma fortune nette",
       "subtitleDebts": "De ce que j'ai à ce que je dois",
-      "gross": "Fortune brute",
       "net": "Fortune nette",
       "shortfall": "Il manque",
       "mobileHint": "Fais glisser pour voir jusqu'à ta fortune nette",
@@ -1547,7 +1546,7 @@
       "drawnFrom": "Pris sur"
     },
     "suggestion": {
-      "proposes": "Pulpe propose",
+      "proposes": "Je propose",
       "detailSaved": "{{amount}} d'épargne pointée depuis la dernière valeur",
       "detailDrawn": "{{amount}} de revenu tiré depuis la dernière valeur",
       "detailRepaid": "{{amount}} de remboursement pointé depuis la dernière valeur",
