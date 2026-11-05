@@ -164,9 +164,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
         Button(action: onTap) {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 PointCircle(
-                    kind: kind,
                     isPointed: isPointed,
-                    color: dotColor,
                     isSyncing: isSyncing,
                     onCompletionStateChange: { pointCompletionGate.isPending = $0 },
                     onToggle: onTogglePointed
@@ -183,7 +181,6 @@ private struct BudgetDetailsFreeTransactionRow: View {
             .padding(.vertical, DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
-            .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
             .animation(
                 reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
                 value: isPointed
@@ -208,7 +205,6 @@ private struct BudgetDetailsFreeTransactionRow: View {
             Text(transaction.name)
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
-                .strikethrough(isPointed, color: Color.textTertiary)
                 .lineLimit(1)
                 .truncationMode(.tail)
 

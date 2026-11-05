@@ -10,22 +10,26 @@ colors:
   financial-expense: "#B35800"
   financial-savings: "#157038"
   financial-over-budget: "#905800"
-  app-background: "#EFF3EE"
-  sheet-background: "#F5F3F0"
+  app-background: "#F2F1EC"
+  sheet-background: "#F6F5F1"
   surface: "#FFFFFF"
-  surface-container-low: "#FCFAF7"
-  surface-container: "#F5F3F0"
-  surface-container-high: "#F0EDE9"
-  surface-container-highest: "#E8E5E1"
+  sunk: "#ECEAE4"
+  accent-wash: "#E2F0E5"
+  accent-ink: "#0B4F1E"
+  over-wash: "#F6EBDB"
+  coral: "#C45028"
+  coral-wash: "#FAE6DE"
   text-primary: "#1A1C19"
-  text-secondary: "#524D48"
-  text-tertiary: "#6E6762"
-  outline: "#6F7A6D"
-  outline-variant: "#BFCABA"
+  text-secondary: "#4A4540"
+  text-tertiary: "#77706A"
+  outline: "#CFC8BC"
+  outline-variant: "#E6E2DA"
+  point-ring: "#8F877C"
+  destructive-wash: "#FBE7E6"
   hero-comfortable: "#14AD45"
   hero-tight: "#D88010"
   hero-deficit: "#C45028"
-  home-background: "#EFF3EE" # alias of app-background — the shared canvas
+  home-background: "#F2F1EC" # alias of app-background — the shared canvas
   home-hero-surface: "#CFE8D6"
   home-hero-ink: "#0E3A1C"
   home-hero-support: "#2C5136"
@@ -98,6 +102,7 @@ rounded:
   sm: "8px"
   button: "14px"
   card: "18px"
+  surface: "22px"
   md: "24px"
   lg: "30px"
   xl: "32px"
@@ -119,22 +124,24 @@ components:
     textColor: "{colors.pulpe-primary-on}"
     typography: "{typography.button}"
     rounded: "{rounded.pill}"
-    padding: "0 24px"
-    height: "54px"
+    height: "52px"
   button-secondary:
+    backgroundColor: "{colors.accent-wash}"
+    textColor: "{colors.accent-ink}"
+    typography: "{typography.button}"
+    rounded: "{rounded.pill}"
+    height: "52px"
+  button-tertiary:
     backgroundColor: "transparent"
-    textColor: "{colors.text-primary}"
+    textColor: "{colors.pulpe-primary}"
     typography: "{typography.button}"
-    rounded: "{rounded.pill}"
-    padding: "0 24px"
-    height: "54px"
+    height: "44px"
   button-destructive:
-    backgroundColor: "{colors.destructive}"
-    textColor: "{colors.pulpe-primary-on}"
+    backgroundColor: "{colors.destructive-wash}"
+    textColor: "{colors.destructive}"
     typography: "{typography.button}"
     rounded: "{rounded.pill}"
-    padding: "0 24px"
-    height: "54px"
+    height: "52px"
   button-icon:
     backgroundColor: "transparent"
     textColor: "{colors.text-secondary}"
@@ -151,26 +158,26 @@ components:
     typography: "{typography.body}"
     padding: "8px 4px"
   segmented-picker-track:
-    backgroundColor: "rgba(118,118,128,0.12)"
+    backgroundColor: "{colors.sunk}"
     rounded: "{rounded.pill}"
-    padding: "2px"
+    padding: "3px"
   segmented-picker-thumb:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.pill}"
-    padding: "12px"
+    height: "36px"
   chip-filter-selected:
-    backgroundColor: "{colors.text-primary}"
-    textColor: "{colors.app-background}"
+    backgroundColor: "{colors.accent-wash}"
+    textColor: "{colors.accent-ink}"
     typography: "{typography.metric-label}"
     rounded: "{rounded.pill}"
-    padding: "12px 16px"
+    height: "36px"
   chip-filter-unselected:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text-primary}"
     typography: "{typography.metric-label}"
     rounded: "{rounded.pill}"
-    padding: "12px 16px"
+    height: "36px"
   chip-stat-income:
     backgroundColor: "rgba(0,97,166,0.15)"
     textColor: "{colors.financial-income}"
@@ -198,11 +205,11 @@ components:
     rounded: "{rounded.lg}"
     padding: "16px 20px 20px"
   input-form:
-    backgroundColor: "rgba(118,118,128,0.12)"
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.text-primary}"
     typography: "{typography.body}"
-    rounded: "{rounded.md}"
-    padding: "16px"
+    rounded: "14px"
+    height: "50px"
 ---
 
 # Design System: Pulpe iOS
@@ -211,13 +218,13 @@ components:
 >
 > - **Strategic foundation:** [../PRODUCT.md](../PRODUCT.md)
 > - **Cross-platform visual common:** [../DESIGN.md](../DESIGN.md) — read first; this file inherits everything there
-> - **This file:** iOS-native extensions — tokens, components, Liquid Glass, sheets, SwiftUI patterns
+> - **This file:** iOS-native extensions (refonte V2) — tokens, components, Liquid Glass, sheets, SwiftUI patterns
 > - **Sibling platforms:** [../frontend/DESIGN.md](../frontend/DESIGN.md), [../landing/DESIGN.md](../landing/DESIGN.md)
 > - **No sidecar:** `/impeccable live` (which consumes `.impeccable/design.json`) is browser-only and unsupported on SwiftUI. iOS visual canon lives in this file alone.
 >
 > Everything in this doc is iOS-only. Cross-platform rules live in `../DESIGN.md` and are not repeated here.
 
-## 1. Overview: iOS Native, Two-Zone, Tokens-First
+## 1. Overview: iOS Native, Paper Canvas, Tokens-First
 
 iOS is the dominant Pulpe surface. SwiftUI native, iOS 18 deployment target with iOS 26 features behind `#available`. Liquid Glass on navigation only. Every visual value flows through `DesignTokens` (`ios/Pulpe/Shared/Design/DesignTokens.swift`) or `Color+Pulpe` (`ios/Pulpe/Shared/Extensions/Color+Pulpe.swift`); the project rule forbids raw design values, while SwiftLint enforces selected architecture and timing constraints.
 
@@ -227,7 +234,7 @@ iOS is the dominant Pulpe surface. SwiftUI native, iOS 18 deployment target with
 
 - Deployment target iOS 18, iOS 26 features (Liquid Glass, `.contentTransition(.symbolEffect(.replace))`) gated with `#available`
 - Apple HIG 44pt tap target — `frame(minHeight:)` on the **Button**, never on the label
-- Two-zone layout implemented via `BudgetDetailHero` + neutral content zone with a `LinearGradient` 40–60pt transition stop
+- V2 reading rules: green acts, ink reads, ocre says "dépassé", red only deletes; one row grammar (pointing circle left, chevron right)
 - Sheets always declare `.standardSheetPresentation()` to prevent iOS 26 glass bleed
 - Compositions tokens layer (`DesignTokens.ChipMetrics`) sits between primitives and feature surfaces
 
@@ -235,21 +242,23 @@ iOS is the dominant Pulpe surface. SwiftUI native, iOS 18 deployment target with
 
 The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonical hex** used in `Color+Pulpe`. Light mode unless noted; dark mode uses dynamic counterparts.
 
-### Brand
+### Brand and action
 
-- **Pulpe Forest** (`#006E25`): `Color.pulpePrimary`. Primary CTA capsule, savings amount, savings progress fill, brand glyphs. Dark mode: `#7EDB83` (lime, AAA contrast on near-black).
-- **Sage** (`#406741`): `Color.pulpeSecondary`. Discrete labels, secondary container fills.
-- **Lake** (`#0061A6`): `Color.pulpeTertiary`. Income amounts, info chips, links, edit actions. Dark mode: `#5AA8E0`.
+**Green acts, ink reads.** One action colour carries every control; text and amounts are ink, never green or black-on-green.
 
-### Financial Accents
+- **Action** (`#006E25`): `Color.pulpePrimary`. Primary button, FAB, pointed disc, links, focus ring, switch. Dark: `#7EDB83`. White on it is 6.4:1.
+- **Action wash** (`#E2F0E5`, dark `#1F3B27`): `Color.accentWash`. Secondary button, selected chip, empty-state disc.
+- **Action ink** (`#0B4F1E`, dark `#A6E6AA`): `Color.accentInk`. Text and glyphs on the wash.
 
-- **Income / Lake** (`#0061A6`): `Color.financialIncome`.
-- **Savings / Forest Bright** (`#157038`): `Color.financialSavings`. Slightly brighter than `pulpePrimary`, tuned for ink contrast on warm surfaces.
-- **Expense / Amber** (`#B35800`): `Color.financialExpense`.
-- **Over-Budget / Burnt Amber** (`#905800` light, `#E5A33A` dark): `Color.financialOverBudget`.
-- **Hero Deficit / Sunset Coral** (`#C45028`): `Color.heroTintDeficit`. Gradient mid-stop only (legacy, removed with the Budget Detail hero migration).
+### Financial Accents (bars and dots only)
 
-### Hero Zone (constant brand surface)
+- **Income** (`#0061A6`): `Color.financialIncome`. **Savings** (`#157038`): `Color.financialSavings`. **Expense** (`#B35800`): `Color.financialExpense`. Amounts stay ink; the nature is read on bars, dots and section headers.
+- **Over / ocre** (`#905800`, dark `#E5A33A`): `Color.financialOverBudget`, wash `#F6EBDB` (dark `#3A2A10`): `Color.overWash`. "Dépassé" in words, never red.
+- **Coral** (`#C45028`, dark `#E8825A`): `Color.coral`, wash `#FAE6DE` (dark `#3A1D12`): `Color.coralWash`.
+
+### Hero Zone (legacy, until the screens are rebuilt)
+
+The forest hero is no longer the default surface. These tokens stay only for the screens not yet migrated to the V2 canvas.
 
 The hero surface is the brand forest, never tinted by financial state. Ratios measured by `HeroContrastTests` (WCAG 2.1, text 4.5:1, non-text 3:1):
 
@@ -267,38 +276,40 @@ The hero surface is the brand forest, never tinted by financial state. Ratios me
 
 The previous state-tinted heroes (`#14AD45`, `#D88010` under white ink) measured 2.96:1 and 2.99:1 — refused.
 
-### Surface (Warm Hierarchy)
+### Surface
 
-- **App Background** (`#EFF3EE`): `Color.appBackground`. Dark mode: `#121611`. Warm sage canvas, shared app-wide. **iOS override** of the cross-platform neutral `#F7F6F3` (root `DESIGN.md`) — the home dashboard's calm tone is now the default on every iOS screen; webapp and landing keep the neutral.
-- **Sheet Background** (`#F5F3F0`): `Color.sheetBackground`. Slightly cooler-warm than the app, providing contrast against cards.
-- **Surface / Card** (`#FFFFFF` light, `#1A1816` dark): `Color.surface`.
-- **Surface Containers** (`#FCFAF7` → `#E8E5E1`): tonal layering. Low for resting cards, highest for pressed chip backgrounds.
+- **Canvas / bg** (`#F2F1EC`): `Color.appBackground`. Dark: `#121611`. Warm paper, the default surface of every screen.
+- **Card** (`#FFFFFF`, dark `#1A1816`): `Color.surface`. Radius 22, soft two-layer shadow (`pulpeSurfaceCard()`).
+- **Sheet** (`#F6F5F1`): `Color.sheetBackground`.
+- **Sunk** (`#ECEAE4`, dark `#2A2826`): `Color.sunk` (= `surfaceContainerHigh`). Segmented track, impact block, neutral banner, settings tile.
 
 ### Text
 
-- **Text Primary** (`#1A1C19`): `Color.textPrimary`. Body text. Never pure `#000`.
-- **Text Secondary** (`#524D48`): `Color.textSecondary`. WCAG AAA on warm surfaces.
-- **Text Tertiary** (`#6E6762`): `Color.textTertiary`.
+- **Ink** (`#1A1C19`, dark `#F5F3EF`): `Color.textPrimary`. Text and amounts. Never `#000`, never a fill.
+- **Ink 2** (`#4A4540`, dark `#C4BCB3`): `Color.textSecondary`. Captions, 13pt minimum, 8.4:1.
+- **Ink 3** (`#77706A`, dark `#A39C94`): `Color.textTertiary`. Placeholders, struck-through "before" figures, chevrons. Never the only carrier of meaning.
 
-### Outline
+### Lines
 
-- **Outline / Variant** (`#6F7A6D` / `#BFCABA`): `Color.outline` / `Color.outlineVariant`. Hairline borders, dividers.
+- **Line** (`#E6E2DA`, dark `#3A3733`): `Color.outlineVariant`. Row dividers, form-card border.
+- **Line 2** (`#CFC8BC`, dark `#4A4640`): `Color.outline`. Input and unselected-chip border.
+- **Ring** (`#8F877C`, dark `#8A837A`): `Color.pointRing`. The unpointed circle, 3:1 on white.
 
 ### Destructive
 
-- **True Red** (`#C62828`): `Color.destructivePrimary`. `DestructiveButtonStyle` only.
+- **Red** (`#C62828`, dark `#FF6B6B`): `Color.destructivePrimary`, wash `#FBE7E6`: `Color.destructiveBackground`. Delete, and nothing else.
 
 ### iOS-Specific Named Rules
 
-**The Two-Zone Rule (iOS implementation).** Every screen with a hero is split. The **emotion zone** is the constant brand forest (`Color.heroSurface`, two-stop gradient from `heroSurfaceTop`), full-bleed under the navigation bar (`.toolbarColorScheme(.dark, for: .navigationBar)`), painted by `View.heroZone()` as the hero's own scroll-native background (bled `Layout.overscrollBleed` above, so pull-to-refresh and the status bar stay forest). The **content zone** rises over it through `View.contentZone()`: an `appBackground` card with `CornerRadius.zone` upper corners and `Shadow.zoneBoundary`, overlapping the forest by that radius. The curve belongs to the card, never to the forest. The financial state is read in the verdict sentence, one chip and the chart accent (`heroAccentPositive` / `heroAccentCaution` / `heroAccentDeficit`), never in the surface color. Below is the **content zone** — `Color.appBackground` (the warm sage canvas), lists and cards on top. Screens without a dominant financial state (templates, the savings-goal list, settings) skip the emotion zone entirely. The month and the account live in the native navigation bar, not in a header rebuilt inside the scroll.
+**The Paper Canvas Rule.** Every screen sits on `Color.appBackground` with white cards (`pulpeSurfaceCard()`); the forest hero zone (`heroZone()` / `contentZone()`) survives only on screens not yet rebuilt and is not a pattern to copy. The month and the account live in the native navigation bar.
 
-**The One Hero Rule.** Every surface with a dominant financial state (home, budget detail, yearly view, savings-goal detail) composes its hero from the shared `HeroZone` family (`heroZone()` / `contentZone()`, `HeroFigure`, `HeroMetricTile`, `HeroVerdictRow`). No screen draws its own hero grammar.
+**The One Hero Rule (legacy).** Every surface with a dominant financial state (home, budget detail, yearly view, savings-goal detail) composes its hero from the shared `HeroZone` family (`heroZone()` / `contentZone()`, `HeroFigure`, `HeroMetricTile`, `HeroVerdictRow`). No screen draws its own hero grammar.
 
-**The One Ledger Rule.** Every list is a grouped card (`pulpeCard()`), rows separated by hairlines, each row opened by a 36pt leading disc (`RowIcon` / `PointCircle`). `pulpeRowCard` never dresses a single row. Nature is carried by the disc and the amount color, not by an inline tag. The disc is also the pointing control: a ring in the tint means "to point", a filled disc with a checkmark means "pointed"; a leading swipe on the row is the second path to the same toggle, and an announced withdrawal keeps a plain disc.
+**The One Ledger Rule.** Every list is a grouped card, rows separated by hairlines (`Color.outlineVariant`). A row is `PulpeListRow`: leading 28pt `PointCircle` (2pt `pointRing` ring; pointed = `pulpePrimary` disc + white check), 16pt semibold title, one 13pt `ink2` fact, trailing Manrope 700 16pt amount in ink, `RowChevron` when the row opens something, 60pt minimum. No category icons in rows. A pointed row keeps full opacity: no dim, no strikethrough. The circle is the pointing control; a leading swipe on the row is the second path to the same toggle.
 
 **The Three Families Rule.** At most three chip families are visible on a screen. Any 1-of-N choice is a `SegmentedPicker`. `PulpeChip.muted` never sits on the bare canvas. Hero stat pills are `HeroMetricTile`s, not chips.
 
-**The Home Ledger Rule.** Everything below the hero is a **titled block on a card**, never a run of rows on the bare page. A section names itself with `SectionHeader` — the section title, an optional amount under it, and, when there is somewhere to go, a **named** link (`Tout voir`, `Budget`) rather than a bare chevron. That header sits on the page background, outside the card, so the card boundary marks where the section's content starts. Under it, one card (`pulpeRowCard()` — the shared card fill plus the subtle lift) carries the rows. A row opens with a `RowIcon`: a 36pt disc tinted at `Opacity.accent` in the color of what the row is about, which is what makes the list scannable without reading it — but only when the card's rows are of different natures. A homogeneous list (every row a contribution, every row a withdrawal) already knows what it is from its section title, and the repeated glyph reads as texture rather than information; there the row opens on its name. A hairline may separate rows **inside** a card and nothing else — on the bare page a rule divides nothing and reads as unfinished. Activity groups its rows by day, the day named once above its card instead of repeated under every row. `SectionHeader` owns the screen's only Dynamic Type branch; the rows below it wrap rather than re-stack. The rule is not the home's alone: `SectionHeader` lives in `Shared/Components/`, the savings-goal detail names every one of its sections with it, and budget detail carries the same rail and the same `pulpeRowCard()` — a card with the fill but no lift reads as a different radius, not as a quieter one.
+**The Home Ledger Rule.** Everything on the page is a **titled block on a card**, never a run of rows on the bare page. A section names itself with `SectionHeader` — the section title, an optional amount under it, and, when there is somewhere to go, a **named** link (`Tout voir`, `Budget`) rather than a bare chevron. That header sits on the page background, outside the card, so the card boundary marks where the section's content starts. Under it, one card (`pulpeRowCard()` — the shared card fill plus the subtle lift) carries the rows. A row opens on its pointing circle or its name, never on a category icon. A hairline may separate rows **inside** a card and nothing else — on the bare page a rule divides nothing and reads as unfinished. Activity groups its rows by day, the day named once above its card instead of repeated under every row. `SectionHeader` owns the screen's only Dynamic Type branch; the rows below it wrap rather than re-stack. The rule is not the home's alone: `SectionHeader` lives in `Shared/Components/`, the savings-goal detail names every one of its sections with it, and budget detail carries the same rail and the same `pulpeRowCard()` — a card with the fill but no lift reads as a different radius, not as a quieter one.
 
 ## 3. Typography: iOS Resolved Scale
 
@@ -306,18 +317,17 @@ Manrope for display + Pulpe amounts; SF Pro (system) for everything else. Dynami
 
 ### Hierarchy (iOS values)
 
-- **Display** (Manrope ExtraBold, 72pt, lh 1.0, tracking `-3px`): Year recap big number on the budget list.
-- **Headline** (Manrope Bold, 34pt, lh 1.05, tracking `-0.6px`): Brand titles.
-- **Dashboard Hero** (Manrope ExtraBold 48pt for the figure, Manrope Bold 24pt for the currency suffix, both scaling against `.largeTitle`): The estimated month-end balance on the home dashboard, split across two roles on one baseline so the figure dominates and the suffix stays secondary.
-- **Amount Hero** (Manrope ExtraBold, 34pt, lh 1.0, tracking `-1.2px`): The hero balance amount on `BudgetDetailsView`. Black on neutral, never colored.
-- **Amount Card** (Manrope ExtraBold, 20pt): Per-row card amounts. Tabular figures via `monospacedDigit()`.
-- **Title** (SF Pro Semibold, 22pt): Section titles, sheet titles.
-- **Body** (SF Pro, 17pt): Default content, descriptions.
-- **List Row Title** (SF Pro Semibold, 17pt): Budget line names, transaction descriptions.
-- **Metric Label** (SF Pro Bold, 13pt): Pill text, chip labels, count badges.
-- **Kind Tag** (Manrope ExtraBold, 10pt, tracking `0.7px`, uppercased): Inline `REVENU` / `ÉPARGNE` / `DÉPENSE` tags above row labels.
-- **Label Medium** (SF Pro Medium, 13pt): Form field labels, secondary metadata.
-- **Button** (SF Pro Semibold, 17pt): All button text.
+- **Hero** (Manrope 800, 52pt, tracking `-2`, tabular): `PulpeTypography.heroAmount`; currency suffix 0.42em, ink2 (`heroCurrencySuffix`).
+- **Big** (Manrope 800, 36pt) and **Mid** (Manrope 800, 22pt): `bigAmount`, `midAmount`, each with its own suffix.
+- **Large title** (SF 34 bold, tracking `-0.4`): `pageTitle`, with a 15pt ink2 subtitle (`PageHeader`).
+- **Section** (20pt bold): `sectionTitle` / `statusTitle`.
+- **Body** (SF 17): default content. **Button** (SF 17 semibold); small button and chip 15 semibold (`chipLabel`).
+- **Row title** (SF 16 semibold): `rowTitle`. **Row amount** (Manrope 700, 16pt, tabular): `rowAmount`.
+- **Caption** (SF 13, ink2): `captionRegular`. 13pt is the floor for any text.
+- **Impact "after"** (Manrope 700, 17pt): `impactAmount`.
+- Every amount uses tabular digits. All roles scale with Dynamic Type (`relativeTo:`).
+
+Legacy display roles (`displayYear`, `dashboardHeroAmount`, `amountHero`…) remain for screens not yet rebuilt.
 
 Live tokens: `ios/Pulpe/Shared/Styles/Typography.swift`.
 
@@ -335,8 +345,9 @@ Pulpe iOS is **flat by default with restrained tonal layering**. Shadows are dif
 
 ### Shadow Vocabulary
 
-- **Subtle** (`0 1px 2px rgba(0,0,0,0.05)`): Per-row card lift on the Budget Detail page.
-- **Card** (`0 2px 4px rgba(0,0,0,0.06)`): Default card lift.
+- **Card** (V2, two layers `0 1px 2px rgba(40,32,20,.06)` + `0 6px 20px -10px rgba(40,32,20,.16)`): `pulpeSurfaceShadow()`, white cards.
+- **Floating action** (`0 8px 20px -8px rgba(0,80,30,.55)`): `Shadow.floatingAction`, the FAB only.
+- **Subtle** (`0 1px 2px rgba(0,0,0,0.05)`): Legacy per-row card lift.
 - **Elevated** (`0 4px 8px rgba(0,0,0,0.08)`): Modals, dialog surfaces.
 - **Zone Boundary** (`Shadow.zoneBoundary`): cast by the hero surface onto the content zone, light mode only.
 - **Input** (`0 2px 6px rgba(0,0,0,0.04)`): Auth and currency input field rest state.
@@ -356,27 +367,24 @@ Live in `ios/Pulpe/Shared/Components/` and `ios/Pulpe/Shared/Design/PrimaryButto
 
 ### Buttons
 
-- **Shape:** Capsule (`pill` rounded, `9999px`). The capsule is the brand button.
-- **Primary (`PrimaryButtonStyle`):** flat `Color.pulpePrimary` fill for enabled, `primaryContainerDisabled` for disabled. `textOnPrimary` text. Full-width, 54pt height. One per screen; no gradient — the hero is the screen's only saturated element.
-- **Secondary (`SecondaryButtonStyle`):** Transparent fill, hairline `outlineVariant` border, primary text color. Same dimensions as Primary.
-- **Destructive (`DestructiveButtonStyle`):** Solid `Color.destructivePrimary` fill, white text. Same dimensions. _Only_ for irreversible actions.
-- **Icon (`IconButtonStyle`):** Transparent, 44×44pt minimum hit area, `contentShape(Rectangle())`.
-- **Icon Circle (`CircleIconButtonStyle`):** Same as Icon but `contentShape(Circle())`.
-- **Text Link (`TextLinkButtonStyle`):** Pressed-feedback only, no forced height. Container spacing provides the tap target.
-- **Plain Pressed (`PlainPressedButtonStyle`):** Pressed feedback only. For chips and custom layouts that manage their own shape.
-- **Pressed state:** opacity `0.8` (`DesignTokens.Opacity.pressed`), eased over 0.2s.
+- **Shape:** Capsule, 52pt (`FrameHeight.button`), 17pt semibold. `.small` size: 40pt, 15pt, hit area still 44pt.
+- **Primary (`PrimaryButtonStyle`):** `pulpePrimary` fill, `textOnPrimary` label; disabled = `primaryContainerDisabled`. One per screen. Never black.
+- **Secondary (`SecondaryButtonStyle`):** `accentWash` fill, `accentInk` label, no outline.
+- **Tertiary (`TertiaryButtonStyle`):** green text, 44pt, no fill.
+- **Destructive (`DestructiveButtonStyle`):** `destructiveBackground` fill, red label. Only for irreversible actions.
+- **Icon / Icon Circle / Text Link / Plain Pressed:** unchanged (44pt minimum hit area, pressed opacity).
+- **Press feedback:** scale `0.96` on the capsule buttons (`Animation.pressedButtonScale`), none under Reduce Motion.
 
 ### Chips & Pills (PulpeChip atom)
 
 The Budget Detail filter rail uses `PulpeChip` (`ios/Pulpe/Shared/Components/PulpeChip.swift`) with three styles and two sizes. **Feature code never composes chips ad-hoc** — SwiftLint custom rule `no_adhoc_capsule_chip` enforces this.
 
-- **`PulpeChip.Style.solid`:** `Color.textPrimary` fill, `Color(.systemBackground)` text, count badge in `Color(.systemBackground).opacity(0.2)` capsule. Used for the active filter pill.
-- **`PulpeChip.Style.outlined`:** `Color.surface` fill, hairline `Color.onSurfaceVariant.opacity(outlinePill)` border, primary text. Used for inactive filter pills, the leading menu chip, and most chip-shaped controls.
+- **`PulpeChip.Style.selected`:** on. `accentWash` fill, 1.5pt `pulpePrimary` ring, `accentInk` label, leading check (unless the chip has its own icon). Never solid black.
+- **`PulpeChip.Style.outlined`:** off, default. `surface` fill, 1pt `outline` (line2) inset border, ink label.
 - **`PulpeChip.Style.muted`:** `Color.surfaceContainerHigh` fill, no border. Reserved for stat / informational chips on tinted hero surfaces or cards — **never on the bare `appBackground`**, where the fill is indistinguishable from the canvas (1.04:1).
 - **`PulpeChip.Style.semantic(_:)`:** **the default for any state or informational chip.** One semantic color carries both the wash (`Opacity.badgeBackground`) and the ink. Savings green (`financialSavings`) covers the whole savings-and-planning family — the goal status badge, the "Objectif : X" link on a saving prévision, and the "Lissé" / "Dépense lissée" chips. A trailing chevron takes no color of its own so it inherits the chip's ink.
 - **`PulpeChip.Style.tinted(surface:foreground:)`:** explicit fill + ink pair, no border. Reserved for the cases `.semantic` can't express, where wash and ink are deliberately different colors: the dashboard hero (`HomeHeroCard`) and the paused savings goal (neutral wash, readable secondary ink). The chosen pair must separate from the actual backdrop.
-- **`PulpeChip.Size.standard`:** ~40pt visual, padding `(lg, md)` from `ChipMetrics.Standard`. Pulpe default.
-- **`PulpeChip.Size.prominent`:** ~48pt visual, padding `(xl, lg)`. Used for the dominant action chip on a screen.
+- **`PulpeChip.Size.standard` / `.prominent`:** both 36pt visual (`FrameHeight.chip`), 44pt hit area padded out and back in; `.prominent` only widens the horizontal padding.
 - **No `.compact`:** Pulpe pillar `Légèreté` excludes tight density.
 - **Disabled state:** `opacity(DesignTokens.Opacity.disabled)`, no tap, no haptic. Used on filter pills with count = 0 (except `.all`).
 
@@ -389,15 +397,9 @@ goes through `SegmentedPicker` (`ios/Pulpe/Shared/Components/SegmentedPicker.swi
 free-floating pills, whose unselected options read as bare text and blur into the chip
 families around them.
 
-- **Rendering is native:** the wrapper delegates to `Picker(.segmented)`, so track, thumb,
-  ink, typography, and selection animation are the OS's and stay aligned across releases.
-  The track is still what separates segmented _choices_ from chip _actions_
-  (`QuickAmountChips`, month chips, `PulpeChip`).
-- **Labels are plain `Text`** (emoji allowed — Devise reads `🇨🇭 CHF`): `UISegmentedControl`
-  flattens any richer view into extra segments. Deliberate concession: no per-context
-  accent ink on the selected label — the native control does not expose it per instance.
-- The wrapper adds the optional form-field title (`labelMedium` / `onSurfaceVariant`) and
-  `.sensoryFeedback(.selection)`; nothing else.
+- **Rendering:** a `sunk` capsule track with 3pt padding, 36pt segments; the selected segment is a `surface` capsule with a small shadow and ink text, the others ink2. Built from buttons (44pt hit area, `.isSelected` trait, Reduce Motion respected), so the track still separates segmented _choices_ from chip _actions_.
+- **Labels are plain `Text`** (emoji allowed — Devise reads `🇨🇭 CHF`).
+- The wrapper adds the optional form-field title (13pt semibold ink2) and `.sensoryFeedback(.selection)`.
 
 ### Card Deck (UncheckedOperationsCard)
 
@@ -432,7 +434,7 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 
 ### Cards / Containers
 
-- **Per-Row Card (Budget Line / Transaction Row):** `surfaceContainerLowest` background, `cornerRadius.xl` (32pt), `Shadow.subtle`. `padding.md` vertical, `padding.xs` leading (PointCircle), `padding.md` trailing. Pointed (checked) state dims to `0.62` opacity with strikethrough. Tap on circle toggles pointed; tap on row opens the detail sheet.
+- **Per-Row Card (Budget Line / Transaction Row):** a `PulpeListRow` inside a grouped white card. Pointed rows keep full opacity (no dim, no strikethrough). Tap on circle toggles pointed; tap on row opens the detail sheet.
 - **Hero Card (Budget Detail):** **Flat** — no surface, no border, no shadow. Sits flush on `appBackground`. Content: eyebrow (`DISPONIBLE · CHF`), hero amount (Manrope 72pt black on neutral), inline progress bar + percent, horizontal scroll of stat pills.
 - **Hero Surface (Dashboard — `HomeHeroCard`):** Estimated month-end summary with no card, border or shadow, on a mint surface bounded by the hero's own content: the gradient stops at the block's measured bottom edge and its lower corners are rounded, so nothing depends on a fraction of the screen height. The estimate is unsigned unless negative, split into a dominant figure and a secondary currency suffix on one baseline. Two metrics — unchecked count, variance against plan — each carry their value over their own label. One plain-language verdict ends in the drill-in to budget detail, marked by ink and a chevron; the unchecked count is stated once per screen and never duplicated by a section header.
 
@@ -443,8 +445,18 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 
 ### Inputs
 
-- **Form Text Field (`FormTextField`):** `Color.inputBackgroundSoft` fill, `cornerRadius.md` (24pt), `padding.lg` (16pt all around). Optional label above (`labelMedium`, `onSurfaceVariant`). Tapping anywhere on the padded background focuses the field via `.contentShape(.interaction, Rectangle())` + `onTapGesture`.
+- **Input (`FormTextField`, `AuthTextField`, `CurrencyField`):** `surface` fill, 14pt radius, 1pt `outline` border, 50pt minimum height, 17pt text; focused = 2pt `pulpePrimary` border. Optional label above (13pt semibold ink2). Tapping anywhere on the field focuses it via `.contentShape(.interaction, Rectangle())` + `onTapGesture`.
+- **Form Card (`FormCard`):** white, 18pt radius, 1pt `outlineVariant` border, 52pt rows (`ListRow.formRowHeight`) separated by `FormRowDivider`.
 - **Hero Amount Field (`HeroAmountField`):** Custom amount input with display amount logic.
+
+### V2 building blocks
+
+- **`PulpeListRow`:** the row grammar above. **`SectionAddRow`:** 52pt "add a prévision" row, green 15pt semibold text, 28pt `accentWash` disc with a plus.
+- **`ImpactBlock`:** what an action does to a figure: `sunk`, radius 16, caption title, struck-through "before" in ink3 → "after" Manrope 700 17pt, optional caption.
+- **`InfoBanner`:** radius 16, 15pt; `.neutral` (sunk), `.over` (over-wash, ocre glyph), `.ok` (accent wash), `.err` (red wash, red glyph). Never a button.
+- **`PulpeEmptyState`:** 56pt `accentWash` disc, 20pt bold title, one 15pt ink2 sentence, one small primary action. **`StatusScreen`:** the full-screen version for maintenance, error and update.
+- **`SettingsRow`:** 32pt `sunk` tile (radius 9, ink2 glyph), title, ink2 value, chevron. **`PageHeader`:** 34pt bold large title and 15pt ink2 subtitle.
+- **Toast:** white card radius 20, soft shadow, green icon, bold green action.
 
 ### Sheets
 
@@ -455,6 +467,7 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 
 - **NavigationStack (typed destinations):** `NavigationStack(path: $path)` with feature-scoped `enum Destination: Hashable`. Never `NavigationView` (deprecated). Never `NavigationLink` without typed destination.
 - **Tab Bar (`MainTabView`):** Native SwiftUI `TabView` with exactly four navigation destinations: Accueil, Budgets, Objectifs and Modèles. The system owns its material, safe-area reservation and keyboard adaptation. Never place a creation action in the tab bar or replace the system bar with custom chrome.
+- **Floating add (`FloatingAddButton`):** one global "+" on the four root tab screens, bottom trailing above the tab bar: 62pt solid `pulpePrimary` circle (never glass), white 26pt plus, `Shadow.floatingAction`. Hidden on pushed pages. Root scroll content takes `pulpeRootBottomInset()` (120pt, `Layout.rootBottomInset`) so no row hides under the bar and the button.
 - **Contextual creation:** The owner screen presents the action closest to the object it creates. Accueil uses a visible, labelled content action for an operation. Budget detail spends its one filled content action on adding a forecast, in the same shape and on the same `Spacing.xxl` rail the Accueil gives to recording an operation; the action that only reads the month back stays a bare `topBarTrailing` glyph, which iOS 26 dresses in its own Liquid Glass, so the two never compete for the same weight; a future month adds an `ellipsis.circle` overflow menu beside it that holds its one destructive entry, "Supprimer ce mois". Root lists use their native toolbar action; local form additions stay inside their section. Every icon-only action has an explicit accessibility label and a 44pt minimum target.
 - **Visibility:** Follow the system `TabView` behavior. Do not derive tab-bar visibility from navigation depth or keyboard notifications; hide it only when an explicit immersive flow requires it.
 - **Sheet Forms vs Push:** Sheets for modal forms and detail edits. Push for hierarchical content (budget → budget detail → line detail). `.fullScreenCover` for immersive flows (auth, onboarding).
@@ -477,11 +490,11 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 - **Do** apply `.standardSheetPresentation()` on every sheet — without it, iOS 26 Liquid Glass bleeds through.
 - **Do** put `frame(minHeight: 44)` on the **Button** (not the label) and pair with `.contentShape()`.
 - **Do** use `Color.financialIncome` / `Color.financialSavings` / `Color.financialExpense` for category accents, and `Color.financialOverBudget` for envelopes that have actually overrun.
-- **Do** use `PrimaryButtonStyle` / `SecondaryButtonStyle` / `DestructiveButtonStyle` / `IconButtonStyle` / `TextLinkButtonStyle` / `PlainPressedButtonStyle` / `CircleIconButtonStyle` — never hand-roll a button.
+- **Do** use `PrimaryButtonStyle` / `SecondaryButtonStyle` / `TertiaryButtonStyle` / `DestructiveButtonStyle` / `IconButtonStyle` / `TextLinkButtonStyle` / `PlainPressedButtonStyle` / `CircleIconButtonStyle` — never hand-roll a button.
 - **Do** use Manrope (`PulpeTypography.amountHero`, `.headline`, `.kindTag`) for display, brand titles, and amount text. Use SF Pro (system) for everything else.
 - **Do** use `monospacedDigit()` on every `Text` rendering a Decimal.
 - **Do** use `PulpeChip(...)` for any chip / pill / filter / badge in feature code.
-- **Do** keep the emotion zone at the top (constant forest surface, state in the verdict) and the content zone below (neutral warm), bounded by `CornerRadius.zone` and `Shadow.zoneBoundary`.
+- **Do** keep green for actions and ink for reading; say "dépassé" in ocre, never red.
 - **Do** address the user with "tu", always.
 
 ### Don't:
@@ -493,5 +506,6 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 - **Don't** put `frame(minHeight: 44)` inside a Button's label — it inflates the visible background to 44pt.
 - **Don't** ship a sheet without an explicit `.presentationBackground(...)` — iOS 26 will bleed glass through it.
 - **Don't** use `asCompactCurrency` on the Budget Detail page — two decimals everywhere there.
-- **Don't** use anxiety red anywhere except the dashboard hero deficit (>100% spent).
+- **Don't** use red anywhere except delete. Overruns are ocre.
+- **Don't** use black on a button, chip or disc, dim a pointed row, or draw category icons in rows.
 - **Don't** invent new chip vocabulary — extend `PulpeChip.Style` if a new visual variant is needed.

@@ -120,7 +120,7 @@ struct SpreadFormSection: View {
                 calculator.toggle(month)
             }
         } label: {
-            PulpeChip(label: month.name, style: isOn ? .solid : .outlined)
+            PulpeChip(label: month.name, style: isOn ? .selected : .outlined)
                 .strikethrough(!isOn, color: Color.onSurfaceVariant)
         }
         .plainPressedButtonStyle()

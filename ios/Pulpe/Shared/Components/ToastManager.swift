@@ -22,7 +22,7 @@ final class ToastManager {
             switch self {
             case .success: .pulpePrimary
             case .error: .errorPrimary
-            case .undo: .financialOverBudget
+            case .undo: .pulpePrimary
             }
         }
     }

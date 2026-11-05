@@ -107,12 +107,11 @@ struct BudgetDetailsSkeletonView: View {
         .padding(.top, -DesignTokens.Spacing.lg)
     }
 
-    /// A `PulpeChip` at `.standard` size: label line plus the chip's own padding.
+    /// A `PulpeChip` at `.standard` size: a 36pt capsule.
     private func chipSkeleton(width: CGFloat) -> some View {
         SkeletonShape(
             width: width + DesignTokens.ChipMetrics.Standard.horizontalPadding * 2,
-            height: DesignTokens.Skeleton.lineHeight
-                + DesignTokens.ChipMetrics.Standard.verticalPadding * 2,
+            height: DesignTokens.FrameHeight.chip,
             cornerRadius: .infinity
         )
     }

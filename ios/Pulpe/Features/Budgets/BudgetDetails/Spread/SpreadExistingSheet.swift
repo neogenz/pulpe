@@ -194,7 +194,7 @@ struct SpreadExistingSheet: View {
         return Button {
             withAnimation(.snappy(duration: DesignTokens.Animation.fast)) { calculator.toggle(month) }
         } label: {
-            PulpeChip(label: month.name, style: isOn ? .solid : .outlined)
+            PulpeChip(label: month.name, style: isOn ? .selected : .outlined)
                 .strikethrough(!isOn, color: Color.onSurfaceVariant)
         }
         .disabled(calculator.isLocked(month))

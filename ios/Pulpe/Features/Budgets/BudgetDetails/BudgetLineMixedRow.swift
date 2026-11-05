@@ -91,9 +91,7 @@ struct BudgetLineMixedRow: View {
         Button(action: handleTap) {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 PointCircle(
-                    kind: line.kind,
                     isPointed: isPointed,
-                    color: dotColor,
                     isSyncing: isSyncing,
                     onPrepareToggle: onPrepareTogglePointed,
                     onCompletionStateChange: { pointCompletionGate.isPending = $0 },
@@ -121,7 +119,6 @@ struct BudgetLineMixedRow: View {
             .padding(.vertical, DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
-            .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
             .animation(
                 reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
                 value: isPointed
@@ -156,7 +153,6 @@ struct BudgetLineMixedRow: View {
             Text(line.name)
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
-                .strikethrough(isPointed, color: Color.textTertiary)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .truncationMode(.tail)
 

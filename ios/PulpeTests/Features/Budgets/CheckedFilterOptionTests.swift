@@ -165,13 +165,13 @@ struct CheckedFilterOptionTests {
         let checked: PulpeChip<EmptyView>.Style = BudgetTypeFilter.checkedChipStyle(for: .checked)
         #expect(unchecked == .semantic(.financialSavings))
         #expect(checked == .semantic(.financialSavings))
-        #expect(unchecked != .solid)
+        #expect(unchecked != .selected)
     }
 
     @Test func kindChipStyle_solidOnlyWhenSelected() {
         let selected: PulpeChip<EmptyView>.Style = BudgetTypeFilter.kindChipStyle(isSelected: true)
         let idle: PulpeChip<EmptyView>.Style = BudgetTypeFilter.kindChipStyle(isSelected: false)
-        #expect(selected == .solid)
+        #expect(selected == .selected)
         #expect(idle == .outlined)
     }
 }

@@ -39,19 +39,16 @@ struct FormTextField<Field: Hashable>: View {
                     }
                     .accessibilityLabel(accessibilityLabel ?? label)
             }
-            .frame(minHeight: DesignTokens.ListRow.minHeight)
+            .frame(minHeight: DesignTokens.ListRow.formRowHeight)
             .contentShape(.interaction, Rectangle())
             .onTapGesture { focusBinding.wrappedValue = field }
         } else if let label {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(label)
-                    .font(PulpeTypography.labelMedium)
+                    .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.onSurfaceVariant)
+                    .padding(.leading, DesignTokens.Spacing.xs)
                 textField
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                            .strokeBorder(Color.outlineVariant.opacity(0.5), lineWidth: DesignTokens.BorderWidth.thin)
-                    )
                     .accessibilityLabel(accessibilityLabel ?? label)
             }
         } else {
@@ -60,13 +57,22 @@ struct FormTextField<Field: Hashable>: View {
         }
     }
 
+    /// V2 input: white, 14pt radius, 1pt `outline` border, 2pt accent border while focused.
     private var textField: some View {
-        TextField(hint, text: $text)
+        let isFocused = focusBinding.wrappedValue == field
+        return TextField(hint, text: $text)
             .font(PulpeTypography.bodyLarge)
             .submitLabel(.done)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .padding(.horizontal, DesignTokens.CornerRadius.input)
+            .frame(minHeight: DesignTokens.FrameHeight.input)
+            .background(Color.surface, in: .rect(cornerRadius: DesignTokens.CornerRadius.input))
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input)
+                    .strokeBorder(
+                        isFocused ? Color.pulpePrimary : Color.outline,
+                        lineWidth: isFocused ? DesignTokens.Control.inputFocusBorder : DesignTokens.BorderWidth.thin
+                    )
+            }
             .contentShape(.interaction, Rectangle())
             // See type documentation — `Button` would not focus the inner `TextField` with this layout.
             .onTapGesture { focusBinding.wrappedValue = field }

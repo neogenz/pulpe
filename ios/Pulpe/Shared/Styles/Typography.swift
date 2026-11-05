@@ -10,6 +10,39 @@ import SwiftUI
 /// - SF Symbols sizing on `Image(systemName:)`
 /// - Technical accessibility/rendering cases that cannot be expressed with an existing token
 enum PulpeTypography {
+    // MARK: - V2 roles (ds.css: tabular digits on every amount)
+
+    /// Hero figure (Manrope 800, 52pt, tracking `DesignTokens.Tracking.heroV2`).
+    static let heroAmount = Font.custom("Manrope", size: 52, relativeTo: .largeTitle).weight(.heavy).monospacedDigit()
+    /// Currency suffix beside the hero figure: 0.42em, ink2, bold.
+    static let heroCurrencySuffix = Font.custom("Manrope", size: 22, relativeTo: .largeTitle).weight(.bold)
+    /// Big figure (Manrope 800, 36pt).
+    static let bigAmount = Font.custom("Manrope", size: 36, relativeTo: .largeTitle).weight(.heavy).monospacedDigit()
+    static let bigCurrencySuffix = Font.custom("Manrope", size: 15, relativeTo: .largeTitle).weight(.bold)
+    /// Mid figure (Manrope 800, 22pt).
+    static let midAmount = Font.custom("Manrope", size: 22, relativeTo: .title2).weight(.heavy).monospacedDigit()
+    static let midCurrencySuffix = Font.custom("Manrope", size: 13, relativeTo: .title2).weight(.bold)
+    /// Large title of a root screen (SF 34 bold).
+    static let pageTitle: Font = .system(.largeTitle, weight: .bold)
+    /// Subtitle under a large title (15pt).
+    static let pageSubtitle: Font = .subheadline
+    /// Title of an empty state or a status screen (20pt bold).
+    static let statusTitle: Font = .system(.title3, weight: .bold)
+    /// Row title (16pt semibold).
+    static let rowTitle: Font = .system(.callout, weight: .semibold)
+    /// Value line of a settings row and a form line (16pt regular).
+    static let rowTitleRegular: Font = .system(.callout)
+    /// Trailing amount of a row (Manrope 700, 16pt).
+    static let rowAmount = Font.custom("Manrope", size: 16, relativeTo: .callout).weight(.bold).monospacedDigit()
+    /// "After" figure of an impact block (Manrope 700, 17pt).
+    static let impactAmount = Font.custom("Manrope", size: 17, relativeTo: .body).weight(.bold).monospacedDigit()
+    /// Caption, 13pt minimum, in ink2.
+    static let captionRegular: Font = .footnote
+    /// Chip label and small button (15pt semibold).
+    static let chipLabel: Font = .system(.subheadline, weight: .semibold)
+    /// Banner text (15pt).
+    static let bannerText: Font = .subheadline
+
     // MARK: - Brand Titles (Manrope Bold)
 
     static let brandTitle = Font.custom("Manrope", size: 34, relativeTo: .largeTitle).weight(.bold)

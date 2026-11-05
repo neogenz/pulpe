@@ -44,6 +44,8 @@ extension DesignTokens {
 
         /// Scale a confirmed element settles to as it resolves away (check-exit transition).
         static let settleScale: CGFloat = 0.94
+        /// Scale of a V2 button while pressed
+        static let pressedButtonScale: CGFloat = 0.96
 
         static var smoothEaseOut: SwiftUI.Animation {
             .easeOut(duration: normal)

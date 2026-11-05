@@ -9,21 +9,23 @@ import SwiftUI
 /// from `DesignTokens.ChipMetrics`.
 ///
 /// ## Variants
-/// - `Style`: `.solid` (active filter / primary chip) · `.outlined` (default) · `.muted` (informational)
-/// - `Size`: `.standard` (default) · `.prominent` (CTA chips). No `.compact` — Pulpe DA pillar
-///   "Légèreté" forbids tight density.
+/// - `Style`: `.selected` (V2 on: pale green, 1.5pt green ring, deep-green ink, leading check) ·
+///   `.outlined` (V2 off, default: white, 1pt line inset, ink) · `.muted` (informational) ·
+///   `.tinted` / `.semantic` (status badges). Never solid black.
+/// - `Size`: `.standard` (default) · `.prominent` (wider CTA chips). Both are 36pt tall.
 ///
 /// ## Tap area
-/// `PulpeChip` keeps the **visual** compact and applies a `Capsule()` `contentShape` plus a
-/// 44pt minimum frame so a wrapping `Button { ... } label: { PulpeChip(...) }` honours
-/// Apple HIG — see `swiftui-hit-areas.md`.
+/// The visual is 36pt; the hit area is padded out to 44pt and back in so a wrapping
+/// `Button { ... } label: { PulpeChip(...) }` honours Apple HIG without growing the layout
+/// — see `swiftui-hit-areas.md`.
 struct PulpeChip<Trailing: View>: View {
     // MARK: - Style
 
     enum Style: Equatable {
-        /// Filled, used for active filter / primary chip. Inverts foreground to `systemBackground`.
-        case solid
-        /// Default chip — `surface` fill + hairline outline.
+        /// V2 on: `accentWash` fill, 1.5pt `pulpePrimary` ring, `accentInk` label, leading check
+        /// (unless the chip carries its own icon).
+        case selected
+        /// V2 off, the default chip: `surface` fill + 1pt `outline` (line2) inset border.
         case outlined
         /// Informational chip — `surfaceContainerHigh` fill, no border.
         case muted
@@ -53,13 +55,6 @@ struct PulpeChip<Trailing: View>: View {
             switch self {
             case .standard: DesignTokens.ChipMetrics.Standard.horizontalPadding
             case .prominent: DesignTokens.ChipMetrics.Prominent.horizontalPadding
-            }
-        }
-
-        fileprivate var verticalPadding: CGFloat {
-            switch self {
-            case .standard: DesignTokens.ChipMetrics.Standard.verticalPadding
-            case .prominent: DesignTokens.ChipMetrics.Prominent.verticalPadding
             }
         }
 
@@ -109,13 +104,19 @@ struct PulpeChip<Trailing: View>: View {
     var body: some View {
         content
             .padding(.horizontal, size.horizontalPadding)
-            .padding(.vertical, size.verticalPadding)
+            .frame(height: DesignTokens.FrameHeight.chip)
             .background(Capsule().fill(backgroundFill))
             .overlay { borderOverlay }
             .foregroundStyle(foregroundColor)
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Capsule())
+            // Hit area: out to 44pt and back in, so the layout stays 36pt.
+            .padding(.vertical, hitAreaOutset)
+            .contentShape(Rectangle())
+            .padding(.vertical, -hitAreaOutset)
             .opacity(isDisabled ? DesignTokens.Opacity.disabled : 1)
+    }
+
+    private var hitAreaOutset: CGFloat {
+        (DesignTokens.TapTarget.minimum - DesignTokens.FrameHeight.chip) / 2
     }
 
     // MARK: - Content
@@ -134,9 +135,13 @@ struct PulpeChip<Trailing: View>: View {
             if let icon {
                 Image(systemName: icon)
                     .contentTransition(.symbolEffect(.replace))
+            } else if style == .selected {
+                Image(systemName: "checkmark")
+                    .font(PulpeTypography.metricMini)
+                    .accessibilityHidden(true)
             }
             Text(label)
-                .font(PulpeTypography.metricLabelBold)
+                .font(PulpeTypography.chipLabel)
                 // Matches the icon above: a chip whose label swaps mid-animation should
                 // cross-fade with its symbol, not snap while the symbol morphs. Inert for
                 // the static labels most chips carry.
@@ -163,7 +168,7 @@ struct PulpeChip<Trailing: View>: View {
 
     private var backgroundFill: Color {
         switch style {
-        case .solid: Color.textPrimary
+        case .selected: Color.accentWash
         case .outlined: Color.surface
         case .muted: Color.surfaceContainerHigh
         case .tinted(let surface, _): surface
@@ -172,18 +177,19 @@ struct PulpeChip<Trailing: View>: View {
 
     @ViewBuilder
     private var borderOverlay: some View {
-        if style == .outlined {
-            Capsule()
-                .strokeBorder(
-                    Color.onSurfaceVariant.opacity(DesignTokens.Opacity.outlinePill),
-                    lineWidth: DesignTokens.BorderWidth.thin
-                )
+        switch style {
+        case .outlined:
+            Capsule().strokeBorder(Color.outline, lineWidth: DesignTokens.BorderWidth.thin)
+        case .selected:
+            Capsule().strokeBorder(Color.pulpePrimary, lineWidth: DesignTokens.Control.chipSelectedRing)
+        case .muted, .tinted:
+            EmptyView()
         }
     }
 
     private var foregroundColor: Color {
         switch style {
-        case .solid: Color(.systemBackground)
+        case .selected: Color.accentInk
         case .outlined, .muted: Color.textPrimary
         case .tinted(_, let foreground): foreground
         }
@@ -191,15 +197,15 @@ struct PulpeChip<Trailing: View>: View {
 
     private var countBadgeFill: Color {
         switch style {
-        case .solid: Color(.systemBackground).opacity(DesignTokens.Opacity.secondary)
+        case .selected: Color.clear
         case .outlined, .muted, .tinted: Color.surfaceContainerHigh
         }
     }
 
     private var countBadgeForeground: Color {
         switch style {
-        case .solid: Color(.systemBackground)
-        case .outlined, .muted, .tinted: Color.textTertiary
+        case .selected: Color.accentInk
+        case .outlined, .muted, .tinted: Color.textSecondary
         }
     }
 }
@@ -210,7 +216,7 @@ struct PulpeChip<Trailing: View>: View {
     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
         Text("Standard").font(.caption).foregroundStyle(.secondary)
         HStack(spacing: DesignTokens.ChipMetrics.Standard.interChipGap) {
-            PulpeChip(label: "Tout", count: 12, style: .solid)
+            PulpeChip(label: "Tout", count: 12, style: .selected)
             PulpeChip(label: "Revenus", count: 3, style: .outlined)
             PulpeChip(label: "Épargne", count: 0, style: .outlined, isDisabled: true)
         }
@@ -229,7 +235,7 @@ struct PulpeChip<Trailing: View>: View {
         )
 
         Text("Prominent").font(.caption).foregroundStyle(.secondary)
-        PulpeChip(label: "CTA", style: .solid, size: .prominent)
+        PulpeChip(label: "CTA", style: .selected, size: .prominent)
 
         Text("Muted").font(.caption).foregroundStyle(.secondary)
         PulpeChip(label: "Info", style: .muted)

@@ -126,10 +126,10 @@ struct BudgetTypeFilter: View {
     let counts: BudgetLineKindCounts
     let checkedCounts: CheckedFilterCounts
 
-    /// The Three Families Rule: natures are solid / outlined, the état filter is the one
+    /// The Three Families Rule: natures are selected / outlined, the état filter is the one
     /// semantic chip and only reads active while it narrows the list.
     static func kindChipStyle<Trailing: View>(isSelected: Bool) -> PulpeChip<Trailing>.Style {
-        isSelected ? .solid : .outlined
+        isSelected ? .selected : .outlined
     }
 
     static func checkedChipStyle<Trailing: View>(for option: CheckedFilterOption) -> PulpeChip<Trailing>.Style {
@@ -173,9 +173,7 @@ struct BudgetTypeFilter: View {
                 trailing: {
                     Image(systemName: "chevron.down")
                         .font(PulpeTypography.metricMini)
-                        // Derived from the chip's own foreground, not a fixed grey:
-                        // `.solid` inverts to `systemBackground` and a hardcoded
-                        // `textTertiary` chevron would vanish into the dark fill.
+                        // Derived from the chip's own foreground, not a fixed grey.
                         .foregroundStyle(.secondary)
                 }
             )

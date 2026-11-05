@@ -27,7 +27,6 @@ struct CurrencyField: View {
     let currency: SupportedCurrency
     let visualStyle: VisualStyle
 
-    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var internalFocus: Bool
     @State private var textValue: String
     @State private var hasInitialized = false
@@ -76,7 +75,7 @@ struct CurrencyField: View {
 
                 TextField(hint, text: $textValue)
                     .keyboardType(.decimalPad)
-                    .foregroundStyle(Color.authInputText)
+                    .foregroundStyle(Color.textPrimary)
                     .focused(externalFocus ?? $internalFocus)
                     .accessibilityLabel(accessibilityFieldLabel)
                     .onChange(of: textValue) { _, newValue in
@@ -89,12 +88,11 @@ struct CurrencyField: View {
                     }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(height: DesignTokens.FrameHeight.button)
+            .frame(minHeight: DesignTokens.FrameHeight.input)
             .background { fieldBackground }
             .contentShape(.interaction, Rectangle())
             // Full-field tap focuses the nested `TextField`; `Button` would add nested control semantics.
             .onTapGesture { (externalFocus ?? $internalFocus).wrappedValue = true }
-            .ifLet(shadowStyle) { view, style in view.shadow(style) }
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: effectiveFocus)
         }
         .task {
@@ -171,31 +169,21 @@ struct CurrencyField: View {
     }
 
     private var borderColor: Color {
-        effectiveFocus ? Color.pulpePrimary.opacity(0.45) : Color.authInputBorder
+        effectiveFocus ? Color.pulpePrimary : Color.outline
     }
 
     private var borderWidth: CGFloat {
-        effectiveFocus ? DesignTokens.BorderWidth.thick : DesignTokens.BorderWidth.hairline
+        effectiveFocus ? DesignTokens.Control.inputFocusBorder : DesignTokens.BorderWidth.thin
     }
 
-    @ViewBuilder
+    /// V2 input for both visual styles: white, 14pt radius, 1pt border, 2pt accent border when focused.
     private var fieldBackground: some View {
-        switch visualStyle {
-        case .onboarding:
-            Capsule(style: .continuous)
-                .fill(backgroundColor)
-                .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(borderColor, lineWidth: borderWidth)
-                }
-        case .flat:
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md, style: .continuous)
-                .fill(backgroundColor)
-                .overlay {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md, style: .continuous)
-                        .strokeBorder(borderColor, lineWidth: borderWidth)
-                }
-        }
+        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+            .fill(Color.surface)
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: borderWidth)
+            }
     }
 
     private var labelColor: Color {
@@ -213,26 +201,6 @@ struct CurrencyField: View {
             return Color.textSecondaryOnboarding.opacity(0.7)
         case .flat:
             return Color.textTertiary
-        }
-    }
-
-    private var backgroundColor: Color {
-        switch visualStyle {
-        case .onboarding:
-            return Color.authInputBackground
-        case .flat:
-            return Color.surfaceContainer
-        }
-    }
-
-    private var shadowStyle: ShadowStyle? {
-        switch visualStyle {
-        case .onboarding:
-            return colorScheme == .dark
-                ? ShadowStyle(color: .black.opacity(0.01), radius: 2, y: 1)
-                : DesignTokens.Shadow.input
-        case .flat:
-            return nil
         }
     }
 }

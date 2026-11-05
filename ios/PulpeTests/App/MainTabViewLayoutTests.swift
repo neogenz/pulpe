@@ -26,8 +26,8 @@ struct MainTabViewNavigationOwnershipTests {
         #expect(!source.contains("toolbarVisibility(.hidden, for: .tabBar)"))
         #expect(!source.contains("floatingTabBar"))
         #expect(!source.contains("tabBarClearance"))
-        #expect(!source.contains("AddTransactionSheet("))
-        #expect(!source.contains("actionFAB("))
+        // V2: one global add button on the root screens, solid green, hosted by the shell.
+        #expect(source.contains("FloatingAddButton {"))
     }
 
     @Test("Current Month owns transaction creation")
@@ -67,8 +67,8 @@ struct MainTabViewNavigationOwnershipTests {
         #expect(action.contains(".primaryButtonStyle()"))
 
         let style = try Self.read("Pulpe", "Shared", "Design", "PrimaryButtonStyle.swift")
-        #expect(style.contains("frame(maxWidth: .infinity)"))
-        #expect(style.contains("frame(height: DesignTokens.FrameHeight.button)"))
+        #expect(style.contains("frame(maxWidth: size == .regular ? .infinity : nil)"))
+        #expect(style.contains("frame(height: size.height)"))
         #expect(style.contains(".contentShape(Capsule())"))
     }
 }

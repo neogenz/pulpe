@@ -13,10 +13,16 @@ extension Color {
     /// Savings indicator color - Green (#157038 light, #50C882 dark)
     static let financialSavings = Color("FinancialSavings")
 
-    /// Over-budget indicator - Warm amber, not aggressive red (#905800 light, #E5A33A dark).
-    /// The light value is set by the hero's mint surface, the darkest background it lands on:
-    /// 4.5:1 there, and higher on every paler surface it also serves.
+    /// "Dépassé" ocre (V2 `over`, #905800 light, #E5A33A dark). Never red: red is for delete only.
+    /// 5.9:1 on white in light mode, 8.6:1 on `surface` in dark mode.
     static let financialOverBudget = Color(light: Color(hex: 0x905800), dark: Color(hex: 0xE5A33A))
+    /// Wash behind an ocre label or banner (V2 `over-w`, #F6EBDB light, #3A2A10 dark).
+    static let overWash = Color(light: Color(hex: 0xF6EBDB), dark: Color(hex: 0x3A2A10))
+
+    /// Coral (V2 `coral`, #C45028 light, #E8825A dark): a deficit tone, below the ocre in severity of mood.
+    static let coral = Color(light: Color(hex: 0xC45028), dark: Color(hex: 0xE8825A))
+    /// Wash behind a coral label (V2 `coral-w`, #FAE6DE light, #3A1D12 dark).
+    static let coralWash = Color(light: Color(hex: 0xFAE6DE), dark: Color(hex: 0x3A1D12))
 
     /// Map a `TransactionKind` to its semantic financial color.
     static func financialColor(for kind: TransactionKind) -> Color {
@@ -29,8 +35,15 @@ extension Color {
 
     // MARK: - Brand Colors
 
-    /// Primary brand color - Dark green (#006E25 light, #7EDB83 dark)
+    /// The one action colour (V2 `accent`, #006E25 light, #7EDB83 dark). Green acts, ink reads.
+    /// White on it is 6.4:1 in light mode; `textOnPrimary` flips to near-black in dark mode.
     static let pulpePrimary = Color("PulpePrimary")
+
+    /// Pale green fill: secondary button, selected chip, empty-state disc (V2 `accent-w`,
+    /// #E2F0E5 light, #1F3B27 dark).
+    static let accentWash = Color(light: Color(hex: 0xE2F0E5), dark: Color(hex: 0x1F3B27))
+    /// Text and glyphs on `accentWash` (V2 `accent-ink`, #0B4F1E light, #A6E6AA dark): 8.3:1 / 9.6:1.
+    static let accentInk = Color(light: Color(hex: 0x0B4F1E), dark: Color(hex: 0xA6E6AA))
 
     // MARK: - Primary Container
 
@@ -46,38 +59,32 @@ extension Color {
     /// so the disabled capsule remains visually distinct without an outline.
     static let primaryContainerDisabled = Color(light: Color(hex: 0xD6E8DC), dark: Color(hex: 0x2D3D31))
 
-    // MARK: - Secondary
-
-    static let secondaryColor = Color(light: Color(hex: 0x406741), dark: Color(hex: 0xA6D2A3))
-    static let secondaryContainer = Color(light: Color(hex: 0xC1EEBE), dark: Color(hex: 0x294F2B))
-
     // MARK: - App Background
-    // Warm sage canvas — the home dashboard's calm tone, now the shared iOS-wide default.
-    // Light: #EFF3EE. Dark: #121611 (warm near-black, not pure #000).
-    // iOS override of the cross-platform neutral #F7F6F3 (see ios/DESIGN.md).
-    static let appBackground = Color(light: Color(hex: 0xEFF3EE), dark: Color(hex: 0x121611))
+    // V2 `bg`: warm paper canvas. Light #F2F1EC. Dark #121611 (warm near-black, not pure #000).
+    static let appBackground = Color(light: Color(hex: 0xF2F1EC), dark: Color(hex: 0x121611))
 
     // MARK: - Sheet Background
-    // Warm sheet surface with visible contrast against card bg in dark mode.
-    // Light: slightly cooler warm (#F5F3F0). Dark: #111111 (darker than card bg).
-    static let sheetBackground = Color(light: Color(hex: 0xF5F3F0), dark: Color(hex: 0x111111))
+    // V2 `sheet`. Light #F6F5F1. Dark #111111 (darker than the card surface).
+    static let sheetBackground = Color(light: Color(hex: 0xF6F5F1), dark: Color(hex: 0x111111))
 
-    // MARK: - Surface (warm hierarchy — ios/DESIGN.md §2)
+    /// V2 `sunk`: a recessed fill (segmented track, impact block, neutral banner, settings tile).
+    /// Light #ECEAE4, dark #2A2826.
+    static let sunk = Color(light: Color(hex: 0xECEAE4), dark: Color(hex: 0x2A2826))
+
+    // MARK: - Surface (V2: card = white, canvas = bg, sheet, sunk — ios/DESIGN.md §2)
 
     static let surface = Color(light: .white, dark: Color(hex: 0x1A1816))
-    static let surfaceDim = Color(light: Color(hex: 0xEBE9E5), dark: Color(hex: 0x161412))
-    static let surfaceBright = Color(light: .white, dark: Color(hex: 0x1A1816))
     static let surfaceContainerLowest = Color(light: .white, dark: Color(hex: 0x1E1C1A))
     static let surfaceContainerLow = Color(light: Color(hex: 0xFCFAF7), dark: Color(hex: 0x1C1A18))
-    static let surfaceContainer = Color(light: Color(hex: 0xF5F3F0), dark: Color(hex: 0x201E1C))
-    static let surfaceContainerHigh = Color(light: Color(hex: 0xF0EDE9), dark: Color(hex: 0x242220))
+    static let surfaceContainer = Color(light: Color(hex: 0xF6F5F1), dark: Color(hex: 0x201E1C))
+    /// V2 `sunk` family: recessed fills on a card or the canvas.
+    static let surfaceContainerHigh = sunk
     static let surfaceContainerHighest = Color(light: Color(hex: 0xE8E5E1), dark: Color(hex: 0x2A2826))
-    static let surfaceVariant = Color(light: Color(hex: 0xEBE9E5), dark: Color(hex: 0x242220))
 
     // MARK: - Semantic Text Colors
 
-    /// Primary text — iOS system label (pure black light, pure white dark)
-    static let textPrimary = Color(.label)
+    /// V2 `ink`: text and amounts, never a fill (#1A1C19 light, #F5F3EF dark).
+    static let textPrimary = Color(light: Color(hex: 0x1A1C19), dark: Color(hex: 0xF5F3EF))
 
     /// Text on primary-colored backgrounds — inverts lightness with `pulpePrimary` (M3 onPrimary pairing).
     /// Light: white on dark forest green #006E25 = 5.1:1 (AA) · Dark: near-black on lime #7EDB83 = ~12.5:1 (AAA)
@@ -86,21 +93,25 @@ extension Color {
     /// Secondary line on primary-filled controls (e.g. capsule subtitle). 88% opacity of `textOnPrimary`.
     static var textOnPrimaryMuted: Color { textOnPrimary.opacity(0.88) }
 
-    /// Secondary text — WCAG AA on all warm surfaces (labels, subtitles, captions)
-    /// Light #524D48: 6.9:1 on #F0EDE9 (AAA) · Dark #B8B0A8: 7.6:1 on #242220 (AAA)
-    static let textSecondary = Color(light: Color(hex: 0x524D48), dark: Color(hex: 0xB8B0A8))
+    /// V2 `ink2`: captions and labels, 13pt minimum.
+    /// Light #4A4540: 8.4:1 on `appBackground` · Dark #C4BCB3: 9.6:1 on `surface`
+    static let textSecondary = Color(light: Color(hex: 0x4A4540), dark: Color(hex: 0xC4BCB3))
 
-    /// Tertiary text — WCAG AA on all warm surfaces (hints, footers, decorative)
-    /// Light #6E6762: 4.8:1 on #F0EDE9 (AA) · Dark #958E88: 5.0:1 on #242220 (AA)
-    static let textTertiary = Color(light: Color(hex: 0x6E6762), dark: Color(hex: 0x958E88))
+    /// V2 `ink3`: placeholders, struck-through "before" figures, chevrons. Never the only carrier of meaning.
+    /// Light #77706A · Dark #A39C94 (6.0:1 on `surface`)
+    static let textTertiary = Color(light: Color(hex: 0x77706A), dark: Color(hex: 0xA39C94))
 
     /// Secondary content on surface — alias for textSecondary (M3 naming)
     static let onSurfaceVariant = textSecondary
 
     // MARK: - Outline
 
-    static let outline = Color(light: Color(hex: 0x6F7A6D), dark: Color(hex: 0x899486))
-    static let outlineVariant = Color(light: Color(hex: 0xBFCABA), dark: Color(hex: 0x3F493E))
+    /// V2 `line2`: the border of an input or an unselected chip (#CFC8BC light, #4A4640 dark).
+    static let outline = Color(light: Color(hex: 0xCFC8BC), dark: Color(hex: 0x4A4640))
+    /// V2 `line`: hairlines between rows, form-card border (#E6E2DA light, #3A3733 dark).
+    static let outlineVariant = Color(light: Color(hex: 0xE6E2DA), dark: Color(hex: 0x3A3733))
+    /// V2 `ring`: the unpointed pointing circle's ring (#8F877C light, #8A837A dark), 3:1 on white.
+    static let pointRing = Color(light: Color(hex: 0x8F877C), dark: Color(hex: 0x8A837A))
 
     // MARK: - Error Colors
 
@@ -112,11 +123,11 @@ extension Color {
 
     // MARK: - Destructive Colors (true red for irreversible actions)
 
-    /// Destructive primary — true red for account deletion, danger zones (#C62828 light, #FF6B6B dark)
+    /// V2 `red`: delete and nothing else (#C62828 light, #FF6B6B dark).
     static let destructivePrimary = Color(light: Color(hex: 0xC62828), dark: Color(hex: 0xFF6B6B))
 
-    /// Destructive background — soft red tint for danger zone cards (#FDECEA light, #3A1818 dark)
-    static let destructiveBackground = Color(light: Color(hex: 0xFDECEA), dark: Color(hex: 0x3A1818))
+    /// V2 `red-w`: the destructive button fill and error banner (#FBE7E6 light, #3A1818 dark).
+    static let destructiveBackground = Color(light: Color(hex: 0xFBE7E6), dark: Color(hex: 0x3A1818))
 
     // MARK: - Warning Colors
 
@@ -139,20 +150,14 @@ extension Color {
     /// Background track for progress indicators
     static let progressTrack = Color("ProgressTrack")
 
-    /// Border color for input fields (unfocused state)
-    static let inputBorder = Color("InputBorder")
+    /// Border color for input fields (unfocused state): V2 `line2`
+    static let inputBorder = outline
 
     /// Generic badge background
     static let badgeBackground = Color("BadgeBackground")
 
     /// Input field background — subtle gray fill for contrast on white sheets
     static let inputBackgroundSoft = Color(uiColor: .tertiarySystemFill)
-
-    /// Input focus glow color
-    static let inputFocusGlow = Color(
-        light: Color(hex: 0x006E25).opacity(0.12),
-        dark: Color(hex: 0x4AA070).opacity(0.15)
-    )
 
     // MARK: - Gradient Colors
 
@@ -254,14 +259,8 @@ extension Color {
     /// Glass-morphic card background for auth forms
     static let authCardGlass = Color(light: .white.opacity(0.85), dark: Color(hex: 0x1C1C1E).opacity(0.75))
 
-    /// Input field background for auth screens (high contrast - fully opaque)
-    static let authInputBackground = Color(light: .white, dark: Color(hex: 0x1C2420))
-
-    /// Input field text color for auth screens
-    static let authInputText = Color(light: Color(hex: 0x1A1A1A), dark: .white)
-
     /// Input field border color for auth screens
-    static let authInputBorder = Color(light: Color(hex: 0xE0E0E0), dark: Color(hex: 0x2A3028))
+    static let authInputBorder = outline
 
     /// Mint green background matching landing page suggestion
     static let mintBackground = Color(light: Color(hex: 0xBDF5B7), dark: Color(hex: 0x1A3A1A))

@@ -16,7 +16,6 @@ struct BudgetLineDetailTransactionRow: View {
                     Text(transaction.name)
                         .font(PulpeTypography.labelLargeBold)
                         .foregroundStyle(transaction.isChecked ? .secondary : .primary)
-                        .strikethrough(transaction.isChecked, color: .secondary)
                         .lineLimit(1)
 
                     HStack(spacing: DesignTokens.Spacing.xs) {
@@ -45,7 +44,7 @@ struct BudgetLineDetailTransactionRow: View {
     /// Mirrors `BudgetLineMixedRow.accessibilityLabel`. The synthesized label
     /// SwiftUI builds from the subviews carries the name, the date and the
     /// amount but nothing about the pointed state — that only exists visually,
-    /// as a strikethrough. Pointing is the whole signal on this screen, so the
+    /// as the leading check. Pointing is the whole signal on this screen, so the
     /// row has to say it out loud.
     private var accessibilityLabel: String {
         let status = transaction.isChecked ? AppLocale.string("Pointé") : AppLocale.string("À pointer")

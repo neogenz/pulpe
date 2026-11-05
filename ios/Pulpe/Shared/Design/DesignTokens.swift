@@ -20,8 +20,18 @@ enum DesignTokens {
         static let sm: CGFloat = 8
         /// Progress bars with visible rounding (10pt)
         static let progressBar: CGFloat = 10
-        /// Per-row inline card (18pt) — DM2.1.b.c5 budget line card
+        /// Form card (18pt) and per-row inline card — V2 `fcard`
         static let card: CGFloat = 18
+        /// Card surface (22pt) — V2 `card`
+        static let surface: CGFloat = 22
+        /// Text input (14pt) — V2 `input`
+        static let input: CGFloat = 14
+        /// Impact block and inline banner (16pt) — V2 `impact`, `banner`, `sunk`
+        static let inset: CGFloat = 16
+        /// Toast card (20pt)
+        static let toast: CGFloat = 20
+        /// Settings icon tile (9pt)
+        static let settingsTile: CGFloat = 9
         /// Medium elements: inputs, cards (24pt)
         static let md: CGFloat = 24
         /// Primary buttons (14pt)
@@ -72,6 +82,10 @@ enum DesignTokens {
         static let display: CGFloat = -3
         /// Hero amounts (year recap big number)
         static let hero: CGFloat = -1.2
+        /// V2 large title (34pt)
+        static let pageTitle: CGFloat = -0.4
+        /// V2 hero figure (52pt)
+        static let heroV2: CGFloat = -2
         /// Section titles
         static let title: CGFloat = -0.6
         /// Uppercase labels — narrow
@@ -137,6 +151,14 @@ enum DesignTokens {
             radius: 8,
             y: 4
         )
+        /// V2 card, first layer: `0 1px 2px rgba(40,32,20,.06)`. Apply both layers with `.pulpeSurfaceShadow()`.
+        static let surfaceContact = ShadowStyle(color: Color(hex: 0x282014).opacity(0.06), radius: 1, y: 1)
+        /// V2 card, second layer: `0 6px 20px -10px rgba(40,32,20,.16)`.
+        static let surfaceAmbient = ShadowStyle(color: Color(hex: 0x282014).opacity(0.16), radius: 10, y: 4)
+        /// Selected segment thumb: `0 1px 3px rgba(40,32,20,.14)`.
+        static let segmentThumb = ShadowStyle(color: Color(hex: 0x282014).opacity(0.14), radius: 1.5, y: 1)
+        /// Floating add button: `0 8px 20px -8px rgba(0,80,30,.55)`.
+        static let floatingAction = ShadowStyle(color: Color(hex: 0x00501E).opacity(0.55), radius: 10, y: 6)
     }
 
     // MARK: - Opacity
@@ -180,12 +202,12 @@ enum DesignTokens {
         /// Area fill under the tracked series on the hero chart
         static let heroArea: Double = 0.22
         /// Unselected bars of the forecast chart: the savings green on white still clears the
-        /// 3:1 WCAG 1.4.11 floor here (3.4:1), which `pointedDim` (0.62) does not.
+        /// 3:1 WCAG 1.4.11 floor here (3.4:1), which `lockedDim` (0.62) does not.
         static let chartUnselected: Double = 0.7
         /// Disabled controls (e.g. type pills with count==0)
         static let disabled: Double = 0.4
-        /// Dimmed row card — DM2.1.b.c5 pointed state on per-row card
-        static let pointedDim: Double = 0.62
+        /// A row that cannot be edited right now (locked month). Pointed rows are NOT dimmed.
+        static let lockedDim: Double = 0.62
         /// Pressed state for interactive elements
         static let pressed: Double = 0.8
         /// Dark overlays (tutorial, modal backdrops)
@@ -218,13 +240,11 @@ enum DesignTokens {
     enum ListRow {
         /// Vertical padding for all list/transaction/budget rows
         static let verticalPadding: CGFloat = 8
-        /// Minimum row height shared across the app's list rows.
-        ///
-        /// Matches the natural height of `TransactionRow` (free transactions
-        /// section): `IconSize.listRow` (40) + 2 × `verticalPadding` (8) = 56.
-        /// Pinning budget line rows to the same minimum keeps the rhythm
-        /// consistent regardless of subtitle presence.
-        static let minHeight: CGFloat = IconSize.listRow + verticalPadding * 2
+        /// Minimum row height shared across the app's list rows (V2 `row`: 60pt),
+        /// regardless of subtitle presence.
+        static let minHeight: CGFloat = 60
+        /// Form-card line (V2 `frow`) and the "add a prévision" row.
+        static let formRowHeight: CGFloat = 52
         /// Leading inset of the hairline between two ledger rows: past the disc and its gap,
         /// so the rule starts where the text does.
         static let dividerInset: CGFloat = TapTarget.minimum + Spacing.sm
@@ -243,8 +263,14 @@ enum DesignTokens {
     // MARK: - Frame Heights
 
     enum FrameHeight {
-        /// Primary action buttons
-        static let button: CGFloat = 54
+        /// Primary / secondary / destructive buttons (V2 `btn`: 52pt)
+        static let button: CGFloat = 52
+        /// Small button variant (V2 `btn.sm`: 40pt)
+        static let buttonSmall: CGFloat = 40
+        /// Text input minimum height (V2 `input`: 50pt)
+        static let input: CGFloat = 50
+        /// Chip and segmented-control segment visual height (V2: 36pt)
+        static let chip: CGFloat = 36
         /// Progress bar track
         static let progressBar: CGFloat = 8
         /// Onboarding progress bar, a hairline under the CTA
@@ -265,22 +291,12 @@ enum DesignTokens {
     // MARK: - Checkbox
 
     enum Checkbox {
-        static let size: CGFloat = 24
-        /// Ring around an unpointed disc: what says "to tick" before the first tap.
-        static let ringWidth: CGFloat = 1.5
-        /// The unpointed ring is broken into segments, which is what says the row is a
-        /// draft the tap will close. Counted, not measured in points, so the pattern
-        /// divides the circle evenly instead of leaving a ragged seam.
-        static let ringDashSegments: CGFloat = 16
-        /// Share of one segment drawn; the rest is the gap. Short lines, not dots.
-        static let ringDashFill: CGFloat = 0.58
-        /// One-shot specular sweep that hints the ring is interactive without
-        /// leaving an ambient animation running in the ledger.
-        static let sheenDelay: Double = 0.45
-        static let sheenDuration: Double = 0.7
-        static let sheenOpacity: Double = 0.8
-        static let sheenStartAngle: Double = -120
-        static let sheenEndAngle: Double = 240
+        /// The pointing circle (V2 `check`): same control on every row.
+        static let size: CGFloat = 28
+        /// Ring around an unpointed circle.
+        static let ringWidth: CGFloat = 2
+        /// Check glyph inside the pointed disc.
+        static let glyphSize: CGFloat = 14
         /// Lets the filled disc and check register before an unchecked-only list removes the row.
         static let completionHold: Double = 0.5
         static let fillStartScale: CGFloat = 0.12
@@ -289,6 +305,37 @@ enum DesignTokens {
         /// Pulls the sync badge back in from the circle's bounding-box corner so it
         /// straddles the stroke instead of floating diagonally off it.
         static let syncBadgeInset: CGFloat = 2
+    }
+
+    // MARK: - Controls (V2)
+
+    enum Control {
+        /// Floating "+" button (V2 `fab`).
+        static let fab: CGFloat = 62
+        static let fabGlyph: CGFloat = 26
+        /// Distance of the floating button from the trailing screen edge.
+        static let fabTrailingInset: CGFloat = 16
+        /// Distance from the bottom safe area to the floating button's bottom: clears the native
+        /// tab bar (62pt floating capsule on iOS 26) with an 8pt gap.
+        static let fabBottomInset: CGFloat = 70
+        /// Padding inside the segmented track (V2 `seg`).
+        static let segmentedPadding: CGFloat = 3
+        /// Settings icon tile (V2 `sico`).
+        static let settingsTile: CGFloat = 32
+        /// Glyph inside the settings tile.
+        static let settingsGlyph: CGFloat = 18
+        /// Disc of an empty state (V2 `empty .idisc`).
+        static let emptyDisc: CGFloat = 56
+        /// Disc of a full-screen status (maintenance, error, update).
+        static let statusDisc: CGFloat = 72
+        /// Disc behind the "+" of a section's add row.
+        static let addRowDisc: CGFloat = 28
+        /// Inline banner glyph.
+        static let bannerGlyph: CGFloat = 20
+        /// Focused input border (V2: 2pt accent).
+        static let inputFocusBorder: CGFloat = 2
+        /// Selected chip ring (V2: 1.5pt accent).
+        static let chipSelectedRing: CGFloat = 1.5
     }
 
     // MARK: - Amount Input
@@ -319,9 +366,7 @@ enum DesignTokens {
     enum ChipMetrics {
         enum Standard {
             /// Horizontal padding inside the capsule
-            static let horizontalPadding: CGFloat = Spacing.lg
-            /// Vertical padding inside the capsule
-            static let verticalPadding: CGFloat = Spacing.md
+            static let horizontalPadding: CGFloat = 14
             /// Gap between elements inside the chip (icon → label → count → trailing)
             static let interElementGap: CGFloat = Spacing.tightGap
             /// Gap between adjacent chips on a rail
@@ -330,7 +375,6 @@ enum DesignTokens {
 
         enum Prominent {
             static let horizontalPadding: CGFloat = Spacing.xl
-            static let verticalPadding: CGFloat = Spacing.lg
             static let interElementGap: CGFloat = Spacing.sm
             static let interChipGap: CGFloat = Spacing.md
         }
@@ -388,6 +432,11 @@ enum DesignTokens {
     // MARK: - Progress Bar
 
     enum Layout {
+        /// Bottom inset of a root tab screen's scroll content: clears the tab bar and the
+        /// floating "+" so no row hides under them (V2 `.content` bottom padding: 120pt).
+        static let rootBottomInset: CGFloat = 120
+        /// Widest sentence under an empty state's title.
+        static let emptyMessageMaxWidth: CGFloat = 290
         /// How far a scroll-native zone background is bled past its own edge, so overscroll
         /// (pull-to-refresh, rubber-banding) and the status bar never show the canvas behind
         /// it. Any value taller than a screen works; 1000pt is just comfortably past it.

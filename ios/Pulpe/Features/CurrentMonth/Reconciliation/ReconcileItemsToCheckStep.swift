@@ -62,9 +62,7 @@ struct ReconcileItemsToCheckStep: View {
     private func itemRow(_ item: CurrentMonthStore.CheckableItem) -> some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             PointCircle(
-                kind: item.kind,
                 isPointed: isChecked(item),
-                color: item.kind.color,
                 isSyncing: isSyncing(item),
                 onCompletionStateChange: { isCompleting in
                     if isCompleting {

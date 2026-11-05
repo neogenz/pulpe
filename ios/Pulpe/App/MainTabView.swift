@@ -2,6 +2,20 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
+    @State private var isAddSheetPresented = false
+
+    /// The floating add button belongs to the four root screens only: a pushed page owns its
+    /// own actions, and a month has to exist for the sheet to have somewhere to write.
+    private var showsFloatingAddButton: Bool {
+        guard currentMonthStore.budget != nil else { return false }
+        return switch appState.selectedTab {
+        case .currentMonth: appState.currentMonthPath.isEmpty
+        case .budgets: appState.budgetPath.isEmpty
+        case .savingsGoals: appState.savingsGoalsPath.isEmpty
+        case .templates: appState.templatePath.isEmpty
+        }
+    }
 
     var body: some View {
         @Bindable var state = appState
@@ -41,6 +55,22 @@ struct MainTabView: View {
         }
         .tint(Color.pulpePrimary)
         .pulpeBackground()
+        .overlay(alignment: .bottomTrailing) {
+            if showsFloatingAddButton {
+                FloatingAddButton { isAddSheetPresented = true }
+                    .padding(.trailing, DesignTokens.Control.fabTrailingInset)
+                    .padding(.bottom, DesignTokens.Control.fabBottomInset)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: showsFloatingAddButton)
+        // P0: the same sheet the accueil's « Ajouter une opération » opens; P1 replaces it.
+        .sheet(isPresented: $isAddSheetPresented) {
+            if let budget = currentMonthStore.budget {
+                AddTransactionSheet(budgetId: budget.id, source: .addButton, onAdd: currentMonthStore.addTransaction)
+                    .suppressesTips()
+            }
+        }
         .onChange(of: appState.selectedTab) { _, newTab in
             #if DEBUG
             guard ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"] == nil else { return }
@@ -125,6 +155,7 @@ struct CurrentMonthTab: View {
         // the back button pointing at the other section's root.
         NavigationStack(path: $state.currentMonthPath) {
             CurrentMonthView()
+                .pulpeRootBottomInset()
                 .environment(\.requestSavingsWithdrawal, openSavingsWithdrawal)
                 .ignoresForeignKeyboardInset()
                 .modifier(SectionStackDestinations())
@@ -193,6 +224,7 @@ struct SavingsGoalsTab: View {
             } else {
                 NavigationStack(path: $state.savingsGoalsPath) {
                     SavingsGoalsListView()
+                        .pulpeRootBottomInset()
                         .ignoresForeignKeyboardInset()
                         .modifier(SectionStackDestinations { selectedGoalId = $0 })
                 }
@@ -288,6 +320,7 @@ struct BudgetsTab: View {
 
         return NavigationStack(path: $state.budgetPath) {
             BudgetListView()
+                .pulpeRootBottomInset()
                 .ignoresForeignKeyboardInset()
                 .modifier(budgetStackDestinations)
         }
@@ -407,6 +440,7 @@ struct TemplatesTab: View {
             } else {
                 NavigationStack(path: $state.templatePath) {
                     TemplateListView()
+                        .pulpeRootBottomInset()
                         .ignoresForeignKeyboardInset()
                         .navigationDestination(for: TemplateDestination.self) { destination in
                             switch destination {

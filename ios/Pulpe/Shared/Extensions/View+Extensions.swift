@@ -355,6 +355,24 @@ extension View {
             .pulpeCardBorder(cornerRadius: cornerRadius)
     }
 
+    /// Bottom inset of a root tab screen's scrolling content: clears the tab bar and the
+    /// floating add button so the last row is never hidden under them.
+    func pulpeRootBottomInset() -> some View {
+        contentMargins(.bottom, DesignTokens.Layout.rootBottomInset, for: .scrollContent)
+    }
+
+    /// V2 card shadow, both layers (`0 1px 2px` contact, `0 6px 20px -10px` ambient).
+    func pulpeSurfaceShadow() -> some View {
+        shadow(DesignTokens.Shadow.surfaceContact)
+            .shadow(DesignTokens.Shadow.surfaceAmbient)
+    }
+
+    /// V2 card: white surface, 22pt radius, soft shadow.
+    func pulpeSurfaceCard() -> some View {
+        pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.surface)
+            .pulpeSurfaceShadow()
+    }
+
     /// Glass effect for floating navigation elements (toasts, overlays)
     func pulpeFloatingGlass(cornerRadius: CGFloat = DesignTokens.CornerRadius.md) -> some View {
         modifier(GlassEffectModifier(cornerRadius: cornerRadius))
