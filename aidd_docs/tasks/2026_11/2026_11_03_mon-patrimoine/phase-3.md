@@ -76,7 +76,7 @@ status: done
 | Edge case  | Delete every category | None comes back on reload; the starter names are offered again only as suggestions in the category field | browser |
 | Edge case  | Delete a category that still holds an asset | Error message asks to move its assets first; category kept | browser |
 | Edge case  | No asset at all | Empty state with one « Ajouter un avoir » action, no Sankey | browser |
-| Edge case  | Debts above gross | Net shows negative in the totals; the Sankey has no « Fortune nette » node and debt flows scale to gross | browser |
+| Edge case  | Debts above gross | Net shows negative in the totals; the Sankey has no « Fortune nette » node, debts keep their real size and a « Il manque » node under the main flow carries the shortfall | browser |
 | Edge case  | « Compte UBS » at -300 CHF (overdraft) | No flow into « Comptes »; a flow Fortune brute → « Compte UBS » of 300 on the debts side | browser |
 | Edge case  | `incomplete: true` from the API | Foreign row shows its own currency only; a notice says the total leaves it out | browser |
 | Edge case  | Archive an asset | It leaves the list, totals and Sankey; it shows under « Voir les avoirs archivés » | browser |
@@ -153,7 +153,7 @@ status: done
 
 > Today's breakdown drawn from the API figures.
 
-1. `net-worth-sankey.flows.ts`: pure mapping from assets, category totals and totals to `{ from, to, flow }[]`; positive `own` assets flow into their category, overdrawn `own` and `owe` assets leave Fortune brute on the debts side; no net node when net ≤ 0; debt flows scaled to gross when debts exceed it. Widths only, no money computed.
+1. `net-worth-sankey.flows.ts`: pure mapping from assets, category totals and totals to `{ from, to, flow }[]`; positive `own` assets flow into their category, overdrawn `own` and `owe` assets leave Fortune brute on the debts side; no net node when net ≤ 0; when debts exceed gross, a « Il manque » node under the main flow feeds the shortfall so debts keep their real size; the category column is skipped when every category holds a single asset. Widths only, no money computed.
 2. `net-worth-sankey.ts` registers `SankeyController` and `Flow` in its own module so the base chunk stays lean; colours from the theme tokens of `core/chart/chart-theme.ts`; labels through `AppCurrencyPipe` `1.0-0`.
 3. Flows spec covers the edge cases above.
 
