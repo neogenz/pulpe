@@ -72,6 +72,16 @@ BEGIN
     RAISE EXCEPTION 'FAIL: owner must see exactly their own snapshot, saw %', v_count;
   END IF;
 
+  -- The latest-snapshot view keeps the newest row per asset and, invoker
+  -- rights, still hides the other user's asset.
+  INSERT INTO public.asset_snapshot (user_id, asset_id, value, recorded_at)
+  VALUES (v_owner_id, v_asset_id, 'older-ciphertext', '2000-01-01T00:00:00Z');
+  IF (SELECT array_agg(value) FROM public.asset_latest_snapshot)
+    IS DISTINCT FROM ARRAY['owner-ciphertext']
+  THEN
+    RAISE EXCEPTION 'FAIL: the view must return only the owner''s newest snapshot';
+  END IF;
+
   -- Foreign rows are invisible to UPDATE and DELETE.
   UPDATE public.asset_category SET name = 'Pirate' WHERE id = v_other_category_id;
   IF FOUND THEN RAISE EXCEPTION 'FAIL: foreign category update must be hidden by RLS'; END IF;
@@ -175,6 +185,7 @@ BEGIN
   IF has_table_privilege('anon', 'public.asset', 'SELECT')
     OR has_table_privilege('anon', 'public.asset_category', 'SELECT')
     OR has_table_privilege('anon', 'public.asset_snapshot', 'SELECT')
+    OR has_table_privilege('anon', 'public.asset_latest_snapshot', 'SELECT')
   THEN
     RAISE EXCEPTION 'FAIL: anon must not read the net worth tables';
   END IF;

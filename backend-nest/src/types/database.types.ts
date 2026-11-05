@@ -1027,7 +1027,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      asset_latest_snapshot: {
+        Row: {
+          asset_id: string | null
+          recorded_at: string | null
+          user_id: string | null
+          value: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_snapshot_asset_id_user_id_fkey"
+            columns: ["asset_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_savings_goal_deletion: {

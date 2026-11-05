@@ -153,36 +153,19 @@ describe('SupabaseAssetRepository', () => {
   });
 
   describe('findAllWithLatestValue', () => {
-    it('decrypts the latest snapshot of each asset, paging past 1000 rows', async () => {
-      const firstPage = query((calls) => {
-        const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
-        expect([from, to]).toEqual([0, POSTGREST_PAGE_SIZE - 1]);
-        return {
-          data: [
-            snapshotRow('a', 300, '2026-11-03T10:00:00Z'),
-            ...Array.from({ length: POSTGREST_PAGE_SIZE - 1 }, (_, i) =>
-              snapshotRow('a', i, '2026-10-01T10:00:00Z'),
-            ),
-          ],
-          error: null,
-        };
-      });
-      const secondPage = query((calls) => {
-        const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
-        expect([from, to]).toEqual([
-          POSTGREST_PAGE_SIZE,
-          2 * POSTGREST_PAGE_SIZE - 1,
-        ]);
-        return {
-          data: [snapshotRow('b', 50, '2026-09-01T10:00:00Z')],
-          error: null,
-        };
-      });
+    it('decrypts the current value of each asset from the latest-snapshot view', async () => {
+      const latest = query(() => ({
+        data: [
+          snapshotRow('a', 300, '2026-11-03T10:00:00Z'),
+          snapshotRow('b', 50, '2026-09-01T10:00:00Z'),
+        ],
+        error: null,
+      }));
       const { repo, encryption } = createRepository({
         asset: [
           query(() => ({ data: [assetRow('a'), assetRow('b')], error: null })),
         ],
-        asset_snapshot: [firstPage, secondPage],
+        asset_latest_snapshot: [latest],
       });
 
       const assets = await repo.findAllWithLatestValue();
@@ -194,10 +177,7 @@ describe('SupabaseAssetRepository', () => {
         ['b', 50, '2026-09-01T10:00:00Z'],
       ]);
       expect(encryption.decryptAmount).toHaveBeenCalledTimes(2);
-      expect(firstPage.argsOf('order')).toEqual([
-        ['recorded_at', { ascending: false }],
-        ['id', { ascending: true }],
-      ]);
+      expect(latest.argsOf('eq')).toEqual([['user_id', 'user-1']]);
     });
 
     it('carries the dismissal instant of each asset', async () => {
@@ -213,7 +193,7 @@ describe('SupabaseAssetRepository', () => {
             error: null,
           })),
         ],
-        asset_snapshot: [
+        asset_latest_snapshot: [
           query(() => ({
             data: [
               snapshotRow('a', 1, '2026-11-01T10:00:00Z'),
@@ -239,7 +219,7 @@ describe('SupabaseAssetRepository', () => {
       const { repo } = createRepository(
         {
           asset: [query(() => ({ data: [assetRow('a')], error: null }))],
-          asset_snapshot: [
+          asset_latest_snapshot: [
             query(() => ({
               data: [snapshotRow('a', 1, '2026-11-03T10:00:00Z')],
               error: null,
@@ -264,7 +244,7 @@ describe('SupabaseAssetRepository', () => {
             error: null,
           })),
         ],
-        asset_snapshot: [
+        asset_latest_snapshot: [
           query(() => ({
             data: [snapshotRow('a', 5, '2026-11-03T10:00:00Z')],
             error: null,

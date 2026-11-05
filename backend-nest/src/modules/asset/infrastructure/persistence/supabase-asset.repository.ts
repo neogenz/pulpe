@@ -146,35 +146,26 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const [rows, snapshots] = await Promise.all([
       this.selectAssetRows(),
-      // Newest first: the first row met for an asset is its current value.
-      // PostgREST truncates at max_rows, so the whole history is paged.
       fetchAllPages((from, to) =>
         supabase
-          .from('asset_snapshot')
+          .from('asset_latest_snapshot')
           .select('asset_id, value, recorded_at')
           .eq('user_id', userId)
-          .order('recorded_at', { ascending: false })
-          .order('id', { ascending: true })
+          .order('asset_id', { ascending: true })
           .range(from, to),
       ).catch((error: unknown) => {
         throw this.fetchFailed('listAssetSnapshots', error);
       }),
     ]);
 
-    const latestByAssetId = new Map<
-      string,
-      { value: string; recorded_at: string }
-    >();
-    for (const snapshot of snapshots) {
-      if (!latestByAssetId.has(snapshot.asset_id)) {
-        latestByAssetId.set(snapshot.asset_id, snapshot);
-      }
-    }
+    const latestByAssetId = new Map(
+      snapshots.map((snapshot) => [snapshot.asset_id, snapshot]),
+    );
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return rows.flatMap((row) => {
       const latest = latestByAssetId.get(row.id);
-      if (!latest) {
+      if (!latest?.value || !latest.recorded_at) {
         // An orphan left by a failed creation must not take the whole list down.
         this.logger.warn(
           { operation: 'listAssets', entityId: row.id },
