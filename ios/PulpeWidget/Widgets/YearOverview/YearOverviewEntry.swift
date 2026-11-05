@@ -7,6 +7,8 @@ struct MonthData: Identifiable, Sendable {
     let shortName: String
     let available: Decimal?
     let isCurrentMonth: Bool
+    /// A month after the one in progress: without a budget yet, it reads « à créer ».
+    var isFuture = false
 
     /// Returns true if this month has a real budget
     var hasBudget: Bool {

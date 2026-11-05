@@ -5,6 +5,8 @@ import Foundation
 protocol TemplateServicing: Sendable {
     func getTemplate(id: String) async throws -> BudgetTemplate
     func getTemplateLines(templateId: String) async throws -> [TemplateLine]
+    func checkTemplateUsage(id: String) async throws -> TemplateUsageData
+    func deleteTemplate(id: String) async throws
 }
 
 /// Service for budget template API operations

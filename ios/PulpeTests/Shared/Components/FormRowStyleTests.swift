@@ -30,8 +30,8 @@ import Testing
         let source = try Self.source(path)
         #expect(source.contains("FormCard {"), "\(path) should group its fields in a FormCard")
         #expect(!source.contains("TagPickerField(selection: $selectedTagIds)"), "\(path): tags are a row")
-        // The movement sheet's description is a white standalone field by design (V2), not a row.
-        if !path.contains("MovementSheet") {
+        // The movement and template-line sheets' names are white standalone fields by design (V2), not rows.
+        if !path.contains("MovementSheet"), !path.contains("EditTemplateLineSheet") {
             #expect(source.contains("field: .description,\n            style: .row"), "\(path): description is a row")
         }
     }

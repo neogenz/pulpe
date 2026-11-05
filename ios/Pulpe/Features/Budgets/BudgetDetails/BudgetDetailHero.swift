@@ -26,38 +26,6 @@ struct BudgetDetailHero: View {
         return rolloverAmount.rounded(2)
     }
 
-    /// The three parts of the split, in bar order. Savings are counted inside
-    /// `totalExpenses`, so the expense part is what is left of it once they are taken out.
-    private struct SplitPart {
-        let label: String
-        let amount: Decimal
-        let color: Color
-    }
-
-    private var parts: [SplitPart] {
-        [
-            SplitPart(
-                label: AppLocale.string("Dépenses"),
-                amount: metrics.totalExpenses - metrics.totalSavings,
-                color: .financialExpense
-            ),
-            SplitPart(label: AppLocale.string("Épargne"), amount: metrics.totalSavings, color: .financialSavings),
-            SplitPart(label: AppLocale.string("Disponible"), amount: metrics.remaining, color: .textPrimary),
-        ]
-    }
-
-    private var segments: [SegmentedBar.Segment] {
-        let shares = parts.map { max($0.amount, 0) }
-        let whole = shares.reduce(0, +)
-        guard whole > 0 else { return [] }
-        return zip(shares, parts).map { share, part in
-            SegmentedBar.Segment(
-                fraction: Double(truncating: (share / whole) as NSDecimalNumber),
-                color: part.color
-            )
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -68,9 +36,13 @@ struct BudgetDetailHero: View {
                 }
             }
 
-            SegmentedBar(segments: segments, trackColor: .sunk, height: DesignTokens.ProgressBar.thickHeight)
-
-            legend
+            // Savings are counted inside `totalExpenses`: the expense part is what is left of it.
+            AvailableSplit(
+                expenses: metrics.totalExpenses - metrics.totalSavings,
+                savings: metrics.totalSavings,
+                available: metrics.remaining,
+                currency: currency
+            )
         }
         .padding(DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -147,37 +119,6 @@ struct BudgetDetailHero: View {
                 .accessibilityAction(named: "Voir le budget précédent", onRolloverTap)
         } else {
             label
-        }
-    }
-
-    private var legend: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            ForEach(parts, id: \.label) { part in
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    HStack(spacing: DesignTokens.Spacing.xs) {
-                        Circle()
-                            .fill(part.color)
-                            .frame(
-                                width: DesignTokens.ChipMetrics.stateDotSize,
-                                height: DesignTokens.ChipMetrics.stateDotSize
-                            )
-                            .accessibilityHidden(true)
-                        Text(part.label)
-                            .font(PulpeTypography.captionRegular)
-                            .foregroundStyle(Color.textSecondary)
-                            .lineLimit(1)
-                    }
-                    Text(verbatim: part.amount.asAmount(for: currency))
-                        .font(PulpeTypography.rowAmount)
-                        .foregroundStyle(Color.textPrimary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(DesignTokens.TextScale.compact)
-                        .sensitiveAmount()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityElement(children: .combine)
-            }
         }
     }
 }

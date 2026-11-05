@@ -70,13 +70,7 @@ enum BudgetListPresentation {
 
     /// « Par défaut · 11 lignes »: the default flag or the description, then the line count.
     static func templateSubtitle(_ template: BudgetTemplate, lineCount: Int?) -> String? {
-        let description = template.description?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lead = template.isDefaultTemplate
-            ? AppLocale.string("Par défaut")
-            : (description?.isEmpty == false ? description : nil)
-        let count = lineCount.map { AppLocale.string("\($0) lignes") }
-        let parts = [lead, count].compactMap(\.self)
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        template.subtitle(lineCount: lineCount)
     }
 
     /// The month as the V2 boards set it, in a row value or a sentence alike: « novembre 2027 ».

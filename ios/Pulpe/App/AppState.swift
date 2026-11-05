@@ -80,6 +80,8 @@ final class AppState {
     var showsBudgetMonthBesideList = false
     var savingsGoalsPath = NavigationPath()
     var templatePath = NavigationPath()
+    /// Bumped when a model is edited or deleted on its page, so the list beside or under it reloads.
+    var templatesVersion = 0
     // Pushing and popping these live in `AppState+Navigation.swift`.
 
     // MARK: - Returning User

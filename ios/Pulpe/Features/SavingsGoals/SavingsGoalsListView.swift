@@ -86,27 +86,12 @@ struct SavingsGoalsListView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                 header
-                VStack(spacing: DesignTokens.Spacing.compactGap) {
-                    Image(systemName: "target")
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.accentInk)
-                        .frame(width: DesignTokens.Control.emptyDisc, height: DesignTokens.Control.emptyDisc)
-                        .background(Color.accentWash, in: Circle())
-                        .accessibilityHidden(true)
-                    Text("Fixe ton premier objectif")
-                        .font(PulpeTypography.statusTitle)
-                        .foregroundStyle(Color.textPrimary)
-                    Text("Suis tes projets d'épargne long terme, sans recalculer à la main.")
-                        .font(PulpeTypography.bannerText)
-                        .foregroundStyle(Color.textSecondary)
-                    Button("Créer un objectif") { createGoal() }
-                        .primaryButtonStyle(size: .small)
-                        .padding(.top, DesignTokens.Spacing.sm)
-                }
-                .multilineTextAlignment(.center)
-                .padding(DesignTokens.Spacing.xl)
-                .frame(maxWidth: .infinity)
-                .pulpeSurfaceCard()
+                EmptyStateCard(
+                    systemImage: "target",
+                    title: AppLocale.string("Fixe ton premier objectif"),
+                    message: AppLocale.string("Suis tes projets d'épargne long terme, sans recalculer à la main."),
+                    actionTitle: AppLocale.string("Créer un objectif")
+                ) { createGoal() }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
 
                 presets
