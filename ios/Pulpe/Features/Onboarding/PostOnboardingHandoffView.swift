@@ -5,9 +5,9 @@ import SwiftUI
 /// habit to come back for — Pulpe's retention loop lives entirely in "pointer",
 /// and a budget created but never re-opened is the core churn we're fighting.
 ///
-/// It teaches two things and asks for nothing (no notification permission here —
+/// It teaches three things and asks for nothing (no notification permission here —
 /// that is primed later, only after the user's first real pointer):
-///   1. the return ritual — "pointe tes dépenses"
+///   1. the two gestures that keep the budget true: add what you spend, tick what has passed
 ///   2. the passive surface — pin the Lock Screen widget
 ///
 /// Presented as a `fullScreenCover` over the dashboard so it never touches the
@@ -15,86 +15,138 @@ import SwiftUI
 struct PostOnboardingHandoffView: View {
     let onContinue: () -> Void
 
+    @State private var showWidgetHelp = false
+
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.xxl) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             Spacer(minLength: 0)
 
-            VStack(spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "checklist")
-                    .font(.largeTitle)
-                    .foregroundStyle(Color.pulpePrimary)
+                    .font(PulpeTypography.title2)
+                    .foregroundStyle(Color.heroSurface)
+                    .frame(width: DesignTokens.Entry.iconDisc, height: DesignTokens.Entry.iconDisc)
+                    .background(Color.heroAccentPositive, in: Circle())
+                    .accessibilityHidden(true)
 
                 Text("Une dernière chose")
-                    .font(PulpeTypography.stepTitle)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .font(PulpeTypography.entryTitle)
+                    .foregroundStyle(Color.heroInk)
+                    .accessibilityAddTraits(.isHeader)
 
                 Text("Ton budget est une prévision. Pour qu'il reste juste, tu le fais vivre en deux gestes.")
                     .font(PulpeTypography.onboardingSubtitle)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Color.heroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            VStack(spacing: DesignTokens.Spacing.lg) {
-                handoffRow(
-                    icon: "checkmark.circle",
-                    title: AppLocale.string("Pointe tes dépenses"),
+            VStack(spacing: DesignTokens.Spacing.md) {
+                handoffCard(
+                    icon: "plus",
+                    title: AppLocale.string("Ajoute ce que tu dépenses"),
                     message: AppLocale.string(
-                        """
-                        Dès que tu dépenses, pointe-le en un tap. 10 secondes, \
-                        et ton « disponible à dépenser » reste toujours juste.
-                        """
+                        "Le + vert, sur chaque écran. Dis dans quelle prévision ça tombe, ou que c'est un imprévu."
                     )
                 )
-                handoffRow(
+                handoffCard(
+                    icon: "checkmark",
+                    title: AppLocale.string("Pointe ce qui est passé"),
+                    message: AppLocale.string(
+                        "Quand la dépense apparaît sur ton compte, touche le rond. Ton disponible reste juste."
+                    )
+                )
+                handoffCard(
                     icon: "lock.rectangle.on.rectangle",
                     title: AppLocale.string("Garde-le sous les yeux"),
-                    message: AppLocale.string(
-                        """
-                        Ajoute le widget Pulpe à ton écran verrouillé : \
-                        tu vois ton disponible sans même ouvrir l'app.
-                        """
-                    )
+                    message: AppLocale.string("Le widget d'écran verrouillé montre ton disponible sans ouvrir l'app.")
                 )
+                Button("Voir les widgets") { showWidgetHelp = true }
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.heroAccentPositive)
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Rectangle())
             }
 
             Spacer(minLength: 0)
 
             Button(action: onContinue) {
                 Text("C'est parti")
+                    .font(PulpeTypography.buttonPrimary)
+                    .foregroundStyle(Color.heroSurface)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: DesignTokens.FrameHeight.button)
+                    .background(Color.heroAccentPositive, in: Capsule())
+                    .contentShape(Capsule())
             }
-            .primaryButtonStyle()
+            .plainPressedButtonStyle()
             .accessibilityHint("Ferme cet écran et ouvre ton mois en cours")
         }
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            Color.onboardingFormBase.ignoresSafeArea()
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background { OnboardingZoneBackground() }
+        .environment(\.colorScheme, .dark)
+        .sheet(isPresented: $showWidgetHelp) { WidgetInstructionsSheet() }
     }
 
-    private func handoffRow(icon: String, title: String, message: String) -> some View {
+    private func handoffCard(icon: String, title: String, message: String) -> some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(Color.pulpePrimary)
-                .frame(width: DesignTokens.IconSize.listRow)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.heroSurface)
+                .frame(width: DesignTokens.IconSize.compact, height: DesignTokens.IconSize.compact)
+                .background(Color.heroAccentPositive, in: Circle())
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(title)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-
+                    .font(PulpeTypography.rowTitle)
+                    .foregroundStyle(Color.heroInk)
                 Text(message)
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.heroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.heroTile, in: .rect(cornerRadius: DesignTokens.CornerRadius.surface))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title). \(message)")
+    }
+}
+
+/// How to pin the lock-screen widget: iOS has no API to open the gallery, so the sheet says where to press.
+private struct WidgetInstructionsSheet: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Ajouter le widget")
+                .font(PulpeTypography.statusTitle)
+                .accessibilityAddTraits(.isHeader)
+            ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                    Text("\(index + 1)")
+                        .font(PulpeTypography.metricLabelBold)
+                        .foregroundStyle(Color.accentInk)
+                        .frame(width: DesignTokens.IconSize.compact, height: DesignTokens.IconSize.compact)
+                        .background(Color.accentWash, in: Circle())
+                    Text(step)
+                        .font(PulpeTypography.onboardingSubtitle)
+                        .foregroundStyle(Color.textPrimary)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(DesignTokens.Spacing.xxl)
+        .intrinsicSheetPresentation()
+    }
+
+    private var steps: [String] {
+        [
+            AppLocale.string("Verrouille ton iPhone, puis appuie longuement sur l'écran."),
+            AppLocale.string("Touche Personnaliser, puis l'espace sous l'heure."),
+            AppLocale.string("Choisis Pulpe dans la liste des widgets.")
+        ]
     }
 }
 

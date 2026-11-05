@@ -43752,6 +43752,2076 @@
           }
         }
       }
+    },
+    "Entre ton e-mail. Je t'envoie un lien pour choisir un nouveau mot de passe." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your email. I'll send you a link to choose a new password."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deine E-Mail ein. Ich schicke dir einen Link, um ein neues Passwort zu wählen."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci la tua email. Ti mando un link per scegliere una nuova password."
+          }
+        }
+      }
+    },
+    "Ton code PIN et tes montants ne changent pas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your PIN and your amounts don't change."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein PIN und deine Beträge bleiben unverändert."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo PIN e i tuoi importi non cambiano."
+          }
+        }
+      }
+    },
+    "E-mail envoyé" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email sent"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail gesendet"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email inviata"
+          }
+        }
+      }
+    },
+    "Si un compte existe avec **%@**, tu vas recevoir un lien pour choisir un nouveau mot de passe." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If an account exists for **%@**, you'll receive a link to choose a new password."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falls ein Konto mit **%@** existiert, erhältst du einen Link, um ein neues Passwort zu wählen."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se esiste un account con **%@**, riceverai un link per scegliere una nuova password."
+          }
+        }
+      }
+    },
+    "Rien reçu ? Regarde dans tes spams." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing yet? Check your spam folder."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts erhalten? Schau in deinem Spam-Ordner nach."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente? Controlla nello spam."
+          }
+        }
+      }
+    },
+    "Connecte-toi pour retrouver ton budget." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log in to get your budget back."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich an, um dein Budget wiederzufinden."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi per ritrovare il tuo budget."
+          }
+        }
+      }
+    },
+    "Maintenance en cours, réessaie dans quelques instants" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenance in progress, try again in a few moments"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wartung läuft, versuche es in einigen Augenblicken erneut"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manutenzione in corso, riprova tra qualche istante"
+          }
+        }
+      }
+    },
+    "Ce code ne semble pas correct. Réessaie." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This code doesn't look right. Try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Code scheint nicht zu stimmen. Versuche es erneut."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo codice non sembra corretto. Riprova."
+          }
+        }
+      }
+    },
+    "Bonjour" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hello"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hallo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciao"
+          }
+        }
+      }
+    },
+    "Saisis ton code pour ouvrir ton budget." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your code to open your budget."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deinen Code ein, um dein Budget zu öffnen."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci il tuo codice per aprire il tuo budget."
+          }
+        }
+      }
+    },
+    "Confirme ton code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm your code"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätige deinen Code"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma il tuo codice"
+          }
+        }
+      }
+    },
+    "Code oublié ?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgot your code?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code vergessen?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice dimenticato?"
+          }
+        }
+      }
+    },
+    "Les étapes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The steps"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Schritte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I passaggi"
+          }
+        }
+      }
+    },
+    "Ta clé de récupération" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your recovery key"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Wiederherstellungsschlüssel"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua chiave di recupero"
+          }
+        }
+      }
+    },
+    "Nouveau code, deux fois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New code, twice"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Code, zweimal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovo codice, due volte"
+          }
+        }
+      }
+    },
+    "Nouvelle clé à noter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New key to write down"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuen Schlüssel notieren"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuova chiave da annotare"
+          }
+        }
+      }
+    },
+    "%lld chiffres. Tes montants sont chiffrés avec ce code, et je ne le connais pas : choisis-en un dont tu te souviendras." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld digits. Your amounts are encrypted with this code, and I don't know it: pick one you'll remember."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Ziffern. Deine Beträge sind mit diesem Code verschlüsselt, und ich kenne ihn nicht: Wähle einen, an den du dich erinnerst."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cifre. I tuoi importi sono cifrati con questo codice e io non lo conosco: scegline uno che ricorderai."
+          }
+        }
+      }
+    },
+    "Ensuite, je te donne ta clé de récupération." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next, I'll give you your recovery key."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danach gebe ich dir deinen Wiederherstellungsschlüssel."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poi ti do la tua chiave di recupero."
+          }
+        }
+      }
+    },
+    "Revenir à l'étape 1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to step 1"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zu Schritt 1"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna al passaggio 1"
+          }
+        }
+      }
+    },
+    "Saisis-le une deuxième fois." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter it a second time."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib ihn ein zweites Mal ein."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inseriscilo una seconda volta."
+          }
+        }
+      }
+    },
+    "La copie s'efface après 2 minutes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy is erased after 2 minutes."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kopie wird nach 2 Minuten gelöscht."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copia si cancella dopo 2 minuti."
+          }
+        }
+      }
+    },
+    "Ce lien n'est plus valable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This link is no longer valid"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Link ist nicht mehr gültig"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo link non è più valido"
+          }
+        }
+      }
+    },
+    "Demander un nouveau lien" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request a new link"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuen Link anfordern"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiedi un nuovo link"
+          }
+        }
+      }
+    },
+    "Choisis le mot de passe de **%@**. Ton code PIN et tes montants ne changent pas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the password for **%@**. Your PIN and your amounts don't change."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle das Passwort für **%@**. Dein PIN und deine Beträge bleiben unverändert."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la password di **%@**. Il tuo PIN e i tuoi importi non cambiano."
+          }
+        }
+      }
+    },
+    "Choisis ton nouveau mot de passe. Ton code PIN et tes montants ne changent pas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose your new password. Your PIN and your amounts don't change."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle dein neues Passwort. Dein PIN und deine Beträge bleiben unverändert."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la tua nuova password. Il tuo PIN e i tuoi importi non cambiano."
+          }
+        }
+      }
+    },
+    "Confirme-le" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm it"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätige es"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confermala"
+          }
+        }
+      }
+    },
+    "Les deux mots de passe ne correspondent pas. Retape le second." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The two passwords don't match. Retype the second one."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die beiden Passwörter stimmen nicht überein. Gib das zweite erneut ein."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le due password non corrispondono. Riscrivi la seconda."
+          }
+        }
+      }
+    },
+    "Un lien ne sert qu'une fois et finit par expirer. Demande-en un nouveau, il arrive en quelques secondes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A link works only once and eventually expires. Request a new one, it arrives in a few seconds."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Link funktioniert nur einmal und läuft irgendwann ab. Fordere einen neuen an, er kommt in wenigen Sekunden."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un link funziona una sola volta e prima o poi scade. Richiedine uno nuovo, arriva in pochi secondi."
+          }
+        }
+      }
+    },
+    "Ajoute ce que tu dépenses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add what you spend"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge hinzu, was du ausgibst"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi ciò che spendi"
+          }
+        }
+      }
+    },
+    "Le + vert, sur chaque écran. Dis dans quelle prévision ça tombe, ou que c'est un imprévu." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The green +, on every screen. Say which forecast it falls under, or that it's unexpected."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das grüne +, auf jedem Bildschirm. Sag, in welche Planung es fällt, oder dass es unvorhergesehen ist."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il + verde, su ogni schermata. Dì in quale previsione rientra, o che è un imprevisto."
+          }
+        }
+      }
+    },
+    "Pointe ce qui est passé" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check off what's gone through"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake ab, was durch ist"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta ciò che è passato"
+          }
+        }
+      }
+    },
+    "Quand la dépense apparaît sur ton compte, touche le rond. Ton disponible reste juste." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the expense shows up on your account, tap the circle. Your available amount stays right."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn die Ausgabe auf deinem Konto erscheint, tippe auf den Kreis. Dein Verfügbares bleibt korrekt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando la spesa compare sul tuo conto, tocca il cerchio. Il tuo disponibile resta giusto."
+          }
+        }
+      }
+    },
+    "Le widget d'écran verrouillé montre ton disponible sans ouvrir l'app." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The lock screen widget shows your available amount without opening the app."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Sperrbildschirm-Widget zeigt dein Verfügbares, ohne die App zu öffnen."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il widget della schermata di blocco mostra il tuo disponibile senza aprire l'app."
+          }
+        }
+      }
+    },
+    "Voir les widgets" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the widgets"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widgets ansehen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi i widget"
+          }
+        }
+      }
+    },
+    "Ajouter le widget" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add the widget"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widget hinzufügen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi il widget"
+          }
+        }
+      }
+    },
+    "Verrouille ton iPhone, puis appuie longuement sur l'écran." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock your iPhone, then press and hold the screen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sperre dein iPhone und halte dann den Bildschirm gedrückt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocca il tuo iPhone, poi tieni premuto lo schermo."
+          }
+        }
+      }
+    },
+    "Touche Personnaliser, puis l'espace sous l'heure." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap Customize, then the area under the time."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe auf Anpassen und dann auf den Bereich unter der Uhrzeit."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca Personalizza, poi lo spazio sotto l'ora."
+          }
+        }
+      }
+    },
+    "Choisis Pulpe dans la liste des widgets." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Pulpe in the widget list."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle Pulpe in der Widget-Liste."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli Pulpe nell'elenco dei widget."
+          }
+        }
+      }
+    },
+    "chaque mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "every month"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "jeden Monat"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ogni mese"
+          }
+        }
+      }
+    },
+    "Ce revenu s'ajoute à ton disponible et revient chaque mois." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This income adds to your available amount and comes back every month."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Einkommen erhöht dein Verfügbares und kommt jeden Monat wieder."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo reddito si aggiunge al tuo disponibile e torna ogni mese."
+          }
+        }
+      }
+    },
+    "Elle rejoint tes charges fixes et revient chaque mois." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It joins your fixed charges and comes back every month."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Ausgabe gehört zu deinen Fixkosten und kommt jeden Monat wieder."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si aggiunge alle tue spese fisse e torna ogni mese."
+          }
+        }
+      }
+    },
+    "Elle rejoint ton épargne prévue et revient chaque mois." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It joins your planned savings and comes back every month."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Ersparnis gehört zu deinen geplanten Ersparnissen und kommt jeden Monat wieder."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si aggiunge al tuo risparmio previsto e torna ogni mese."
+          }
+        }
+      }
+    },
+    "Salaire" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salary"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gehalt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stipendio"
+          }
+        }
+      }
+    },
+    "Ces montants deviennent ton modèle de mois : chaque nouveau mois repart de là, et tu les changes quand tu veux." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These amounts become your month template: every new month starts from here, and you can change them whenever you like."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Beträge werden zu deiner Monatsvorlage: Jeder neue Monat startet hier, und du kannst sie jederzeit ändern."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questi importi diventano il tuo modello di mese: ogni nuovo mese riparte da qui e puoi cambiarli quando vuoi."
+          }
+        }
+      }
+    },
+    "%@ · %@ prévus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@ planned"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@ geplant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@ previsti"
+          }
+        }
+      }
+    },
+    "%@ · à dépenser" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · to spend"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · zum Ausgeben"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · da spendere"
+          }
+        }
+      }
+    },
+    "Tu vois où tu en es" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You see where you stand"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du siehst, wo du stehst"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi a che punto sei"
+          }
+        }
+      }
+    },
+    "Rien n'est figé, tu pourras ajuster ton budget quand tu veux." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is set in stone, you can adjust your budget whenever you like."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts ist in Stein gemeisselt, du kannst dein Budget jederzeit anpassen."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente è definitivo, potrai modificare il tuo budget quando vuoi."
+          }
+        }
+      }
+    },
+    "Tes charges dépassent à elles seules tes revenus. Revois-les pour tout faire tenir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your charges alone exceed your income. Review them to make everything fit."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Kosten übersteigen allein schon dein Einkommen. Überprüfe sie, damit alles passt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le tue spese da sole superano le tue entrate. Rivedile per far stare tutto."
+          }
+        }
+      }
+    },
+    "Ton épargne prévue dépasse ce qui reste après tes charges. La baisser de %@ suffit à tout faire tenir." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your planned savings exceed what's left after your charges. Lowering them by %@ is enough to make everything fit."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine geplanten Ersparnisse übersteigen, was nach den Kosten übrig bleibt. Mit %@ weniger passt alles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo risparmio previsto supera ciò che resta dopo le spese. Abbassarlo di %@ basta per far stare tutto."
+          }
+        }
+      }
+    },
+    "Revoir mes charges" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review my charges"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Kosten überprüfen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rivedi le mie spese"
+          }
+        }
+      }
+    },
+    "Revoir mon épargne" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review my savings"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Ersparnisse überprüfen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rivedi il mio risparmio"
+          }
+        }
+      }
+    },
+    "%@ et 1 autre" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ and 1 other"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ und 1 weitere"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ e 1 altra"
+          }
+        }
+      }
+    },
+    "%@ et %lld autres" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ and %lld others"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ und %lld weitere"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ e altre %lld"
+          }
+        }
+      }
+    },
+    "Ce qui part chaque mois, quoi qu'il arrive. Laisse vide ce qui ne te concerne pas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What goes out every month, no matter what. Leave blank whatever doesn't apply to you."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was jeden Monat abgeht, egal was passiert. Lass leer, was dich nicht betrifft."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciò che esce ogni mese, qualunque cosa succeda. Lascia vuoto ciò che non ti riguarda."
+          }
+        }
+      }
+    },
+    "Assurances et abonnements" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insurance and subscriptions"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versicherungen und Abos"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assicurazioni e abbonamenti"
+          }
+        }
+      }
+    },
+    "Mobilité et crédit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobility and credit"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobilität und Kredit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobilità e credito"
+          }
+        }
+      }
+    },
+    "Leasing ou crédit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leasing or credit"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leasing oder Kredit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leasing o credito"
+          }
+        }
+      }
+    },
+    "Abonnement, essence, mensualité de crédit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pass, fuel, loan payment."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abo, Benzin, Kreditrate."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbonamento, benzina, rata del prestito."
+          }
+        }
+      }
+    },
+    "Je l'utilise pour te saluer, rien d'autre." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I only use it to greet you, nothing else."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich nutze ihn nur, um dich zu begrüssen, sonst nichts."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo uso solo per salutarti, nient'altro."
+          }
+        }
+      }
+    },
+    "Enchanté," : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nice to meet you,"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freut mich,"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piacere,"
+          }
+        }
+      }
+    },
+    "toi" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "you"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dich"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "te"
+          }
+        }
+      }
+    },
+    "Dans 2 minutes, ton budget est prêt." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In 2 minutes, your budget is ready."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In 2 Minuten ist dein Budget fertig."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tra 2 minuti il tuo budget è pronto."
+          }
+        }
+      }
+    },
+    "Ton salaire net, ce qui arrive sur ton compte." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your net salary, what lands on your account."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Nettogehalt, das, was auf deinem Konto ankommt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo stipendio netto, ciò che arriva sul tuo conto."
+          }
+        }
+      }
+    },
+    "%@ · pour l'instant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · so far"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · bisher"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · per ora"
+          }
+        }
+      }
+    },
+    "Chaque charge et chaque épargne va le réduire." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each charge and each saving will reduce it."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede Ausgabe und jede Ersparnis verringert es."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni spesa e ogni risparmio lo ridurrà."
+          }
+        }
+      }
+    },
+    "Personne d'autre ne voit ces montants, pas même moi qui développe Pulpe." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody else sees these amounts, not even me, who builds Pulpe."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niemand sonst sieht diese Beträge, nicht einmal ich, der Pulpe entwickelt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun altro vede questi importi, nemmeno io che sviluppo Pulpe."
+          }
+        }
+      }
+    },
+    "Ajouter un autre revenu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add another income"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiteres Einkommen hinzufügen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi un altro reddito"
+          }
+        }
+      }
+    },
+    "Pour retrouver ton budget sur ton téléphone et sur le web." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To find your budget on your phone and on the web."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um dein Budget auf dem Handy und im Web wiederzufinden."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per ritrovare il tuo budget sul telefono e sul web."
+          }
+        }
+      }
+    },
+    "Salut %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hallo %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciao %@."
+          }
+        }
+      }
+    },
+    "Salut." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hallo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciao."
+          }
+        }
+      }
+    },
+    "Tes montants seront chiffrés : personne d'autre ne les voit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your amounts will be encrypted: nobody else sees them."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Beträge werden verschlüsselt: Niemand sonst sieht sie."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi importi saranno cifrati: nessun altro li vede."
+          }
+        }
+      }
+    },
+    "Cet email est déjà utilisé. Tu as peut-être déjà un compte ?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This email is already in use. Maybe you already have an account?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese E-Mail wird bereits verwendet. Vielleicht hast du schon ein Konto?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa email è già in uso. Forse hai già un account?"
+          }
+        }
+      }
+    },
+    "Me connecter avec cet email" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log in with this email"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit dieser E-Mail anmelden"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi con questa email"
+          }
+        }
+      }
+    },
+    "Ce que tu veux garder chaque mois. Tu pourras le relier à un objectif plus tard." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What you want to set aside every month. You can link it to a goal later."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was du jeden Monat zurücklegen willst. Du kannst es später mit einem Ziel verknüpfen."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciò che vuoi mettere da parte ogni mese. Potrai collegarlo a un obiettivo più tardi."
+          }
+        }
+      }
+    },
+    "Ton mois, prévu d'avance." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your month, planned ahead."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Monat, im Voraus geplant."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo mese, previsto in anticipo."
+          }
+        }
+      }
+    },
+    "pulpe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pulpe"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pulpe"
+          }
+        }
+      }
+    },
+    "Montants chiffrés" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted amounts"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verschlüsselte Beträge"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importi cifrati"
+          }
+        }
+      }
+    },
+    "Charges" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charges"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kosten"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spese"
+          }
+        }
+      }
+    },
+    "Au-delà des revenus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beyond income"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über dem Einkommen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oltre le entrate"
+          }
+        }
+      }
+    },
+    "Créer ta clé de récupération ?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create your recovery key?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederherstellungsschlüssel erstellen?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creare la tua chiave di recupero?"
+          }
+        }
+      }
+    },
+    "Si tu oublies ton code, cette clé est le seul moyen de retrouver tes montants. Ça prend une minute." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you forget your code, this key is the only way to get your amounts back. It takes a minute."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du deinen Code vergisst, ist dieser Schlüssel die einzige Möglichkeit, deine Beträge zurückzubekommen. Es dauert eine Minute."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se dimentichi il tuo codice, questa chiave è l'unico modo per ritrovare i tuoi importi. Ci vuole un minuto."
+          }
+        }
+      }
+    },
+    "Créer ma clé" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create my key"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meinen Schlüssel erstellen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea la mia chiave"
+          }
+        }
+      }
+    },
+    "%lld caractères sur %lld. Tirets facultatifs." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld characters. Dashes optional."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld von %lld Zeichen. Bindestriche optional."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld caratteri su %lld. Trattini facoltativi."
+          }
+        }
+      }
+    },
+    "Entre la clé de récupération notée quand tu as créé ton code. Tu choisiras ensuite un nouveau code, et tes montants seront rechiffrés avec." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the recovery key you noted when you created your code. You'll then choose a new code, and your amounts will be re-encrypted with it."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib den Wiederherstellungsschlüssel ein, den du beim Erstellen deines Codes notiert hast. Danach wählst du einen neuen Code, mit dem deine Beträge neu verschlüsselt werden."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci la chiave di recupero annotata quando hai creato il codice. Poi sceglierai un nuovo codice e i tuoi importi saranno ricifrati con esso."
+          }
+        }
+      }
+    },
+    "Si tu oublies ton code, cette clé est le seul moyen de retrouver tes montants. Note-la sur papier ou dans ton gestionnaire de mots de passe." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you forget your code, this key is the only way to get your amounts back. Write it on paper or in your password manager."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du deinen Code vergisst, ist dieser Schlüssel die einzige Möglichkeit, deine Beträge zurückzubekommen. Notiere ihn auf Papier oder in deinem Passwort-Manager."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se dimentichi il tuo codice, questa chiave è l'unico modo per ritrovare i tuoi importi. Annotala su carta o nel tuo gestore di password."
+          }
+        }
+      }
+    },
+    "Sans cette clé et sans ton code, tes montants restent illisibles pour de bon. Je ne peux pas les retrouver pour toi." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without this key and your code, your amounts stay unreadable for good. I can't recover them for you."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne diesen Schlüssel und ohne deinen Code bleiben deine Beträge für immer unlesbar. Ich kann sie nicht für dich wiederherstellen."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senza questa chiave e senza il tuo codice, i tuoi importi restano illeggibili per sempre. Non posso recuperarli per te."
+          }
+        }
+      }
+    },
+    "E-mail ou mot de passe incorrect. Vérifie-les, ou choisis un nouveau mot de passe." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incorrect email or password. Check them, or choose a new password."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail oder Passwort falsch. Prüfe sie oder wähle ein neues Passwort."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email o password errata. Controllale, o scegli una nuova password."
+          }
+        }
+      }
+    },
+    "Francs · CHF" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Francs · CHF"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Franken · CHF"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Franchi · CHF"
+          }
+        }
+      }
+    },
+    "Euros · EUR" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Euros · EUR"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Euro · EUR"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Euro · EUR"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

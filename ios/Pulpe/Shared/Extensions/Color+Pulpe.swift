@@ -113,21 +113,19 @@ extension Color {
     /// V2 `ring`: the unpointed pointing circle's ring (#8F877C light, #8A837A dark), 3:1 on white.
     static let pointRing = Color(light: Color(hex: 0x8F877C), dark: Color(hex: 0x8A837A))
 
-    // MARK: - Error Colors
-
-    /// Error primary — warm orange, not aggressive red (#D4760A light, #F0A050 dark)
-    static let errorPrimary = Color(light: Color(hex: 0xD4760A), dark: Color(hex: 0xF0A050))
-
-    /// Error background — soft warm tint (#FFF3E0 light, #3A2510 dark)
-    static let errorBackground = Color(light: Color(hex: 0xFFF3E0), dark: Color(hex: 0x3A2510))
-
     // MARK: - Destructive Colors (true red for irreversible actions)
 
-    /// V2 `red`: delete and nothing else (#C62828 light, #FF6B6B dark).
+    /// V2 `red`: delete, and the genuine-error feedback below (#C62828 light, #FF6B6B dark).
     static let destructivePrimary = Color(light: Color(hex: 0xC62828), dark: Color(hex: 0xFF6B6B))
 
     /// V2 `red-w`: the destructive button fill and error banner (#FBE7E6 light, #3A1818 dark).
     static let destructiveBackground = Color(light: Color(hex: 0xFBE7E6), dark: Color(hex: 0x3A1818))
+
+    // MARK: - Error Colors
+
+    /// A genuine failure (wrong code, rejected sign-in, failed request) reads in V2 red, never
+    /// in the ocre that marks an overrun: an error is not a spending signal.
+    static let errorPrimary = destructivePrimary
 
     // MARK: - Warning Colors
 

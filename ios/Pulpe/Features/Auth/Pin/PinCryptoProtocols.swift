@@ -94,7 +94,7 @@ extension APIError {
         case .maintenance: AppLocale.string("Maintenance en cours, réessaie dans quelques instants")
         case .rateLimited: AppLocale.string("Trop de tentatives, patiente un moment")
         case .networkError: AppLocale.string("Erreur de connexion, réessaie")
-        default: AppLocale.string("Ce code ne semble pas correct")
+        default: AppLocale.string("Ce code ne semble pas correct. Réessaie.")
         }
     }
 }

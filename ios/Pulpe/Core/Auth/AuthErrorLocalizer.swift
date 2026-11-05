@@ -23,11 +23,14 @@ enum AuthErrorLocalizer {
         "weak_password": (
             .weakPassword, "Ce mot de passe est trop prévisible — essaie une combinaison moins courante"
         ),
-        "invalid_credentials": (.invalidCredentials, "Email ou mot de passe incorrect — réessaie"),
+        "invalid_credentials": (.invalidCredentials, """
+            E-mail ou mot de passe incorrect. Vérifie-les, ou choisis un nouveau \
+            mot de passe.
+            """),
         "user_already_exists": (
-            .userAlreadyRegistered, "Cet email est déjà utilisé — tu as peut-être déjà un compte ?"
+            .userAlreadyRegistered, "Cet email est déjà utilisé. Tu as peut-être déjà un compte ?"
         ),
-        "email_exists": (.userAlreadyRegistered, "Cet email est déjà utilisé — tu as peut-être déjà un compte ?"),
+        "email_exists": (.userAlreadyRegistered, "Cet email est déjà utilisé. Tu as peut-être déjà un compte ?"),
         "email_not_confirmed": (.emailNotConfirmed, "Confirme ton email pour continuer — vérifie ta boîte mail"),
         "session_expired": (.sessionExpired, "Ta session a expiré — reconnecte-toi"),
         "session_not_found": (.sessionExpired, "Ta session a expiré — reconnecte-toi"),
@@ -44,11 +47,14 @@ enum AuthErrorLocalizer {
 
     // MARK: - Message-based translations (exact match)
     private static let messageTranslations: [String: (AuthErrorKind, String.LocalizationValue)] = [
-        "Invalid login credentials": (.invalidCredentials, "Email ou mot de passe incorrect — réessaie"),
+        "Invalid login credentials": (.invalidCredentials, """
+            E-mail ou mot de passe incorrect. Vérifie-les, ou choisis un nouveau \
+            mot de passe.
+            """),
         "Email not confirmed": (.emailNotConfirmed, "Confirme ton email pour continuer — vérifie ta boîte mail"),
         "Too many requests": (.rateLimited, "Trop de tentatives — patiente quelques minutes"),
         "User already registered": (
-            .userAlreadyRegistered, "Cet email est déjà utilisé — tu as peut-être déjà un compte ?"
+            .userAlreadyRegistered, "Cet email est déjà utilisé. Tu as peut-être déjà un compte ?"
         ),
         "Password should be at least 8 characters": (.weakPassword, "8 caractères minimum pour sécuriser ton compte"),
         "User not found": (.userNotFound, "Compte introuvable — vérifie ton email"),
@@ -58,7 +64,7 @@ enum AuthErrorLocalizer {
         "Session expired": (.sessionExpired, "Ta session a expiré — reconnecte-toi"),
         "Network request failed": (.network, "Problème de connexion — vérifie ton réseau"),
         "A user with this email address has already been registered": (
-            .userAlreadyRegistered, "Cet email est déjà utilisé — tu as peut-être déjà un compte ?"
+            .userAlreadyRegistered, "Cet email est déjà utilisé. Tu as peut-être déjà un compte ?"
         ),
     ]
 
@@ -166,12 +172,12 @@ enum AuthErrorLocalizer {
     }
 
     private static let kindMessages: [AuthErrorKind: String.LocalizationValue] = [
-        .invalidCredentials: "Email ou mot de passe incorrect — réessaie",
+        .invalidCredentials: "E-mail ou mot de passe incorrect. Vérifie-les, ou choisis un nouveau mot de passe.",
         .rateLimited: "Trop de tentatives — patiente quelques minutes",
         .emailNotConfirmed: "Confirme ton email pour continuer — vérifie ta boîte mail",
         .network: "Connexion impossible — vérifie ta connexion internet",
         .userNotFound: "Compte introuvable — vérifie ton email",
-        .userAlreadyRegistered: "Cet email est déjà utilisé — tu as peut-être déjà un compte ?",
+        .userAlreadyRegistered: "Cet email est déjà utilisé. Tu as peut-être déjà un compte ?",
         .weakPassword: "Ce mot de passe est trop prévisible — essaie une combinaison moins courante",
         .samePassword: "Le nouveau mot de passe doit être différent de l'ancien",
         .sessionExpired: "Ta session a expiré — reconnecte-toi",

@@ -69,11 +69,8 @@ struct CurrencyField: View {
             }
 
             HStack {
-                Text(currency.symbol)
-                    .foregroundStyle(prefixColor)
-                    .font(PulpeTypography.bodyLarge)
-
                 TextField(hint, text: $textValue)
+                    .font(PulpeTypography.amountLarge)
                     .keyboardType(.decimalPad)
                     .foregroundStyle(Color.textPrimary)
                     .focused(externalFocus ?? $internalFocus)
@@ -86,9 +83,13 @@ struct CurrencyField: View {
                             updateText(from: newValue)
                         }
                     }
+
+                Text(currency.symbol)
+                    .foregroundStyle(prefixColor)
+                    .font(PulpeTypography.labelLargeBold)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(minHeight: DesignTokens.FrameHeight.input)
+            .frame(minHeight: DesignTokens.Entry.amountFieldHeight)
             .background { fieldBackground }
             .contentShape(.interaction, Rectangle())
             // Full-field tap focuses the nested `TextField`; `Button` would add nested control semantics.

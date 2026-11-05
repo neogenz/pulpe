@@ -20,7 +20,7 @@ struct PinDotsErrorView: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(PulpeTypography.footnote)
+                    .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.errorPrimary)
                     .transition(.opacity)
             }

@@ -11,6 +11,8 @@ struct LoginView: View {
     @State private var submitSuccessTrigger = false
 
     var isPresented: Binding<Bool>?
+    /// Email carried over from another screen; wins over the last used one.
+    var initialEmail: String?
 
     private enum Field: Hashable {
         case email, password
@@ -18,60 +20,56 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.loginGradientBackground
+            VStack(spacing: DesignTokens.Spacing.none) {
+                zone
+                    .background { OnboardingZoneBackground() }
+                    .environment(\.colorScheme, .dark)
 
                 ScrollViewReader { scrollProxy in
                     ScrollView {
-                        VStack(spacing: DesignTokens.Spacing.xxl) {
-                            headerSection
-                            Spacer().frame(height: DesignTokens.Spacing.lg)
+                        VStack(spacing: DesignTokens.Spacing.xl) {
                             formSection
                             createAccountSection
                             termsFooter
                         }
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .padding(.bottom, DesignTokens.Spacing.xxxl)
+                        .padding(.horizontal, DesignTokens.Spacing.xl)
+                        .padding(.vertical, DesignTokens.Spacing.xl)
                     }
                     .scrollBounceBehavior(.basedOnSize)
                     .scrollDismissesKeyboard(.interactively)
-                    .overlay(alignment: .top) {
-                        ProgressiveBlurEdge(
-                            edge: .top,
-                            height: DesignTokens.Blur.topFadeHeight
+                    // The card's fill runs under the home indicator; a clip on the view would stop it
+                    // at the safe area and leave a forest strip at the bottom.
+                    .background {
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: DesignTokens.Entry.cardRadius,
+                            topTrailingRadius: DesignTokens.Entry.cardRadius
                         )
-                        .ignoresSafeArea(edges: .top)
+                        .fill(Color.appBackground)
+                        .ignoresSafeArea(edges: .bottom)
                     }
+                    .padding(.top, -DesignTokens.Entry.cardRadius)
                     .onChange(of: viewModel.errorMessage) { _, newValue in
                         guard newValue != nil else { return }
                         withAnimation {
-                            scrollProxy.scrollTo("errorBanner", anchor: .top)
+                            scrollProxy.scrollTo("loginError", anchor: .center)
                         }
                     }
                 }
             }
-            .toolbar {
-                if let isPresented {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Annuler") {
-                            isPresented.wrappedValue = false
-                        }
-                        .foregroundStyle(Color.textPrimaryOnboarding)
-                        .fontWeight(.medium)
-                    }
-                }
-            }
+            .background(Color.heroSurface.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
             .trackScreen("Login")
             .sensoryFeedback(.success, trigger: submitSuccessTrigger)
             .keyboardFieldNavigation(focus: $focusedField, order: [.email, .password])
             .dismissKeyboardOnTap()
             .sheet(item: $forgotPasswordPresentation) { _ in
-                ForgotPasswordSheet {
+                ForgotPasswordSheet(initialEmail: viewModel.email) {
                     forgotPasswordPresentation = nil
                 }
             }
             .task {
                 await viewModel.loadLastUsedEmail()
+                if let initialEmail, !initialEmail.isEmpty { viewModel.email = initialEmail }
                 if !reduceMotion {
                     try? await Task.sleep(for: .milliseconds(100))
                 }
@@ -86,33 +84,43 @@ struct LoginView: View {
 // MARK: - Computed Properties
 
 extension LoginView {
-    private var headerSection: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            PulpeIcon(size: DesignTokens.IconSize.brand)
-                .scaleEffect(isAppeared ? 1 : 0.8)
-                .opacity(isAppeared ? 1 : 0)
-                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
-
-            VStack(spacing: DesignTokens.Spacing.xs) {
+    /// Forest zone: back disc when presented over the welcome, the leaf, the title and what the screen is for.
+    private var zone: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            if let isPresented {
+                Button {
+                    isPresented.wrappedValue = false
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.heroInk)
+                        .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
+                        .background(Color.heroTile, in: Circle())
+                }
+                .plainPressedButtonStyle()
+                .accessibilityLabel("Retour")
+            }
+            PulpeIcon(size: DesignTokens.IconSize.heroBadge)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Content de te revoir")
                     .font(PulpeTypography.onboardingTitle)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-
-                Text("Connecte-toi pour accéder à ton budget")
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .foregroundStyle(Color.heroInk)
+                    .accessibilityAddTraits(.isHeader)
+                Text("Connecte-toi pour retrouver ton budget.")
+                    .font(PulpeTypography.onboardingSubtitle)
+                    .foregroundStyle(Color.heroInkSecondary)
             }
-            .multilineTextAlignment(.center)
-            .opacity(isAppeared ? 1 : 0)
-            .offset(y: isAppeared ? 0 : 10)
-            .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.1), value: isAppeared)
         }
-        .padding(.top, DesignTokens.Spacing.xxxl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.lg)
+        .opacity(isAppeared ? 1 : 0)
+        .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
     }
 
     private var formSection: some View {
         VStack(spacing: DesignTokens.Spacing.xl) {
-            errorBanner
             emailField
             passwordField
             forgotPasswordButton
@@ -128,35 +136,17 @@ extension LoginView {
         .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.2), value: isAppeared)
     }
 
-    @ViewBuilder
-    private var errorBanner: some View {
-        if let errorMessage = viewModel.errorMessage ?? appState.biometricError {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(PulpeTypography.body)
-                    .foregroundStyle(Color.errorPrimary)
-                Text(errorMessage)
-                    .font(PulpeTypography.subheadline)
-                    .multilineTextAlignment(.leading)
-                    .foregroundStyle(Color.textPrimary)
-            }
-            .padding(DesignTokens.Spacing.lg)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.errorBackground, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
-            .id("errorBanner")
-        }
-    }
+    private var loginError: String? { viewModel.errorMessage ?? appState.biometricError }
 
     private var emailField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("E-mail")
                 .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .foregroundStyle(Color.textPrimary)
 
             AuthTextField(
                 prompt: AppLocale.string("Adresse e-mail"),
                 text: $viewModel.email,
-                systemImage: "envelope",
                 isFilled: viewModel.isEmailValid,
                 focusBinding: $focusedField,
                 focusField: .email
@@ -177,13 +167,13 @@ extension LoginView {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Mot de passe")
                 .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .foregroundStyle(Color.textPrimary)
 
             AuthSecureField(
                 prompt: AppLocale.string("Ton mot de passe"),
                 text: $viewModel.password,
                 isVisible: $viewModel.showPassword,
-                systemImage: "lock",
+                hasError: loginError != nil,
                 fieldAccessibilityIdentifier: "password",
                 focusBinding: $focusedField,
                 focusField: .password
@@ -199,10 +189,16 @@ extension LoginView {
                 Task { await login() }
             }
 
-            if !viewModel.password.isEmpty && !viewModel.isPasswordValid {
+            if let loginError {
+                Label(loginError, systemImage: "exclamationmark.circle.fill")
+                    .font(PulpeTypography.inputHelper)
+                    .foregroundStyle(Color.errorPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .id("loginError")
+            } else if !viewModel.password.isEmpty && !viewModel.isPasswordValid {
                 Text("8 caractères minimum")
                     .font(PulpeTypography.inputHelper)
-                    .foregroundStyle(Color.textTertiaryOnboarding)
+                    .foregroundStyle(Color.textTertiary)
                     .padding(.leading, DesignTokens.Spacing.lg)
                     .accessibilityHidden(true)
             }
@@ -250,7 +246,7 @@ extension LoginView {
                 .underline()
         }
         .font(PulpeTypography.labelMedium)
-        .foregroundStyle(Color.textSecondaryOnboarding)
+        .foregroundStyle(Color.textSecondary)
         .frame(minHeight: DesignTokens.TapTarget.minimum)
     }
 
@@ -258,7 +254,7 @@ extension LoginView {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau sur Pulpe ?")
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .foregroundStyle(Color.textSecondary)
 
             Button {
                 if let isPresented {

@@ -36,7 +36,8 @@ struct RecoveryKeySheet: View {
                 .blurSlide(showButton)
         }
         .interactiveDismissDisabled()
-        .presentationBackground { Color.loginGradientBackground }
+        .presentationDragIndicator(.hidden)
+        .presentationBackground(Color.appBackground)
         .allowsHitTesting(showButton)
         .task {
             guard !showHeader else { return }
@@ -66,13 +67,13 @@ struct RecoveryKeySheet: View {
             }
 
             VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Clé de récupération")
-                    .font(PulpeTypography.onboardingTitle)
+                Text("Ta clé de récupération")
+                    .font(PulpeTypography.entryTitle)
                     .multilineTextAlignment(.center)
 
                 Text(AppLocale.string("""
-                Note cette clé dans un endroit sûr. Elle te permettra de \
-                retrouver l'accès à tes données si tu oublies ton code PIN.
+                Si tu oublies ton code, cette clé est le seul moyen de retrouver tes montants. \
+                Note-la sur papier ou dans ton gestionnaire de mots de passe.
                 """))
                     .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textSecondary)
@@ -86,10 +87,12 @@ struct RecoveryKeySheet: View {
 
     private var keyCard: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            Text(RecoveryKeyFormatter.format(recoveryKey))
+            Text(RecoveryKeyFormatter.format(recoveryKey).replacingOccurrences(of: "-", with: " "))
                 .font(.system(.body, design: .monospaced))
                 .kerning(1.5)
+                .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
+                .privacySensitive()
 
             Button {
                 UIPasteboard.general.setItems(
@@ -117,13 +120,10 @@ struct RecoveryKeySheet: View {
                     Text(copied ? "Copié !" : "Copier la clé")
                 }
                 .font(PulpeTypography.buttonSecondary)
-                .foregroundStyle(Color.pulpePrimary)
+                .foregroundStyle(Color.accentInk)
                 .padding(.horizontal, DesignTokens.Spacing.xl)
                 .padding(.vertical, DesignTokens.Spacing.md)
-                .background(
-                    Color.pulpePrimary.opacity(0.1),
-                    in: .capsule
-                )
+                .background(Color.accentWash, in: .capsule)
             }
             .plainPressedButtonStyle()
             .contentShape(.capsule)
@@ -131,12 +131,16 @@ struct RecoveryKeySheet: View {
             .accessibilityLabel(
                 copied ? "Clé copiée" : "Copier la clé de récupération"
             )
+
+            Text("La copie s'efface après 2 minutes.")
+                .font(PulpeTypography.footnote)
+                .foregroundStyle(Color.textSecondary)
         }
         .padding(DesignTokens.Spacing.xxl)
         .frame(maxWidth: .infinity)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
-                .fill(Color.onboardingCardBackground)
+                .fill(Color.surface)
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg, style: .continuous)
                         .strokeBorder(Color.outlineVariant.opacity(0.3), lineWidth: DesignTokens.BorderWidth.thin)
@@ -152,10 +156,10 @@ struct RecoveryKeySheet: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.warningPrimary)
+                .foregroundStyle(Color.financialOverBudget)
             Text(AppLocale.string("""
-            Sans cette clé et sans ton code PIN, tes données \
-            financières seront définitivement inaccessibles.
+            Sans cette clé et sans ton code, tes montants restent illisibles pour de bon. \
+            Je ne peux pas les retrouver pour toi.
             """))
                 .font(PulpeTypography.footnote)
                 .foregroundStyle(Color.textPrimary)
@@ -163,7 +167,7 @@ struct RecoveryKeySheet: View {
         .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            Color.warningBackground,
+            Color.overWash,
             in: .rect(cornerRadius: DesignTokens.CornerRadius.md)
         )
         .blurSlide(showWarning)

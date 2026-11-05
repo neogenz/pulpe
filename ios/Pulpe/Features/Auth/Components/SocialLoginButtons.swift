@@ -21,12 +21,16 @@ struct SocialLoginSection: View {
     private let dependencies: SocialLoginDependencies?
     let onSuccess: (() -> Void)?
     let onAuthenticated: ((UserInfo, Error?) async -> Void)?
+    /// On the forest welcome the buttons are plain white; on a light card they carry a hairline.
+    let onForest: Bool
 
     init(
         dependencies: SocialLoginDependencies? = nil,
         onSuccess: (() -> Void)? = nil,
-        onAuthenticated: ((UserInfo, Error?) async -> Void)? = nil
+        onAuthenticated: ((UserInfo, Error?) async -> Void)? = nil,
+        onForest: Bool = false
     ) {
+        self.onForest = onForest
         self.dependencies = dependencies
         self.onSuccess = onSuccess
         self.onAuthenticated = onAuthenticated
@@ -43,13 +47,13 @@ struct SocialLoginSection: View {
                 .accessibilityAddTraits(.isStaticText)
             }
 
-            AppleSignInButtonView(isLoading: isAppleLoading, isDisabled: isAnyLoading) {
+            AppleSignInButtonView(isLoading: isAppleLoading, isDisabled: isAnyLoading, onForest: onForest) {
                 isAppleLoading = true
                 await signInWithApple()
                 isAppleLoading = false
             }
 
-            GoogleSignInButtonView(isLoading: isGoogleLoading, isDisabled: isAnyLoading) {
+            GoogleSignInButtonView(isLoading: isGoogleLoading, isDisabled: isAnyLoading, onForest: onForest) {
                 isGoogleLoading = true
                 await signInWithGoogle()
                 isGoogleLoading = false
@@ -205,12 +209,14 @@ struct SocialLoginSection: View {
 // MARK: - Social Login Divider
 
 struct SocialLoginDivider: View {
+    var onForest = false
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             dividerLine
             Text("ou")
                 .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .foregroundStyle(onForest ? Color.heroInkSecondary : Color.textSecondary)
             dividerLine
         }
         .padding(.vertical, DesignTokens.Spacing.md)
@@ -218,7 +224,7 @@ struct SocialLoginDivider: View {
 
     private var dividerLine: some View {
         Rectangle()
-            .fill(Color.textTertiary.opacity(DesignTokens.Opacity.strong))
+            .fill(onForest ? Color.heroInk.opacity(DesignTokens.Opacity.secondary) : Color.outlineVariant)
             .frame(height: DesignTokens.FrameHeight.separator)
     }
 }
@@ -228,6 +234,7 @@ struct SocialLoginDivider: View {
 struct AppleSignInButtonView: View {
     let isLoading: Bool
     let isDisabled: Bool
+    var onForest = false
     let action: () async -> Void
 
     var body: some View {
@@ -235,14 +242,14 @@ struct AppleSignInButtonView: View {
             // Show loading state as a custom view (SignInWithAppleButton doesn't support loading)
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ProgressView()
-                    .tint(.white)
+                    .tint(.black)
                 Text("Connexion en cours…")
                     .font(PulpeTypography.buttonPrimary)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(.black)
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
-            .background(.black)
+            .background(.white)
             .clipShape(Capsule())
             .accessibilityLabel("Connexion avec Apple en cours")
             .accessibilityValue("Connexion en cours")
@@ -253,9 +260,15 @@ struct AppleSignInButtonView: View {
             } onCompletion: { _ in
                 // Completion is handled by the coordinator's delegate.
             }
-            .signInWithAppleButtonStyle(.black)
+            // `.whiteOutline` strokes a rounded rect that the capsule clip cuts into black
+            // slivers; the hairline is drawn on the capsule instead, as on the Google button.
+            .signInWithAppleButtonStyle(.white)
             .frame(height: DesignTokens.FrameHeight.button)
             .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(onForest ? Color.clear : Color.outline, lineWidth: DesignTokens.BorderWidth.thin)
+            )
             .disabled(isDisabled)
             .accessibilityHidden(true)
             .overlay {
@@ -276,8 +289,10 @@ struct AppleSignInButtonView: View {
 // MARK: - Google Sign In Button
 
 struct GoogleSignInButtonView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let isLoading: Bool
     let isDisabled: Bool
+    var onForest = false
     let action: () async -> Void
 
     var body: some View {
@@ -287,7 +302,7 @@ struct GoogleSignInButtonView: View {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 if isLoading {
                     ProgressView()
-                        .tint(Color.textPrimaryOnboarding)
+                        .tint(Color.textPrimary)
                 } else {
                     Image("google-logo")
                         .resizable()
@@ -296,7 +311,7 @@ struct GoogleSignInButtonView: View {
                 }
                 Text(isLoading ? "Connexion en cours…" : "Continuer avec Google")
                     .font(PulpeTypography.buttonPrimary)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .foregroundStyle(Color.textPrimary)
             }
             .frame(maxWidth: .infinity)
             .frame(height: DesignTokens.FrameHeight.button)
@@ -304,11 +319,13 @@ struct GoogleSignInButtonView: View {
             .clipShape(Capsule())
             .overlay(
                 Capsule()
-                    .strokeBorder(Color.authInputBorder, lineWidth: DesignTokens.BorderWidth.medium)
+                    .strokeBorder(onForest ? Color.clear : Color.outline, lineWidth: DesignTokens.BorderWidth.thin)
             )
         }
         .plainPressedButtonStyle()
         .contentShape(Capsule())
+        // A white button on the forest, whose dark scheme would turn `surface` near-black.
+        .environment(\.colorScheme, onForest ? .light : colorScheme)
         .disabled(isDisabled)
         .accessibilityIdentifier("googleSignInButton")
         .accessibilityLabel("Continuer avec Google")

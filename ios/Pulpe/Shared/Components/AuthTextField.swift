@@ -9,10 +9,6 @@ private struct AuthFieldContainer<Content: View>: View {
     var requestFocus: (() -> Void)?
     @ViewBuilder let content: () -> Content
 
-    private var fillColor: Color {
-        hasError ? Color.errorBackground : Color.surface
-    }
-
     private var borderColor: Color {
         if hasError { return Color.errorPrimary }
         if isFocused { return Color.pulpePrimary }
@@ -51,7 +47,7 @@ private struct AuthFieldContainer<Content: View>: View {
         .frame(minHeight: DesignTokens.FrameHeight.input)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .fill(fillColor)
+                .fill(Color.surface)
                 .overlay {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
                         .strokeBorder(borderColor, lineWidth: strokeWidth)

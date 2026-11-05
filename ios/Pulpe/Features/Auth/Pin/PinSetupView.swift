@@ -17,7 +17,12 @@ enum PinSetupMode: Equatable, Sendable {
     var subtitle: String {
         switch self {
         case .chooseAndSetupRecovery:
-            AppLocale.string("\(PinConstants.length) chiffres — tes montants sont chiffrés avec ce code")
+            AppLocale.string(
+                """
+                    \(PinConstants.length) chiffres. Tes montants sont chiffrés avec ce \
+                    code, et je ne le connais pas : choisis-en un dont tu te souviendras.
+                    """
+            )
         case .enterExistingPin:
             AppLocale.string("\(PinConstants.length) chiffres")
         }
@@ -54,7 +59,7 @@ struct PinSetupView: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background { Color.loginGradientBackground }
+            .background { Color.appBackground.ignoresSafeArea() }
             .sensoryFeedback(.error, trigger: viewModel.hapticError)
             .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
             // Firmer than the soft key tap, and not the notification triad that
@@ -89,7 +94,9 @@ struct PinSetupView: View {
                 onDelete: { viewModel.deleteLastDigit() },
                 isDisabled: viewModel.isValidating || viewModel.isError
             )
-            Spacer().frame(height: DesignTokens.Spacing.xxxl + DesignTokens.Spacing.xxl)
+            Spacer().frame(height: DesignTokens.Spacing.xl)
+            footer
+            Spacer().frame(height: DesignTokens.Spacing.xl)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
     }
@@ -103,8 +110,9 @@ struct PinSetupView: View {
                 Task { await onLogout?() }
             } label: {
                 Text("Se déconnecter")
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.pulpePrimary)
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
             }
             .textLinkButtonStyle()
         }
@@ -115,13 +123,40 @@ struct PinSetupView: View {
 
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
+            if let eyebrow = viewModel.eyebrow {
+                Text(eyebrow)
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(Color.accentInk)
+            }
+
             Text(viewModel.title)
-                .font(PulpeTypography.onboardingTitle)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .font(PulpeTypography.entryTitle)
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.center)
 
             Text(viewModel.subtitle)
                 .font(PulpeTypography.stepSubtitle)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .foregroundStyle(Color.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    /// What comes next on the first step; the way back on the second.
+    @ViewBuilder
+    private var footer: some View {
+        switch viewModel.currentStep {
+        case .enterPin where viewModel.mode == .chooseAndSetupRecovery:
+            Text("Ensuite, je te donne ta clé de récupération.")
+                .font(PulpeTypography.captionRegular)
+                .foregroundStyle(Color.textSecondary)
+        case .confirmPin:
+            Button("Revenir à l'étape 1") { viewModel.backToFirstStep() }
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.pulpePrimary)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .disabled(viewModel.isValidating)
+        case .enterPin:
+            EmptyView()
         }
     }
 
@@ -176,14 +211,23 @@ final class PinSetupViewModel {
         if mode == .enterExistingPin { return mode.title }
         switch currentStep {
         case .enterPin: return AppLocale.string("Choisis ton code PIN")
-        case .confirmPin: return AppLocale.string("Confirme ton code PIN")
+        case .confirmPin: return AppLocale.string("Confirme ton code")
+        }
+    }
+
+    /// "Étape 1 sur 2": only the choose-and-confirm ceremony has steps.
+    var eyebrow: String? {
+        guard mode == .chooseAndSetupRecovery else { return nil }
+        switch currentStep {
+        case .enterPin: return AppLocale.string("Étape 1 sur 2")
+        case .confirmPin: return AppLocale.string("Étape 2 sur 2")
         }
     }
 
     var subtitle: String {
         switch currentStep {
         case .enterPin: return mode.subtitle
-        case .confirmPin: return AppLocale.string("Saisis à nouveau ton code")
+        case .confirmPin: return AppLocale.string("Saisis-le une deuxième fois.")
         }
     }
 
@@ -231,6 +275,15 @@ final class PinSetupViewModel {
     func deleteLastDigit() {
         guard !digits.isEmpty, !isValidating else { return }
         digits.removeLast()
+        clearError()
+    }
+
+    /// Back from the confirmation to choosing the code again.
+    func backToFirstStep() {
+        guard currentStep == .confirmPin, !isValidating else { return }
+        savedDigits = nil
+        digits = []
+        currentStep = .enterPin
         clearError()
     }
 

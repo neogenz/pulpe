@@ -15,36 +15,32 @@ struct SavingsStep: View {
             step: .savings,
             state: state,
             canProceed: true,
+            subtitle: AppLocale.string("""
+                Ce que tu veux garder chaque mois. Tu pourras le relier à un objectif \
+                plus tard.
+                """),
             onNext: { state.nextStep() },
+            zone: { OnboardingBudgetZone(state: state, legend: .savings) },
             content: {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     suggestionsSection
 
                     if !customSavings.isEmpty {
                         customSavingsSection
                     }
 
-                    addSavingButton
-
-                    if state.totalSavings > 0 {
-                        OnboardingRunningTotal(
-                            label: AppLocale.string("Total épargne"),
-                            amount: state.totalSavings,
-                            color: .financialSavings,
-                            currency: state.currency
-                        )
-                    }
+                    OnboardingAddLink(title: AppLocale.string("Ajouter une épargne")) { showAddSaving = true }
                 }
             }
         )
         .sheet(isPresented: $showAddSaving) {
-            AddCustomExpenseSheet(kind: .saving, currency: state.currency) { tx in
+            AddCustomExpenseSheet(kind: .saving, currency: state.currency, available: state.availableToSpend) { tx in
                 state.addCustomTransaction(tx)
             }
             .standardSheetPresentation()
         }
         .sheet(item: $editingTransaction) { tx in
-            AddCustomExpenseSheet(editing: tx, currency: state.currency) { updated in
+            AddCustomExpenseSheet(editing: tx, currency: state.currency, available: state.availableToSpend) { updated in
                 state.replaceCustomTransaction(id: tx.id, with: updated)
             }
             .standardSheetPresentation()
@@ -58,7 +54,6 @@ struct SavingsStep: View {
         OnboardingSuggestionGrid(
             suggestions: OnboardingState.savingSuggestions(for: state.currency),
             state: state,
-            accentColor: .financialSavings,
             toggleTrigger: $suggestionToggleTrigger
         )
     }
@@ -68,29 +63,10 @@ struct SavingsStep: View {
     private var customSavingsSection: some View {
         OnboardingTransactionListSection(
             title: AppLocale.string("Mes épargnes"),
-            icon: "list.bullet",
             transactions: customSavings,
             state: state,
             onEdit: { editingTransaction = $0 }
         )
-    }
-
-    // MARK: - Add Button
-
-    private var addSavingButton: some View {
-        Button {
-            showAddSaving = true
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: "plus.circle.fill")
-                Text("Ajouter une épargne")
-            }
-            .font(PulpeTypography.labelLarge)
-            .foregroundStyle(Color.financialSavings)
-        }
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Rectangle())
-        .plainPressedButtonStyle()
     }
 }
 

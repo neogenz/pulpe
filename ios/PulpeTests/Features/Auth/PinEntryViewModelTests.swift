@@ -91,7 +91,7 @@ struct PinEntryViewModelTests {
 @MainActor
 struct PinEntryCopyTests {
     @Test func existingUserTitle_usesEntryWording() {
-        #expect(PinEntryView.pinEntryTitle == "Saisis ton code PIN")
+        #expect(PinEntryView.pinEntryTitle(firstName: "Léa") == "Bonjour, Léa")
     }
 
     @Test func forgotPinLabel_usesPinWording() {
@@ -223,7 +223,7 @@ struct PinEntryValidationFlowTests {
         await waitForCondition("should show error") { sut.isError }
 
         #expect(sut.authenticated == false)
-        #expect(sut.errorMessage == "Ce code ne semble pas correct")
+        #expect(sut.errorMessage == "Ce code ne semble pas correct. Réessaie.")
         #expect(sut.digits.isEmpty)
     }
 
@@ -262,18 +262,20 @@ struct PinEntryValidationFlowTests {
         #expect(sut.isValidating == false)
     }
 
-    // MARK: - Cooldown After Error
+    // MARK: - Error Persistence
 
-    @Test func appendDigit_blockedDuringErrorCooldown() async {
+    @Test func error_staysUntilNextDigit() async {
         let sut = makeSUT(validateKeyError: .unauthorized)
         enterPin(sut)
 
         await waitForCondition("should show error") { sut.isError }
 
-        // Try entering digits while error is displayed — should be blocked
+        // The message holds while nothing is typed, then the next try clears it.
+        #expect(sut.errorMessage != nil)
         sut.appendDigit(1)
-        sut.appendDigit(2)
-        #expect(sut.digits.isEmpty)
+        #expect(sut.isError == false)
+        #expect(sut.errorMessage == nil)
+        #expect(sut.digits == [1])
     }
 
     // MARK: - Keychain Unavailable

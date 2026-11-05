@@ -42,8 +42,8 @@ struct OnboardingFlow: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Subtle branded gradient for onboarding form steps
-                Color.loginGradientBackground
+                // Forest behind the step slide: the zone of every step is forest.
+                Color.heroSurface.ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     // Step content — no TabView so swipe is impossible
@@ -54,26 +54,6 @@ struct OnboardingFlow: View {
                         .id(state.currentStep)
                         .transition(stepTransition)
                         .sensoryFeedback(.impact(weight: .light), trigger: state.currentStep)
-                        .overlay(alignment: .top) {
-                            // Top fade — hides scrolled content under the sticky
-                            // header. Neutral across all onboarding steps: state
-                            // is carried by the hero copy + accent color, not
-                            // by a full-screen colored wash that new users would
-                            // have no way to decode.
-                            if state.currentStep.showProgressBar {
-                                LinearGradient(
-                                    colors: [.onboardingFormBase, .onboardingFormBase.opacity(0)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                                .frame(height: DesignTokens.Blur.topFadeHeight)
-                                .allowsHitTesting(false)
-                            }
-                        }
-                }
-                .background {
-                    Color.onboardingFormBase
-                        .ignoresSafeArea()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -205,7 +185,7 @@ struct OnboardingFlow: View {
             if state.hasCompletedPinSetup {
                 BudgetPreviewStep(state: state)
             } else {
-                Color.onboardingFormBase
+                Color.appBackground
             }
         }
     }

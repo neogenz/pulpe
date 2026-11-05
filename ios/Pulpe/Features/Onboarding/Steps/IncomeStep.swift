@@ -17,14 +17,27 @@ struct IncomeStep: View {
             step: .income,
             state: state,
             canProceed: state.isIncomeValid,
+            subtitle: AppLocale.string("Ton salaire net, ce qui arrive sur ton compte."),
             onNext: { state.nextStep() },
+            zone: {
+                VStack(spacing: DesignTokens.Spacing.md) {
+                    OnboardingBudgetZone(
+                        state: state,
+                        subtitle: AppLocale.string("\(state.currency.rawValue) · pour l'instant")
+                    )
+                    Text("Chaque charge et chaque épargne va le réduire.")
+                        .font(PulpeTypography.bannerText)
+                        .foregroundStyle(Color.heroInkSecondary)
+                        .multilineTextAlignment(.center)
+                }
+            },
             content: {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                             Text("Tu comptes en francs ou en euros ?")
                                 .font(PulpeTypography.labelMedium)
-                                .foregroundStyle(Color.onSurfaceVariant)
+                                .foregroundStyle(Color.textSecondary)
                             SegmentedPicker(
                                 selection: Binding(
                                     get: { state.currency },
@@ -32,7 +45,7 @@ struct IncomeStep: View {
                                 ),
                                 title: nil
                             ) { currency in
-                                Text("\(currency.flag) \(currency.rawValue)")
+                                Text(currency == .chf ? "Francs · CHF" : "Euros · EUR")
                             }
                         }
 
@@ -48,32 +61,22 @@ struct IncomeStep: View {
                         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
                             Image(systemName: "lock.fill")
                                 .font(PulpeTypography.caption2)
-                            Text("Personne d'autre ne voit ces montants — pas même moi qui développe Pulpe.")
+                            Text("Personne d'autre ne voit ces montants, pas même moi qui développe Pulpe.")
                                 .font(PulpeTypography.caption)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .foregroundStyle(Color.textTertiaryOnboarding)
+                        .foregroundStyle(Color.textTertiary)
                     }
 
                     if !customIncomes.isEmpty {
                         customIncomesSection
                     }
 
-                    addIncomeButton
-
-                    if state.totalIncome > 0 {
-                        OnboardingRunningTotal(
-                            label: AppLocale.string("Total revenus"),
-                            amount: state.totalIncome,
-                            color: .financialIncome,
-                            currency: state.currency
-                        )
-                    }
+                    OnboardingAddLink(title: AppLocale.string("Ajouter un autre revenu")) { showAddIncome = true }
                 }
-                // Open the keyboard on the main income field as the step lands —
-                // saves a tap on the screen's only required input. The guard
-                // avoids stealing focus back if the user has already moved on
-                // to a custom-income sheet within the same task lifecycle.
+                // Open the keyboard on the main income field as the step lands: saves a tap on the
+                // screen's only required input. The guard avoids stealing focus back if the user has
+                // already moved on to a custom-income sheet within the same task lifecycle.
                 .task {
                     guard !isMonthlyIncomeFocused else { return }
                     isMonthlyIncomeFocused = true
@@ -81,13 +84,13 @@ struct IncomeStep: View {
             }
         )
         .sheet(isPresented: $showAddIncome) {
-            AddCustomExpenseSheet(kind: .income, currency: state.currency) { tx in
+            AddCustomExpenseSheet(kind: .income, currency: state.currency, available: state.availableToSpend) { tx in
                 state.addCustomTransaction(tx)
             }
             .standardSheetPresentation()
         }
         .sheet(item: $editingTransaction) { tx in
-            AddCustomExpenseSheet(editing: tx, currency: state.currency) { updated in
+            AddCustomExpenseSheet(editing: tx, currency: state.currency, available: state.availableToSpend) { updated in
                 state.replaceCustomTransaction(id: tx.id, with: updated)
             }
             .standardSheetPresentation()
@@ -100,27 +103,10 @@ struct IncomeStep: View {
     private var customIncomesSection: some View {
         OnboardingTransactionListSection(
             title: AppLocale.string("Revenus supplémentaires"),
-            icon: "arrow.down.circle.fill",
             transactions: customIncomes,
             state: state,
             onEdit: { editingTransaction = $0 }
         )
-    }
-
-    private var addIncomeButton: some View {
-        Button {
-            showAddIncome = true
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: "plus.circle.fill")
-                Text("Ajouter un revenu")
-            }
-            .font(PulpeTypography.labelLarge)
-            .foregroundStyle(Color.pulpePrimary)
-        }
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Rectangle())
-        .plainPressedButtonStyle()
     }
 }
 
