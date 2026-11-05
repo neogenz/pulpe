@@ -190,33 +190,40 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
 
     // `budget_line` has no user column: the asset ids come from the user's own
     // assets, and the link trigger keeps a line on an asset of its owner.
-    // `gt` also drops the lines that are not checked (`checked_at` is null).
-    const rowsByAsset = await Promise.all(
-      cutoffs.map(async ({ assetId, since }) => ({
-        assetId,
-        rows: await fetchAllPages((from, to) =>
-          supabase
-            .from('budget_line')
-            .select('id, kind, amount')
-            .eq('asset_id', assetId)
-            .gt('checked_at', since)
-            .order('id', { ascending: true })
-            .range(from, to),
-        ),
-      })),
+    // One read from the earliest cutoff, then each line is held to its own
+    // asset's cutoff. `gt` also drops the lines that are not checked.
+    const sinceByAssetId = new Map(
+      cutoffs.map(({ assetId, since }) => [assetId, Date.parse(since)]),
+    );
+    const earliestSince = new Date(
+      Math.min(...sinceByAssetId.values()),
+    ).toISOString();
+    const rows = await fetchAllPages((from, to) =>
+      supabase
+        .from('budget_line')
+        .select('id, asset_id, kind, amount, checked_at')
+        .in('asset_id', [...sinceByAssetId.keys()])
+        .gt('checked_at', earliestSince)
+        .order('id', { ascending: true })
+        .range(from, to),
     ).catch((error: unknown) => {
       throw this.fetchFailed('listCheckedLinkedLines', error);
     });
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return rowsByAsset.flatMap(({ assetId, rows }) =>
-      rows.map((row) => ({
-        assetId,
-        kind: row.kind,
-        // Strict: a value Pulpe proposes and the user can apply must never
-        // come from an amount that failed to decrypt.
-        amount: row.amount ? this.encryption.decryptAmount(row.amount, dek) : 0,
-      })),
+    return rows.flatMap(
+      ({ asset_id: assetId, kind, amount, checked_at: checkedAt }) => {
+        const since = assetId ? sinceByAssetId.get(assetId) : undefined;
+        if (!assetId || since === undefined || !checkedAt) return [];
+        if (Date.parse(checkedAt) <= since) return [];
+        return {
+          assetId,
+          kind,
+          // Strict: a value Pulpe proposes and the user can apply must never
+          // come from an amount that failed to decrypt.
+          amount: amount ? this.encryption.decryptAmount(amount, dek) : 0,
+        };
+      },
     );
   }
 

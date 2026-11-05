@@ -260,45 +260,76 @@ describe('SupabaseAssetRepository', () => {
   });
 
   describe('findCheckedLinkedLines', () => {
-    function lineRow(id: number, amount: number | null, kind = 'saving') {
-      return { id: `line-${id}`, kind, amount: amount && `enc:${amount}` };
+    function lineRow(
+      id: number,
+      amount: number | null,
+      {
+        assetId = 'livret',
+        kind = 'saving',
+        checkedAt = '2026-11-05T09:00:00+00:00',
+      } = {},
+    ) {
+      return {
+        id: `line-${id}`,
+        asset_id: assetId,
+        kind,
+        amount: amount && `enc:${amount}`,
+        checked_at: checkedAt,
+      };
     }
 
-    it('reads each asset after its own cutoff and decrypts the amounts', async () => {
-      const livret = query(() => ({
-        data: [lineRow(1, 500), lineRow(2, 200.5)],
+    it('reads every asset in one query and holds each line to its own cutoff', async () => {
+      const lines = query(() => ({
+        data: [
+          lineRow(1, 500),
+          lineRow(2, 200.5),
+          // After the earliest cutoff, before the leasing's own: dropped.
+          lineRow(3, 900, {
+            assetId: 'leasing',
+            kind: 'expense',
+            checkedAt: '2026-11-03T12:00:00+00:00',
+          }),
+          lineRow(4, 400, { assetId: 'leasing', kind: 'expense' }),
+        ],
         error: null,
       }));
-      const leasing = query(() => ({
-        data: [lineRow(3, 400, 'expense')],
-        error: null,
-      }));
-      const { repo, encryption } = createRepository({
-        budget_line: [livret, leasing],
-      });
+      const { repo, encryption } = createRepository({ budget_line: [lines] });
 
-      const lines = await repo.findCheckedLinkedLines([
+      const result = await repo.findCheckedLinkedLines([
         { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
         { assetId: 'leasing', since: '2026-11-04T08:00:00+00:00' },
       ]);
 
-      expect(lines).toEqual([
+      expect(result).toEqual([
         { assetId: 'livret', kind: 'saving', amount: 500 },
         { assetId: 'livret', kind: 'saving', amount: 200.5 },
         { assetId: 'leasing', kind: 'expense', amount: 400 },
       ]);
-      expect(livret.argsOf('eq')).toEqual([['asset_id', 'livret']]);
-      expect(livret.argsOf('gt')).toEqual([
-        ['checked_at', '2026-11-03T10:00:00+00:00'],
-      ]);
-      expect(leasing.argsOf('eq')).toEqual([['asset_id', 'leasing']]);
-      expect(leasing.argsOf('gt')).toEqual([
-        ['checked_at', '2026-11-04T08:00:00+00:00'],
+      expect(lines.argsOf('in')).toEqual([['asset_id', ['livret', 'leasing']]]);
+      expect(lines.argsOf('gt')).toEqual([
+        ['checked_at', '2026-11-03T10:00:00.000Z'],
       ]);
       expect(encryption.decryptAmount).toHaveBeenCalledTimes(3);
     });
 
-    it('counts every line of an asset past the 1000-row PostgREST page', async () => {
+    it('drops a line checked at the cutoff instant itself', async () => {
+      const { repo } = createRepository({
+        budget_line: [
+          query(() => ({
+            data: [lineRow(1, 500, { checkedAt: '2026-11-03T10:00:00+00:00' })],
+            error: null,
+          })),
+        ],
+      });
+
+      await expect(
+        repo.findCheckedLinkedLines([
+          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+        ]),
+      ).resolves.toEqual([]);
+    });
+
+    it('counts every line past the 1000-row PostgREST page', async () => {
       const firstPage = query((calls) => {
         const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
         expect([from, to]).toEqual([0, POSTGREST_PAGE_SIZE - 1]);
