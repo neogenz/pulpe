@@ -7,11 +7,8 @@ import type {
 import type { Database } from '../../../types/database.types';
 
 export type AssetRow = Database['public']['Tables']['asset']['Row'];
-export type AssetInsert = Database['public']['Tables']['asset']['Insert'];
 export type AssetCategoryRow =
   Database['public']['Tables']['asset_category']['Row'];
-export type AssetSnapshotRow =
-  Database['public']['Tables']['asset_snapshot']['Row'];
 
 export interface AssetCategory {
   id: string;

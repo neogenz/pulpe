@@ -259,7 +259,7 @@ export class EditTemplateLineDialog {
   );
 
   // Which assets the kind can be linked to; null hides the field (flag off, or
-  // a Revenu, which gets its own origin later).
+  // a Revenu: a template carries no asset origin).
   protected readonly assetDirection = computed(() =>
     this.#isAssetLinkEnabled ? assetDirectionForKind(this.model().kind) : null,
   );
