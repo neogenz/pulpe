@@ -2,7 +2,7 @@ import SwiftUI
 
 /// "Reporter au mois suivant" menu entry (PUL-22), shared by the budget-line
 /// detail page (`BudgetLineDetailPage`) and the transaction edit page
-/// (`EditTransactionPage`) header menus so the eligibility / disabled-state
+/// (`MovementSheet`) header menus so the eligibility / disabled-state
 /// copy lives in one place.
 ///
 /// Renders nothing when the item is ineligible (checked, recurring, or with

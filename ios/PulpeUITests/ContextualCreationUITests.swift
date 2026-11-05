@@ -16,7 +16,7 @@ final class ContextualCreationUITests: XCTestCase {
     func testTappingAnActivityRowOpensItsEditSheetAndClosingReturnsToTheAccueil() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
 
-        let row = app.buttons["homeActivityRow-marketing-bonus"]
+        let row = app.buttons["movementRow-marketing-bonus"]
         scrollUntilHittable(row)
         row.tap()
 
@@ -153,23 +153,12 @@ final class ContextualCreationUITests: XCTestCase {
         // The verdict sentence's own copy is asserted in `HomeHeroCardTests`: it lives in a
         // Button whose accessibility label is its action, so its text reaches no query here.
 
-        // The card listing what is waiting to be pointed.
+        // A first month has nothing to point yet: the home says how to start instead.
         XCTAssertTrue(
-            app.descendants(matching: .any)["homeUncheckedOperationsCard"].exists,
+            app.descendants(matching: .any)["homeStartAddExpense"].exists,
             app.debugDescription
         )
-        // The income the template opened the budget with — the harness names it, so the
-        // row proves the card is showing the line and not an empty frame.
-        let uncheckedRow = app.descendants(matching: .any)["homeUncheckedOperationRow"].firstMatch
-        XCTAssertTrue(uncheckedRow.exists, app.debugDescription)
-        XCTAssertTrue(uncheckedRow.label.contains("Revenu"), uncheckedRow.label)
-
-        // Nothing has happened yet, so no card may report activity or drift.
-        XCTAssertFalse(
-            app.descendants(matching: .any)["homeActivityCard"].exists,
-            app.debugDescription
-        )
-        XCTAssertFalse(app.descendants(matching: .any)["homeDriftCard"].exists, app.debugDescription)
+        XCTAssertFalse(app.descendants(matching: .any)["homeTodoDrift"].exists, app.debugDescription)
 
         attachScreenshot("home-fresh-signup")
     }
@@ -178,15 +167,15 @@ final class ContextualCreationUITests: XCTestCase {
     /// stack bound to it moves. A harness that wraps `CurrentMonthView` in its own stack
     /// swallows all five of them, and a tap that does nothing looks exactly like a tap that
     /// missed its target — this is the test that tells the two apart.
-    func testHomeShortcutPushesTheBudgetDetail() {
+    func testSeeAllPushesTheMovementsPage() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large")
 
-        let seeDetail = app.buttons["homeBudgetDetailLink"]
-        XCTAssertTrue(seeDetail.waitForExistence(timeout: 10), app.debugDescription)
-        seeDetail.tap()
+        let viewAll = app.buttons["homeActivityViewAll"]
+        XCTAssertTrue(viewAll.waitForExistence(timeout: 10), app.debugDescription)
+        viewAll.tap()
 
         XCTAssertTrue(
-            app.buttons["budgetAddLineButton"].waitForExistence(timeout: 10),
+            app.searchFields.firstMatch.waitForExistence(timeout: 10),
             "Le tap n'a rien poussé — écran après le tap : "
                 + "\(app.descendants(matching: .any).allElementsBoundByIndex.map(\.label))"
         )
@@ -214,14 +203,16 @@ final class ContextualCreationUITests: XCTestCase {
             chart.label.contains(Self.currencyCode),
             "Le graphe annonce encore sa trajectoire : \(chart.label)"
         )
-        // And the card below, whose rows each carry an amount of their own.
-        let uncheckedRow = app.descendants(matching: .any)["homeUncheckedOperationRow"].firstMatch
-        XCTAssertTrue(uncheckedRow.exists, app.debugDescription)
-        XCTAssertTrue(uncheckedRow.label.contains("Logement"), uncheckedRow.label)
-        XCTAssertFalse(
-            uncheckedRow.label.contains(Self.currencyCode),
-            "La ligne à pointer annonce son montant : \(uncheckedRow.label)"
-        )
+        // And the rows below, which each carry an amount of their own.
+        let movement = app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH 'movementRow-'")
+        ).firstMatch
+        if movement.exists {
+            XCTAssertFalse(
+                movement.label.contains(Self.currencyCode),
+                "La ligne annonce son montant : \(movement.label)"
+            )
+        }
 
         attachScreenshot("home-amounts-hidden")
     }

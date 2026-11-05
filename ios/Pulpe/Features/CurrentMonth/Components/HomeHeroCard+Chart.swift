@@ -28,26 +28,7 @@ extension HomeHeroCard {
                         lineCap: .round,
                         dash: DesignTokens.Chart.markerDash
                     ))
-                    .foregroundStyle(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
-                }
-
-                // The area under the real stroke: ink fading to nothing, the only fill on the
-                // plot. What makes the line read as a surface rather than a wire.
-                ForEach(trajectory.real) { point in
-                    AreaMark(
-                        x: .value("Jour", point.day),
-                        yStart: .value("Plancher", yDomain.lowerBound),
-                        yEnd: .value("Réel", Self.decimalValue(point.balance)),
-                        series: .value("Série", "Aire")
-                    )
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.heroInk.opacity(DesignTokens.Opacity.heroArea), .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+                    .foregroundStyle(Color.textTertiary)
                 }
 
                 ForEach(trajectory.real) { point in
@@ -62,7 +43,7 @@ extension HomeHeroCard {
                         lineCap: .round,
                         lineJoin: .round
                     ))
-                    .foregroundStyle(Color.heroInk)
+                    .foregroundStyle(Color.textPrimary)
                 }
 
                 // The days not yet lived: from what is left today to where the month lands
@@ -80,7 +61,7 @@ extension HomeHeroCard {
                         lineCap: .round,
                         dash: DesignTokens.Chart.dash
                     ))
-                    .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.heroInkMuted))
+                    .foregroundStyle(accentColor)
                     .opacity(settlingOpacity)
                 }
 
@@ -90,12 +71,12 @@ extension HomeHeroCard {
                         y: .value("Réel", Self.decimalValue(current.balance))
                     )
                     .symbolSize(DesignTokens.Chart.pointSymbolArea)
-                    .foregroundStyle(Color.heroInk)
+                    .foregroundStyle(Color.textPrimary)
                     // Steps aside with the labels: one dot on the plot at a time.
                     .opacity(labelOpacity)
                     .annotation(position: .overlay) {
                         Circle()
-                            .strokeBorder(Color.heroSurface, lineWidth: DesignTokens.BorderWidth.thick)
+                            .strokeBorder(Color.surface, lineWidth: DesignTokens.BorderWidth.thick)
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
                             .opacity(labelOpacity)
                     }
@@ -108,7 +89,7 @@ extension HomeHeroCard {
                     let reading = Self.scrubReading(at: scrubDay, in: trajectory)
                     RuleMark(x: .value("Jour", reading.day))
                         .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin))
-                        .foregroundStyle(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
+                        .foregroundStyle(Color.textTertiary)
                     // The dot sits on the stroke the day belongs to: real, else estimate.
                     if let value = reading.real ?? reading.estimate {
                         PointMark(
@@ -116,10 +97,10 @@ extension HomeHeroCard {
                             y: .value("Lecture", Self.decimalValue(value))
                         )
                         .symbolSize(DesignTokens.Chart.pointSymbolArea)
-                        .foregroundStyle(Color.heroInk)
+                        .foregroundStyle(Color.textPrimary)
                         .annotation(position: .overlay) {
                             Circle()
-                                .strokeBorder(Color.heroSurface, lineWidth: DesignTokens.BorderWidth.thick)
+                                .strokeBorder(Color.surface, lineWidth: DesignTokens.BorderWidth.thick)
                                 .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
                         }
                     }
@@ -150,9 +131,8 @@ extension HomeHeroCard {
             .onChange(of: isSettling, initial: true) { _, settling in
                 settlePulse = settling
             }
-            // Edge to edge: cancels the hero's text inset so the plot spans the screen.
+            // V2: the plot sits inside the card's padding, lines only, no fill.
             .chartPlotStyle { $0.padding(0) }
-            .padding(.horizontal, -DesignTokens.Spacing.xxl)
             .chartYScale(domain: yDomain)
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
@@ -162,7 +142,8 @@ extension HomeHeroCard {
             // trajectory from the label below, which is the accessible route into a graph.
             .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .frame(height: DesignTokens.Chart.dashboardHeight)
-            .sensitiveAmount()
+            // Not blurred when amounts are hidden (V2 Accueil-masque): the shape carries no
+            // figure, and its two labels drop their amounts on their own.
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.chartAccessibilityLabel(
                 for: trajectory,
@@ -175,18 +156,22 @@ extension HomeHeroCard {
         }
     }
 
-    /// Pay day on the left, the period's end on the right: the plot is a timeline, and
-    /// nothing else on it says so.
+    /// Pay day on the left, today in the middle, the period's end on the right: the plot is a
+    /// timeline, and nothing else on it says so.
     @ViewBuilder
     var chartTimeAxis: some View {
         if let trajectory, let start = trajectory.periodStart, let end = trajectory.periodEnd {
             HStack {
                 Text(Formatters.dayMonthLabel(for: start))
                 Spacer(minLength: DesignTokens.Spacing.md)
+                Text("Aujourd’hui")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer(minLength: DesignTokens.Spacing.md)
                 Text(Formatters.dayMonthLabel(for: end))
             }
             .font(PulpeTypography.caption2)
-            .foregroundStyle(Color.heroInkSecondary)
+            .foregroundStyle(Color.textTertiary)
             .lineLimit(1)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(AppLocale.string(
@@ -242,7 +227,7 @@ extension HomeHeroCard {
         for trajectory: BudgetFormulas.BalanceTrajectory,
         currency: SupportedCurrency
     ) -> String {
-        AppLocale.string("Si tu continues : \(trend(for: trajectory).asCompactCurrency(currency))")
+        AppLocale.string("À ce rythme \(trend(for: trajectory).asCompactCurrency(currency))")
     }
 
     /// A label grows leftward from its stroke's end, so it has to sit on the side the

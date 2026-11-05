@@ -1,324 +1,2221 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "Le calcul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Rechnung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The calculation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il calcolo"
+          }
+        }
+      }
+    },
+    "Ouvrir le détail du calcul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechendetails öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the calculation details"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri il dettaglio del calcolo"
+          }
+        }
+      }
+    },
+    "Pile sur ton plan." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genau nach Plan."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right on plan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proprio come previsto."
+          }
+        }
+      }
+    },
+    "Ajoute tes dépenses au fil du mois : ce chiffre se met à jour aussitôt." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trag deine Ausgaben im Lauf des Monats ein: Diese Zahl aktualisiert sich sofort."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your expenses as the month goes: this figure updates right away."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi le tue spese durante il mese: questa cifra si aggiorna subito."
+          }
+        }
+      }
+    },
+    "À ce rythme" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In diesem Tempo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At this pace"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di questo passo"
+          }
+        }
+      }
+    },
+    "À ce rythme %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In diesem Tempo %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At this pace %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di questo passo %@"
+          }
+        }
+      }
+    },
+    "Le %@, il te restera moins que prévu." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Am %@ bleibt dir weniger als geplant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On %@, you'll have less left than planned."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il %@ ti resterà meno del previsto."
+          }
+        }
+      }
+    },
+    "Le %@, il te restera plus que prévu." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Am %@ bleibt dir mehr als geplant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On %@, you'll have more left than planned."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il %@ ti resterà più del previsto."
+          }
+        }
+      }
+    },
+    "À ce rythme, il te restera %@ le %@ au lieu des %@ prévus." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In diesem Tempo bleiben dir am %@ nur %@ statt der geplanten %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At this pace, you'll have %@ left on %@ instead of the %@ planned."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di questo passo ti resteranno %@ il %@ invece dei %@ previsti."
+          }
+        }
+      }
+    },
+    "Jour %lld sur %lld · jusqu'au %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag %lld von %lld · bis %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day %lld of %lld · until %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giorno %lld di %lld · fino al %@"
+          }
+        }
+      }
+    },
+    "Masquer les montants" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beträge ausblenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide amounts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi gli importi"
+          }
+        }
+      }
+    },
+    "Afficher les montants" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beträge anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show amounts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra gli importi"
+          }
+        }
+      }
+    },
+    "À faire" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu erledigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To do"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da fare"
+          }
+        }
+      }
+    },
+    "Pour bien démarrer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Einstieg"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To get started"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per iniziare"
+          }
+        }
+      }
+    },
+    "Ajoute ta première dépense" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trag deine erste Ausgabe ein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your first expense"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi la tua prima spesa"
+          }
+        }
+      }
+    },
+    "Un café, un plein, des courses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Kaffee, eine Tankfüllung, Einkäufe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A coffee, a tank of fuel, groceries"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un caffè, un pieno, la spesa"
+          }
+        }
+      }
+    },
+    "Pointe ce qui est déjà passé" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hak ab, was schon durch ist"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check off what already went through"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta ciò che è già passato"
+          }
+        }
+      }
+    },
+    "%@ et %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ und %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ and %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ e %@"
+          }
+        }
+      }
+    },
+    "%@ dépasse" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist überschritten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è superato"
+          }
+        }
+      }
+    },
+    "%@ et %@ dépassent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ und %@ sind überschritten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ and %@ are over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ e %@ sono superati"
+          }
+        }
+      }
+    },
+    "%@ et %lld autres dépassent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ und %lld weitere sind überschritten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ and %lld others are over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ e altri %lld sono superati"
+          }
+        }
+      }
+    },
+    "%@ au-delà du prévu, à rattraper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ über dem Plan, aufzuholen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ over plan, to catch up"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ oltre il previsto, da recuperare"
+          }
+        }
+      }
+    },
+    "%@ reportés sur %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ auf %@ übertragen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ carried over to %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ riportati su %@"
+          }
+        }
+      }
+    },
+    "Derniers mouvements" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letzte Bewegungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest movements"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimi movimenti"
+          }
+        }
+      }
+    },
+    "Tes mouvements s'afficheront ici.\nLe bouton + sert à les ajouter." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Bewegungen erscheinen hier.\nMit dem + fügst du sie hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your movements will show up here.\nThe + button adds them."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi movimenti appariranno qui.\nIl pulsante + serve ad aggiungerli."
+          }
+        }
+      }
+    },
+    "Créer le budget de %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget für %@ erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create the %@ budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea il budget di %@"
+          }
+        }
+      }
+    },
+    "Partir d'un autre modèle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einer anderen Vorlage starten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start from another template"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parti da un altro modello"
+          }
+        }
+      }
+    },
+    "Je pars de ton modèle : tu ajustes ce qui change, et c'est prêt." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich starte mit deiner Vorlage: Du passt an, was sich ändert, und fertig."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I start from your template: you adjust what changes, and it's ready."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parto dal tuo modello: aggiusti ciò che cambia ed è pronto."
+          }
+        }
+      }
+    },
+    "Dépenses prévues" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geplante Ausgaben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned expenses"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spese previste"
+          }
+        }
+      }
+    },
+    "%@ · %lld mouvements" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@ · %lld mouvement"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@ · %lld mouvements"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@ · %lld movement"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@ · %lld movements"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@ · %lld Bewegung"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@ · %lld Bewegungen"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@ · %lld movimento"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@ · %lld movimenti"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Rechercher un mouvement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegung suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search a movement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca un movimento"
+          }
+        }
+      }
+    },
+    "Rien à afficher ici." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier gibt es nichts anzuzeigen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to show here."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente da mostrare qui."
+          }
+        }
+      }
+    },
+    "Aucun mouvement ne correspond." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Bewegung passt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No movement matches."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun movimento corrisponde."
+          }
+        }
+      }
+    },
+    "pointé à l'instant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "gerade abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "checked just now"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "spuntato ora"
+          }
+        }
+      }
+    },
+    "Épargne · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ersparnis · %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Savings · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risparmio · %@"
+          }
+        }
+      }
+    },
+    "%@ au-delà du prévu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ über dem Plan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ over plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ oltre il previsto"
+          }
+        }
+      }
+    },
+    "Reste %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ übrig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ left"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restano %@"
+          }
+        }
+      }
+    },
+    "Touche le rond dès que c'est passé sur ton compte." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe auf den Kreis, sobald es auf deinem Konto verbucht ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the circle once it has gone through on your account."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca il cerchio appena è passato sul tuo conto."
+          }
+        }
+      }
+    },
+    "Comparer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confronta"
+          }
+        }
+      }
+    },
+    "Il bouge à chaque pointage. Ton disponible à dépenser, lui, ne change pas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ändert sich bei jedem Abhaken. Dein Verfügbares ändert sich nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It moves with every check. Your available to spend doesn't change."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si muove a ogni spunta. Il tuo disponibile da spendere, invece, non cambia."
+          }
+        }
+      }
+    },
+    "%lld à pointer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld abzuhaken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld to check"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld da spuntare"
+          }
+        }
+      }
+    },
+    "Prévisions du mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planung des Monats"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This month's forecasts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsioni del mese"
+          }
+        }
+      }
+    },
+    "Pointe-les dès que le prélèvement est passé" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hak sie ab, sobald die Abbuchung durch ist"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check them once the payment has gone through"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spuntale appena l'addebito è passato"
+          }
+        }
+      }
+    },
+    "Tout est pointé." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles ist abgehakt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything is checked."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto è spuntato."
+          }
+        }
+      }
+    },
+    "%lld mouvements à pointer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Bewegung abzuhaken"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Bewegungen abzuhaken"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld movement to check"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld movements to check"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld mouvement à pointer"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld mouvements à pointer"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld movimento da spuntare"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld movimenti da spuntare"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@, %@ et %lld autres" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ und %lld weitere"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ und %lld weitere"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ and %lld other"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ and %lld others"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ et %lld autre"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ et %lld autres"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ e altro %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ e altri %lld"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@, %@ et %lld autres prévisions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ und %lld weitere Planung"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ und %lld weitere Planungen"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ and %lld other forecast"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ and %lld other forecasts"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ et %lld autre prévision"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ et %lld autres prévisions"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ e un'altra previsione (%lld)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%@, %@ e altre %lld previsioni"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Nouvelle dépense" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Ausgabe" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "New expense" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nuova spesa" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Ausgabe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New expense"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuova spesa"
+          }
+        }
       }
     },
     "Nouveau revenu" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neues Einkommen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "New income" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nuova entrata" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neues Einkommen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuova entrata"
+          }
+        }
       }
     },
     "Nouvelle épargne" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Ersparnis" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "New saving" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nuovo risparmio" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Ersparnis"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New saving"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovo risparmio"
+          }
+        }
       }
     },
     "Déjà sur mon compte" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schon auf meinem Konto" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Already on my account" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Già sul mio conto" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schon auf meinem Konto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already on my account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Già sul mio conto"
+          }
+        }
       }
     },
     "Nouvelle prévision" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Planung" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "New forecast" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nuova previsione" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Planung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New forecast"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuova previsione"
+          }
+        }
       }
     },
     "Réserver un montant pour plus tard" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einen Betrag für später zurücklegen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Set aside an amount for later" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Metti da parte un importo per dopo" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Betrag für später zurücklegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set aside an amount for later"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metti da parte un importo per dopo"
+          }
+        }
       }
     },
     "C'était prévu dans ton budget ?" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "War das in deinem Budget geplant?" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Was this planned in your budget?" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Era previsto nel tuo budget?" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "War das in deinem Budget geplant?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was this planned in your budget?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Era previsto nel tuo budget?"
+          }
+        }
       }
     },
     "Autre" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Andere" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Altra" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altra"
+          }
+        }
       }
     },
     "Ton disponible ne bouge pas" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Verfügbares ändert sich nicht" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your available amount doesn't change" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Il tuo disponibile non cambia" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Verfügbares ändert sich nicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your available amount doesn't change"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo disponibile non cambia"
+          }
+        }
       }
     },
     "Ton disponible baisse de %@" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Verfügbares sinkt um %@" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your available amount drops by %@" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Il tuo disponibile scende di %@" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Verfügbares sinkt um %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your available amount drops by %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo disponibile scende di %@"
+          }
+        }
       }
     },
     "Ton disponible monte de %@" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Verfügbares steigt um %@" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your available amount rises by %@" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Il tuo disponibile sale di %@" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Verfügbares steigt um %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your available amount rises by %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo disponibile sale di %@"
+          }
+        }
       }
     },
     "C'était prévu dans %@ : il y reste %@ au lieu de %@." : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das war in %@ geplant: %@ übrig statt %@." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "It was planned in %@: %@ left instead of %@." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Era previsto in %@: restano %@ invece di %@." } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das war in %@ geplant: %@ übrig statt %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It was planned in %@: %@ left instead of %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Era previsto in %@: restano %@ invece di %@."
+          }
+        }
       }
     },
     "%@ est dépassée : le surplus sort de ton disponible." : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ ist überschritten: der Mehrbetrag geht von deinem Verfügbaren ab." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ is over: the excess comes out of your available amount." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "%@ è superata: l'eccedenza esce dal tuo disponibile." } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist überschritten: der Mehrbetrag geht von deinem Verfügbaren ab."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is over: the excess comes out of your available amount."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è superata: l'eccedenza esce dal tuo disponibile."
+          }
+        }
       }
     },
     "Aucune prévision ne la couvre." : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Planung deckt das ab." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No forecast covers it." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nessuna previsione la copre." } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Planung deckt das ab."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No forecast covers it."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna previsione la copre."
+          }
+        }
       }
     },
     "Retiré de %@." : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Von %@ abgehoben." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Withdrawn from %@." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Prelevato da %@." } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von %@ abgehoben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Withdrawn from %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prelevato da %@."
+          }
+        }
       }
     },
     "Autres revenus" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Andere Einnahmen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other income" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Altre entrate" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Einnahmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre entrate"
+          }
+        }
       }
     },
     "Autres dépenses" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Andere Ausgaben" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other expenses" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Altre spese" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Ausgaben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other expenses"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre spese"
+          }
+        }
       }
     },
     "Avec de la marge" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mit Spielraum" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "With room left" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Con margine" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Spielraum"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With room left"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con margine"
+          }
+        }
       }
     },
     "Déjà dépassées" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schon überschritten" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Already over" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Già superate" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schon überschritten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Già superate"
+          }
+        }
       }
     },
     "Dans quelle prévision ?" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "In welcher Planung?" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Which forecast?" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "In quale previsione?" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In welcher Planung?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Which forecast?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In quale previsione?"
+          }
+        }
       }
     },
     "Rechercher une prévision" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Planung suchen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search forecasts" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Cerca una previsione" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planung suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search forecasts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca una previsione"
+          }
+        }
       }
     },
     "Aucune prévision : ton disponible baisse" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Planung: dein Verfügbares sinkt" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No forecast: your available amount drops" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nessuna previsione: il tuo disponibile scende" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Planung: dein Verfügbares sinkt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No forecast: your available amount drops"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna previsione: il tuo disponibile scende"
+          }
+        }
       }
     },
     "%@ prévus" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ geplant" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ planned" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "%@ previsti" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ geplant"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ planned"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ previsti"
+          }
+        }
       }
     },
     "%@ · pointé" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ · abgehakt" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ · checked" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "%@ · spuntato" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · checked"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · spuntato"
+          }
+        }
       }
     },
     "au-delà" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "darüber" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "over" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "oltre" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "darüber"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "oltre"
+          }
+        }
       }
     },
     "prévus" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "geplant" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "planned" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "previsti" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "geplant"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "planned"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "previsti"
+          }
+        }
       }
     },
     "Ajouter %@" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ hinzufügen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add %@" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Aggiungi %@" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi %@"
+          }
+        }
       }
     },
     "Prévision ajoutée chaque mois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Planung jeden Monat hinzugefügt" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Forecast added every month" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Previsione aggiunta ogni mese" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planung jeden Monat hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forecast added every month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsione aggiunta ogni mese"
+          }
+        }
       }
     },
     "au total" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "insgesamt" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "in total" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "in totale" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "insgesamt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in total"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in totale"
+          }
+        }
       }
     },
     "par mois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "pro Monat" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "per month" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "al mese" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pro Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "per month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "al mese"
+          }
+        }
       }
     },
     "Quand ?" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wann?" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "When?" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Quando?" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wann?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando?"
+          }
+        }
       }
     },
     "Sur combien de mois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Über wie viele Monate" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Over how many months" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Su quanti mesi" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über wie viele Monate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Over how many months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Su quanti mesi"
+          }
+        }
       }
     },
     "Moins de mois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Weniger Monate" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fewer months" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Meno mesi" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weniger Monate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fewer months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meno mesi"
+          }
+        }
       }
     },
     "Plus de mois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mehr Monate" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "More months" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Più mesi" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehr Monate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Più mesi"
+          }
+        }
       }
     },
     "Soit %@ par mois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das sind %@ pro Monat" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "That is %@ per month" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Cioè %@ al mese" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das sind %@ pro Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That is %@ per month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cioè %@ al mese"
+          }
+        }
       }
     },
     "De %@ à %@" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Von %@ bis %@" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "From %@ to %@" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Da %@ a %@" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von %@ bis %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@ to %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da %@ a %@"
+          }
+        }
       }
     },
     "Réserver %@ par mois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ pro Monat zurücklegen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Set aside %@ per month" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Metti da parte %@ al mese" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ pro Monat zurücklegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set aside %@ per month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metti da parte %@ al mese"
+          }
+        }
       }
     },
     "Non, c'est un imprévu" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nein, das war unvorhergesehen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No, it's unplanned" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "No, è un imprevisto" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nein, das war unvorhergesehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No, it's unplanned"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No, è un imprevisto"
+          }
+        }
       }
     },
     "Chaque mois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Jeden Monat" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Every month" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Ogni mese" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeden Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni mese"
+          }
+        }
       }
     },
     "Une fois" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einmal" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Once" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Una volta" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una volta"
+          }
+        }
       }
     },
     "" : {
@@ -15062,7 +16959,7 @@
         }
       }
     },
-    "Le lundi matin, le récap de ta semaine. Le jour de paie, ton nouveau mois. C'est tout — jamais de spam, et tu coupes quand tu veux." : {
+    "Le lundi matin, le récap de ta semaine. Le jour de paie, ton nouveau mois. C'est tout : jamais de spam, et tu coupes quand tu veux." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -31890,149 +33787,464 @@
     },
     "À améliorer" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ausbaufähig" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Needs improvement" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Da migliorare" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausbaufähig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs improvement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da migliorare"
+          }
+        }
       }
     },
     "Bien" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gut" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Good" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Bene" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gut"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bene"
+          }
+        }
       }
     },
     "Clarté de l'accueil" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Klarheit der Startseite" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home screen clarity" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Chiarezza della schermata iniziale" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klarheit der Startseite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home screen clarity"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiarezza della schermata iniziale"
+          }
+        }
       }
     },
     "Clarté de l'interface" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verständlichkeit der App" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Interface clarity" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Chiarezza dell'interfaccia" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verständlichkeit der App"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interface clarity"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiarezza dell'interfaccia"
+          }
+        }
       }
     },
     "Comment ça se passe avec Pulpe ?" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wie läuft es mit Pulpe?" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "How is it going with Pulpe?" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Come ti trovi con Pulpe?" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie läuft es mit Pulpe?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How is it going with Pulpe?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Come ti trovi con Pulpe?"
+          }
+        }
       }
     },
     "Commentaire facultatif" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Optionaler Kommentar" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Optional comment" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Commento facoltativo" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optionaler Kommentar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional comment"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commento facoltativo"
+          }
+        }
       }
     },
     "Création de mon premier budget" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erstellung meines ersten Budgets" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Creating my first budget" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Creazione del mio primo budget" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellung meines ersten Budgets"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creating my first budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creazione del mio primo budget"
+          }
+        }
       }
     },
     "Correct" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Okay" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Okay" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Discreto" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okay"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okay"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discreto"
+          }
+        }
       }
     },
     "Difficile" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schwierig" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Difficult" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Difficile" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schwierig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difficult"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difficile"
+          }
+        }
       }
     },
     "Donner mon avis" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feedback geben" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Give feedback" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Lascia un'opinione" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedback geben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give feedback"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lascia un'opinione"
+          }
+        }
       }
     },
     "Envoyer" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Senden" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Invia" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia"
+          }
+        }
       }
     },
     "Gestion du budget du mois" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verwaltung des Monatsbudgets" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Managing this month's budget" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Gestione del budget del mese" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltung des Monatsbudgets"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Managing this month's budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestione del budget del mese"
+          }
+        }
       }
     },
     "Merci. Ton avis fait progresser Pulpe." : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Danke. Dein Feedback bringt Pulpe weiter." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Thanks. Your feedback helps Pulpe improve." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Grazie. La tua opinione aiuta Pulpe a migliorare." } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danke. Dein Feedback bringt Pulpe weiter."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thanks. Your feedback helps Pulpe improve."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grazie. La tua opinione aiuta Pulpe a migliorare."
+          }
+        }
       }
     },
     "Planification des prochains mois" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Planung der kommenden Monate" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Planning the coming months" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Pianificazione dei prossimi mesi" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planung der kommenden Monate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planning the coming months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pianificazione dei prossimi mesi"
+          }
+        }
       }
     },
     "Partage une impression en 30 secondes" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Teile deinen Eindruck in 30 Sekunden" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Share an impression in 30 seconds" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Condividi un'impressione in 30 secondi" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teile deinen Eindruck in 30 Sekunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share an impression in 30 seconds"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi un'impressione in 30 secondi"
+          }
+        }
       }
     },
     "Préciser mon avis" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feedback ergänzen" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add details" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Aggiungi dettagli" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedback ergänzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add details"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi dettagli"
+          }
+        }
       }
     },
     "Ton avis n'est pas parti. Réessaie." : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Feedback wurde nicht gesendet. Versuch es noch einmal." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your feedback wasn't sent. Try again." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "La tua opinione non è stata inviata. Riprova." } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Feedback wurde nicht gesendet. Versuch es noch einmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your feedback wasn't sent. Try again."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua opinione non è stata inviata. Riprova."
+          }
+        }
       }
     },
     "Ton avis reste privé. Il n'est pas publié sur l'App Store." : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Feedback bleibt privat. Es wird nicht im App Store veröffentlicht." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your feedback stays private. It isn't published on the App Store." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "La tua opinione resta privata. Non viene pubblicata sull'App Store." } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Feedback bleibt privat. Es wird nicht im App Store veröffentlicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your feedback stays private. It isn't published on the App Store."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua opinione resta privata. Non viene pubblicata sull'App Store."
+          }
+        }
       }
     },
     "Ton avis sur Pulpe" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Feedback zu Pulpe" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your feedback on Pulpe" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "La tua opinione su Pulpe" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Feedback zu Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your feedback on Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua opinione su Pulpe"
+          }
+        }
       }
     },
     "Très bien" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sehr gut" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Very good" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Molto bene" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sehr gut"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Very good"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Molto bene"
+          }
+        }
       }
     },
     "Un commentaire à ajouter ?" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Möchtest du etwas ergänzen?" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Anything you'd like to add?" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Vuoi aggiungere un commento?" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Möchtest du etwas ergänzen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anything you'd like to add?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuoi aggiungere un commento?"
+          }
+        }
       }
     },
     "≈ %@/mois · %lld mois" : {

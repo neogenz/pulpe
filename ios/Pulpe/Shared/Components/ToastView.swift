@@ -7,7 +7,7 @@ struct ToastView: View {
     let onUndo: (() -> Void)?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var offset: CGFloat = -100
+    @State private var offset: CGFloat = DesignTokens.Control.toastTravel
     @State private var opacity: Double = 0
 
     init(toast: ToastManager.Toast, onDismiss: @escaping () -> Void, onUndo: (() -> Void)? = nil) {
@@ -92,7 +92,7 @@ struct ToastView: View {
         .gesture(
             DragGesture()
                 .onEnded { value in
-                    if value.translation.height < -20 {
+                    if value.translation.height > DesignTokens.Control.toastSwipeDismiss {
                         dismissWithAnimation()
                     }
                 }
@@ -118,12 +118,12 @@ struct ToastView: View {
 
     private func dismissWithAnimation() {
         if reduceMotion {
-            offset = -100
+            offset = DesignTokens.Control.toastTravel
             opacity = 0
             onDismiss()
         } else {
             withAnimation(DesignTokens.Animation.toastDismiss) {
-                offset = -100
+                offset = DesignTokens.Control.toastTravel
                 opacity = 0
             } completion: {
                 onDismiss()

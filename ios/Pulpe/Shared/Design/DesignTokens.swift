@@ -199,8 +199,6 @@ enum DesignTokens {
         static let heroTile: Double = 0.12
         /// A 36pt toolbar disc on the forest: the tile tint vanishes at that size.
         static let heroDisc: Double = 0.2
-        /// Area fill under the tracked series on the hero chart
-        static let heroArea: Double = 0.22
         /// Unselected bars of the forecast chart: the savings green on white still clears the
         /// 3:1 WCAG 1.4.11 floor here (3.4:1), which `lockedDim` (0.62) does not.
         static let chartUnselected: Double = 0.7
@@ -321,6 +319,13 @@ enum DesignTokens {
         /// Distance from the bottom safe area to the floating button's bottom: clears the native
         /// tab bar (62pt floating capsule on iOS 26) with an 8pt gap.
         static let fabBottomInset: CGFloat = 70
+        /// Distance from the bottom safe area to the toast's bottom (V2 toast sits low, in thumb
+        /// reach): clears the tab bar and the floating "+" above it.
+        static let toastBottomInset: CGFloat = fabBottomInset + fab + DesignTokens.Spacing.md
+        /// How far the toast travels down when it enters and leaves.
+        static let toastTravel: CGFloat = 100
+        /// Downward drag that dismisses the toast.
+        static let toastSwipeDismiss: CGFloat = 20
         /// Padding inside the segmented track (V2 `seg`).
         static let segmentedPadding: CGFloat = 3
         /// Settings icon tile (V2 `sico`).
@@ -380,12 +385,6 @@ enum DesignTokens {
             static let horizontalPadding: CGFloat = Spacing.xl
             static let interElementGap: CGFloat = Spacing.sm
             static let interChipGap: CGFloat = Spacing.md
-        }
-
-        /// Inner-badge (count pill) padding — shared across sizes.
-        enum CountBadge {
-            static let horizontalPadding: CGFloat = Spacing.tightGap
-            static let verticalPadding: CGFloat = Spacing.xxs
         }
 
         /// Leading state-dot diameter (`PulpeChip(dotColor:)`).

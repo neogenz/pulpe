@@ -1,251 +1,68 @@
 import SwiftUI
 
-/// Loading state for the dashboard. Its regions deliberately follow the loaded
-/// screen so the transition keeps the same visual anchors.
+/// Loading state for the dashboard. Its regions deliberately follow the loaded screen — title,
+/// white hero card, « À faire » card, a few movement rows — so the transition keeps the same
+/// visual anchors.
 struct CurrentMonthSkeletonView: View {
     var body: some View {
         ScrollView {
-            VStack(spacing: DesignTokens.Spacing.none) {
-                heroZone
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-                    contentActionSkeleton
-                    uncheckedCardSkeleton
-                    activityCardSkeleton
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    SkeletonShape(width: DesignTokens.Skeleton.greetingWidth, height: DesignTokens.Spacing.sectionGap)
+                    SkeletonShape(width: DesignTokens.Skeleton.greetingWidth, height: DesignTokens.Spacing.md)
                 }
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.xxl)
-                .padding(.bottom, DesignTokens.Spacing.lg)
-                .contentZone()
+                heroCardSkeleton
+                cardSkeleton(rows: 2)
+                cardSkeleton(rows: 3)
             }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.lg)
         }
         .shimmering()
         .accessibilityLabel("Préparation de ton tableau de bord")
         .accessibilityIdentifier("homeSkeletonRoot")
     }
 
-    /// No month or avatar placeholder: both live in the navigation bar now, which is
-    /// already on screen while this loads.
-    private var heroZone: some View {
-        CurrentMonthHeroSkeleton()
-        // Placeholders on the forest: the canvas tint would vanish into it.
-        .environment(\.skeletonTint, Color.heroTile)
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.xxl)
-        .heroZone(parallax: true)
+    /// Eyebrow, figure, sentence and the plot, in the white card the loaded hero is.
+    private var heroCardSkeleton: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                SkeletonShape(width: DesignTokens.Skeleton.greetingWidth / 2, height: DesignTokens.Spacing.md)
+                SkeletonShape(width: DesignTokens.Skeleton.greetingWidth, height: DesignTokens.Spacing.sectionGap)
+            }
+            SkeletonShape(height: DesignTokens.Skeleton.lineHeight)
+            SkeletonShape(height: DesignTokens.Chart.dashboardHeight, cornerRadius: DesignTokens.CornerRadius.card)
+        }
+        .padding(DesignTokens.Spacing.xl)
+        .pulpeSurfaceCard()
     }
 
-    /// The filled CTA, at its own height: a card-shaped placeholder would hand the slot
-    /// over to a pill and shift everything under it.
-    private var contentActionSkeleton: some View {
-        SkeletonShape(
-            height: DesignTokens.FrameHeight.button,
-            cornerRadius: .infinity
-        )
-    }
-
-    private var uncheckedCardSkeleton: some View {
+    private func cardSkeleton(rows: Int) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            sectionHeaderSkeleton
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                rowSkeleton
-
-                Divider()
-
-                // Two capsules, because the loaded card offers two: the deferral is a chip
-                // like the confirmation, so a bare line here would promise a shape the
-                // arriving data does not deliver.
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.greetingWidth,
-                        height: DesignTokens.TapTarget.minimum,
-                        cornerRadius: .infinity
-                    )
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.greetingWidth / 2,
-                        height: DesignTokens.TapTarget.minimum,
-                        cornerRadius: .infinity
-                    )
-                    Spacer(minLength: DesignTokens.Spacing.none)
+            SkeletonShape(width: DesignTokens.Skeleton.greetingWidth, height: DesignTokens.Skeleton.lineHeight)
+            VStack(spacing: DesignTokens.Spacing.none) {
+                ForEach(0..<rows, id: \.self) { index in
+                    if index > 0 { Divider() }
+                    rowSkeleton
                 }
             }
-            .padding(DesignTokens.Spacing.lg)
-            .pulpeRowCard()
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .pulpeSurfaceCard()
         }
     }
 
-    private var activityCardSkeleton: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            sectionHeaderSkeleton
-
-            // The window selector runs the full width once loaded, so it does here too —
-            // a narrow placeholder would shift the whole list when the data lands.
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: .infinity)
-                SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: .infinity)
-            }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth / 2,
-                    height: DesignTokens.Spacing.md
-                )
-
-                VStack(spacing: DesignTokens.Spacing.none) {
-                    ForEach(0..<2, id: \.self) { index in
-                        if index > 0 { Divider() }
-                        rowSkeleton
-                            .padding(.vertical, DesignTokens.Spacing.md)
-                    }
-                }
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.xs)
-                .pulpeRowCard()
-            }
-        }
-    }
-
-    /// A section's name and its named link, on the page rather than inside the card.
-    private var sectionHeaderSkeleton: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            SkeletonShape(
-                width: DesignTokens.Skeleton.greetingWidth,
-                height: DesignTokens.Skeleton.lineHeight
-            )
-            Spacer()
-            SkeletonShape(
-                width: DesignTokens.Skeleton.greetingWidth / 2,
-                height: DesignTokens.Spacing.md
-            )
-        }
-    }
-
-    /// Disc, name over metadata, amount opposite — the shape every ledger row now has.
+    /// Disc, name over metadata, amount opposite: the shape every ledger row has.
     private var rowSkeleton: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
             SkeletonCircle(size: DesignTokens.IconSize.badge)
-
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth / 2,
-                    height: DesignTokens.Spacing.md
-                )
+                SkeletonShape(width: DesignTokens.Skeleton.greetingWidth, height: DesignTokens.Skeleton.lineHeight)
+                SkeletonShape(width: DesignTokens.Skeleton.greetingWidth / 2, height: DesignTokens.Spacing.md)
             }
-
             Spacer()
-
-            SkeletonShape(
-                width: DesignTokens.Skeleton.greetingWidth / 2,
-                height: DesignTokens.Skeleton.lineHeight
-            )
+            SkeletonShape(width: DesignTokens.Skeleton.greetingWidth / 2, height: DesignTokens.Skeleton.lineHeight)
         }
-    }
-}
-
-private struct CurrentMonthHeroSkeleton: View {
-    @Environment(\.skeletonTint) private var skeletonTint
-
-    /// Same slots, same order and heights as the loaded hero: eyebrow and figure on the
-    /// leading rail, the full-bleed chart, two tiles, the sentence.
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth / 2,
-                    height: DesignTokens.Spacing.md
-                )
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth,
-                    height: DesignTokens.Spacing.sectionGap
-                )
-            }
-
-            chartSkeleton
-                .padding(.horizontal, -DesignTokens.Spacing.xxl)
-
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                tileSkeleton
-                tileSkeleton
-            }
-
-            SkeletonShape(
-                width: DesignTokens.Skeleton.greetingWidth,
-                height: DesignTokens.Skeleton.lineHeight
-            )
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-        }
-    }
-
-    private var tileSkeleton: some View {
-        SkeletonShape(
-            height: DesignTokens.Skeleton.heroTileHeight,
-            cornerRadius: DesignTokens.CornerRadius.card
-        )
-    }
-
-    private var chartSkeleton: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let height = proxy.size.height
-
-            ZStack {
-                // The plan: a straight fall from the opening amount to what the period keeps.
-                Path { path in
-                    path.move(to: CGPoint(x: 0, y: height / 4))
-                    path.addLine(to: CGPoint(x: width, y: height * 2 / 3))
-                }
-                .stroke(
-                    skeletonTint,
-                    style: StrokeStyle(
-                        lineWidth: DesignTokens.BorderWidth.thin,
-                        dash: DesignTokens.Chart.markerDash
-                    )
-                )
-
-                // The real stroke, falling under the plan to today.
-                Path { path in
-                    path.move(to: CGPoint(x: 0, y: height / 4))
-                    path.addCurve(
-                        to: CGPoint(x: width * 2 / 3, y: height * 3 / 5),
-                        control1: CGPoint(x: width / 3, y: height / 4),
-                        control2: CGPoint(x: width / 2, y: height * 3 / 5)
-                    )
-                }
-                .stroke(
-                    skeletonTint,
-                    style: StrokeStyle(
-                        lineWidth: DesignTokens.BorderWidth.thick,
-                        lineCap: .round,
-                        lineJoin: .round
-                    )
-                )
-
-                // The projection keeps falling from today, as the real one does.
-                Path { path in
-                    path.move(to: CGPoint(x: width * 2 / 3, y: height * 3 / 5))
-                    path.addLine(to: CGPoint(x: width, y: height * 4 / 5))
-                }
-                .stroke(
-                    skeletonTint,
-                    style: StrokeStyle(
-                        lineWidth: DesignTokens.BorderWidth.thick,
-                        lineCap: .round,
-                        dash: DesignTokens.Chart.dash
-                    )
-                )
-
-                // Anchor point where the tracked series hands over to the projection.
-                SkeletonCircle(size: DesignTokens.Spacing.md)
-                    .position(x: width * 2 / 3, y: height * 3 / 5)
-            }
-        }
-        .frame(height: DesignTokens.Chart.dashboardHeight)
-        .accessibilityHidden(true)
+        .padding(.vertical, DesignTokens.Spacing.md)
     }
 }

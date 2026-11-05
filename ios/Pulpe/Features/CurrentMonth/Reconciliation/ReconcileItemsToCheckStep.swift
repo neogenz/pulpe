@@ -78,13 +78,13 @@ struct ReconcileItemsToCheckStep: View {
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(2)
-                Text(UncheckedOperationsCard.subtitle(for: item))
+                Text(subtitle(for: item))
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textSecondary)
             }
             .accessibilityElement(children: .combine)
             Spacer(minLength: DesignTokens.Spacing.sm)
-            Text(UncheckedOperationsCard.amountText(for: item, in: currency))
+            Text(amountText(for: item))
                 .font(PulpeTypography.amountMedium)
                 .foregroundStyle(Color.textPrimary)
                 .monospacedDigit()
@@ -119,6 +119,26 @@ struct ReconcileItemsToCheckStep: View {
         switch item {
         case .transaction(let transaction, _): checking.syncingTransactionIds.contains(transaction.id)
         case .budgetLine(let line, _): checking.syncingBudgetLineIds.contains(line.id)
+        }
+    }
+
+    /// When the movement was noted, or that the line is a forecast of this month. The date
+    /// keeps its own case after the separator (German capitalizes nouns).
+    private func subtitle(for item: CurrentMonthStore.CheckableItem) -> String {
+        switch item {
+        case .transaction(let transaction, _):
+            AppLocale.string("Noté · \(transaction.transactionDate.relativeFormatted)")
+        case .budgetLine:
+            AppLocale.string("Prévu ce mois")
+        }
+    }
+
+    private func amountText(for item: CurrentMonthStore.CheckableItem) -> String {
+        switch item {
+        case .transaction(let transaction, _):
+            transaction.amount.asSignedAmount(for: transaction.kind, in: currency)
+        case .budgetLine(let line, _):
+            line.amount.asSignedAmount(for: line.kind, in: currency)
         }
     }
 

@@ -5,7 +5,7 @@ import SwiftUI
 
 extension HomeHeroCard {
     /// The hero keeps its words off the card's edge, wherever the plot ends.
-    static let pillInset = DesignTokens.Spacing.xxl
+    static let pillInset = DesignTokens.Spacing.xl
 
     /// What a pill is assumed to measure for the frame before it is measured: a caption line
     /// and a short word. Never drawn at this size — the real one replaces it on the next pass.
@@ -19,9 +19,14 @@ extension HomeHeroCard {
             if let trajectory, let frame = proxy.plotFrame {
                 let plot = geometry[frame]
                 let rects = labelRects(for: trajectory, proxy: proxy, plot: plot)
-                ForEach(HeroChartLabelLayout.Label.allCases, id: \.self) { label in
+                // Today's word lives on the time axis under the plot; its anchor only keeps the
+                // two pills off the dot.
+                ForEach(HeroChartLabelLayout.Label.allCases.filter { $0 != .today }, id: \.self) { label in
                     if let rect = rects[label] {
-                        chartLabel(labelText(label, for: trajectory))
+                        chartLabel(
+                            labelText(label, for: trajectory),
+                            color: label == .trend ? accentColor : Color.textSecondary
+                        )
                             // Under the cap, so what is measured is the capsule and not the
                             // frame: a frame offered the whole overlay takes the whole
                             // overlay, and the layout would place three identical rects.
@@ -48,9 +53,13 @@ extension HomeHeroCard {
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> String {
         switch label {
-        case .today: AppLocale.string("Aujourd’hui")
-        case .plan: AppLocale.string("Prévu")
-        case .trend: Self.trendLabel(for: trajectory, currency: currency)
+        case .today: return AppLocale.string("Aujourd’hui")
+        case .plan:
+            if amountsHidden { return AppLocale.string("Prévu") }
+            return AppLocale.string("Prévu \(trajectory.plannedBalance.asCompactCurrency(currency))")
+        case .trend:
+            if amountsHidden { return AppLocale.string("À ce rythme") }
+            return Self.trendLabel(for: trajectory, currency: currency)
         }
     }
 
@@ -94,13 +103,13 @@ extension HomeHeroCard {
 
     /// A word on the plot sits on a sliver of the surface, so a stroke passing under it
     /// never runs through its letters. The same glass tint as the metric tiles below.
-    private func chartLabel(_ text: String) -> some View {
+    private func chartLabel(_ text: String, color: Color) -> some View {
         Text(text)
-            .font(PulpeTypography.caption2)
-            .foregroundStyle(Color.heroInkSecondary)
+            .font(PulpeTypography.caption2.weight(.semibold))
+            .foregroundStyle(color)
             .lineLimit(1)
             .padding(.horizontal, DesignTokens.Spacing.xs)
             .padding(.vertical, DesignTokens.Spacing.xxs)
-            .background(Color.heroTile, in: Capsule())
+            .background(Color.surface, in: Capsule())
     }
 }

@@ -20,7 +20,7 @@ struct MovementLinePicker: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                searchField
+                PulpeSearchField(prompt: "Rechercher une prévision", text: $query)
                 unplannedCard
                 section(AppLocale.string("Avec de la marge"), lines: matching(sections.margin))
                 section(AppLocale.string("Déjà dépassées"), lines: matching(sections.over), isOver: true)
@@ -40,24 +40,6 @@ struct MovementLinePicker: View {
         let needle = query.trimmingCharacters(in: .whitespaces)
         guard !needle.isEmpty else { return lines }
         return lines.filter { $0.name.localizedStandardContains(needle) }
-    }
-
-    private var searchField: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(Color.textTertiary)
-                .accessibilityHidden(true)
-            TextField("Rechercher une prévision", text: $query)
-                .font(PulpeTypography.bodyLarge)
-                .submitLabel(.search)
-        }
-        .padding(.horizontal, DesignTokens.CornerRadius.input)
-        .frame(minHeight: DesignTokens.FrameHeight.input)
-        .background(Color.surface, in: .rect(cornerRadius: DesignTokens.CornerRadius.input))
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input)
-                .strokeBorder(Color.outline, lineWidth: DesignTokens.BorderWidth.thin)
-        }
     }
 
     private var unplannedCard: some View {

@@ -109,7 +109,7 @@ extension AddBudgetLineSheet {
 
 /// Re-runs the conversion only when what it depends on moved. Local to this
 /// sheet: `Features/X` cannot import `Features/Y`, so it cannot share the
-/// identical key `AddTransactionSheet` declares for its own preview.
+/// identical key `MovementSheet` declares for its own preview.
 struct PlannedWithdrawalConversionKey: Equatable {
     let amount: Decimal?
     let currency: SupportedCurrency

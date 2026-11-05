@@ -462,7 +462,7 @@ extension View {
     /// holds nothing. Five bugs have been filed on that band under different names.
     ///
     /// Apply it to every navigation screen that raises **no keyboard of its own from the
-    /// bottom**. A screen that does (`EditTransactionPage`, `AddAllocatedTransactionPage`)
+    /// bottom**. A screen that does (`MovementSheet`)
     /// stays bare: it needs the inset it raises. A field in the top search drawer
     /// (`BudgetDetailsView`) is not one — nothing of its own sits under the keyboard, so
     /// refusing the bottom inset hides nothing. Sheets don't count either: they are their

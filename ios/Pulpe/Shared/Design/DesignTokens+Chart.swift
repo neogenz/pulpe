@@ -10,9 +10,10 @@ extension DesignTokens {
         static let dash: [CGFloat] = [5, 4]
         static let markerDash: [CGFloat] = [3, 3]
         static let pointSymbolArea: CGFloat = 100
-        static let dashboardHeight: CGFloat = 150
+        /// Home hero trajectory (V2 board: 96pt plot).
+        static let dashboardHeight: CGFloat = 96
         /// A savings goal spans ~24 months and is read for its shape, not for a
-        /// value at a date — it needs more room than the dashboard's 150pt strip,
+        /// value at a date — it needs more room than the dashboard's 96pt strip,
         /// and the same room in the detail and in the simulator.
         static let goalHeight: CGFloat = 160
         static let domainPaddingRatio = 0.12

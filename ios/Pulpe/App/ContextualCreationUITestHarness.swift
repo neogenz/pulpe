@@ -175,15 +175,12 @@ struct ContextualCreationUITestHarness: View {
                 fallbackPlannedBalance: fixture.plannedBalance,
                 trajectory: fixture.trajectory,
                 monthName: fixture.monthName,
-                uncheckedCount: 1,
-                onTapUnchecked: {},
-                onTapVariance: {},
-                onTapDetail: {}
+                onTapCalculation: {}
             )
             .padding(.horizontal, DesignTokens.Spacing.xl)
             .padding(.top, DesignTokens.Spacing.xxxl)
         }
-        .background(Color.heroSurface.ignoresSafeArea())
+        .background(Color.appBackground.ignoresSafeArea())
     }
 
     private var chartFixture: ChartFixture {

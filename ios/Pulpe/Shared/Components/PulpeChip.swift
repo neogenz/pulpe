@@ -153,14 +153,11 @@ struct PulpeChip<Trailing: View>: View {
         }
     }
 
-    @ViewBuilder
+    /// V2 `.chip .n`: a plain bold count beside the label, no pill.
     private func countBadge(_ value: Int) -> some View {
         Text("\(value)")
-            .font(PulpeTypography.metricMini)
+            .font(PulpeTypography.metricLabelBold)
             .monospacedDigit()
-            .padding(.horizontal, DesignTokens.ChipMetrics.CountBadge.horizontalPadding)
-            .padding(.vertical, DesignTokens.ChipMetrics.CountBadge.verticalPadding)
-            .background(Capsule().fill(countBadgeFill))
             .foregroundStyle(countBadgeForeground)
     }
 
@@ -192,13 +189,6 @@ struct PulpeChip<Trailing: View>: View {
         case .selected: Color.accentInk
         case .outlined, .muted: Color.textPrimary
         case .tinted(_, let foreground): foreground
-        }
-    }
-
-    private var countBadgeFill: Color {
-        switch style {
-        case .selected: Color.clear
-        case .outlined, .muted, .tinted: Color.surfaceContainerHigh
         }
     }
 

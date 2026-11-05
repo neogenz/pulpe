@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// "Supprimer" menu entry, shared by the budget-line detail page
-/// (`BudgetLineDetailPage`), the transaction edit page (`EditTransactionPage`)
+/// (`BudgetLineDetailPage`), the movement sheet (`MovementSheet`)
 /// and the month menu (`DeleteMonthMenu`, which passes its own `title`).
 ///
 /// `role: .destructive` reds the title only — the SF Symbol follows the ambient

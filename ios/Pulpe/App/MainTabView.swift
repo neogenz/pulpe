@@ -147,6 +147,18 @@ struct CurrentMonthTab: View {
                 })
                 .ignoresForeignKeyboardInset()
                 .modifier(SectionStackDestinations())
+                .navigationDestination(for: CurrentMonthDestination.self) { destination in
+                    switch destination {
+                    case .movements:
+                        MovementsPage()
+                            .environment(\.requestEditMovement, openEditedMovement)
+                            .ignoresForeignKeyboardInset()
+                    case .toPoint:
+                        ToPointPage()
+                            .environment(\.requestEditMovement, openEditedMovement)
+                            .ignoresForeignKeyboardInset()
+                    }
+                }
         }
         // « Modifier » is a sheet, hosted here because it is written against the budget's stores.
         .sheet(item: $editedMovement) { edited in
@@ -154,6 +166,10 @@ struct CurrentMonthTab: View {
         }
         .environment(router)
         .task { router.bind(to: appState) }
+    }
+
+    private func openEditedMovement(budgetId: String, transactionId: String) {
+        editedMovement = EditedMovement(budgetId: budgetId, transactionId: transactionId)
     }
 
     /// « À remettre » from the accueil (PUL-292): the month's budget page, where the

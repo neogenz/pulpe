@@ -27,6 +27,8 @@ struct NavigationKeyboardInsetTests {
     /// The whole inventory, stated once. A screen missing here fails the suite.
     private static let expected: [String: Rule] = [
         "CurrentMonthView": .resets,
+        "MovementsPage": .resets,
+        "ToPointPage": .resets,
         "SavingsGoalsListView": .resets,
         "SavingsGoalDetailView": .resets,
         "BudgetListView": .resets,

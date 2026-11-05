@@ -8,18 +8,22 @@ struct PulpeListRow<Leading: View, Trailing: View>: View {
     let title: String
     var subtitle: String?
     var showsChevron = true
+    /// An overrun reads in the ocre; every other fact in the secondary ink.
+    var subtitleTint: Color = .textSecondary
     let leading: Leading
     let trailing: Trailing
 
     init(
         title: String,
         subtitle: String? = nil,
+        subtitleTint: Color = .textSecondary,
         showsChevron: Bool = true,
         @ViewBuilder leading: () -> Leading,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.subtitleTint = subtitleTint
         self.showsChevron = showsChevron
         self.leading = leading()
         self.trailing = trailing()
@@ -38,7 +42,7 @@ struct PulpeListRow<Leading: View, Trailing: View>: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(PulpeTypography.captionRegular)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(subtitleTint)
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
@@ -64,12 +68,14 @@ extension PulpeListRow where Leading == EmptyView {
     init(
         title: String,
         subtitle: String? = nil,
+        subtitleTint: Color = .textSecondary,
         showsChevron: Bool = true,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.init(
             title: title,
             subtitle: subtitle,
+            subtitleTint: subtitleTint,
             showsChevron: showsChevron,
             leading: { EmptyView() },
             trailing: trailing

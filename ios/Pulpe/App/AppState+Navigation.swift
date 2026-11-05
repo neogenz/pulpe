@@ -6,6 +6,12 @@ enum BudgetDestination: Hashable {
     case details(budgetId: String)
 }
 
+/// Pages the accueil pushes over itself: the month's movements, and what is left to point.
+enum CurrentMonthDestination: Hashable {
+    case movements
+    case toPoint
+}
+
 enum SavingsGoalDestination: Hashable {
     case list
     case detail(SavingsGoal)
