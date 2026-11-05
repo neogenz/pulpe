@@ -42,16 +42,16 @@ struct CurrencySettingView: View {
         // PUL-205: alert (not action sheet) confirming the flip before it
         // persists — the copy makes explicit that amounts are not converted.
         .alert(
-            "Changer la devise d'affichage ?",
+            "Afficher tes montants en \(pendingCurrency?.rawValue ?? "") ?",
             isPresented: isCurrencyConfirmationPresented,
             presenting: pendingCurrency
         ) { currency in
-            Button("Annuler", role: .cancel) {}
-            Button("Changer") { applyCurrencyChange(to: currency) }
+            Button("Garder \(userSettingsStore.currency.rawValue)", role: .cancel) {}
+            Button("Afficher en \(currency.rawValue)") { applyCurrencyChange(to: currency) }
         } message: { currency in
             Text("""
-                Tes montants existants ne sont pas convertis — 100 restera 100, affiché en \
-                \(currency.symbol). Seule la devise d'affichage change.
+                Rien n'est converti : 100 reste 100, affiché en \(currency.symbol). \
+                Seul le symbole change.
                 """)
         }
         .onChange(of: userSettingsStore.currency) { _, newValue in

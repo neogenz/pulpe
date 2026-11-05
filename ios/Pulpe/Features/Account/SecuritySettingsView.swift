@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SecuritySettingsView: View {
     @Environment(AppState.self) private var appState
-    @Environment(\.dismiss) private var dismiss
     @State private var biometricToggle = false
     @State private var showDisableBiometricConfirmation = false
     @State private var showChangePin = false
@@ -15,97 +14,27 @@ struct SecuritySettingsView: View {
     private let biometricDisplayName = BiometricService.shared.biometryDisplayName
 
     var body: some View {
-        List {
-            Section {
-                chevronRow(AppLocale.string("Code PIN"), detail: AppLocale.string("Modifier")) {
-                    showChangePin = true
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                PageHeader(title: AppLocale.string("Sécurité"))
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                    InfoBanner(
+                        .neutral,
+                        systemImage: "lock",
+                        text: AppLocale.string("Tes montants sont chiffrés. Seul ton code PIN peut les ouvrir.")
+                    )
+                    unlockGroup
+                    connectionGroup
+                    recoveryGroup
+                    dangerGroup
                 }
-
-                chevronRow(AppLocale.string("Mot de passe"), detail: "••••••••") {
-                    showChangePassword = true
-                }
-
-                chevronRow(AppLocale.string("Clé de récupération"), detail: AppLocale.string("Régénérer")) {
-                    securityViewModel.showConfirmPassword = true
-                }
-                .disabled(securityViewModel.isRegenerating)
-
-                chevronRow(
-                    AppLocale.string("Vérifier ma clé de récupération"),
-                    detail: AppLocale.string("Vérifier")
-                ) {
-                    showVerifyRecoveryKey = true
-                }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
-            .listRowSettingsBackground()
-
-            if canUseBiometrics {
-                Section {
-                    Toggle(biometricDisplayName, isOn: $biometricToggle)
-                        .onChange(of: biometricToggle) { _, newValue in
-                            guard newValue != appState.biometricEnabled else { return }
-                            if newValue {
-                                Task {
-                                    let success = await appState.enableBiometric()
-                                    if success {
-                                        appState.toastManager.show(
-                                            AppLocale.string("\(biometricDisplayName) activé"),
-                                            type: .success
-                                        )
-                                    } else {
-                                        appState.toastManager.show(
-                                            AppLocale.string("Impossible d'activer \(biometricDisplayName)"),
-                                            type: .error
-                                        )
-                                    }
-                                    biometricToggle = appState.biometricEnabled
-                                }
-                            } else {
-                                biometricToggle = true
-                                showDisableBiometricConfirmation = true
-                            }
-                        }
-                } header: {
-                    Text("BIOMÉTRIE")
-                }
-                .listRowSettingsBackground()
-            }
-            Section {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Supprimer mon compte")
-                            .font(PulpeTypography.labelLarge)
-                            .foregroundStyle(Color.destructivePrimary)
-                        Text("Tes données seront supprimées définitivement après 3 jours.")
-                            .font(PulpeTypography.labelMedium)
-                            .foregroundStyle(Color.textSecondary)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Button {
-                        showDeleteConfirmation = true
-                    } label: {
-                        Text("Supprimer")
-                            .font(PulpeTypography.buttonSecondary)
-                            .foregroundStyle(Color.textOnPrimary)
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .padding(.vertical, DesignTokens.Spacing.sm)
-                            .background(Color.destructivePrimary)
-                            .clipShape(Capsule())
-                    }
-                    .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    .contentShape(Capsule())
-                    .plainPressedButtonStyle()
-                    .accessibilityLabel("Supprimer le compte")
-                    .accessibilityHint("Demande la suppression définitive de ton compte Pulpe")
-                }
-            } header: {
-                Text("ZONE DE DANGER")
-                    .foregroundStyle(Color.destructivePrimary)
-            }
-            .listRowBackground(Color.destructiveBackground)
+            .padding(.top, DesignTokens.Spacing.sm)
+            .padding(.bottom, DesignTokens.Spacing.xxl)
         }
+        .background { Color.appBackground.ignoresSafeArea() }
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             biometricToggle = appState.biometricEnabled
         }
@@ -179,45 +108,130 @@ struct SecuritySettingsView: View {
             }
         }
         .sensoryFeedback(.warning, trigger: showDeleteConfirmation, condition: { _, newValue in newValue })
-        .alert("Supprimer mon compte", isPresented: $showDeleteConfirmation) {
+        .alert("Supprimer ton compte ?", isPresented: $showDeleteConfirmation) {
             Button("Annuler", role: .cancel) { }
-            Button("Supprimer", role: .destructive) {
-                Task {
-                    await appState.deleteAccount()
-                    dismiss()
-                }
+            Button("Supprimer mon compte", role: .destructive) {
+                Task { await appState.deleteAccount() }
             }
         } message: {
             Text("""
-                Ton compte sera définitivement supprimé \
-                après un délai de 3 jours. Cette action est irréversible.
+                Tes budgets, objectifs, modèles et connexions seront effacés après 3 jours. \
+                Cette action est irréversible.
                 """)
         }
-        .scrollContentBackground(.hidden)
-        .pulpeBackground()
-        .listStyle(.insetGrouped)
-        .localizedNavigationTitle("Sécurité")
         .trackScreen("Security")
     }
 
-    private func chevronRow(
-        _ title: String,
-        detail: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text(detail)
-                    .foregroundStyle(Color.textSecondary)
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+    private var unlockGroup: some View {
+        SettingsGroup(header: AppLocale.string("Déverrouillage")) {
+            Button { showChangePin = true } label: {
+                SettingsRow(
+                    systemImage: "number",
+                    title: AppLocale.string("Code PIN"),
+                    subtitle: AppLocale.string("Le changer crée aussi une nouvelle clé")
+                )
+            }
+            .buttonStyle(.plain)
+            if canUseBiometrics {
+                FormRowDivider()
+                Toggle(isOn: $biometricToggle) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                        Text(biometricDisplayName)
+                            .font(PulpeTypography.rowTitleRegular)
+                        Text("Ouvre Pulpe sans taper ton code")
+                            .font(PulpeTypography.bannerText)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                }
+                .tint(Color.pulpePrimary)
+                .frame(minHeight: DesignTokens.ListRow.minHeight)
+                .onChange(of: biometricToggle) { _, newValue in toggleBiometric(newValue) }
             }
         }
-        .buttonStyle(.plain)
+    }
+
+    private var connectionGroup: some View {
+        SettingsGroup(header: AppLocale.string("Connexion")) {
+            Button { showChangePassword = true } label: {
+                SettingsRow(
+                    systemImage: "key",
+                    title: AppLocale.string("Mot de passe"),
+                    subtitle: AppLocale.string("Pour te connecter avec \(appState.currentUser?.email ?? "")")
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var recoveryGroup: some View {
+        SettingsGroup(
+            header: AppLocale.string("Clé de récupération"),
+            footer: AppLocale.string("Elle te permet de retrouver tes montants si tu oublies ton code PIN.")
+        ) {
+            Button { showVerifyRecoveryKey = true } label: {
+                SettingsRow(systemImage: "checkmark.shield", title: AppLocale.string("Vérifier ma clé"))
+            }
+            .buttonStyle(.plain)
+            FormRowDivider()
+            Button { securityViewModel.showConfirmPassword = true } label: {
+                SettingsRow(
+                    systemImage: "arrow.triangle.2.circlepath",
+                    title: AppLocale.string("Générer une nouvelle clé")
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(securityViewModel.isRegenerating)
+        }
+    }
+
+    private var dangerGroup: some View {
+        SettingsGroup(header: AppLocale.string("Zone de danger")) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text("Supprimer mon compte")
+                        .font(PulpeTypography.rowTitleRegular)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Tout est effacé après 3 jours")
+                        .font(PulpeTypography.bannerText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button { showDeleteConfirmation = true } label: {
+                    Text("Supprimer")
+                        .font(PulpeTypography.buttonSecondary)
+                        .foregroundStyle(Color.destructivePrimary)
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.vertical, DesignTokens.Spacing.sm)
+                        .background(Color.destructiveBackground, in: Capsule())
+                }
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Capsule())
+                .plainPressedButtonStyle()
+                .accessibilityLabel("Supprimer le compte")
+                .accessibilityHint("Demande la suppression définitive de ton compte Pulpe")
+            }
+            .frame(minHeight: DesignTokens.ListRow.minHeight)
+        }
+    }
+
+    private func toggleBiometric(_ newValue: Bool) {
+        guard newValue != appState.biometricEnabled else { return }
+        if newValue {
+            Task {
+                let success = await appState.enableBiometric()
+                appState.toastManager.show(
+                    success
+                        ? AppLocale.string("\(biometricDisplayName) activé")
+                        : AppLocale.string("Impossible d'activer \(biometricDisplayName)"),
+                    type: success ? .success : .error
+                )
+                biometricToggle = appState.biometricEnabled
+            }
+        } else {
+            biometricToggle = true
+            showDisableBiometricConfirmation = true
+        }
     }
 }
 

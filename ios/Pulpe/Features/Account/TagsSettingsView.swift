@@ -26,7 +26,7 @@ struct TagsSettingsView: View {
             }
         }
         .localizedNavigationTitle("Mes tags")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .task {
             await viewModel.load()
         }
@@ -35,20 +35,18 @@ struct TagsSettingsView: View {
     private var tagsList: some View {
         List {
             Section {
-                ForEach(viewModel.tags) { tag in
-                    Label {
-                        Text(tag.name)
-                            .font(PulpeTypography.bodyLarge)
-                    } icon: {
-                        Image(systemName: "tag")
-                            .foregroundStyle(Color.textSecondary)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Tag \(tag.name)")
+                ForEach(viewModel.sortedTags) { tag in
+                    Text(tag.name)
+                        .font(PulpeTypography.bodyLarge)
+                        .accessibilityLabel("Tag \(tag.name)")
                 }
             } header: {
                 Text(viewModel.countLabel)
-                    .font(PulpeTypography.labelLarge)
+                    .font(PulpeTypography.bannerText.weight(.semibold))
+                    .textCase(nil)
+            } footer: {
+                Text("Tu crées et modifies tes tags sur pulpe.app.")
+                    .font(PulpeTypography.bannerText)
             }
             .listRowSettingsBackground()
         }
@@ -74,8 +72,12 @@ final class TagsSettingsViewModel {
 
     var countLabel: String {
         tags.count == 1
-            ? AppLocale.string("1 TAG PERSONNEL")
-            : AppLocale.string("\(tags.count) TAGS PERSONNELS")
+            ? AppLocale.string("1 tag personnel")
+            : AppLocale.string("\(tags.count) tags personnels")
+    }
+
+    var sortedTags: [Tag] {
+        tags.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     func load() async {

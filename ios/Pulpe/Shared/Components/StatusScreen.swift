@@ -32,6 +32,7 @@ struct StatusScreen: View {
 
     let systemImage: String
     var tone: Tone = .accent
+    var discSize: CGFloat = DesignTokens.Control.statusDisc
     let title: String
     let message: String
     var primary: Action?
@@ -42,9 +43,9 @@ struct StatusScreen: View {
             Spacer(minLength: DesignTokens.Spacing.none)
 
             Image(systemName: systemImage)
-                .font(.system(size: DesignTokens.Control.statusDisc / 2.5, weight: .regular))
+                .font(.system(size: discSize / 2.5, weight: .regular))
                 .foregroundStyle(tone.glyph)
-                .frame(width: DesignTokens.Control.statusDisc, height: DesignTokens.Control.statusDisc)
+                .frame(width: discSize, height: discSize)
                 .background(tone.disc, in: Circle())
                 .accessibilityHidden(true)
 

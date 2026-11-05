@@ -29,6 +29,7 @@ struct NavigationKeyboardInsetTests {
         "CurrentMonthView": .resets,
         "MovementsPage": .resets,
         "ToPointPage": .resets,
+        "AccountView": .resets,
         "SavingsGoalsListView": .resets,
         "SavingsGoalDetailView": .resets,
         "BudgetListView": .resets,

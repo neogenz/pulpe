@@ -32,7 +32,7 @@ struct ConnectionsView: View {
             }
         }
         .localizedNavigationTitle("Connexions")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .task {
             await store.load()
         }
@@ -40,6 +40,15 @@ struct ConnectionsView: View {
 
     private var connectionsList: some View {
         List {
+            Section {
+                InfoBanner(
+                    .neutral,
+                    systemImage: "info.circle",
+                    text: AppLocale.string("Pour brancher un assistant, ouvre pulpe.app depuis ChatGPT ou Claude.")
+                )
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+            }
             Section {
                 ForEach(store.connections) { connection in
                     NavigationLink {
@@ -49,7 +58,7 @@ struct ConnectionsView: View {
                     }
                 }
             } footer: {
-                Text("Les assistants que tu as autorisés à accéder à ton budget.")
+                Text("Touche un assistant pour voir son activité ou couper l'accès.")
                     .font(PulpeTypography.caption)
             }
             .listRowSettingsBackground()
@@ -60,15 +69,13 @@ struct ConnectionsView: View {
     }
 
     private func row(for connection: MCPConnection) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             Text(connection.clientName)
                 .font(PulpeTypography.bodyLarge)
-            Text(connection.mode.label)
+            let since = connection.authorizedAt.abbreviatedDateFormatted
+            Text(AppLocale.string("\(connection.mode.label) · depuis le \(since)"))
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textSecondary)
-            Text(AppLocale.string("depuis le \(connection.authorizedAt.abbreviatedDateFormatted)"))
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textTertiary)
         }
         .accessibilityElement(children: .combine)
     }

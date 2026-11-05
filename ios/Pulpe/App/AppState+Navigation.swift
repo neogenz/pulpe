@@ -10,6 +10,7 @@ enum BudgetDestination: Hashable {
 enum CurrentMonthDestination: Hashable {
     case movements
     case toPoint
+    case account
 }
 
 enum SavingsGoalDestination: Hashable {

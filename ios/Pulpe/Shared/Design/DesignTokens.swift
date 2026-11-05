@@ -334,8 +334,8 @@ enum DesignTokens {
         static let settingsGlyph: CGFloat = 18
         /// Disc of an empty state (V2 `empty .idisc`).
         static let emptyDisc: CGFloat = 56
-        /// Disc of a full-screen status (maintenance, error, update).
-        static let statusDisc: CGFloat = 72
+        /// Disc of a full-screen status (maintenance, error, forced update).
+        static let statusDisc: CGFloat = 96
         /// Disc behind the "+" of a section's add row.
         static let addRowDisc: CGFloat = 28
         /// Inline banner glyph.

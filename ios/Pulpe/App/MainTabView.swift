@@ -162,6 +162,9 @@ struct CurrentMonthTab: View {
                         ToPointPage()
                             .environment(\.requestEditMovement, openEditedMovement)
                             .ignoresForeignKeyboardInset()
+                    case .account:
+                        AccountView()
+                            .ignoresForeignKeyboardInset()
                     }
                 }
         }

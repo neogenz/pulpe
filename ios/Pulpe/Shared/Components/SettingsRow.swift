@@ -6,8 +6,11 @@ import SwiftUI
 struct SettingsRow: View {
     let systemImage: String
     let title: String
+    var subtitle: String?
     var value: String?
     var showsChevron = true
+    /// ↗ instead of the chevron: the line leaves the app.
+    var isExternal = false
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -18,10 +21,18 @@ struct SettingsRow: View {
                 .background(Color.sunk, in: .rect(cornerRadius: DesignTokens.CornerRadius.settingsTile))
                 .accessibilityHidden(true)
 
-            Text(title)
-                .font(PulpeTypography.rowTitleRegular)
-                .foregroundStyle(Color.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(title)
+                    .font(PulpeTypography.rowTitleRegular)
+                    .foregroundStyle(Color.textPrimary)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(PulpeTypography.bannerText)
+                        .foregroundStyle(Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if let value {
                 Text(value)
@@ -29,11 +40,16 @@ struct SettingsRow: View {
                     .foregroundStyle(Color.textSecondary)
                     .lineLimit(1)
             }
-            if showsChevron {
+            if isExternal {
+                Image(systemName: "arrow.up.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
+            } else if showsChevron {
                 RowChevron()
             }
         }
-        .frame(minHeight: DesignTokens.ListRow.formRowHeight)
+        .frame(minHeight: subtitle == nil ? DesignTokens.ListRow.formRowHeight : DesignTokens.ListRow.minHeight)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }

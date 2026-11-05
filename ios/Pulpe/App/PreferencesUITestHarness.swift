@@ -28,6 +28,7 @@ struct PreferencesUITestHarness: View {
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore = BudgetListStore()
     @State private var dashboardStore = DashboardStore()
+    @State private var tagStore = TagStore()
     private let showsFeedback: Bool
 
     init() {
@@ -49,7 +50,7 @@ struct PreferencesUITestHarness: View {
     var body: some View {
         Group {
             if showsFeedback {
-                AccountView()
+                NavigationStack { AccountView() }
             } else {
                 NavigationStack {
                     PreferencesView()
@@ -63,6 +64,7 @@ struct PreferencesUITestHarness: View {
         .environment(currentMonthStore)
         .environment(budgetListStore)
         .environment(dashboardStore)
+        .environment(tagStore)
         .environment(appState.toastManager)
         .environment(\.locale, AppLocale.uiLocale(for: userSettingsStore.locale))
     }

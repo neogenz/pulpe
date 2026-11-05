@@ -17,7 +17,7 @@ struct TagsSettingsViewModelTests {
         #expect(!viewModel.isLoading)
         #expect(viewModel.error == nil)
         #expect(viewModel.tags == [Self.tag])
-        #expect(viewModel.countLabel == "1 TAG PERSONNEL")
+        #expect(viewModel.countLabel == "1 tag personnel")
     }
 
     @Test
@@ -29,7 +29,7 @@ struct TagsSettingsViewModelTests {
         #expect(!viewModel.isLoading)
         #expect(viewModel.error == nil)
         #expect(viewModel.tags.isEmpty)
-        #expect(viewModel.countLabel == "0 TAGS PERSONNELS")
+        #expect(viewModel.countLabel == "0 tag personnel")
     }
 
     @Test

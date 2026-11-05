@@ -3,7 +3,7 @@ import TipKit
 import WidgetKit
 
 enum CurrentMonthSheet: Identifiable, Hashable {
-    case calculation, account, createBudget, notificationPrime
+    case calculation, createBudget, notificationPrime
     case addTransaction(FirstTransactionTracker.Source), feedback(promptNumber: Int)
     var id: Self { self }
 }
@@ -106,7 +106,7 @@ struct CurrentMonthView: View {
                     .accessibilityIdentifier("homeAmountsToggle")
                 }
                 Button {
-                    activeSheet = .account
+                    appState.currentMonthPath.append(CurrentMonthDestination.account)
                 } label: {
                     ProfileAvatar(
                         firstName: appState.currentUser?.firstName,
@@ -126,8 +126,6 @@ struct CurrentMonthView: View {
                 switch sheet {
                 case .calculation:
                     CalculationSheet()
-                case .account:
-                    AccountView()
                 case .notificationPrime:
                     NotificationPrimeSheet {
                         Task { await enableReminders() }
