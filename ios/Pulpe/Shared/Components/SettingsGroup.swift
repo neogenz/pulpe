@@ -10,11 +10,8 @@ struct SettingsGroup<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if let header {
-                Text(header)
-                    .font(PulpeTypography.bannerText.weight(.semibold))
-                    .foregroundStyle(Color.textSecondary)
+                SettingsSectionHeader(text: header)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .accessibilityAddTraits(.isHeader)
             }
             FormCard(content: content)
             if let footer {
@@ -25,6 +22,20 @@ struct SettingsGroup<Content: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+}
+
+/// The sentence-case header of a settings group, also used as a `List` section header.
+struct SettingsSectionHeader: View {
+    /// Already localized (`AppLocale.string`), like `SettingsGroup.header`.
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(PulpeTypography.bannerText.weight(.semibold))
+            .foregroundStyle(Color.textSecondary)
+            .textCase(nil)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

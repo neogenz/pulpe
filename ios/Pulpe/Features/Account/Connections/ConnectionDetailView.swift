@@ -13,18 +13,29 @@ struct ConnectionDetailView: View {
     @State private var revokeError: Error?
 
     var body: some View {
-        List {
-            headerSection
-            if connection.mode == .readWrite {
-                activitySection
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                PageHeader(
+                    title: connection.clientName,
+                    subtitle: AppLocale.string(
+                        "\(connection.mode.label) · autorisé le \(connection.authorizedAt.abbreviatedDateFormatted)"
+                    )
+                )
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                    if connection.mode == .readWrite {
+                        activitySection
+                    }
+                    revokeSection
+                }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
-            revokeSection
+            .padding(.top, DesignTokens.Spacing.sm)
+            .padding(.bottom, DesignTokens.Spacing.xxl)
         }
-        .scrollContentBackground(.hidden)
-        .pulpeBackground()
-        .listStyle(.insetGrouped)
+        .background { Color.appBackground.ignoresSafeArea() }
         .localizedNavigationTitle("Connexion")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(removing: .title)
         .alert(Text("Couper l'accès ?"), isPresented: $showRevokeConfirmation) {
             Button("Annuler", role: .cancel) { }
             Button("Couper l'accès", role: .destructive) {
@@ -48,34 +59,19 @@ struct ConnectionDetailView: View {
 // MARK: - Sections
 
 extension ConnectionDetailView {
-    private var headerSection: some View {
-        Section {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(connection.clientName)
-                    .font(PulpeTypography.title3)
-                Text(connection.mode.label)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textSecondary)
-                Text(AppLocale.string("Autorisé le \(connection.authorizedAt.abbreviatedDateFormatted)"))
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, DesignTokens.Spacing.xs)
-            .accessibilityElement(children: .combine)
-        }
-        .listRowSettingsBackground()
-    }
-
     private var activitySection: some View {
-        Section {
+        SettingsGroup(header: AppLocale.string("Dernières actions")) {
             if let activity {
                 if activity.isEmpty {
                     Text("Aucune action pour l'instant.")
                         .font(PulpeTypography.body)
                         .foregroundStyle(Color.textSecondary)
+                        .frame(minHeight: DesignTokens.ListRow.formRowHeight)
                 } else {
                     ForEach(activity) { entry in
+                        if entry.id != activity.first?.id {
+                            FormRowDivider()
+                        }
                         activityRow(entry)
                     }
                 }
@@ -83,52 +79,70 @@ extension ConnectionDetailView {
                 Text("Impossible de charger les dernières actions.")
                     .font(PulpeTypography.body)
                     .foregroundStyle(Color.textSecondary)
+                    .frame(minHeight: DesignTokens.ListRow.formRowHeight)
             } else {
                 ProgressView()
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.formRowHeight)
             }
-        } header: {
-            Text("DERNIÈRES ACTIONS")
         }
-        .listRowSettingsBackground()
     }
 
     private func activityRow(_ entry: MCPActivity) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-            Text(Self.label(for: entry))
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(entry.outcome == .error ? Color.errorPrimary : .primary)
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Text(Self.name(for: entry))
+                .font(PulpeTypography.rowTitleRegular)
+                .foregroundStyle(Color.textPrimary)
             Spacer(minLength: DesignTokens.Spacing.sm)
+            if entry.outcome == .error {
+                Text("Échec")
+                    .font(PulpeTypography.caption.weight(.bold))
+                    .foregroundStyle(Color.financialOverBudget)
+                    .padding(.horizontal, DesignTokens.Spacing.compactGap)
+                    .padding(.vertical, DesignTokens.Spacing.xs)
+                    .background(Color.overWash, in: Capsule())
+            }
             Text(Self.timestamp(entry.createdAt))
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textSecondary)
         }
+        .frame(minHeight: DesignTokens.ListRow.formRowHeight)
         .accessibilityElement(children: .combine)
     }
 
     private var revokeSection: some View {
-        Section {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if let revokeError {
                 ErrorBanner(message: DomainErrorLocalizer.localize(revokeError))
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
             }
-            Button {
-                showRevokeConfirmation = true
-            } label: {
-                HStack {
-                    Text("Couper l'accès")
-                        .foregroundStyle(Color.errorPrimary)
-                    if isRevoking {
+            FormCard {
+                Button {
+                    showRevokeConfirmation = true
+                } label: {
+                    HStack {
                         Spacer()
-                        ProgressView()
+                        Text("Couper l'accès")
+                            .font(PulpeTypography.rowTitleRegular.weight(.semibold))
+                            .foregroundStyle(Color.errorPrimary)
+                        if isRevoking {
+                            ProgressView()
+                        }
+                        Spacer()
                     }
+                    .frame(minHeight: DesignTokens.ListRow.formRowHeight)
+                    .contentShape(Rectangle())
                 }
+                .plainPressedButtonStyle()
+                .disabled(isRevoking)
             }
-            .plainPressedButtonStyle()
-            .disabled(isRevoking)
+            Text("""
+                \(connection.clientName) ne pourra plus lire ni modifier ton budget. \
+                Pour le rebrancher, il faudra l'autoriser à nouveau avec ton code.
+                """)
+                .font(PulpeTypography.bannerText)
+                .foregroundStyle(Color.textSecondary)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .listRowSettingsBackground()
     }
 }
 
@@ -186,8 +200,13 @@ extension ConnectionDetailView {
     /// The tool name in plain words. An unknown tool falls back to its raw name
     /// rather than a vague "Action": a wrong reassurance is worse than a slug.
     static func label(for entry: MCPActivity, locale: Locale = AppLocale.currentUILocale) -> String {
-        let name = toolLabels[entry.tool].map { AppLocale.string($0, locale: locale) } ?? entry.tool
+        let name = name(for: entry, locale: locale)
         return entry.outcome == .error ? AppLocale.string("\(name) (échec)", locale: locale) : name
+    }
+
+    /// The tool in plain words, without the failure suffix: the row shows a status pill instead.
+    private static func name(for entry: MCPActivity, locale: Locale = AppLocale.currentUILocale) -> String {
+        toolLabels[entry.tool].map { AppLocale.string($0, locale: locale) } ?? entry.tool
     }
 
     private static func timestamp(_ date: Date) -> String {

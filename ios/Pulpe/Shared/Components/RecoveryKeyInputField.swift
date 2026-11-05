@@ -4,6 +4,8 @@ import SwiftUI
 struct RecoveryKeyInputField: View {
     @Binding var text: String
     var isFocused: FocusState<Bool>.Binding
+    /// `false` when the caller shows its own count and caption.
+    var showsCounter = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -23,12 +25,14 @@ struct RecoveryKeyInputField: View {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
                         .strokeBorder(Color.outline, lineWidth: DesignTokens.BorderWidth.thin)
                 }
-            Text("\(count) caractères sur \(RecoveryKeyFormatter.strippedKeyCharacterCount). Tirets facultatifs.")
-                .font(PulpeTypography.footnote)
-                .monospacedDigit()
-                .foregroundStyle(Color.textSecondary)
+            if showsCounter {
+                Text("\(count) caractères sur \(RecoveryKeyFormatter.strippedKeyCharacterCount). Tirets facultatifs.")
+                    .font(PulpeTypography.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.textSecondary)
+            }
         }
     }
 
-    private var count: Int { RecoveryKeyFormatter.strip(text).count }
+    var count: Int { RecoveryKeyFormatter.strip(text).count }
 }

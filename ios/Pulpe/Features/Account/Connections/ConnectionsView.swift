@@ -32,51 +32,69 @@ struct ConnectionsView: View {
             }
         }
         .localizedNavigationTitle("Connexions")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await store.load()
         }
     }
 
     private var connectionsList: some View {
-        List {
-            Section {
-                InfoBanner(
-                    .neutral,
-                    systemImage: "info.circle",
-                    text: AppLocale.string("Pour brancher un assistant, ouvre pulpe.app depuis ChatGPT ou Claude.")
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                PageHeader(
+                    title: AppLocale.string("Connexions"),
+                    subtitle: AppLocale.string("Les assistants IA qui ont accès à ton budget")
                 )
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-            }
-            Section {
-                ForEach(store.connections) { connection in
-                    NavigationLink {
-                        ConnectionDetailView(connection: connection, store: store)
-                    } label: {
-                        row(for: connection)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                    SettingsGroup(
+                        footer: AppLocale.string("Touche un assistant pour voir ce qu'il a fait ou lui couper l'accès.")
+                    ) {
+                        ForEach(store.connections) { connection in
+                            if connection.id != store.connections.first?.id {
+                                FormRowDivider()
+                            }
+                            NavigationLink {
+                                ConnectionDetailView(connection: connection, store: store)
+                            } label: {
+                                row(for: connection)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
+                    InfoBanner(
+                        .neutral,
+                        systemImage: "info.circle",
+                        text: AppLocale.string("""
+                            Pour brancher un nouvel assistant, ouvre Pulpe sur le web, dans Paramètres \
+                            puis Connexions. Tu choisis ses droits et tu valides avec ton code PIN.
+                            """)
+                    )
                 }
-            } footer: {
-                Text("Touche un assistant pour voir son activité ou couper l'accès.")
-                    .font(PulpeTypography.caption)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
-            .listRowSettingsBackground()
+            .padding(.top, DesignTokens.Spacing.sm)
+            .padding(.bottom, DesignTokens.Spacing.xxl)
         }
-        .scrollContentBackground(.hidden)
-        .pulpeBackground()
-        .listStyle(.insetGrouped)
+        .background { Color.appBackground.ignoresSafeArea() }
+        .toolbar(removing: .title)
     }
 
     private func row(for connection: MCPConnection) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            Text(connection.clientName)
-                .font(PulpeTypography.bodyLarge)
-            let since = connection.authorizedAt.abbreviatedDateFormatted
-            Text(AppLocale.string("\(connection.mode.label) · depuis le \(since)"))
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textSecondary)
+        HStack(spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(connection.clientName)
+                    .font(PulpeTypography.bodyLarge.weight(.semibold))
+                    .foregroundStyle(Color.textPrimary)
+                let since = connection.authorizedAt.abbreviatedDateFormatted
+                Text(AppLocale.string("\(connection.mode.label) · depuis le \(since)"))
+                    .font(PulpeTypography.bannerText)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            RowChevron()
         }
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }

@@ -34,8 +34,12 @@ struct CurrencySettingView: View {
             currencySelectorToggle
             converterDisclosure
         } header: {
-            Text("DEVISE")
-                .font(PulpeTypography.labelLarge)
+            SettingsSectionHeader(text: AppLocale.string("Devise"))
+        } footer: {
+            Text("""
+                Activé, un choix de devise apparaît à côté du montant quand tu ajoutes une dépense \
+                ou un revenu. Pulpe convertit au cours du jour.
+                """)
         }
         .listRowSettingsBackground()
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
@@ -76,7 +80,7 @@ struct CurrencySettingView: View {
 
     private var currencyPicker: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("On l'utilise pour afficher tous tes montants.")
+            Text("Tous tes montants s'affichent dans cette devise.")
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.onSurfaceVariant)
                 .fixedSize(horizontal: false, vertical: true)
@@ -112,17 +116,8 @@ struct CurrencySettingView: View {
                 }
             }
         )) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Saisir dans une autre devise")
-                    .font(PulpeTypography.listRowTitle)
-                Text("""
-                    Un sélecteur de devise apparaît à côté du montant. \
-                    Pulpe convertit au cours du jour.
-                    """)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.onSurfaceVariant)
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            Text("Saisir dans une autre devise")
+                .font(PulpeTypography.listRowTitle)
         }
         .tint(Color.pulpePrimary)
         .accessibilityLabel("Saisir dans une autre devise")

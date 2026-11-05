@@ -18,12 +18,11 @@ struct LanguageSettingView: View {
             languagePicker
             systemLanguageLink
         } header: {
-            Text("LANGUE")
-                .font(PulpeTypography.labelLarge)
+            SettingsSectionHeader(text: AppLocale.string("Langue"))
         } footer: {
             Text("""
-                Les invites d'iOS — Face ID, photos, partage — suivent la langue du système, \
-                pas celle-ci. Les régler redémarre Pulpe.
+                Face ID, photos et partage suivent la langue d'iOS. \
+                Changer de langue redémarre Pulpe.
                 """)
         }
         .listRowSettingsBackground()
@@ -103,11 +102,12 @@ struct LanguageSettingView: View {
             #endif
         } label: {
             HStack {
-                Text("Langue du système")
+                Text("Réglages de langue d'iOS")
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: "arrow.up.right")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
             }
         }
         .frame(minHeight: DesignTokens.TapTarget.minimum)
