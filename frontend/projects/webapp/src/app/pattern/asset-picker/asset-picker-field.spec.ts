@@ -14,7 +14,8 @@ import type {
 import { AssetApi } from '@core/asset/asset-api';
 import { createMockDataCache } from '@core/testing';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-import { AssetPickerField, assetDirectionForKind } from './asset-picker-field';
+import { assetDirectionForKind } from '@core/asset/net-worth';
+import { AssetPickerField } from './asset-picker-field';
 
 const SAVINGS_CATEGORY_ID = '00000000-0000-4000-8000-0000000000c1';
 const DEBTS_CATEGORY_ID = '00000000-0000-4000-8000-0000000000c2';

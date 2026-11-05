@@ -43,10 +43,10 @@ import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import {
-  AssetPickerField,
   assetDirectionForKind,
   injectNetWorthResource,
-} from '@app/pattern/asset-picker/asset-picker-field';
+} from '@core/asset/net-worth';
+import { AssetPickerField } from '@app/pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { budgetLineUpdateFromFormSchema } from './dialog.schema';

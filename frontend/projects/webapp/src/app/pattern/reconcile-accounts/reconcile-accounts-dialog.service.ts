@@ -6,10 +6,11 @@ import {
   type NetWorth,
   type SupportedCurrency,
 } from 'pulpe-shared';
-import { firstValueFrom, map } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi, NET_WORTH_CACHE_KEY } from '@core/asset/asset-api';
+import { loadNetWorth } from '@core/asset/net-worth';
 import {
   ReconcileAccountsDialog,
   type ReconcileAccountsDialogData,
@@ -71,11 +72,7 @@ export class ReconcileAccountsDialogService {
       const cache = this.#assetApi.cache;
       if (!cache.get<NetWorth>(NET_WORTH_CACHE_KEY)?.fresh) {
         await cache.prefetch(NET_WORTH_CACHE_KEY, () =>
-          firstValueFrom(
-            this.#assetApi
-              .getNetWorth$()
-              .pipe(map((response) => response.data)),
-          ),
+          firstValueFrom(loadNetWorth(this.#assetApi)),
         );
       }
       const netWorth = cache.get<NetWorth>(NET_WORTH_CACHE_KEY)?.data;

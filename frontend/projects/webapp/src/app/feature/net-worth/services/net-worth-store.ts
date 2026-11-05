@@ -1,6 +1,6 @@
 import { computed, inject, Service } from '@angular/core';
-import { cachedMutation, cachedResource } from 'ngx-ziflux';
-import { firstValueFrom, map } from 'rxjs';
+import { cachedMutation } from 'ngx-ziflux';
+import { firstValueFrom } from 'rxjs';
 import type {
   Asset,
   AssetCategory,
@@ -8,7 +8,8 @@ import type {
   AssetUpdate,
   NetWorthTotals,
 } from 'pulpe-shared';
-import { AssetApi, NET_WORTH_CACHE_KEY } from '@core/asset/asset-api';
+import { AssetApi } from '@core/asset/asset-api';
+import { injectNetWorthResource } from '@core/asset/net-worth';
 
 /** An existing category, or a starter suggestion to create on save. */
 export type CategoryChoice = { id: string } | { name: string };
@@ -33,12 +34,7 @@ export interface AssetEditRequest {
 export class NetWorthStore {
   readonly #api = inject(AssetApi);
 
-  readonly netWorth = cachedResource({
-    cache: this.#api.cache,
-    cacheKey: NET_WORTH_CACHE_KEY,
-    loader: () =>
-      this.#api.getNetWorth$().pipe(map((response) => response.data)),
-  });
+  readonly netWorth = injectNetWorthResource();
 
   readonly totals = computed<NetWorthTotals | null>(
     () => this.netWorth.value()?.totals ?? null,

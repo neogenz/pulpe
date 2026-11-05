@@ -45,10 +45,8 @@ import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
-import {
-  AssetPickerField,
-  assetDirectionForKind,
-} from '@pattern/asset-picker/asset-picker-field';
+import { assetDirectionForKind } from '@core/asset/net-worth';
+import { AssetPickerField } from '@pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@pattern/savings-goal-picker/savings-goal-picker-field';
 
 const TRANSACTION_KINDS: readonly TransactionKind[] = [

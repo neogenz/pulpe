@@ -2,47 +2,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
   output,
 } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { cachedResource } from 'ngx-ziflux';
-import { map } from 'rxjs';
 import type { AssetDirection, TransactionKind } from 'pulpe-shared';
 
-import { AssetApi, NET_WORTH_CACHE_KEY } from '@core/asset/asset-api';
-
-/**
- * Which assets a prévision of this kind can be linked to: an Épargne lands on
- * something I own, a Dépense repays something I owe. A Revenu has no field of
- * its own: it only gets the picker through its origin « Tiré de mon patrimoine »
- * (`kind="income"`, `direction="own"`). Mirrors the `asset_id` guard trigger,
- * which refuses any other pairing.
- */
-export function assetDirectionForKind(
-  kind: TransactionKind,
-): AssetDirection | null {
-  if (kind === 'saving') return 'own';
-  if (kind === 'expense') return 'owe';
-  return null;
-}
-
-/**
- * The net-worth read the picker and the dialogs share. Same key and loader as
- * NetWorthStore: one request for the page, the reconciliation and every
- * consumer. Call it from an injection context.
- */
-export function injectNetWorthResource() {
-  const api = inject(AssetApi);
-  return cachedResource({
-    cache: api.cache,
-    cacheKey: NET_WORTH_CACHE_KEY,
-    loader: () => api.getNetWorth$().pipe(map((response) => response.data)),
-  });
-}
+import { injectNetWorthResource } from '@core/asset/net-worth';
 
 /**
  * « Versée sur » / « Dette remboursée » / « Tiré de » picker: the asset a
