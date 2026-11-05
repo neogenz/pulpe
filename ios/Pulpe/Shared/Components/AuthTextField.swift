@@ -36,8 +36,8 @@ private struct AuthFieldContainer<Content: View>: View {
             content()
 
             if showCheckmark {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.subheadline)
+                Image(systemName: "checkmark")
+                    .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.pulpePrimary)
                     .transition(.scale.combined(with: .opacity))
                     .accessibilityHidden(true)
@@ -132,7 +132,7 @@ struct AuthSecureField<Field: Hashable>: View {
                         isVisible.toggle()
                     }
                 } label: {
-                    Image(systemName: isVisible ? "eye.slash.fill" : "eye.fill")
+                    Image(systemName: isVisible ? "eye.slash" : "eye")
                         .font(PulpeTypography.body)
                         .foregroundStyle(Color.textSecondary)
                         .contentTransition(.symbolEffect(.replace))

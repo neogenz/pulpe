@@ -43,12 +43,20 @@ struct OnboardingFlow: View {
         NavigationStack {
             ZStack {
                 // Forest behind the step slide: the zone of every step is forest.
-                Color.heroSurface.ignoresSafeArea()
+                // The top bar sits on it, where each step's zone gradient starts.
+                Color.heroSurfaceTop
+                    .ignoresSafeArea()
+                    .environment(\.colorScheme, .dark)
 
                 VStack(spacing: 0) {
+                    if state.currentStep.showProgressBar {
+                        OnboardingTopBar(state: state, onBack: goBack)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                            .environment(\.colorScheme, .dark)
+                            .transition(.opacity)
+                    }
                     // Step content — no TabView so swipe is impossible
                     stepContent
-                        .environment(\.onboardingBack, state.currentStep.showProgressBar ? goBack : nil)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .layoutPriority(1)
                         .id(state.currentStep)
@@ -152,8 +160,7 @@ struct OnboardingFlow: View {
         }
     }
 
-    /// Back lives in the step's bottom zone, beside the CTA; the flow keeps the exit
-    /// confirmation and hands the action down through the environment.
+    /// The top bar's back: leaving the flow asks first.
     private func goBack() {
         if state.wouldExitOnBack && state.editReturnStep == nil {
             showExitConfirmation = true

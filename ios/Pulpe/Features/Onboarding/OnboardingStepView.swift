@@ -1,10 +1,5 @@
 import SwiftUI
 
-/// The flow's back action, read by the step's top bar. `nil` on the welcome step.
-extension EnvironmentValues {
-    @Entry var onboardingBack: (@MainActor () -> Void)?
-}
-
 /// Forest gradient with a mint halo: the zone that "answers" what the user enters (V2 `oz`).
 struct OnboardingZoneBackground: View {
     var body: some View {
@@ -21,8 +16,8 @@ struct OnboardingZoneBackground: View {
     }
 }
 
-/// Base scaffold of every onboarding step: a forest zone (top bar, progress, a slot that answers the
-/// input) with a light card pulled up over it (question, form) and a pinned CTA.
+/// Base scaffold of every onboarding step: a forest zone (a slot that answers the input, under the
+/// flow's top bar) with a light card pulled up over it (question, form) and a pinned CTA.
 struct OnboardingStepView<Zone: View, Content: View>: View {
     let step: OnboardingStep
     let state: OnboardingState
@@ -38,12 +33,8 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.onboardingBack) private var onboardingBack
     @State private var showContent = false
     @State private var canProceedTrigger = false
-    @State private var showCurrencySwap = false
-
-    private var showsCurrencyChip: Bool { [.charges, .savings, .budgetPreview].contains(step) }
 
     private var isEnabled: Bool {
         // `readyToComplete` / `isSubmitting` close the rapid-double-tap window on the preview CTA:
@@ -54,20 +45,15 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.none) {
-            VStack(spacing: DesignTokens.Spacing.md) {
-                topBar
-                zone()
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
-            .background { OnboardingZoneBackground() }
-            .environment(\.colorScheme, .dark)
+            zone()
+                .frame(maxWidth: .infinity)
+                .padding(.top, DesignTokens.Spacing.md)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
+                .background { OnboardingZoneBackground() }
+                .environment(\.colorScheme, .dark)
 
             card
-        }
-        .sheet(isPresented: $showCurrencySwap) {
-            OnboardingCurrencySwapSheet(state: state)
         }
         .dismissKeyboardOnTap()
         .onChange(of: canProceed) { oldValue, newValue in
@@ -81,53 +67,6 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
             } else {
                 await delayedAnimation(0.25) { showContent = true }
             }
-        }
-    }
-
-    // MARK: - Zone
-
-    private var topBar: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            if let onboardingBack {
-                Button(action: onboardingBack) {
-                    Image(systemName: "chevron.left")
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.heroInk)
-                        .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
-                        .background(Color.heroTile, in: Circle())
-                }
-                .plainPressedButtonStyle()
-                .accessibilityLabel(state.editReturnStep != nil ? "Retour au résumé" : "Retour")
-            }
-            OnboardingSegmentedProgress(currentStep: step, progressSteps: state.progressBarSteps)
-            trailing
-        }
-    }
-
-    @ViewBuilder
-    private var trailing: some View {
-        if showsCurrencyChip {
-            Button {
-                showCurrencySwap = true
-            } label: {
-                HStack(spacing: DesignTokens.Spacing.xxs) {
-                    Text(state.currency.compactLabel)
-                    Image(systemName: "chevron.down").font(PulpeTypography.caption2)
-                }
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.heroInk)
-                .padding(.horizontal, DesignTokens.Spacing.md)
-                .frame(minHeight: DesignTokens.TapTarget.minimum)
-                .background(Color.heroTile, in: Capsule())
-            }
-            .plainPressedButtonStyle()
-            .accessibilityLabel("Devise actuelle : \(state.currency.nativeName). Toucher pour changer.")
-        } else if let position = state.progressBarSteps.firstIndex(of: step) {
-            Text("\(position + 1)/\(state.progressBarSteps.count)")
-                .font(PulpeTypography.metricLabelBold)
-                .monospacedDigit()
-                .foregroundStyle(Color.heroInk)
-                .accessibilityHidden(true)
         }
     }
 

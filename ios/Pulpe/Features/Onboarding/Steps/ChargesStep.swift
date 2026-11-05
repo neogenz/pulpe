@@ -24,25 +24,25 @@ struct ChargesStep: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     OnboardingSectionHeader(title: AppLocale.string("Logement")) {
                         FormCard {
-                            amountRow(AppLocale.string("Loyer"), $state.housingCosts)
+                            amountRow(AppLocale.string("Loyer"), "house", $state.housingCosts)
                         }
                     }
 
                     OnboardingSectionHeader(title: AppLocale.string("Assurances et abonnements")) {
                         FormCard {
                             if state.currency == .chf {
-                                amountRow(AppLocale.string("Assurance maladie"), $state.healthInsurance)
+                                amountRow(AppLocale.string("Assurance maladie"), "heart", $state.healthInsurance)
                                 FormRowDivider()
                             }
-                            amountRow(AppLocale.string("Forfait téléphone"), $state.phonePlan)
+                            amountRow(AppLocale.string("Forfait téléphone"), "iphone", $state.phonePlan)
                         }
                     }
 
                     OnboardingSectionHeader(title: AppLocale.string("Mobilité et crédit")) {
                         FormCard {
-                            amountRow(AppLocale.string("Transport"), $state.transportCosts)
+                            amountRow(AppLocale.string("Transport"), "tram", $state.transportCosts)
                             FormRowDivider()
-                            amountRow(AppLocale.string("Leasing ou crédit"), $state.leasingCredit)
+                            amountRow(AppLocale.string("Leasing ou crédit"), "car", $state.leasingCredit)
                         }
                         Text("Abonnement, essence, mensualité de crédit.")
                             .font(PulpeTypography.caption)
@@ -74,8 +74,8 @@ struct ChargesStep: View {
         .trackScreen("Onboarding_Charges")
     }
 
-    private func amountRow(_ label: String, _ value: Binding<Decimal?>) -> some View {
-        OnboardingAmountRow(label: label, value: value, currency: state.currency)
+    private func amountRow(_ label: String, _ systemImage: String, _ value: Binding<Decimal?>) -> some View {
+        OnboardingAmountRow(label: label, systemImage: systemImage, value: value, currency: state.currency)
     }
 
     // MARK: - Suggestions

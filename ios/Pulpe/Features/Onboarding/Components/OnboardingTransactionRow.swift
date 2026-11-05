@@ -12,6 +12,7 @@ struct OnboardingTransactionRow: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Button(action: onEdit) {
                 HStack(spacing: DesignTokens.Spacing.md) {
+                    RowIcon(systemName: transaction.type.icon, tint: transaction.type.color)
                     Text(transaction.name)
                         .font(PulpeTypography.rowTitleRegular)
                         .foregroundStyle(Color.textPrimary)

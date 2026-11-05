@@ -118,13 +118,11 @@ struct OnboardingBudgetZone: View {
             )
             if legend != .none {
                 HStack(spacing: DesignTokens.Spacing.sm) {
-                    if legend != .savings {
-                        OnboardingRingLegendTile(
-                            color: .heroAccentCaution,
-                            label: AppLocale.string("Charges"),
-                            amount: legend == .all ? nil : state.totalCharges.asAmount(for: state.currency)
-                        )
-                    }
+                    OnboardingRingLegendTile(
+                        color: .heroAccentCaution,
+                        label: AppLocale.string("Charges"),
+                        amount: legend == .all ? nil : state.totalCharges.asAmount(for: state.currency)
+                    )
                     if legend != .charges {
                         OnboardingRingLegendTile(
                             color: .heroAccentPositive,
@@ -132,11 +130,14 @@ struct OnboardingBudgetZone: View {
                             amount: legend == .all ? nil : state.totalSavings.asAmount(for: state.currency)
                         )
                     }
-                    OnboardingRingLegendTile(
-                        color: state.availableToSpend < 0 ? .heroAccentDeficit : .heroInk,
-                        label: state.availableToSpend < 0
-                            ? AppLocale.string("Au-delà des revenus") : AppLocale.string("Disponible")
-                    )
+                    // The savings step names both outflows instead; the ring centre already says what is left.
+                    if legend != .savings {
+                        OnboardingRingLegendTile(
+                            color: state.availableToSpend < 0 ? .heroAccentDeficit : .heroInk,
+                            label: state.availableToSpend < 0
+                                ? AppLocale.string("Au-delà des revenus") : AppLocale.string("Disponible")
+                        )
+                    }
                 }
             }
         }

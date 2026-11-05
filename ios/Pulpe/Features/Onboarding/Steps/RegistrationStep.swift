@@ -80,6 +80,7 @@ extension RegistrationStep {
             AuthTextField(
                 prompt: AppLocale.string("ton@email.com"),
                 text: $state.email,
+                systemImage: "envelope",
                 hasError: emailTaken,
                 isFilled: state.isEmailValid,
                 focusBinding: $focusedField,
@@ -107,6 +108,7 @@ extension RegistrationStep {
                 prompt: "••••••••",
                 text: $password,
                 isVisible: $showPassword,
+                systemImage: "lock",
                 focusBinding: $focusedField,
                 focusField: .password
             )
@@ -121,22 +123,25 @@ extension RegistrationStep {
 
     /// The zone answers the step: a lock and the promise that amounts are encrypted.
     private var lockGreeting: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "lock.fill")
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "lock")
                 .font(PulpeTypography.title3)
-                .foregroundStyle(Color.heroInk)
+                .foregroundStyle(Color.heroAccentPositive)
                 .frame(width: DesignTokens.Entry.iconDisc, height: DesignTokens.Entry.iconDisc)
                 .background(Color.heroTile, in: Circle())
                 .accessibilityHidden(true)
-            Text(
-                FirstNameResolver.normalized(state.firstName).map { AppLocale.string("Salut \($0).") }
-                    ?? AppLocale.string("Salut.")
-            )
-                .font(PulpeTypography.sectionTitle)
-                .foregroundStyle(Color.heroInk)
-            Text("Tes montants seront chiffrés : personne d'autre ne les voit.")
-                .font(PulpeTypography.onboardingSubtitle)
-                .foregroundStyle(Color.heroInkSecondary)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(
+                    FirstNameResolver.normalized(state.firstName).map { AppLocale.string("Salut \($0).") }
+                        ?? AppLocale.string("Salut.")
+                )
+                    .font(PulpeTypography.sectionTitle)
+                    .foregroundStyle(Color.heroInk)
+                Text("Tes montants seront chiffrés : personne d'autre ne les voit.")
+                    .font(PulpeTypography.onboardingSubtitle)
+                    .foregroundStyle(Color.heroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)

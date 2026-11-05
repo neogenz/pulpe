@@ -19,6 +19,7 @@ struct OnboardingSectionHeader<Content: View>: View {
 /// Label on the left, amount box on the right (V2 `onb-amt`): one fixed charge or saving of a step.
 struct OnboardingAmountRow: View {
     let label: String
+    var systemImage: String?
     @Binding var value: Decimal?
     let currency: SupportedCurrency
     var hint: String?
@@ -28,6 +29,9 @@ struct OnboardingAmountRow: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
+            if let systemImage {
+                RowIcon(systemName: systemImage, tint: Color.textSecondary)
+            }
             Text(label)
                 .font(PulpeTypography.rowTitleRegular)
                 .foregroundStyle(Color.textPrimary)
@@ -54,15 +58,23 @@ struct OnboardingAmountRow: View {
                 .accessibilityLabel(label)
         }
         .frame(minHeight: DesignTokens.ListRow.formRowHeight)
-        .onAppear {
-            if let value { text = Formatters.amountInput(for: currency).string(from: value as NSDecimalNumber) ?? "" }
-        }
+        .onAppear { text = displayed(value) }
         .onChange(of: text) { _, newValue in value = newValue.parsedAsAmount }
         .onChange(of: value) { _, newValue in
             // Echo only a change that did not come from this field (a restored draft), not mid-typing.
             guard !isFocused else { return }
-            text = newValue.flatMap { Formatters.amountInput(for: currency).string(from: $0 as NSDecimalNumber) } ?? ""
+            text = displayed(newValue)
         }
+        // Typed "39" settles as "39.00" once the field lets go, like every other amount.
+        .onChange(of: isFocused) { _, focused in
+            if !focused { text = displayed(value) }
+        }
+    }
+}
+
+private extension OnboardingAmountRow {
+    func displayed(_ amount: Decimal?) -> String {
+        amount.map { $0.asAmount(for: currency) } ?? ""
     }
 }
 
