@@ -21,6 +21,8 @@ export class DismissAssetSuggestionUseCase {
    * prévisions checked after this instant.
    */
   async execute(id: string, user: AuthenticatedUser): Promise<Asset> {
+    // The database replaces this instant with its own clock, the one the
+    // snapshots and the cutoff compare against.
     const asset = await this.repo.update(id, {
       suggestionDismissedAt: new Date().toISOString(),
     });

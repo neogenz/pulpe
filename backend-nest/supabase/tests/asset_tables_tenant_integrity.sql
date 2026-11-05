@@ -156,6 +156,15 @@ BEGIN
       suggestion_dismissed_at = now(), category_id = v_category_id
   WHERE id = v_asset_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'FAIL: editable asset columns must stay writable'; END IF;
+  -- A dismissal takes the database clock, whatever instant the write sends.
+  UPDATE public.asset SET suggestion_dismissed_at = NULL WHERE id = v_asset_id;
+  UPDATE public.asset SET suggestion_dismissed_at = '2000-01-01T00:00:00Z'
+  WHERE id = v_asset_id;
+  IF (SELECT suggestion_dismissed_at FROM public.asset WHERE id = v_asset_id)
+    IS DISTINCT FROM now()
+  THEN
+    RAISE EXCEPTION 'FAIL: a dismissal must be dated by the database';
+  END IF;
 
   -- A snapshot is written once: only the rekey (SECURITY DEFINER) rewrites it.
   IF has_table_privilege('authenticated', 'public.asset_snapshot', 'UPDATE') THEN
