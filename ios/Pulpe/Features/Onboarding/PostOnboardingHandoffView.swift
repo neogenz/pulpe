@@ -84,7 +84,7 @@ struct PostOnboardingHandoffView: View {
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background { OnboardingZoneBackground() }
+        .background { EntryZoneBackground() }
         .environment(\.colorScheme, .dark)
         .sheet(isPresented: $showWidgetHelp) { WidgetInstructionsSheet() }
     }

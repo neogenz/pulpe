@@ -46,6 +46,13 @@ extension DesignTokens {
         static let settleScale: CGFloat = 0.94
         /// Scale of a V2 button while pressed
         static let pressedButtonScale: CGFloat = 0.96
+        /// Scale a revealed block grows from as it fades in under its trigger.
+        static let revealScale: CGFloat = 0.98
+
+        /// Snappy spring of a segmented control's selection pill.
+        static var selectionSpring: SwiftUI.Animation {
+            .spring(response: 0.3, dampingFraction: 0.85)
+        }
 
         static var smoothEaseOut: SwiftUI.Animation {
             .easeOut(duration: normal)
@@ -130,5 +137,12 @@ extension DesignTokens {
                 try await Task.sleep(for: skeletonMinimumDuration - elapsed)
             }
         }
+    }
+}
+
+extension AnyTransition {
+    /// A block fading in just under the control that revealed it.
+    static var revealBelowTrigger: AnyTransition {
+        .opacity.combined(with: .scale(scale: DesignTokens.Animation.revealScale, anchor: .top))
     }
 }

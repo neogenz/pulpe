@@ -32,7 +32,7 @@ struct PulpeEmptyState: View {
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.compactGap) {
             Image(systemName: systemImage)
-                .font(.system(size: DesignTokens.Control.emptyDisc / 2.15, weight: .regular))
+                .font(.system(size: DesignTokens.Control.emptyGlyph, weight: .regular))
                 .foregroundStyle(Color.accentInk)
                 .frame(width: DesignTokens.Control.emptyDisc, height: DesignTokens.Control.emptyDisc)
                 .background(Color.accentWash, in: Circle())

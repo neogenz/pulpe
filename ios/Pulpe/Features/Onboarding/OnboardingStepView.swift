@@ -1,21 +1,5 @@
 import SwiftUI
 
-/// Forest gradient with a mint halo: the zone that "answers" what the user enters (V2 `oz`).
-struct OnboardingZoneBackground: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(colors: [.heroSurfaceTop, .heroSurface], startPoint: .top, endPoint: .bottom)
-            RadialGradient(
-                colors: [Color.heroAccentPositive.opacity(DesignTokens.Opacity.accent), .clear],
-                center: .center,
-                startRadius: 0,
-                endRadius: DesignTokens.Entry.ringSize
-            )
-        }
-        .ignoresSafeArea()
-    }
-}
-
 /// Base scaffold of every onboarding step: a forest zone (a slot that answers the input, under the
 /// flow's top bar) with a light card pulled up over it (question, form) and a pinned CTA.
 struct OnboardingStepView<Zone: View, Content: View>: View {
@@ -50,7 +34,7 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
                 .padding(.top, DesignTokens.Spacing.md)
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
-                .background { OnboardingZoneBackground() }
+                .background { EntryZoneBackground() }
                 .environment(\.colorScheme, .dark)
 
             card

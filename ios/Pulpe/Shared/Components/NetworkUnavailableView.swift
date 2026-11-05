@@ -12,6 +12,7 @@ struct NetworkUnavailableView: View {
         StatusScreen(
             systemImage: "wifi.slash",
             tone: .neutral,
+            textIdentifier: "networkUnavailableTitle",
             title: AppLocale.string("Connexion impossible"),
             message: message,
             primary: .init(title: AppLocale.string("Réessayer")) {

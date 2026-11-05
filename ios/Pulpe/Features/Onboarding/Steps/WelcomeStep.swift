@@ -42,7 +42,7 @@ struct WelcomeStep: View {
             .padding(.vertical, DesignTokens.Spacing.lg)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .background { OnboardingZoneBackground() }
+        .background { EntryZoneBackground() }
         .environment(\.colorScheme, .dark)
         .trackScreen("Onboarding_Welcome")
         .task {

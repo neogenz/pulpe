@@ -99,7 +99,7 @@ struct VerifyRecoveryKeySheet: View {
             }
         }
         .task {
-            try? await Task.sleep(for: .milliseconds(200))
+            try? await Task.sleep(for: .milliseconds(DesignTokens.Animation.pushAutofocusDelayMs))
             guard !Task.isCancelled else { return }
             isKeyFocused = true
         }

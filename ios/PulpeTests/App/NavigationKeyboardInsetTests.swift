@@ -42,12 +42,13 @@ struct NavigationKeyboardInsetTests {
         "EditTransactionHost": .ownsAField,
     ]
 
-    /// The two files where a navigation screen is composed onto a stack. The modifier
+    /// The files where a navigation screen is composed onto a stack. The modifier
     /// belongs at these call sites and nowhere else: from here it wraps a screen's whole
     /// chain, overlays included, so it cannot be defeated by modifier order the way an
     /// in-body spelling was in PUL-284.
     private static let compositionFiles = [
         "Pulpe/App/MainTabView.swift",
+        "Pulpe/App/TemplatesTab.swift",
         "Pulpe/Features/Budgets/BudgetDetails/BudgetDetailsView+Routing.swift",
     ]
 

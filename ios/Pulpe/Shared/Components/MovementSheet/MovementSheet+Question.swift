@@ -65,6 +65,7 @@ extension MovementSheet {
                             lineChip(line, isSelected: selectedLineId == line.id)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(selectedLineId == line.id ? .isSelected : [])
                     }
                     if hasEligibleLines, !isEditing {
                         Button { showsLinePicker = true } label: {
@@ -83,6 +84,7 @@ extension MovementSheet {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedLineId == nil ? .isSelected : [])
                     .accessibilityIdentifier("movementUnplanned")
                 }
                 .disabled(isQuestionLocked)
@@ -153,7 +155,7 @@ extension MovementSheet {
                 tone: impact.tone == .over ? .over : (impact.tone == .ok ? .ok : .neutral),
                 showsFigures: impact.tone != .neutral
             )
-            .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+            .transition(.revealBelowTrigger)
         }
     }
 

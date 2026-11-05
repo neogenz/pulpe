@@ -82,7 +82,10 @@ struct FeedbackSheet: View {
     private var header: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "bubble.left")
-                .font(.system(size: DesignTokens.Control.statusDiscCompact / 2.5, weight: .regular))
+                .font(.system(
+                    size: DesignTokens.Control.statusDiscCompact * DesignTokens.Control.statusGlyphRatio,
+                    weight: .regular
+                ))
                 .foregroundStyle(Color.accentInk)
                 .frame(width: DesignTokens.Control.statusDiscCompact, height: DesignTokens.Control.statusDiscCompact)
                 .background(Color.accentWash, in: Circle())

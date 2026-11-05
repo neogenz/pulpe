@@ -33,6 +33,8 @@ struct StatusScreen: View {
     let systemImage: String
     var tone: Tone = .accent
     var discSize: CGFloat = DesignTokens.Control.statusDisc
+    /// Identifier of the title + message element, for UI tests.
+    var textIdentifier: String?
     let title: String
     let message: String
     var primary: Action?
@@ -43,7 +45,7 @@ struct StatusScreen: View {
             Spacer(minLength: DesignTokens.Spacing.none)
 
             Image(systemName: systemImage)
-                .font(.system(size: discSize / 2.5, weight: .regular))
+                .font(.system(size: discSize * DesignTokens.Control.statusGlyphRatio, weight: .regular))
                 .foregroundStyle(tone.glyph)
                 .frame(width: discSize, height: discSize)
                 .background(tone.disc, in: Circle())
@@ -60,6 +62,7 @@ struct StatusScreen: View {
                     .multilineTextAlignment(.center)
             }
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(textIdentifier ?? "")
 
             Spacer(minLength: DesignTokens.Spacing.none)
 

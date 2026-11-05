@@ -9,7 +9,7 @@ struct PasswordCriteriaRow: View {
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Image(systemName: met ? "checkmark.circle.fill" : "circle")
-                .font(.callout)
+                .font(PulpeTypography.rowTitleRegular)
                 .foregroundStyle(met ? Color.pulpePrimary : Color.textTertiary)
                 .accessibilityHidden(true)
             Text(text)

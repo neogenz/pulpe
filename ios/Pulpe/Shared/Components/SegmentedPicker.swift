@@ -45,7 +45,7 @@ struct SegmentedPicker<T: Hashable>: View {
     private func segment(_ item: T) -> some View {
         let isSelected = item == selection
         return Button {
-            withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) {
+            withAnimation(reduceMotion ? nil : DesignTokens.Animation.selectionSpring) {
                 selection = item
             }
         } label: {

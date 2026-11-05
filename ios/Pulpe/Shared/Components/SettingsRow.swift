@@ -42,7 +42,7 @@ struct SettingsRow: View {
             }
             if isExternal {
                 Image(systemName: "arrow.up.right")
-                    .font(.footnote.weight(.semibold))
+                    .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.textTertiary)
                     .accessibilityHidden(true)
             } else if showsChevron {

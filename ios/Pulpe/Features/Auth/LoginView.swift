@@ -22,7 +22,7 @@ struct LoginView: View {
         NavigationStack {
             VStack(spacing: DesignTokens.Spacing.none) {
                 zone
-                    .background { OnboardingZoneBackground() }
+                    .background { EntryZoneBackground() }
                     .environment(\.colorScheme, .dark)
 
                 ScrollViewReader { scrollProxy in

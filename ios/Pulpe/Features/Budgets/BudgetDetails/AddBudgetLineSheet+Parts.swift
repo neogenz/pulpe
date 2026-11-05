@@ -36,7 +36,7 @@ extension AddBudgetLineSheet {
             SpreadModeToggle(selection: $mode, kind: kind, isEveryMonthDisabled: !offersEveryMonth)
             if isSpreadMode {
                 spreadStepper
-                    .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+                    .transition(.revealBelowTrigger)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -110,7 +110,7 @@ extension AddBudgetLineSheet {
                 tone: impact.tone == .over ? .over : (impact.tone == .ok ? .ok : .neutral),
                 showsFigures: impact.tone != .neutral
             )
-            .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+            .transition(.revealBelowTrigger)
         }
     }
 
@@ -174,6 +174,6 @@ extension AddBudgetLineSheet {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
+        .animation(DesignTokens.Animation.smoothEaseInOut, value: validationHint)
     }
 }
