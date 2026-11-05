@@ -80,8 +80,7 @@ struct EditBudgetLineSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
-                currency: inputCurrency,
-                accentColor: kind.color
+                currency: inputCurrency
             )
             CurrencyConversionBadge(
                 originalAmount: budgetLine.originalAmount,

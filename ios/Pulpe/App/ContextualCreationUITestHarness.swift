@@ -10,6 +10,8 @@ struct ContextualCreationUITestHarness: View {
     @State private var userSettingsStore = UserSettingsStore()
     @State private var savingsGoalStore = SavingsGoalStore()
     @State private var tagStore = TagStore()
+    @State private var appVersionStore = AppVersionStore()
+    @State private var whatsNewStore = WhatsNewStore()
     @State private var router = BudgetDetailsRouter()
 
     private let budgetId = "contextual-creation-budget"
@@ -88,6 +90,8 @@ struct ContextualCreationUITestHarness: View {
             .environment(userSettingsStore)
             .environment(savingsGoalStore)
             .environment(tagStore)
+            .environment(appVersionStore)
+            .environment(whatsNewStore)
             .environment(router)
             .environment(appState.toastManager)
             // Injecting the router is only half its wiring: `push` and `popToRoot` go

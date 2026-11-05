@@ -108,8 +108,7 @@ struct SavingsWithdrawalSheet: View {
                     focus: $focusedField,
                     field: .amount,
                     hint: AppLocale.string("Combien te manque-t-il ?"),
-                    currency: inputCurrency,
-                    accentColor: .financialSavings
+                    currency: inputCurrency
                 )
                 deficitChip
                 FormTextField(

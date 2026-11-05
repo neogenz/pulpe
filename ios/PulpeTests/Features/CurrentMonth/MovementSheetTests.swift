@@ -2,9 +2,9 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-/// The savings-goal origin rule of the add sheet (PUL-329): who may be offered
+/// The savings-goal origin rule of the movement sheet (PUL-329): who may be offered
 /// it, what gets sent, and what blocks the button.
-struct AddTransactionSheetTests {
+struct MovementSheetTests {
     private func origin(
         kind: TransactionKind,
         isEnabled: Bool = true,
@@ -12,8 +12,8 @@ struct AddTransactionSheetTests {
         isWithdrawalReady: Bool = true,
         hasConversionFailed: Bool = false,
         savings: SavingsOrigin = .goal
-    ) -> AddTransactionSheet.SavingsOriginRule {
-        AddTransactionSheet.SavingsOriginRule(
+    ) -> MovementSheet.SavingsOriginRule {
+        MovementSheet.SavingsOriginRule(
             kind: kind,
             isEnabled: isEnabled,
             goalId: goalId,
@@ -43,12 +43,12 @@ struct AddTransactionSheetTests {
     @Test("the date defaults to today")
     func defaults_dateIsToday() {
         let now = Date(timeIntervalSince1970: 1_755_800_000)
-        #expect(AddTransactionSheet.Defaults.transactionDate(now: now) == now)
+        #expect(MovementSheet.Defaults.transactionDate(now: now) == now)
     }
 
     @Test("the operation is checked by default")
     func defaults_isChecked() {
-        #expect(AddTransactionSheet.Defaults.isChecked)
+        #expect(MovementSheet.Defaults.isChecked)
     }
 
     @Test("the origin is offered to an income only", arguments: TransactionKind.allCases)

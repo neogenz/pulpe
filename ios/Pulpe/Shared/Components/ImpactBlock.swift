@@ -4,34 +4,61 @@ import SwiftUI
 /// a caption title, then the "before" figure struck through in `ink3` → the "after" figure,
 /// and an optional note. Without `before`, only the "after" figure is shown.
 struct ImpactBlock: View {
+    /// The block's mood: `.neutral` when the figure does not move, `.over` (ocre) when the
+    /// action lowers it, `.ok` (green) when it raises it.
+    enum Tone {
+        case neutral, over, ok
+
+        fileprivate var fill: Color {
+            switch self {
+            case .neutral: .sunk
+            case .over: .overWash
+            case .ok: .accentWash
+            }
+        }
+
+        fileprivate var titleColor: Color {
+            switch self {
+            case .neutral: .textSecondary
+            case .over: .financialOverBudget
+            case .ok: .accentInk
+            }
+        }
+    }
+
     let title: String
     let before: Decimal?
     let after: Decimal
     let currency: SupportedCurrency
     var note: String?
+    var tone: Tone = .neutral
+    /// `false` when nothing moves: the title and the note say it, no figure to repeat.
+    var showsFigures = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text(title)
                 .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(tone.titleColor)
 
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                if let before {
-                    Text(before.asCurrency(currency))
-                        .strikethrough(true, color: Color.textTertiary)
-                        .foregroundStyle(Color.textTertiary)
-                    Image(systemName: "arrow.right")
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(Color.textSecondary)
-                        .accessibilityHidden(true)
+            if showsFigures {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    if let before {
+                        Text(before.asCurrency(currency))
+                            .strikethrough(true, color: Color.textTertiary)
+                            .foregroundStyle(Color.textTertiary)
+                        Image(systemName: "arrow.right")
+                            .font(PulpeTypography.metricMini)
+                            .foregroundStyle(Color.textSecondary)
+                            .accessibilityHidden(true)
+                    }
+                    Text(after.asCurrency(currency))
+                        .foregroundStyle(Color.textPrimary)
                 }
-                Text(after.asCurrency(currency))
-                    .foregroundStyle(Color.textPrimary)
+                .font(PulpeTypography.impactAmount)
+                .minimumScaleFactor(DesignTokens.TextScale.floor)
+                .lineLimit(1)
             }
-            .font(PulpeTypography.impactAmount)
-            .minimumScaleFactor(DesignTokens.TextScale.floor)
-            .lineLimit(1)
 
             if let note {
                 Text(note)
@@ -42,17 +69,19 @@ struct ImpactBlock: View {
         .padding(.horizontal, DesignTokens.Spacing.lg - DesignTokens.BorderWidth.thick)
         .padding(.vertical, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.sunk, in: .rect(cornerRadius: DesignTokens.CornerRadius.inset))
+        .background(tone.fill, in: .rect(cornerRadius: DesignTokens.CornerRadius.inset))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
     }
 
     private var accessibilitySummary: String {
         var parts = [title]
-        if let before {
-            parts.append(AppLocale.string("avant") + " " + before.asCurrency(currency))
+        if showsFigures {
+            if let before {
+                parts.append(AppLocale.string("avant") + " " + before.asCurrency(currency))
+            }
+            parts.append(AppLocale.string("après") + " " + after.asCurrency(currency))
         }
-        parts.append(AppLocale.string("après") + " " + after.asCurrency(currency))
         if let note { parts.append(note) }
         return parts.joined(separator: ", ")
     }

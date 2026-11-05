@@ -110,8 +110,7 @@ struct BudgetDetailsArchitectureTests {
     func noBudgetFormulasInViewFiles() {
         let viewRoots = ["Views", "BudgetDetailsView.swift", "BudgetMixedSection.swift",
                          "BudgetLineMixedRow.swift", "BudgetLineDetailPage.swift",
-                         "BudgetDetailHero.swift", "AddAllocatedTransactionPage.swift",
-                         "EditTransactionPage.swift"]
+                         "BudgetDetailHero.swift", "BudgetMovementSheet.swift"]
         let allFiles = Self.swiftFiles(under: Self.featureDirectory())
         let viewFiles = allFiles.filter { url in
             viewRoots.contains { url.path.contains("/\($0)") || url.lastPathComponent == $0 }

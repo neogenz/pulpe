@@ -54,6 +54,8 @@ struct SavingsWithdrawalPrefill: Identifiable {
 /// only animate cleanly when the system owns the transition.
 enum BudgetDetailDestination: Identifiable {
     case addBudgetLine
+    /// The movement sheet: a new movement (under `lineId` when set) or "Modifier" on `transactionId`.
+    case movement(lineId: String?, transactionId: String?)
     case editBudgetLine(BudgetLine)
     case previousBudget(PreviousBudgetItem)
     case realizedBalance
@@ -67,6 +69,7 @@ enum BudgetDetailDestination: Identifiable {
     var id: String {
         switch self {
         case .addBudgetLine: "addBudgetLine"
+        case .movement(let lineId, let movementId): "movement-\(lineId ?? "")-\(movementId ?? "")"
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"
         case .realizedBalance: "realizedBalance"

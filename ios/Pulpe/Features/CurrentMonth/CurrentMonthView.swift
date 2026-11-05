@@ -25,6 +25,7 @@ struct CurrentMonthView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.requestSavingsWithdrawal) var requestSavingsWithdrawal
+    @Environment(\.requestEditMovement) private var requestEditMovement
     @State var pendingWithdrawal: SavingsWithdrawalRequest?
 
     private var canCreateBudget: Bool {
@@ -260,9 +261,6 @@ struct CurrentMonthView: View {
         ReflowingCardStack(spacing: DesignTokens.Spacing.xxl) {
             // Bilan du mois clôturé (PUL-111): the forest above belongs to the hero alone.
             MonthRecapSection()
-            if store.budget != nil {
-                HomeAddOperationRow { activeSheet = .addTransaction($0) }
-            }
             // Opérations à pointer — only while something needs checking
             if !store.uncheckedItems.isEmpty {
                 UncheckedOperationsCard(
@@ -341,13 +339,11 @@ struct CurrentMonthView: View {
         .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 
-    /// One push straight to the operation's page, hosted on this stack with the budget's
-    /// own stores, which open from the cache this store already primed. Back returns here.
+    /// Opens the operation's « Modifier » sheet, hosted by the tab with the budget's own stores,
+    /// which open from the cache this store already primed.
     private func editTransaction(_ transaction: Transaction) {
         guard let budgetId = store.budget?.id else { return }
-        appState.currentMonthPath.append(
-            BudgetDestination.editTransaction(budgetId: budgetId, transactionId: transaction.id)
-        )
+        requestEditMovement?(budgetId, transaction.id)
     }
 }
 

@@ -1,6 +1,326 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "Nouvelle dépense" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Ausgabe" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New expense" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nuova spesa" } }
+      }
+    },
+    "Nouveau revenu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neues Einkommen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New income" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nuova entrata" } }
+      }
+    },
+    "Nouvelle épargne" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Ersparnis" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New saving" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nuovo risparmio" } }
+      }
+    },
+    "Déjà sur mon compte" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schon auf meinem Konto" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Already on my account" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Già sul mio conto" } }
+      }
+    },
+    "Nouvelle prévision" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Planung" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New forecast" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nuova previsione" } }
+      }
+    },
+    "Réserver un montant pour plus tard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einen Betrag für später zurücklegen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Set aside an amount for later" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Metti da parte un importo per dopo" } }
+      }
+    },
+    "C'était prévu dans ton budget ?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "War das in deinem Budget geplant?" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Was this planned in your budget?" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Era previsto nel tuo budget?" } }
+      }
+    },
+    "Autre" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Andere" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Altra" } }
+      }
+    },
+    "Ton disponible ne bouge pas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Verfügbares ändert sich nicht" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your available amount doesn't change" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Il tuo disponibile non cambia" } }
+      }
+    },
+    "Ton disponible baisse de %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Verfügbares sinkt um %@" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your available amount drops by %@" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Il tuo disponibile scende di %@" } }
+      }
+    },
+    "Ton disponible monte de %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Verfügbares steigt um %@" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your available amount rises by %@" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Il tuo disponibile sale di %@" } }
+      }
+    },
+    "C'était prévu dans %@ : il y reste %@ au lieu de %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das war in %@ geplant: %@ übrig statt %@." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "It was planned in %@: %@ left instead of %@." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Era previsto in %@: restano %@ invece di %@." } }
+      }
+    },
+    "%@ est dépassée : le surplus sort de ton disponible." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ ist überschritten: der Mehrbetrag geht von deinem Verfügbaren ab." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ is over: the excess comes out of your available amount." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "%@ è superata: l'eccedenza esce dal tuo disponibile." } }
+      }
+    },
+    "Aucune prévision ne la couvre." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Planung deckt das ab." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No forecast covers it." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nessuna previsione la copre." } }
+      }
+    },
+    "Retiré de %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Von %@ abgehoben." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Withdrawn from %@." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Prelevato da %@." } }
+      }
+    },
+    "Autres revenus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Andere Einnahmen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other income" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Altre entrate" } }
+      }
+    },
+    "Autres dépenses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Andere Ausgaben" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other expenses" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Altre spese" } }
+      }
+    },
+    "Avec de la marge" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mit Spielraum" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "With room left" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Con margine" } }
+      }
+    },
+    "Déjà dépassées" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schon überschritten" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Already over" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Già superate" } }
+      }
+    },
+    "Dans quelle prévision ?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "In welcher Planung?" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Which forecast?" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "In quale previsione?" } }
+      }
+    },
+    "Rechercher une prévision" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Planung suchen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search forecasts" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Cerca una previsione" } }
+      }
+    },
+    "Aucune prévision : ton disponible baisse" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Planung: dein Verfügbares sinkt" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No forecast: your available amount drops" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nessuna previsione: il tuo disponibile scende" } }
+      }
+    },
+    "%@ prévus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ geplant" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ planned" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "%@ previsti" } }
+      }
+    },
+    "%@ · pointé" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ · abgehakt" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ · checked" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "%@ · spuntato" } }
+      }
+    },
+    "au-delà" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "darüber" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "over" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "oltre" } }
+      }
+    },
+    "prévus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "geplant" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "planned" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "previsti" } }
+      }
+    },
+    "Ajouter %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ hinzufügen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add %@" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Aggiungi %@" } }
+      }
+    },
+    "Prévision ajoutée chaque mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Planung jeden Monat hinzugefügt" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Forecast added every month" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Previsione aggiunta ogni mese" } }
+      }
+    },
+    "au total" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "insgesamt" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "in total" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "in totale" } }
+      }
+    },
+    "par mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "pro Monat" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "per month" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "al mese" } }
+      }
+    },
+    "Quand ?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wann?" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When?" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Quando?" } }
+      }
+    },
+    "Sur combien de mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Über wie viele Monate" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Over how many months" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Su quanti mesi" } }
+      }
+    },
+    "Moins de mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Weniger Monate" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fewer months" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Meno mesi" } }
+      }
+    },
+    "Plus de mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mehr Monate" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "More months" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Più mesi" } }
+      }
+    },
+    "Soit %@ par mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das sind %@ pro Monat" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "That is %@ per month" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Cioè %@ al mese" } }
+      }
+    },
+    "De %@ à %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Von %@ bis %@" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "From %@ to %@" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Da %@ a %@" } }
+      }
+    },
+    "Réserver %@ par mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ pro Monat zurücklegen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Set aside %@ per month" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Metti da parte %@ al mese" } }
+      }
+    },
+    "Non, c'est un imprévu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nein, das war unvorhergesehen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No, it's unplanned" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "No, è un imprevisto" } }
+      }
+    },
+    "Chaque mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Jeden Monat" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Every month" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Ogni mese" } }
+      }
+    },
+    "Une fois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einmal" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Once" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Una volta" } }
+      }
+    },
     "" : {
       "localizations" : {
         "de" : {

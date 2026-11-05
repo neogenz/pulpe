@@ -312,6 +312,9 @@ enum DesignTokens {
     enum Control {
         /// Floating "+" button (V2 `fab`).
         static let fab: CGFloat = 62
+        /// Caret beside the typed hero figure (V2 `hero-num` caret: 2 x 40pt, 4pt under the baseline).
+        static let heroCaretHeight: CGFloat = 40
+        static let heroCaretDescent: CGFloat = 4
         static let fabGlyph: CGFloat = 26
         /// Distance of the floating button from the trailing screen edge.
         static let fabTrailingInset: CGFloat = 16

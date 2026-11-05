@@ -97,8 +97,7 @@ struct EditTemplateLineSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
-                currency: inputCurrency,
-                accentColor: kind.color
+                currency: inputCurrency
             )
             CurrencyConversionBadge(
                 originalAmount: templateLine.originalAmount,

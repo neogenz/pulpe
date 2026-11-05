@@ -14,6 +14,8 @@ extension AddBudgetLineSheet {
             routeToSavingsWithdrawal()
         } else if isSpreadMode {
             await addSpread()
+        } else if mode == .everyMonth {
+            await addEveryMonth()
         } else {
             await addBudgetLine()
         }
@@ -60,20 +62,54 @@ extension AddBudgetLineSheet {
                 // An announced withdrawal never leaves pointed: it is realized by
                 // creating the real income, which is what debits the goal.
                 sourceSavingsGoalId: isPlannedWithdrawalMode ? sourceSavingsGoalId : nil,
-                checkedAt: isChecked && !Self.forbidsChecked(kind: kind, origin: incomeOrigin)
-                    ? Date()
-                    : nil,
+                checkedAt: nil,
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,
                 exchangeRate: conversion?.exchangeRate,
-                tagIds: TagPickerField.createdTagIds(from: selectedTagIds)
+                tagIds: nil
             )
 
             let budgetLine = try await dependencies.createBudgetLine(data)
             submitSuccessTrigger.toggle()
             onAdd(budgetLine)
             toastManager.show(AppLocale.string("Prévision ajoutée"))
+            dismiss()
+        } catch {
+            self.error = error
+        }
+    }
+
+    /// "Chaque mois": the line joins the model and is propagated to every budget, then the month reloads.
+    func addEveryMonth() async {
+        guard let amount, let templateId else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+        error = nil
+
+        do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+            let line = TemplateLineCreate(
+                name: name.trimmingCharacters(in: .whitespaces),
+                amount: conversion?.convertedAmount ?? amount,
+                kind: kind,
+                recurrence: .fixed,
+                savingsGoalId: kind.savingsGoalLink(savingsGoalId),
+                originalAmount: conversion?.originalAmount,
+                originalCurrency: conversion?.originalCurrency,
+                targetCurrency: conversion?.targetCurrency,
+                exchangeRate: conversion?.exchangeRate
+            )
+            try await dependencies.createTemplateLine(templateId, line)
+            dependencies.invalidateCrossBudgetCaches(budgetListStore)
+            submitSuccessTrigger.toggle()
+            onTemplateLineAdded?()
+            toastManager.show(AppLocale.string("Prévision ajoutée chaque mois"))
             dismiss()
         } catch {
             self.error = error
@@ -103,7 +139,7 @@ extension AddBudgetLineSheet {
                     name: name,
                     kind: kind,
                     amount: amount,
-                    mode: amountMode,
+                    mode: .total,
                     conversion: conversion,
                     spreadGroupId: spreadGroupId,
                     savingsGoalId: savingsGoalId

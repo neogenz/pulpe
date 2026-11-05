@@ -87,7 +87,6 @@ extension AddBudgetLineSheet {
     /// never the amount or the description, which stay true whatever the origin.
     func resetIncompatibleOriginState() {
         if !isPlannedWithdrawalMode { sourceSavingsGoalId = nil }
-        if Self.forbidsChecked(kind: kind, origin: incomeOrigin) { isChecked = false }
     }
 
     /// Keeps the projection judged on the amount the goal would actually give up.

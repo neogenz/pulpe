@@ -31,7 +31,7 @@ extension BudgetDetailsView {
                 currency: userSettingsStore.currency,
                 tagNamesById: tagStore.namesById,
                 onTap: { transaction in
-                    router.push(.editTx(transactionId: transaction.id))
+                    router.present(.movement(lineId: nil, transactionId: transaction.id))
                 },
                 onTogglePointed: toggleTransaction
             )

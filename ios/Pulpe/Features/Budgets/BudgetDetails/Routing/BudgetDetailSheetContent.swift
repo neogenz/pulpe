@@ -22,6 +22,8 @@ struct BudgetDetailSheetContent: View {
         switch destination {
         case .addBudgetLine:
             addBudgetLineSheet
+        case .movement(let lineId, let transactionId):
+            BudgetMovementSheet(lineId: lineId, transactionId: transactionId)
         case .editBudgetLine(let line):
             editBudgetLineSheet(for: line)
         case .previousBudget(let item):
@@ -80,8 +82,17 @@ struct BudgetDetailSheetContent: View {
             budgetId: coordinator.dataStore.budgetId,
             anchorMonth: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
             anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date()),
+            templateId: openBudget?.templateId,
+            ledger: MonthLedger(
+                lines: coordinator.dataStore.budgetLines,
+                transactions: coordinator.dataStore.transactions,
+                rollover: openBudget?.rollover.orZero ?? 0
+            ),
             onRequestSavingsWithdrawal: { prefill in
                 router.present(.savingsWithdrawal(prefill))
+            },
+            onTemplateLineAdded: {
+                Task { await coordinator.dispatch(.reloadCurrentBudget) }
             },
             onAdd: { budgetLine in
                 Task { await coordinator.dispatch(.addBudgetLine(budgetLine)) }

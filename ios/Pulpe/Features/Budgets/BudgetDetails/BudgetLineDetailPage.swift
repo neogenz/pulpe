@@ -10,8 +10,8 @@ import SwiftUI
 /// view through Observation tracking.
 ///
 /// Edits and additions push deeper into the same stack:
-///   tap row     → push `BudgetLinePushRoute.editTx(transactionId:)`
-///   tap "Ajouter" → push `BudgetLinePushRoute.addAllocatedTx(lineId:)`
+///   tap row     → present `BudgetDetailDestination.movement(transactionId:)`
+///   tap "Ajouter" → present `BudgetDetailDestination.movement(lineId:)`
 ///
 /// When the underlying line is removed (deleted or filtered out by sync), the
 /// page auto-pops via `dismiss()` from the empty branch — no stale state.
@@ -162,7 +162,7 @@ struct BudgetLineDetailPage: View {
             displayCurrency: userSettingsStore.currency,
             tagNames: TagChips.names(for: transaction.tagIds, namesById: tagNamesById),
             onTap: {
-                router.push(.editTx(transactionId: transaction.id))
+                router.present(.movement(lineId: nil, transactionId: transaction.id))
             }
         )
         .listRowBackground(Color.clear)
@@ -317,7 +317,7 @@ private extension BudgetLineDetailPage {
         .tint(transaction.isChecked ? Color.financialOverBudget : .pulpePrimary)
 
         Button {
-            router.push(.editTx(transactionId: transaction.id))
+            router.present(.movement(lineId: nil, transactionId: transaction.id))
         } label: {
             Label("Modifier", systemImage: "pencil")
         }
@@ -328,7 +328,7 @@ private extension BudgetLineDetailPage {
     /// form opens prefilled with what is left; pointing it from the list skips the form.
     func addTransactionButton(line: BudgetLine) -> some View {
         Button {
-            router.push(.addAllocatedTx(lineId: line.id))
+            router.present(.movement(lineId: line.id, transactionId: nil))
         } label: {
             Label("Noter un montant", systemImage: "plus")
         }

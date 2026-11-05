@@ -319,8 +319,7 @@ struct AddTemplateLineSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
-                currency: userSettingsStore.currency,
-                accentColor: kind.color
+                currency: userSettingsStore.currency
             )
             QuickAmountChips(
                 amount: $amount,

@@ -37,8 +37,6 @@ struct NavigationKeyboardInsetTests {
         "TemplateDetailsView": .resets,
         "BudgetLineDetailPage": .resets,
         "EditTransactionHost": .ownsAField,
-        "EditTransactionPage": .ownsAField,
-        "AddAllocatedTransactionPage": .ownsAField,
     ]
 
     /// The two files where a navigation screen is composed onto a stack. The modifier

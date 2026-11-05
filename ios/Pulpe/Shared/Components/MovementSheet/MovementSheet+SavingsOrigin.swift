@@ -1,6 +1,6 @@
 import Foundation
 
-extension AddTransactionSheet {
+extension MovementSheet {
     /// Whether an income comes from savings, a goal (PUL-329) or « À remettre »
     /// (PUL-292), and what that implies for the form. A value type so the rule can be tested on its own.
     struct SavingsOriginRule: Equatable {

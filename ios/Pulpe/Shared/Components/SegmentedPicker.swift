@@ -7,6 +7,10 @@ import SwiftUI
 struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: RandomAccessCollection {
     @Binding var selection: T
     let title: String?
+    /// The segments shown, in order. All cases unless a rule hides some (an income cannot be spread).
+    var options: [T] = Array(T.allCases)
+    /// Segments shown but not selectable (an every-month prévision on a closed month).
+    var disabledOptions: Set<T> = []
     let itemLabel: (T) -> Text
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -25,7 +29,7 @@ struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: Rando
             }
 
             HStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(T.allCases, id: \.self) { item in
+                ForEach(options, id: \.self) { item in
                     segment(item)
                 }
             }
@@ -65,6 +69,8 @@ struct SegmentedPicker<T: CaseIterable & Hashable>: View where T.AllCases: Rando
                 .padding(.vertical, -(DesignTokens.TapTarget.minimum - DesignTokens.FrameHeight.chip) / 2)
         }
         .buttonStyle(.plain)
+        .disabled(disabledOptions.contains(item))
+        .opacity(disabledOptions.contains(item) ? DesignTokens.Opacity.disabled : 1)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

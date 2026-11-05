@@ -8,6 +8,4 @@ import Foundation
 /// `dismiss()` from the empty branch.
 enum BudgetLinePushRoute: Hashable {
     case lineDetail(lineId: String)
-    case addAllocatedTx(lineId: String)
-    case editTx(transactionId: String)
 }

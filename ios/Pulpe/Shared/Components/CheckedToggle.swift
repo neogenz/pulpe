@@ -26,7 +26,7 @@ struct CheckedToggle: View {
         // repartirait à la dérive au premier changement de copie.
         Toggle(isOn: $isOn) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Déjà pointé")
+                Text("Déjà sur mon compte")
                     .font(PulpeTypography.bodyLarge)
 
                 // « Pointé » est un mot du produit, pas du français courant :

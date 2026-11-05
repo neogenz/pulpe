@@ -13,30 +13,16 @@ final class ContextualCreationUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testHomeCreationActionRemainsAccessibleAtLargeText() {
-        launch("UITEST_CONTEXTUAL_CREATION_HOME")
-
-        let addOperation = app.buttons["homeAddOperationButton"]
-        XCTAssertTrue(addOperation.waitForExistence(timeout: 10), app.debugDescription)
-        scrollUntilHittable(addOperation)
-        assertMinimumHitArea(addOperation)
-        attachScreenshot("contextual-creation-home-accessibility3")
-
-        addOperation.tap()
-        XCTAssertTrue(app.buttons["addTransactionSubmit"].firstMatch.waitForExistence(timeout: 5))
-    }
-
-    func testTappingAnActivityRowOpensItsEditPageAndBackReturnsToTheAccueil() {
+    func testTappingAnActivityRowOpensItsEditSheetAndClosingReturnsToTheAccueil() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
 
         let row = app.buttons["homeActivityRow-marketing-bonus"]
         scrollUntilHittable(row)
         row.tap()
 
-        let editPage = app.navigationBars.matching(
-            NSPredicate(format: "identifier IN %@", ["Modifier", "Edit", "Ändern", "Modifica"])
-        ).firstMatch
-        XCTAssertTrue(editPage.waitForExistence(timeout: 10), app.debugDescription)
+        // « Modifier » is a sheet now: its save button tells it is up.
+        let save = app.buttons["movementSave"]
+        XCTAssertTrue(save.waitForExistence(timeout: 10), app.debugDescription)
 
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(
@@ -167,8 +153,7 @@ final class ContextualCreationUITests: XCTestCase {
         // The verdict sentence's own copy is asserted in `HomeHeroCardTests`: it lives in a
         // Button whose accessibility label is its action, so its text reaches no query here.
 
-        // The one thing to do, and the card listing what is waiting to be pointed.
-        XCTAssertTrue(app.buttons["homeAddOperationButton"].exists, app.debugDescription)
+        // The card listing what is waiting to be pointed.
         XCTAssertTrue(
             app.descendants(matching: .any)["homeUncheckedOperationsCard"].exists,
             app.debugDescription

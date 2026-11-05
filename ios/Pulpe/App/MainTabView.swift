@@ -3,7 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var currentMonthStore
-    @State private var isAddSheetPresented = false
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     /// The floating add button belongs to the four root screens only: a pushed page owns its
     /// own actions, and a month has to exist for the sheet to have somewhere to write.
@@ -55,22 +55,7 @@ struct MainTabView: View {
         }
         .tint(Color.pulpePrimary)
         .pulpeBackground()
-        .overlay(alignment: .bottomTrailing) {
-            if showsFloatingAddButton {
-                FloatingAddButton { isAddSheetPresented = true }
-                    .padding(.trailing, DesignTokens.Control.fabTrailingInset)
-                    .padding(.bottom, DesignTokens.Control.fabBottomInset)
-                    .transition(.scale.combined(with: .opacity))
-            }
-        }
-        .animation(.snappy, value: showsFloatingAddButton)
-        // P0: the same sheet the accueil's « Ajouter une opération » opens; P1 replaces it.
-        .sheet(isPresented: $isAddSheetPresented) {
-            if let budget = currentMonthStore.budget {
-                AddTransactionSheet(budgetId: budget.id, source: .addButton, onAdd: currentMonthStore.addTransaction)
-                    .suppressesTips()
-            }
-        }
+        .floatingAddFlow(isVisible: showsFloatingAddButton)
         .onChange(of: appState.selectedTab) { _, newTab in
             #if DEBUG
             guard ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"] == nil else { return }
@@ -111,14 +96,6 @@ private func budgetDestination(
             budgetLineService: budgetLineService
         )
         .ignoresForeignKeyboardInset()
-    case .editTransaction(let budgetId, let transactionId):
-        // Bare: this one owns the field that raises the keyboard.
-        EditTransactionHost(
-            budgetId: budgetId,
-            transactionId: transactionId,
-            budgetService: budgetService,
-            budgetLineService: budgetLineService
-        )
     }
 }
 
@@ -146,6 +123,14 @@ private func savingsGoalDestination(
 struct CurrentMonthTab: View {
     @Environment(AppState.self) private var appState
     @State private var router = BudgetDetailsRouter()
+    @State private var editedMovement: EditedMovement?
+
+    /// The movement the accueil asked to edit: its budget and its own id.
+    private struct EditedMovement: Identifiable {
+        let budgetId: String
+        let transactionId: String
+        var id: String { transactionId }
+    }
 
     var body: some View {
         @Bindable var state = appState
@@ -157,8 +142,15 @@ struct CurrentMonthTab: View {
             CurrentMonthView()
                 .pulpeRootBottomInset()
                 .environment(\.requestSavingsWithdrawal, openSavingsWithdrawal)
+                .environment(\.requestEditMovement, { budgetId, transactionId in
+                    editedMovement = EditedMovement(budgetId: budgetId, transactionId: transactionId)
+                })
                 .ignoresForeignKeyboardInset()
                 .modifier(SectionStackDestinations())
+        }
+        // « Modifier » is a sheet, hosted here because it is written against the budget's stores.
+        .sheet(item: $editedMovement) { edited in
+            EditTransactionHost(budgetId: edited.budgetId, transactionId: edited.transactionId)
         }
         .environment(router)
         .task { router.bind(to: appState) }
