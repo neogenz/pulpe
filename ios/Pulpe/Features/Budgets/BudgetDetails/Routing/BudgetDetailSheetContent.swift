@@ -49,7 +49,11 @@ struct BudgetDetailSheetContent: View {
             // The closure is awaited by the sheet (behind its blocking overlay),
             // so dispatch directly — NO wrapping `Task`, which would return
             // instantly and defeat the in-progress feedback.
-            SpreadExistingSheet(source: source, currency: userSettingsStore.currency) { periods in
+            SpreadExistingSheet(
+                source: source,
+                currency: userSettingsStore.currency,
+                ledger: isOpenedMonth(month: source.month, year: source.year) ? monthLedger : nil
+            ) { periods in
                 let ctx = toastContext
                 switch source.sourceType {
                 case .budgetLine:
@@ -66,9 +70,20 @@ struct BudgetDetailSheetContent: View {
             // Same seam as the additive `onAdd`: the sheet awaits the server, then
             // hands back the confirmed income line so the coordinator grafts it
             // into M and wipes cross-month caches (the paired saving lands in M+1).
-            SavingsWithdrawalSheet(prefill: prefill) { incomeLine in
-                Task { await coordinator.dispatch(.createSavingsWithdrawal(incomeLine: incomeLine)) }
-            }
+            let isOpened = isOpenedMonth(month: prefill.anchorMonth, year: prefill.anchorYear)
+            SavingsWithdrawalSheet(
+                prefill: prefill,
+                ledger: isOpened ? monthLedger : nil,
+                spreadInstead: isOpened
+                    ? SpreadExistingSource.largestSpreadableExpense(
+                        in: monthLedger, month: prefill.anchorMonth, year: prefill.anchorYear
+                    )
+                    : nil,
+                onSpreadInstead: { router.present(.spreadExisting($0)) },
+                onAdd: { incomeLine in
+                    Task { await coordinator.dispatch(.createSavingsWithdrawal(incomeLine: incomeLine)) }
+                }
+            )
         case .catchUp(let focusLineId):
             CatchUpSheet(
                 ledger: monthLedger,
@@ -79,6 +94,13 @@ struct BudgetDetailSheetContent: View {
                 Task { await coordinator.dispatch(.updateBudgetLine(updatedLine)) }
             }
         }
+    }
+
+    /// Whether `month`/`year` is the budget this page has open: only then does
+    /// `monthLedger` describe it.
+    private func isOpenedMonth(month: Int, year: Int) -> Bool {
+        guard let budget = coordinator.dataStore.budget else { return false }
+        return budget.month == month && budget.year == year
     }
 
     /// The opened month as the disponible reads it.

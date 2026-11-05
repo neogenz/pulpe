@@ -32,8 +32,7 @@ extension AddBudgetLineSheet {
                 anchorYear: anchorYear,
                 amount: amount,
                 inputCurrency: inputCurrency,
-                source: trimmed.isEmpty ? nil : trimmed,
-                startsAtPreview: true
+                source: trimmed.isEmpty ? nil : trimmed
             )
         )
     }

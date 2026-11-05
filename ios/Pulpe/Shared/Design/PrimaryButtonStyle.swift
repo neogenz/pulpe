@@ -236,6 +236,14 @@ extension View {
         self.buttonStyle(TextLinkButtonStyle())
     }
 
+    /// The accent text link under a sheet's CTA (« Annuler », « Ne rien changer »).
+    func sheetDismissLinkStyle() -> some View {
+        self.buttonStyle(TextLinkButtonStyle())
+            .font(PulpeTypography.labelLarge)
+            .foregroundStyle(Color.pulpePrimary)
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
+    }
+
     /// Applies plain button styling with pressed feedback only (no layout/shape constraints)
     func plainPressedButtonStyle() -> some View {
         self.buttonStyle(PlainPressedButtonStyle())

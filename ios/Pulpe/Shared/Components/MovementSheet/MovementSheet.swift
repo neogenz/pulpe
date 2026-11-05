@@ -71,6 +71,7 @@ struct MovementSheet: View {
         editActions: MovementSheetEditActions? = nil,
         dependencies: AddTransactionDependencies = .live,
         userCurrency: SupportedCurrency = .chf,
+        withdrawalGoalId: String? = nil,
         onRequestSavingsWithdrawal: ((Decimal, SupportedCurrency, String?) -> Void)? = nil,
         onRequestNewForecast: (() -> Void)? = nil,
         onAdd: @escaping (Transaction) -> Void = { _ in }
@@ -110,6 +111,12 @@ struct MovementSheet: View {
             _selectedTagIds = State(initialValue: [])
             _linePick = State(initialValue: line.map { .line($0.id) })
             self.initialTagIds = []
+            // « Faire un retrait » from a goal: a revenu drawn from that goal's savings.
+            if let withdrawalGoalId {
+                _kind = State(initialValue: .income)
+                _isFromSavings = State(initialValue: true)
+                _savingsGoalId = State(initialValue: withdrawalGoalId)
+            }
         }
     }
 

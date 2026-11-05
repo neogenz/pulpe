@@ -46,8 +46,9 @@ struct CatchUpPlan: Equatable {
         let total = overruns.reduce(Decimal.zero) { $0 + $1.amount }
         guard total > 0 else { return CatchUpPlan(overruns: [], choices: []) }
 
+        // A pointée prévision counts as fully spent (`calculateRealizedExpenses`): no margin left.
         let choices = expenses
-            .filter { (reste[$0.id] ?? 0) > 0 }
+            .filter { !$0.isChecked && (reste[$0.id] ?? 0) > 0 }
             .filter { !EditBudgetLineSheet.shouldShowAlternateCurrency(for: $0, userCurrency: userCurrency) }
             .map { line in
                 let remaining = reste[line.id] ?? 0

@@ -56,6 +56,7 @@ struct MainTabView: View {
         .tint(Color.pulpePrimary)
         .pulpeBackground()
         .floatingAddFlow(isVisible: showsFloatingAddButton)
+        .goalWithdrawalFlow()
         .onChange(of: appState.selectedTab) { _, newTab in
             #if DEBUG
             guard ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"] == nil else { return }
@@ -183,8 +184,7 @@ struct CurrentMonthTab: View {
             anchorYear: request.year,
             amount: request.amount,
             inputCurrency: request.inputCurrency,
-            source: request.source,
-            startsAtPreview: true
+            source: request.source
         )))
     }
 }

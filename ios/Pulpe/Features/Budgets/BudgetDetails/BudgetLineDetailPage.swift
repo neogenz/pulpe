@@ -282,15 +282,9 @@ private extension BudgetLineDetailPage {
         .accessibilityIdentifier("budgetLineDetailDeleteRow")
     }
 
-    /// A prévision is spreadable only when it's a one-off expense/épargne that
-    /// isn't already lissée, isn't a rollover, and isn't half of a withdrawal
-    /// couple — spreading that deletes the source server-side and orphans it (CA9).
+    /// See `BudgetLine.isSpreadable`.
     func canSpread(_ line: BudgetLine) -> Bool {
-        line.kind != .income
-            && line.recurrence == .oneOff
-            && line.spreadGroupId == nil
-            && line.savingsWithdrawalGroupId == nil
-            && !(line.isRollover ?? false)
+        line.isSpreadable
     }
 
     func presentSpread(for line: BudgetLine) {

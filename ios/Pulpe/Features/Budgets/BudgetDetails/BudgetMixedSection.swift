@@ -129,9 +129,11 @@ struct SectionRollover: Equatable {
     let previousMonth: Int
     let amount: Decimal
     var onTap: (() -> Void)?
+    /// « Estimé, novembre en cours » on a month that has not started; `nil` keeps the default.
+    var subtitle: String?
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.previousMonth == rhs.previousMonth && lhs.amount == rhs.amount
+        lhs.previousMonth == rhs.previousMonth && lhs.amount == rhs.amount && lhs.subtitle == rhs.subtitle
     }
 }
 
@@ -161,7 +163,9 @@ private struct SectionRolloverRow: View {
                     Text(ReportWording.reportTitle(of: rollover.previousMonth))
                         .font(PulpeTypography.rowTitle)
                         .foregroundStyle(Color.textPrimary)
-                    Text("Ce qu'il te restait fin \(Formatters.monthNameInText(for: rollover.previousMonth))")
+                    Text(rollover.subtitle ?? AppLocale.string(
+                        "Ce qu'il te restait fin \(Formatters.monthNameInText(for: rollover.previousMonth))"
+                    ))
                         .font(PulpeTypography.captionRegular)
                         .foregroundStyle(Color.textSecondary)
                 }

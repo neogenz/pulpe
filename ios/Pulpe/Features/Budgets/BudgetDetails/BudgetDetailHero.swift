@@ -10,6 +10,9 @@ struct BudgetDetailHero: View {
     var rolloverAmount: Decimal?
     var onRolloverTap: (() -> Void)?
     var onTapCalculation: () -> Void = {}
+    /// The previous month, when this one has not started: the figure is a projection and
+    /// its report an estimate.
+    var projectedReportMonth: Int?
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var tapTrigger = false
@@ -77,7 +80,10 @@ struct BudgetDetailHero: View {
 
     private var headerRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-            Text("Disponible à dépenser")
+            let eyebrow: LocalizedStringKey = projectedReportMonth == nil
+                ? "Disponible à dépenser"
+                : "Disponible à dépenser prévu"
+            Text(eyebrow)
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textSecondary)
             Spacer(minLength: DesignTokens.Spacing.sm)
@@ -122,7 +128,11 @@ struct BudgetDetailHero: View {
 
     @ViewBuilder
     private func rolloverLine(amount: Decimal) -> some View {
-        let label = Text("Report de \(amount.asAmount(for: currency)) inclus")
+        let label = Text(projectedReportMonth.map {
+            AppLocale.string(
+                "Avec le report de \(Formatters.monthNameInText(for: $0)), estimé à \(amount.asAmount(for: currency))"
+            )
+        } ?? AppLocale.string("Report de \(amount.asAmount(for: currency)) inclus"))
             .font(PulpeTypography.labelMedium)
             .foregroundStyle(Color.textSecondary)
             .monospacedDigit()

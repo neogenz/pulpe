@@ -83,8 +83,7 @@ struct BudgetMovementSheet: View {
             anchorYear: budget.year,
             amount: amount,
             inputCurrency: currency,
-            source: source,
-            startsAtPreview: true
+            source: source
         )))
     }
 }

@@ -23,9 +23,7 @@ struct SpreadExistingSource: Identifiable, Hashable, Sendable {
 
 /// Prefill + anchor for the "piocher dans son épargne" sheet (PUL-292). Carries
 /// the viewed month M (the couple's income lands here; the repayment saving in
-/// M+1) plus an optional pre-filled amount / source. `startsAtPreview` skips the
-/// amount step — used when the AddBudgetLineSheet income toggle routes straight
-/// to the preview with the amount + name already typed. `id` is fresh per
+/// M+1) plus an optional pre-filled amount / source. `id` is fresh per
 /// presentation so `.sheet(item:)` rebuilds the sheet (and its minted
 /// idempotency key) for each new intent.
 struct SavingsWithdrawalPrefill: Identifiable {
@@ -43,7 +41,6 @@ struct SavingsWithdrawalPrefill: Identifiable {
     /// an amount typed in EUR isn't re-anchored to CHF (PUL-292).
     var inputCurrency: SupportedCurrency?
     var source: String?
-    var startsAtPreview: Bool = false
 }
 
 /// Sheet destinations for `BudgetDetailsView`.

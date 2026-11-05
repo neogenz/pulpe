@@ -156,18 +156,29 @@ struct BudgetDetailsView: View {
             amount: rollover.amount,
             onTap: rollover.previousBudgetId.map { id in
                 { router.present(.previousBudget(PreviousBudgetItem(id: id))) }
-            }
+            },
+            subtitle: upcomingReportSubtitle
         )
     }
 
     private var content: some View {
         let screenState = projector.screenState
         let rollover = sectionRollover
+        let upcomingReportMonth = upcomingReportMonth
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 PageHeader(title: pageTitle, subtitle: periodSubtitle)
                     .padding(.top, DesignTokens.Spacing.sm)
+
+                if upcomingReportMonth != nil {
+                    InfoBanner(.neutral, systemImage: "calendar", text: AppLocale.string("""
+                        Ce mois n'a pas commencé. Ses prévisions viennent de ton modèle : \
+                        ajuste-les dès maintenant si tu sais déjà ce qui change.
+                        """))
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                }
 
                 BudgetDetailHero(
                     metrics: screenState.hero.metrics,
@@ -175,7 +186,8 @@ struct BudgetDetailsView: View {
                     onRolloverTap: screenState.rollover?.previousBudgetId.map { id in
                         { router.present(.previousBudget(PreviousBudgetItem(id: id))) }
                     },
-                    onTapCalculation: { router.present(.realizedBalance) }
+                    onTapCalculation: { router.present(.realizedBalance) },
+                    projectedReportMonth: upcomingReportMonth
                 )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.top, DesignTokens.Spacing.lg)
@@ -185,8 +197,10 @@ struct BudgetDetailsView: View {
                         .padding(.top, DesignTokens.Spacing.lg)
                 }
 
-                BudgetTypeFilter(checked: checkedFilterBinding, counts: screenState.checkedCounts)
-                    .padding(.top, DesignTokens.Spacing.xl)
+                if upcomingReportMonth == nil {
+                    BudgetTypeFilter(checked: checkedFilterBinding, counts: screenState.checkedCounts)
+                        .padding(.top, DesignTokens.Spacing.xl)
+                }
 
                 if screenState.checkedFilter == .over, screenState.checkedCounts.over > 0 {
                     Button("Rattraper le dépassement") { router.present(.catchUp(focusLineId: nil)) }
@@ -212,7 +226,8 @@ struct BudgetDetailsView: View {
                         items: section.items,
                         total: section.total + (section.kind == .income ? rollover?.amount ?? 0 : 0),
                         rollover: section.kind == .income ? rollover : nil,
-                        onAdd: { router.present(.addBudgetLine(section.kind)) },
+                        // The future-month board has no « Ajouter » footers; the floating « + » adds.
+                        onAdd: upcomingReportMonth == nil ? { router.present(.addBudgetLine(section.kind)) } : nil,
                         currency: userSettingsStore.currency,
                         goalNamesById: savingsGoalNamesById,
                         tagNamesById: tagStore.namesById,

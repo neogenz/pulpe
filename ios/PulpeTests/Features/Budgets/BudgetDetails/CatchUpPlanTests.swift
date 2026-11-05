@@ -5,7 +5,7 @@ import Testing
 @Suite("CatchUpPlan")
 struct CatchUpPlanTests {
     /// Courses 600 / 664.20 spent (+64.20), Sorties 100 / 138 spent (+38), Loisirs 150 and
-    /// Transport 88 untouched, an épargne and a report with margin that must not be offered.
+    /// Transport 88 untouched, a pointée Loyer (already paid), an épargne and a report with margin that must not be offered.
     private static let ledger: MonthLedger = {
         let lines = [
             TestDataFactory.createBudgetLine(id: "salary", amount: 5000, kind: .income),
@@ -13,6 +13,7 @@ struct CatchUpPlanTests {
             TestDataFactory.createBudgetLine(id: "sorties", name: "Sorties", amount: 100),
             TestDataFactory.createBudgetLine(id: "loisirs", name: "Loisirs", amount: 150),
             TestDataFactory.createBudgetLine(id: "transport", name: "Transport", amount: 88),
+            TestDataFactory.createBudgetLine(id: "rent", name: "Loyer", amount: 1200, isChecked: true),
             TestDataFactory.createBudgetLine(id: "pillar", amount: 500, kind: .saving),
             TestDataFactory.createBudgetLine(id: "rollover", amount: 900, isRollover: true)
         ]

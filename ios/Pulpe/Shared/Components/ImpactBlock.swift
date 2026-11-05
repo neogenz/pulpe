@@ -44,7 +44,7 @@ struct ImpactBlock: View {
             if showsFigures {
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
                     if let before {
-                        Text(before.asCurrency(currency))
+                        Text(before.asAmount(for: currency))
                             .strikethrough(true, color: Color.textTertiary)
                             .foregroundStyle(Color.textTertiary)
                         Image(systemName: "arrow.right")
@@ -52,7 +52,7 @@ struct ImpactBlock: View {
                             .foregroundStyle(Color.textSecondary)
                             .accessibilityHidden(true)
                     }
-                    Text(after.asCurrency(currency))
+                    Text(after.asAmount(for: currency))
                         .foregroundStyle(Color.textPrimary)
                 }
                 .font(PulpeTypography.impactAmount)
@@ -109,13 +109,21 @@ struct ImpactBlock: View {
 
 extension ImpactBlock {
     /// The block for a computed impact: its tone follows the move, and a figure that does not
-    /// move is not repeated.
-    init(title: String, impact: MovementImpact, currency: SupportedCurrency, note: String? = nil) {
-        let tone: Tone = switch impact.tone {
+    /// move is not repeated. `tone` pins the mood when the move is planned, not a surprise
+    /// (setting money aside for a goal reads neutral, not as an overrun).
+    init(
+        title: String,
+        impact: MovementImpact,
+        currency: SupportedCurrency,
+        tone pinned: Tone? = nil,
+        note: String? = nil
+    ) {
+        let computed: Tone = switch impact.tone {
         case .neutral: .neutral
         case .over: .over
         case .ok: .ok
         }
+        let tone = pinned ?? computed
         self.init(
             title: title,
             before: impact.before,

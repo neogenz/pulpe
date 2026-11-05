@@ -12,6 +12,8 @@ import SwiftUI
 struct SpreadExistingSheet: View {
     let source: SpreadExistingSource
     let currency: SupportedCurrency
+    /// M0 as the disponible reads it, for the impact block. `nil` hides the block.
+    var ledger: MonthLedger?
     let onSpread: ([SpreadFromExistingPeriod]) async -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -22,10 +24,12 @@ struct SpreadExistingSheet: View {
     init(
         source: SpreadExistingSource,
         currency: SupportedCurrency,
+        ledger: MonthLedger? = nil,
         onSpread: @escaping ([SpreadFromExistingPeriod]) async -> Void
     ) {
         self.source = source
         self.currency = currency
+        self.ledger = ledger
         self.onSpread = onSpread
         self._calculator = State(
             initialValue: SpreadExistingCalculator(anchorMonth: source.month, anchorYear: source.year)
@@ -47,9 +51,8 @@ struct SpreadExistingSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                    lockedTotalCard
-                    helpText
-                    monthRangeRow
+                    totalHero
+                    monthRangeCard
                     monthsGrid
                     echo
                 }
@@ -91,113 +94,120 @@ struct SpreadExistingSheet: View {
 
     // MARK: - Locked total
 
-    private var lockedTotalCard: some View {
-        HStack {
-            Label("Montant total", systemImage: "lock.fill")
-                .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.onSurfaceVariant)
-            Spacer()
-            Text(source.total.asCurrency(currency))
-                .font(PulpeTypography.headline)
-                .foregroundStyle(Color.textPrimary)
-                .monospacedDigit()
-                .sensitiveAmount()
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity)
-        .background(Color.surfaceContainer, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
-        .accessibilityElement(children: .combine)
+    private var sourceLabel: String {
+        source.sourceType == .budgetLine ? AppLocale.string("\(source.name) · une fois") : source.name
     }
 
-    private var helpText: some View {
-        Text("""
-            On répartit ce montant à parts égales sur les mois que tu choisis, \
-            à partir de ce mois-ci. Désélectionne ceux à sauter.
-            """)
-            .font(PulpeTypography.caption)
-            .foregroundStyle(Color.onSurfaceVariant)
-            .fixedSize(horizontal: false, vertical: true)
+    private var totalHero: some View {
+        VStack(spacing: DesignTokens.Spacing.xs) {
+            Text(sourceLabel)
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
+                Text(source.total.asAmount(for: currency))
+                    .font(PulpeTypography.heroAmount)
+                    .foregroundStyle(Color.textPrimary)
+                    .minimumScaleFactor(DesignTokens.TextScale.floor)
+                    .lineLimit(1)
+                    .sensitiveAmount()
+                Text(currency.rawValue)
+                    .font(PulpeTypography.heroCurrencySuffix)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            Text("Le total ne change pas, il est réparti")
+                .font(PulpeTypography.captionRegular)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - De (locked) → À (picker)
 
-    private var monthRangeRow: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            lockedFromField
-            endPickerButton
-        }
-    }
-
-    private var lockedFromField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            Text("De")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.onSurfaceVariant)
-            Text(calculator.start.longName)
-                .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondary)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.surfaceContainer, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
-        .accessibilityLabel("De : \(calculator.start.longName)")
-    }
-
-    private var endPickerButton: some View {
-        Button { isPickingEnd = true } label: {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("À")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.onSurfaceVariant)
-                HStack {
-                    Text(calculator.end.longName)
-                        .font(PulpeTypography.subheadline)
-                        .foregroundStyle(Color.textPrimary)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(Color.textTertiary)
-                }
+    private var monthRangeCard: some View {
+        FormCard {
+            HStack {
+                Text("De")
+                Spacer()
+                Text(calculator.start.longName)
+                    .foregroundStyle(Color.textSecondary)
+                Image(systemName: "lock.fill")
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.surfaceContainerHigh, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
+            .frame(minHeight: DesignTokens.ListRow.minHeight)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("De : \(calculator.start.longName)")
+            FormRowDivider()
+            Button { isPickingEnd = true } label: {
+                HStack {
+                    Text("À")
+                    Spacer()
+                    Text(calculator.end.longName)
+                        .font(PulpeTypography.rowTitle)
+                    RowChevron()
+                }
+                .foregroundStyle(Color.textPrimary)
+                .frame(minHeight: DesignTokens.ListRow.minHeight)
+                .contentShape(.rect)
+            }
+            .plainPressedButtonStyle()
+            .accessibilityLabel("À : \(calculator.end.longName)")
         }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
-        .plainPressedButtonStyle()
-        .accessibilityLabel("À : \(calculator.end.longName)")
+        .font(PulpeTypography.rowTitleRegular)
     }
 
     // MARK: - Months grid
 
-    private let columns = [GridItem(.adaptive(minimum: 96), spacing: DesignTokens.Spacing.sm)]
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: DesignTokens.Spacing.sm),
+        count: 4
+    )
 
     @ViewBuilder
     private var monthsGrid: some View {
         let months = calculator.windowMonths
         if !months.isEmpty {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                ForEach(months) { month in
-                    monthChip(month)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                if calculator.isValid {
+                    Text(AppLocale.string(
+                        "\(calculator.selectedCount) mois · \(perMonthText) par mois"
+                    ))
+                    .font(PulpeTypography.metricLabel)
+                    .foregroundStyle(Color.textSecondary)
+                    .sensitiveAmount()
                 }
+                LazyVGrid(columns: columns, spacing: DesignTokens.Spacing.sm) {
+                    ForEach(months) { month in
+                        monthTile(month)
+                    }
+                }
+                .animation(.snappy(duration: DesignTokens.Animation.fast), value: calculator.windowMonths)
+                Text("Touche un mois pour l'enlever. \(calculator.start.name) reste : c'est le départ.")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .animation(.snappy(duration: DesignTokens.Animation.fast), value: calculator.windowMonths)
         }
     }
 
-    private func monthChip(_ month: SpreadMonth) -> some View {
+    private var perMonthText: String { calculator.perMonth(total: source.total).asAmount(for: currency) }
+
+    private func monthTile(_ month: SpreadMonth) -> some View {
         let isOn = calculator.isSelected(month)
         return Button {
             withAnimation(.snappy(duration: DesignTokens.Animation.fast)) { calculator.toggle(month) }
         } label: {
-            PulpeChip(label: month.name, style: isOn ? .selected : .outlined)
-                .strikethrough(!isOn, color: Color.onSurfaceVariant)
+            MonthAmountTile(
+                label: month.shortLabel,
+                amount: isOn ? calculator.amount(for: month, total: source.total) ?? 0 : nil,
+                currency: currency
+            )
         }
         .disabled(calculator.isLocked(month))
+        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
         .plainPressedButtonStyle()
         .accessibilityLabel(month.longName)
         .accessibilityValue(isOn ? Text("Sélectionné") : Text("Désélectionné"))
@@ -215,49 +225,37 @@ struct SpreadExistingSheet: View {
             ErrorBanner(message: message)
         } else {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text(disclosure)
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .sensitiveAmount()
-
+                if let ledger, let share = calculator.split(total: source.total).first {
+                    ImpactBlock(
+                        title: AppLocale.string(
+                            "Ton disponible de \(Formatters.monthNameInText(for: calculator.start.month))"
+                        ),
+                        impact: source.impact(share: share, on: ledger),
+                        currency: currency,
+                        note: impactNote
+                    )
+                }
+                if source.sourceType == .transaction {
+                    Text("Le réel est remplacé par le plan.")
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
+                }
                 if let remainder = calculator.remainderMonthName(total: source.total) {
                     Text("Le mois de \(remainder) porte quelques centimes de plus.")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.onSurfaceVariant)
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.surfaceContainerLow, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
         }
     }
 
-    private var disclosure: String {
-        let count = calculator.selectedCount
-        let perMonth = calculator.perMonth(total: source.total).asCurrency(currency)
-        let total = source.total.asCurrency(currency)
-        // Source kind drives the noun — a spread saving must read "épargne", not
-        // "dépense" (same accord as the additive successMessage). One whole key per
-        // noun: the sentence can't be assembled around a translated fragment.
-        switch (source.sourceType, source.kind) {
-        case (.transaction, .saving):
-            return AppLocale.string("""
-                On transforme cette épargne de \(total) en un plan lissé : \
-                \(perMonth) par mois sur \(count) mois. Le réel est remplacé par le plan.
-                """)
-        case (.transaction, _):
-            return AppLocale.string("""
-                On transforme cette dépense de \(total) en un plan lissé : \
-                \(perMonth) par mois sur \(count) mois. Le réel est remplacé par le plan.
-                """)
-        case (.budgetLine, _):
-            return AppLocale.string(
-                "On répartit cette prévision de \(total) en \(perMonth) par mois sur \(count) mois."
-            )
-        }
+    /// « Les 11 mois suivants prennent 120.00 chacun. Ceux qui manquent sont créés avec ton modèle. »
+    private var impactNote: String {
+        AppLocale.string("""
+            Les \(calculator.selectedCount - 1) mois suivants prennent \(perMonthText) chacun. \
+            Ceux qui manquent sont créés avec ton modèle.
+            """)
     }
 
     // MARK: - Submit
@@ -282,7 +280,7 @@ struct SpreadExistingSheet: View {
                 dismiss()
             }
         } label: {
-            Text(spreadTitle)
+            Text(AppLocale.string("Lisser sur \(calculator.selectedCount) mois"))
         }
         .disabled(!calculator.isValid || isSubmitting)
         .primaryButtonStyle(isEnabled: calculator.isValid && !isSubmitting)
