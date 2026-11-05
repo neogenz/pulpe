@@ -72,6 +72,9 @@ final class AppState {
 
     var selectedTab: Tab = .currentMonth
     var currentMonthPath = NavigationPath()
+    /// « À remettre » asked from the global « + »: the accueil's tab opens the month's budget
+    /// page with the withdrawal preview, then clears it (PUL-292).
+    var pendingSavingsWithdrawal: SavingsWithdrawalRequest?
     var budgetPath = NavigationPath()
     /// Month shown beside the budgets list on a regular-width window (the open iPhone Duo).
     var budgetSelection: String?

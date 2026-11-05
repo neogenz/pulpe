@@ -226,8 +226,8 @@ struct BudgetDetailsView: View {
                         items: section.items,
                         total: section.total + (section.kind == .income ? rollover?.amount ?? 0 : 0),
                         rollover: section.kind == .income ? rollover : nil,
-                        // The future-month board has no « Ajouter » footers; the floating « + » adds.
-                        onAdd: upcomingReportMonth == nil ? { router.present(.addBudgetLine(section.kind)) } : nil,
+                        // The floating « + » is hidden on a pushed month, so every month keeps its footers.
+                        onAdd: { router.present(.addBudgetLine(section.kind)) },
                         currency: userSettingsStore.currency,
                         goalNamesById: savingsGoalNamesById,
                         tagNamesById: tagStore.namesById,
@@ -239,6 +239,17 @@ struct BudgetDetailsView: View {
                         },
                         onTogglePointed: { line in handlePointGesture(on: line) }
                     )
+                }
+
+                // No section left to carry a footer (empty month, every kind filtered out).
+                if screenState.sections.isEmpty, !screenState.canShowEmptyChecked {
+                    SectionAddRow(title: AppLocale.string("Ajouter une prévision")) {
+                        router.present(.addBudgetLine(.expense))
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .pulpeSurfaceCard()
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.xl)
                 }
 
                 movementLists

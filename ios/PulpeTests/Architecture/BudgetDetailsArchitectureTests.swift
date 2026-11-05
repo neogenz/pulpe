@@ -290,10 +290,9 @@ struct BudgetDetailsArchitectureTests {
         let cardsPath = directory.appendingPathComponent("BudgetDetailsActionCards.swift").path
 
         // Adding a prévision: the foot of its section, the section's kind preselected.
-        // A month that has not started reads as a projection: no footer (board 5).
-        #expect(source.contains(
-            "onAdd: upcomingReportMonth == nil ? { router.present(.addBudgetLine(section.kind)) } : nil"
-        ))
+        // Every month keeps its footers: the floating « + » is hidden on a pushed month, so a
+        // month that has not started would otherwise have no way to add (board 5's « + »).
+        #expect(source.contains("onAdd: { router.present(.addBudgetLine(section.kind)) }"))
         #expect(section.contains(#"SectionAddRow(title: AppLocale.string("Ajouter une prévision"), action: onAdd)"#))
         // Comparing the accounts, switching month and deleting it: the "…" menu.
         #expect(menu.contains("router.present(.realizedBalance)"))

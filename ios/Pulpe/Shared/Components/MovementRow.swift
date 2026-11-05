@@ -71,10 +71,11 @@ struct MovementRow: View {
             }
             .plainPressedButtonStyle()
             .accessibilityHint("Touche pour modifier")
+            // On the open button, not the row: there it would overwrite the point circle's id.
+            .accessibilityIdentifier("movementRow-\(transaction.id)")
         }
         .padding(.leading, DesignTokens.Spacing.xs)
         .padding(.trailing, DesignTokens.Spacing.lg)
-        .accessibilityIdentifier("movementRow-\(transaction.id)")
     }
 
     @ViewBuilder

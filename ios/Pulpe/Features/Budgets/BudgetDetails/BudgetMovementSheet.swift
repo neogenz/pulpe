@@ -71,7 +71,13 @@ struct BudgetMovementSheet: View {
                     month: budget.month,
                     year: budget.year
                 )))
-            }
+            },
+            postpone: coordinator.dataStore.hasNextMonthBudget
+                ? MovementPostpone(nextMonth: coordinator.dataStore.nextMonthLabel) { tx in
+                    let ctx = toastContext
+                    Task { await coordinator.postponeTransaction(tx, context: ctx) }
+                }
+                : nil
         )
     }
 

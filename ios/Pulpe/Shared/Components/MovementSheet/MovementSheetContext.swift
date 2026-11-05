@@ -25,6 +25,14 @@ struct MovementSheetEditActions {
     let delete: (Transaction) -> Void
     /// `nil` where spreading a free movement has no sheet to open.
     let spread: ((Transaction) -> Void)?
+    /// « Reporter au mois suivant » (PUL-22). `nil` where next month has no budget yet.
+    var postpone: MovementPostpone?
+}
+
+struct MovementPostpone {
+    /// « décembre », for the confirmation title.
+    let nextMonth: String?
+    let perform: (Transaction) -> Void
 }
 
 extension MovementSheetContext {

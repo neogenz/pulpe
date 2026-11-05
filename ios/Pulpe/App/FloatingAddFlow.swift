@@ -13,10 +13,14 @@ private struct FloatingAddFlow: ViewModifier {
 
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(AppState.self) private var appState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isAddSheetPresented = false
     /// « Réserver un montant pour plus tard »: set by the movement sheet, honoured once it is gone.
     @State private var wantsNewForecast = false
     @State private var isForecastSheetPresented = false
+    /// « À remettre »: handed to the accueil once the movement sheet is gone.
+    @State private var pendingWithdrawal: SavingsWithdrawalRequest?
 
     func body(content: Content) -> some View {
         content
@@ -25,15 +29,28 @@ private struct FloatingAddFlow: ViewModifier {
                     FloatingAddButton { isAddSheetPresented = true }
                         .padding(.trailing, DesignTokens.Control.fabTrailingInset)
                         .padding(.bottom, DesignTokens.Control.fabBottomInset)
-                        .transition(.scale.combined(with: .opacity))
+                        .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
                 }
             }
-            .animation(.snappy, value: isVisible)
-            .sheet(isPresented: $isAddSheetPresented, onDismiss: openForecastIfAsked) {
+            .animation(
+                reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.defaultSpring,
+                value: isVisible
+            )
+            .sheet(isPresented: $isAddSheetPresented, onDismiss: continueAfterAddSheet) {
                 if let budget = currentMonthStore.budget {
                     MovementSheet(
                         context: context(budgetId: budget.id),
                         userCurrency: userSettingsStore.currency,
+                        onRequestSavingsWithdrawal: { amount, currency, name in
+                            pendingWithdrawal = SavingsWithdrawalRequest(
+                                budgetId: budget.id,
+                                month: budget.month,
+                                year: budget.year,
+                                amount: amount,
+                                inputCurrency: currency,
+                                source: name
+                            )
+                        },
                         onRequestNewForecast: { wantsNewForecast = true },
                         onAdd: currentMonthStore.addTransaction
                     )
@@ -59,7 +76,13 @@ private struct FloatingAddFlow: ViewModifier {
         MovementSheetContext(store: currentMonthStore, budgetId: budgetId, source: .addButton)
     }
 
-    private func openForecastIfAsked() {
+    private func continueAfterAddSheet() {
+        if let request = pendingWithdrawal {
+            pendingWithdrawal = nil
+            appState.selectedTab = .currentMonth
+            appState.pendingSavingsWithdrawal = request
+            return
+        }
         guard wantsNewForecast else { return }
         wantsNewForecast = false
         isForecastSheetPresented = true

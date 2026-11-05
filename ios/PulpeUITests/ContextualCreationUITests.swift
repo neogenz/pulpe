@@ -31,38 +31,16 @@ final class ContextualCreationUITests: XCTestCase {
         )
     }
 
-    func testBudgetActionsRemainDistinctAtLargeText() {
+    func testBudgetSectionAddRowsStayReachableAtLargeText() {
         launch("UITEST_CONTEXTUAL_CREATION_BUDGET")
 
-        let tracking = app.buttons["budgetTrackingButton"]
-        let addForecast = app.buttons["budgetAddLineButton"]
-        XCTAssertTrue(tracking.waitForExistence(timeout: 10), app.debugDescription)
-        XCTAssertTrue(addForecast.waitForExistence(timeout: 10), app.debugDescription)
+        // Each section ends on its own « Ajouter une prévision » row; the expense one is
+        // always there on a seeded month.
+        let addForecast = app.buttons["budgetSectionAdd-expense"]
+        scrollUntilHittable(addForecast)
         attachScreenshot("contextual-creation-budget-accessibility3")
-        // The tracking glyph is a system toolbar item: iOS 26 sizes its own glass capsule
-        // (36 pt tall) and extends the touch region around it, the way it does for the
-        // month chevron beside it, which reports 25 pt. Asserting a 44 pt accessibility
-        // frame here would force a button the system does not draw — exactly the
-        // non-standard shape this glyph was stripped bare to stop being.
-        XCTAssertTrue(tracking.isHittable, app.debugDescription)
-        // The add button we lay out ourselves, so the rule applies to it in full.
+        // Laid out by us, so the 44 pt rule applies to it in full.
         assertMinimumHitArea(addForecast)
-        // The two no longer share a container — one is a toolbar glyph, the other lives in
-        // the content zone — so a frame intersection is structurally impossible and would
-        // assert nothing. What the largest text size can still break is the rail: the
-        // button spans the content zone, DesignTokens.Spacing.xxl on each side, which is
-        // the width the accueil gives its own.
-        // A UI test bundle runs out of process and cannot import the app's module, so the
-        // rail is restated here rather than read from the token. The failure says which
-        // token to look at, since the number alone would not.
-        let rail: CGFloat = 24
-        let contentWidth = app.windows.firstMatch.frame.width - 2 * rail
-        XCTAssertEqual(
-            addForecast.frame.width,
-            contentWidth,
-            accuracy: 1,
-            "The add button no longer spans the \(rail) pt rail (DesignTokens.Spacing.xxl)"
-        )
 
         addForecast.tap()
         XCTAssertTrue(app.buttons["addBudgetLineSubmit"].firstMatch.waitForExistence(timeout: 5))
@@ -174,8 +152,10 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(viewAll.waitForExistence(timeout: 10), app.debugDescription)
         viewAll.tap()
 
+        // The movements page's search is a plain text field (`PulpeSearchField`), not a
+        // system search field; its filter chips are what only that page draws.
         XCTAssertTrue(
-            app.searchFields.firstMatch.waitForExistence(timeout: 10),
+            app.buttons["movementsFilter-all"].firstMatch.waitForExistence(timeout: 10),
             "Le tap n'a rien poussé — écran après le tap : "
                 + "\(app.descendants(matching: .any).allElementsBoundByIndex.map(\.label))"
         )

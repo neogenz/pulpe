@@ -63,7 +63,12 @@ struct EditTransactionHost: View {
         }
         .environment(coordinator)
         .environment(projector)
-        .sheet(item: $router.sheet) { destination in
+        // « Lisser » closes this sheet: presenting the spread sheet inside it would lose the
+        // destination with the dismissal, so the budget page the tab opens next shows it.
+        .sheet(item: Binding(
+            get: { if case .spreadExisting = router.sheet { nil } else { router.sheet } },
+            set: { router.sheet = $0 }
+        )) { destination in
             BudgetDetailSheetContent(destination: destination)
                 .environment(coordinator)
         }

@@ -87,6 +87,8 @@ struct HomeTodoCard: View {
                 }
                 .pulpeSurfaceCard()
             }
+            // `.contain` first: a bare identifier on the card overwrites every row's own.
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("homeTodoCard")
             .sheet(item: $presentedRecap, onDismiss: settleSheet) { recap in
                 MonthRecapSheet(

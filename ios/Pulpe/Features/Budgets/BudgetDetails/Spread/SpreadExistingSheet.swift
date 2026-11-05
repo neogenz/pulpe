@@ -17,6 +17,7 @@ struct SpreadExistingSheet: View {
     let onSpread: ([SpreadFromExistingPeriod]) async -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var calculator: SpreadExistingCalculator
     @State private var isPickingEnd = false
     @State private var isSubmitting = false
@@ -184,7 +185,7 @@ struct SpreadExistingSheet: View {
                         monthTile(month)
                     }
                 }
-                .animation(.snappy(duration: DesignTokens.Animation.fast), value: calculator.windowMonths)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.quickEaseInOut, value: calculator.windowMonths)
                 Text("Touche un mois pour l'enlever. \(calculator.start.name) reste : c'est le départ.")
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textSecondary)

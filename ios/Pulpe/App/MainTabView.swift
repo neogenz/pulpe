@@ -11,7 +11,8 @@ struct MainTabView: View {
         guard currentMonthStore.budget != nil else { return false }
         return switch appState.selectedTab {
         case .currentMonth: appState.currentMonthPath.isEmpty
-        case .budgets: appState.budgetPath.isEmpty
+        // Beside the list, the month on screen is not the accueil's: the « + » would write elsewhere.
+        case .budgets: appState.budgetPath.isEmpty && !appState.showsBudgetMonthBesideList
         case .savingsGoals: appState.savingsGoalsPath.isEmpty
         case .templates: appState.templatePath.isEmpty
         }
@@ -125,6 +126,8 @@ struct CurrentMonthTab: View {
     @Environment(AppState.self) private var appState
     @State private var router = BudgetDetailsRouter()
     @State private var editedMovement: EditedMovement?
+    /// The budget of the last « Modifier », kept past the sheet's dismissal.
+    @State private var editedBudgetId: String?
 
     /// The movement the accueil asked to edit: its budget and its own id.
     private struct EditedMovement: Identifiable {
@@ -163,11 +166,28 @@ struct CurrentMonthTab: View {
                 }
         }
         // « Modifier » is a sheet, hosted here because it is written against the budget's stores.
-        .sheet(item: $editedMovement) { edited in
+        .sheet(item: $editedMovement, onDismiss: continueFromEditedMovement) { edited in
             EditTransactionHost(budgetId: edited.budgetId, transactionId: edited.transactionId)
+                .onAppear { editedBudgetId = edited.budgetId }
         }
         .environment(router)
         .task { router.bind(to: appState) }
+        .onChange(of: appState.pendingSavingsWithdrawal, initial: true) { _, request in
+            guard let request else { return }
+            appState.pendingSavingsWithdrawal = nil
+            openSavingsWithdrawal(request)
+        }
+    }
+
+    /// « Lisser sur plusieurs mois » closes « Modifier » and asks for the spread sheet, which
+    /// only a budget page presents: open that month's page, whose `.sheet(item: $router.sheet)`
+    /// shows it, as « À remettre » does. Anything else the closed host left behind is dropped.
+    private func continueFromEditedMovement() {
+        if case .spreadExisting = router.sheet, let editedBudgetId {
+            appState.pushOnActiveStack(BudgetDestination.details(budgetId: editedBudgetId))
+        } else {
+            router.sheet = nil
+        }
     }
 
     private func openEditedMovement(budgetId: String, transactionId: String) {

@@ -46,6 +46,7 @@ struct MovementSheet: View {
     @State var selectedTagIds: Set<String>
     @State var linePick: LinePick?
     @State var showsLinePicker = false
+    @State var isConfirmingPostpone = false
     /// An income can come from savings: a goal (PUL-329) or « À remettre » (PUL-292). Off by
     /// default; the whole block disappears (and the choice is dropped) for any other kind.
     @State var isFromSavings = false

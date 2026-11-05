@@ -81,13 +81,12 @@ extension MovementSheet {
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,
                 exchangeRate: conversion?.exchangeRate,
+                tagIds: TagPickerField.createdTagIds(from: selectedTagIds),
                 sourceSavingsGoalId: savingsOriginRule.sourceSavingsGoalId
             )
 
             let transaction = try await dependencies.createTransaction(data)
-            if data.sourceSavingsGoalId != nil {
-                savingsGoalStore.invalidateFromBudgetMutation()
-            }
+            if data.sourceSavingsGoalId != nil { savingsGoalStore.invalidateFromBudgetMutation() }
             FirstTransactionTracker.shared.recordCreated(kind: kind, source: context.source)
             submitSuccessTrigger.toggle()
             onAdd(transaction)

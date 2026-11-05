@@ -47,6 +47,8 @@ extension MovementSheet {
                     FormRowDivider()
                 }
                 TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency, style: .row)
+                FormRowDivider()
+                TagPickerField(selection: $selectedTagIds, style: .row)
             }
         }
     }
@@ -78,26 +80,70 @@ extension MovementSheet {
         return tx.budgetLineId == nil && tx.kind != .income
     }
 
+    /// A free, unpointed movement can move to next month, as on the web (PUL-22 CA1/CA6).
+    var postponeAction: MovementPostpone? {
+        guard let tx = context.editing, tx.budgetLineId == nil, tx.checkedAt == nil else { return nil }
+        return editActions?.postpone
+    }
+
     @ViewBuilder
     var editButtons: some View {
         if let tx = context.editing, let editActions {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                if canSpread {
-                    Button("Lisser sur plusieurs mois") {
-                        dismiss()
-                        editActions.spread?(tx)
-                    }
-                    .secondaryButtonStyle(size: .small)
-                    .accessibilityIdentifier("movementSpread")
+            // One row when it fits, then the deletion on its own row, then one action per row.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    secondaryEditButtons(tx, editActions)
+                    deleteButton(tx, editActions)
                 }
-                Button("Supprimer") {
-                    dismiss()
-                    editActions.delete(tx)
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    HStack(spacing: DesignTokens.Spacing.md) { secondaryEditButtons(tx, editActions) }
+                    deleteButton(tx, editActions)
                 }
-                .destructiveButtonStyle(size: .small)
-                .accessibilityIdentifier("movementDelete")
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    secondaryEditButtons(tx, editActions)
+                    deleteButton(tx, editActions)
+                }
             }
         }
+    }
+
+    @ViewBuilder
+    private func secondaryEditButtons(_ tx: Transaction, _ editActions: MovementSheetEditActions) -> some View {
+        if canSpread {
+            Button("Lisser sur plusieurs mois") {
+                dismiss()
+                editActions.spread?(tx)
+            }
+            .secondaryButtonStyle(size: .small)
+            .accessibilityIdentifier("movementSpread")
+        }
+        if let postponeAction {
+            Button("Reporter") { isConfirmingPostpone = true }
+                .secondaryButtonStyle(size: .small)
+                .accessibilityIdentifier("movementPostpone")
+                // On the button itself, so the iPad and iOS 26 popover points at it.
+                .confirmationDialog(
+                    postponeAction.nextMonth.map { AppLocale.string("Reporter en \($0) ?") }
+                        ?? AppLocale.string("Reporter au mois suivant ?"),
+                    isPresented: $isConfirmingPostpone,
+                    titleVisibility: .visible
+                ) {
+                    Button("Reporter") {
+                        dismiss()
+                        postponeAction.perform(tx)
+                    }
+                    .accessibilityIdentifier("postponeConfirmButton")
+                }
+        }
+    }
+
+    private func deleteButton(_ tx: Transaction, _ editActions: MovementSheetEditActions) -> some View {
+        Button("Supprimer") {
+            dismiss()
+            editActions.delete(tx)
+        }
+        .destructiveButtonStyle(size: .small)
+        .accessibilityIdentifier("movementDelete")
     }
 
     var submitTitle: String {

@@ -253,10 +253,11 @@ struct ToPointPage: View {
                 )
             }
             .plainPressedButtonStyle()
+            // On the open button, not the row: there it would overwrite the point circle's id.
+            .accessibilityIdentifier("toPointRow-\(row.id)")
         }
         .padding(.leading, DesignTokens.Spacing.xs)
         .padding(.trailing, DesignTokens.Spacing.lg)
-        .accessibilityIdentifier("toPointRow-\(row.id)")
     }
 
     // MARK: - Actions
