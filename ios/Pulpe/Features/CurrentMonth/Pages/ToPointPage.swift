@@ -24,8 +24,11 @@ struct ToPointPage: View {
             .sorted { $0.transactionDate > $1.transactionDate }
     }
 
+    /// In the order the home summarises them: learned pointing days first.
     private var lines: [BudgetLine] {
-        store.budgetLines.filter { !($0.isRollover ?? false) && (!$0.isChecked || pointedHere.contains($0.id)) }
+        store.orderedForChecking(
+            store.budgetLines.filter { !($0.isRollover ?? false) && (!$0.isChecked || pointedHere.contains($0.id)) }
+        )
     }
 
     private var lineNames: [String: String] {
