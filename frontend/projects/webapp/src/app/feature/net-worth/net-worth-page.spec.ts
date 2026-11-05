@@ -170,12 +170,6 @@ describe('NetWorthPage', () => {
     fixture = TestBed.createComponent(NetWorthPage);
   });
 
-  it('loads on creation', () => {
-    render(populated);
-
-    expect(store.refresh).toHaveBeenCalledOnce();
-  });
-
   it('invites to add a first asset when there is none', async () => {
     render({ ...populated, categories: [], assets: [] });
 

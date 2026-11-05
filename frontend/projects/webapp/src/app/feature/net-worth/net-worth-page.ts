@@ -228,6 +228,7 @@ import { NetWorthStore } from './services/net-worth-store';
                   <button
                     matButton
                     class="self-start"
+                    [attr.aria-expanded]="isArchivedShown()"
                     (click)="isArchivedShown.set(!isArchivedShown())"
                     data-testid="net-worth-archived-toggle"
                   >
@@ -354,10 +355,6 @@ export default class NetWorthPage {
       new Set(this.#unconverted().map((asset) => asset.currency)),
     ),
   );
-
-  constructor() {
-    this.store.refresh();
-  }
 
   protected onOpenCategories(): Promise<void> {
     return this.#dialogs.openCategories();
