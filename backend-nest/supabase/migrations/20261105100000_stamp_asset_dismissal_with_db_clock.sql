@@ -1,4 +1,5 @@
--- pulpe:migration-phase expand
+-- pulpe:migration-phase contract
+-- pulpe:safe-after v0.59.0
 -- Mon patrimoine: the database dates a dismissed suggestion.
 --
 -- The suggestion counts the prévisions checked after the later of the last

@@ -185,12 +185,21 @@ BEGIN
   IF has_table_privilege('anon', 'public.asset', 'SELECT')
     OR has_table_privilege('anon', 'public.asset_category', 'SELECT')
     OR has_table_privilege('anon', 'public.asset_snapshot', 'SELECT')
-    OR has_table_privilege('anon', 'public.asset_latest_snapshot', 'SELECT')
   THEN
     RAISE EXCEPTION 'FAIL: anon must not read the net worth tables';
   END IF;
 
   RAISE NOTICE 'ASSET TABLES RLS AND FK: ALL ASSERTIONS PASSED';
+END $$;
+
+-- The view keeps the default grants, so anon is held off by the snapshot
+-- table it reads with invoker rights.
+SET LOCAL ROLE anon;
+DO $$
+BEGIN
+  PERFORM 1 FROM public.asset_latest_snapshot;
+  RAISE EXCEPTION 'FAIL: anon must not read the latest-snapshot view';
+EXCEPTION WHEN insufficient_privilege THEN NULL;
 END $$;
 
 RESET ROLE;
