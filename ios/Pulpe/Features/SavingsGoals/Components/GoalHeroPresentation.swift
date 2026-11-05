@@ -1,192 +1,185 @@
 import Foundation
 
-/// Everything the goal hero shows, resolved once from the server-computed
-/// progression. A pure value on purpose: every line of the hero is conditional,
+/// Everything the goal hero card shows, resolved once from the server-computed
+/// progression. A pure value on purpose: every line of the card is conditional,
 /// and conditions buried in a `body` can only be checked by launching the app.
 ///
-/// The hero answers one question — « où j'en suis » — so it quotes a single
-/// projection (`displayedProjection`) and speaks of the **cible**. The
-/// trajectory section below it owns the second lens and speaks of the **plan**.
+/// The card answers one question, « où j'en suis »: the saved figure against the
+/// cible, the bar, and in the ordinary state the two tiles and one sentence. The
+/// derived states (atteint, retard, en pause) speak in their own card below, so
+/// the hero stays quiet for them.
 struct GoalHeroPresentation: Equatable {
-    /// Two layers and their shared percent: confirmed ink over the displayed
-    /// projection, both already clamped to 0…1 by the model.
     struct Bar: Equatable {
-        let confirmed: Double
-        let projected: Double
+        let fraction: Double
         let percent: String
+        /// « il reste X », « il manque X » or « cible atteinte le … ».
+        let trailing: String?
+        /// A paused goal draws its bar in grey.
+        let isMuted: Bool
         let accessibilityLabel: String
     }
 
-    /// The deadline fragment keeps the identifier the detail UI tests read to
-    /// tell which date variant a goal renders.
+    /// The page subtitle under the goal name; keeps the identifier the detail UI
+    /// tests read to tell which date variant a goal renders.
     struct DateLine: Equatable {
         let text: String
         let identifier: String?
     }
 
-    /// One `HeroMetricTile` of the hero: the required pace, the estimated date.
     struct Tile: Equatable {
         let label: String
         let value: String
         let identifier: String
     }
 
-    /// The verdict ink (ios/DESIGN.md, Three Families): épargne is never an alert, so
-    /// `behind` is caution at most and everything else stays in hero ink.
-    enum Accent: Equatable {
-        case positive
-        case caution
-        case neutral
-    }
-
-    /// « Actif » is the state of every goal at creation — a chip that is always
-    /// there says nothing. It comes back the moment it carries information.
-    let showsStatusChip: Bool
-    let amount: String
-    /// The figure itself, for `HeroFigure`; `amount` keeps the formatted copy for labels.
     let confirmedAmount: Decimal
-    let targetLine: String?
+    /// « sur 6'000.00 · dont 400.00 de départ ».
+    let caption: String?
     let dateLine: DateLine?
-    let initialAmountLine: String?
     let bar: Bar?
-    let verdict: String?
-    let dayOneBeat: String?
-    let projection: String?
-    let requiredPace: String?
     let tiles: [Tile]
-    let accent: Accent
+    let sentence: String?
 
-    init(progress: SavingsGoalProgress, status: SavingsGoalStatus, currency: SupportedCurrency) {
-        let hasClosedPlanMonth = progress.hasClosedPlanMonth
-
-        showsStatusChip = status != .active
-        amount = progress.confirmed.asAdaptiveCurrency(currency)
+    init(
+        progress: SavingsGoalProgress,
+        status: SavingsGoalStatus,
+        currency: SupportedCurrency,
+        now: Date = Date()
+    ) {
         confirmedAmount = progress.confirmed
-        targetLine = progress.targetAmount.map { AppLocale.string("sur \($0.asAdaptiveCurrency(currency))") }
+        caption = Self.makeCaption(progress, currency: currency)
         dateLine = Self.makeDateLine(progress)
-        initialAmountLine = progress.initialAmount > 0
-            ? AppLocale.string("Dont \(progress.initialAmount.asCompactCurrency(currency)) de départ")
-            : nil
-        bar = Self.makeBar(progress)
+        bar = Self.makeBar(progress, status: status, currency: currency)
 
-        // Same day-1 gate as before: no verdict until a plan month has closed,
-        // and the « plan prêt » beat takes its place while none has.
-        verdict = progress.paceStatus.flatMap { hasClosedPlanMonth ? Self.makeVerdict($0) : nil }
-        dayOneBeat = progress.paceStatus == nil || hasClosedPlanMonth
-            ? nil
-            : progress.currentMonthPlannedAmount.map {
-                AppLocale.string("Ton plan est prêt : \($0.asAdaptiveCurrency(currency)) à mettre de côté ce mois.")
-            }
-
-        projection = progress.linkedLineCount > 0
-            ? Self.makeProjection(progress, currency: currency)
-            : nil
-        requiredPace = Self.makeRequiredPace(progress, currency: currency, hasClosedPlanMonth: hasClosedPlanMonth)
-        tiles = Self.makeTiles(progress, currency: currency, hasClosedPlanMonth: hasClosedPlanMonth)
-        accent = Self.makeAccent(progress.paceStatus, hasClosedPlanMonth: hasClosedPlanMonth)
+        // Tiles and sentence belong to the ordinary state only: a derived-state card
+        // already says what to do when the goal is reached, late or paused.
+        let isOrdinary = status == .active && !progress.isOverdue && progress.suggestCompletion != true
+        tiles = isOrdinary ? Self.makeTiles(progress, currency: currency) : []
+        sentence = isOrdinary ? Self.makeSentence(progress, currency: currency, now: now) : nil
     }
 
-    /// Pace tile only while the plan falls short (same gate as `requiredPace`); date
-    /// tile only once a plan month has closed and the goal carries a deadline.
-    private static func makeTiles(
+    /// « Juin 2027 », or « juin 2027 » inside a sentence.
+    static func monthYear(month: Int, year: Int, capitalized: Bool) -> String {
+        let name = capitalized ? Formatters.monthName(for: month) : Formatters.monthNameInText(for: month)
+        return "\(name) \(year)"
+    }
+
+    private static func components(_ date: Date) -> (month: Int, year: Int) {
+        let parts = Calendar.current.dateComponents([.month, .year], from: date)
+        return (parts.month ?? 1, parts.year ?? 0)
+    }
+
+    private static func makeCaption(_ progress: SavingsGoalProgress, currency: SupportedCurrency) -> String? {
+        let initial = progress.initialAmount > 0 ? progress.initialAmount.asAmount(for: currency) : nil
+        switch (progress.targetAmount.map { $0.asAmount(for: currency) }, initial) {
+        case let (target?, initial?): return AppLocale.string("sur \(target) · dont \(initial) de départ")
+        case let (target?, nil): return AppLocale.string("sur \(target)")
+        case let (nil, initial?): return AppLocale.string("Dont \(initial) de départ")
+        case (nil, nil): return nil
+        }
+    }
+
+    private static func makeDateLine(_ progress: SavingsGoalProgress) -> DateLine? {
+        let start = progress.startDateValue.map(components)
+        let end = progress.targetDateValue.map(components)
+        if let start, let end {
+            // Two dates and an arrow: nothing to translate, so no catalog key.
+            return DateLine(
+                text: "\(monthYear(month: start.month, year: start.year, capitalized: true))"
+                    + " → \(monthYear(month: end.month, year: end.year, capitalized: false))",
+                identifier: "savingsGoalDeadlineRange"
+            )
+        }
+        if let end {
+            let date = monthYear(month: end.month, year: end.year, capitalized: false)
+            return DateLine(text: AppLocale.string("Échéance \(date)"), identifier: "savingsGoalDeadlineDate")
+        }
+        if let start {
+            let date = monthYear(month: start.month, year: start.year, capitalized: false)
+            return DateLine(text: AppLocale.string("Depuis \(date)"), identifier: nil)
+        }
+        return nil
+    }
+
+    private static func makeBar(
         _ progress: SavingsGoalProgress,
-        currency: SupportedCurrency,
-        hasClosedPlanMonth: Bool
-    ) -> [Tile] {
+        status: SavingsGoalStatus,
+        currency: SupportedCurrency
+    ) -> Bar? {
+        guard let target = progress.targetAmount, target > 0 else { return nil }
+        let percent = Decimal(progress.achievementPercent ?? 0).asPercentage()
+        let left = target - progress.confirmed
+        let trailing: String?
+        if left <= 0 {
+            trailing = lastCheckedDate(progress).map {
+                AppLocale.string("cible atteinte le \($0.dayMonthFormatted)")
+            } ?? AppLocale.string("cible atteinte")
+        } else if progress.isOverdue {
+            trailing = AppLocale.string("il manque \(left.asAmount(for: currency))")
+        } else {
+            trailing = AppLocale.string("il reste \(left.asAmount(for: currency))")
+        }
+        return Bar(
+            fraction: progress.confirmedFraction ?? 0,
+            percent: percent,
+            trailing: trailing,
+            isMuted: status == .paused,
+            accessibilityLabel: AppLocale.string("\(percent) de la cible épargné")
+        )
+    }
+
+    /// The day the last linked prévision was pointed: the day the cible was reached
+    /// when the goal stands at or past it.
+    static func lastCheckedDate(_ progress: SavingsGoalProgress) -> Date? {
+        progress.months
+            .flatMap(\.lines)
+            .compactMap { $0.checkedAt.flatMap(parseTimestamp) }
+            .max()
+    }
+
+    static func parseTimestamp(_ value: String) -> Date? {
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return withFraction.date(from: value) ?? ISO8601DateFormatter().date(from: value)
+    }
+
+    private static func makeTiles(_ progress: SavingsGoalProgress, currency: SupportedCurrency) -> [Tile] {
         var tiles: [Tile] = []
-        if hasClosedPlanMonth,
-           let required = progress.required,
-           let targetAmount = progress.targetAmount,
-           progress.displayedProjection.rounded(2) < targetAmount.rounded(2) {
+        if let required = progress.required, required > 0 {
             tiles.append(Tile(
-                label: AppLocale.string("rythme requis"),
-                value: AppLocale.string("\(required.rounded(2, .up).asAdaptiveCurrency(currency))/mois"),
+                label: AppLocale.string("Requis par mois"),
+                value: required.rounded(2, .up).asAmount(for: currency),
                 identifier: "savingsGoalPaceTile"
             ))
         }
-        if hasClosedPlanMonth, let deadline = progress.targetDateValue {
+        if let deadline = progress.targetDateValue.map(components) {
             tiles.append(Tile(
-                label: AppLocale.string("échéance"),
-                value: deadline.abbreviatedDateFormatted,
+                label: AppLocale.string("Échéance"),
+                value: monthYear(month: deadline.month, year: deadline.year, capitalized: false),
                 identifier: "savingsGoalDateTile"
             ))
         }
         return tiles
     }
 
-    private static func makeAccent(_ pace: SavingsGoalPaceStatus?, hasClosedPlanMonth: Bool) -> Accent {
-        guard hasClosedPlanMonth, let pace else { return .neutral }
-        switch pace {
-        case .behind: return .caution
-        case .onTrack, .ahead: return .positive
-        }
-    }
-
-    private static func makeDateLine(_ progress: SavingsGoalProgress) -> DateLine? {
-        if let start = progress.startDateValue, let end = progress.targetDateValue {
-            // Two dates and an arrow: nothing to translate, so no catalog key.
-            return DateLine(
-                text: "\(start.abbreviatedDateFormatted) → \(end.abbreviatedDateFormatted)",
-                identifier: "savingsGoalDeadlineRange"
-            )
-        }
-        if let end = progress.targetDateValue {
-            return DateLine(
-                text: AppLocale.string("Échéance \(end.abbreviatedDateFormatted)"),
-                identifier: "savingsGoalDeadlineDate"
-            )
-        }
-        if let start = progress.startDateValue {
-            return DateLine(text: AppLocale.string("Depuis \(start.abbreviatedDateFormatted)"), identifier: nil)
-        }
-        return nil
-    }
-
-    private static func makeBar(_ progress: SavingsGoalProgress) -> Bar? {
-        guard let projectedFraction = progress.displayedProjectionFraction else { return nil }
-        let percent = Decimal(progress.achievementPercent ?? 0)
-        return Bar(
-            confirmed: progress.confirmedFraction ?? 0,
-            projected: projectedFraction,
-            percent: percent.asPercentage(),
-            accessibilityLabel: AppLocale.string("\(percent.asPercentage()) de la cible épargné")
-        )
-    }
-
-    private static func makeVerdict(_ pace: SavingsGoalPaceStatus) -> String {
-        switch pace {
-        case .behind: AppLocale.string("En dessous de la cible")
-        case .onTrack: AppLocale.string("Au niveau de la cible")
-        case .ahead: AppLocale.string("Au-dessus de la cible")
-        }
-    }
-
-    private static func makeProjection(_ progress: SavingsGoalProgress, currency: SupportedCurrency) -> String {
-        let amount = progress.displayedProjection.asAdaptiveCurrency(currency)
-        // One whole key per variant: « à l'échéance » is a subordinate clause,
-        // untranslatable on its own and glued back into the sentence.
-        return progress.targetDateValue == nil
-            ? AppLocale.string("Ton plan te mène à \(amount) au total.")
-            : AppLocale.string("Ton plan te mène à \(amount) à l'échéance.")
-    }
-
-    /// Only when the plan does **not** reach the target: repeating the plan's own
-    /// rhythm under a second name is what made the old card read as noise.
-    /// `required` implies an échéance server-side (`docs/SAVINGS.md` §11), so a
-    /// missing `targetDateValue` means a malformed date — nothing to advise on.
-    private static func makeRequiredPace(
+    /// « Vise X par mois pour finir en juin. Depuis août, tu mets Y par mois. »
+    /// The second half needs a closed month to have a rhythm to quote.
+    private static func makeSentence(
         _ progress: SavingsGoalProgress,
         currency: SupportedCurrency,
-        hasClosedPlanMonth: Bool
+        now: Date
     ) -> String? {
-        guard hasClosedPlanMonth,
-              let required = progress.required,
-              let targetAmount = progress.targetAmount,
-              progress.displayedProjection.rounded(2) < targetAmount.rounded(2),
-              let deadline = progress.targetDateValue else { return nil }
-        let amount = required.rounded(2, .up).asAdaptiveCurrency(currency)
-        return AppLocale.string(
-            "Vise \(amount)/mois pour finir le \(deadline.abbreviatedDateFormatted)."
-        )
+        var parts: [String] = []
+        if let required = progress.required, required > 0, let deadline = progress.targetDateValue {
+            let month = Formatters.monthNameInText(for: components(deadline).month)
+            let amount = required.rounded(2, .up).asAmount(for: currency)
+            parts.append(AppLocale.string("Vise \(amount) par mois pour finir en \(month)."))
+        }
+        if progress.hasClosedPlanMonth, progress.confirmedPace > 0, let start = progress.startDateValue {
+            let month = Formatters.monthNameInText(for: components(start).month)
+            let pace = progress.confirmedPace.asAmount(for: currency)
+            parts.append(AppLocale.string("Depuis \(month), tu mets \(pace) par mois."))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 }

@@ -11,8 +11,11 @@ struct SavingsGoalsListView: View {
 
     @Environment(SavingsGoalStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
 
     @State private var isCreatingGoal = false
+    /// The « Pour commencer » preset the form opens with.
+    @State private var presetName: String?
 
     // First-access intro (PUL-12): shown once, gated by `SavingsGoalsIntroGate`.
     @AppStorage(SavingsGoalsIntroGate.storageKey) private var hasSeenIntro = false
@@ -31,22 +34,17 @@ struct SavingsGoalsListView: View {
                 goalList
             }
         }
-        .localizedNavigationTitle("Objectifs d'épargne")
-        // A large title does not fit the narrow pane beside a goal.
-        .navigationBarTitleDisplayMode(onSelect == nil ? .large : .inline)
+        .localizedNavigationTitle("Objectifs")
+        .navigationBarTitleDisplayMode(.inline)
+        // The page states its name in its own header.
+        .toolbar(removing: .title)
         .pulpeBackground()
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Ajouter un objectif", systemImage: "plus") {
-                    isCreatingGoal = true
-                }
-            }
-        }
-        .sheet(isPresented: $isCreatingGoal) {
+        .sheet(isPresented: $isCreatingGoal, onDismiss: clearPreset) {
             SavingsGoalFormSheet(
                 goal: nil,
                 userCurrency: userSettingsStore.currency,
                 payDayOfMonth: userSettingsStore.payDayOfMonth,
+                initialName: presetName,
                 // Beside the list, the goal just created is the one to look at.
                 onCreate: onSelect.map { select in { select($0.id) } }
             )
@@ -75,135 +73,161 @@ struct SavingsGoalsListView: View {
             }
         }
         .task { await store.loadIfNeeded() }
+        .task(id: store.goals) { await store.refreshProgress() }
+        .onChange(of: store.budgetMutationVersion) {
+            Task { await store.refreshProgress() }
+        }
         .trackScreen(AnalyticsScreen.savingsGoalsList)
     }
 
     // MARK: - Empty state
 
     private var emptyState: some View {
-        PulpeEmptyState(
-            systemImage: "target",
-            title: AppLocale.string("Fixe ton premier objectif"),
-            message: AppLocale.string("Suis tes projets d'épargne long terme, sans recalculer à la main"),
-            actionTitle: AppLocale.string("Créer un objectif")
-        ) {
-            isCreatingGoal = true
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                header
+                VStack(spacing: DesignTokens.Spacing.compactGap) {
+                    Image(systemName: "target")
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.accentInk)
+                        .frame(width: DesignTokens.Control.emptyDisc, height: DesignTokens.Control.emptyDisc)
+                        .background(Color.accentWash, in: Circle())
+                        .accessibilityHidden(true)
+                    Text("Fixe ton premier objectif")
+                        .font(PulpeTypography.statusTitle)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Suis tes projets d'épargne long terme, sans recalculer à la main.")
+                        .font(PulpeTypography.bannerText)
+                        .foregroundStyle(Color.textSecondary)
+                    Button("Créer un objectif") { createGoal() }
+                        .primaryButtonStyle(size: .small)
+                        .padding(.top, DesignTokens.Spacing.sm)
+                }
+                .multilineTextAlignment(.center)
+                .padding(DesignTokens.Spacing.xl)
+                .frame(maxWidth: .infinity)
+                .pulpeSurfaceCard()
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+
+                presets
+            }
         }
+        .pulpeRootBottomInset()
+    }
+
+    private var header: some View {
+        PageHeader(
+            title: AppLocale.string("Objectifs"),
+            subtitle: AppLocale.string("Tes projets d'épargne, mois après mois")
+        )
+            .padding(.top, DesignTokens.Spacing.sm)
+    }
+
+    /// « Pour commencer »: three starting points; each opens the form with its name.
+    private var presets: some View {
+        let presets: [(name: String, hint: String)] = [
+            (AppLocale.string("Coussin de sécurité"), AppLocale.string("Trois mois de charges, sans échéance")),
+            (AppLocale.string("Voyage"), AppLocale.string("Un montant et une date de départ")),
+            (AppLocale.string("Gros achat"), AppLocale.string("Voiture, canapé, ordinateur")),
+        ]
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            SectionHeader(title: AppLocale.string("Pour commencer"))
+            VStack(spacing: DesignTokens.Spacing.none) {
+                ForEach(Array(presets.enumerated()), id: \.offset) { index, preset in
+                    if index > 0 { Divider().overlay(Color.outlineVariant) }
+                    Button { createGoal(named: preset.name) } label: {
+                        PulpeListRow(title: preset.name, subtitle: preset.hint) { EmptyView() }
+                    }
+                    .plainPressedButtonStyle()
+                    .contentShape(Rectangle())
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .pulpeSurfaceCard()
+            Text("Je pré-remplis le nom, tu choisis le montant et la date.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+    }
+
+    private func clearPreset() { presetName = nil }
+
+    private func createGoal(named name: String? = nil) {
+        presetName = name
+        isCreatingGoal = true
     }
 
     // MARK: - List
 
     private var goalList: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                SectionHeader(title: AppLocale.string("Objectifs"), count: store.goals.count)
-
-                if let onSelect {
-                    // Beside the projection the rows sit bare on the canvas and the one shown
-                    // lifts, as the budgets list does; a card would swallow the lifted tile.
-                    goalRows { goal in
-                        SavingsGoalRow(goal: goal, currency: userSettingsStore.currency, isBesideDetail: true)
-                            .selectsBesidePane(isSelected: goal.id == selectedGoalId) { onSelect(goal.id) }
-                    }
-                } else {
-                    goalRows { goal in
-                        NavigationLink(value: SavingsGoalDestination.detail(goal)) {
-                            SavingsGoalRow(goal: goal, currency: userSettingsStore.currency)
-                        }
-                        .buttonStyle(.plain)
-                    }
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                if onSelect == nil {
+                    header
+                    SavingsGoalsTotalCard(
+                        goals: store.goals,
+                        progressById: store.progressById,
+                        currentMonthLines: currentMonthStore.budgetLines,
+                        currentMonth: currentMonthStore.budget?.month,
+                        currency: userSettingsStore.currency
+                    )
                     .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .pulpeCard()
                 }
+                ForEach(SavingsGoalStatus.listOrder, id: \.self) { status in
+                    let goals = store.goals.filter { $0.status == status }
+                    if !goals.isEmpty {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                            SectionHeader(title: status.sectionTitle)
+                            goalRows(goals)
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                    }
+                }
+                Button { createGoal() } label: {
+                    Label("Nouvel objectif", systemImage: "plus").frame(maxWidth: .infinity)
+                }
+                .secondaryButtonStyle()
+                .accessibilityIdentifier("savingsGoalsAddButton")
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
-            .padding(DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.sm)
         }
+        .pulpeRootBottomInset()
         .refreshable { await store.forceRefresh() }
         .accessibilityIdentifier("savingsGoalsListRoot")
     }
 
-    private func goalRows(@ViewBuilder row: @escaping (SavingsGoal) -> some View) -> some View {
-        VStack(spacing: 0) {
-            ForEach(store.goals) { goal in
-                if goal.id != store.goals.first?.id {
-                    Divider().padding(.leading, DesignTokens.ListRow.dividerInset)
-                }
-                row(goal)
-                    .accessibilityIdentifier("savingsGoalRow-\(goal.id)")
+    @ViewBuilder
+    private func goalRows(_ goals: [SavingsGoal]) -> some View {
+        let rows = VStack(spacing: DesignTokens.Spacing.none) {
+            ForEach(goals) { goal in
+                if goal.id != goals.first?.id { Divider().overlay(Color.outlineVariant) }
+                row(goal).accessibilityIdentifier("savingsGoalRow-\(goal.id)")
             }
         }
-    }
-}
-
-// MARK: - Row
-
-/// One ledger row (The One Ledger Rule): nature disc, name and period, then the target
-/// amount — or the status chip when the status carries information.
-private struct SavingsGoalRow: View {
-    let goal: SavingsGoal
-    let currency: SupportedCurrency
-    /// Beside the projection the row only picks the goal: no chevron promising a push, and
-    /// no target, which the page beside already leads with and the narrow pane cannot spare.
-    var isBesideDetail = false
-
-    var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-            RowIcon(systemName: "target", tint: .financialSavings)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(goal.name)
-                    .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(Color.textPrimary)
-                if let periodLabel {
-                    Text(periodLabel)
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textSecondary)
-                }
-            }
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            trailing
-
-            if !isBesideDetail {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityHidden(true)
-            }
+        if onSelect != nil {
+            // Beside the projection the rows sit bare on the canvas and the one shown
+            // lifts, as the budgets list does; a card would swallow the lifted tile.
+            rows
+        } else {
+            rows.padding(.horizontal, DesignTokens.Spacing.lg).pulpeSurfaceCard()
         }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
-        .contentShape(Rectangle())
     }
 
     @ViewBuilder
-    private var trailing: some View {
-        if goal.status != .active {
-            SavingsGoalStatusBadge(status: goal.status)
-        } else if !isBesideDetail, let targetAmount = goal.targetAmount {
-            Text(targetAmount.asCurrency(currency))
-                .font(PulpeTypography.listRowTitle)
-                .monospacedDigit()
-                .foregroundStyle(Color.textPrimary)
-                // The name wraps first: an amount split over two lines misreads.
-                .lineLimit(1)
-                .layoutPriority(1)
-                .sensitiveAmount()
+    private func row(_ goal: SavingsGoal) -> some View {
+        let content = SavingsGoalRow(
+            goal: goal,
+            progress: store.progressById[goal.id],
+            currency: userSettingsStore.currency,
+            isBesideDetail: onSelect != nil
+        )
+        if let onSelect {
+            content.selectsBesidePane(isSelected: goal.id == selectedGoalId) { onSelect(goal.id) }
+        } else {
+            NavigationLink(value: SavingsGoalDestination.detail(goal)) { content }
+                .buttonStyle(.plain)
         }
-    }
-
-    private var periodLabel: String? {
-        if let start = goal.startDateValue, let end = goal.targetDateValue {
-            return "\(start.abbreviatedDateFormatted)"
-                + " → \(end.abbreviatedDateFormatted)"
-        }
-        if let date = goal.targetDateValue {
-            return AppLocale.string("Échéance \(date.abbreviatedDateFormatted)")
-        }
-        if let date = goal.startDateValue {
-            return AppLocale.string("Depuis \(date.abbreviatedDateFormatted)")
-        }
-        return nil
     }
 }

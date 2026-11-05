@@ -62,20 +62,133 @@ struct GoalPlanTimelinePresentation {
     }
 }
 
-/// « Ton plan » (PUL-12+, pilier B) — the read-mode timeline section on the goal
-/// detail. Windowed by default (current month + three future months) with a
-/// « Voir les N mois » toggle; a full 24–96 row list would burn the 30 s
-/// attention budget (`docs/SAVINGS.md` §10.1).
-///
-/// Same ledger surface as « Ton suivi » and « Retraits » below it: one
-/// `pulpeRowCard()` holding the rows, plain hairlines between them. Three cards
-/// in a row, each with its own fill and its own rule, is what made the bottom of
-/// this screen read as assembled rather than designed.
-///
-/// The section header carries the « Ajuster » CTA (pilier C entry), shown
-/// only when the goal is actionable (`canAdjust`).
+/// « Mois par mois »: the plan read as a few ranges instead of one row per month. The
+/// closed months fold into one range, the current month stands alone, and the months
+/// ahead group into runs that either carry a prévision or carry none (« Rien de prévu »).
+struct GoalMonthByMonthPresentation: Equatable {
+    struct Segment: Identifiable, Equatable {
+        enum Kind: Equatable { case past, current, planned, empty }
+
+        let kind: Kind
+        let months: [SavingsGoalPlanMonth]
+        let title: String
+        let subtitle: String
+        let amount: Decimal?
+
+        var id: Int { months.first?.id ?? 0 }
+    }
+
+    let segments: [Segment]
+
+    init(months: [SavingsGoalPlanMonth], initialAmount: Decimal, currency: SupportedCurrency) {
+        var segments: [Segment] = []
+        let past = months.filter { $0.state == .past }
+        if !past.isEmpty {
+            segments.append(Self.pastSegment(past, initialAmount: initialAmount, currency: currency))
+        }
+        if let current = months.first(where: { $0.state == .current }) {
+            segments.append(current.lines.isEmpty
+                ? Self.runSegment([current], currency: currency)
+                : Self.currentSegment(current, currency: currency))
+        }
+        var run: [SavingsGoalPlanMonth] = []
+        for month in months where month.state == .future || month.state == .gap {
+            if let last = run.last, last.lines.isEmpty != month.lines.isEmpty {
+                segments.append(Self.runSegment(run, currency: currency))
+                run = []
+            }
+            run.append(month)
+        }
+        if !run.isEmpty { segments.append(Self.runSegment(run, currency: currency)) }
+        self.segments = segments
+    }
+
+    /// The first run with nothing planned: what « Planifier … » fills.
+    var firstEmptyRun: Segment? {
+        segments.first { $0.kind == .empty && $0.months.first?.state != .current }
+    }
+
+    /// « Planifier décembre à juin ».
+    var planTitle: String? {
+        firstEmptyRun.map { AppLocale.string("Planifier \(Self.rangeTitle($0.months, capitalized: false))") }
+    }
+
+    /// « Mars à octobre », « Août et septembre », « Mars 2025 à septembre », « Novembre ».
+    static func rangeTitle(_ months: [SavingsGoalPlanMonth], capitalized: Bool = true) -> String {
+        guard let first = months.first, let last = months.last else { return "" }
+        let firstName = capitalized
+            ? Formatters.monthName(for: first.month)
+            : Formatters.monthNameInText(for: first.month)
+        guard months.count > 1 else { return firstName }
+        let lastName = Formatters.monthNameInText(for: last.month)
+        if first.year != last.year {
+            return AppLocale.string("\("\(firstName) \(first.year)") à \(lastName)")
+        }
+        return months.count == 2
+            ? AppLocale.string("\(firstName) et \(lastName)")
+            : AppLocale.string("\(firstName) à \(lastName)")
+    }
+
+    private static func pastSegment(
+        _ months: [SavingsGoalPlanMonth],
+        initialAmount: Decimal,
+        currency: SupportedCurrency
+    ) -> Segment {
+        let pointed = months.count { $0.confirmedAmount > 0 }
+        let pointedCopy = AppLocale.string("\(pointed) mois pointés")
+        let subtitle = initialAmount > 0
+            ? AppLocale.string("Départ \(initialAmount.asAmount(for: currency)) + \(pointedCopy)")
+            : pointedCopy
+        return Segment(
+            kind: .past,
+            months: months,
+            title: rangeTitle(months),
+            subtitle: subtitle,
+            amount: months.last?.confirmedCumulative
+        )
+    }
+
+    private static func currentSegment(_ month: SavingsGoalPlanMonth, currency: SupportedCurrency) -> Segment {
+        let checked = month.lines.compactMap { $0.checkedAt.flatMap(GoalHeroPresentation.parseTimestamp) }.max()
+        let subtitle = checked.map { date -> String in
+            let cumul = month.confirmedCumulative.asAmount(for: currency)
+            return AppLocale.string("Pointé le \(date.dayMonthFormatted) · cumul \(cumul)")
+        } ?? AppLocale.string("À pointer · cumul \(month.plannedCumulative.asAmount(for: currency))")
+        return Segment(
+            kind: .current,
+            months: [month],
+            title: Formatters.monthName(for: month.month),
+            subtitle: subtitle,
+            amount: month.plannedAmount
+        )
+    }
+
+    private static func runSegment(_ months: [SavingsGoalPlanMonth], currency: SupportedCurrency) -> Segment {
+        guard months.first?.lines.isEmpty == false else {
+            let subtitle = months.allSatisfy { !$0.hasBudget }
+                ? AppLocale.string("Pas encore de budget")
+                : AppLocale.string("Aucune prévision liée")
+            return Segment(kind: .empty, months: months, title: rangeTitle(months), subtitle: subtitle, amount: nil)
+        }
+        let amounts = Set(months.map(\.plannedAmount))
+        let subtitle = amounts.count == 1
+            ? AppLocale.string("\(months.count) mois à \(months[0].plannedAmount.asAmount(for: currency))")
+            : AppLocale.string("\(months.count) mois prévus")
+        return Segment(
+            kind: .planned,
+            months: months,
+            title: rangeTitle(months),
+            subtitle: subtitle,
+            amount: months.reduce(Decimal.zero) { $0 + $1.plannedAmount }
+        )
+    }
+}
+
+/// « Mois par mois » section of the goal detail, with its single planning CTA.
+/// The closed range unfolds in place into the per-month rows.
 struct GoalPlanTimelineSection: View {
     let months: [SavingsGoalPlanMonth]
+    let initialAmount: Decimal
     let currency: SupportedCurrency
     let plannedWithdrawals: [SavingsGoalPlannedWithdrawal]
     let canAdjust: Bool
@@ -84,111 +197,109 @@ struct GoalPlanTimelineSection: View {
     let onRepair: () -> Void
     let onOpenBudget: (String) -> Void
 
-    @State private var isExpanded = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isPastExpanded = false
 
-    private var presentation: GoalPlanTimelinePresentation {
-        GoalPlanTimelinePresentation(months: months, isExpanded: isExpanded)
+    private var presentation: GoalMonthByMonthPresentation {
+        GoalMonthByMonthPresentation(months: months, initialAmount: initialAmount, currency: currency)
+    }
+
+    /// Simulator first: « Tu choisis le montant » is what it lets the user do. The
+    /// repair recap takes over only where the simulator has nothing to edit.
+    private var planAction: (() -> Void)? {
+        if canAdjust { return onAdjust }
+        if canRepair { return onRepair }
+        return nil
     }
 
     var body: some View {
+        let presentation = presentation
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             SectionHeader(
-                title: AppLocale.string("Ton plan"),
-                link: canAdjust ? (label: AppLocale.string("Ajuster"), action: onAdjust) : nil,
+                title: AppLocale.string("Mois par mois"),
+                link: presentation.planTitle == nil && canAdjust
+                    ? (label: AppLocale.string("Ajuster"), action: onAdjust)
+                    : nil,
                 linkAccessibilityIdentifier: "savingsGoalAdjustPlanButton"
             )
 
-            if canRepair {
-                GoalInfoCard(
-                    icon: "calendar.badge.plus",
-                    title: AppLocale.string("Tes nouveaux budgets sont prêts"),
-                    message: presentation.repairMessage
-                ) {
-                    Button("Prévisualiser", action: onRepair)
-                        .secondaryButtonStyle()
-                        .accessibilityLabel("Prévisualiser les épargnes à ajouter")
+            VStack(spacing: DesignTokens.Spacing.none) {
+                ForEach(Array(presentation.segments.enumerated()), id: \.element.id) { index, segment in
+                    if index > 0 { Divider().overlay(Color.outlineVariant) }
+                    segmentView(segment)
                 }
             }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .pulpeSurfaceCard()
 
-            timelineCard
-
-            if presentation.remainingUnlinkedMonthCount > 0 {
-                Text("\(presentation.remainingUnlinkedMonthCount) mois restants sans prévision liée à cet objectif.")
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+            if let title = presentation.planTitle, let planAction {
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    Button(title, action: planAction)
+                        .primaryButtonStyle()
+                        .accessibilityIdentifier("savingsGoalPlanMissingMonthsButton")
+                    Text("Tu choisis le montant. Rien ne change avant que tu valides.")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
     }
 
-    private var timelineCard: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            ForEach(Array(presentation.visibleMonths.enumerated()), id: \.element.id) { index, month in
-                if index > 0 { Divider() }
-                GoalPlanMonthRow(
-                    month: month,
-                    amount: month.plannedAmount,
-                    cumulative: month.plannedCumulative,
-                    currency: currency,
-                    canRepair: canRepair,
-                    onOpenBudget: budgetAction(for: month)
-                )
-            }
-            // Le toggle est la dernière rangée du plan, pas une ligne nue sur le
-            // canvas : un filet le sépare des mois, la carte le contient.
-            if presentation.canToggle {
-                Divider()
-                expandToggle
-            }
-        }
-        // Les rangées portent leur propre padding vertical : la carte n'ouvre
-        // que les marges latérales, comme « Ton suivi » juste en dessous.
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.xs)
-        .pulpeRowCard()
-    }
-
-    private var expandToggle: some View {
-        Button {
-            // Même détente que « Voir plus » sur l'accueil
-            // (`TransactionSection`) : un ressort rebondissait sur la hauteur
-            // de la carte, ce qu'aucune liste iOS ne fait en se dépliant.
-            withAnimation(DesignTokens.Animation.quickEaseInOut) {
-                isExpanded.toggle()
-            }
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                if isExpanded {
-                    Text("Voir moins")
-                } else {
-                    // « Ton plan » titre déjà la section : le toggle n'a plus à
-                    // renommer le plan, seulement à dire ce qu'il ouvre.
-                    Text("Voir les \(months.count) mois")
+    @ViewBuilder
+    private func segmentView(_ segment: GoalMonthByMonthPresentation.Segment) -> some View {
+        switch segment.kind {
+        case .past:
+            Button {
+                withAnimation(reduceMotion ? nil : DesignTokens.Animation.quickEaseInOut) {
+                    isPastExpanded.toggle()
                 }
-                Spacer()
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(PulpeTypography.caption)
-                    .contentTransition(.symbolEffect(.replace))
-                    .accessibilityHidden(true)
+            } label: {
+                row(segment, chevron: isPastExpanded ? "chevron.up" : "chevron.down")
             }
-            // `TextLinkButtonStyle` n'impose aucune fonte : sans ça le toggle
-            // héritait de `.body` (17 regular) et pesait autant qu'un nom de
-            // mois. C'est un lien — même rôle que « Ajuster » dans le header.
-            .font(PulpeTypography.labelLarge)
-            .foregroundStyle(Color.pulpePrimary)
-        }
-        .frame(
-            maxWidth: .infinity,
-            minHeight: DesignTokens.TapTarget.minimum,
-            alignment: .leading
-        )
-        .contentShape(Rectangle())
-        .textLinkButtonStyle()
-        .accessibilityHint(
-            isExpanded
+            .plainPressedButtonStyle()
+            .contentShape(Rectangle())
+            .accessibilityHint(isPastExpanded
                 ? AppLocale.string("Réduit la liste des mois")
-                : AppLocale.string("Affiche tous les mois")
-        )
+                : AppLocale.string("Affiche tous les mois"))
+            if isPastExpanded {
+                ForEach(segment.months) { month in
+                    Divider().overlay(Color.outlineVariant)
+                    GoalPlanMonthRow(
+                        month: month,
+                        amount: month.confirmedAmount,
+                        cumulative: month.confirmedCumulative,
+                        currency: currency,
+                        canRepair: canRepair,
+                        onOpenBudget: budgetAction(for: month)
+                    )
+                }
+            }
+        case .current, .planned, .empty:
+            row(segment, chevron: nil)
+                .accessibilityIdentifier("savingsGoalPlanMonthRow-\(segment.id)")
+        }
+    }
+
+    private func row(_ segment: GoalMonthByMonthPresentation.Segment, chevron: String?) -> some View {
+        PulpeListRow(title: segment.title, subtitle: segment.subtitle, showsChevron: false) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if let amount = segment.amount {
+                    Text(amount.asAmount(for: currency))
+                        .monospacedDigit()
+                        .sensitiveAmount()
+                } else {
+                    GoalFactChip(label: AppLocale.string("Rien de prévu"))
+                }
+                if let chevron {
+                    Image(systemName: chevron)
+                        .font(PulpeTypography.caption.weight(.semibold))
+                        .foregroundStyle(Color.textTertiary)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
     }
 
     private func budgetAction(for month: SavingsGoalPlanMonth) -> (() -> Void)? {

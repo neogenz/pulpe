@@ -21,9 +21,10 @@ struct SavingsGoalDetailView: View {
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.requestGoalWithdrawal) var requestGoalWithdrawal
 
     @State var viewModel: SavingsGoalDetailViewModel
-    @State private var editTarget: SavingsGoal?
+    @State var editTarget: SavingsGoal?
     @State private var isSimulating = false
     @State private var pendingSimulatorBudgetId: String?
     @State private var showRecoveryRecap = false
@@ -33,7 +34,7 @@ struct SavingsGoalDetailView: View {
     @State private var pendingEditUpdate: SavingsGoalUpdate?
     @State private var pendingDeadlineUpdate: SavingsGoalUpdate?
     @State private var reopenGenerationStop = false
-    @State private var isHeroUnderBar = true
+    @State var showDeletion = false
 
     init(
         goal: SavingsGoal,
@@ -51,14 +52,6 @@ struct SavingsGoalDetailView: View {
 
     var currency: SupportedCurrency { userSettingsStore.currency }
 
-    /// The skeleton paints the same forest hero as the loaded screen, so the bar keeps
-    /// its light ink instead of flipping when the data lands. The error state, which
-    /// draws on the flat canvas, gives it back, and so does the light canvas once it has
-    /// scrolled under the bar.
-    private var paintsHeroSurface: Bool {
-        (viewModel.progress != nil || viewModel.error == nil) && isHeroUnderBar
-    }
-
     var body: some View {
         Group {
             if viewModel.isLoading, viewModel.progress == nil {
@@ -71,18 +64,20 @@ struct SavingsGoalDetailView: View {
         }
         .navigationTitle(currentGoal.name)
         .navigationBarTitleDisplayMode(.inline)
+        // The page states the name in its own header.
+        .toolbar(removing: .title)
         .background { Color.appBackground.ignoresSafeArea() }
-        .trackingHeroUnderBar($isHeroUnderBar)
-        .heroNavigationBar(isOnHeroSurface: paintsHeroSurface)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Modifier l'objectif", systemImage: "pencil") {
                     editTarget = currentGoal
                 }
-                .heroToolbarButtonStyle(paintsHeroSurface)
                 .accessibilityIdentifier("savingsGoalEditButton")
             }
-            .heroToolbarGroup(paintsHeroSurface)
+        }
+        .sheet(isPresented: $showDeletion) {
+            GoalDeletionSheet(goal: currentGoal, currency: currency, onDeleted: deletionDidCommit)
+                .standardSheetPresentation(detents: [.large])
         }
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
             SavingsGoalFormSheet(
@@ -99,6 +94,8 @@ struct SavingsGoalDetailView: View {
                     changes: recoveryChanges(progress),
                     verdict: recoveryVerdict(progress),
                     currency: currency,
+                    goalName: currentGoal.name,
+                    targetAmount: progress.targetAmount,
                     onConfirm: { _ in
                         let succeeded = await viewModel.applyMissingForecasts(from: progress)
                         guard succeeded else {
@@ -118,6 +115,8 @@ struct SavingsGoalDetailView: View {
                 lines: generationStopCandidates,
                 context: generationStopContext ?? .status(currentGoal.status),
                 currency: currency,
+                goalName: currentGoal.name,
+                savedAmount: viewModel.progress?.confirmed,
                 onApply: { mode in
                     if pendingDeadlineUpdate != nil {
                         try await applyDeadlineReconciliation(mode)
@@ -142,21 +141,24 @@ struct SavingsGoalDetailView: View {
 
     @ViewBuilder
     private func content(progress: SavingsGoalProgress) -> some View {
+        let hero = GoalHeroPresentation(progress: progress, status: currentGoal.status, currency: currency)
         ScrollView {
-            VStack(spacing: 0) {
-                hero(progress)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.vertical, DesignTokens.Spacing.lg)
-                    .heroZone()
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
+                PageHeader(title: currentGoal.name, subtitle: hero.dateLine?.text)
+                    .ifLet(hero.dateLine?.identifier) { view, id in view.accessibilityIdentifier(id) }
+                    .padding(.top, DesignTokens.Spacing.sm)
+                    .padding(.bottom, DesignTokens.Spacing.md)
 
-                sections(progress)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.top, DesignTokens.Spacing.xxl)
-                    .padding(.bottom, DesignTokens.Spacing.lg)
-                    .contentZone()
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                    GoalProgressHero(presentation: hero, currency: currency)
+                    sections(progress)
+                }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.lg)
             }
         }
         .scrollContentBackground(.hidden)
+        .pulpeRootBottomInset()
         .refreshable { await viewModel.load() }
         .accessibilityIdentifier("savingsGoalDetailRoot")
         .sheet(isPresented: $isSimulating, onDismiss: openPendingSimulatorBudget) {
@@ -177,6 +179,8 @@ struct SavingsGoalDetailView: View {
             GoalDerivedStateCards(
                 progress: progress,
                 status: currentGoal.status,
+                currency: currency,
+                payDayOfMonth: userSettingsStore.payDayOfMonth,
                 isMutatingStatus: viewModel.isMutatingStatus,
                 futureLinesCount: viewModel.futureLines.count,
                 onEdit: { editTarget = currentGoal },
@@ -186,16 +190,9 @@ struct SavingsGoalDetailView: View {
             )
 
             if SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress) {
-                if progress.linkedLineCount > 0 {
-                    // Construite une seule fois : la même série gate la section
-                    // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
-                    let series = GoalProjectionSeries.read(from: progress)
-                    if series.hasDrawableLine {
-                        GoalTrajectorySection(progress: progress, series: series, currency: currency)
-                    }
-                }
                 GoalPlanTimelineSection(
                     months: progress.months,
+                    initialAmount: progress.initialAmount,
                     currency: currency,
                     plannedWithdrawals: viewModel.plannedWithdrawals,
                     canAdjust: canAdjust(progress),
@@ -206,8 +203,10 @@ struct SavingsGoalDetailView: View {
                 )
             }
 
-            contributionsSection(progress)
-            withdrawalsSection
+            if showsWithdrawalsSection(progress) {
+                withdrawalsSection
+            }
+            goalActionsSection(progress)
         }
     }
 
@@ -225,32 +224,24 @@ struct SavingsGoalDetailView: View {
 
     /// Survives an empty plan on purpose: a goal can lose every linked prévision
     /// and still owe its withdrawal history (PUL-329).
-    @ViewBuilder
     private var withdrawalsSection: some View {
-        if GoalWithdrawalsSection.isRelevant(
+        GoalWithdrawalsSection(
             withdrawals: viewModel.withdrawals,
             planned: viewModel.plannedWithdrawals,
             planOnly: viewModel.planOnlyWithdrawals,
+            currency: currency,
             isLoading: viewModel.isLoadingWithdrawals,
-            error: viewModel.withdrawalsError
-        ) {
-            GoalWithdrawalsSection(
-                withdrawals: viewModel.withdrawals,
-                planned: viewModel.plannedWithdrawals,
-                planOnly: viewModel.planOnlyWithdrawals,
-                currency: currency,
-                isLoading: viewModel.isLoadingWithdrawals,
-                error: viewModel.withdrawalsError,
-                onOpenBudget: openWithdrawal,
-                onRetry: { Task { await viewModel.loadWithdrawals() } }
-            )
-            .accessibilityIdentifier("savingsGoalWithdrawalsSection")
-        }
+            error: viewModel.withdrawalsError,
+            onOpenBudget: openWithdrawal,
+            onRetry: { Task { await viewModel.loadWithdrawals() } },
+            onAddWithdrawal: requestGoalWithdrawal.map { request in { request(goal.id) } }
+        )
+        .accessibilityIdentifier("savingsGoalWithdrawalsSection")
     }
 
     /// Pushes the budget onto the stack the user is actually looking at, so Back
     /// returns to this goal instead of dropping them into another tab.
-    private func openWithdrawal(_ budgetId: String) {
+    func openWithdrawal(_ budgetId: String) {
         appState.pushOnActiveStack(BudgetDestination.details(budgetId: budgetId))
     }
 
@@ -266,7 +257,7 @@ struct SavingsGoalDetailView: View {
     }
 }
 
-private extension SavingsGoalDetailView {
+extension SavingsGoalDetailView {
     // MARK: - Actions
 
     /// Post-apply invalidation (PUL-270): a plan apply rewrites budget-line amounts,
@@ -291,17 +282,18 @@ private extension SavingsGoalDetailView {
         toastManager.show(APIError.savingsGoalPlanConflict.localizedDescription, type: .error)
     }
 
-    private func setStatus(_ status: SavingsGoalStatus) async {
+    func setStatus(_ status: SavingsGoalStatus) async {
         await viewModel.changeStatus(to: status, via: store)
         if let error = viewModel.error {
             toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
             return
         }
-        toastManager.show(
-            status == .completed
-                ? AppLocale.string("Objectif marqué comme atteint")
-                : AppLocale.string("Objectif ré-ouvert")
-        )
+        let message = switch status {
+        case .completed: AppLocale.string("Objectif marqué comme atteint")
+        case .paused: AppLocale.string("Objectif mis en pause")
+        case .active: AppLocale.string("Objectif ré-ouvert")
+        }
+        toastManager.show(message)
         if status != .active {
             await proposeGenerationStop()
         }
@@ -321,9 +313,19 @@ private extension SavingsGoalDetailView {
                 await refreshFutureLinesIfStopped()
             }
         } else {
-            // Goal was deleted from the edit form — pop back to the list.
+            // Goal was deleted elsewhere: pop back to the list.
             dismiss()
         }
+    }
+
+    func deletionDidCommit(warning: String?) {
+        showDeletion = false
+        if let warning {
+            toastManager.show(warning, type: .error)
+        } else {
+            toastManager.show(AppLocale.string("Objectif supprimé"))
+        }
+        dismiss()
     }
 
     private func submitEdit(_ update: SavingsGoalUpdate) async {

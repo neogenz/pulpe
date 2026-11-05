@@ -27,6 +27,8 @@ struct GoalWithdrawalsSection: View {
     let error: Error?
     let onOpenBudget: (String) -> Void
     let onRetry: () -> Void
+    /// « Faire un retrait » in the header; `nil` where the app offers no add flow.
+    var onAddWithdrawal: (() -> Void)?
 
     enum PlannedItem: Identifiable {
         case linked(SavingsGoalPlannedWithdrawal)
@@ -173,7 +175,11 @@ struct GoalWithdrawalsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            SectionHeader(title: AppLocale.string("Retraits"))
+            SectionHeader(
+                title: AppLocale.string("Retraits"),
+                link: onAddWithdrawal.map { (label: AppLocale.string("Faire un retrait"), action: $0) },
+                linkAccessibilityIdentifier: "savingsGoalAddWithdrawalButton"
+            )
 
             if isLoading, withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
                 ProgressView("Chargement des retraits…")
@@ -188,6 +194,17 @@ struct GoalWithdrawalsSection: View {
                     Button("Réessayer", action: onRetry)
                         .secondaryButtonStyle()
                 }
+            } else if withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
+                Text("""
+                    Aucun retrait pour l'instant. Quand tu paies une partie de ton projet, \
+                    sors l'argent d'ici : ton épargné baisse, ton plan ne bouge pas.
+                    """)
+                    .font(PulpeTypography.subheadline)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(DesignTokens.Spacing.lg)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .pulpeSurfaceCard()
             } else {
                 let plannedItems = Self.plannedItems(planned: planned, planOnly: planOnly)
                 if !plannedItems.isEmpty {
