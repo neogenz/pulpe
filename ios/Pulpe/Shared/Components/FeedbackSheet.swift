@@ -165,6 +165,7 @@ struct FeedbackSheet: View {
             .frame(minHeight: DesignTokens.TapTarget.minimum)
             .contentShape(Rectangle())
             .accessibilityHint(showsDetails ? Text("Appuie pour réduire") : Text("Appuie pour développer"))
+            .accessibilityIdentifier("feedbackDetailsToggle")
             .sensoryFeedback(.selection, trigger: showsDetails)
 
             if showsDetails {

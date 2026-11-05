@@ -4,6 +4,7 @@ struct ContextualCreationUITestHarness: View {
     let scenario: UITestLaunchScenario
 
     @State private var appState = AppState()
+    @State private var uiPreferences = UIPreferencesState()
     @State private var currentMonthStore: CurrentMonthStore
     @State private var budgetListStore = BudgetListStore()
     @State private var dashboardStore = DashboardStore()
@@ -56,6 +57,7 @@ struct ContextualCreationUITestHarness: View {
         } else {
             currentMonthStore.populateForTesting(budget: budget, budgetLines: lines, transactions: transactions)
         }
+        FirstTransactionTracker.shared.answerForTesting(hasTransaction: !isFreshSignup)
         #endif
         _currentMonthStore = State(initialValue: currentMonthStore)
 
@@ -84,6 +86,7 @@ struct ContextualCreationUITestHarness: View {
             .environment(\.dynamicTypeSize, dynamicTypeSize)
             .preferredColorScheme(preferredColorScheme)
             .environment(appState)
+            .environment(uiPreferences)
             .environment(currentMonthStore)
             .environment(budgetListStore)
             .environment(dashboardStore)

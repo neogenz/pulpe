@@ -118,15 +118,15 @@ final class ContextualCreationUITests: XCTestCase {
     func testFreshSignupHomeIsFilledAndSaysWhatIsMissing() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", freshSignup: true)
 
-        // The estimate and its plot: the page has a subject, not an empty frame. The plot
-        // draws the month's whole slope before anything is pointed, and its label is the
-        // assertable proof of it — the marks themselves are a graphic.
-        let chart = app.descendants(matching: .any)["home-balance-chart"]
-        XCTAssertTrue(chart.waitForExistence(timeout: 10), app.debugDescription)
+        // The estimate: the page has a subject, not an empty frame. A first month has no
+        // slope to draw yet, so the hero leaves its plot out and keeps the figure.
+        let amount = app.descendants(matching: .any)["homeProjectedBalanceAmount"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(
-            chart.label.contains(Self.currencyCode),
-            "The plot announces no figure: \(chart.label)"
+            amount.label.contains(Self.currencyCode),
+            "The hero announces no figure: \(amount.label)"
         )
+        XCTAssertFalse(app.descendants(matching: .any)["home-balance-chart"].exists, app.debugDescription)
 
         // The verdict sentence's own copy is asserted in `HomeHeroCardTests`: it lives in a
         // Button whose accessibility label is its action, so its text reaches no query here.
@@ -146,7 +146,8 @@ final class ContextualCreationUITests: XCTestCase {
     /// swallows all five of them, and a tap that does nothing looks exactly like a tap that
     /// missed its target — this is the test that tells the two apart.
     func testSeeAllPushesTheMovementsPage() {
-        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large")
+        // « Tout voir » only shows once the month has a movement to list.
+        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
 
         let viewAll = app.buttons["homeActivityViewAll"]
         XCTAssertTrue(viewAll.waitForExistence(timeout: 10), app.debugDescription)
