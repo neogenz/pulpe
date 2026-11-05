@@ -28,15 +28,6 @@ struct MovementsPageTests {
         #expect(MovementsFilter.apply(.unpointed, query: "zzz", to: all, lineNames: [:]).isEmpty)
     }
 
-    @Test("Names are joined by count: none, one, two, then the rest")
-    func todoSubtitleJoinsNames() {
-        #expect(HomeTodoPresentation.toPointSubtitle(names: []).isEmpty)
-        #expect(HomeTodoPresentation.toPointSubtitle(names: ["Migros"]) == "Migros")
-        #expect(HomeTodoPresentation.toPointSubtitle(names: ["Migros", "Café"]).contains("Café"))
-        let many = HomeTodoPresentation.toPointSubtitle(names: ["A", "B", "C", "D"])
-        #expect(many.contains("2"))
-    }
-
     @Test("The title says « mouvements » only when no prévision is in the count")
     func toPointTitleNamesMovementsOnlyWhenTheyAreAll() {
         #expect(HomeTodoPresentation.toPointTitle(count: 4, includesForecasts: false).contains("mouvements"))

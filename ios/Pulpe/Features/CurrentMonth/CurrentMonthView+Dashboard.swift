@@ -98,6 +98,8 @@ extension CurrentMonthView {
             } else {
                 HomeTodoCard(
                     onPoint: { appState.pushOnActiveStack(CurrentMonthDestination.toPoint) },
+                    onPointItem: pointItem,
+                    onOpenItem: openItem,
                     onCatchUp: { navigateToBudget = true }
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
@@ -116,6 +118,20 @@ extension CurrentMonthView {
         // One content margin for the whole screen, on the rail the hero card hangs off.
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.bottom, DesignTokens.Spacing.lg)
+    }
+
+    private func pointItem(_ item: CurrentMonthStore.CheckableItem) {
+        Task {
+            ProductTips.checking.invalidate(reason: .actionPerformed)
+            if await store.point(item, toasts: toastManager) { await maybePrimeReminders() }
+        }
+    }
+
+    private func openItem(_ item: CurrentMonthStore.CheckableItem) {
+        switch item {
+        case .transaction(let transaction, _): editTransaction(transaction)
+        case .budgetLine(let line, _): appState.pushOnActiveStack(BudgetDestination.details(budgetId: line.budgetId))
+        }
     }
 
     private func pointTransaction(_ transaction: Transaction) {

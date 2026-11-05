@@ -1,10 +1,13 @@
 import SwiftUI
 
-/// « À faire » (V2): what asks for a gesture, in at most three rows. Movements to point, the
-/// prévisions that ran past their plan, the month that just closed. Renders nothing when
-/// there is nothing to do, so the page does not spend a heading on an empty card.
+/// « À faire » (V2): what asks for a gesture. What is left to point, with the likeliest few
+/// pointable right here, the prévisions that ran past their plan, the month that just closed.
+/// Renders nothing when there is nothing to do, so the page does not spend a heading on an
+/// empty card.
 struct HomeTodoCard: View {
     let onPoint: () -> Void
+    let onPointItem: (CurrentMonthStore.CheckableItem) -> Void
+    let onOpenItem: (CurrentMonthStore.CheckableItem) -> Void
     let onCatchUp: () -> Void
 
     @Environment(AppState.self) private var appState
@@ -19,6 +22,10 @@ struct HomeTodoCard: View {
         case acknowledged(MonthRecap)
         case showDetails(budgetId: String)
     }
+
+    /// How many of the likeliest items to point the card offers, in the store's order (learned
+    /// pointing days first); the rest wait on « À pointer ».
+    private static let suggestionCount = 3
 
     private let flags = MonthRecapFlagsStore()
     @State private var dismissedKey: String? = MonthRecapFlagsStore().lastSeenMonthRecap
@@ -54,10 +61,15 @@ struct HomeTodoCard: View {
                                 count: store.uncheckedCount,
                                 includesForecasts: store.uncheckedCount > uncheckedMovements
                             ),
-                            subtitle: HomeTodoPresentation.toPointSubtitle(names: unchecked.map(\.name)),
+                            subtitle: AppLocale.string("Touche le rond dès que c'est passé sur ton compte."),
                             action: onPoint
                         )
                         .accessibilityIdentifier("homeTodoToPoint")
+                        ForEach(unchecked.prefix(Self.suggestionCount)) { item in
+                            divider(after: true)
+                            suggestionRow(item)
+                                .transition(.opacity)
+                        }
                     }
                     if !drifts.isEmpty {
                         divider(after: !unchecked.isEmpty)
@@ -85,6 +97,10 @@ struct HomeTodoCard: View {
                         .accessibilityIdentifier("homeTodoRecap")
                     }
                 }
+                .animation(
+                    reduceMotion ? nil : DesignTokens.Animation.smoothEaseInOut,
+                    value: unchecked.prefix(Self.suggestionCount).map(\.id)
+                )
                 .pulpeSurfaceCard()
             }
             // `.contain` first: a bare identifier on the card overwrites every row's own.
@@ -98,6 +114,52 @@ struct HomeTodoCard: View {
                 )
             }
         }
+    }
+
+    /// How far the point circle's 44pt column runs past a row's disc on each side.
+    private var discOverhang: CGFloat { (DesignTokens.TapTarget.minimum - DesignTokens.TodoRow.disc) / 2 }
+
+    private func suggestionRow(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        let currency = userSettingsStore.currency
+        let subtitle: String
+        var isOverrun = false
+        let amount: Decimal
+        let isSyncing: Bool
+        switch item {
+        case .transaction(let transaction, _):
+            subtitle = ToPointPresentation.movementFact(
+                for: transaction,
+                lineName: transaction.budgetLineId.flatMap { id in store.budgetLines.first { $0.id == id }?.name },
+                pointedNow: false
+            )
+            amount = transaction.amount
+            isSyncing = store.syncingTransactionIds.contains(transaction.id)
+        case .budgetLine(let line, let consumption):
+            let fact = ToPointPresentation.lineFact(
+                for: line,
+                consumption: consumption
+                    ?? BudgetFormulas.calculateConsumption(for: line, transactions: store.transactions),
+                currency: currency
+            )
+            subtitle = fact.text
+            isOverrun = fact.isOverrun
+            amount = line.amount
+            isSyncing = store.syncingBudgetLineIds.contains(line.id)
+        }
+        return PointRow(
+            id: item.id,
+            title: item.name,
+            subtitle: subtitle,
+            isOverrun: isOverrun,
+            amount: amount.asAmount(for: currency),
+            isPointed: false,
+            isSyncing: isSyncing,
+            // The circle centred on the discs of the rows around it, the text on their titles.
+            leadingInset: DesignTokens.Spacing.lg - discOverhang,
+            textGap: DesignTokens.Spacing.md - discOverhang,
+            onToggle: { onPointItem(item) },
+            onOpen: { onOpenItem(item) }
+        )
     }
 
     @ViewBuilder

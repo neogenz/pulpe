@@ -11,16 +11,6 @@ enum HomeTodoPresentation {
             : AppLocale.string("\(count) mouvements à pointer")
     }
 
-    /// "Migros, Café Lomi et 2 autres": the first two names, then how many are left.
-    static func toPointSubtitle(names: [String]) -> String {
-        switch names.count {
-        case 0: ""
-        case 1: names[0]
-        case 2: AppLocale.string("\(names[0]) et \(names[1])")
-        default: AppLocale.string("\(names[0]), \(names[1]) et \(names.count - 2) autres")
-        }
-    }
-
     /// "Salaire, Loyer et 11 autres prévisions": what is waiting to be pointed on a first month.
     static func startSubtitle(names: [String]) -> String {
         switch names.count {

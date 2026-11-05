@@ -127,19 +127,17 @@ struct ToPointPage: View {
         ) {
             ForEach(Array(movements.enumerated()), id: \.element.id) { index, transaction in
                 if index > 0 { rowDivider }
-                pointRow(
-                    PointRowModel(
-                        id: transaction.id,
-                        title: transaction.name,
-                        subtitle: ToPointPresentation.movementFact(
-                            for: transaction,
-                            lineName: transaction.budgetLineId.flatMap { lineNames[$0] },
-                            pointedNow: pointedHere.contains(transaction.id)
-                        ),
-                        amount: transaction.amount.asAmount(for: currency),
-                        isPointed: transaction.isChecked,
-                        isSyncing: store.syncingTransactionIds.contains(transaction.id)
+                PointRow(
+                    id: transaction.id,
+                    title: transaction.name,
+                    subtitle: ToPointPresentation.movementFact(
+                        for: transaction,
+                        lineName: transaction.budgetLineId.flatMap { lineNames[$0] },
+                        pointedNow: pointedHere.contains(transaction.id)
                     ),
+                    amount: transaction.amount.asAmount(for: currency),
+                    isPointed: transaction.isChecked,
+                    isSyncing: store.syncingTransactionIds.contains(transaction.id),
                     onToggle: {
                         toggle(.transaction(transaction), id: transaction.id, wasPointed: transaction.isChecked)
                     },
@@ -165,16 +163,14 @@ struct ToPointPage: View {
                     currency: currency
                 )
                 if index > 0 { rowDivider }
-                pointRow(
-                    PointRowModel(
-                        id: line.id,
-                        title: line.name,
-                        subtitle: fact.text,
-                        isOverrun: fact.isOverrun,
-                        amount: line.amount.asAmount(for: currency),
-                        isPointed: line.isChecked,
-                        isSyncing: store.syncingBudgetLineIds.contains(line.id)
-                    ),
+                PointRow(
+                    id: line.id,
+                    title: line.name,
+                    subtitle: fact.text,
+                    isOverrun: fact.isOverrun,
+                    amount: line.amount.asAmount(for: currency),
+                    isPointed: line.isChecked,
+                    isSyncing: store.syncingBudgetLineIds.contains(line.id),
                     onToggle: { toggle(.budgetLine(line), id: line.id, wasPointed: line.isChecked) },
                     onOpen: { appState.pushOnActiveStack(BudgetDestination.details(budgetId: line.budgetId)) }
                 )
@@ -226,41 +222,6 @@ struct ToPointPage: View {
             MovementCard { content() }
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
-    }
-
-    /// What a row says and does; the two closures are its circle and its body.
-    private struct PointRowModel {
-        let id: String
-        let title: String
-        let subtitle: String
-        var isOverrun = false
-        let amount: String
-        let isPointed: Bool
-        let isSyncing: Bool
-    }
-
-    private func pointRow(
-        _ row: PointRowModel,
-        onToggle: @escaping () -> Void,
-        onOpen: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            PointCircle(isPointed: row.isPointed, isSyncing: row.isSyncing, onToggle: onToggle)
-                .accessibilityIdentifier("toPointCircle-\(row.id)")
-            Button(action: onOpen) {
-                PulpeListRow(
-                    title: row.title,
-                    subtitle: row.subtitle,
-                    subtitleTint: row.isOverrun ? .financialOverBudget : .textSecondary,
-                    trailing: { Text(row.amount).sensitiveAmount() }
-                )
-            }
-            .plainPressedButtonStyle()
-            // On the open button, not the row: there it would overwrite the point circle's id.
-            .accessibilityIdentifier("toPointRow-\(row.id)")
-        }
-        .padding(.leading, DesignTokens.Spacing.xs)
-        .padding(.trailing, DesignTokens.Spacing.lg)
     }
 
     // MARK: - Actions
