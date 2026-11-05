@@ -1,5 +1,7 @@
 import { isDevMode } from '@angular/core';
 import { type Routes } from '@angular/router';
+import { FEATURE_FLAGS } from 'pulpe-shared';
+import { featureFlagGuard } from '@core/analytics';
 import { publicGuard, hasBudgetGuard } from '@core/auth';
 import { authGuard } from '@core/auth/auth-guard';
 import { encryptionSetupGuard } from '@core/encryption';
@@ -141,6 +143,7 @@ export const routes: Routes = [
       {
         path: ROUTES.NET_WORTH,
         title: PAGE_TITLES.NET_WORTH,
+        canMatch: [featureFlagGuard(FEATURE_FLAGS.NET_WORTH)],
         canActivate: [hasBudgetGuard],
         data: {
           breadcrumb: 'navigation.netWorth',
