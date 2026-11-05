@@ -1480,6 +1480,7 @@
       "net": "Nettovermögen",
       "shortfall": "Es fehlen",
       "mobileHint": "Zieh, um bis zu deinem Nettovermögen zu sehen",
+      "mobileHintDebts": "Zieh, um bis zu dem zu sehen, was du schuldest",
       "ariaNet": "Verteilung dessen, was ich habe: Bruttovermögen {{gross}}, aufgeteilt in {{debts}} Schulden und {{net}} Nettovermögen.",
       "ariaDebts": "Was ich habe, {{gross}}, gegenüber {{debts}} Schulden."
     },

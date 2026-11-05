@@ -131,7 +131,6 @@ const DAYS_PER_YEAR = 365;
               suggestion.proposedValue | appCurrency: asset().currency : '1.2-2'
             }}</strong>
           </p>
-          @let delta = suggestion.delta;
           <p
             class="m-0 text-body-small text-on-surface-variant"
             data-testid="asset-suggestion-detail"
@@ -141,8 +140,8 @@ const DAYS_PER_YEAR = 365;
                 | transloco
                   : {
                       amount:
-                        (delta > 0 ? '+' : '') +
-                        (delta | appCurrency: asset().currency : '1.2-2'),
+                        suggestionAmount()
+                        | appCurrency: asset().currency : '1.2-2',
                     }
             }}
           </p>
@@ -259,6 +258,10 @@ export class NetWorthAssetRow {
   // An archived asset never offers one, whatever the payload carries.
   protected readonly visibleSuggestion = computed(() =>
     this.asset().archivedAt ? null : this.asset().suggestion,
+  );
+  // The wording carries the direction (« pointée », « tiré »), so no sign.
+  protected readonly suggestionAmount = computed(() =>
+    Math.abs(this.visibleSuggestion()?.delta ?? 0),
   );
   protected readonly suggestionDetailKey = computed(() => {
     if (this.asset().direction === 'owe') {

@@ -1480,6 +1480,7 @@
       "net": "Net worth",
       "shortfall": "Missing",
       "mobileHint": "Drag to see all the way to your net worth",
+      "mobileHintDebts": "Drag to see all the way to what you owe",
       "ariaNet": "Breakdown of what I have: gross worth {{gross}}, split between {{debts}} owed and {{net}} of net worth.",
       "ariaDebts": "What I have, {{gross}}, set against {{debts}} owed."
     },

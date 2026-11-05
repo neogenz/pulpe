@@ -107,7 +107,12 @@ const LABEL_GUTTER = 150;
           {{ ariaSentence() }}
         </p>
         <p class="mt-2 text-body-small text-on-surface-variant md:hidden">
-          {{ 'netWorth.sankey.mobileHint' | transloco }}
+          {{
+            (isNetPositive()
+              ? 'netWorth.sankey.mobileHint'
+              : 'netWorth.sankey.mobileHintDebts'
+            ) | transloco
+          }}
         </p>
       </section>
     }

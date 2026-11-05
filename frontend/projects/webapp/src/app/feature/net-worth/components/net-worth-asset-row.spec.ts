@@ -127,13 +127,13 @@ describe('NetWorthAssetRow', () => {
     const click = (id: string) =>
       fixture.nativeElement.querySelector(`[data-testid="${id}"]`).click();
 
-    it('proposes the new value in the asset currency with its signed detail', () => {
+    it('proposes the new value in the asset currency with its detail', () => {
       render({ suggestion });
 
       expect(text('asset-suggestion')).toContain('Pulpe propose');
       expect(text('asset-suggestion-value')).toBe('3’500.00 CHF');
       expect(text('asset-suggestion-detail')).toBe(
-        "+500.00 CHF d'épargne pointée depuis la dernière valeur",
+        "500.00 CHF d'épargne pointée depuis la dernière valeur",
       );
     });
 
@@ -141,7 +141,7 @@ describe('NetWorthAssetRow', () => {
       render({ suggestion: { delta: -200, proposedValue: 3000 } });
 
       expect(text('asset-suggestion-detail')).toBe(
-        '-200.00 CHF de revenu tiré depuis la dernière valeur',
+        '200.00 CHF de revenu tiré depuis la dernière valeur',
       );
     });
 
@@ -152,7 +152,7 @@ describe('NetWorthAssetRow', () => {
       });
 
       expect(text('asset-suggestion-detail')).toBe(
-        '-400.00 CHF de remboursement pointé depuis la dernière valeur',
+        '400.00 CHF de remboursement pointé depuis la dernière valeur',
       );
     });
 

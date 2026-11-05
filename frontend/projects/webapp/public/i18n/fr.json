@@ -1480,6 +1480,7 @@
       "net": "Fortune nette",
       "shortfall": "Il manque",
       "mobileHint": "Fais glisser pour voir jusqu'à ta fortune nette",
+      "mobileHintDebts": "Fais glisser pour voir jusqu'à ce que tu dois",
       "ariaNet": "Répartition de ce que j'ai : fortune brute {{gross}}, partagée entre {{debts}} dus et {{net}} de fortune nette.",
       "ariaDebts": "Ce que j'ai, {{gross}}, face à {{debts}} dus."
     },
