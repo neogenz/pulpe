@@ -906,25 +906,25 @@
         }
       }
     },
-    "Touche le rond dès que c'est passé sur ton compte." : {
+    "Pointe ce qui est déjà passé sur ton compte." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippe auf den Kreis, sobald es auf deinem Konto verbucht ist."
+            "value" : "Hak ab, was schon auf deinem Konto durch ist."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap the circle once it has gone through on your account."
+            "value" : "Check off what already went through on your account."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tocca il cerchio appena è passato sul tuo conto."
+            "value" : "Spunta ciò che è già passato sul tuo conto."
           }
         }
       }

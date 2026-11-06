@@ -61,7 +61,7 @@ struct HomeTodoCard: View {
                                 count: store.uncheckedCount,
                                 includesForecasts: store.uncheckedCount > uncheckedMovements
                             ),
-                            subtitle: AppLocale.string("Touche le rond dès que c'est passé sur ton compte."),
+                            subtitle: AppLocale.string("Pointe ce qui est déjà passé sur ton compte."),
                             action: onPoint
                         )
                         .accessibilityIdentifier("homeTodoToPoint")

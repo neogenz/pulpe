@@ -40,7 +40,7 @@ struct ToPointPage: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                 PageHeader(
                     title: AppLocale.string("À pointer"),
-                    subtitle: AppLocale.string("Touche le rond dès que c'est passé sur ton compte.")
+                    subtitle: AppLocale.string("Pointe ce qui est déjà passé sur ton compte.")
                 )
                 balanceCard
                 if !movements.isEmpty { movementsSection }
