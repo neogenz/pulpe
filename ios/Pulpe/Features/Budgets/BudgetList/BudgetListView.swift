@@ -321,32 +321,26 @@ extension BudgetListView {
     }
 }
 
-/// The year block held above the months that scroll under it. On iOS 26 the system's soft
-/// scroll edge marks where it ends, the way a toolbar does; before, the months just slide
-/// under the page colour. The bar ends a margin below the card: the months fade in that
-/// strip instead of being sliced by the card's edge.
+/// The year block held above the months that scroll under it. The block paints the page colour
+/// behind itself and a margin below the card where that colour fades out: the months vanish in
+/// that strip instead of being sliced by the card's edge. The system's soft scroll edge did not
+/// draw under this bar, so the fade is the block's own.
 private struct FixedTopBlock<Block: View>: ViewModifier {
     @ViewBuilder let block: () -> Block
 
     func body(content: Content) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            content
-                .safeAreaBar(edge: .top, spacing: DesignTokens.Spacing.none) {
-                    block().padding(.bottom, DesignTokens.Spacing.lg)
-                }
-                .scrollEdgeEffectStyle(.soft, for: .top)
-        } else {
-            insetFallback(content)
-        }
-        #else
-        insetFallback(content)
-        #endif
-    }
-
-    private func insetFallback(_ content: Content) -> some View {
         content.safeAreaInset(edge: .top, spacing: DesignTokens.Spacing.none) {
-            block().padding(.bottom, DesignTokens.Spacing.lg).background(Color.appBackground)
+            block()
+                .padding(.bottom, DesignTokens.Spacing.lg)
+                .background {
+                    VStack(spacing: DesignTokens.Spacing.none) {
+                        Color.appBackground
+                        Color.appBackground
+                            .frame(height: DesignTokens.Spacing.lg)
+                            .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
+                    }
+                    .allowsHitTesting(false)
+                }
         }
     }
 }
