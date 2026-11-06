@@ -17,8 +17,7 @@ export function featureFlagGuard(flag: string): CanMatchFn {
     if (
       !postHog.isFeatureEnabled(flag) &&
       postHog.flagsVersion() === 0 &&
-      postHog.isEnabled() &&
-      postHog.diagnosticSharingEnabled()
+      postHog.isEnabled()
     ) {
       await firstValueFrom(
         race(

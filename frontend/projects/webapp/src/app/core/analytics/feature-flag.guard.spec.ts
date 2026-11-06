@@ -36,7 +36,6 @@ describe('featureFlagGuard', () => {
             isFeatureEnabled: () => enabled,
             flagsVersion,
             isEnabled: () => true,
-            diagnosticSharingEnabled: () => true,
           },
         },
         { provide: Router, useValue: { createUrlTree: () => dashboard } },
