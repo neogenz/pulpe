@@ -13,9 +13,6 @@ struct PointCircle: View {
     var onCompletionStateChange: (Bool) -> Void = { _ in }
     let onToggle: () -> Void
 
-    /// Debounced sync state — only flips true if the toggle takes >300 ms,
-    /// so fast optimistic updates don't trigger a green-dot flash.
-    @State private var displayedSyncing = false
     @State private var isCompleting = false
     @State private var successFeedbackTrigger = 0
     @State private var selectionFeedbackTrigger = 0
@@ -69,14 +66,6 @@ struct PointCircle: View {
                     )
                     .opacity(displayedIsPointed ? 1 : 0)
                     .animation(checkAnimation, value: displayedIsPointed)
-
-                if displayedSyncing {
-                    SyncIndicator(isSyncing: true)
-                        .offset(
-                            x: DesignTokens.Checkbox.size / 2 - DesignTokens.Checkbox.syncBadgeInset,
-                            y: -DesignTokens.Checkbox.size / 2 + DesignTokens.Checkbox.syncBadgeInset
-                        )
-                }
             }
             .frame(
                 width: DesignTokens.TapTarget.minimum,
@@ -88,7 +77,6 @@ struct PointCircle: View {
         .disabled(isCompleting || isSyncing)
         .sensoryFeedback(.success, trigger: successFeedbackTrigger)
         .sensoryFeedback(.selection, trigger: selectionFeedbackTrigger)
-        .rampSyncIndicator(isSyncing: isSyncing, displayed: $displayedSyncing)
         .onChange(of: isPointed) {
             if isPointed { finishCompletion() }
         }

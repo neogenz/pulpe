@@ -248,16 +248,6 @@ enum DesignTokens {
         static let dividerInset: CGFloat = TapTarget.minimum + Spacing.sm
     }
 
-    // MARK: - Sync indicators
-
-    /// Visibility thresholds for sync state UI (BudgetDetails feature pattern).
-    enum Sync {
-        /// Optimistic mutations under this delay don't surface a sync indicator
-        /// — the green dot only flashes if the server round-trip exceeds the
-        /// threshold, so fast updates feel instantaneous.
-        static let indicatorRampDelayMs: UInt64 = 300
-    }
-
     // MARK: - Frame Heights
 
     enum FrameHeight {
@@ -300,9 +290,6 @@ enum DesignTokens {
         static let fillStartScale: CGFloat = 0.12
         /// Disc scale while pressed (`PointCircle`).
         static let pressedScale: CGFloat = 0.92
-        /// Pulls the sync badge back in from the circle's bounding-box corner so it
-        /// straddles the stroke instead of floating diagonally off it.
-        static let syncBadgeInset: CGFloat = 2
     }
 
     // MARK: - Controls (V2)
