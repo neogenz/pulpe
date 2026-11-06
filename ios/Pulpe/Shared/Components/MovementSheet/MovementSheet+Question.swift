@@ -7,15 +7,13 @@ extension MovementSheet {
     // MARK: - Which prévision
 
     /// The prévision the movement will be written under. Savings drawn from a goal are free
-    /// by backend rule, so they never carry one.
+    /// by backend rule, so they never carry one. Untouched, the answer is « imprévu »: the
+    /// suggested prévision is offered as the first chip, never picked for the user.
     var selectedLineId: String? {
         if let tx = context.editing { return tx.budgetLineId }
         if savingsOriginRule.isOffered && isFromSavings { return nil }
-        switch linePick {
-        case .line(let id): return id
-        case .unplanned: return nil
-        case nil: return suggestedLine?.id
-        }
+        if case .line(let id) = linePick { return id }
+        return nil
     }
 
     var selectedLine: BudgetLine? {

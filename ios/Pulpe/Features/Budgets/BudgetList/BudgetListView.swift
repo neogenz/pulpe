@@ -14,6 +14,7 @@ struct BudgetListView: View {
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var showsClosedMonths = true
+    @State private var monthsScrolledUnderHeader = false
 
     var body: some View {
         Group {
@@ -179,6 +180,23 @@ struct BudgetListView: View {
                         ScrollView {
                             monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
                         }
+                        .onScrollGeometryChange(for: Bool.self) {
+                            $0.contentOffset.y + $0.contentInsets.top > 0
+                        } action: { _, isScrolled in
+                            monthsScrolledUnderHeader = isScrolled
+                        }
+                        // Same page colour above and below: once the months slide under the
+                        // fixed block, a fade and a hairline mark where it ends.
+                        .overlay(alignment: .top) {
+                            if monthsScrolledUnderHeader {
+                                ZStack(alignment: .top) {
+                                    ProgressiveBlurEdge(edge: .top, height: DesignTokens.Spacing.xl)
+                                    FormRowDivider()
+                                }
+                                .transition(.opacity)
+                            }
+                        }
+                        .animation(DesignTokens.Animation.smoothEaseOut, value: monthsScrolledUnderHeader)
                     }
                 } else {
                     ScrollView {

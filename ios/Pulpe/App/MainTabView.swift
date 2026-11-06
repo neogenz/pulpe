@@ -4,6 +4,10 @@ struct MainTabView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    /// Bottom safe area inside a tab minus the one around the tab view: the tab bar's height,
+    /// zero where the tab bar is a side rail.
+    @State private var tabContentBottomInset: CGFloat = 0
+    @State private var tabViewBottomInset: CGFloat = 0
 
     /// The floating add button belongs to the four root screens only: a pushed page owns its
     /// own actions, and a month has to exist for the sheet to have somewhere to write.
@@ -28,6 +32,7 @@ struct MainTabView: View {
                 value: Tab.currentMonth
             ) {
                 CurrentMonthTab()
+                    .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
 
             SwiftUI.Tab(
@@ -36,6 +41,7 @@ struct MainTabView: View {
                 value: Tab.budgets
             ) {
                 BudgetsTab()
+                    .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
 
             SwiftUI.Tab(
@@ -44,6 +50,7 @@ struct MainTabView: View {
                 value: Tab.savingsGoals
             ) {
                 SavingsGoalsTab()
+                    .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
 
             SwiftUI.Tab(
@@ -52,11 +59,16 @@ struct MainTabView: View {
                 value: Tab.templates
             ) {
                 TemplatesTab()
+                    .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
         }
         .tint(Color.pulpePrimary)
         .pulpeBackground()
-        .floatingAddFlow(isVisible: showsFloatingAddButton)
+        .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabViewBottomInset = $0 }
+        .floatingAddFlow(
+            isVisible: showsFloatingAddButton,
+            tabBarHeight: max(0, tabContentBottomInset - tabViewBottomInset)
+        )
         .goalWithdrawalFlow()
         .onChange(of: appState.selectedTab) { _, newTab in
             #if DEBUG

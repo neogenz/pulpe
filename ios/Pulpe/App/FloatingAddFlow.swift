@@ -3,13 +3,17 @@ import SwiftUI
 extension View {
     /// The global "+" of the root screens and the two sheets it leads to: Nouvelle dépense,
     /// then Nouvelle prévision when the user picks « Réserver un montant pour plus tard ».
-    func floatingAddFlow(isVisible: Bool) -> some View {
-        modifier(FloatingAddFlow(isVisible: isVisible))
+    /// `tabBarHeight` is how far the tab bar rises above the bottom safe area: the button
+    /// floats just over it, and drops to the bottom where the tab bar is a side rail (open
+    /// iPhone Duo).
+    func floatingAddFlow(isVisible: Bool, tabBarHeight: CGFloat) -> some View {
+        modifier(FloatingAddFlow(isVisible: isVisible, tabBarHeight: tabBarHeight))
     }
 }
 
 private struct FloatingAddFlow: ViewModifier {
     let isVisible: Bool
+    let tabBarHeight: CGFloat
 
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -28,7 +32,7 @@ private struct FloatingAddFlow: ViewModifier {
                 if isVisible {
                     FloatingAddButton { isAddSheetPresented = true }
                         .padding(.trailing, DesignTokens.Control.fabTrailingInset)
-                        .padding(.bottom, DesignTokens.Control.fabBottomInset)
+                        .padding(.bottom, tabBarHeight + DesignTokens.Control.fabTabBarGap)
                         .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
                 }
             }

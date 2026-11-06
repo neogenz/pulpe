@@ -316,11 +316,11 @@ enum DesignTokens {
         static let fabGlyph: CGFloat = 26
         /// Distance of the floating button from the trailing screen edge.
         static let fabTrailingInset: CGFloat = 16
-        /// Distance from the bottom safe area to the floating button's bottom: clears the native
-        /// tab bar (62pt floating capsule on iOS 26) with an 8pt gap.
-        static let fabBottomInset: CGFloat = 70
-        /// Distance from the bottom safe area to the toast's bottom (V2 toast sits low, in thumb
-        /// reach): clears the tab bar and the floating "+" above it.
+        /// Gap between the floating button and the top of the tab bar below it.
+        static let fabTabBarGap: CGFloat = 8
+        /// Floating button's bottom over the bottom tab bar (62pt capsule on iOS 26) plus its gap.
+        static let fabBottomInset: CGFloat = 62 + fabTabBarGap
+        /// Toast's bottom over the safe area (V2: low, in thumb reach), clear of the tab bar and "+".
         static let toastBottomInset: CGFloat = fabBottomInset + fab + DesignTokens.Spacing.md
         /// How far the toast travels down when it enters and leaves.
         static let toastTravel: CGFloat = 100

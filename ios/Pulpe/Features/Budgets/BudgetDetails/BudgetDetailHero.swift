@@ -105,20 +105,28 @@ struct BudgetDetailHero: View {
                 "Avec le report de \(Formatters.monthNameInText(for: $0)), estimé à \(amount.asAmount(for: currency))"
             )
         } ?? AppLocale.string("Report de \(amount.asAmount(for: currency)) inclus"))
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.textSecondary)
             .monospacedDigit()
             .sensitiveAmount()
         if let onRolloverTap {
-            Button(action: onRolloverTap) { label }
-                // 44pt hit area without growing the stack (swiftui-hit-areas.md).
-                .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-                .contentShape(Rectangle())
-                .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
-                .plainPressedButtonStyle()
-                .accessibilityAction(named: "Voir le budget précédent", onRolloverTap)
+            // Styled like « Le calcul › »: in grey with no chevron it read as a caption.
+            Button(action: onRolloverTap) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
+                    label
+                    Image(systemName: "chevron.right").font(PulpeTypography.metricLabel)
+                }
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.pulpePrimary)
+            }
+            // 44pt hit area without growing the stack (swiftui-hit-areas.md).
+            .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
+            .contentShape(Rectangle())
+            .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+            .plainPressedButtonStyle()
+            .accessibilityAction(named: "Voir le budget précédent", onRolloverTap)
         } else {
             label
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textSecondary)
         }
     }
 }

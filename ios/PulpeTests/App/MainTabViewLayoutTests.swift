@@ -27,7 +27,8 @@ struct MainTabViewNavigationOwnershipTests {
         #expect(!source.contains("floatingTabBar"))
         #expect(!source.contains("tabBarClearance"))
         // V2: one global add button on the root screens, solid green, hosted by the shell.
-        #expect(source.contains(".floatingAddFlow(isVisible: showsFloatingAddButton)"))
+        #expect(source.contains(".floatingAddFlow("))
+        #expect(source.contains("isVisible: showsFloatingAddButton"))
         let addFlow = try Self.read("Pulpe", "App", "FloatingAddFlow.swift")
         #expect(addFlow.contains("FloatingAddButton {"))
     }

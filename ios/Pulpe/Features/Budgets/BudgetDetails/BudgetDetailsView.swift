@@ -226,7 +226,7 @@ struct BudgetDetailsView: View {
                         items: section.items,
                         total: section.total + (section.kind == .income ? rollover?.amount ?? 0 : 0),
                         rollover: section.kind == .income ? rollover : nil,
-                        // The floating « + » is hidden on a pushed month, so every month keeps its footers.
+                        // The page « + » notes a movement; these footers add a prévision.
                         onAdd: { router.present(.addBudgetLine(section.kind)) },
                         currency: userSettingsStore.currency,
                         goalNamesById: savingsGoalNamesById,
@@ -268,5 +268,13 @@ struct BudgetDetailsView: View {
         .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: screenState.checkedFilter)
         .pulpeRootBottomInset()
         .background { Color.appBackground.ignoresSafeArea() }
+        // The month's own « + »: the tab's one writes into the current month and hides here.
+        // The page's bottom safe area already ends at the tab bar (or the home indicator
+        // beside a side rail), so only the gap is added.
+        .overlay(alignment: .bottomTrailing) {
+            FloatingAddButton { router.present(.movement(lineId: nil, transactionId: nil)) }
+                .padding(.trailing, DesignTokens.Control.fabTrailingInset)
+                .padding(.bottom, DesignTokens.Control.fabTabBarGap)
+        }
     }
 }

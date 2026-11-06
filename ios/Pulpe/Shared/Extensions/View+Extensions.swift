@@ -363,10 +363,14 @@ extension View {
 
     /// A root tab screen hides its navigation bar title, so iOS draws no scroll edge effect
     /// there: this blur keeps scrolled content from running bare under the status bar.
+    /// It spans the top inset, not a fixed height: the open iPhone Duo moves the status bar
+    /// into a side column and leaves a thin top inset, where a taller blur lands on the title.
     func pulpeStatusBarBlur() -> some View {
         overlay(alignment: .top) {
-            ProgressiveBlurEdge(edge: .top, height: DesignTokens.Blur.topFadeHeight)
-                .ignoresSafeArea(edges: .top)
+            GeometryReader { proxy in
+                ProgressiveBlurEdge(edge: .top, height: proxy.safeAreaInsets.top)
+            }
+            .ignoresSafeArea(edges: .top)
         }
     }
 
