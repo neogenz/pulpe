@@ -81,7 +81,7 @@ status: done
 | Edge case  | `incomplete: true` from the API | Foreign row shows its own currency only; a notice says the total leaves it out | browser |
 | Edge case  | Archive an asset | It leaves the list, totals and Sankey; it shows under « Voir les avoirs archivés » | browser |
 | Edge case  | Log out, log in with another account | No asset of the first account is shown, even briefly | browser |
-| Edge case  | Flag override removed | No nav entry; `/net-worth` still opens by URL | browser |
+| Edge case  | Flag override removed | No nav entry; typing `/net-worth` lands on the dashboard | browser |
 | Edge case  | Mobile width 375 | Totals stack, Sankey scrolls horizontally inside its card, no page scroll | browser |
 | Teardown   | Delete the created assets and categories, remove the flag override | Baseline restored | browser |
 
