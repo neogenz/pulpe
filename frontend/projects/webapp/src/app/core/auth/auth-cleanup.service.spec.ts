@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { User } from '@supabase/supabase-js';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { AuthStore } from './auth-store';
+import { AssetApi } from '@core/asset/asset-api';
 import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
@@ -25,6 +26,7 @@ describe('AuthCleanupService', () => {
   let mockBudgetApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockBudgetTemplatesApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockSavingsGoalApi: { clearCache: ReturnType<typeof vi.fn> };
+  let mockAssetApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockTagApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockMcpApi: { clearCache: ReturnType<typeof vi.fn> };
   let mockFirstTransactionTracker: { reset: ReturnType<typeof vi.fn> };
@@ -47,6 +49,7 @@ describe('AuthCleanupService', () => {
     mockBudgetApi = { clearCache: vi.fn() };
     mockBudgetTemplatesApi = { clearCache: vi.fn() };
     mockSavingsGoalApi = { clearCache: vi.fn() };
+    mockAssetApi = { clearCache: vi.fn() };
     mockTagApi = { clearCache: vi.fn() };
     mockMcpApi = { clearCache: vi.fn() };
     mockFirstTransactionTracker = { reset: vi.fn() };
@@ -69,6 +72,7 @@ describe('AuthCleanupService', () => {
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         { provide: SavingsGoalApi, useValue: mockSavingsGoalApi },
+        { provide: AssetApi, useValue: mockAssetApi },
         { provide: TagApi, useValue: mockTagApi },
         { provide: McpApi, useValue: mockMcpApi },
         {
@@ -107,6 +111,7 @@ describe('AuthCleanupService', () => {
     expect(mockBudgetApi.clearCache).toHaveBeenCalled();
     expect(mockBudgetTemplatesApi.clearCache).toHaveBeenCalled();
     expect(mockSavingsGoalApi.clearCache).toHaveBeenCalled();
+    expect(mockAssetApi.clearCache).toHaveBeenCalled();
     expect(mockTagApi.clearCache).toHaveBeenCalled();
     expect(mockMcpApi.clearCache).toHaveBeenCalled();
     expect(mockFirstTransactionTracker.reset).toHaveBeenCalled();

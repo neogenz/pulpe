@@ -34,9 +34,116 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset: {
+        Row: {
+          archived_at: string | null
+          category_id: string
+          created_at: string
+          currency: string
+          direction: string
+          id: string
+          in_pulpe: boolean
+          name: string
+          suggestion_dismissed_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          category_id: string
+          created_at?: string
+          currency: string
+          direction: string
+          id?: string
+          in_pulpe?: boolean
+          name: string
+          suggestion_dismissed_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          category_id?: string
+          created_at?: string
+          currency?: string
+          direction?: string
+          id?: string
+          in_pulpe?: boolean
+          name?: string
+          suggestion_dismissed_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_category_id_user_id_fkey"
+            columns: ["category_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "asset_category"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      asset_category: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asset_snapshot: {
+        Row: {
+          asset_id: string
+          id: string
+          recorded_at: string
+          user_id: string
+          value: string
+        }
+        Insert: {
+          asset_id: string
+          id?: string
+          recorded_at?: string
+          user_id: string
+          value: string
+        }
+        Update: {
+          asset_id?: string
+          id?: string
+          recorded_at?: string
+          user_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_snapshot_asset_id_user_id_fkey"
+            columns: ["asset_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       budget_line: {
         Row: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -60,6 +167,7 @@ export type Database = {
         }
         Insert: {
           amount?: string | null
+          asset_id?: string | null
           budget_id: string
           checked_at?: string | null
           created_at?: string
@@ -83,6 +191,7 @@ export type Database = {
         }
         Update: {
           amount?: string | null
+          asset_id?: string | null
           budget_id?: string
           checked_at?: string | null
           created_at?: string
@@ -105,6 +214,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "budget_line_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "budget_line_budget_id_fkey"
             columns: ["budget_id"]
@@ -563,6 +679,7 @@ export type Database = {
       template_line: {
         Row: {
           amount: string | null
+          asset_id: string | null
           created_at: string
           description: string | null
           exchange_rate: number | null
@@ -579,6 +696,7 @@ export type Database = {
         }
         Insert: {
           amount?: string | null
+          asset_id?: string | null
           created_at?: string
           description?: string | null
           exchange_rate?: number | null
@@ -595,6 +713,7 @@ export type Database = {
         }
         Update: {
           amount?: string | null
+          asset_id?: string | null
           created_at?: string
           description?: string | null
           exchange_rate?: number | null
@@ -610,6 +729,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "template_line_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "template_line_savings_goal_id_fkey"
             columns: ["savings_goal_id"]
@@ -901,7 +1027,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      asset_latest_snapshot: {
+        Row: {
+          asset_id: string | null
+          recorded_at: string | null
+          user_id: string | null
+          value: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_snapshot_asset_id_user_id_fkey"
+            columns: ["asset_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_savings_goal_deletion: {
@@ -931,6 +1073,7 @@ export type Database = {
         }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -968,6 +1111,7 @@ export type Database = {
         }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1076,6 +1220,35 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      create_asset_with_first_snapshot: {
+        Args: {
+          p_category_id: string
+          p_currency: string
+          p_direction: string
+          p_in_pulpe: boolean
+          p_name: string
+          p_value: string
+        }
+        Returns: {
+          archived_at: string | null
+          category_id: string
+          created_at: string
+          currency: string
+          direction: string
+          id: string
+          in_pulpe: boolean
+          name: string
+          suggestion_dismissed_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "asset"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_budget_from_template: {
         Args: {
           p_description: string
@@ -1096,6 +1269,7 @@ export type Database = {
         }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1264,6 +1438,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      rekey_user_encrypted_data_with_asset_snapshots: {
+        Args: {
+          p_asset_snapshots?: Json
+          p_budget_lines?: Json
+          p_key_check?: string
+          p_monthly_budgets?: Json
+          p_plan_withdrawals?: Json
+          p_savings_goals?: Json
+          p_template_lines?: Json
+          p_transactions?: Json
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       rekey_user_encrypted_data_with_plan_withdrawals: {
         Args: {
           p_budget_lines?: Json
@@ -1293,6 +1481,7 @@ export type Database = {
         Args: { p_budget_line_id: string }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1353,6 +1542,7 @@ export type Database = {
         Args: { p_budget_line_id: string; p_patch: Json; p_tag_ids: string[] }
         Returns: {
           amount: string | null
+          asset_id: string | null
           budget_id: string
           checked_at: string | null
           created_at: string
@@ -1418,6 +1608,7 @@ export type Database = {
         Args: { p_patch: Json; p_tag_ids: string[]; p_template_line_id: string }
         Returns: {
           amount: string | null
+          asset_id: string | null
           created_at: string
           description: string | null
           exchange_rate: number | null

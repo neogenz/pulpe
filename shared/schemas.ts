@@ -970,6 +970,11 @@ export const budgetLineSchema = z.object({
   templateLineId: z.uuid().nullable(),
   // Lien optionnel vers un objectif, autorisé uniquement pour kind=saving.
   savingsGoalId: z.uuid().nullable(),
+  // Lien optionnel vers un avoir (own pour épargne et revenu) ou une dette (owe
+  // pour dépense), indépendant du lien objectif. Absent d'un PATCH = lien gardé.
+  // Absent d'une réponse = aucun lien : un backend plus ancien ne l'envoie pas
+  // pendant le déploiement.
+  assetId: z.uuid().nullable().default(null),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
@@ -1029,6 +1034,7 @@ const budgetLineCreateBaseSchema = z.strictObject({
   budgetId: z.uuid(),
   templateLineId: z.uuid().nullable().optional(),
   savingsGoalId: z.uuid().nullable().optional(),
+  assetId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -1169,6 +1175,7 @@ export const budgetLineSpreadCreateSchema = z
     name: z.string().min(1).max(100).trim(),
     kind: transactionKindSchema.exclude(['income']),
     savingsGoalId: z.uuid().nullable().optional(),
+    assetId: z.uuid().nullable().optional(),
     mode: z.enum(['perMonth', 'total']),
     months: z
       .array(spreadFromExistingPeriodSchema)
@@ -1995,6 +2002,10 @@ export const templateLineSchema = z.object({
   // Link to a savings goal (PUL-12). Lives on the model so a recurring saving
   // line stays tagged across monthly regenerations.
   savingsGoalId: z.uuid().nullable(),
+  // Link to an asset or a debt, independent from the goal. Copied onto the
+  // budget lines like the goal link. Missing from a response means no link: an
+  // older backend omits it while it deploys.
+  assetId: z.uuid().nullable().default(null),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
@@ -2015,6 +2026,7 @@ export type TemplateLine = z.infer<typeof templateLineSchema>;
 export const templateLineCreateSchema = z.strictObject({
   templateId: z.uuid(),
   savingsGoalId: z.uuid().nullable().optional(),
+  assetId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -2037,6 +2049,7 @@ export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 // Template line create without templateId (for batch creation)
 export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
   savingsGoalId: z.uuid().nullable().optional(),
+  assetId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -2088,6 +2101,7 @@ export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
 // Template line update schema
 export const templateLineUpdateSchema = z.strictObject({
   savingsGoalId: z.uuid().nullable().optional(),
+  assetId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
@@ -3046,4 +3060,163 @@ export const mcpActivityListResponseSchema =
   createListResponse(mcpActivitySchema);
 export type McpActivityListResponse = z.infer<
   typeof mcpActivityListResponseSchema
+>;
+
+// ---------------------------------------------------------------------------
+// Net worth: « Mon patrimoine » (PUL-366)
+// ---------------------------------------------------------------------------
+
+/** `own` = ce que j'ai ; `owe` = ce que je dois, valorisé par le reste dû. */
+export const assetDirectionSchema = z.enum(['own', 'owe']);
+export type AssetDirection = z.infer<typeof assetDirectionSchema>;
+
+// trim AVANT min/max (cf. tagSchema) ; les bornes sont celles des CHECK de la table
+const assetCategoryNameSchema = z.string().trim().min(1).max(30);
+const assetNameSchema = z.string().trim().min(1).max(100);
+// Signée : un compte `own` peut être à découvert. Le signe admis par sens
+// (`owe` ≥ 0) est vérifié côté backend, où le sens de l'avoir est connu.
+const assetValueSchema = z.number();
+
+export const assetCategoryRecordSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+});
+export type AssetCategoryRecord = z.infer<typeof assetCategoryRecordSchema>;
+
+/** Catégorie telle que lue sur la page : `total` en devise de base. */
+export const assetCategorySchema = assetCategoryRecordSchema.extend({
+  total: z.number(),
+});
+export type AssetCategory = z.infer<typeof assetCategorySchema>;
+
+/** Un avoir sans aucun montant : ce que renvoient les écritures. */
+export const assetRecordSchema = z.object({
+  id: z.uuid(),
+  categoryId: z.uuid(),
+  name: z.string(),
+  currency: supportedCurrencySchema,
+  direction: assetDirectionSchema,
+  inPulpe: z.boolean(),
+  archivedAt: z.iso.datetime({ offset: true }).nullable(),
+});
+export type AssetRecord = z.infer<typeof assetRecordSchema>;
+
+/**
+ * Valeur que proposent les Prévisions pointées depuis la dernière photo de
+ * l'avoir (ou depuis le dernier « Écarter »). Les deux montants sont dans la
+ * devise de l'avoir ; `delta` est signé (une dette qui se rembourse baisse).
+ */
+export const assetSuggestionSchema = z.object({
+  delta: z.number(),
+  proposedValue: z.number(),
+});
+export type AssetSuggestion = z.infer<typeof assetSuggestionSchema>;
+
+/**
+ * Avoir tel que lu sur la page. `latestValue` est dans la devise de l'avoir ;
+ * `convertedValue` est en devise de base au taux du jour, `null` quand aucun
+ * taux n'est disponible (l'avoir est alors hors des totaux). `suggestion` est
+ * `null` quand rien ne la justifie (avoir archivé, aucun taux, rien de pointé).
+ */
+export const assetSchema = assetRecordSchema.extend({
+  latestValue: z.number(),
+  latestRecordedAt: z.iso.datetime({ offset: true }),
+  convertedValue: z.number().nullable(),
+  suggestion: assetSuggestionSchema.nullable(),
+});
+export type Asset = z.infer<typeof assetSchema>;
+
+/**
+ * Totaux en devise de base. `debts` est une magnitude positive : les avoirs
+ * `owe` et les avoirs `own` à découvert. `net = gross - debts`, négatif possible.
+ * `incomplete` : un avoir actif n'a pas pu être converti et reste hors totaux.
+ */
+export const netWorthTotalsSchema = z.object({
+  baseCurrency: supportedCurrencySchema,
+  gross: z.number(),
+  debts: z.number(),
+  net: z.number(),
+  incomplete: z.boolean(),
+});
+export type NetWorthTotals = z.infer<typeof netWorthTotalsSchema>;
+
+export const netWorthSchema = z.object({
+  totals: netWorthTotalsSchema,
+  categories: z.array(assetCategorySchema),
+  assets: z.array(assetSchema),
+});
+export type NetWorth = z.infer<typeof netWorthSchema>;
+
+export const assetCreateSchema = z.strictObject({
+  name: assetNameSchema,
+  categoryId: z.uuid(),
+  currency: supportedCurrencySchema,
+  direction: assetDirectionSchema,
+  inPulpe: z.boolean().default(false),
+  /** Première photo de l'avoir. */
+  value: assetValueSchema,
+});
+export type AssetCreate = z.infer<typeof assetCreateSchema>;
+
+/** La devise et le sens sont figés à la création. */
+export const assetUpdateSchema = z
+  .strictObject({
+    name: assetNameSchema.optional(),
+    categoryId: z.uuid().optional(),
+    inPulpe: z.boolean().optional(),
+    archived: z.boolean().optional(),
+  })
+  // Un patch vide ne touche aucune ligne : l'API répondrait « avoir introuvable ».
+  .refine((patch) => Object.keys(patch).length > 0, {
+    error: 'Au moins un champ à modifier est requis.',
+  });
+export type AssetUpdate = z.infer<typeof assetUpdateSchema>;
+
+export const assetSnapshotsCreateSchema = z.strictObject({
+  items: z
+    .array(z.strictObject({ assetId: z.uuid(), value: assetValueSchema }))
+    .min(1)
+    // Deux photos d'un même avoir dans un lot auraient la même date : laquelle
+    // est la dernière ?
+    .refine(
+      (items) =>
+        new Set(items.map((item) => item.assetId)).size === items.length,
+      { error: 'Un avoir ne peut apparaître qu’une fois dans le lot.' },
+    ),
+});
+export type AssetSnapshotsCreate = z.infer<typeof assetSnapshotsCreateSchema>;
+
+export const assetCategoryCreateSchema = z.strictObject({
+  name: assetCategoryNameSchema,
+});
+export type AssetCategoryCreate = z.infer<typeof assetCategoryCreateSchema>;
+
+export const assetCategoryUpdateSchema = assetCategoryCreateSchema;
+export type AssetCategoryUpdate = z.infer<typeof assetCategoryUpdateSchema>;
+
+export const netWorthResponseSchema = createSuccessResponse(netWorthSchema);
+export type NetWorthResponse = z.infer<typeof netWorthResponseSchema>;
+
+export const assetResponseSchema = createSuccessResponse(assetRecordSchema);
+export type AssetResponse = z.infer<typeof assetResponseSchema>;
+
+export const assetDeleteResponseSchema = deleteResponseSchema;
+export type AssetDeleteResponse = z.infer<typeof assetDeleteResponseSchema>;
+
+/** `recordedAt` est partagée par toutes les photos du lot. */
+export const assetSnapshotsResponseSchema = createSuccessResponse(
+  z.object({ recordedAt: z.iso.datetime({ offset: true }) }),
+);
+export type AssetSnapshotsResponse = z.infer<
+  typeof assetSnapshotsResponseSchema
+>;
+
+export const assetCategoryResponseSchema = createSuccessResponse(
+  assetCategoryRecordSchema,
+);
+export type AssetCategoryResponse = z.infer<typeof assetCategoryResponseSchema>;
+
+export const assetCategoryDeleteResponseSchema = deleteResponseSchema;
+export type AssetCategoryDeleteResponse = z.infer<
+  typeof assetCategoryDeleteResponseSchema
 >;

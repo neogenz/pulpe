@@ -200,6 +200,7 @@ const existingLine = {
   kind: "expense",
   recurrence: "fixed",
   savingsGoalId: null,
+  assetId: "asset-1",
 } as TemplateLine;
 
 beforeEach(() => {

@@ -46,7 +46,10 @@
     "budgetsTooltip": "Plan all your months",
     "templatesTooltip": "Prepare your monthly basics",
     "savingsGoalsTooltip": "Follow your savings goals",
-    "designSystem": "Design System"
+    "designSystem": "Design System",
+    "netWorth": "My net worth",
+    "netWorthShort": "Net worth",
+    "netWorthTooltip": "Track what you have and what you owe"
   },
   "productTour": {
     "controls": {
@@ -757,7 +760,8 @@
       "label": "Where the income comes from",
       "regular": "Usual income",
       "savingsGoal": "Taken from a goal",
-      "repayNextMonth": "Taken from my savings, to put back next month"
+      "repayNextMonth": "Taken from my savings, to put back next month",
+      "asset": "Taken from my net worth"
     },
     "savingsGoalSource": {
       "activeLabel": "Taken from",
@@ -1149,7 +1153,9 @@
         "removeNumbered": "Remove account {{ index }}",
         "total": "Total of your accounts",
         "numbered": "Account {{ index }}",
-        "privateHint": "The accounts you enter are not saved."
+        "privateHint": "The accounts you enter are not saved.",
+        "lastBalance": "Last balance: {{ amount }}, {{ when }}",
+        "linkedHint": "I keep the balance of your “In Pulpe” accounts in My net worth. The other rows are not saved."
       },
       "realized": {
         "heading": "Your checked balance",
@@ -1181,6 +1187,7 @@
       },
       "cancel": "Cancel",
       "compare": "See the difference",
+      "balancesNotSaved": "Matching done, but I couldn't save your balances in My net worth.",
       "steps": {
         "accounts": "Accounts",
         "realized": "Checked",
@@ -1441,6 +1448,118 @@
       "discardTitle": "Drop your tweaks?",
       "discardMessage": "Your tweaks won't be saved.",
       "discard": "Drop them"
+    }
+  },
+  "netWorth": {
+    "addButton": "Add",
+    "categoriesButton": "Categories",
+    "loadError": "Couldn't load your net worth — try again",
+    "emptyTitle": "Your net worth starts here",
+    "emptyMessage": "Add an account, a savings book or a debt to see today's net worth.",
+    "emptyAction": "Add my first account",
+    "heroTitle": "My net worth",
+    "heroSubtitle": "What I have minus what I owe, as of {{date}}",
+    "gross": "What I have",
+    "debts": "What I owe",
+    "fxNote": "{{asset}} converted at today's rate: 1 {{foreign}} = {{rate}} {{base}}",
+    "negativeNote": "What I owe is more than what I have today. Every checked repayment brings this figure closer to zero.",
+    "incompleteNotice": "I don't have today's {{currency}} rate: the total leaves out {{assets}}. It comes back as soon as the rate is available.",
+    "excluded": "Not in total",
+    "inPulpe": "In Pulpe",
+    "overdraft": "Overdrawn",
+    "updated": "Updated {{when}}",
+    "updatedDebt": "{{category}} · updated {{when}}",
+    "showArchived": "Show archived ({{count}})",
+    "hideArchived": "Hide archived",
+    "archivedTitle": "Archived",
+    "sankey": {
+      "title": "Breakdown today",
+      "subtitle": "From what I have to my net worth",
+      "subtitleDebts": "From what I have to what I owe",
+      "net": "Net worth",
+      "shortfall": "Missing",
+      "mobileHint": "Drag to see all the way to your net worth",
+      "mobileHintDebts": "Drag to see all the way to what you owe",
+      "ariaNet": "Breakdown of what I have: gross worth {{gross}}, split between {{debts}} owed and {{net}} of net worth.",
+      "ariaDebts": "What I have, {{gross}}, set against {{debts}} owed."
+    },
+    "menu": {
+      "actions": "Actions for {{name}}",
+      "updateValue": "Update value",
+      "edit": "Edit",
+      "archive": "Archive",
+      "unarchive": "Unarchive",
+      "delete": "Delete"
+    },
+    "deleteTitle": "Delete {{name}}?",
+    "deleteMessage": "Its whole history of values is deleted too. Archive it instead to take it out of the totals and keep the history.",
+    "form": {
+      "createTitle": "Add to my net worth",
+      "editTitle": "Edit {{name}}",
+      "name": "Name",
+      "direction": "Type",
+      "own": "What I have",
+      "owe": "What I owe",
+      "category": "Category",
+      "myCategories": "My categories",
+      "suggestions": "Suggestions",
+      "newTag": "New",
+      "newCategoryHint": "New category: I create it when you save.",
+      "currency": "Currency",
+      "value": "Current value",
+      "inPulpe": "In Pulpe",
+      "inPulpeHint": "For the account you check in your budget. I pre-fill it when you match your accounts.",
+      "readOnlyHint": "The type and the currency stay as they were at creation.",
+      "editNote": "To change its value, use “Update value” in the row menu.",
+      "nameRequired": "Give it a name",
+      "add": "Add"
+    },
+    "value": {
+      "title": "Update value",
+      "subtitleOwn": "{{name}} · what I have today",
+      "subtitleOwe": "{{name}} · what I owe today",
+      "label": "New value",
+      "lastValue": "Last value: {{amount}}, on {{date}}",
+      "overdraft": "Negative balance (overdraft)"
+    },
+    "categoriesDialog": {
+      "title": "My categories",
+      "description": "They sort your accounts, savings and debts on the page.",
+      "empty": "No category yet: they get created when you add an account, or here.",
+      "rename": "Rename {{name}}",
+      "delete": "Delete {{name}}",
+      "nameLabel": "Category name",
+      "saveName": "Save name",
+      "cancelRename": "Cancel renaming",
+      "newLabel": "New category",
+      "newPlaceholder": "E.g. Crypto",
+      "add": "Add",
+      "notEmpty": "First move {{names}} to another category."
+    },
+    "link": {
+      "none": "None",
+      "ownLabel": "Saved to",
+      "oweLabel": "Debt repaid",
+      "oweHint": "Once checked, I'll suggest lowering what's still owed on {{debt}}.",
+      "drawnLabel": "Drawn from",
+      "drawnHint": "Once checked, I'll suggest lowering the value of {{asset}}.",
+      "drawnFrom": "Taken from"
+    },
+    "suggestion": {
+      "proposes": "I suggest",
+      "detailSaved": "{{amount}} of checked savings since the last value",
+      "detailDrawn": "{{amount}} of income drawn since the last value",
+      "detailRepaid": "{{amount}} of checked repayment since the last value",
+      "dismiss": "Dismiss",
+      "apply": "Apply"
+    },
+    "starter": {
+      "accounts": "Accounts",
+      "savings": "Savings",
+      "investments": "Investments",
+      "cash": "Cash",
+      "valuables": "Valuables",
+      "property": "Property"
     }
   },
   "completeProfile": {
@@ -1931,7 +2050,8 @@
     "designSystem": "Design System",
     "maintenance": "Maintenance",
     "mcpConsent": "Connect an AI assistant",
-    "settingsConnections": "Connections"
+    "settingsConnections": "Connections",
+    "netWorth": "My net worth"
   },
   "authError": {
     "generic": "Something didn't work — try again",
@@ -2029,7 +2149,16 @@
     "transactionImportInvalid": "The statement has errors — nothing was imported, run the preview again to see them",
     "transactionImportConflict": "Some entries were imported in the meantime — nothing was created, run the preview again",
     "transactionImportFailed": "Nothing was created, try again",
-    "transactionImportRecalculationFailed": "The entries were imported, but the balances couldn't be refreshed — reload the page without importing the file again"
+    "transactionImportRecalculationFailed": "The entries were imported, but the balances couldn't be refreshed — reload the page without importing the file again",
+    "assetNotFound": "This item was not found — it may already be deleted",
+    "assetCategoryNotFound": "This category was not found — it may already be deleted",
+    "assetCategoryNotEmpty": "This category still holds items — move them to another category first",
+    "assetCategoryDuplicate": "A category already has this name",
+    "assetValueInvalid": "This value isn't valid — a debt can't be negative",
+    "assetFetchFailed": "Couldn't load your net worth — try again",
+    "assetCreateFailed": "Couldn't add it — try again",
+    "assetUpdateFailed": "Couldn't save the change — try again",
+    "assetDeleteFailed": "Couldn't delete it — try again"
   },
   "logout": {
     "inProgress": "Signing out...",

@@ -11,6 +11,7 @@ const validItem = {
   kind: 'expense',
   recurrence: 'one_off',
   savings_goal_id: null,
+  asset_id: null,
   original_amount: null,
   original_currency: null,
   target_currency: null,
@@ -29,6 +30,22 @@ describe('createBudgetLineSpreadItemSchema', () => {
       createBudgetLineSpreadItemSchema.parse({
         ...validItem,
         spread_group_id: '123e4567-e89b-12d3-a456-426614174000',
+      }),
+    ).toThrow();
+  });
+
+  it('accepts an asset id and rejects one that is not a uuid', () => {
+    const assetId = '123e4567-e89b-12d3-a456-426614174001';
+    expect(
+      createBudgetLineSpreadItemSchema.parse({
+        ...validItem,
+        asset_id: assetId,
+      }).asset_id,
+    ).toBe(assetId);
+    expect(() =>
+      createBudgetLineSpreadItemSchema.parse({
+        ...validItem,
+        asset_id: 'nope',
       }),
     ).toThrow();
   });

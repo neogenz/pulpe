@@ -107,6 +107,7 @@ describe('budgetLineSchema source states', () => {
     budgetId: BUDGET_ID,
     templateLineId: null,
     savingsGoalId: null,
+    assetId: null,
     name: 'Retrait vacances',
     amount: 500,
     kind: 'income',

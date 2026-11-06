@@ -36,6 +36,7 @@ const makeLine = (
   budgetId: input.budgetId,
   templateLineId: null,
   savingsGoalId: null,
+  assetId: null,
   spreadGroupId: null,
   savingsWithdrawalGroupId: groupId,
   sourceSavingsGoalId: null,

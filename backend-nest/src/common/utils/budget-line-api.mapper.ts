@@ -9,6 +9,7 @@ export interface BudgetLineApiSource {
   budgetId: string;
   templateLineId: string | null;
   savingsGoalId: string | null;
+  assetId: string | null;
   spreadGroupId: string | null;
   savingsWithdrawalGroupId: string | null;
   /**
@@ -59,6 +60,7 @@ export function mapBudgetLineToApi(entity: BudgetLineApiSource): BudgetLineApi {
     budgetId: entity.budgetId,
     templateLineId: entity.templateLineId,
     savingsGoalId: entity.savingsGoalId,
+    assetId: entity.assetId,
     spreadGroupId: entity.spreadGroupId,
     savingsWithdrawalGroupId: entity.savingsWithdrawalGroupId,
     sourceSavingsGoalId: entity.sourceSavingsGoalId ?? null,

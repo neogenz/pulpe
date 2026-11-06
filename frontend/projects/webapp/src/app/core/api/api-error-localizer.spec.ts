@@ -182,6 +182,24 @@ describe('ApiErrorLocalizer', () => {
     expect(service.localizeApiError(error)).toBe(text);
   });
 
+  it.each([
+    [
+      'ERR_ASSET_CATEGORY_NOT_EMPTY',
+      409,
+      "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie",
+    ],
+    ['ERR_ASSET_CATEGORY_DUPLICATE', 409, 'Une catégorie porte déjà ce nom'],
+    [
+      'ERR_ASSET_VALUE_INVALID',
+      422,
+      "Cette valeur n'est pas valide — une dette ne peut pas être négative",
+    ],
+    ['ERR_ASSET_UPDATE_FAILED', 500, 'La modification a échoué — réessaie'],
+  ])('should localize the net worth error %s', (code, status, text) => {
+    const error = new ApiError('Refused', code, status, null);
+    expect(service.localizeApiError(error)).toBe(text);
+  });
+
   it('should localize auth-related API errors', () => {
     const unauthorized = new ApiError(
       'Unauthorized',

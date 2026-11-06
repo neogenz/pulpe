@@ -207,11 +207,15 @@ export class PostHogService implements OnDestroy {
    * Returns true when the given feature flag is enabled for the current user.
    * Safe default: returns false before PostHog initializes or if the flag is
    * missing. Pair with `flagsVersion` signal in computeds for reactive gating.
+   *
+   * Flags still evaluate with diagnostics off, so a feature rolled out to
+   * everyone reaches every user. The person is then anonymous: a condition on a
+   * person property cannot match them.
    */
   isFeatureEnabled(key: string): boolean {
     const overrides = this.#readFlagOverrides();
     if (overrides && key in overrides) return overrides[key] === true;
-    if (!this.#isInitialized() || !this.#diagnosticSharingEnabled()) {
+    if (!this.#isInitialized()) {
       return false;
     }
     return this.#posthog?.isFeatureEnabled(key) === true;
@@ -251,6 +255,8 @@ export class PostHogService implements OnDestroy {
         });
         this.#posthog?.reset(true);
         this.#posthog?.opt_out_capturing();
+        // `reset` drops the flags; read them again for the anonymous person.
+        this.#posthog?.reloadFeatureFlags();
         this.#diagnosticSharingEnabled.set(false);
         this.#isTrackingEnabled = false;
       }

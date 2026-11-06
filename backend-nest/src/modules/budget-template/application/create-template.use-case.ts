@@ -77,6 +77,7 @@ export class CreateTemplateUseCase {
   ): TemplateLineRpcInput {
     return {
       savingsGoalId: savingsGoalIdForKind(line.kind, line.savingsGoalId),
+      assetId: line.assetId,
       tagIds: line.tagIds ?? [],
       name: line.name,
       amount: line.amount,

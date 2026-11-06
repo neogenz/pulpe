@@ -385,6 +385,86 @@ describe('Encryption integration (local Supabase)', () => {
     }
   });
 
+  it('rekeys asset snapshots atomically with the new key check', async () => {
+    if (!hasSupabase) return;
+
+    const { id: userId } = await createTestUser(adminClient);
+    const categoryId = randomUUID();
+    const assetId = randomUUID();
+    const snapshotIds = [randomUUID(), randomUUID()];
+
+    try {
+      const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
+      const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
+      const { dek: oldDek } = await initializeTestVault(userId, oldClientKey);
+
+      await adminClient
+        .from('asset_category')
+        .insert({ id: categoryId, user_id: userId, name: 'Prêts' })
+        .throwOnError();
+      await adminClient
+        .from('asset')
+        .insert({
+          id: assetId,
+          user_id: userId,
+          category_id: categoryId,
+          name: 'Crédit voiture',
+          currency: 'CHF',
+          direction: 'owe',
+        })
+        .throwOnError();
+      await adminClient
+        .from('asset_snapshot')
+        .insert([
+          {
+            id: snapshotIds[0]!,
+            user_id: userId,
+            asset_id: assetId,
+            value: encryptionService.encryptAmount(12_000, oldDek),
+            recorded_at: '2026-10-01T00:00:00Z',
+          },
+          {
+            id: snapshotIds[1]!,
+            user_id: userId,
+            asset_id: assetId,
+            value: encryptionService.encryptAmount(-250.75, oldDek),
+            recorded_at: '2026-11-01T00:00:00Z',
+          },
+        ])
+        .throwOnError();
+
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
+      const keyCheck = await encryptionService.reEncryptAllUserData(
+        userId,
+        oldDek,
+        newDek,
+        adminClient,
+      );
+
+      const { data: snapshots } = await adminClient
+        .from('asset_snapshot')
+        .select('id, value')
+        .eq('asset_id', assetId)
+        .order('recorded_at', { ascending: true })
+        .throwOnError();
+      expect(snapshots?.map((row) => row.id)).toEqual(snapshotIds);
+      expect(
+        snapshots?.map((row) =>
+          encryptionService.decryptAmount(row.value, newDek),
+        ),
+      ).toEqual([12_000, -250.75]);
+
+      const keyState = await getUserEncryptionKeyState(adminClient, userId);
+      expect(keyState.key_check).toBe(keyCheck);
+    } finally {
+      await adminClient
+        .from('user_encryption_key')
+        .delete()
+        .eq('user_id', userId);
+      await adminClient.auth.admin.deleteUser(userId);
+    }
+  });
+
   it('fails strictly and leaves data unchanged when encrypted payload does not match old key', async () => {
     if (!hasSupabase) return;
 

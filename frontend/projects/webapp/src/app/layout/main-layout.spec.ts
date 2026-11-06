@@ -25,8 +25,11 @@ import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { Subject, EMPTY } from 'rxjs';
+import { FEATURE_FLAGS } from 'pulpe-shared';
 import { HttpClient } from '@angular/common/http';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
+import { PostHogService } from '../core/analytics/posthog';
 import MainLayout from './main-layout';
 import { AuthStore } from '../core/auth/auth-store';
 import { AuthSessionService } from '../core/auth/auth-session.service';
@@ -163,6 +166,7 @@ describe('MainLayout', () => {
     claimAutomaticPrompt: ReturnType<typeof vi.fn>;
   };
   let breakpointSubject: Subject<{ matches: boolean }>;
+  let mockPostHog: ReturnType<typeof createMockPostHogService>;
 
   afterEach(() => {
     fixture?.destroy();
@@ -170,6 +174,8 @@ describe('MainLayout', () => {
 
   beforeEach(async () => {
     TestBed.resetTestingModule();
+
+    mockPostHog = createMockPostHogService();
 
     // Create observables for breakpoint changes
     breakpointSubject = new Subject<{ matches: boolean }>();
@@ -289,6 +295,7 @@ describe('MainLayout', () => {
           useValue: { isLoading: signal(false) },
         },
         { provide: FeedbackPrompt, useValue: mockFeedbackPrompt },
+        { provide: PostHogService, useValue: mockPostHog },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     });
@@ -409,6 +416,48 @@ describe('MainLayout', () => {
           '[data-testid="menu-toggle"][data-tour="navigation"]',
         ),
       ).toBeTruthy();
+    });
+  });
+
+  describe('net worth navigation entry', () => {
+    const desktopLabels = (): string[] =>
+      Array.from(
+        fixture.nativeElement.querySelectorAll(
+          '[data-testid="desktop-navigation"] a',
+        ) as NodeListOf<HTMLElement>,
+      ).map((link) => link.textContent?.trim() ?? '');
+
+    it('shows « Patrimoine » after the savings goals entry when the flag is on', () => {
+      mockPostHog.isFeatureEnabled.mockImplementation(
+        (key: string) => key === FEATURE_FLAGS.NET_WORTH,
+      );
+      fixture.detectChanges();
+
+      const labels = desktopLabels();
+      const savingsGoals = labels.findIndex((label) =>
+        label.includes('Objectifs'),
+      );
+      expect(savingsGoals).toBeGreaterThanOrEqual(0);
+      expect(labels[savingsGoals + 1]).toContain('Patrimoine');
+    });
+
+    it('hides the entry when the flag is off', () => {
+      fixture.detectChanges();
+
+      expect(
+        desktopLabels().some((label) => label.includes('Patrimoine')),
+      ).toBe(false);
+    });
+
+    it('shows the entry once PostHog resolves the flag', () => {
+      fixture.detectChanges();
+      mockPostHog.isFeatureEnabled.mockReturnValue(true);
+      mockPostHog.flagsVersion.update((version) => version + 1);
+      fixture.detectChanges();
+
+      expect(
+        desktopLabels().some((label) => label.includes('Patrimoine')),
+      ).toBe(true);
     });
   });
 

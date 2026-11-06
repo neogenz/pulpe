@@ -132,6 +132,7 @@ export function withRolloverLine(
     budgetId: budget.id,
     templateLineId: null,
     savingsGoalId: null,
+    assetId: null,
     name: ROLLOVER_LINE_NAME,
     amount: Math.abs(rollover),
     kind: rollover >= 0 ? "income" : "expense",

@@ -17,6 +17,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FormField, form, minLength, required } from '@angular/forms/signals';
 import {
+  FEATURE_FLAGS,
   type BudgetLine,
   type BudgetLineUpdate,
   type BudgetPeriod,
@@ -35,11 +36,17 @@ import {
   runFormSubmit,
   StaleRateNotifier,
 } from '@core/currency';
+import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
+import {
+  assetDirectionForKind,
+  injectNetWorthResource,
+} from '@core/asset/net-worth';
+import { AssetPickerField } from '@app/pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { budgetLineUpdateFromFormSchema } from './dialog.schema';
@@ -57,6 +64,7 @@ interface EditBudgetLineModel {
   recurrence: TransactionRecurrence;
   tagIds: string[];
   savingsGoalId: string | null;
+  assetId: string | null;
 }
 
 @Component({
@@ -75,6 +83,7 @@ interface EditBudgetLineModel {
     AmountInput,
     TagPicker,
     SavingsGoalPickerField,
+    AssetPickerField,
     SavingsGoalSourceLine,
   ],
   host: { 'data-testid': 'edit-budget-line-dialog' },
@@ -123,6 +132,7 @@ interface EditBudgetLineModel {
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select
               [formField]="editForm.kind"
+              (selectionChange)="onKindChange()"
               data-testid="edit-line-kind"
             >
               <mat-option value="income">
@@ -161,6 +171,13 @@ interface EditBudgetLineModel {
               "
             />
           }
+          @if (assetDirection(); as direction) {
+            <pulpe-asset-picker-field
+              [direction]="direction"
+              [value]="model().assetId"
+              (valueChanged)="model.update((m) => ({ ...m, assetId: $event }))"
+            />
+          }
           <!--
             L'origine est en lecture seule : aucune API ne déplace un retrait
             d'un objectif à un autre. Un second sélecteur laisserait croire
@@ -172,6 +189,26 @@ interface EditBudgetLineModel {
               [goalId]="sourceSavingsGoalId"
               [goalName]="sourceSavingsGoalName"
             />
+          }
+          <!--
+            Même règle pour un revenu tiré du patrimoine : son origine se fixe
+            à la création, aucune API ne la déplace.
+          -->
+          @if (originAssetName(); as assetName) {
+            <span
+              class="inline-flex items-center gap-1 min-w-0 text-on-surface-variant"
+              data-testid="asset-origin-line"
+            >
+              <mat-icon
+                class="text-sm! shrink-0 h-auto! w-auto!"
+                aria-hidden="true"
+                >account_balance_wallet</mat-icon
+              >
+              <span>
+                {{ 'netWorth.link.drawnFrom' | transloco }}
+                · <span class="ph-no-capture">{{ assetName }}</span>
+              </span>
+            </span>
           }
         </div>
       </div>
@@ -207,6 +244,9 @@ export class EditBudgetLineDialog {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #isAssetLinkEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
 
   protected readonly originalCurrency =
     this.#data.budgetLine.originalCurrency ?? null;
@@ -232,6 +272,7 @@ export class EditBudgetLineDialog {
     recurrence: this.#data.budgetLine.recurrence,
     tagIds: this.#data.budgetLine.tagIds ?? [],
     savingsGoalId: this.#data.budgetLine.savingsGoalId,
+    assetId: this.#data.budgetLine.assetId,
   });
 
   protected readonly editForm = form(this.model, (path) => {
@@ -247,6 +288,39 @@ export class EditBudgetLineDialog {
   protected readonly canSubmit = computed(
     () => this.editForm().valid() && !this.isSubmitting(),
   );
+
+  // Which assets the kind can be linked to; null hides the field (flag off, or
+  // a Revenu: its asset origin is read-only here).
+  protected readonly assetDirection = computed(() =>
+    this.#isAssetLinkEnabled ? assetDirectionForKind(this.model().kind) : null,
+  );
+
+  // The origin line only names a link the Revenu already had on opening, so the
+  // net-worth read (same cached one as the picker) is made for that case alone.
+  readonly #netWorth =
+    this.#isAssetLinkEnabled &&
+    this.#data.budgetLine.kind === 'income' &&
+    this.#data.budgetLine.assetId
+      ? injectNetWorthResource()
+      : null;
+  protected readonly originAssetName = computed(() => {
+    const { kind, assetId } = this.model();
+    if (kind !== 'income') return null;
+    return (
+      this.#netWorth?.value()?.assets.find((asset) => asset.id === assetId)
+        ?.name ?? null
+    );
+  });
+
+  // Épargne and Dépense list different assets: a pick never survives the switch,
+  // but coming back to the original kind gives the line its own link back.
+  protected onKindChange(): void {
+    const { kind, assetId } = this.#data.budgetLine;
+    this.model.update((model) => ({
+      ...model,
+      assetId: model.kind === kind ? assetId : null,
+    }));
+  }
 
   protected readonly nameErrors = touchedFieldErrors(
     () => this.editForm.name,
@@ -289,6 +363,7 @@ export class EditBudgetLineDialog {
               recurrence: m.recurrence,
               tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
+              assetId: this.#isAssetLinkEnabled ? m.assetId : undefined,
               conversion: metadata,
             });
             return {

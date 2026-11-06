@@ -55,6 +55,7 @@ vi.mock('posthog-js', () => {
       register: vi.fn(),
       set_config: vi.fn(),
       onFeatureFlags: vi.fn(),
+      reloadFeatureFlags: vi.fn(),
       isFeatureEnabled: vi.fn(() => false),
       setPersonProperties: vi.fn(),
     },
@@ -645,6 +646,18 @@ describe('PostHogService', () => {
     expect(posthog.capture).not.toHaveBeenCalledWith(
       ANALYTICS_EVENTS.TAB_SWITCHED,
     );
+  });
+
+  it('keeps evaluating feature flags for the anonymous person after opting out', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    await service.initialize();
+
+    service.setDiagnosticSharingEnabled(false);
+    vi.mocked(posthog.isFeatureEnabled).mockReturnValue(true);
+
+    expect(posthog.reloadFeatureFlags).toHaveBeenCalledTimes(1);
+    expect(service.isFeatureEnabled('net_worth')).toBe(true);
   });
 
   it('opts back in without emitting a consent event', async () => {

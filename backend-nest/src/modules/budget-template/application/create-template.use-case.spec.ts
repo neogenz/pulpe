@@ -116,6 +116,33 @@ describe('CreateTemplateUseCase', () => {
     );
   });
 
+  it('should forward the asset link on inline lines', async () => {
+    const assetId = '33333333-3333-4333-8333-333333333333';
+
+    await useCase.execute(
+      {
+        ...baseDto,
+        lines: [
+          {
+            name: 'Prêt auto',
+            amount: 300,
+            kind: 'expense',
+            recurrence: 'fixed',
+            description: '',
+            assetId,
+          },
+        ],
+      },
+      mockUser,
+    );
+
+    expect(mockRepo.createTemplateWithLines).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lines: [expect.objectContaining({ assetId })],
+      }),
+    );
+  });
+
   it('should throw TEMPLATE_LIMIT_EXCEEDED when fast-path count is at the limit', async () => {
     mockRepo.countForUser.mockResolvedValueOnce(5);
 

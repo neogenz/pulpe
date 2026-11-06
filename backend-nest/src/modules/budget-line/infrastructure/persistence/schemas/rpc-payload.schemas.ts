@@ -26,6 +26,7 @@ export const createBudgetLineSpreadItemSchema = z
     kind: transactionKindSchema,
     recurrence: transactionRecurrenceSchema,
     savings_goal_id: z.string().uuid().nullable(),
+    asset_id: z.string().uuid().nullable(),
     original_amount: z.string().min(1).nullable(),
     original_currency: supportedCurrencySchema.nullable(),
     target_currency: supportedCurrencySchema.nullable(),

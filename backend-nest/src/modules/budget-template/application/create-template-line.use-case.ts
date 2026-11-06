@@ -40,6 +40,7 @@ export class CreateTemplateLineUseCase {
         validated.kind,
         validated.savingsGoalId,
       ),
+      assetId: validated.assetId,
       name: validated.name,
       amount: validated.amount,
       originalAmount: validated.originalAmount,

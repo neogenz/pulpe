@@ -25,6 +25,7 @@ function makeBudgetLine(overrides: Partial<BudgetLine> = {}): BudgetLine {
     budgetId: 'budget-1',
     templateLineId: null,
     savingsGoalId: null,
+    assetId: null,
     name: 'Courses',
     amount: 408,
     kind: 'expense',

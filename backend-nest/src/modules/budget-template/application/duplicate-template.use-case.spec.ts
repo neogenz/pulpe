@@ -32,6 +32,7 @@ const line = (overrides: Partial<TemplateLine>): TemplateLine => ({
   id: 'line-1',
   templateId: 'source-1',
   savingsGoalId: null,
+  assetId: null,
   name: 'Loyer',
   amount: 1500,
   originalAmount: null,
@@ -81,6 +82,7 @@ describe('DuplicateTemplateUseCase', () => {
   it('copies every line exactly, tags and FX metadata included, under the new name and never as the default', async () => {
     const tagId = '22222222-2222-4222-8222-222222222222';
     const goalId = '11111111-1111-4111-8111-111111111111';
+    const debtId = '33333333-3333-4333-8333-333333333333';
     mockRepo.findLinesByTemplateId
       .mockResolvedValueOnce([
         line({
@@ -95,7 +97,7 @@ describe('DuplicateTemplateUseCase', () => {
           amount: 93,
           description: 'Voyage',
         }),
-        line({ id: 'line-2', description: null }),
+        line({ id: 'line-2', description: null, assetId: debtId }),
       ])
       .mockResolvedValueOnce([line({ templateId: 'copy-1' })]);
 
@@ -113,6 +115,7 @@ describe('DuplicateTemplateUseCase', () => {
           kind: 'saving',
           recurrence: 'fixed',
           savingsGoalId: goalId,
+          assetId: null,
           tagIds: [tagId],
           description: 'Voyage',
           originalAmount: 100,
@@ -126,6 +129,7 @@ describe('DuplicateTemplateUseCase', () => {
           kind: 'expense',
           recurrence: 'fixed',
           savingsGoalId: null,
+          assetId: debtId,
           tagIds: [],
           description: '',
           originalAmount: null,

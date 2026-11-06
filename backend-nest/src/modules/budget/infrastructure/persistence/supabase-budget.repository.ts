@@ -1069,6 +1069,7 @@ export class SupabaseBudgetRepository
       budgetId: decrypted.budget_id,
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
+      assetId: decrypted.asset_id,
       spreadGroupId: decrypted.spread_group_id ?? null,
       savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id ?? null,
       sourceSavingsGoalId: decrypted.source_savings_goal_id,
