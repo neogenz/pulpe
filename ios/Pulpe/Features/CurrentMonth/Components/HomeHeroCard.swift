@@ -17,6 +17,8 @@ struct HomeHeroCard: View {
     /// The first month of an account with nothing recorded: no plot to read yet, and the
     /// sentence invites instead of judging.
     var startsFresh = false
+    /// Hides or shows every amount: the eye sits beside the figure it hides.
+    var onToggleAmounts: (() -> Void)?
     var onTapCalculation: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -89,6 +91,9 @@ struct HomeHeroCard: View {
                 .foregroundStyle(Color.textSecondary)
                 .lineLimit(2)
                 .minimumScaleFactor(DesignTokens.TextScale.compact)
+            if let onToggleAmounts, scrubReading == nil {
+                amountsToggle(onToggleAmounts)
+            }
             Spacer(minLength: DesignTokens.Spacing.sm)
             Button {
                 tapTrigger.toggle()
@@ -110,6 +115,23 @@ struct HomeHeroCard: View {
             .accessibilityHint("Ouvrir le détail du calcul")
             .accessibilityIdentifier("homeHeroMetrics")
         }
+    }
+
+    /// The action, like the password field: a slashed eye while the amounts show.
+    private func amountsToggle(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: amountsHidden ? "eye" : "eye.slash")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(amountsHidden ? Color.accentInk : Color.textSecondary)
+                .contentTransition(.symbolEffect(.replace))
+                // 44pt hit area without growing the row (swiftui-hit-areas.md).
+                .padding(DesignTokens.TapTarget.minimum / 2)
+                .contentShape(Rectangle())
+                .padding(-DesignTokens.TapTarget.minimum / 2)
+        }
+        .plainPressedButtonStyle()
+        .accessibilityLabel(amountsHidden ? "Afficher les montants" : "Masquer les montants")
+        .accessibilityIdentifier("homeAmountsToggle")
     }
 
     private var figure: some View {

@@ -24,7 +24,6 @@ struct CurrentMonthView: View {
     @State var viewportWidth: CGFloat?
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    @Environment(\.amountsHidden) var amountsHidden
     @Environment(\.requestSavingsWithdrawal) var requestSavingsWithdrawal
     @Environment(\.requestEditMovement) var requestEditMovement
     /// How many movements and prévisions were left to point when a page was pushed over the
@@ -94,8 +93,7 @@ struct CurrentMonthView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(removing: .title)
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                // « Mon compte » first: the open iPhone Duo stacks these in its side column.
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     appState.currentMonthPath.append(CurrentMonthDestination.account)
                 } label: {
@@ -110,18 +108,6 @@ struct CurrentMonthView: View {
                 }
                 .accessibilityLabel("Mon compte")
                 .accessibilityIdentifier("homeAccountButton")
-                if store.contentState == .loaded {
-                    Button {
-                        uiPreferences.toggleAmountsVisibility()
-                    } label: {
-                        // The amounts themselves, not an eye: on its own beside the avatar
-                        // an eye read as nothing in particular.
-                        Image(systemName: amountsHidden ? "rectangle.slash" : "123.rectangle")
-                            .foregroundStyle(amountsHidden ? Color.accentInk : Color.textPrimary)
-                    }
-                    .accessibilityLabel(amountsHidden ? "Afficher les montants" : "Masquer les montants")
-                    .accessibilityIdentifier("homeAmountsToggle")
-                }
             }
         }
         .sheet(item: $activeSheet, onDismiss: handOverPendingWithdrawal) { sheet in

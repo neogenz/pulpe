@@ -80,6 +80,7 @@ extension CurrentMonthView {
             monthName: currentMonthName,
             isSettling: store.isSettling,
             startsFresh: isFirstMonthStart,
+            onToggleAmounts: uiPreferences.toggleAmountsVisibility,
             onTapCalculation: { activeSheet = .calculation }
         )
         .staggeredEntrance(isVisible: hasAppeared, index: 1)
