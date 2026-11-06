@@ -7,7 +7,7 @@ struct CurrentMonthSkeletonView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     SkeletonShape(width: DesignTokens.Skeleton.greetingWidth, height: DesignTokens.Spacing.sectionGap)
                     SkeletonShape(width: DesignTokens.Skeleton.greetingWidth, height: DesignTokens.Spacing.md)
                 }
@@ -16,7 +16,7 @@ struct CurrentMonthSkeletonView: View {
                 cardSkeleton(rows: 3)
             }
             .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.top, DesignTokens.Spacing.sm)
             .padding(.bottom, DesignTokens.Spacing.lg)
         }
         .shimmering()

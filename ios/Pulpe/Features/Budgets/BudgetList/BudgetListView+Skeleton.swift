@@ -17,7 +17,7 @@ struct BudgetListSkeletonView: View {
                             monthRowSkeleton
                         }
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.md)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
                     .pulpeSurfaceCard()
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -33,17 +33,25 @@ struct BudgetListSkeletonView: View {
     /// The page title, the year segments and the recap card, as `yearHeader` lays them out.
     private var heroZone: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            SkeletonShape(
-                width: DesignTokens.Skeleton.mediumTextWidth,
-                height: DesignTokens.Skeleton.sectionHeight
-            )
+            pageHeaderSkeleton
             SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: DesignTokens.CornerRadius.button)
             yearRecapSkeleton
                 .padding(DesignTokens.Spacing.xl)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .pulpeSurfaceCard()
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.top, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.sm)
+    }
+
+    /// `PageHeader`: title over subtitle, on the page's own `xl` margin (`yearHeader` pulls it
+    /// back by `lg` first).
+    private var pageHeaderSkeleton: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            SkeletonShape(width: DesignTokens.Skeleton.mediumTextWidth, height: DesignTokens.Spacing.sectionGap)
+            SkeletonShape(width: DesignTokens.Skeleton.longTextWidth, height: DesignTokens.Spacing.md)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.xl - DesignTokens.Spacing.lg)
     }
 
     /// `YearRecapCard`: eyebrow over the display figure, then the sentence.
@@ -70,8 +78,8 @@ struct BudgetListSkeletonView: View {
 
     private var sectionHeaderSkeleton: some View {
         SkeletonShape(
-            width: DesignTokens.Skeleton.mediumTextWidth,
-            height: DesignTokens.Skeleton.sectionHeight
+            width: DesignTokens.Skeleton.shortTextWidth,
+            height: DesignTokens.Skeleton.lineHeight
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
