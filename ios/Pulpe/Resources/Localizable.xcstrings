@@ -93,52 +93,6 @@
         }
       }
     },
-    "À ce rythme" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In diesem Tempo"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "At this pace"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Di questo passo"
-          }
-        }
-      }
-    },
-    "À ce rythme %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In diesem Tempo %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "At this pace %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Di questo passo %@"
-          }
-        }
-      }
-    },
     "Le %@, il te restera moins que prévu." : {
       "extractionState" : "manual",
       "localizations" : {

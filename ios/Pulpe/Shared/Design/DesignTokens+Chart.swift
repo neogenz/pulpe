@@ -27,14 +27,10 @@ extension DesignTokens {
         /// the frame edge to edge and reads as an accident.
         static let landingScaleFloorRatio = 0.05
 
-        /// Below this share of the plotted range, the gap has no room for a label of its
-        /// own: it would sit within a line height of the plan's. The metric above the plot
-        /// still carries the figure, so the drawing simply stays quiet.
+        /// Below this share of the plotted range, the trend and the plan end on one point:
+        /// VoiceOver does not speak the trend apart.
         static let gapLabelMinimumRatio = 0.08
 
-        /// The anchor label is part of the drawing, so the range reserves a one-line band
-        /// for it on the far side of the rule instead of letting it fall out of the frame.
-        static let anchorLabelBandRatio = 0.18
         /// Days of plan-as-prior the trend pace is shrunk against when the user has no
         /// drift history yet: a week, so the first few days of a month bend the projection
         /// without throwing it. With a history, `DriftHistory.priorStrength` takes over.

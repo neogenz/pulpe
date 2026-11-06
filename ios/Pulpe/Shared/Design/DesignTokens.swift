@@ -322,6 +322,8 @@ enum DesignTokens {
         static let fabBottomInset: CGFloat = 62 + fabTabBarGap
         /// Toast's bottom over the safe area (V2: low, in thumb reach), clear of the tab bar and "+".
         static let toastBottomInset: CGFloat = fabBottomInset + fab + DesignTokens.Spacing.md
+        /// Widest toast: on the open iPhone Duo it stays a note, not a band across both panes.
+        static let toastMaxWidth: CGFloat = 420
         /// How far the toast travels down when it enters and leaves.
         static let toastTravel: CGFloat = 100
         /// Downward drag that dismisses the toast.
@@ -440,13 +442,11 @@ enum DesignTokens {
         static let rootBottomInset: CGFloat = 120
         /// Widest sentence under an empty state's title.
         static let emptyMessageMaxWidth: CGFloat = 290
-        /// How far a scroll-native zone background is bled past its own edge, so overscroll
-        /// (pull-to-refresh, rubber-banding) and the status bar never show the canvas behind
-        /// it. Any value taller than a screen works; 1000pt is just comfortably past it.
+        /// How far a scroll-native zone background bleeds past its edge, so overscroll and the
+        /// status bar never show the canvas behind it. Anything taller than a screen works.
         static let overscrollBleed: CGFloat = 1000
-        /// Narrowest card column a two-column reflow may create: an Activité row (name,
-        /// « Hors prévision », amount) still fits on one line. The open iPhone Duo in
-        /// portrait (~290pt columns) truncates, so it keeps one column; landscape splits.
+        /// Narrowest card column a two-column reflow may create: an Activité row still fits on
+        /// one line. The open iPhone Duo keeps one column in portrait, splits in landscape.
         static let minReflowColumnWidth: CGFloat = 360
         /// A list beside the page it opens on the open iPhone Duo: a third of the window, so the
         /// page keeps an iPhone width in portrait, between a floor where « Septembre » and a

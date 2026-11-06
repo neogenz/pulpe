@@ -3,8 +3,8 @@ import SwiftUI
 /// What a movement row says under its name. Pure, so the three screens that list movements
 /// (Accueil, Mouvements, À pointer) speak the same way.
 enum MovementRowPresentation {
-    /// The prévision the movement was counted in, then its pointed state. A free movement has
-    /// no line to name: its row carries the `Hors prévision` chip instead (see `showsUnplannedChip`).
+    /// The prévision the movement was counted in, then its pointed state. A free movement
+    /// names where it sits instead, in the same quiet line: "Hors prévision", or "Épargne".
     /// `pointedNote` replaces "pointé" while a row that was just pointed stays on a list.
     static func subtitle(
         for transaction: Transaction,
@@ -12,13 +12,9 @@ enum MovementRowPresentation {
         pointedNote: String? = nil
     ) -> String? {
         let pointed = transaction.isChecked ? (pointedNote ?? AppLocale.string("pointé")) : nil
-        let place = lineName ?? (transaction.kind == .saving && transaction.isFree
-            ? AppLocale.string("Épargne") : nil)
+        let place = lineName ?? (transaction.isFree
+            ? (transaction.kind == .saving ? AppLocale.string("Épargne") : PendingWording.unplanned) : nil)
         return [place, pointed].compactMap { $0 }.joined(separator: " · ").nilIfEmpty
-    }
-
-    static func showsUnplannedChip(for transaction: Transaction) -> Bool {
-        transaction.isFree && transaction.kind != .saving
     }
 
     /// Plain amount, ink only; an income keeps its `+` because nothing else tells it apart.
@@ -80,20 +76,9 @@ struct MovementRow: View {
 
     @ViewBuilder
     private var subtitleLine: some View {
-        let subtitle = MovementRowPresentation.subtitle(
+        if let subtitle = MovementRowPresentation.subtitle(
             for: transaction, lineName: lineName, pointedNote: pointedNote
-        )
-        if MovementRowPresentation.showsUnplannedChip(for: transaction) {
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                PulpeChip(label: PendingWording.unplanned, style: .muted)
-                    .allowsHitTesting(false)
-                if transaction.isChecked {
-                    Text(pointedNote ?? AppLocale.string("pointé"))
-                        .font(PulpeTypography.captionRegular)
-                        .foregroundStyle(Color.textSecondary)
-                }
-            }
-        } else if let subtitle {
+        ) {
             Text(subtitle)
                 .font(PulpeTypography.captionRegular)
                 .foregroundStyle(Color.textSecondary)

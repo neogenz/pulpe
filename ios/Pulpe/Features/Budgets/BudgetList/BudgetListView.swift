@@ -14,7 +14,6 @@ struct BudgetListView: View {
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var showsClosedMonths = true
-    @State private var monthsScrolledUnderHeader = false
 
     var body: some View {
         Group {
@@ -175,29 +174,10 @@ struct BudgetListView: View {
                     // Beside a month the year header stays put and only the months scroll:
                     // the year's balance stays in view while the list follows the month
                     // picked on the other side.
-                    VStack(spacing: DesignTokens.Spacing.none) {
-                        yearHeader(budgets: yearBudgets, currentPeriod: currentPeriod)
-                        ScrollView {
-                            monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
-                        }
-                        .onScrollGeometryChange(for: Bool.self) {
-                            $0.contentOffset.y + $0.contentInsets.top > 0
-                        } action: { _, isScrolled in
-                            monthsScrolledUnderHeader = isScrolled
-                        }
-                        // Same page colour above and below: once the months slide under the
-                        // fixed block, a fade and a hairline mark where it ends.
-                        .overlay(alignment: .top) {
-                            if monthsScrolledUnderHeader {
-                                ZStack(alignment: .top) {
-                                    ProgressiveBlurEdge(edge: .top, height: DesignTokens.Spacing.xl)
-                                    FormRowDivider()
-                                }
-                                .transition(.opacity)
-                            }
-                        }
-                        .animation(DesignTokens.Animation.smoothEaseOut, value: monthsScrolledUnderHeader)
+                    ScrollView {
+                        monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
                     }
+                    .modifier(FixedTopBlock { yearHeader(budgets: yearBudgets, currentPeriod: currentPeriod) })
                 } else {
                     ScrollView {
                         VStack(spacing: DesignTokens.Spacing.none) {
@@ -338,5 +318,32 @@ extension BudgetListView {
         return BudgetDetailsView.periodSubtitle(
             month: month, year: year, payDayOfMonth: userSettingsStore.payDayOfMonth
         )
+    }
+}
+
+/// The year block held above the months that scroll under it. On iOS 26 the system's soft
+/// scroll edge marks where it ends, the way a toolbar does; before, the months just slide
+/// under the page colour.
+private struct FixedTopBlock<Block: View>: ViewModifier {
+    @ViewBuilder let block: () -> Block
+
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            content
+                .safeAreaBar(edge: .top, spacing: DesignTokens.Spacing.none, content: block)
+                .scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            insetFallback(content)
+        }
+        #else
+        insetFallback(content)
+        #endif
+    }
+
+    private func insetFallback(_ content: Content) -> some View {
+        content.safeAreaInset(edge: .top, spacing: DesignTokens.Spacing.none) {
+            block().background(Color.appBackground)
+        }
     }
 }

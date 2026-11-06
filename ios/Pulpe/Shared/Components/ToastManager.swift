@@ -60,6 +60,9 @@ final class ToastManager {
     }
 
     private(set) var currentToast: Toast?
+    /// How high the toast sits over the bottom safe area: the tab screens set it over their
+    /// tab bar and « + », which a side rail (open iPhone Duo) leaves out.
+    var bottomClearance: CGFloat = DesignTokens.Control.toastBottomInset
     private var dismissTask: Task<Void, Never>?
     /// Toasts simples (`show`) attendent la fin du toast « Annuler » pour ne pas déclencher `onFinishedWithoutUndo` ni masquer l’undo.
     private var pendingToasts: [Toast] = []

@@ -21,7 +21,6 @@ struct CurrentMonthView: View {
     @Environment(UIPreferencesState.self) var uiPreferences
     @State var navigateToBudget = false
     @State var hasAppeared = false
-    @State var viewportWidth: CGFloat?
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.requestSavingsWithdrawal) var requestSavingsWithdrawal

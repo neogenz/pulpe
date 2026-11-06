@@ -29,8 +29,6 @@ struct HomeHeroCard: View {
     @State var settlePulse = false
     /// The day under the finger while the plot is being scrubbed, `nil` at rest.
     @State var scrubDay: Int?
-    /// Each pill's measured size, so the plot can lay the labels out around the dot.
-    @State var pillSizes: [HeroChartLabelLayout.Label: CGSize] = [:]
 
     var currency: SupportedCurrency { userSettingsStore.currency }
     private var scrubReading: ScrubReading? {
@@ -54,8 +52,9 @@ struct HomeHeroCard: View {
 
     // MARK: - Body
 
-    /// One read order, top to bottom: what is available, the sentence that explains where the
-    /// month is heading, and the picture of it. A white card on the page, no forest.
+    /// One read order, top to bottom: what is available, the picture of the month, then the
+    /// sentence that reads it. The figure leads; the sentence is the plot's caption, not a
+    /// second headline. A white card on the page, no forest.
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -63,12 +62,12 @@ struct HomeHeroCard: View {
                 figure
             }
 
-            verdictSentence
-
             VStack(spacing: DesignTokens.Spacing.xs) {
                 balanceChart
                 chartTimeAxis
             }
+
+            verdictSentence
         }
         .padding(DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -154,7 +153,7 @@ struct HomeHeroCard: View {
     // MARK: - Verdict
 
     /// The one sentence the card spends on the rhythm: the verdict in the accent, then where
-    /// the month lands if it keeps its pace. Figures drop out under the privacy mode.
+    /// the month lands if it keeps its pace, quieter. Figures drop out under the privacy mode.
     private var verdictSentence: some View {
         let rhythm = trajectory.flatMap {
             Self.rhythmSentence(for: $0, currency: currency, amountsHidden: amountsHidden)
@@ -164,11 +163,11 @@ struct HomeHeroCard: View {
             ? AppLocale.string("Ajoute tes dépenses au fil du mois : ce chiffre se met à jour aussitôt.")
             : rhythm
         return (Text(verdict)
-            .font(PulpeTypography.bodyLarge.weight(.semibold))
+            .fontWeight(.semibold)
             .foregroundStyle(startsFresh ? Color.pulpePrimary : accentColor)
             + Text(tail.map { " \($0)" } ?? "")
-            .font(PulpeTypography.bodyLarge)
-            .foregroundStyle(Color.textPrimary))
+            .foregroundStyle(Color.textSecondary))
+            .font(PulpeTypography.callout)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("homeHeroVerdict")
     }

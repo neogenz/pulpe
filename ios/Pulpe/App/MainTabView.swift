@@ -9,6 +9,8 @@ struct MainTabView: View {
     @State private var tabContentBottomInset: CGFloat = 0
     @State private var tabViewBottomInset: CGFloat = 0
 
+    private var tabBarHeight: CGFloat { max(0, tabContentBottomInset - tabViewBottomInset) }
+
     /// The floating add button belongs to the four root screens only: a pushed page owns its
     /// own actions, and a month has to exist for the sheet to have somewhere to write.
     private var showsFloatingAddButton: Bool {
@@ -65,10 +67,13 @@ struct MainTabView: View {
         .tint(Color.pulpePrimary)
         .pulpeBackground()
         .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabViewBottomInset = $0 }
-        .floatingAddFlow(
-            isVisible: showsFloatingAddButton,
-            tabBarHeight: max(0, tabContentBottomInset - tabViewBottomInset)
-        )
+        .floatingAddFlow(isVisible: showsFloatingAddButton, tabBarHeight: tabBarHeight)
+        // The toast lives in its own window, above sheets: it is told where the tab bar ends.
+        .onChange(of: tabBarHeight, initial: true) { _, height in
+            appState.toastManager.bottomClearance = height + DesignTokens.Control.fabTabBarGap
+                + DesignTokens.Control.fab + DesignTokens.Spacing.md
+        }
+        .onDisappear { appState.toastManager.bottomClearance = DesignTokens.Control.toastBottomInset }
         .goalWithdrawalFlow()
         .onChange(of: appState.selectedTab) { _, newTab in
             #if DEBUG

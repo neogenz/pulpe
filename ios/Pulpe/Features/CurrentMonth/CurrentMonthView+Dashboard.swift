@@ -10,22 +10,23 @@ extension CurrentMonthView {
     }
 
     var dashboardContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-                homeHeader
-                heroCard
-                dashboardDetails
+        // Pinned to the width offered, read before anything inside is laid out: nothing can
+        // widen the page and let it pan sideways (#704). Neither `containerRelativeFrame` nor
+        // a width kept in state: both held the open iPhone Duo's width once it closed.
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+                    homeHeader
+                    heroCard
+                    dashboardDetails
+                }
+                .padding(.top, DesignTokens.Spacing.sm)
+                .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
+                .frame(width: geometry.size.width)
             }
-            .padding(.top, DesignTokens.Spacing.sm)
-            .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
-            // Pinned to the viewport so nothing inside widens the page and lets it pan
-            // sideways (#704). Measured rather than `containerRelativeFrame`, which kept the
-            // open iPhone Duo's width once it closed.
-            .frame(width: viewportWidth)
+            .refreshable { await store.forceRefresh() }
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .onGeometryChange(for: CGFloat.self, of: \.size.width) { viewportWidth = $0 }
-        .refreshable { await store.forceRefresh() }
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     /// The open iPhone Duo: the hero holds still on the left while the lists are worked

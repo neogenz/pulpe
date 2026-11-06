@@ -42,7 +42,7 @@ private struct ToastOverlayBridge: UIViewControllerRepresentable {
             }
         }
 
-        controller.push(toastManager.currentToast)
+        controller.push(toastManager.currentToast, bottomClearance: toastManager.bottomClearance)
     }
 
     static func dismantleUIViewController(_: UIViewController, coordinator: Coordinator) {
@@ -117,6 +117,7 @@ final class ToastOverlayWindowController {
 
         let content = ToastContent(
             toast: nil,
+            bottomClearance: toastManager.bottomClearance,
             dismiss: { toastManager.dismiss() },
             undo: { toastManager.executeUndo() }
         )
@@ -129,10 +130,11 @@ final class ToastOverlayWindowController {
     }
 
     /// Called on every SwiftUI update cycle — pushes the latest toast into the hosting controller.
-    func push(_ toast: ToastManager.Toast?) {
+    func push(_ toast: ToastManager.Toast?, bottomClearance: CGFloat) {
         guard let hosting else { return }
         var root = hosting.rootView
         root.toast = toast
+        root.bottomClearance = bottomClearance
         hosting.rootView = root
     }
 
@@ -154,6 +156,7 @@ final class ToastOverlayWindowController {
 /// The `dismiss` / `undo` closures are captured once at creation and never change.
 private struct ToastContent: View {
     var toast: ToastManager.Toast?
+    var bottomClearance: CGFloat
     let dismiss: () -> Void
     let undo: () -> Void
 
@@ -169,9 +172,10 @@ private struct ToastContent: View {
                     onDismiss: dismiss,
                     onUndo: toast.hasUndo ? undo : nil
                 )
+                .frame(maxWidth: DesignTokens.Control.toastMaxWidth)
                 .safeAreaPadding(.bottom)
                 // Low, in thumb reach, above the tab bar and the floating "+" (V2 toast).
-                .padding(.bottom, DesignTokens.Control.toastBottomInset)
+                .padding(.bottom, bottomClearance)
                 .background(toastFrameReader)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
