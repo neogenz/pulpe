@@ -75,6 +75,9 @@ struct BudgetLineMixedRow: View {
     /// strikethrough: a pointed line keeps full ink and says "pointé" in its one fact.
     var body: some View {
         let presentation = presentation
+        // At accessibility sizes the amount goes under the name: beside it, a narrow screen
+        // (folded iPhone Duo) left the name a column so thin it broke mid-word.
+        let stacksAmount = dynamicTypeSize.isAccessibilitySize
         return Button(action: handleTap) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 PointCircle(
@@ -92,6 +95,7 @@ struct BudgetLineMixedRow: View {
                         .foregroundStyle(Color.textPrimary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                         .truncationMode(.tail)
+                    if stacksAmount { amountText(presentation.amount) }
                     if let progress = presentation.progress {
                         consumptionBar(progress: progress, isOver: presentation.isOver)
                     }
@@ -105,13 +109,7 @@ struct BudgetLineMixedRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(presentation.amount)
-                    .font(PulpeTypography.rowAmount)
-                    .foregroundStyle(Color.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(DesignTokens.TextScale.compact)
-                    .layoutPriority(1)
-                    .sensitiveAmount()
+                if !stacksAmount { amountText(presentation.amount).layoutPriority(1) }
 
                 RowChevron()
             }
@@ -142,6 +140,15 @@ struct BudgetLineMixedRow: View {
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Touche pour ouvrir le détail")
         .accessibilityIdentifier("budgetLineMixedRow-\(line.id)")
+    }
+
+    private func amountText(_ amount: String) -> some View {
+        Text(amount)
+            .font(PulpeTypography.rowAmount)
+            .foregroundStyle(Color.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(DesignTokens.TextScale.compact)
+            .sensitiveAmount()
     }
 
     /// Thin bar under the name of a prévision being consumed; ocre once it overflows.

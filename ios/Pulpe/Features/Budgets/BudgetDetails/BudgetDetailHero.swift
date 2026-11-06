@@ -15,6 +15,7 @@ struct BudgetDetailHero: View {
     var projectedReportMonth: Int?
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var tapTrigger = false
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
@@ -50,15 +51,21 @@ struct BudgetDetailHero: View {
         .animation(DesignTokens.Animation.smoothEaseInOut, value: metrics)
     }
 
+    /// Label and link side by side, or the link under the label at accessibility sizes, where
+    /// sharing the line broke the label mid-word on a narrow screen (folded iPhone Duo).
     private var headerRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+        let stacks = dynamicTypeSize.isAccessibilitySize
+        let layout = stacks
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md))
+        return layout {
             let eyebrow: LocalizedStringKey = projectedReportMonth == nil
                 ? "Disponible à dépenser"
                 : "Disponible à dépenser prévu"
             Text(eyebrow)
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textSecondary)
-            Spacer(minLength: DesignTokens.Spacing.sm)
+            if !stacks { Spacer(minLength: DesignTokens.Spacing.sm) }
             Button {
                 tapTrigger.toggle()
                 onTapCalculation()

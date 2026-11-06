@@ -8,6 +8,8 @@ struct AvailableSplit: View {
     let available: Decimal
     let currency: SupportedCurrency
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private struct Part {
         let label: String
         let amount: Decimal
@@ -41,8 +43,13 @@ struct AvailableSplit: View {
         }
     }
 
+    /// Three columns, or one under the other at accessibility sizes, where a third of a narrow
+    /// card cuts every label to its first letters.
     private var legend: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
+        return layout {
             ForEach(parts, id: \.label) { part in
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     HStack(spacing: DesignTokens.Spacing.xs) {
