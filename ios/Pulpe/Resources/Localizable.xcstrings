@@ -24309,28 +24309,6 @@
         }
       }
     },
-    "Sous zéro pour l'instant." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vorerst im Minus."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Below zero for now."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sotto zero per ora."
-          }
-        }
-      }
-    },
     "Standard" : {
       "localizations" : {},
       "shouldTranslate" : false
@@ -27629,24 +27607,24 @@
         }
       }
     },
-    "Une fois tout pointé, ta banque devrait afficher la même chose." : {
+    "Ce que ton compte en banque devrait afficher, d'après ce que tu as pointé." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sobald alles abgehakt ist, sollte deine Bank denselben Betrag zeigen."
+            "value" : "Was dein Bankkonto anzeigen sollte, basierend auf dem, was du abgehakt hast."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Once everything is checked, your bank should show the same amount."
+            "value" : "What your bank account should show, based on what you've checked."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Una volta spuntato tutto, la tua banca dovrebbe mostrare lo stesso importo."
+            "value" : "Quello che il tuo conto in banca dovrebbe mostrare, in base a ciò che hai spuntato."
           }
         }
       }

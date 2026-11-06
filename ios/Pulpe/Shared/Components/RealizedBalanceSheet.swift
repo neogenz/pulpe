@@ -217,12 +217,10 @@ private struct CheckedBalanceCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The state lives in the sentence, never in the surface (The Two-Zone Rule).
+    /// What the figure is for: the number to hold against the bank. A negative one needs no
+    /// warning of its own; the line below says what is still to come in.
     private var sentence: Text {
-        let promise = Text("Une fois tout pointé, ta banque devrait afficher la même chose.")
-        guard realizedMetrics.realizedBalance < 0 else { return promise }
-        return Text("Sous zéro pour l'instant.").bold().foregroundStyle(Color.heroAccentCaution)
-            + Text(verbatim: " ") + promise
+        Text("Ce que ton compte en banque devrait afficher, d'après ce que tu as pointé.")
     }
 
     /// From the pointed balance to the "Disponible à dépenser" budget details shows: plus what
