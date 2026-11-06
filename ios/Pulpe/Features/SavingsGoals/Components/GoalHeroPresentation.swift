@@ -5,9 +5,9 @@ import Foundation
 /// and conditions buried in a `body` can only be checked by launching the app.
 ///
 /// The card answers one question, « où j'en suis »: the saved figure against the
-/// cible, the bar, and in the ordinary state the two tiles and one sentence. The
-/// derived states (atteint, retard, en pause) speak in their own card below, so
-/// the hero stays quiet for them.
+/// cible and the bar. The pace sentence is resolved here too, for « Ce mois-ci ». The
+/// derived states (atteint, retard, en pause) speak in their own card below, so the
+/// sentence stays quiet for them.
 struct GoalHeroPresentation: Equatable {
     struct Bar: Equatable {
         let fraction: Double
@@ -26,18 +26,11 @@ struct GoalHeroPresentation: Equatable {
         let identifier: String?
     }
 
-    struct Tile: Equatable {
-        let label: String
-        let value: String
-        let identifier: String
-    }
-
     let confirmedAmount: Decimal
     /// « sur 6'000.00 · dont 400.00 de départ ».
     let caption: String?
     let dateLine: DateLine?
     let bar: Bar?
-    let tiles: [Tile]
     let sentence: String?
 
     init(
@@ -51,10 +44,9 @@ struct GoalHeroPresentation: Equatable {
         dateLine = Self.makeDateLine(progress)
         bar = Self.makeBar(progress, status: status, currency: currency)
 
-        // Tiles and sentence belong to the ordinary state only: a derived-state card
+        // The pace sentence belongs to the ordinary state only: a derived-state card
         // already says what to do when the goal is reached, late or paused.
         let isOrdinary = status == .active && !progress.isOverdue && progress.suggestCompletion != true
-        tiles = isOrdinary ? Self.makeTiles(progress, currency: currency) : []
         sentence = isOrdinary ? Self.makeSentence(progress, currency: currency, now: now) : nil
     }
 
@@ -141,25 +133,6 @@ struct GoalHeroPresentation: Equatable {
         let withFraction = ISO8601DateFormatter()
         withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return withFraction.date(from: value) ?? ISO8601DateFormatter().date(from: value)
-    }
-
-    private static func makeTiles(_ progress: SavingsGoalProgress, currency: SupportedCurrency) -> [Tile] {
-        var tiles: [Tile] = []
-        if let required = progress.required, required > 0 {
-            tiles.append(Tile(
-                label: AppLocale.string("Requis par mois"),
-                value: required.rounded(2, .up).asAmount(for: currency),
-                identifier: "savingsGoalPaceTile"
-            ))
-        }
-        if let deadline = progress.targetDateValue.map(components) {
-            tiles.append(Tile(
-                label: AppLocale.string("Échéance"),
-                value: monthYear(month: deadline.month, year: deadline.year, capitalized: false),
-                identifier: "savingsGoalDateTile"
-            ))
-        }
-        return tiles
     }
 
     /// « Vise X par mois pour finir en juin. Depuis août, tu mets Y par mois. »

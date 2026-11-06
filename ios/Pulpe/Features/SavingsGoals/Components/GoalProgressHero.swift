@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// V2 hero card of the goal detail: what is saved in ink, the cible under it, the bar
-/// with its two labels, and in the ordinary state two grey tiles and one sentence.
-/// Every conditional line is decided in `GoalHeroPresentation`.
+/// V2 hero card of the goal detail: what is saved in ink, the cible under it, and the bar
+/// with its two labels. Every conditional line is decided in `GoalHeroPresentation`.
 struct GoalProgressHero: View {
     let presentation: GoalHeroPresentation
     let currency: SupportedCurrency
@@ -12,23 +11,6 @@ struct GoalProgressHero: View {
             figure
             if let bar = presentation.bar {
                 progressBar(bar)
-            }
-            if !presentation.tiles.isEmpty {
-                HeroMetricTileRow {
-                    ForEach(presentation.tiles, id: \.identifier) { tile in
-                        GoalHeroTile(label: tile.label, value: tile.value)
-                            .accessibilityIdentifier(tile.identifier)
-                    }
-                }
-            }
-            if let sentence = presentation.sentence {
-                Text(sentence)
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textPrimary)
-                    .monospacedDigit()
-                    .fixedSize(horizontal: false, vertical: true)
-                    .sensitiveAmount()
-                    .accessibilityIdentifier("savingsGoalRequiredPaceStat")
             }
         }
         .padding(DesignTokens.Spacing.xl)
@@ -107,7 +89,7 @@ struct GoalProgressTrack: View {
     }
 }
 
-/// A grey tile of the goal card: label over its value (« Requis par mois », « Échéance »).
+/// A grey tile: label over its value (« Requis par mois », « Échéance »).
 struct GoalHeroTile: View {
     let label: String
     let value: String

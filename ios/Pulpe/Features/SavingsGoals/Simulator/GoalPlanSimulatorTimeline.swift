@@ -1,9 +1,7 @@
 import SwiftUI
 
-/// « Ton plan » inside « Ajuster mon plan » — the editable twin of
-/// `GoalPlanTimelineSection` on the goal detail, and deliberately the same
-/// surface: one `pulpeRowCard()` holding every month, hairlines between them, the
-/// section named on the canvas above it.
+/// « Ton plan » inside « Ajuster mon plan »: one `pulpeRowCard()` holding every
+/// month, hairlines between them, the section named on the canvas above it.
 ///
 /// A view of its own rather than a slice of the sheet: the sheet already carries
 /// the chart, the verdict, the global control and the apply flow, and the

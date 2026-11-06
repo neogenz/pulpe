@@ -77,9 +77,8 @@ struct GoalHeroPresentationTests {
         )
     }
 
-    @Test func ordinaryActiveGoalShowsTilesAndSentence() {
+    @Test func ordinaryActiveGoalShowsTheSentence() {
         let hero = GoalHeroPresentation(progress: makeProgress(), status: .active, currency: currency)
-        #expect(hero.tiles.map(\.identifier) == ["savingsGoalPaceTile", "savingsGoalDateTile"])
         #expect(hero.sentence?.contains("320.00") == true)
         #expect(hero.caption == AppLocale.string("sur \(Decimal(3_000).asAmount(for: currency))"))
         #expect(hero.dateLine?.identifier == "savingsGoalDeadlineRange")
@@ -91,7 +90,6 @@ struct GoalHeroPresentationTests {
 
         let late = GoalHeroPresentation(progress: makeProgress(isOverdue: true), status: .active, currency: currency)
         #expect(late.bar?.trailing == AppLocale.string("il manque \(Decimal(900).asAmount(for: currency))"))
-        #expect(late.tiles.isEmpty)
         #expect(late.sentence == nil)
     }
 
@@ -102,13 +100,12 @@ struct GoalHeroPresentationTests {
             currency: currency
         )
         #expect(hero.bar?.trailing == AppLocale.string("cible atteinte"))
-        #expect(hero.tiles.isEmpty)
+        #expect(hero.sentence == nil)
     }
 
-    @Test func pausedGoalMutesTheBarAndDropsTiles() {
+    @Test func pausedGoalMutesTheBarAndDropsTheSentence() {
         let hero = GoalHeroPresentation(progress: makeProgress(), status: .paused, currency: currency)
         #expect(hero.bar?.isMuted == true)
-        #expect(hero.tiles.isEmpty)
         #expect(hero.sentence == nil)
     }
 

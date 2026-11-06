@@ -6,16 +6,14 @@ final class SavingsGoalIntervalUITests: XCTestCase {
     private static let linkedTemplateLineId = "linked-line"
     private static let freeTemplateLineId = "free-line"
 
-    /// The V2 detail regions each harness state must show: the hero bar, its date line,
-    /// the two grey tiles and the pace sentence (ordinary state only), the derived-state
-    /// cards, and the « Ajuster » link of « Mois par mois ».
+    /// The detail regions each harness state must show: the hero bar, its date line,
+    /// the pace sentence of « Ce mois-ci » (ordinary state only), the derived-state
+    /// cards, and « Ajuster mon plan ».
     private struct DetailExpectation {
         let scenario: String
         let hasTarget: Bool
         /// Identifier of the header date line, `nil` when the goal has no dates at all.
         let deadlineIdentifier: String?
-        let hasPaceTile: Bool
-        let hasDateTile: Bool
         let hasRequiredAmount: Bool
         let hasSuggestion: Bool
         let hasEmptyGuidance: Bool
@@ -27,8 +25,6 @@ final class SavingsGoalIntervalUITests: XCTestCase {
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_NAME_ONLY",
             hasTarget: false,
             deadlineIdentifier: nil,
-            hasPaceTile: false,
-            hasDateTile: false,
             hasRequiredAmount: false,
             hasSuggestion: false,
             // No linked prévision: the page says how to start instead of quoting a plan.
@@ -39,9 +35,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_TARGET_ONLY",
             hasTarget: true,
             deadlineIdentifier: nil,
-            // The cible is already passed: the suggestion card replaces tiles and sentence.
-            hasPaceTile: false,
-            hasDateTile: false,
+            // The cible is already passed: the suggestion card replaces the sentence.
             hasRequiredAmount: false,
             hasSuggestion: true,
             hasEmptyGuidance: false,
@@ -51,8 +45,6 @@ final class SavingsGoalIntervalUITests: XCTestCase {
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_DEADLINE_ONLY",
             hasTarget: false,
             deadlineIdentifier: "savingsGoalDeadlineDate",
-            hasPaceTile: false,
-            hasDateTile: true,
             hasRequiredAmount: false,
             hasSuggestion: false,
             hasEmptyGuidance: true,
@@ -62,8 +54,6 @@ final class SavingsGoalIntervalUITests: XCTestCase {
             scenario: "UITEST_SAVINGS_GOAL_DETAIL_FULL",
             hasTarget: true,
             deadlineIdentifier: "savingsGoalDeadlineRange",
-            hasPaceTile: true,
-            hasDateTile: true,
             hasRequiredAmount: true,
             hasSuggestion: false,
             hasEmptyGuidance: false,
@@ -118,8 +108,6 @@ final class SavingsGoalIntervalUITests: XCTestCase {
                 XCTAssertFalse(identified("savingsGoalDeadlineDate").exists)
                 XCTAssertFalse(identified("savingsGoalDeadlineRange").exists)
             }
-            XCTAssertEqual(identified("savingsGoalPaceTile").exists, expectation.hasPaceTile)
-            XCTAssertEqual(identified("savingsGoalDateTile").exists, expectation.hasDateTile)
             XCTAssertEqual(
                 identified("savingsGoalRequiredPaceStat").exists,
                 expectation.hasRequiredAmount
@@ -205,7 +193,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         attachScreenshot("ios-template-linked-goal-light-large")
     }
 
-    /// « Mois par mois » and « Retraits » sit below the hero, so nothing else photographs
+    /// « Ce mois-ci » and « À venir » sit below the hero, so nothing else photographs
     /// them: their cards are only verifiable on a capture taken after scrolling there.
     func testHistorySectionsRenderBelowTheFold() {
         launch("UITEST_SAVINGS_GOAL_DETAIL_FULL")
@@ -217,10 +205,10 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         scrollUntilHittable(monthRow)
         attachScreenshot("ios-detail-full-months-light-large")
 
-        let withdrawals = identified("savingsGoalWithdrawalsSection")
-        XCTAssertTrue(withdrawals.waitForExistence(timeout: 10))
-        scrollUntilHittable(withdrawals)
-        attachScreenshot("ios-detail-full-withdrawals-light-large")
+        let upcoming = identified("savingsGoalUpcomingSection")
+        XCTAssertTrue(upcoming.waitForExistence(timeout: 10))
+        scrollUntilHittable(upcoming)
+        attachScreenshot("ios-detail-full-upcoming-light-large")
 
         // A withdrawal linked to a budget stays a button; the plan-only one has
         // nowhere to go and must not pretend otherwise. Both names are harness
@@ -229,11 +217,29 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         XCTAssertFalse(button(startingWith: "Hôtel").exists)
     }
 
+    /// The realized withdrawal left the detail for « Historique »: one row opens it.
+    func testHistoryPageOpensFromTheDetail() {
+        launch("UITEST_SAVINGS_GOAL_DETAIL_FULL")
+
+        let row = identified("savingsGoalHistoryRow")
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        scrollUntilHittable(row)
+        row.tap()
+
+        XCTAssertTrue(app.scrollViews["savingsGoalHistoryRoot"].waitForExistence(timeout: 10))
+        XCTAssertTrue(identified("savingsGoalHistoryAccount").exists)
+        XCTAssertTrue(button(startingWith: "Acompte agence").exists)
+        attachScreenshot("ios-goal-history-light-large")
+    }
+
     private func openDeadlineReconciliation(darkMode: Bool = false) {
         launch("UITEST_SAVINGS_GOAL_DEADLINE_RECONCILIATION", darkMode: darkMode)
 
+        let menu = app.buttons["savingsGoalMenuButton"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
         let edit = app.buttons["savingsGoalEditButton"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 10))
+        XCTAssertTrue(edit.waitForExistence(timeout: 5))
         edit.tap()
 
         let closeKeyboard = app.buttons["keyboardDismissButton"]

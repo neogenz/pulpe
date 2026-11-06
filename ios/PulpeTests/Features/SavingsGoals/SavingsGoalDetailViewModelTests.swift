@@ -267,8 +267,8 @@ struct SavingsGoalDetailViewModelTests {
 }
 
 extension SavingsGoalDetailViewModelTests {
-    @Test("timeline stays visible before the first forecast is linked")
-    func timeline_zeroLinkedRepairableMonth_isVisible() {
+    @Test("a gap month is repairable before the first forecast is linked")
+    func repair_zeroLinkedRepairableMonth_isAllowed() {
         let progress = makeProgress(
             linkedLineCount: 0,
             months: [
@@ -283,7 +283,6 @@ extension SavingsGoalDetailViewModelTests {
             ]
         )
 
-        #expect(SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress))
         #expect(SavingsGoalDetailViewModel.canRepairPlan(progress, status: .active))
     }
 
@@ -449,43 +448,6 @@ extension SavingsGoalDetailViewModelTests {
         #expect(viewModel.error == nil)
         #expect(viewModel.contributionsError == nil)
         #expect(viewModel.withdrawalsError != nil)
-    }
-
-    /// A goal nobody ever drew from says nothing by staying silent — the section
-    /// disappears instead of announcing an emptiness the user never asked about.
-    @Test("the section shows only when there is history, a load or a failure")
-    func withdrawalsSection_isRelevantOnlyWhenItHasSomethingToSay() {
-        #expect(!GoalWithdrawalsSection.isRelevant(
-            withdrawals: [], planned: [], isLoading: false, error: nil
-        ))
-        #expect(GoalWithdrawalsSection.isRelevant(
-            withdrawals: [makeWithdrawal(id: "tx-1")],
-            planned: [],
-            isLoading: false,
-            error: nil
-        ))
-        #expect(GoalWithdrawalsSection.isRelevant(
-            withdrawals: [],
-            planned: [],
-            planOnly: [SavingsGoalPlanOnlyWithdrawal(
-                planWithdrawalId: "plan-withdrawal-1",
-                name: "Retrait ponctuel",
-                month: 9,
-                year: 2026,
-                plannedAmount: 450
-            )],
-            isLoading: false,
-            error: nil
-        ))
-        #expect(GoalWithdrawalsSection.isRelevant(
-            withdrawals: [], planned: [], isLoading: true, error: nil
-        ))
-        #expect(GoalWithdrawalsSection.isRelevant(
-            withdrawals: [],
-            planned: [],
-            isLoading: false,
-            error: APIError.networkError(URLError(.timedOut))
-        ))
     }
 }
 

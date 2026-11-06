@@ -1,7 +1,7 @@
 import Foundation
 
-/// History fixtures of the savings-goal UI-test harness — « Ton suivi » and
-/// « Retraits ». Split out of `SavingsGoalIntervalUITestHarness` so the service
+/// History fixtures of the savings-goal UI-test harness — « Ton suivi » and the
+/// withdrawals. Split out of `SavingsGoalIntervalUITestHarness` so the service
 /// stays under `type_body_length`: the two read models are pure data and read
 /// better beside each other than buried among the goal's write paths.
 ///
@@ -49,9 +49,9 @@ extension SavingsGoalIntervalUITestService {
         ]
     }
 
-    /// « Retraits planifiés » holds a linked withdrawal (tappable, opens its
-    /// budget) beside a plan-only one (no budget, so no chevron and no button);
-    /// « Retraits réalisés » holds the history.
+    /// « À venir » holds a linked withdrawal (tappable, opens its budget) beside a
+    /// plan-only one (no budget, so no chevron and no button); « Historique » holds
+    /// the realized one.
     func withdrawalFixtures() -> SavingsGoalWithdrawalsReadModel {
         guard scenario == .savingsGoalDetailFull else {
             return SavingsGoalWithdrawalsReadModel(withdrawals: [])

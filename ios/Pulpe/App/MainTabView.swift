@@ -134,6 +134,9 @@ private func savingsGoalDestination(
     case .detail(let goal):
         SavingsGoalDetailView(goal: goal, service: service)
             .ignoresForeignKeyboardInset()
+    case .history(let goal):
+        GoalHistoryView(goal: goal, service: service)
+            .ignoresForeignKeyboardInset()
     }
 }
 

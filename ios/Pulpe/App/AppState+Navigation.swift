@@ -16,6 +16,7 @@ enum CurrentMonthDestination: Hashable {
 enum SavingsGoalDestination: Hashable {
     case list
     case detail(SavingsGoal)
+    case history(SavingsGoal)
 }
 
 enum TemplateDestination: Hashable { case details(templateId: String) }

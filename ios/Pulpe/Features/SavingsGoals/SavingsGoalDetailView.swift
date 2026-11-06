@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Progression detail for a single savings goal (PUL-8, CA7–CA9). Pushed from the
-/// goals list row; the edit form now opens from here (toolbar + the D1 CTA),
+/// goals list row; the edit form now opens from here (« … » menu + the D1 CTA),
 /// never straight from the row.
 ///
 /// Renders the confirmed balance and its planned projection toward the target,
@@ -14,7 +14,7 @@ struct SavingsGoalDetailView: View {
 
     @Environment(AppState.self) private var appState
     @Environment(SavingsGoalStore.self) private var store
-    @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(ToastManager.self) private var toastManager
     // Sibling aggregate stores invalidated after a plan apply (PUL-270 seam).
     @Environment(CurrentMonthStore.self) private var currentMonthStore
@@ -25,9 +25,9 @@ struct SavingsGoalDetailView: View {
 
     @State var viewModel: SavingsGoalDetailViewModel
     @State var editTarget: SavingsGoal?
-    @State private var isSimulating = false
+    @State var isSimulating = false
     @State private var pendingSimulatorBudgetId: String?
-    @State private var showRecoveryRecap = false
+    @State var showRecoveryRecap = false
     @State private var generationStop: GenerationStopRequest?
     @State private var pendingEditUpdate: SavingsGoalUpdate?
     @State private var pendingDeadlineUpdate: SavingsGoalUpdate?
@@ -67,12 +67,7 @@ struct SavingsGoalDetailView: View {
         .toolbar(removing: .title)
         .background { Color.appBackground.ignoresSafeArea() }
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Modifier l'objectif", systemImage: "pencil") {
-                    editTarget = currentGoal
-                }
-                .accessibilityIdentifier("savingsGoalEditButton")
-            }
+            ToolbarItem(placement: .primaryAction) { goalMenu }
         }
         .sheet(isPresented: $showDeletion) {
             GoalDeletionSheet(goal: currentGoal, currency: currency, onDeleted: deletionDidCommit)
@@ -150,7 +145,7 @@ struct SavingsGoalDetailView: View {
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                     GoalProgressHero(presentation: hero, currency: currency)
-                    sections(progress)
+                    sections(progress, hero: hero)
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.lg)
@@ -169,7 +164,7 @@ struct SavingsGoalDetailView: View {
     /// title to the card it introduces — the 2:1 ratio that tells which
     /// block a header belongs to.
     @ViewBuilder
-    private func sections(_ progress: SavingsGoalProgress) -> some View {
+    private func sections(_ progress: SavingsGoalProgress, hero: GoalHeroPresentation) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
             if progress.linkedLineCount == 0 {
                 GoalEmptyGuidanceCard()
@@ -188,24 +183,9 @@ struct SavingsGoalDetailView: View {
                 onManageFutureLines: { Task { await proposeGenerationStop() } }
             )
 
-            if SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress) {
-                GoalPlanTimelineSection(
-                    months: progress.months,
-                    initialAmount: progress.initialAmount,
-                    currency: currency,
-                    plannedWithdrawals: viewModel.plannedWithdrawals,
-                    canAdjust: canAdjust(progress),
-                    canRepair: SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status),
-                    onAdjust: { isSimulating = true },
-                    onRepair: { showRecoveryRecap = true },
-                    onOpenBudget: openWithdrawal
-                )
-            }
-
-            if showsWithdrawalsSection(progress) {
-                withdrawalsSection
-            }
-            goalActionsSection(progress)
+            thisMonthCard(progress, hero: hero)
+            upcomingSection(progress)
+            historyRow(progress)
         }
     }
 
@@ -219,23 +199,6 @@ struct SavingsGoalDetailView: View {
             onOpenBudget: queueBudgetFromSimulator,
             onPlanConflict: { await handlePlanConflict() }
         )
-    }
-
-    /// Survives an empty plan on purpose: a goal can lose every linked prévision
-    /// and still owe its withdrawal history (PUL-329).
-    private var withdrawalsSection: some View {
-        GoalWithdrawalsSection(
-            withdrawals: viewModel.withdrawals,
-            planned: viewModel.plannedWithdrawals,
-            planOnly: viewModel.planOnlyWithdrawals,
-            currency: currency,
-            isLoading: viewModel.isLoadingWithdrawals,
-            error: viewModel.withdrawalsError,
-            onOpenBudget: openWithdrawal,
-            onRetry: { Task { await viewModel.loadWithdrawals() } },
-            onAddWithdrawal: requestGoalWithdrawal.map { request in { request(goal.id) } }
-        )
-        .accessibilityIdentifier("savingsGoalWithdrawalsSection")
     }
 
     /// Pushes the budget onto the stack the user is actually looking at, so Back
