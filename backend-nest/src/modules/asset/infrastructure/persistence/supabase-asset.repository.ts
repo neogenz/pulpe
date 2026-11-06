@@ -214,14 +214,14 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
     return rows.flatMap(
       ({ asset_id: assetId, kind, amount, checked_at: checkedAt }) => {
         const since = assetId ? sinceByAssetId.get(assetId) : undefined;
-        if (!assetId || since === undefined || !checkedAt) return [];
+        if (!assetId || since === undefined || !checkedAt || !amount) return [];
         if (Date.parse(checkedAt) <= since) return [];
         return {
           assetId,
           kind,
           // Strict: a value Pulpe proposes and the user can apply must never
           // come from an amount that failed to decrypt.
-          amount: amount ? this.encryption.decryptAmount(amount, dek) : 0,
+          amount: this.encryption.decryptAmount(amount, dek),
         };
       },
     );

@@ -378,7 +378,7 @@ describe('SupabaseAssetRepository', () => {
       await expect(repo.findCheckedLinkedLines([])).resolves.toEqual([]);
     });
 
-    it('reads a line without a stored amount as zero', async () => {
+    it('skips a line without a stored amount, which moves no value', async () => {
       const { repo, encryption } = createRepository({
         budget_line: [query(() => ({ data: [lineRow(1, null)], error: null }))],
       });
@@ -387,7 +387,7 @@ describe('SupabaseAssetRepository', () => {
         { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
       ]);
 
-      expect(lines).toEqual([{ assetId: 'livret', kind: 'saving', amount: 0 }]);
+      expect(lines).toEqual([]);
       expect(encryption.decryptAmount).not.toHaveBeenCalled();
     });
 
