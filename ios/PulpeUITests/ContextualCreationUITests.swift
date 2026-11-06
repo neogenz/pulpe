@@ -24,7 +24,7 @@ final class ContextualCreationUITests: XCTestCase {
         let save = app.buttons["movementSave"]
         XCTAssertTrue(save.waitForExistence(timeout: 10), app.debugDescription)
 
-        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["sheetCloseButton"].firstMatch.tap()
         XCTAssertTrue(
             app.descendants(matching: .any)["homeActivityCard"].waitForExistence(timeout: 5),
             app.debugDescription
@@ -104,10 +104,8 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["homeAccountButton"].exists, app.debugDescription)
 
         // `SwiftUI.Tab` gives no seam for an identifier on the bar button it builds, so
-        // the production container is asserted by its four tabs rather than their titles.
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.exists, app.debugDescription)
-        XCTAssertEqual(tabBar.buttons.count, 4, app.debugDescription)
+        // the production container is asserted by its four tabs.
+        XCTAssertEqual(app.rootTabButtons.count, 4, app.debugDescription)
 
         attachScreenshot("home-skeleton-production-container")
     }

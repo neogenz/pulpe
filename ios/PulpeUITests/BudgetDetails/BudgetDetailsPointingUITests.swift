@@ -88,6 +88,13 @@ final class BudgetDetailsPointingUITests: XCTestCase {
         app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "accessibility3"
         app.launch()
         let row = waitForRow()
+        // A short screen (folded iPhone Duo) can open the ledger with the row below the fold.
+        let window = app.windows.firstMatch
+        let lower = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+        let higher = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+        for _ in 0..<6 where !row.isHittable {
+            lower.press(forDuration: 0.05, thenDragTo: higher)
+        }
         let before = row.frame.minY
 
         let start = row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
