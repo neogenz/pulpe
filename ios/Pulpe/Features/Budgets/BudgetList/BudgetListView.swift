@@ -339,6 +339,9 @@ private struct FixedTopBlock<Block: View>: ViewModifier {
                             .frame(height: DesignTokens.Spacing.lg)
                             .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
                     }
+                    // Up to the screen's top too, or the months show above the block once
+                    // they have scrolled past it.
+                    .ignoresSafeArea(edges: .top)
                     .allowsHitTesting(false)
                 }
         }
