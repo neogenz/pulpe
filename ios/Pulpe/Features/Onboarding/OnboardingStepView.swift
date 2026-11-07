@@ -23,6 +23,7 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
     /// folds to one line so the field, its label and the CTA stay readable.
     @State private var isKeyboardUp = false
     @State private var isShortScreen = false
+    @State private var cardViewportHeight: CGFloat = 0
 
     /// The ring steps fold their zone on a short screen too: the ring and the form don't both fit.
     private var showsCompactZone: Bool {
@@ -44,9 +45,11 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
                 if showsCompactZone { compactZone } else { zone() }
             }
                 .frame(maxWidth: .infinity)
-                .padding(.top, DesignTokens.Spacing.md)
-                // The card's inset: the greeting and the card title share one left edge.
+                // The card's inset and column: the greeting and the card title share one left edge.
                 .padding(.horizontal, DesignTokens.Spacing.xl)
+                .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+                .frame(maxWidth: .infinity)
+                .padding(.top, DesignTokens.Spacing.md)
                 .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
                 .background { EntryZoneBackground() }
                 .environment(\.colorScheme, .dark)
@@ -150,7 +153,16 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
             .padding(.horizontal, DesignTokens.Spacing.xl)
             .padding(.top, DesignTokens.Spacing.xl)
             .padding(.bottom, DesignTokens.Spacing.xl)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+            // As tall as the card's visible part, so a tap anywhere on its empty area lands
+            // on the tap catcher: the scroll view sits over the step's own one.
+            .frame(maxWidth: .infinity, minHeight: cardViewportHeight, alignment: .top)
+            .dismissKeyboardOnTap()
+        }
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.containerSize.height - geometry.contentInsets.top - geometry.contentInsets.bottom
+        } action: { _, height in
+            cardViewportHeight = max(0, height)
         }
         .scrollBounceBehavior(.basedOnSize)
         .scrollDismissesKeyboard(.interactively)
@@ -186,6 +198,8 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
         .sensoryFeedback(.success, trigger: canProceedTrigger)
         .accessibilityValue(isEnabled ? "" : "désactivé")
         .padding(.horizontal, DesignTokens.Spacing.xl)
+        .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+        .frame(maxWidth: .infinity)
         .padding(.vertical, DesignTokens.Spacing.md)
         // The rows fade out above the CTA instead of being sliced by its edge, so the card
         // reads as going on under it.

@@ -187,7 +187,7 @@
       "enterTitle": "Type your PIN",
       "enterSubtitle": "Type your code to reach your data.",
       "setupTitle": "Create your PIN",
-      "setupSubtitle": "This code protects your encrypted data. Keep it safe: nobody else can reach it for you, and it can't be recovered if you forget it.",
+      "setupSubtitle": "This code protects your amounts. Keep it safe: nobody else can reach it for you, and it can't be recovered if you forget it.",
       "pinLabel": "PIN",
       "setupPinLabel": "Your PIN",
       "pinRequired": "Your PIN is needed",
@@ -199,7 +199,7 @@
       "confirmPinRequired": "Confirm your code",
       "pinsMismatch": "The two codes don't match — try again",
       "rememberDevice": "Stop asking me on this device",
-      "rememberDeviceHint": "If you tick this box, your decryption key is stored on this device. Best avoided on a shared computer.",
+      "rememberDeviceHint": "If you tick this box, your amounts open without a code on this device. Best avoided on a shared computer.",
       "lostCode": "Lost your code?",
       "setupSubmitting": "Setting up your space...",
       "setupSubmit": "Create my PIN",
@@ -274,7 +274,7 @@
     "benefits": {
       "setup": "A clear plan for every month",
       "track": "Your spending checked off in one gesture",
-      "privacy": "Encrypted — your amounts stay private"
+      "privacy": "Your amounts stay private"
     },
     "emailSignup": "Sign up with email",
     "tryWithoutAccount": "Try without an account",
@@ -386,7 +386,7 @@
     "saveError": "Saving failed — try again",
     "passwordChanged": "Password changed",
     "securitySection": "Security",
-    "securityDescription": "Protect access to your data and manage your encryption keys.",
+    "securityDescription": "Protect access to your data and your PIN and your recovery key.",
     "diagnosticDataSection": "Diagnostic data",
     "diagnosticSharingLabel": "Share diagnostics",
     "diagnosticSharingDescription": "Link technical events and errors to your account so problems can be understood and you can be helped faster. No amount and nothing you type is collected.",
@@ -435,7 +435,7 @@
     "passwordRequired": "The password is required",
     "passwordMinLength": "At least {{ min }} characters",
     "deleteAccountConfirm": "Confirm deletion",
-    "pinIncorrect": "Wrong PIN or invalid encryption key",
+    "pinIncorrect": "Wrong PIN",
     "deleteAccountVerificationFailed": "The check failed — try again later",
     "passwordIncorrect": "Wrong password",
     "regenerateKeyTitle": "Regenerate my key",
@@ -443,7 +443,7 @@
     "regenerateKeyWarning": "This invalidates the old key. Without your PIN or your recovery key, access to your data is lost for good.",
     "regenerateKeySubmit": "Regenerate",
     "pinCode": "PIN",
-    "pinCodeDescription": "Change your encryption code.",
+    "pinCodeDescription": "Change your PIN.",
     "pinChanged": "PIN changed",
     "pinChangedNoRecovery": "PIN changed — regenerate your recovery key in the settings",
     "changePin": {
@@ -464,7 +464,7 @@
       "rateLimited": "Too many attempts — try again later",
       "genericError": "Something went wrong — try again later",
       "changeFailed": "Changing the PIN failed — try again later",
-      "rekeyFailed": "Re-encrypting failed — your old PIN stays active, try again later"
+      "rekeyFailed": "Changing your code failed: your old PIN stays active, try again later"
     },
     "connections": {
       "setup": {

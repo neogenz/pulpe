@@ -40,6 +40,8 @@ struct WelcomeStep: View {
             }
             .padding(.horizontal, DesignTokens.Spacing.xxl)
             .padding(.vertical, DesignTokens.Spacing.lg)
+            .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+            .frame(maxWidth: .infinity)
         }
         .scrollBounceBehavior(.basedOnSize)
         .background { EntryZoneBackground() }

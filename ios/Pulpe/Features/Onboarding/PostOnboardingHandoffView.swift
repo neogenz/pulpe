@@ -10,12 +10,13 @@ import SwiftUI
 ///   1. the two gestures that keep the budget true: add what you spend, tick what has passed
 ///   2. the passive surface — pin the Lock Screen widget
 ///
-/// Presented as a `fullScreenCover` over the dashboard so it never touches the
+/// Shown by `PostOnboardingHandoffHost` over the tabs, so it never touches the
 /// auth / PIN / session-resume state machine.
 struct PostOnboardingHandoffView: View {
     let onContinue: () -> Void
 
     @State private var showWidgetHelp = false
+    @State private var hasOpenedWidgetHelp = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
@@ -60,7 +61,10 @@ struct PostOnboardingHandoffView: View {
                     title: AppLocale.string("Garde-le sous les yeux"),
                     message: AppLocale.string("Le widget d'écran verrouillé montre ton disponible sans ouvrir l'app.")
                 )
-                Button("Voir les widgets") { showWidgetHelp = true }
+                Button("Voir les widgets") {
+                    showWidgetHelp = true
+                    hasOpenedWidgetHelp = true
+                }
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.heroAccentPositive)
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
@@ -69,7 +73,13 @@ struct PostOnboardingHandoffView: View {
 
             Spacer(minLength: 0)
 
-            Button(action: onContinue) {
+            Button {
+                AnalyticsService.shared.capture(
+                    .onboardingHandoffCompleted,
+                    properties: ["widget_help_opened": hasOpenedWidgetHelp]
+                )
+                onContinue()
+            } label: {
                 Text("Ouvrir mon mois")
                     .font(PulpeTypography.buttonPrimary)
                     .foregroundStyle(Color.heroSurface)
@@ -83,7 +93,8 @@ struct PostOnboardingHandoffView: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.vertical, DesignTokens.Spacing.xxxl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: DesignTokens.Entry.columnMaxWidth, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .background { EntryZoneBackground() }
         .environment(\.colorScheme, .dark)
         .sheet(isPresented: $showWidgetHelp) { WidgetInstructionsSheet() }
@@ -112,6 +123,40 @@ struct PostOnboardingHandoffView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.heroTile, in: .rect(cornerRadius: DesignTokens.CornerRadius.surface))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The tabs with the handoff over them, once, for a user who JUST finished onboarding and
+/// hasn't seen it. Over the tabs rather than in a cover: a cover slid up over the light home,
+/// while this follows the forest loader without a frame of the home showing.
+struct PostOnboardingHandoffHost<Content: View>: View {
+    @Environment(AppState.self) private var appState
+    @ViewBuilder let content: () -> Content
+
+    private let flags = PostOnboardingFlagsStore()
+
+    private var showsHandoff: Bool {
+        appState.justCompletedOnboarding && !flags.hasSeenPostOnboardingHandoff
+    }
+
+    var body: some View {
+        ZStack {
+            content()
+                .accessibilityHidden(showsHandoff)
+            if showsHandoff {
+                PostOnboardingHandoffView {
+                    flags.setHasSeenPostOnboardingHandoff()
+                    withAnimation(DesignTokens.Animation.smoothEaseInOut) {
+                        appState.justCompletedOnboarding = false
+                    }
+                }
+                .suppressesTips()
+                .transition(.opacity)
+                // A view leaving a ZStack drops under its siblings unless it keeps its rank:
+                // without it the fade-out runs hidden behind the tabs, a hard cut on screen.
+                .zIndex(1)
+            }
+        }
     }
 }
 

@@ -402,7 +402,7 @@ struct RootView: View {
             )
 
         case .main:
-            MainTabView()
+            PostOnboardingHandoffHost { MainTabView() }
         }
     }
 

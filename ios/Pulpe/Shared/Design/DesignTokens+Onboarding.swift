@@ -25,6 +25,9 @@ extension DesignTokens {
         static let amountFieldHeight: CGFloat = 64
         /// Round icon disc of a status screen or sheet header.
         static let iconDisc: CGFloat = 52
+        /// Width cap of a full-screen entry column: on a wide screen (the open iPhone Duo) the
+        /// buttons stay a button's width instead of spanning ~575pt.
+        static let columnMaxWidth: CGFloat = 480
         /// Centered dialog card (V2 « Clé · consentement »): width cap, icon disc, entrance scale.
         static let dialogMaxWidth: CGFloat = 300
         static let dialogIconDisc: CGFloat = 36

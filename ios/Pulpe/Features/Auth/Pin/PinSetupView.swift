@@ -67,6 +67,7 @@ struct PinSetupView: View {
             .sensoryFeedback(.impact(flexibility: .rigid), trigger: viewModel.hapticStepAdvance)
             .sheet(item: recoveryKeySheetItemBinding) { item in
                 RecoveryKeySheet(recoveryKey: item.recoveryKey) {
+                    AnalyticsService.shared.capture(.recoveryKeyAcknowledged)
                     Task { await onComplete() }
                 }
             }
@@ -86,9 +87,12 @@ struct PinSetupView: View {
             }
             Spacer()
             headerSection
-            Spacer().frame(height: DesignTokens.Spacing.sectionGap)
+                // The open iPhone Duo would run the subtitle on one 700 pt line.
+                .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+            // The gaps give way on a short screen (the open Duo) so the subtitle keeps both lines.
+            Spacer(minLength: DesignTokens.Spacing.lg).frame(maxHeight: DesignTokens.Spacing.sectionGap)
             dotsSection
-            Spacer().frame(height: DesignTokens.Spacing.stepHeaderTop)
+            Spacer(minLength: DesignTokens.Spacing.lg).frame(maxHeight: DesignTokens.Spacing.stepHeaderTop)
             NumpadView(
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
@@ -141,6 +145,7 @@ struct PinSetupView: View {
                 .font(PulpeTypography.stepSubtitle)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

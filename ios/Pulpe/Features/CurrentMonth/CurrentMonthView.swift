@@ -139,12 +139,6 @@ struct CurrentMonthView: View {
             }
             .suppressesTips()
         }
-        .fullScreenCover(isPresented: showPostOnboardingHandoff) {
-            PostOnboardingHandoffView {
-                dismissPostOnboardingHandoff()
-            }
-            .suppressesTips()
-        }
         .task {
             store.prepareForReload()
             // Ensure settings (payDay) are loaded before budget loading,
@@ -203,7 +197,7 @@ struct CurrentMonthView: View {
             contentState: store.contentState,
             hasBlockingSheet: activeSheet != nil,
             isNavigating: navigateToBudget,
-            isPostOnboardingHandoffPresented: showPostOnboardingHandoff.wrappedValue
+            isPostOnboardingHandoffPresented: isPostOnboardingHandoffPresented
         ) { promptNumber in
             activeSheet = .feedback(promptNumber: promptNumber)
         }
@@ -254,22 +248,8 @@ extension CurrentMonthView {
         return Formatters.monthNameInText(for: budget.month)
     }
 
-    /// Presents the handoff exactly once, only for a user who JUST finished onboarding
-    /// (`appState.justCompletedOnboarding`) and hasn't seen it before.
-    private var showPostOnboardingHandoff: Binding<Bool> {
-        Binding(
-            get: {
-                appState.justCompletedOnboarding
-                    && !postOnboardingFlags.hasSeenPostOnboardingHandoff
-            },
-            set: { newValue in
-                if !newValue { dismissPostOnboardingHandoff() }
-            }
-        )
-    }
-
-    private func dismissPostOnboardingHandoff() {
-        postOnboardingFlags.setHasSeenPostOnboardingHandoff()
-        appState.justCompletedOnboarding = false
+    /// The root shows the handoff over the tabs; no feedback prompt under it.
+    private var isPostOnboardingHandoffPresented: Bool {
+        appState.justCompletedOnboarding && !postOnboardingFlags.hasSeenPostOnboardingHandoff
     }
 }

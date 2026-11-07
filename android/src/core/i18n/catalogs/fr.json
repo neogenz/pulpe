@@ -1027,7 +1027,7 @@
     "welcome": {
       "benefits": {
         "plan": "Un plan clair pour chaque mois",
-        "privacy": "Chiffré — tes montants restent privés",
+        "privacy": "Tes montants restent privés",
         "tracking": "Tes dépenses pointées en un geste"
       },
       "emailSignup": "S'inscrire avec un e-mail",
@@ -1177,7 +1177,7 @@
       "lockTitle": "Verrouiller maintenant",
       "passwordChanged": "Mot de passe modifié",
       "passwordDescription": "Ton mot de passe de connexion",
-      "pinDescription": "Le code qui déchiffre tes montants",
+      "pinDescription": "Le code qui protège tes montants",
       "pinTitle": "Code PIN",
       "recoveryError": "L'opération a échoué. Réessaie.",
       "recoveryInvalidCharacters": "Une clé ne contient que des lettres et les chiffres 2 à 7.",

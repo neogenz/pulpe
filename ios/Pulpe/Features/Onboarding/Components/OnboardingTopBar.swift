@@ -23,11 +23,28 @@ struct OnboardingTopBar: View {
             .accessibilityLabel(state.editReturnStep != nil ? "Retour au résumé" : "Retour")
 
             OnboardingSegmentedProgress(currentStep: state.currentStep, progressSteps: state.progressBarSteps)
-            trailing
+            // The slot keeps the chip's width on every step, so the progress bar doesn't
+            // shrink the moment the chip replaces the step count.
+            ZStack(alignment: .trailing) {
+                currencyChipLabel.hidden()
+                trailing
+            }
         }
         .sheet(isPresented: $showCurrencySwap) {
             OnboardingCurrencySwapSheet(state: state)
         }
+    }
+
+    private var currencyChipLabel: some View {
+        HStack(spacing: DesignTokens.Spacing.xxs) {
+            Text(state.currency.rawValue)
+            Image(systemName: "chevron.down").font(PulpeTypography.caption2)
+        }
+        .font(PulpeTypography.labelLarge)
+        .foregroundStyle(Color.heroInk)
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .background(Color.heroTile, in: Capsule())
     }
 
     @ViewBuilder
@@ -36,15 +53,7 @@ struct OnboardingTopBar: View {
             Button {
                 showCurrencySwap = true
             } label: {
-                HStack(spacing: DesignTokens.Spacing.xxs) {
-                    Text(state.currency.rawValue)
-                    Image(systemName: "chevron.down").font(PulpeTypography.caption2)
-                }
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.heroInk)
-                .padding(.horizontal, DesignTokens.Spacing.md)
-                .frame(minHeight: DesignTokens.TapTarget.minimum)
-                .background(Color.heroTile, in: Capsule())
+                currencyChipLabel
             }
             .plainPressedButtonStyle()
             .accessibilityLabel("Devise actuelle : \(state.currency.nativeName). Toucher pour changer.")

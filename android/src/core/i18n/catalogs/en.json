@@ -1027,7 +1027,7 @@
     "welcome": {
       "benefits": {
         "plan": "A clear plan for every month",
-        "privacy": "Encrypted — your amounts stay private",
+        "privacy": "Your amounts stay private",
         "tracking": "Check off expenses in one tap"
       },
       "emailSignup": "Sign up with email",
@@ -1177,7 +1177,7 @@
       "lockTitle": "Lock now",
       "passwordChanged": "Password changed",
       "passwordDescription": "Your sign-in password",
-      "pinDescription": "The code that decrypts your amounts",
+      "pinDescription": "The code that protects your amounts",
       "pinTitle": "PIN",
       "recoveryError": "The operation failed. Try again.",
       "recoveryInvalidCharacters": "A key contains only letters and the digits 2 to 7.",

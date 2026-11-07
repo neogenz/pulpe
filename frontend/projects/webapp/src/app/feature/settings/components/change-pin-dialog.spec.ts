@@ -336,7 +336,7 @@ describe('ChangePinDialog', () => {
       await component['onSubmitNewPin']();
 
       expect(component['errorMessage']()).toBe(
-        'Le re-chiffrement a échoué — ton ancien code PIN reste actif, réessaie plus tard',
+        'Le changement de code a échoué : ton ancien code PIN reste actif, réessaie plus tard',
       );
       expect(component['step']()).toBe(2);
       expect(mockClientKeyService.setDirectKey).not.toHaveBeenCalled();

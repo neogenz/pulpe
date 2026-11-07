@@ -43,12 +43,18 @@ enum AnalyticsEvent: String, CaseIterable {
     case authSessionObserved = "auth_session_observed"
     case logoutCompleted = "logout_completed"
     case pinSetupCompleted = "pin_setup_completed"
+    /// Fires when the user confirms the recovery key shown after PIN creation:
+    /// separates leaving on that sheet from leaving on the PIN pad.
+    case recoveryKeyAcknowledged = "recovery_key_acknowledged"
     case pinEntered = "pin_entered"
     case pinChanged = "pin_changed"
 
     // MARK: - Budget
     case budgetCreated = "budget_created"
     case firstBudgetCreated = "first_budget_created"
+    /// Fires when the user leaves the post-onboarding screen for their month.
+    /// Property: `widget_help_opened` (Bool).
+    case onboardingHandoffCompleted = "onboarding_handoff_completed"
 
     // MARK: - Transaction
     /// Fires after a successful creation response from any surface. Properties: `type`.
