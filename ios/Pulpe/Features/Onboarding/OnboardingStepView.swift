@@ -72,11 +72,8 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
         }
         .task {
             guard !showContent else { return }
-            if reduceMotion {
-                showContent = true
-            } else {
-                await delayedAnimation(0.25) { showContent = true }
-            }
+            // No delay: the step already slides in, and its field must be usable as it lands.
+            withAnimation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut) { showContent = true }
         }
     }
 
@@ -141,7 +138,11 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
                 }
 
                 content()
-                    .blurSlide(showContent)
+                    .blurSlide(
+                        showContent,
+                        blur: DesignTokens.Animation.stepContentBlur,
+                        rise: DesignTokens.Animation.stepContentRise
+                    )
 
                 if showsGenericError, let error = state.error {
                     ErrorBanner(message: DomainErrorLocalizer.localize(error)) {

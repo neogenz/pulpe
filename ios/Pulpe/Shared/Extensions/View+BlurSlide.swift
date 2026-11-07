@@ -3,12 +3,12 @@ import SwiftUI
 extension View {
     /// Staggered blur-slide entrance effect inspired by Apple's onboarding.
     /// Compositing group ensures blur applies to the grouped view, not individual nodes.
-    func blurSlide(_ show: Bool) -> some View {
+    func blurSlide(_ show: Bool, blur: CGFloat = 10, rise: CGFloat = 40) -> some View {
         self
             .compositingGroup()
-            .blur(radius: show ? 0 : 10)
+            .blur(radius: show ? 0 : blur)
             .opacity(show ? 1 : 0)
-            .offset(y: show ? 0 : 40)
+            .offset(y: show ? 0 : rise)
     }
 }
 

@@ -73,6 +73,10 @@ extension DesignTokens {
 
         // MARK: - Step Transitions
 
+        /// Blur and rise a step's fields enter with while the step slides in: light, so the slide leads.
+        static let stepContentBlur: CGFloat = 4
+        static let stepContentRise: CGFloat = 12
+
         static var stepTransition: SwiftUI.Animation {
             .spring(response: 0.5, dampingFraction: 0.85)
         }
