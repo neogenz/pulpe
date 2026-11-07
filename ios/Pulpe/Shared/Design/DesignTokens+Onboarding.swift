@@ -34,18 +34,11 @@ extension DesignTokens {
         static let dialogEntranceScale: CGFloat = 0.96
         /// Numbered square of a steps card (V2 « PIN · récupération »).
         static let stepBadge: CGFloat = 28
-        /// Width of the welcome mascot: the hero of the screen without pushing the sign-up
-        /// buttons below the fold on an iPhone SE.
-        static let mascotWidth: CGFloat = 232
-        /// How far the mascot drifts up and back while it idles: alive, never bobbing.
-        static let mascotFloat: CGFloat = 6
-        /// Scale the mascot rises from on entrance (never from zero).
-        static let mascotEntranceScale: CGFloat = 0.9
-        /// Sparkle glyph and dot sizes around the mascot.
-        static let sparkleSize: CGFloat = 14
-        static let sparkleDot: CGFloat = 6
-        /// Scale a sparkle shrinks to at the low point of its twinkle.
-        static let twinkleScale: CGFloat = 0.7
+        /// Each welcome sticker leans its own way: the tilt is what reads as a sticker laid
+        /// on the page rather than a card that slipped out of the layout.
+        static let stickerTiltTopLeading: Double = -6
+        static let stickerTiltTrailing: Double = 5
+        static let stickerTiltBottomLeading: Double = -3
     }
 }
 
