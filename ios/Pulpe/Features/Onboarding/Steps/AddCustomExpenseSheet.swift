@@ -96,6 +96,7 @@ struct AddCustomExpenseSheet: View {
                 focusBinding: $focusedField,
                 field: .description
             )
+            .id(AmountDescriptionField.description)
 
             if let amount, amount > 0 { impact(for: amount) }
         }
@@ -103,7 +104,9 @@ struct AddCustomExpenseSheet: View {
             saveButton
                 .padding(.horizontal, DesignTokens.Spacing.xl)
                 .padding(.vertical, DesignTokens.Spacing.md)
-                .background(Color.sheetBackground)
+                // Down under the keyboard: its floating toolbar is see-through, and the form
+                // scrolled under the button would show between the button and the keys.
+                .background(Color.sheetBackground.ignoresSafeArea(edges: .bottom))
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
