@@ -350,6 +350,8 @@ struct RootView: View {
     @ViewBuilder
     private var routeContent: some View {
         switch appState.currentRoute {
+        case .loading where appState.pendingOnboardingData != nil:
+            BudgetCreationLoadingView()
         case .loading:
             LoadingView(message: AppLocale.string("Chargement..."))
         case .maintenance:

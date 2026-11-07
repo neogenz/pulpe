@@ -21,7 +21,12 @@ struct SecuritySettingsView: View {
                     InfoBanner(
                         .neutral,
                         systemImage: "lock",
-                        text: AppLocale.string("Tes montants sont chiffrés. Seul ton code PIN peut les ouvrir.")
+                        text: AppLocale.string(
+                            """
+                            Tes montants sont protégés par ton code PIN. \
+                            Sans lui, personne ne peut les lire.
+                            """
+                        )
                     )
                     unlockGroup
                     connectionGroup

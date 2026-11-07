@@ -40,6 +40,11 @@ extension DesignTokens {
             .spring(response: 0.6, dampingFraction: 0.8)
         }
 
+        /// A ring drawing itself in, clockwise, without overshooting its end.
+        static var ringDrawIn: SwiftUI.Animation {
+            .spring(duration: 1.1, bounce: 0)
+        }
+
         // MARK: - Easing
 
         /// Scale a confirmed element settles to as it resolves away (check-exit transition).

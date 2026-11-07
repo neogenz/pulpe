@@ -108,7 +108,7 @@ struct ChangePinView: View {
     private var processingStep: some View {
         PinProcessingView(
             title: AppLocale.string("Changement en cours..."),
-            subtitle: AppLocale.string("Tes données sont en cours de re-chiffrement")
+            subtitle: AppLocale.string("Je protège tes données avec ton nouveau code")
         )
     }
 

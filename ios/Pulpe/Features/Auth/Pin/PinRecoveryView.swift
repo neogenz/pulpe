@@ -115,7 +115,7 @@ struct PinRecoveryView: View {
                             .accessibilityAddTraits(.isHeader)
                         Text("""
                         Entre la clé de récupération notée quand tu as créé ton code. \
-                        Tu choisiras ensuite un nouveau code, et tes montants seront rechiffrés avec.
+                        Tu choisiras ensuite un nouveau code, qui protégera tes montants.
                         """)
                             .font(PulpeTypography.stepSubtitle)
                             .foregroundStyle(Color.textSecondary)
@@ -272,7 +272,7 @@ struct PinRecoveryView: View {
     private var processingStep: some View {
         PinProcessingView(
             title: AppLocale.string("Récupération en cours..."),
-            subtitle: AppLocale.string("Tes données sont en cours de re-chiffrement")
+            subtitle: AppLocale.string("Je protège tes données avec ton nouveau code")
         )
     }
 

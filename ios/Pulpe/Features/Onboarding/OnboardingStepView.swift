@@ -22,6 +22,12 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
     /// The keyboard leaves room for the zone or for the form, not both: while it is up the zone
     /// folds to one line so the field, its label and the CTA stay readable.
     @State private var isKeyboardUp = false
+    @State private var isShortScreen = false
+
+    /// The ring steps fold their zone on a short screen too: the ring and the form don't both fit.
+    private var showsCompactZone: Bool {
+        isKeyboardUp || (isShortScreen && [.income, .charges, .savings].contains(step))
+    }
 
     private var isEnabled: Bool {
         // `readyToComplete` / `isSubmitting` close the rapid-double-tap window on the preview CTA:
@@ -35,11 +41,12 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
             // A ZStack, not a Group: a Group hands its modifiers to each child, so an empty
             // compact zone would drop the padding and pull the card over the top bar.
             ZStack {
-                if isKeyboardUp { compactZone } else { zone() }
+                if showsCompactZone { compactZone } else { zone() }
             }
                 .frame(maxWidth: .infinity)
                 .padding(.top, DesignTokens.Spacing.md)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
+                // The card's inset: the greeting and the card title share one left edge.
+                .padding(.horizontal, DesignTokens.Spacing.xl)
                 .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
                 .background { EntryZoneBackground() }
                 .environment(\.colorScheme, .dark)
@@ -47,6 +54,9 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
             card
         }
         .dismissKeyboardOnTap()
+        .onGeometryChange(for: Bool.self) { $0.size.height < DesignTokens.Entry.ringZoneMinHeight } action: {
+            isShortScreen = $0
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             setKeyboardUp(true)
         }
@@ -170,12 +180,26 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
                 Text(ctaTitle ?? buttonTitle)
             }
         }
-        .primaryButtonStyle(isEnabled: isEnabled)
+        // A request in flight keeps the solid fill: its white spinner would vanish on the
+        // disabled tint, and the CTA would flash pale then green again before the step slides.
+        .primaryButtonStyle(isEnabled: isEnabled || state.isLoading)
         .sensoryFeedback(.success, trigger: canProceedTrigger)
         .accessibilityValue(isEnabled ? "" : "désactivé")
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.md)
+        // The rows fade out above the CTA instead of being sliced by its edge, so the card
+        // reads as going on under it.
         .background(Color.appBackground)
+        .overlay(alignment: .top) {
+            LinearGradient(
+                colors: [Color.appBackground.opacity(0), Color.appBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+                .frame(height: DesignTokens.Spacing.lg)
+                .offset(y: -DesignTokens.Spacing.lg)
+                .allowsHitTesting(false)
+        }
     }
 
     private var buttonTitle: String {

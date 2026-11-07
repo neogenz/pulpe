@@ -19,8 +19,8 @@ enum PinSetupMode: Equatable, Sendable {
         case .chooseAndSetupRecovery:
             AppLocale.string(
                 """
-                    \(PinConstants.length) chiffres. Tes montants sont chiffrés avec ce \
-                    code, et je ne le connais pas : choisis-en un dont tu te souviendras.
+                    \(PinConstants.length) chiffres. Ce code protège tes montants, \
+                    et je ne le connais pas : choisis-en un dont tu te souviendras.
                     """
             )
         case .enterExistingPin:
@@ -95,7 +95,10 @@ struct PinSetupView: View {
                 isDisabled: viewModel.isValidating || viewModel.isError
             )
             Spacer().frame(height: DesignTokens.Spacing.xl)
+            // One height for every step's footer: the keypad must not move under the thumb
+            // between « Choisis » and « Confirme ».
             footer
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
             Spacer().frame(height: DesignTokens.Spacing.xl)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)

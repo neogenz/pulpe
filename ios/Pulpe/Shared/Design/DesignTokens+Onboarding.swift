@@ -8,6 +8,11 @@ extension DesignTokens {
         /// Budget ring diameter and stroke (V2 `ring`).
         static let ringSize: CGFloat = 184
         static let ringStroke: CGFloat = 14
+        /// Clear space between two ring segments, cap to cap.
+        static let ringSegmentGap: CGFloat = 5
+        /// Below this step height (iPhone SE, open iPhone Duo) the ring zone would leave the card
+        /// too short for its form, so the ring steps keep the one-line summary instead.
+        static let ringZoneMinHeight: CGFloat = 700
         /// Overflow arc around the ring on "À combler".
         static let ringOverflowGap: CGFloat = 12
         static let ringOverflowStroke: CGFloat = 6
@@ -26,8 +31,6 @@ extension DesignTokens {
         static let dialogEntranceScale: CGFloat = 0.96
         /// Numbered square of a steps card (V2 « PIN · récupération »).
         static let stepBadge: CGFloat = 28
-        /// Welcome stickers.
-        static let stickerRadius: CGFloat = 14
         /// Each welcome sticker leans its own way: the tilt is what reads as a sticker laid
         /// on the page rather than a card that slipped out of the layout.
         static let stickerTiltTopLeading: Double = -6

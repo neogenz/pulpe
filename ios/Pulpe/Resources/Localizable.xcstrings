@@ -1,6 +1,28 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "Je prépare ton budget…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich bereite dein Budget vor…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Getting your budget ready…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparo il tuo budget…"
+          }
+        }
+      }
+    },
     "Le calcul" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -43,6 +65,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apri il dettaglio del calcolo"
+          }
+        }
+      }
+    },
+    "Ouvrir mon mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meinen Monat öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open my month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri il mio mese"
           }
         }
       }
@@ -3984,28 +4028,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "%lld chiffres — tes montants sont chiffrés avec ce code" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Ziffern — deine Beträge sind mit diesem Code verschlüsselt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld digits — your amounts are encrypted with this code"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld cifre — i tuoi importi sono cifrati con questo codice"
           }
         }
       }
@@ -9811,28 +9833,6 @@
         }
       }
     },
-    "Chiffré — tes montants restent privés" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verschlüsselt — deine Beträge bleiben privat"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Encrypted — your amounts stay private"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cifrato — i tuoi importi restano privati"
-          }
-        }
-      }
-    },
     "Choisis au moins deux mois" : {
       "localizations" : {
         "de" : {
@@ -13559,24 +13559,24 @@
         }
       }
     },
-    "Erreur de chiffrement, réessaie" : {
+    "Un problème est survenu avec ton code, réessaie" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verschlüsselungsfehler, versuch es nochmal"
+            "value" : "Mit deinem Code ist etwas schiefgelaufen, versuch es nochmal"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encryption error, try again"
+            "value" : "Something went wrong with your code, try again"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Errore di cifratura, riprova"
+            "value" : "Qualcosa è andato storto con il tuo codice, riprova"
           }
         }
       }
@@ -16045,24 +16045,24 @@
         }
       }
     },
-    "Le sel de chiffrement est invalide" : {
+    "Impossible d'ouvrir tes données, réessaie" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Verschlüsselungs-Salt ist ungültig"
+            "value" : "Deine Daten konnten nicht geöffnet werden, versuch es nochmal"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The encryption salt is not valid"
+            "value" : "Couldn't open your data, try again"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il salt di cifratura non è valido"
+            "value" : "Impossibile aprire i tuoi dati, riprova"
           }
         }
       }
@@ -25421,24 +25421,24 @@
         }
       }
     },
-    "Tes données sont en cours de re-chiffrement" : {
+    "Je protège tes données avec ton nouveau code" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Daten werden neu verschlüsselt"
+            "value" : "Ich schütze deine Daten mit deinem neuen Code"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your data is being re-encrypted"
+            "value" : "Protecting your data with your new code"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I tuoi dati vengono nuovamente cifrati"
+            "value" : "Proteggo i tuoi dati con il nuovo codice"
           }
         }
       }
@@ -25753,28 +25753,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo codice di accesso è cambiato — inserisci il nuovo codice"
-          }
-        }
-      }
-    },
-    "Ton coffre est configuré sans clé de récupération. Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dein Tresor ist ohne Wiederherstellungsschlüssel eingerichtet. Erzeuge ihn jetzt, damit du den Zugang zu deinen verschlüsselten Daten nicht verlierst."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your vault is set up without a recovery key. Create it now to avoid losing access to your encrypted data."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La tua cassaforte è configurata senza chiave di recupero. Generala ora per non perdere l'accesso ai tuoi dati cifrati."
           }
         }
       }
@@ -40960,25 +40938,25 @@
         }
       }
     },
-    "%lld chiffres. Tes montants sont chiffrés avec ce code, et je ne le connais pas : choisis-en un dont tu te souviendras." : {
+    "%lld chiffres. Ce code protège tes montants, et je ne le connais pas : choisis-en un dont tu te souviendras." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld digits. Your amounts are encrypted with this code, and I don't know it: pick one you'll remember."
+            "value" : "%lld digits. This code protects your amounts, and I don't know it: pick one you'll remember."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld Ziffern. Deine Beträge sind mit diesem Code verschlüsselt, und ich kenne ihn nicht: Wähle einen, an den du dich erinnerst."
+            "value" : "%lld Ziffern. Dieser Code schützt deine Beträge, und ich kenne ihn nicht: Wähle einen, an den du dich erinnerst."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld cifre. I tuoi importi sono cifrati con questo codice e io non lo conosco: scegline uno che ricorderai."
+            "value" : "%lld cifre. Questo codice protegge i tuoi importi e io non lo conosco: scegline uno che ricorderai."
           }
         }
       }
@@ -42225,25 +42203,25 @@
         }
       }
     },
-    "Tes montants seront chiffrés : personne d'autre ne les voit." : {
+    "Tes montants restent privés : personne d'autre ne les voit, pas même moi." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your amounts will be encrypted: nobody else sees them."
+            "value" : "Your amounts stay private: nobody else sees them, not even me."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Beträge werden verschlüsselt: Niemand sonst sieht sie."
+            "value" : "Deine Beträge bleiben privat: Niemand sonst sieht sie, nicht einmal ich."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I tuoi importi saranno cifrati: nessun altro li vede."
+            "value" : "I tuoi importi restano privati: nessun altro li vede, nemmeno io."
           }
         }
       }
@@ -42359,29 +42337,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "pulpe"
-          }
-        }
-      }
-    },
-    "Montants chiffrés" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Encrypted amounts"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verschlüsselte Beträge"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importi cifrati"
           }
         }
       }
@@ -42524,25 +42479,25 @@
         }
       }
     },
-    "Entre la clé de récupération notée quand tu as créé ton code. Tu choisiras ensuite un nouveau code, et tes montants seront rechiffrés avec." : {
+    "Entre la clé de récupération notée quand tu as créé ton code. Tu choisiras ensuite un nouveau code, qui protégera tes montants." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enter the recovery key you noted when you created your code. You'll then choose a new code, and your amounts will be re-encrypted with it."
+            "value" : "Enter the recovery key you noted when you created your code. You'll then choose a new code to protect your amounts."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gib den Wiederherstellungsschlüssel ein, den du beim Erstellen deines Codes notiert hast. Danach wählst du einen neuen Code, mit dem deine Beträge neu verschlüsselt werden."
+            "value" : "Gib den Wiederherstellungsschlüssel ein, den du beim Erstellen deines Codes notiert hast. Danach wählst du einen neuen Code, der deine Beträge schützt."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inserisci la chiave di recupero annotata quando hai creato il codice. Poi sceglierai un nuovo codice e i tuoi importi saranno ricifrati con esso."
+            "value" : "Inserisci la chiave di recupero annotata quando hai creato il codice. Poi sceglierai un nuovo codice che proteggerà i tuoi importi."
           }
         }
       }
@@ -43155,31 +43110,31 @@
         }
       }
     },
-    "Tes montants sont chiffrés. Seul ton code PIN peut les ouvrir." : {
+    "Tes montants sont protégés par ton code PIN. Sans lui, personne ne peut les lire." : {
       "extractionState" : "manual",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tes montants sont chiffrés. Seul ton code PIN peut les ouvrir."
+            "value" : "Tes montants sont protégés par ton code PIN. Sans lui, personne ne peut les lire."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your amounts are encrypted. Only your PIN can open them."
+            "value" : "Your amounts are protected by your PIN. Without it, nobody can read them."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Beträge sind verschlüsselt. Nur dein PIN-Code kann sie öffnen."
+            "value" : "Deine Beträge sind durch deinen PIN-Code geschützt. Ohne ihn kann niemand sie lesen."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I tuoi importi sono cifrati. Solo il tuo codice PIN può aprirli."
+            "value" : "I tuoi importi sono protetti dal tuo codice PIN. Senza, nessuno può leggerli."
           }
         }
       }

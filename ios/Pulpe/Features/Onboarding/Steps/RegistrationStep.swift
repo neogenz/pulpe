@@ -137,7 +137,7 @@ extension RegistrationStep {
                 )
                     .font(PulpeTypography.sectionTitle)
                     .foregroundStyle(Color.heroInk)
-                Text("Tes montants seront chiffrés : personne d'autre ne les voit.")
+                Text("Tes montants restent privés : personne d'autre ne les voit, pas même moi.")
                     .font(PulpeTypography.onboardingSubtitle)
                     .foregroundStyle(Color.heroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)

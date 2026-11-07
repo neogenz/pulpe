@@ -104,7 +104,7 @@ extension CryptoServiceError {
     var pinUserMessage: String {
         switch self {
         case .invalidSalt, .invalidIterations: AppLocale.string("Erreur de sécurité, contacte le support")
-        case .derivationFailed: AppLocale.string("Erreur de chiffrement, réessaie")
+        case .derivationFailed: AppLocale.string("Un problème est survenu avec ton code, réessaie")
         case .invalidPin: AppLocale.string("Code invalide")
         }
     }

@@ -79,41 +79,41 @@ struct WelcomeStep: View {
         .accessibilityLabel("Pulpe")
     }
 
-    /// Decorative: a sample month as the ring, with three stickers that say what the app does.
-    /// The stickers sit around the ring, never over the figure in its middle.
+    /// Decorative: a sample month as the ring, with three stickers that read as its legend —
+    /// the salary it starts from, then a charge and a saving in their segment's colour. They sit
+    /// around the ring, never over the figure in its middle.
     private var illustration: some View {
         let month = Formatters.monthNameInText(for: Calendar.current.component(.month, from: .now))
+        // The stickers add up to the centre: a budget app's first figures must check out.
+        let income: Decimal = 6200, charges: Decimal = 3021.5, savings: Decimal = 588
         return OnboardingBudgetRing(
-            income: 6200, charges: 3021.5, savings: 588, currency: .chf,
-            subtitle: "\(SupportedCurrency.chf.rawValue) · \(month)"
+            income: income, charges: charges, savings: savings, currency: .chf,
+            subtitle: "\(SupportedCurrency.chf.rawValue) · \(month)",
+            drawsIn: true
         )
             .padding(.top, DesignTokens.Spacing.lg)
             .padding(.bottom, DesignTokens.Spacing.xxxl)
             .frame(maxWidth: .infinity)
             .overlay(alignment: .topLeading) {
-                OnboardingSticker(systemImage: "house", tint: .financialExpense, wash: .overWash) {
-                    Text("Loyer").font(PulpeTypography.caption2).foregroundStyle(Color.textSecondary)
-                    Text(Decimal(1850).asAmount(for: .chf)).font(PulpeTypography.metricLabelBold)
-                }
+                OnboardingSticker(
+                    systemImage: "house", tint: .financialExpense, wash: .overWash,
+                    label: AppLocale.string("Charges"), amount: charges.asAmount(for: .chf)
+                )
                 .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltTopLeading))
             }
             .overlay(alignment: .bottomTrailing) {
-                OnboardingSticker(systemImage: "checkmark", tint: .white, wash: .pulpePrimary) {
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
-                            Text(verbatim: "Migros").font(PulpeTypography.metricLabelBold)
-                            Text("pointé").font(PulpeTypography.caption2).foregroundStyle(Color.textSecondary)
-                        }
-                        Text((Decimal(8430) / 100).asAmount(for: .chf)).font(PulpeTypography.metricLabelBold)
-                    }
-                }
+                OnboardingSticker(
+                    systemImage: TransactionKind.saving.icon, tint: .financialSavings, wash: .accentWash,
+                    label: AppLocale.string("Épargne"), amount: savings.asAmount(for: .chf)
+                )
                 .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltTrailing))
                 .offset(y: -DesignTokens.Spacing.xl)
             }
             .overlay(alignment: .bottomLeading) {
-                OnboardingSticker(systemImage: "lock", tint: .accentInk, wash: .accentWash) {
-                    Text("Montants chiffrés").font(PulpeTypography.metricLabelBold)
-                }
+                OnboardingSticker(
+                    systemImage: TransactionKind.income.icon, tint: .financialIncome, wash: .accentWash,
+                    label: AppLocale.string("Salaire"), amount: "+" + income.asAmount(for: .chf)
+                )
                 .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltBottomLeading))
             }
     }
@@ -147,13 +147,14 @@ struct WelcomeStep: View {
     }
 }
 
-/// Floating white card of the welcome illustration (V2 sticker): a tinted icon square, then
-/// one or two lines. Light tokens inside, though the forest around it runs in dark mode.
-private struct OnboardingSticker<Content: View>: View {
+/// Floating white card of the welcome illustration (V2 sticker): a tinted icon, a label, an
+/// amount. Light tokens inside, though the forest around it runs in dark mode.
+private struct OnboardingSticker: View {
     let systemImage: String
     let tint: Color
     let wash: Color
-    @ViewBuilder let content: Content
+    let label: String
+    let amount: String
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
@@ -163,13 +164,19 @@ private struct OnboardingSticker<Content: View>: View {
                 .frame(width: DesignTokens.Entry.stepBadge, height: DesignTokens.Entry.stepBadge)
                 .background(wash, in: Circle())
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
-                content
+                Text(label)
+                    .font(PulpeTypography.caption2)
+                    .foregroundStyle(Color.textSecondary)
+                Text(verbatim: amount)
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(Color.textPrimary)
+                    .monospacedDigit()
             }
-            .foregroundStyle(Color.textPrimary)
         }
-        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.leading, DesignTokens.Spacing.sm)
+        .padding(.trailing, DesignTokens.Spacing.md)
         .padding(.vertical, DesignTokens.Spacing.sm)
-        .background(Color.surface, in: .rect(cornerRadius: DesignTokens.Entry.stickerRadius))
+        .background(Color.surface, in: Capsule())
         .shadow(DesignTokens.Shadow.elevated)
         .environment(\.colorScheme, .light)
     }

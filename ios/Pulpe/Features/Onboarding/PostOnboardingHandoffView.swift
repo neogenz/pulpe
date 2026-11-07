@@ -70,7 +70,7 @@ struct PostOnboardingHandoffView: View {
             Spacer(minLength: 0)
 
             Button(action: onContinue) {
-                Text("C'est parti")
+                Text("Ouvrir mon mois")
                     .font(PulpeTypography.buttonPrimary)
                     .foregroundStyle(Color.heroSurface)
                     .frame(maxWidth: .infinity)
@@ -152,4 +152,23 @@ private struct WidgetInstructionsSheet: View {
 
 #Preview {
     PostOnboardingHandoffView(onContinue: {})
+}
+
+/// Bridges the preview's CTA and the handoff while the first budget is created: the same
+/// forest surface, so the climax doesn't drop to a light loader for seconds.
+struct BudgetCreationLoadingView: View {
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            ProgressView()
+                .tint(Color.heroInk)
+                .controlSize(.large)
+            Text("Je prépare ton budget…")
+                .font(PulpeTypography.onboardingSubtitle)
+                .foregroundStyle(Color.heroInkSecondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { EntryZoneBackground() }
+        .environment(\.colorScheme, .dark)
+        .accessibilityElement(children: .combine)
+    }
 }
