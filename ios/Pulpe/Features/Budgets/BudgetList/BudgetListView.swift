@@ -171,17 +171,21 @@ struct BudgetListView: View {
         return ScrollViewReader { proxy in
             Group {
                 if selectsInPlace {
-                    // Beside a month the year header stays put and only the months scroll:
-                    // the year's balance stays in view while the list follows the month
-                    // picked on the other side.
+                    // Beside a month only the title and the years stay put: the year's balance
+                    // scrolls with the months, so the list keeps its height for the rows.
                     ScrollView {
-                        monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
+                        VStack(spacing: DesignTokens.Spacing.none) {
+                            yearRecap(budgets: yearBudgets, currentPeriod: currentPeriod)
+                            monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
+                        }
                     }
-                    .modifier(FixedTopBlock { yearHeader(budgets: yearBudgets, currentPeriod: currentPeriod) })
+                    .modifier(FixedTopBlock { yearHeader })
                 } else {
                     ScrollView {
                         VStack(spacing: DesignTokens.Spacing.none) {
-                            yearHeader(budgets: yearBudgets, currentPeriod: currentPeriod)
+                            yearHeader
+                            yearRecap(budgets: yearBudgets, currentPeriod: currentPeriod)
+                                .padding(.top, DesignTokens.Spacing.lg)
                             monthsSection(budgets: yearBudgets, currentPeriod: currentPeriod)
                         }
                     }
@@ -199,7 +203,7 @@ struct BudgetListView: View {
         }
     }
 
-    private func yearHeader(budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> some View {
+    private var yearHeader: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             PageHeader(
                 title: AppLocale.string("Budgets"),
@@ -215,18 +219,18 @@ struct BudgetListView: View {
                 ) { Text(verbatim: String($0)) }
                 .accessibilityLabel(AppLocale.string("Année"))
             }
-
-            YearRecapCard(
-                year: selectedYear,
-                budgets: budgets,
-                isPastYear: selectedYear < currentPeriod.year,
-                // Beside a month, the list's job is the months: the balance stays,
-                // the sentence gives its height back to the rows.
-                showsDetails: !selectsInPlace
-            )
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.top, DesignTokens.Spacing.sm)
+    }
+
+    private func yearRecap(budgets: [BudgetSparse], currentPeriod: BudgetPeriod) -> some View {
+        YearRecapCard(
+            year: selectedYear,
+            budgets: budgets,
+            isPastYear: selectedYear < currentPeriod.year
+        )
+        .padding(.horizontal, DesignTokens.Spacing.lg)
     }
 }
 

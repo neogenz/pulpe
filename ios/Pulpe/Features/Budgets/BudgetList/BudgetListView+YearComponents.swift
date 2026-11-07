@@ -8,7 +8,6 @@ struct YearRecapCard: View {
     let year: Int
     let budgets: [BudgetSparse]
     var isPastYear: Bool = false
-    var showsDetails = true
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -50,12 +49,10 @@ struct YearRecapCard: View {
                 .sensitiveAmount()
                 .accessibilityIdentifier("yearRecapAmount")
 
-            if showsDetails {
-                Text(sentence)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Text(sentence)
+                .font(PulpeTypography.bodyLarge)
+                .foregroundStyle(Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
