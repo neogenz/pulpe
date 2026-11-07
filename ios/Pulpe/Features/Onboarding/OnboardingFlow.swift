@@ -201,7 +201,7 @@ struct OnboardingFlow: View {
     /// without a configured PIN. The session exists since the registration step, so
     /// key derivation works; budget bootstrap stays on the final CTA.
     private func presentPinSetupIfNeeded(for step: OnboardingStep) {
-        guard step == .budgetPreview, !state.hasCompletedPinSetup, state.isAuthenticated else {
+        guard step == .budgetPreview, state.needsPinBeforePreview else {
             return
         }
         showPinSetup = true

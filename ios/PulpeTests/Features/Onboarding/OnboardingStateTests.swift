@@ -174,6 +174,29 @@ struct OnboardingStateTests {
     }
 
     @Test
+    func needsPinBeforePreview_onlyForAuthenticatedUserWithoutPin() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        #expect(!state.needsPinBeforePreview)
+
+        state.configureEmailUser(UserInfo(id: "1", email: "t@t.com"))
+        #expect(state.needsPinBeforePreview)
+
+        state.hasCompletedPinSetup = true
+        #expect(!state.needsPinBeforePreview)
+    }
+
+    @Test
+    func nextStep_fromSavingsWithPinPending_landsOnBudgetPreview() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.configureEmailUser(UserInfo(id: "1", email: "t@t.com"))
+        state.currentStep = .savings
+        state.nextStep()
+        #expect(state.currentStep == .budgetPreview)
+    }
+
+    @Test
     func nextStep_authenticatedUser_skipsRegistrationForward() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }
