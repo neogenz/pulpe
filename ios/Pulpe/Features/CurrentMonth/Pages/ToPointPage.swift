@@ -234,8 +234,10 @@ struct ToPointPage: View {
                 case .transaction(let transaction, _): _ = await store.toggleTransaction(transaction)
                 case .budgetLine(let line, _): _ = await store.toggleBudgetLine(line)
                 }
-            } else if await store.point(item, toasts: toastManager) {
+            } else {
+                // Kept before the store flips it optimistically, or the row leaves and comes back.
                 pointedHere.insert(id)
+                if !(await store.point(item, toasts: toastManager)) { pointedHere.remove(id) }
             }
         }
     }
