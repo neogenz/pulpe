@@ -169,6 +169,18 @@ struct CalculationSheet: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Color.sheetBackground)
+        .padding(.top, DesignTokens.Spacing.lg)
+        // The lines fade out above the footer instead of being sliced by its edge, so the
+        // list reads as going on under it.
+        .background {
+            VStack(spacing: DesignTokens.Spacing.none) {
+                Color.sheetBackground
+                    .frame(height: DesignTokens.Spacing.lg)
+                    .mask(LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom))
+                Color.sheetBackground
+            }
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(false)
+        }
     }
 }
