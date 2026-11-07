@@ -17,23 +17,36 @@ struct RecoveryKeySheet: View {
     @State private var showButton = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    headerSection
-                    keyCard
-                    warningText
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.top, DesignTokens.Spacing.xxxl)
-                .padding(.bottom, DesignTokens.Spacing.xxl)
+        ScrollView {
+            VStack(spacing: DesignTokens.Spacing.xxxl) {
+                headerSection
+                keyCard
+                warningText
             }
-            .scrollBounceBehavior(.basedOnSize)
-
+            .padding(.horizontal, DesignTokens.Spacing.xxl)
+            .padding(.top, DesignTokens.Spacing.xxxl)
+            .padding(.bottom, DesignTokens.Spacing.xxl)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        // On a short screen (the open iPhone Duo) the warning runs under the button: it fades out
+        // there instead of being sliced flat by the scroll view's edge.
+        .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) {
             acknowledgeButton
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.bottom, DesignTokens.Spacing.lg)
                 .blurSlide(showButton)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.top, DesignTokens.Spacing.md)
+                .padding(.bottom, DesignTokens.Spacing.lg)
+                .background(Color.appBackground)
+                .overlay(alignment: .top) {
+                    LinearGradient(
+                        colors: [Color.appBackground.opacity(0), Color.appBackground],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: DesignTokens.Spacing.lg)
+                    .offset(y: -DesignTokens.Spacing.lg)
+                    .allowsHitTesting(false)
+                }
         }
         .interactiveDismissDisabled()
         .presentationDragIndicator(.hidden)
