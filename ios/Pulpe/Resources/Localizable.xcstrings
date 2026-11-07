@@ -25641,24 +25641,24 @@
         }
       }
     },
-    "Ton budget est une prévision. Pour qu'il reste juste, tu le fais vivre en deux gestes." : {
+    "Ton budget est une prévision. Voici comment le garder juste." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Budget ist eine Planung. Damit es stimmt, hältst du es mit zwei Handgriffen lebendig."
+            "value" : "Dein Budget ist eine Planung. So hältst du es aktuell."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your budget is a forecast. To keep it accurate, you keep it alive with two simple moves."
+            "value" : "Your budget is a forecast. Here's how to keep it accurate."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il tuo budget è una previsione. Per mantenerlo giusto, lo fai vivere con due gesti."
+            "value" : "Il tuo budget è una previsione. Ecco come mantenerlo giusto."
           }
         }
       }

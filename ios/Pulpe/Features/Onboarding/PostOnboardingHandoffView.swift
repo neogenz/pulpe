@@ -35,7 +35,7 @@ struct PostOnboardingHandoffView: View {
                     .foregroundStyle(Color.heroInk)
                     .accessibilityAddTraits(.isHeader)
 
-                Text("Ton budget est une prévision. Pour qu'il reste juste, tu le fais vivre en deux gestes.")
+                Text("Ton budget est une prévision. Voici comment le garder juste.")
                     .font(PulpeTypography.onboardingSubtitle)
                     .foregroundStyle(Color.heroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
