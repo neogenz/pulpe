@@ -22,11 +22,10 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
     /// The keyboard leaves room for the zone or for the form, not both: while it is up the zone
     /// folds to one line so the field, its label and the CTA stay readable.
     @State private var isKeyboardUp = false
-    @State private var isShortScreen = false
     @State private var cardViewportHeight: CGFloat = 0
 
     /// The ring steps fold their zone on a short screen too: the ring and the form don't both fit.
-    private var showsCompactZone: Bool {
+    private func showsCompactZone(isShortScreen: Bool) -> Bool {
         isKeyboardUp || (isShortScreen && [.income, .charges, .savings].contains(step))
     }
 
@@ -38,28 +37,31 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            // A ZStack, not a Group: a Group hands its modifiers to each child, so an empty
-            // compact zone would drop the padding and pull the card over the top bar.
-            ZStack {
-                if showsCompactZone { compactZone } else { zone() }
-            }
-                .frame(maxWidth: .infinity)
-                // The card's inset and column: the greeting and the card title share one left edge.
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
-                .frame(maxWidth: .infinity)
-                .padding(.top, DesignTokens.Spacing.md)
-                .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
-                .background { EntryZoneBackground(keepsHaloInside: true) }
-                .environment(\.colorScheme, .dark)
+        // Read in the layout pass, not after it: a flag flipped once the step is on screen would
+        // swap its zone mid-slide, over the band of the step sliding out.
+        GeometryReader { proxy in
+            let isShortScreen = proxy.size.height < DesignTokens.Entry.ringZoneMinHeight
+            VStack(spacing: DesignTokens.Spacing.none) {
+                // A ZStack, not a Group: a Group hands its modifiers to each child, so an empty
+                // compact zone would drop the padding and pull the card over the top bar.
+                ZStack {
+                    if showsCompactZone(isShortScreen: isShortScreen) { compactZone } else { zone() }
+                }
+                    .frame(maxWidth: .infinity)
+                    // The card's inset and column: the greeting and the card title share one left edge.
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, DesignTokens.Spacing.md)
+                    .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
+                    .background { EntryZoneBackground(keepsHaloInside: true) }
+                    .environment(\.colorScheme, .dark)
+                    .environment(\.foldsOnboardingRing, isShortScreen)
 
-            card
+                card
+            }
         }
         .dismissKeyboardOnTap()
-        .onGeometryChange(for: Bool.self) { $0.size.height < DesignTokens.Entry.ringZoneMinHeight } action: {
-            isShortScreen = $0
-        }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             setKeyboardUp(true)
         }
@@ -90,17 +92,7 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
     private var compactZone: some View {
         switch step {
         case .income, .charges, .savings:
-            let available = state.availableToSpend
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                Text(available < 0 ? AppLocale.string("Il manque") : AppLocale.string("Disponible"))
-                    .font(PulpeTypography.detailLabel)
-                    .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.overlay))
-                Text(available.magnitude.asCurrency(state.currency))
-                    .font(PulpeTypography.rowAmount)
-                    .foregroundStyle(Color.heroInk)
-                    .contentTransition(.numericText())
-            }
-            .accessibilityElement(children: .combine)
+            OnboardingAvailableBand(state: state)
         case .firstName:
             // The greeting is this step's answer: it stays, on one line.
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {

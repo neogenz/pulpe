@@ -11,7 +11,8 @@ extension DesignTokens {
         /// Clear space between two ring segments, cap to cap.
         static let ringSegmentGap: CGFloat = 5
         /// Below this step height (iPhone SE, open iPhone Duo) the ring zone would leave the card
-        /// too short for its form, so the ring steps keep the one-line summary instead.
+        /// too short for its form, so the ring steps and the budget preview keep the one-line
+        /// summary instead.
         static let ringZoneMinHeight: CGFloat = 700
         /// Overflow arc around the ring on "À combler".
         static let ringOverflowGap: CGFloat = 12

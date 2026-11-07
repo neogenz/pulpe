@@ -149,15 +149,21 @@ struct OnboardingBudgetZone: View {
     var legend: Legend = .none
     var subtitle: String?
 
+    @Environment(\.foldsOnboardingRing) private var foldsRing
+
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            OnboardingBudgetRing(
-                income: state.totalIncome,
-                charges: state.totalCharges,
-                savings: state.totalSavings,
-                currency: state.currency,
-                subtitle: subtitle
-            )
+            if foldsRing {
+                OnboardingAvailableBand(state: state)
+            } else {
+                OnboardingBudgetRing(
+                    income: state.totalIncome,
+                    charges: state.totalCharges,
+                    savings: state.totalSavings,
+                    currency: state.currency,
+                    subtitle: subtitle
+                )
+            }
             if legend != .none {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     OnboardingRingLegendTile(
@@ -176,4 +182,29 @@ struct OnboardingBudgetZone: View {
             }
         }
     }
+}
+
+/// What the ring says, on one line: the zone of a short screen, where the ring and the card's
+/// rows don't both fit.
+struct OnboardingAvailableBand: View {
+    let state: OnboardingState
+
+    var body: some View {
+        let available = state.availableToSpend
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+            Text(available < 0 ? AppLocale.string("Il manque") : AppLocale.string("Disponible"))
+                .font(PulpeTypography.detailLabel)
+                .foregroundStyle(Color.heroInk.opacity(DesignTokens.Opacity.overlay))
+            Text(available.magnitude.asCurrency(state.currency))
+                .font(PulpeTypography.rowAmount)
+                .foregroundStyle(Color.heroInk)
+                .contentTransition(.numericText())
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+extension EnvironmentValues {
+    /// Set by `OnboardingStepView` on a step shorter than `DesignTokens.Entry.ringZoneMinHeight`.
+    @Entry var foldsOnboardingRing = false
 }
