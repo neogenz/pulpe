@@ -167,7 +167,9 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) { cta }
+        // The fade's height between the rows and the CTA: the keyboard scrolls the focused field
+        // up to this edge, and without the gap the CTA cuts the field's bottom border.
+        .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.lg) { cta }
         // The card's fill runs under the home indicator and the side insets (the open iPhone
         // Duo's status column); a clip on the view would stop it at the safe area and leave a
         // forest strip with the zone's hard bottom edge showing.
@@ -204,7 +206,9 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
         .padding(.vertical, DesignTokens.Spacing.md)
         // The rows fade out above the CTA instead of being sliced by its edge, so the card
         // reads as going on under it.
-        .background(Color.appBackground)
+        // Down under the keyboard too: it is see-through, and the rows scrolled under the CTA
+        // would show through it.
+        .background(Color.appBackground.ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .top) {
             LinearGradient(
                 colors: [Color.appBackground.opacity(0), Color.appBackground],
@@ -213,6 +217,9 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
             )
                 .frame(height: DesignTokens.Spacing.lg)
                 .offset(y: -DesignTokens.Spacing.lg)
+                // The keyboard scrolls the focused field just above the CTA: the fade would wash
+                // out its bottom edge.
+                .opacity(isKeyboardUp ? 0 : 1)
                 .allowsHitTesting(false)
         }
     }
