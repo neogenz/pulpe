@@ -51,7 +51,7 @@ struct OnboardingStepView<Zone: View, Content: View>: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, DesignTokens.Spacing.md)
                 .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
-                .background { EntryZoneBackground() }
+                .background { EntryZoneBackground(keepsHaloInside: true) }
                 .environment(\.colorScheme, .dark)
 
             card
