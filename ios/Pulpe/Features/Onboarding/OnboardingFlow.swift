@@ -89,8 +89,10 @@ struct OnboardingFlow: View {
                 )
             }
             .onChange(of: scenePhase) { _, newPhase in
-                if newPhase == .background {
-                    state.capturePaused()
+                switch newPhase {
+                case .background: state.capturePaused()
+                case .active: state.captureResumedFromBackground()
+                default: break
                 }
             }
             .onChange(of: state.readyToComplete) { _, ready in

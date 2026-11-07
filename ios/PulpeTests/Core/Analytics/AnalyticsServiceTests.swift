@@ -31,6 +31,7 @@ struct AnalyticsServiceTests {
             "onboarding_paused",
             "onboarding_abandoned",
             "onboarding_resumed",
+            "onboarding_step_back",
             "onboarding_suggestion_toggled",
             "custom_transaction_added",
             "custom_transaction_removed",

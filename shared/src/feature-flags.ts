@@ -77,8 +77,14 @@ export const ANALYTICS_EVENTS = {
   ONBOARDING_PAUSED: 'onboarding_paused',
   /** Fires when the user confirms an early exit from onboarding. Properties: `last_step`, `exit_method`, `was_authenticated`, `auth_method`. */
   ONBOARDING_ABANDONED: 'onboarding_abandoned',
-  /** Fires when an incomplete signup resumes. Properties: `method`, `source`, `resumed_at_step`. */
+  /**
+   * Fires when an incomplete signup resumes. Properties: `method`, `source`, `resumed_at_step`.
+   * iOS `source`: `pending_user` or `session_fallback` after a cold start, `foreground` when
+   * the app returns from a background that fired `onboarding_paused`.
+   */
   ONBOARDING_RESUMED: 'onboarding_resumed',
+  /** iOS: fires when the user goes back one onboarding step. Properties: `from_step`, `to_step`. */
+  ONBOARDING_STEP_BACK: 'onboarding_step_back',
   /** Fires when an onboarding suggestion changes. Properties: `step`, `suggestion_name`, `selected`. */
   ONBOARDING_SUGGESTION_TOGGLED: 'onboarding_suggestion_toggled',
   /** Fires when a custom onboarding row is added. Properties: `step`, `kind`, `source`. */

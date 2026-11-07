@@ -48,6 +48,26 @@ struct OnboardingStateTests {
         #expect(state.currentStep == .charges)
     }
 
+    @Test func foregroundReturn_resumesOnlyAfterAPause() throws {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.currentStep = .charges
+        var sent: [(event: AnalyticsEvent, properties: [String: Any])] = []
+        let record = { (event: AnalyticsEvent, properties: [String: Any]) in sent.append((event, properties)) }
+
+        // A launch or an inactive blip without a background has no pause to resume.
+        state.captureResumedFromBackground(send: record)
+        state.capturePaused(send: record)
+        state.captureResumedFromBackground(send: record)
+        state.captureResumedFromBackground(send: record)
+
+        #expect(sent.map(\.event) == [.onboardingPaused, .onboardingResumed])
+        let properties = try #require(sent.last?.properties)
+        #expect(properties["source"] as? String == "foreground")
+        #expect(properties["method"] as? String == "email")
+        #expect(properties["resumed_at_step"] as? String == "charges")
+    }
+
     // MARK: - canProceed: Required Steps
 
     @Test

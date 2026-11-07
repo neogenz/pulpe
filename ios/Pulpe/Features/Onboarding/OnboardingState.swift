@@ -108,6 +108,8 @@ final class OnboardingState {
     var hasCompleted: Bool = false
     var hasAbandoned: Bool = false
     var isSubmitting: Bool = false
+    /// A background fired `onboarding_paused`: the next return to the foreground resumes it.
+    var isPausedInBackground: Bool = false
 
     /// When set, nextStep()/previousStep() return to this step instead of sequential navigation.
     /// Used by BudgetPreview to round-trip edits back to the preview.
@@ -327,6 +329,7 @@ final class OnboardingState {
             return
         }
 
+        captureStepBack(from: currentStep, to: prev)
         isMovingForward = false
         withAnimation(PulpeAnimations.stepTransition) {
             currentStep = prev

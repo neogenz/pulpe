@@ -207,6 +207,7 @@ extension OnboardingState {
         }
     ) {
         guard currentStep != .welcome, !hasCompleted, !isSubmitting, !hasAbandoned else { return }
+        isPausedInBackground = true
         send(
             .onboardingPaused,
             [
@@ -215,6 +216,33 @@ extension OnboardingState {
                 "was_authenticated": isAuthenticated,
                 "auth_method": authMethodProperty
             ]
+        )
+    }
+
+    /// Pairs with `capturePaused`: a return to the foreground after a pause, not a cold start
+    /// (a fresh state has no pause to resume, and the flow reports that path itself).
+    func captureResumedFromBackground(
+        send: (AnalyticsEvent, [String: Any]) -> Void = {
+            AnalyticsService.shared.capture($0, properties: $1)
+        }
+    ) {
+        guard isPausedInBackground else { return }
+        isPausedInBackground = false
+        send(
+            .onboardingResumed,
+            [
+                // The cold-start resumes' value space: the provider collapses to email or social.
+                "method": authMethodProperty == "email" ? "email" : "social",
+                "source": "foreground",
+                "resumed_at_step": currentStep.analyticsName
+            ]
+        )
+    }
+
+    func captureStepBack(from: OnboardingStep, to: OnboardingStep) {
+        AnalyticsService.shared.capture(
+            .onboardingStepBack,
+            properties: ["from_step": from.analyticsName, "to_step": to.analyticsName]
         )
     }
 

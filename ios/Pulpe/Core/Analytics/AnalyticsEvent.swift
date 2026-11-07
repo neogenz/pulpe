@@ -20,10 +20,13 @@ enum AnalyticsEvent: String, CaseIterable {
     /// Backgrounding pauses the flow without marking it abandoned.
     case onboardingPaused = "onboarding_paused"
     case onboardingAbandoned = "onboarding_abandoned"
-    /// Fires when an email user cold-starts an in-progress signup after
-    /// killing or backgrounding the app. Source disambiguates the pending-user
-    /// router from the legacy `wasEmailRegistered` session fallback.
+    /// Fires when an email user cold-starts an in-progress signup (source `pending_user` or
+    /// the legacy `session_fallback`), or when the app returns from a background that fired
+    /// `onboarding_paused` (source `foreground`).
     case onboardingResumed = "onboarding_resumed"
+    /// Fires when the user goes back one step, so a repeated `onboarding_step_completed`
+    /// reads as a revisit rather than a double emission.
+    case onboardingStepBack = "onboarding_step_back"
     /// Fires when the user taps a suggestion chip in the onboarding charges or
     /// savings steps. Measures which presets matter to funnel the suggestion
     /// catalog by product usage.
