@@ -1027,7 +1027,7 @@
     "welcome": {
       "benefits": {
         "plan": "Un piano chiaro per ogni mese",
-        "privacy": "Crittografato — i tuoi importi restano privati",
+        "privacy": "I tuoi importi restano privati",
         "tracking": "Spese spuntate con un solo tocco"
       },
       "emailSignup": "Registrati con l'email",
@@ -1177,7 +1177,7 @@
       "lockTitle": "Blocca ora",
       "passwordChanged": "Password modificata",
       "passwordDescription": "La tua password di accesso",
-      "pinDescription": "Il codice che decifra i tuoi importi",
+      "pinDescription": "Il codice che protegge i tuoi importi",
       "pinTitle": "Codice PIN",
       "recoveryError": "L'operazione non è riuscita. Riprova.",
       "recoveryInvalidCharacters": "Una chiave contiene solo lettere e le cifre da 2 a 7.",

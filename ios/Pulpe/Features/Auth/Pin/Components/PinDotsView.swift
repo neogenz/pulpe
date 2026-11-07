@@ -15,9 +15,9 @@ struct PinDotsView: View {
             ForEach(0..<maxDigits, id: \.self) { index in
                 let isFilled = index < enteredCount
                 Circle()
-                    .fill(dotColor(at: index))
+                    .fill(isFilled && !isError ? Color.textPrimary : Color.clear)
+                    .overlay { Circle().strokeBorder(ringColor, lineWidth: DesignTokens.BorderWidth.thick) }
                     .frame(width: DesignTokens.Numpad.dotSize, height: DesignTokens.Numpad.dotSize)
-                    .scaleEffect(isFilled ? 1.0 : 0.7)
                     .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isFilled)
                     .scaleEffect(isValidating && isFilled ? pulseScale : 1.0)
             }
@@ -47,17 +47,15 @@ struct PinDotsView: View {
         }
     }
 
-    private func dotColor(at index: Int) -> Color {
-        if isError && index < enteredCount {
-            return .errorPrimary
-        }
-        return index < enteredCount ? Color.pinDotFilled : Color.pinDotEmpty
+    /// Every ring turns red on an error: the digits are cleared at that moment, so only rings are left to show it.
+    private var ringColor: Color {
+        isError ? Color.errorPrimary : Color.textPrimary
     }
 }
 
 #Preview {
     ZStack {
-        Color.loginGradientBackground
+        Color.appBackground
         VStack(spacing: 40) {
             PinDotsView(enteredCount: 0, maxDigits: 4, isError: false)
             PinDotsView(enteredCount: 2, maxDigits: 4, isError: false)

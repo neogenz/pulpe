@@ -30,19 +30,10 @@ final class BudgetDetailsPointingUITests: XCTestCase {
         return row
     }
 
-    /// The ledger opens on "À pointer", which hides a line the moment it is pointed.
+    /// The ledger can open on "À pointer", which hides a line the moment it is pointed.
     private func showEveryLine() {
-        let menu = app.descendants(matching: .any).matching(
-            NSPredicate(format: "label == %@ OR label == %@", "Filtre d'état", "Status filter")
-        ).firstMatch
-        XCTAssertTrue(menu.waitForExistence(timeout: 5), app.debugDescription)
-        menu.tap()
-        let all = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "Tout voir", "See all")
-        ).firstMatch
+        let all = app.buttons["budgetCheckedFilter-all"].firstMatch
         XCTAssertTrue(all.waitForExistence(timeout: 5), app.debugDescription)
-        let hittable = NSPredicate(format: "isHittable == true")
-        XCTWaiter().wait(for: [expectation(for: hittable, evaluatedWith: all)], timeout: 5)
         all.tap()
     }
 
@@ -97,6 +88,13 @@ final class BudgetDetailsPointingUITests: XCTestCase {
         app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "accessibility3"
         app.launch()
         let row = waitForRow()
+        // A short screen (folded iPhone Duo) can open the ledger with the row below the fold.
+        let window = app.windows.firstMatch
+        let lower = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+        let higher = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+        for _ in 0..<6 where !row.isHittable {
+            lower.press(forDuration: 0.05, thenDragTo: higher)
+        }
         let before = row.frame.minY
 
         let start = row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
@@ -106,11 +104,16 @@ final class BudgetDetailsPointingUITests: XCTestCase {
         XCTAssertFalse(pointedDisc().exists, "A vertical pan must not point the line")
     }
 
+    /// Scoped to the line: the filter rail carries an "À pointer" chip of its own.
+    private var lineRow: XCUIElement {
+        app.buttons["budgetLineMixedRowButton-\(Self.lineId)"].firstMatch
+    }
+
     private func pointingDisc() -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "À pointer", "To check")).firstMatch
+        lineRow.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "À pointer", "To check")).firstMatch
     }
 
     private func pointedDisc() -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Pointé", "Checked")).firstMatch
+        lineRow.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Pointé", "Checked")).firstMatch
     }
 }

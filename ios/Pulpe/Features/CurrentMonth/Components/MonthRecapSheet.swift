@@ -1,154 +1,180 @@
 import SwiftUI
 
-/// The closed month in three figures, and where its carry-over leaves the new one
-/// (PUL-111). Read-only: "Voir le détail" opens that month's budget, "C'est noté" retires
-/// the card for that month. Both only report the choice; the presenter acts on it once the
-/// sheet is gone.
+/// « Bilan d'octobre » (PUL-111, V2): what the closed month carried over, the summary that adds
+/// up to it, and « Ce qui a compté », read from that month's details in one fetch. Read-only:
+/// « Voir le budget d'octobre » opens that month, « C'est noté » retires the row. Both only
+/// report the choice; the presenter acts on it once the sheet is gone.
 struct MonthRecapSheet: View {
     let recap: MonthRecap
     let onShowDetails: @MainActor () -> Void
     let onAcknowledge: @MainActor () -> Void
+    /// The closed month's details. A failure only drops « Ce qui a compté ».
+    var loadDetails: @Sendable (String) async throws -> BudgetDetails = {
+        try await BudgetService.shared.getBudgetWithDetails(id: $0)
+    }
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.dismiss) private var dismiss
-    /// Measured, so the sheet stops where its content does: a medium detent left half
-    /// the sheet empty under the buttons.
-    @State private var contentHeight: CGFloat = 0
-    @State private var actionsHeight: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var findings: [MonthRecapFindings.Finding] = []
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
+    private var closedName: String { Formatters.monthNameInText(for: recap.month) }
 
-    private var closedPeriodLabel: String {
-        date(month: recap.month, year: recap.year)?.monthYearFormatted ?? ""
+    private var title: String {
+        ReportWording.elides(closedName)
+            ? AppLocale.string("Bilan d'\(closedName)")
+            : AppLocale.string("Bilan de \(closedName)")
     }
 
-    private var openedMonthName: String {
-        Formatters.monthNameInText(for: recap.openedMonth)
-    }
-
-    private var carryOverSentence: String {
-        let carried = recap.carriedOver.asCurrency(currency)
-        let start = recap.startingAvailable.asCurrency(currency)
-        return AppLocale.string("\(carried) reportés sur \(openedMonthName) → tu démarres à \(start)")
-    }
-
-    /// A custom detent's height leaves out the bottom safe area, which the system adds.
-    private var fittedDetent: PresentationDetent {
-        contentHeight > 0 ? .height(contentHeight + actionsHeight) : .medium
+    private var showBudgetTitle: String {
+        ReportWording.elides(closedName)
+            ? AppLocale.string("Voir le budget d'\(closedName)")
+            : AppLocale.string("Voir le budget de \(closedName)")
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Bilan du mois")
-                        .font(PulpeTypography.stepTitle)
-                        .foregroundStyle(Color.textPrimary)
-                        .accessibilityAddTraits(.isHeader)
-                    Text(closedPeriodLabel)
-                        .font(PulpeTypography.stepSubtitle)
-                        .foregroundStyle(Color.textSecondary)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    carryOver
+                    summaryCard
+                    if !findings.isEmpty { findingsSection }
                 }
-
-                // One format for the three figures: whole francs beside a balance to the
-                // cent read as two different units ("5 200 CHF", "-1'478.2 CHF").
-                FormCard {
-                    figureRow("Revenus", kind: .income, amount: recap.income)
-                    FormRowDivider()
-                    figureRow("Dépenses", kind: .expense, amount: recap.expenses)
-                    FormRowDivider()
-                    balanceRow
-                }
-
-                carryOver
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.sm)
+                .padding(.bottom, DesignTokens.Spacing.xl)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: findings)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.xxl)
-            .padding(.bottom, DesignTokens.Spacing.lg)
-            .onGeometryChange(for: CGFloat.self, of: \.size.height) { contentHeight = $0 }
+            .scrollBounceBehavior(.basedOnSize)
+            .background(Color.sheetBackground)
+            .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) { actions }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton()
+                }
+            }
         }
-        // Scrolls only when the content outgrows the screen, at the largest text sizes.
-        .scrollBounceBehavior(.basedOnSize)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            actions
-                .onGeometryChange(for: CGFloat.self, of: \.size.height) { actionsHeight = $0 }
+        .standardSheetPresentation()
+        .task {
+            guard let details = try? await loadDetails(recap.budgetId) else { return }
+            findings = MonthRecapFindings.make(
+                lines: details.budgetLines,
+                transactions: details.transactions,
+                month: recap.month,
+                currency: currency
+            )
         }
-        .standardSheetPresentation(detents: [fittedDetent])
     }
+
+    // MARK: - Carry-over
 
     private var carryOver: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            RowIcon(systemName: "arrow.uturn.forward", tint: .pulpePrimary)
-            Text(carryOverSentence)
-                .font(PulpeTypography.bodyLarge)
+        VStack(spacing: DesignTokens.Spacing.xs) {
+            Text(AppLocale.string("\(Formatters.monthName(for: recap.month)) est terminé"))
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+            (Text(verbatim: recap.carriedOver.asAmount(for: currency))
+                .font(PulpeTypography.bigAmount)
+                + Text(verbatim: " \(currency.symbol)")
+                .font(PulpeTypography.bigCurrencySuffix)
+                .foregroundStyle(Color.textSecondary))
                 .foregroundStyle(Color.textPrimary)
-                .monospacedDigit()
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .minimumScaleFactor(DesignTokens.TextScale.floor)
                 .sensitiveAmount()
+            Text(AppLocale.string(
+                "reportés sur \(Formatters.monthNameInText(for: recap.openedMonth)), déjà comptés dans ton disponible"
+            ))
+            .font(PulpeTypography.bannerText)
+            .foregroundStyle(Color.textSecondary)
         }
-        .padding(DesignTokens.Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 
+    // MARK: - Summary
+
+    /// Revenus + report − dépenses − épargne = solde final, the figure carried over above.
+    private var summaryCard: some View {
+        FormCard {
+            FormulaRow(title: AppLocale.string("Revenus"), amount: recap.income.asFormulaAmount(for: currency))
+            FormRowDivider()
+            FormulaRow(
+                title: ReportWording.reportTitle(of: recap.month == 1 ? 12 : recap.month - 1),
+                amount: recap.previousRollover.asFormulaAmount(for: currency)
+            )
+            FormRowDivider()
+            FormulaRow(title: AppLocale.string("Dépenses"), amount: (-recap.spending).asFormulaAmount(for: currency))
+            FormRowDivider()
+            FormulaRow(
+                title: AppLocale.string("Épargne versée"),
+                amount: (-recap.savings).asFormulaAmount(for: currency)
+            )
+            FormRowDivider()
+            FormulaRow(
+                title: AppLocale.string("Solde final"),
+                amount: recap.carriedOver.asAmount(for: currency),
+                isTotal: true
+            )
+        }
+        .accessibilityIdentifier("monthRecapSummary")
+    }
+
+    // MARK: - Findings
+
+    private var findingsSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Ce qui a compté")
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+                .padding(.leading, DesignTokens.Spacing.xs)
+                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: DesignTokens.Spacing.none) {
+                ForEach(Array(findings.enumerated()), id: \.offset) { index, finding in
+                    if index > 0 { FormRowDivider() }
+                    PulpeListRow(title: finding.title, subtitle: finding.subtitle, showsChevron: false) {
+                        if let overrun = finding.overrun {
+                            Text(verbatim: overrun.asFormulaAmount(for: currency))
+                                .foregroundStyle(Color.financialOverBudget)
+                                .sensitiveAmount()
+                        }
+                    }
+                    .sensitiveAmount()
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .pulpeSurfaceCard()
+            .accessibilityIdentifier("monthRecapFindings")
+        }
+        .transition(.opacity)
+    }
+
+    // MARK: - Actions
+
     private var actions: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            Button("C'est noté") {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            Button(AppLocale.string("C'est noté")) {
                 onAcknowledge()
                 dismiss()
             }
             .primaryButtonStyle()
             .accessibilityIdentifier("monthRecapAcknowledgeButton")
 
-            Button("Voir le détail") {
+            Button(showBudgetTitle) {
                 onShowDetails()
                 dismiss()
             }
-            .textLinkButtonStyle()
+            .tertiaryButtonStyle()
             .accessibilityIdentifier("monthRecapDetailsButton")
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.md)
         .background { Color.sheetBackground.ignoresSafeArea(edges: .bottom) }
-    }
-
-    private func figureRow(_ title: LocalizedStringKey, kind: TransactionKind, amount: Decimal) -> some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            RowIcon(systemName: kind.icon, tint: kind.color)
-            Text(title)
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            Text(amount.asCurrency(currency))
-                .font(PulpeTypography.amountMedium)
-                .foregroundStyle(kind.color)
-                .monospacedDigit()
-                .sensitiveAmount()
-        }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var balanceRow: some View {
-        let tint: Color = recap.endingBalance >= 0 ? .financialSavings : .financialOverBudget
-        return HStack(spacing: DesignTokens.Spacing.md) {
-            RowIcon(systemName: "equal", tint: tint)
-            Text("Solde final")
-                .font(PulpeTypography.cardTitle)
-                .foregroundStyle(Color.textPrimary)
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            Text(recap.endingBalance.asCurrency(currency))
-                .font(PulpeTypography.amountCard)
-                .foregroundStyle(tint)
-                .monospacedDigit()
-                .sensitiveAmount()
-        }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func date(month: Int, year: Int) -> Date? {
-        Calendar.current.date(from: DateComponents(year: year, month: month, day: 1))
     }
 }
 
@@ -158,17 +184,20 @@ struct MonthRecapSheet: View {
             MonthRecapSheet(
                 recap: MonthRecap(
                     budgetId: "preview",
-                    month: 9,
+                    month: 10,
                     year: 2026,
-                    openedMonth: 10,
-                    income: 5_000,
-                    expenses: 4_700,
-                    endingBalance: 300,
-                    carriedOver: 300,
-                    startingAvailable: 5_300
+                    openedMonth: 11,
+                    income: 6_200,
+                    expenses: 6_225.50,
+                    savings: 1_088,
+                    previousRollover: 365.50,
+                    endingBalance: -25.50,
+                    carriedOver: 340,
+                    startingAvailable: 6_540
                 ),
                 onShowDetails: {},
-                onAcknowledge: {}
+                onAcknowledge: {},
+                loadDetails: { _ in throw URLError(.notConnectedToInternet) }
             )
         }
         .environment(UserSettingsStore())

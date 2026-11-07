@@ -12,30 +12,24 @@ struct VerifyRecoveryKeySheet: View {
     @State private var errorMessage: String?
     @State private var submitSuccessTrigger = false
     @FocusState private var focusedField: FormField?
+    @FocusState private var isKeyFocused: Bool
 
     var body: some View {
         SheetFormContainer(
             title: AppLocale.string("Vérifier ma clé"),
             isLoading: isVerifying,
             focus: $focusedField,
-            focusOrder: [.recoveryKey]
+            focusOrder: []
         ) {
             Text("""
-                Saisis ta clé telle que tu l'as notée (tirets optionnels). \
-                Elle sert uniquement à cette vérification et n'est pas enregistrée.
+                Tape ta clé telle que tu l'as notée pour t'assurer qu'elle marche, \
+                avant d'en avoir besoin.
                 """)
-            .font(PulpeTypography.bodyLarge)
-            .foregroundStyle(Color.textSecondaryOnboarding)
-            .multilineTextAlignment(.center)
+            .font(PulpeTypography.subheadline)
+            .foregroundStyle(Color.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            FormTextField(
-                hint: "XXXX-XXXX-…",
-                text: $recoveryKey,
-                label: AppLocale.string("Clé de récupération"),
-                accessibilityLabel: AppLocale.string("Clé de récupération"),
-                focusBinding: $focusedField,
-                field: .recoveryKey
-            )
+            keyField
             .onChange(of: recoveryKey) { _, newValue in
                 let stripped = String(
                     RecoveryKeyFormatter.strip(newValue)
@@ -50,22 +44,65 @@ struct VerifyRecoveryKeySheet: View {
             if let errorMessage {
                 ErrorBanner(message: errorMessage)
             }
-
-            Button {
-                Task { await verify() }
-            } label: {
-                if isVerifying {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Vérification en cours")
-                } else {
-                    Text("Vérifier")
-                }
-            }
-            .primaryButtonStyle(isEnabled: canSubmit)
-            .disabled(!canSubmit)
+        }
+        .safeAreaInset(edge: .bottom) {
+            verifyButton
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.vertical, DesignTokens.Spacing.md)
+                .background(Color.sheetBackground)
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+    }
+
+    private var verifyButton: some View {
+        Button {
+            Task { await verify() }
+        } label: {
+            if isVerifying {
+                ProgressView()
+                    .tint(.white)
+                    .accessibilityLabel("Vérification en cours")
+            } else {
+                Text("Vérifier")
+            }
+        }
+        .primaryButtonStyle(isEnabled: canSubmit)
+        .disabled(!canSubmit)
+    }
+
+    private var keyField: some View {
+        let count = RecoveryKeyFormatter.strip(recoveryKey).count
+        let total = RecoveryKeyFormatter.strippedKeyCharacterCount
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("Clé de récupération")
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.textSecondary)
+                RecoveryKeyInputField(text: $recoveryKey, isFocused: $isKeyFocused, showsCounter: false)
+                Text("Tirets facultatifs. Elle sert seulement à cette vérification : je ne l'enregistre pas.")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if count == total {
+                InfoBanner(
+                    .ok,
+                    systemImage: "checkmark",
+                    text: AppLocale.string("\(count) caractères sur \(total), tu peux vérifier.")
+                )
+            } else if count > 0 {
+                InfoBanner(
+                    .neutral,
+                    systemImage: "ellipsis",
+                    text: AppLocale.string("\(count) caractères sur \(total)")
+                )
+            }
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(DesignTokens.Animation.pushAutofocusDelayMs))
+            guard !Task.isCancelled else { return }
+            isKeyFocused = true
+        }
     }
 
     private var canSubmit: Bool {

@@ -7,8 +7,8 @@ import SwiftUI
 /// still empty.
 ///
 /// Centralises the `Task.sleep`-based autopop pattern previously duplicated
-/// across `BudgetLineDetailPage`, `AddAllocatedTransactionPage`, and
-/// `EditTransactionPage`. The grace window comes from
+/// across `BudgetLineDetailPage` and
+/// `MovementSheet`. The grace window comes from
 /// `DesignTokens.Animation.autoPopGraceMs` so the timing is configurable
 /// from one place.
 struct AutoPopView: View {

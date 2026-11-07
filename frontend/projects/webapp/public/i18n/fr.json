@@ -190,7 +190,7 @@
       "enterTitle": "Saisis ton code PIN",
       "enterSubtitle": "Entre ton code pour accéder à tes données.",
       "setupTitle": "Crée ton code PIN",
-      "setupSubtitle": "Ce code protège tes données chiffrées. Garde-le précieusement : personne d'autre ne peut y accéder à ta place, et on ne pourra pas le retrouver si tu l'oublies.",
+      "setupSubtitle": "Ce code protège tes montants. Garde-le précieusement : personne d'autre ne peut y accéder à ta place, et je ne pourrai pas le retrouver si tu l'oublies.",
       "pinLabel": "Code PIN",
       "setupPinLabel": "Ton code PIN",
       "pinRequired": "Ton code PIN est nécessaire",
@@ -202,7 +202,7 @@
       "confirmPinRequired": "Confirme ton code",
       "pinsMismatch": "Les deux codes ne sont pas identiques — réessaie",
       "rememberDevice": "Ne plus me demander sur cet appareil",
-      "rememberDeviceHint": "Si tu coches cette case, ta clé de déchiffrement sera stockée sur cet appareil. À éviter sur un ordinateur partagé.",
+      "rememberDeviceHint": "Si tu coches cette case, tes montants s'ouvriront sans code sur cet appareil. À éviter sur un ordinateur partagé.",
       "lostCode": "Code perdu ?",
       "setupSubmitting": "On prépare ton espace...",
       "setupSubmit": "Créer mon code PIN",
@@ -277,7 +277,7 @@
     "benefits": {
       "setup": "Un plan clair pour chaque mois",
       "track": "Tes dépenses pointées en un geste",
-      "privacy": "Chiffré — tes montants restent privés"
+      "privacy": "Tes montants restent privés"
     },
     "emailSignup": "S'inscrire avec email",
     "tryWithoutAccount": "Essayer sans compte",
@@ -389,7 +389,7 @@
     "saveError": "L'enregistrement a échoué — réessaie",
     "passwordChanged": "Mot de passe modifié",
     "securitySection": "Sécurité",
-    "securityDescription": "Protège l'accès à tes données et gère tes clés de chiffrement.",
+    "securityDescription": "Protège l'accès à tes données, ton code PIN et ta clé de récupération.",
     "diagnosticDataSection": "Données de diagnostic",
     "diagnosticSharingLabel": "Partager les diagnostics",
     "diagnosticSharingDescription": "Associe à ton compte les événements techniques et erreurs pour comprendre les problèmes et t’aider plus rapidement. Aucun montant ni contenu saisi n’est collecté.",
@@ -438,7 +438,7 @@
     "passwordRequired": "Le mot de passe est requis",
     "passwordMinLength": "Au moins {{ min }} caractères",
     "deleteAccountConfirm": "Confirmer la suppression",
-    "pinIncorrect": "Code PIN incorrect ou clé de chiffrement invalide",
+    "pinIncorrect": "Code PIN incorrect",
     "deleteAccountVerificationFailed": "La vérification a échoué — réessaie plus tard",
     "passwordIncorrect": "Mot de passe incorrect",
     "regenerateKeyTitle": "Régénérer ma clé",
@@ -446,7 +446,7 @@
     "regenerateKeyWarning": "Cette action invalide l'ancienne clé. Sans ton code PIN ou ta clé de récupération, l'accès à tes données sera définitivement perdu.",
     "regenerateKeySubmit": "Régénérer",
     "pinCode": "Code PIN",
-    "pinCodeDescription": "Modifier ton code de chiffrement.",
+    "pinCodeDescription": "Modifier ton code PIN.",
     "pinChanged": "Code PIN modifié",
     "pinChangedNoRecovery": "Code PIN modifié — régénère ta clé de récupération dans les réglages",
     "changePin": {
@@ -467,7 +467,7 @@
       "rateLimited": "Trop de tentatives — réessaie plus tard",
       "genericError": "Une erreur est survenue — réessaie plus tard",
       "changeFailed": "Le changement de code PIN a échoué — réessaie plus tard",
-      "rekeyFailed": "Le re-chiffrement a échoué — ton ancien code PIN reste actif, réessaie plus tard"
+      "rekeyFailed": "Le changement de code a échoué : ton ancien code PIN reste actif, réessaie plus tard"
     },
     "connections": {
       "setup": {

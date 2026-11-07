@@ -147,6 +147,12 @@ enum Formatters {
         return monthYear.monthSymbols[month - 1].capitalized
     }
 
+    /// The abbreviated month, in the language's casing: "nov.", "Nov.".
+    static func shortMonthName(for month: Int) -> String {
+        guard month >= 1, month <= 12 else { return "—" }
+        return monthYear.shortMonthSymbols[month - 1]
+    }
+
     /// The month as it sits inside a sentence, in the language's own casing: "juillet",
     /// "luglio", but "Juli" and "July". Lowercasing `monthName(for:)` by hand got French
     /// and Italian right and German and English wrong.

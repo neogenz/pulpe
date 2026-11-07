@@ -19,6 +19,7 @@ import SwiftUI
 private extension View {
     func currentMonthPreviewEnvironment() -> some View {
         environment(AppState())
+            .environment(UIPreferencesState())
             .environment(CurrentMonthStore())
             .environment(BudgetListStore())
             .environment(UserSettingsStore())

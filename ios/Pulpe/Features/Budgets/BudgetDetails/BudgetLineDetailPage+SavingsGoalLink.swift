@@ -4,30 +4,26 @@ import SwiftUI
 
 extension BudgetLineDetailPage {
     @ViewBuilder
-    func contextualLinksSection(for line: BudgetLine) -> some View {
+    func contextualLinks(for line: BudgetLine) -> some View {
         if hasSavingsGoalLink(for: line) || line.isSpread || line.savingsGoalSource != nil {
-            Section {
-                // Both links live in one row: each `ContextLinkRow` carries its
-                // own card, so the List only has to stay out of the way — a
-                // default row background would paint the system band back in.
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    savingsGoalLink(for: line)
-                    savingsGoalSourceLink(for: line)
+            // Each `ContextLinkRow` carries its own card.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                savingsGoalLink(for: line)
+                savingsGoalSourceLink(for: line)
 
-                    if let spreadGroupId = line.spreadGroupId {
-                        SpreadAffordanceButton(kind: line.kind) {
-                            router.present(
-                                .spreadOccurrences(
-                                    spreadGroupId: spreadGroupId.uuidString,
-                                    kind: line.kind
-                                )
+                if let spreadGroupId = line.spreadGroupId {
+                    SpreadAffordanceButton(kind: line.kind) {
+                        router.present(
+                            .spreadOccurrences(
+                                spreadGroupId: spreadGroupId.uuidString,
+                                kind: line.kind
                             )
-                        }
+                        )
                     }
                 }
-                .listRowCustomStyled()
             }
-            .listSectionSeparator(.hidden)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.top, DesignTokens.Spacing.lg)
         }
     }
 

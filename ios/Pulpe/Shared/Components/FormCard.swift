@@ -21,6 +21,10 @@ struct FormCard<Content: View>: View {
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)
+                    .strokeBorder(Color.outlineVariant, lineWidth: DesignTokens.BorderWidth.thin)
+            }
         }
     }
 }
@@ -43,7 +47,7 @@ struct FormRowDivider: View {
         .frame(minHeight: DesignTokens.ListRow.minHeight)
         FormRowDivider()
         HStack {
-            Text("Déjà pointé")
+            Text("Déjà sur mon compte")
             Spacer()
             Toggle("", isOn: .constant(true)).labelsHidden()
         }

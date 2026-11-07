@@ -7,14 +7,20 @@ extension EnvironmentValues {
     @Entry var requestSavingsWithdrawal: ((SavingsWithdrawalRequest) -> Void)?
 }
 
+/// Opens an operation's « Modifier » sheet (budget id, transaction id). The app shell sets it:
+/// the sheet is written against the budget feature's stores, which this feature never imports.
+extension EnvironmentValues {
+    @Entry var requestEditMovement: ((String, String) -> Void)?
+}
+
 // MARK: - Add sheet and its « À remettre » handoff
 extension CurrentMonthView {
     @ViewBuilder
     func addTransactionSheet(source: FirstTransactionTracker.Source, store: CurrentMonthStore) -> some View {
         if let budget = store.budget {
-            AddTransactionSheet(
-                budgetId: budget.id,
-                source: source,
+            MovementSheet(
+                context: MovementSheetContext(store: store, budgetId: budget.id, source: source),
+                userCurrency: userSettingsStore.currency,
                 onRequestSavingsWithdrawal: requestSavingsWithdrawal == nil ? nil : { amount, currency, name in
                     // No deficit chip, as on the budget page's own toggle path: the deficit
                     // is in the account currency, `amount` may not be.

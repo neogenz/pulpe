@@ -1,141 +1,115 @@
 import SwiftUI
 
-/// Hero of the goal detail screen on the shared forest surface (ios/DESIGN.md, One Hero):
-/// what is saved against the target, the layered confirmed / projected bar, the tiles
-/// the plan earns and one verdict. Every conditional line is decided in
-/// `GoalHeroPresentation`.
+/// V2 hero card of the goal detail: what is saved in ink, the cible under it, and the bar
+/// with its two labels. Every conditional line is decided in `GoalHeroPresentation`.
 struct GoalProgressHero: View {
     let presentation: GoalHeroPresentation
-    let status: SavingsGoalStatus
-
-    @Environment(UserSettingsStore.self) private var userSettingsStore
+    let currency: SupportedCurrency
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            identity
+            figure
             if let bar = presentation.bar {
-                layeredBar(bar)
+                progressBar(bar)
             }
-            if !presentation.tiles.isEmpty {
-                HeroMetricTileRow {
-                    ForEach(presentation.tiles, id: \.identifier) { tile in
-                        HeroMetricTile(label: tile.label, value: tile.value)
-                            .accessibilityIdentifier(tile.identifier)
-                    }
-                }
-            }
-            sentences
         }
+        .padding(DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // `.contain` scopes the identifier to the hero node; bare, it would
-        // propagate onto every descendant and clobber their own identifiers.
+        .pulpeSurfaceCard()
+        // `.contain` scopes the identifier to the card; bare, it would propagate onto
+        // every descendant and clobber their own identifiers.
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("savingsGoalProgressCard")
     }
 
-    private var accent: Color {
-        switch presentation.accent {
-        case .positive: .heroAccentPositive
-        case .caution: .heroAccentCaution
-        case .neutral: .heroInk
+    private var figure: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Épargné")
+                .font(PulpeTypography.labelMedium.weight(.semibold))
+                .foregroundStyle(Color.textSecondary)
+            (Text(verbatim: presentation.confirmedAmount.asAmount(for: currency))
+                .font(PulpeTypography.heroAmount)
+                .tracking(DesignTokens.Tracking.hero)
+                + Text(verbatim: " \(currency.symbol)")
+                .font(PulpeTypography.heroCurrencySuffix)
+                .foregroundStyle(Color.textTertiary))
+                .foregroundStyle(Color.textPrimary)
+                .monospacedDigit()
+                .minimumScaleFactor(DesignTokens.TextScale.floor)
+                .lineLimit(1)
+                .contentTransition(.numericText())
+            if let caption = presentation.caption {
+                Text(caption)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textSecondary)
+                    .monospacedDigit()
+            }
         }
+        .sensitiveAmount()
     }
 
-    private var identity: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-                HeroFigure(
-                    eyebrow: AppLocale.string("Épargné"),
-                    amount: presentation.confirmedAmount,
-                    currency: userSettingsStore.currency,
-                    suffix: presentation.targetLine,
-                    alignment: .leading
-                )
+    private func progressBar(_ bar: GoalHeroPresentation.Bar) -> some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            GoalProgressTrack(fraction: bar.fraction, isMuted: bar.isMuted)
+                .frame(height: DesignTokens.ProgressBar.thickHeight)
+            HStack {
+                Text(bar.percent)
+                    .font(PulpeTypography.labelMedium.weight(.semibold))
+                    .foregroundStyle(Color.textPrimary)
                 Spacer(minLength: DesignTokens.Spacing.sm)
-                if presentation.showsStatusChip {
-                    SavingsGoalStatusBadge(status: status)
+                if let trailing = bar.trailing {
+                    Text(trailing)
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.textSecondary)
+                        .sensitiveAmount()
                 }
             }
-
-            meta
-
-            if let initialAmountLine = presentation.initialAmountLine {
-                Text(initialAmountLine)
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.heroInkSecondary)
-                    .sensitiveAmount()
-            }
-        }
-    }
-
-    /// The date keeps the identifier that tells which variant a goal renders.
-    @ViewBuilder
-    private var meta: some View {
-        if let dateLine = presentation.dateLine {
-            Text(dateLine.text)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.heroInkSecondary)
-                .ifLet(dateLine.identifier) { view, id in view.accessibilityIdentifier(id) }
-        }
-    }
-
-    @ViewBuilder
-    private var sentences: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            if let verdict = presentation.verdict {
-                HeroVerdictRow(
-                    sentence: verdict,
-                    accent: accent,
-                    accessibilityIdentifier: "savingsGoalPaceIndicator"
-                )
-            } else if let dayOneBeat = presentation.dayOneBeat {
-                HeroVerdictRow(sentence: dayOneBeat)
-                    .sensitiveAmount()
-            }
-
-            if let projection = presentation.projection {
-                secondaryLine(projection, identifier: "savingsGoalProjectionStat")
-            }
-            if let requiredPace = presentation.requiredPace {
-                secondaryLine(requiredPace, identifier: "savingsGoalRequiredPaceStat")
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func secondaryLine(_ copy: String, identifier: String) -> some View {
-        Text(copy)
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.heroInkSecondary)
             .monospacedDigit()
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .sensitiveAmount()
-            .accessibilityIdentifier(identifier)
-    }
-
-    private func layeredBar(_ bar: GoalHeroPresentation.Bar) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ZStack(alignment: .leading) {
-                ProgressBarShape(progress: 1)
-                    .fill(Color.heroInk.opacity(DesignTokens.Opacity.heroTile))
-
-                ProgressBarShape(progress: CGFloat(bar.projected))
-                    .fill(Color.heroInkSecondary.opacity(DesignTokens.Opacity.heroInkMuted))
-
-                ProgressBarShape(progress: CGFloat(bar.confirmed))
-                    .fill(Color.heroInkSecondary)
-                    .animation(DesignTokens.Animation.gentleSpring, value: bar.confirmed)
-            }
-            .frame(height: DesignTokens.ProgressBar.thickHeight)
-
-            Text(bar.percent)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.heroInkSecondary)
-                .monospacedDigit()
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(bar.accessibilityLabel)
+        .accessibilityLabel([bar.accessibilityLabel, bar.trailing].compactMap(\.self).joined(separator: ", "))
         .accessibilityIdentifier("savingsGoalTargetProgressBar")
+    }
+}
+
+/// The V2 goal bar: a sunk track under a green fill, grey once the goal is paused.
+/// Shared by the hero card and the goals list rows.
+struct GoalProgressTrack: View {
+    let fraction: Double
+    var isMuted = false
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            ProgressBarShape(progress: 1).fill(Color.sunk)
+            ProgressBarShape(progress: CGFloat(min(max(fraction, 0), 1)))
+                .fill(isMuted ? Color.textTertiary : Color.pulpePrimary)
+                .animation(DesignTokens.Animation.gentleSpring, value: fraction)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// A grey tile: label over its value (« Requis par mois », « Échéance »).
+struct GoalHeroTile: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            Text(label)
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+            Text(value)
+                .font(PulpeTypography.totalAmount)
+                .foregroundStyle(Color.textPrimary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(DesignTokens.TextScale.compact)
+                .sensitiveAmount()
+        }
+        .padding(DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.sunk, in: .rect(cornerRadius: DesignTokens.CornerRadius.card))
+        .accessibilityElement(children: .combine)
     }
 }

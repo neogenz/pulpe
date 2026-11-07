@@ -9,6 +9,8 @@ enum CheckedFilterOption: String, CaseIterable, Identifiable {
     case unchecked
     case checked
     case all
+    /// Prévisions whose movements went past the planned amount.
+    case over
 
     var id: String { rawValue }
 
@@ -16,23 +18,8 @@ enum CheckedFilterOption: String, CaseIterable, Identifiable {
         switch self {
         case .unchecked: AppLocale.string("À pointer")
         case .checked: AppLocale.string("Pointé")
-        case .all: AppLocale.string("Tout voir")
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .unchecked: "square"
-        case .checked: "checkmark.square"
-        case .all: "list.bullet"
-        }
-    }
-
-    var accessibilityLabel: String {
-        switch self {
-        case .unchecked: AppLocale.string("Afficher uniquement les éléments à pointer")
-        case .checked: AppLocale.string("Afficher uniquement les éléments pointés")
-        case .all: AppLocale.string("Afficher tous les éléments")
+        case .all: AppLocale.string("Tout")
+        case .over: AppLocale.string("Dépassées")
         }
     }
 }
@@ -97,6 +84,7 @@ struct CheckedFilterCounts: Equatable {
     let unchecked: Int
     let checked: Int
     let all: Int
+    var over = 0
 
     static let zero = CheckedFilterCounts(unchecked: 0, checked: 0, all: 0)
 
@@ -105,155 +93,50 @@ struct CheckedFilterCounts: Equatable {
         case .unchecked: unchecked
         case .checked: checked
         case .all: all
+        case .over: over
         }
     }
 }
 
-// MARK: - Unified Filter
+// MARK: - Filter rail
 
-/// Horizontal filter rail for the budget detail page.
-///
-/// Two cumulative axes:
-/// 1. **État** (À pointer / Pointé / Tout voir) — leading labelled `Menu` button showing icon,
-///    label, count and chevron. Tap opens a native iOS menu with the three options and counts.
-/// 2. **Type** (Tout / Revenus / Épargne / Dépenses) — pills with count badges; the pill is
-///    disabled at 0.4 opacity when its count is 0 (except `.all`).
-///
-/// The two axes AND together. Visual reference: Pulpe v2 UnifiedFilter (post-PUL-209 brief).
+/// "Tout / À pointer N / Dépassées N" (V2 `Budget-mois`). The kind filter lives in the
+/// month menu. "Pointé" stays a stored option but has no chip of its own.
 struct BudgetTypeFilter: View {
-    @Binding var kind: BudgetLineKindFilter
     @Binding var checked: CheckedFilterOption
-    let counts: BudgetLineKindCounts
-    let checkedCounts: CheckedFilterCounts
+    let counts: CheckedFilterCounts
 
-    /// The Three Families Rule: natures are solid / outlined, the état filter is the one
-    /// semantic chip and only reads active while it narrows the list.
-    static func kindChipStyle<Trailing: View>(isSelected: Bool) -> PulpeChip<Trailing>.Style {
-        isSelected ? .solid : .outlined
-    }
-
-    static func checkedChipStyle<Trailing: View>(for option: CheckedFilterOption) -> PulpeChip<Trailing>.Style {
-        option == .all ? .outlined : .semantic(.financialSavings)
-    }
+    private static let options: [CheckedFilterOption] = [.all, .unchecked, .over]
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: DesignTokens.ChipMetrics.Standard.interChipGap) {
-                checkedMenuButton()
-                    .padding(.trailing, DesignTokens.Spacing.xs)
-
-                ForEach(BudgetLineKindFilter.allCases) { option in
-                    typePill(option)
+                ForEach(Self.options) { option in
+                    Button {
+                        checked = option
+                    } label: {
+                        PulpeChip(
+                            label: option.label,
+                            count: option == .all ? nil : counts.count(for: option),
+                            style: checked == option ? .selected : .outlined
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(checked == option ? .isSelected : [])
+                    .accessibilityIdentifier("budgetCheckedFilter-\(option.rawValue)")
                 }
             }
-            .padding(.vertical, DesignTokens.Spacing.sm)
+            .padding(.horizontal, DesignTokens.Spacing.xl)
         }
-        .contentMargins(.horizontal, DesignTokens.Spacing.xxl, for: .scrollContent)
         .scrollIndicators(.hidden)
         .scrollClipDisabled()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .sensoryFeedback(.selection, trigger: kind)
         .sensoryFeedback(.selection, trigger: checked)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Filtres")
-    }
-
-    // MARK: - Checked Menu Button (labelled, opens native iOS Menu on tap)
-
-    @ViewBuilder
-    private func checkedMenuButton() -> some View {
-        Menu {
-            checkedMenuItems()
-        } label: {
-            PulpeChip(
-                icon: "checkmark.circle",
-                label: checked.label,
-                count: checkedCounts.count(for: checked),
-                style: Self.checkedChipStyle(for: checked),
-                trailing: {
-                    Image(systemName: "chevron.down")
-                        .font(PulpeTypography.metricMini)
-                        // Derived from the chip's own foreground, not a fixed grey:
-                        // `.solid` inverts to `systemBackground` and a hardcoded
-                        // `textTertiary` chevron would vanish into the dark fill.
-                        .foregroundStyle(.secondary)
-                }
-            )
-        }
-        .pulpeMenuContent()
-        .menuStyle(.button)
-        .plainPressedButtonStyle()
-        .accessibilityLabel("Filtre d'état")
-        .accessibilityValue(
-            checked == .all
-                ? "\(checked.label), \(checkedCounts.count(for: checked)) éléments"
-                : "\(checked.label), activé, \(checkedCounts.count(for: checked)) éléments"
-        )
-        .accessibilityHint("Touche deux fois pour ouvrir le menu de filtres d'état.")
-    }
-
-    @ViewBuilder
-    private func checkedMenuItems() -> some View {
-        ForEach(CheckedFilterOption.allCases) { option in
-            Button {
-                withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
-                    checked = option
-                }
-            } label: {
-                Label(
-                    "\(option.label) (\(checkedCounts.count(for: option)))",
-                    systemImage: option.icon
-                )
-            }
-        }
-    }
-
-    // MARK: - Type Pill (with count badge)
-
-    @ViewBuilder
-    private func typePill(_ option: BudgetLineKindFilter) -> some View {
-        let isSelected = kind == option
-        let count = counts.count(for: option)
-        let isDisabled = count == 0 && option != .all
-
-        Button {
-            withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
-                kind = option
-            }
-        } label: {
-            PulpeChip(
-                label: option.label,
-                count: count,
-                style: Self.kindChipStyle(isSelected: isSelected),
-                isDisabled: isDisabled
-            )
-        }
-        .plainPressedButtonStyle()
-        .disabled(isDisabled)
-        .accessibilityLabel(option.accessibilityLabel)
-        .accessibilityValue("\(count) éléments")
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 
-// MARK: - Preview
-
 #Preview {
-    @Previewable @State var kind: BudgetLineKindFilter = .all
-    @Previewable @State var checked: CheckedFilterOption = .unchecked
-
-    VStack(spacing: 24) {
-        BudgetTypeFilter(
-            kind: $kind,
-            checked: $checked,
-            counts: BudgetLineKindCounts(all: 5, income: 0, saving: 1, expense: 4),
-            checkedCounts: CheckedFilterCounts(unchecked: 4, checked: 1, all: 5)
-        )
-
-        Text("Type: \(kind.label) · Pointage: \(checked.label)")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(Color.appBackground)
+    @Previewable @State var checked: CheckedFilterOption = .all
+    BudgetTypeFilter(checked: $checked, counts: CheckedFilterCounts(unchecked: 9, checked: 4, all: 13, over: 2))
+        .padding(.vertical)
+        .background(Color.appBackground)
 }

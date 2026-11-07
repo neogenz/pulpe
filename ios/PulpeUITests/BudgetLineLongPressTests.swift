@@ -97,7 +97,7 @@ final class BudgetLineLongPressTests: XCTestCase {
         XCTAssertTrue(metadata.waitForExistence(timeout: 10), file: file, line: line)
         scrollUntilFullyVisible(
             metadata,
-            below: app.navigationBars.firstMatch.frame.maxY,
+            below: app.contentTopY,
             above: app.windows.firstMatch.frame.maxY
         )
         XCTAssertTrue(rowButton.isHittable, file: file, line: line)
@@ -111,17 +111,15 @@ final class BudgetLineLongPressTests: XCTestCase {
         XCTAssertTrue(detailRoot.waitForExistence(timeout: 10), file: file, line: line)
         let goal = app.buttons["budgetLineDetailGoalLink"]
         let spread = app.buttons["spreadAffordanceButton"]
-        let navigationBar = app.navigationBars.firstMatch
+        let topY = app.contentTopY
         let primaryAction = app.buttons["budgetLineDetailPrimaryAction"]
         XCTAssertTrue(primaryAction.waitForExistence(timeout: 10), file: file, line: line)
-        scrollPairIntoView(
-            goal,
-            spread,
-            below: navigationBar.frame.maxY,
-            above: primaryAction.frame.minY
-        )
-        assertVisible(goal, below: navigationBar, above: primaryAction)
-        assertVisible(spread, below: navigationBar, above: primaryAction)
+        // The action sits under the content, or past the screen's end on a short one (folded
+        // iPhone Duo at accessibility sizes): whichever comes first bounds what is visible.
+        let bottomY = min(primaryAction.frame.minY, app.windows.firstMatch.frame.maxY)
+        scrollPairIntoView(goal, spread, below: topY, above: bottomY)
+        assertVisible(goal, below: topY, above: bottomY)
+        assertVisible(spread, below: topY, above: bottomY)
         XCTAssertGreaterThanOrEqual(goal.frame.height, 44, file: file, line: line)
         XCTAssertGreaterThanOrEqual(spread.frame.height, 44, file: file, line: line)
         XCTAssertFalse(goal.frame.intersects(spread.frame), file: file, line: line)
@@ -140,9 +138,9 @@ final class BudgetLineLongPressTests: XCTestCase {
         let goal = app.buttons["budgetLineDetailGoalLink"]
         scrollUntilHittable(goal)
         goal.tap()
-        // The bar takes the goal's own name, which the harness seeds: it says which
-        // goal was opened, where the root identifier only says that one was.
-        XCTAssertTrue(app.navigationBars[Self.goalName].waitForExistence(timeout: 10))
+        // The page header carries the goal's own name, which the harness seeds: it says
+        // which goal was opened, where the root identifier only says that one was.
+        XCTAssertTrue(app.staticTexts[Self.goalName].waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollViews["savingsGoalDetailRoot"].waitForExistence(timeout: 10))
         XCTAssertTrue(
             app.descendants(matching: .any)["savingsGoalProgressCard"].waitForExistence(timeout: 10)
@@ -158,13 +156,13 @@ final class BudgetLineLongPressTests: XCTestCase {
         )
         scrollUntilFullyVisible(
             linkedPlanMonth,
-            below: app.navigationBars.firstMatch.frame.maxY,
+            below: app.contentTopY,
             above: app.windows.firstMatch.frame.maxY
         )
         XCTAssertFalse(app.staticTexts["networkUnavailableTitle"].exists)
         attachScreenshot("ios-goal-spread-goal-destination")
 
-        app.navigationBars.buttons.firstMatch.tap()
+        app.backButton.tap()
         let spread = app.buttons["spreadAffordanceButton"]
         scrollUntilHittable(spread)
         spread.tap()
@@ -177,7 +175,7 @@ final class BudgetLineLongPressTests: XCTestCase {
         XCTAssertTrue(occurrence.waitForExistence(timeout: 10))
         scrollUntilFullyVisible(
             occurrence,
-            below: app.navigationBars.firstMatch.frame.maxY,
+            below: app.contentTopY,
             above: app.windows.firstMatch.frame.maxY
         )
         XCTAssertTrue(occurrence.label.contains(Self.goalSpreadAmount))
@@ -216,21 +214,21 @@ final class BudgetLineLongPressTests: XCTestCase {
 
     private func assertVisible(
         _ element: XCUIElement,
-        below topElement: XCUIElement,
-        above bottomElement: XCUIElement
+        below topY: CGFloat,
+        above bottomY: CGFloat
     ) {
         let frame = element.frame
         XCTAssertTrue(element.exists)
         XCTAssertTrue(element.isHittable)
         XCTAssertGreaterThanOrEqual(
             frame.minY,
-            topElement.frame.maxY,
-            "Element \(frame) starts above navigation \(topElement.frame)"
+            topY,
+            "Element \(frame) starts above the content top \(topY)"
         )
         XCTAssertLessThanOrEqual(
             frame.maxY,
-            bottomElement.frame.minY,
-            "Element \(frame) ends below primary action \(bottomElement.frame)"
+            bottomY,
+            "Element \(frame) ends below the visible bottom \(bottomY)"
         )
     }
 

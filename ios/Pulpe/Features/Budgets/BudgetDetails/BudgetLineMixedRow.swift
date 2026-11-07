@@ -1,10 +1,9 @@
 import SwiftUI
 import TipKit
 
-/// One ledger row of the budget detail (The One Ledger Rule): nature disc, name, amount,
+/// One ledger row of the budget detail (V2 `row`): pointing ring, name over one fact, amount,
 /// chevron. Lives inside the section's grouped card; it carries no card of its own.
-/// Standard sizes keep the compact amount column; Accessibility sizes move amount and
-/// chevron below the descriptive content. The disc remains independently actionable.
+/// The ring remains independently actionable.
 struct BudgetLineMixedRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
@@ -22,7 +21,6 @@ struct BudgetLineMixedRow: View {
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
-    @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -30,21 +28,7 @@ struct BudgetLineMixedRow: View {
 
     // MARK: - Derived values
 
-    // Internal rather than private: `BudgetLineMixedRow+Amount.swift` reads the
-    // same vocabulary, and Swift scopes `private` to the file.
-
-    /// `consumption.allocated` — sum of linked transactions on this line.
-    var realAmount: Decimal { consumption.allocated }
-    /// `line.amount` — what the user planned for this envelope.
-    var plannedAmount: Decimal { line.amount }
-    var hasReal: Bool { realAmount > 0 }
-    /// Equivalent of `e.real > e.planned` in the spec; matches `consumption.isOverBudget`.
-    var isOverBudget: Bool { consumption.isOverBudget }
-
-    private var isPointed: Bool { line.isPointed(allocated: realAmount) }
-    var isIncome: Bool { line.kind == .income }
-    var isSaving: Bool { line.kind == .saving }
-    var isExpense: Bool { line.kind == .expense }
+    private var isPointed: Bool { line.isPointed(allocated: consumption.allocated) }
 
     /// Every contextual fact about the line on one line. A withdrawal income can
     /// never also be spread or carry a goal (both are saving-only), so they
@@ -75,53 +59,63 @@ struct BudgetLineMixedRow: View {
         )
     }
 
-    /// PointCircle dot color — kind-based. The overflow override only applies to
-    /// expenses; income / saving keep their category color even when the actual
-    /// amount overshoots the plan (a positive surprise, not a deficit).
-    private var dotColor: Color {
-        if isIncome { return .financialIncome }
-        if isSaving { return .financialSavings }
-        if isOverBudget { return .financialOverBudget }
-        return .financialExpense
+    private var presentation: BudgetLineRowPresentation {
+        BudgetLineRowPresentation(
+            line: line,
+            consumption: consumption,
+            savingsGoalName: savingsGoalName,
+            isPointed: isPointed,
+            currency: currency
+        )
     }
 
     // MARK: - Body
 
+    /// V2 `row`: the neutral ring points, the rest of the row opens. No kind colour, no
+    /// strikethrough: a pointed line keeps full ink and says "pointé" in its one fact.
     var body: some View {
-        Button(action: handleTap) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
+        let presentation = presentation
+        // At accessibility sizes the amount goes under the name: beside it, a narrow screen
+        // (folded iPhone Duo) left the name a column so thin it broke mid-word.
+        let stacksAmount = dynamicTypeSize.isAccessibilitySize
+        return Button(action: handleTap) {
+            HStack(spacing: DesignTokens.Spacing.md) {
                 PointCircle(
-                    kind: line.kind,
                     isPointed: isPointed,
-                    color: dotColor,
                     isSyncing: isSyncing,
                     onPrepareToggle: onPrepareTogglePointed,
                     onCompletionStateChange: { pointCompletionGate.isPending = $0 },
                     onToggle: handleTogglePointed
                 )
                 .popoverTip(showsCheckingTip ? ProductTips.checking : nil)
-                .frame(width: DesignTokens.TapTarget.minimum)
 
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        centerColumn
-                        HStack {
-                            Spacer(minLength: DesignTokens.Spacing.none)
-                            amountColumn
-                            RowChevron()
-                        }
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.dividerGap) {
+                    Text(line.name)
+                        .font(PulpeTypography.rowTitle)
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .truncationMode(.tail)
+                    if stacksAmount { amountText(presentation.amount) }
+                    if let progress = presentation.progress {
+                        consumptionBar(progress: progress, isOver: presentation.isOver)
                     }
-                } else {
-                    centerColumn
-                    Spacer(minLength: DesignTokens.Spacing.sm)
-                    amountColumn
-                    RowChevron()
+                    Text(presentation.subtitle)
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(presentation.isOver ? Color.financialOverBudget : Color.textSecondary)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .truncationMode(.tail)
+                        .sensitiveAmount()
+                        .accessibilityIdentifier("budgetLineMixedRowMetadata-\(line.id)")
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if !stacksAmount { amountText(presentation.amount).layoutPriority(1) }
+
+                RowChevron()
             }
-            .padding(.vertical, DesignTokens.Spacing.md)
+            .padding(.vertical, DesignTokens.ListRow.verticalPadding + DesignTokens.Spacing.xxs)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
-            .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
             .animation(
                 reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
                 value: isPointed
@@ -131,11 +125,11 @@ struct BudgetLineMixedRow: View {
         // Second path to the same toggle, the gesture Mail taught.
         .leadingSwipeAction(
             systemImage: isPointed ? "arrow.uturn.backward" : "checkmark",
-            tint: dotColor,
+            tint: .pulpePrimary,
             isEnabled: { !pointCompletionGate.isPending && !isSyncing },
             action: handleTogglePointed
         )
-        // Explicit, or the button inherits the metadata Text's identifier from its label.
+        // Explicit, or the button inherits the subtitle Text's identifier from its label.
         .accessibilityIdentifier("budgetLineMixedRowButton-\(line.id)")
         // Left to itself the activation point lands on the nested PointCircle, so Voice
         // Control's "tap" (and XCUITest's) points the line instead of opening it.
@@ -148,146 +142,25 @@ struct BudgetLineMixedRow: View {
         .accessibilityIdentifier("budgetLineMixedRow-\(line.id)")
     }
 
-    // MARK: - Center column (label + subtitle)
+    private func amountText(_ amount: String) -> some View {
+        Text(amount)
+            .font(PulpeTypography.rowAmount)
+            .foregroundStyle(Color.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(DesignTokens.TextScale.compact)
+            .sensitiveAmount()
+    }
 
-    @ViewBuilder
-    private var centerColumn: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            Text(line.name)
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(Color.textPrimary)
-                .strikethrough(isPointed, color: Color.textTertiary)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                .truncationMode(.tail)
-
-            metadataRow
-
-            subtitleView
-                .font(PulpeTypography.metricLabelBold)
-                .lineLimit(1)
-                .sensitiveAmount()
+    /// Thin bar under the name of a prévision being consumed; ocre once it overflows.
+    private func consumptionBar(progress: Double, isOver: Bool) -> some View {
+        ZStack(alignment: .leading) {
+            Color.progressTrack.clipShape(.capsule)
+            ProgressBarShape(progress: CGFloat(progress))
+                .fill(isOver ? Color.financialOverBudget : Color.textPrimary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// A ponctuel line with nothing else to say has an empty tertiary line, and an
-    /// empty row still takes the `VStack` spacing on both sides — a hair taller than
-    /// its neighbours, for nothing.
-    private var hasMetadataRow: Bool {
-        line.recurrence.icon != nil
-            || line.isSavingsWithdrawalIncome
-            || metadata != nil
-            || !tagNames.isEmpty
-    }
-
-    /// Every secondary fact about the line — recurrence, provenance, lissage,
-    /// objectif, tag count — on one tertiary line. Stacking one badge per fact
-    /// pushed the row to five lines and knocked the amount column out of vertical
-    /// alignment.
-    @ViewBuilder
-    private var metadataRow: some View {
-        if hasMetadataRow {
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                // Only a monthly line carries a mark, and the arrows are it: a ponctuel
-                // line is the absence of them, which is what the word says too.
-                // Decorative like its neighbour — the row's label speaks both.
-                if let icon = line.recurrence.icon {
-                    Image(systemName: icon)
-                        .accessibilityHidden(true)
-                }
-
-                if line.isSavingsWithdrawalIncome {
-                    // Decorative: `metadata` already carries "Pris sur ton épargne",
-                    // and the row is an accessibility container, so an unhidden symbol
-                    // would offer its SF name as a second reading of the same fact.
-                    Image(systemName: TransactionKind.savingsIcon)
-                        .accessibilityHidden(true)
-                }
-
-                if let metadata {
-                    Text(metadata)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                        .truncationMode(.tail)
-                        .accessibilityIdentifier("budgetLineMixedRowMetadata-\(line.id)")
-                }
-
-                if !tagNames.isEmpty {
-                    TagChips(
-                        names: tagNames,
-                        presentation: .count,
-                        followsText: metadata != nil
-                    )
-                }
-            }
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.textTertiary)
-        }
-    }
-
-    /// Spec §08 — subtitle rules. Empty when pointed, or for partial/empty
-    /// expenses where the hero already carries the remaining amount.
-    @ViewBuilder
-    private var subtitleView: some View {
-        if isPointed {
-            EmptyView()
-        } else if isIncome {
-            incomeSubtitle
-        } else if isSaving {
-            savingSubtitle
-        } else if isOverBudget {
-            overBudgetSubtitle
-        } else {
-            EmptyView()
-        }
-    }
-
-    // Income: "Reçu" once fully covered, "X.XX CHF à recevoir" only on partial
-    // (the right hero already carries `prévu` when nothing has been received).
-    @ViewBuilder
-    private var incomeSubtitle: some View {
-        if hasReal && realAmount >= plannedAmount {
-            Text("Reçu")
-                .foregroundStyle(Color.textTertiary)
-        } else if hasReal {
-            let remaining = plannedAmount - realAmount
-            Text("\(remaining.asCurrency(currency)) à recevoir")
-                .foregroundStyle(Color.textTertiary)
-        }
-    }
-
-    // Saving: "Transféré" once fully covered, "X.XX CHF à transférer" only on
-    // partial. When nothing has been transferred yet the hero already shows the
-    // planned amount; repeating it as a subtitle would be redundant. A savings
-    // withdrawal repayment (PUL-292) adds "pris en {mois}" as a COMPLEMENT — the
-    // The "à transférer / Transféré" status line always remains.
-    @ViewBuilder
-    private var savingSubtitle: some View {
-        let showTransferred = hasReal && realAmount >= plannedAmount
-        let showRemaining = hasReal && realAmount < plannedAmount
-        let showOrigin = savingsWithdrawalOriginMonthName != nil && line.savingsWithdrawalGroupId != nil
-        if showTransferred || showRemaining || showOrigin {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                if showTransferred {
-                    Text("Transféré")
-                        .foregroundStyle(Color.textTertiary)
-                } else if showRemaining {
-                    Text("\((plannedAmount - realAmount).asCurrency(currency)) à transférer")
-                        .foregroundStyle(Color.textTertiary)
-                }
-                if showOrigin, let originName = savingsWithdrawalOriginMonthName {
-                    Text("pris en \(originName)")
-                        .foregroundStyle(Color.textTertiary)
-                }
-            }
-        }
-    }
-
-    // Expense overflow: "Budget dépassé" in the warm overflow color.
-    // The excess amount lives on the right hero with the "de dépassement" suffix.
-    @ViewBuilder
-    private var overBudgetSubtitle: some View {
-        Text("Budget dépassé")
-            .foregroundStyle(Color.financialOverBudget)
+        .frame(height: DesignTokens.ProgressBar.height)
+        .padding(.vertical, DesignTokens.Spacing.xxs)
+        .accessibilityHidden(true)
     }
 
     // MARK: - Actions
@@ -311,7 +184,7 @@ struct BudgetLineMixedRow: View {
         return Self.accessibilityLabel(
             line: line,
             status: status,
-            amount: displayAmount.asCurrency(currency),
+            amount: max(line.amount, consumption.allocated).asCurrency(currency),
             metadata: metadata,
             tagNames: tagNames
         )

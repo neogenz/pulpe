@@ -1,14 +1,12 @@
 import Foundation
 import Testing
 
-/// The Form Rule (ios/DESIGN.md): the six add/edit forms stack the same blocks, and the
+/// The Form Rule (ios/DESIGN.md): the add/edit forms stack the same blocks, and the
 /// atoms inside a `FormCard` wear the row style rather than their own surface.
 @Suite struct FormRowStyleTests {
     private static let forms = [
-        "Features/CurrentMonth/Components/AddTransactionSheet.swift",
+        "Shared/Components/MovementSheet/MovementSheet.swift",
         "Features/Budgets/BudgetDetails/AddBudgetLineSheet.swift",
-        "Features/Budgets/BudgetDetails/AddAllocatedTransactionPage.swift",
-        "Features/Budgets/BudgetDetails/EditTransactionPage.swift",
         "Features/Templates/TemplateDetails/EditTemplateLineSheet.swift",
         "Shared/Components/EditBudgetLineSheet.swift"
     ]
@@ -19,11 +17,12 @@ import Testing
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
         let url = root.appendingPathComponent("Pulpe/\(relativePath)")
-        let companion = url.deletingPathExtension().appendingPathExtension("swift")
-            .path.replacingOccurrences(of: ".swift", with: "+Form.swift")
         let main = try String(contentsOf: url, encoding: .utf8)
-        let extra = (try? String(contentsOfFile: companion, encoding: .utf8)) ?? ""
-        return main + extra
+        let extra = ["+Form", "+Details", "+Parts"].map { suffix in
+            let companion = url.path.replacingOccurrences(of: ".swift", with: "\(suffix).swift")
+            return (try? String(contentsOfFile: companion, encoding: .utf8)) ?? ""
+        }
+        return ([main] + extra).joined()
     }
 
     @Test(arguments: forms)
@@ -31,7 +30,10 @@ import Testing
         let source = try Self.source(path)
         #expect(source.contains("FormCard {"), "\(path) should group its fields in a FormCard")
         #expect(!source.contains("TagPickerField(selection: $selectedTagIds)"), "\(path): tags are a row")
-        #expect(source.contains("field: .description,\n            style: .row"), "\(path): description is a row")
+        // The movement and template-line sheets' names are white standalone fields by design (V2), not rows.
+        if !path.contains("MovementSheet"), !path.contains("EditTemplateLineSheet") {
+            #expect(source.contains("field: .description,\n            style: .row"), "\(path): description is a row")
+        }
     }
 
     @Test(arguments: forms)

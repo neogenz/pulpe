@@ -84,5 +84,12 @@ final class FirstTransactionTracker {
         defaults.removeObject(forKey: Self.recordedKey)
     }
 
+    #if DEBUG
+    /// UI test harnesses have no server to ask.
+    func answerForTesting(hasTransaction: Bool) {
+        self.hasTransaction = hasTransaction
+    }
+    #endif
+
     private static let recordedKey = "pulpe-has-recorded-first-transaction"
 }

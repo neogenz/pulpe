@@ -18,12 +18,11 @@ struct LanguageSettingView: View {
             languagePicker
             systemLanguageLink
         } header: {
-            Text("LANGUE")
-                .font(PulpeTypography.labelLarge)
+            SettingsSectionHeader(text: AppLocale.string("Langue"))
         } footer: {
             Text("""
-                Les invites d'iOS — Face ID, photos, partage — suivent la langue du système, \
-                pas celle-ci. Les régler redémarre Pulpe.
+                Face ID, photos et partage suivent la langue d'iOS. \
+                Changer de langue redémarre Pulpe.
                 """)
         }
         .listRowSettingsBackground()
@@ -42,13 +41,13 @@ struct LanguageSettingView: View {
         } label: {
             ViewThatFits(in: .horizontal) {
                 HStack {
-                    Text("Langue de l'app")
+                    Text("Langue de l'app").font(PulpeTypography.listRowTitle)
                     Spacer(minLength: DesignTokens.Spacing.md)
                     selectedLanguage
                 }
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Langue de l'app")
+                    Text("Langue de l'app").font(PulpeTypography.listRowTitle)
                     selectedLanguage
                 }
             }
@@ -66,7 +65,7 @@ struct LanguageSettingView: View {
     private var selectedLanguage: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text(verbatim: userSettingsStore.locale.nativeName)
-            Image(systemName: "chevron.down")
+            Image(systemName: "chevron.up.chevron.down")
                 .font(PulpeTypography.caption)
                 .accessibilityHidden(true)
         }
@@ -103,11 +102,13 @@ struct LanguageSettingView: View {
             #endif
         } label: {
             HStack {
-                Text("Langue du système")
+                Text("Réglages de langue d'iOS")
+                    .font(PulpeTypography.listRowTitle)
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: "arrow.up.right")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
             }
         }
         .frame(minHeight: DesignTokens.TapTarget.minimum)

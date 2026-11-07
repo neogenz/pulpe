@@ -6,6 +6,7 @@ struct ResetPasswordFlowView: View {
     @State private var hasPerformedCancelCleanup = false
     @State private var showNewPassword = false
     @State private var showConfirmPassword = false
+    @State private var showForgotPassword = false
     @FocusState private var focusedField: Field?
 
     let callbackURL: URL
@@ -28,19 +29,20 @@ struct ResetPasswordFlowView: View {
                     formState
                 }
             }
-            .padding(DesignTokens.Spacing.xl)
+            .padding(.horizontal, DesignTokens.Spacing.xl)
             .background(Color.sheetBackground)
             .dismissKeyboardOnTap()
-            .localizedNavigationTitle("Réinitialiser le mot de passe")
+            .localizedNavigationTitle("Nouveau mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") {
-                        handleCloseAction()
-                    }
+                    SheetCloseButton { handleCloseAction() }
                 }
             }
             .keyboardFieldNavigation(focus: $focusedField, order: [.newPassword, .confirmPassword])
+        }
+        .sheet(isPresented: $showForgotPassword) {
+            ForgotPasswordSheet(initialEmail: viewModel.recoveryEmail ?? "") { showForgotPassword = false }
         }
         .task {
             await viewModel.prepare(with: callbackURL)
@@ -63,40 +65,26 @@ struct ResetPasswordFlowView: View {
                 .accessibilityLabel("Vérification du lien en cours")
             Text("Vérification du lien...")
                 .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .foregroundStyle(Color.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func invalidState(message: String) -> some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            Image(systemName: "link.badge.plus")
-                .font(PulpeTypography.heroIcon)
-                .foregroundStyle(Color.errorPrimary)
-
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Lien invalide ou expiré")
-                    .font(PulpeTypography.onboardingTitle)
-                Text(message)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
-            }
-
-            Button("Retour à la connexion") {
-                handleCloseAction()
-            }
-            .primaryButtonStyle()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        StatusScreen(
+            systemImage: "link",
+            tone: .over,
+            title: AppLocale.string("Ce lien n'est plus valable"),
+            message: message,
+            primary: .init(title: AppLocale.string("Demander un nouveau lien")) { showForgotPassword = true },
+            secondary: .init(title: AppLocale.string("Retour à la connexion")) { handleCloseAction() }
+        )
     }
 
     private var formState: some View {
         ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xl) {
-                Text("Définis ton nouveau mot de passe.")
-                    .font(PulpeTypography.bodyLarge)
-                    .multilineTextAlignment(.center)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                lead
 
                 newPasswordField
                 confirmPasswordField
@@ -107,41 +95,57 @@ struct ResetPasswordFlowView: View {
                         .foregroundStyle(Color.errorPrimary)
                         .padding(.horizontal, DesignTokens.Spacing.xs)
                 }
-
-                Button {
-                    Task {
-                        await viewModel.submit()
-                        if viewModel.isCompleted {
-                            await finishFlow()
-                        }
-                    }
-                } label: {
-                    if viewModel.isSubmitting {
-                        ProgressView()
-                            .tint(.white)
-                            .accessibilityLabel("Réinitialisation en cours")
-                    } else {
-                        Text("Valider")
-                    }
-                }
-                .primaryButtonStyle(isEnabled: viewModel.canSubmit)
-                .disabled(!viewModel.canSubmit)
             }
+            .padding(.top, DesignTokens.Spacing.md)
         }
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) {
+            Button {
+                Task {
+                    await viewModel.submit()
+                    if viewModel.isCompleted {
+                        await finishFlow()
+                    }
+                }
+            } label: {
+                if viewModel.isSubmitting {
+                    ProgressView()
+                        .tint(.white)
+                        .accessibilityLabel("Réinitialisation en cours")
+                } else {
+                    Text("Valider")
+                }
+            }
+            .primaryButtonStyle(isEnabled: viewModel.canSubmit)
+            .disabled(!viewModel.canSubmit)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .background(Color.sheetBackground)
+        }
+    }
+
+    /// Names the account the new password is for, and says what does not change.
+    private var lead: some View {
+        Group {
+            if let email = viewModel.recoveryEmail {
+                Text("Choisis le mot de passe de **\(email)**. Ton code PIN et tes montants ne changent pas.")
+            } else {
+                Text("Choisis ton nouveau mot de passe. Ton code PIN et tes montants ne changent pas.")
+            }
+        }
+        .font(PulpeTypography.onboardingSubtitle)
+        .foregroundStyle(Color.textSecondary)
     }
 
     private var newPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau mot de passe")
                 .font(PulpeTypography.buttonSecondary)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .foregroundStyle(Color.textPrimary)
 
             AuthSecureField(
                 prompt: AppLocale.string("8 caractères minimum"),
                 text: $viewModel.newPassword,
                 isVisible: $showNewPassword,
-                systemImage: "lock",
                 focusBinding: $focusedField,
                 focusField: .newPassword
             )
@@ -156,15 +160,14 @@ struct ResetPasswordFlowView: View {
 
     private var confirmPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Confirmer le nouveau mot de passe")
+            Text("Confirme-le")
                 .font(PulpeTypography.buttonSecondary)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .foregroundStyle(Color.textPrimary)
 
             AuthSecureField(
                 prompt: AppLocale.string("Confirme ton nouveau mot de passe"),
                 text: $viewModel.confirmPassword,
                 isVisible: $showConfirmPassword,
-                systemImage: "lock",
                 hasError: !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed,
                 focusBinding: $focusedField,
                 focusField: .confirmPassword
@@ -174,8 +177,14 @@ struct ResetPasswordFlowView: View {
             .accessibilityLabel("Confirmation du mot de passe")
             .accessibilityHint("Confirme ton nouveau mot de passe")
 
-            if !viewModel.confirmPassword.isEmpty {
-                PasswordMatchRow(matches: viewModel.isPasswordConfirmed)
+            if !viewModel.confirmPassword.isEmpty && !viewModel.isPasswordConfirmed {
+                Label("""
+                    Les deux mots de passe ne correspondent pas. Retape le \
+                    second.
+                    """, systemImage: "exclamationmark.circle.fill")
+                    .font(PulpeTypography.inputHelper)
+                    .foregroundStyle(Color.errorPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -215,6 +224,8 @@ final class ResetPasswordFlowViewModel {
     var newPassword = ""
     var confirmPassword = ""
     var shouldCleanupOnDismiss = false
+    /// Account the recovery link belongs to, named in the form so the user knows whose password it is.
+    var recoveryEmail: String?
     var isCompleted = false
 
     private let dependencies: ResetPasswordDependencies
@@ -241,11 +252,15 @@ final class ResetPasswordFlowViewModel {
         defer { isPreparing = false }
 
         do {
-            _ = try await dependencies.beginPasswordRecovery(callbackURL)
+            let context = try await dependencies.beginPasswordRecovery(callbackURL)
+            recoveryEmail = context.email.isEmpty ? nil : context.email
             shouldCleanupOnDismiss = true
         } catch {
             invalidLinkMessage = AppLocale.string(
-                "Ce lien n'est plus valide. Demande un nouveau lien depuis l'écran de connexion."
+                """
+                    Un lien ne sert qu'une fois et finit par expirer. Demande-en un \
+                    nouveau, il arrive en quelques secondes.
+                    """
             )
         }
     }
@@ -255,7 +270,7 @@ final class ResetPasswordFlowViewModel {
             if !isNewPasswordValid {
                 errorMessage = AppLocale.string("8 caractères minimum avec au moins un chiffre")
             } else if !isPasswordConfirmed {
-                errorMessage = AppLocale.string("Les mots de passe ne correspondent pas")
+                errorMessage = AppLocale.string("Les deux mots de passe ne correspondent pas. Retape le second.")
             }
             return
         }

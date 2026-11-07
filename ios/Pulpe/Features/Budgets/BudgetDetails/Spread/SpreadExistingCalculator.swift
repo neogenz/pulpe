@@ -106,8 +106,67 @@ final class SpreadExistingCalculator {
         return selectedMonths.prefix(remainderCount).last?.name
     }
 
+    /// What `month`'s tile carries: its tranche when selected, `nil` when skipped.
+    func amount(for month: SpreadMonth, total: Decimal) -> Decimal? {
+        guard let index = selectedMonths.firstIndex(of: month) else { return nil }
+        let parts = split(total: total)
+        return parts.indices.contains(index) ? parts[index] : nil
+    }
+
     /// The chosen periods (ascending, M0 included), for the API call.
     func periods() -> [SpreadFromExistingPeriod] {
         selectedMonths.map { SpreadFromExistingPeriod(year: $0.year, month: $0.month) }
+    }
+}
+
+extension BudgetLine {
+    /// A prévision is spreadable only when it's a one-off expense/épargne that isn't already
+    /// lissée, isn't a rollover, and isn't half of a withdrawal couple: spreading that deletes
+    /// the source server-side and orphans it (CA9).
+    var isSpreadable: Bool {
+        kind != .income
+            && recurrence == .oneOff
+            && spreadGroupId == nil
+            && savingsWithdrawalGroupId == nil
+            && !(isRollover ?? false)
+    }
+}
+
+extension SpreadExistingSource {
+    /// What spreading this source does to M0's disponible: the source leaves the month and
+    /// only M0's tranche (`share`) stays, as a prévision. Same formula as the budget.
+    func impact(share: Decimal, on ledger: MonthLedger) -> MovementImpact {
+        switch sourceType {
+        case .budgetLine:
+            return .between(ledger, ledger.replacing(lineId: id, amount: share))
+        case .transaction:
+            let withoutSource = MonthLedger(
+                lines: ledger.lines,
+                transactions: ledger.transactions.filter { $0.id != id },
+                rollover: ledger.rollover
+            )
+            let planned = MovementImpact.forecast(
+                ledger: withoutSource, budgetId: ledger.lines.first?.budgetId ?? "", kind: kind, amount: share
+            )
+            return MovementImpact(
+                before: MovementImpact.between(ledger, ledger).before,
+                after: planned.after,
+                lineBefore: nil,
+                lineAfter: nil
+            )
+        }
+    }
+
+    /// « Plutôt lisser » on a short month: its largest spreadable one-off dépense, if any.
+    static func largestSpreadableExpense(in ledger: MonthLedger, month: Int, year: Int) -> SpreadExistingSource? {
+        ledger.lines
+            .filter { $0.kind == .expense && $0.isSpreadable }
+            .max { $0.amount < $1.amount }
+            .map {
+                SpreadExistingSource(
+                    id: $0.id, sourceType: .budgetLine, kind: $0.kind, name: $0.name,
+                    total: $0.amount, month: month, year: year
+                )
+            }
     }
 }

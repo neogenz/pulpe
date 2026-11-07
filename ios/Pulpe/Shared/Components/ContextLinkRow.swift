@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// The row owns its surface instead of inheriting one from its host. The same
 /// component sits in the `List` of `BudgetLineDetailPage` and in the `ScrollView`
-/// of `EditTransactionPage`; a host-provided surface is what rendered it as a
+/// of `MovementSheet`; a host-provided surface is what rendered it as a
 /// full-bleed system band in the former and as a bare, surface-less line in the
 /// latter.
 struct ContextLinkRow: View {

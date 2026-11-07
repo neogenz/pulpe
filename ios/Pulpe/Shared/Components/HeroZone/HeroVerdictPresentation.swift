@@ -57,6 +57,17 @@ struct HeroVerdictPresentation: Equatable {
         }
     }
 
+    /// The same accent on a light card (the Accueil's white hero): green when ahead of the
+    /// plan, ocre behind it, coral once the month is in deficit, plain ink exactly on plan.
+    var lightAccent: Color {
+        guard verdict != .onPlan else { return .textPrimary }
+        return switch tone {
+        case .favorable: .pulpePrimary
+        case .caution: .financialOverBudget
+        case .deficit: .coral
+        }
+    }
+
     /// Whether an envelope that ran past its plan was paid for elsewhere in the month.
     /// A month that lands exactly on plan absorbed it just as surely as one that landed
     /// above: only a month behind its own plan leaves the excess uncovered. Lives here

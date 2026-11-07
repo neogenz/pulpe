@@ -659,23 +659,35 @@ extension CurrentMonthStore {
             }
 
         // 3. Learned due dates first; the existing kind/date order breaks ties.
-        items += budgetLines
-            .filter { !$0.isChecked && !($0.isRollover ?? false) }
-            .sorted {
-                let left = CheckingOrder.rank(expectedDay: checkingDays[$0.id], today: today)
-                let right = CheckingOrder.rank(expectedDay: checkingDays[$1.id], today: today)
-                if left != right { return left < right }
-                let lhs = Self.kindSortOrder.firstIndex(of: $0.kind) ?? Int.max
-                let rhs = Self.kindSortOrder.firstIndex(of: $1.kind) ?? Int.max
-                if lhs != rhs { return lhs < rhs }
-                return $0.createdAt > $1.createdAt
-            }
-            .map { line in
-                let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
-                return .budgetLine(line, consumption: consumption)
-            }
+        items += orderedForChecking(
+            budgetLines.filter { !$0.isChecked && !($0.isRollover ?? false) },
+            checkingDays: checkingDays,
+            today: today
+        )
+        .map { line in
+            let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
+            return .budgetLine(line, consumption: consumption)
+        }
 
         return items
+    }
+
+    /// The prévisions in the order they are likely to be pointed: the ones whose usual day has
+    /// come, then the unknown, then the later ones; kind and creation date break ties.
+    func orderedForChecking(_ lines: [BudgetLine]) -> [BudgetLine] {
+        Self.orderedForChecking(lines, checkingDays: checkingDays, today: periodDayProgress()?.day ?? 1)
+    }
+
+    static func orderedForChecking(_ lines: [BudgetLine], checkingDays: [String: Int], today: Int) -> [BudgetLine] {
+        lines.sorted {
+            let left = CheckingOrder.rank(expectedDay: checkingDays[$0.id], today: today)
+            let right = CheckingOrder.rank(expectedDay: checkingDays[$1.id], today: today)
+            if left != right { return left < right }
+            let lhs = kindSortOrder.firstIndex(of: $0.kind) ?? Int.max
+            let rhs = kindSortOrder.firstIndex(of: $1.kind) ?? Int.max
+            if lhs != rhs { return lhs < rhs }
+            return $0.createdAt > $1.createdAt
+        }
     }
 
     private func computeSavingsSummary() -> SavingsSummary {

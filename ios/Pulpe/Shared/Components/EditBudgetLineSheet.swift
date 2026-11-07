@@ -5,6 +5,10 @@ struct EditBudgetLineSheet: View {
     let budgetLine: BudgetLine
     /// Period of the budget holding the line — bounds its savings-goal links.
     let budgetPeriod: BudgetPeriod?
+    /// The month as it stands, to show what the new amount does to the disponible.
+    let ledger: MonthLedger?
+    /// Template of the budget, to name the amount the model keeps for this prévision.
+    let templateId: String?
     let onUpdate: (BudgetLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -20,9 +24,12 @@ struct EditBudgetLineSheet: View {
     @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
+    @State private var templateAmount: Decimal?
     private let inputCurrency: SupportedCurrency
     private let isAlternateCurrency: Bool
     private let initialTagIds: Set<String>
+    /// The amount when the sheet opened, in the input currency: the « avant » figure.
+    private let initialAmount: Decimal
 
     private let dependencies: EditBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -31,11 +38,15 @@ struct EditBudgetLineSheet: View {
         budgetLine: BudgetLine,
         userCurrency: SupportedCurrency,
         budgetPeriod: BudgetPeriod? = nil,
+        ledger: MonthLedger? = nil,
+        templateId: String? = nil,
         dependencies: EditBudgetLineDependencies = .live,
         onUpdate: @escaping (BudgetLine) -> Void
     ) {
         self.budgetLine = budgetLine
         self.budgetPeriod = budgetPeriod
+        self.ledger = ledger
+        self.templateId = templateId
         self.dependencies = dependencies
         self.onUpdate = onUpdate
         _name = State(initialValue: budgetLine.name)
@@ -48,6 +59,7 @@ struct EditBudgetLineSheet: View {
         let inputCurrency = budgetLine.originalCurrency ?? userCurrency
         let editableAmount = Self.initialAmount(for: budgetLine, userCurrency: userCurrency)
         _amount = State(initialValue: editableAmount)
+        initialAmount = editableAmount
         let amountString = Formatters.amountInput(for: inputCurrency)
             .string(from: editableAmount as NSDecimalNumber) ?? ""
         _amountText = State(initialValue: amountString)
@@ -68,7 +80,6 @@ struct EditBudgetLineSheet: View {
             focus: $focusedField,
             focusOrder: [.amount, .description]
         ) {
-            KindToggle(selection: $kind)
             if userSettingsStore.showCurrencySelector && isAlternateCurrency {
                 CurrencyAmountPicker(
                     selectedCurrency: .constant(inputCurrency),
@@ -81,18 +92,40 @@ struct EditBudgetLineSheet: View {
                 focus: $focusedField,
                 field: .amount,
                 currency: inputCurrency,
-                accentColor: kind.color
+                caption: plannedCaption
             )
             CurrencyConversionBadge(
                 originalAmount: budgetLine.originalAmount,
                 originalCurrency: budgetLine.originalCurrency,
                 exchangeRate: budgetLine.exchangeRate
             )
-            // Three blocks: the amount above, what it is, then the details.
-            FormCard {
-                descriptionField
-                FormRowDivider()
-                TagPickerField(selection: $selectedTagIds, style: .row)
+            // The amount above, then its name, its nature, and the details.
+            FormCard { descriptionField }
+            KindToggle(selection: $kind)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                FormCard {
+                    TagPickerField(selection: $selectedTagIds, style: .row)
+                    FormRowDivider()
+                    frequencyRow
+                }
+                if let scopeNote {
+                    Text(scopeNote)
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
+                        .padding(.horizontal, DesignTokens.Spacing.xs)
+                        .sensitiveAmount()
+                }
+            }
+            if let impact = availableImpact, let month = budgetPeriod?.month {
+                ImpactBlock(
+                    title: ReportWording.availableTitle(of: month),
+                    before: impact.figures.before,
+                    after: impact.figures.after,
+                    currency: userSettingsStore.currency,
+                    note: impact.note(currency: userSettingsStore.currency),
+                    showsFigures: impact.figures.tone != .neutral
+                )
+                .sensitiveAmount()
             }
 
             if kind == .saving {
@@ -119,10 +152,72 @@ struct EditBudgetLineSheet: View {
             saveButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .task { await loadTemplateAmount() }
         .onChange(of: kind) { _, newKind in
             // Mirror the backend kind-guard: only savings can carry a goal.
             if newKind != .saving { savingsGoalId = nil }
         }
+    }
+
+    // MARK: - Month context
+
+    private var monthName: String? {
+        budgetPeriod.map { Formatters.monthNameInText(for: $0.month) }
+    }
+
+    /// « prévus en novembre · avant 600.00 »: "avant" only once the amount differs.
+    private var plannedCaption: String? {
+        guard let monthName else { return nil }
+        guard let amount, amount != initialAmount else {
+            return AppLocale.string("prévus en \(monthName)")
+        }
+        let before = initialAmount.asAmount(for: inputCurrency)
+        return AppLocale.string("prévus en \(monthName) · avant \(before)")
+    }
+
+    /// The frequency belongs to the model: shown, locked.
+    private var frequencyRow: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Text("Fréquence")
+                .font(PulpeTypography.body)
+                .foregroundStyle(Color.textPrimary)
+            Spacer()
+            Text(budgetLine.recurrence == .fixed ? AppLocale.string("Chaque mois") : AppLocale.string("Une fois"))
+                .font(PulpeTypography.body)
+                .foregroundStyle(Color.textSecondary)
+            Image(systemName: "lock")
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(Color.textSecondary)
+                .accessibilityHidden(true)
+        }
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// « Seul novembre change. Ton modèle garde 600.00 et la fréquence se règle là-bas. »
+    private var scopeNote: String? {
+        guard let monthName else { return nil }
+        guard budgetLine.templateLineId != nil else { return AppLocale.string("Seul \(monthName) change.") }
+        guard let templateAmount else {
+            return AppLocale.string("Seul \(monthName) change. La fréquence se règle dans ton modèle.")
+        }
+        let kept = templateAmount.asAmount(for: userSettingsStore.currency)
+        return AppLocale.string("Seul \(monthName) change. Ton modèle garde \(kept) et la fréquence se règle là-bas.")
+    }
+
+    /// Shown once the amount or the nature moves. ponytail: a line typed in another currency
+    /// skips it; judging it would need a conversion per keystroke.
+    private var availableImpact: BudgetLineEditImpact? {
+        guard let ledger, !isAlternateCurrency, let amount, amount > 0,
+              amount != budgetLine.amount || kind != budgetLine.kind else { return nil }
+        return BudgetLineEditImpact.compute(ledger: ledger, line: budgetLine, amount: amount, kind: kind)
+    }
+
+    /// One cheap read of the model's lines; without it the note drops the amount.
+    private func loadTemplateAmount() async {
+        guard let templateId, let templateLineId = budgetLine.templateLineId else { return }
+        let lines = try? await dependencies.templateLines(templateId)
+        templateAmount = lines?.first { $0.id == templateLineId }?.amount
     }
 
     // MARK: - Description
@@ -255,6 +350,9 @@ struct EditBudgetLineSheet: View {
 
 struct EditBudgetLineDependencies: Sendable {
     var updateBudgetLine: @Sendable (String, BudgetLineUpdate) async throws -> BudgetLine
+    var templateLines: @Sendable (String) async throws -> [TemplateLine] = { templateId in
+        try await TemplateService.shared.getTemplateLines(templateId: templateId)
+    }
 
     static let live = EditBudgetLineDependencies(
         updateBudgetLine: { id, data in

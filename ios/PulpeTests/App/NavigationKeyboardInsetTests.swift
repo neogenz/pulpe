@@ -27,8 +27,12 @@ struct NavigationKeyboardInsetTests {
     /// The whole inventory, stated once. A screen missing here fails the suite.
     private static let expected: [String: Rule] = [
         "CurrentMonthView": .resets,
+        "MovementsPage": .resets,
+        "ToPointPage": .resets,
+        "AccountView": .resets,
         "SavingsGoalsListView": .resets,
         "SavingsGoalDetailView": .resets,
+        "GoalHistoryView": .resets,
         "BudgetListView": .resets,
         "BudgetDetailsView": .resets,
         // The open iPhone Duo's month pane before any month exists.
@@ -37,16 +41,15 @@ struct NavigationKeyboardInsetTests {
         "TemplateDetailsView": .resets,
         "BudgetLineDetailPage": .resets,
         "EditTransactionHost": .ownsAField,
-        "EditTransactionPage": .ownsAField,
-        "AddAllocatedTransactionPage": .ownsAField,
     ]
 
-    /// The two files where a navigation screen is composed onto a stack. The modifier
+    /// The files where a navigation screen is composed onto a stack. The modifier
     /// belongs at these call sites and nowhere else: from here it wraps a screen's whole
     /// chain, overlays included, so it cannot be defeated by modifier order the way an
     /// in-body spelling was in PUL-284.
     private static let compositionFiles = [
         "Pulpe/App/MainTabView.swift",
+        "Pulpe/App/TemplatesTab.swift",
         "Pulpe/Features/Budgets/BudgetDetails/BudgetDetailsView+Routing.swift",
     ]
 

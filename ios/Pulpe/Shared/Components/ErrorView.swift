@@ -91,44 +91,6 @@ struct ErrorBanner: View {
     }
 }
 
-/// Empty state view
-struct EmptyStateView: View {
-    let title: String
-    let description: String
-    let systemImage: String
-    let action: (() -> Void)?
-    let actionTitle: String?
-
-    init(
-        title: String,
-        description: String,
-        systemImage: String,
-        actionTitle: String? = nil,
-        action: (() -> Void)? = nil
-    ) {
-        self.title = title
-        self.description = description
-        self.systemImage = systemImage
-        self.action = action
-        self.actionTitle = actionTitle
-    }
-
-    var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: systemImage)
-        } description: {
-            Text(description)
-        } actions: {
-            if let action, let actionTitle {
-                Button(actionTitle, action: action)
-                    .buttonStyle(.borderedProminent)
-                    .tint(.pulpePrimary)
-                    .controlSize(.regular)
-            }
-        }
-    }
-}
-
 #Preview("Error View") {
     ErrorView(error: APIError.networkError(URLError(.notConnectedToInternet))) {
         print("Retry tapped")

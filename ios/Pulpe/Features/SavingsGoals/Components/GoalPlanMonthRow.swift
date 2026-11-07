@@ -188,7 +188,7 @@ struct GoalPlanMonthRow: View {
 
                 amountView
             }
-            .opacity(isEffectivelyLocked ? DesignTokens.Opacity.pointedDim : 1)
+            .opacity(isEffectivelyLocked ? DesignTokens.Opacity.lockedDim : 1)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityIdentifier("savingsGoalPlanMonthRow-\(month.year)-\(month.month)")

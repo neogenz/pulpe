@@ -34,7 +34,6 @@ struct CreateTemplateView: View {
             focus: $focusedField,
             focusOrder: [.name, .description]
         ) {
-            // Name
             FormTextField(
                 hint: AppLocale.string("Nom du modèle"),
                 text: $name,
@@ -44,9 +43,8 @@ struct CreateTemplateView: View {
                 field: .name
             )
 
-            // Description
             FormTextField(
-                hint: AppLocale.string("Description (optionnel)"),
+                hint: AppLocale.string("Facultatif"),
                 text: $description,
                 label: AppLocale.string("Description"),
                 accessibilityLabel: AppLocale.string("Description du modèle"),
@@ -54,114 +52,84 @@ struct CreateTemplateView: View {
                 field: .description
             )
 
-            // Default toggle
-            defaultToggle
+            FormCard {
+                Toggle(isOn: $isDefault) {
+                    Text("Modèle par défaut")
+                        .font(PulpeTypography.bodyLarge)
+                }
+                .tint(.pulpePrimary)
+                .frame(minHeight: DesignTokens.ListRow.formRowHeight)
+            }
 
-            // Lines
             linesSection
 
-            // Error
+            if !lines.isEmpty {
+                lineTotals
+            }
+
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                     self.error = nil
                 }
             }
 
-            // Create button
             createButton
         }
         .sheet(isPresented: $showAddLine) {
-            AddTemplateLineSheet { line in
+            AddTemplateLineSheet(
+                templateName: name.trimmingCharacters(in: .whitespaces).isEmpty
+                    ? AppLocale.string("ce modèle")
+                    : name.trimmingCharacters(in: .whitespaces)
+            ) { line in
                 lines.append(line)
             }
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
-    // MARK: - Default Toggle
-
-    private var defaultToggle: some View {
-        Toggle(isOn: $isDefault) {
-            Text("Modèle par défaut")
-                .font(PulpeTypography.bodyLarge)
-        }
-        .tint(.pulpePrimary)
-        .padding(DesignTokens.Spacing.lg)
-        .background(Color.inputBackgroundSoft)
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-    }
-
     // MARK: - Lines Section
 
+    /// « Lignes · 3 »: one card, a row per line with its remove button, then the add row.
     private var linesSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Lignes budgétaires")
-                .font(PulpeTypography.labelMedium)
+            Text(AppLocale.string("Lignes") + " · \(lines.count)")
+                .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.onSurfaceVariant)
+                .padding(.leading, DesignTokens.Spacing.xs)
 
-            VStack(spacing: 0) {
+            FormCard {
                 ForEach(lines) { line in
-                    if line.id != lines.first?.id {
-                        Divider().padding(.horizontal, DesignTokens.Spacing.lg)
-                    }
                     TemplateLineInputRow(line: line) {
                         withAnimation(DesignTokens.Animation.defaultSpring) {
                             lines.removeAll { $0.id == line.id }
                         }
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.vertical, DesignTokens.Spacing.md)
+                    FormRowDivider()
                 }
-
-                if !lines.isEmpty {
-                    Divider().padding(.horizontal, DesignTokens.Spacing.lg)
-                }
-
-                Button {
+                SectionAddRow(title: AppLocale.string("Ajouter une ligne")) {
                     showAddLine = true
-                } label: {
-                    Label("Ajouter une ligne", systemImage: "plus")
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.pulpePrimary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.md)
-            }
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-
-            // Totals
-            if !lines.isEmpty {
-                lineTotals
             }
         }
     }
 
     // MARK: - Totals
 
+    /// « Disponible de départ 4'110.00 », « 6'200.00 de revenus moins 2'090.00 prévus ».
     private var lineTotals: some View {
         let totals = calculateTotals()
-        return HStack(spacing: DesignTokens.Spacing.lg) {
-            totalItem(label: AppLocale.string("Revenus"), amount: totals.income, color: .financialIncome)
-            totalItem(label: AppLocale.string("Dépenses"), amount: -totals.expenses, color: .financialExpense)
-            totalItem(label: AppLocale.string("Solde"), amount: totals.balance,
-                      color: totals.balance >= 0 ? .financialSavings : .financialOverBudget)
-        }
-        .padding(.top, DesignTokens.Spacing.xs)
-    }
-
-    private func totalItem(label: String, amount: Decimal, color: Color) -> some View {
-        VStack(spacing: DesignTokens.Spacing.xs) {
-            Text(label)
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(Color.onSurfaceVariant)
-            Text(amount.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(color)
-                .sensitiveAmount()
-        }
-        .frame(maxWidth: .infinity)
+        let currency = userSettingsStore.currency
+        return ImpactBlock(
+            title: AppLocale.string("Disponible de départ"),
+            before: nil,
+            after: totals.balance,
+            currency: currency,
+            note: AppLocale.string("""
+                \(totals.income.asAmount(for: currency)) de revenus moins \
+                \(totals.expenses.asAmount(for: currency)) prévus
+                """)
+        )
+        .sensitiveAmount()
     }
 
     // MARK: - Create Button
@@ -230,40 +198,30 @@ struct TemplateLineInputRow: View {
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
 
+    private var subtitle: String {
+        line.kind.label + " · " + TemplatePresentation.whenLabel(line.recurrence).lowercased()
+    }
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
-            // Kind icon circle (matches TemplateLineRow / BudgetLineRow)
-            Circle()
-                .fill(line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
-                .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
-                .overlay {
-                    Image(systemName: line.kind.icon)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(line.kind.color)
-                }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(line.name)
-                    .font(PulpeTypography.listRowTitle)
-                    .lineLimit(1)
-
-                Text(line.recurrence.label)
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textSecondary)
+            PulpeListRow(title: line.name, subtitle: subtitle, showsChevron: false) {
+                Text(verbatim: (line.kind == .income ? "+" : "")
+                    + line.amount.asAmount(for: userSettingsStore.currency))
+                    .sensitiveAmount()
             }
-
-            Spacer(minLength: 8)
-
-            Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
-                .font(PulpeTypography.listRowSubtitle)
-                .foregroundStyle(line.kind.color)
-                .sensitiveAmount()
 
             Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .foregroundStyle(Color.errorPrimary)
+                Image(systemName: "minus")
+                    .font(.system(size: DesignTokens.Checkbox.glyphSize, weight: .bold))
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(width: DesignTokens.Control.addRowDisc, height: DesignTokens.Control.addRowDisc)
+                    .background(Color.sunk, in: Circle())
+                    // 28pt visual, 44pt hit area.
+                    .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
+                    .contentShape(Circle())
             }
-            .iconButtonStyle()
+            .buttonStyle(.plain)
+            .accessibilityLabel(AppLocale.string("Retirer la ligne"))
         }
     }
 }
@@ -276,6 +234,8 @@ struct AddTemplateLineSheet: View {
         case name
     }
 
+    /// The model being built, for the « Quand ? » sentence.
+    let templateName: String
     let onAdd: (TemplateLineInput) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -313,14 +273,12 @@ struct AddTemplateLineSheet: View {
             focus: $focusedField,
             focusOrder: [.amount, .name]
         ) {
-            KindToggle(selection: $kind)
             HeroAmountField(
                 amount: $amount,
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
-                currency: userSettingsStore.currency,
-                accentColor: kind.color
+                currency: userSettingsStore.currency
             )
             QuickAmountChips(
                 amount: $amount,
@@ -332,7 +290,8 @@ struct AddTemplateLineSheet: View {
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
-            recurrenceSelector
+            KindToggle(selection: $kind)
+            TemplateWhenSection(recurrence: $recurrence, templateName: templateName)
             addButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
@@ -344,28 +303,10 @@ struct AddTemplateLineSheet: View {
         FormTextField(
             hint: AppLocale.string("Nom de la ligne"),
             text: $name,
-            label: AppLocale.string("Description"),
             accessibilityLabel: AppLocale.string("Nom de la ligne budgétaire"),
             focusBinding: $focusedField,
             field: .name
         )
-    }
-
-    // MARK: - Recurrence Selector
-
-    private var recurrenceSelector: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Récurrence")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-
-            Picker("Récurrence", selection: $recurrence) {
-                ForEach(TransactionRecurrence.allCases, id: \.self) { type in
-                    Text(type.label).tag(type)
-                }
-            }
-            .pickerStyle(.segmented)
-        }
     }
 
     // MARK: - Add Button

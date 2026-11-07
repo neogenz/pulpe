@@ -117,7 +117,7 @@ enum CryptoServiceError: LocalizedError {
         case .invalidPin:
             return AppLocale.string("Le code PIN est invalide")
         case .invalidSalt:
-            return AppLocale.string("Le sel de chiffrement est invalide")
+            return AppLocale.string("Impossible d'ouvrir tes données, réessaie")
         case .invalidIterations:
             return AppLocale.string("Les paramètres de sécurité sont invalides")
         case .derivationFailed:

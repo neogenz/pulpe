@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The disc that opens a row: a symbol on a wash of its own tint.
 ///
-/// Extracted from the checkmark disc `SavingsDoneCard` composed by hand. Every row of
+/// Extracted from the checkmark disc the done card used to compose by hand. Every row of
 /// the home ledger now starts with one, because a row that starts with a shape can be
 /// picked out of a list without being read — which is the whole job of a leading mark.
 struct RowIcon: View {

@@ -1,18 +1,15 @@
 import SwiftUI
-import TipKit
 
 struct TemplateListView: View {
     /// Set when a model opens beside the list (the open iPhone Duo) rather than on top of it.
     var selectedTemplateId: Binding<String?>?
 
     @Environment(AppState.self) private var appState
-    @Environment(\.openURL) private var openURL
+    @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var viewModel = TemplateListViewModel()
     @State private var showCreateTemplate = false
-    @State private var templateToDelete: BudgetTemplate?
-    @State private var showDeleteAlert = false
-    @State private var deleteWarningTrigger = false
-    private let webParityTip = ProductTips.templatesWebParity
+
+    private var isBesideDetail: Bool { selectedTemplateId != nil }
 
     var body: some View {
         Group {
@@ -25,15 +22,8 @@ struct TemplateListView: View {
                 }
                 .transition(.opacity)
             } else if viewModel.templates.isEmpty {
-                PulpeEmptyState(
-                    systemImage: "doc.on.doc",
-                    title: AppLocale.string("Pas encore de modèle"),
-                    message: AppLocale.string("Crée-en un pour préparer tes prochains budgets plus vite"),
-                    actionTitle: AppLocale.string("Créer un modèle")
-                ) {
-                    showCreateTemplate = true
-                }
-                .transition(.opacity)
+                emptyState
+                    .transition(.opacity)
             } else {
                 templateList
                     .transition(.opacity)
@@ -42,15 +32,10 @@ struct TemplateListView: View {
         .trackScreen("TemplateList")
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .localizedNavigationTitle("Modèles")
-        .navigationBarTitleDisplayMode(selectedTemplateId == nil ? .large : .inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Créer un modèle", systemImage: "plus") {
-                    showCreateTemplate = true
-                }
-                .disabled(viewModel.isLimitReached)
-            }
-        }
+        .navigationBarTitleDisplayMode(.inline)
+        // The page states its name in its own header.
+        .toolbar(removing: .title)
+        .pulpeBackground()
         .sheet(isPresented: $showCreateTemplate) {
             CreateTemplateView { template in
                 viewModel.addTemplate(template)
@@ -62,6 +47,10 @@ struct TemplateListView: View {
         }
         .task {
             await viewModel.loadIfNeeded()
+        }
+        // A model edited or deleted on its page changes what the list shows.
+        .onChange(of: appState.templatesVersion) {
+            Task { await viewModel.loadTemplates() }
         }
         // Beside the list a page is always open: the first model until one is picked, and
         // again once the one shown is deleted.
@@ -81,157 +70,177 @@ struct TemplateListView: View {
         }
     }
 
-    private var templateList: some View {
-        List {
-            Section {
-                TipView(webParityTip) { action in
-                    if action.id == "open-web" {
-                        openURL(AppURLs.webappBudgetTemplates)
-                        webParityTip.invalidate(reason: .actionPerformed)
-                    }
-                }
-                .pulpeTipBackground()
-            }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(
-                top: DesignTokens.Spacing.sm,
-                leading: DesignTokens.Spacing.lg,
-                bottom: DesignTokens.Spacing.sm,
-                trailing: DesignTokens.Spacing.lg
-            ))
-            .listRowSeparator(.hidden)
+    private var header: some View {
+        PageHeader(
+            title: AppLocale.string("Modèles"),
+            subtitle: AppLocale.string("Le point de départ de chaque nouveau mois")
+        )
+        .padding(.top, DesignTokens.Spacing.sm)
+    }
 
-            Section {
-                ForEach(viewModel.templates) { template in
-                    TemplateRow(
-                        template: template,
-                        isShownBesideList: selectedTemplateId.map { $0.wrappedValue == template.id }
-                    ) {
-                        open(template.id)
-                    }
-                    // Beside the page, the rows sit bare on the canvas and the one shown lifts.
-                    .listRowBackground(selectedTemplateId == nil ? nil : Color.clear)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button {
-                            deleteWarningTrigger.toggle()
-                            templateToDelete = template
-                            showDeleteAlert = true
-                        } label: {
-                            Label("Supprimer", systemImage: "trash")
-                        }
-                        .tint(Color.destructivePrimary)
-                    }
-                }
-            } footer: {
-                Text("\(viewModel.templates.count)/\(AppConfiguration.maxTemplates) modèles")
+    // MARK: - Empty
+
+    private var emptyState: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                header
+                EmptyStateCard(
+                    systemImage: "doc.text",
+                    title: AppLocale.string("Pas encore de modèle"),
+                    message: AppLocale.string("Crée-en un pour préparer tes prochains budgets plus vite."),
+                    actionTitle: AppLocale.string("Créer un modèle")
+                ) { showCreateTemplate = true }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                Text("""
+                    Un modèle liste tes revenus, tes dépenses et ton épargne habituels. \
+                    Chaque nouveau mois part de lui, tu ajustes ensuite.
+                    """)
+                    .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textSecondary)
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .pulpeBackground()
-        .sensoryFeedback(.warning, trigger: deleteWarningTrigger)
-        .alert(
-            "Supprimer ce modèle ?",
-            isPresented: $showDeleteAlert,
-            presenting: templateToDelete
-        ) { template in
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                Task { await viewModel.deleteTemplate(template) }
+        .pulpeRootBottomInset()
+    }
+
+    // MARK: - List
+
+    private var templateList: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                if !isBesideDetail {
+                    header
+                }
+                rows
+                Text(TemplatePresentation.listFooter(
+                    count: viewModel.templates.count,
+                    limit: AppConfiguration.maxTemplates
+                ))
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+
+                Button { showCreateTemplate = true } label: {
+                    Label("Nouveau modèle", systemImage: "plus").frame(maxWidth: .infinity)
+                }
+                .secondaryButtonStyle()
+                .disabled(viewModel.isLimitReached)
+                .accessibilityIdentifier("templateAddButton")
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
-        } message: { _ in
-            Text("Cette action est irréversible.")
+            .padding(.vertical, DesignTokens.Spacing.sm)
+        }
+        .pulpeRootBottomInset()
+    }
+
+    private var rows: some View {
+        let rows = VStack(spacing: DesignTokens.Spacing.none) {
+            ForEach(viewModel.templates) { template in
+                if template.id != viewModel.templates.first?.id {
+                    Divider().overlay(Color.outlineVariant)
+                }
+                TemplateRow(
+                    template: template,
+                    summary: viewModel.summaries[template.id],
+                    currency: userSettingsStore.currency,
+                    isShownBesideList: selectedTemplateId.map { $0.wrappedValue == template.id }
+                ) {
+                    open(template.id)
+                }
+            }
+        }
+        // Beside the page, the rows sit bare on the canvas and the one shown lifts.
+        return Group {
+            if isBesideDetail {
+                rows.padding(.horizontal, DesignTokens.Spacing.lg)
+            } else {
+                rows.padding(.horizontal, DesignTokens.Spacing.lg).pulpeSurfaceCard()
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+            }
         }
     }
 }
 
 // MARK: - Skeleton
 
+/// Same regions as `templateList`: the header, a card of three rows, so nothing shifts when
+/// the models land.
 private struct TemplateListSkeletonView: View {
     var body: some View {
-        List {
-            Section {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    SkeletonCircle(size: DesignTokens.IconSize.compact)
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        SkeletonShape(
-                            width: DesignTokens.Skeleton.longTextWidth,
-                            height: DesignTokens.Skeleton.bodyHeight
-                        )
-                        SkeletonShape(
-                            width: DesignTokens.Skeleton.extraLongTextWidth,
-                            height: DesignTokens.Skeleton.captionHeight
-                        )
-                    }
-
-                    Spacer()
-
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     SkeletonShape(
-                        width: DesignTokens.Spacing.xs,
-                        height: DesignTokens.Spacing.md,
-                        cornerRadius: DesignTokens.CornerRadius.xs
+                        width: DesignTokens.Skeleton.mediumTextWidth,
+                        height: DesignTokens.Skeleton.lineHeight
+                    )
+                    SkeletonShape(
+                        width: DesignTokens.Skeleton.extraLongTextWidth,
+                        height: DesignTokens.Skeleton.captionHeight
                     )
                 }
-                .padding(DesignTokens.Spacing.md)
-                .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
-            }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(
-                top: DesignTokens.Spacing.sm,
-                leading: DesignTokens.Spacing.lg,
-                bottom: DesignTokens.Spacing.sm,
-                trailing: DesignTokens.Spacing.lg
-            ))
-            .listRowSeparator(.hidden)
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.sm)
 
-            Section {
-                ForEach(0..<3, id: \.self) { _ in
-                    // Same slots as `TemplateRow`: the disc, name over subtitle, the chevron.
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        SkeletonCircle(size: DesignTokens.IconSize.listRow)
-
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                            SkeletonShape(
-                                width: DesignTokens.Skeleton.mediumTextWidth,
-                                height: DesignTokens.Skeleton.lineHeight
-                            )
-                            SkeletonShape(
-                                width: DesignTokens.Skeleton.longTextWidth,
-                                height: DesignTokens.Skeleton.captionHeight
-                            )
-                        }
-
-                        Spacer(minLength: DesignTokens.Spacing.sm)
-
-                        SkeletonShape(
-                            width: DesignTokens.Spacing.xs,
-                            height: DesignTokens.Spacing.md,
-                            cornerRadius: DesignTokens.CornerRadius.xs
-                        )
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    ForEach(0..<3, id: \.self) { index in
+                        if index > 0 { Divider().overlay(Color.outlineVariant) }
+                        row
                     }
-                    .padding(.vertical, DesignTokens.Spacing.xs)
                 }
-            } footer: {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.shortTextWidth,
-                    height: DesignTokens.Skeleton.captionHeight
-                )
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .pulpeSurfaceCard()
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
         .shimmering()
         .pulpeBackground()
         .accessibilityLabel("Chargement des modèles")
+    }
+
+    /// Same slots as `TemplateRow`: name over subtitle, the balance over its caption, the chevron.
+    private var row: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.mediumTextWidth,
+                    height: DesignTokens.Skeleton.lineHeight
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.longTextWidth,
+                    height: DesignTokens.Skeleton.captionHeight
+                )
+            }
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.shortTextWidth,
+                    height: DesignTokens.Skeleton.lineHeight
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.numericWidth,
+                    height: DesignTokens.Skeleton.captionHeight
+                )
+            }
+            SkeletonShape(
+                width: DesignTokens.Spacing.xs,
+                height: DesignTokens.Spacing.md,
+                cornerRadius: DesignTokens.CornerRadius.xs
+            )
+        }
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding + DesignTokens.Spacing.xxs)
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
     }
 }
 
 // MARK: - Template Row
 
+/// One model of the list: name over « Par défaut · 11 lignes », the disponible it starts a
+/// month with on the right. No icon; the balance reads in ink.
 struct TemplateRow: View {
     let template: BudgetTemplate
+    let summary: TemplateListViewModel.Summary?
+    let currency: SupportedCurrency
     /// Whether the model is the one shown beside the list; nil when the row pushes it instead.
     var isShownBesideList: Bool?
     let onTap: () -> Void
@@ -243,44 +252,48 @@ struct TemplateRow: View {
                 .accessibilityIdentifier("templateRow-\(template.id)")
         } else {
             Button(action: onTap) { rowContent }
-                .buttonStyle(.plain)
+                .plainPressedButtonStyle()
                 .contentShape(.rect)
                 .accessibilityIdentifier("templateRow-\(template.id)")
         }
     }
 
     private var rowContent: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            RowIcon(systemName: "doc.text", tint: .pulpePrimary)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.dividerGap) {
                 Text(template.name)
-                    .font(PulpeTypography.listRowTitle)
+                    .font(PulpeTypography.rowTitle)
                     .foregroundStyle(Color.textPrimary)
-
-                if template.isDefaultTemplate {
-                    Text("Par défaut")
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textSecondary)
-                } else if let description = template.description, !description.isEmpty {
-                    Text(description)
-                        .font(PulpeTypography.listRowSubtitle)
+                    .lineLimit(1)
+                if let subtitle = template.subtitle(lineCount: summary?.lineCount) {
+                    Text(subtitle)
+                        .font(PulpeTypography.captionRegular)
                         .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: DesignTokens.Spacing.sm)
+            if let available = summary?.available {
+                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.dividerGap) {
+                    Text(verbatim: available.asAmount(for: currency))
+                        .font(PulpeTypography.rowAmount)
+                        .foregroundStyle(available < 0 ? Color.financialOverBudget : Color.textPrimary)
+                        .lineLimit(1)
+                        .sensitiveAmount()
+                    Text("disponible")
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
+                }
+            }
 
             // A chevron promises a push; beside the page, the row only selects.
             if isShownBesideList == nil {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityHidden(true)
+                RowChevron()
             }
         }
-        .padding(.vertical, DesignTokens.Spacing.xs)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding + DesignTokens.Spacing.xxs)
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
     }
 }
 
@@ -288,7 +301,14 @@ struct TemplateRow: View {
 
 @Observable @MainActor
 final class TemplateListViewModel {
+    /// What a row shows besides the model itself.
+    struct Summary: Equatable {
+        let lineCount: Int
+        let available: Decimal
+    }
+
     private(set) var templates: [BudgetTemplate] = []
+    private(set) var summaries: [String: Summary] = [:]
     private(set) var isLoading = false
     private(set) var error: Error?
 
@@ -318,12 +338,14 @@ final class TemplateListViewModel {
 
         do {
             let fetched = try await templateService.getAllTemplates()
+            let fetchedSummaries = await loadSummaries(for: fetched)
 
             if showsSkeleton {
                 try await DesignTokens.Animation.ensureMinimumSkeletonTime(since: loadStart)
             }
 
             templates = fetched
+            summaries = fetchedSummaries
             lastLoadTime = Date()
         } catch is CancellationError {
             // Task was cancelled, don't update error state
@@ -332,26 +354,28 @@ final class TemplateListViewModel {
         }
     }
 
-    func addTemplate(_ template: BudgetTemplate) {
-        templates.append(template)
+    /// One read of the lines per model (at most `maxTemplates`); a model whose lines fail to
+    /// load simply shows no figure.
+    private func loadSummaries(for templates: [BudgetTemplate]) async -> [String: Summary] {
+        await withTaskGroup(of: (String, Summary?).self) { group in
+            for template in templates {
+                group.addTask {
+                    let lines = try? await self.templateService.getTemplateLines(templateId: template.id)
+                    return (template.id, lines.map {
+                        Summary(lineCount: $0.count, available: TemplatePresentation.Split(lines: $0).available)
+                    })
+                }
+            }
+            var result: [String: Summary] = [:]
+            for await (id, summary) in group {
+                if let summary { result[id] = summary }
+            }
+            return result
+        }
     }
 
-    func deleteTemplate(_ template: BudgetTemplate) async {
-        // Check usage first
-        do {
-            let usage = try await templateService.checkTemplateUsage(id: template.id)
-            if usage.isUsed {
-                error = APIError.conflict(
-                    message: AppLocale.string("Ce modèle est utilisé par \(usage.budgetCount) budgets")
-                )
-                return
-            }
-
-            try await templateService.deleteTemplate(id: template.id)
-            templates.removeAll { $0.id == template.id }
-        } catch {
-            self.error = error
-        }
+    func addTemplate(_ template: BudgetTemplate) {
+        templates.append(template)
     }
 }
 
@@ -360,4 +384,5 @@ final class TemplateListViewModel {
         TemplateListView()
     }
     .environment(AppState())
+    .environment(UserSettingsStore())
 }

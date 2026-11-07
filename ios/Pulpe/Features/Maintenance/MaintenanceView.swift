@@ -1,71 +1,43 @@
-import Lottie
 import SwiftUI
 
 struct MaintenanceView: View {
     @Environment(AppState.self) private var appState
     @State private var isChecking = false
-    @State private var errorMessage: String?
 
     var body: some View {
-        VStack(spacing: 24) {
-            LottieView(animation: .named("maintenance-animation"))
-                .playing(loopMode: .loop)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 200, height: 200)
-
-            Text("Maintenance en cours")
-                .font(PulpeTypography.title)
-                .fontWeight(.bold)
-
-            Text("""
-                On améliore Pulpe pour toi — tes données sont bien au chaud, \
-                pas d'inquiétude. Réessaie dans quelques instants.
-                """)
-                .font(PulpeTypography.body)
-                .foregroundStyle(Color.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            if let error = errorMessage {
-                Text(error)
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.errorPrimary)
-            }
-
-            Button {
+        StatusScreen(
+            systemImage: "wrench.and.screwdriver",
+            title: AppLocale.string("Maintenance en cours"),
+            message: AppLocale.string(
+                "J'améliore Pulpe. Tes données sont en sécurité, réessaie dans quelques instants."
+            ),
+            primary: .init(title: AppLocale.string("Réessayer")) {
+                guard !isChecking else { return }
                 Task { await checkAndRetry() }
-            } label: {
-                if isChecking {
-                    ProgressView()
-                } else {
-                    Label("Réessayer", systemImage: "arrow.clockwise")
-                }
             }
-            .primaryButtonStyle(isEnabled: !isChecking)
-            .disabled(isChecking)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.background)
+        )
     }
 
     private func checkAndRetry() async {
         isChecking = true
-        errorMessage = nil
+        defer { isChecking = false }
 
         do {
             let stillInMaintenance = try await MaintenanceService.shared.checkStatus()
-            if !stillInMaintenance {
-                appState.setMaintenanceMode(false)
+            if stillInMaintenance {
+                appState.toastManager.show(
+                    AppLocale.string("Toujours en maintenance, réessaie dans un instant"),
+                    type: .error
+                )
             } else {
-                errorMessage = AppLocale.string("Toujours en maintenance — réessaie dans un instant")
+                appState.setMaintenanceMode(false)
             }
         } catch {
-            errorMessage = AppLocale.string("Connexion difficile — réessaie dans un instant")
+            appState.toastManager.show(
+                AppLocale.string("Connexion difficile, réessaie dans un instant"),
+                type: .error
+            )
         }
-
-        isChecking = false
     }
 }
 

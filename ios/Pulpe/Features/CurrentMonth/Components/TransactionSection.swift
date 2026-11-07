@@ -170,7 +170,6 @@ struct TransactionRow: View {
                 Text(transaction.name)
                     .font(PulpeTypography.onboardingSubtitle)
                     .foregroundStyle(transaction.isChecked ? .secondary : .primary)
-                    .strikethrough(transaction.isChecked, color: .secondary)
                     .lineLimit(1)
 
                 // Date (relative formatting) and, for an income drawn from a

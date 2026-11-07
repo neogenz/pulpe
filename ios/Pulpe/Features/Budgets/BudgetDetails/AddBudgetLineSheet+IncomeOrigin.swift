@@ -87,7 +87,6 @@ extension AddBudgetLineSheet {
     /// never the amount or the description, which stay true whatever the origin.
     func resetIncompatibleOriginState() {
         if !isPlannedWithdrawalMode { sourceSavingsGoalId = nil }
-        if Self.forbidsChecked(kind: kind, origin: incomeOrigin) { isChecked = false }
     }
 
     /// Keeps the projection judged on the amount the goal would actually give up.
@@ -110,7 +109,7 @@ extension AddBudgetLineSheet {
 
 /// Re-runs the conversion only when what it depends on moved. Local to this
 /// sheet: `Features/X` cannot import `Features/Y`, so it cannot share the
-/// identical key `AddTransactionSheet` declares for its own preview.
+/// identical key `MovementSheet` declares for its own preview.
 struct PlannedWithdrawalConversionKey: Equatable {
     let amount: Decimal?
     let currency: SupportedCurrency

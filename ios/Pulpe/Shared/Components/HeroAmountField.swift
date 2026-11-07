@@ -1,23 +1,26 @@
 import SwiftUI
 
-private let heroAmountUnderlineWidth: CGFloat = 120
-
-/// Reusable hero amount input field used across all sheet forms.
-/// Uses a hidden TextField for keyboard input with an animated visible display.
+/// The amount a sheet asks for, typed as the hero figure (V2 `hero-num`): Manrope 800 52pt in
+/// ink, a green caret while focused, the currency as a suffix, a caption under it.
+/// A hidden TextField takes the keyboard input; the visible figure animates its digits.
 struct HeroAmountField<Field: Hashable>: View {
     @Binding var amount: Decimal?
     @Binding var amountText: String
     var focus: FocusState<Field?>.Binding
     var field: Field
+    /// Caption under the figure while it is empty ("Quel montant ?").
     var hint: String?
     var currency: SupportedCurrency = .chf
-    var accentColor: Color = .pulpePrimary
+    /// Caption under the figure once it holds an amount ("prévus en novembre · avant 600.00").
+    var caption: String?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var hasAmount: Bool { (amount ?? 0) > 0 }
 
     private var displayAmount: String {
-        if let amount, amount > 0 {
-            return Formatters.amountInput(for: currency).string(from: amount as NSDecimalNumber) ?? "0.00"
-        }
-        return "0.00"
+        guard let amount, amount > 0 else { return "0.00" }
+        return Formatters.amountInput(for: currency).string(from: amount as NSDecimalNumber) ?? "0.00"
     }
 
     private var isFieldFocused: Bool {
@@ -25,11 +28,7 @@ struct HeroAmountField<Field: Hashable>: View {
     }
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Text(currency.symbol)
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.onSurfaceVariant)
-
+        VStack(spacing: DesignTokens.Spacing.xs) {
             ZStack {
                 TextField("", text: $amountText)
                     .keyboardType(.decimalPad)
@@ -37,44 +36,61 @@ struct HeroAmountField<Field: Hashable>: View {
                     .opacity(0)
                     .frame(width: 0, height: 0)
                     .onChange(of: amountText) { _, newValue in
-                        if let value = newValue.parsedAsAmount {
-                            amount = value
-                        } else {
-                            amount = nil
-                        }
+                        amount = newValue.parsedAsAmount
                     }
 
-                Text(displayAmount)
-                    .font(PulpeTypography.amountHero)
-                    .foregroundStyle((amount ?? 0) > 0 ? Color.textPrimary : Color.textTertiary)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: DesignTokens.Animation.fast), value: amount)
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.none) {
+                    Text(displayAmount)
+                        .font(PulpeTypography.heroAmount)
+                        .tracking(DesignTokens.Tracking.heroV2)
+                        .foregroundStyle(hasAmount ? Color.textPrimary : Color.textTertiary)
+                        .contentTransition(.numericText())
+                        .lineLimit(1)
+                        .minimumScaleFactor(DesignTokens.TextScale.floor)
+
+                    Rectangle()
+                        .fill(Color.pulpePrimary)
+                        .frame(width: DesignTokens.BorderWidth.thick, height: DesignTokens.Control.heroCaretHeight)
+                        .padding(.leading, DesignTokens.Spacing.xxs)
+                        .alignmentGuide(.firstTextBaseline) { $0[.bottom] - DesignTokens.Control.heroCaretDescent }
+                        .opacity(isFieldFocused ? 1 : 0)
+                        .accessibilityHidden(true)
+
+                    Text(currency.symbol)
+                        .font(PulpeTypography.heroCurrencySuffix)
+                        .foregroundStyle(Color.textSecondary)
+                        .padding(.leading, DesignTokens.Spacing.xs)
+                }
+                .animation(reduceMotion ? nil : .snappy(duration: DesignTokens.Animation.fast), value: amount)
             }
 
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.hairline)
-                .fill(
-                    isFieldFocused
-                        ? accentColor
-                        : Color.outline.opacity(0.4)
-                )
-                .frame(width: heroAmountUnderlineWidth, height: DesignTokens.BorderWidth.thick)
-                .animation(DesignTokens.Animation.smoothEaseInOut, value: isFieldFocused)
-
-            if let hint, (amount ?? 0) <= 0 {
+            if let hint, !hasAmount {
                 Text(hint)
-                    .font(PulpeTypography.caption)
+                    .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textTertiary)
                     .transition(.opacity)
+            } else if let caption, hasAmount {
+                Text(caption)
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .monospacedDigit()
+                    .sensitiveAmount()
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.sm)
         .contentShape(Rectangle())
         // Same pattern as `FormTextField` / `CurrencyField`: tap anywhere to focus the amount field.
         .onTapGesture { focus.wrappedValue = field }
+        .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
-        .accessibilityLabel("Montant")
-        .animation(DesignTokens.Animation.smoothEaseInOut, value: amount)
+        .accessibilityLabel(AppLocale.string("Montant"))
+        .accessibilityValue(
+            hasAmount
+                ? ["\(displayAmount) \(currency.symbol)", caption].compactMap(\.self).joined(separator: ", ")
+                : (hint ?? "")
+        )
+        .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseInOut, value: hasAmount)
     }
 }
 

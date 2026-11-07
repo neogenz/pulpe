@@ -36,7 +36,11 @@ extension BudgetDetailsProjector {
                 )
             }
             sections.append(
-                BudgetDetailsScreenState.Section(kind: section.kind, items: items)
+                BudgetDetailsScreenState.Section(
+                    kind: section.kind,
+                    items: items,
+                    total: items.reduce(0) { $0 + max($1.line.amount, $1.consumption.allocated) }
+                )
             )
         }
         return sections

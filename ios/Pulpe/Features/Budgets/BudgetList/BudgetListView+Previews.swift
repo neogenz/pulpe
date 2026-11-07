@@ -10,32 +10,27 @@ import SwiftUI
     .environment(UserSettingsStore())
 }
 
-#Preview("Year Picker") {
-    @Previewable @State var selectedYear = 2026
-    YearPicker(years: [2025, 2026, 2027], selectedYear: $selectedYear)
-        .padding()
-        .background(Color.heroSurface)
-}
-
 #Preview("Month Ledger") {
-    VStack(spacing: 0) {
+    VStack(spacing: DesignTokens.Spacing.lg) {
         BudgetMonthRow(
             budget: BudgetSparse(
-                id: "1", month: 1, year: 2026,
-                totalExpenses: 1931.48, totalIncome: 5000, remaining: 3068.52
+                id: "2", month: 11, year: 2026,
+                totalExpenses: 4000, totalIncome: 5000, remaining: 1248.50
             ),
-            isPast: true
+            periodLabel: "25 oct. au 24 nov. · jour 10 sur 31",
+            role: .current
         ) {}
-        Divider()
-        BudgetMonthRow(
-            budget: BudgetSparse(id: "2", month: 2, year: 2026, remaining: -450.25),
-            isCurrent: true
-        ) {}
-        Divider()
-        NextMonthRow(month: 3, adjustment: 1200) {}
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .pulpeSurfaceCard()
+        VStack(spacing: DesignTokens.Spacing.none) {
+            BudgetMonthRow(budget: BudgetSparse(id: "1", month: 3, year: 2026, remaining: -45.20), role: .closed) {}
+            FormRowDivider()
+            BudgetMonthRow(budget: BudgetSparse(id: "3", month: 2, year: 2026, remaining: 180), role: .closed) {}
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .pulpeSurfaceCard()
+        NextFreeMonthCard(month: (11, 2027), onCreate: {}, onPlan: {})
     }
-    .padding(.horizontal, DesignTokens.Spacing.lg)
-    .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
     .padding()
     .pulpeBackground()
     .environment(UserSettingsStore())

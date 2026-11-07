@@ -384,6 +384,11 @@ struct SavingsGoalIntervalUITestHarness: View {
              .savingsGoalDeadlineReconciliation:
             NavigationStack {
                 SavingsGoalDetailView(goal: service.goals[0], service: service)
+                    .navigationDestination(for: SavingsGoalDestination.self) { destination in
+                        if case .history(let goal) = destination {
+                            GoalHistoryView(goal: goal, service: service)
+                        }
+                    }
             }
         case .savingsGoalTemplateLines:
             NavigationStack {

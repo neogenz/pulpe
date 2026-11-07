@@ -1,60 +1,57 @@
 import Foundation
 import Testing
 
-/// Structural invariants for the home screen's "Activité" card.
+/// Structural invariants for the home's « Derniers mouvements » section and its rows.
 ///
-/// PR #685 rebuilt this card on a `List` for `.swipeActions` and shipped rows bleeding to
-/// both edges of the display over a transparent cell: the app compiled, the tests stayed
-/// green, and a screenshotless CI saw nothing. A hand-rolled swipe followed and never
-/// rendered like the system's. The card is a card of tappable rows now, and these tests
-/// walk the source on disk to fail loud the next time either comes back.
-@Suite("Home activity card structure")
+/// PR #685 rebuilt the card on a `List` for `.swipeActions` and shipped rows bleeding to
+/// both edges of the display over a transparent cell. The section is a card of tappable
+/// rows; these tests walk the source on disk to fail loud when either comes back.
+@Suite("Home recent movements structure")
 struct HomeActivityCardArchitectureTests {
-    /// This file lives in `<repo>/ios/PulpeTests/Architecture/`, so `ios/` is three
-    /// levels up. Resolved from `#filePath` to work on dev machines and CI alike.
-    private static var activityCard: URL {
-        URL(fileURLWithPath: #filePath)
+    /// This file lives in `<repo>/ios/PulpeTests/Architecture/`, so `ios/` is two levels up.
+    private static func source(_ path: String) throws -> String {
+        let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("Pulpe/Features/CurrentMonth/Components/ActivityCard.swift")
+            .appendingPathComponent(path)
+        return try String(contentsOf: url, encoding: .utf8)
     }
 
-    private static func source() throws -> String {
-        try String(contentsOf: activityCard, encoding: .utf8)
-    }
+    private static let rowFiles = [
+        "Pulpe/Shared/Components/MovementRow.swift",
+        "Pulpe/Features/CurrentMonth/Components/RecentMovementsSection.swift",
+    ]
 
-    @Test("A day group sits on the shared row card")
+    @Test("A day group sits on the shared surface card")
     func dayGroupCarriesItsOwnSurface() throws {
-        let source = try Self.source()
-        // Opaque, rounded, inset — the boundary that tells a row apart from the page.
-        #expect(source.contains("pulpeRowCard()"))
-        // Each of these silently widens a row to the full display and drops its
-        // background, because the enclosing ScrollView has no list to inset it.
-        for modifier in ["listRowInsets", "listRowBackground", "listRowSeparator", "listStyle"] {
-            #expect(!source.contains(modifier), "\(modifier) has no meaning outside a List")
+        #expect(try Self.source(Self.rowFiles[0]).contains("pulpeSurfaceCard()"))
+        for file in Self.rowFiles {
+            let source = try Self.source(file)
+            // Each of these silently widens a row to the full display outside a List.
+            for modifier in ["listRowInsets", "listRowBackground", "listRowSeparator", "listStyle"] {
+                #expect(!source.contains(modifier), "\(modifier) has no meaning outside a List")
+            }
         }
     }
 
-    @Test("A row opens its page on a tap and says so with a chevron")
+    @Test("A row opens its sheet on a tap and says so")
     func rowIsATapTarget() throws {
-        let source = try Self.source()
-        // Whitespace-tolerant: a reformatted closure must not let this pass on nothing.
-        #expect(source.range(of: #"Button \{\s*onEdit\(transaction\)\s*\}"#, options: .regularExpression) != nil)
+        let source = try Self.source(Self.rowFiles[0])
+        #expect(source.range(of: #"Button\(action: onOpen\)"#, options: .regularExpression) != nil)
         #expect(source.contains("RowChevron()"))
         #expect(source.contains("accessibilityHint(\"Touche pour modifier\")"))
     }
 
     @Test("Nothing swipes and nothing deletes on the home")
     func noSwipeAndNoDeletion() throws {
-        let source = try Self.source()
-        // `.swipeActions` only resolves inside a List, and a pan of our own never painted
-        // like the system's; each took the card away once.
-        for gesture in [".swipeActions(", "trailingSwipeActions(", "HorizontalPanGesture", "DragGesture"] {
-            #expect(!source.contains(gesture), "\(gesture) brings the swipe back")
+        for file in Self.rowFiles {
+            let source = try Self.source(file)
+            for gesture in [".swipeActions(", "trailingSwipeActions(", "HorizontalPanGesture", "DragGesture"] {
+                #expect(!source.contains(gesture), "\(gesture) brings the swipe back")
+            }
+            #expect(!source.contains("onDelete"))
+            #expect(!source.contains(".alert("))
         }
-        // Deleting lives on the operation's page, behind its own undo toast.
-        #expect(!source.contains("onDelete"))
-        #expect(!source.contains(".alert("))
     }
 }

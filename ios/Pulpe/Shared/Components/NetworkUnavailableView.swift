@@ -9,61 +9,33 @@ struct NetworkUnavailableView: View {
     @State private var isRetrying = false
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.xxl) {
-            Spacer()
-
-            Image(systemName: "wifi.exclamationmark")
-                .font(PulpeTypography.heroIcon)
-                .foregroundStyle(Color.textSecondaryOnboarding)
-
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Connexion impossible")
-                    .font(PulpeTypography.onboardingTitle)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-                    .accessibilityIdentifier("networkUnavailableTitle")
-
-                Text("Impossible de joindre le serveur — vérifie ta connexion internet et réessaie.")
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
-
-                if AppConfiguration.environment == .local {
-                    Text("Build Local : le serveur est peut-être éteint — lance pnpm dev.")
-                        .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
-                        .multilineTextAlignment(.center)
-                }
-            }
-
-            Button {
+        StatusScreen(
+            systemImage: "wifi.slash",
+            tone: .neutral,
+            textIdentifier: "networkUnavailableTitle",
+            title: AppLocale.string("Connexion impossible"),
+            message: message,
+            primary: .init(title: AppLocale.string("Réessayer")) {
+                guard !isRetrying else { return }
                 Task {
                     isRetrying = true
                     defer { isRetrying = false }
                     await onRetry()
                 }
-            } label: {
-                if isRetrying {
-                    ProgressView()
-                        .tint(.white)
-                } else {
-                    Label("Réessayer", systemImage: "arrow.clockwise")
-                }
-            }
-            .primaryButtonStyle(isEnabled: !isRetrying)
-            .disabled(isRetrying)
-
-            Button("Retour à la connexion") {
+            },
+            secondary: .init(title: AppLocale.string("Retour à la connexion")) {
+                guard !isRetrying else { return }
                 Task { await onSignOut() }
             }
-            .textLinkButtonStyle()
-            .disabled(isRetrying)
-            .accessibilityIdentifier("networkReturnToLoginButton")
+        )
+    }
 
-            Spacer()
-        }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .pulpeBackground()
+    private var message: String {
+        let base = AppLocale.string(
+            "Pulpe n'arrive pas à joindre le serveur. Vérifie ta connexion internet, puis réessaie."
+        )
+        guard AppConfiguration.environment == .local else { return base }
+        return base + "\n" + AppLocale.string("Build Local : le serveur est peut-être éteint, lance pnpm dev.")
     }
 }
 

@@ -62,6 +62,9 @@ final class OnboardingState {
     /// and forwarded to `completeOnboarding` so the finish path enters the app directly.
     var hasCompletedPinSetup: Bool = false
 
+    /// The PIN ceremony still has to cover the budget preview before its reveal.
+    var needsPinBeforePreview: Bool { isAuthenticated && !hasCompletedPinSetup }
+
     // MARK: - Analytics Idempotency Guards
     //
     // These live on the state (not on individual step views) because step views are
@@ -281,8 +284,14 @@ final class OnboardingState {
         }
 
         isMovingForward = true
-        withAnimation(PulpeAnimations.stepTransition) {
+        if next == .budgetPreview, needsPinBeforePreview {
+            // The PIN cover rises over the preview as it arrives: sliding the step under it
+            // too would run two motions at once and tear the forest zone mid-slide.
             currentStep = next
+        } else {
+            withAnimation(PulpeAnimations.stepTransition) {
+                currentStep = next
+            }
         }
         saveToStorage()
     }

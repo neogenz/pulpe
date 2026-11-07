@@ -81,9 +81,14 @@ struct FeedbackSheet: View {
 
     private var header: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(.system(size: DesignTokens.IconSize.brand, weight: .semibold))
-                .foregroundStyle(Color.pulpePrimary)
+            Image(systemName: "bubble.left")
+                .font(.system(
+                    size: DesignTokens.Control.statusDiscCompact * DesignTokens.Control.statusGlyphRatio,
+                    weight: .regular
+                ))
+                .foregroundStyle(Color.accentInk)
+                .frame(width: DesignTokens.Control.statusDiscCompact, height: DesignTokens.Control.statusDiscCompact)
+                .background(Color.accentWash, in: Circle())
                 .accessibilityHidden(true)
 
             Text("Ton avis sur Pulpe")
@@ -92,14 +97,14 @@ struct FeedbackSheet: View {
                 .multilineTextAlignment(.center)
 
             Label {
-                Text("Ton avis reste privé. Il n'est pas publié sur l'App Store.")
+                Text("Privé, jamais publié sur l'App Store.")
                     .font(PulpeTypography.body)
                     .foregroundStyle(Color.onSurfaceVariant)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
-                Image(systemName: "lock.fill")
-                    .foregroundStyle(Color.pulpePrimary)
+                Image(systemName: "lock")
+                    .foregroundStyle(Color.textSecondary)
                     .accessibilityHidden(true)
             }
         }
@@ -138,14 +143,20 @@ struct FeedbackSheet: View {
                 }
             } label: {
                 HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: showsDetails ? "minus.circle.fill" : "plus.circle.fill")
+                    Image(systemName: showsDetails ? "minus.circle" : "plus.circle")
                         .font(PulpeTypography.title2)
                         .foregroundStyle(Color.pulpePrimary)
                         .contentTransition(.symbolEffect(.replace))
 
-                    Text("Préciser mon avis")
-                        .font(PulpeTypography.headline)
-                        .foregroundStyle(Color.textPrimary)
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                        Text("Préciser mon avis")
+                            .font(PulpeTypography.headline)
+                            .foregroundStyle(Color.textPrimary)
+                        Text("\(FeedbackArea.allCases.count) questions rapides et un commentaire, si tu veux")
+                            .font(PulpeTypography.bannerText)
+                            .foregroundStyle(Color.textSecondary)
+                            .multilineTextAlignment(.leading)
+                    }
 
                     Spacer(minLength: DesignTokens.Spacing.sm)
                 }
@@ -154,6 +165,7 @@ struct FeedbackSheet: View {
             .frame(minHeight: DesignTokens.TapTarget.minimum)
             .contentShape(Rectangle())
             .accessibilityHint(showsDetails ? Text("Appuie pour réduire") : Text("Appuie pour développer"))
+            .accessibilityIdentifier("feedbackDetailsToggle")
             .sensoryFeedback(.selection, trigger: showsDetails)
 
             if showsDetails {
@@ -248,8 +260,8 @@ struct FeedbackSheet: View {
                     .primaryButtonStyle(isEnabled: viewModel.canSubmit)
                     .accessibilityIdentifier("feedbackSubmit")
 
-                Button("Fermer") { dismiss() }
-                    .secondaryButtonStyle()
+                Button("Plus tard") { dismiss() }
+                    .tertiaryButtonStyle()
             }
         }
     }

@@ -41,10 +41,6 @@ final class SavingsGoalDetailViewModel {
             && progress.months.contains(where: \.isRepairable)
     }
 
-    static func shouldShowPlanTimeline(_ progress: SavingsGoalProgress) -> Bool {
-        !progress.months.isEmpty
-    }
-
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the
     /// first fetch is in flight (progress still nil). The three reads carry
     /// their own state: a history that fails must not blank out a progression

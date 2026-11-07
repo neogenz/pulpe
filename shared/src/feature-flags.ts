@@ -62,7 +62,7 @@ export const ANALYTICS_EVENTS = {
   SIGNUP_STARTED: 'signup_started',
   /** Fires after registration succeeds. Properties: `method`. */
   SIGNUP_COMPLETED: 'signup_completed',
-  /** Fires after registration fails. Properties: `method`, `error_kind`, `error_message`. */
+  /** iOS: fires after registration fails. Properties: `method`, `error_kind` (never the error message). */
   SIGNUP_FAILED: 'signup_failed',
   /**
    * Fires after an onboarding step. Properties: `step`, optional `skipped`,
@@ -89,6 +89,8 @@ export const ANALYTICS_EVENTS = {
   CUSTOM_TRANSACTION_REMOVED: 'custom_transaction_removed',
   /** Fires after the initial budget is created. Properties: `signup_method`, `has_pay_day`, `charges_count`, `custom_transactions_count`. */
   FIRST_BUDGET_CREATED: 'first_budget_created',
+  /** iOS: fires when the user leaves the screen shown after onboarding for their month. Properties: `widget_help_opened`. */
+  ONBOARDING_HANDOFF_COMPLETED: 'onboarding_handoff_completed',
   /** Fires after login succeeds. Properties: `method`. */
   LOGIN_COMPLETED: 'login_completed',
   /** Fires after login fails. Properties: `method`, `error_kind`, `error_message`. */
@@ -101,6 +103,8 @@ export const ANALYTICS_EVENTS = {
   LOGOUT_COMPLETED: 'logout_completed',
   /** Fires after PIN creation succeeds. Properties: none. */
   PIN_SETUP_COMPLETED: 'pin_setup_completed',
+  /** iOS: fires when the user confirms the recovery key shown after PIN creation. Properties: none. */
+  RECOVERY_KEY_ACKNOWLEDGED: 'recovery_key_acknowledged',
   /** Fires after an existing PIN is accepted. Properties: none. */
   PIN_ENTERED: 'pin_entered',
   /** Fires after an existing PIN is changed. Properties: none. */

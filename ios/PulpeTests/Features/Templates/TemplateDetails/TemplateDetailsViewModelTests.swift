@@ -10,6 +10,7 @@ import Testing
 struct TemplateDetailsViewModelTests {
     struct StubTemplateService: TemplateServicing {
         var failure: Error?
+        var usedBudgetCount = 0
 
         let template = BudgetTemplate(
             id: "tpl-1",
@@ -34,6 +35,15 @@ struct TemplateDetailsViewModelTests {
         func getTemplateLines(templateId: String) async throws -> [TemplateLine] {
             if let failure { throw failure }
             return lines
+        }
+
+        func checkTemplateUsage(id: String) async throws -> TemplateUsageData {
+            if let failure { throw failure }
+            return TemplateUsageData(isUsed: usedBudgetCount > 0, budgetCount: usedBudgetCount, budgets: [])
+        }
+
+        func deleteTemplate(id: String) async throws {
+            if let failure { throw failure }
         }
 
         private static func line(id: String, kind: TransactionKind, amount: Decimal) -> TemplateLine {
@@ -74,5 +84,32 @@ struct TemplateDetailsViewModelTests {
         await viewModel.loadDetails()
 
         #expect(viewModel.content == .failed(APIError.invalidResponse))
+    }
+
+    @Test func loadDetails_unusedTemplate_canBeDeleted() async {
+        let viewModel = TemplateDetailsViewModel(templateId: "tpl-1", templateService: StubTemplateService())
+
+        await viewModel.loadDetails()
+
+        #expect(viewModel.usedBudgetCount == 0)
+        #expect(viewModel.canDelete)
+    }
+
+    @Test func loadDetails_usedTemplate_cannotBeDeleted() async {
+        let viewModel = TemplateDetailsViewModel(
+            templateId: "tpl-1",
+            templateService: StubTemplateService(usedBudgetCount: 9)
+        )
+
+        await viewModel.loadDetails()
+
+        #expect(viewModel.usedBudgetCount == 9)
+        #expect(!viewModel.canDelete)
+    }
+
+    @Test func coldPage_cannotBeDeletedBeforeUsageIsKnown() {
+        let viewModel = TemplateDetailsViewModel(templateId: "tpl-1", templateService: StubTemplateService())
+
+        #expect(!viewModel.canDelete)
     }
 }

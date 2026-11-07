@@ -16,14 +16,13 @@ struct BudgetListSkeletonView: View {
                             if index > 0 { Divider() }
                             monthRowSkeleton
                         }
-                        Divider()
-                        nextMonthRowSkeleton
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .pulpeSurfaceCard()
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.top, DesignTokens.Spacing.xxl)
                 .padding(.bottom, DesignTokens.Spacing.lg)
-                .contentZone()
             }
         }
         .shimmering()
@@ -31,36 +30,31 @@ struct BudgetListSkeletonView: View {
         .accessibilityLabel("Chargement des budgets")
     }
 
-    /// Year chips and the recap, on the forest — the canvas tint would vanish into it.
+    /// The page title, the year segments and the recap card, as `yearHeader` lays them out.
     private var heroZone: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            yearPickerSkeleton
+            pageHeaderSkeleton
+            SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: DesignTokens.CornerRadius.button)
             yearRecapSkeleton
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-        }
-        .environment(\.skeletonTint, Color.heroTile)
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.xl)
-        .heroZone()
-    }
-
-    /// `YearPicker`'s own chips: button radius, tap-target height, `xs` between them.
-    private var yearPickerSkeleton: some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            ForEach(0..<3, id: \.self) { _ in
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.compactTextWidth,
-                    height: DesignTokens.TapTarget.minimum,
-                    cornerRadius: DesignTokens.CornerRadius.button
-                )
-            }
-            Spacer(minLength: DesignTokens.Spacing.none)
+                .padding(DesignTokens.Spacing.xl)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .pulpeSurfaceCard()
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.sm)
     }
 
-    /// `YearRecapCard`: eyebrow over the display figure, the metric tile, the verdict.
-    /// No progress bar — the loaded card has none.
+    /// `PageHeader`: title over subtitle, on the page's own `xl` margin (`yearHeader` pulls it
+    /// back by `lg` first).
+    private var pageHeaderSkeleton: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            SkeletonShape(width: DesignTokens.Skeleton.mediumTextWidth, height: DesignTokens.Spacing.sectionGap)
+            SkeletonShape(width: DesignTokens.Skeleton.longTextWidth, height: DesignTokens.Spacing.md)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.xl - DesignTokens.Spacing.lg)
+    }
+
+    /// `YearRecapCard`: eyebrow over the display figure, then the sentence.
     private var yearRecapSkeleton: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -74,8 +68,6 @@ struct BudgetListSkeletonView: View {
                 )
             }
 
-            tileSkeleton
-
             SkeletonShape(
                 width: DesignTokens.Skeleton.extraLongTextWidth,
                 height: DesignTokens.Skeleton.lineHeight
@@ -84,17 +76,10 @@ struct BudgetListSkeletonView: View {
         }
     }
 
-    private var tileSkeleton: some View {
-        SkeletonShape(
-            height: DesignTokens.Skeleton.heroTileHeight,
-            cornerRadius: DesignTokens.CornerRadius.card
-        )
-    }
-
     private var sectionHeaderSkeleton: some View {
         SkeletonShape(
-            width: DesignTokens.Skeleton.mediumTextWidth,
-            height: DesignTokens.Skeleton.sectionHeight
+            width: DesignTokens.Skeleton.shortTextWidth,
+            height: DesignTokens.Skeleton.lineHeight
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -124,29 +109,6 @@ struct BudgetListSkeletonView: View {
                 )
             }
             chevronSlot
-        }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
-    }
-
-    /// `NextMonthRow`: month, projected line, and the text link instead of an amount.
-    private var nextMonthRowSkeleton: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.shortTextWidth,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.mediumTextWidth,
-                    height: DesignTokens.Skeleton.captionHeight
-                )
-            }
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            SkeletonShape(
-                width: DesignTokens.Skeleton.mediumTextWidth,
-                height: DesignTokens.Skeleton.lineHeight
-            )
         }
         .padding(.vertical, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)

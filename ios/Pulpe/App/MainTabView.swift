@@ -2,6 +2,27 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+    /// Bottom safe area inside a tab minus the one around the tab view: the tab bar's height,
+    /// zero where the tab bar is a side rail.
+    @State private var tabContentBottomInset: CGFloat = 0
+    @State private var tabViewBottomInset: CGFloat = 0
+
+    private var tabBarHeight: CGFloat { max(0, tabContentBottomInset - tabViewBottomInset) }
+
+    /// The floating add button belongs to the four root screens only: a pushed page owns its
+    /// own actions, and a month has to exist for the sheet to have somewhere to write.
+    private var showsFloatingAddButton: Bool {
+        guard currentMonthStore.budget != nil else { return false }
+        return switch appState.selectedTab {
+        case .currentMonth: appState.currentMonthPath.isEmpty
+        // Beside the list, the month on screen is not the accueil's: the « + » would write elsewhere.
+        case .budgets: appState.budgetPath.isEmpty && !appState.showsBudgetMonthBesideList
+        case .savingsGoals: appState.savingsGoalsPath.isEmpty
+        case .templates: appState.templatePath.isEmpty
+        }
+    }
 
     var body: some View {
         @Bindable var state = appState
@@ -13,6 +34,7 @@ struct MainTabView: View {
                 value: Tab.currentMonth
             ) {
                 CurrentMonthTab()
+                    .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
 
             SwiftUI.Tab(
@@ -21,6 +43,7 @@ struct MainTabView: View {
                 value: Tab.budgets
             ) {
                 BudgetsTab()
+                    .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
 
             SwiftUI.Tab(
@@ -29,6 +52,7 @@ struct MainTabView: View {
                 value: Tab.savingsGoals
             ) {
                 SavingsGoalsTab()
+                    .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
 
             SwiftUI.Tab(
@@ -37,10 +61,20 @@ struct MainTabView: View {
                 value: Tab.templates
             ) {
                 TemplatesTab()
+                    .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
         }
         .tint(Color.pulpePrimary)
         .pulpeBackground()
+        .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabViewBottomInset = $0 }
+        .floatingAddFlow(isVisible: showsFloatingAddButton, tabBarHeight: tabBarHeight)
+        // The toast lives in its own window, above sheets: it is told where the tab bar ends.
+        .onChange(of: tabBarHeight, initial: true) { _, height in
+            appState.toastManager.bottomClearance = height + DesignTokens.Control.fabTabBarGap
+                + DesignTokens.Control.fab + DesignTokens.Spacing.md
+        }
+        .onDisappear { appState.toastManager.bottomClearance = DesignTokens.Control.toastBottomInset }
+        .goalWithdrawalFlow()
         .onChange(of: appState.selectedTab) { _, newTab in
             #if DEBUG
             guard ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"] == nil else { return }
@@ -81,14 +115,6 @@ private func budgetDestination(
             budgetLineService: budgetLineService
         )
         .ignoresForeignKeyboardInset()
-    case .editTransaction(let budgetId, let transactionId):
-        // Bare: this one owns the field that raises the keyboard.
-        EditTransactionHost(
-            budgetId: budgetId,
-            transactionId: transactionId,
-            budgetService: budgetService,
-            budgetLineService: budgetLineService
-        )
     }
 }
 
@@ -108,6 +134,9 @@ private func savingsGoalDestination(
     case .detail(let goal):
         SavingsGoalDetailView(goal: goal, service: service)
             .ignoresForeignKeyboardInset()
+    case .history(let goal):
+        GoalHistoryView(goal: goal, service: service)
+            .ignoresForeignKeyboardInset()
     }
 }
 
@@ -116,6 +145,16 @@ private func savingsGoalDestination(
 struct CurrentMonthTab: View {
     @Environment(AppState.self) private var appState
     @State private var router = BudgetDetailsRouter()
+    @State private var editedMovement: EditedMovement?
+    /// The budget of the last « Modifier », kept past the sheet's dismissal.
+    @State private var editedBudgetId: String?
+
+    /// The movement the accueil asked to edit: its budget and its own id.
+    private struct EditedMovement: Identifiable {
+        let budgetId: String
+        let transactionId: String
+        var id: String { transactionId }
+    }
 
     var body: some View {
         @Bindable var state = appState
@@ -125,12 +164,57 @@ struct CurrentMonthTab: View {
         // the back button pointing at the other section's root.
         NavigationStack(path: $state.currentMonthPath) {
             CurrentMonthView()
+                .pulpeRootBottomInset()
+                .pulpeStatusBarBlur()
                 .environment(\.requestSavingsWithdrawal, openSavingsWithdrawal)
+                .environment(\.requestEditMovement, { budgetId, transactionId in
+                    editedMovement = EditedMovement(budgetId: budgetId, transactionId: transactionId)
+                })
                 .ignoresForeignKeyboardInset()
                 .modifier(SectionStackDestinations())
+                .navigationDestination(for: CurrentMonthDestination.self) { destination in
+                    switch destination {
+                    case .movements:
+                        MovementsPage()
+                            .environment(\.requestEditMovement, openEditedMovement)
+                            .ignoresForeignKeyboardInset()
+                    case .toPoint:
+                        ToPointPage()
+                            .environment(\.requestEditMovement, openEditedMovement)
+                            .ignoresForeignKeyboardInset()
+                    case .account:
+                        AccountView()
+                            .ignoresForeignKeyboardInset()
+                    }
+                }
+        }
+        // « Modifier » is a sheet, hosted here because it is written against the budget's stores.
+        .sheet(item: $editedMovement, onDismiss: continueFromEditedMovement) { edited in
+            EditTransactionHost(budgetId: edited.budgetId, transactionId: edited.transactionId)
+                .onAppear { editedBudgetId = edited.budgetId }
         }
         .environment(router)
         .task { router.bind(to: appState) }
+        .onChange(of: appState.pendingSavingsWithdrawal, initial: true) { _, request in
+            guard let request else { return }
+            appState.pendingSavingsWithdrawal = nil
+            openSavingsWithdrawal(request)
+        }
+    }
+
+    /// « Lisser sur plusieurs mois » closes « Modifier » and asks for the spread sheet, which
+    /// only a budget page presents: open that month's page, whose `.sheet(item: $router.sheet)`
+    /// shows it, as « À remettre » does. Anything else the closed host left behind is dropped.
+    private func continueFromEditedMovement() {
+        if case .spreadExisting = router.sheet, let editedBudgetId {
+            appState.pushOnActiveStack(BudgetDestination.details(budgetId: editedBudgetId))
+        } else {
+            router.sheet = nil
+        }
+    }
+
+    private func openEditedMovement(budgetId: String, transactionId: String) {
+        editedMovement = EditedMovement(budgetId: budgetId, transactionId: transactionId)
     }
 
     /// « À remettre » from the accueil (PUL-292): the month's budget page, where the
@@ -144,8 +228,7 @@ struct CurrentMonthTab: View {
             anchorYear: request.year,
             amount: request.amount,
             inputCurrency: request.inputCurrency,
-            source: request.source,
-            startsAtPreview: true
+            source: request.source
         )))
     }
 }
@@ -193,6 +276,8 @@ struct SavingsGoalsTab: View {
             } else {
                 NavigationStack(path: $state.savingsGoalsPath) {
                     SavingsGoalsListView()
+                        .pulpeRootBottomInset()
+                        .pulpeStatusBarBlur()
                         .ignoresForeignKeyboardInset()
                         .modifier(SectionStackDestinations { selectedGoalId = $0 })
                 }
@@ -288,6 +373,8 @@ struct BudgetsTab: View {
 
         return NavigationStack(path: $state.budgetPath) {
             BudgetListView()
+                .pulpeRootBottomInset()
+                .pulpeStatusBarBlur()
                 .ignoresForeignKeyboardInset()
                 .modifier(budgetStackDestinations)
         }
@@ -371,63 +458,5 @@ private struct BudgetStackDestinations: ViewModifier {
             .navigationDestination(for: SavingsGoalDestination.self) { destination in
                 savingsGoalDestination(destination, service: savingsGoalService)
             }
-    }
-}
-
-// MARK: - Templates Tab
-
-struct TemplatesTab: View {
-    @Environment(AppState.self) private var appState
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var selectedTemplateId: String?
-
-    var body: some View {
-        @Bindable var state = appState
-
-        Group {
-            // The open iPhone Duo keeps the models beside the lines of the one opened.
-            if horizontalSizeClass == .regular {
-                ListBesideDetail {
-                    TemplateListView(selectedTemplateId: $selectedTemplateId)
-                        .ignoresForeignKeyboardInset()
-                } detail: {
-                    NavigationStack(path: $state.templatePath) {
-                        if let selectedTemplateId {
-                            TemplateDetailsView(templateId: selectedTemplateId)
-                                .id(selectedTemplateId)
-                                .accessibilityIdentifier("templateDetailsRoot")
-                                .ignoresForeignKeyboardInset()
-                        } else {
-                            ContentUnavailableView("Choisis un modèle", systemImage: "doc.on.doc")
-                                .pulpeBackground()
-                                .ignoresForeignKeyboardInset()
-                        }
-                    }
-                }
-            } else {
-                NavigationStack(path: $state.templatePath) {
-                    TemplateListView()
-                        .ignoresForeignKeyboardInset()
-                        .navigationDestination(for: TemplateDestination.self) { destination in
-                            switch destination {
-                            case .details(let templateId):
-                                TemplateDetailsView(templateId: templateId)
-                                    .accessibilityIdentifier("templateDetailsRoot")
-                                    .ignoresForeignKeyboardInset()
-                                    // Unfolding the Duo keeps this model beside the list.
-                                    .onAppear { selectedTemplateId = templateId }
-                            }
-                        }
-                }
-            }
-        }
-        // A model pushed on the list would stack a copy on the one shown beside it; folding
-        // keeps the model that was open beside the list, now pushed on it.
-        .onChange(of: horizontalSizeClass) { oldClass, newClass in
-            appState.templatePath = NavigationPath()
-            if oldClass == .regular, newClass == .compact, let selectedTemplateId {
-                appState.templatePath.append(TemplateDestination.details(templateId: selectedTemplateId))
-            }
-        }
     }
 }

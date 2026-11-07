@@ -180,6 +180,8 @@ struct BudgetDetailsScreenState: Equatable {
     struct Section: Identifiable, Equatable {
         let kind: TransactionKind
         let items: [LineItem]
+        /// What the header states on the right: each row's shown amount, max(planned, spent).
+        var total: Decimal = 0
         var id: TransactionKind { kind }
     }
 

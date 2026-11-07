@@ -9,6 +9,8 @@ struct ForgotPasswordSheet: View {
     @State private var viewModel = ForgotPasswordViewModel()
     @FocusState private var focusedField: FormField?
 
+    /// Email already typed on the login, so the user does not retype it.
+    var initialEmail = ""
     let onClose: () -> Void
 
     var body: some View {
@@ -20,14 +22,16 @@ struct ForgotPasswordSheet: View {
                     formState
                 }
             }
-            .padding(DesignTokens.Spacing.xl)
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Color.sheetBackground)
             .dismissKeyboardOnTap()
             .localizedNavigationTitle("Mot de passe oublié")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") {
+                    SheetCloseButton {
                         dismiss()
                         onClose()
                     }
@@ -36,27 +40,27 @@ struct ForgotPasswordSheet: View {
             .keyboardFieldNavigation(focus: $focusedField, order: [.email])
         }
         .standardSheetPresentation(detents: [.medium, .large])
-        .task { focusedField = .email }
+        .task {
+            if viewModel.email.isEmpty { viewModel.email = initialEmail }
+            focusedField = .email
+        }
         .accessibilityIdentifier("forgotPasswordPage")
     }
 
     private var formState: some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            Text("Entre ton email pour recevoir un lien de réinitialisation.")
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textSecondaryOnboarding)
-                .multilineTextAlignment(.center)
-                .padding(.top, DesignTokens.Spacing.md)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            Text("Entre ton e-mail. Je t'envoie un lien pour choisir un nouveau mot de passe.")
+                .font(PulpeTypography.onboardingSubtitle)
+                .foregroundStyle(Color.textSecondary)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Adresse e-mail")
-                    .font(PulpeTypography.buttonSecondary)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .font(PulpeTypography.inputLabel)
+                    .foregroundStyle(Color.textPrimary)
 
                 AuthTextField(
                     prompt: AppLocale.string("ton@email.com"),
                     text: $viewModel.email,
-                    systemImage: "envelope",
                     hasError: viewModel.errorMessage != nil,
                     isFilled: viewModel.isEmailValid,
                     focusBinding: $focusedField,
@@ -78,6 +82,12 @@ struct ForgotPasswordSheet: View {
                 }
             }
 
+            Text("Ton code PIN et tes montants ne changent pas.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+
+            Spacer(minLength: DesignTokens.Spacing.none)
+
             Button {
                 Task { await viewModel.submit() }
             } label: {
@@ -92,33 +102,42 @@ struct ForgotPasswordSheet: View {
             .primaryButtonStyle(isEnabled: viewModel.canSubmit)
             .disabled(!viewModel.canSubmit)
             .accessibilityIdentifier("forgotPasswordSubmit")
+            .padding(.bottom, DesignTokens.Spacing.lg)
         }
     }
 
     private var successState: some View {
-        VStack(spacing: DesignTokens.Spacing.xl) {
-            Image(systemName: "envelope.badge")
-                .font(PulpeTypography.heroIcon)
-                .foregroundStyle(Color.pulpePrimary)
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            Image(systemName: "envelope")
+                .font(PulpeTypography.title2)
+                .foregroundStyle(Color.accentInk)
+                .frame(width: DesignTokens.Control.statusDisc, height: DesignTokens.Control.statusDisc)
+                .background(Color.accentWash, in: Circle())
+                .accessibilityHidden(true)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Email envoyé")
-                    .font(PulpeTypography.onboardingTitle)
-                Text("Si un compte existe avec cette adresse, tu recevras un email avec un lien de réinitialisation.")
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
-                Text("Pense à vérifier tes spams si tu ne le vois pas.")
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-                    .multilineTextAlignment(.center)
+                Text("E-mail envoyé")
+                    .font(PulpeTypography.statusTitle)
+                Text("""
+                    Si un compte existe avec **\(viewModel.email)**, tu vas recevoir un \
+                    lien pour choisir un nouveau mot de passe.
+                    """)
+                    .font(PulpeTypography.bannerText)
+                    .foregroundStyle(Color.textSecondary)
+                Text("Rien reçu ? Regarde dans tes spams.")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
             }
+            .multilineTextAlignment(.center)
+
+            Spacer(minLength: DesignTokens.Spacing.none)
 
             Button("Retour à la connexion") {
                 dismiss()
                 onClose()
             }
-            .primaryButtonStyle()
+            .secondaryButtonStyle()
+            .padding(.bottom, DesignTokens.Spacing.lg)
         }
         .accessibilityIdentifier("forgotPasswordSuccess")
     }

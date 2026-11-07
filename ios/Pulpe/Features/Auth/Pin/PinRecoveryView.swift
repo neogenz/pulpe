@@ -13,16 +13,12 @@ enum RecoveryStep: Equatable {
 // MARK: - View
 
 struct PinRecoveryView: View {
-    private enum RecoveryKeyField: Hashable {
-        case recoveryKey
-    }
-
     let onComplete: () -> Void
     let onCancel: () -> Void
     let onSessionExpired: () -> Void
 
     @State private var viewModel = PinRecoveryViewModel()
-    @FocusState private var recoveryKeyFocus: RecoveryKeyField?
+    @FocusState private var recoveryKeyFocus: Bool
 
     var body: some View {
         content
@@ -54,20 +50,29 @@ struct PinRecoveryView: View {
 
     // MARK: - Content
 
+    @ViewBuilder
     private var content: some View {
+        if viewModel.step == .enterRecoveryKey {
+            recoveryKeyStep
+        } else {
+            pinContent
+        }
+    }
+
+    private var pinContent: some View {
         VStack(spacing: 0) {
             Spacer()
 
             switch viewModel.step {
             case .enterRecoveryKey:
-                recoveryKeyStep
+                EmptyView()
             case .createPin:
                 pinStep(
                     title: AppLocale.string("Nouveau code PIN"),
                     subtitle: AppLocale.string("\(PinConstants.length) chiffres")
                 )
             case .confirmPin:
-                pinStep(title: AppLocale.string("Confirme ton code PIN"), subtitle: nil)
+                pinStep(title: AppLocale.string("Confirme ton code"), subtitle: nil)
             case .processing:
                 processingStep
             }
@@ -81,67 +86,132 @@ struct PinRecoveryView: View {
 
     private var recoveryKeyStep: some View {
         NavigationStack {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                Image(systemName: "key.fill")
-                    .font(PulpeTypography.heroIcon)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                    HStack {
+                        Button(action: onCancel) {
+                            Image(systemName: "chevron.left")
+                                .font(PulpeTypography.headline)
+                                .foregroundStyle(Color.textPrimary)
+                                .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
+                                .background(Color.surfaceContainerLowest, in: .circle)
+                                .shadow(DesignTokens.Shadow.card)
+                        }
+                        .plainPressedButtonStyle()
+                        .accessibilityLabel("Retour")
+                        Spacer()
+                    }
 
-                VStack(spacing: DesignTokens.Spacing.sm) {
-                    Text("Clé de récupération")
-                        .font(PulpeTypography.onboardingTitle)
-                        .foregroundStyle(Color.textPrimaryOnboarding)
+                    VStack(spacing: DesignTokens.Spacing.md) {
+                        Image(systemName: "key")
+                            .font(PulpeTypography.title2)
+                            .foregroundStyle(Color.accentInk)
+                            .frame(width: DesignTokens.Entry.iconDisc, height: DesignTokens.Entry.iconDisc)
+                            .background(Color.accentWash, in: .circle)
+                            .accessibilityHidden(true)
+                        Text("Code oublié ?")
+                            .font(PulpeTypography.entryTitle)
+                            .foregroundStyle(Color.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
+                        Text("""
+                        Entre la clé de récupération notée quand tu as créé ton code. \
+                        Tu choisiras ensuite un nouveau code, qui protégera tes montants.
+                        """)
+                            .font(PulpeTypography.stepSubtitle)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
 
-                    Text("Entre la clé de récupération que tu as notée lors de la configuration de ton code PIN")
-                        .font(PulpeTypography.stepSubtitle)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
-                        .multilineTextAlignment(.center)
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Clé de récupération")
+                            .font(PulpeTypography.metricLabel)
+                            .foregroundStyle(Color.textPrimary)
+                        recoveryKeyInput
+                    }
+
+                    if let error = viewModel.errorMessage {
+                        Text(error)
+                            .font(PulpeTypography.footnote)
+                            .foregroundStyle(Color.errorPrimary)
+                            .transition(.opacity)
+                    }
+
+                    stepsCard
                 }
-
-                recoveryKeyInput
-
-                if let error = viewModel.errorMessage {
-                    Text(error)
-                        .font(PulpeTypography.footnote)
-                        .foregroundStyle(Color.errorPrimary)
-                        .transition(.opacity)
-                }
-
-                continueButton
-                cancelButton
-                contactSupportLink
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.md)
             }
-            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: viewModel.errorMessage)
+            .scrollDismissesKeyboard(.interactively)
+            .pulpeBackground()
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: DesignTokens.Spacing.xs) {
+                    continueButton
+                    contactSupportLink
+                }
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.bottom, DesignTokens.Spacing.xs)
+                .background(Color.appBackground)
+            }
+            .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.errorMessage)
             .toolbar(.hidden, for: .navigationBar)
-            .keyboardFieldNavigation(focus: $recoveryKeyFocus, order: [.recoveryKey])
-            .task {
-                recoveryKeyFocus = .recoveryKey
-            }
+            .task { recoveryKeyFocus = true }
         }
     }
 
+    /// Where the person stands in the recovery: the first step is the one on screen.
+    private var stepsCard: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Les étapes")
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+            VStack(spacing: 0) {
+                ForEach(Array(steps.enumerated()), id: \.offset) { index, title in
+                    if index > 0 { FormRowDivider() }
+                    stepRow(number: index + 1, title: title, isCurrent: index == 0)
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.md)
+            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func stepRow(number: Int, title: String, isCurrent: Bool) -> some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Text("\(number)")
+                .font(PulpeTypography.metricLabel)
+                .monospacedDigit()
+                .foregroundStyle(isCurrent ? Color.accentInk : Color.textSecondary)
+                .frame(width: DesignTokens.Entry.stepBadge, height: DesignTokens.Entry.stepBadge)
+                .background(
+                    isCurrent ? Color.accentWash : Color.surfaceContainerHigh,
+                    in: .rect(cornerRadius: DesignTokens.CornerRadius.sm)
+                )
+            Text(title)
+                .font(isCurrent ? PulpeTypography.rowTitle : PulpeTypography.rowTitleRegular)
+                .foregroundStyle(Color.textPrimary)
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
+    }
+
+    private var steps: [String] {
+        [
+            AppLocale.string("Ta clé de récupération"),
+            AppLocale.string("Nouveau code, deux fois"),
+            AppLocale.string("Nouvelle clé à noter")
+        ]
+    }
+
     private var recoveryKeyInput: some View {
-        TextField("XXXX-XXXX-XXXX-XXXX-...", text: Binding(
-            get: { viewModel.recoveryKeyInput },
-            set: { viewModel.updateRecoveryKey($0) }
-        ))
-        .font(.system(.body, design: .monospaced))
-        .kerning(1)
-        .multilineTextAlignment(.center)
-        .autocorrectionDisabled()
-        .textInputAutocapitalization(.characters)
-        .textContentType(.oneTimeCode)
-        .privacySensitive()
-        .padding(DesignTokens.Spacing.lg)
-        .background(
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .fill(Color.pinInputBackground)
+        RecoveryKeyInputField(
+            text: Binding(
+                get: { viewModel.recoveryKeyInput },
+                set: { viewModel.updateRecoveryKey($0) }
+            ),
+            isFocused: $recoveryKeyFocus
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .stroke(Color.pinInputBorder, lineWidth: DesignTokens.BorderWidth.thin)
-        )
-        .foregroundStyle(Color.textPrimaryOnboarding)
-        .focused($recoveryKeyFocus, equals: .recoveryKey)
     }
 
     private var continueButton: some View {
@@ -202,28 +272,16 @@ struct PinRecoveryView: View {
     private var processingStep: some View {
         PinProcessingView(
             title: AppLocale.string("Récupération en cours..."),
-            subtitle: AppLocale.string("Tes données sont en cours de re-chiffrement")
+            subtitle: AppLocale.string("Je protège tes données avec ton nouveau code")
         )
     }
 
-    // MARK: - Cancel Button
-
-    private var cancelButton: some View {
-        Button {
-            onCancel()
-        } label: {
-            Text("Annuler")
-                .font(PulpeTypography.stepSubtitle)
-                .foregroundStyle(Color.textSecondaryOnboarding)
-        }
-    }
-
     private var contactSupportLink: some View {
-        VStack(spacing: DesignTokens.Spacing.xs) {
-            Text("Tu n'as plus ta clé de récupération ?")
-                .foregroundStyle(Color.textSecondaryOnboarding)
-                .multilineTextAlignment(.center)
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Text("Tu n'as plus ta clé ?")
+                .foregroundStyle(Color.textSecondary)
             Link("Contacter le support", destination: AppURLs.support)
+                .fontWeight(.semibold)
                 .foregroundStyle(Color.pulpePrimary)
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
                 .contentShape(Rectangle())

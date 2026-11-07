@@ -135,27 +135,6 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func labels_sitUnderAFallingStrokeAndOverAClimbingOne() {
-        // A label grows leftward from the stroke's end, where a falling line is higher:
-        // it goes under. A plan with outflows always falls; the trend follows its slope.
-        let spending = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31)
-        #expect(HomeHeroCard.planLabelPosition(for: spending) == .bottom)
-        #expect(HomeHeroCard.trendLabelPosition(for: spending) == .bottom)
-        // Today's word hangs right of its dot, so the stroke it can meet is the projection:
-        // it reads the same slope as the trend's figure and lands on the same side.
-        #expect(HomeHeroCard.todayLabelPosition(for: spending) == .bottom)
-        // Even a month above its plan still has money to spend: the dashed stroke falls
-        // from what is left today to what is left at the end, and its figure goes under.
-        let recovering = trajectory(landing: [2_500, 2_900], plannedOutflows: 9_000, totalDays: 31)
-        #expect(HomeHeroCard.trendLabelPosition(for: recovering) == .bottom)
-        #expect(HomeHeroCard.todayLabelPosition(for: recovering) == .bottom)
-        // A month held on its plan draws a flat projection, and both words take the top.
-        #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
-        #expect(HomeHeroCard.trendLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
-        #expect(HomeHeroCard.todayLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
-    }
-
-    @MainActor
     @Test func plan_fallsFromTheOpeningAmountToWhatThePeriodKeeps() {
         let plan = HomeHeroCard.plan(for: trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31))
         #expect(plan.map(\.day) == [0, 31])
@@ -230,66 +209,6 @@ struct HomeHeroCardTests {
             amountsHidden: false,
             uncheckedCount: 1
         ).contains("Pile sur ton plan"))
-    }
-
-    @Test func loadedDashboardUsesOneFullScreenGradientBackground() throws {
-        let iosRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let viewSource = try String(
-            contentsOf: iosRoot.appending(path: "Pulpe/Features/CurrentMonth/CurrentMonthView.swift"),
-            encoding: .utf8
-        )
-        let backgroundSource = try String(
-            contentsOf: iosRoot.appending(
-                path: "Pulpe/Shared/Components/HeroZone/HeroZoneSurface.swift"
-            ),
-            encoding: .utf8
-        )
-
-        #expect(viewSource.contains(".heroZone(parallax: true)"))
-        #expect(viewSource.contains(".contentZone()"))
-        #expect(!viewSource.contains(".background(Color.homeBackground)"))
-        #expect(!viewSource.contains("HeroZoneTracker"))
-        #expect(!viewSource.contains("LinearGradient("))
-        #expect(backgroundSource.components(separatedBy: "LinearGradient(").count == 2)
-    }
-
-    /// The row used to state the tag count twice, in the same ink and the same size: once
-    /// spelled out in the subtitle ("récurrent · 2 tags") and once by the component beside
-    /// it ("· 🏷 2"). `TagChips` owns the icon, the separator and the ink, so it is the one
-    /// that speaks — and the subtitle went back to being a subtitle.
-    @Test func uncheckedOperationStatesItsTagCountOnce() throws {
-        let sourceFile = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard+Row.swift")
-        let source = try String(contentsOf: sourceFile, encoding: .utf8)
-
-        #expect(source.contains("Text(Self.subtitle(for: item))"))
-        #expect(!source.contains("tag\\("))
-        #expect(source.components(separatedBy: "presentation: .count").count == 2)
-    }
-
-    @Test func loadingDashboardSkeletonMirrorsTheChartHero() throws {
-        let sourceFile = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Pulpe/Features/CurrentMonth/Components/CurrentMonthSkeletonView.swift")
-        let source = try String(contentsOf: sourceFile, encoding: .utf8)
-
-        #expect(source.contains("CurrentMonthHeroSkeleton()"))
-        #expect(source.contains("private var chartSkeleton: some View"))
-        #expect(source.contains("contentActionSkeleton"))
-        #expect(source.contains("uncheckedCardSkeleton"))
-        #expect(source.contains("activityCardSkeleton"))
-        #expect(!source.contains("height: DesignTokens.Skeleton.heroHeight"))
     }
 
     @Test func drift_isTheDistanceFromThePlanTheLineOpenedOn() {

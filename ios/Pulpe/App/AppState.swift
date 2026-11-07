@@ -72,6 +72,9 @@ final class AppState {
 
     var selectedTab: Tab = .currentMonth
     var currentMonthPath = NavigationPath()
+    /// « À remettre » asked from the global « + »: the accueil's tab opens the month's budget
+    /// page with the withdrawal preview, then clears it (PUL-292).
+    var pendingSavingsWithdrawal: SavingsWithdrawalRequest?
     var budgetPath = NavigationPath()
     /// Month shown beside the budgets list on a regular-width window (the open iPhone Duo).
     var budgetSelection: String?
@@ -80,6 +83,8 @@ final class AppState {
     var showsBudgetMonthBesideList = false
     var savingsGoalsPath = NavigationPath()
     var templatePath = NavigationPath()
+    /// Bumped when a model is edited or deleted on its page, so the list beside or under it reloads.
+    var templatesVersion = 0
     // Pushing and popping these live in `AppState+Navigation.swift`.
 
     // MARK: - Returning User

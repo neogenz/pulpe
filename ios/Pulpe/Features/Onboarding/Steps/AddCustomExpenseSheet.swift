@@ -14,6 +14,9 @@ struct AddCustomExpenseSheet: View {
     private let editingId: UUID?
     private let kind: TransactionKind
     private let currency: SupportedCurrency
+    /// Available to spend before this line, to show what it changes.
+    private let available: Decimal
+    private let originalAmount: Decimal
 
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
@@ -26,6 +29,7 @@ struct AddCustomExpenseSheet: View {
     init(
         kind: TransactionKind,
         currency: SupportedCurrency,
+        available: Decimal,
         onSave: @escaping (OnboardingTransaction) -> Void
     ) {
         self.onSave = onSave
@@ -33,6 +37,8 @@ struct AddCustomExpenseSheet: View {
         self.editingId = nil
         self.kind = kind
         self.currency = currency
+        self.available = available
+        self.originalAmount = 0
         _name = State(initialValue: "")
         _amount = State(initialValue: nil)
         _amountText = State(initialValue: "")
@@ -42,6 +48,7 @@ struct AddCustomExpenseSheet: View {
     init(
         editing transaction: OnboardingTransaction,
         currency: SupportedCurrency,
+        available: Decimal,
         onSave: @escaping (OnboardingTransaction) -> Void
     ) {
         self.onSave = onSave
@@ -49,6 +56,8 @@ struct AddCustomExpenseSheet: View {
         self.editingId = transaction.id
         self.kind = transaction.type
         self.currency = currency
+        self.available = available
+        self.originalAmount = transaction.amount
         _name = State(initialValue: transaction.name)
         _amount = State(initialValue: transaction.amount)
         let formatted = Formatters.amountInput(for: currency).string(from: transaction.amount as NSDecimalNumber) ?? ""
@@ -72,11 +81,15 @@ struct AddCustomExpenseSheet: View {
                 focus: $focusedField,
                 field: .amount,
                 hint: AppLocale.string("Quel montant ?"),
-                currency: currency
+                currency: currency,
+                caption: AppLocale.string("chaque mois")
             )
 
             FormTextField(
-                hint: AppLocale.string("Ex : Spotify, Salle de sport..."),
+                // Fixed charges here, so subscriptions rather than the day-to-day examples.
+                hint: kind == .expense
+                    ? AppLocale.string("Ex : Spotify, Salle de sport...")
+                    : kind.descriptionPlaceholder,
                 text: $name,
                 label: AppLocale.string("Description"),
                 accessibilityLabel: AppLocale.string("Description de la prévision"),
@@ -84,9 +97,36 @@ struct AddCustomExpenseSheet: View {
                 field: .description
             )
 
+            if let amount, amount > 0 { impact(for: amount) }
+        }
+        .safeAreaInset(edge: .bottom) {
             saveButton
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.vertical, DesignTokens.Spacing.md)
+                .background(Color.sheetBackground)
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+    }
+
+    // MARK: - Impact
+
+    /// What the line does to "Disponible à dépenser", before it is added.
+    private func impact(for amount: Decimal) -> some View {
+        let sign: Decimal = kind == .income ? 1 : -1
+        let before = available - sign * originalAmount
+        let note: String = switch kind {
+        case .income: AppLocale.string("Ce revenu s'ajoute à ton disponible et revient chaque mois.")
+        case .expense: AppLocale.string("Elle rejoint tes charges fixes et revient chaque mois.")
+        case .saving: AppLocale.string("Elle rejoint ton épargne prévue et revient chaque mois.")
+        }
+        return ImpactBlock(
+            title: AppLocale.string("Disponible à dépenser"),
+            before: before,
+            after: before + sign * amount,
+            currency: currency,
+            note: note,
+            tone: kind == .income ? .ok : .neutral
+        )
     }
 
     // MARK: - Save Button
@@ -113,7 +153,7 @@ struct AddCustomExpenseSheet: View {
 }
 
 #Preview {
-    AddCustomExpenseSheet(kind: .expense, currency: .chf) { tx in
+    AddCustomExpenseSheet(kind: .expense, currency: .chf, available: 3178.5) { tx in
         print("Added: \(tx.name) - \(tx.amount)")
     }
 }

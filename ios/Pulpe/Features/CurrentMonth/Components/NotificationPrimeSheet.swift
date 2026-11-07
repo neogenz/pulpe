@@ -28,7 +28,7 @@ struct NotificationPrimeSheet: View {
             // overload, so neither half ever reaches the string catalog.
             Text("""
                 Le lundi matin, le récap de ta semaine. Le jour de paie, ton nouveau mois. \
-                C'est tout — jamais de spam, et tu coupes quand tu veux.
+                C'est tout : jamais de spam, et tu coupes quand tu veux.
                 """)
                 .font(PulpeTypography.bodyLarge)
                 .foregroundStyle(Color.textSecondary)

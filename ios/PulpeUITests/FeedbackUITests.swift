@@ -26,7 +26,7 @@ final class FeedbackUITests: XCTestCase {
         XCTAssertTrue(openFeedback.isHittable)
         XCTAssertGreaterThanOrEqual(openFeedback.frame.width, 44)
         XCTAssertGreaterThanOrEqual(openFeedback.frame.height, 44)
-        XCTAssertEqual(openFeedback.label, "Donner mon avis")
+        XCTAssertEqual(openFeedback.label, "Donner mon avis, Une impression en 30 secondes")
         openFeedback.tap()
 
         XCTAssertTrue(
@@ -37,7 +37,7 @@ final class FeedbackUITests: XCTestCase {
             XCTAssertTrue(app.buttons[label].exists, "Missing accessible rating \(label)")
         }
 
-        let details = app.buttons["Préciser mon avis"]
+        let details = app.buttons["feedbackDetailsToggle"]
         scrollUntilHittable(details)
         details.tap()
         for label in Self.feedbackAreaLabels {

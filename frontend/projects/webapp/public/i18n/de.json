@@ -190,7 +190,7 @@
       "enterTitle": "Gib deinen PIN ein",
       "enterSubtitle": "Gib deinen Code ein, um zu deinen Daten zu kommen.",
       "setupTitle": "Erstell deinen PIN",
-      "setupSubtitle": "Dieser Code schützt deine verschlüsselten Daten. Bewahr ihn gut auf: niemand sonst kommt an deiner Stelle heran, und wenn du ihn vergisst, lässt er sich nicht wiederherstellen.",
+      "setupSubtitle": "Dieser Code schützt deine Beträge. Bewahr ihn gut auf: niemand sonst kommt an deiner Stelle heran, und wenn du ihn vergisst, lässt er sich nicht wiederherstellen.",
       "pinLabel": "PIN",
       "setupPinLabel": "Dein PIN",
       "pinRequired": "Dein PIN wird gebraucht",
@@ -202,7 +202,7 @@
       "confirmPinRequired": "Bestätige deinen Code",
       "pinsMismatch": "Die beiden Codes stimmen nicht überein — versuch es nochmal",
       "rememberDevice": "Auf diesem Gerät nicht mehr fragen",
-      "rememberDeviceHint": "Wenn du das ankreuzt, wird dein Entschlüsselungsschlüssel auf diesem Gerät gespeichert. An einem geteilten Computer besser lassen.",
+      "rememberDeviceHint": "Wenn du das ankreuzt, öffnen sich deine Beträge auf diesem Gerät ohne Code. An einem geteilten Computer besser lassen.",
       "lostCode": "Code verloren?",
       "setupSubmitting": "Dein Bereich wird vorbereitet...",
       "setupSubmit": "Meinen PIN erstellen",
@@ -277,7 +277,7 @@
     "benefits": {
       "setup": "Ein klarer Plan für jeden Monat",
       "track": "Deine Ausgaben mit einer Geste abgehakt",
-      "privacy": "Verschlüsselt — deine Beträge bleiben privat"
+      "privacy": "Deine Beträge bleiben privat"
     },
     "emailSignup": "Mit E-Mail registrieren",
     "tryWithoutAccount": "Ohne Konto ausprobieren",
@@ -438,7 +438,7 @@
     "passwordRequired": "Das Passwort ist nötig",
     "passwordMinLength": "Mindestens {{ min }} Zeichen",
     "deleteAccountConfirm": "Löschung bestätigen",
-    "pinIncorrect": "Falscher PIN oder ungültiger Schlüssel",
+    "pinIncorrect": "Falscher PIN",
     "deleteAccountVerificationFailed": "Die Prüfung ist fehlgeschlagen — versuch es später nochmal",
     "passwordIncorrect": "Falsches Passwort",
     "regenerateKeyTitle": "Meinen Schlüssel neu erzeugen",
@@ -446,7 +446,7 @@
     "regenerateKeyWarning": "Damit wird der alte Schlüssel ungültig. Ohne deinen PIN oder deinen Wiederherstellungsschlüssel ist der Zugang zu deinen Daten endgültig weg.",
     "regenerateKeySubmit": "Neu erzeugen",
     "pinCode": "PIN",
-    "pinCodeDescription": "Deinen Verschlüsselungscode ändern.",
+    "pinCodeDescription": "Deinen PIN ändern.",
     "pinChanged": "PIN geändert",
     "pinChangedNoRecovery": "PIN geändert — erzeug deinen Wiederherstellungsschlüssel in den Einstellungen neu",
     "changePin": {
@@ -467,7 +467,7 @@
       "rateLimited": "Zu viele Versuche — versuch es später nochmal",
       "genericError": "Etwas ist schiefgelaufen — versuch es später nochmal",
       "changeFailed": "Das Ändern des PIN ist fehlgeschlagen — versuch es später nochmal",
-      "rekeyFailed": "Die Neuverschlüsselung ist fehlgeschlagen — dein alter PIN bleibt aktiv, versuch es später nochmal"
+      "rekeyFailed": "Das Ändern des Codes ist fehlgeschlagen: dein alter PIN bleibt aktiv, versuch es später nochmal"
     },
     "connections": {
       "setup": {

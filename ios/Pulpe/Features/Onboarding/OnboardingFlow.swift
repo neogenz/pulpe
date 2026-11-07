@@ -42,38 +42,26 @@ struct OnboardingFlow: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Subtle branded gradient for onboarding form steps
-                Color.loginGradientBackground
+                // Forest behind the step slide: the zone of every step is forest.
+                // The top bar sits on it, where each step's zone gradient starts.
+                Color.heroSurfaceTop
+                    .ignoresSafeArea()
+                    .environment(\.colorScheme, .dark)
 
                 VStack(spacing: 0) {
+                    if state.currentStep.showProgressBar {
+                        OnboardingTopBar(state: state, onBack: goBack)
+                            .padding(.horizontal, DesignTokens.Spacing.lg)
+                            .environment(\.colorScheme, .dark)
+                            .transition(.opacity)
+                    }
                     // Step content — no TabView so swipe is impossible
                     stepContent
-                        .environment(\.onboardingBack, state.currentStep.showProgressBar ? goBack : nil)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .layoutPriority(1)
                         .id(state.currentStep)
                         .transition(stepTransition)
                         .sensoryFeedback(.impact(weight: .light), trigger: state.currentStep)
-                        .overlay(alignment: .top) {
-                            // Top fade — hides scrolled content under the sticky
-                            // header. Neutral across all onboarding steps: state
-                            // is carried by the hero copy + accent color, not
-                            // by a full-screen colored wash that new users would
-                            // have no way to decode.
-                            if state.currentStep.showProgressBar {
-                                LinearGradient(
-                                    colors: [.onboardingFormBase, .onboardingFormBase.opacity(0)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                                .frame(height: DesignTokens.Blur.topFadeHeight)
-                                .allowsHitTesting(false)
-                            }
-                        }
-                }
-                .background {
-                    Color.onboardingFormBase
-                        .ignoresSafeArea()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -172,8 +160,7 @@ struct OnboardingFlow: View {
         }
     }
 
-    /// Back lives in the step's bottom zone, beside the CTA; the flow keeps the exit
-    /// confirmation and hands the action down through the environment.
+    /// The top bar's back: leaving the flow asks first.
     private func goBack() {
         if state.wouldExitOnBack && state.editReturnStep == nil {
             showExitConfirmation = true
@@ -205,7 +192,7 @@ struct OnboardingFlow: View {
             if state.hasCompletedPinSetup {
                 BudgetPreviewStep(state: state)
             } else {
-                Color.onboardingFormBase
+                Color.appBackground.ignoresSafeArea(edges: .bottom)
             }
         }
     }
@@ -214,7 +201,7 @@ struct OnboardingFlow: View {
     /// without a configured PIN. The session exists since the registration step, so
     /// key derivation works; budget bootstrap stays on the final CTA.
     private func presentPinSetupIfNeeded(for step: OnboardingStep) {
-        guard step == .budgetPreview, !state.hasCompletedPinSetup, state.isAuthenticated else {
+        guard step == .budgetPreview, state.needsPinBeforePreview else {
             return
         }
         showPinSetup = true

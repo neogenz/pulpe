@@ -6,6 +6,9 @@ struct RegistrationStep: View {
     @State private var password = ""
     @State private var showPassword = false
     @State private var signupTask: Task<Void, Never>?
+    /// The signup failed because the email already has an account: the banner offers the login.
+    @State private var emailTaken = false
+    @State private var showLogin = false
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
@@ -23,15 +26,23 @@ struct RegistrationStep: View {
             step: .registration,
             state: state,
             canProceed: canSubmit,
+            subtitle: AppLocale.string("Pour retrouver ton budget sur ton téléphone et sur le web."),
+            showsGenericError: !emailTaken,
             onNext: { startSignupTask() },
+            zone: { lockGreeting },
             content: {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                    if emailTaken { emailTakenBanner }
                     emailSection
                     passwordSection
                     consentText
                 }
             }
         )
+        .sheet(isPresented: $showLogin) {
+            LoginView(isPresented: $showLogin, initialEmail: state.email)
+        }
+        .onChange(of: state.email) { emailTaken = false }
         .trackScreen("Onboarding_Registration")
         .task {
             // Fire signup_started when the user actually reaches the registration form.
@@ -64,12 +75,13 @@ extension RegistrationStep {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Email")
                 .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .foregroundStyle(Color.textPrimary)
 
             AuthTextField(
                 prompt: AppLocale.string("ton@email.com"),
                 text: $state.email,
                 systemImage: "envelope",
+                hasError: emailTaken,
                 isFilled: state.isEmailValid,
                 focusBinding: $focusedField,
                 focusField: .email
@@ -90,7 +102,7 @@ extension RegistrationStep {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Mot de passe")
                 .font(PulpeTypography.inputLabel)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+                .foregroundStyle(Color.textPrimary)
 
             AuthSecureField(
                 prompt: "••••••••",
@@ -107,6 +119,45 @@ extension RegistrationStep {
 
             PasswordCriteriaList(validator: passwordValidator)
         }
+    }
+
+    /// The zone answers the step: a lock and the promise that amounts are encrypted.
+    private var lockGreeting: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "lock")
+                .font(PulpeTypography.title3)
+                .foregroundStyle(Color.heroAccentPositive)
+                .frame(width: DesignTokens.Entry.iconDisc, height: DesignTokens.Entry.iconDisc)
+                .background(Color.heroTile, in: Circle())
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(
+                    FirstNameResolver.normalized(state.firstName).map { AppLocale.string("Salut \($0).") }
+                        ?? AppLocale.string("Salut.")
+                )
+                    .font(PulpeTypography.sectionTitle)
+                    .foregroundStyle(Color.heroInk)
+                Text("Tes montants restent privés : personne d'autre ne les voit, pas même moi.")
+                    .font(PulpeTypography.onboardingSubtitle)
+                    .foregroundStyle(Color.heroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var emailTakenBanner: some View {
+        InfoBanner(style: .err, systemImage: "exclamationmark.circle") {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text("Cet email est déjà utilisé. Tu as peut-être déjà un compte ?")
+                Button("Me connecter avec cet email") { showLogin = true }
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.pulpePrimary)
+                    .frame(minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+            }
+        }
+        .accessibilityElement(children: .contain)
     }
 
     private var consentText: some View {
@@ -175,11 +226,13 @@ extension RegistrationStep {
             state.nextStep()
         } catch let apiError as APIError {
             AnalyticsService.shared.captureAuthError(.signupFailed, error: apiError, method: "email")
+            emailTaken = AuthErrorLocalizer.classify(apiError) == .userAlreadyRegistered
             state.error = apiError
             state.isLoading = false
         } catch {
             AnalyticsService.shared.captureAuthError(.signupFailed, error: error, method: "email")
             let localizedMessage = AuthErrorLocalizer.localize(error)
+            emailTaken = AuthErrorLocalizer.classify(error) == .userAlreadyRegistered
             state.error = APIError.serverError(message: localizedMessage)
             state.isLoading = false
         }

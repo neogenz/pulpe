@@ -18,6 +18,7 @@ struct SheetCloseButton: View {
         Button("Fermer", systemImage: "xmark") {
             if let action { action() } else { dismiss() }
         }
+        .accessibilityIdentifier("sheetCloseButton")
     }
 }
 

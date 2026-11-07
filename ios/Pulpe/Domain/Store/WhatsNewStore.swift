@@ -109,6 +109,21 @@ final class WhatsNewStore {
         }
     }
 
+    /// The newest published release note, fetched on demand (Compte > Nouveautés). Leaves the
+    /// seen marker and the launch presentation untouched; `nil` when offline or nothing is published.
+    static func latestEntry(
+        service: WhatsNewServiceProtocol = WhatsNewService.shared,
+        currentVersion: String = AppConfiguration.appVersion,
+        locale: SupportedLocale = AppLocale.current
+    ) async -> WhatsNewEntry? {
+        let response = try? await service.fetch(
+            currentVersion: currentVersion,
+            lastSeenVersion: "0.0.0",
+            locale: locale
+        )
+        return response?.data.entries.suffix(1).first
+    }
+
     func invalidateSession() {
         sessionGeneration += 1
         isChecking = false

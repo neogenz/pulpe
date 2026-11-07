@@ -43,11 +43,10 @@ struct SheetFormContainer<Field: Hashable, Content: View>: View {
             .loadingOverlay(isLoading)
             .dismissKeyboardOnTap()
             .keyboardFieldNavigation(focus: focus, order: focusOrder)
-            .task {
-                guard let first = focusOrder.first else { return }
-                try? await Task.sleep(for: .milliseconds(200))
-                guard !Task.isCancelled else { return }
-                focus.wrappedValue = first
+            // Focused as the sheet appears, so the keyboard rises with it in one movement. A
+            // delayed focus raised it mid-slide and swept the bottom button across the form.
+            .onAppear {
+                if let first = focusOrder.first { focus.wrappedValue = first }
             }
         }
         .standardSheetPresentation()

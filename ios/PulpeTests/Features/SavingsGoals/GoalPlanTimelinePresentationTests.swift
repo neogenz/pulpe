@@ -252,7 +252,7 @@ struct GoalPlanTimelinePresentationTests {
             plannedAmount: 500, realizedAmount: 300, remainingAmount: 200
         )
 
-        let item = try #require(GoalWithdrawalsSection.plannedItems(planned: [withdrawal], planOnly: []).first)
+        let item = try #require(GoalWithdrawals.plannedItems(planned: [withdrawal], planOnly: []).first)
         let context = "Prévu \(Decimal(500).asCurrency(.chf)) · Réalisé \(Decimal(300).asCurrency(.chf))"
 
         #expect(item.primaryAmount == 200)
@@ -273,7 +273,7 @@ struct GoalPlanTimelinePresentationTests {
             month: 8, year: 2026, plannedAmount: 400
         )
 
-        let items = GoalWithdrawalsSection.plannedItems(planned: [september], planOnly: [august])
+        let items = GoalWithdrawals.plannedItems(planned: [september], planOnly: [august])
 
         #expect(items.map(\.id) == ["plan-only-plan-august", "linked-line-budget-september"])
         #expect(items.first?.accessibilityHint == nil)
@@ -285,7 +285,7 @@ struct GoalPlanTimelinePresentationTests {
         let withdrawal = makePlannedWithdrawal(budgetId: "budget-august", month: 8, origin: .planLinked,
                                                plannedAmount: 500, realizedAmount: 500, remainingAmount: 0,
                                                status: .realized)
-        let item = try #require(GoalWithdrawalsSection.plannedItems(planned: [withdrawal], planOnly: []).first)
+        let item = try #require(GoalWithdrawals.plannedItems(planned: [withdrawal], planOnly: []).first)
 
         #expect(item.primaryAmount == 500)
         #expect(item.accessibilityLabel(currency: .chf).contains("reste \(Decimal(0).asCurrency(.chf))"))
@@ -376,8 +376,8 @@ struct GoalPlanTimelinePresentationTests {
 extension GoalPlanTimelinePresentationTests {
     @Test("Only a partial planned withdrawal labels its foreground amount as remaining")
     func plannedWithdrawal_primaryAmountDetailIsPartialOnly() throws {
-        func item(status: SavingsGoalPlannedWithdrawal.Status) throws -> GoalWithdrawalsSection.PlannedItem {
-            try #require(GoalWithdrawalsSection.plannedItems(
+        func item(status: SavingsGoalPlannedWithdrawal.Status) throws -> GoalWithdrawals.PlannedItem {
+            try #require(GoalWithdrawals.plannedItems(
                 planned: [makePlannedWithdrawal(
                     budgetId: "budget-\(status)",
                     month: 9,
@@ -391,5 +391,33 @@ extension GoalPlanTimelinePresentationTests {
         #expect(try item(status: .planned).primaryAmountDetail == nil)
         #expect(try item(status: .partiallyRealized).primaryAmountDetail == "restant")
         #expect(try item(status: .realized).primaryAmountDetail == nil)
+    }
+
+    @Test("À venir merges runs ahead and withdrawals to come by date, leaving out this month and what is done")
+    func upcoming_mergesRunsAndWithdrawalsByDate() {
+        let months = [
+            makeMonth(month: 7, state: .current, hasLinkedForecast: true),
+            makeMonth(month: 8, state: .future, hasLinkedForecast: true),
+            makeMonth(month: 9, state: .gap),
+            makeMonth(month: 10, state: .gap),
+        ]
+        let segments = GoalMonthByMonthPresentation(months: months, initialAmount: 0, currency: .chf).segments
+        let september = makePlannedWithdrawal(budgetId: "budget-september", month: 9, origin: .planLinked)
+        let done = makePlannedWithdrawal(budgetId: "budget-august", month: 8, origin: .planLinked,
+                                         realizedAmount: 500, remainingAmount: 0, status: .realized)
+        let august = SavingsGoalPlanOnlyWithdrawal(
+            planWithdrawalId: "plan-august", name: "Retrait vacances",
+            month: 8, year: 2026, plannedAmount: 400
+        )
+
+        let shape = GoalUpcomingItem.items(segments: segments, planned: [september, done], planOnly: [august])
+            .map { item -> String in
+                switch item {
+                case .months(let segment): "months-\(segment.months.map(\.month))"
+                case .withdrawal(let withdrawal): withdrawal.id
+                }
+            }
+
+        #expect(shape == ["months-[8]", "plan-only-plan-august", "months-[9, 10]", "linked-line-budget-september"])
     }
 }

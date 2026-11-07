@@ -9,43 +9,57 @@ enum EditTemplateLineSaveImpact: Equatable {
     }
 }
 
-/// Sheet for editing an existing template line — hero amount layout
+/// Sheet for editing an existing template line (V2 `Modele-ligne`): the amount, its name, its
+/// nature, « Quand ? », the tags and what it does to the model's disponible. When budgets were
+/// built from the model, saving opens a second step (`Modele-propager`) inside the sheet.
 struct EditTemplateLineSheet: View {
+    enum Step { case edit, propagation }
+
     let templateLine: TemplateLine
+    let templateName: String
+    /// The model's lines, to judge what the edit does to its disponible.
+    let templateLines: [TemplateLine]
     let onUpdate: (TemplateLine, EditTemplateLineSaveImpact) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(ToastManager.self) private var toastManager
-    @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(ToastManager.self) var toastManager
+    @Environment(UserSettingsStore.self) var userSettingsStore
+    @Environment(CurrentMonthStore.self) var currentMonthStore
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
     @State private var recurrence: TransactionRecurrence
     @State private var savingsGoalId: String?
     @State private var selectedTagIds: Set<String>
-    @State private var isLoading = false
-    @State private var error: Error?
+    @State var isLoading = false
+    @State var error: Error?
     @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText: String
     @State private var submitSuccessTrigger = false
-    @State private var showPropagationAlert = false
+    @State var step = Step.edit
+    @State var propagationChoice = PropagationChoice.templateAndMonths
     @State private var usageData: TemplateUsageData?
     @State private var usageFetchFailed = false
-    @State private var pendingUpdate: TemplateLineUpdate?
+    @State var pendingUpdate: TemplateLineUpdate?
     private let inputCurrency: SupportedCurrency
     private let isAlternateCurrency: Bool
     private let initialTagIds: Set<String>
+    private let initialAmount: Decimal
 
     private let dependencies: EditTemplateLineDependencies
     private let conversionService = CurrencyConversionService.shared
 
     init(
         templateLine: TemplateLine,
+        templateName: String = "",
+        templateLines: [TemplateLine] = [],
         userCurrency: SupportedCurrency,
         dependencies: EditTemplateLineDependencies = .live,
         onUpdate: @escaping (TemplateLine, EditTemplateLineSaveImpact) -> Void
     ) {
         self.templateLine = templateLine
+        self.templateName = templateName
+        self.templateLines = templateLines
         self.dependencies = dependencies
         self.onUpdate = onUpdate
         _name = State(initialValue: templateLine.name)
@@ -59,6 +73,7 @@ struct EditTemplateLineSheet: View {
         let inputCurrency = templateLine.originalCurrency ?? userCurrency
         let editableAmount = Self.initialAmount(for: templateLine, userCurrency: userCurrency)
         _amount = State(initialValue: editableAmount)
+        initialAmount = editableAmount
         let amountString = Formatters.amountInput(for: inputCurrency)
             .string(from: editableAmount as NSDecimalNumber) ?? ""
         _amountText = State(initialValue: amountString)
@@ -72,20 +87,24 @@ struct EditTemplateLineSheet: View {
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
     }
 
-    private var propagationBudgetCount: Int {
+    var propagationBudgetCount: Int {
         usageData?.propagationBudgetCount(payDayOfMonth: userSettingsStore.payDayOfMonth) ?? 0
     }
 
     var body: some View {
+        switch step {
+        case .edit: editForm
+        case .propagation: propagationStep
+        }
+    }
+
+    private var editForm: some View {
         SheetFormContainer(
             title: AppLocale.string("Modifier la ligne"),
             isLoading: isLoading,
             focus: $focusedField,
             focusOrder: [.amount, .description]
         ) {
-            KindToggle(selection: $kind)
-            // A segmented choice reads before the amount, like the nature above it.
-            recurrenceSelector
             if userSettingsStore.showCurrencySelector && isAlternateCurrency {
                 CurrencyAmountPicker(
                     selectedCurrency: .constant(inputCurrency),
@@ -98,23 +117,32 @@ struct EditTemplateLineSheet: View {
                 focus: $focusedField,
                 field: .amount,
                 currency: inputCurrency,
-                accentColor: kind.color
+                caption: beforeCaption
             )
             CurrencyConversionBadge(
                 originalAmount: templateLine.originalAmount,
                 originalCurrency: templateLine.originalCurrency,
                 exchangeRate: templateLine.exchangeRate
             )
-            // Three blocks: the amount above, what it is, then the details.
+            descriptionField
+            KindToggle(selection: $kind)
+            TemplateWhenSection(recurrence: $recurrence, templateName: templateName)
             FormCard {
-                descriptionField
-                FormRowDivider()
                 TagPickerField(selection: $selectedTagIds, style: .row)
             }
             if kind == .saving {
                 FormCard {
                     SavingsGoalPickerField(selection: $savingsGoalId, style: .row)
                 }
+            }
+            if let impact = availableImpact {
+                ImpactBlock(
+                    title: AppLocale.string("Disponible de départ du modèle"),
+                    before: impact.before,
+                    after: impact.after,
+                    currency: userSettingsStore.currency
+                )
+                .sensitiveAmount()
             }
 
             if let error {
@@ -137,27 +165,21 @@ struct EditTemplateLineSheet: View {
                 usageFetchFailed = true
             }
         }
-        .alert("Appliquer aux mois suivants ?", isPresented: $showPropagationAlert) {
-            Button("Appliquer") {
-                Task { await saveAndPropagateToBudgets() }
-            }
-            Button("Modèle uniquement") {
-                Task { await saveTemplateOnly() }
-            }
-            Button("Annuler", role: .cancel) {
-                pendingUpdate = nil
-            }
-        } message: {
-            let count = propagationBudgetCount
-            let intro = usageFetchFailed
-                ? AppLocale.string("Ce modèle est peut-être utilisé par d'autres budgets.")
-                : AppLocale.string("Ce modèle est utilisé par \(count) budgets.")
-            Text("""
-                \(intro)\n\n\
-                « Appliquer » mettra à jour les budgets en cours et futurs. \
-                Les prévisions modifiées manuellement ne seront pas affectées.
-                """)
-        }
+    }
+
+    /// « avant 150.00 », once the amount moves.
+    private var beforeCaption: String? {
+        guard let amount, amount != initialAmount else { return nil }
+        return AppLocale.string("avant \(initialAmount.asAmount(for: inputCurrency))")
+    }
+
+    /// What the edit does to the model's disponible. ponytail: a line typed in another currency
+    /// skips it; judging it would need a conversion per keystroke.
+    private var availableImpact: (before: Decimal, after: Decimal)? {
+        guard !isAlternateCurrency, let amount, amount > 0 else { return nil }
+        return TemplatePresentation.availableImpact(
+            lines: templateLines, lineId: templateLine.id, amount: amount, kind: kind
+        )
     }
 
     // MARK: - Description
@@ -166,28 +188,14 @@ struct EditTemplateLineSheet: View {
         FormTextField(
             hint: kind.descriptionPlaceholder,
             text: $name,
-            label: AppLocale.string("Description"),
             accessibilityLabel: AppLocale.string("Nom de la ligne du modèle"),
             focusBinding: $focusedField,
             field: .description,
-            style: .row,
             onSubmit: {
                 guard canSubmit else { return }
                 Task { await updateTemplateLine() }
             }
         )
-    }
-
-    // MARK: - Recurrence Selector
-
-    private var recurrenceSelector: some View {
-        Picker("Récurrence", selection: $recurrence) {
-            ForEach(TransactionRecurrence.allCases, id: \.self) { type in
-                Text(type.label).tag(type)
-            }
-        }
-        .pickerStyle(.segmented)
-        .accessibilityLabel("Récurrence")
     }
 
     // MARK: - Save Button
@@ -235,7 +243,7 @@ struct EditTemplateLineSheet: View {
 
             let hasBudgets = usageFetchFailed || propagationBudgetCount > 0
             if hasBudgets {
-                showPropagationAlert = true
+                withAnimation(DesignTokens.Animation.smoothEaseOut) { step = .propagation }
             } else {
                 await saveTemplateOnly()
             }
@@ -244,7 +252,7 @@ struct EditTemplateLineSheet: View {
         }
     }
 
-    private func saveTemplateOnly() async {
+    func saveTemplateOnly() async {
         guard let data = pendingUpdate else { return }
 
         isLoading = true
@@ -263,7 +271,7 @@ struct EditTemplateLineSheet: View {
         }
     }
 
-    private func saveAndPropagateToBudgets() async {
+    func saveAndPropagateToBudgets() async {
         guard let data = pendingUpdate else { return }
 
         isLoading = true

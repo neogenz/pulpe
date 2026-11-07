@@ -50,9 +50,9 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
     /// French word order on every language.
     var newTransactionTitle: String {
         switch self {
-        case .expense: AppLocale.string("Noter une dépense")
-        case .income: AppLocale.string("Noter un revenu")
-        case .saving: AppLocale.string("Noter une épargne")
+        case .expense: AppLocale.string("Nouvelle dépense")
+        case .income: AppLocale.string("Nouveau revenu")
+        case .saving: AppLocale.string("Nouvelle épargne")
         }
     }
 

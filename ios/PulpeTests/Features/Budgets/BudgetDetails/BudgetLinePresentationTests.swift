@@ -158,4 +158,53 @@ struct BudgetLinePresentationTests {
                 == "58.50 CHF dépensés · 100% utilisé"
         )
     }
+
+    // MARK: - V2 row: one fact, max(planned, spent)
+
+    private func row(
+        amount: Decimal,
+        allocated: Decimal,
+        kind: TransactionKind = .expense,
+        recurrence: TransactionRecurrence = .fixed,
+        isPointed: Bool = false
+    ) -> BudgetLineRowPresentation {
+        BudgetLineRowPresentation(
+            line: TestDataFactory.createBudgetLine(amount: amount, kind: kind, recurrence: recurrence),
+            consumption: BudgetFormulas.Consumption(
+                allocated: allocated,
+                available: (amount - allocated).rounded(2),
+                percentage: 0
+            ),
+            savingsGoalName: nil,
+            isPointed: isPointed,
+            currency: .chf
+        )
+    }
+
+    @Test("an overspent prévision says by how much, in the ocre, and shows what was spent")
+    func row_whenOverspent_statesTheOverrun() {
+        let result = row(amount: 600, allocated: 664.20)
+
+        #expect(result.subtitle == "64.20 au-delà du prévu")
+        #expect(result.isOver)
+        #expect(result.progress == 1)
+        #expect(result.amount == "664.20")
+    }
+
+    @Test("a prévision being consumed says what is left and keeps its planned amount")
+    func row_whenPartlySpent_statesTheRemainder() {
+        let result = row(amount: 120, allocated: 32)
+
+        #expect(result.subtitle == "Reste 88.00")
+        #expect(!result.isOver)
+        #expect(result.amount == "120.00")
+    }
+
+    @Test("an untouched line states its rhythm, then that it is pointed; an income keeps its +")
+    func row_whenUntouched_statesTheRhythm() {
+        #expect(row(amount: 80, allocated: 0, recurrence: .oneOff).subtitle == "Une fois")
+        #expect(row(amount: 6200, allocated: 0, kind: .income, isPointed: true).subtitle == "Chaque mois · pointé")
+        #expect(row(amount: 6200, allocated: 0, kind: .income).amount == "+6’200.00")
+        #expect(row(amount: 80, allocated: 0).progress == nil)
+    }
 }

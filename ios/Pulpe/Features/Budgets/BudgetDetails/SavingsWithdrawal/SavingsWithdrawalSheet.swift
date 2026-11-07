@@ -1,25 +1,30 @@
 import SwiftUI
 
-/// "Piocher dans son épargne" (PUL-292) — one sheet, two steps inside its own
-/// `NavigationStack` (precedent: `SpreadExistingSheet`). Step 1 captures the
-/// amount (`HeroAmountField` auto-focus + a deficit quick-fill chip + an
-/// optional source name); step 2 previews the two-month couple (M / M+1) and
-/// confirms. Submit freezes the FX (RG-009) and replays one idempotency key on
-/// retry, then hands the confirmed income line back through `onAdd` — same seam
-/// as the additive `AddBudgetLineSheet`.
+/// "Couvrir avec mon épargne" (PUL-292, V2 board 16): one screen. The amount the month
+/// lacks as the hero, where the money comes from, the two-month couple it sets up (M / M+1)
+/// and its impact on M's disponible. Submit freezes the FX (RG-009) and replays one
+/// idempotency key on retry, then hands the confirmed income line back through `onAdd`.
+/// Picking a goal only names the income: the API has no goal id, so the goal is not debited.
 struct SavingsWithdrawalSheet: View {
     let prefill: SavingsWithdrawalPrefill
+    /// M as the disponible reads it, for the impact block. `nil` hides the block.
+    var ledger: MonthLedger?
+    /// « Plutôt lisser »: M's largest spreadable dépense, offered instead of the withdrawal.
+    var spreadInstead: SpreadExistingSource?
+    var onSpreadInstead: (SpreadExistingSource) -> Void = { _ in }
     let onAdd: (BudgetLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
 
     @State private var amount: Decimal?
     @State private var amountText: String
+    /// The income's name: « Mon épargne » or a goal's name.
     @State private var source: String
+    @State private var goals: [SavingsGoalWithdrawalOption] = []
     @State private var inputCurrency: SupportedCurrency = .chf
-    @State private var path: [Step]
     @State private var isSubmitting = false
     @State private var submitSuccessTrigger = false
     @FocusState private var focusedField: Field?
@@ -32,22 +37,27 @@ struct SavingsWithdrawalSheet: View {
     private let dependencies: SavingsWithdrawalDependencies
     private let conversionService = CurrencyConversionService.shared
 
-    enum Step: Hashable { case preview }
-    private enum Field: Hashable { case amount, source }
+    private enum Field: Hashable { case amount }
 
     init(
         prefill: SavingsWithdrawalPrefill,
+        ledger: MonthLedger? = nil,
+        spreadInstead: SpreadExistingSource? = nil,
         dependencies: SavingsWithdrawalDependencies = .live,
+        onSpreadInstead: @escaping (SpreadExistingSource) -> Void = { _ in },
         onAdd: @escaping (BudgetLine) -> Void
     ) {
         self.prefill = prefill
+        self.ledger = ledger
+        self.spreadInstead = spreadInstead
         self.dependencies = dependencies
+        self.onSpreadInstead = onSpreadInstead
         self.onAdd = onAdd
-        self._amount = State(initialValue: prefill.amount)
-        self._amountText = State(initialValue: prefill.amount.map(Self.plainString) ?? "")
-        self._source = State(initialValue: prefill.source ?? "")
+        let initial = prefill.amount ?? prefill.missingAmount
+        self._amount = State(initialValue: initial)
+        self._amountText = State(initialValue: initial.map(Self.plainString) ?? "")
+        self._source = State(initialValue: prefill.source ?? AppLocale.string("Mon épargne"))
         self._inputCurrency = State(initialValue: prefill.inputCurrency ?? .chf)
-        self._path = State(initialValue: prefill.startsAtPreview ? [.preview] : [])
     }
 
     // MARK: - Derived months (anchored on the viewed month M)
@@ -60,25 +70,51 @@ struct SavingsWithdrawalSheet: View {
         SpreadMonth.from(ordinal: monthM.ordinal + 1)
     }
 
-    private var canContinue: Bool { (amount ?? 0) > 0 }
+    private var monthInText: String { Formatters.monthNameInText(for: monthM.month) }
+
+    private var typedAmount: Decimal { amount ?? 0 }
+
+    private var canSubmit: Bool { typedAmount > 0 && !isSubmitting }
+
+    /// The withdrawal lands as an income in M. Only judged in the account currency: a
+    /// foreign amount has no rate until submit.
+    private var impact: MovementImpact? {
+        guard let ledger, typedAmount > 0, inputCurrency == userSettingsStore.currency else { return nil }
+        return .forecast(ledger: ledger, budgetId: prefill.budgetId, kind: .income, amount: typedAmount)
+    }
 
     var body: some View {
-        NavigationStack(path: $path) {
-            amountStep
-                .navigationDestination(for: Step.self) { step in
-                    switch step {
-                    case .preview:
-                        SavingsWithdrawalPreviewView(
-                            amount: amount ?? 0,
-                            currency: inputCurrency,
-                            monthName: monthM.name,
-                            nextMonthName: monthNext.name,
-                            isSubmitting: isSubmitting,
-                            onConfirm: { Task { await submit() } },
-                            onEdit: { if !path.isEmpty { path.removeLast() } }
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                    if userSettingsStore.showCurrencySelector {
+                        CurrencyAmountPicker(selectedCurrency: $inputCurrency)
+                    }
+                    amountHero
+                    sourceCard
+                    planCard
+                    if let impact {
+                        ImpactBlock(
+                            title: AppLocale.string("Ton disponible de \(monthInText)"),
+                            impact: impact,
+                            currency: userSettingsStore.currency
                         )
                     }
                 }
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.lg)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
+            .pulpeBackground()
+            .pulpeStickyBottomCTA { ctaStack }
+            .localizedNavigationTitle("Couvrir avec mon épargne")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton().disabled(isSubmitting)
+                }
+            }
         }
         .standardSheetPresentation(detents: [.large])
         .loadingOverlay(isSubmitting, message: AppLocale.string("On met ça en place…"))
@@ -86,93 +122,116 @@ struct SavingsWithdrawalSheet: View {
         // sheet can't tear down mid-request (parity with SpreadExistingSheet).
         .interactiveDismissDisabled(isSubmitting)
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
-        .onAppear {
+        .task {
             // Preserve the currency the amount was typed in on the toggle path;
             // fall back to the user's setting on the card path (PUL-292).
             let seed = prefill.inputCurrency ?? userSettingsStore.currency
             if inputCurrency != seed { inputCurrency = seed }
+            // ponytail: goals only name the income, so a failed fetch just leaves « Mon épargne ».
+            let options = (try? await savingsGoalStore.fetchWithdrawalOptions()) ?? []
+            goals = options.filter { $0.availableAmount > 0 }
         }
     }
 
-    // MARK: - Step 1 — amount
+    // MARK: - Hero
 
-    private var amountStep: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                if userSettingsStore.showCurrencySelector {
-                    CurrencyAmountPicker(selectedCurrency: $inputCurrency)
+    private var amountHero: some View {
+        VStack(spacing: DesignTokens.Spacing.xs) {
+            Text("Il te manque en \(monthInText)")
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+            HeroAmountField(
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                field: .amount,
+                hint: AppLocale.string("Combien te manque-t-il ?"),
+                currency: inputCurrency,
+                caption: spreadInstead.map {
+                    AppLocale.string("\($0.name), \($0.total.asAmount(for: userSettingsStore.currency)), passe ce mois")
                 }
-                HeroAmountField(
-                    amount: $amount,
-                    amountText: $amountText,
-                    focus: $focusedField,
-                    field: .amount,
-                    hint: AppLocale.string("Combien te manque-t-il ?"),
-                    currency: inputCurrency,
-                    accentColor: .financialSavings
-                )
-                deficitChip
-                FormTextField(
-                    hint: AppLocale.string("Mon épargne"),
-                    text: $source,
-                    label: AppLocale.string("D'où vient l'argent ? (optionnel)"),
-                    accessibilityLabel: AppLocale.string("Source de l'épargne"),
-                    focusBinding: $focusedField,
-                    field: .source
-                )
-            }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.top, DesignTokens.Spacing.lg)
+            )
         }
-        .scrollBounceBehavior(.basedOnSize)
-        .scrollDismissesKeyboard(.interactively)
-        .pulpeBackground()
-        .pulpeStickyBottomCTA { continueButton }
-        .localizedNavigationTitle("Couvrir ce mois avec mon épargne")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                SheetCloseButton().disabled(isSubmitting)
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - D'où vient l'argent ?
+
+    private var sourceCard: some View {
+        FormCard(title: "D'où vient l'argent ?") {
+            sourceRow(name: AppLocale.string("Mon épargne"), available: nil)
+            ForEach(goals) { goal in
+                FormRowDivider()
+                sourceRow(name: goal.name, available: goal.availableAmount.asAmount(for: goal.currency))
             }
-        }
-        // Reuse the feature's sanctioned autofocus helper (single Task.sleep,
-        // single design token) — inline Task.sleep is lint-banned here.
-        .afterPushTransition {
-            guard !prefill.startsAtPreview else { return }
-            focusedField = .amount
         }
     }
 
-    @ViewBuilder
-    private var deficitChip: some View {
-        if let missing = prefill.missingAmount, missing > 0 {
+    private func sourceRow(name: String, available: String?) -> some View {
+        let isOn = source == name
+        return Button { source = name } label: {
+            PulpeListRow(title: name, showsChevron: false) {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    if let available {
+                        Text(available).sensitiveAmount()
+                    }
+                    if isOn {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(Color.accentInk)
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+        }
+        .plainPressedButtonStyle()
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+
+    // MARK: - Ce que je mets en place
+
+    private var planCard: some View {
+        FormCard(title: "Ce que je mets en place") {
+            PulpeListRow(
+                title: monthM.name,
+                subtitle: AppLocale.string("Pris sur ton épargne"),
+                showsChevron: false
+            ) {
+                Text(typedAmount.asSignedAmount(for: .income, in: inputCurrency)).sensitiveAmount()
+            }
+            FormRowDivider()
+            PulpeListRow(
+                title: monthNext.name,
+                subtitle: AppLocale.string("À remettre sur ton épargne"),
+                showsChevron: false
+            ) {
+                Text(typedAmount.asAmount(for: inputCurrency)).sensitiveAmount()
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - CTA
+
+    private var ctaStack: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
             Button {
-                amount = missing
-                amountText = Self.plainString(missing)
                 focusedField = nil
+                Task { await submit() }
             } label: {
-                PulpeChip(
-                    icon: TransactionKind.savingsIcon,
-                    label: AppLocale.string("Il te manque \(missing.asCurrency(userSettingsStore.currency))"),
-                    style: .outlined
-                )
+                Text(AppLocale.string("Couvrir \(typedAmount.asCurrency(inputCurrency))"))
             }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Capsule())
-            .plainPressedButtonStyle()
-            .accessibilityHint("Remplir avec le montant qui manque ce mois")
-        }
-    }
+            .disabled(!canSubmit)
+            .primaryButtonStyle(isEnabled: canSubmit)
 
-    private var continueButton: some View {
-        Button {
-            focusedField = nil
-            path = [.preview]
-        } label: {
-            Text("Continuer")
+            if let spreadInstead {
+                Button(AppLocale.string("Plutôt lisser \(spreadInstead.name)")) {
+                    onSpreadInstead(spreadInstead)
+                }
+                .textLinkButtonStyle()
+                .disabled(isSubmitting)
+                .frame(maxWidth: .infinity)
+            }
         }
-        .disabled(!canContinue)
-        .primaryButtonStyle(isEnabled: canContinue)
     }
 
     // MARK: - Submit
@@ -188,11 +247,10 @@ struct SavingsWithdrawalSheet: View {
                 from: inputCurrency,
                 to: userSettingsStore.currency
             )
-            let trimmedSource = source.trimmingCharacters(in: .whitespaces)
             let data = SavingsWithdrawalCreate(
                 budgetId: prefill.budgetId,
                 amount: conversion?.convertedAmount ?? amount,
-                incomeName: trimmedSource.isEmpty ? AppLocale.string("Mon épargne") : trimmedSource,
+                incomeName: source,
                 savingName: AppLocale.string("Remettre sur ton épargne"),
                 groupId: groupId,
                 originalAmount: conversion?.originalAmount,
@@ -240,4 +298,5 @@ struct SavingsWithdrawalDependencies: Sendable {
     ) { _ in }
     .environment(ToastManager())
     .environment(UserSettingsStore())
+    .environment(SavingsGoalStore())
 }

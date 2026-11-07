@@ -4,12 +4,15 @@ struct ContextualCreationUITestHarness: View {
     let scenario: UITestLaunchScenario
 
     @State private var appState = AppState()
+    @State private var uiPreferences = UIPreferencesState()
     @State private var currentMonthStore: CurrentMonthStore
     @State private var budgetListStore = BudgetListStore()
     @State private var dashboardStore = DashboardStore()
     @State private var userSettingsStore = UserSettingsStore()
     @State private var savingsGoalStore = SavingsGoalStore()
     @State private var tagStore = TagStore()
+    @State private var appVersionStore = AppVersionStore()
+    @State private var whatsNewStore = WhatsNewStore()
     @State private var router = BudgetDetailsRouter()
 
     private let budgetId = "contextual-creation-budget"
@@ -54,6 +57,7 @@ struct ContextualCreationUITestHarness: View {
         } else {
             currentMonthStore.populateForTesting(budget: budget, budgetLines: lines, transactions: transactions)
         }
+        FirstTransactionTracker.shared.answerForTesting(hasTransaction: !isFreshSignup)
         #endif
         _currentMonthStore = State(initialValue: currentMonthStore)
 
@@ -82,12 +86,15 @@ struct ContextualCreationUITestHarness: View {
             .environment(\.dynamicTypeSize, dynamicTypeSize)
             .preferredColorScheme(preferredColorScheme)
             .environment(appState)
+            .environment(uiPreferences)
             .environment(currentMonthStore)
             .environment(budgetListStore)
             .environment(dashboardStore)
             .environment(userSettingsStore)
             .environment(savingsGoalStore)
             .environment(tagStore)
+            .environment(appVersionStore)
+            .environment(whatsNewStore)
             .environment(router)
             .environment(appState.toastManager)
             // Injecting the router is only half its wiring: `push` and `popToRoot` go
@@ -171,15 +178,12 @@ struct ContextualCreationUITestHarness: View {
                 fallbackPlannedBalance: fixture.plannedBalance,
                 trajectory: fixture.trajectory,
                 monthName: fixture.monthName,
-                uncheckedCount: 1,
-                onTapUnchecked: {},
-                onTapVariance: {},
-                onTapDetail: {}
+                onTapCalculation: {}
             )
             .padding(.horizontal, DesignTokens.Spacing.xl)
             .padding(.top, DesignTokens.Spacing.xxxl)
         }
-        .background(Color.heroSurface.ignoresSafeArea())
+        .background(Color.appBackground.ignoresSafeArea())
     }
 
     private var chartFixture: ChartFixture {
