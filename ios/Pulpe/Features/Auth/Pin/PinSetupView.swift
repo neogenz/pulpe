@@ -141,12 +141,23 @@ struct PinSetupView: View {
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text(viewModel.subtitle)
-                .font(PulpeTypography.stepSubtitle)
-                .foregroundStyle(Color.textSecondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            // The first step's longer subtitle holds its height on « Confirme », so the
+            // title does not drop between the two steps.
+            ZStack(alignment: .top) {
+                subtitle(viewModel.mode.subtitle)
+                    .hidden()
+                    .accessibilityHidden(true)
+                subtitle(viewModel.subtitle)
+            }
         }
+    }
+
+    private func subtitle(_ text: String) -> some View {
+        Text(text)
+            .font(PulpeTypography.stepSubtitle)
+            .foregroundStyle(Color.textSecondary)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// What comes next on the first step; the way back on the second.
