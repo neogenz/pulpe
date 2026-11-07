@@ -57,6 +57,8 @@ struct OnboardingTopBar: View {
             }
             .plainPressedButtonStyle()
             .accessibilityLabel("Devise actuelle : \(state.currency.nativeName). Toucher pour changer.")
+            // Chip and count share the slot: a plain crossfade overlaps their text mid-step.
+            .transition(.blurReplace)
         } else if let position = state.progressBarSteps.firstIndex(of: state.currentStep) {
             Text("\(position + 1)/\(state.progressBarSteps.count)")
                 .font(PulpeTypography.metricLabelBold)
@@ -64,6 +66,7 @@ struct OnboardingTopBar: View {
                 .foregroundStyle(Color.heroInk)
                 .contentTransition(.numericText())
                 .accessibilityHidden(true)
+                .transition(.blurReplace)
         }
     }
 }
