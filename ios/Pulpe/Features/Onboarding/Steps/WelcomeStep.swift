@@ -71,53 +71,16 @@ struct WelcomeStep: View {
     }
 
     private var header: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            PulpeIcon(size: DesignTokens.IconSize.compact)
-            Text("pulpe")
-                .font(PulpeTypography.sectionTitle)
-                .foregroundStyle(Color.heroInk)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Pulpe")
+        Text("pulpe")
+            .font(PulpeTypography.sectionTitle)
+            .foregroundStyle(Color.heroInk)
+            .accessibilityLabel("Pulpe")
     }
 
-    /// Decorative: a sample month as the ring, with three stickers that read as its legend —
-    /// the salary it starts from, then a charge and a saving in their segment's colour. They sit
-    /// around the ring, never over the figure in its middle.
+    /// Decorative: the brand wedge as a mascot, rising in with the rest of the screen.
     private var illustration: some View {
-        let month = Formatters.monthNameInText(for: Calendar.current.component(.month, from: .now))
-        // The stickers add up to the centre: a budget app's first figures must check out.
-        let income: Decimal = 6200, charges: Decimal = 3021.5, savings: Decimal = 588
-        return OnboardingBudgetRing(
-            income: income, charges: charges, savings: savings, currency: .chf,
-            subtitle: "\(SupportedCurrency.chf.rawValue) · \(month)",
-            drawsIn: true
-        )
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xxxl)
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .topLeading) {
-                OnboardingSticker(
-                    systemImage: "house", tint: .financialExpense, wash: .overWash,
-                    label: AppLocale.string("Charges"), amount: charges.asAmount(for: .chf)
-                )
-                .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltTopLeading))
-            }
-            .overlay(alignment: .bottomTrailing) {
-                OnboardingSticker(
-                    systemImage: TransactionKind.saving.icon, tint: .financialSavings, wash: .accentWash,
-                    label: AppLocale.string("Épargne"), amount: savings.asAmount(for: .chf)
-                )
-                .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltTrailing))
-                .offset(y: -DesignTokens.Spacing.xl)
-            }
-            .overlay(alignment: .bottomLeading) {
-                OnboardingSticker(
-                    systemImage: TransactionKind.income.icon, tint: .financialIncome, wash: .accentWash,
-                    label: AppLocale.string("Salaire"), amount: "+" + income.asAmount(for: .chf)
-                )
-                .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltBottomLeading))
-            }
+        WelcomeMascotHero(isShown: isAppeared)
+            .padding(.vertical, DesignTokens.Spacing.xl)
     }
 
     private var actions: some View {
@@ -149,38 +112,82 @@ struct WelcomeStep: View {
     }
 }
 
-/// Floating white card of the welcome illustration (V2 sticker): a tinted icon, a label, an
-/// amount. Light tokens inside, though the forest around it runs in dark mode.
-private struct OnboardingSticker: View {
-    let systemImage: String
-    let tint: Color
-    let wash: Color
-    let label: String
-    let amount: String
+/// The welcome's hero: the brand wedge scales up as the screen appears, then idles with a
+/// slow float while a few sparkles twinkle out of step. Reduce Motion keeps all of it still.
+private struct WelcomeMascotHero: View {
+    let isShown: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: systemImage)
-                .font(PulpeTypography.caption2.weight(.bold))
-                .foregroundStyle(tint)
-                .frame(width: DesignTokens.Entry.stepBadge, height: DesignTokens.Entry.stepBadge)
-                .background(wash, in: Circle())
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
-                Text(label)
-                    .font(PulpeTypography.caption2)
-                    .foregroundStyle(Color.textSecondary)
-                Text(verbatim: amount)
-                    .font(PulpeTypography.metricLabelBold)
-                    .foregroundStyle(Color.textPrimary)
-                    .monospacedDigit()
+        mascot
+            .overlay { sparkles }
+            .scaleEffect(isShown || reduceMotion ? 1 : DesignTokens.Entry.mascotEntranceScale)
+            .opacity(isShown ? 1 : 0)
+            .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isShown)
+    }
+
+    @ViewBuilder
+    private var mascot: some View {
+        let image = Image("WelcomeMascot")
+            .resizable()
+            .scaledToFit()
+            .frame(width: DesignTokens.Entry.mascotWidth)
+        if reduceMotion {
+            image
+        } else {
+            image.phaseAnimator([false, true]) { content, isUp in
+                content.offset(y: isUp ? -DesignTokens.Entry.mascotFloat : 0)
+            } animation: { _ in
+                .easeInOut(duration: DesignTokens.Animation.heroBreathingDuration)
             }
         }
-        .padding(.leading, DesignTokens.Spacing.sm)
-        .padding(.trailing, DesignTokens.Spacing.md)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .background(Color.surface, in: Capsule())
-        .shadow(DesignTokens.Shadow.elevated)
-        .environment(\.colorScheme, .light)
+    }
+
+    /// Placed around the wedge's edge, never over its face.
+    private var sparkles: some View {
+        ZStack {
+            sparkle(0, isDot: false).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .offset(x: DesignTokens.Spacing.xxxl, y: -DesignTokens.Spacing.lg)
+            sparkle(1, isDot: true).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .offset(x: -DesignTokens.Spacing.sectionGap, y: -DesignTokens.Spacing.md)
+            sparkle(2, isDot: false).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .offset(x: -DesignTokens.Spacing.sm, y: -DesignTokens.Spacing.xxl)
+            sparkle(3, isDot: true).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .offset(x: -DesignTokens.Spacing.xl, y: -DesignTokens.Spacing.sectionGap)
+            sparkle(4, isDot: false).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .offset(x: DesignTokens.Spacing.md, y: DesignTokens.Spacing.sm)
+            sparkle(5, isDot: true).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .offset(x: DesignTokens.Spacing.sm, y: DesignTokens.Spacing.md)
+        }
+    }
+
+    @ViewBuilder
+    private func sparkle(_ index: Int, isDot: Bool) -> some View {
+        let mark = Group {
+            if isDot {
+                Circle()
+                    .fill(Color.heroAccentPositive)
+                    .frame(width: DesignTokens.Entry.sparkleDot, height: DesignTokens.Entry.sparkleDot)
+            } else {
+                Image(systemName: "sparkle")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Color.heroInk)
+                    .frame(width: DesignTokens.Entry.sparkleSize, height: DesignTokens.Entry.sparkleSize)
+            }
+        }
+        if reduceMotion {
+            mark
+        } else {
+            mark.phaseAnimator([true, false]) { content, isBright in
+                content
+                    .opacity(isBright ? 1 : DesignTokens.Opacity.strong)
+                    .scaleEffect(isBright ? 1 : DesignTokens.Entry.twinkleScale)
+            } animation: { _ in
+                DesignTokens.Animation.twinkle(index)
+            }
+        }
     }
 }
 

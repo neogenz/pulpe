@@ -9,14 +9,8 @@ struct OnboardingBudgetRing: View {
     let currency: SupportedCurrency
     /// Centre sub-line ("CHF · pour l'instant", "CHF").
     var subtitle: String?
-    /// The welcome sample draws itself in once; the steps' ring follows the typed amounts.
-    var drawsIn = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isDrawnIn = false
-
-    /// How much of the ring is drawn: 0 until a drawing-in ring has appeared.
-    private var drawn: Double { drawsIn && !reduceMotion && !isDrawnIn ? 0 : 1 }
 
     private var available: Decimal { income - charges - savings }
     private var isOverrun: Bool { available < 0 }
@@ -56,7 +50,7 @@ struct OnboardingBudgetRing: View {
             segment(from: savingsEnd, to: restEnd, inset: inset, color: .heroInk)
             if isOverrun {
                 Circle()
-                    .trim(from: 0, to: fraction(-available) * drawn)
+                    .trim(from: 0, to: fraction(-available))
                     .stroke(
                         Color.heroAccentDeficit,
                         style: StrokeStyle(lineWidth: DesignTokens.Entry.ringOverflowStroke, lineCap: .round)
@@ -70,12 +64,6 @@ struct OnboardingBudgetRing: View {
         .padding(DesignTokens.Entry.ringOverflowGap)
         .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: available)
         .animation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring, value: income)
-        .onAppear {
-            guard drawsIn, !reduceMotion else { return }
-            withAnimation(DesignTokens.Animation.ringDrawIn.delay(DesignTokens.Animation.staggerStep * 4)) {
-                isDrawnIn = true
-            }
-        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(centreLabel)
         .accessibilityValue(available.magnitude.asCurrency(currency))
@@ -84,8 +72,8 @@ struct OnboardingBudgetRing: View {
     /// A rounded arc with clear space at both ends. One too short to clear its caps fades out
     /// instead of shrinking to a dot.
     private func segment(from start: Double, to end: Double, inset: Double, color: Color) -> some View {
-        let from = start * drawn + inset
-        let to = max(from, end * drawn - inset)
+        let from = start + inset
+        let to = max(from, end - inset)
         return Circle()
             .trim(from: from, to: to)
             .stroke(color, style: StrokeStyle(lineWidth: DesignTokens.Entry.ringStroke, lineCap: .round))

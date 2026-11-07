@@ -40,9 +40,11 @@ extension DesignTokens {
             .spring(response: 0.6, dampingFraction: 0.8)
         }
 
-        /// A ring drawing itself in, clockwise, without overshooting its end.
-        static var ringDrawIn: SwiftUI.Animation {
-            .spring(duration: 1.1, bounce: 0)
+        /// One twinkle of the welcome sparkle at `index`. Each gets its own length so they
+        /// never pulse in step, which would read as a loading indicator.
+        static func twinkle(_ index: Int) -> SwiftUI.Animation {
+            let durations: [Double] = [2.6, 3.3, 2.9, 3.7, 2.4, 3.1]
+            return .easeInOut(duration: durations[index % durations.count])
         }
 
         // MARK: - Easing
