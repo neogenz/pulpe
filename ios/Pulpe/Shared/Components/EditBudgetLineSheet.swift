@@ -392,18 +392,19 @@ private struct DrawnFromAssetCard: View {
     @Environment(FeatureFlagsStore.self) private var featureFlags
 
     var body: some View {
-        let name = assetStore.netWorth?.assets.first { $0.id == assetId }?.name
-        // A container that always renders: an empty Group never runs its `.task`.
-        VStack {
-            if featureFlags.isNetWorthEnabled, let name {
-                FormCard {
-                    Text(AppLocale.string("Pris sur \(name)"))
-                        .font(PulpeTypography.bodyLarge)
-                        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+        if featureFlags.isNetWorthEnabled {
+            // A container that always renders: an empty Group never runs its `.task`.
+            VStack {
+                if let name = assetStore.netWorth?.assets.first(where: { $0.id == assetId })?.name {
+                    FormCard {
+                        Text(AppLocale.string("Pris sur \(name)"))
+                            .font(PulpeTypography.bodyLarge)
+                            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+                    }
                 }
             }
+            .task { await assetStore.loadIfNeeded() }
         }
-        .task { await assetStore.loadIfNeeded() }
     }
 }
 

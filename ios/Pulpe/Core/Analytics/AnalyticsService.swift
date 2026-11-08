@@ -325,12 +325,18 @@ final class AnalyticsService {
 
     // MARK: - Feature Flags
 
+    /// Only the SDK being up gates flags: opting out of diagnostics must not hide a rollout.
+    nonisolated static func evaluatesFlags(isInitialized: Bool, isDiagnosticSharingEnabled: Bool) -> Bool {
+        isInitialized
+    }
+
     /// Returns true when the given feature flag is enabled for the current user.
     /// Safe default: returns false before PostHog initializes. Flags still evaluate with
     /// diagnostics off (the person is anonymous): the SDK captures no `$feature_flag_called`
     /// while opted out, so a rollout reaches users who stopped sharing.
     func isFeatureEnabled(_ key: String) -> Bool {
-        guard isInitialized else { return false }
+        guard Self.evaluatesFlags(isInitialized: isInitialized, isDiagnosticSharingEnabled: isDiagnosticSharingEnabled)
+        else { return false }
         return PostHogSDK.shared.isFeatureEnabled(key)
     }
 
@@ -339,7 +345,8 @@ final class AnalyticsService {
     /// applied to the SDK's local cache — safe to read `isFeatureEnabled` inside it.
     /// Call after identify() so person-property-based flags re-evaluate.
     func reloadFeatureFlags(onComplete: (@MainActor @Sendable () -> Void)? = nil) {
-        guard isInitialized else { return }
+        guard Self.evaluatesFlags(isInitialized: isInitialized, isDiagnosticSharingEnabled: isDiagnosticSharingEnabled)
+        else { return }
         // The callback must be created in a nonisolated context: Swift 6 would otherwise
         // infer @MainActor on the closure (we're inside a @MainActor class), causing
         // a runtime crash when PostHog calls it from a background thread.

@@ -47,14 +47,7 @@ struct NetWorthView: View {
             case .failed(let error):
                 ErrorView(error: error) { await store.forceRefresh() }
             case .empty:
-                PulpeEmptyState(
-                    systemImage: "building.columns",
-                    title: AppLocale.string("Ton patrimoine commence ici"),
-                    // swiftlint:disable:next line_length
-                    message: AppLocale.string("Ajoute un compte, un livret ou une dette pour voir ta fortune nette du jour."),
-                    actionTitle: AppLocale.string("Ajouter un avoir"),
-                    action: { form = .create }
-                )
+                emptyScreen
             case .loaded(let sections):
                 loaded(sections)
             }
@@ -63,13 +56,6 @@ struct NetWorthView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(removing: .title)
         .toolbar {
-            // Categories outlive their assets: manageable on the empty screen too.
-            if store.netWorth != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(AppLocale.string("Catégories"), systemImage: "folder") { showsCategories = true }
-                        .accessibilityIdentifier("netWorthCategories")
-                }
-            }
             if case .loaded = content {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(AppLocale.string("Ajouter"), systemImage: "plus") { form = .create }
@@ -103,6 +89,31 @@ struct NetWorthView: View {
         .accessibilityIdentifier("netWorthRoot")
     }
 
+    private var emptyScreen: some View {
+        VStack(spacing: DesignTokens.Spacing.none) {
+            PulpeEmptyState(
+                systemImage: "building.columns",
+                title: AppLocale.string("Ton patrimoine commence ici"),
+                // swiftlint:disable:next line_length
+                message: AppLocale.string("Ajoute un compte, un livret ou une dette pour voir ta fortune nette du jour."),
+                actionTitle: AppLocale.string("Ajouter un avoir"),
+                action: { form = .create }
+        )
+            // Categories outlive their assets: manageable on the empty screen too.
+            categoriesRow
+                .padding([.horizontal, .bottom], DesignTokens.Spacing.lg)
+        }
+    }
+
+    private var categoriesRow: some View {
+        ContextLinkRow(
+            icon: "folder",
+            iconTint: .pulpePrimary,
+            title: AppLocale.string("Gérer les catégories")
+        ) { showsCategories = true }
+            .accessibilityIdentifier("netWorthCategories")
+    }
+
     private func loaded(_ sections: NetWorthSections) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
@@ -132,6 +143,7 @@ struct NetWorthView: View {
                     )
                 }
                 if !sections.archived.isEmpty { archived(sections) }
+                categoriesRow
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
             }

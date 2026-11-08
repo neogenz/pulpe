@@ -231,14 +231,15 @@ struct AssetFormSheet: View {
         guard canSave, let category = draft.category else { return }
         errorMessage = nil
         do {
-            if let asset {
-                guard draft.hasChanges(from: asset) else { return dismiss() }
+            switch (draft.submission(original: asset), asset) {
+            case (.close, _): break
+            case (.update, let asset?):
                 try await store.update(
                     id: asset.id,
                     draft.updatePayload(original: asset),
                     category: draft.categoryChange(from: asset)
                 )
-            } else {
+            default:
                 var existingId = ""
                 if case .existing(let id) = category { existingId = id }
                 try await store.create(draft.createPayload(categoryId: existingId), category: category)

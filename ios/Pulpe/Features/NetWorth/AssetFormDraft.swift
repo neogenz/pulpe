@@ -81,6 +81,14 @@ struct AssetFormDraft: Equatable {
         updatePayload(original: original) != AssetUpdate() || categoryChange(from: original) != nil
     }
 
+    enum Submission: Equatable { case create, update, close }
+
+    /// What saving does: an untouched edit just closes.
+    func submission(original: Asset?) -> Submission {
+        guard let original else { return .create }
+        return hasChanges(from: original) ? .update : .close
+    }
+
     /// `nil` when the asset stays in its category.
     func categoryChange(from original: Asset) -> AssetCategoryChoice? {
         category == .existing(id: original.categoryId) ? nil : category

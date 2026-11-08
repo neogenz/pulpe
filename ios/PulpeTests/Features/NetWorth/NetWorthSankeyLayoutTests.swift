@@ -57,4 +57,39 @@ struct NetWorthSankeyLayoutTests {
 
         #expect(result.nodes.allSatisfy { $0.rect.height >= DesignTokens.Chart.sankeyMinNodeHeight })
     }
+
+    @Test(arguments: [false, true])
+    func middleLabelsNeverTouchANodeOrAnotherLabel(overdraft: Bool) throws {
+        let assets = [
+            TestDataFactory.makeAsset(id: "a", categoryId: "c1", name: "UBS", latestValue: 900),
+            TestDataFactory.makeAsset(id: "b", categoryId: "c1", name: "Cash", latestValue: 100),
+            TestDataFactory.makeAsset(id: "c", categoryId: "c2", name: "Livret", latestValue: 700),
+            TestDataFactory.makeAsset(id: "e", categoryId: "c2", name: "Or", latestValue: 300),
+            TestDataFactory.makeAsset(id: "d", name: "Leasing", direction: .owe, latestValue: overdraft ? 3000 : 400),
+        ]
+        let graph = try #require(NetWorthSankey.build(NetWorth(
+            totals: NetWorthTotals(
+                baseCurrency: .chf, gross: 2000, debts: overdraft ? 3000 : 400, net: overdraft ? -1000 : 1600,
+                incomplete: false
+            ),
+            categories: [
+                AssetCategory(id: "c1", name: "Comptes", total: 1000),
+                AssetCategory(id: "c2", name: "Épargne", total: 1000),
+            ],
+            assets: assets
+        )))
+        // The card never draws narrower than its minimum width, and the headroom above holds the first pills.
+        let drawn = CGSize(
+            width: DesignTokens.Chart.sankeyMinWidth, height: size.height - DesignTokens.Chart.sankeyLabelHeadroom
+        )
+        let result = NetWorthSankeyLayout.layout(graph, in: drawn)
+        let labels = result.nodes.compactMap { frame in frame.labelRect.map { (frame.id, $0) } }
+
+        #expect(labels.count >= 3)
+        for (id, label) in labels {
+            #expect(label.minY >= -DesignTokens.Chart.sankeyLabelHeadroom)
+            for node in result.nodes { #expect(!label.intersects(node.rect), "\(id) label covers \(node.id)") }
+            for (other, rect) in labels where other != id { #expect(!label.intersects(rect)) }
+        }
+    }
 }

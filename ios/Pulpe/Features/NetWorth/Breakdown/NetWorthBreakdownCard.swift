@@ -91,12 +91,13 @@ struct NetWorthBreakdownCard: View {
         .lineLimit(1)
         .minimumScaleFactor(DesignTokens.TextScale.floor)
         if isMiddle {
-            // Bands run on both sides of a middle node: its label sits above it, on a pill, clear of them.
+            // Bands run on both sides of a middle node: its label sits in the gap above it, on a pill.
+            let pill = frame.labelRect ?? .zero
             text
                 .padding(.horizontal, DesignTokens.Spacing.xs)
+                .frame(width: pill.width, height: pill.height)
                 .background(Color.surfaceContainerLowest, in: .capsule)
-                .fixedSize()
-                .position(x: frame.rect.midX, y: frame.rect.minY - gap - DesignTokens.Spacing.md)
+                .position(x: pill.midX, y: pill.midY)
         } else {
             text
                 .frame(width: labelWidth, alignment: onLeft ? .trailing : .leading)

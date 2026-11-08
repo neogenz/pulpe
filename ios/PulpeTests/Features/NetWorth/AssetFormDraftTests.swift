@@ -73,4 +73,14 @@ struct AssetFormDraftTests {
         #expect(draft.updatePayload(original: original) == AssetUpdate(name: "UBS"))
         #expect(draft.categoryChange(from: original) == .starter(name: "Crypto"))
     }
+
+    @Test func submission_closesAnUntouchedEdit_updatesAChangedOne_createsWithoutAsset() {
+        let original = TestDataFactory.makeAsset(categoryId: "c1", name: "Compte UBS")
+        var draft = AssetFormDraft(asset: original)
+        #expect(draft.submission(original: original) == .close)
+
+        draft.name = "Autre"
+        #expect(draft.submission(original: original) == .update)
+        #expect(valid().submission(original: nil) == .create)
+    }
 }

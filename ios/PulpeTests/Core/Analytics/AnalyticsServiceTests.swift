@@ -292,6 +292,12 @@ struct AnalyticsServiceTests {
         )
     }
 
+    @Test func flagsEvaluateWithDiagnosticsOff() {
+        #expect(AnalyticsService.evaluatesFlags(isInitialized: true, isDiagnosticSharingEnabled: false))
+        #expect(AnalyticsService.evaluatesFlags(isInitialized: true, isDiagnosticSharingEnabled: true))
+        #expect(!AnalyticsService.evaluatesFlags(isInitialized: false, isDiagnosticSharingEnabled: false))
+    }
+
     @Test func captureSignupCompleted_newAccount_identifiesTheAccount() {
         let service = AnalyticsService(isConfiguredEnabled: true)
         let user = UserInfo(id: "CD123456-1234-1234-1234-123456789ABC", email: "", firstName: "Lea")

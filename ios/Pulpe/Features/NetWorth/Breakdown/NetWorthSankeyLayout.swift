@@ -8,6 +8,8 @@ enum NetWorthSankeyLayout {
         let kind: NetWorthSankey.Kind
         let column: Int
         let rect: CGRect
+        /// Pill above a middle-column node; nil elsewhere (labels sit beside the node).
+        let labelRect: CGRect?
     }
 
     struct LinkBand {
@@ -48,7 +50,14 @@ enum NetWorthSankeyLayout {
             through[id] = max(incoming, outgoing)
         }
 
-        let scale = sharedScale(ordered: ordered, through: through, height: size.height, gap: gap, minHeight: minHeight)
+        // A middle node's label sits in the gap above it: that gap holds the pill, its clearance included.
+        let pillGap = DesignTokens.Chart.sankeyPillHeight + 2 * DesignTokens.Spacing.xs
+        let gaps = (0..<columnCount).map { column in
+            column > 0 && column < columnCount - 1 ? max(gap, pillGap) : gap
+        }
+        let scale = sharedScale(
+            ordered: ordered, through: through, height: size.height, gaps: gaps, minHeight: minHeight
+        )
         let left = labelWidth
         let step = columnCount > 1 ? (size.width - 2 * labelWidth - nodeWidth) / CGFloat(columnCount - 1) : 0
 
@@ -56,12 +65,21 @@ enum NetWorthSankeyLayout {
         var frames: [NodeFrame] = []
         for (column, ids) in ordered.enumerated() {
             let heights = ids.map { max(CGFloat(through[$0] ?? 0) * scale, minHeight) }
+            let gap = gaps[column]
+            let isMiddle = column > 0 && column < columnCount - 1
             let total = heights.reduce(0, +) + gap * CGFloat(max(ids.count - 1, 0))
             var y = (size.height - total) / 2
             for (id, height) in zip(ids, heights) {
                 let rect = CGRect(x: left + step * CGFloat(column), y: y, width: nodeWidth, height: height)
                 rects[id] = rect
-                frames.append(NodeFrame(id: id, kind: graph.nodes[id]?.kind ?? .asset, column: column, rect: rect))
+                let labelRect = isMiddle ? CGRect(
+                    x: rect.midX - DesignTokens.Chart.sankeyLabelWidth / 2,
+                    y: rect.minY - DesignTokens.Spacing.xs - DesignTokens.Chart.sankeyPillHeight,
+                    width: DesignTokens.Chart.sankeyLabelWidth, height: DesignTokens.Chart.sankeyPillHeight
+                ) : nil
+                frames.append(NodeFrame(
+                    id: id, kind: graph.nodes[id]?.kind ?? .asset, column: column, rect: rect, labelRect: labelRect
+                ))
                 y += height + gap
             }
         }
@@ -109,22 +127,24 @@ enum NetWorthSankeyLayout {
     /// One scale for every column, shrunk until the tallest one (gaps and minimum heights
     /// included) fits the height.
     private static func sharedScale(
-        ordered: [[String]], through: [String: Double], height: CGFloat, gap: CGFloat, minHeight: CGFloat
+        ordered: [[String]], through: [String: Double], height: CGFloat, gaps: [CGFloat], minHeight: CGFloat
     ) -> CGFloat {
         var scale = CGFloat.greatestFiniteMagnitude
-        for ids in ordered {
+        for (column, ids) in ordered.enumerated() {
+            let gap = gaps[column]
             let total = ids.reduce(0) { $0 + (through[$1] ?? 0) }
             let free = height - gap * CGFloat(max(ids.count - 1, 0))
             if total > 0 { scale = min(scale, free / CGFloat(total)) }
         }
         guard scale.isFinite else { return 0 }
-        func columnHeight(_ ids: [String]) -> CGFloat {
-            var total = gap * CGFloat(max(ids.count - 1, 0))
+        func columnHeight(_ column: Int) -> CGFloat {
+            let ids = ordered[column]
+            var total = gaps[column] * CGFloat(max(ids.count - 1, 0))
             for id in ids { total += max(CGFloat(through[id] ?? 0) * scale, minHeight) }
             return total
         }
         for _ in 0..<12 {
-            let overflow = ordered.map(columnHeight).max() ?? 0
+            let overflow = ordered.indices.map(columnHeight).max() ?? 0
             if overflow <= height { break }
             scale *= max(height / overflow, 0.5)
         }

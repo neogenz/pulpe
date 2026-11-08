@@ -47277,6 +47277,29 @@
         }
       }
     },
+    "Gérer les catégories" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kategorien verwalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage categories"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestisci le categorie"
+          }
+        }
+      }
+    },
     "Répartition aujourd'hui" : {
       "extractionState" : "manual",
       "localizations" : {
