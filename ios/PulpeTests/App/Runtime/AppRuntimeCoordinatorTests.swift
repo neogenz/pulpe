@@ -59,13 +59,25 @@ struct AppRuntimeCoordinatorTests {
 
     // MARK: - App-open Signal
 
-    @Test func appOpenedCallback_firesOnceOnInitialActivation() {
+    @Test func appOpenedCallback_firesOnColdLaunchStraightIntoActive() {
         var callCount = 0
         let sut = makeCoordinator(appState: AppState()) { callCount += 1 }
 
-        sut.handleScenePhaseChange(from: .inactive, to: .active)
+        // A launch into `.active` emits no scene phase change: only the startup gate sees it.
+        _ = sut.consumeVisibleStartup(for: .active)
         sut.handleScenePhaseChange(from: .active, to: .inactive)
         sut.handleScenePhaseChange(from: .inactive, to: .active)
+
+        #expect(callCount == 1)
+    }
+
+    @Test func appOpenedCallback_firesOnceWhenLaunchActivatesLate() {
+        var callCount = 0
+        let sut = makeCoordinator(appState: AppState()) { callCount += 1 }
+        _ = sut.consumeVisibleStartup(for: .inactive)
+
+        sut.handleScenePhaseChange(from: .inactive, to: .active)
+        _ = sut.consumeVisibleStartup(for: .active)
 
         #expect(callCount == 1)
     }
@@ -73,7 +85,7 @@ struct AppRuntimeCoordinatorTests {
     @Test func appOpenedCallback_firesAfterBackgroundEvenWhenInactivePrecedesActive() {
         var callCount = 0
         let sut = makeCoordinator(appState: AppState()) { callCount += 1 }
-        sut.handleScenePhaseChange(from: .inactive, to: .active)
+        _ = sut.consumeVisibleStartup(for: .active)
 
         sut.handleScenePhaseChange(from: .active, to: .inactive)
         sut.handleScenePhaseChange(from: .inactive, to: .background)

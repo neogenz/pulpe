@@ -29,7 +29,6 @@ final class AppRuntimeCoordinator {
     private let onAppOpened: @MainActor () -> Void
     private var foregroundTask: Task<Void, Never>?
     @ObservationIgnored private var hasRequestedVisibleStartup = false
-    private var hasTrackedInitialOpen = false
     private var backgroundReturnTracker = SceneBackgroundReturnTracker()
 
     init(
@@ -58,7 +57,15 @@ final class AppRuntimeCoordinator {
             source: "ui_startup",
             outcome: "started_active"
         )
+        // The first interactive activation is the open: a launch straight into `.active`
+        // never reaches `handleScenePhaseChange`, onChange skips the initial value.
+        trackAppOpened()
         return true
+    }
+
+    private func trackAppOpened() {
+        AnalyticsService.shared.capture(.appOpened)
+        onAppOpened()
     }
 
     func recordInitialStartupDeferral(for scenePhase: ScenePhase) {
@@ -95,13 +102,9 @@ final class AppRuntimeCoordinator {
             withAnimation(.easeInOut(duration: DesignTokens.Animation.quickSnap)) {
                 privacyShieldActive = false
             }
-            // Fire app_opened on cold start (first activation) and warm returns from background.
-            // The normal warm-return path includes an inactive phase before active.
-            if !hasTrackedInitialOpen || isBackgroundReturn {
-                AnalyticsService.shared.capture(.appOpened)
-                onAppOpened()
-                hasTrackedInitialOpen = true
-            }
+            // Warm returns from background; the cold open is tracked by `consumeVisibleStartup`.
+            // An `.inactive` bounce (Control Center, a system prompt) is not an open.
+            if isBackgroundReturn { trackAppOpened() }
         }
 
         if newPhase == .background {
