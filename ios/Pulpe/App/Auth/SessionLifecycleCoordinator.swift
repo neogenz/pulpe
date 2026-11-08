@@ -88,12 +88,17 @@ final class SessionLifecycleCoordinator {
     /// Face ID prompt or stalled validation routes to PIN entry instead of leaving the
     /// privacy shield frozen. The financial content stays masked either way.
     func handleEnterForeground(authState: AppState.AuthStatus) async -> ForegroundResult {
-        guard backgroundLockApplies(authState: authState) else {
+        let lockApplies = backgroundLockApplies(authState: authState)
+        let bgDesc = String(describing: backgroundDate)
+        // Every return consumes the timestamp, locked or not. A date left by a return made
+        // before sign-in (onboarding, PIN screen) would re-lock on the next `.inactive` →
+        // `.active` bounce once authenticated, and the Face ID sheet itself is such a bounce:
+        // the user got a second Face ID prompt right after the first.
+        backgroundDate = nil
+        guard lockApplies else {
             return .noLockNeeded
         }
-        let bgDesc = String(describing: backgroundDate)
         authDebug("AUTH_FG_LOCK", "bgDate=\(bgDesc) bio=\(biometric.isEnabled)")
-        backgroundDate = nil
 
         await clientKeyManager.clearCache()
         authDebug("AUTH_FG_LOCK", "cache cleared, checking biometric key")
