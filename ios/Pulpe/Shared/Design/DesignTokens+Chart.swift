@@ -56,7 +56,7 @@ extension DesignTokens {
         static let sankeyHeight: CGFloat = 260
         static let sankeyNodeWidth: CGFloat = 10
         static let sankeyNodeGap: CGFloat = 14
-        static let sankeyMinNodeHeight: CGFloat = 8
+        static let sankeyMinNodeHeight: CGFloat = 20
         static let sankeyLabelWidth: CGFloat = 96
         static let sankeyLabelHeadroom: CGFloat = 40
         /// Pill carrying the label of a middle-column node; the layout keeps a gap of this height free above each.

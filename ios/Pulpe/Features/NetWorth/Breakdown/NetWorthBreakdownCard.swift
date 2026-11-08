@@ -10,6 +10,12 @@ struct NetWorthBreakdownCard: View {
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.horizontalSizeClass) private var sizeClass
 
+    /// The token height, grown when many categories need more room.
+    private var diagramHeight: CGFloat {
+        max(DesignTokens.Chart.sankeyHeight,
+            NetWorthSankeyLayout.requiredHeight(graph) + DesignTokens.Chart.sankeyLabelHeadroom)
+    }
+
     private var currency: SupportedCurrency { totals.baseCurrency }
 
     var body: some View {
@@ -27,7 +33,7 @@ struct NetWorthBreakdownCard: View {
                     diagram(width: max(proxy.size.width, DesignTokens.Chart.sankeyMinWidth))
                 }
                 .frame(minWidth: DesignTokens.Chart.sankeyMinWidth)
-                .frame(height: DesignTokens.Chart.sankeyHeight)
+                .frame(height: diagramHeight)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(summary)
@@ -48,7 +54,7 @@ struct NetWorthBreakdownCard: View {
     private func diagram(width: CGFloat) -> some View {
         // Headroom above the nodes for the labels of the middle column.
         let headroom = DesignTokens.Chart.sankeyLabelHeadroom
-        let size = CGSize(width: width, height: DesignTokens.Chart.sankeyHeight - headroom)
+        let size = CGSize(width: width, height: diagramHeight - headroom)
         let result = NetWorthSankeyLayout.layout(graph, in: size)
         return ZStack(alignment: .topLeading) {
             Canvas { context, _ in

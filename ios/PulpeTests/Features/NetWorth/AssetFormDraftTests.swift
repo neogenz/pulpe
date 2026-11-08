@@ -80,7 +80,7 @@ struct AssetFormDraftTests {
         #expect(draft.submission(original: original) == .close)
 
         draft.name = "Autre"
-        #expect(draft.submission(original: original) == .update)
+        #expect(draft.submission(original: original) == .update(original))
         #expect(valid().submission(original: nil) == .create)
     }
 }

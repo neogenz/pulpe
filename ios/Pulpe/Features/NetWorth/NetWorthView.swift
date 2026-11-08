@@ -98,7 +98,7 @@ struct NetWorthView: View {
                 message: AppLocale.string("Ajoute un compte, un livret ou une dette pour voir ta fortune nette du jour."),
                 actionTitle: AppLocale.string("Ajouter un avoir"),
                 action: { form = .create }
-        )
+            )
             // Categories outlive their assets: manageable on the empty screen too.
             categoriesRow
                 .padding([.horizontal, .bottom], DesignTokens.Spacing.lg)

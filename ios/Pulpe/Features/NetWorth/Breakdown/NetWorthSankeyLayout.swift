@@ -27,16 +27,40 @@ enum NetWorthSankeyLayout {
         let nodes: [NodeFrame]
         let bands: [LinkBand]
         let columnCount: Int
+        /// Drawing height actually used: the asked one, grown when the columns need more.
+        let height: CGFloat
+    }
+
+    /// Height the tallest column needs: its gaps (label pills included) plus a readable
+    /// height per node. The card frames `max(its token height, this)`.
+    static func requiredHeight(_ graph: NetWorthSankey.Graph) -> CGFloat {
+        let columns = columnIndexes(graph)
+        let columnCount = (columns.values.max() ?? 0) + 1
+        let ordered = orderedColumns(graph, columns: columns, columnCount: columnCount)
+        let gaps = columnGaps(columnCount)
+        let readable = DesignTokens.Chart.sankeyMinNodeHeight
+        return ordered.enumerated().map { column, ids in
+            CGFloat(ids.count) * readable + gaps[column] * CGFloat(max(ids.count - 1, 0))
+        }.max() ?? 0
+    }
+
+    /// A middle node's label sits in the gap above it: that gap holds the pill, its clearance included.
+    private static func columnGaps(_ columnCount: Int) -> [CGFloat] {
+        let pillGap = DesignTokens.Chart.sankeyPillHeight + 2 * DesignTokens.Spacing.xs
+        return (0..<columnCount).map { column in
+            column > 0 && column < columnCount - 1
+                ? max(DesignTokens.Chart.sankeyNodeGap, pillGap) : DesignTokens.Chart.sankeyNodeGap
+        }
     }
 
     /// `labelWidth` is kept free on both sides for the first and last column labels.
     static func layout(
         _ graph: NetWorthSankey.Graph,
-        in size: CGSize,
+        in asked: CGSize,
         labelWidth: CGFloat = DesignTokens.Chart.sankeyLabelWidth
     ) -> Result {
+        let size = CGSize(width: asked.width, height: max(asked.height, requiredHeight(graph)))
         let nodeWidth = DesignTokens.Chart.sankeyNodeWidth
-        let gap = DesignTokens.Chart.sankeyNodeGap
         let minHeight = DesignTokens.Chart.sankeyMinNodeHeight
         let columns = columnIndexes(graph)
         let columnCount = (columns.values.max() ?? 0) + 1
@@ -50,11 +74,7 @@ enum NetWorthSankeyLayout {
             through[id] = max(incoming, outgoing)
         }
 
-        // A middle node's label sits in the gap above it: that gap holds the pill, its clearance included.
-        let pillGap = DesignTokens.Chart.sankeyPillHeight + 2 * DesignTokens.Spacing.xs
-        let gaps = (0..<columnCount).map { column in
-            column > 0 && column < columnCount - 1 ? max(gap, pillGap) : gap
-        }
+        let gaps = columnGaps(columnCount)
         let scale = sharedScale(
             ordered: ordered, through: through, height: size.height, gaps: gaps, minHeight: minHeight
         )
@@ -84,7 +104,10 @@ enum NetWorthSankeyLayout {
             }
         }
 
-        return Result(nodes: frames, bands: bands(graph, rects: rects, scale: scale), columnCount: columnCount)
+        return Result(
+            nodes: frames, bands: bands(graph, rects: rects, scale: scale),
+            columnCount: columnCount, height: size.height
+        )
     }
 
     // MARK: - Columns
@@ -137,18 +160,22 @@ enum NetWorthSankeyLayout {
             if total > 0 { scale = min(scale, free / CGFloat(total)) }
         }
         guard scale.isFinite else { return 0 }
-        func columnHeight(_ column: Int) -> CGFloat {
-            let ids = ordered[column]
-            var total = gaps[column] * CGFloat(max(ids.count - 1, 0))
-            for id in ids { total += max(CGFloat(through[id] ?? 0) * scale, minHeight) }
-            return total
+        func overflows(_ candidate: CGFloat) -> Bool {
+            for (column, ids) in ordered.enumerated() {
+                var total: CGFloat = gaps[column] * CGFloat(max(ids.count - 1, 0))
+                for id in ids { total += max(CGFloat(through[id] ?? 0) * candidate, minHeight) }
+                if total > height { return true }
+            }
+            return false
         }
-        for _ in 0..<12 {
-            let overflow = ordered.indices.map(columnHeight).max() ?? 0
-            if overflow <= height { break }
-            scale *= max(height / overflow, 0.5)
+        guard overflows(scale) else { return scale }
+        // Minimum heights make the fit non-linear: bisect to the largest scale that still fits.
+        var (low, high) = (CGFloat(0), scale)
+        for _ in 0..<40 {
+            let mid = (low + high) / 2
+            if overflows(mid) { high = mid } else { low = mid }
         }
-        return scale
+        return low
     }
 
     // MARK: - Bands

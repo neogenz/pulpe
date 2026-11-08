@@ -92,4 +92,38 @@ struct NetWorthSankeyLayoutTests {
             for (other, rect) in labels where other != id { #expect(!label.intersects(rect)) }
         }
     }
+
+    @Test func sevenCategoriesStayInsideTheReturnedFrameWithClearLabels() throws {
+        var assets: [Asset] = []
+        var categories: [AssetCategory] = []
+        for index in 1...7 {
+            categories.append(AssetCategory(id: "c\(index)", name: "Cat \(index)", total: 1000))
+            for part in 1...2 {
+                assets.append(TestDataFactory.makeAsset(
+                    id: "a\(index)\(part)", categoryId: "c\(index)", name: "Avoir \(index)\(part)",
+                    latestValue: part == 1 ? 900 : 100
+                ))
+            }
+        }
+        assets.append(TestDataFactory.makeAsset(id: "d", name: "Leasing", direction: .owe, latestValue: 2000))
+        let graph = try #require(NetWorthSankey.build(NetWorth(
+            totals: NetWorthTotals(baseCurrency: .chf, gross: 7000, debts: 2000, net: 5000, incomplete: false),
+            categories: categories, assets: assets
+        )))
+        let headroom = DesignTokens.Chart.sankeyLabelHeadroom
+        let drawn = CGSize(width: DesignTokens.Chart.sankeyMinWidth, height: DesignTokens.Chart.sankeyHeight - headroom)
+        let result = NetWorthSankeyLayout.layout(graph, in: drawn)
+        let frame = CGRect(x: 0, y: -headroom, width: drawn.width, height: result.height + headroom)
+            .insetBy(dx: -0.001, dy: -0.001)
+        let labels = result.nodes.compactMap { node in node.labelRect.map { (node.id, $0) } }
+
+        #expect(result.height > drawn.height)
+        #expect(result.height >= NetWorthSankeyLayout.requiredHeight(graph))
+        for node in result.nodes { #expect(frame.contains(node.rect), "\(node.id) clipped") }
+        for (id, label) in labels {
+            #expect(frame.contains(label), "\(id) label clipped")
+            for node in result.nodes { #expect(!label.intersects(node.rect), "\(id) label covers \(node.id)") }
+            for (other, rect) in labels where other != id { #expect(!label.intersects(rect)) }
+        }
+    }
 }
