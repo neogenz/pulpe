@@ -98,7 +98,7 @@ struct NetWorthView: View {
             // swiftlint:disable:next line_length
             Text("Tout son historique de valeurs est supprimé aussi. Archive-le plutôt pour le sortir des totaux en gardant l'historique.")
         }
-        .task { await store.loadIfNeeded() }
+        .task { await store.forceRefresh() }
         .accessibilityIdentifier("netWorthRoot")
     }
 
@@ -158,23 +158,42 @@ struct NetWorthView: View {
         VStack(spacing: DesignTokens.Spacing.none) {
             ForEach(Array(assets.enumerated()), id: \.element.id) { index, asset in
                 if index > 0 { Divider().overlay(Color.outlineVariant) }
-                NetWorthAssetRow(
-                    asset: asset,
-                    baseCurrency: sections.baseCurrency,
-                    categoryName: showsCategory ? sections.categoryName(of: asset) : nil,
-                    actions: NetWorthAssetActions(
-                        updateValue: { valueTarget = asset },
-                        edit: { form = .edit(asset) },
-                        toggleArchive: {
-                            run { try await store.setArchived(id: asset.id, asset.archivedAt == nil) }
-                        },
-                        delete: { pendingDelete = asset }
-                    )
-                )
+                assetRow(asset, sections: sections, showsCategory: showsCategory)
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .pulpeSurfaceCard()
+    }
+
+    private func assetRow(_ asset: Asset, sections: NetWorthSections, showsCategory: Bool) -> some View {
+        VStack(spacing: DesignTokens.Spacing.none) {
+            NetWorthAssetRow(
+                asset: asset,
+                baseCurrency: sections.baseCurrency,
+                categoryName: showsCategory ? sections.categoryName(of: asset) : nil,
+                actions: NetWorthAssetActions(
+                    updateValue: { valueTarget = asset },
+                    edit: { form = .edit(asset) },
+                    toggleArchive: {
+                        run { try await store.setArchived(id: asset.id, asset.archivedAt == nil) }
+                    },
+                    delete: { pendingDelete = asset }
+                )
+            )
+            if let suggestion = asset.visibleSuggestion {
+                NetWorthSuggestionRow(
+                    asset: asset,
+                    suggestion: suggestion,
+                    apply: {
+                        run {
+                            let item = AssetSnapshotItem(assetId: asset.id, value: suggestion.proposedValue)
+                            try await store.recordSnapshots(AssetSnapshotsCreate(items: [item]))
+                        }
+                    },
+                    dismiss: { run { try await store.dismissSuggestion(id: asset.id) } }
+                )
+            }
+        }
     }
 
     private func archived(_ sections: NetWorthSections) -> some View {

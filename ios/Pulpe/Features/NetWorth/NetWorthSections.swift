@@ -96,3 +96,24 @@ extension Asset {
         return formatter.localizedString(for: latestRecordedAt, relativeTo: now)
     }
 }
+
+// MARK: - Suggestion
+
+enum NetWorthSuggestionDetail: Equatable {
+    case saved
+    case drawn
+    case repaid
+}
+
+extension Asset {
+    /// An archived asset never offers one, whatever the payload carries.
+    var visibleSuggestion: AssetSuggestion? { isActive ? suggestion : nil }
+
+    /// The wording carries the direction (« pointée », « tiré »), so the amount has no sign.
+    var suggestionDetail: NetWorthSuggestionDetail {
+        if direction == .owe { return .repaid }
+        return (suggestion?.delta ?? 0) < 0 ? .drawn : .saved
+    }
+
+    var suggestionMagnitude: Decimal { (suggestion?.delta ?? 0).magnitude }
+}

@@ -101,4 +101,33 @@ struct NetWorthSectionsTests {
         let later = now.addingTimeInterval(3 * 86400)
         #expect(today.ageLabel(now: later, calendar: calendar, locale: locale) == "il y a 3 jours")
     }
+
+    // MARK: - Suggestion
+
+    @Test func archivedAssetHidesItsSuggestion() {
+        let suggestion = AssetSuggestion(delta: 500, proposedValue: 3500)
+        let active = TestDataFactory.makeAsset(suggestion: suggestion)
+        let archived = TestDataFactory.makeAsset(archivedAt: TestDataFactory.fixedDate, suggestion: suggestion)
+
+        #expect(active.visibleSuggestion == suggestion)
+        #expect(archived.visibleSuggestion == nil)
+    }
+
+    @Test func suggestionDetail_followsDirectionAndSign() {
+        let saved = TestDataFactory.makeAsset(suggestion: AssetSuggestion(delta: 500, proposedValue: 3500))
+        let drawn = TestDataFactory.makeAsset(suggestion: AssetSuggestion(delta: -200, proposedValue: 800))
+        let repaid = TestDataFactory.makeAsset(
+            direction: .owe, suggestion: AssetSuggestion(delta: -400, proposedValue: 7600)
+        )
+
+        #expect(saved.suggestionDetail == .saved)
+        #expect(drawn.suggestionDetail == .drawn)
+        #expect(repaid.suggestionDetail == .repaid)
+    }
+
+    @Test func suggestionMagnitudeIsUnsigned() {
+        let drawn = TestDataFactory.makeAsset(suggestion: AssetSuggestion(delta: -200, proposedValue: 800))
+
+        #expect(drawn.suggestionMagnitude == 200)
+    }
 }
