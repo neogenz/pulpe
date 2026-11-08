@@ -1,6 +1,34 @@
 @testable import Pulpe
 import Testing
 
+@MainActor
+struct AddBudgetLineAssetOriginTests {
+    @Test("A cold store offers no asset origin until the sheet has loaded it")
+    func assetOrigin_appearsOnceLoaded() async {
+        let store = AssetStore(service: MockAssetService())
+        #expect(!AddBudgetLineSheet.offersAsset(flagOn: true, store: store))
+
+        await AddBudgetLineSheet.loadAssets(flagOn: true, store: store)
+
+        #expect(AddBudgetLineSheet.offersAsset(flagOn: true, store: store))
+        #expect(!AddBudgetLineSheet.offersAsset(flagOn: false, store: store))
+    }
+
+    @Test("The savings origin toggle offers the asset segment only when asked")
+    func toggle_offersAssetOnlyWhenAsked() {
+        #expect(!SavingsOrigin.options(offersAsset: false).contains(.asset))
+        #expect(SavingsOrigin.options(offersAsset: true).contains(.asset))
+    }
+
+    @Test("Flag off never requests the assets")
+    func flagOff_neverLoads() async {
+        let service = MockAssetService()
+        await AddBudgetLineSheet.loadAssets(flagOn: false, store: AssetStore(service: service))
+
+        #expect(service.getNetWorthCallCount == 0)
+    }
+}
+
 /// The origin of an income is one choice among three (PUL-329 v2). Before, a goal
 /// picker and a "je remets le mois prochain" toggle could be armed together and
 /// meant two contradictory things — these lock that this can no longer be said.

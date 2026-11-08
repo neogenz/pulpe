@@ -25,6 +25,15 @@ struct AssetFormDraftTests {
         #expect(AssetFormDraft().nameError == nil)
     }
 
+    @Test func creating_requiresAValue_editingDoesNot() {
+        var draft = valid()
+        draft.amount = nil
+        #expect(!draft.isValid)
+
+        let original = TestDataFactory.makeAsset(categoryId: "c1", name: "Compte UBS")
+        #expect(AssetFormDraft(asset: original).isValid)
+    }
+
     @Test func suggestionsDropUsedNames_ignoringCase() {
         let starters = ["Comptes", "Épargne", "Biens"]
         let left = AssetFormDraft.starterSuggestions(existing: ["comptes", "ÉPARGNE"], starters: starters)
@@ -56,11 +65,11 @@ struct AssetFormDraftTests {
         let original = TestDataFactory.makeAsset(categoryId: "c1", name: "Compte UBS")
         var draft = AssetFormDraft(asset: original)
 
-        #expect(draft.updatePayload(original: original) == AssetUpdate())
-        #expect(draft.categoryChange(from: original) == nil)
+        #expect(!draft.hasChanges(from: original))
 
         draft.name = " UBS "
         draft.category = .starter(name: "Crypto")
+        #expect(draft.hasChanges(from: original))
         #expect(draft.updatePayload(original: original) == AssetUpdate(name: "UBS"))
         #expect(draft.categoryChange(from: original) == .starter(name: "Crypto"))
     }

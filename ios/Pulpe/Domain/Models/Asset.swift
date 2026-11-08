@@ -132,3 +132,13 @@ extension TransactionKind {
 func assetLinkChange(initial: String?, current: String?) -> String?? {
     initial == current ? nil : .some(current)
 }
+
+/// `assetLinkChange` for a line that may be an income: an income's origin is fixed at
+/// creation, so while it stays an income the link is never touched (and never cleared,
+/// since `TransactionKind.assetLink` is `nil` for it).
+func lineAssetChange(
+    initialKind: TransactionKind, kind: TransactionKind, initialAssetId: String?, assetId: String?
+) -> String?? {
+    if kind == .income, initialKind == .income { return nil }
+    return assetLinkChange(initial: initialAssetId, current: kind.assetLink(assetId))
+}

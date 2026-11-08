@@ -63,13 +63,14 @@ struct NetWorthView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(removing: .title)
         .toolbar {
-            if case .loaded = content {
-                if !store.categories.isEmpty {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(AppLocale.string("Catégories"), systemImage: "folder") { showsCategories = true }
-                            .accessibilityIdentifier("netWorthCategories")
-                    }
+            // Categories outlive their assets: manageable on the empty screen too.
+            if store.netWorth != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(AppLocale.string("Catégories"), systemImage: "folder") { showsCategories = true }
+                        .accessibilityIdentifier("netWorthCategories")
                 }
+            }
+            if case .loaded = content {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(AppLocale.string("Ajouter"), systemImage: "plus") { form = .create }
                         .accessibilityIdentifier("netWorthAdd")

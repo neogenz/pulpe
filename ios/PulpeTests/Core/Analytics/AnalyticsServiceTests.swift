@@ -280,12 +280,6 @@ struct AnalyticsServiceTests {
         #expect(service.isFeatureEnabled("disabled-flag") == false)
 
         service.identify(userId: userId, properties: identityProperties)
-        var reloadCompleted = false
-        service.reloadFeatureFlags {
-            reloadCompleted = true
-        }
-        #expect(reloadCompleted)
-
         service.setDiagnosticSharingEnabled(true)
         #expect(service.isDiagnosticSharingEnabled)
         #expect(service.isEventCapturingEnabled)

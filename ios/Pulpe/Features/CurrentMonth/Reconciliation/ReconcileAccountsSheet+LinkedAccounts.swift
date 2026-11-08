@@ -29,14 +29,20 @@ private struct RecordsLinkedSnapshots: ViewModifier {
     @Environment(ToastManager.self) private var toastManager
 
     func body(content: Content) -> some View {
-        content.onChange(of: flow.isCompleted) { _, isCompleted in
-            let items = flow.linkedSnapshotItems
-            guard isCompleted, !items.isEmpty else { return }
-            Task {
-                do { try await assetStore.recordSnapshots(AssetSnapshotsCreate(items: items)) } catch {
-                    toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
-                }
-            }
+        content.onChange(of: flow.isCompleted) { _, _ in
+            Task { await flow.recordLinkedSnapshots(into: assetStore, toastManager: toastManager) }
+        }
+    }
+}
+
+extension ReconcileAccountsFlow {
+    /// One batch of the filled linked rows, once completed. A failure only toasts: the
+    /// reconciliation itself stays done.
+    func recordLinkedSnapshots(into assetStore: AssetStore, toastManager: ToastManager) async {
+        let items = linkedSnapshotItems
+        guard isCompleted, !items.isEmpty else { return }
+        do { try await assetStore.recordSnapshots(AssetSnapshotsCreate(items: items)) } catch {
+            toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
         }
     }
 }

@@ -249,7 +249,7 @@ struct EditTemplateLineSheet: View {
             // tagged or untagged; the kind-guard clears it for non-saving kinds.
             update.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
             // Unlike the goal link, only emitted when it moved: an untouched edit must not clear it.
-            update.assetId = assetLinkChange(initial: templateLine.assetId, current: kind.assetLink(assetId))
+            update.assetId = Self.assetChange(line: templateLine, kind: kind, assetId: assetId)
             pendingUpdate = update
 
             let hasBudgets = usageFetchFailed || propagationBudgetCount > 0
@@ -340,6 +340,10 @@ extension EditTemplateLineSheet {
             return originalAmount
         }
         return line.amount
+    }
+
+    static func assetChange(line: TemplateLine, kind: TransactionKind, assetId: String?) -> String?? {
+        lineAssetChange(initialKind: line.kind, kind: kind, initialAssetId: line.assetId, assetId: assetId)
     }
 
     static func buildUpdate(

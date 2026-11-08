@@ -9,6 +9,7 @@ struct AssetFormDraft: Equatable {
     var category: AssetCategoryChoice?
     var inPulpe = false
     var amount: Decimal?
+    private var isEditing = false
 
     init(currency: SupportedCurrency = .chf) {
         self.currency = currency
@@ -20,6 +21,7 @@ struct AssetFormDraft: Equatable {
         currency = asset.currency
         category = .existing(id: asset.categoryId)
         inPulpe = asset.inPulpe
+        isEditing = true
     }
 
     /// Localized, so a category created from a suggestion reads in the user's language.
@@ -32,7 +34,8 @@ struct AssetFormDraft: Equatable {
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-    var isValid: Bool { !trimmedName.isEmpty && category != nil }
+    /// Creating needs a first value (the web requires it); editing does not touch the value here.
+    var isValid: Bool { !trimmedName.isEmpty && category != nil && (isEditing || amount != nil) }
 
     /// Shown once the user has typed then cleared the name, never on a pristine form.
     var nameError: String? {
@@ -71,6 +74,11 @@ struct AssetFormDraft: Equatable {
             name: trimmedName == original.name ? nil : trimmedName,
             inPulpe: direction == .own && inPulpe != original.inPulpe ? inPulpe : nil
         )
+    }
+
+    /// False for an untouched edit: the backend rejects an empty PATCH, so nothing is sent.
+    func hasChanges(from original: Asset) -> Bool {
+        updatePayload(original: original) != AssetUpdate() || categoryChange(from: original) != nil
     }
 
     /// `nil` when the asset stays in its category.

@@ -50,6 +50,44 @@ struct ReconcileLinkedAccountsTests {
         #expect(flow.linkedSnapshotItems.isEmpty)
     }
 
+    private func completedFlow() -> ReconcileAccountsFlow {
+        let flow = makeFlow([ubs, post])
+        flow.accounts[0].amountText = "100"
+        _ = flow.confirmUpToDate(realizedBalance: 100, of: "b")
+        return flow
+    }
+
+    @Test func completion_writesOneBatchOfFilledLinkedRows() async {
+        let service = MockAssetService()
+        let flow = completedFlow()
+
+        await flow.recordLinkedSnapshots(into: AssetStore(service: service), toastManager: ToastManager())
+
+        #expect(service.calls.filter { $0 == "snapshots" }.count == 1)
+    }
+
+    @Test func dismiss_writesNothing() async {
+        let service = MockAssetService()
+        let flow = makeFlow([ubs, post])
+        flow.accounts[0].amountText = "100"
+
+        await flow.recordLinkedSnapshots(into: AssetStore(service: service), toastManager: ToastManager())
+
+        #expect(service.calls.isEmpty)
+    }
+
+    @Test func failure_showsToast_andKeepsTheCompletedFlow() async {
+        let service = MockAssetService()
+        service.snapshotsError = APIError.assetCreateFailed
+        let toast = ToastManager()
+        let flow = completedFlow()
+
+        await flow.recordLinkedSnapshots(into: AssetStore(service: service), toastManager: toast)
+
+        #expect(toast.currentToast?.type == .error)
+        #expect(flow.isCompleted)
+    }
+
     private func makeFlow(_ linked: [Asset]) -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
             budgetId: "b",

@@ -60,12 +60,14 @@ struct NetWorthAssetRow: View {
 
     private func menu(_ actions: NetWorthAssetActions) -> some View {
         Menu {
-            Button(
-                AppLocale.string("Mettre à jour la valeur"),
-                systemImage: "arrow.up.arrow.down",
-                action: actions.updateValue
-            )
-            Button(AppLocale.string("Modifier"), systemImage: "pencil", action: actions.edit)
+            if asset.archivedAt == nil {
+                Button(
+                    AppLocale.string("Mettre à jour la valeur"),
+                    systemImage: "arrow.up.arrow.down",
+                    action: actions.updateValue
+                )
+                Button(AppLocale.string("Modifier"), systemImage: "pencil", action: actions.edit)
+            }
             Button(
                 asset.archivedAt == nil ? AppLocale.string("Archiver") : AppLocale.string("Désarchiver"),
                 systemImage: asset.archivedAt == nil ? "archivebox" : "tray.and.arrow.up",

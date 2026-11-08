@@ -9,6 +9,7 @@ final class MockAssetService: AssetServicing {
     var stubbedCategory = AssetCategoryRecord(id: "new-category", name: "Starter")
     /// When set, `create` throws it after the category step.
     var createError: Error?
+    var snapshotsError: Error?
     var holdGetNetWorth = false
     var holdCreateCategory = false
 
@@ -61,6 +62,7 @@ final class MockAssetService: AssetServicing {
 
     func recordSnapshots(_ data: AssetSnapshotsCreate) async throws -> AssetSnapshotsResult {
         calls.append("snapshots")
+        if let snapshotsError { throw snapshotsError }
         return AssetSnapshotsResult(recordedAt: TestDataFactory.fixedDate)
     }
 

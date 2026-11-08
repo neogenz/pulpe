@@ -70,7 +70,16 @@ extension AddBudgetLineSheet {
 
     /// Mon patrimoine on, and an own asset to draw from.
     var offersAsset: Bool {
-        featureFlags.isNetWorthEnabled && !assetStore.activeAssets(direction: .own).isEmpty
+        Self.offersAsset(flagOn: featureFlags.isNetWorthEnabled, store: assetStore)
+    }
+
+    static func offersAsset(flagOn: Bool, store: AssetStore) -> Bool {
+        flagOn && !store.activeAssets(direction: .own).isEmpty
+    }
+
+    /// The origin reads the store, and an income sheet is the only thing opened here: load it.
+    static func loadAssets(flagOn: Bool, store: AssetStore) async {
+        if flagOn { await store.loadIfNeeded() }
     }
 
     /// The asset to write: an income carries one only when drawn from it.

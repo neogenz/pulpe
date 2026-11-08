@@ -232,6 +232,7 @@ struct AssetFormSheet: View {
         errorMessage = nil
         do {
             if let asset {
+                guard draft.hasChanges(from: asset) else { return dismiss() }
                 try await store.update(
                     id: asset.id,
                     draft.updatePayload(original: asset),

@@ -379,8 +379,7 @@ extension EditBudgetLineSheet {
     /// Unlike the goal link, only emitted when it moved: an untouched edit must not clear it.
     /// An income's origin is fixed at creation, so it is never touched while it stays an income.
     static func assetChange(line: BudgetLine, kind: TransactionKind, assetId: String?) -> String?? {
-        if kind == .income, line.kind == .income { return nil }
-        return assetLinkChange(initial: line.assetId, current: kind.assetLink(assetId))
+        lineAssetChange(initialKind: line.kind, kind: kind, initialAssetId: line.assetId, assetId: assetId)
     }
 }
 
@@ -394,7 +393,8 @@ private struct DrawnFromAssetCard: View {
 
     var body: some View {
         let name = assetStore.netWorth?.assets.first { $0.id == assetId }?.name
-        Group {
+        // A container that always renders: an empty Group never runs its `.task`.
+        VStack {
             if featureFlags.isNetWorthEnabled, let name {
                 FormCard {
                     Text(AppLocale.string("Pris sur \(name)"))

@@ -177,6 +177,7 @@ struct AddBudgetLineSheet: View {
             resetIncompatibleOriginState()
         }
         .onChange(of: incomeOrigin) { _, _ in resetIncompatibleOriginState() }
+        .task { await Self.loadAssets(flagOn: featureFlags.isNetWorthEnabled, store: assetStore) }
         .onChange(of: spreadMonthCount, initial: true) { _, count in
             spreadCalculator.setEnd(SpreadMonth.from(ordinal: spreadCalculator.start.ordinal + count - 1))
         }

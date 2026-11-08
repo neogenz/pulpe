@@ -32,18 +32,21 @@ struct EditTemplateLineSheetTests {
         originalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
-        exchangeRate: Decimal? = nil
+        exchangeRate: Decimal? = nil,
+        kind: TransactionKind = .expense,
+        assetId: String? = nil
     ) -> TemplateLine {
         TemplateLine(
             id: id,
             templateId: "template-1",
             name: "Test",
             amount: amount,
-            kind: .expense,
+            kind: kind,
             recurrence: .fixed,
             description: "",
             createdAt: TestDataFactory.fixedDate,
             updatedAt: TestDataFactory.fixedDate,
+            assetId: assetId,
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,
@@ -321,5 +324,12 @@ struct EditTemplateLineSheetTests {
 
         #expect(first == true)
         #expect(first == second)
+    }
+
+    @Test("An income template line drawn from an asset sends no assetId key on edit")
+    func assetChange_incomeStaysUntouched() {
+        let income = Self.makeLine(kind: .income, assetId: "a1")
+        #expect(EditTemplateLineSheet.assetChange(line: income, kind: .income, assetId: "a1") == nil)
+        #expect(EditTemplateLineSheet.assetChange(line: income, kind: .expense, assetId: nil) == .some(nil))
     }
 }
