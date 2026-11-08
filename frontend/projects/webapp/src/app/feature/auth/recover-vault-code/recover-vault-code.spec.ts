@@ -176,7 +176,7 @@ describe('RecoverVaultCode', () => {
       );
 
       expect(hint?.textContent?.trim()).toBe(
-        'Si tu coches cette case, ta clé de déchiffrement sera stockée sur cet appareil. À éviter sur un ordinateur partagé.',
+        "Si tu coches cette case, tes montants s'ouvriront sans code sur cet appareil. À éviter sur un ordinateur partagé.",
       );
     });
   });
