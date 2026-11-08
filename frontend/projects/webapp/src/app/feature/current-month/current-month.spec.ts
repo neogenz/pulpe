@@ -37,6 +37,7 @@ const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
   budgetId: 'budget-456',
   templateLineId: null,
   savingsGoalId: null,
+  assetId: null,
   name: 'Test Budget Line',
   amount: 1000,
   kind: 'expense',

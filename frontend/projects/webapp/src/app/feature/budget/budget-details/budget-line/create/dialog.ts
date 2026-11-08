@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
+  FEATURE_FLAGS,
   splitTotalPreserving,
   type BudgetPeriod,
   type TransactionKind,
@@ -37,12 +38,18 @@ import {
   runFormSubmit,
   StaleRateNotifier,
 } from '@core/currency';
+import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { dateFnsLocaleFor } from '@core/locale';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
+import {
+  assetDirectionForKind,
+  injectNetWorthResource,
+} from '@core/asset/net-worth';
+import { AssetPickerField } from '@app/pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import {
   TransactionIconPipe,
@@ -77,9 +84,10 @@ type AmountMode = 'total' | 'perMonth';
  * PUL-329 v2 — d'où vient un revenu, en un seul contrôle exclusif. Les deux
  * bascules qui coexistaient (PUL-292 « je rembourse le mois prochain » et le
  * retrait d'objectif) pouvaient être armées ensemble alors qu'elles décrivent
- * deux provenances incompatibles.
+ * deux provenances incompatibles. `asset` est « Tiré de mon patrimoine » :
+ * derrière le flag, et seulement s'il existe un élément à débiter.
  */
-type IncomeOrigin = 'regular' | 'savingsGoal' | 'repayNextMonth';
+type IncomeOrigin = 'regular' | 'savingsGoal' | 'repayNextMonth' | 'asset';
 
 interface AddBudgetLineModel {
   name: string;
@@ -89,6 +97,7 @@ interface AddBudgetLineModel {
   tagIds: string[];
   savingsGoalId: string | null;
   sourceSavingsGoalId: string | null;
+  assetId: string | null;
   money: AmountFormSlice;
 }
 
@@ -111,6 +120,7 @@ interface AddBudgetLineModel {
     AmountInput,
     TagPicker,
     SavingsGoalPickerField,
+    AssetPickerField,
   ],
   host: { 'data-testid': 'add-budget-line-dialog' },
   template: `
@@ -255,6 +265,14 @@ interface AddBudgetLineModel {
             />
           }
 
+          @if (assetDirection(); as direction) {
+            <pulpe-asset-picker-field
+              [direction]="direction"
+              [value]="model().assetId"
+              (valueChanged)="model.update((m) => ({ ...m, assetId: $event }))"
+            />
+          }
+
           @if (model().kind === 'income') {
             <mat-form-field
               appearance="outline"
@@ -278,6 +296,11 @@ interface AddBudgetLineModel {
                 <mat-option value="repayNextMonth">{{
                   'budget.incomeOrigin.repayNextMonth' | transloco
                 }}</mat-option>
+                @if (isAssetOriginOffered()) {
+                  <mat-option value="asset">{{
+                    'budget.incomeOrigin.asset' | transloco
+                  }}</mat-option>
+                }
               </mat-select>
             </mat-form-field>
 
@@ -289,6 +312,17 @@ interface AddBudgetLineModel {
                 [withdrawalAmount]="plannedWithdrawalAmount()"
                 (valueChanged)="
                   model.update((m) => ({ ...m, sourceSavingsGoalId: $event }))
+                "
+              />
+            }
+
+            @if (incomeOrigin() === 'asset') {
+              <pulpe-asset-picker-field
+                kind="income"
+                direction="own"
+                [value]="model().assetId"
+                (valueChanged)="
+                  model.update((m) => ({ ...m, assetId: $event }))
                 "
               />
             }
@@ -511,6 +545,9 @@ export class AddBudgetLineDialog {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #isAssetLinkEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
 
   protected readonly currency = this.#settings.currency;
 
@@ -522,6 +559,7 @@ export class AddBudgetLineDialog {
     tagIds: [],
     savingsGoalId: null,
     sourceSavingsGoalId: null,
+    assetId: null,
     money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
 
@@ -531,6 +569,26 @@ export class AddBudgetLineDialog {
     applyAmountValidators(path.money);
     required(path.kind, { message: 'budget.forecastTypeRequired' });
   });
+
+  // Which assets the kind can be linked to; null hides the field (flag off, or
+  // a Revenu, which only gets the picker through its « Tiré de mon patrimoine »
+  // origin).
+  protected readonly assetDirection = computed(() =>
+    this.#isAssetLinkEnabled ? assetDirectionForKind(this.model().kind) : null,
+  );
+
+  // Same cached read as the picker: nothing to fetch with the flag off.
+  readonly #netWorth = this.#isAssetLinkEnabled
+    ? injectNetWorthResource()
+    : null;
+  protected readonly isAssetOriginOffered = computed(
+    () =>
+      this.#netWorth
+        ?.value()
+        ?.assets.some(
+          (asset) => asset.direction === 'own' && asset.archivedAt === null,
+        ) ?? false,
+  );
 
   protected readonly nameErrors = touchedFieldErrors(
     () => this.addForm.name,
@@ -711,15 +769,18 @@ export class AddBudgetLineDialog {
     if (kind !== 'saving') {
       this.model.update((model) => ({ ...model, savingsGoalId: null }));
     }
+    // Épargne and Dépense list different assets: a pick never survives the switch.
+    this.model.update((model) => ({ ...model, assetId: null }));
     if (kind !== 'income') this.setIncomeOrigin('regular');
   }
 
-  /** Une origine efface l'état des deux autres : elles s'excluent. */
+  /** Une origine efface l'état des autres : elles s'excluent. */
   protected setIncomeOrigin(origin: IncomeOrigin): void {
     this.#incomeOrigin.set(origin);
     this.model.update((model) => ({
       ...model,
       sourceSavingsGoalId: null,
+      assetId: null,
       isChecked: origin === 'savingsGoal' ? false : model.isChecked,
     }));
   }
@@ -838,6 +899,7 @@ export class AddBudgetLineDialog {
               sourceSavingsGoalId: this.#isPlannedWithdrawal()
                 ? lineDraft.sourceSavingsGoalId
                 : null,
+              assetId: this.#isAssetLinkEnabled ? lineDraft.assetId : undefined,
               conversion: metadata,
             }),
         };
@@ -871,6 +933,7 @@ export class AddBudgetLineDialog {
               conversion: metadata,
               savingsGoalId:
                 lineDraft.kind === 'saving' ? lineDraft.savingsGoalId : null,
+              assetId: this.#isAssetLinkEnabled ? lineDraft.assetId : undefined,
               spreadGroupId: this.#spreadGroupId,
             }),
         };

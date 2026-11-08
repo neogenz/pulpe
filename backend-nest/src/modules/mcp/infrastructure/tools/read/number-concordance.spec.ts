@@ -29,6 +29,7 @@ function line(over: Partial<BudgetLineDecrypted>): BudgetLineDecrypted {
     budgetId: 'budget-1',
     templateLineId: null,
     savingsGoalId: null,
+    assetId: null,
     spreadGroupId: null,
     savingsWithdrawalGroupId: null,
     sourceSavingsGoalId: null,

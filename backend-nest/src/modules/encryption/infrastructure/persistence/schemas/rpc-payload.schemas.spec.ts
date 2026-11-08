@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import {
+  rekeyAssetSnapshotRpcPayloadSchema,
+  rekeyAssetSnapshotsRpcPayloadSchema,
   rekeyBudgetLineRpcPayloadSchema,
   rekeyBudgetLinesRpcPayloadSchema,
   rekeyMonthlyBudgetRpcPayloadSchema,
@@ -274,5 +276,53 @@ describe('rekeyMonthlyBudgetRpcPayloadSchema', () => {
 describe('rekeyMonthlyBudgetsRpcPayloadSchema', () => {
   it('should accept an empty list', () => {
     expect(rekeyMonthlyBudgetsRpcPayloadSchema.parse([])).toEqual([]);
+  });
+});
+
+describe('rekeyAssetSnapshotRpcPayloadSchema', () => {
+  it('should accept a valid item', () => {
+    const valid = { id: VALID_UUID, value: VALID_CIPHERTEXT };
+    expect(rekeyAssetSnapshotRpcPayloadSchema.parse(valid)).toEqual(valid);
+  });
+
+  it('should reject a null value (column is NOT NULL in DB)', () => {
+    expect(() =>
+      rekeyAssetSnapshotRpcPayloadSchema.parse({ id: VALID_UUID, value: null }),
+    ).toThrow();
+  });
+
+  it('should reject use of amount key (wrong field name for asset_snapshot)', () => {
+    const forged = { id: VALID_UUID, amount: VALID_CIPHERTEXT };
+    expect(() => rekeyAssetSnapshotRpcPayloadSchema.parse(forged)).toThrow();
+  });
+
+  it('should reject extra keys', () => {
+    const forged = {
+      id: VALID_UUID,
+      value: VALID_CIPHERTEXT,
+      recorded_at: '2026-11-03',
+    };
+    expect(() => rekeyAssetSnapshotRpcPayloadSchema.parse(forged)).toThrow();
+  });
+
+  it('should reject a non-uuid id', () => {
+    expect(() =>
+      rekeyAssetSnapshotRpcPayloadSchema.parse({
+        id: 'not-a-uuid',
+        value: VALID_CIPHERTEXT,
+      }),
+    ).toThrow();
+  });
+
+  it('should reject an empty ciphertext string', () => {
+    expect(() =>
+      rekeyAssetSnapshotRpcPayloadSchema.parse({ id: VALID_UUID, value: '' }),
+    ).toThrow();
+  });
+});
+
+describe('rekeyAssetSnapshotsRpcPayloadSchema', () => {
+  it('should accept an empty list', () => {
+    expect(rekeyAssetSnapshotsRpcPayloadSchema.parse([])).toEqual([]);
   });
 });

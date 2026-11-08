@@ -14,6 +14,7 @@ const mockEntity: BudgetLine = {
   budgetId: '123e4567-e89b-12d3-a456-426614174001',
   templateLineId: '123e4567-e89b-12d3-a456-426614174002',
   savingsGoalId: null,
+  assetId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
@@ -37,6 +38,7 @@ const mockTemplateLine: TemplateLine = {
   id: '123e4567-e89b-12d3-a456-426614174002',
   templateId: '123e4567-e89b-12d3-a456-426614174003',
   savingsGoalId: null,
+  assetId: null,
   name: 'Loyer',
   amount: 1200,
   originalAmount: null,
@@ -109,6 +111,21 @@ describe('ResetBudgetLineFromTemplateUseCase', () => {
     );
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
     expect(mockBudget.recalculate).toHaveBeenCalledWith(mockEntity.budgetId);
+  });
+
+  it('should restore the asset link of the template line', async () => {
+    const assetId = '8a0f6c80-1234-4e5f-89ab-444444444444';
+    mockRepo.fetchTemplateLineById.mockResolvedValueOnce({
+      ...mockTemplateLine,
+      assetId,
+    });
+
+    await useCase.execute(mockEntity.id, mockUser);
+
+    expect(mockRepo.update).toHaveBeenCalledWith(
+      mockEntity.id,
+      expect.objectContaining({ assetId }),
+    );
   });
 
   it('should reject when the line has no associated template (no mutation)', async () => {

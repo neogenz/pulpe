@@ -275,6 +275,7 @@ it("updates an existing forecast without echoing untouched fields", async () => 
     recurrence: "one_off",
     templateLineId: "template-line-1",
     savingsGoalId: "goal-1",
+    assetId: "asset-1",
     sourceSavingsGoalId: null,
   } as BudgetLine;
   const view = await render(<BudgetLineSheet {...baseProps} line={line} />);
@@ -295,6 +296,7 @@ it("updates an existing forecast without echoing untouched fields", async () => 
   expect(mockUpdate.mutate.mock.calls[0][0]).not.toHaveProperty(
     "savingsGoalId",
   );
+  expect(mockUpdate.mutate.mock.calls[0][0]).not.toHaveProperty("assetId");
 });
 
 it("closes the sheet before opening its linked savings goal", async () => {

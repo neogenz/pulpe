@@ -43,6 +43,7 @@ const makeSource = (
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
   savingsGoalId: null,
+  assetId: null,
   ...overrides,
 });
 
@@ -55,6 +56,7 @@ const makeLine = (
   budgetId: input.budgetId,
   templateLineId: null,
   savingsGoalId: null,
+  assetId: null,
   tagIds: [],
   spreadGroupId,
   savingsWithdrawalGroupId: null,
@@ -414,6 +416,27 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
     expect(captured[0].inputs.map((input) => input.savingsGoalId)).toEqual([
       'goal-1',
       'goal-1',
+    ]);
+  });
+
+  it('preserves the asset link on every tranche', async () => {
+    const assetId = '8a0f6c80-1234-4e5f-89ab-444444444444';
+    mockRepo.findSpreadSource.mockResolvedValue(makeSource({ assetId }));
+
+    await useCase.execute(
+      'line-source',
+      {
+        periods: [
+          { year: 2026, month: 1 },
+          { year: 2026, month: 2 },
+        ],
+      },
+      mockUser,
+    );
+
+    expect(captured[0].inputs.map((input) => input.assetId)).toEqual([
+      assetId,
+      assetId,
     ]);
   });
 

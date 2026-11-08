@@ -6,6 +6,7 @@ import {
   templateLineUpdateSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { assetIdPatchForKind } from '@common/utils/asset-link';
 import { savingsGoalIdPatchForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
@@ -42,6 +43,12 @@ export class UpdateTemplateLineUseCase {
       savingsGoalId: savingsGoalIdPatchForKind(
         effectiveKind,
         validated.savingsGoalId,
+      ),
+      // Absent key keeps the asset; a kind change without a new one clears it.
+      assetId: assetIdPatchForKind(
+        validated.kind,
+        currentLine.kind,
+        validated.assetId,
       ),
       name: validated.name,
       amount: validated.amount,

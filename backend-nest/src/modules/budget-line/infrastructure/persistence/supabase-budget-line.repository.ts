@@ -11,6 +11,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { throwIfAssetLinkRefused } from '@common/utils/asset-link';
 import { throwIfRetryableConflict } from '@common/utils/postgres-conflict';
 import {
   isSavingsGoalLinkDenied,
@@ -228,6 +229,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       id: decrypted.id,
       budgetId: decrypted.budget_id,
       savingsGoalId: decrypted.savings_goal_id,
+      assetId: decrypted.asset_id,
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
       name: decrypted.name,
@@ -299,6 +301,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
           { cause: error },
         );
       }
+
+      // enforce_asset_line_link trigger: foreign asset or wrong direction.
+      throwIfAssetLinkRefused(error, loggingContext);
 
       // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
       if (isSavingsGoalLinkDenied(error)) {
@@ -420,6 +425,10 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     error: PostgrestError | null,
     spreadGroupId: string,
   ): never {
+    throwIfAssetLinkRefused(error, {
+      operation: 'createSpreadBudgetLines',
+      entityType: 'budget_line',
+    });
     if (isSavingsGoalLinkOutsideHorizon(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
@@ -503,6 +512,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       kind: input.kind,
       recurrence: input.recurrence,
       savings_goal_id: input.savingsGoalId ?? null,
+      asset_id: input.assetId ?? null,
       original_amount: originalAmount,
       original_currency: input.originalCurrency ?? null,
       target_currency: input.targetCurrency ?? null,
@@ -691,6 +701,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         );
       }
 
+      throwIfAssetLinkRefused(error, loggingContext);
+
       // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
       if (isSavingsGoalLinkDenied(error)) {
         throw new BusinessException(
@@ -817,7 +829,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const { data, error } = await supabase
       .from('template_line')
       .select(
-        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate, id, created_at, updated_at, description, template_id, savings_goal_id',
+        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate, id, created_at, updated_at, description, template_id, savings_goal_id, asset_id',
       )
       .eq('id', templateLineId)
       .single();
@@ -909,6 +921,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       budgetId: decrypted.budget_id,
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
+      assetId: decrypted.asset_id,
       spreadGroupId: decrypted.spread_group_id,
       savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
       sourceSavingsGoalId: decrypted.source_savings_goal_id,
@@ -934,6 +947,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       id: row.id,
       templateId: row.template_id,
       savingsGoalId: row.savings_goal_id ?? null,
+      assetId: row.asset_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
@@ -997,6 +1011,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       budget_id: input.budgetId,
       template_line_id: input.templateLineId ?? null,
       savings_goal_id: input.savingsGoalId ?? null,
+      asset_id: input.assetId ?? null,
       // Le nom instantané est absent volontairement : `enforce_budget_line_savings_goal_source`
       // le pose depuis la ligne d'objectif qu'il lit déjà pour valider le tenant.
       source_savings_goal_id: input.sourceSavingsGoalId ?? null,
@@ -1070,6 +1085,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     }
     if (patch.savingsGoalId !== undefined) {
       updateData.savings_goal_id = patch.savingsGoalId;
+    }
+    if (patch.assetId !== undefined) {
+      updateData.asset_id = patch.assetId;
     }
     if (patch.isManuallyAdjusted !== undefined) {
       updateData.is_manually_adjusted = patch.isManuallyAdjusted;

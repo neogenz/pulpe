@@ -37,10 +37,8 @@ import {
   type FirstTransactionSource,
 } from '@core/transaction';
 import { DashboardError } from './components/dashboard-error';
-import {
-  openReconcileAccountsDialog,
-  type ReconciliationAdjustment,
-} from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
+import type { ReconciliationAdjustment } from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
+import { ReconcileAccountsDialogService } from '@pattern/reconcile-accounts/reconcile-accounts-dialog.service';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 
@@ -623,6 +621,7 @@ export default class Dashboard {
   readonly #transloco = inject(TranslocoService);
   readonly #storage = inject(StorageService);
   readonly #dialog = inject(MatDialog);
+  readonly #reconcileAccountsDialog = inject(ReconcileAccountsDialogService);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #firstTransactionTracker = inject(FirstTransactionTracker);
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
@@ -1048,10 +1047,6 @@ export default class Dashboard {
     );
   }
 
-  // The same dialog at every width — only its frame changes, so it is opened
-  // here rather than through a dialog service. On a phone it takes the whole
-  // height: three steps of fields would not fit a centred card above a keyboard.
-  //
   // The month is the one loaded when it opens. A refresh of that month moves
   // the figures; another month loaded under it, or none, leaves the dialog
   // nothing to hold the accounts against and nothing to write to.
@@ -1059,8 +1054,7 @@ export default class Dashboard {
     const budgetId = this.store.dashboardData()?.budget?.id;
     if (!budgetId) return;
     const isHandset = this.#breakpointObserver.isMatched(Breakpoints.Handset);
-    openReconcileAccountsDialog(
-      this.#dialog,
+    void this.#reconcileAccountsDialog.open(
       {
         realized: computed(() =>
           this.store.dashboardData()?.budget?.id === budgetId

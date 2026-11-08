@@ -36,6 +36,7 @@ export class BudgetTemplateMapper {
       id: entity.id,
       templateId: entity.templateId,
       savingsGoalId: entity.savingsGoalId,
+      assetId: entity.assetId,
       name: entity.name,
       amount: entity.amount,
       kind: entity.kind,

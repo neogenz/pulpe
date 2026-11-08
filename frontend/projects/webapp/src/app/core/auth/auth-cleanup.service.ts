@@ -1,5 +1,6 @@
 import { Service, inject } from '@angular/core';
 
+import { AssetApi } from '@core/asset/asset-api';
 import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ClientKeyService } from '@core/encryption';
@@ -21,6 +22,7 @@ export class AuthCleanupService {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #savingsGoalApi = inject(SavingsGoalApi);
+  readonly #assetApi = inject(AssetApi);
   readonly #tagApi = inject(TagApi);
   readonly #mcpApi = inject(McpApi);
   readonly #firstTransactionTracker = inject(FirstTransactionTracker);
@@ -49,6 +51,7 @@ export class AuthCleanupService {
       () => this.#savingsGoalApi.clearCache(),
       'savings goals data cache',
     );
+    this.#safeCleanup(() => this.#assetApi.clearCache(), 'assets data cache');
     this.#safeCleanup(() => this.#tagApi.clearCache(), 'tags data cache');
     this.#safeCleanup(() => this.#mcpApi.clearCache(), 'MCP connections cache');
     this.#safeCleanup(

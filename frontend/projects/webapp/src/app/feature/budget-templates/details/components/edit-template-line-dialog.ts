@@ -16,7 +16,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { type TemplateLine, type TransactionKind } from 'pulpe-shared';
+import {
+  FEATURE_FLAGS,
+  type TemplateLine,
+  type TransactionKind,
+} from 'pulpe-shared';
 import { editTemplateLineFromFormSchema } from './edit-template-line-dialog.schema';
 import type { TemplateLineFormInput } from '../services/template-line-store';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -35,11 +39,14 @@ import {
   runFormSubmit,
   StaleRateNotifier,
 } from '@core/currency';
+import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
+import { assetDirectionForKind } from '@core/asset/net-worth';
+import { AssetPickerField } from '@pattern/asset-picker/asset-picker-field';
 import { SavingsGoalPickerField } from '@pattern/savings-goal-picker/savings-goal-picker-field';
 
 const TRANSACTION_KINDS: readonly TransactionKind[] = [
@@ -59,6 +66,7 @@ interface EditTemplateLineModel {
   kind: TransactionKind;
   tagIds: string[];
   savingsGoalId: string | null;
+  assetId: string | null;
 }
 
 @Component({
@@ -79,6 +87,7 @@ interface EditTemplateLineModel {
     AmountInput,
     TagPicker,
     SavingsGoalPickerField,
+    AssetPickerField,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -129,6 +138,7 @@ interface EditTemplateLineModel {
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
             <mat-select
               [formField]="addForm.kind"
+              (selectionChange)="onKindChange()"
               data-testid="edit-template-line-kind"
             >
               @for (kind of kinds; track kind) {
@@ -154,6 +164,13 @@ interface EditTemplateLineModel {
               (valueChanged)="
                 model.update((m) => ({ ...m, savingsGoalId: $event }))
               "
+            />
+          }
+          @if (assetDirection(); as direction) {
+            <pulpe-asset-picker-field
+              [direction]="direction"
+              [value]="model().assetId"
+              (valueChanged)="model.update((m) => ({ ...m, assetId: $event }))"
             />
           }
         </div>
@@ -196,6 +213,9 @@ export class EditTemplateLineDialog {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #isAssetLinkEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
 
   protected readonly kinds = TRANSACTION_KINDS;
   protected readonly isEditMode = computed(() => this.#data.line != null);
@@ -212,6 +232,7 @@ export class EditTemplateLineDialog {
     kind: (this.#data.line?.kind ?? 'expense') as TransactionKind,
     tagIds: this.#data.line?.tagIds ?? [],
     savingsGoalId: this.#data.line?.savingsGoalId ?? null,
+    assetId: this.#data.line?.assetId ?? null,
   });
 
   protected readonly addForm = form(this.model, (path) => {
@@ -236,6 +257,17 @@ export class EditTemplateLineDialog {
   protected readonly canSubmit = computed(
     () => this.addForm().valid() && !this.isSubmitting(),
   );
+
+  // Which assets the kind can be linked to; null hides the field (flag off, or
+  // a Revenu: a template carries no asset origin).
+  protected readonly assetDirection = computed(() =>
+    this.#isAssetLinkEnabled ? assetDirectionForKind(this.model().kind) : null,
+  );
+
+  // Épargne and Dépense list different assets: a pick never survives the switch.
+  protected onKindChange(): void {
+    this.model.update((model) => ({ ...model, assetId: null }));
+  }
 
   protected readonly submitIcon = computed(() =>
     this.isEditMode() ? 'save' : 'add',
@@ -280,6 +312,7 @@ export class EditTemplateLineDialog {
               kind: m.kind,
               tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
+              assetId: this.#isAssetLinkEnabled ? m.assetId : undefined,
               conversion: metadata,
             }),
         };

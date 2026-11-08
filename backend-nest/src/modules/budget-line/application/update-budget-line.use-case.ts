@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { type BudgetLineUpdate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { assetIdPatchForKind } from '@common/utils/asset-link';
 import { savingsGoalIdPatchForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_RECALCULATION_PORT,
@@ -45,7 +46,7 @@ export class UpdateBudgetLineUseCase {
       withRate.kind === undefined && typeof withRate.savingsGoalId === 'string'
         ? current.kind
         : undefined;
-    const patch = this.buildPatch(withRate, currentKind);
+    const patch = this.buildPatch(withRate, current.kind, currentKind);
     BudgetLineInvariants.validateMergedUpdate({ ...current, ...patch });
 
     const entity = await this.repo.update(id, patch);
@@ -65,6 +66,7 @@ export class UpdateBudgetLineUseCase {
 
   private buildPatch(
     dto: BudgetLineUpdate,
+    lineKind: BudgetLine['kind'],
     currentKind?: BudgetLine['kind'],
   ): BudgetLineUpdatePatch {
     const patch: BudgetLineUpdatePatch = {};
@@ -93,6 +95,9 @@ export class UpdateBudgetLineUseCase {
     if (ruledSavingsGoalId !== undefined) {
       patch.savingsGoalId = ruledSavingsGoalId;
     }
+    // Absent key keeps the asset; a kind change without a new one clears it.
+    const ruledAssetId = assetIdPatchForKind(dto.kind, lineKind, dto.assetId);
+    if (ruledAssetId !== undefined) patch.assetId = ruledAssetId;
     if (dto.tagIds !== undefined) patch.tagIds = dto.tagIds;
     if (dto.isManuallyAdjusted !== undefined) {
       patch.isManuallyAdjusted = dto.isManuallyAdjusted;

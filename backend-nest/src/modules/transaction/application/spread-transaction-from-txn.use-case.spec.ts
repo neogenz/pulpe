@@ -54,6 +54,7 @@ const makeLine = (
   budgetId: input.budgetId,
   templateLineId: null,
   savingsGoalId: null,
+  assetId: null,
   tagIds: [],
   spreadGroupId,
   savingsWithdrawalGroupId: null,

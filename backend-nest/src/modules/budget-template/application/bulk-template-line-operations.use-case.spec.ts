@@ -21,6 +21,7 @@ const makeTemplateLine = (id: string): TemplateLine => ({
   id,
   templateId: 'template-1',
   savingsGoalId: null,
+  assetId: null,
   name: 'Salaire',
   amount: 5000,
   originalAmount: null,
@@ -299,6 +300,77 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
         ],
       }),
     );
+  });
+
+  describe('asset link', () => {
+    const lineId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+    const assetId = '8a0f6c80-1234-4e5f-89ab-444444444444';
+
+    const run = async (
+      update: NonNullable<TemplateLinesBulkOperations['update']>[number],
+    ) => {
+      await useCase.execute(
+        'template-1',
+        { update: [update], create: [], delete: [], propagateToBudgets: false },
+        mockUser,
+      );
+      return mockRepo.bulkApplyTemplateLineOperations.mock.calls[0][0]
+        .updatedLines[0];
+    };
+
+    it('keeps the asset of an update without assetId or kind, without fetching the line', async () => {
+      const sent = await run({ id: lineId, name: 'Paie' });
+
+      expect(sent.assetId).toBeUndefined();
+      expect(mockRepo.findLineById).not.toHaveBeenCalled();
+    });
+
+    it('keeps the asset when the line current kind is sent again', async () => {
+      const sent = await run({ id: lineId, kind: 'income' });
+
+      expect(mockRepo.findLineById).toHaveBeenCalledWith(lineId);
+      expect(sent.assetId).toBeUndefined();
+    });
+
+    it('clears the asset on a kind change without a new asset', async () => {
+      const sent = await run({ id: lineId, kind: 'expense' });
+
+      expect(sent.assetId).toBeNull();
+    });
+
+    it('writes the new asset on a kind change without fetching the line', async () => {
+      const sent = await run({ id: lineId, kind: 'expense', assetId });
+
+      expect(sent.assetId).toBe(assetId);
+      expect(mockRepo.findLineById).not.toHaveBeenCalled();
+    });
+
+    it('passes the asset of a created line through', async () => {
+      await useCase.execute(
+        'template-1',
+        {
+          update: [],
+          create: [
+            {
+              name: 'Prêt auto',
+              amount: 300,
+              kind: 'expense',
+              recurrence: 'fixed',
+              description: '',
+              assetId,
+            },
+          ],
+          delete: [],
+          propagateToBudgets: false,
+        },
+        mockUser,
+      );
+
+      expect(
+        mockRepo.bulkApplyTemplateLineOperations.mock.calls[0][0]
+          .createdLines[0].assetId,
+      ).toBe(assetId);
+    });
   });
 
   describe('propagation reach', () => {

@@ -202,6 +202,26 @@ describe('TemplateLineStore', () => {
       expect(budgetApiMock.cache.invalidate).toHaveBeenCalledWith(['budget']);
     });
 
+    it('should send assetId only when the input carries one', async () => {
+      templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
+        of(createBulkResponse({ created: [createLine({ id: 'line-new' })] })),
+      );
+
+      await store.createLine(TEMPLATE_ID, input, false);
+      await store.createLine(
+        TEMPLATE_ID,
+        { ...input, kind: 'saving', assetId: 'asset-1' },
+        false,
+      );
+
+      const [, withoutAsset] =
+        templatesApiMock.bulkOperationsTemplateLines$.mock.calls[0];
+      const [, withAsset] =
+        templatesApiMock.bulkOperationsTemplateLines$.mock.calls[1];
+      expect(withoutAsset.create[0]).not.toHaveProperty('assetId');
+      expect(withAsset.create[0].assetId).toBe('asset-1');
+    });
+
     it('should reload template details when the mutation fails', async () => {
       templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => new Error('boom')),
@@ -248,6 +268,27 @@ describe('TemplateLineStore', () => {
       const lines = linesSignal();
       expect(lines.find((line) => line.id === 'line-a')?.name).toBe('A');
       expect(lines.find((line) => line.id === 'line-b')).toEqual(updated);
+    });
+
+    it('should send assetId, null included, only when the input carries one', async () => {
+      templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
+        of(createBulkResponse({ updated: [createLine()] })),
+      );
+
+      await store.updateLine(TEMPLATE_ID, 'line-1', input, false);
+      await store.updateLine(
+        TEMPLATE_ID,
+        'line-1',
+        { ...input, assetId: null },
+        false,
+      );
+
+      const [, untouched] =
+        templatesApiMock.bulkOperationsTemplateLines$.mock.calls[0];
+      const [, cleared] =
+        templatesApiMock.bulkOperationsTemplateLines$.mock.calls[1];
+      expect(untouched.update[0]).not.toHaveProperty('assetId');
+      expect(cleared.update[0].assetId).toBeNull();
     });
 
     it('should reload when the update mutation fails', async () => {

@@ -1,10 +1,19 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type Provider,
+} from '@angular/core';
+import { Subject } from 'rxjs';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { UserSettingsStore } from '@core/user-settings';
+import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
 import { CurrencyConverterService } from '@core/currency';
+import { createMockDataCache } from '@core/testing';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
 import type { TemplateLine } from 'pulpe-shared';
 import {
   EditTemplateLineDialog,
@@ -16,6 +25,7 @@ const baseLine: TemplateLine = {
   id: 'line-1',
   templateId: 'template-1',
   savingsGoalId: null,
+  assetId: null,
   name: 'Loyer',
   amount: 1500,
   kind: 'expense',
@@ -25,9 +35,12 @@ const baseLine: TemplateLine = {
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
+const ASSET_ID = '00000000-0000-4000-8000-0000000000f3';
+
 interface SetupOptions {
   line?: TemplateLine;
   templateName?: string;
+  providers?: Provider[];
 }
 
 function setup(options: SetupOptions = {}): {
@@ -62,6 +75,7 @@ function setup(options: SetupOptions = {}): {
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: UserSettingsStore, useValue: mockUserSettings },
       { provide: CurrencyConverterService, useValue: converter },
+      ...(options.providers ?? []),
     ],
   });
 
@@ -472,5 +486,81 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
 
     expect(component['isEditMode']()).toBe(true);
     expect(component['model']().name).toBe('Loyer');
+  });
+});
+
+describe('EditTemplateLineDialog — asset link', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const withNetWorthFlag = (isEnabled: boolean): Provider[] => {
+    const postHog = createMockPostHogService();
+    postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+    return [
+      { provide: PostHogService, useValue: postHog },
+      {
+        provide: AssetApi,
+        useValue: {
+          cache: createMockDataCache(),
+          getNetWorth$: () => new Subject(),
+        },
+      },
+    ];
+  };
+  const savingLine: TemplateLine = {
+    ...baseLine,
+    kind: 'saving',
+    assetId: ASSET_ID,
+  };
+  const setupWithFlag = (isEnabled: boolean) => {
+    const dialog = setup({
+      line: savingLine,
+      providers: withNetWorthFlag(isEnabled),
+    });
+    dialog.converter.convertWithMetadata.mockResolvedValue({
+      convertedAmount: savingLine.amount,
+      metadata: null,
+    });
+    return dialog;
+  };
+
+  it('should offer no asset field and add no assetId key with the flag off', async () => {
+    const { fixture, component, dialogRef } = setupWithFlag(false);
+    fixture.detectChanges();
+
+    await component.handleSubmit();
+
+    expect(
+      fixture.nativeElement.querySelector('pulpe-asset-picker-field'),
+    ).toBeNull();
+    expect(dialogRef.close.mock.calls[0][0]).not.toHaveProperty('assetId');
+  });
+
+  it('should keep the linked asset in the result when nothing changes', async () => {
+    const { component, dialogRef } = setupWithFlag(true);
+
+    await component.handleSubmit();
+
+    expect(dialogRef.close.mock.calls[0][0].assetId).toBe(ASSET_ID);
+  });
+
+  it('should clear the asset when the kind changes', async () => {
+    const { component, dialogRef } = setupWithFlag(true);
+
+    component['model'].update((m) => ({ ...m, kind: 'expense' }));
+    component['onKindChange']();
+    await component.handleSubmit();
+
+    expect(dialogRef.close.mock.calls[0][0].assetId).toBeNull();
+  });
+
+  it('should offer own assets to a saving, debts to an expense, nothing to an income', () => {
+    const { component } = setupWithFlag(true);
+    const direction = () => component['assetDirection']();
+
+    expect(direction()).toBe('own');
+    component['model'].update((m) => ({ ...m, kind: 'expense' }));
+    expect(direction()).toBe('owe');
+    component['model'].update((m) => ({ ...m, kind: 'income' }));
+    expect(direction()).toBeNull();
   });
 });

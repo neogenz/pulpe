@@ -314,6 +314,7 @@ describe('BudgetApi', () => {
     budgetId: '550e8400-e29b-41d4-a716-446655440000',
     templateLineId: null,
     savingsGoalId: null,
+    assetId: null,
     name: 'Loyer',
     amount: 800,
     kind: 'expense',

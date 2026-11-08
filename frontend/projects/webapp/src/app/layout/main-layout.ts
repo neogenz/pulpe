@@ -37,6 +37,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
+import { PostHogService } from '@core/analytics/posthog';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStore } from '@core/auth/auth-store';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
@@ -56,6 +57,7 @@ import { BreadcrumbState } from '@core/shell/breadcrumb-state';
 import { PageActionBar } from '@core/shell/page-action-bar';
 import { ROUTES } from '@core/routing/routes-constants';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { FEATURE_FLAGS } from 'pulpe-shared';
 import { ZifluxDevtoolsComponent } from 'ngx-ziflux';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
@@ -144,7 +146,7 @@ interface NavigationItem {
         @if (isHandset()) {
           <!-- Mobile: Full navigation list -->
           <mat-nav-list class="pt-4 px-2!" data-testid="mobile-navigation">
-            @for (item of navigationItems; track item.route) {
+            @for (item of navigationItems(); track item.route) {
               <a
                 mat-list-item
                 [routerLink]="item.route"
@@ -169,7 +171,7 @@ interface NavigationItem {
             data-testid="desktop-navigation"
             data-tour="navigation"
           >
-            @for (item of navigationItems; track item.route) {
+            @for (item of navigationItems(); track item.route) {
               <a
                 [routerLink]="item.route"
                 routerLinkActive
@@ -761,6 +763,7 @@ interface NavigationItem {
 export default class MainLayout {
   readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #postHog = inject(PostHogService);
   readonly #router = inject(Router);
   readonly #authStore = inject(AuthStore);
   readonly #authSession = inject(AuthSessionService);
@@ -811,42 +814,58 @@ export default class MainLayout {
   // Route to settings page
   protected readonly settingsRoute = `/${ROUTES.SETTINGS}`;
 
-  // Navigation items configuration
-  protected readonly navigationItems: readonly NavigationItem[] = [
-    {
-      route: ROUTES.DASHBOARD,
-      labelKey: 'navigation.dashboard',
-      icon: 'space_dashboard',
-      tooltipKey: 'navigation.dashboardTooltip',
+  // Navigation items configuration. « Patrimoine » ships behind a rollout flag;
+  // `flagsVersion()` re-runs the read once PostHog resolves the flags.
+  protected readonly navigationItems = computed<readonly NavigationItem[]>(
+    () => {
+      this.#postHog.flagsVersion();
+      return [
+        {
+          route: ROUTES.DASHBOARD,
+          labelKey: 'navigation.dashboard',
+          icon: 'space_dashboard',
+          tooltipKey: 'navigation.dashboardTooltip',
+        },
+        {
+          route: ROUTES.BUDGET,
+          labelKey: 'navigation.budgetsShort',
+          icon: 'calendar_month',
+          tooltipKey: 'navigation.budgetsTooltip',
+        },
+        {
+          route: ROUTES.BUDGET_TEMPLATES,
+          labelKey: 'navigation.templatesShort',
+          icon: 'view_quilt',
+          tooltipKey: 'navigation.templatesTooltip',
+        },
+        {
+          route: ROUTES.SAVINGS_GOALS,
+          labelKey: 'navigation.savingsGoalsShort',
+          icon: 'savings',
+          tooltipKey: 'navigation.savingsGoalsTooltip',
+        },
+        ...(this.#postHog.isFeatureEnabled(FEATURE_FLAGS.NET_WORTH)
+          ? [
+              {
+                route: ROUTES.NET_WORTH,
+                labelKey: 'navigation.netWorthShort',
+                icon: 'account_balance_wallet',
+                tooltipKey: 'navigation.netWorthTooltip',
+              },
+            ]
+          : []),
+        ...(isDevMode()
+          ? [
+              {
+                route: ROUTES.DESIGN_SYSTEM,
+                labelKey: 'navigation.designSystem',
+                icon: 'palette',
+              },
+            ]
+          : []),
+      ];
     },
-    {
-      route: ROUTES.BUDGET,
-      labelKey: 'navigation.budgetsShort',
-      icon: 'calendar_month',
-      tooltipKey: 'navigation.budgetsTooltip',
-    },
-    {
-      route: ROUTES.BUDGET_TEMPLATES,
-      labelKey: 'navigation.templatesShort',
-      icon: 'view_quilt',
-      tooltipKey: 'navigation.templatesTooltip',
-    },
-    {
-      route: ROUTES.SAVINGS_GOALS,
-      labelKey: 'navigation.savingsGoalsShort',
-      icon: 'savings',
-      tooltipKey: 'navigation.savingsGoalsTooltip',
-    },
-    ...(isDevMode()
-      ? [
-          {
-            route: ROUTES.DESIGN_SYSTEM,
-            labelKey: 'navigation.designSystem',
-            icon: 'palette',
-          },
-        ]
-      : []),
-  ];
+  );
 
   // Responsive breakpoint detection
   protected readonly isHandset = toSignal(
@@ -868,7 +887,7 @@ export default class MainLayout {
   // Current navigation item based on route
   protected readonly currentNavigationItem = computed(() => {
     const url = this.#currentRoute();
-    return this.navigationItems.find((item) => url.includes(item.route));
+    return this.navigationItems().find((item) => url.includes(item.route));
   });
 
   // Driven by route data `focusMode: true` on leaf routes that should hide

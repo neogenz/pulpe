@@ -9,9 +9,8 @@ import {
   isDevMode,
 } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { MatDialog } from '@angular/material/dialog';
 import { formatLocalDate } from '@core/date/format-local-date';
-import { openReconcileAccountsDialog } from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
+import { ReconcileAccountsDialogService } from '@pattern/reconcile-accounts/reconcile-accounts-dialog.service';
 import { Router } from '@angular/router';
 import { v4 as uuidv4 } from 'uuid';
 import { MatCardModule } from '@angular/material/card';
@@ -143,7 +142,7 @@ export default class BudgetDetailsPage {
   readonly #dialogService = inject(BudgetDetailsDialogService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
-  readonly #dialog = inject(MatDialog);
+  readonly #reconcileAccountsDialog = inject(ReconcileAccountsDialogService);
   readonly #breakpoints = inject(BreakpointObserver);
   #isDeletingMonth = false;
 
@@ -221,8 +220,7 @@ export default class BudgetDetailsPage {
       !this.#destroyRef.destroyed &&
       this.id() === budget.id &&
       this.store.budgetDetails()?.id === budget.id;
-    openReconcileAccountsDialog(
-      this.#dialog,
+    void this.#reconcileAccountsDialog.open(
       {
         realized: computed(() =>
           matches()

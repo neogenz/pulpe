@@ -38,6 +38,8 @@ export const ANALYTICS_PROPERTIES = {
 export const FEATURE_FLAGS = {
   /** Shows the bank-statement import on a budget's details (PUL-25). */
   TRANSACTION_IMPORT: 'transaction_import',
+  /** Shows « Mon patrimoine » in the main navigation (PUL-366). */
+  NET_WORTH: 'net_worth',
 } as const;
 
 /**

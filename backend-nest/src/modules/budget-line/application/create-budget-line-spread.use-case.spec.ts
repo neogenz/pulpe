@@ -31,6 +31,7 @@ const makeLine = (
   budgetId: input.budgetId,
   templateLineId: null,
   savingsGoalId: input.savingsGoalId ?? null,
+  assetId: input.assetId ?? null,
   tagIds: [],
   spreadGroupId,
   savingsWithdrawalGroupId: null,
@@ -261,6 +262,15 @@ describe('CreateBudgetLineSpreadUseCase', () => {
     expect(inputs.every((i) => i.kind === 'saving')).toBe(true);
     expect(inputs.every((i) => i.recurrence === 'one_off')).toBe(true);
     expect(inputs.every((i) => i.savingsGoalId === 'goal-1')).toBe(true);
+  });
+
+  it('should carry the asset link on every tranche', async () => {
+    const assetId = '8a0f6c80-1234-4e5f-89ab-444444444444';
+
+    await useCase.execute(makeDto({ assetId }), mockUser);
+
+    expect(captured[0].inputs).toHaveLength(3);
+    expect(captured[0].inputs.every((i) => i.assetId === assetId)).toBe(true);
   });
 
   it('should discard a forged savings-goal link on expense tranches', async () => {

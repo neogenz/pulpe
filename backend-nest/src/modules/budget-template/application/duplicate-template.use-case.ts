@@ -69,6 +69,7 @@ export class DuplicateTemplateUseCase {
       kind: line.kind,
       recurrence: line.recurrence,
       savingsGoalId: line.savingsGoalId,
+      assetId: line.assetId,
       tagIds: line.tagIds,
       description: line.description ?? '',
       originalAmount: line.originalAmount,

@@ -3,6 +3,7 @@ import {
   type ErrorDefinition,
 } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { throwIfAssetLinkRefused } from '@common/utils/asset-link';
 import { isRetryableTransactionConflict } from '@common/utils/postgres-conflict';
 import {
   isSavingsGoalLinkDenied,
@@ -190,6 +191,12 @@ function throwAtomicTaggedUpdateError(
   if (error.code === '23505' && params.duplicateErrorDef) {
     throwTaggedBusinessError(params.duplicateErrorDef, details, params, error);
   }
+  throwIfAssetLinkRefused(error, {
+    operation: params.operation,
+    entityId: params.entityId,
+    entityType: params.entityType,
+    supabaseError: error,
+  });
   if (isSavingsGoalLinkDenied(error)) {
     throwTaggedBusinessError(
       ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,

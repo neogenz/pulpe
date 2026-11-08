@@ -1,20 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type Provider,
+} from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { of, Subject } from 'rxjs';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
 import { CurrencyConverterService } from '@core/currency';
+import { createMockDataCache } from '@core/testing';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
-import type { SupportedCurrency, SupportedLocale } from 'pulpe-shared';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
+import type { Asset, SupportedCurrency, SupportedLocale } from 'pulpe-shared';
 import { AddBudgetLineDialog, type BudgetLineDialogData } from './dialog';
 
 const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 const SAVINGS_GOAL_ID = '00000000-0000-4000-8000-0000000000f2';
+const ASSET_ID = '00000000-0000-4000-8000-0000000000f3';
 
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
@@ -33,9 +43,11 @@ interface DialogRefMock {
 function configureDialog({
   userCurrency = 'CHF',
   showCurrencyPref = true,
+  providers = [],
 }: {
   userCurrency?: SupportedCurrency;
   showCurrencyPref?: boolean;
+  providers?: Provider[];
 } = {}) {
   const dialogRef: DialogRefMock = { close: vi.fn() };
   const settings: SettingsMock = {
@@ -72,6 +84,7 @@ function configureDialog({
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
+      ...providers,
     ],
   });
 
@@ -371,6 +384,149 @@ describe('AddBudgetLineDialog', () => {
     });
   });
 
+  describe('asset link', () => {
+    const withNetWorthFlag = (isEnabled: boolean): Provider[] => {
+      const postHog = createMockPostHogService();
+      postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+      return [
+        { provide: PostHogService, useValue: postHog },
+        {
+          provide: AssetApi,
+          useValue: {
+            cache: createMockDataCache(),
+            getNetWorth$: () => new Subject(),
+          },
+        },
+      ];
+    };
+    const pickerOf = (fixture: { nativeElement: HTMLElement }) =>
+      fixture.nativeElement.querySelector('pulpe-asset-picker-field');
+
+    it('should offer no asset field and add no assetId key with the flag off', async () => {
+      const { fixture, component, dialogRef } = configureDialog({
+        providers: withNetWorthFlag(false),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Épargne mensuelle',
+        kind: 'saving',
+        assetId: ASSET_ID,
+        money: { amount: 500, inputCurrency: 'CHF' },
+      }));
+
+      fixture.detectChanges();
+      await component['handleSubmit']();
+
+      expect(pickerOf(fixture)).toBeNull();
+      const { value } = dialogRef.close.mock.calls[0][0];
+      expect(value).not.toHaveProperty('assetId');
+    });
+
+    it('should offer own assets to a saving and debts to an expense, nothing to an income', () => {
+      const { fixture, component } = configureDialog({
+        providers: withNetWorthFlag(true),
+      });
+      const direction = () => component['assetDirection']();
+
+      component['model'].update((m) => ({ ...m, kind: 'saving' }));
+      expect(direction()).toBe('own');
+      fixture.detectChanges();
+      expect(pickerOf(fixture)).not.toBeNull();
+
+      component['model'].update((m) => ({ ...m, kind: 'expense' }));
+      expect(direction()).toBe('owe');
+
+      component['model'].update((m) => ({ ...m, kind: 'income' }));
+      expect(direction()).toBeNull();
+      fixture.detectChanges();
+      expect(pickerOf(fixture)).toBeNull();
+    });
+
+    it('should clear the chosen asset when the kind changes', () => {
+      const { component } = configureDialog({
+        providers: withNetWorthFlag(true),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        kind: 'saving',
+        assetId: ASSET_ID,
+      }));
+
+      component['onKindChange']('expense');
+
+      expect(component['model']().assetId).toBeNull();
+    });
+
+    it('should send the chosen asset with a single line', async () => {
+      const { component, dialogRef } = configureDialog({
+        providers: withNetWorthFlag(true),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Épargne mensuelle',
+        kind: 'saving',
+        assetId: ASSET_ID,
+        money: { amount: 500, inputCurrency: 'CHF' },
+      }));
+
+      await component['handleSubmit']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'single',
+        value: expect.objectContaining({ assetId: ASSET_ID }),
+      });
+    });
+
+    it('should send an explicit null when no asset is chosen', async () => {
+      const { component, dialogRef } = configureDialog({
+        providers: withNetWorthFlag(true),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Loyer',
+        money: { amount: 1200, inputCurrency: 'CHF' },
+      }));
+
+      await component['handleSubmit']();
+
+      const { value } = dialogRef.close.mock.calls[0][0];
+      expect(value.assetId).toBeNull();
+    });
+
+    it('should send the chosen asset with a spread, and none with the flag off', async () => {
+      const on = configureDialog({ providers: withNetWorthFlag(true) });
+      on.component['model'].update((m) => ({
+        ...m,
+        name: 'Épargne',
+        kind: 'saving',
+        assetId: ASSET_ID,
+        money: { amount: 600, inputCurrency: 'CHF' },
+      }));
+      on.component['setMode']('spread');
+      await on.component['handleSubmit']();
+
+      expect(on.dialogRef.close).toHaveBeenCalledWith({
+        mode: 'spread',
+        value: expect.objectContaining({ assetId: ASSET_ID }),
+      });
+
+      TestBed.resetTestingModule();
+      const off = configureDialog({ providers: withNetWorthFlag(false) });
+      off.component['model'].update((m) => ({
+        ...m,
+        name: 'Épargne',
+        kind: 'saving',
+        assetId: ASSET_ID,
+        money: { amount: 600, inputCurrency: 'CHF' },
+      }));
+      off.component['setMode']('spread');
+      await off.component['handleSubmit']();
+
+      const { value } = off.dialogRef.close.mock.calls[0][0];
+      expect(value).not.toHaveProperty('assetId');
+    });
+  });
+
   describe('currency create rules', () => {
     it('should initialize money slice with user currency', () => {
       const { component } = configureDialog({ userCurrency: 'EUR' });
@@ -602,6 +758,198 @@ describe('AddBudgetLineDialog', () => {
       expect(dialogRef.close).toHaveBeenCalledWith(
         expect.objectContaining({ mode: 'savingsWithdrawal' }),
       );
+    });
+  });
+
+  // « Tiré de mon patrimoine » : un revenu tiré d'un élément `own`. Il prend
+  // la place de l'origine objectif (jamais les deux dans la requête) et ne
+  // s'offre que si le flag est actif et qu'il existe un élément à débiter.
+  describe('income drawn from an asset', () => {
+    const buildAsset = (overrides: Partial<Asset> = {}): Asset => ({
+      id: ASSET_ID,
+      categoryId: '00000000-0000-4000-8000-0000000000c1',
+      name: 'Livret',
+      currency: 'CHF',
+      direction: 'own',
+      inPulpe: false,
+      archivedAt: null,
+      latestValue: 3_000,
+      latestRecordedAt: '2026-11-01T08:00:00.000Z',
+      convertedValue: 3_000,
+      suggestion: null,
+      ...overrides,
+    });
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+    const configureIncome = async (isEnabled: boolean, assets: Asset[]) => {
+      const postHog = createMockPostHogService();
+      postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+      const context = configureDialog({
+        providers: [
+          { provide: PostHogService, useValue: postHog },
+          {
+            provide: AssetApi,
+            useValue: {
+              cache: createMockDataCache(),
+              getNetWorth$: () =>
+                of({
+                  success: true,
+                  data: {
+                    totals: {
+                      baseCurrency: 'CHF',
+                      gross: 0,
+                      debts: 0,
+                      net: 0,
+                      incomplete: false,
+                    },
+                    categories: [],
+                    assets,
+                  },
+                }),
+            },
+          },
+        ],
+      });
+      context.component['model'].update((m) => ({
+        ...m,
+        name: 'Retrait livret',
+        kind: 'income',
+        recurrence: 'one_off',
+        money: { amount: 1000, inputCurrency: 'CHF' },
+      }));
+      context.fixture.detectChanges();
+      await settle();
+      context.fixture.detectChanges();
+      return context;
+    };
+
+    const originOptions = async (fixture: {
+      nativeElement: HTMLElement;
+      detectChanges: () => void;
+    }): Promise<string[]> => {
+      fixture.nativeElement
+        .querySelector(
+          '[data-testid="new-line-income-origin"] .mat-mdc-select-trigger',
+        )!
+        .dispatchEvent(new Event('click'));
+      fixture.detectChanges();
+      await settle();
+      return Array.from(
+        document.querySelectorAll('.cdk-overlay-container mat-option'),
+      ).map((option) => (option.textContent ?? '').trim());
+    };
+
+    it('is offered last when the flag is on and an own asset is active', async () => {
+      const { fixture, component } = await configureIncome(true, [
+        buildAsset(),
+      ]);
+
+      expect(component['isAssetOriginOffered']()).toBe(true);
+      expect((await originOptions(fixture)).at(-1)).toBe(
+        'Tiré de mon patrimoine',
+      );
+    });
+
+    it('is not offered with the flag off, even when assets exist', async () => {
+      const { fixture, component } = await configureIncome(false, [
+        buildAsset(),
+      ]);
+
+      expect(component['isAssetOriginOffered']()).toBe(false);
+      expect(await originOptions(fixture)).not.toContain(
+        'Tiré de mon patrimoine',
+      );
+    });
+
+    it('is not offered without an active own asset', async () => {
+      const { component } = await configureIncome(true, [
+        buildAsset({ archivedAt: '2026-10-01T08:00:00.000Z' }),
+        buildAsset({
+          id: '00000000-0000-4000-8000-0000000000f4',
+          direction: 'owe',
+        }),
+      ]);
+
+      expect(component['isAssetOriginOffered']()).toBe(false);
+    });
+
+    it('shows the « Tiré de » picker only for this origin', async () => {
+      const { fixture, component } = await configureIncome(true, [
+        buildAsset(),
+      ]);
+      const picker = () =>
+        fixture.nativeElement.querySelector('pulpe-asset-picker-field');
+
+      expect(picker()).toBeNull();
+
+      component['setIncomeOrigin']('asset');
+      fixture.detectChanges();
+      await settle();
+      fixture.detectChanges();
+
+      expect(picker()).not.toBeNull();
+      expect(picker().querySelector('mat-label').textContent.trim()).toBe(
+        'Tiré de',
+      );
+    });
+
+    it('keeps only one origin when the user switches between asset and goal', async () => {
+      const { component } = await configureIncome(true, [buildAsset()]);
+
+      component['setIncomeOrigin']('asset');
+      component['model'].update((m) => ({ ...m, assetId: ASSET_ID }));
+      component['setIncomeOrigin']('savingsGoal');
+      expect(component['model']().assetId).toBeNull();
+
+      component['model'].update((m) => ({
+        ...m,
+        sourceSavingsGoalId: SAVINGS_GOAL_ID,
+      }));
+      component['setIncomeOrigin']('asset');
+      expect(component['model']().sourceSavingsGoalId).toBeNull();
+    });
+
+    it('drops the asset as soon as the kind stops being an income', async () => {
+      const { component } = await configureIncome(true, [buildAsset()]);
+      component['setIncomeOrigin']('asset');
+      component['model'].update((m) => ({ ...m, assetId: ASSET_ID }));
+
+      component['onKindChange']('expense');
+
+      expect(component['incomeOrigin']()).toBe('regular');
+      expect(component['model']().assetId).toBeNull();
+    });
+
+    it('sends the asset, no goal source, and keeps the « Déjà pointé » toggle', async () => {
+      const { component, dialogRef } = await configureIncome(true, [
+        buildAsset(),
+      ]);
+      component['setIncomeOrigin']('asset');
+      component['model'].update((m) => ({
+        ...m,
+        assetId: ASSET_ID,
+        isChecked: true,
+      }));
+
+      await component['handleSubmit']();
+
+      const { value: dto } = dialogRef.close.mock.calls[0][0];
+      expect(dto.assetId).toBe(ASSET_ID);
+      expect(dto).not.toHaveProperty('sourceSavingsGoalId');
+      expect(dto.checkedAt).not.toBeNull();
+    });
+
+    it('saves a plain Revenu when « Aucun » stays picked', async () => {
+      const { component, dialogRef } = await configureIncome(true, [
+        buildAsset(),
+      ]);
+      component['setIncomeOrigin']('asset');
+
+      expect(component['canSubmit']()).toBe(true);
+      await component['handleSubmit']();
+
+      const { value: dto } = dialogRef.close.mock.calls[0][0];
+      expect(dto.assetId).toBeNull();
     });
   });
 

@@ -47,6 +47,7 @@ export class CreateBudgetLineUseCase {
         withRate.kind,
         withRate.savingsGoalId,
       ),
+      assetId: withRate.assetId ?? null,
       sourceSavingsGoalId: withRate.sourceSavingsGoalId ?? null,
       name: withRate.name,
       amount: withRate.amount,
@@ -58,7 +59,9 @@ export class CreateBudgetLineUseCase {
       recurrence: withRate.recurrence,
       tagIds: withRate.tagIds,
       isManuallyAdjusted: withRate.isManuallyAdjusted ?? false,
-      checkedAt: withRate.checkedAt ?? null,
+      // The client only says "checked"; the server clock dates it, so the
+      // patrimoine suggestion cutoff never compares a skewed device clock.
+      checkedAt: withRate.checkedAt ? new Date().toISOString() : null,
     };
 
     const entity = await this.repo.insert(input);

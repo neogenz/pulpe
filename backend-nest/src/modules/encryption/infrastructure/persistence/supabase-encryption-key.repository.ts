@@ -9,6 +9,7 @@ import type {
   VaultStatus,
 } from '../../domain/encryption.entity';
 import type {
+  RekeyAssetSnapshotRpcPayload,
   RekeyBudgetLineRpcPayload,
   RekeyMonthlyBudgetRpcPayload,
   RekeyPlanWithdrawalRpcPayload,
@@ -24,6 +25,7 @@ export interface RekeyRpcPayloads {
   savingsGoals: RekeySavingsGoalRpcPayload[];
   monthlyBudgets: RekeyMonthlyBudgetRpcPayload[];
   planWithdrawals: RekeyPlanWithdrawalRpcPayload[];
+  assetSnapshots: RekeyAssetSnapshotRpcPayload[];
 }
 
 @Injectable()
@@ -276,9 +278,10 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
   ): Promise<void> {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { error } = await supabase.rpc(
-      'rekey_user_encrypted_data_with_plan_withdrawals',
+      'rekey_user_encrypted_data_with_asset_snapshots',
       {
         p_user_id: userId,
+        p_asset_snapshots: payloads.assetSnapshots,
         p_plan_withdrawals: payloads.planWithdrawals,
         p_budget_lines: payloads.budgetLines,
         p_transactions: payloads.transactions,

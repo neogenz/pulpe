@@ -610,4 +610,66 @@ describe('SupabaseEncryptionKeyRepository', () => {
       expectRepositoryFailure(exception, 'updateWrappedDEKIfNull', dbError);
     });
   });
+
+  describe('rekeyUserData', () => {
+    const payloads = {
+      budgetLines: [],
+      transactions: [],
+      templateLines: [],
+      savingsGoals: [],
+      monthlyBudgets: [],
+      planWithdrawals: [
+        { id: '8a0f6c80-1234-4e5f-89ab-111111111111', amount: 'plan' },
+      ],
+      assetSnapshots: [
+        { id: '8a0f6c80-1234-4e5f-89ab-222222222222', value: 'snapshot' },
+      ],
+    };
+
+    it('rekeys through the v3 RPC with the asset snapshots and the canary', async () => {
+      const rpc = mock(() => Promise.resolve({ data: null, error: null }));
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => ({ rpc }),
+      );
+
+      await repo.rekeyUserData(USER_ID, payloads, 'check-new');
+
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc).toHaveBeenCalledWith(
+        'rekey_user_encrypted_data_with_asset_snapshots',
+        {
+          p_user_id: USER_ID,
+          p_asset_snapshots: payloads.assetSnapshots,
+          p_plan_withdrawals: payloads.planWithdrawals,
+          p_budget_lines: [],
+          p_transactions: [],
+          p_template_lines: [],
+          p_savings_goals: [],
+          p_monthly_budgets: [],
+          p_key_check: 'check-new',
+        },
+      );
+    });
+
+    it('throws ENCRYPTION_REKEY_FAILED with the RPC error as cause', async () => {
+      const dbError = {
+        code: 'P0001',
+        message: 'rekey: asset_snapshot holds 1 rows, payload carries 0',
+      };
+      const rpc = mock(() => Promise.resolve({ data: null, error: dbError }));
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => ({ rpc }),
+      );
+
+      const exception = await captureRejection(
+        repo.rekeyUserData(USER_ID, payloads, 'check-new'),
+      );
+
+      expect(exception).toBeInstanceOf(BusinessException);
+      const ex = exception as BusinessException;
+      expect(ex.code).toBe(API_ERROR_CODES.ENCRYPTION_REKEY_FAILED);
+      expect(ex.loggingContext.operation).toBe('rekey.rpc_failure');
+      expect(ex.cause).toBe(dbError);
+    });
+  });
 });

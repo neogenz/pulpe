@@ -40,6 +40,7 @@ describe('BudgetCalculator', () => {
     budgetId: 'test-budget-id',
     templateLineId: 'test-template-id',
     savingsGoalId: null,
+    assetId: null,
     name,
     amount,
     kind,

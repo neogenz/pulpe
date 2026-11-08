@@ -1,0 +1,593 @@
+import { describe, expect, it, jest } from 'bun:test';
+import { Buffer } from 'node:buffer';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { POSTGREST_PAGE_SIZE } from '@common/utils/postgrest-pagination';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { InfoLogger } from '@common/logger';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
+import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
+import type { AssetRow } from '../../domain/asset.entity';
+import { SupabaseAssetRepository } from './supabase-asset.repository';
+
+const mockUser: AuthenticatedUser = {
+  id: 'user-1',
+  email: 'test@example.com',
+  accessToken: 'token',
+  clientKey: Buffer.from('client-key'),
+};
+
+type Result = { data: unknown; error: unknown };
+type Call = [method: string, args: unknown[]];
+
+/**
+ * A PostgREST query builder stand-in: every method returns the builder and
+ * records its call; awaiting it resolves `respond` with the calls so far.
+ */
+function query(
+  respond: (calls: Call[]) => Result = () => ({
+    data: [],
+    error: null,
+  }),
+) {
+  const calls: Call[] = [];
+  const builder: unknown = new Proxy(
+    {},
+    {
+      get: (_target, method: string) =>
+        method === 'then'
+          ? (resolve: (value: Result) => void) => resolve(respond(calls))
+          : (...args: unknown[]) => {
+              calls.push([method, args]);
+              return builder;
+            },
+    },
+  );
+  const argsOf = (method: string) =>
+    calls.filter(([name]) => name === method).map(([, args]) => args);
+  return { builder, calls, argsOf };
+}
+
+function createRepository(
+  tables: Record<string, ReturnType<typeof query>[]>,
+  encryption: Partial<EncryptionPort> = {},
+) {
+  const queues = Object.fromEntries(
+    Object.entries(tables).map(([table, list]) => [table, [...list]]),
+  );
+  // An RPC is queued under `rpc:<name>`; its arguments are recorded as a call.
+  const client = {
+    from: (table: string) => queues[table]?.shift()?.builder,
+    rpc: (name: string, args: unknown) => {
+      const rpc = queues[`rpc:${name}`]?.shift();
+      rpc?.calls.push(['rpc', [args]]);
+      return rpc?.builder;
+    },
+  } as unknown as AuthenticatedSupabaseClient;
+  const provider = {
+    client,
+    user: mockUser,
+  } as unknown as AuthenticatedSupabaseProvider;
+  const port = {
+    getDekFor: jest.fn().mockResolvedValue(Buffer.alloc(32)),
+    encryptAmount: jest.fn((amount: number) => `enc:${amount}`),
+    decryptAmount: jest.fn((ciphertext: string) => Number(ciphertext.slice(4))),
+    ...encryption,
+  } as unknown as EncryptionPort;
+  const logger = {
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    trace: jest.fn(),
+  } as unknown as InfoLogger;
+  return {
+    repo: new SupabaseAssetRepository(provider, port, logger),
+    encryption: port,
+    logger,
+  };
+}
+
+function assetRow(id: string, overrides: Partial<AssetRow> = {}): AssetRow {
+  return {
+    id,
+    user_id: 'user-1',
+    category_id: 'cat-1',
+    name: id,
+    currency: 'CHF',
+    direction: 'own',
+    in_pulpe: false,
+    archived_at: null,
+    suggestion_dismissed_at: null,
+    created_at: '2026-11-01T00:00:00Z',
+    updated_at: '2026-11-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+function snapshotRow(assetId: string, value: number, recordedAt: string) {
+  return { asset_id: assetId, value: `enc:${value}`, recorded_at: recordedAt };
+}
+
+describe('SupabaseAssetRepository', () => {
+  describe('insertSnapshots', () => {
+    it('writes ciphertext in one insert and returns the shared recorded_at', async () => {
+      const insert = query(() => ({
+        data: [
+          { recorded_at: '2026-11-03T10:00:00Z' },
+          { recorded_at: '2026-11-03T10:00:00Z' },
+        ],
+        error: null,
+      }));
+      const { repo, encryption } = createRepository({
+        asset_snapshot: [insert],
+      });
+
+      const recordedAt = await repo.insertSnapshots([
+        { assetId: 'a', value: 1500.5 },
+        { assetId: 'b', value: -200 },
+      ]);
+
+      expect(recordedAt).toBe('2026-11-03T10:00:00Z');
+      expect(insert.argsOf('insert')).toEqual([
+        [
+          [
+            { user_id: 'user-1', asset_id: 'a', value: 'enc:1500.5' },
+            { user_id: 'user-1', asset_id: 'b', value: 'enc:-200' },
+          ],
+        ],
+      ]);
+      expect(encryption.encryptAmount).toHaveBeenCalledTimes(2);
+    });
+
+    it('maps a foreign key violation to ASSET_NOT_FOUND', async () => {
+      const { repo } = createRepository({
+        asset_snapshot: [
+          query(() => ({
+            data: null,
+            error: { code: '23503', message: 'fk' },
+          })),
+        ],
+      });
+
+      await expect(
+        repo.insertSnapshots([{ assetId: 'gone', value: 1 }]),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_NOT_FOUND.code,
+      });
+    });
+  });
+
+  describe('findAllWithLatestValue', () => {
+    it('decrypts the current value of each asset from the latest-snapshot view', async () => {
+      const latest = query(() => ({
+        data: [
+          snapshotRow('a', 300, '2026-11-03T10:00:00Z'),
+          snapshotRow('b', 50, '2026-09-01T10:00:00Z'),
+        ],
+        error: null,
+      }));
+      const { repo, encryption } = createRepository({
+        asset: [
+          query(() => ({ data: [assetRow('a'), assetRow('b')], error: null })),
+        ],
+        asset_latest_snapshot: [latest],
+      });
+
+      const assets = await repo.findAllWithLatestValue();
+
+      expect(
+        assets.map((a) => [a.id, a.latestValue, a.latestRecordedAt]),
+      ).toEqual([
+        ['a', 300, '2026-11-03T10:00:00Z'],
+        ['b', 50, '2026-09-01T10:00:00Z'],
+      ]);
+      expect(encryption.decryptAmount).toHaveBeenCalledTimes(2);
+      expect(latest.argsOf('eq')).toEqual([['user_id', 'user-1']]);
+    });
+
+    it('carries the dismissal instant of each asset', async () => {
+      const { repo } = createRepository({
+        asset: [
+          query(() => ({
+            data: [
+              assetRow('a', {
+                suggestion_dismissed_at: '2026-11-02T08:00:00Z',
+              }),
+              assetRow('b'),
+            ],
+            error: null,
+          })),
+        ],
+        asset_latest_snapshot: [
+          query(() => ({
+            data: [
+              snapshotRow('a', 1, '2026-11-01T10:00:00Z'),
+              snapshotRow('b', 2, '2026-11-01T10:00:00Z'),
+            ],
+            error: null,
+          })),
+        ],
+      });
+
+      const assets = await repo.findAllWithLatestValue();
+
+      expect(assets.map((a) => a.suggestionDismissedAt)).toEqual([
+        '2026-11-02T08:00:00Z',
+        null,
+      ]);
+    });
+
+    it('does not swallow a decryption failure', async () => {
+      const failure = new Error(
+        'Unsupported state or unable to authenticate data',
+      );
+      const { repo } = createRepository(
+        {
+          asset: [query(() => ({ data: [assetRow('a')], error: null }))],
+          asset_latest_snapshot: [
+            query(() => ({
+              data: [snapshotRow('a', 1, '2026-11-03T10:00:00Z')],
+              error: null,
+            })),
+          ],
+        },
+        {
+          decryptAmount: jest.fn(() => {
+            throw failure;
+          }),
+        },
+      );
+
+      await expect(repo.findAllWithLatestValue()).rejects.toBe(failure);
+    });
+
+    it('leaves out an asset without any snapshot and keeps the others', async () => {
+      const { repo, logger } = createRepository({
+        asset: [
+          query(() => ({
+            data: [assetRow('orphan'), assetRow('a')],
+            error: null,
+          })),
+        ],
+        asset_latest_snapshot: [
+          query(() => ({
+            data: [snapshotRow('a', 5, '2026-11-03T10:00:00Z')],
+            error: null,
+          })),
+        ],
+      });
+
+      const assets = await repo.findAllWithLatestValue();
+
+      expect(assets.map((asset) => asset.id)).toEqual(['a']);
+      expect(logger.warn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('findCheckedLinkedLines', () => {
+    function lineRow(
+      id: number,
+      amount: number | null,
+      {
+        assetId = 'livret',
+        kind = 'saving',
+        checkedAt = '2026-11-05T09:00:00+00:00',
+      } = {},
+    ) {
+      return {
+        id: `line-${id}`,
+        asset_id: assetId,
+        kind,
+        amount: amount && `enc:${amount}`,
+        checked_at: checkedAt,
+      };
+    }
+
+    it('reads every asset in one query and holds each line to its own cutoff', async () => {
+      const lines = query(() => ({
+        data: [
+          lineRow(1, 500),
+          lineRow(2, 200.5),
+          // After the earliest cutoff, before the leasing's own: dropped.
+          lineRow(3, 900, {
+            assetId: 'leasing',
+            kind: 'expense',
+            checkedAt: '2026-11-03T12:00:00+00:00',
+          }),
+          lineRow(4, 400, { assetId: 'leasing', kind: 'expense' }),
+        ],
+        error: null,
+      }));
+      const { repo, encryption } = createRepository({ budget_line: [lines] });
+
+      const result = await repo.findCheckedLinkedLines([
+        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+        { assetId: 'leasing', since: '2026-11-04T08:00:00+00:00' },
+      ]);
+
+      expect(result).toEqual([
+        { assetId: 'livret', kind: 'saving', amount: 500 },
+        { assetId: 'livret', kind: 'saving', amount: 200.5 },
+        { assetId: 'leasing', kind: 'expense', amount: 400 },
+      ]);
+      expect(lines.argsOf('in')).toEqual([['asset_id', ['livret', 'leasing']]]);
+      expect(lines.argsOf('gt')).toEqual([
+        ['checked_at', '2026-11-03T10:00:00.000Z'],
+      ]);
+      expect(encryption.decryptAmount).toHaveBeenCalledTimes(3);
+    });
+
+    it('drops a line checked at the cutoff instant itself', async () => {
+      const { repo } = createRepository({
+        budget_line: [
+          query(() => ({
+            data: [lineRow(1, 500, { checkedAt: '2026-11-03T10:00:00+00:00' })],
+            error: null,
+          })),
+        ],
+      });
+
+      await expect(
+        repo.findCheckedLinkedLines([
+          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+        ]),
+      ).resolves.toEqual([]);
+    });
+
+    it('counts every line past the 1000-row PostgREST page', async () => {
+      const firstPage = query((calls) => {
+        const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
+        expect([from, to]).toEqual([0, POSTGREST_PAGE_SIZE - 1]);
+        return {
+          data: Array.from({ length: POSTGREST_PAGE_SIZE }, (_, i) =>
+            lineRow(i, 1),
+          ),
+          error: null,
+        };
+      });
+      const secondPage = query((calls) => {
+        const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
+        expect([from, to]).toEqual([
+          POSTGREST_PAGE_SIZE,
+          2 * POSTGREST_PAGE_SIZE - 1,
+        ]);
+        return {
+          data: Array.from({ length: 5 }, (_, i) => lineRow(10_000 + i, 2)),
+          error: null,
+        };
+      });
+      const { repo } = createRepository({
+        budget_line: [firstPage, secondPage],
+      });
+
+      const lines = await repo.findCheckedLinkedLines([
+        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+      ]);
+
+      expect(lines).toHaveLength(POSTGREST_PAGE_SIZE + 5);
+      expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(
+        POSTGREST_PAGE_SIZE + 10,
+      );
+      expect(firstPage.argsOf('order')).toEqual([['id', { ascending: true }]]);
+    });
+
+    it('does not query anything without an active asset', async () => {
+      const { repo } = createRepository({ budget_line: [] });
+
+      await expect(repo.findCheckedLinkedLines([])).resolves.toEqual([]);
+    });
+
+    it('skips a line without a stored amount, which moves no value', async () => {
+      const { repo, encryption } = createRepository({
+        budget_line: [query(() => ({ data: [lineRow(1, null)], error: null }))],
+      });
+
+      const lines = await repo.findCheckedLinkedLines([
+        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+      ]);
+
+      expect(lines).toEqual([]);
+      expect(encryption.decryptAmount).not.toHaveBeenCalled();
+    });
+
+    it('does not read an undecryptable amount as zero', async () => {
+      const failure = new Error(
+        'Unsupported state or unable to authenticate data',
+      );
+      const { repo } = createRepository(
+        {
+          budget_line: [
+            query(() => ({ data: [lineRow(1, 500)], error: null })),
+          ],
+        },
+        {
+          decryptAmount: jest.fn(() => {
+            throw failure;
+          }),
+        },
+      );
+
+      await expect(
+        repo.findCheckedLinkedLines([
+          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+        ]),
+      ).rejects.toBe(failure);
+    });
+
+    it('fails with ASSET_FETCH_FAILED when a read fails', async () => {
+      const { repo } = createRepository({
+        budget_line: [
+          query(() => ({
+            data: null,
+            error: { code: '08006', message: 'down' },
+          })),
+        ],
+      });
+
+      await expect(
+        repo.findCheckedLinkedLines([
+          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
+        ]),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_FETCH_FAILED.code,
+      });
+    });
+  });
+
+  describe('insertAsset', () => {
+    const input = {
+      name: 'Livret',
+      categoryId: 'cat-1',
+      currency: 'EUR' as const,
+      direction: 'own' as const,
+      inPulpe: false,
+      value: 1000,
+    };
+
+    it('writes the asset and its encrypted first value in one call', async () => {
+      const create = query(() => ({
+        data: assetRow('new', { currency: 'EUR' }),
+        error: null,
+      }));
+      const { repo } = createRepository({
+        'rpc:create_asset_with_first_snapshot': [create],
+      });
+
+      const asset = await repo.insertAsset(input);
+
+      expect(asset).toMatchObject({
+        id: 'new',
+        currency: 'EUR',
+        direction: 'own',
+      });
+      expect(create.argsOf('rpc')).toEqual([
+        [
+          {
+            p_category_id: 'cat-1',
+            p_name: 'Livret',
+            p_currency: 'EUR',
+            p_direction: 'own',
+            p_in_pulpe: false,
+            p_value: 'enc:1000',
+          },
+        ],
+      ]);
+    });
+
+    it('maps a composite foreign key violation to ASSET_CATEGORY_NOT_FOUND', async () => {
+      const { repo } = createRepository({
+        'rpc:create_asset_with_first_snapshot': [
+          query(() => ({
+            data: null,
+            error: { code: '23503', message: 'fk' },
+          })),
+        ],
+      });
+
+      await expect(repo.insertAsset(input)).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_CATEGORY_NOT_FOUND.code,
+      });
+    });
+
+    it('fails with ASSET_CREATE_FAILED when the write fails', async () => {
+      const { repo } = createRepository({
+        'rpc:create_asset_with_first_snapshot': [
+          query(() => ({
+            data: null,
+            error: { code: '08006', message: 'down' },
+          })),
+        ],
+      });
+
+      await expect(repo.insertAsset(input)).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_CREATE_FAILED.code,
+      });
+    });
+  });
+
+  describe('update', () => {
+    it('writes the dismissal instant and leaves the other columns out', async () => {
+      const update = query(() => ({ data: assetRow('a'), error: null }));
+      const { repo } = createRepository({ asset: [update] });
+
+      await repo.update('a', { suggestionDismissedAt: '2026-11-03T10:00:00Z' });
+
+      expect(
+        JSON.parse(JSON.stringify(update.argsOf('update')[0]?.[0])),
+      ).toEqual({ suggestion_dismissed_at: '2026-11-03T10:00:00Z' });
+    });
+  });
+
+  describe('not found and conflicts', () => {
+    it('update throws ASSET_NOT_FOUND when RLS hides the row', async () => {
+      const { repo } = createRepository({
+        asset: [
+          query(() => ({
+            data: null,
+            error: { code: 'PGRST116', message: 'no rows' },
+          })),
+        ],
+      });
+
+      await expect(
+        repo.update('other', { inPulpe: true }),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_NOT_FOUND.code,
+      });
+    });
+
+    it('delete throws ASSET_NOT_FOUND when no row was deleted', async () => {
+      const { repo } = createRepository({
+        asset: [query(() => ({ data: [], error: null }))],
+      });
+
+      const result = repo.delete('other');
+
+      await expect(result).rejects.toBeInstanceOf(BusinessException);
+      await expect(result).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_NOT_FOUND.code,
+      });
+    });
+
+    it('insertCategory maps a unique violation to ASSET_CATEGORY_DUPLICATE', async () => {
+      const { repo } = createRepository({
+        asset_category: [
+          query(() => ({
+            data: null,
+            error: { code: '23505', message: 'dup' },
+          })),
+        ],
+      });
+
+      await expect(repo.insertCategory('Comptes')).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_CATEGORY_DUPLICATE.code,
+      });
+    });
+
+    it('deleteCategory maps the RESTRICT violation to ASSET_CATEGORY_NOT_EMPTY', async () => {
+      const { repo } = createRepository({
+        asset_category: [
+          query(() => ({
+            data: null,
+            error: { code: '23503', message: 'fk' },
+          })),
+        ],
+      });
+
+      await expect(repo.deleteCategory('cat-1')).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_CATEGORY_NOT_EMPTY.code,
+      });
+    });
+
+    it('deleteCategory throws ASSET_CATEGORY_NOT_FOUND when no row was deleted', async () => {
+      const { repo } = createRepository({
+        asset_category: [query(() => ({ data: [], error: null }))],
+      });
+
+      await expect(repo.deleteCategory('other')).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_CATEGORY_NOT_FOUND.code,
+      });
+    });
+  });
+});

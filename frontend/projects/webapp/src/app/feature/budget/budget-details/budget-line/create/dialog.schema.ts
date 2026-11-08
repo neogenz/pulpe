@@ -27,6 +27,8 @@ export const budgetLineCreateFromFormSchema = z
     savingsGoalId: z.uuid().nullable().optional(),
     /** PUL-329 v2 — objectif d'où ce revenu prévu sera tiré. */
     sourceSavingsGoalId: z.uuid().nullable().optional(),
+    /** Avoir lié. Absent quand le flag `net_worth` est éteint : le corps reste celui d'avant. */
+    assetId: z.uuid().nullable().optional(),
   })
   .transform(
     (input): BudgetLineCreate => ({
@@ -39,6 +41,7 @@ export const budgetLineCreateFromFormSchema = z
       checkedAt: input.isChecked ? new Date().toISOString() : null,
       tagIds: input.tagIds,
       savingsGoalId: input.savingsGoalId,
+      ...(input.assetId !== undefined ? { assetId: input.assetId } : {}),
       // Omis plutôt que `null` : le schéma de création est strict et n'accepte
       // pas la valeur nulle sur ce champ — l'absence dit déjà « pas de source ».
       ...(input.sourceSavingsGoalId

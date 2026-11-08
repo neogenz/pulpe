@@ -26,6 +26,7 @@ function line(
     budgetId: "budget-1",
     templateLineId: null,
     savingsGoalId: null,
+    assetId: null,
     name: id,
     amount,
     kind,

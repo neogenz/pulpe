@@ -18,6 +18,7 @@ const templateLine: TemplateLine = {
   id: 'line-1',
   templateId: 'template-1',
   savingsGoalId: null,
+  assetId: null,
   tagIds: [],
   name: 'Salaire',
   amount: 5000,
@@ -80,5 +81,44 @@ describe('UpdateTemplateLineUseCase', () => {
       templateLine.id,
       expect.objectContaining({ savingsGoalId: null }),
     );
+  });
+
+  describe('asset link', () => {
+    const assetId = '8a0f6c80-1234-4e5f-89ab-444444444444';
+    const patchSentToRepo = () => mockRepo.updateLine.mock.calls[0][1];
+
+    it('keeps the link when the patch carries neither assetId nor a new kind', async () => {
+      await useCase.execute(templateLine.id, { name: 'Paie' }, mockUser);
+
+      expect(patchSentToRepo().assetId).toBeUndefined();
+    });
+
+    it('keeps the link when the line current kind is sent again', async () => {
+      await useCase.execute(templateLine.id, { kind: 'income' }, mockUser);
+
+      expect(patchSentToRepo().assetId).toBeUndefined();
+    });
+
+    it('clears the link on a kind change without a new asset', async () => {
+      await useCase.execute(templateLine.id, { kind: 'expense' }, mockUser);
+
+      expect(patchSentToRepo().assetId).toBeNull();
+    });
+
+    it('writes the new asset, with or without a kind change', async () => {
+      await useCase.execute(
+        templateLine.id,
+        { kind: 'expense', assetId },
+        mockUser,
+      );
+
+      expect(patchSentToRepo().assetId).toBe(assetId);
+    });
+
+    it('unlinks on an explicit null', async () => {
+      await useCase.execute(templateLine.id, { assetId: null }, mockUser);
+
+      expect(patchSentToRepo().assetId).toBeNull();
+    });
   });
 });

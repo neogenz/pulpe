@@ -6,11 +6,18 @@ import {
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { Subject } from 'rxjs';
-import { getBudgetPeriodDates, type BudgetPeriodDates } from 'pulpe-shared';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { of, Subject, throwError } from 'rxjs';
+import {
+  getBudgetPeriodDates,
+  type Asset,
+  type BudgetPeriodDates,
+} from 'pulpe-shared';
 
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
+import { createMockDataCache } from '@core/testing';
 import {
   ReconcileAccountsDialog,
   type RealizedPosition,
@@ -24,12 +31,47 @@ const REALIZED: RealizedPosition = {
   rollover: -120,
 };
 const PRIVATE_ACCOUNT_NAME = 'Compte Zébulon';
+const UBS_ID = '11111111-1111-4111-8111-111111111111';
+const POSTFINANCE_ID = '22222222-2222-4222-8222-222222222222';
+
+function daysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
+}
+
+function linkedAsset(overrides: Partial<Asset>): Asset {
+  return {
+    id: UBS_ID,
+    categoryId: '33333333-3333-4333-8333-333333333333',
+    name: 'Compte UBS',
+    currency: 'CHF',
+    direction: 'own',
+    inPulpe: true,
+    archivedAt: null,
+    latestValue: 12000,
+    latestRecordedAt: daysAgo(3),
+    convertedValue: 12000,
+    suggestion: null,
+    ...overrides,
+  };
+}
+
+const UBS = linkedAsset({});
+const POSTFINANCE = linkedAsset({
+  id: POSTFINANCE_ID,
+  name: 'Compte PostFinance',
+  latestValue: 1902.1,
+  latestRecordedAt: daysAgo(1),
+});
 
 async function setup(
   options: {
     realized?: RealizedPosition;
     periodDates?: BudgetPeriodDates;
     recordAdjustment?: ReconcileAccountsDialogData['recordAdjustment'];
+    linkedAccounts?: Asset[];
+    recordSnapshots?: AssetApi['recordSnapshots$'];
   } = {},
 ) {
   const backdropClick = new Subject<MouseEvent>();
@@ -50,7 +92,20 @@ async function setup(
     recordAdjustment:
       options.recordAdjustment ?? vi.fn().mockResolvedValue(true),
     viewItemsToCheck: vi.fn(),
+    linkedAccounts: options.linkedAccounts ?? [],
   };
+  const assetApi = {
+    cache: createMockDataCache(),
+    recordSnapshots$: vi.fn(
+      options.recordSnapshots ??
+        (() =>
+          of({
+            success: true as const,
+            data: { recordedAt: '2026-11-03T10:00:00.000Z' },
+          })),
+    ),
+  };
+  const snackBar = { open: vi.fn() };
 
   TestBed.configureTestingModule({
     imports: [ReconcileAccountsDialog],
@@ -61,6 +116,8 @@ async function setup(
       { provide: MatDialogRef, useValue: dialogRef },
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: PostHogService, useValue: postHog },
+      { provide: AssetApi, useValue: assetApi },
+      { provide: MatSnackBar, useValue: snackBar },
     ],
   });
   const fixture = TestBed.createComponent(ReconcileAccountsDialog);
@@ -99,6 +156,8 @@ async function setup(
     data,
     realized,
     postHog,
+    assetApi,
+    snackBar,
     backdropClick,
     keydownEvents,
     render,
@@ -642,6 +701,211 @@ describe('ReconcileAccountsDialog', () => {
 
       expect(recordAdjustment).toHaveBeenCalledTimes(1);
       expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('accounts linked to « Mon patrimoine »', () => {
+    // Types into the amount inputs by position, then walks to the verdict.
+    async function reachVerdictOn(
+      view: Awaited<ReturnType<typeof setup>>,
+      amounts: Record<number, string>,
+    ) {
+      for (const [index, amount] of Object.entries(amounts)) {
+        await view.type(
+          view.allByTestId('reconcile-amount-input')[Number(index)],
+          amount,
+        );
+      }
+      await view.click(view.byTestId('reconcile-next-button'));
+      await view.click(view.byTestId('reconcile-next-button'));
+    }
+
+    it('should open on one named row per linked account, amount empty, last balance as hint', async () => {
+      const view = await setup({ linkedAccounts: [UBS, POSTFINANCE] });
+
+      expect(
+        view
+          .allByTestId<HTMLInputElement>('reconcile-label-input')
+          .map((input) => input.value),
+      ).toEqual(['Compte UBS', 'Compte PostFinance']);
+      expect(
+        view
+          .allByTestId<HTMLInputElement>('reconcile-amount-input')
+          .map((input) => input.value),
+      ).toEqual(['', '']);
+      expect(view.host.textContent).toContain(
+        'Dernier solde : 12’000.00 CHF, il y a 3 jours',
+      );
+      expect(view.host.textContent).toContain(
+        'Dernier solde : 1’902.10 CHF, hier',
+      );
+      expect(view.allByTestId('reconcile-remove-button')).toHaveLength(1);
+      expect(view.host.textContent).toContain(
+        'Je garde le solde de tes comptes « Dans Pulpe » dans Mon patrimoine',
+      );
+      expect(view.host.textContent).not.toContain(
+        'Les comptes saisis ne sont pas enregistrés.',
+      );
+    });
+
+    it('should keep one empty free row and the private note without linked accounts', async () => {
+      const view = await setup();
+
+      expect(
+        view
+          .allByTestId<HTMLInputElement>('reconcile-label-input')
+          .map((input) => input.value),
+      ).toEqual(['']);
+      expect(view.host.textContent).toContain(
+        'Les comptes saisis ne sont pas enregistrés.',
+      );
+      expect(view.host.textContent).not.toContain('Dernier solde');
+    });
+
+    it('should hide the last balance of a linked account from session replay', async () => {
+      const view = await setup({ linkedAccounts: [UBS] });
+
+      const hint = view.host.querySelector('mat-hint');
+      expect(hint?.closest('.ph-no-capture')).not.toBeNull();
+      expect(
+        recordedValues(view.host).filter((value) =>
+          value.includes('Compte UBS'),
+        ),
+      ).toEqual([]);
+    });
+
+    it('should record one snapshot batch of the filled linked rows when the adjustment is recorded', async () => {
+      const view = await setup({ linkedAccounts: [UBS, POSTFINANCE] });
+      await view.click(view.byTestId('reconcile-add-account-button'));
+      await view.type(view.allByTestId('reconcile-label-input')[2], 'Cash');
+      await reachVerdictOn(view, { 0: '12340', 2: '50' });
+
+      await view.click(view.byTestId('reconcile-record-button'));
+
+      expect(view.data.recordAdjustment).toHaveBeenCalledTimes(1);
+      expect(view.assetApi.recordSnapshots$).toHaveBeenCalledTimes(1);
+      expect(view.assetApi.recordSnapshots$).toHaveBeenCalledWith({
+        items: [{ assetId: UBS_ID, value: 12340 }],
+      });
+      expect(view.assetApi.cache.invalidate).toHaveBeenCalledWith(['assets']);
+      expect(view.snackBar.open).not.toHaveBeenCalled();
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should record the snapshots of an overdraft and of every filled linked row', async () => {
+      const view = await setup({ linkedAccounts: [UBS, POSTFINANCE] });
+      await reachVerdictOn(view, { 0: '100', 1: '-20.5' });
+
+      await view.click(view.byTestId('reconcile-record-button'));
+
+      expect(view.assetApi.recordSnapshots$).toHaveBeenCalledWith({
+        items: [
+          { assetId: UBS_ID, value: 100 },
+          { assetId: POSTFINANCE_ID, value: -20.5 },
+        ],
+      });
+    });
+
+    it('should record the snapshots when the accounts are already up to date', async () => {
+      const view = await setup({
+        linkedAccounts: [UBS],
+        realized: { ...REALIZED, balance: 12340 },
+      });
+      await reachVerdictOn(view, { 0: '12340' });
+
+      await view.click(view.byTestId('reconcile-finish-button'));
+
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+      expect(view.assetApi.recordSnapshots$).toHaveBeenCalledWith({
+        items: [{ assetId: UBS_ID, value: 12340 }],
+      });
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should write no snapshot for a linked row left empty or removed', async () => {
+      const view = await setup({
+        linkedAccounts: [UBS, POSTFINANCE],
+        realized: { ...REALIZED, balance: 300 },
+      });
+      await view.click(view.byTestId('reconcile-remove-button'));
+      await reachVerdictOn(view, { 0: '300' });
+
+      await view.click(view.byTestId('reconcile-finish-button'));
+
+      expect(view.assetApi.recordSnapshots$).toHaveBeenCalledWith({
+        items: [{ assetId: UBS_ID, value: 300 }],
+      });
+    });
+
+    it('should write no snapshot when only free rows are filled', async () => {
+      const view = await setup({
+        linkedAccounts: [UBS],
+        realized: { ...REALIZED, balance: 50 },
+      });
+      await view.click(view.byTestId('reconcile-add-account-button'));
+      await reachVerdictOn(view, { 1: '50' });
+
+      await view.click(view.byTestId('reconcile-finish-button'));
+
+      expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should end the same way and say so in a toast when the snapshots are not saved', async () => {
+      const view = await setup({
+        linkedAccounts: [UBS],
+        recordSnapshots: () => throwError(() => new Error('offline')),
+      });
+      await reachVerdictOn(view, { 0: '1500' });
+
+      await view.click(view.byTestId('reconcile-record-button'));
+
+      expect(view.snackBar.open).toHaveBeenCalledTimes(1);
+      expect(view.snackBar.open).toHaveBeenCalledWith(
+        "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine.",
+        'Fermer',
+        expect.objectContaining({ duration: 5000 }),
+      );
+      expect(view.assetApi.cache.invalidate).not.toHaveBeenCalled();
+      expect(view.postHog.captureEvent).toHaveBeenCalledWith(
+        'account_reconciliation_completed',
+        { adjustment_kind: 'income' },
+      );
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should write no snapshot when the adjustment is refused', async () => {
+      const view = await setup({
+        linkedAccounts: [UBS],
+        recordAdjustment: vi.fn().mockResolvedValue(false),
+      });
+      await reachVerdictOn(view, { 0: '1500' });
+
+      await view.click(view.byTestId('reconcile-record-button'));
+
+      expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('should write no snapshot when Cancel leaves the first step', async () => {
+      const view = await setup({ linkedAccounts: [UBS] });
+      await view.type(view.byTestId('reconcile-amount-input'), '1500');
+
+      await view.click(view.byTestId('reconcile-back-button'));
+
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+      expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();
+    });
+
+    it('should write no snapshot when the dialog is closed on the verdict', async () => {
+      const view = await setup({ linkedAccounts: [UBS] });
+      await reachVerdictOn(view, { 0: '1500' });
+
+      await view.click(view.byTestId('reconcile-close-button'));
+      view.keydownEvents.next(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+      expect(view.dialogRef.close).toHaveBeenCalled();
+      expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();
     });
   });
 });

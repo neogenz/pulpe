@@ -21,6 +21,7 @@ function line(overrides: Partial<BudgetLine> = {}): BudgetLine {
     budgetId: BUDGET_ID,
     templateLineId: null,
     savingsGoalId: null,
+    assetId: null,
     name: "Loyer",
     amount: 1650,
     kind: "expense",
