@@ -12,6 +12,8 @@ struct SavingsGoalsListView: View {
     @Environment(SavingsGoalStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(CurrentMonthStore.self) private var currentMonthStore
+    @Environment(FeatureFlagsStore.self) private var featureFlags
+    @Environment(AppState.self) private var appState
 
     @State private var isCreatingGoal = false
     /// The « Pour commencer » preset the form opens with.
@@ -95,9 +97,25 @@ struct SavingsGoalsListView: View {
                 .padding(.horizontal, DesignTokens.Spacing.lg)
 
                 presets
+                netWorthLink
             }
         }
         .pulpeRootBottomInset()
+    }
+
+    /// « Mon patrimoine »: a pushed page, never a tab. The tab's path is the stack on screen,
+    /// and beside the projection (Duo) the detail pane's, as for a goal.
+    @ViewBuilder
+    private var netWorthLink: some View {
+        if featureFlags.isNetWorthEnabled {
+            ContextLinkRow(
+                icon: "building.columns",
+                iconTint: .pulpePrimary,
+                title: AppLocale.string("Mon patrimoine")
+            ) { appState.savingsGoalsPath.append(NetWorthDestination.overview) }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .accessibilityIdentifier("netWorthEntryRow")
+        }
     }
 
     private var header: some View {
@@ -175,6 +193,7 @@ struct SavingsGoalsListView: View {
                 .secondaryButtonStyle()
                 .accessibilityIdentifier("savingsGoalsAddButton")
                 .padding(.horizontal, DesignTokens.Spacing.lg)
+                netWorthLink
             }
             .padding(.vertical, DesignTokens.Spacing.sm)
         }

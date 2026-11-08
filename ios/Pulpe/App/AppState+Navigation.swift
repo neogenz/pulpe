@@ -19,6 +19,9 @@ enum SavingsGoalDestination: Hashable {
     case history(SavingsGoal)
 }
 
+/// « Mon patrimoine », pushed from the Objectifs list (never a tab).
+enum NetWorthDestination: Hashable { case overview }
+
 enum TemplateDestination: Hashable { case details(templateId: String) }
 
 // MARK: - Per-Section Navigation Stacks

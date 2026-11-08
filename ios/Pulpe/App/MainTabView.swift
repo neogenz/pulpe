@@ -321,6 +321,9 @@ private struct SectionStackDestinations: ViewModifier {
             .navigationDestination(for: BudgetDestination.self) { destination in
                 budgetDestination(destination)
             }
+            .navigationDestination(for: NetWorthDestination.self) { _ in
+                NetWorthView().ignoresForeignKeyboardInset()
+            }
     }
 }
 
