@@ -8,6 +8,8 @@ struct NetWorthView: View {
     @State private var showsArchived = false
     @State private var form: FormTarget?
     @State private var pendingDelete: Asset?
+    @State private var valueTarget: Asset?
+    @State private var showsCategories = false
 
     private enum FormTarget: Identifiable {
         case create
@@ -62,6 +64,12 @@ struct NetWorthView: View {
         .toolbar(removing: .title)
         .toolbar {
             if case .loaded = content {
+                if !store.categories.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(AppLocale.string("Catégories"), systemImage: "folder") { showsCategories = true }
+                            .accessibilityIdentifier("netWorthCategories")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(AppLocale.string("Ajouter"), systemImage: "plus") { form = .create }
                         .accessibilityIdentifier("netWorthAdd")
@@ -75,6 +83,8 @@ struct NetWorthView: View {
             case .edit(let asset): AssetFormSheet(asset: asset, currency: baseCurrency)
             }
         }
+        .sheet(item: $valueTarget) { AssetValueSheet(asset: $0) }
+        .sheet(isPresented: $showsCategories) { AssetCategoriesSheet() }
         .confirmationDialog(
             pendingDelete.map { AppLocale.string("Supprimer \($0.name) ?") } ?? "",
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
@@ -150,6 +160,7 @@ struct NetWorthView: View {
                     baseCurrency: sections.baseCurrency,
                     categoryName: showsCategory ? sections.categoryName(of: asset) : nil,
                     actions: NetWorthAssetActions(
+                        updateValue: { valueTarget = asset },
                         edit: { form = .edit(asset) },
                         toggleArchive: {
                             run { try await store.setArchived(id: asset.id, asset.archivedAt == nil) }

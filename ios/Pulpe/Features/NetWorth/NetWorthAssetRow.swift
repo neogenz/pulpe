@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NetWorthAssetActions {
+    let updateValue: () -> Void
     let edit: () -> Void
     let toggleArchive: () -> Void
     let delete: () -> Void
@@ -59,6 +60,11 @@ struct NetWorthAssetRow: View {
 
     private func menu(_ actions: NetWorthAssetActions) -> some View {
         Menu {
+            Button(
+                AppLocale.string("Mettre à jour la valeur"),
+                systemImage: "arrow.up.arrow.down",
+                action: actions.updateValue
+            )
             Button(AppLocale.string("Modifier"), systemImage: "pencil", action: actions.edit)
             Button(
                 asset.archivedAt == nil ? AppLocale.string("Archiver") : AppLocale.string("Désarchiver"),
