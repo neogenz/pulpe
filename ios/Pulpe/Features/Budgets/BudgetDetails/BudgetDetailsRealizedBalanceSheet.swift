@@ -17,15 +17,18 @@ struct BudgetDetailsRealizedBalanceSheet: View {
         )
         .sheet(isPresented: $isReconciling) {
             if let month = reconciledMonth {
-                ReconcileAccountsSheet(
-                    month: month,
-                    checking: coordinator.reconciliationChecking(
-                        ToastContext(toastManager: toastManager, presentationCurrency: settings.currency),
-                        amountsHidden: amountsHidden
-                    )
-                ) { transaction in
-                    FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
-                    Task { await coordinator.dispatch(.addReconciliationAdjustment(transaction)) }
+                ReconcileLinkedAccountsGate { linkedAccounts in
+                    ReconcileAccountsSheet(
+                        month: month,
+                        checking: coordinator.reconciliationChecking(
+                            ToastContext(toastManager: toastManager, presentationCurrency: settings.currency),
+                            amountsHidden: amountsHidden
+                        ),
+                        linkedAccounts: linkedAccounts
+                    ) { transaction in
+                        FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
+                        Task { await coordinator.dispatch(.addReconciliationAdjustment(transaction)) }
+                    }
                 }
             }
         }

@@ -47,6 +47,7 @@ struct ReconcileAccountsSheet: View {
         month: Month,
         checking: ReconciliationChecking,
         dependencies: AddTransactionDependencies = .live,
+        linkedAccounts: [Asset] = [],
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void
     ) {
         self.month = month
@@ -61,7 +62,8 @@ struct ReconcileAccountsSheet: View {
                     .accountReconciliationCompleted,
                     properties: completion.analyticsProperties
                 )
-            }
+            },
+            linkedAccounts: linkedAccounts
         ))
     }
 
@@ -84,6 +86,7 @@ struct ReconcileAccountsSheet: View {
                         .foregroundStyle(Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     accountsCard
+                    if flow.hasLinkedAccounts { LinkedAccountsFootnote() }
                     if let total = flow.total { totalsCard(total) }
                     if let missedMovement { missedSection(missedMovement) }
                     outcomeBlock
@@ -113,6 +116,7 @@ struct ReconcileAccountsSheet: View {
             if shouldClose { dismiss() }
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        .recordsLinkedSnapshots(of: flow)
         .suppressesTips()
         .task {
             // Opening on an empty flow focuses its one amount, as the add sheets do.
@@ -171,6 +175,7 @@ extension ReconcileAccountsSheet {
                 .textLinkButtonStyle()
                 .accessibilityAddTraits(account.isNegative ? .isSelected : [])
                 .accessibilityHint(AppLocale.string("Carte de crédit, découvert"))
+                if let linked = flow.lastValueHint(id: account.id) { LinkedAccountHint(asset: linked) }
                 if isInvalid {
                     Text("Chiffres et 2 décimales au plus")
                         .font(PulpeTypography.captionRegular)
@@ -480,5 +485,6 @@ extension ReconcileAccountsSheet {
             )
             .environment(ToastManager())
             .environment(UserSettingsStore())
+            .environment(AssetStore())
         }
 }

@@ -9,30 +9,33 @@ struct CurrentMonthReconcileSheet: View {
         if let budget = store.budget {
             // `addTransaction` is the store's own landing for a created entry: the checked
             // balance moves at once and the sibling stores are invalidated.
-            ReconcileAccountsSheet(
-                month: .init(
-                    budgetId: budget.id,
-                    realizedMetrics: store.realizedMetrics,
-                    rollover: store.metrics.rollover,
-                    hasPointingInFlight: store.hasTogglesInFlight
-                ),
-                checking: .init(
-                    items: store.allUncheckedItems,
-                    transactions: store.transactions, budgetLines: store.budgetLines,
-                    syncingTransactionIds: store.syncingTransactionIds,
-                    syncingBudgetLineIds: store.syncingBudgetLineIds,
-                    toggle: { item in
-                        switch item {
-                        case .transaction(let tx, _): await store.toggleTransaction(tx)
-                        case .budgetLine(let line, _): await store.toggleBudgetLine(line)
+            ReconcileLinkedAccountsGate { linkedAccounts in
+                ReconcileAccountsSheet(
+                    month: .init(
+                        budgetId: budget.id,
+                        realizedMetrics: store.realizedMetrics,
+                        rollover: store.metrics.rollover,
+                        hasPointingInFlight: store.hasTogglesInFlight
+                    ),
+                    checking: .init(
+                        items: store.allUncheckedItems,
+                        transactions: store.transactions, budgetLines: store.budgetLines,
+                        syncingTransactionIds: store.syncingTransactionIds,
+                        syncingBudgetLineIds: store.syncingBudgetLineIds,
+                        toggle: { item in
+                            switch item {
+                            case .transaction(let tx, _): await store.toggleTransaction(tx)
+                            case .budgetLine(let line, _): await store.toggleBudgetLine(line)
+                            }
                         }
+                    ),
+                    linkedAccounts: linkedAccounts,
+                    onAdjustmentCreated: { transaction in
+                        FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
+                        store.addTransaction(transaction)
                     }
-                ),
-                onAdjustmentCreated: { transaction in
-                    FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
-                    store.addTransaction(transaction)
-                }
-            )
+                )
+            }
         }
     }
 }

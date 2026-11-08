@@ -28,6 +28,9 @@ final class ReconcileAccountsFlow {
 
     let budgetId: String
 
+    /// The in-Pulpe asset behind each seeded row. Rows added by hand are not in it.
+    @ObservationIgnored private let linkedAssets: [AccountReconciliation.Account.ID: Asset]
+
     @ObservationIgnored private let createTransaction: @Sendable (TransactionCreate) async throws -> Transaction
     @ObservationIgnored private let onAdjustmentCreated: @MainActor (Transaction) -> Void
     @ObservationIgnored private let onCompleted: @MainActor (AccountReconciliation.Completion) -> Void
@@ -39,10 +42,13 @@ final class ReconcileAccountsFlow {
         createTransaction: @escaping @Sendable (TransactionCreate) async throws -> Transaction,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void,
         onCompleted: @escaping @MainActor (AccountReconciliation.Completion) -> Void,
+        linkedAccounts: [Asset] = [],
         now: @escaping () -> Date = Date.init
     ) {
         self.budgetId = budgetId
-        self.accounts = [AccountReconciliation.Account()]
+        let seeded = linkedAccounts.map { (account: AccountReconciliation.Account(label: $0.name), asset: $0) }
+        self.accounts = seeded.isEmpty ? [AccountReconciliation.Account()] : seeded.map(\.account)
+        self.linkedAssets = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, $0.asset) })
         self.adjustmentLabel = adjustmentLabel
         self.createTransaction = createTransaction
         self.onAdjustmentCreated = onAdjustmentCreated
@@ -55,6 +61,21 @@ final class ReconcileAccountsFlow {
     var totalCents: Int? { AccountReconciliation.totalCents(of: accounts) }
 
     var total: Decimal? { totalCents.map(AccountReconciliation.amount(cents:)) }
+
+    var hasLinkedAccounts: Bool { !linkedAssets.isEmpty }
+
+    /// Last known value of a seeded row, shown as its hint.
+    func lastValueHint(id: AccountReconciliation.Account.ID) -> Asset? { linkedAssets[id] }
+
+    /// One snapshot per seeded row the user filled; free rows and empty rows write nothing.
+    var linkedSnapshotItems: [AssetSnapshotItem] {
+        accounts.compactMap { account in
+            guard let asset = linkedAssets[account.id],
+                  case .valid(let cents) = account.amount
+            else { return nil }
+            return AssetSnapshotItem(assetId: asset.id, value: AccountReconciliation.amount(cents: cents))
+        }
+    }
 
     /// Returns the new row's id so the sheet can focus its amount.
     @discardableResult

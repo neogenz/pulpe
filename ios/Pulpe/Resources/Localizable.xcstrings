@@ -3329,7 +3329,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@, %2$@"
+            "value" : "%@, %@"
           }
         },
         "it" : {
@@ -3358,7 +3358,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@, %2$@ au-delà du plan"
+            "value" : "%@, %@ au-delà du plan"
           }
         },
         "it" : {
@@ -3386,7 +3386,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@, %2$@, retrait réalisé %3$@"
+            "value" : "%@, %@, retrait réalisé %3$@"
           }
         },
         "it" : {
@@ -3414,7 +3414,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@, %2$@. Toucher pour modifier."
+            "value" : "%@, %@. Toucher pour modifier."
           }
         },
         "it" : {
@@ -12412,7 +12412,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Disponible à dépenser %1$@, %2$@"
+            "value" : "Disponible à dépenser %@, %@"
           }
         },
         "it" : {
@@ -47368,6 +47368,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ripartizione di ciò che ho: patrimonio lordo %1$@, diviso tra %2$@ di debiti e %3$@ di patrimonio netto."
+          }
+        }
+      }
+    },
+    "Dernier solde : %@, %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letzter Saldo: %@, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last balance: %@, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimo saldo: %@, %@"
+          }
+        }
+      }
+    },
+    "Je garde le solde de tes comptes « Dans Pulpe » dans Mon patrimoine. Les autres lignes ne sont pas enregistrées." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den Saldo deiner Konten „In Pulpe“ behalte ich in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I keep the balance of your “In Pulpe” accounts in My net worth. The other rows are not saved."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservo il saldo dei tuoi conti «In Pulpe» in Il mio patrimonio. Le altre righe non vengono salvate."
           }
         }
       }
