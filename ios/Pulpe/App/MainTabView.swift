@@ -24,6 +24,13 @@ struct MainTabView: View {
         }
     }
 
+    private var toastBottomClearance: CGFloat {
+        ToastManager.bottomClearance(
+            tabBarHeight: tabBarHeight,
+            showsFloatingAddButton: appState.toastManager.floatingAddButtonsOnScreen > 0
+        )
+    }
+
     var body: some View {
         @Bindable var state = appState
 
@@ -69,9 +76,8 @@ struct MainTabView: View {
         .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabViewBottomInset = $0 }
         .floatingAddFlow(isVisible: showsFloatingAddButton, tabBarHeight: tabBarHeight)
         // The toast lives in its own window, above sheets: it is told where the tab bar ends.
-        .onChange(of: tabBarHeight, initial: true) { _, height in
-            appState.toastManager.bottomClearance = height + DesignTokens.Control.fabTabBarGap
-                + DesignTokens.Control.fab + DesignTokens.Spacing.md
+        .onChange(of: toastBottomClearance, initial: true) { _, clearance in
+            appState.toastManager.bottomClearance = clearance
         }
         .onDisappear { appState.toastManager.bottomClearance = DesignTokens.Control.toastBottomInset }
         .goalWithdrawalFlow()

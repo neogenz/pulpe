@@ -173,14 +173,18 @@ private struct ToastContent: View {
                     onUndo: toast.hasUndo ? undo : nil
                 )
                 .frame(maxWidth: DesignTokens.Control.toastMaxWidth)
+                // Read before the bottom padding: the window only passes through taps outside
+                // this frame, and the padding would cover the « + » under the toast.
+                .background(toastFrameReader)
                 .safeAreaPadding(.bottom)
                 // Low, in thumb reach, above the tab bar and the floating "+" (V2 toast).
                 .padding(.bottom, bottomClearance)
-                .background(toastFrameReader)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(DesignTokens.Animation.defaultSpring, value: toast)
+        // A toast on screen when the « + » comes or goes glides to its new height.
+        .animation(DesignTokens.Animation.defaultSpring, value: bottomClearance)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: toast == nil) { _, isNil in
             if isNil { ToastOverlayWindowController.shared.setFrame(.zero) }

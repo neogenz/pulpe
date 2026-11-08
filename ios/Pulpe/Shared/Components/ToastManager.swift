@@ -63,6 +63,18 @@ final class ToastManager {
     /// How high the toast sits over the bottom safe area: the tab screens set it over their
     /// tab bar and « + », which a side rail (open iPhone Duo) leaves out.
     var bottomClearance: CGFloat = DesignTokens.Control.toastBottomInset
+    /// How many « + » are on screen: each one reports itself, the tab's and a month page's own.
+    private(set) var floatingAddButtonsOnScreen = 0
+    func floatingAddButtonAppeared() { floatingAddButtonsOnScreen += 1 }
+    func floatingAddButtonDisappeared() { floatingAddButtonsOnScreen = max(0, floatingAddButtonsOnScreen - 1) }
+    /// Room for the « + » only while one is on screen: most pushed pages have none, and
+    /// reserving its height there left the toast floating mid-list.
+    static func bottomClearance(tabBarHeight: CGFloat, showsFloatingAddButton: Bool) -> CGFloat {
+        let floatingButtonRoom = showsFloatingAddButton
+            ? DesignTokens.Control.fabTabBarGap + DesignTokens.Control.fab
+            : 0
+        return tabBarHeight + floatingButtonRoom + DesignTokens.Spacing.md
+    }
     private var dismissTask: Task<Void, Never>?
     /// Toasts simples (`show`) attendent la fin du toast « Annuler » pour ne pas déclencher `onFinishedWithoutUndo` ni masquer l’undo.
     private var pendingToasts: [Toast] = []

@@ -4,6 +4,8 @@ import SwiftUI
 /// Solid, not glass: it is the screen's single filled action.
 struct FloatingAddButton: View {
     let action: () -> Void
+    /// Optional: previews and harnesses run without one.
+    @Environment(ToastManager.self) private var toastManager: ToastManager?
 
     var body: some View {
         Button(action: action) {
@@ -18,6 +20,9 @@ struct FloatingAddButton: View {
         .buttonStyle(FloatingAddButtonStyle())
         .accessibilityLabel("Ajouter une opération")
         .accessibilityIdentifier("floatingAddButton")
+        // The toast sits above it while it is on screen, so it stays tappable.
+        .onAppear { toastManager?.floatingAddButtonAppeared() }
+        .onDisappear { toastManager?.floatingAddButtonDisappeared() }
     }
 }
 
