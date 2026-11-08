@@ -84,6 +84,15 @@ enum Endpoint {
     case savingsGoalWithdrawalOptions
     case savingsGoalWithdrawals(id: String)
 
+    // MARK: - Net Worth
+
+    case assets
+    case asset(id: String)
+    case assetSnapshots
+    case assetDismissSuggestion(id: String)
+    case assetCategories
+    case assetCategory(id: String)
+
     // MARK: - Currency
 
     case currencyRate(base: SupportedCurrency, target: SupportedCurrency)
@@ -189,6 +198,14 @@ enum Endpoint {
         case .savingsGoalWithdrawalOptions: return "/savings-goals/withdrawal-options"
         case .savingsGoalWithdrawals(let id): return "/savings-goals/\(id)/withdrawals"
 
+        // Net Worth
+        case .assets: return "/assets"
+        case .asset(let id): return "/assets/\(id)"
+        case .assetSnapshots: return "/assets/snapshots"
+        case .assetDismissSuggestion(let id): return "/assets/\(id)/dismiss-suggestion"
+        case .assetCategories: return "/asset-categories"
+        case .assetCategory(let id): return "/asset-categories/\(id)"
+
         // Currency
         case .currencyRate: return "/currency/rate"
 
@@ -229,7 +246,8 @@ enum Endpoint {
              .feedback,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
              .encryptionVerifyRecoveryKey, .encryptionChangePin,
-             .savingsGoalPlanApply, .savingsGoalGenerationStop, .savingsGoalDeletion:
+             .savingsGoalPlanApply, .savingsGoalGenerationStop, .savingsGoalDeletion,
+             .assetSnapshots, .assetDismissSuggestion, .assetCategories:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetDeletionImpact, .budgetsExport,
@@ -239,6 +257,7 @@ enum Endpoint {
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,
              .encryptionVaultStatus, .encryptionSalt,
+             .assets, .asset, .assetCategory,
              .userSettings, .tags, .currencyRate, .whatsNewIos,
              .mcpConnections, .mcpConnectionActivity:
             return .get

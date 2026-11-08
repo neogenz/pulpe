@@ -45701,6 +45701,204 @@
           }
         }
       }
+    },
+    "Cet élément est introuvable — il a peut-être déjà été supprimé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Eintrag wurde nicht gefunden — vielleicht ist er schon gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This item was not found — it may already be deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo elemento non è stato trovato — forse è già stato eliminato"
+          }
+        }
+      }
+    },
+    "Cette catégorie est introuvable — elle a peut-être déjà été supprimée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Kategorie wurde nicht gefunden — vielleicht ist sie schon gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This category was not found — it may already be deleted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa categoria non è stata trovata — forse è già stata eliminata"
+          }
+        }
+      }
+    },
+    "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Kategorie enthält noch Einträge — verschiebe sie zuerst in eine andere Kategorie"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This category still holds items — move them to another category first"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa categoria contiene ancora degli elementi — spostali prima in un'altra categoria"
+          }
+        }
+      }
+    },
+    "Une catégorie porte déjà ce nom" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Kategorie trägt schon diesen Namen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A category already has this name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esiste già una categoria con questo nome"
+          }
+        }
+      }
+    },
+    "Cette valeur n'est pas valide — une dette ne peut pas être négative" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Wert ist ungültig — eine Schuld kann nicht negativ sein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This value isn't valid — a debt can't be negative"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo valore non è valido — un debito non può essere negativo"
+          }
+        }
+      }
+    },
+    "Impossible de charger ton patrimoine — réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Vermögen konnte nicht geladen werden — versuche es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load your net worth — try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare il tuo patrimonio — riprova"
+          }
+        }
+      }
+    },
+    "L'ajout a échoué — réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzufügen fehlgeschlagen — versuche es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't add it — try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiunta non riuscita — riprova"
+          }
+        }
+      }
+    },
+    "La modification a échoué — réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderung fehlgeschlagen — versuche es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save the change — try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifica non riuscita — riprova"
+          }
+        }
+      }
+    },
+    "La suppression a échoué — réessaie" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen fehlgeschlagen — versuche es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't delete it — try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminazione non riuscita — riprova"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

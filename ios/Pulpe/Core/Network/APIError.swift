@@ -47,6 +47,15 @@ enum APIError: LocalizedError {
     case savingsGoalWithdrawalConflict
     case savingsGoalWithdrawalTransactionInvalid
     case tagAlreadyExists
+    case assetNotFound
+    case assetCategoryNotFound
+    case assetCategoryNotEmpty
+    case assetCategoryDuplicate
+    case assetValueInvalid
+    case assetFetchFailed
+    case assetCreateFailed
+    case assetUpdateFailed
+    case assetDeleteFailed
 
     var errorDescription: String? {
         message(in: AppLocale.currentUILocale)
@@ -181,6 +190,26 @@ enum APIError: LocalizedError {
         case .tagAlreadyExists:
             return "Un tag porte déjà ce nom — choisis-en un autre"
 
+        // Net worth (PUL-366) — copy aligned with the webapp fr.json.
+        case .assetNotFound:
+            return "Cet élément est introuvable — il a peut-être déjà été supprimé"
+        case .assetCategoryNotFound:
+            return "Cette catégorie est introuvable — elle a peut-être déjà été supprimée"
+        case .assetCategoryNotEmpty:
+            return "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie"
+        case .assetCategoryDuplicate:
+            return "Une catégorie porte déjà ce nom"
+        case .assetValueInvalid:
+            return "Cette valeur n'est pas valide — une dette ne peut pas être négative"
+        case .assetFetchFailed:
+            return "Impossible de charger ton patrimoine — réessaie"
+        case .assetCreateFailed:
+            return "L'ajout a échoué — réessaie"
+        case .assetUpdateFailed:
+            return "La modification a échoué — réessaie"
+        case .assetDeleteFailed:
+            return "La suppression a échoué — réessaie"
+
         // Answered by `message(in:)` before it reaches this table. Listed one by one rather
         // than under a `default` so a new case has to state which half it belongs to.
         case .conflict, .validationError, .serverError, .unknown:
@@ -232,6 +261,15 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_GOAL_WITHDRAWAL_CONFLICT": .savingsGoalWithdrawalConflict,
         "ERR_SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID": .savingsGoalWithdrawalTransactionInvalid,
         "ERR_TAG_ALREADY_EXISTS": .tagAlreadyExists,
+        "ERR_ASSET_NOT_FOUND": .assetNotFound,
+        "ERR_ASSET_CATEGORY_NOT_FOUND": .assetCategoryNotFound,
+        "ERR_ASSET_CATEGORY_NOT_EMPTY": .assetCategoryNotEmpty,
+        "ERR_ASSET_CATEGORY_DUPLICATE": .assetCategoryDuplicate,
+        "ERR_ASSET_VALUE_INVALID": .assetValueInvalid,
+        "ERR_ASSET_FETCH_FAILED": .assetFetchFailed,
+        "ERR_ASSET_CREATE_FAILED": .assetCreateFailed,
+        "ERR_ASSET_UPDATE_FAILED": .assetUpdateFailed,
+        "ERR_ASSET_DELETE_FAILED": .assetDeleteFailed,
     ]
 
     /// Create APIError from server error code
