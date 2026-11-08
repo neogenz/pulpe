@@ -77,4 +77,21 @@ struct AddBudgetLineIncomeOriginTests {
         let turnedOn = IncomeOrigin(isFromSavings: true, savingsOrigin: IncomeOrigin.regular.savingsOrigin)
         #expect(turnedOn == .savingsGoal)
     }
+
+    @Test("The asset origin maps both ways and is pointed like a regular income")
+    func assetOrigin_roundTripsAndCanBePointed() {
+        #expect(IncomeOrigin(isFromSavings: true, savingsOrigin: .asset) == .asset)
+        #expect(IncomeOrigin.asset.savingsOrigin == .asset)
+        #expect(!AddBudgetLineSheet.forbidsChecked(kind: .income, origin: .asset))
+    }
+
+    @Test("An income carries an asset only in the asset origin, never next to a goal link")
+    func linkedAssetId_incomeOnlyInAssetOrigin() {
+        for origin in IncomeOrigin.allCases {
+            let link = AddBudgetLineSheet.linkedAssetId(kind: .income, origin: origin, assetId: "a1")
+            #expect(link == (origin == .asset ? "a1" : nil))
+        }
+        #expect(AddBudgetLineSheet.linkedAssetId(kind: .saving, origin: .regular, assetId: "a1") == "a1")
+        #expect(!AddBudgetLineSheet.isPlannedWithdrawal(kind: .income, origin: .asset))
+    }
 }

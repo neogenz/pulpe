@@ -18,6 +18,7 @@ struct AddBudgetLineSheet: View {
     @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(BudgetListStore.self) var budgetListStore
     @Environment(FeatureFlagsStore.self) var featureFlags
+    @Environment(AssetStore.self) var assetStore
     @State var name = ""
     @State var amount: Decimal?
     @State var kind: TransactionKind = .expense
@@ -109,6 +110,7 @@ struct AddBudgetLineSheet: View {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
         // An announcement without a goal names no pot to draw from.
         if isPlannedWithdrawalMode, sourceSavingsGoalId == nil { return false }
+        if kind == .income, incomeOrigin == .asset, assetId == nil { return false }
         if mode == .everyMonth, !offersEveryMonth { return false }
         return isSpreadMode ? spreadCalculator.isValid : true
     }

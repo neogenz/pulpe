@@ -20747,6 +20747,72 @@
         }
       }
     },
+    "Tiré de mon patrimoine" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus meinem Vermögen geholt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taken from my net worth"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prelevata dal mio patrimonio"
+          }
+        }
+      }
+    },
+    "Tiré de" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entnommen aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drawn from"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prelevata da"
+          }
+        }
+      }
+    },
+    "Une fois pointé, je te propose de baisser la valeur de %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobald sie abgehakt ist, schlage ich dir vor, den Wert von %@ zu senken."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once checked, I'll suggest lowering the value of %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una volta spuntata, ti propongo di abbassare il valore di %@."
+          }
+        }
+      }
+    },
     "Pris sur %@" : {
       "localizations" : {
         "de" : {

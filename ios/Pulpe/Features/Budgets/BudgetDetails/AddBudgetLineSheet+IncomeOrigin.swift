@@ -12,6 +12,8 @@ enum IncomeOrigin: String, CaseIterable, Identifiable {
     case savingsGoal
     /// "Piocher dans son épargne" (PUL-292): an advance repaid by a saving in M+1.
     case repayNextMonth
+    /// Drawn from an own asset (Mon patrimoine); pointed like a regular income.
+    case asset
 
     var id: String { rawValue }
 
@@ -22,13 +24,20 @@ enum IncomeOrigin: String, CaseIterable, Identifiable {
         case (false, _): self = .regular
         case (true, .goal): self = .savingsGoal
         case (true, .repay): self = .repayNextMonth
+        case (true, .asset): self = .asset
         }
     }
 
     var isFromSavings: Bool { self != .regular }
 
     /// What the segment shows; a regular income has none, so it shows the default.
-    var savingsOrigin: SavingsOrigin { self == .repayNextMonth ? .repay : .goal }
+    var savingsOrigin: SavingsOrigin {
+        switch self {
+        case .repayNextMonth: .repay
+        case .asset: .asset
+        case .regular, .savingsGoal: .goal
+        }
+    }
 }
 
 // MARK: - Origine du revenu (PUL-292 / PUL-329 v2)
@@ -59,6 +68,20 @@ extension AddBudgetLineSheet {
             || isPlannedWithdrawal(kind: kind, origin: origin)
     }
 
+    /// Mon patrimoine on, and an own asset to draw from.
+    var offersAsset: Bool {
+        featureFlags.isNetWorthEnabled && !assetStore.activeAssets(direction: .own).isEmpty
+    }
+
+    /// The asset to write: an income carries one only when drawn from it.
+    var linkedAssetId: String? {
+        Self.linkedAssetId(kind: kind, origin: incomeOrigin, assetId: assetId)
+    }
+
+    static func linkedAssetId(kind: TransactionKind, origin: IncomeOrigin, assetId: String?) -> String? {
+        kind == .income ? (origin == .asset ? assetId : nil) : kind.assetLink(assetId)
+    }
+
     var isSavingsWithdrawalMode: Bool {
         Self.isSavingsWithdrawal(kind: kind, origin: incomeOrigin)
     }
@@ -79,6 +102,7 @@ extension AddBudgetLineSheet {
                 set: { incomeOrigin = IncomeOrigin(isFromSavings: true, savingsOrigin: $0) }
             ),
             offersRepay: true,
+            offersAsset: offersAsset,
             tintColor: kind.color
         )
     }
@@ -87,6 +111,7 @@ extension AddBudgetLineSheet {
     /// never the amount or the description, which stay true whatever the origin.
     func resetIncompatibleOriginState() {
         if !isPlannedWithdrawalMode { sourceSavingsGoalId = nil }
+        if kind == .income, incomeOrigin != .asset { assetId = nil }
     }
 
     /// Keeps the projection judged on the amount the goal would actually give up.

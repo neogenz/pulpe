@@ -8,6 +8,8 @@ struct AssetPickerField: View {
     @Binding var selection: String?
     let kind: TransactionKind
     var style: FormRowStyle = .row
+    /// An income drawn FROM an own asset: the field shows for a Revenu, with its own wording.
+    var drawn = false
 
     @Environment(AssetStore.self) private var store
     @Environment(FeatureFlagsStore.self) private var featureFlags
@@ -17,21 +19,30 @@ struct AssetPickerField: View {
         flagEnabled && kind.assetDirection != nil
     }
 
+    private var direction: AssetDirection? { drawn ? .own : kind.assetDirection }
+
     private var selectedAsset: Asset? {
         guard let selection else { return nil }
         return store.netWorth?.assets.first { $0.id == selection }
     }
 
     private func title(_ direction: AssetDirection) -> String {
-        AppLocale.string(direction == .own ? "Versée sur" : "Dette remboursée")
+        if drawn { return AppLocale.string("Tiré de") }
+        return AppLocale.string(direction == .own ? "Versée sur" : "Dette remboursée")
     }
 
     var body: some View {
-        if Self.isShown(kind: kind, flagEnabled: featureFlags.isNetWorthEnabled),
-           let direction = kind.assetDirection {
+        if featureFlags.isNetWorthEnabled, let direction {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 menu(direction: direction)
-                if direction == .owe, let selectedAsset {
+                if drawn, let selectedAsset {
+                    Text(AppLocale.string(
+                        "Une fois pointé, je te propose de baisser la valeur de \(selectedAsset.name)."
+                    ))
+                        .font(PulpeTypography.footnote)
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .padding(.bottom, DesignTokens.Spacing.lg)
+                } else if direction == .owe, let selectedAsset {
                     Text(AppLocale.string(
                         "Une fois pointée, je te propose de baisser ce qu'il reste dû sur \(selectedAsset.name)."
                     ))

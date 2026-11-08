@@ -61,7 +61,7 @@ extension AddBudgetLineSheet {
                 // An announced withdrawal never leaves pointed: it is realized by
                 // creating the real income, which is what debits the goal.
                 sourceSavingsGoalId: isPlannedWithdrawalMode ? sourceSavingsGoalId : nil,
-                assetId: kind.assetLink(assetId),
+                assetId: linkedAssetId,
                 checkedAt: nil,
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
@@ -100,7 +100,7 @@ extension AddBudgetLineSheet {
                 kind: kind,
                 recurrence: .fixed,
                 savingsGoalId: kind.savingsGoalLink(savingsGoalId),
-                assetId: kind.assetLink(assetId),
+                assetId: linkedAssetId,
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,

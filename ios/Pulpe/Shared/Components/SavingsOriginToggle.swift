@@ -7,11 +7,19 @@ enum SavingsOrigin: CaseIterable, Hashable {
     case goal
     /// Covered by the general savings and put back next month (PUL-292).
     case repay
+    /// An income drawn from an asset the user owns (Mon patrimoine). Income sheets with assets only.
+    case asset
+
+    /// The segments to show: « Tiré de mon patrimoine » only where an asset can be drawn from.
+    static func options(offersAsset: Bool) -> [SavingsOrigin] {
+        allCases.filter { $0 != .asset || offersAsset }
+    }
 
     var label: String {
         switch self {
         case .goal: AppLocale.string("D'un objectif")
         case .repay: AppLocale.string("À remettre")
+        case .asset: AppLocale.string("Tiré de mon patrimoine")
         }
     }
 }
@@ -25,6 +33,8 @@ struct SavingsOriginToggle: View {
     /// `false` where « À remettre » has nowhere to route (the widget deep link):
     /// the toggle then means "from a goal" on its own, without a segment.
     let offersRepay: Bool
+    /// Adds « Tiré de mon patrimoine »; only the budget sheet has an asset to draw from.
+    var offersAsset = false
     let tintColor: Color
 
     var body: some View {
@@ -37,7 +47,11 @@ struct SavingsOriginToggle: View {
             .frame(minHeight: DesignTokens.ListRow.minHeight)
 
             if isOn && offersRepay {
-                SegmentedPicker(selection: $origin, title: nil) { Text($0.label) }
+                SegmentedPicker(
+                    selection: $origin,
+                    title: nil,
+                    options: SavingsOrigin.options(offersAsset: offersAsset)
+                ) { Text($0.label) }
                     // `.contain` before the label/value: without it, both propagate
                     // onto the segments and VoiceOver loses their names.
                     .accessibilityElement(children: .contain)

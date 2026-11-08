@@ -111,4 +111,10 @@ struct MovementSheetTests {
         #expect(origin(kind: .income).blockingReason == nil)
         #expect(origin(kind: .expense, hasConversionFailed: true).blockingReason == nil)
     }
+
+    @Test("The movement sheet toggle offers no asset segment")
+    func toggle_offersNoAssetByDefault() {
+        #expect(!SavingsOrigin.options(offersAsset: false).contains(.asset))
+        #expect(SavingsOrigin.options(offersAsset: true).contains(.asset))
+    }
 }

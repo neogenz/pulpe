@@ -140,6 +140,10 @@ extension AddBudgetLineSheet {
                 }
                 if kind == .income {
                     originPicker
+                    if incomeOrigin == .asset {
+                        FormRowDivider()
+                        AssetPickerField(selection: $assetId, kind: .income, drawn: true)
+                    }
                 }
                 if isPlannedWithdrawalMode {
                     FormRowDivider()

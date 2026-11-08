@@ -151,6 +151,10 @@ struct EditBudgetLineSheet: View {
                 }
             }
 
+            if budgetLine.kind == .income, let drawnAssetId = budgetLine.assetId {
+                DrawnFromAssetCard(assetId: drawnAssetId)
+            }
+
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                     self.error = nil
@@ -290,8 +294,7 @@ struct EditBudgetLineSheet: View {
             // Always emit the link (id or explicit null) so a saving line can be
             // tagged or untagged; the kind-guard clears it for non-saving kinds.
             data.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
-            // Unlike the goal link, only emitted when it moved: an untouched edit must not clear it.
-            data.assetId = assetLinkChange(initial: budgetLine.assetId, current: kind.assetLink(assetId))
+            data.assetId = Self.assetChange(line: budgetLine, kind: kind, assetId: assetId)
 
             let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
             submitSuccessTrigger.toggle()
@@ -370,6 +373,38 @@ struct EditBudgetLineDependencies: Sendable {
             try await BudgetLineService.shared.updateBudgetLine(id: id, data: data)
         }
     )
+}
+
+extension EditBudgetLineSheet {
+    /// Unlike the goal link, only emitted when it moved: an untouched edit must not clear it.
+    /// An income's origin is fixed at creation, so it is never touched while it stays an income.
+    static func assetChange(line: BudgetLine, kind: TransactionKind, assetId: String?) -> String?? {
+        if kind == .income, line.kind == .income { return nil }
+        return assetLinkChange(initial: line.assetId, current: kind.assetLink(assetId))
+    }
+}
+
+/// Mon patrimoine — the asset an income is drawn from, read-only like the goal source above:
+/// the origin is fixed at creation. Nothing when the flag is off or the asset is gone.
+private struct DrawnFromAssetCard: View {
+    let assetId: String
+
+    @Environment(AssetStore.self) private var assetStore
+    @Environment(FeatureFlagsStore.self) private var featureFlags
+
+    var body: some View {
+        let name = assetStore.netWorth?.assets.first { $0.id == assetId }?.name
+        Group {
+            if featureFlags.isNetWorthEnabled, let name {
+                FormCard {
+                    Text(AppLocale.string("Pris sur \(name)"))
+                        .font(PulpeTypography.bodyLarge)
+                        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+                }
+            }
+        }
+        .task { await assetStore.loadIfNeeded() }
+    }
 }
 
 #Preview {
