@@ -122,6 +122,8 @@ struct AssetCategoriesSheet: View {
             .primaryButtonStyle(isEnabled: !trimmedNew.isEmpty && !store.isSaving)
             .accessibilityIdentifier("assetCategoryAdd")
         }
+        // Scrolled into view with the keyboard up: field and button, not the field alone.
+        .id(Field.new)
     }
 
     // MARK: - Writes

@@ -22,6 +22,11 @@ enum SavingsOrigin: CaseIterable, Hashable {
         case .asset: AppLocale.string("Tiré de mon patrimoine")
         }
     }
+
+    /// What a segment can hold on a three-segment row at phone width; VoiceOver keeps `label`.
+    var segmentLabel: String {
+        self == .asset ? AppLocale.string("Mon patrimoine") : label
+    }
 }
 
 /// The one question both income sheets ask: "does this money come from my savings?",
@@ -51,7 +56,7 @@ struct SavingsOriginToggle: View {
                     selection: $origin,
                     title: nil,
                     options: SavingsOrigin.options(offersAsset: offersAsset)
-                ) { Text($0.label) }
+                ) { Text($0.segmentLabel).accessibilityLabel($0.label) }
                     // `.contain` before the label/value: without it, both propagate
                     // onto the segments and VoiceOver loses their names.
                     .accessibilityElement(children: .contain)

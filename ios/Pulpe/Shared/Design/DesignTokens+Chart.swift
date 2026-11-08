@@ -58,6 +58,7 @@ extension DesignTokens {
         static let sankeyNodeGap: CGFloat = 14
         static let sankeyMinNodeHeight: CGFloat = 8
         static let sankeyLabelWidth: CGFloat = 96
+        static let sankeyLabelHeadroom: CGFloat = 40
         static let sankeyBandOpacity = 0.3
     }
 }

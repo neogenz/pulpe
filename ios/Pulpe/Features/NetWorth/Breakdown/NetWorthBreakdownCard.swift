@@ -46,7 +46,9 @@ struct NetWorthBreakdownCard: View {
     }
 
     private func diagram(width: CGFloat) -> some View {
-        let size = CGSize(width: width, height: DesignTokens.Chart.sankeyHeight)
+        // Headroom above the nodes for the labels of the middle column.
+        let headroom = DesignTokens.Chart.sankeyLabelHeadroom
+        let size = CGSize(width: width, height: DesignTokens.Chart.sankeyHeight - headroom)
         let result = NetWorthSankeyLayout.layout(graph, in: size)
         return ZStack(alignment: .topLeading) {
             Canvas { context, _ in
@@ -66,14 +68,18 @@ struct NetWorthBreakdownCard: View {
             }
         }
         .frame(width: width, height: size.height)
+        .padding(.top, headroom)
     }
 
+    @ViewBuilder
     private func label(_ frame: NetWorthSankeyLayout.NodeFrame, lastColumn: Int) -> some View {
         let node = graph.nodes[frame.id]
         let labelWidth = DesignTokens.Chart.sankeyLabelWidth - DesignTokens.Spacing.sm
         let onLeft = frame.column == 0
+        let isMiddle = !onLeft && frame.column < lastColumn
         let gap = DesignTokens.Spacing.xs
-        return VStack(alignment: onLeft ? .trailing : .leading, spacing: DesignTokens.Spacing.none) {
+        let alignment: HorizontalAlignment = onLeft ? .trailing : (isMiddle ? .center : .leading)
+        let text = VStack(alignment: alignment, spacing: DesignTokens.Spacing.none) {
             Text(title(of: frame.kind, name: node?.name))
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.textPrimary)
@@ -84,11 +90,21 @@ struct NetWorthBreakdownCard: View {
         }
         .lineLimit(1)
         .minimumScaleFactor(DesignTokens.TextScale.floor)
-        .frame(width: labelWidth, alignment: onLeft ? .trailing : .leading)
-        .position(
-            x: onLeft ? frame.rect.minX - gap - labelWidth / 2 : frame.rect.maxX + gap + labelWidth / 2,
-            y: frame.rect.midY
-        )
+        if isMiddle {
+            // Bands run on both sides of a middle node: its label sits above it, on a pill, clear of them.
+            text
+                .padding(.horizontal, DesignTokens.Spacing.xs)
+                .background(Color.surfaceContainerLowest, in: .capsule)
+                .fixedSize()
+                .position(x: frame.rect.midX, y: frame.rect.minY - gap - DesignTokens.Spacing.md)
+        } else {
+            text
+                .frame(width: labelWidth, alignment: onLeft ? .trailing : .leading)
+                .position(
+                    x: onLeft ? frame.rect.minX - gap - labelWidth / 2 : frame.rect.maxX + gap + labelWidth / 2,
+                    y: frame.rect.midY
+                )
+        }
     }
 
     private func title(of kind: NetWorthSankey.Kind, name: String?) -> String {
