@@ -9,7 +9,7 @@ struct NetWorthHero: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Ma fortune nette")
+            Text("Fortune nette")
                 .font(PulpeTypography.pageSubtitle)
                 .foregroundStyle(Color.textSecondary)
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {

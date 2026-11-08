@@ -1,5 +1,11 @@
 import SwiftUI
 
+struct NetWorthAssetActions {
+    let edit: () -> Void
+    let toggleArchive: () -> Void
+    let delete: () -> Void
+}
+
 /// One asset: name, badges, last-update line, value in its own currency and, for a foreign
 /// one, the base-currency counterpart computed by the API.
 struct NetWorthAssetRow: View {
@@ -7,8 +13,16 @@ struct NetWorthAssetRow: View {
     let baseCurrency: SupportedCurrency
     /// Shown before « mis à jour » on a debt, which is not under its category.
     var categoryName: String?
+    var actions: NetWorthAssetActions?
 
     var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.xs) {
+            content
+            if let actions { menu(actions) }
+        }
+    }
+
+    private var content: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(asset.name)
@@ -41,6 +55,26 @@ struct NetWorthAssetRow: View {
         }
         .padding(.vertical, DesignTokens.Spacing.md)
         .accessibilityElement(children: .combine)
+    }
+
+    private func menu(_ actions: NetWorthAssetActions) -> some View {
+        Menu {
+            Button(AppLocale.string("Modifier"), systemImage: "pencil", action: actions.edit)
+            Button(
+                asset.archivedAt == nil ? AppLocale.string("Archiver") : AppLocale.string("Désarchiver"),
+                systemImage: asset.archivedAt == nil ? "archivebox" : "tray.and.arrow.up",
+                action: actions.toggleArchive
+            )
+            Button(AppLocale.string("Supprimer"), systemImage: "trash", role: .destructive, action: actions.delete)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(PulpeTypography.rowTitle)
+                .foregroundStyle(Color.textSecondary)
+                .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(AppLocale.string("Actions pour \(asset.name)"))
+        .accessibilityIdentifier("netWorthRowMenu")
     }
 
     private var updatedLine: String {

@@ -4,7 +4,22 @@ import SwiftUI
 /// archives. Read-only; every figure comes from `GET /v1/assets`.
 struct NetWorthView: View {
     @Environment(AssetStore.self) private var store
+    @Environment(ToastManager.self) private var toastManager
     @State private var showsArchived = false
+    @State private var form: FormTarget?
+    @State private var pendingDelete: Asset?
+
+    private enum FormTarget: Identifiable {
+        case create
+        case edit(Asset)
+
+        var id: String {
+            switch self {
+            case .create: "create"
+            case .edit(let asset): asset.id
+            }
+        }
+    }
 
     private enum Content {
         case loading
@@ -34,7 +49,9 @@ struct NetWorthView: View {
                     systemImage: "building.columns",
                     title: AppLocale.string("Ton patrimoine commence ici"),
                     // swiftlint:disable:next line_length
-                    message: AppLocale.string("Ajoute un compte, un livret ou une dette pour voir ta fortune nette du jour.")
+                    message: AppLocale.string("Ajoute un compte, un livret ou une dette pour voir ta fortune nette du jour."),
+                    actionTitle: AppLocale.string("Ajouter un avoir"),
+                    action: { form = .create }
                 )
             case .loaded(let sections):
                 loaded(sections)
@@ -43,7 +60,34 @@ struct NetWorthView: View {
         .navigationTitle(AppLocale.string("Mon patrimoine"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(removing: .title)
+        .toolbar {
+            if case .loaded = content {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(AppLocale.string("Ajouter"), systemImage: "plus") { form = .create }
+                        .accessibilityIdentifier("netWorthAdd")
+                }
+            }
+        }
         .pulpeBackground()
+        .sheet(item: $form) { target in
+            switch target {
+            case .create: AssetFormSheet(asset: nil, currency: baseCurrency)
+            case .edit(let asset): AssetFormSheet(asset: asset, currency: baseCurrency)
+            }
+        }
+        .confirmationDialog(
+            pendingDelete.map { AppLocale.string("Supprimer \($0.name) ?") } ?? "",
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingDelete
+        ) { asset in
+            Button(AppLocale.string("Supprimer"), role: .destructive) {
+                run { try await store.delete(id: asset.id) }
+            }
+        } message: { _ in
+            // swiftlint:disable:next line_length
+            Text("Tout son historique de valeurs est supprimé aussi. Archive-le plutôt pour le sortir des totaux en gardant l'historique.")
+        }
         .task { await store.loadIfNeeded() }
         .accessibilityIdentifier("netWorthRoot")
     }
@@ -104,7 +148,14 @@ struct NetWorthView: View {
                 NetWorthAssetRow(
                     asset: asset,
                     baseCurrency: sections.baseCurrency,
-                    categoryName: showsCategory ? sections.categoryName(of: asset) : nil
+                    categoryName: showsCategory ? sections.categoryName(of: asset) : nil,
+                    actions: NetWorthAssetActions(
+                        edit: { form = .edit(asset) },
+                        toggleArchive: {
+                            run { try await store.setArchived(id: asset.id, asset.archivedAt == nil) }
+                        },
+                        delete: { pendingDelete = asset }
+                    )
                 )
             }
         }
@@ -120,6 +171,17 @@ struct NetWorthView: View {
             isExpanded: $showsArchived
         ) {
             rows(sections.archived, sections: sections, showsCategory: false)
+        }
+    }
+
+    private var baseCurrency: SupportedCurrency { store.totals?.baseCurrency ?? .chf }
+
+    /// A failed write is told by a toast; the store has already refetched.
+    private func run(_ operation: @escaping () async throws -> Void) {
+        Task {
+            do { try await operation() } catch {
+                toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+            }
         }
     }
 }
