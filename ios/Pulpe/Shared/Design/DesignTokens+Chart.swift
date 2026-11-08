@@ -57,6 +57,9 @@ extension DesignTokens {
         static let sankeyNodeWidth: CGFloat = 10
         static let sankeyNodeGap: CGFloat = 14
         static let sankeyMinNodeHeight: CGFloat = 20
+        /// Height added above the per-node floors and gaps when the diagram grows, so the nodes of a
+        /// crowded column stay proportional to their value instead of all sitting on the floor.
+        static let sankeyProportionalRoom: CGFloat = 130
         static let sankeyLabelWidth: CGFloat = 96
         static let sankeyLabelHeadroom: CGFloat = 40
         /// Pill carrying the label of a middle-column node; the layout keeps a gap of this height free above each.

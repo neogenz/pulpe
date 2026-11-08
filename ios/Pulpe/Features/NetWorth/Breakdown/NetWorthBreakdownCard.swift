@@ -10,10 +10,9 @@ struct NetWorthBreakdownCard: View {
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.horizontalSizeClass) private var sizeClass
 
-    /// The token height, grown when many categories need more room.
+    /// The drawing height (grown when any column needs more room) plus the label headroom.
     private var diagramHeight: CGFloat {
-        max(DesignTokens.Chart.sankeyHeight,
-            NetWorthSankeyLayout.requiredHeight(graph) + DesignTokens.Chart.sankeyLabelHeadroom)
+        NetWorthSankeyLayout.drawingHeight(graph) + DesignTokens.Chart.sankeyLabelHeadroom
     }
 
     private var currency: SupportedCurrency { totals.baseCurrency }
@@ -54,7 +53,7 @@ struct NetWorthBreakdownCard: View {
     private func diagram(width: CGFloat) -> some View {
         // Headroom above the nodes for the labels of the middle column.
         let headroom = DesignTokens.Chart.sankeyLabelHeadroom
-        let size = CGSize(width: width, height: diagramHeight - headroom)
+        let size = CGSize(width: width, height: NetWorthSankeyLayout.drawingHeight(graph))
         let result = NetWorthSankeyLayout.layout(graph, in: size)
         return ZStack(alignment: .topLeading) {
             Canvas { context, _ in

@@ -112,13 +112,15 @@ struct NetWorthSankeyLayoutTests {
         )))
         let headroom = DesignTokens.Chart.sankeyLabelHeadroom
         let drawn = CGSize(width: DesignTokens.Chart.sankeyMinWidth, height: DesignTokens.Chart.sankeyHeight - headroom)
-        let result = NetWorthSankeyLayout.layout(graph, in: drawn)
-        let frame = CGRect(x: 0, y: -headroom, width: drawn.width, height: result.height + headroom)
+        let framed = CGSize(width: drawn.width, height: NetWorthSankeyLayout.drawingHeight(graph))
+        let result = NetWorthSankeyLayout.layout(graph, in: framed)
+        let frame = CGRect(x: 0, y: -headroom, width: framed.width, height: framed.height + headroom)
             .insetBy(dx: -0.001, dy: -0.001)
         let labels = result.nodes.compactMap { node in node.labelRect.map { (node.id, $0) } }
 
-        #expect(result.height > drawn.height)
-        #expect(result.height >= NetWorthSankeyLayout.requiredHeight(graph))
+        #expect(framed.height > drawn.height)
+        let column = result.nodes.filter { $0.column == 0 }.map(\.rect.height)
+        #expect((column.max() ?? 0) > 1.5 * (column.min() ?? 0), "grown column keeps proportional heights")
         for node in result.nodes { #expect(frame.contains(node.rect), "\(node.id) clipped") }
         for (id, label) in labels {
             #expect(frame.contains(label), "\(id) label clipped")

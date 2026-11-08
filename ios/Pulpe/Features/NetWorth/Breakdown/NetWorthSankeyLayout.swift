@@ -27,21 +27,24 @@ enum NetWorthSankeyLayout {
         let nodes: [NodeFrame]
         let bands: [LinkBand]
         let columnCount: Int
-        /// Drawing height actually used: the asked one, grown when the columns need more.
-        let height: CGFloat
     }
 
-    /// Height the tallest column needs: its gaps (label pills included) plus a readable
-    /// height per node. The card frames `max(its token height, this)`.
-    static func requiredHeight(_ graph: NetWorthSankey.Graph) -> CGFloat {
+    /// The one place the diagram grows: the token height, or what the tallest column needs
+    /// (gaps with label pills, a floor per node, plus room so node heights stay proportional).
+    static func drawingHeight(_ graph: NetWorthSankey.Graph) -> CGFloat {
+        max(DesignTokens.Chart.sankeyHeight - DesignTokens.Chart.sankeyLabelHeadroom, requiredHeight(graph))
+    }
+
+    private static func requiredHeight(_ graph: NetWorthSankey.Graph) -> CGFloat {
         let columns = columnIndexes(graph)
         let columnCount = (columns.values.max() ?? 0) + 1
         let ordered = orderedColumns(graph, columns: columns, columnCount: columnCount)
         let gaps = columnGaps(columnCount)
         let readable = DesignTokens.Chart.sankeyMinNodeHeight
-        return ordered.enumerated().map { column, ids in
+        let floors = ordered.enumerated().map { column, ids in
             CGFloat(ids.count) * readable + gaps[column] * CGFloat(max(ids.count - 1, 0))
         }.max() ?? 0
+        return floors + DesignTokens.Chart.sankeyProportionalRoom
     }
 
     /// A middle node's label sits in the gap above it: that gap holds the pill, its clearance included.
@@ -56,10 +59,9 @@ enum NetWorthSankeyLayout {
     /// `labelWidth` is kept free on both sides for the first and last column labels.
     static func layout(
         _ graph: NetWorthSankey.Graph,
-        in asked: CGSize,
+        in size: CGSize,
         labelWidth: CGFloat = DesignTokens.Chart.sankeyLabelWidth
     ) -> Result {
-        let size = CGSize(width: asked.width, height: max(asked.height, requiredHeight(graph)))
         let nodeWidth = DesignTokens.Chart.sankeyNodeWidth
         let minHeight = DesignTokens.Chart.sankeyMinNodeHeight
         let columns = columnIndexes(graph)
@@ -106,7 +108,7 @@ enum NetWorthSankeyLayout {
 
         return Result(
             nodes: frames, bands: bands(graph, rects: rects, scale: scale),
-            columnCount: columnCount, height: size.height
+            columnCount: columnCount
         )
     }
 
