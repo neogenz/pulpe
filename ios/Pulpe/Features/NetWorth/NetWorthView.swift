@@ -108,6 +108,9 @@ struct NetWorthView: View {
                 PageHeader(title: AppLocale.string("Mon patrimoine"))
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                 NetWorthHero(sections: sections)
+                if let netWorth = store.netWorth, let graph = NetWorthSankey.build(netWorth) {
+                    NetWorthBreakdownCard(graph: graph, totals: netWorth.totals)
+                }
                 ForEach(sections.categories) { category in
                     section(
                         title: category.name,

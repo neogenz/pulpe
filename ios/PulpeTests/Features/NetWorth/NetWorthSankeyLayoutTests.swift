@@ -1,0 +1,60 @@
+import CoreGraphics
+import Foundation
+@testable import Pulpe
+import Testing
+
+struct NetWorthSankeyLayoutTests {
+    private let size = CGSize(width: 320, height: DesignTokens.Chart.sankeyHeight)
+
+    private func graph(
+        debts: Decimal = 300, net: Decimal = 700, gross: Decimal = 1000, owed: Decimal = 300
+    ) throws -> NetWorthSankey.Graph {
+        let assets = [
+            TestDataFactory.makeAsset(id: "a", categoryId: "c1", name: "UBS", latestValue: 900),
+            TestDataFactory.makeAsset(id: "b", categoryId: "c1", name: "Cash", latestValue: 100),
+            TestDataFactory.makeAsset(id: "d", name: "Leasing", direction: .owe, latestValue: owed),
+        ]
+        return try #require(NetWorthSankey.build(NetWorth(
+            totals: NetWorthTotals(baseCurrency: .chf, gross: gross, debts: debts, net: net, incomplete: false),
+            categories: [AssetCategory(id: "c1", name: "Comptes", total: gross)],
+            assets: assets
+        )))
+    }
+
+    @Test func nodeHeightsAreProportionalToTheirFlow() throws {
+        let result = NetWorthSankeyLayout.layout(try graph(), in: size)
+        let height = { (id: String) in result.nodes.first { $0.id == id }?.rect.height ?? 0 }
+
+        #expect(abs(height("asset:a") / height("asset:b") - 9) < 0.001)
+        #expect(abs(height("gross") / height("net") - 1000.0 / 700.0) < 0.001)
+    }
+
+    @Test func nodesOfAColumnNeverOverlapAndStayInsideTheHeight() throws {
+        let result = NetWorthSankeyLayout.layout(try graph(debts: 4000, net: -3000, owed: 4000), in: size)
+
+        for column in 0..<result.columnCount {
+            let rects = result.nodes.filter { $0.column == column }.map { $0.rect }.sorted { $0.minY < $1.minY }
+            for (above, below) in zip(rects, rects.dropFirst()) { #expect(above.maxY <= below.minY) }
+            #expect(rects.allSatisfy { $0.minY >= 0 && $0.maxY <= size.height + 0.001 })
+        }
+    }
+
+    @Test func bandsStartAndEndOnTheirNodeFrames() throws {
+        let result = NetWorthSankeyLayout.layout(try graph(), in: size)
+
+        for band in result.bands {
+            let source = try #require(result.nodes.first { $0.id == band.from }).rect
+            let target = try #require(result.nodes.first { $0.id == band.to }).rect
+            #expect(band.sourceTop >= source.minY - 0.001 && band.sourceTop + band.thickness <= source.maxY + 0.001)
+            #expect(band.targetTop >= target.minY - 0.001 && band.targetTop + band.thickness <= target.maxY + 0.001)
+            let bounds = band.path.boundingRect
+            #expect(abs(bounds.minX - source.maxX) < 0.001 && abs(bounds.maxX - target.minX) < 0.001)
+        }
+    }
+
+    @Test func tinyFlowsKeepTheMinimumNodeHeight() throws {
+        let result = NetWorthSankeyLayout.layout(try graph(gross: 100_000), in: size)
+
+        #expect(result.nodes.allSatisfy { $0.rect.height >= DesignTokens.Chart.sankeyMinNodeHeight })
+    }
+}

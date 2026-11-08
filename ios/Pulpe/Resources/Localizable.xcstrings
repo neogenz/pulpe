@@ -47210,6 +47210,167 @@
           }
         }
       }
+    },
+    "Répartition aujourd'hui" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verteilung heute"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Breakdown today"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripartizione di oggi"
+          }
+        }
+      }
+    },
+    "De ce que j'ai à ma fortune nette" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von dem, was ich habe, bis zu meinem Nettovermögen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From what I have to my net worth"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da ciò che ho al mio patrimonio netto"
+          }
+        }
+      }
+    },
+    "De ce que j'ai à ce que je dois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von dem, was ich habe, bis zu dem, was ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From what I have to what I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da ciò che ho a ciò che devo"
+          }
+        }
+      }
+    },
+    "Fais glisser pour voir jusqu'à ta fortune nette" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zieh, um bis zu deinem Nettovermögen zu sehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to see all the way to your net worth"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascina per vedere fino al tuo patrimonio netto"
+          }
+        }
+      }
+    },
+    "Fais glisser pour voir jusqu'à ce que tu dois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zieh, um bis zu dem zu sehen, was du schuldest"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to see all the way to what you owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascina per vedere fino a ciò che devi"
+          }
+        }
+      }
+    },
+    "Ce que j'ai, %@, face à %@ dus." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was ich habe, %1$@, gegenüber %2$@ Schulden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What I have, %1$@, set against %2$@ owed."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciò che ho, %1$@, a fronte di %2$@ di debiti."
+          }
+        }
+      }
+    },
+    "Répartition de ce que j'ai : fortune brute %@, partagée entre %@ dus et %@ de fortune nette." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verteilung dessen, was ich habe: Bruttovermögen %1$@, aufgeteilt in %2$@ Schulden und %3$@ Nettovermögen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Breakdown of what I have: gross worth %1$@, split between %2$@ owed and %3$@ of net worth."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripartizione di ciò che ho: patrimonio lordo %1$@, diviso tra %2$@ di debiti e %3$@ di patrimonio netto."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

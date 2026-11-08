@@ -48,5 +48,16 @@ extension DesignTokens {
         /// rows) the dots stop being countable and the card falls back to a progress bar.
         static let checkDotColumns = 25
         static let checkDotLimit = 50
+
+        /// Breakdown diagram: below `sankeyMinWidth` the card scrolls sideways instead of
+        /// squeezing the columns. `sankeyLabelWidth` is kept free beside the first and last
+        /// columns for their labels.
+        static let sankeyMinWidth: CGFloat = 560
+        static let sankeyHeight: CGFloat = 260
+        static let sankeyNodeWidth: CGFloat = 10
+        static let sankeyNodeGap: CGFloat = 14
+        static let sankeyMinNodeHeight: CGFloat = 8
+        static let sankeyLabelWidth: CGFloat = 96
+        static let sankeyBandOpacity = 0.3
     }
 }

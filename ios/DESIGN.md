@@ -455,6 +455,7 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 - **`ImpactBlock`:** what an action does to a figure: `sunk`, radius 16, caption title, struck-through "before" in ink3 → "after" Manrope 700 17pt, optional caption.
 - **`InfoBanner`:** radius 16, 15pt; `.neutral` (sunk), `.over` (over-wash, ocre glyph), `.ok` (accent wash), `.err` (red wash, red glyph). Never a button.
 - **`PulpeEmptyState`:** 56pt `accentWash` disc, 20pt bold title, one 15pt ink2 sentence, one small primary action. **`StatusScreen`:** the full-screen version for maintenance, error and update.
+- **`NetWorthBreakdownCard`:** « Répartition aujourd'hui », a drawn flow diagram (assets, categories, gross, then debts and net worth) in a `surface` card; sideways scroll below `sankeyMinWidth`, bands at `sankeyBandOpacity`, debts and net worth below zero in the ocre ink, never red; one VoiceOver sentence for the whole drawing.
 - **`SettingsRow`:** 32pt `sunk` tile (radius 9, ink2 glyph), title, ink2 value, chevron. **`PageHeader`:** 34pt bold large title and 15pt ink2 subtitle.
 - **Toast:** white card radius 20, soft shadow, green icon, bold green action.
 
