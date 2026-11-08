@@ -24,6 +24,8 @@ struct PulpeApp: App {
     @State private var userSettingsStore: UserSettingsStore
     @State private var savingsGoalStore: SavingsGoalStore
     @State private var tagStore: TagStore
+    @State private var assetStore: AssetStore
+    @State private var featureFlagsStore: FeatureFlagsStore
     @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
     @State private var appVersionStore = AppVersionStore()
@@ -40,6 +42,8 @@ struct PulpeApp: App {
         let userSettingsStore = UserSettingsStore()
         let savingsGoalStore = SavingsGoalStore()
         let tagStore = TagStore()
+        let assetStore = AssetStore()
+        let featureFlagsStore = FeatureFlagsStore()
 
         appState.sessionDataResetter = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
@@ -47,33 +51,13 @@ struct PulpeApp: App {
             dashboardStore: dashboardStore,
             userSettingsStore: userSettingsStore,
             savingsGoalStore: savingsGoalStore,
-            tagStore: tagStore
+            tagStore: tagStore,
+            assetStore: assetStore,
+            featureFlagsStore: featureFlagsStore
         )
 
-        // Cross-store consistency (PUL-270): any amount-changing mutation on
-        // the dashboard marks the sibling stores projecting the same sparse
-        // aggregates stale, so their next loadIfNeeded() refetches.
-        currentMonthStore.onMutation = { [budgetListStore, dashboardStore] in
-            budgetListStore.invalidateCache()
-            dashboardStore.invalidateCache()
-        }
-
-        // Any goal mutation touching budget data (delete-unlink, create with auto-décomposition, generation-stop freeze/remove) stales every aggregate store (PUL-270).
-        savingsGoalStore.onBudgetDataMutation = { [currentMonthStore, budgetListStore, dashboardStore] in
-            currentMonthStore.invalidateCache()
-            budgetListStore.invalidateCache()
-            dashboardStore.invalidateCache()
-            BudgetDetailCache.shared.invalidateAll()
-        }
-
-        // Wire currency persistence from `OnboardingBootstrapper` to `UserSettingsStore`.
-        // Runs after PIN setup completes so the API call carries `X-Client-Key`.
-        // Returns `true` only when the store's optimistic update was confirmed by the
-        // backend (no error after the await) — bootstrap toasts the user on `false`.
-        appState.onboardingBootstrapper.persistCurrency = { [userSettingsStore] currency in
-            await userSettingsStore.updateCurrency(currency)
-            return userSettingsStore.error == nil
-        }
+        Self.wireStores(currentMonthStore, budgetListStore, dashboardStore, savingsGoalStore)
+        Self.wireCurrencyPersistence(appState, userSettingsStore)
 
         _appState = State(initialValue: appState)
         _currentMonthStore = State(initialValue: currentMonthStore)
@@ -82,6 +66,8 @@ struct PulpeApp: App {
         _userSettingsStore = State(initialValue: userSettingsStore)
         _savingsGoalStore = State(initialValue: savingsGoalStore)
         _tagStore = State(initialValue: tagStore)
+        _assetStore = State(initialValue: assetStore)
+        _featureFlagsStore = State(initialValue: featureFlagsStore)
         _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
             appState: appState,
             currentMonthStore: currentMonthStore,
@@ -118,16 +104,24 @@ struct PulpeApp: App {
                     .environment(userSettingsStore)
                     .environment(savingsGoalStore)
                     .environment(tagStore)
+                    .environment(assetStore)
+                    .environment(featureFlagsStore)
                     .environment(appVersionStore)
                     .environment(whatsNewStore)
                     .overlay(alignment: .topLeading) {
                         ToastOverlayWindowHost(toastManager: appState.toastManager)
                     }
                     .task {
+                        featureFlagsStore.refresh()
                         await appVersionStore.check()
+                    }
+                    .onChange(of: appState.currentUser?.id) { _, _ in
+                        // After `identify`, so person-property flags re-evaluate for this user.
+                        featureFlagsStore.refresh()
                     }
                     .onChange(of: scenePhase) { _, newPhase in
                         if newPhase == .active {
+                            featureFlagsStore.refresh()
                             Task { await appVersionStore.check() }
                             Task { await rescheduleRemindersIfEnabled() }
                         }

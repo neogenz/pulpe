@@ -321,6 +321,7 @@ struct BudgetGoalSpreadUITestHarness: View {
         .environment(budgetListStore)
         .environment(dashboardStore)
         .environment(savingsGoalStore)
+        .injectingNetWorthStores()
         .environment(tagStore)
         .environment(appState.toastManager)
         .environment(\.locale, AppLocale.uiLocale(for: userSettingsStore.locale))

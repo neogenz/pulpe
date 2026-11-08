@@ -78,6 +78,8 @@ struct SessionDataResetterTests {
         let userSettingsStore = UserSettingsStore()
         let savingsGoalStore = SavingsGoalStore()
         let tagStore = TagStore()
+        let assetStore = AssetStore(service: MockAssetService())
+        let featureFlagsStore = FeatureFlagsStore(defaults: UserDefaults(suiteName: "resetter-flags") ?? .standard)
 
         let sut = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
@@ -85,7 +87,9 @@ struct SessionDataResetterTests {
             dashboardStore: dashboardStore,
             userSettingsStore: userSettingsStore,
             savingsGoalStore: savingsGoalStore,
-            tagStore: tagStore
+            tagStore: tagStore,
+            assetStore: assetStore,
+            featureFlagsStore: featureFlagsStore
         )
 
         sut.resetStores()
@@ -100,6 +104,8 @@ struct SessionDataResetterTests {
         #expect(userSettingsStore.payDayOfMonth == nil)
         #expect(savingsGoalStore.goals.isEmpty)
         #expect(tagStore.tags.isEmpty)
+        #expect(assetStore.netWorth == nil)
+        #expect(featureFlagsStore.isNetWorthEnabled == false)
     }
 }
 

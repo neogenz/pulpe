@@ -92,6 +92,7 @@ struct ContextualCreationUITestHarness: View {
             .environment(dashboardStore)
             .environment(userSettingsStore)
             .environment(savingsGoalStore)
+            .injectingNetWorthStores()
             .environment(tagStore)
             .environment(appVersionStore)
             .environment(whatsNewStore)
