@@ -14,10 +14,12 @@ struct EditBudgetLineSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
     @State private var savingsGoalId: String?
+    @State private var assetId: String?
     @State private var selectedTagIds: Set<String>
     @State private var isLoading = false
     @State private var error: Error?
@@ -52,6 +54,7 @@ struct EditBudgetLineSheet: View {
         _name = State(initialValue: budgetLine.name)
         _kind = State(initialValue: budgetLine.kind)
         _savingsGoalId = State(initialValue: budgetLine.savingsGoalId)
+        _assetId = State(initialValue: budgetLine.assetId)
         let tagIds = Set(budgetLine.tagIds ?? [])
         _selectedTagIds = State(initialValue: tagIds)
         initialTagIds = tagIds
@@ -133,6 +136,11 @@ struct EditBudgetLineSheet: View {
                     SavingsGoalPickerField(selection: $savingsGoalId, budgetPeriod: budgetPeriod, style: .row)
                 }
             }
+            if AssetPickerField.isShown(kind: kind, flagEnabled: featureFlags.isNetWorthEnabled) {
+                FormCard {
+                    AssetPickerField(selection: $assetId, kind: kind)
+                }
+            }
             // PUL-329 v2 — the goal an income was announced to be drawn from is
             // read-only: the origin is fixed at creation, and a second picker
             // here would suggest the source could be swapped.
@@ -156,6 +164,7 @@ struct EditBudgetLineSheet: View {
         .onChange(of: kind) { _, newKind in
             // Mirror the backend kind-guard: only savings can carry a goal.
             if newKind != .saving { savingsGoalId = nil }
+            assetId = nil
         }
     }
 
@@ -281,6 +290,8 @@ struct EditBudgetLineSheet: View {
             // Always emit the link (id or explicit null) so a saving line can be
             // tagged or untagged; the kind-guard clears it for non-saving kinds.
             data.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
+            // Unlike the goal link, only emitted when it moved: an untouched edit must not clear it.
+            data.assetId = assetLinkChange(initial: budgetLine.assetId, current: kind.assetLink(assetId))
 
             let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
             submitSuccessTrigger.toggle()
@@ -384,5 +395,7 @@ struct EditBudgetLineDependencies: Sendable {
     .environment(ToastManager())
     .environment(UserSettingsStore())
     .environment(SavingsGoalStore())
+    .environment(AssetStore())
+    .environment(FeatureFlagsStore())
     .environment(TagStore())
 }

@@ -17,10 +17,12 @@ struct AddBudgetLineSheet: View {
     @Environment(ToastManager.self) var toastManager
     @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(BudgetListStore.self) var budgetListStore
+    @Environment(FeatureFlagsStore.self) var featureFlags
     @State var name = ""
     @State var amount: Decimal?
     @State var kind: TransactionKind = .expense
     @State var savingsGoalId: String?
+    @State var assetId: String?
     @State var isLoading = false
     @State var error: Error?
     @FocusState var focusedField: AmountDescriptionField?
@@ -168,6 +170,7 @@ struct AddBudgetLineSheet: View {
             // Income can't be spread; only savings carry a goal; origin is income-only.
             if newKind == .income, mode == .spread { mode = .once }
             if newKind != .saving { savingsGoalId = nil }
+            assetId = nil
             if newKind != .income { incomeOrigin = .regular }
             resetIncompatibleOriginState()
         }
@@ -205,5 +208,7 @@ struct AddBudgetLineSheet: View {
     .environment(UserSettingsStore())
     .environment(BudgetListStore())
     .environment(SavingsGoalStore())
+    .environment(AssetStore())
+    .environment(FeatureFlagsStore())
     .environment(TagStore())
 }

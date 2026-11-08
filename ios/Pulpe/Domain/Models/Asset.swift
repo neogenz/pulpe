@@ -107,3 +107,28 @@ struct AssetSnapshotsResult: Codable, Hashable, Sendable {
 struct AssetCategoryWrite: Codable, Hashable, Sendable {
     let name: String
 }
+
+// MARK: - Link from a prévision (PUL-366)
+
+extension TransactionKind {
+    /// Which assets a prévision of this kind can be linked to: an Épargne feeds one
+    /// the user owns, a Dépense repays a debt. A Revenu links to nothing.
+    var assetDirection: AssetDirection? {
+        switch self {
+        case .saving: .own
+        case .expense: .owe
+        case .income: nil
+        }
+    }
+
+    /// The link to write for this kind: a kind without a direction carries none.
+    func assetLink(_ assetId: String?) -> String? {
+        assetDirection == nil ? nil : assetId
+    }
+}
+
+/// Tri-state PATCH value: `nil` when the link did not move (key omitted, the stored
+/// link survives), `.some(current)` otherwise (`.some(nil)` sends an explicit `null`).
+func assetLinkChange(initial: String?, current: String?) -> String?? {
+    initial == current ? nil : .some(current)
+}

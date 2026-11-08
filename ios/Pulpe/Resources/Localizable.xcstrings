@@ -47417,6 +47417,94 @@
           }
         }
       }
+    },
+    "Aucun" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuno"
+          }
+        }
+      }
+    },
+    "Versée sur" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingezahlt auf"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved to"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versato su"
+          }
+        }
+      }
+    },
+    "Dette remboursée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Getilgte Schuld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debt repaid"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debito rimborsato"
+          }
+        }
+      }
+    },
+    "Une fois pointée, je te propose de baisser ce qu'il reste dû sur %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobald er abgehakt ist, schlage ich dir vor, den noch offenen Betrag bei %@ zu senken."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once checked, I'll suggest lowering what's still owed on %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una volta spuntata, ti propongo di abbassare quanto resta da pagare su %@."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

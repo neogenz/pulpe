@@ -13,5 +13,7 @@ import SwiftUI
     .environment(DashboardStore())
     .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
+    .environment(AssetStore())
+    .environment(FeatureFlagsStore())
     .environment(TagStore())
 }

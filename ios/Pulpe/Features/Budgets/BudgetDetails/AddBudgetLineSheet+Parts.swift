@@ -114,10 +114,14 @@ extension AddBudgetLineSheet {
         }
     }
 
+    private var showsAssetPicker: Bool {
+        AssetPickerField.isShown(kind: kind, flagEnabled: featureFlags.isNetWorthEnabled)
+    }
+
     /// Only the pickers that apply: a goal for a saving, an origin for an income.
     @ViewBuilder
     var detailsCard: some View {
-        if Self.showsSavingsGoalPicker(kind: kind) || kind == .income {
+        if Self.showsSavingsGoalPicker(kind: kind) || kind == .income || showsAssetPicker {
             FormCard {
                 if Self.showsSavingsGoalPicker(kind: kind) {
                     SavingsGoalPickerField(
@@ -129,6 +133,10 @@ extension AddBudgetLineSheet {
                         ),
                         style: .row
                     )
+                }
+                if showsAssetPicker {
+                    if Self.showsSavingsGoalPicker(kind: kind) { FormRowDivider() }
+                    AssetPickerField(selection: $assetId, kind: kind)
                 }
                 if kind == .income {
                     originPicker

@@ -25,11 +25,13 @@ struct EditTemplateLineSheet: View {
     @Environment(ToastManager.self) var toastManager
     @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(CurrentMonthStore.self) var currentMonthStore
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @State private var name: String
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
     @State private var recurrence: TransactionRecurrence
     @State private var savingsGoalId: String?
+    @State private var assetId: String?
     @State private var selectedTagIds: Set<String>
     @State var isLoading = false
     @State var error: Error?
@@ -66,6 +68,7 @@ struct EditTemplateLineSheet: View {
         _kind = State(initialValue: templateLine.kind)
         _recurrence = State(initialValue: templateLine.recurrence)
         _savingsGoalId = State(initialValue: templateLine.savingsGoalId)
+        _assetId = State(initialValue: templateLine.assetId)
         let tagIds = Set(templateLine.tagIds ?? [])
         _selectedTagIds = State(initialValue: tagIds)
         initialTagIds = tagIds
@@ -135,6 +138,11 @@ struct EditTemplateLineSheet: View {
                     SavingsGoalPickerField(selection: $savingsGoalId, style: .row)
                 }
             }
+            if AssetPickerField.isShown(kind: kind, flagEnabled: featureFlags.isNetWorthEnabled) {
+                FormCard {
+                    AssetPickerField(selection: $assetId, kind: kind)
+                }
+            }
             if let impact = availableImpact {
                 ImpactBlock(
                     title: AppLocale.string("Disponible de départ du modèle"),
@@ -157,6 +165,7 @@ struct EditTemplateLineSheet: View {
         .onChange(of: kind) { _, newKind in
             // Mirror the backend kind-guard: only savings can carry a goal.
             if newKind != .saving { savingsGoalId = nil }
+            assetId = nil
         }
         .task {
             do {
@@ -239,6 +248,8 @@ struct EditTemplateLineSheet: View {
             // Always emit the link (id or explicit null) so a saving line can be
             // tagged or untagged; the kind-guard clears it for non-saving kinds.
             update.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
+            // Unlike the goal link, only emitted when it moved: an untouched edit must not clear it.
+            update.assetId = assetLinkChange(initial: templateLine.assetId, current: kind.assetLink(assetId))
             pendingUpdate = update
 
             let hasBudgets = usageFetchFailed || propagationBudgetCount > 0
@@ -370,6 +381,7 @@ extension EditTemplateLineSheet {
             recurrence: data.recurrence,
             description: data.description,
             savingsGoalId: data.savingsGoalId,
+            assetId: data.assetId,
             originalAmount: data.originalAmount,
             originalCurrency: data.originalCurrency,
             targetCurrency: data.targetCurrency,
@@ -419,5 +431,7 @@ struct EditTemplateLineDependencies: Sendable {
     .environment(ToastManager())
     .environment(UserSettingsStore())
     .environment(SavingsGoalStore())
+    .environment(AssetStore())
+    .environment(FeatureFlagsStore())
     .environment(TagStore())
 }

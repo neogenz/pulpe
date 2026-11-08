@@ -24,6 +24,8 @@ private extension View {
             .environment(BudgetListStore())
             .environment(UserSettingsStore())
             .environment(SavingsGoalStore())
+            .environment(AssetStore())
+            .environment(FeatureFlagsStore())
             .environment(TagStore())
             .environment(ToastManager())
             .environment(AppVersionStore())

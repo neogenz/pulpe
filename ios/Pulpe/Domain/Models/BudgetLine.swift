@@ -39,6 +39,10 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     var sourceSavingsGoalId: String?
     var sourceSavingsGoalName: String?
 
+    /// Net-worth asset this prévision feeds (saving) or repays (expense). Absent in
+    /// payloads served before the feature.
+    var assetId: String?
+
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
@@ -137,6 +141,7 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             savingsWithdrawalGroupId: savingsWithdrawalGroupId,
             sourceSavingsGoalId: sourceSavingsGoalId,
             sourceSavingsGoalName: sourceSavingsGoalName,
+            assetId: assetId,
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,
@@ -181,6 +186,7 @@ struct BudgetLineCreate: Encodable {
     /// afterwards, so `BudgetLineUpdate` deliberately has no counterpart —
     /// the same asymmetry `TransactionCreate` already carries.
     let sourceSavingsGoalId: String?
+    let assetId: String?
 
     init(
         budgetId: String,
@@ -191,6 +197,7 @@ struct BudgetLineCreate: Encodable {
         templateLineId: String? = nil,
         savingsGoalId: String? = nil,
         sourceSavingsGoalId: String? = nil,
+        assetId: String? = nil,
         isManuallyAdjusted: Bool = false,
         checkedAt: Date? = nil,
         originalAmount: Decimal? = nil,
@@ -203,6 +210,7 @@ struct BudgetLineCreate: Encodable {
         self.templateLineId = templateLineId
         self.savingsGoalId = savingsGoalId
         self.sourceSavingsGoalId = sourceSavingsGoalId
+        self.assetId = assetId
         self.name = name
         self.amount = amount
         self.kind = kind
@@ -228,6 +236,8 @@ struct BudgetLineUpdate: Encodable {
     /// Only the saving-line editor sets this — every other PATCH leaves the
     /// tag untouched.
     var savingsGoalId: String??
+    /// Tri-state net-worth asset link, same contract as `savingsGoalId`.
+    var assetId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?

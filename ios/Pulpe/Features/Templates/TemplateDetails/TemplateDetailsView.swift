@@ -323,6 +323,8 @@ private struct TemplateDetailsSkeletonView: View {
     .environment(DashboardStore())
     .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
+    .environment(AssetStore())
+    .environment(FeatureFlagsStore())
     .environment(TagStore())
     .environment(AppState())
     .environment(ToastManager())
