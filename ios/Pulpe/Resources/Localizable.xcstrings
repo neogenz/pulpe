@@ -17764,6 +17764,52 @@
         }
       }
     },
+    "Prendre sur un objectif" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von einem Ziel nehmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take from a goal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preleva da un obiettivo"
+          }
+        }
+      }
+    },
+    "L'objectif baisse, rien à remettre" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Ziel sinkt, nichts zurückzulegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The goal goes down, nothing to put back"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'obiettivo scende, niente da rimettere"
+          }
+        }
+      }
+    },
     "Montant" : {
       "localizations" : {
         "de" : {

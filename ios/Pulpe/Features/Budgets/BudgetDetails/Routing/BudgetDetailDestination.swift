@@ -54,6 +54,8 @@ enum BudgetDetailDestination: Identifiable {
     case addBudgetLine(TransactionKind)
     /// The movement sheet: a new movement (under `lineId` when set) or "Modifier" on `transactionId`.
     case movement(lineId: String?, transactionId: String?)
+    /// The goal withdrawal as a movement: a revenu from savings, the goal still to pick.
+    case goalWithdrawal(GoalWithdrawalStart)
     case editBudgetLine(BudgetLine)
     case previousBudget(PreviousBudgetItem)
     case realizedBalance
@@ -71,6 +73,7 @@ enum BudgetDetailDestination: Identifiable {
         switch self {
         case .addBudgetLine(let kind): "addBudgetLine-\(kind.rawValue)"
         case .movement(let lineId, let movementId): "movement-\(lineId ?? "")-\(movementId ?? "")"
+        case .goalWithdrawal(let start): "goalWithdrawal-\(start.amount.map(String.init(describing:)) ?? "")"
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"
         case .realizedBalance: "realizedBalance"

@@ -1,5 +1,13 @@
 import SwiftUI
 
+/// A goal withdrawal the sheet opens on: a revenu drawn from savings, origin « objectif », with
+/// the goal and the amount already chosen when known.
+struct GoalWithdrawalStart: Hashable {
+    var goalId: String?
+    var amount: Decimal?
+    var currency: SupportedCurrency?
+}
+
 /// The one sheet that writes a movement: "Nouvelle dépense / Nouveau revenu / Nouvelle
 /// épargne", the same sheet with its prévision already chosen ("Noter un montant" on a
 /// prévision), and "Modifier" for an existing one. It asks one question, "C'était prévu
@@ -72,7 +80,7 @@ struct MovementSheet: View {
         editActions: MovementSheetEditActions? = nil,
         dependencies: AddTransactionDependencies = .live,
         userCurrency: SupportedCurrency = .chf,
-        withdrawalGoalId: String? = nil,
+        withdrawalStart: GoalWithdrawalStart? = nil,
         onRequestSavingsWithdrawal: ((Decimal, SupportedCurrency, String?) -> Void)? = nil,
         onRequestNewForecast: (() -> Void)? = nil,
         onAdd: @escaping (Transaction) -> Void = { _ in }
@@ -113,10 +121,18 @@ struct MovementSheet: View {
             _linePick = State(initialValue: line.map { .line($0.id) })
             self.initialTagIds = []
             // « Faire un retrait » from a goal: a revenu drawn from that goal's savings.
-            if let withdrawalGoalId {
+            if let withdrawalStart {
                 _kind = State(initialValue: .income)
                 _isFromSavings = State(initialValue: true)
-                _savingsGoalId = State(initialValue: withdrawalGoalId)
+                _savingsOrigin = State(initialValue: .goal)
+                _savingsGoalId = State(initialValue: withdrawalStart.goalId)
+                if let startAmount = withdrawalStart.amount {
+                    let currency = withdrawalStart.currency ?? userCurrency
+                    _amount = State(initialValue: startAmount)
+                    _inputCurrency = State(initialValue: currency)
+                    _amountText = State(initialValue: Formatters.amountInput(for: currency)
+                        .string(from: startAmount as NSDecimalNumber) ?? "")
+                }
             }
         }
     }

@@ -24,6 +24,8 @@ struct BudgetDetailSheetContent: View {
             addBudgetLineSheet(kind: kind)
         case .movement(let lineId, let transactionId):
             BudgetMovementSheet(lineId: lineId, transactionId: transactionId)
+        case .goalWithdrawal(let start):
+            BudgetMovementSheet(withdrawalStart: start)
         case .editBudgetLine(let line):
             editBudgetLineSheet(for: line)
         case .previousBudget(let item):
@@ -80,6 +82,9 @@ struct BudgetDetailSheetContent: View {
                     )
                     : nil,
                 onSpreadInstead: { router.present(.spreadExisting($0)) },
+                onTakeFromGoal: { amount, currency in
+                    router.present(.goalWithdrawal(GoalWithdrawalStart(amount: amount, currency: currency)))
+                },
                 onAdd: { incomeLine in
                     Task { await coordinator.dispatch(.createSavingsWithdrawal(incomeLine: incomeLine)) }
                 }

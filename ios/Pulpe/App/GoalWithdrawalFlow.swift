@@ -35,7 +35,7 @@ private struct GoalWithdrawalFlow: ViewModifier {
                             store: currentMonthStore, budgetId: budget.id, source: .addButton
                         ),
                         userCurrency: userSettingsStore.currency,
-                        withdrawalGoalId: request.goalId,
+                        withdrawalStart: GoalWithdrawalStart(goalId: request.goalId),
                         onAdd: currentMonthStore.addTransaction
                     )
                 }

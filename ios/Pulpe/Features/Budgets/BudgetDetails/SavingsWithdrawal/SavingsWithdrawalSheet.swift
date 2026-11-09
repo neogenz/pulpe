@@ -4,7 +4,7 @@ import SwiftUI
 /// lacks as the hero, where the money comes from, the two-month couple it sets up (M / M+1)
 /// and its impact on M's disponible. Submit freezes the FX (RG-009) and replays one
 /// idempotency key on retry, then hands the confirmed income line back through `onAdd`.
-/// Picking a goal only names the income: the API has no goal id, so the goal is not debited.
+/// It never debits a goal: « Prendre sur un objectif » hands over to the real goal withdrawal.
 struct SavingsWithdrawalSheet: View {
     let prefill: SavingsWithdrawalPrefill
     /// M as the disponible reads it, for the impact block. `nil` hides the block.
@@ -12,18 +12,18 @@ struct SavingsWithdrawalSheet: View {
     /// « Plutôt lisser »: M's largest spreadable dépense, offered instead of the withdrawal.
     var spreadInstead: SpreadExistingSource?
     var onSpreadInstead: (SpreadExistingSource) -> Void = { _ in }
+    /// « Prendre sur un objectif »: hands the typed amount and currency to the goal withdrawal.
+    var onTakeFromGoal: (Decimal?, SupportedCurrency) -> Void = { _, _ in }
     let onAdd: (BudgetLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(SavingsGoalStore.self) private var savingsGoalStore
 
     @State private var amount: Decimal?
     @State private var amountText: String
-    /// The income's name: « Mon épargne » or a goal's name.
-    @State private var source: String
-    @State private var goals: [SavingsGoalWithdrawalOption] = []
+    /// The income's name sent to the server: the name typed before « À remettre », else « Mon épargne ».
+    private let source: String
     @State private var inputCurrency: SupportedCurrency = .chf
     @State private var isSubmitting = false
     @State private var submitSuccessTrigger = false
@@ -45,6 +45,7 @@ struct SavingsWithdrawalSheet: View {
         spreadInstead: SpreadExistingSource? = nil,
         dependencies: SavingsWithdrawalDependencies = .live,
         onSpreadInstead: @escaping (SpreadExistingSource) -> Void = { _ in },
+        onTakeFromGoal: @escaping (Decimal?, SupportedCurrency) -> Void = { _, _ in },
         onAdd: @escaping (BudgetLine) -> Void
     ) {
         self.prefill = prefill
@@ -52,11 +53,12 @@ struct SavingsWithdrawalSheet: View {
         self.spreadInstead = spreadInstead
         self.dependencies = dependencies
         self.onSpreadInstead = onSpreadInstead
+        self.onTakeFromGoal = onTakeFromGoal
         self.onAdd = onAdd
         let initial = prefill.amount ?? prefill.missingAmount
         self._amount = State(initialValue: initial)
         self._amountText = State(initialValue: initial.map(Self.plainString) ?? "")
-        self._source = State(initialValue: prefill.source ?? AppLocale.string("Mon épargne"))
+        self.source = prefill.source ?? AppLocale.string("Mon épargne")
         self._inputCurrency = State(initialValue: prefill.inputCurrency ?? .chf)
     }
 
@@ -127,9 +129,6 @@ struct SavingsWithdrawalSheet: View {
             // fall back to the user's setting on the card path (PUL-292).
             let seed = prefill.inputCurrency ?? userSettingsStore.currency
             if inputCurrency != seed { inputCurrency = seed }
-            // ponytail: goals only name the income, so a failed fetch just leaves « Mon épargne ».
-            let options = (try? await savingsGoalStore.fetchWithdrawalOptions()) ?? []
-            goals = options.filter { $0.availableAmount > 0 }
         }
     }
 
@@ -159,32 +158,22 @@ struct SavingsWithdrawalSheet: View {
 
     private var sourceCard: some View {
         FormCard(title: "D'où vient l'argent ?") {
-            sourceRow(name: AppLocale.string("Mon épargne"), available: nil)
-            ForEach(goals) { goal in
-                FormRowDivider()
-                sourceRow(name: goal.name, available: goal.availableAmount.asAmount(for: goal.currency))
+            PulpeListRow(title: AppLocale.string("Mon épargne"), showsChevron: false) {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(Color.accentInk)
+                    .accessibilityHidden(true)
             }
-        }
-    }
-
-    private func sourceRow(name: String, available: String?) -> some View {
-        let isOn = source == name
-        return Button { source = name } label: {
-            PulpeListRow(title: name, showsChevron: false) {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    if let available {
-                        Text(available).sensitiveAmount()
-                    }
-                    if isOn {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(Color.accentInk)
-                            .accessibilityHidden(true)
-                    }
-                }
+            FormRowDivider()
+            Button { onTakeFromGoal(amount, inputCurrency) } label: {
+                PulpeListRow(
+                    title: AppLocale.string("Prendre sur un objectif"),
+                    subtitle: AppLocale.string("L'objectif baisse, rien à remettre")
+                ) { EmptyView() }
+                .contentShape(Rectangle())
             }
+            .plainPressedButtonStyle()
+            .disabled(isSubmitting)
         }
-        .plainPressedButtonStyle()
-        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     // MARK: - Ce que je mets en place
@@ -298,5 +287,4 @@ struct SavingsWithdrawalDependencies: Sendable {
     ) { _ in }
     .environment(ToastManager())
     .environment(UserSettingsStore())
-    .environment(SavingsGoalStore())
 }

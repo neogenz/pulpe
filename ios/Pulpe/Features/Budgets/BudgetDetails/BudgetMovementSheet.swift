@@ -9,6 +9,8 @@ struct BudgetMovementSheet: View {
     var lineId: String?
     /// The movement to edit. Set, the sheet is "Modifier".
     var transactionId: String?
+    /// Set, the sheet opens as a withdrawal from a goal.
+    var withdrawalStart: GoalWithdrawalStart?
 
     @Environment(BudgetDetailsCoordinator.self) private var coordinator
     @Environment(BudgetDetailsRouter.self) private var router
@@ -42,6 +44,7 @@ struct BudgetMovementSheet: View {
                 ),
                 editActions: editedTransaction == nil ? nil : editActions,
                 userCurrency: userSettingsStore.currency,
+                withdrawalStart: withdrawalStart,
                 onRequestSavingsWithdrawal: requestSavingsWithdrawal,
                 onRequestNewForecast: { router.present(.addBudgetLine(.expense)) },
                 onAdd: { coordinator.addTransaction($0) }
