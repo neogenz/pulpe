@@ -72,6 +72,8 @@ struct MovementSheet: View {
     @State var confirmedBalance: Decimal?
 
     let initialTagIds: Set<String>
+    /// The currency typed before the handover to a goal withdrawal; kept over the account's.
+    let startCurrency: SupportedCurrency?
     let dependencies: AddTransactionDependencies
     let conversionService = CurrencyConversionService.shared
 
@@ -91,6 +93,7 @@ struct MovementSheet: View {
         self.onRequestSavingsWithdrawal = onRequestSavingsWithdrawal
         self.onRequestNewForecast = onRequestNewForecast
         self.onAdd = onAdd
+        self.startCurrency = withdrawalStart?.currency
 
         if let tx = context.editing {
             let currency = EditTransactionLogic.shouldShowAlternateCurrency(for: tx, userCurrency: userCurrency)
@@ -126,10 +129,10 @@ struct MovementSheet: View {
                 _isFromSavings = State(initialValue: true)
                 _savingsOrigin = State(initialValue: .goal)
                 _savingsGoalId = State(initialValue: withdrawalStart.goalId)
+                let currency = withdrawalStart.currency ?? userCurrency
+                _inputCurrency = State(initialValue: currency)
                 if let startAmount = withdrawalStart.amount {
-                    let currency = withdrawalStart.currency ?? userCurrency
                     _amount = State(initialValue: startAmount)
-                    _inputCurrency = State(initialValue: currency)
                     _amountText = State(initialValue: Formatters.amountInput(for: currency)
                         .string(from: startAmount as NSDecimalNumber) ?? "")
                 }
@@ -209,7 +212,7 @@ struct MovementSheet: View {
                 .navigationDestination(isPresented: $showsLinePicker) { linePickerPage }
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
-        .onAppear { if !isEditing { inputCurrency = userSettingsStore.currency } }
+        .onAppear { if !isEditing { inputCurrency = startCurrency ?? userSettingsStore.currency } }
         .onChange(of: kind) { _, newKind in
             if case .line(let id) = linePick,
                context.budgetLines.first(where: { $0.id == id })?.kind != newKind {
