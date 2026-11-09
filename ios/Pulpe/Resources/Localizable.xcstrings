@@ -91,6 +91,28 @@
         }
       }
     },
+    "Patrimoine" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vermögen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Net worth"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patrimonio"
+          }
+        }
+      }
+    },
     "Pile sur ton plan." : {
       "extractionState" : "manual",
       "localizations" : {

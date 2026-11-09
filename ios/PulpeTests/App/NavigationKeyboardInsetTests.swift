@@ -51,11 +51,12 @@ struct NavigationKeyboardInsetTests {
     private static let compositionFiles = [
         "Pulpe/App/MainTabView.swift",
         "Pulpe/App/TemplatesTab.swift",
+        "Pulpe/Features/NetWorth/NetWorthTab.swift",
         "Pulpe/Features/Budgets/BudgetDetails/BudgetDetailsView+Routing.swift",
     ]
 
     /// SwiftUI containers the composition files build that are not screens of their own.
-    /// `TabView` hosts the four stacks; it never receives a destination's inset.
+    /// `TabView` hosts the tab stacks; it never receives a destination's inset.
     private static let containers: Set<String> = ["TabView"]
 
     private static func iosRoot() -> URL {

@@ -86,6 +86,7 @@ struct NetWorthView: View {
             Text("Tout son historique de valeurs est supprimé aussi. Archive-le plutôt pour le sortir des totaux en gardant l'historique.")
         }
         .task { await store.forceRefresh() }
+        .trackScreen(AnalyticsScreen.netWorth)
         .accessibilityIdentifier("netWorthRoot")
     }
 

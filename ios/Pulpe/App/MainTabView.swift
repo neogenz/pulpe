@@ -4,6 +4,7 @@ struct MainTabView: View {
     @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     /// Bottom safe area inside a tab minus the one around the tab view: the tab bar's height,
     /// zero where the tab bar is a side rail.
     @State private var tabContentBottomInset: CGFloat = 0
@@ -11,8 +12,9 @@ struct MainTabView: View {
 
     private var tabBarHeight: CGFloat { max(0, tabContentBottomInset - tabViewBottomInset) }
 
-    /// The floating add button belongs to the four root screens only: a pushed page owns its
-    /// own actions, and a month has to exist for the sheet to have somewhere to write.
+    /// The floating add button belongs to the root screens only: a pushed page owns its own
+    /// actions, and a month has to exist for the sheet to have somewhere to write. Patrimoine
+    /// has its own « + » for an avoir, so a second one writing a movement would compete with it.
     private var showsFloatingAddButton: Bool {
         guard currentMonthStore.budget != nil else { return false }
         return switch appState.selectedTab {
@@ -20,6 +22,7 @@ struct MainTabView: View {
         // Beside the list, the month on screen is not the accueil's: the « + » would write elsewhere.
         case .budgets: appState.budgetPath.isEmpty && !appState.showsBudgetMonthBesideList
         case .savingsGoals: appState.savingsGoalsPath.isEmpty
+        case .netWorth: false
         case .templates: appState.templatePath.isEmpty
         }
     }
@@ -62,6 +65,18 @@ struct MainTabView: View {
                     .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
             }
 
+            // « Patrimoine » ships behind its rollout flag, beside Objectifs as on the web.
+            if featureFlags.isNetWorthEnabled {
+                SwiftUI.Tab(
+                    Tab.netWorth.title,
+                    systemImage: Tab.netWorth.icon,
+                    value: Tab.netWorth
+                ) {
+                    NetWorthTab()
+                        .onGeometryChange(for: CGFloat.self, of: \.safeAreaInsets.bottom) { tabContentBottomInset = $0 }
+                }
+            }
+
             SwiftUI.Tab(
                 Tab.templates.title,
                 systemImage: Tab.templates.icon,
@@ -86,6 +101,10 @@ struct MainTabView: View {
             guard ProcessInfo.processInfo.environment["UITEST_CAPTURE_TAB"] == nil else { return }
             #endif
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
+        }
+        // The flag turned off under the tab: leave for the accueil rather than a missing tab.
+        .onChange(of: featureFlags.isNetWorthEnabled) { _, enabled in
+            if !enabled, appState.selectedTab == .netWorth { appState.selectedTab = .currentMonth }
         }
         .onChange(of: PendingReminderTap.shared.opensCurrentMonth, initial: true) { _, opens in
             guard opens else { return }
@@ -320,9 +339,6 @@ private struct SectionStackDestinations: ViewModifier {
             }
             .navigationDestination(for: BudgetDestination.self) { destination in
                 budgetDestination(destination)
-            }
-            .navigationDestination(for: NetWorthDestination.self) { _ in
-                NetWorthView().ignoresForeignKeyboardInset()
             }
     }
 }

@@ -17,6 +17,7 @@ struct AuthSessionDiagnosticSnapshot: Sendable {
 
 enum AnalyticsScreen {
     static let savingsGoalsList = "SavingsGoalsList"
+    static let netWorth = "NetWorth"
 }
 
 struct ScreenViewDeduplicator {

@@ -14,7 +14,8 @@ extension XCUIApplication {
     /// A pushed page's back button, in the navigation bar or the Duo's vertical bar.
     var backButton: XCUIElement { buttons["BackButton"].firstMatch }
 
-    /// The four root tabs, in the tab bar or the Duo's rail. The schemes run in French.
+    /// The four root tabs (Patrimoine stays off: no flag in UI tests), in the tab bar or the
+    /// Duo's rail. The schemes run in French.
     var rootTabButtons: XCUIElementQuery {
         let bar = tabBars.firstMatch
         if bar.exists { return bar.buttons }

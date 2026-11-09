@@ -19,9 +19,6 @@ enum SavingsGoalDestination: Hashable {
     case history(SavingsGoal)
 }
 
-/// « Mon patrimoine », pushed from the Objectifs list (never a tab).
-enum NetWorthDestination: Hashable { case overview }
-
 enum TemplateDestination: Hashable { case details(templateId: String) }
 
 // MARK: - Per-Section Navigation Stacks
@@ -36,6 +33,7 @@ extension AppState {
         case .currentMonth: currentMonthPath.append(value)
         case .budgets: budgetPath.append(value)
         case .savingsGoals: savingsGoalsPath.append(value)
+        case .netWorth: netWorthPath.append(value)
         case .templates: templatePath.append(value)
         }
     }
@@ -46,6 +44,7 @@ extension AppState {
         case .currentMonth: currentMonthPath = NavigationPath()
         case .budgets: budgetPath = NavigationPath()
         case .savingsGoals: savingsGoalsPath = NavigationPath()
+        case .netWorth: netWorthPath = NavigationPath()
         case .templates: templatePath = NavigationPath()
         }
     }

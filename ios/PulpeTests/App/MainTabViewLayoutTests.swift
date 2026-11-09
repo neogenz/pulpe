@@ -16,12 +16,13 @@ struct MainTabViewNavigationOwnershipTests {
         try String(contentsOf: iosSource(components), encoding: .utf8)
     }
 
-    @Test("Global navigation uses the native four-item tab bar")
+    @Test("Global navigation uses the native tab bar, Patrimoine behind its flag")
     func globalNavigationUsesNativeTabBar() throws {
         let source = try Self.read("Pulpe", "App", "MainTabView.swift")
 
-        #expect(Tab.allCases.count == 4)
-        #expect(source.components(separatedBy: "SwiftUI.Tab(").count == 5)
+        #expect(Tab.allCases.count == 5)
+        #expect(source.components(separatedBy: "SwiftUI.Tab(").count == 6)
+        #expect(source.contains("if featureFlags.isNetWorthEnabled {"))
         #expect(source.contains(".tint(Color.pulpePrimary)"))
         #expect(!source.contains("toolbarVisibility(.hidden, for: .tabBar)"))
         #expect(!source.contains("floatingTabBar"))

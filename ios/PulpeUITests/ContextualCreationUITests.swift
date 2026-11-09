@@ -104,7 +104,7 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["homeAccountButton"].exists, app.debugDescription)
 
         // `SwiftUI.Tab` gives no seam for an identifier on the bar button it builds, so
-        // the production container is asserted by its four tabs.
+        // the production container is asserted by its four tabs (no `net_worth` flag here).
         XCTAssertEqual(app.rootTabButtons.count, 4, app.debugDescription)
 
         attachScreenshot("home-skeleton-production-container")
