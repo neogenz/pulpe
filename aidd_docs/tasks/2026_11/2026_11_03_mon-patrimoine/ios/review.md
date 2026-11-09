@@ -1,6 +1,6 @@
 # Review: Mon patrimoine (iOS)
 
-- Rounds: 5
+- Rounds: 6
 - Started: 2026-11-08
 
 ## Round 1 · r-7c3e
@@ -291,3 +291,66 @@
 - Resolved: grown column drawn on the 20pt floor — `NetWorthSankeyLayout.swift:44-47` adds `DesignTokens.Chart.sankeyProportionalRoom` (130, `DesignTokens+Chart.swift:60-62`) to the floors; measured on the simulator above, and the seven-category test asserts the spread
 - Resolved: growth rule in two places — the only rule is `NetWorthSankeyLayout.drawingHeight(_:)` (`:34-36`), `requiredHeight` is private, `Result.height` and the layout's own `max` are gone; the card frames `drawingHeight + headroom` (`NetWorthBreakdownCard.swift:14-16,56`) and the test builds its frame from the same function
 - Resolved: card comment — « grown when any column needs more room » (`NetWorthBreakdownCard.swift:13`)
+
+## Round 6 · r-4a7b
+
+- Date: 2026-11-09
+- By: Maxime De Sogus
+- Diff: `6884e0f7a...ddb6fa5aa`
+- Axes: code, functional, relevancy
+- Verdict: approve
+- Score: 20/34 met, 0 unmet, 10 unverified at runtime, 4 out of the diff
+
+Static round: no build, no simulator. Test and lint evidence is the caller-reported run at ddb6fa5aa (2619 tests passed, `swiftlint lint --strict` clean); its result bundle was not located by the reviewer. `pnpm test:lexicon` run by the reviewer at ddb6fa5aa: 12 pass, 0 fail. The owner moved « Mon patrimoine » to a flagged fifth tab, overriding the spec's four-tab constraint and phase 3 §3; that decision is not judged here.
+
+### Criteria
+
+- [x] P1.1 `Asset`/`NetWorth` Codable, Sendable, Hashable — untouched; caller-reported run
+- [x] P1.2 `AssetServiceTests` nine calls — untouched; caller-reported run
+- [x] P1.3 nine French error codes; lexicon — `APIError.swift` untouched; lexicon 12/12
+- [x] P1.4 focused tests non-zero; `swiftlint lint --strict` — caller-reported
+- [x] P3.1 `NetWorthSectionsTests`, no sum for display — untouched
+- Unverified at runtime: P3.2 same totals as the web for one account — needs a side-by-side run
+- Unverified at runtime: P3.3 flag on, the entry opens the page; flag off, absent and no asset call — the row no longer exists; read against the tab: flag off, `NetWorthTab` is never built (`MainTabView.swift:69`), so `NetWorthView.task` never calls the API; flag on, the tab opening the page needs a run
+- [x] P3.4 build, lint, focused tests — caller-reported; `MainTabView.swift` 487 lines under the 500 wall
+- [x] P4.1 `AssetFormDraftTests` — untouched
+- Unverified at runtime: P4.2 create/edit, server error keeps the sheet — not run this round
+- Unverified at runtime: P4.3 archive, unarchive, delete — not run this round
+- Unverified at runtime: P5.1 value row on the simulator — not run this round
+- [x] P5.2 non-empty category delete refused — `AssetCategoriesLogicTests`, untouched
+- [x] P5.3 lexicon, lint, focused tests — lexicon 12/12; « Patrimoine » carries de/en/it
+- [x] P6.1 `NetWorthSankeyTests` six web cases — untouched
+- [x] P6.2 `NetWorthSankeyLayoutTests` — untouched
+- Unverified at runtime: P6.3 simulator card matches the web shape — not run this round
+- [x] P7.1 `ReconcileLinkedAccountsTests` — untouched
+- [x] P7.2 flag off opens as today — `ReconcileLinkedAccountsGate.swift` untouched
+- [x] P7.3 completion writes one snapshot request, dismiss nothing — untouched
+- [x] P8.1 `AssetLinkTests`, `BudgetLineTests`, `BudgetLineSpreadRequestTests` — untouched
+- [x] P8.2 picker compatible active assets only, absent flag off — untouched
+- [x] P8.3 flag-off byte-identical bodies, link survives untouched edits — untouched
+- [x] P8.4 lexicon, lint, sizes, full run — lexicon 12/12; caller-reported run
+- Unverified at runtime: P9.1 Appliquer and Écarter — not run this round
+- Unverified at runtime: P9.2 pointing elsewhere then returning — `.task { await store.forceRefresh() }` (`NetWorthView.swift:88`) is now on a tab root; `c21fe91de` records on the simulator that a tab switch reruns it for the pushed page, and a tab root goes through the same TabView disappear/appear, so the refetch on return is expected but not observed at this head
+- [x] P9.3 lexicon, lint, build — lexicon 12/12; lint and build caller-reported
+- Unverified at runtime: P10.1 a Revenu « Tiré de mon patrimoine » with `assetId` — not run this round
+- Unverified at runtime: P10.2 edit form shows « Pris sur <name> » — not run this round
+- [x] P10.3 tests, sizes, lexicon, lint, full run — caller-reported; lexicon 12/12
+- Out of the diff: Asset store, rollout flag and logout reset (4 criteria)
+
+### Findings
+
+- `ios/Pulpe/App/MainTabView.swift:106` : the flag-off fallback only fires on a change seen while the tab view is mounted. A session expiry keeps `selectedTab` (`AppState+SessionReset.swift:311-316`) but `resetStores()` turns the flag off (`SessionDataResetting.swift:49`), so after the next sign-in `MainTabView` mounts on `.netWorth` with no Patrimoine tab. In Prod `refresh()` on the user change usually turns the flag back on; it stays wrong when the user has left the rollout, on Local/Preview where `refresh()` does nothing, and with `UITEST_CAPTURE_TAB=net-worth` and the flag off → `.onChange(of: featureFlags.isNetWorthEnabled, initial: true)` — plausible (how SwiftUI draws a selection with no matching tab was not observed), 🟢 minor, code-health
+- `ios/DESIGN.md:472` : « on the root tab screens except Patrimoine, whose own toolbar "+" adds an avoir, bottom trailing above the tab bar » now places Patrimoine's toolbar button above the tab bar, and « Root scroll content takes `pulpeRootBottomInset()` » no longer covers the Patrimoine root, which rightly skips the 120pt floating-button clearance → move the « except Patrimoine » clause after the placement, and scope the inset to root screens that show the floating add — 🟢 minor, rot
+- `aidd_docs/tasks/2026_11/2026_11_03_mon-patrimoine/ios/plan.md:41,64`, `phase-3.md:108-120`, `aidd_docs/memory/navigation.md:5,13-14` : the plan's architecture row (`NetWorthDestination` resolved in `MainTabView`), its « not a fifth tab » decision, phase 3 §3/§4 and P3.3, and the memory's « four-tab root » all describe the removed row; later rounds trace a criterion whose subject is gone → record the owner's tab decision in the plan's Decisions table, reword phase 3 §3/§4 and P3.3 to the tab, and update the memory line and mermaid — 🟢 minor, rot
+- `ios/PulpeUITests/ContextualCreationUITests.swift:108` : the four-tab count relies on « no flag in UI tests », but the harness `FeatureFlagsStore()` reads `UserDefaults.standard` (`PulpeApp+StoreWiring.swift:44`, `FeatureFlagsStore.swift:29`), and the phase 3 Test Scope forces the flag through the app's plist; done once on « Pulpe Tests », the assertion sees five → pass `-pulpe.feature_flags.net_worth NO` in that test's launch arguments — plausible, 🟢 minor, code-health
+
+### Fixes after round 6 and runtime checks (2026-11-09)
+
+- Finding 1: the flag-off redirect in `MainTabView` now runs with `initial: true`.
+- Finding 2: `ios/DESIGN.md` Navigation reworded; the inset rule covers only roots with the floating add.
+- Finding 3: plan Decisions records the fifth-tab decision (spec left locked), phase 3 task 3 marked superseded, `aidd_docs/memory/navigation.md` updated.
+- Finding 4: `ContextualCreationUITests` pins `-pulpe.feature_flags.net_worth NO` at launch.
+- Dark mode (simulator "Pulpe Tests", flag forced on): hero, Sankey bands, nodes and labels, rows and the « Dans Pulpe » chip all read on the dark surfaces; both Sankey ends checked.
+- Refresh on return: leaving Patrimoine sends no request, coming back sends `GET /api/v1/assets` (backend log, 07:07:02 UTC).
+- iPhone Duo folded: the side rail shows all five tabs with Patrimoine selected; the toolbar « + » sits in the right column.
+- Unit tests: 2619 passed in 298 suites after the fixes.

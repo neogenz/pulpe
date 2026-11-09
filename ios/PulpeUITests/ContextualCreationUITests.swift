@@ -104,7 +104,7 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["homeAccountButton"].exists, app.debugDescription)
 
         // `SwiftUI.Tab` gives no seam for an identifier on the bar button it builds, so
-        // the production container is asserted by its four tabs (no `net_worth` flag here).
+        // the production container is asserted by its four tabs (`net_worth` pinned off at launch).
         XCTAssertEqual(app.rootTabButtons.count, 4, app.debugDescription)
 
         attachScreenshot("home-skeleton-production-container")
@@ -208,7 +208,8 @@ final class ContextualCreationUITests: XCTestCase {
         marketingGain: Bool = false
     ) {
         app = XCUIApplication()
-        app.launchArguments = ["-\(scenario)"]
+        // Pins the `net_worth` flag off so the tab count never depends on a cached flag.
+        app.launchArguments = ["-\(scenario)", "-pulpe.feature_flags.net_worth", "NO"]
         app.launchEnvironment["UITEST_SCENARIO"] = scenario
         app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = dynamicType
         if let colorScheme {

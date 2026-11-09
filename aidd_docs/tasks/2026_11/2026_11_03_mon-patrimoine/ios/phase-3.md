@@ -105,6 +105,8 @@ status: pending
 
 ### `3)` Entry in « Objectifs »
 
+> Superseded on 2026-11-09 (see the plan's Decisions): the entry is now the flagged Patrimoine tab (`NetWorthTab` in `MainTabView`), and this row was removed. P3.3 traces against the tab.
+
 > Reach the page from the Objectifs tab when the flag is on, without a fifth tab.
 
 1. `NetWorthDestination: Hashable { case overview }` in `AppState+Navigation.swift`.

@@ -102,8 +102,9 @@ struct MainTabView: View {
             #endif
             AnalyticsService.shared.capture(.tabSwitched, properties: ["tab": newTab.rawValue])
         }
-        // The flag turned off under the tab: leave for the accueil rather than a missing tab.
-        .onChange(of: featureFlags.isNetWorthEnabled) { _, enabled in
+        // The flag is off (now, or already at sign-in after a session reset kept the tab):
+        // leave for the accueil rather than a missing tab.
+        .onChange(of: featureFlags.isNetWorthEnabled, initial: true) { _, enabled in
             if !enabled, appState.selectedTab == .netWorth { appState.selectedTab = .currentMonth }
         }
         .onChange(of: PendingReminderTap.shared.opensCurrentMonth, initial: true) { _, opens in
