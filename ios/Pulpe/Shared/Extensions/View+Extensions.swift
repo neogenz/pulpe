@@ -10,20 +10,23 @@ extension EnvironmentValues {
 // MARK: - Sensitive Amount Modifier
 
 private struct SensitiveAmountModifier: ViewModifier {
+    let applies: Bool
     @Environment(\.amountsHidden) private var amountsHidden
 
     func body(content: Content) -> some View {
+        let hidden = amountsHidden && applies
         content
-            .blur(radius: amountsHidden ? 8 : 0)
-            .accessibilityHidden(amountsHidden)
-            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: amountsHidden)
+            .blur(radius: hidden ? 8 : 0)
+            .accessibilityHidden(hidden)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: hidden)
     }
 }
 
 extension View {
     /// Blur this view when amounts are hidden (shake-to-hide feature)
-    func sensitiveAmount() -> some View {
-        modifier(SensitiveAmountModifier())
+    /// `applies: false` for a view that carries no amount.
+    func sensitiveAmount(_ applies: Bool = true) -> some View {
+        modifier(SensitiveAmountModifier(applies: applies))
     }
 }
 

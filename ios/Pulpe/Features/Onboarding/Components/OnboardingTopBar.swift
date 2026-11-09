@@ -5,6 +5,8 @@ import SwiftUI
 struct OnboardingTopBar: View {
     let state: OnboardingState
     let onBack: () -> Void
+    /// The bar renders under a forced dark scheme; the sheet it presents must not inherit it.
+    let sheetColorScheme: ColorScheme
 
     @State private var showCurrencySwap = false
 
@@ -32,6 +34,7 @@ struct OnboardingTopBar: View {
         }
         .sheet(isPresented: $showCurrencySwap) {
             OnboardingCurrencySwapSheet(state: state)
+                .environment(\.colorScheme, sheetColorScheme)
         }
     }
 

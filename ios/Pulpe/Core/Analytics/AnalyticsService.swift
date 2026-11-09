@@ -465,7 +465,6 @@ extension AnalyticsService {
     /// and dropped out of every account-based cohort.
     func captureSignupCompleted(user: UserInfo, method: String) {
         identify(user: user)
-        reloadFeatureFlags()
         capture(.signupCompleted, properties: ["method": method])
     }
 }

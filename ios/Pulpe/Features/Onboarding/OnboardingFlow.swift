@@ -5,6 +5,7 @@ struct OnboardingFlow: View {
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
     @State private var state: OnboardingState
     @State private var showPinSetup = false
     @State private var showExitConfirmation = false
@@ -50,7 +51,7 @@ struct OnboardingFlow: View {
 
                 VStack(spacing: 0) {
                     if state.currentStep.showProgressBar {
-                        OnboardingTopBar(state: state, onBack: goBack)
+                        OnboardingTopBar(state: state, onBack: goBack, sheetColorScheme: colorScheme)
                             .padding(.horizontal, DesignTokens.Spacing.lg)
                             .environment(\.colorScheme, .dark)
                             .transition(.opacity)

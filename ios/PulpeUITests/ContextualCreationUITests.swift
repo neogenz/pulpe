@@ -170,28 +170,27 @@ final class ContextualCreationUITests: XCTestCase {
         let chart = app.descendants(matching: .any)["home-balance-chart"]
         XCTAssertTrue(chart.waitForExistence(timeout: 10), app.debugDescription)
 
-        // The hero speaks neither its estimate nor its comparison.
-        let hero = app.buttons["homeHeroMetrics"]
-        XCTAssertTrue(hero.exists, app.debugDescription)
+        // The hero figure is dropped from the accessibility tree while hidden (visible, its
+        // label carries the currency: `testFreshSignupHomeIsFilledAndSaysWhatIsMissing`), and
+        // the hero is still on screen, so a missing card cannot pass for a masked one.
+        XCTAssertTrue(app.buttons["homeHeroMetrics"].waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertFalse(
-            hero.label.contains(Self.currencyCode),
-            "Le héros annonce encore un montant : \(hero.label)"
+            app.descendants(matching: .any)["homeProjectedBalanceAmount"].exists,
+            "Le héros annonce encore son montant"
         )
         // The plot too — it is one accessibility element with its whole trajectory inside.
         XCTAssertFalse(
             chart.label.contains(Self.currencyCode),
             "Le graphe annonce encore sa trajectoire : \(chart.label)"
         )
-        // And the rows below, which each carry an amount of their own.
-        let movement = app.descendants(matching: .any).matching(
-            NSPredicate(format: "identifier BEGINSWITH 'movementRow-'")
-        ).firstMatch
-        if movement.exists {
-            XCTAssertFalse(
-                movement.label.contains(Self.currencyCode),
-                "La ligne annonce son montant : \(movement.label)"
-            )
-        }
+        // And the « À faire » rows below, which each carry an amount of their own (formatted
+        // without the currency code, so the check is on digits: seeded names carry none).
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'toPointRow-'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertNil(
+            row.label.rangeOfCharacter(from: .decimalDigits),
+            "La ligne annonce son montant : \(row.label)"
+        )
 
         attachScreenshot("home-amounts-hidden")
     }

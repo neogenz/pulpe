@@ -27,6 +27,7 @@ struct StatusScreen: View {
 
     struct Action {
         let title: String
+        var isBusy = false
         let perform: () -> Void
     }
 
@@ -68,8 +69,15 @@ struct StatusScreen: View {
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 if let primary {
-                    Button(primary.title, action: primary.perform)
-                        .primaryButtonStyle()
+                    Button(action: primary.perform) {
+                        if primary.isBusy {
+                            ProgressView()
+                        } else {
+                            Text(primary.title)
+                        }
+                    }
+                    .disabled(primary.isBusy)
+                    .primaryButtonStyle(isEnabled: !primary.isBusy)
                 }
                 if let secondary {
                     Button(secondary.title, action: secondary.perform)

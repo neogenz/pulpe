@@ -28,7 +28,8 @@ extension SavingsGoalDetailView {
             return .init(title: title, opensSimulator: true, explainsChoice: planTitle != nil) { isSimulating = true }
         }
         if planTitle != nil, SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status) {
-            return .init(title: title, opensSimulator: false, explainsChoice: true) { showRecoveryRecap = true }
+            let repairTitle = GoalMonthByMonthPresentation.repairTitle(progress.months) ?? title
+            return .init(title: repairTitle, opensSimulator: false, explainsChoice: true) { showRecoveryRecap = true }
         }
         return nil
     }

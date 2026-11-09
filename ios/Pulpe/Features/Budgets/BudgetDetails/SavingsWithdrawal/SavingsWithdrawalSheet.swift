@@ -19,6 +19,7 @@ struct SavingsWithdrawalSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
 
     @State private var amount: Decimal?
     @State private var amountText: String
@@ -26,6 +27,8 @@ struct SavingsWithdrawalSheet: View {
     private let source: String
     @State private var inputCurrency: SupportedCurrency = .chf
     @State private var isSubmitting = false
+    /// Stays false until the goals that can fund the withdrawal are known.
+    @State private var hasGoalToDrawFrom = false
     @State private var submitSuccessTrigger = false
     @FocusState private var focusedField: Field?
     /// Idempotency key minted ONCE per presentation (= per create intent) and
@@ -60,6 +63,11 @@ struct SavingsWithdrawalSheet: View {
         self._amountText = State(initialValue: initial.map(Self.plainString) ?? "")
         self.source = prefill.source ?? AppLocale.string("Mon épargne")
         self._inputCurrency = State(initialValue: prefill.inputCurrency ?? .chf)
+    }
+
+    /// « Prendre sur un objectif » needs a goal with money in it, and a Réel to write (not a prévision).
+    static func offersGoalWithdrawal(options: [SavingsGoalWithdrawalOption], isFromForecast: Bool) -> Bool {
+        !isFromForecast && options.contains { $0.availableAmount > 0 }
     }
 
     // MARK: - Derived months (anchored on the viewed month M)
@@ -129,6 +137,8 @@ struct SavingsWithdrawalSheet: View {
             // fall back to the user's setting on the card path (PUL-292).
             let seed = prefill.inputCurrency ?? userSettingsStore.currency
             if inputCurrency != seed { inputCurrency = seed }
+            let options = (try? await savingsGoalStore.fetchWithdrawalOptions()) ?? []
+            hasGoalToDrawFrom = Self.offersGoalWithdrawal(options: options, isFromForecast: prefill.isFromForecast)
         }
     }
 
@@ -163,16 +173,18 @@ struct SavingsWithdrawalSheet: View {
                     .foregroundStyle(Color.accentInk)
                     .accessibilityHidden(true)
             }
-            FormRowDivider()
-            Button { onTakeFromGoal(amount, inputCurrency) } label: {
-                PulpeListRow(
-                    title: AppLocale.string("Prendre sur un objectif"),
-                    subtitle: AppLocale.string("L'objectif baisse, rien à remettre")
-                ) { EmptyView() }
-                .contentShape(Rectangle())
+            if hasGoalToDrawFrom {
+                FormRowDivider()
+                Button { onTakeFromGoal(amount, inputCurrency) } label: {
+                    PulpeListRow(
+                        title: AppLocale.string("Prendre sur un objectif"),
+                        subtitle: AppLocale.string("L'objectif baisse, rien à remettre")
+                    ) { EmptyView() }
+                    .contentShape(Rectangle())
+                }
+                .plainPressedButtonStyle()
+                .disabled(isSubmitting)
             }
-            .plainPressedButtonStyle()
-            .disabled(isSubmitting)
         }
     }
 
@@ -287,4 +299,5 @@ struct SavingsWithdrawalDependencies: Sendable {
     ) { _ in }
     .environment(ToastManager())
     .environment(UserSettingsStore())
+    .environment(SavingsGoalStore())
 }

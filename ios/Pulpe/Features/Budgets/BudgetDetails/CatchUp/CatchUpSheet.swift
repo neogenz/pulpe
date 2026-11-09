@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// « Rattraper » (V2 `Rattraper`): take this month's overrun back on a dépense that still has
-/// margin. Saving lowers that prévision; the movements stay where they are.
+/// margin. Saving lowers that prévision and raises the overrun ones by the same share; the
+/// movements stay where they are.
 struct CatchUpSheet: View {
     let month: Int
     let currency: SupportedCurrency
@@ -15,8 +16,10 @@ struct CatchUpSheet: View {
     @State private var error: Error?
     @State private var submitSuccessTrigger = false
 
-    private let ledger: MonthLedger
-    private let plan: CatchUpPlan
+    // Frozen at open: the first update reloads the month under the sheet, which would
+    // recompute the plan from the half-applied state while the rest is still saving.
+    @State private var ledger: MonthLedger
+    @State private var plan: CatchUpPlan
     private let dependencies: EditBudgetLineDependencies
 
     init(
@@ -27,13 +30,13 @@ struct CatchUpSheet: View {
         dependencies: EditBudgetLineDependencies = .live,
         onUpdate: @escaping (BudgetLine) -> Void
     ) {
-        self.ledger = ledger
+        _ledger = State(initialValue: ledger)
         self.month = month
         self.currency = currency
         self.dependencies = dependencies
         self.onUpdate = onUpdate
         let plan = CatchUpPlan.make(ledger: ledger, focusLineId: focusLineId, userCurrency: currency)
-        self.plan = plan
+        _plan = State(initialValue: plan)
         _selectedId = State(initialValue: plan.defaultChoiceId)
     }
 
@@ -57,7 +60,7 @@ struct CatchUpSheet: View {
                 if let selected {
                     ImpactBlock(
                         title: ReportWording.availableTitle(of: month),
-                        impact: CatchUpPlan.impact(of: selected, in: ledger),
+                        impact: plan.impact(of: selected, in: ledger),
                         currency: currency,
                         note: impactNote(for: selected)
                     )
@@ -174,10 +177,14 @@ struct CatchUpSheet: View {
         defer { isLoading = false }
         error = nil
         do {
-            let update = BudgetLineUpdate(id: choice.line.id, amount: choice.newAmount, isManuallyAdjusted: true)
-            let updated = try await dependencies.updateBudgetLine(choice.line.id, update)
+            // The lowered prévision first: if a raise then fails, the disponible is already right.
+            let raises = plan.raises(for: choice).map { ($0.line.id, $0.newAmount) }
+            let updates = [(choice.line.id, choice.newAmount)] + raises
+            for (id, amount) in updates {
+                let update = BudgetLineUpdate(id: id, amount: amount, isManuallyAdjusted: true)
+                onUpdate(try await dependencies.updateBudgetLine(id, update))
+            }
             submitSuccessTrigger.toggle()
-            onUpdate(updated)
             toastManager.show(AppLocale.string("Prévision modifiée"))
             dismiss()
         } catch {

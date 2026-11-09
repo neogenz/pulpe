@@ -71,7 +71,8 @@ extension GoalPlanApplyRecapSheet {
                 tone: .neutral,
                 note: last.map {
                     AppLocale.string("Même effet chaque mois jusqu'en \(Formatters.monthNameInText(for: $0.month)).")
-                }
+                },
+                noteHasAmount: false
             )
         }
     }

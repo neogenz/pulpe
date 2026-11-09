@@ -168,7 +168,7 @@ struct EditBudgetLineSheet: View {
         .onChange(of: kind) { _, newKind in
             // Mirror the backend kind-guard: only savings can carry a goal.
             if newKind != .saving { savingsGoalId = nil }
-            assetId = nil
+            assetId = newKind == budgetLine.kind ? budgetLine.assetId : nil
         }
     }
 

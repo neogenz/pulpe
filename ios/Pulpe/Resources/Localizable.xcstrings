@@ -2597,106 +2597,6 @@
         }
       }
     },
-    "%@ de mieux que prévu" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ besser als geplant"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ better than planned"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ meglio del previsto"
-          }
-        }
-      }
-    },
-    "%@ de mieux que prévu depuis le %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ besser als geplant seit dem %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ better than planned since %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ de mieux que prévu depuis le %2$@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ meglio del previsto dal %@"
-          }
-        }
-      }
-    },
-    "%@ de moins que prévu" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ weniger als geplant"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ less than planned"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ meno del previsto"
-          }
-        }
-      }
-    },
-    "%@ de moins que prévu depuis le %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ weniger als geplant seit dem %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ less than planned since %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ de moins que prévu depuis le %2$@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ meno del previsto dal %@"
-          }
-        }
-      }
-    },
     "%@ dispo" : {
       "localizations" : {
         "de" : {
@@ -3644,62 +3544,6 @@
       },
       "shouldTranslate" : false
     },
-    "%@. Solde estimé fin de mois %@. %@. %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@. Geschätzter Saldo am Monatsende %@. %@. %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@. Estimated end-of-month balance %@. %@. %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@. Solde estimé fin de mois %2$@. %3$@. %4$@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@. Saldo stimato a fine mese %@. %@. %@"
-          }
-        }
-      }
-    },
-    "%@. Solde estimé fin de mois, montant masqué. Comparaison au budget masquée. %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@. Geschätzter Saldo am Monatsende, Betrag ausgeblendet. Budgetvergleich ausgeblendet. %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@. Estimated end-of-month balance, amount hidden. Budget comparison hidden. %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@. Solde estimé fin de mois, montant masqué. Comparaison au budget masquée. %2$@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@. Saldo stimato a fine mese, importo nascosto. Confronto col budget nascosto. %@"
-          }
-        }
-      }
-    },
     "%@/mois" : {
       "localizations" : {
         "de" : {
@@ -4375,82 +4219,6 @@
         }
       }
     },
-    "%lld opérations à pointer." : {
-      "localizations" : {
-        "de" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld offener Eintrag."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld offene Einträge."
-                }
-              }
-            }
-          }
-        },
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld entry to check."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld entries to check."
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld opération à pointer."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld opérations à pointer."
-                }
-              }
-            }
-          }
-        },
-        "it" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld operazione da spuntare."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld operazioni da spuntare."
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld prévision(s)" : {
       "localizations" : {
         "de" : {
@@ -4882,82 +4650,6 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld previsioni eliminate"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld prévisions Épargne peuvent maintenant être ajoutées automatiquement." : {
-      "localizations" : {
-        "de" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Sparen-Planposten kann jetzt automatisch hinzugefügt werden."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Sparen-Planposten können jetzt automatisch hinzugefügt werden."
-                }
-              }
-            }
-          }
-        },
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Savings planned item can now be added automatically."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Savings planned items can now be added automatically."
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld prévision Épargne peut maintenant être ajoutée automatiquement."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld prévisions Épargne peuvent maintenant être ajoutées automatiquement."
-                }
-              }
-            }
-          }
-        },
-        "it" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld previsione Risparmio ora può essere aggiunta automaticamente."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld previsioni Risparmio ora possono essere aggiunte automaticamente."
                 }
               }
             }
@@ -7476,28 +7168,6 @@
         }
       }
     },
-    "Aucune opération à pointer." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine offenen Einträge."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No entries to check."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessuna operazione da spuntare."
-          }
-        }
-      }
-    },
     "Aucune prévision ni mouvement n'est rattaché à cet objectif." : {
       "localizations" : {
         "de" : {
@@ -9722,28 +9392,6 @@
         }
       }
     },
-    "Chargement du suivi…" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Übersicht wird geladen…"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading the tracker…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carico l'andamento…"
-          }
-        }
-      }
-    },
     "Chargement en cours" : {
       "localizations" : {
         "de" : {
@@ -11852,28 +11500,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Da un obiettivo"
-          }
-        }
-      }
-    },
-    "Dans la prévision %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In der Planung %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In planned item %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nella previsione %@"
           }
         }
       }
@@ -20638,28 +20264,6 @@
         }
       }
     },
-    "Pointés dans une prévision" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In einer Planung abgehakt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checked within a planned item"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spuntati in una previsione"
-          }
-        }
-      }
-    },
     "Politique de confidentialité" : {
       "localizations" : {
         "de" : {
@@ -24534,28 +24138,6 @@
         }
       }
     },
-    "Suivi indisponible" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Übersicht nicht verfügbar"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tracking unavailable"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Andamento non disponibile"
-          }
-        }
-      }
-    },
     "Supabase" : {
       "localizations" : {},
       "shouldTranslate" : false
@@ -26194,28 +25776,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo nome"
-          }
-        }
-      }
-    },
-    "Ton suivi" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Übersicht"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your tracking"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo andamento"
           }
         }
       }

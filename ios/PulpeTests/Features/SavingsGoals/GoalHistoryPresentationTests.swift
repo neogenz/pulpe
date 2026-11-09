@@ -66,6 +66,18 @@ struct GoalHistoryPresentationTests {
         #expect(may.withdrawals.map(\.transactionId) == ["tx-may"])
     }
 
+    @Test("the withdrawn total follows the same list as the count and the groups")
+    func withdrawn_totalCountAndGroupsShareOneSource() {
+        let history = makeHistory(withdrawals: [
+            makeWithdrawal(id: "tx-may", month: 5),
+            makeWithdrawal(id: "tx-oct", month: 10),
+        ])
+
+        #expect(history.withdrawn == 400)
+        #expect(history.withdrawalCount == 2)
+        #expect(history.months.flatMap(\.withdrawals).count == 2)
+    }
+
     private func makeMonth(
         month: Int,
         state: SavingsPlanMonthState,

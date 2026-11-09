@@ -114,13 +114,6 @@ final class BudgetDetailsProjector {
             syncStore: syncStore,
             searchText: searchText
         )
-        let pointedAllocated = makePointedAllocatedItems(
-            dataStore: dataStore,
-            filtersStore: filtersStore,
-            syncStore: syncStore,
-            searchText: searchText,
-            index: (lineById, consumptionByLineId)
-        )
         return assembleScreenState(
             AssemblyContext(
                 dataStore: dataStore,
@@ -129,7 +122,6 @@ final class BudgetDetailsProjector {
                 searchText: searchText,
                 sections: sections,
                 free: free,
-                pointedAllocated: pointedAllocated,
                 consumptionByLineId: consumptionByLineId,
                 lineById: lineById,
                 transactionsByLineId: transactionsByLineId
@@ -146,7 +138,6 @@ final class BudgetDetailsProjector {
         let searchText: String
         let sections: [BudgetDetailsScreenState.Section]
         let free: [BudgetDetailsScreenState.FreeTransactionItem]
-        let pointedAllocated: [BudgetDetailsScreenState.FreeTransactionItem]
         let consumptionByLineId: [String: BudgetFormulas.Consumption]
         let lineById: [String: BudgetLine]
         let transactionsByLineId: [String: [Transaction]]
@@ -173,7 +164,6 @@ final class BudgetDetailsProjector {
             rollover: makeRollover(dataStore: ctx.dataStore),
             sections: ctx.sections,
             free: ctx.free,
-            pointedAllocated: ctx.pointedAllocated,
             kindCounts: ctx.filtersStore.kindCounts(
                 for: ctx.dataStore.budgetLines,
                 consumptionByLineId: ctx.consumptionByLineId

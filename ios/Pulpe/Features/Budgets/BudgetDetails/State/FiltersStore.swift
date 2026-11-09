@@ -27,13 +27,11 @@ final class FiltersStore {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
-        // Prefer the new String key so all three states (.unchecked / .checked /
-        // .all) survive a relaunch. Fall back to the legacy Bool key for users
-        // upgrading from earlier builds.
+        // Prefer the new String key so every state survives a relaunch. Fall back to the
+        // legacy Bool key for users upgrading from earlier builds.
         if let raw = defaults.string(forKey: Keys.checkedFilter),
-           let restored = CheckedFilterOption(rawValue: raw) {
-            // The rail has no « Pointé » chip: a restored `.checked` could not be left.
-            self.savedCheckedFilter = restored == .checked ? .all : restored
+           let restored = CheckedFilterOption(rawValue: raw) ?? Self.retiredCheckedFilter(raw) {
+            self.savedCheckedFilter = restored
         } else {
             let showOnlyUnchecked = defaults.object(forKey: Keys.showOnlyUnchecked) as? Bool ?? true
             self.savedCheckedFilter = showOnlyUnchecked ? .unchecked : .all
@@ -43,6 +41,11 @@ final class FiltersStore {
            let restored = BudgetLineKindFilter(rawValue: raw) {
             self.typeFilter = restored
         }
+    }
+
+    /// The rail has no « Pointé » chip any more: a persisted "checked" restores as `.all`.
+    private static func retiredCheckedFilter(_ raw: String) -> CheckedFilterOption? {
+        raw == "checked" ? .all : nil
     }
 
     func setRailHidden(_ hidden: Bool) {
@@ -76,10 +79,6 @@ final class FiltersStore {
         case .unchecked:
             return lines.filter {
                 !isEffectivelyChecked($0, consumptionByLineId: consumptionByLineId)
-            }
-        case .checked:
-            return lines.filter {
-                isEffectivelyChecked($0, consumptionByLineId: consumptionByLineId)
             }
         case .over:
             return lines.filter { $0.kind == .expense && consumptionByLineId[$0.id]?.isOverBudget == true }
@@ -173,7 +172,6 @@ final class FiltersStore {
         let unchecked = typeFiltered.count - checked
         return CheckedFilterCounts(
             unchecked: unchecked,
-            checked: checked,
             all: typeFiltered.count,
             over: applyCheckedFilter(typeFiltered, filter: .over, consumptionByLineId: consumptionByLineId).count
         )
@@ -234,8 +232,7 @@ final class FiltersStore {
 
     private enum Keys {
         /// Legacy Bool key — kept for migration only. Stored true → `.unchecked`,
-        /// false → `.all`. New persistence uses `checkedFilter` rawValue to
-        /// support the third state `.checked`.
+        /// false → `.all`. New persistence uses `checkedFilter` rawValue.
         static let showOnlyUnchecked = "pulpe-budget-show-only-unchecked"
         static let checkedFilter = "pulpe-budget-checked-filter"
         static let typeFilter = "pulpe-budget-line-type-filter"

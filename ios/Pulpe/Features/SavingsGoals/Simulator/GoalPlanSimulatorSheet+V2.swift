@@ -20,12 +20,19 @@ extension GoalPlanSimulatorSheet {
     }
 
     var globalAmountLabel: String {
-        let open = viewModel.draft.months.filter { SavingsPlanCalculator.isContributivePlanMonth($0.month) }
-        guard let first = open.first?.month, let last = open.last?.month, open.count > 1 else {
+        Self.globalAmountLabel(months: viewModel.draft.months.map(\.month))
+    }
+
+    /// « de décembre à février » only when every month in between is open too: a frozen month
+    /// inside the range is not covered by the amount, so the generic wording stays honest.
+    static func globalAmountLabel(months: [SavingsGoalPlanMonth]) -> String {
+        let openIndices = months.indices.filter { SavingsPlanCalculator.isContributivePlanMonth(months[$0]) }
+        guard let first = openIndices.first, let last = openIndices.last,
+              openIndices.count > 1, last - first + 1 == openIndices.count else {
             return AppLocale.string("Chaque mois, je mets")
         }
-        let from = Formatters.monthNameInText(for: first.month)
-        let to = Formatters.monthNameInText(for: last.month)
+        let from = Formatters.monthNameInText(for: months[first].month)
+        let to = Formatters.monthNameInText(for: months[last].month)
         return AppLocale.string("Chaque mois, de \(from) à \(to), je mets")
     }
 
@@ -47,6 +54,7 @@ extension GoalPlanSimulatorSheet {
                         )
                     }
                     .plainPressedButtonStyle()
+                    .accessibilityAddTraits(viewModel.globalAmount == amount ? .isSelected : [])
                     .sensitiveAmount()
                 }
             }

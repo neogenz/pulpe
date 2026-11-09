@@ -314,7 +314,8 @@ struct SavingsGoalFormSheet: View {
                 impact: MovementImpact(before: before, after: before - contribution, lineBefore: nil, lineAfter: nil),
                 currency: currency,
                 tone: .neutral,
-                note: hasTargetDate ? Self.monthsWithoutBudgetNote(until: targetDate, budgets: budgets) : nil
+                note: hasTargetDate ? Self.monthsWithoutBudgetNote(until: targetDate, budgets: budgets) : nil,
+                noteHasAmount: false
             )
         }
     }

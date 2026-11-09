@@ -83,7 +83,9 @@ struct BudgetDetailSheetContent: View {
                     : nil,
                 onSpreadInstead: { router.present(.spreadExisting($0)) },
                 onTakeFromGoal: { amount, currency in
-                    router.present(.goalWithdrawal(GoalWithdrawalStart(amount: amount, currency: currency)))
+                    router.present(.goalWithdrawal(
+                        GoalWithdrawalStart(amount: amount, currency: currency, name: prefill.source)
+                    ))
                 },
                 onAdd: { incomeLine in
                     Task { await coordinator.dispatch(.createSavingsWithdrawal(incomeLine: incomeLine)) }

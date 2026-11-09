@@ -102,6 +102,13 @@ struct GoalMonthByMonthPresentation: Equatable {
         firstEmptyRun.map { AppLocale.string("Planifier \(Self.rangeTitle($0.months, capitalized: false))") }
     }
 
+    /// « Planifier … » on the repair path: exactly the months the repair writes.
+    static func repairTitle(_ months: [SavingsGoalPlanMonth]) -> String? {
+        let repairable = months.filter(\.isRepairable)
+        guard !repairable.isEmpty else { return nil }
+        return AppLocale.string("Planifier \(rangeTitle(repairable, capitalized: false))")
+    }
+
     /// « Mars à octobre », « Août et septembre », « Mars 2025 à septembre », « Novembre ».
     static func rangeTitle(_ months: [SavingsGoalPlanMonth], capitalized: Bool = true) -> String {
         guard let first = months.first, let last = months.last else { return "" }

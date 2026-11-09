@@ -35,7 +35,8 @@ struct CreateBudgetView: View {
                             currency: currency,
                             note: AppLocale.string(
                                 "Plus le report du mois précédent. Ton disponible actuel ne change pas."
-                            )
+                            ),
+                            noteHasAmount: false
                         )
                     }
 

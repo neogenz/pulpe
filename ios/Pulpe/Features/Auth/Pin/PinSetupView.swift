@@ -67,7 +67,7 @@ struct PinSetupView: View {
             .sensoryFeedback(.impact(flexibility: .rigid), trigger: viewModel.hapticStepAdvance)
             .sheet(item: recoveryKeySheetItemBinding) { item in
                 RecoveryKeySheet(recoveryKey: item.recoveryKey) {
-                    AnalyticsService.shared.capture(.recoveryKeyAcknowledged)
+                    AnalyticsService.captureRecoveryKeyAcknowledged()
                     Task { await onComplete() }
                 }
             }

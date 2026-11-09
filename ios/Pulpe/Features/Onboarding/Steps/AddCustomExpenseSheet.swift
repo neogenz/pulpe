@@ -128,7 +128,8 @@ struct AddCustomExpenseSheet: View {
             after: before + sign * amount,
             currency: currency,
             note: note,
-            tone: kind == .income ? .ok : .neutral
+            tone: kind == .income ? .ok : .neutral,
+            noteHasAmount: false
         )
     }
 

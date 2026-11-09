@@ -39,7 +39,8 @@ struct GoalHistoryPresentation: Equatable {
         let timeline = progress.months.filter { $0.state == .past || $0.state == .current }
         initialAmount = progress.initialAmount
         saved = progress.confirmed
-        withdrawn = timeline.reduce(Decimal.zero) { $0 + $1.withdrawnAmount }
+        // One source for the total, the count and the groups: the realised withdrawals list.
+        withdrawn = withdrawals.reduce(Decimal.zero) { $0 + $1.amount }
         contributed = progress.confirmed - progress.initialAmount + withdrawn
         pointedMonthCount = timeline.count { $0.confirmedAmount > 0 }
         withdrawalCount = withdrawals.count

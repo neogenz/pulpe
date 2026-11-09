@@ -64,11 +64,11 @@ struct ChangePinView: View {
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text(title)
                     .font(PulpeTypography.onboardingTitle)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .foregroundStyle(Color.textPrimary)
 
                 Text(viewModel.stepLabel)
                     .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .foregroundStyle(Color.textSecondary)
             }
 
             Spacer().frame(height: DesignTokens.Spacing.sectionGap)
@@ -91,13 +91,12 @@ struct ChangePinView: View {
             Spacer().frame(height: DesignTokens.Spacing.xxl)
 
             if viewModel.step == .enterNewPin {
-                Button {
+                Button("Revenir") {
                     viewModel.goBack()
-                } label: {
-                    Text("Revenir")
-                        .font(PulpeTypography.stepSubtitle)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
                 }
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.pulpePrimary)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
                 .accessibilityHint("Revenir à l'étape précédente")
             }
         }

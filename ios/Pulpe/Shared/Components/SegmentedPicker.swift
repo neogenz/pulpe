@@ -55,7 +55,8 @@ struct SegmentedPicker<T: Hashable>: View {
                 .lineLimit(1)
                 .minimumScaleFactor(DesignTokens.TextScale.compact)
                 .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.FrameHeight.chip)
+                .frame(minHeight: DesignTokens.FrameHeight.chip)
+                .accessibilityShowsLargeContentViewer()
                 .background {
                     if isSelected {
                         Color.surface

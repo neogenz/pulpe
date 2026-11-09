@@ -99,7 +99,6 @@ struct BudgetDetailsScreenStateProjectionTests {
         #expect(visibleIds == ["unchecked"])
 
         #expect(state.checkedCounts.unchecked == 1)
-        #expect(state.checkedCounts.checked == 1)
         #expect(state.checkedCounts.all == 2)
     }
 

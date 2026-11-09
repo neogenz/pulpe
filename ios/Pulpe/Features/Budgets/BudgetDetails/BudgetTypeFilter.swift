@@ -3,11 +3,9 @@ import SwiftUI
 // MARK: - Checked Filter Option
 
 /// État filter applied to budget items in the detail flow (cumulative AND with `BudgetLineKindFilter`).
-/// Three states: `À pointer` / `Pointé` / `Tout voir`. Driven from the leading icon button on
-/// the filter rail (tap cycles, long-press opens a context menu).
+/// Driven from the leading chips of the filter rail: `À pointer` / `Tout` / `Dépassées`.
 enum CheckedFilterOption: String, CaseIterable, Identifiable {
     case unchecked
-    case checked
     case all
     /// Prévisions whose movements went past the planned amount.
     case over
@@ -17,7 +15,6 @@ enum CheckedFilterOption: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .unchecked: AppLocale.string("À pointer")
-        case .checked: AppLocale.string("Pointé")
         case .all: AppLocale.string("Tout")
         case .over: AppLocale.string("Dépassées")
         }
@@ -82,16 +79,14 @@ struct BudgetLineKindCounts: Equatable {
 /// "what tapping this would show" given the current type filter.
 struct CheckedFilterCounts: Equatable {
     let unchecked: Int
-    let checked: Int
     let all: Int
     var over = 0
 
-    static let zero = CheckedFilterCounts(unchecked: 0, checked: 0, all: 0)
+    static let zero = CheckedFilterCounts(unchecked: 0, all: 0)
 
     func count(for option: CheckedFilterOption) -> Int {
         switch option {
         case .unchecked: unchecked
-        case .checked: checked
         case .all: all
         case .over: over
         }
@@ -136,7 +131,7 @@ struct BudgetTypeFilter: View {
 
 #Preview {
     @Previewable @State var checked: CheckedFilterOption = .all
-    BudgetTypeFilter(checked: $checked, counts: CheckedFilterCounts(unchecked: 9, checked: 4, all: 13, over: 2))
+    BudgetTypeFilter(checked: $checked, counts: CheckedFilterCounts(unchecked: 9, all: 13, over: 2))
         .padding(.vertical)
         .background(Color.appBackground)
 }

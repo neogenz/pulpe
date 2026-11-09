@@ -316,7 +316,8 @@ private extension GoalDeletionSheet {
                     note: presentation.deletesForecasts ? nil : AppLocale.string("""
                         Les \(presentation.impact?.summary.budgetLineCount ?? 0) prévisions Épargne \
                         restent dans tes budgets, sans objectif.
-                        """)
+                        """),
+                    noteHasAmount: false
                 )
             } else {
                 ImpactBlock(

@@ -41,6 +41,9 @@ struct SavingsWithdrawalPrefill: Identifiable {
     /// an amount typed in EUR isn't re-anchored to CHF (PUL-292).
     var inputCurrency: SupportedCurrency?
     var source: String?
+    /// Opened from « Nouvelle prévision »: that sheet offers the goal origin itself, and the
+    /// goal withdrawal here would write a Réel instead of a prévision.
+    var isFromForecast = false
 }
 
 /// Sheet destinations for `BudgetDetailsView`.

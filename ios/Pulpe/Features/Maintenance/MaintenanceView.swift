@@ -11,7 +11,7 @@ struct MaintenanceView: View {
             message: AppLocale.string(
                 "J'améliore Pulpe. Tes données sont en sécurité, réessaie dans quelques instants."
             ),
-            primary: .init(title: AppLocale.string("Réessayer")) {
+            primary: .init(title: AppLocale.string("Réessayer"), isBusy: isChecking) {
                 guard !isChecking else { return }
                 Task { await checkAndRetry() }
             }

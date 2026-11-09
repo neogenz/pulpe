@@ -56,6 +56,9 @@ struct DeepLinkAddExpenseSheet: View {
             }
         }
         .task {
+            // Pay day first: the month cached below is keyed on it.
+            await userSettingsStore.loadIfNeeded()
+            currentMonthStore.setPayDay(userSettingsStore.payDayOfMonth)
             await viewModel.loadCurrentBudget(payDayOfMonth: userSettingsStore.payDayOfMonth)
             await currentMonthStore.loadDetailsIfNeeded()
         }

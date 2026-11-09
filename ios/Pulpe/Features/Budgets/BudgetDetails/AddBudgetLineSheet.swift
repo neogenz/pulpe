@@ -181,7 +181,7 @@ struct AddBudgetLineSheet: View {
         .onChange(of: spreadMonthCount, initial: true) { _, count in
             spreadCalculator.setEnd(SpreadMonth.from(ordinal: spreadCalculator.start.ordinal + count - 1))
         }
-        .task(id: PlannedWithdrawalConversionKey(amount: amount, currency: inputCurrency)) {
+        .task(id: AmountConversionKey(amount: amount, currency: inputCurrency)) {
             await refreshConvertedAmount()
         }
     }

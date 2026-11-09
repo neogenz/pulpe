@@ -229,12 +229,12 @@ struct PinRecoveryView: View {
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text(title)
                     .font(PulpeTypography.onboardingTitle)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
+                    .foregroundStyle(Color.textPrimary)
 
                 if let subtitle {
                     Text(subtitle)
                         .font(PulpeTypography.stepSubtitle)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
 
@@ -257,13 +257,12 @@ struct PinRecoveryView: View {
 
             Spacer().frame(height: DesignTokens.Spacing.xxl)
 
-            Button {
+            Button("Revenir") {
                 viewModel.goBack()
-            } label: {
-                Text("Revenir")
-                    .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
             }
+            .font(PulpeTypography.labelLarge)
+            .foregroundStyle(Color.pulpePrimary)
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
         }
     }
 

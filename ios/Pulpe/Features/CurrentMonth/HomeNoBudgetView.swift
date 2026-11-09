@@ -88,8 +88,7 @@ struct HomeNoBudgetView: View {
     }
 
     private var card: some View {
-        let income = sum(.income)
-        let expenses = sum(.expense)
+        let totals = BudgetFormulas.calculateTemplateTotals(lines: templateLines)
         let savings = sum(.saving)
         return VStack(spacing: DesignTokens.Spacing.lg) {
             VStack(spacing: DesignTokens.Spacing.md) {
@@ -123,10 +122,10 @@ struct HomeNoBudgetView: View {
                         }
                     }
                     .frame(minHeight: DesignTokens.ListRow.formRowHeight)
-                    totalRow(AppLocale.string("Revenus"), income)
-                    totalRow(AppLocale.string("Dépenses prévues"), expenses)
+                    totalRow(AppLocale.string("Revenus"), totals.totalIncome)
+                    totalRow(AppLocale.string("Dépenses prévues"), sum(.expense))
                     totalRow(AppLocale.string("Épargne prévue"), savings)
-                    totalRow(AppLocale.string("Disponible à dépenser"), income - expenses - savings, isBold: true)
+                    totalRow(AppLocale.string("Disponible à dépenser"), totals.balance, isBold: true)
                 }
                 .transition(.opacity)
             } else {

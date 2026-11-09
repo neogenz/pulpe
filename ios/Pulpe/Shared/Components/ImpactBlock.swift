@@ -34,6 +34,8 @@ struct ImpactBlock: View {
     var tone: Tone = .neutral
     /// `false` when nothing moves: the title and the note say it, no figure to repeat.
     var showsFigures = true
+    /// `false` when the note carries no figure, so it stays readable under hidden amounts.
+    var noteHasAmount = true
     @Environment(\.amountsHidden) private var amountsHidden
 
     var body: some View {
@@ -66,7 +68,7 @@ struct ImpactBlock: View {
                 Text(note)
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textSecondary)
-                    .sensitiveAmount()
+                    .sensitiveAmount(noteHasAmount)
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg - DesignTokens.BorderWidth.thick)
@@ -85,7 +87,7 @@ struct ImpactBlock: View {
             }
             parts.append(AppLocale.string("après") + " " + after.asCurrency(currency))
         }
-        if let note, !amountsHidden { parts.append(note) }
+        if let note, !(amountsHidden && noteHasAmount) { parts.append(note) }
         return parts.joined(separator: ", ")
     }
 }
@@ -119,7 +121,8 @@ extension ImpactBlock {
         impact: MovementImpact,
         currency: SupportedCurrency,
         tone pinned: Tone? = nil,
-        note: String? = nil
+        note: String? = nil,
+        noteHasAmount: Bool = true
     ) {
         let computed: Tone = switch impact.tone {
         case .neutral: .neutral
@@ -134,7 +137,8 @@ extension ImpactBlock {
             currency: currency,
             note: note,
             tone: tone,
-            showsFigures: impact.tone != .neutral
+            showsFigures: impact.tone != .neutral,
+            noteHasAmount: noteHasAmount
         )
     }
 }

@@ -99,7 +99,10 @@ final class SavingsGoalStore: StoreProtocol {
     /// ponytail: one `getProgress` per goal, in parallel (N+1 reads). A list-summary
     /// endpoint replaces this once the backend offers one.
     func refreshProgress() async {
-        progressById = await loadProgress(of: goals)
+        let loaded = await loadProgress(of: goals)
+        // A cancelled `.task(id:)` turns in-flight reads into nil: assigning would drop cards.
+        guard !Task.isCancelled else { return }
+        progressById = loaded
     }
 
     private func loadProgress(of goals: [SavingsGoal]) async -> [String: SavingsGoalProgress] {

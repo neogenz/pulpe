@@ -74,10 +74,7 @@ struct PostOnboardingHandoffView: View {
             Spacer(minLength: 0)
 
             Button {
-                AnalyticsService.shared.capture(
-                    .onboardingHandoffCompleted,
-                    properties: ["widget_help_opened": hasOpenedWidgetHelp]
-                )
+                AnalyticsService.captureOnboardingHandoffCompleted(widgetHelpOpened: hasOpenedWidgetHelp)
                 onContinue()
             } label: {
                 Text("Ouvrir mon mois")

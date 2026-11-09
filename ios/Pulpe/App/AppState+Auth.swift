@@ -112,7 +112,6 @@ extension AppState {
     private func identifyUserForAnalytics(_ user: UserInfo, destination: PostAuthDestination) {
         if case .unauthenticatedSessionExpired = destination { return }
         AnalyticsService.shared.identify(user: user)
-        AnalyticsService.shared.reloadFeatureFlags()
     }
 
     func applyPostAuthDestination(_ destination: PostAuthDestination, user: UserInfo? = nil) async {

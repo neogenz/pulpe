@@ -242,9 +242,7 @@ extension OnboardingState {
     func captureStepBack(
         from: OnboardingStep,
         to: OnboardingStep,
-        send: (AnalyticsEvent, [String: Any]) -> Void = {
-            AnalyticsService.shared.capture($0, properties: $1)
-        }
+        send: (AnalyticsEvent, [String: Any]) -> Void
     ) {
         send(.onboardingStepBack, ["from_step": from.analyticsName, "to_step": to.analyticsName])
     }

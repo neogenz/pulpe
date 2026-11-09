@@ -41,8 +41,28 @@ struct CatchUpPlanTests {
         let plan = CatchUpPlan.make(ledger: Self.ledger, focusLineId: nil, userCurrency: .chf)
         let loisirs = try #require(plan.choices.first)
         let gifts = try #require(plan.choices.last)
-        #expect(CatchUpPlan.impact(of: loisirs, in: Self.ledger).delta == 102.20)
-        #expect(CatchUpPlan.impact(of: gifts, in: Self.ledger).delta == 40)
+        #expect(plan.impact(of: loisirs, in: Self.ledger).delta == 102.20)
+        #expect(plan.impact(of: gifts, in: Self.ledger).delta == 40)
+    }
+
+    /// The share taken back moves onto the prévisions that overran, in order: once saved, what
+    /// was taken back no longer overruns, so the sheet cannot offer to take it back twice.
+    @Test func takingItBack_raisesTheOverrunPrevisionsBySharesTakenBack() throws {
+        let plan = CatchUpPlan.make(ledger: Self.ledger, focusLineId: nil, userCurrency: .chf)
+        let loisirs = try #require(plan.choices.first)
+        let gifts = try #require(plan.choices.last)
+        let all = plan.raises(for: loisirs)
+        #expect(all.map(\.line.id) == ["courses", "sorties"])
+        #expect(all.map(\.newAmount) == [664.20, 138])
+        let partial = plan.raises(for: gifts)
+        #expect(partial.map(\.line.id) == ["courses"])
+        #expect(partial.map(\.newAmount) == [640])
+
+        let saved = all.reduce(Self.ledger.replacing(lineId: loisirs.id, amount: loisirs.newAmount)) {
+            $0.replacing(lineId: $1.line.id, amount: $1.newAmount)
+        }
+        let again = CatchUpPlan.make(ledger: saved, focusLineId: nil, userCurrency: .chf)
+        #expect(again.overruns.isEmpty)
     }
 
     @Test func fromOnePrevision_takesBackOnlyItsOverrun() {

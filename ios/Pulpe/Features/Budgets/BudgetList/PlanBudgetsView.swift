@@ -62,7 +62,8 @@ struct PlanBudgetsView: View {
                         note: AppLocale.string(
                             "Chaque nouveau mois part avec les prévisions du modèle, plus son report."
                         ),
-                        showsFigures: false
+                        showsFigures: false,
+                        noteHasAmount: false
                     )
 
                     if let error = viewModel.error {

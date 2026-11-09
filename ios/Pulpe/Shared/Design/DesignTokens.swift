@@ -416,9 +416,6 @@ enum DesignTokens {
         /// How far a scroll-native zone background bleeds past its edge, so overscroll and the
         /// status bar never show the canvas behind it. Anything taller than a screen works.
         static let overscrollBleed: CGFloat = 1000
-        /// Narrowest card column a two-column reflow may create: an Activité row still fits on
-        /// one line. The open iPhone Duo keeps one column in portrait, splits in landscape.
-        static let minReflowColumnWidth: CGFloat = 360
         /// A list beside the page it opens on the open iPhone Duo: a third of the window, so the
         /// page keeps an iPhone width in portrait, between a floor where « Septembre » and a
         /// four-digit balance still share a row and a ceiling past which rows only stretch.

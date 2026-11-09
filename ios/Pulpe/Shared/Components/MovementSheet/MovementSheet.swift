@@ -6,6 +6,8 @@ struct GoalWithdrawalStart: Hashable {
     var goalId: String?
     var amount: Decimal?
     var currency: SupportedCurrency?
+    /// The description typed before the handover, so goal mode does not ask for it again.
+    var name: String?
 }
 
 /// The one sheet that writes a movement: "Nouvelle dépense / Nouveau revenu / Nouvelle
@@ -129,6 +131,7 @@ struct MovementSheet: View {
                 _isFromSavings = State(initialValue: true)
                 _savingsOrigin = State(initialValue: .goal)
                 _savingsGoalId = State(initialValue: withdrawalStart.goalId)
+                if let startName = withdrawalStart.name { _name = State(initialValue: startName) }
                 let currency = withdrawalStart.currency ?? userCurrency
                 _inputCurrency = State(initialValue: currency)
                 if let startAmount = withdrawalStart.amount {

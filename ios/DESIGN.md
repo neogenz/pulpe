@@ -318,7 +318,7 @@ Manrope for display + Pulpe amounts; SF Pro (system) for everything else. Dynami
 ### Hierarchy (iOS values)
 
 - **Hero** (Manrope 800, 52pt, tracking `-2`, tabular): `PulpeTypography.heroAmount`; currency suffix 0.42em, ink2 (`heroCurrencySuffix`).
-- **Big** (Manrope 800, 36pt) and **Mid** (Manrope 800, 22pt): `bigAmount`, `midAmount`, each with its own suffix.
+- **Big** (Manrope 800, 36pt, tabular): `bigAmount`, with its 15pt currency suffix `bigCurrencySuffix`.
 - **Large title** (SF 34 bold, tracking `-0.4`): `pageTitle`, with a 15pt ink2 subtitle (`PageHeader`).
 - **Section** (20pt bold): `sectionTitle` / `statusTitle`.
 - **Body** (SF 17): default content. **Button** (SF 17 semibold); small button and chip 15 semibold (`chipLabel`).
