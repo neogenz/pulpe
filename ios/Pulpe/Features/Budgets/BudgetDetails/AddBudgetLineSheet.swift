@@ -3,7 +3,7 @@ import SwiftUI
 /// Sheet for adding a new budget line (prévision) — hero amount layout
 struct AddBudgetLineSheet: View {
     let budgetId: String
-    /// The model behind the budget. `nil` (or a closed month) turns "Chaque mois" off.
+    /// The model behind the budget. `nil` (or a closed month) turns "Mensuel" off.
     let templateId: String?
     /// The month as it stands, to judge what the new prévision does to the disponible.
     let ledger: MonthLedger?

@@ -9,8 +9,7 @@ enum PendingWording {
     /// The answer to "C'était prévu dans ton budget ?" when no prévision covers the movement.
     static var unplannedAnswer: String { AppLocale.string("Non, c'est un imprévu") }
 
-    /// The three answers of "Quand ?" on a new prévision.
-    static var everyMonth: String { AppLocale.string("Chaque mois") }
-    static var once: String { AppLocale.string("Une fois") }
+    /// The third answer of "Quand ?" on a new prévision, beside « Mensuel » and « Ponctuel »
+    /// (`TransactionRecurrence.label`).
     static var spread: String { AppLocale.string("Lissé") }
 }

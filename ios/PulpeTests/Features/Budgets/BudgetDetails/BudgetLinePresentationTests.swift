@@ -202,8 +202,8 @@ struct BudgetLinePresentationTests {
 
     @Test("an untouched line states its rhythm, then that it is pointed; an income keeps its +")
     func row_whenUntouched_statesTheRhythm() {
-        #expect(row(amount: 80, allocated: 0, recurrence: .oneOff).subtitle == "Une fois")
-        #expect(row(amount: 6200, allocated: 0, kind: .income, isPointed: true).subtitle == "Chaque mois · pointé")
+        #expect(row(amount: 80, allocated: 0, recurrence: .oneOff).subtitle == "Ponctuel")
+        #expect(row(amount: 6200, allocated: 0, kind: .income, isPointed: true).subtitle == "Mensuel · pointé")
         #expect(row(amount: 6200, allocated: 0, kind: .income).amount == "+6’200.00")
         #expect(row(amount: 80, allocated: 0).progress == nil)
     }

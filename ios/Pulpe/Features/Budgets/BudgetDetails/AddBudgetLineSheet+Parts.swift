@@ -10,7 +10,7 @@ extension AddBudgetLineSheet {
         return anchorYear * 12 + anchorMonth < live.year * 12 + live.month
     }
 
-    /// "Chaque mois" writes into the model, so it needs one and an open month.
+    /// "Mensuel" writes into the model, so it needs one and an open month.
     var offersEveryMonth: Bool { templateId != nil && !isClosedMonth }
 
     var amountCaption: String? {

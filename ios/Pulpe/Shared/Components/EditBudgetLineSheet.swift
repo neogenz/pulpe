@@ -195,7 +195,7 @@ struct EditBudgetLineSheet: View {
                 .font(PulpeTypography.body)
                 .foregroundStyle(Color.textPrimary)
             Spacer()
-            Text(budgetLine.recurrence == .fixed ? AppLocale.string("Chaque mois") : AppLocale.string("Une fois"))
+            Text(budgetLine.recurrence.label)
                 .font(PulpeTypography.body)
                 .foregroundStyle(Color.textSecondary)
             Image(systemName: "lock")

@@ -80,7 +80,7 @@ extension AddBudgetLineSheet {
         }
     }
 
-    /// "Chaque mois": the line joins the model and is propagated to every budget, then the month reloads.
+    /// "Mensuel": the line joins the model and is propagated to every budget, then the month reloads.
     func addEveryMonth() async {
         guard let amount, let templateId else { return }
 

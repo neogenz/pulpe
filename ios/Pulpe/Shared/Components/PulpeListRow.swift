@@ -94,7 +94,7 @@ extension PulpeListRow where Leading == EmptyView {
         Divider().overlay(Color.outlineVariant)
         PulpeListRow(
             title: "Loyer",
-            subtitle: "Chaque mois · pointé le 31 oct.",
+            subtitle: "Mensuel · pointé le 31 oct.",
             leading: { PointCircle(isPointed: true, isSyncing: false) {} },
             trailing: { Text("1'850.00") }
         )

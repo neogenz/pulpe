@@ -1387,25 +1387,25 @@
         }
       }
     },
-    "Déjà sur mon compte" : {
+    "Déjà pointé" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schon auf meinem Konto"
+            "value" : "Bereits abgehakt"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Already on my account"
+            "value" : "Already checked"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Già sul mio conto"
+            "value" : "Già spuntato"
           }
         }
       }
@@ -2211,29 +2211,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ogni mese"
-          }
-        }
-      }
-    },
-    "Une fois" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einmal"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Once"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una volta"
           }
         }
       }

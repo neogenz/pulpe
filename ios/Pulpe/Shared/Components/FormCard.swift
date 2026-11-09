@@ -47,7 +47,7 @@ struct FormRowDivider: View {
         .frame(minHeight: DesignTokens.ListRow.minHeight)
         FormRowDivider()
         HStack {
-            Text("Déjà sur mon compte")
+            Text("Déjà pointé")
             Spacer()
             Toggle("", isOn: .constant(true)).labelsHidden()
         }

@@ -42,9 +42,9 @@ enum TemplatePresentation {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    /// « Chaque mois », « Chaque mois · liée à l'objectif », « Une fois ».
+    /// « Mensuel », « Mensuel · liée à l'objectif », « Ponctuel ».
     static func lineSubtitle(recurrence: TransactionRecurrence, isLinkedToGoal: Bool) -> String {
-        let when = recurrence == .fixed ? PendingWording.everyMonth : PendingWording.once
+        let when = recurrence.label
         return isLinkedToGoal ? when + " · " + AppLocale.string("liée à l'objectif") : when
     }
 
@@ -64,7 +64,7 @@ enum TemplatePresentation {
 
     /// The two answers of « Quand ? » on a model line.
     static func whenLabel(_ recurrence: TransactionRecurrence) -> String {
-        recurrence == .fixed ? PendingWording.everyMonth : PendingWording.once
+        recurrence.label
     }
 
     /// « Chaque mois créé avec Mois standard reçoit cette prévision. » / « Seul le prochain mois… ».

@@ -50,6 +50,6 @@ struct BudgetLineRowPresentation: Equatable {
         if savingsGoalName != nil { return AppLocale.string("Objectif") }
         if line.isSavingsWithdrawalIncome { return AppLocale.string("Pris sur ton épargne") }
         if let source = line.savingsGoalSource { return source.label }
-        return line.recurrence == .fixed ? PendingWording.everyMonth : PendingWording.once
+        return line.recurrence.label
     }
 }

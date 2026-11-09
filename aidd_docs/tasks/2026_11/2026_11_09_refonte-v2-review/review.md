@@ -59,6 +59,8 @@ Five read-only reviewers, one per zone. Every finding below was re-traced in the
 2. « Déjà sur mon compte » replaces « Déjà pointé » (`Shared/Components/CheckedToggle.swift:32`); web keeps « Déjà pointé ».
 3. « Couvrir avec mon épargne » lists goals with their balance but does not debit the goal (deliberate per `docs/SAVINGS.md` §11.2; the screen implies a debit).
 
+Decided 2026-11-09: 1 and 2 follow the glossary (« Mensuel » / « Ponctuel », « Déjà pointé »). 3 is still open.
+
 ## Cleared
 
 Ledger and pending-deletion math, delete/postpone/pointing confirmations, catch-up plan, spread split, plurals in fr/en/de/it, xcstrings (1946 keys, no gap, no « transaction »), onboarding step order and idempotency, PIN gate, force-update gate, logout reset, no retired analytics alias, no amounts in events, `swiftlint --strict` clean on all of `ios/`.

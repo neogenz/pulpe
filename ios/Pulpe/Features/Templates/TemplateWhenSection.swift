@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// « Quand ? » on a model line: « Chaque mois » or « Une fois », and what the answer means
+/// « Quand ? » on a model line: « Mensuel » or « Ponctuel », and what the answer means
 /// for the months built from the model. Shared by the add and edit sheets.
 struct TemplateWhenSection: View {
     @Binding var recurrence: TransactionRecurrence

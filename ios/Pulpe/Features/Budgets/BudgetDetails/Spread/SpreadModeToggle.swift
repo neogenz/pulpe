@@ -9,8 +9,8 @@ enum BudgetLineCreationMode: CaseIterable, Hashable {
 
     var label: String {
         switch self {
-        case .everyMonth: PendingWording.everyMonth
-        case .once: PendingWording.once
+        case .everyMonth: TransactionRecurrence.fixed.label
+        case .once: TransactionRecurrence.oneOff.label
         case .spread: PendingWording.spread
         }
     }

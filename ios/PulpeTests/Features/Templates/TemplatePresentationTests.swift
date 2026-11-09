@@ -54,10 +54,10 @@ struct TemplatePresentationTests {
 
     @Test func lineSubtitleAddsTheGoalOnlyWhenLinked() {
         typealias Presentation = TemplatePresentation
-        #expect(Presentation.lineSubtitle(recurrence: .fixed, isLinkedToGoal: false) == PendingWording.everyMonth)
-        #expect(Presentation.lineSubtitle(recurrence: .oneOff, isLinkedToGoal: false) == PendingWording.once)
+        #expect(Presentation.lineSubtitle(recurrence: .fixed, isLinkedToGoal: false) == "Mensuel")
+        #expect(Presentation.lineSubtitle(recurrence: .oneOff, isLinkedToGoal: false) == "Ponctuel")
         let linked = Presentation.lineSubtitle(recurrence: .fixed, isLinkedToGoal: true)
-        #expect(linked.hasPrefix(PendingWording.everyMonth + " · "))
+        #expect(linked.hasPrefix("Mensuel · "))
     }
 
     @Test func availableImpactMovesOnlyWhenTheLineChanges() throws {
