@@ -106,4 +106,20 @@ struct AddBudgetLineIncomeOriginTests {
         #expect(AddBudgetLineSheet.linkedAssetId(kind: .saving, origin: .regular, assetId: "a1") == "a1")
         #expect(!AddBudgetLineSheet.isPlannedWithdrawal(kind: .income, origin: .asset))
     }
+
+    @Test("A withdrawal is never offered every month: the model line would lose its goal")
+    func everyMonth_notOfferedForWithdrawals() {
+        let offered = IncomeOrigin.allCases.filter {
+            AddBudgetLineSheet.offersEveryMonth(hasModel: true, isClosedMonth: false, kind: .income, origin: $0)
+        }
+        #expect(offered == [.regular, .asset])
+        let expense = { (hasModel: Bool, isClosed: Bool) in
+            AddBudgetLineSheet.offersEveryMonth(
+                hasModel: hasModel, isClosedMonth: isClosed, kind: .expense, origin: .regular
+            )
+        }
+        #expect(expense(true, false))
+        #expect(!expense(false, false))
+        #expect(!expense(true, true))
+    }
 }

@@ -112,6 +112,7 @@ extension AddBudgetLineSheet {
     func resetIncompatibleOriginState() {
         if !isPlannedWithdrawalMode { sourceSavingsGoalId = nil }
         if kind == .income, incomeOrigin != .asset { assetId = nil }
+        if mode == .everyMonth, !offersEveryMonth { mode = .once }
     }
 
     /// Keeps the projections (impact block, planned withdrawal) judged on the amount in the

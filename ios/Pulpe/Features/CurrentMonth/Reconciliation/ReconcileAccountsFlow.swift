@@ -159,17 +159,22 @@ final class ReconcileAccountsFlow {
         loadedBudgetId != budgetId && !isSubmitting
     }
 
-    /// The movement that most likely explains the gap: one not pointed yet, going the way the
-    /// gap goes (money missing from the checked balance is an income, money too much is an
-    /// outflow) and of exactly its size. `nil` when none or several tie: guessing between two
-    /// would point the wrong one.
-    static func likelyMissedMovement(gap: Decimal, among transactions: [Transaction]) -> Transaction? {
+    /// The movement that most likely explains the gap: one not pointed yet, of exactly its size,
+    /// whose pointing moves the pointed balance by exactly the gap. Under a pointée prévision a
+    /// dépense can move it by less, or not at all (`calculateRealizedExpenses` counts the
+    /// prévision's whole amount), so the size alone would promise a pointing that settles nothing.
+    /// `nil` when none or several tie: guessing between two would point the wrong one.
+    static func likelyMissedMovement(
+        gap: Decimal, among transactions: [Transaction], lines: [BudgetLine]
+    ) -> Transaction? {
         let size = gap.rounded(2)
         guard size != 0 else { return nil }
+        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: transactions)
         let matches = transactions.filter { transaction in
-            !transaction.isChecked
-                && transaction.amount.rounded(2) == size.absoluteValue
-                && (size > 0 ? transaction.kind == .income : transaction.kind.isOutflow)
+            guard !transaction.isChecked, transaction.amount.rounded(2) == size.absoluteValue else { return false }
+            let pointed = transactions.map { $0.id == transaction.id ? $0.toggled() : $0 }
+            let after = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: pointed)
+            return (after - balance).rounded(2) == size
         }
         return matches.count == 1 ? matches.first : nil
     }

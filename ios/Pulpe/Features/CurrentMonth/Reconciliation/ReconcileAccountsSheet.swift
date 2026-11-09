@@ -74,7 +74,9 @@ struct ReconcileAccountsSheet: View {
 
     private var missedMovement: Transaction? {
         guard let gap else { return nil }
-        return ReconcileAccountsFlow.likelyMissedMovement(gap: gap, among: checking.transactions)
+        return ReconcileAccountsFlow.likelyMissedMovement(
+            gap: gap, among: checking.transactions, lines: checking.budgetLines
+        )
     }
 
     var body: some View {

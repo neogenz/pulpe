@@ -106,7 +106,7 @@ struct CatchUpSheet: View {
     @ViewBuilder
     private var choicesCard: some View {
         if plan.choices.isEmpty {
-            Text("Aucune dépense n'a de marge ce mois-ci.")
+            Text("Aucune prévision ne peut reprendre ce dépassement ce mois-ci.")
                 .font(PulpeTypography.captionRegular)
                 .foregroundStyle(Color.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)

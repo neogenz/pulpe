@@ -10,8 +10,20 @@ extension AddBudgetLineSheet {
         return anchorYear * 12 + anchorMonth < live.year * 12 + live.month
     }
 
-    /// "Mensuel" writes into the model, so it needs one and an open month.
-    var offersEveryMonth: Bool { templateId != nil && !isClosedMonth }
+    /// "Mensuel" writes into the model, so it needs one and an open month. A withdrawal, planned
+    /// from a goal or repaid next month, happens once: the model cannot carry its origin.
+    var offersEveryMonth: Bool {
+        Self.offersEveryMonth(
+            hasModel: templateId != nil, isClosedMonth: isClosedMonth, kind: kind, origin: incomeOrigin
+        )
+    }
+
+    static func offersEveryMonth(
+        hasModel: Bool, isClosedMonth: Bool, kind: TransactionKind, origin: IncomeOrigin
+    ) -> Bool {
+        hasModel && !isClosedMonth
+            && !isPlannedWithdrawal(kind: kind, origin: origin) && !isSavingsWithdrawal(kind: kind, origin: origin)
+    }
 
     var amountCaption: String? {
         switch mode {

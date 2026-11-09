@@ -69,10 +69,11 @@ struct ReconcileAccountsFlowTests {
         let salary = TestDataFactory.createTransaction(id: "salary", amount: size, kind: .income)
         let gap = -size
 
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: gap, among: [pointed, salary, migros])?.id == "migros")
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -gap, among: [pointed, salary, migros])?.id == "salary")
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: 0, among: [migros]) == nil)
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: gap - 1, among: [migros]) == nil)
+        let all = [pointed, salary, migros]
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: gap, among: all, lines: [])?.id == "migros")
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -gap, among: all, lines: [])?.id == "salary")
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: 0, among: [migros], lines: []) == nil)
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: gap - 1, among: [migros], lines: []) == nil)
     }
 
     @Test("two movements of the same size name no movement: guessing could point the wrong one")
@@ -80,7 +81,22 @@ struct ReconcileAccountsFlowTests {
         let first = TestDataFactory.createTransaction(id: "a", amount: 20, kind: .expense)
         let second = TestDataFactory.createTransaction(id: "b", amount: 20, kind: .saving)
 
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -20, among: [first, second]) == nil)
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -20, among: [first, second], lines: []) == nil)
+    }
+
+    @Test("a dépense under a pointée prévision that pointing would not move is never suggested")
+    func likelyMissedMovement_underPointedPrevision_onlyWhenPointingMovesTheBalance() {
+        let groceries = TestDataFactory.createBudgetLine(id: "groceries", amount: 100, isChecked: true)
+        let small = TestDataFactory.createTransaction(id: "small", budgetLineId: "groceries", amount: 50)
+        let big = TestDataFactory.createTransaction(id: "big", budgetLineId: "groceries", amount: 150)
+
+        // Pointing 50 under the pointed 100 leaves the balance where it is.
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -50, among: [small], lines: [groceries]) == nil)
+        // Pointing 150 under it moves the balance by 50 only: its size no longer settles the gap.
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -150, among: [big], lines: [groceries]) == nil)
+        // Under a prévision not pointed yet, the movement counts in full.
+        let open = TestDataFactory.createBudgetLine(id: "groceries", amount: 100)
+        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -50, among: [small], lines: [open])?.id == "small")
     }
 
     // MARK: - Adjustment

@@ -20,7 +20,8 @@ enum BudgetLineCreationMode: CaseIterable, Hashable {
 struct SpreadModeToggle: View {
     @Binding var selection: BudgetLineCreationMode
     let kind: TransactionKind
-    /// Set when the month cannot take an every-month prévision (closed, or no model behind it).
+    /// Set when the month cannot take an every-month prévision (closed, no model behind it) or the
+    /// income is a withdrawal, which happens once.
     let isEveryMonthDisabled: Bool
 
     var body: some View {

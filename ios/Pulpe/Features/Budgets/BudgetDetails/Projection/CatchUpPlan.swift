@@ -47,18 +47,21 @@ struct CatchUpPlan: Equatable {
         guard total > 0 else { return CatchUpPlan(overruns: [], choices: []) }
 
         // A pointée prévision counts as fully spent (`calculateRealizedExpenses`): no margin left.
-        let choices = expenses
+        let withMargin = expenses
             .filter { !$0.isChecked && (reste[$0.id] ?? 0) > 0 }
             .filter { !EditBudgetLineSheet.shouldShowAlternateCurrency(for: $0, userCurrency: userCurrency) }
-            .map { line in
-                let remaining = reste[line.id] ?? 0
-                return Choice(
-                    line: line,
-                    remaining: remaining,
-                    newAmount: line.amount - min(total, remaining),
-                    coversAll: remaining >= total
-                )
-            }
+        let candidates: [Choice] = withMargin.map { line in
+            let remaining = reste[line.id] ?? 0
+            return Choice(
+                line: line,
+                remaining: remaining,
+                newAmount: line.amount - min(total, remaining),
+                coversAll: remaining >= total
+            )
+        }
+        // The API refuses a prévision at zero: an untouched one the overrun would empty is not offered.
+        let choices = candidates
+            .filter { $0.newAmount > 0 }
             .sorted { $0.remaining > $1.remaining }
         return CatchUpPlan(overruns: overruns, choices: choices)
     }

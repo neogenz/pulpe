@@ -34745,31 +34745,31 @@
         }
       }
     },
-    "Aucune dépense n'a de marge ce mois-ci." : {
+    "Aucune prévision ne peut reprendre ce dépassement ce mois-ci." : {
       "extractionState" : "manual",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucune dépense n'a de marge ce mois-ci."
+            "value" : "Aucune prévision ne peut reprendre ce dépassement ce mois-ci."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No expense has room left this month."
+            "value" : "No forecast can take this overrun back this month."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Ausgabe hat diesen Monat noch Spielraum."
+            "value" : "Keine Planung kann diese Überschreitung diesen Monat ausgleichen."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nessuna spesa ha ancora margine questo mese."
+            "value" : "Nessuna previsione può recuperare questo sforamento questo mese."
           }
         }
       }
