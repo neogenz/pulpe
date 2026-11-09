@@ -6,7 +6,6 @@ protocol SavingsGoalServicing: Sendable {
     func getAll() async throws -> [SavingsGoal]
     func get(id: String) async throws -> SavingsGoal
     func getProgress(id: String) async throws -> SavingsGoalProgress
-    func getContributions(id: String) async throws -> [SavingsGoalContribution]
     func applyPlan(id: String, _ payload: SavingsGoalPlanApply) async throws -> SavingsGoalPlanApplyResult
     func getFutureLines(id: String, targetDate: String?) async throws -> [SavingsGoalFutureLine]
     func applyGenerationStop(
@@ -49,10 +48,6 @@ actor SavingsGoalService: SavingsGoalServicing {
     /// Fetches the derived progression (PUL-8). The backend computes every figure.
     func getProgress(id: String) async throws -> SavingsGoalProgress {
         try await apiClient.request(.savingsGoalProgress(id: id), method: .get)
-    }
-
-    func getContributions(id: String) async throws -> [SavingsGoalContribution] {
-        try await apiClient.request(.savingsGoalContributions(id: id), method: .get)
     }
 
     /// Applies an edited plan (PUL-12+, `docs/SAVINGS.md` §10.4). Pessimistic,

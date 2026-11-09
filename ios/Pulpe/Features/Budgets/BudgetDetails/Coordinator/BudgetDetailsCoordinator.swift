@@ -64,6 +64,8 @@ final class BudgetDetailsCoordinator {
             filtersStore.setCheckedFilter(filter)
         case .setTypeFilter(let filter):
             filtersStore.setTypeFilter(filter)
+        case .setFilterRailHidden(let hidden):
+            filtersStore.setRailHidden(hidden)
         default:
             return false
         }

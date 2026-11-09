@@ -84,7 +84,7 @@ struct HomeHeroCard: View {
     /// plan's reading, and the figure becomes the day's reading.
     private var headerRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-            Text(scrubReading.map { Self.scrubEyebrow($0, currency: currency) }
+            Text(scrubReading.map { Self.scrubEyebrow($0, currency: currency, amountsHidden: amountsHidden) }
                 ?? AppLocale.string("Disponible à dépenser"))
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textSecondary)

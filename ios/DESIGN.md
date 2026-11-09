@@ -234,7 +234,7 @@ iOS is the dominant Pulpe surface. SwiftUI native, iOS 18 deployment target with
 
 - Deployment target iOS 18, iOS 26 features (Liquid Glass, `.contentTransition(.symbolEffect(.replace))`) gated with `#available`
 - Apple HIG 44pt tap target — `frame(minHeight:)` on the **Button**, never on the label
-- V2 reading rules: green acts, ink reads, ocre says "dépassé", red only deletes; one row grammar (pointing circle left, chevron right)
+- V2 reading rules: green acts, ink reads, ocre says "dépassé", red is for delete and genuine errors; one row grammar (pointing circle left, chevron right)
 - Sheets always declare `.standardSheetPresentation()` to prevent iOS 26 glass bleed
 - Compositions tokens layer (`DesignTokens.ChipMetrics`) sits between primitives and feature surfaces
 
@@ -297,13 +297,13 @@ The previous state-tinted heroes (`#14AD45`, `#D88010` under white ink) measured
 
 ### Destructive
 
-- **Red** (`#C62828`, dark `#FF6B6B`): `Color.destructivePrimary`, wash `#FBE7E6`: `Color.destructiveBackground`. Delete, and nothing else.
+- **Red** (`#C62828`, dark `#FF6B6B`): `Color.destructivePrimary`, wash `#FBE7E6`: `Color.destructiveBackground`. Delete and genuine errors (wrong code, rejected sign-in, failed request), never an overrun.
 
 ### iOS-Specific Named Rules
 
 **The Paper Canvas Rule.** Every screen sits on `Color.appBackground` with white cards (`pulpeSurfaceCard()`); the forest hero zone (`heroZone()` / `contentZone()`) survives only on screens not yet rebuilt and is not a pattern to copy. The month and the account live in the native navigation bar.
 
-**The One Hero Rule (legacy).** Every surface with a dominant financial state (home, budget detail, yearly view, savings-goal detail) composes its hero from the shared `HeroZone` family (`heroZone()` / `contentZone()`, `HeroFigure`, `HeroMetricTile`, `HeroVerdictRow`). No screen draws its own hero grammar.
+**The One Hero Rule (legacy).** Every surface with a dominant financial state (home, budget detail, yearly view, savings-goal detail) composes its hero from the shared `HeroZone` family (`heroZone()` / `contentZone()`, `HeroFigure`, `HeroMetricTile`). No screen draws its own hero grammar.
 
 **The One Ledger Rule.** Every list is a grouped card, rows separated by hairlines (`Color.outlineVariant`). A row is `PulpeListRow`: leading 28pt `PointCircle` (2pt `pointRing` ring; pointed = `pulpePrimary` disc + white check), 16pt semibold title, one 13pt `ink2` fact, trailing Manrope 700 16pt amount in ink, `RowChevron` when the row opens something, 60pt minimum. No category icons in rows. A pointed row keeps full opacity: no dim, no strikethrough. The circle is the pointing control; a leading swipe on the row is the second path to the same toggle.
 
@@ -401,32 +401,6 @@ families around them.
 - **Labels are plain `Text`** (emoji allowed — Devise reads `🇨🇭 CHF`).
 - The wrapper adds the optional form-field title (13pt semibold ink2) and `.sensoryFeedback(.selection)`.
 
-### Card Deck (UncheckedOperationsCard)
-
-The dashboard's "Opérations à pointer" section is a horizontal, paginated deck of
-quick-check cards, one operation per card ("C'est passé" / "Plus tard") — built from
-`ScrollView(.horizontal)` + `.viewAligned` snapping, not a carousel library
-(`ios/Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard.swift`).
-
-- **Role:** replaces a single flat pane once there is more than one operation to point,
-  so a page that used to grow with the list stays one card tall. Only the focused card is
-  interactive; VoiceOver still reaches every real card in order.
-- **Peek:** the deck escapes the page's `Spacing.xxl` content rail and re-applies the same
-  token as a scroll content margin, so the focused card sits exactly on the rail while its
-  neighbours peek at the screen edges — tucked tickets, not a hint arrow or dots.
-- **Motion (`DesignTokens.Deck`):** a tucked neighbour shrinks by `tuckScaleDrop` (0.1),
-  turns `turnDegrees` (8°) around the vertical axis anchored on its inner edge, and fades
-  by `tuckFade` (0.35) — the combination reads as a card turning away, not sliding off.
-  Anchoring on the inner edge (not centre) keeps the peek width intact through the shrink
-  and grows the 3D turn toward the screen edge instead of swelling over the focused card.
-- **Reduce Motion:** the 3D turn is suppressed (`phase.value * 0` in effect); scale and
-  fade — resting states that only track the user's own finger — still play, since they
-  read as position, not motion.
-- **Loop:** the deck is a cycle — a turn past either end comes out on the other side —
-  built from three concatenated copies of the card list so a one-cycle offset shift is
-  pixel-invisible. Confirming a card plays its exit and the deck's slide to the next
-  operation in one animated transaction.
-
 ### Kind Tag (Inline Label)
 
 - **Style:** 10pt Manrope ExtraBold, uppercased, tracking `0.7px`, semantic financial color (income blue, saving green, expense neutral `textSecondary`).
@@ -508,6 +482,6 @@ quick-check cards, one operation per card ("C'est passé" / "Plus tard") — bui
 - **Don't** put `frame(minHeight: 44)` inside a Button's label — it inflates the visible background to 44pt.
 - **Don't** ship a sheet without an explicit `.presentationBackground(...)` — iOS 26 will bleed glass through it.
 - **Don't** use `asCompactCurrency` on the Budget Detail page — two decimals everywhere there.
-- **Don't** use red anywhere except delete. Overruns are ocre.
+- **Don't** use red except for delete and genuine errors. Overruns are ocre.
 - **Don't** use black on a button, chip or disc, dim a pointed row, or draw category icons in rows.
 - **Don't** invent new chip vocabulary — extend `PulpeChip.Style` if a new visual variant is needed.

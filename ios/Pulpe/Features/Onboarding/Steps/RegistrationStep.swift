@@ -42,7 +42,11 @@ struct RegistrationStep: View {
         .sheet(isPresented: $showLogin) {
             LoginView(isPresented: $showLogin, initialEmail: state.email)
         }
-        .onChange(of: state.email) { emailTaken = false }
+        .onChange(of: state.email) {
+            // The taken-email failure also set `state.error`; clear it so the generic banner doesn't echo it.
+            if emailTaken { state.error = nil }
+            emailTaken = false
+        }
         .trackScreen("Onboarding_Registration")
         .task {
             // Fire signup_started when the user actually reaches the registration form.

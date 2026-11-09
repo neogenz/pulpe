@@ -123,6 +123,7 @@ struct HomeTodoCard: View {
         let currency = userSettingsStore.currency
         let subtitle: String
         var isOverrun = false
+        var subtitleHasAmount = false
         let amount: Decimal
         let isSyncing: Bool
         switch item {
@@ -143,6 +144,7 @@ struct HomeTodoCard: View {
             )
             subtitle = fact.text
             isOverrun = fact.isOverrun
+            subtitleHasAmount = fact.hasAmount
             amount = line.amount
             isSyncing = store.syncingBudgetLineIds.contains(line.id)
         }
@@ -151,6 +153,7 @@ struct HomeTodoCard: View {
             title: item.name,
             subtitle: subtitle,
             isOverrun: isOverrun,
+            subtitleHasAmount: subtitleHasAmount,
             amount: amount.asAmount(for: currency),
             isPointed: false,
             isSyncing: isSyncing,

@@ -84,11 +84,10 @@ extension SavingsGoalDetailView {
     @ViewBuilder
     var goalMenu: some View {
         let status = currentGoal.status
-        let isOverdue = viewModel.progress?.isOverdue == true
         Menu {
             Button("Modifier l'objectif", systemImage: "pencil") { editTarget = currentGoal }
                 .accessibilityIdentifier("savingsGoalEditButton")
-            if status == .active, !isOverdue {
+            if status == .active {
                 Button("Mettre en pause", systemImage: "pause") { Task { await setStatus(.paused) } }
                     .disabled(viewModel.isMutatingStatus)
                     .accessibilityIdentifier("savingsGoalPauseButton")

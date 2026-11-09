@@ -124,6 +124,13 @@ final class BudgetListStore: StoreProtocol {
             .sorted { ($0.month ?? 0) < ($1.month ?? 0) }
     }
 
+    /// Months that already have a budget: the month pickers refuse them.
+    var existingPeriods: Set<BudgetPeriod> {
+        Set(budgets.compactMap { budget in
+            budget.month.flatMap { month in budget.year.map { BudgetPeriod(month: month, year: $0) } }
+        })
+    }
+
     var nextAvailableMonth: (month: Int, year: Int)? {
         let calendar = Calendar.current
         let now = Date()

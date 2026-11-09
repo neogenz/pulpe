@@ -6,6 +6,7 @@ enum ToPointPresentation {
     struct LineFact: Equatable {
         let text: String
         let isOverrun: Bool
+        var hasAmount = false
     }
 
     /// A prévision's one fact: how far past its plan it ran, what is left of it once movements
@@ -17,15 +18,20 @@ enum ToPointPresentation {
     ) -> LineFact {
         if consumption.available < 0 {
             let over = (-consumption.available).asAmount(for: currency)
-            return LineFact(text: AppLocale.string("\(over) au-delà du prévu"), isOverrun: true)
+            return LineFact(text: AppLocale.string("\(over) au-delà du prévu"), isOverrun: true, hasAmount: true)
         }
         if consumption.allocated > 0 {
             let left = consumption.available.asAmount(for: currency)
-            return LineFact(text: AppLocale.string("Reste \(left)"), isOverrun: false)
+            return LineFact(text: AppLocale.string("Reste \(left)"), isOverrun: false, hasAmount: true)
         }
         let rhythm = line.spreadGroupId != nil ? PendingWording.spread : line.recurrence.label
         let text = line.kind == .saving ? AppLocale.string("Épargne · \(rhythm)") : rhythm
         return LineFact(text: text, isOverrun: false)
+    }
+
+    /// Just pointed from this page and still pointed: an un-point or an undo ends the « à l'instant ».
+    static func isPointedNow(pointedHere: Set<String>, id: String, isChecked: Bool) -> Bool {
+        pointedHere.contains(id) && isChecked
     }
 
     /// "Courses · pointé à l'instant", "Hors prévision · Aujourd'hui": where the movement was

@@ -133,7 +133,9 @@ struct ToPointPage: View {
                     subtitle: ToPointPresentation.movementFact(
                         for: transaction,
                         lineName: transaction.budgetLineId.flatMap { lineNames[$0] },
-                        pointedNow: pointedHere.contains(transaction.id)
+                        pointedNow: ToPointPresentation.isPointedNow(
+                            pointedHere: pointedHere, id: transaction.id, isChecked: transaction.isChecked
+                        )
                     ),
                     amount: transaction.amount.asAmount(for: currency),
                     isPointed: transaction.isChecked,
@@ -168,6 +170,7 @@ struct ToPointPage: View {
                     title: line.name,
                     subtitle: fact.text,
                     isOverrun: fact.isOverrun,
+                    subtitleHasAmount: fact.hasAmount,
                     amount: line.amount.asAmount(for: currency),
                     isPointed: line.isChecked,
                     isSyncing: store.syncingBudgetLineIds.contains(line.id),
@@ -230,6 +233,7 @@ struct ToPointPage: View {
         Task {
             ProductTips.checking.invalidate(reason: .actionPerformed)
             if wasPointed {
+                pointedHere.remove(id)
                 switch item {
                 case .transaction(let transaction, _): _ = await store.toggleTransaction(transaction)
                 case .budgetLine(let line, _): _ = await store.toggleBudgetLine(line)

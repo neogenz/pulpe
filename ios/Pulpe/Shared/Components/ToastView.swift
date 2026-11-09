@@ -62,7 +62,7 @@ struct ToastView: View {
                             .padding(.horizontal, DesignTokens.Spacing.md)
                     }
                     .buttonStyle(PlainPressedButtonStyle())
-                    .accessibilityLabel("Annuler la suppression")
+                    .accessibilityLabel(toast.undoAccessibilityLabel)
                 }
 
                 // V2: an undo toast carries one action; it still leaves on a swipe down, on its

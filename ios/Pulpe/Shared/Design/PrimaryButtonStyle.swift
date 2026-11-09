@@ -134,23 +134,6 @@ struct IconButtonStyle: ButtonStyle {
     }
 }
 
-/// Icon button on the forest hero surface: a `heroDisc` under a `heroInk` glyph,
-/// so the glyph keeps its contrast whatever the navigation bar's colour scheme is doing
-/// (the scheme lags a tab switch; the disc does not). 44pt hit area around a 36pt disc.
-struct HeroToolbarButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(PulpeTypography.labelLarge.weight(.semibold))
-            .foregroundStyle(Color.heroInk)
-            .frame(width: DesignTokens.IconSize.heroToolbarDisc, height: DesignTokens.IconSize.heroToolbarDisc)
-            .background(Color.heroDisc, in: Circle())
-            .frame(minWidth: DesignTokens.TapTarget.minimum, minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Rectangle())
-            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
-            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
-    }
-}
-
 /// Text-link button style (forgot password, create account, see-all links)
 /// Provides pressed feedback and extends hit area to full frame.
 /// Callers are responsible for sizing (padding, frame) — the style does not enforce 44pt.
@@ -218,19 +201,6 @@ extension View {
         self.buttonStyle(IconButtonStyle())
     }
 
-    /// Icon button on the hero surface while `isOnHeroSurface`; the flat canvas states
-    /// keep `iconButtonStyle()`.
-    func heroToolbarButtonStyle(_ isOnHeroSurface: Bool) -> some View {
-        modifier(HeroToolbarButtonModifier(isOnHeroSurface: isOnHeroSurface))
-    }
-
-    /// Hero under the navigation bar: no bar background, and on iOS 26 the soft
-    /// scroll-edge effect, pinned — the hard one rules a hairline across the forest on scroll.
-    /// Light ink while `isOnHeroSurface`, the screen's own ink otherwise.
-    func heroNavigationBar(isOnHeroSurface: Bool) -> some View {
-        modifier(HeroNavigationBarModifier(isOnHeroSurface: isOnHeroSurface))
-    }
-
     /// Applies text-link button styling (44pt minimum tap height)
     func textLinkButtonStyle() -> some View {
         self.buttonStyle(TextLinkButtonStyle())
@@ -252,55 +222,5 @@ extension View {
     /// Applies circle icon button styling (44×44pt minimum tap target, circular hit area)
     func circleIconButtonStyle() -> some View {
         self.buttonStyle(CircleIconButtonStyle())
-    }
-}
-
-private struct HeroNavigationBarModifier: ViewModifier {
-    let isOnHeroSurface: Bool
-    @Environment(\.colorScheme) private var colorScheme
-
-    func body(content: Content) -> some View {
-        // Named off the forest, never nil: going back to nil leaves the bar's light ink on.
-        let bare = content
-            .toolbarColorScheme(isOnHeroSurface ? .dark : colorScheme, for: .navigationBar)
-            .toolbarBackground(.hidden, for: .navigationBar)
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            bare.scrollEdgeEffectStyle(.soft, for: .top)
-        } else {
-            bare
-        }
-        #else
-        bare
-        #endif
-    }
-}
-
-private struct HeroToolbarButtonModifier: ViewModifier {
-    let isOnHeroSurface: Bool
-
-    func body(content: Content) -> some View {
-        if isOnHeroSurface {
-            content.buttonStyle(HeroToolbarButtonStyle())
-        } else {
-            content.buttonStyle(IconButtonStyle())
-        }
-    }
-}
-
-extension ToolbarContent {
-    /// On the hero surface the discs are the only shapes: hides the toolbar's own glass
-    /// behind the items on iOS 26. No-op on earlier systems and on a flat canvas.
-    @ToolbarContentBuilder
-    func heroToolbarGroup(_ isOnHeroSurface: Bool) -> some ToolbarContent {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *), isOnHeroSurface {
-            sharedBackgroundVisibility(.hidden)
-        } else {
-            self
-        }
-        #else
-        self
-        #endif
     }
 }

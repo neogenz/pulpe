@@ -4,9 +4,10 @@ import SwiftUI
 /// « Ton disponible de <mois> » card for the first month the plan changes.
 extension GoalPlanSimulatorSheet {
     /// « 400.00 requis », then two rounder steps above it (400 → 500, 700). Empty without a
-    /// required pace: there is nothing to anchor the shortcuts on.
-    static func quickAmounts(required: Decimal?) -> [Decimal] {
-        guard let required, required > 0 else { return [] }
+    /// required pace: there is nothing to anchor the shortcuts on. The server pace is rounded
+    /// up to the cent (`docs/SAVINGS.md`), or the plan would end a cent short of the target.
+    static func quickAmounts(required rawRequired: Decimal?) -> [Decimal] {
+        guard let required = rawRequired?.rounded(2, .up), required > 0 else { return [] }
         let steps = [Decimal(1.25), Decimal(1.75)].map { factor -> Decimal in
             var hundreds = required * factor / 100
             var rounded = Decimal()

@@ -59,15 +59,6 @@ extension AddBudgetLineSheet {
         kind == .income && origin == .savingsGoal
     }
 
-    /// The two origins that forbid pointing, for opposite reasons: an announced
-    /// withdrawal is realized by creating the real income, and the PUL-292 advance
-    /// routes away before a line exists at all. Read by the toggle's gate, the
-    /// origin reset and the submit, so the three cannot disagree.
-    static func forbidsChecked(kind: TransactionKind, origin: IncomeOrigin) -> Bool {
-        isSavingsWithdrawal(kind: kind, origin: origin)
-            || isPlannedWithdrawal(kind: kind, origin: origin)
-    }
-
     /// Mon patrimoine on, and an own asset to draw from.
     var offersAsset: Bool {
         Self.offersAsset(flagOn: featureFlags.isNetWorthEnabled, store: assetStore)
@@ -110,7 +101,7 @@ extension AddBudgetLineSheet {
                 get: { incomeOrigin.savingsOrigin },
                 set: { incomeOrigin = IncomeOrigin(isFromSavings: true, savingsOrigin: $0) }
             ),
-            offersRepay: true,
+            offersRepay: onRequestSavingsWithdrawal != nil,
             offersAsset: offersAsset,
             tintColor: kind.color
         )
@@ -123,13 +114,18 @@ extension AddBudgetLineSheet {
         if kind == .income, incomeOrigin != .asset { assetId = nil }
     }
 
-    /// Keeps the projection judged on the amount the goal would actually give up.
+    /// Keeps the projections (impact block, planned withdrawal) judged on the amount in the
+    /// account currency.
     /// The rate is cached for a day, so retyping does not hit the network. A
     /// failure leaves `convertedAmount` nil: the preview drops its "après" and
     /// the planification carries on.
     func refreshConvertedAmount() async {
-        guard isPlannedWithdrawalMode, let amount, amount > 0 else {
+        guard let amount, amount > 0 else {
             convertedAmount = nil
+            return
+        }
+        guard inputCurrency != userSettingsStore.currency else {
+            convertedAmount = amount
             return
         }
         let conversion = try? await conversionService.convert(
@@ -137,7 +133,7 @@ extension AddBudgetLineSheet {
             from: inputCurrency,
             to: userSettingsStore.currency
         )
-        convertedAmount = conversion?.convertedAmount ?? amount
+        convertedAmount = conversion?.convertedAmount
     }
 }
 

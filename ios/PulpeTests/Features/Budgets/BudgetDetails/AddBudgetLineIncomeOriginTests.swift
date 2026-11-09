@@ -67,21 +67,6 @@ struct AddBudgetLineIncomeOriginTests {
         #expect(advance.map(\.kind) == [.income])
     }
 
-    /// An announced withdrawal is realized by creating the real income, so it can
-    /// never start pointed; the PUL-292 advance routes away before a line exists.
-    /// Everything else keeps its toggle.
-    @Test("Both withdrawal origins forbid pointing, an ordinary income does not")
-    func forbidsChecked_coversBothWithdrawalOriginsOnly() {
-        let forbidding = Self.combinations.filter {
-            AddBudgetLineSheet.forbidsChecked(kind: $0.kind, origin: $0.origin)
-        }
-        let forbiddenOrigins = Set(forbidding.map(\.origin))
-
-        #expect(forbiddenOrigins == [.savingsGoal, .repayNextMonth])
-        #expect(forbidding.count == forbiddenOrigins.count, "income only — one row per origin")
-        #expect(!AddBudgetLineSheet.forbidsChecked(kind: .income, origin: .regular))
-    }
-
     // The sheet asks "from my savings?" then "which?" — two controls over one origin.
     @Test("The savings toggle off is an ordinary income, whatever the segment")
     func toggleOff_isRegular() {
@@ -106,11 +91,10 @@ struct AddBudgetLineIncomeOriginTests {
         #expect(turnedOn == .savingsGoal)
     }
 
-    @Test("The asset origin maps both ways and is pointed like a regular income")
-    func assetOrigin_roundTripsAndCanBePointed() {
+    @Test("The asset origin maps both ways")
+    func assetOrigin_roundTrips() {
         #expect(IncomeOrigin(isFromSavings: true, savingsOrigin: .asset) == .asset)
         #expect(IncomeOrigin.asset.savingsOrigin == .asset)
-        #expect(!AddBudgetLineSheet.forbidsChecked(kind: .income, origin: .asset))
     }
 
     @Test("An income carries an asset only in the asset origin, never next to a goal link")

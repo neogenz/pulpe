@@ -17,7 +17,8 @@ extension CurrentMonthStore {
             toasts.showWithUndo(
                 AppLocale.string("\(item.name) pointé"),
                 undo: { [self] in await undoPointing(item, toasts: toasts) },
-                onFinishedWithoutUndo: {}
+                onFinishedWithoutUndo: {},
+                undoAccessibilityLabel: AppLocale.string("Annuler")
             )
         } else {
             toasts.show(AppLocale.string("\(item.name) n'a pas pu être pointé — réessaie"), type: .error)

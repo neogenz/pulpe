@@ -7,6 +7,8 @@ struct PointRow: View {
     let title: String
     let subtitle: String
     var isOverrun = false
+    /// The subtitle prints an amount: it leaves the row while amounts are hidden.
+    var subtitleHasAmount = false
     let amount: String
     let isPointed: Bool
     let isSyncing: Bool
@@ -14,6 +16,7 @@ struct PointRow: View {
     /// line both up with the discs and titles of its other rows.
     var leadingInset = DesignTokens.Spacing.xs
     var textGap = DesignTokens.Spacing.xs
+    @Environment(\.amountsHidden) var amountsHidden
     let onToggle: () -> Void
     let onOpen: () -> Void
 
@@ -24,7 +27,7 @@ struct PointRow: View {
             Button(action: onOpen) {
                 PulpeListRow(
                     title: title,
-                    subtitle: subtitle,
+                    subtitle: amountsHidden && subtitleHasAmount ? nil : subtitle,
                     subtitleTint: isOverrun ? .financialOverBudget : .textSecondary,
                     trailing: { Text(amount).sensitiveAmount() }
                 )

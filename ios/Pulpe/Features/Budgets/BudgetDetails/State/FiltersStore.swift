@@ -12,7 +12,13 @@ import SwiftUI
 @Observable @MainActor
 final class FiltersStore {
     private(set) var typeFilter: BudgetLineKindFilter = .all
-    private(set) var checkedFilter: CheckedFilterOption
+    private(set) var savedCheckedFilter: CheckedFilterOption
+
+    /// True while the filter rail is hidden (month to come): the saved filter must not hide
+    /// lines the user cannot bring back.
+    private(set) var isRailHidden = false
+
+    var checkedFilter: CheckedFilterOption { isRailHidden ? .all : savedCheckedFilter }
 
     @ObservationIgnored private let defaults: UserDefaults
 
@@ -26,10 +32,11 @@ final class FiltersStore {
         // upgrading from earlier builds.
         if let raw = defaults.string(forKey: Keys.checkedFilter),
            let restored = CheckedFilterOption(rawValue: raw) {
-            self.checkedFilter = restored
+            // The rail has no « Pointé » chip: a restored `.checked` could not be left.
+            self.savedCheckedFilter = restored == .checked ? .all : restored
         } else {
             let showOnlyUnchecked = defaults.object(forKey: Keys.showOnlyUnchecked) as? Bool ?? true
-            self.checkedFilter = showOnlyUnchecked ? .unchecked : .all
+            self.savedCheckedFilter = showOnlyUnchecked ? .unchecked : .all
         }
 
         if let raw = defaults.string(forKey: Keys.typeFilter),
@@ -38,8 +45,12 @@ final class FiltersStore {
         }
     }
 
+    func setRailHidden(_ hidden: Bool) {
+        isRailHidden = hidden
+    }
+
     func setCheckedFilter(_ filter: CheckedFilterOption) {
-        checkedFilter = filter
+        savedCheckedFilter = filter
         defaults.set(filter.rawValue, forKey: Keys.checkedFilter)
         // Keep the legacy Bool key in sync so any older code path (e.g. widget
         // sharing the App Group) still reads a meaningful value.
@@ -71,7 +82,7 @@ final class FiltersStore {
                 isEffectivelyChecked($0, consumptionByLineId: consumptionByLineId)
             }
         case .over:
-            return lines.filter { consumptionByLineId[$0.id]?.isOverBudget == true }
+            return lines.filter { $0.kind == .expense && consumptionByLineId[$0.id]?.isOverBudget == true }
         }
     }
 

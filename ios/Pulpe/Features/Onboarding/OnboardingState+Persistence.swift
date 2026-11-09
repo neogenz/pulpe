@@ -232,18 +232,21 @@ extension OnboardingState {
             .onboardingResumed,
             [
                 // The cold-start resumes' value space: the provider collapses to email or social.
-                "method": authMethodProperty == "email" ? "email" : "social",
-                "source": "foreground",
+                "method": (authMethodProperty == "email" ? PendingOnboardingUser.ResumeMethod.email : .social).rawValue,
+                "source": OnboardingFlow.ResumeSource.foreground.rawValue,
                 "resumed_at_step": currentStep.analyticsName
             ]
         )
     }
 
-    func captureStepBack(from: OnboardingStep, to: OnboardingStep) {
-        AnalyticsService.shared.capture(
-            .onboardingStepBack,
-            properties: ["from_step": from.analyticsName, "to_step": to.analyticsName]
-        )
+    func captureStepBack(
+        from: OnboardingStep,
+        to: OnboardingStep,
+        send: (AnalyticsEvent, [String: Any]) -> Void = {
+            AnalyticsService.shared.capture($0, properties: $1)
+        }
+    ) {
+        send(.onboardingStepBack, ["from_step": from.analyticsName, "to_step": to.analyticsName])
     }
 
     /// Fire `onboarding_step_completed` with `step_index` (1-based), `step_count`,

@@ -38,6 +38,19 @@ struct SpreadExistingPresentationTests {
         #expect(impact.after == 950)
     }
 
+    @Test func spreadingALine_freesItsRealMovements() {
+        let source = SpreadExistingSource(
+            id: "trip", sourceType: .budgetLine, kind: .expense, name: "Voyage", total: 1200, month: 11, year: 2026
+        )
+        let allocated = MonthLedger(
+            lines: [TestDataFactory.createBudgetLine(id: "trip", name: "Voyage", amount: 1200, recurrence: .oneOff)],
+            transactions: [TestDataFactory.createTransaction(id: "t", budgetLineId: "trip", amount: 300)],
+            rollover: 0
+        )
+        let impact = source.impact(share: 100, on: allocated)
+        #expect(impact.after - impact.before == 800)
+    }
+
     @Test func spreadInstead_isTheLargestSpreadableExpense() {
         let candidate = SpreadExistingSource.largestSpreadableExpense(in: ledger, month: 11, year: 2026)
         #expect(candidate?.id == "car")

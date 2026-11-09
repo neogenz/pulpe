@@ -34,6 +34,7 @@ struct ImpactBlock: View {
     var tone: Tone = .neutral
     /// `false` when nothing moves: the title and the note say it, no figure to repeat.
     var showsFigures = true
+    @Environment(\.amountsHidden) private var amountsHidden
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -58,12 +59,14 @@ struct ImpactBlock: View {
                 .font(PulpeTypography.impactAmount)
                 .minimumScaleFactor(DesignTokens.TextScale.floor)
                 .lineLimit(1)
+                .sensitiveAmount()
             }
 
             if let note {
                 Text(note)
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textSecondary)
+                    .sensitiveAmount()
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg - DesignTokens.BorderWidth.thick)
@@ -76,13 +79,13 @@ struct ImpactBlock: View {
 
     private var accessibilitySummary: String {
         var parts = [title]
-        if showsFigures {
+        if showsFigures, !amountsHidden {
             if let before {
                 parts.append(AppLocale.string("avant") + " " + before.asCurrency(currency))
             }
             parts.append(AppLocale.string("après") + " " + after.asCurrency(currency))
         }
-        if let note { parts.append(note) }
+        if let note, !amountsHidden { parts.append(note) }
         return parts.joined(separator: ", ")
     }
 }

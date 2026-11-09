@@ -66,6 +66,7 @@ struct GoalDeletionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(SavingsGoalStore.self) private var store
     @Environment(BudgetListStore.self) private var budgetListStore: BudgetListStore?
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     @State private var presentation = GoalDeletionPresentation()
     @State private var isLoading = true
@@ -286,17 +287,24 @@ private extension GoalDeletionSheet {
         }
     }
 
-    /// « Ton disponible de <mois> »: deleting the prévisions frees this month's share of them.
+    /// « Ton disponible de <mois> »: deleting the prévisions frees what they cost this month,
+    /// max(prévu, Réels) each. Their Réels stay as free Réels unless the movements go too.
     @ViewBuilder
     private var availabilityImpact: some View {
-        let now = Calendar.current.dateComponents([.month, .year], from: Date())
-        if let month = now.month, let year = now.year,
-           let before = budgetListStore?.budgets.first(where: { $0.month == month && $0.year == year })?.remaining {
+        let period = BudgetPeriodCalculator.periodForDate(
+            Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+        let (month, year) = (period.month, period.year)
+        if let before = budgetListStore?.budgets.first(where: { $0.month == month && $0.year == year })?.remaining {
             let freed = presentation.deletesForecasts
                 ? presentation.budgets
                     .filter { $0.month == month && $0.year == year }
                     .flatMap(\.lines)
-                    .reduce(Decimal.zero) { $0 + $1.amount }
+                    .reduce(Decimal.zero) { total, line in
+                        let real = line.transactions.reduce(Decimal.zero) { $0 + $1.amount }
+                        let cost = max(line.amount, real)
+                        return total + cost - (presentation.deletesTransactions ? 0 : real)
+                    }
                 : 0
             let title = GoalMonthAvailability.title(month: month)
             if freed == 0 {

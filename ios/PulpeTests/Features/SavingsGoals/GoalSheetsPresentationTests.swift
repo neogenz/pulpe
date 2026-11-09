@@ -35,8 +35,11 @@ struct GoalSheetsPresentationTests {
     }
 
     @Test("simulator shortcuts start at the required pace, then round up to the hundred")
-    func quickAmounts() {
+    func quickAmounts() throws {
         #expect(GoalPlanSimulatorSheet.quickAmounts(required: 400) == [400, 500, 700])
+        let fractional = Decimal(1000) / 3
+        let expected = try #require(Decimal(string: "333.34"))
+        #expect(GoalPlanSimulatorSheet.quickAmounts(required: fractional) == [expected, 500, 600])
         #expect(GoalPlanSimulatorSheet.quickAmounts(required: nil).isEmpty)
         #expect(GoalPlanSimulatorSheet.quickAmounts(required: 0).isEmpty)
     }

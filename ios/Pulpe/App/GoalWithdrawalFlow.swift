@@ -25,8 +25,9 @@ private struct GoalWithdrawalFlow: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content
-            .environment(\.requestGoalWithdrawal) { request = Request(goalId: $0) }
+        let hasBudget = currentMonthStore.budget != nil
+        return content
+            .environment(\.requestGoalWithdrawal, hasBudget ? { request = Request(goalId: $0) } : nil)
             .sheet(item: $request) { request in
                 if let budget = currentMonthStore.budget {
                     MovementSheet(

@@ -80,19 +80,19 @@ struct FiltersStoreTests {
         #expect(recreated.typeFilter == .income)
     }
 
-    /// Regression test: the `.checked` raw value must survive a relaunch.
-    /// The earlier persistence path relied on a legacy Bool key that collapsed
-    /// `.checked` onto `.all`, dropping the third state on restore.
+    /// Regression test: a raw value beyond the legacy Bool key must survive a relaunch.
+    /// The earlier persistence path collapsed every state onto `.unchecked` / `.all`.
+    /// `.checked` has no chip any more and restores as `.all` (FiltersStoreRailTests).
     @Test
     func setCheckedFilter_persistsRawValue_acrossInit() {
         clearFilterPrefs()
         defer { clearFilterPrefs() }
 
         let first = FiltersStore()
-        first.setCheckedFilter(.checked)
+        first.setCheckedFilter(.over)
 
         let recreated = FiltersStore()
-        #expect(recreated.checkedFilter == .checked)
+        #expect(recreated.checkedFilter == .over)
     }
 }
 

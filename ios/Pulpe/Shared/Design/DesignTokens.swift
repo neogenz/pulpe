@@ -60,10 +60,6 @@ enum DesignTokens {
         static let sm: CGFloat = 8
         /// Compact horizontal gap (10pt) — tab bar segment gap
         static let compactGap: CGFloat = 10
-        /// Vertical inset a plain-list section header carries by default (10pt).
-        /// Reproduce it whenever `listRowInsets` is cleared to paint the header
-        /// row itself, or the header shifts against the rows it introduces.
-        static let listHeaderVertical: CGFloat = 10
         static let md: CGFloat = 12
         static let lg: CGFloat = 16
         static let xl: CGFloat = 20
@@ -88,8 +84,6 @@ enum DesignTokens {
         static let heroV2: CGFloat = -2
         /// Section titles
         static let title: CGFloat = -0.6
-        /// Uppercase labels — narrow
-        static let uppercaseNarrow: CGFloat = 0.5
         /// Uppercase labels — standard
         static let uppercase: CGFloat = 0.7
         /// Uppercase labels — wide
@@ -184,8 +178,6 @@ enum DesignTokens {
         static let strong: Double = 0.3
         /// Onboarding progress indicator — completed-segment track fill
         static let progressTrackActive: Double = 0.32
-        /// Auth field border — focused state (between disabled 0.4 and heavy 0.5)
-        static let borderFocused: Double = 0.45
         /// Heavy overlays
         static let heavy: Double = 0.5
         /// The skeleton pulse's low point, shared with the projection while an entry settles.
@@ -197,8 +189,6 @@ enum DesignTokens {
         static let heroInkMuted: Double = 0.6
         /// Translucent metric tile on the forest hero surface (`Color.heroTile`)
         static let heroTile: Double = 0.12
-        /// A 36pt toolbar disc on the forest: the tile tint vanishes at that size.
-        static let heroDisc: Double = 0.2
         /// Unselected bars of the forecast chart: the savings green on white still clears the
         /// 3:1 WCAG 1.4.11 floor here (3.4:1), which `lockedDim` (0.62) does not.
         static let chartUnselected: Double = 0.7
@@ -215,8 +205,6 @@ enum DesignTokens {
     // MARK: - Icon Sizes
 
     enum IconSize {
-        /// Disc behind a toolbar glyph on the hero surface (`HeroToolbarButtonStyle`).
-        static let heroToolbarDisc: CGFloat = 36
         /// List row icons
         static let listRow: CGFloat = 40
         /// Compact badges
@@ -261,8 +249,6 @@ enum DesignTokens {
         static let chip: CGFloat = 36
         /// Progress bar track
         static let progressBar: CGFloat = 8
-        /// Onboarding progress bar, a hairline under the CTA
-        static let progressBarThin: CGFloat = 4
         /// Thin separator lines
         static let separator: CGFloat = 1
         /// Inline vertical divider inside a horizontally scrollable filter bar
@@ -401,8 +387,6 @@ enum DesignTokens {
         /// A `HeroMetricTile` placeholder: value + label lines plus `md` padding on each side.
         static let heroTileHeight: CGFloat = 64
         static let sectionHeight: CGFloat = 20
-        static let tagHeight: CGFloat = 20
-        static let chipHeight: CGFloat = 30
         static let controlHeight: CGFloat = 36
         static let amountHeight: CGFloat = 44
         static let displayHeight: CGFloat = 56

@@ -11,9 +11,11 @@ struct CreateBudgetView: View {
     @State private var showCreateTemplate = false
     @State private var showsMonthPicker = false
 
-    init(month: Int, year: Int, onCreate: @escaping (Budget) -> Void) {
+    init(month: Int, year: Int, existingPeriods: Set<BudgetPeriod> = [], onCreate: @escaping (Budget) -> Void) {
         self.onCreate = onCreate
-        self._viewModel = State(initialValue: CreateBudgetViewModel(month: month, year: year))
+        self._viewModel = State(
+            initialValue: CreateBudgetViewModel(month: month, year: year, existingPeriods: existingPeriods)
+        )
     }
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
@@ -87,6 +89,18 @@ struct CreateBudgetView: View {
     // MARK: - Period
 
     private var periodCard: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            periodRows
+            if viewModel.periodAlreadyExists {
+                Text(AppLocale.string("Un budget existe déjà pour cette période — choisis un autre mois"))
+                    .font(PulpeTypography.footnote)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
+            }
+        }
+    }
+
+    private var periodRows: some View {
         FormCard {
             Button { showsMonthPicker = true } label: {
                 BudgetFormValueRow(title: AppLocale.string("Mois"), value: viewModel.monthYearFormatted)
@@ -261,8 +275,11 @@ final class CreateBudgetViewModel {
     private let templateService = TemplateService.shared
     private let budgetService = BudgetService.shared
 
-    init(month: Int, year: Int) {
+    private let existingPeriods: Set<BudgetPeriod>
+
+    init(month: Int, year: Int, existingPeriods: Set<BudgetPeriod> = []) {
         self.period = BudgetPeriod(month: month, year: year)
+        self.existingPeriods = existingPeriods
     }
 
     var monthYearFormatted: String {
@@ -274,8 +291,10 @@ final class CreateBudgetViewModel {
         selectedTemplateId.flatMap { templateTotals[$0]?.balance }
     }
 
+    var periodAlreadyExists: Bool { existingPeriods.contains(period) }
+
     var canCreate: Bool {
-        selectedTemplateId != nil && !isCreating && !isLoadingTemplates
+        selectedTemplateId != nil && !periodAlreadyExists && !isCreating && !isLoadingTemplates
     }
 
     func loadTemplates() async {

@@ -34,24 +34,6 @@ struct HomeHeroCardTests {
         let cent = HeroVerdictPresentation(plannedBalance: 58.50, estimatedBalance: 58.49)
         #expect(cent.variance == -0.01)
         #expect(cent.verdict == .overrun)
-        #expect(cent.varianceText(for: .chf) == "-0.01 CHF")
-    }
-
-    @Test func envelopeOverrun_countsAsAbsorbedWhenTheMonthLandsExactlyOnPlan() {
-        // A 200 overrun cancelled by 200 of free income lands the month exactly on plan.
-        // `DriftCard` gates its "compensé ailleurs ce mois" clause on this: without the
-        // on-plan case it says "200 CHF au-delà du plan" flat while the hero says
-        // "Tu es pile sur ton plan" — two claims that contradict each other.
-        let onPlan = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 450)
-        #expect(onPlan.verdict == .onPlan)
-        #expect(onPlan.absorbsEnvelopeOverrun)
-
-        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
-        #expect(gain.absorbsEnvelopeOverrun)
-
-        // The one month that genuinely leaves the excess uncovered.
-        let overrun = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 300)
-        #expect(!overrun.absorbsEnvelopeOverrun)
     }
 
     @Test func verdictSentence_datesTheDayTheMonthLeftItsPlan() throws {
@@ -89,20 +71,6 @@ struct HomeHeroCardTests {
         // No plot to date the departure from: the sentence drops the clause, not the verdict.
         let undated = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 1_800)
         #expect(undated.verdictText == "Il te reste moins que prévu.")
-    }
-
-    @Test func varianceMetric_carriesItsCurrencyBesideTheOperationCount() {
-        // "Imprévus" shares its row with "à pointer", which is a count of operations. With
-        // no unit the two are the same figure in the same type, and the money one is the
-        // one that becomes unreadable.
-        let onPlan = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 2_500)
-        #expect(onPlan.varianceText(for: .chf) == "0 CHF")
-
-        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
-        #expect(gain.varianceText(for: .chf) == "+350 CHF")
-
-        let overrun = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 300)
-        #expect(overrun.varianceText(for: .eur) == "-150 €")
     }
 
     @Test func deficitAcrossZero_isOverrunAndDeficit() {
@@ -153,62 +121,6 @@ struct HomeHeroCardTests {
         let flatDomain = HomeHeroCard.chartYDomain(for: flat)
         #expect(flatDomain.lowerBound < 50)
         #expect(flatDomain.upperBound > 50)
-    }
-
-    @Test func hiddenAmounts_accessibilityDescriptionContainsNoFinancialValue() {
-        let state = HeroVerdictPresentation(
-            plannedBalance: 450,
-            estimatedBalance: -3000
-        )
-
-        let description = state.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: true,
-            uncheckedCount: 1
-        )
-
-        #expect(
-            description
-                == """
-                Juillet. Solde estimé fin de mois, montant masqué. \
-                Comparaison au budget masquée. 1 opération à pointer.
-                """
-        )
-        #expect(!description.contains("CHF"))
-        #expect(!description.contains("450"))
-        #expect(!description.contains("3000"))
-    }
-
-    @Test func accessibilityDescription_explainsComparisonInEverydayFrench() throws {
-        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
-        let overrun = HeroVerdictPresentation(
-            plannedBalance: 450,
-            estimatedBalance: 300,
-            driftDate: try date(year: 2026, month: 7, day: 6)
-        )
-        let onPlan = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 450)
-
-        #expect(gain.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: false,
-            uncheckedCount: 2
-        ).contains("350 CHF de mieux que prévu"))
-        // Mirrors the sentence on screen, date included: the two must not describe the same
-        // month differently depending on who is reading it.
-        #expect(overrun.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: false,
-            uncheckedCount: 0
-        ).contains("150 CHF de moins que prévu depuis le 6 juillet"))
-        #expect(onPlan.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: false,
-            uncheckedCount: 1
-        ).contains("Pile sur ton plan"))
     }
 
     @Test func drift_isTheDistanceFromThePlanTheLineOpenedOn() {

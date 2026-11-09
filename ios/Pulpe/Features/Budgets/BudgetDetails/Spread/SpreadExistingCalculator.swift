@@ -138,7 +138,16 @@ extension SpreadExistingSource {
     func impact(share: Decimal, on ledger: MonthLedger) -> MovementImpact {
         switch sourceType {
         case .budgetLine:
-            return .between(ledger, ledger.replacing(lineId: id, amount: share))
+            // The server deletes the source: its Réels survive unlinked (`ON DELETE SET NULL`).
+            let planned = ledger.replacing(lineId: id, amount: share)
+            let unlinked = planned.transactions.map { tx -> Transaction in
+                guard tx.budgetLineId == id else { return tx }
+                var free = tx
+                free.budgetLineId = nil
+                return free
+            }
+            let after = MonthLedger(lines: planned.lines, transactions: unlinked, rollover: planned.rollover)
+            return .between(ledger, after)
         case .transaction:
             let withoutSource = MonthLedger(
                 lines: ledger.lines,

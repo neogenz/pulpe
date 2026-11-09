@@ -75,7 +75,6 @@ enum Endpoint {
     case savingsGoals
     case savingsGoal(id: String)
     case savingsGoalProgress(id: String)
-    case savingsGoalContributions(id: String)
     case savingsGoalPlanApply(id: String)
     case savingsGoalFutureLines(id: String, targetDate: String?)
     case savingsGoalGenerationStop(id: String)
@@ -189,7 +188,6 @@ enum Endpoint {
         case .savingsGoals: return "/savings-goals"
         case .savingsGoal(let id): return "/savings-goals/\(id)"
         case .savingsGoalProgress(let id): return "/savings-goals/\(id)/progress"
-        case .savingsGoalContributions(let id): return "/savings-goals/\(id)/contributions"
         case .savingsGoalPlanApply(let id): return "/savings-goals/\(id)/plan"
         case .savingsGoalFutureLines(let id, _): return "/savings-goals/\(id)/future-lines"
         case .savingsGoalGenerationStop(let id): return "/savings-goals/\(id)/generation-stop"
@@ -253,7 +251,7 @@ enum Endpoint {
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetDeletionImpact, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .transactionsExists, .budgetsSparse, .feedbackStatus,
-             .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
+             .savingsGoals, .savingsGoal, .savingsGoalProgress,
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,
              .encryptionVaultStatus, .encryptionSalt,

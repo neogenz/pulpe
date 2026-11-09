@@ -10,21 +10,6 @@ enum SavingsGoalPaceStatus: String, Decodable, Sendable, Equatable {
     case ahead
 }
 
-/// One linked saving forecast and the real transactions allocated to it.
-/// Mirrors `GET /savings-goals/:id/contributions` (PUL-12).
-struct SavingsGoalContribution: Decodable, Sendable, Equatable, Identifiable {
-    let lineId: String
-    let name: String
-    let amount: Decimal
-    let checkedAt: Date?
-    let budgetMonth: Int
-    let budgetYear: Int
-    let transactions: [Transaction]
-
-    var id: String { lineId }
-    var isChecked: Bool { checkedAt != nil }
-}
-
 /// Derived progression of a savings goal (PUL-8, `GET /savings-goals/:id/progress`).
 ///
 /// The backend computes **every** figure — the confirmed balance, the planned
@@ -127,31 +112,11 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         projected ?? months.last?.projectedCumulative ?? plannedProjection
     }
 
-    /// Progress fraction (0…1) of `displayedProjection` against the target.
-    /// `nil` without a target, 0 against a zero / undecrypted one (never divide
-    /// by it — §4.3).
-    var displayedProjectionFraction: Double? {
-        guard let targetAmount else { return nil }
-        let roundedTarget = targetAmount.rounded(2)
-        guard roundedTarget > 0 else { return 0 }
-        let ratio = ((displayedProjection.rounded(2) / roundedTarget) as NSDecimalNumber).doubleValue
-        return min(max(ratio, 0), 1)
-    }
-
     /// No pace verdict before the first plan month has closed: a fresh goal has
     /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
     /// or everything pointé — same signal the timeline dims rows on).
     var hasClosedPlanMonth: Bool {
         months.contains { $0.isContributionEligible && $0.isLocked }
-    }
-
-    /// Amount for the day-1 « plan prêt » beat: the current month's planned
-    /// amount. `nil` (beat hidden) when the timeline has no funded current
-    /// month — legacy payload without `months`, or a gap month.
-    var currentMonthPlannedAmount: Decimal? {
-        guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
-              amount > 0 else { return nil }
-        return amount
     }
 
     // MARK: - Init

@@ -32,10 +32,6 @@ extension DesignTokens {
             .spring(response: 0.6, dampingFraction: 0.85)
         }
 
-        static var bouncySpring: SwiftUI.Animation {
-            .spring(response: 0.4, dampingFraction: 0.65)
-        }
-
         static var entranceSpring: SwiftUI.Animation {
             .spring(response: 0.6, dampingFraction: 0.8)
         }
@@ -81,11 +77,6 @@ extension DesignTokens {
             .spring(response: 0.5, dampingFraction: 0.85)
         }
 
-        /// FAB ↔ full-width onboarding CTA — one continuous control (layout + content).
-        static var onboardingCTAMorph: SwiftUI.Animation {
-            .spring(response: 0.48, dampingFraction: 0.88)
-        }
-
         static var iconEntrance: SwiftUI.Animation {
             .spring(response: 0.5, dampingFraction: 0.7)
         }
@@ -109,14 +100,6 @@ extension DesignTokens {
 
         static var pulse: SwiftUI.Animation {
             .easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)
-        }
-
-        /// Slow breathing effect for brand heroes (glow/shadow opacity oscillation).
-        /// Deliberately slow so it feels like ambient life, not a notification.
-        static let heroBreathingDuration: Double = 3.5
-
-        static var heroBreathing: SwiftUI.Animation {
-            .easeInOut(duration: heroBreathingDuration).repeatForever(autoreverses: true)
         }
 
         // MARK: - Push transition timings (BudgetDetails feature pattern)

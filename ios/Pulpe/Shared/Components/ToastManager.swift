@@ -36,6 +36,8 @@ final class ToastManager {
         let undoAction: (@MainActor () async -> Void)?
         /// Appelé si le toast disparaît sans « Annuler » : timeout, bouton fermer, glisser pour fermer, ou remplacement par un autre toast **avec** `onFinishedWithoutUndo`.
         let onFinishedWithoutUndo: (@MainActor () async -> Void)?
+        /// What VoiceOver says for the undo button; the deletion wording unless the toast says otherwise.
+        let undoAccessibilityLabel: String
 
         var hasUndo: Bool { undoAction != nil }
 
@@ -44,7 +46,8 @@ final class ToastManager {
             detail: String? = nil,
             type: ToastType,
             undoAction: (@MainActor () async -> Void)? = nil,
-            onFinishedWithoutUndo: (@MainActor () async -> Void)? = nil
+            onFinishedWithoutUndo: (@MainActor () async -> Void)? = nil,
+            undoAccessibilityLabel: String = Toast.deletionUndoLabel
         ) {
             self.id = UUID()
             self.message = message
@@ -52,7 +55,10 @@ final class ToastManager {
             self.type = type
             self.undoAction = undoAction
             self.onFinishedWithoutUndo = onFinishedWithoutUndo
+            self.undoAccessibilityLabel = undoAccessibilityLabel
         }
+
+        static var deletionUndoLabel: String { AppLocale.string("Annuler la suppression") }
 
         static func == (lhs: Toast, rhs: Toast) -> Bool {
             lhs.id == rhs.id
@@ -98,7 +104,8 @@ final class ToastManager {
         _ message: String,
         detail: String? = nil,
         undo: @escaping @MainActor () async -> Void,
-        onFinishedWithoutUndo: @escaping @MainActor () async -> Void
+        onFinishedWithoutUndo: @escaping @MainActor () async -> Void,
+        undoAccessibilityLabel: String = Toast.deletionUndoLabel
     ) {
         showToast(
             Toast(
@@ -106,7 +113,8 @@ final class ToastManager {
                 detail: detail,
                 type: .undo,
                 undoAction: undo,
-                onFinishedWithoutUndo: onFinishedWithoutUndo
+                onFinishedWithoutUndo: onFinishedWithoutUndo,
+                undoAccessibilityLabel: undoAccessibilityLabel
             )
         )
     }

@@ -68,7 +68,6 @@ struct GoalPlanTimelinePresentationTests {
 
         #expect(collapsed.visibleMonths.map(\.month) == [7, 8, 9, 10])
         #expect(collapsed.hiddenCount == 1)
-        #expect(collapsed.remainingUnlinkedMonthCount == 3)
         #expect(collapsed.repairableMonths.map(\.month) == [11])
         #expect(expanded.visibleMonths.map(\.month) == [7, 8, 9, 10, 11])
         #expect(expanded.hiddenCount == 0)
@@ -93,31 +92,6 @@ struct GoalPlanTimelinePresentationTests {
 
         #expect(presentation.repairableMonths.map(\.month) == [5, 6, 7])
         #expect(presentation.repairableMonths.count == 3)
-    }
-
-    @Test("uses natural agreement for one or several repairable forecasts")
-    func repairMessage_usesNaturalAgreement() {
-        let current = makeMonth(month: 7, state: .current, hasLinkedForecast: true)
-        let august = makeMonth(month: 8, state: .gap, isProvisionable: true)
-        let september = makeMonth(month: 9, state: .gap, isProvisionable: true)
-
-        let singular = GoalPlanTimelinePresentation(
-            months: [current, august],
-            isExpanded: false
-        )
-        let plural = GoalPlanTimelinePresentation(
-            months: [current, august, september],
-            isExpanded: false
-        )
-
-        #expect(
-            singular.repairMessage
-                == "1 prévision Épargne peut maintenant être ajoutée automatiquement."
-        )
-        #expect(
-            plural.repairMessage
-                == "2 prévisions Épargne peuvent maintenant être ajoutées automatiquement."
-        )
     }
 
     @Test("starts the collapsed window at the current month when the plan contains history")
@@ -156,7 +130,6 @@ struct GoalPlanTimelinePresentationTests {
 
         #expect(expanded.visibleMonths.map(\.month) == [4, 5, 6, 7, 8, 9, 10])
         #expect(GoalPlanMonthAvailability(month: months[0]) == .noLinkedForecast)
-        #expect(collapsed.remainingUnlinkedMonthCount == 3)
     }
 
     // MARK: - Announced withdrawals (PUL-329 v2)

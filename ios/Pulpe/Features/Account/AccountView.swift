@@ -34,7 +34,7 @@ struct AccountView: View {
         }
         .pulpeRootBottomInset()
         .background { Color.appBackground.ignoresSafeArea() }
-        .navigationTitle(Tab.currentMonth.title)
+        .navigationTitle(AppLocale.string("Compte"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(removing: .title)
         .alert("Déconnexion", isPresented: $showLogoutConfirmation) {

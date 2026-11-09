@@ -27,8 +27,8 @@ Glass transparency bleeds through:
 .standardSheetPresentation()
 .standardSheetPresentation(detents: [.medium, .large])
 
-// Good — custom background (gradient sheets like RecoveryKeySheet)
-.presentationBackground { Color.loginGradientBackground }
+// Good — custom background (sheets like RecoveryKeySheet)
+.presentationBackground(Color.appBackground)
 
 // Bad — glass bleeds through
 .sheet(isPresented: $show) { MyView() }
@@ -77,7 +77,7 @@ NavigationLink { destination } label: { content }
 ## Animations
 
 - Use `DesignTokens.Animation` springs for all animations, never hard-coded `.easeInOut`
-- `gentleSpring` for soft confirmations, `bouncySpring` for playful interactions
+- `gentleSpring` for soft confirmations, `selectionSpring` for selection changes
 - Always respect `@Environment(\.accessibilityReduceMotion)` for spring/bouncy animations
 
 **Post-animation callbacks** must be tied to the animation lifecycle, never to a guessed delay:

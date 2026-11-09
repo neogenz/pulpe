@@ -24,14 +24,6 @@ struct HeroContrastTests {
 
     private static let textPairs: [Pair] = [
         text("heroInk", .heroInk),
-        // Toolbar glyph on its disc: the disc is ink at `heroDisc` alpha over the forest,
-        // composited here because WCAG measures opaque colours.
-        Pair(
-            name: "heroInk on heroDisc over heroSurface",
-            foreground: .heroInk,
-            background: composite(.heroInk, alpha: DesignTokens.Opacity.heroDisc, over: .heroSurface),
-            floor: textFloor
-        ),
         Pair(name: "heroInk on heroSurfaceTop", foreground: .heroInk, background: .heroSurfaceTop, floor: textFloor),
         text("heroInkSecondary", .heroInkSecondary),
         text("heroAccentPositive", .heroAccentPositive),

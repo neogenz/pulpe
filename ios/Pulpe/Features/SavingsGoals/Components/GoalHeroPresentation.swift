@@ -36,8 +36,7 @@ struct GoalHeroPresentation: Equatable {
     init(
         progress: SavingsGoalProgress,
         status: SavingsGoalStatus,
-        currency: SupportedCurrency,
-        now: Date = Date()
+        currency: SupportedCurrency
     ) {
         confirmedAmount = progress.confirmed
         caption = Self.makeCaption(progress, currency: currency)
@@ -47,7 +46,7 @@ struct GoalHeroPresentation: Equatable {
         // The pace sentence belongs to the ordinary state only: a derived-state card
         // already says what to do when the goal is reached, late or paused.
         let isOrdinary = status == .active && !progress.isOverdue && progress.suggestCompletion != true
-        sentence = isOrdinary ? Self.makeSentence(progress, currency: currency, now: now) : nil
+        sentence = isOrdinary ? Self.makeSentence(progress, currency: currency) : nil
     }
 
     /// « Juin 2027 », or « juin 2027 » inside a sentence.
@@ -139,8 +138,7 @@ struct GoalHeroPresentation: Equatable {
     /// The second half needs a closed month to have a rhythm to quote.
     private static func makeSentence(
         _ progress: SavingsGoalProgress,
-        currency: SupportedCurrency,
-        now: Date
+        currency: SupportedCurrency
     ) -> String? {
         var parts: [String] = []
         if let required = progress.required, required > 0, let deadline = progress.targetDateValue {

@@ -109,6 +109,7 @@ extension MovementSheet {
                 Text(AppLocale.string("reste \(max(left, 0).asCompactAmount(for: currency))"))
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textSecondary)
+                    .sensitiveAmount()
             }
         )
     }

@@ -126,7 +126,8 @@ struct CurrentMonthView: View {
                     if let nextMonth = budgetListStore.nextAvailableMonth {
                         CreateBudgetView(
                             month: nextMonth.month,
-                            year: nextMonth.year
+                            year: nextMonth.year,
+                            existingPeriods: budgetListStore.existingPeriods
                         ) { budget in
                             budgetListStore.addBudget(budget)
                             store.invalidateCache()

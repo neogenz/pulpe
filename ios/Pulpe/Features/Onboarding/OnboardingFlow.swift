@@ -78,7 +78,7 @@ struct OnboardingFlow: View {
                 } else {
                     Button("Quitter", role: .destructive) {
                         captureAbandoned(exitMethod: .quitButton)
-                        state.previousStep()
+                        state.previousStep(reportsStepBack: false)
                     }
                 }
             } message: {
@@ -218,9 +218,10 @@ struct OnboardingFlow: View {
     }
 
     /// Typed `onboarding_resumed` source for disambiguating the recovery path.
-    private enum ResumeSource: String {
+    enum ResumeSource: String {
         case pendingUser = "pending_user"
         case sessionFallback = "session_fallback"
+        case foreground
     }
 
     /// Fire `onboarding_abandoned`. Idempotent via `state.hasAbandoned`.

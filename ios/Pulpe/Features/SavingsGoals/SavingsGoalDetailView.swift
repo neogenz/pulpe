@@ -270,7 +270,7 @@ extension SavingsGoalDetailView {
         if store.goals.contains(where: { $0.id == goal.id }) {
             Task {
                 await viewModel.load()
-                // The edit form can pause/complete the goal — refresh the
+                // The goal may have been paused/completed meanwhile — refresh the
                 // advisory candidates so the CA8 card reflects the new status.
                 await refreshFutureLinesIfStopped()
             }

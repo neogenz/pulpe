@@ -1,8 +1,6 @@
 import SwiftUI
 
 /// Create / edit a savings goal (PUL-12). `goal == nil` → create.
-/// In edit mode it also drives status changes (Actif / En pause / Atteint —
-/// COMPLETED is reversible) and deletion through an exhaustive impact preview.
 /// Target amount is in the account currency (no currency selector in v1, CA27).
 struct SavingsGoalFormSheet: View {
     let goal: SavingsGoal?
@@ -13,6 +11,7 @@ struct SavingsGoalFormSheet: View {
     @Environment(ToastManager.self) private var toastManager
     @Environment(SavingsGoalStore.self) private var store
     @Environment(BudgetListStore.self) private var budgetListStore: BudgetListStore?
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     @State private var name: String
     @State private var amount: Decimal?
@@ -22,7 +21,6 @@ struct SavingsGoalFormSheet: View {
     @State private var hasStartDate: Bool
     @State private var targetDate: Date
     @State private var hasTargetDate: Bool
-    @State private var status: SavingsGoalStatus
     @State private var isLoading = false
     @State private var error: Error?
     @State private var submitSuccessTrigger = 0
@@ -51,7 +49,6 @@ struct SavingsGoalFormSheet: View {
         self.onUpdate = onUpdate
         self.onCreate = onCreate
         _name = State(initialValue: goal?.name ?? initialName ?? "")
-        _status = State(initialValue: goal?.status ?? .active)
 
         let amount = goal?.targetAmount
         _amount = State(initialValue: amount)
@@ -303,11 +300,13 @@ struct SavingsGoalFormSheet: View {
     /// plus the months up to the échéance that have no budget yet.
     @ViewBuilder
     private var availabilityImpact: some View {
-        let calendar = Calendar.current
-        let now = calendar.dateComponents([.month, .year], from: Date())
+        let payDay = userSettingsStore.payDayOfMonth
+        let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDay)
+        let (month, year) = (current.month, current.year)
         let budgets = budgetListStore?.budgets ?? []
-        let startsNow = !hasStartDate || calendar.isDate(startDate, equalTo: Date(), toGranularity: .month)
-        if let month = now.month, let year = now.year, startsNow,
+        let startsNow = !hasStartDate
+            || BudgetPeriodCalculator.periodForDate(startDate, payDayOfMonth: payDay) == current
+        if startsNow,
            let contribution = creationContribution, contribution > 0,
            let before = budgets.first(where: { $0.month == month && $0.year == year })?.remaining {
             ImpactBlock(
@@ -361,7 +360,6 @@ private extension SavingsGoalFormSheet {
                     hasStartDate: hasStartDate,
                     targetDate: targetDate,
                     hasTargetDate: hasTargetDate,
-                    status: status,
                     original: goal
                 )
             )

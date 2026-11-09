@@ -69,10 +69,6 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
         )
     }
 
-    func getContributions(id _: String) async throws -> [SavingsGoalContribution] {
-        contributionFixtures()
-    }
-
     func applyPlan(
         id _: String,
         _ payload: SavingsGoalPlanApply

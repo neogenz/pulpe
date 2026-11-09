@@ -266,6 +266,9 @@ struct BudgetDetailsView: View {
             value: screenState.checkedTickHash
         )
         .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: screenState.checkedFilter)
+        .onChange(of: upcomingReportMonth != nil, initial: true) { _, hidden in
+            Task { await coordinator.dispatch(.setFilterRailHidden(hidden)) }
+        }
         .pulpeRootBottomInset()
         .background { Color.appBackground.ignoresSafeArea() }
         // The month's own « + »: the tab's one writes into the current month and hides here.

@@ -93,12 +93,14 @@ struct MovementLinePicker: View {
                     Text(subtitle(for: line, isPlannedList: isPlannedList))
                         .font(PulpeTypography.captionRegular)
                         .foregroundStyle(Color.textSecondary)
+                        .modifier(OptionalSensitive(isActive: !isPlannedList))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .trailing, spacing: DesignTokens.Spacing.dividerGap) {
                     Text((isPlannedList ? line.amount : abs(consumption.available)).asAmount(for: currency))
                         .font(PulpeTypography.rowAmount)
                         .foregroundStyle(isOver ? Color.financialOverBudget : Color.textPrimary)
+                        .sensitiveAmount()
                     Text(trailingCaption(isOver: isOver, isPlannedList: isPlannedList))
                         .font(PulpeTypography.captionRegular)
                         .foregroundStyle(isOver ? Color.financialOverBudget : Color.textSecondary)
@@ -127,5 +129,13 @@ struct MovementLinePicker: View {
     private func trailingCaption(isOver: Bool, isPlannedList: Bool) -> String {
         if isOver { return AppLocale.string("au-delà") }
         return isPlannedList ? AppLocale.string("prévus") : AppLocale.string("reste")
+    }
+}
+
+private struct OptionalSensitive: ViewModifier {
+    let isActive: Bool
+
+    func body(content: Content) -> some View {
+        if isActive { content.sensitiveAmount() } else { content }
     }
 }

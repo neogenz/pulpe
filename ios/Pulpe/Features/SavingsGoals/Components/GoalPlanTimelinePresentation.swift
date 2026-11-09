@@ -28,19 +28,8 @@ struct GoalPlanTimelinePresentation {
         collapsedMonths.count < months.count
     }
 
-    var remainingUnlinkedMonthCount: Int {
-        months.dropFirst(currentIndex).count(where: { $0.lines.isEmpty })
-    }
-
     var repairableMonths: [SavingsGoalPlanMonth] {
         months.filter(\.isRepairable)
-    }
-
-    var repairMessage: String {
-        AppLocale.string("""
-            \(repairableMonths.count) prévisions Épargne peuvent maintenant \
-            être ajoutées automatiquement.
-            """)
     }
 
     /// A realised plan withdrawal is editable from the budget line that the

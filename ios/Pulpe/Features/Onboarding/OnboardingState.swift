@@ -312,7 +312,13 @@ final class OnboardingState {
         return previousVisibleStep(before: currentIndex) == .welcome
     }
 
-    func previousStep() {
+    /// `reportsStepBack` is false when leaving the flow (Quitter), which is not a back navigation.
+    func previousStep(
+        reportsStepBack: Bool = true,
+        send: (AnalyticsEvent, [String: Any]) -> Void = {
+            AnalyticsService.shared.capture($0, properties: $1)
+        }
+    ) {
         // Edit round-trip: cancel edit and return to preview
         if let returnStep = editReturnStep {
             editReturnStep = nil
@@ -329,7 +335,7 @@ final class OnboardingState {
             return
         }
 
-        captureStepBack(from: currentStep, to: prev)
+        if reportsStepBack { captureStepBack(from: currentStep, to: prev, send: send) }
         isMovingForward = false
         withAnimation(PulpeAnimations.stepTransition) {
             currentStep = prev

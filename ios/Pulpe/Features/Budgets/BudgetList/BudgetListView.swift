@@ -10,6 +10,7 @@ struct BudgetListView: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var createBudgetTarget: (month: Int, year: Int)?
+
     @State private var showsBudgetPlanner = false
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
@@ -53,7 +54,8 @@ struct BudgetListView: View {
             if let target = createBudgetTarget {
                 CreateBudgetView(
                     month: target.month,
-                    year: target.year
+                    year: target.year,
+                    existingPeriods: store.existingPeriods
                 ) { budget in
                     store.addBudget(budget)
                     open(budget.id)
@@ -63,9 +65,7 @@ struct BudgetListView: View {
         .sheet(isPresented: $showsBudgetPlanner) {
             PlanBudgetsView(
                 payDayOfMonth: userSettingsStore.payDayOfMonth,
-                existingPeriods: Set(store.budgets.compactMap { budget in
-                    budget.month.flatMap { month in budget.year.map { BudgetPeriod(month: month, year: $0) } }
-                })
+                existingPeriods: store.existingPeriods
             ) { response in
                 Task {
                     await store.forceRefresh()

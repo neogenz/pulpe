@@ -22,10 +22,17 @@ extension AddBudgetLineSheet {
     }
 
     /// What this month carries: the amount, or its share of the spread.
-    private var monthShare: Decimal? {
-        guard let amount, amount > 0 else { return nil }
-        guard isSpreadMode else { return amount }
-        return SpreadSplit.splitTotalPreserving(total: amount, partCount: max(spreadCalculator.selectedCount, 1)).first
+    private var monthShare: Decimal? { share(of: amount) }
+
+    private func share(of total: Decimal?) -> Decimal? {
+        guard let total, total > 0 else { return nil }
+        guard isSpreadMode else { return total }
+        return SpreadSplit.splitTotalPreserving(total: total, partCount: max(spreadCalculator.selectedCount, 1)).first
+    }
+
+    /// The month share in the account currency, which the ledger is in; `nil` until converted.
+    private var monthShareInAccountCurrency: Decimal? {
+        share(of: inputCurrency == userSettingsStore.currency ? amount : convertedAmount)
     }
 
     var whenSection: some View {
@@ -99,7 +106,7 @@ extension AddBudgetLineSheet {
 
     @ViewBuilder
     var impactBlock: some View {
-        if let ledger, let share = monthShare, !isPlannedWithdrawalMode, !isSavingsWithdrawalMode {
+        if let ledger, let share = monthShareInAccountCurrency, !isPlannedWithdrawalMode, !isSavingsWithdrawalMode {
             let impact = MovementImpact.forecast(ledger: ledger, budgetId: budgetId, kind: kind, amount: share)
             let currency = userSettingsStore.currency
             ImpactBlock(

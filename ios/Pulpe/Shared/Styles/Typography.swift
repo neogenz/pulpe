@@ -19,9 +19,6 @@ enum PulpeTypography {
     /// Big figure (Manrope 800, 36pt).
     static let bigAmount = Font.custom("Manrope", size: 36, relativeTo: .largeTitle).weight(.heavy).monospacedDigit()
     static let bigCurrencySuffix = Font.custom("Manrope", size: 15, relativeTo: .largeTitle).weight(.bold)
-    /// Mid figure (Manrope 800, 22pt).
-    static let midAmount = Font.custom("Manrope", size: 22, relativeTo: .title2).weight(.heavy).monospacedDigit()
-    static let midCurrencySuffix = Font.custom("Manrope", size: 13, relativeTo: .title2).weight(.bold)
     /// Large title of a root screen (SF 34 bold).
     static let pageTitle: Font = .system(.largeTitle, weight: .bold)
     /// Subtitle under a large title (15pt).
@@ -59,7 +56,6 @@ enum PulpeTypography {
 
     /// Year display number in budget list (72pt)
     static let displayYear = Font.custom("Manrope", size: 72, relativeTo: .largeTitle).weight(.heavy)
-    /// Hero icon / year recap amount (48pt)
     static let heroIcon = Font.custom("Manrope", size: 48, relativeTo: .largeTitle).weight(.heavy)
     /// Welcome/onboarding hero text (64pt)
     static let welcomeEmoji = Font.custom("Manrope", size: 64, relativeTo: .largeTitle).weight(.bold)

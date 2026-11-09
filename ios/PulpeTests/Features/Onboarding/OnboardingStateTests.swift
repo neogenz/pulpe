@@ -173,6 +173,22 @@ struct OnboardingStateTests {
     }
 
     @Test
+    func previousStep_emitsStepBackOnlyWhenReported() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        var sent: [AnalyticsEvent] = []
+        let record = { (event: AnalyticsEvent, _: [String: Any]) in sent.append(event) }
+
+        state.currentStep = .firstName
+        state.previousStep(reportsStepBack: false, send: record)
+        #expect(sent.isEmpty)
+
+        state.currentStep = .firstName
+        state.previousStep(send: record)
+        #expect(sent == [.onboardingStepBack])
+    }
+
+    @Test
     func previousStep_doesNothingAtWelcome() {
         let state = makeSUT()
         defer { OnboardingState.clearPersistedData() }

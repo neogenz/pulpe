@@ -21,8 +21,6 @@ extension Color {
 
     /// Coral (V2 `coral`, #C45028 light, #E8825A dark): a deficit tone, below the ocre in severity of mood.
     static let coral = Color(light: Color(hex: 0xC45028), dark: Color(hex: 0xE8825A))
-    /// Wash behind a coral label (V2 `coral-w`, #FAE6DE light, #3A1D12 dark).
-    static let coralWash = Color(light: Color(hex: 0xFAE6DE), dark: Color(hex: 0x3A1D12))
 
     /// Map a `TransactionKind` to its semantic financial color.
     static func financialColor(for kind: TransactionKind) -> Color {
@@ -45,17 +43,12 @@ extension Color {
     /// Text and glyphs on `accentWash` (V2 `accent-ink`, #0B4F1E light, #A6E6AA dark): 8.3:1 / 9.6:1.
     static let accentInk = Color(light: Color(hex: 0x0B4F1E), dark: Color(hex: 0xA6E6AA))
 
-    // MARK: - Primary Container
-
-    static let primaryContainer = Color(light: Color(hex: 0x99F89D), dark: Color(hex: 0x00531A))
-    static let onPrimaryContainer = Color(light: Color(hex: 0x00531A), dark: Color(hex: 0x99F89D))
-
     /// Opaque disabled fill for primary buttons. Replaces opacity-based tints which
     /// bleed underlying content through (e.g. legal disclaimer behind onboarding CTA).
     /// Pairs with `onSurfaceVariant` text:
     /// - Light `#524D48` on `#D6E8DC` ≈ 5.6:1 (AA normal, AAA large)
     /// - Dark  `#B8B0A8` on `#2D3D31` ≈ 5.5:1 (AA normal, AAA large)
-    /// Dark fill is lifted from background `onboardingFormBase` `#141A16` (~2.6:1 surface contrast)
+    /// Dark fill is lifted from the `#141A16` dark background (~2.6:1 surface contrast)
     /// so the disabled capsule remains visually distinct without an outline.
     static let primaryContainerDisabled = Color(light: Color(hex: 0xD6E8DC), dark: Color(hex: 0x2D3D31))
 
@@ -132,9 +125,6 @@ extension Color {
     /// Warning primary — amber/yellow for tips and caution (#B8860B light, #FFD54F dark)
     static let warningPrimary = Color(light: Color(hex: 0xB8860B), dark: Color(hex: 0xFFD54F))
 
-    /// Warning background — soft amber tint (#FFF8E1 light, #382E12 dark)
-    static let warningBackground = Color(light: Color(hex: 0xFFF8E1), dark: Color(hex: 0x382E12))
-
     // MARK: - Action Colors
 
     /// Edit action color - Blue, following iOS conventions (#0063B4 light, #6BAAEE dark)
@@ -173,92 +163,13 @@ extension Color {
     static let textPrimaryOnboarding = Color(light: Color(hex: 0x1A1A1A), dark: Color(hex: 0xF5F5F5))
     /// Secondary text - subtle green tint in dark mode for brand cohesion
     static let textSecondaryOnboarding = Color(light: Color(hex: 0x4A4A4A), dark: Color(hex: 0xC8D0CA))
-    /// Tertiary text - subtle green tint in dark mode for brand cohesion
-    static let textTertiaryOnboarding = Color(light: Color(hex: 0x6B6B6B), dark: Color(hex: 0xA0B0A4))
 
     /// Onboarding backgrounds
     static let onboardingBackground = Color(light: Color(hex: 0xF8FAF9), dark: Color(hex: 0x111614))
-    static let onboardingCardBackground = Color(light: .white, dark: Color(hex: 0x1E2822))
 
-    /// Section icon color for ExpensesStep
-    static let onboardingSectionIcon =
-        Color(light: Color(hex: 0x006E25).opacity(0.7), dark: Color(hex: 0x7EDB83).opacity(0.5))
-
-    // MARK: - Auth Screen Gradient Colors
-
-    /// Welcome sky gradient stops — fills a rounded shape, so 0→1 maps to the shape height
-    private static let welcomeGradientStops: [Gradient.Stop] = [
-        .init(color: Color(light: Color(hex: 0x00A838), dark: Color(hex: 0x006B25)), location: 0.0),
-        .init(color: Color(light: Color(hex: 0x3EBE65), dark: Color(hex: 0x1A4A25)), location: 0.30),
-        .init(color: Color(light: Color(hex: 0x90DBA8), dark: Color(hex: 0x1A2A1E)), location: 0.65),
-        .init(color: Color(light: .white, dark: Color(hex: 0x1C1C1E)), location: 1.0),
-    ]
-
-    /// Login gradient — subtle branded tint, form stays on clean white
-    private static let loginGradientStops: [Gradient.Stop] = [
-        .init(color: Color(light: Color(hex: 0xD6F2DE), dark: Color(hex: 0x0D1A12)), location: 0.0),
-        .init(color: Color(light: .white, dark: Color(hex: 0x141A16)), location: 0.30),
-    ]
-
-    /// Base color behind gradient shapes
-    private static let authBase = Color(light: .white, dark: Color(hex: 0x111614))
-
-    /// Solid color matching the bottom of loginGradientBackground (for overlays/fades)
-    static let onboardingFormBase = Color(light: .white, dark: Color(hex: 0x141A16))
-
-    /// Welcome sky gradient — covers top ~55%, fades out with a soft convex curve at the bottom
-    @ViewBuilder
-    static var welcomeGradientBackground: some View {
-        ZStack(alignment: .top) {
-            authBase
-
-            LinearGradient(
-                stops: welcomeGradientStops,
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .containerRelativeFrame(.vertical) { height, _ in height * 0.57 }
-            .mask {
-                // Radial gradient centered at top: sides fade before center -> convex curve
-                Canvas { context, size in
-                    let radius = size.height * 1.45
-                    let center = CGPoint(x: size.width / 2, y: 0)
-                    let shading = Gradient(stops: [
-                        .init(color: .white, location: 0.0),
-                        .init(color: .white, location: 0.4),
-                        .init(color: .clear, location: 0.82),
-                    ])
-                    context.fill(
-                        Path(CGRect(origin: .zero, size: size)),
-                        with: .radialGradient(
-                            shading,
-                            center: center,
-                            startRadius: 0,
-                            endRadius: radius
-                        )
-                    )
-                }
-            }
-        }
-        .ignoresSafeArea()
-    }
-
-    /// Full-screen login gradient — subtle branded top, clean white for the form
-    @ViewBuilder
-    static var loginGradientBackground: some View {
-        LinearGradient(
-            stops: loginGradientStops,
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
-    }
-
+    // MARK: - Auth Screen Colors
     /// Glass-morphic card background for auth forms
     static let authCardGlass = Color(light: .white.opacity(0.85), dark: Color(hex: 0x1C1C1E).opacity(0.75))
-
-    /// Input field border color for auth screens
-    static let authInputBorder = outline
 
     /// Mint green background matching landing page suggestion
     static let mintBackground = Color(light: Color(hex: 0xBDF5B7), dark: Color(hex: 0x1A3A1A))
@@ -277,56 +188,8 @@ extension Color {
 
     // MARK: - PIN Screen Colors (adaptive light/dark)
 
-    /// PIN background gradient stops — aligned with onboarding loginGradientStops
-    static let pinGradientTop = Color(light: Color(hex: 0xD6F2DE), dark: Color(hex: 0x0D1A12))
-    static let pinGradientMid = Color(light: Color(hex: 0xF0F5F2), dark: Color(hex: 0x111614))
-    static let pinGradientBottom = Color(light: .white, dark: Color(hex: 0x141A16))
-
-    /// PIN screen gradient
-    static let pinBackground = LinearGradient(
-        colors: [pinGradientTop, pinGradientMid, pinGradientBottom],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-
     /// Primary text on PIN screens
     static let pinText = Color(light: Color(hex: 0x1A1A1A), dark: .white)
-
-    /// Secondary text on PIN screens (subtitles, links)
-    static let pinTextSecondary = Color(light: Color(hex: 0x4A4A4A), dark: Color(hex: 0xC8D0CA))
-
-    /// Numpad button fill — adjusted for green-tinted PIN background
-    static let pinButtonFill = Color(
-        light: Color(hex: 0x1A1A1A).opacity(0.06),
-        dark: .white.opacity(0.08)
-    )
-
-    /// Numpad button stroke
-    static let pinButtonStroke = Color(
-        light: Color(hex: 0x1A1A1A).opacity(0.10),
-        dark: .white.opacity(0.12)
-    )
-
-    /// PIN dot color (filled state)
-    static let pinDotFilled = Color(light: Color(hex: 0x1A1A1A), dark: .white)
-
-    /// PIN dot color (empty state)
-    static let pinDotEmpty = Color(
-        light: Color(hex: 0x1A1A1A).opacity(0.2),
-        dark: .white.opacity(0.3)
-    )
-
-    /// Recovery key input field background
-    static let pinInputBackground = Color(
-        light: Color(hex: 0x1A1F2B).opacity(0.05),
-        dark: .white.opacity(0.08)
-    )
-
-    /// Recovery key input field border
-    static let pinInputBorder = Color(
-        light: Color(hex: 0x1A1F2B).opacity(0.12),
-        dark: .white.opacity(DesignTokens.Opacity.accent)
-    )
 
     // MARK: - Dashboard Emotion Zone (DESIGN.md §2 — Two-Zone Rule)
 
@@ -339,9 +202,6 @@ extension Color {
 
     // MARK: - Home Dashboard
 
-    /// Envelope drift accent — overrun amounts + overflow bar segments on the home dashboard only.
-    /// Light value set against a card surface, where it must clear 4.5:1.
-    static let driftAccent = Color(light: Color(hex: 0xAA4522), dark: Color(hex: 0xE8825A))
     /// Cast by the hero surface onto the content zone below it. In light mode the two
     /// zones are close in value and would otherwise read as one flat plane, so the drop is
     /// the whole depth cue; in dark mode the tonal jump already carries it and a black
@@ -365,8 +225,6 @@ extension Color {
     static let heroInkSecondary = Color(hex: 0xCFE8D6)
     /// Translucent tile fill on the hero — a tint, never a solid border.
     static var heroTile: Color { heroInk.opacity(DesignTokens.Opacity.heroTile) }
-    /// Disc behind a toolbar glyph or avatar on the forest (`HeroToolbarButtonStyle`).
-    static var heroDisc: Color { heroInk.opacity(DesignTokens.Opacity.heroDisc) }
     /// State accents on the forest — the existing dark-mode palette, AA on `heroSurface`.
     /// Positive 7.5:1, caution 5.9:1, deficit 5.2:1, info 4.9:1. Identical in both schemes.
     static let heroAccentPositive = Color(hex: 0x7EDB83)

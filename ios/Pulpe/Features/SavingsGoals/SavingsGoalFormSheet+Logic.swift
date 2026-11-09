@@ -69,14 +69,12 @@ extension SavingsGoalFormSheet {
         hasStartDate: Bool,
         targetDate: Date,
         hasTargetDate: Bool,
-        status: SavingsGoalStatus,
         original goal: SavingsGoal
     ) -> SavingsGoalUpdate {
         SavingsGoalUpdate(
             name: name.trimmingCharacters(in: .whitespaces),
             targetAmount: targetAmountUpdate(for: targetAmount, original: goal),
             targetDate: targetDateUpdate(for: targetDate, isEnabled: hasTargetDate, original: goal),
-            status: status,
             initialAmount: initialAmountUpdate(for: initialAmount, original: goal),
             startDate: startDateUpdate(for: startDate, isEnabled: hasStartDate, original: goal)
         )

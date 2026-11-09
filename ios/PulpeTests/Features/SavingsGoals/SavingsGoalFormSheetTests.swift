@@ -245,7 +245,6 @@ struct SavingsGoalFormSheetTests {
             hasStartDate: true,
             targetDate: target,
             hasTargetDate: true,
-            status: .paused,
             original: goal
         )
 
@@ -254,7 +253,7 @@ struct SavingsGoalFormSheetTests {
         #expect(patch.initialAmount == 7000)
         #expect(patch.startDate == .some("2028-01-15"))
         #expect(patch.targetDate == .some("2029-04-27"))
-        #expect(patch.status == .paused)
+        #expect(patch.status == nil)
     }
 
     @Test("deadline preview is payDay-aware and requires two non-null dates")
