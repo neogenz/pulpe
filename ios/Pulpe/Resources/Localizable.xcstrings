@@ -36279,6 +36279,35 @@
         }
       }
     },
+    "Planifier %lld mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planifier %lld mois"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan %lld months"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Monate planen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pianifica %lld mesi"
+          }
+        }
+      }
+    },
     "%@ à %@" : {
       "extractionState" : "manual",
       "localizations" : {

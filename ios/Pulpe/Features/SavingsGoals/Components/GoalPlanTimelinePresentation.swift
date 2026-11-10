@@ -103,9 +103,18 @@ struct GoalMonthByMonthPresentation: Equatable {
     }
 
     /// « Planifier … » on the repair path: exactly the months the repair writes.
+    /// An unbroken run, or two months of the same year, read as « mars à mai »; a gap
+    /// reads as a count, so the title never names a month the repair skips.
     static func repairTitle(_ months: [SavingsGoalPlanMonth]) -> String? {
         let repairable = months.filter(\.isRepairable)
         guard !repairable.isEmpty else { return nil }
+        let isContiguous = zip(repairable, repairable.dropFirst()).allSatisfy {
+            $1.year * 12 + $1.month == $0.year * 12 + $0.month + 1
+        }
+        let isSameYearPair = repairable.count <= 2 && repairable.first?.year == repairable.last?.year
+        guard isSameYearPair || isContiguous else {
+            return AppLocale.string("Planifier \(repairable.count) mois")
+        }
         return AppLocale.string("Planifier \(rangeTitle(repairable, capitalized: false))")
     }
 

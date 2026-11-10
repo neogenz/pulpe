@@ -7,13 +7,14 @@ import Testing
 struct GoalPlanWordingTests {
     private func month(
         _ month: Int,
+        year: Int = 2026,
         provisionable: Bool = true,
         frozenBy consumed: Decimal = 0,
         hasBudget: Bool = true
     ) -> SavingsGoalPlanMonth {
         SavingsGoalPlanMonth(
             month: month,
-            year: 2026,
+            year: year,
             state: .future,
             isLocked: false,
             hasBudget: hasBudget,
@@ -54,5 +55,43 @@ struct GoalPlanWordingTests {
         let range = GoalMonthByMonthPresentation.rangeTitle([month(3), month(4)], capitalized: false)
         #expect(title == AppLocale.string("Planifier \(range)"))
         #expect(GoalMonthByMonthPresentation.repairTitle([month(1, provisionable: false)]) == nil)
+    }
+
+    @Test("a gap in the repairable months gives the count title")
+    func repairTitle_gap_countsTheMonths() {
+        let title = GoalMonthByMonthPresentation.repairTitle([month(3), month(5), month(6)])
+
+        #expect(title == AppLocale.string("Planifier \(3) mois"))
+    }
+
+    @Test("a contiguous run of repairable months gives the range title")
+    func repairTitle_contiguousRun_namesTheRange() {
+        let title = GoalMonthByMonthPresentation.repairTitle([month(3), month(4), month(5)])
+
+        let range = GoalMonthByMonthPresentation.rangeTitle([month(3), month(4), month(5)], capitalized: false)
+        #expect(title == AppLocale.string("Planifier \(range)"))
+    }
+
+    @Test("two repairable months are both named, gap or not")
+    func repairTitle_pair_namesBothMonths() {
+        let title = GoalMonthByMonthPresentation.repairTitle([month(3), month(5)])
+
+        let range = GoalMonthByMonthPresentation.rangeTitle([month(3), month(5)], capitalized: false)
+        #expect(title == AppLocale.string("Planifier \(range)"))
+    }
+
+    @Test("two repairable months across years with a gap give the count title")
+    func repairTitle_pairAcrossYears_countsTheMonths() {
+        let title = GoalMonthByMonthPresentation.repairTitle([month(11), month(1, year: 2027)])
+
+        #expect(title == AppLocale.string("Planifier \(2) mois"))
+    }
+
+    @Test("a run across the year boundary gives the range title, not the count")
+    func repairTitle_yearWrap_namesTheRange() {
+        let months = [month(11), month(12), month(1, year: 2027)]
+
+        let range = GoalMonthByMonthPresentation.rangeTitle(months, capitalized: false)
+        #expect(GoalMonthByMonthPresentation.repairTitle(months) == AppLocale.string("Planifier \(range)"))
     }
 }
