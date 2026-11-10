@@ -14,6 +14,7 @@ struct GoalProjectionChart: View {
     var height: CGFloat = DesignTokens.Chart.goalHeight
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.amountsHidden) private var amountsHidden
 
     var body: some View {
         Chart {
@@ -100,10 +101,15 @@ struct GoalProjectionChart: View {
         .sensitiveAmount()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Trajectoire d'épargne")
-        .accessibilityValue(accessibilitySummary)
+        .accessibilityValue(Self.accessibilitySummary(series: series, currency: currency, amountsHidden: amountsHidden))
     }
 
-    private var accessibilitySummary: String {
+    static func accessibilitySummary(
+        series: GoalProjectionSeries,
+        currency: SupportedCurrency,
+        amountsHidden: Bool
+    ) -> String {
+        guard !amountsHidden else { return AppLocale.string("Montant masqué") }
         let confirmed = Decimal(series.confirmed.last?.value ?? 0).asCompactCurrency(currency)
         let projection = Decimal(series.projection.last?.value ?? 0).asCompactCurrency(currency)
         guard let target = series.target else {
