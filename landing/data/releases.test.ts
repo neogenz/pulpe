@@ -8,9 +8,9 @@ const releases = JSON.parse(
 ) as Array<Record<string, unknown>>;
 
 const localeMarkers = {
-  en: "Improved ChatGPT and Claude connection guide",
-  de: "Überarbeitete Anleitung für ChatGPT und Claude",
-  it: "Guida di collegamento a ChatGPT e Claude migliorata",
+  en: "A fresh look for Pulpe on iPhone",
+  de: "Pulpe im neuen Look auf dem iPhone",
+  it: "Pulpe si rifà il look su iPhone",
 } as const;
 
 describe("localized release data", () => {
@@ -25,6 +25,7 @@ describe("localized release data", () => {
       assert.deepEqual(
         localized.map(({ version }) => version),
         [
+          "0.60.0",
           "0.59.0",
           "0.58.0",
           "0.57.0",

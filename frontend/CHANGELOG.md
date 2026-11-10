@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.60.0
+
+### Minor Changes
+
+- Refonte de l’app iOS, suivi du budget autour du solde pointé et filtre des tags à la saisie sur iOS et Android.
+
+### Patch Changes
+
+- pulpe-shared@0.60.0
+
 ## 0.59.0
 
 ### Minor Changes

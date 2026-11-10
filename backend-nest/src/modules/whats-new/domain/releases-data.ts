@@ -54,6 +54,218 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.60.0',
+    iosVersion: '1.14.0',
+    date: '2026-11-10',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: 'Pulpe fait peau neuve sur iPhone',
+          description: 'Un nouveau design, plus clair, sur tous les écrans.',
+        },
+        {
+          title: 'Ce qu’il te reste à pointer, dès l’accueil',
+          description:
+            'Sur iPhone, l’accueil affiche tes prévisions à pointer ce mois.',
+        },
+        {
+          title: 'Objectifs plus lisibles',
+          description:
+            'Sur iPhone, tu vois tout de suite où tu en es ce mois-ci.',
+        },
+        {
+          title: 'Le solde pointé à côté du reste à dépenser',
+          description:
+            'Sur iPhone et Android, le suivi du budget affiche les deux ensemble.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'A fresh look for Pulpe on iPhone',
+            description: 'A new, clearer design on every screen.',
+          },
+          {
+            title: 'What’s left to check, right on the home screen',
+            description:
+              'On iPhone, the home screen shows this month’s forecasts still to check.',
+          },
+          {
+            title: 'Clearer goals',
+            description:
+              'On iPhone, you see right away where you stand this month.',
+          },
+          {
+            title: 'Checked balance next to what’s left to spend',
+            description:
+              'On iPhone and Android, budget tracking shows both together.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: 'Pulpe im neuen Look auf dem iPhone',
+            description: 'Ein neues, klareres Design auf allen Bildschirmen.',
+          },
+          {
+            title: 'Was noch abzuhaken ist, direkt auf der Startseite',
+            description:
+              'Auf dem iPhone zeigt die Startseite die Prognosen, die du diesen Monat noch abhaken musst.',
+          },
+          {
+            title: 'Übersichtlichere Ziele',
+            description:
+              'Auf dem iPhone siehst du sofort, wo du diesen Monat stehst.',
+          },
+          {
+            title: 'Abgehakter Saldo neben dem, was noch bleibt',
+            description:
+              'Auf iPhone und Android zeigt die Budgetübersicht beides zusammen.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: 'Pulpe si rifà il look su iPhone',
+            description: 'Un nuovo design, più chiaro, in ogni schermata.',
+          },
+          {
+            title: 'Cosa resta da spuntare, già nella home',
+            description:
+              'Su iPhone, la home mostra le previsioni ancora da spuntare questo mese.',
+          },
+          {
+            title: 'Obiettivi più leggibili',
+            description: 'Su iPhone vedi subito a che punto sei questo mese.',
+          },
+          {
+            title: 'Saldo spuntato accanto a quanto resta da spendere',
+            description:
+              'Su iPhone e Android, il monitoraggio del budget li mostra insieme.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
+    version: '0.60.0',
+    date: '2026-11-10',
+    platforms: ['android'],
+    changes: {
+      features: [
+        {
+          title: 'Le solde pointé à côté du reste à dépenser',
+          description:
+            'Sur iPhone et Android, le suivi du budget affiche les deux ensemble.',
+        },
+        {
+          title: 'Tags plus rapides à trouver',
+          description:
+            'Sur iPhone et Android, tape quelques lettres : seuls les tags qui correspondent restent affichés.',
+        },
+      ],
+      fixes: [
+        {
+          title: 'Solde pointé au centime près',
+          description: 'Sur Android, il s’affiche avec ses centimes.',
+        },
+        {
+          title: 'Tags au-dessus du clavier',
+          description:
+            'Sur Android, les tags proposés ne passent plus sous le clavier.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Checked balance next to what’s left to spend',
+            description:
+              'On iPhone and Android, budget tracking shows both together.',
+          },
+          {
+            title: 'Find tags faster',
+            description:
+              'On iPhone and Android, type a few letters: only matching tags stay on screen.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Checked balance to the cent',
+            description: 'On Android, it now shows its cents.',
+          },
+          {
+            title: 'Tags above the keyboard',
+            description:
+              'On Android, suggested tags no longer slip under the keyboard.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: 'Abgehakter Saldo neben dem, was noch bleibt',
+            description:
+              'Auf iPhone und Android zeigt die Budgetübersicht beides zusammen.',
+          },
+          {
+            title: 'Tags schneller finden',
+            description:
+              'Auf iPhone und Android: Tippe ein paar Buchstaben, nur passende Tags bleiben sichtbar.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Abgehakter Saldo auf den Rappen genau',
+            description: 'Auf Android wird er mit Rappen angezeigt.',
+          },
+          {
+            title: 'Tags über der Tastatur',
+            description:
+              'Auf Android rutschen vorgeschlagene Tags nicht mehr unter die Tastatur.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: 'Saldo spuntato accanto a quanto resta da spendere',
+            description:
+              'Su iPhone e Android, il monitoraggio del budget li mostra insieme.',
+          },
+          {
+            title: 'Tag più rapidi da trovare',
+            description:
+              'Su iPhone e Android, digita qualche lettera: restano solo i tag corrispondenti.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Saldo spuntato al centesimo',
+            description: 'Su Android viene mostrato con i centesimi.',
+          },
+          {
+            title: 'Tag sopra la tastiera',
+            description:
+              'Su Android, i tag suggeriti non finiscono più sotto la tastiera.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.58.0',
     iosVersion: '1.13.0',
     date: '2026-10-30',
