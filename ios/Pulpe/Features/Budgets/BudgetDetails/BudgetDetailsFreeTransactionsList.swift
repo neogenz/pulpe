@@ -1,15 +1,13 @@
 import SwiftUI
 
-/// Inline transactions list for the budget detail screen: the free ones
-/// ("Hors prévisions") and, under the "Pointé" filter, the pointed ones of an
-/// envelope still to point — those rows name their envelope.
+/// Inline list of the budget detail screen's free transactions ("Hors prévision").
 ///
 /// Replaces the List-bound `TransactionSection` when the parent uses
 /// `ScrollView/LazyVStack`. Each row is a tap target; the parent decides
 /// whether it opens the edit sheet or the envelope.
 ///
 /// Visual: rows mirror `BudgetLineMixedRow` (point circle · kind tag · name ·
-/// date subtitle · amount + currency suffix · chevron). Pointing a free
+/// « 5 novembre · pointé » · ink amount · chevron, as `MovementRow`). Pointing a free
 /// transaction is a personal reconciliation marker — like envelopes, it never
 /// changes any total — so the leading slot carries a real `PointCircle`.
 ///
@@ -17,7 +15,9 @@ import SwiftUI
 /// the `isSyncing` flag so the view stays free of `.contains` over a syncing
 /// id set in the body.
 struct BudgetDetailsFreeTransactionsList: View {
-    var title = AppLocale.string("Hors prévisions")
+    var subtitle: String?
+    /// Header total; without one the header counts the rows.
+    var total: String?
     let items: [BudgetDetailsScreenState.FreeTransactionItem]
     let currency: SupportedCurrency
     let tagNamesById: [String: String]
@@ -42,7 +42,12 @@ struct BudgetDetailsFreeTransactionsList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SectionHeader(title: title, count: items.count)
+            SectionHeader(
+                title: PendingWording.unplanned,
+                count: total == nil ? items.count : nil,
+                subtitle: subtitle,
+                trailingAmount: total
+            )
 
             VStack(spacing: 0) {
                 ForEach(displayedItems) { item in
@@ -51,7 +56,6 @@ struct BudgetDetailsFreeTransactionsList: View {
                     }
                     BudgetDetailsFreeTransactionRow(
                         transaction: item.transaction,
-                        envelopeName: item.envelopeName,
                         isSyncing: item.isSyncing,
                         currency: currency,
                         tagNames: TagChips.names(for: item.transaction.tagIds, namesById: tagNamesById),
@@ -85,10 +89,10 @@ struct BudgetDetailsFreeTransactionsList: View {
                     }
                 }
                 .textLinkButtonStyle()
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.top, DesignTokens.Spacing.xxl)
     }
 }
@@ -96,13 +100,11 @@ struct BudgetDetailsFreeTransactionsList: View {
 // MARK: - Row
 
 /// Transaction row visually aligned with `BudgetLineMixedRow`: a leading
-/// `PointCircle` disc, then name + date subtitle (+ envelope line when
-/// allocated) on the left, kind-tinted amount + currency suffix on the right,
+/// `PointCircle` disc, then name + date subtitle on the left, the ink amount on the right (V2: color never codes the kind),
 /// chevron. Tapping the circle points/unpoints the transaction
 /// (`onTogglePointed`); tapping the row surface runs `onTap`.
 private struct BudgetDetailsFreeTransactionRow: View {
     let transaction: Transaction
-    let envelopeName: String?
     let isSyncing: Bool
     let currency: SupportedCurrency
     let tagNames: [String]
@@ -128,26 +130,6 @@ private struct BudgetDetailsFreeTransactionRow: View {
         return .financialExpense
     }
 
-    /// Mirrors `BudgetLineMixedRow.amountColor` minus the consumption-driven
-    /// branches (no envelope to overshoot). Expenses fall back to the neutral
-    /// secondary ink so the right column stays readable on the white card.
-    private var amountColor: Color {
-        if isIncome { return .financialIncome }
-        if isSaving { return .financialSavings }
-        return .textSecondary
-    }
-
-    /// Currency suffix tints with the amount when the kind carries a color
-    /// signal (income / saving); falls back to tertiary ink otherwise so
-    /// expenses don't read as a red mark.
-    private var currencySuffixColor: Color {
-        (isIncome || isSaving) ? amountColor : .textTertiary
-    }
-
-    private var currencySuffixOpacity: Double {
-        (isIncome || isSaving) ? DesignTokens.Opacity.pressed : 1
-    }
-
     private var accessibilityLabel: String {
         let amount = transaction.amount.asCurrency(currency)
         let pointed = isPointed ? AppLocale.string("Pointé") : AppLocale.string("À pointer")
@@ -156,17 +138,14 @@ private struct BudgetDetailsFreeTransactionRow: View {
             ? ""
             : " · " + AppLocale.string("Tags : \(tagNames.joined(separator: ", "))")
         let origin = transaction.savingsGoalSource.map { " · \($0.accessibilityLabel)" } ?? ""
-        let envelope = envelopeName.map { " · " + AppLocale.string("Dans la prévision \($0)") } ?? ""
-        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(envelope)\(tags)\(origin)"
+        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(tags)\(origin)"
     }
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 PointCircle(
-                    kind: kind,
                     isPointed: isPointed,
-                    color: dotColor,
                     isSyncing: isSyncing,
                     onCompletionStateChange: { pointCompletionGate.isPending = $0 },
                     onToggle: onTogglePointed
@@ -183,7 +162,6 @@ private struct BudgetDetailsFreeTransactionRow: View {
             .padding(.vertical, DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
             .contentShape(Rectangle())
-            .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
             .animation(
                 reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
                 value: isPointed
@@ -200,22 +178,24 @@ private struct BudgetDetailsFreeTransactionRow: View {
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(envelopeName == nil ? "Touche pour modifier" : "Touche pour ouvrir le détail")
+        .accessibilityHint("Touche pour modifier")
     }
 
     private var centerColumn: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             Text(transaction.name)
-                .font(PulpeTypography.listRowTitle)
+                .font(PulpeTypography.rowTitle)
                 .foregroundStyle(Color.textPrimary)
-                .strikethrough(isPointed, color: Color.textTertiary)
                 .lineLimit(1)
                 .truncationMode(.tail)
 
             HStack(spacing: DesignTokens.Spacing.xs) {
-                Text(transaction.transactionDate.dayInMonthFormatted)
-                    .font(PulpeTypography.metricLabelBold)
-                    .foregroundStyle(Color.textTertiary)
+                Text(MovementRowPresentation.subtitle(
+                    for: transaction,
+                    lineName: Formatters.dayMonthLabel(for: transaction.transactionDate)
+                ) ?? "")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
                     .lineLimit(1)
 
                 // Where an income drawn from a savings goal came from (PUL-329) —
@@ -228,40 +208,16 @@ private struct BudgetDetailsFreeTransactionRow: View {
                     TagChips(names: tagNames, presentation: .count, followsText: true)
                 }
             }
-
-            // The envelope the movement belongs to, on its own line so a long name
-            // keeps its room: the one thing that tells it apart from a free movement
-            // drawn in the same visual language. Already in the row's a11y label.
-            if let envelopeName {
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Image(systemName: "arrow.turn.down.right")
-                    Text(envelopeName)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textSecondary)
-                .accessibilityHidden(true)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var amountColumn: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
-            Text(transaction.amount.asAmount(for: currency))
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(amountColor)
-                .monospacedDigit()
-                .lineLimit(1)
-
-            Text(currency.symbol)
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(currencySuffixColor)
-                .opacity(currencySuffixOpacity)
-                .tracking(DesignTokens.Tracking.uppercaseNarrow)
-        }
-        .sensitiveAmount()
-        .layoutPriority(1)
+        Text(MovementRowPresentation.amountText(for: transaction, in: currency))
+            .font(PulpeTypography.rowAmount)
+            .foregroundStyle(Color.textPrimary)
+            .lineLimit(1)
+            .sensitiveAmount()
+            .layoutPriority(1)
     }
 }

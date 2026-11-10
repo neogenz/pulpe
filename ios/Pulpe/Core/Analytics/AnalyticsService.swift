@@ -17,6 +17,7 @@ struct AuthSessionDiagnosticSnapshot: Sendable {
 
 enum AnalyticsScreen {
     static let savingsGoalsList = "SavingsGoalsList"
+    static let netWorth = "NetWorth"
 }
 
 struct ScreenViewDeduplicator {
@@ -326,9 +327,11 @@ final class AnalyticsService {
     // MARK: - Feature Flags
 
     /// Returns true when the given feature flag is enabled for the current user.
-    /// Safe default: returns false before PostHog initializes.
+    /// Safe default: returns false before PostHog initializes. Flags still evaluate with
+    /// diagnostics off (the person is anonymous): the SDK captures no `$feature_flag_called`
+    /// while opted out, so a rollout reaches users who stopped sharing.
     func isFeatureEnabled(_ key: String) -> Bool {
-        guard isInitialized, isDiagnosticSharingEnabled else { return false }
+        guard isInitialized else { return false }
         return PostHogSDK.shared.isFeatureEnabled(key)
     }
 
@@ -338,10 +341,6 @@ final class AnalyticsService {
     /// Call after identify() so person-property-based flags re-evaluate.
     func reloadFeatureFlags(onComplete: (@MainActor @Sendable () -> Void)? = nil) {
         guard isInitialized else { return }
-        guard isDiagnosticSharingEnabled else {
-            onComplete?()
-            return
-        }
         // The callback must be created in a nonisolated context: Swift 6 would otherwise
         // infer @MainActor on the closure (we're inside a @MainActor class), causing
         // a runtime crash when PostHog calls it from a background thread.
@@ -466,7 +465,6 @@ extension AnalyticsService {
     /// and dropped out of every account-based cohort.
     func captureSignupCompleted(user: UserInfo, method: String) {
         identify(user: user)
-        reloadFeatureFlags()
         capture(.signupCompleted, properties: ["method": method])
     }
 }

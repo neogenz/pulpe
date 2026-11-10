@@ -86,30 +86,10 @@ struct SavingsGoalProgressTests {
         #expect(progress.hasClosedPlanMonth == false)
     }
 
-    @Test("empty timeline (legacy payload): no verdict, and no beat amount either")
-    func emptyTimeline_hidesVerdictAndBeat() {
+    @Test("empty timeline (legacy payload): no verdict")
+    func emptyTimeline_hidesVerdict() {
         let progress = makeProgress(months: [])
 
         #expect(progress.hasClosedPlanMonth == false)
-        #expect(progress.currentMonthPlannedAmount == nil)
-    }
-
-    @Test("the day-1 beat carries the current month's planned amount")
-    func currentMonthPlannedAmount_readsCurrentMonth() {
-        let progress = makeProgress(months: [
-            makePlanMonth(month: 7, state: .current, isLocked: false, planned: 250),
-            makePlanMonth(month: 8, state: .future, isLocked: false, planned: 300),
-        ])
-
-        #expect(progress.currentMonthPlannedAmount == 250)
-    }
-
-    @Test("a gap current month funds no beat")
-    func currentMonthPlannedAmount_gapMonthIsNil() {
-        let progress = makeProgress(months: [
-            makePlanMonth(month: 7, state: .current, isLocked: false, planned: 0),
-        ])
-
-        #expect(progress.currentMonthPlannedAmount == nil)
     }
 }

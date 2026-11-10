@@ -14,25 +14,3 @@ enum SpreadAmountMode: CaseIterable, Hashable {
         }
     }
 }
-
-/// Binary segmented control toggling between TOTAL and PER-MONTH amount entry.
-struct SpreadAmountModeToggle: View {
-    @Binding var mode: SpreadAmountMode
-
-    var body: some View {
-        SegmentedPicker(selection: $mode, title: nil) { candidate in
-            Text(candidate.label)
-        }
-        // `.contain` before the label/value: without it, both propagate onto the
-        // segments themselves and VoiceOver loses "Total" / "Par mois".
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Mode de montant")
-        .accessibilityValue(mode.label)
-    }
-}
-
-#Preview {
-    @Previewable @State var mode: SpreadAmountMode = .total
-    SpreadAmountModeToggle(mode: $mode)
-        .padding()
-}

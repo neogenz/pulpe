@@ -93,7 +93,7 @@ struct ResetPasswordFlowViewModelTests {
 
         // Then
         #expect(!viewModel.isCompleted)
-        #expect(viewModel.errorMessage == "Les mots de passe ne correspondent pas")
+        #expect(viewModel.errorMessage == "Les deux mots de passe ne correspondent pas. Retape le second.")
     }
 
     @Test func submit_tooShortPassword_showsError() async {

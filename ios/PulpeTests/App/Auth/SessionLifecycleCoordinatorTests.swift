@@ -271,4 +271,29 @@ struct SessionLifecycleCoordinatorTests {
         // After foreground, background date is cleared — isBackgroundLockRequired should be false
         #expect(sut.isBackgroundLockRequired == false)
     }
+    @Test("A return made before sign-in does not lock the session opened afterwards")
+    func handleEnterForeground_returnBeforeSignIn_doesNotLockLaterBounce() async {
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
+        nonisolated(unsafe) var unlockPrompts = 0
+        let sut = makeSUT(
+            biometricEnabled: true,
+            resolveKey: {
+                unlockPrompts += 1
+                return "key"
+            },
+            nowProvider: { now }
+        )
+
+        // Signup: the user leaves to confirm their email and comes back minutes later.
+        sut.handleEnterBackground()
+        now = Date(timeIntervalSince1970: 600)
+        _ = await sut.handleEnterForeground(authState: .unauthenticated)
+
+        // Signed in, the Face ID enrollment sheet bounces the scene `.inactive` → `.active`.
+        now = Date(timeIntervalSince1970: 700)
+        let result = await sut.handleEnterForeground(authState: .authenticated)
+
+        #expect(result == .noLockNeeded)
+        #expect(unlockPrompts == 0)
+    }
 }

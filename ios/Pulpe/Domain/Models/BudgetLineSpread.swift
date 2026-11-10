@@ -32,6 +32,7 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
     let name: String
     let kind: TransactionKind
     let savingsGoalId: String?
+    let assetId: String?
     let mode: SpreadAmountKind
     let months: [SpreadMonthRef]
     let perMonthAmount: Decimal?
@@ -47,6 +48,7 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
         name: String,
         kind: TransactionKind,
         savingsGoalId: String? = nil,
+        assetId: String? = nil,
         mode: SpreadAmountKind = .perMonth,
         months: [SpreadMonthRef],
         perMonthAmount: Decimal? = nil,
@@ -61,6 +63,7 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
         self.name = name
         self.kind = kind
         self.savingsGoalId = savingsGoalId
+        self.assetId = assetId
         self.mode = mode
         self.months = months
         self.perMonthAmount = perMonthAmount

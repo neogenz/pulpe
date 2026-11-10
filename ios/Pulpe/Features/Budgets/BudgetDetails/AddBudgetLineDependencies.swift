@@ -9,6 +9,14 @@ struct AddBudgetLineDependencies: Sendable {
     /// BudgetDetails coordinator. Injectable so tests can assert it ran.
     var invalidateCrossBudgetCaches: @MainActor (BudgetListStore) -> Void
 
+    /// "Mensuel": writes the line into the model and propagates it to every budget.
+    var createTemplateLine: @Sendable (String, TemplateLineCreate) async throws -> Void = { templateId, line in
+        _ = try await TemplateService.shared.bulkUpdateTemplateLines(
+            templateId: templateId,
+            operations: TemplateLinesBulkOperations(create: [line], propagateToBudgets: true)
+        )
+    }
+
     static let live = AddBudgetLineDependencies(
         createBudgetLine: { data in
             try await BudgetLineService.shared.createBudgetLine(data)

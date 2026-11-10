@@ -22,7 +22,7 @@ final class ToastManager {
             switch self {
             case .success: .pulpePrimary
             case .error: .errorPrimary
-            case .undo: .financialOverBudget
+            case .undo: .pulpePrimary
             }
         }
     }
@@ -36,6 +36,8 @@ final class ToastManager {
         let undoAction: (@MainActor () async -> Void)?
         /// Appelé si le toast disparaît sans « Annuler » : timeout, bouton fermer, glisser pour fermer, ou remplacement par un autre toast **avec** `onFinishedWithoutUndo`.
         let onFinishedWithoutUndo: (@MainActor () async -> Void)?
+        /// What VoiceOver says for the undo button; the deletion wording unless the toast says otherwise.
+        let undoAccessibilityLabel: String
 
         var hasUndo: Bool { undoAction != nil }
 
@@ -44,7 +46,8 @@ final class ToastManager {
             detail: String? = nil,
             type: ToastType,
             undoAction: (@MainActor () async -> Void)? = nil,
-            onFinishedWithoutUndo: (@MainActor () async -> Void)? = nil
+            onFinishedWithoutUndo: (@MainActor () async -> Void)? = nil,
+            undoAccessibilityLabel: String = Toast.deletionUndoLabel
         ) {
             self.id = UUID()
             self.message = message
@@ -52,7 +55,10 @@ final class ToastManager {
             self.type = type
             self.undoAction = undoAction
             self.onFinishedWithoutUndo = onFinishedWithoutUndo
+            self.undoAccessibilityLabel = undoAccessibilityLabel
         }
+
+        static var deletionUndoLabel: String { AppLocale.string("Annuler la suppression") }
 
         static func == (lhs: Toast, rhs: Toast) -> Bool {
             lhs.id == rhs.id
@@ -60,6 +66,21 @@ final class ToastManager {
     }
 
     private(set) var currentToast: Toast?
+    /// How high the toast sits over the bottom safe area: the tab screens set it over their
+    /// tab bar and « + », which a side rail (open iPhone Duo) leaves out.
+    var bottomClearance: CGFloat = DesignTokens.Control.toastBottomInset
+    /// How many « + » are on screen: each one reports itself, the tab's and a month page's own.
+    private(set) var floatingAddButtonsOnScreen = 0
+    func floatingAddButtonAppeared() { floatingAddButtonsOnScreen += 1 }
+    func floatingAddButtonDisappeared() { floatingAddButtonsOnScreen = max(0, floatingAddButtonsOnScreen - 1) }
+    /// Room for the « + » only while one is on screen: most pushed pages have none, and
+    /// reserving its height there left the toast floating mid-list.
+    static func bottomClearance(tabBarHeight: CGFloat, showsFloatingAddButton: Bool) -> CGFloat {
+        let floatingButtonRoom = showsFloatingAddButton
+            ? DesignTokens.Control.fabTabBarGap + DesignTokens.Control.fab
+            : 0
+        return tabBarHeight + floatingButtonRoom + DesignTokens.Spacing.md
+    }
     private var dismissTask: Task<Void, Never>?
     /// Toasts simples (`show`) attendent la fin du toast « Annuler » pour ne pas déclencher `onFinishedWithoutUndo` ni masquer l’undo.
     private var pendingToasts: [Toast] = []
@@ -83,7 +104,8 @@ final class ToastManager {
         _ message: String,
         detail: String? = nil,
         undo: @escaping @MainActor () async -> Void,
-        onFinishedWithoutUndo: @escaping @MainActor () async -> Void
+        onFinishedWithoutUndo: @escaping @MainActor () async -> Void,
+        undoAccessibilityLabel: String = Toast.deletionUndoLabel
     ) {
         showToast(
             Toast(
@@ -91,7 +113,8 @@ final class ToastManager {
                 detail: detail,
                 type: .undo,
                 undoAction: undo,
-                onFinishedWithoutUndo: onFinishedWithoutUndo
+                onFinishedWithoutUndo: onFinishedWithoutUndo,
+                undoAccessibilityLabel: undoAccessibilityLabel
             )
         )
     }

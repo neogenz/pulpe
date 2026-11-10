@@ -26,6 +26,12 @@ struct GoalPlanSimulatorTests {
         )
     }
 
+    /// The recap spans two files since its withdrawal rows moved to an extension.
+    private static func recapSource() throws -> String {
+        try simulatorSource("GoalPlanApplyRecapSheet.swift")
+            + simulatorSource("GoalPlanApplyRecapSheet+Withdrawal.swift")
+    }
+
     private func makeGoal() -> SavingsGoal {
         SavingsGoal(
             id: "g1",
@@ -152,7 +158,7 @@ struct GoalPlanSimulatorTests {
 extension GoalPlanSimulatorTests {
     @Test("linked-income recap explains automatic pointing after realization")
     func recap_explainsAutomaticPointing() throws {
-        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+        let source = try Self.recapSource()
 
         #expect(source.contains(
             "Réalise-la dans le budget : le Réel créé sera automatiquement pointé."
@@ -188,17 +194,6 @@ extension GoalPlanSimulatorTests {
         #expect(!GoalPlanApplyRecapSheet.hasUniformAdjustment([first, differentBefore]))
     }
 
-    @Test("uniform recap presents the previous and next monthly amounts")
-    func recap_uniformSummaryPresentsBeforeAndAfter() throws {
-        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
-
-        #expect(source.contains("Text(before.asAdaptiveCurrency(currency))"))
-        #expect(source.contains("Text(after.asAdaptiveCurrency(currency))"))
-        #expect(source.contains("Text(\"/mois sur \\(changes.count) mois\")"))
-        #expect(source.contains("De \\(before.asAdaptiveCurrency(currency)) à \\(after.asAdaptiveCurrency(currency)) "))
-        #expect(source.contains("par mois sur \\(changes.count) mois"))
-    }
-
     @Test("simulator states the signed amount legend once, outside editable rows")
     func simulator_showsOneSignedAmountLegend() throws {
         let rowSource = try Self.simulatorSource("GoalPlanSimEditRow.swift")
@@ -211,7 +206,7 @@ extension GoalPlanSimulatorTests {
 
     @Test("withdrawal destination exposes selection without announcing its symbol")
     func recap_destinationSelectionIsAccessible() throws {
-        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+        let source = try Self.recapSource()
 
         #expect(source.contains(".accessibilityHidden(true)"))
         #expect(source.contains(".accessibilityAddTraits(isSelected ? .isSelected : [])"))
@@ -235,7 +230,7 @@ extension GoalPlanSimulatorTests {
     func simulator_reflowsDenseControlsWithoutTruncating() throws {
         let rowSource = try Self.simulatorSource("GoalPlanSimEditRow.swift")
         let sheetSource = try Self.simulatorSource("GoalPlanSimulatorSheet.swift")
-        let recapSource = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+        let recapSource = try Self.recapSource()
         let timelineSource = try Self.simulatorSource("GoalPlanSimulatorTimeline.swift")
         let resetButtonStart = try #require(
             timelineSource.range(of: "Button(\"Réinitialiser\")")
@@ -252,14 +247,11 @@ extension GoalPlanSimulatorTests {
         #expect(rowSource.contains("amountEditor(width: nil)"))
         #expect(rowSource.contains(".frame(maxWidth: width == nil ? .infinity : nil)"))
         #expect(!rowSource.contains("amountEditor(width: nil).frame(width: 88)"))
-        #expect(sheetSource.contains("globalAmountEditor(width: 96)"))
-        #expect(sheetSource.contains("globalAmountEditor(width: nil)"))
-        #expect(sheetSource.contains(".frame(maxWidth: width == nil ? .infinity : nil)"))
-        #expect(!sheetSource.contains("globalAmountEditor(width: nil).frame(width: 96)"))
+        #expect(sheetSource.contains(".fixedSize()"))
 
         let diffRowStart = try #require(recapSource.range(of: "private func diffRow"))
         let diffRowEnd = try #require(recapSource.range(
-            of: "private func withdrawalChange",
+            of: "func withdrawalChange",
             range: diffRowStart.upperBound..<recapSource.endIndex
         ))
         let diffRowSource = recapSource[diffRowStart.lowerBound..<diffRowEnd.lowerBound]
@@ -270,7 +262,7 @@ extension GoalPlanSimulatorTests {
 
     @Test("recap names before and after amounts for VoiceOver")
     func recap_namesBeforeAndAfterAmountsForVoiceOver() throws {
-        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+        let source = try Self.recapSource()
 
         #expect(source.contains("\\(label), de \\(signedCurrency(from)) à \\(signedCurrency(to))"))
         #expect(source.contains(".accessibilityElement(children: .ignore)"))
@@ -315,7 +307,7 @@ extension GoalPlanSimulatorTests {
         #expect(breakdown.plannedWithdrawal == 0)
         #expect(breakdown.netEffect == 100)
 
-        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+        let source = try Self.recapSource()
         #expect(source.contains("simMonth.simulatedAmount < 0 || simMonth.replacesExistingPlanWithdrawal"))
         #expect(source.contains("change.month.planWithdrawalDestination == .linkedIncome"))
     }

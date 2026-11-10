@@ -75,7 +75,7 @@ final class BudgetDataStore {
     /// avoids re-sorting on every body re-eval of the sticky pager.
     var pagerMonths: [BudgetSparse] { sortedBudgetsCache }
 
-    var freeTransactions: [Transaction] { transactions.unallocated }
+    var freeTransactions: [Transaction] { ledgerTransactions.unallocated }
 
     var reconciliationItems: [CurrentMonthStore.CheckableItem] {
         CurrentMonthStore.uncheckedItems(budgetLines: budgetLines, transactions: transactions)
@@ -84,7 +84,7 @@ final class BudgetDataStore {
     var metrics: BudgetFormulas.Metrics {
         cachedMetrics ?? BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
-            transactions: transactions,
+            transactions: ledgerTransactions,
             rollover: budget?.rollover.orZero ?? 0
         )
     }
@@ -95,7 +95,7 @@ final class BudgetDataStore {
         if let cached = cachedRealizedMetrics { return cached }
         let computed = BudgetFormulas.calculateRealizedMetrics(
             budgetLines: displayBudgetLines,
-            transactions: transactions,
+            transactions: ledgerTransactions,
             rollover: budget?.rollover.orZero ?? 0
         )
         cachedRealizedMetrics = computed
@@ -245,14 +245,15 @@ final class BudgetDataStore {
     // MARK: - Cache + metric helpers
 
     func recomputeMetrics() {
+        let ledger = ledgerTransactions
         cachedMetrics = BudgetFormulas.calculateAllMetrics(
             budgetLines: budgetLines,
-            transactions: transactions,
+            transactions: ledger,
             rollover: budget?.rollover.orZero ?? 0
         )
         cachedRealizedMetrics = BudgetFormulas.calculateRealizedMetrics(
             budgetLines: displayBudgetLines,
-            transactions: transactions,
+            transactions: ledger,
             rollover: budget?.rollover.orZero ?? 0
         )
     }

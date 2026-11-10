@@ -114,13 +114,6 @@ final class BudgetDetailsProjector {
             syncStore: syncStore,
             searchText: searchText
         )
-        let pointedAllocated = makePointedAllocatedItems(
-            dataStore: dataStore,
-            filtersStore: filtersStore,
-            syncStore: syncStore,
-            searchText: searchText,
-            index: (lineById, consumptionByLineId)
-        )
         return assembleScreenState(
             AssemblyContext(
                 dataStore: dataStore,
@@ -129,7 +122,6 @@ final class BudgetDetailsProjector {
                 searchText: searchText,
                 sections: sections,
                 free: free,
-                pointedAllocated: pointedAllocated,
                 consumptionByLineId: consumptionByLineId,
                 lineById: lineById,
                 transactionsByLineId: transactionsByLineId
@@ -146,7 +138,6 @@ final class BudgetDetailsProjector {
         let searchText: String
         let sections: [BudgetDetailsScreenState.Section]
         let free: [BudgetDetailsScreenState.FreeTransactionItem]
-        let pointedAllocated: [BudgetDetailsScreenState.FreeTransactionItem]
         let consumptionByLineId: [String: BudgetFormulas.Consumption]
         let lineById: [String: BudgetLine]
         let transactionsByLineId: [String: [Transaction]]
@@ -173,7 +164,6 @@ final class BudgetDetailsProjector {
             rollover: makeRollover(dataStore: ctx.dataStore),
             sections: ctx.sections,
             free: ctx.free,
-            pointedAllocated: ctx.pointedAllocated,
             kindCounts: ctx.filtersStore.kindCounts(
                 for: ctx.dataStore.budgetLines,
                 consumptionByLineId: ctx.consumptionByLineId
@@ -195,6 +185,7 @@ final class BudgetDetailsProjector {
                 sections: ctx.sections,
                 free: ctx.free
             ),
+            canShowEmptyOver: makeCanShowEmptyOver(ctx),
             consumptionByLineId: ctx.consumptionByLineId,
             lineById: ctx.lineById,
             transactionsByLineId: ctx.transactionsByLineId,
@@ -232,6 +223,19 @@ final class BudgetDetailsProjector {
             && sections.isEmpty
             && free.isEmpty
             && (!dataStore.budgetLines.isEmpty || !dataStore.transactions.isEmpty)
+    }
+
+    /// Counts overruns across every kind: a type filter that hides the overrun dépenses
+    /// must not read as nothing overrunning.
+    private static func makeCanShowEmptyOver(_ ctx: AssemblyContext) -> Bool {
+        ctx.searchText.isEmpty
+            && ctx.filtersStore.checkedFilter == .over
+            && !ctx.dataStore.budgetLines.isEmpty
+            && FiltersStore.checkedCounts(
+                for: ctx.dataStore.budgetLines,
+                typeFilter: .all,
+                consumptionByLineId: ctx.consumptionByLineId
+            ).over == 0
     }
 
     // MARK: - Index builders (private helpers)

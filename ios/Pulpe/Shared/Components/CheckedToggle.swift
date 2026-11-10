@@ -13,7 +13,10 @@ struct CheckedToggle: View {
                 .background(Color.inputBackgroundSoft)
                 .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
         case .row:
+            // Its subtitle wraps on a narrow card: the padding keeps the text off the card's
+            // edge, where the one-line rows around it only need their minimum height.
             toggle
+                .padding(.vertical, DesignTokens.Spacing.md)
                 .frame(minHeight: DesignTokens.ListRow.minHeight)
         }
     }

@@ -33,11 +33,16 @@ extension HomeHeroCard {
 
     /// The eyebrow while scrubbing: « Réel le 12 août · Prévu 7’400 CHF », or « Estimé le
     /// 20 août · … » once the day is still to come. The figure under it is the reading.
-    static func scrubEyebrow(_ reading: ScrubReading, currency: SupportedCurrency) -> String {
+    static func scrubEyebrow(
+        _ reading: ScrubReading,
+        currency: SupportedCurrency,
+        amountsHidden: Bool = false
+    ) -> String {
         let day = reading.date.map { Formatters.dayMonthLabel(for: $0) } ?? ""
         let lead = reading.real != nil
             ? AppLocale.string("Réel le \(day)")
             : AppLocale.string("Estimé le \(day)")
+        if amountsHidden { return lead }
         return AppLocale.string("\(lead) · Prévu \(reading.plan.asCompactCurrency(currency))")
     }
 

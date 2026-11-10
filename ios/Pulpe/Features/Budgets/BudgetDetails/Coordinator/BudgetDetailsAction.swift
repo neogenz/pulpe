@@ -20,6 +20,7 @@ enum BudgetDetailsAction {
     // Filters
     case setCheckedFilter(CheckedFilterOption)
     case setTypeFilter(BudgetLineKindFilter)
+    case setFilterRailHidden(Bool)
 
     // Toggles — carry `ToastContext` + `amountsHidden` so the coordinator
     // emits the "Pointé" toast internally on success. Views never inspect

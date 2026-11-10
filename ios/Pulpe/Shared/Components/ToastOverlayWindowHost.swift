@@ -42,7 +42,7 @@ private struct ToastOverlayBridge: UIViewControllerRepresentable {
             }
         }
 
-        controller.push(toastManager.currentToast)
+        controller.push(toastManager.currentToast, bottomClearance: toastManager.bottomClearance)
     }
 
     static func dismantleUIViewController(_: UIViewController, coordinator: Coordinator) {
@@ -117,6 +117,7 @@ final class ToastOverlayWindowController {
 
         let content = ToastContent(
             toast: nil,
+            bottomClearance: toastManager.bottomClearance,
             dismiss: { toastManager.dismiss() },
             undo: { toastManager.executeUndo() }
         )
@@ -129,10 +130,11 @@ final class ToastOverlayWindowController {
     }
 
     /// Called on every SwiftUI update cycle — pushes the latest toast into the hosting controller.
-    func push(_ toast: ToastManager.Toast?) {
+    func push(_ toast: ToastManager.Toast?, bottomClearance: CGFloat) {
         guard let hosting else { return }
         var root = hosting.rootView
         root.toast = toast
+        root.bottomClearance = bottomClearance
         hosting.rootView = root
     }
 
@@ -154,11 +156,12 @@ final class ToastOverlayWindowController {
 /// The `dismiss` / `undo` closures are captured once at creation and never change.
 private struct ToastContent: View {
     var toast: ToastManager.Toast?
+    var bottomClearance: CGFloat
     let dismiss: () -> Void
     let undo: () -> Void
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack(alignment: .bottom) {
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
@@ -169,14 +172,19 @@ private struct ToastContent: View {
                     onDismiss: dismiss,
                     onUndo: toast.hasUndo ? undo : nil
                 )
-                .safeAreaPadding(.top)
-                // Marge sous encoche + respiration avant barre titre / gros en-têtes (évite le chevauchement visuel).
-                .padding(.top, DesignTokens.Spacing.lg)
+                .frame(maxWidth: DesignTokens.Control.toastMaxWidth)
+                // Read before the bottom padding: the window only passes through taps outside
+                // this frame, and the padding would cover the « + » under the toast.
                 .background(toastFrameReader)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .safeAreaPadding(.bottom)
+                // Low, in thumb reach, above the tab bar and the floating "+" (V2 toast).
+                .padding(.bottom, bottomClearance)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(DesignTokens.Animation.defaultSpring, value: toast)
+        // A toast on screen when the « + » comes or goes glides to its new height.
+        .animation(DesignTokens.Animation.defaultSpring, value: bottomClearance)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: toast == nil) { _, isNil in
             if isNil { ToastOverlayWindowController.shared.setFrame(.zero) }

@@ -47,9 +47,4 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     var showProgressBar: Bool {
         self != .welcome
     }
-
-    /// Titles for budget preview stay centered; form steps use leading alignment (Practical UI / lean forms).
-    var onboardingHeaderIsCentered: Bool {
-        self == .budgetPreview
-    }
 }

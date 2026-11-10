@@ -94,7 +94,7 @@ extension APIError {
         case .maintenance: AppLocale.string("Maintenance en cours, réessaie dans quelques instants")
         case .rateLimited: AppLocale.string("Trop de tentatives, patiente un moment")
         case .networkError: AppLocale.string("Erreur de connexion, réessaie")
-        default: AppLocale.string("Ce code ne semble pas correct")
+        default: AppLocale.string("Ce code ne semble pas correct. Réessaie.")
         }
     }
 }
@@ -104,7 +104,7 @@ extension CryptoServiceError {
     var pinUserMessage: String {
         switch self {
         case .invalidSalt, .invalidIterations: AppLocale.string("Erreur de sécurité, contacte le support")
-        case .derivationFailed: AppLocale.string("Erreur de chiffrement, réessaie")
+        case .derivationFailed: AppLocale.string("Un problème est survenu avec ton code, réessaie")
         case .invalidPin: AppLocale.string("Code invalide")
         }
     }

@@ -7,7 +7,7 @@ struct ToastView: View {
     let onUndo: (() -> Void)?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var offset: CGFloat = -100
+    @State private var offset: CGFloat = DesignTokens.Control.toastTravel
     @State private var opacity: Double = 0
 
     init(toast: ToastManager.Toast, onDismiss: @escaping () -> Void, onUndo: (() -> Void)? = nil) {
@@ -25,14 +25,13 @@ struct ToastView: View {
     }
 
     /// Cible minimale confortable (Practical UI / WCAG :48×48 ; Apple HIG : 44).
-    private static let comfortableTapMin: CGFloat = 48
+    private static let comfortableTapMin = DesignTokens.TapTarget.minimum
 
     var body: some View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
             Image(systemName: toast.type.icon)
                 .font(PulpeTypography.buttonPrimary)
                 .foregroundStyle(toast.type.color)
-                .frame(width: Self.comfortableTapMin, height: Self.comfortableTapMin)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -50,56 +49,54 @@ struct ToastView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             // 16pt entre actions (Practical UI) ; « Annuler » = poids secondaire (lisible sur verre, pas seulement la couleur).
-            HStack(spacing: DesignTokens.Spacing.lg) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
                 if toast.hasUndo, let onUndo {
                     Button {
                         onUndo()
                     } label: {
                         Text("Annuler")
-                            .font(PulpeTypography.buttonSecondary)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(toast.type.color)
+                            .font(PulpeTypography.chipLabel)
+                            .fontWeight(.bold)
+                            .foregroundStyle(Color.pulpePrimary)
                             .frame(minHeight: Self.comfortableTapMin)
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .background(
-                                Capsule()
-                                    .fill(toast.type.color.opacity(0.1))
-                            )
-                            .overlay(
-                                Capsule()
-                                    .strokeBorder(
-                                        toast.type.color.opacity(0.42),
-                                        lineWidth: DesignTokens.BorderWidth.thin
-                                    )
-                            )
+                            .padding(.horizontal, DesignTokens.Spacing.md)
                     }
                     .buttonStyle(PlainPressedButtonStyle())
-                    .accessibilityLabel("Annuler la suppression")
+                    .accessibilityLabel(toast.undoAccessibilityLabel)
                 }
 
-                Button {
-                    dismissWithAnimation()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(PulpeTypography.inputHelper)
-                        .foregroundStyle(Color.textSecondary)
+                // V2: an undo toast carries one action; it still leaves on a swipe down, on its
+                // timer, or through the VoiceOver « Fermer » action below.
+                if !toast.hasUndo || onUndo == nil {
+                    Button {
+                        dismissWithAnimation()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(PulpeTypography.inputHelper)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .iconButtonStyle()
+                    .accessibilityLabel("Fermer")
                 }
-                .iconButtonStyle()
-                .accessibilityLabel("Fermer")
             }
             .fixedSize(horizontal: true, vertical: false)
         }
+        .accessibilityAction(named: Text("Fermer")) { dismissWithAnimation() }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.vertical, DesignTokens.Spacing.lg)
-        .pulpeFloatingGlass(cornerRadius: DesignTokens.CornerRadius.md)
-        .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
+        .background(Color.surface, in: .rect(cornerRadius: DesignTokens.CornerRadius.toast))
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.toast)
+                .strokeBorder(Color.outlineVariant, lineWidth: DesignTokens.BorderWidth.hairline)
+        }
+        .shadow(DesignTokens.Shadow.toast)
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .offset(y: offset)
         .opacity(opacity)
         .gesture(
             DragGesture()
                 .onEnded { value in
-                    if value.translation.height < -20 {
+                    if value.translation.height > DesignTokens.Control.toastSwipeDismiss {
                         dismissWithAnimation()
                     }
                 }
@@ -125,12 +122,12 @@ struct ToastView: View {
 
     private func dismissWithAnimation() {
         if reduceMotion {
-            offset = -100
+            offset = DesignTokens.Control.toastTravel
             opacity = 0
             onDismiss()
         } else {
             withAnimation(DesignTokens.Animation.toastDismiss) {
-                offset = -100
+                offset = DesignTokens.Control.toastTravel
                 opacity = 0
             } completion: {
                 onDismiss()

@@ -30,3 +30,19 @@ struct SavingsGoalStatusBadge: View {
         }
     }
 }
+
+/// The small grey fact chip of the V2 goal rows (« Rien de prévu », « Cible atteinte »,
+/// « En pause »). Read-only: it never takes a tap, so it stays smaller than a `PulpeChip`.
+struct GoalFactChip: View {
+    let label: String
+
+    var body: some View {
+        Text(label)
+            .font(PulpeTypography.caption.weight(.semibold))
+            .foregroundStyle(Color.textSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, DesignTokens.Spacing.sm)
+            .padding(.vertical, DesignTokens.Spacing.xxs)
+            .background(Color.sunk, in: Capsule())
+    }
+}

@@ -19,10 +19,13 @@ import SwiftUI
 private extension View {
     func currentMonthPreviewEnvironment() -> some View {
         environment(AppState())
+            .environment(UIPreferencesState())
             .environment(CurrentMonthStore())
             .environment(BudgetListStore())
             .environment(UserSettingsStore())
             .environment(SavingsGoalStore())
+            .environment(AssetStore())
+            .environment(FeatureFlagsStore())
             .environment(TagStore())
             .environment(ToastManager())
             .environment(AppVersionStore())

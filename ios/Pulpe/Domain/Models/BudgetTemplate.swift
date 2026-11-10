@@ -29,6 +29,7 @@ struct TemplateLine: Codable, Identifiable, Hashable, Sendable {
 
     // Savings goal link (PUL-12) — the primary tagging surface lives on the template
     var savingsGoalId: String?
+    var assetId: String?
     var tagIds: [String]?
 
     // Currency conversion metadata
@@ -72,6 +73,7 @@ struct TemplateLineCreate: Encodable {
     let recurrence: TransactionRecurrence
     let description: String
     let savingsGoalId: String?
+    let assetId: String?
     let originalAmount: Decimal?
     let originalCurrency: SupportedCurrency?
     let targetCurrency: SupportedCurrency?
@@ -85,6 +87,7 @@ struct TemplateLineCreate: Encodable {
         recurrence: TransactionRecurrence,
         description: String = "",
         savingsGoalId: String? = nil,
+        assetId: String? = nil,
         originalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
@@ -97,6 +100,7 @@ struct TemplateLineCreate: Encodable {
         self.recurrence = recurrence
         self.description = description
         self.savingsGoalId = savingsGoalId
+        self.assetId = assetId
         self.originalAmount = originalAmount
         self.originalCurrency = originalCurrency
         self.targetCurrency = targetCurrency
@@ -113,6 +117,7 @@ struct TemplateLineUpdate: Encodable {
     var description: String?
     /// Tri-state savings-goal link — see `BudgetLineUpdate.savingsGoalId`.
     var savingsGoalId: String??
+    var assetId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?
@@ -150,6 +155,7 @@ struct TemplateLineUpdateWithId: Encodable {
     var description: String?
     /// Tri-state savings-goal link — see `BudgetLineUpdate.savingsGoalId`.
     var savingsGoalId: String??
+    var assetId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?

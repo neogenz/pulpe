@@ -363,6 +363,7 @@ extension AppState {
             budgetPath = NavigationPath()
             budgetSelection = nil
             savingsGoalsPath = NavigationPath()
+            netWorthPath = NavigationPath()
             templatePath = NavigationPath()
             selectedTab = .currentMonth
         }

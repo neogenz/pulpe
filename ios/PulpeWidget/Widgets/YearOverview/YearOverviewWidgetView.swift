@@ -12,10 +12,15 @@ struct YearOverviewWidgetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            // Year title — brand font for identity
-            Text("\(String(entry.year))")
-                .font(PulpeTypography.sectionTitle)
-                .foregroundStyle(Color.textPrimary)
+            HStack(alignment: .firstTextBaseline) {
+                Text(String(entry.year))
+                    .font(PulpeTypography.sectionTitle)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+                Text("Disponible par mois")
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textSecondary)
+            }
 
             LazyVGrid(columns: Self.columns, spacing: DesignTokens.Spacing.sm) {
                 ForEach(entry.months) { month in
@@ -43,15 +48,17 @@ struct YearOverviewWidgetView: View {
     private func currentMonthSummary(_ month: MonthData) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text("Disponible \(month.shortName.lowercased())")
+                Text(AppLocale.string("Disponible en \(Formatters.monthNameInText(for: month.month))"))
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.textSecondary)
 
                 if let available = month.available {
-                    Text(available.asCompactCurrency(entry.currency))
-                        .font(PulpeTypography.amountLarge)
+                    entry.currency.widgetFigure(
+                        available, font: PulpeTypography.amountLarge, isOverBudget: available < 0
+                    )
                         .monospacedDigit()
-                        .foregroundStyle(available >= 0 ? Color.pulpePrimary : Color.financialOverBudget)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
                         .privacySensitive()
                 }
             }
@@ -61,12 +68,7 @@ struct YearOverviewWidgetView: View {
 
             Spacer()
 
-            Link(destination: DeepLinks.addExpense) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: DesignTokens.IconSize.widgetAction))
-                    .foregroundStyle(Color.pulpePrimary)
-            }
-            .accessibilityLabel("Ajouter une dépense")
+            WidgetAddLink()
         }
         .padding(.top, DesignTokens.Spacing.sm)
     }
@@ -81,7 +83,7 @@ struct YearOverviewWidgetView: View {
                 .foregroundStyle(month.isCurrentMonth ? Color.textPrimary : Color.textSecondary)
 
             if let available = month.available {
-                Text(available.asCompactAmount(for: entry.currency))
+                Text(verbatim: available.asAmount(for: entry.currency))
                     .font(PulpeTypography.metricMini)
                     .fontWeight(month.isCurrentMonth ? .bold : .regular)
                     .foregroundStyle(amountColor(for: available))
@@ -89,6 +91,10 @@ struct YearOverviewWidgetView: View {
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                     .privacySensitive()
+            } else if month.isFuture {
+                Text("à créer")
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textTertiary)
             } else {
                 Text("—")
                     .font(PulpeTypography.metricMini)

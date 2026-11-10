@@ -110,8 +110,7 @@ struct BudgetDetailsArchitectureTests {
     func noBudgetFormulasInViewFiles() {
         let viewRoots = ["Views", "BudgetDetailsView.swift", "BudgetMixedSection.swift",
                          "BudgetLineMixedRow.swift", "BudgetLineDetailPage.swift",
-                         "BudgetDetailHero.swift", "AddAllocatedTransactionPage.swift",
-                         "EditTransactionPage.swift"]
+                         "BudgetDetailHero.swift", "BudgetMovementSheet.swift"]
         let allFiles = Self.swiftFiles(under: Self.featureDirectory())
         let viewFiles = allFiles.filter { url in
             viewRoots.contains { url.path.contains("/\($0)") || url.lastPathComponent == $0 }
@@ -231,8 +230,8 @@ struct BudgetDetailsArchitectureTests {
     // MARK: - Phase 5 — No Task.sleep outside helpers
 
     /// Phase 5 invariant: inside the feature, `Task.sleep` is only allowed in
-    /// the dedicated `Helpers/` modifiers (`AutoPopView`, `afterPushTransition`) or the
-    /// shared `rampSyncIndicator`. Any other location must route through one of them.
+    /// the dedicated `Helpers/` modifiers (`AutoPopView`, `afterPushTransition`). Any other
+    /// location must route through one of them.
     @Test("No Task.sleep outside helpers")
     func noTaskSleepOutsideHelpers() {
         let files = Self.swiftFiles(under: Self.featureDirectory())
@@ -278,27 +277,34 @@ struct BudgetDetailsArchitectureTests {
         #expect(source.contains("await tagStore.loadIfNeeded(for: screenState.referencedTagIds)"))
     }
 
-    /// Each action has exactly one home: adding a forecast is the content zone's one filled
-    /// shape, reading the month back is a glyph in the bar. What must not come back is a
-    /// second affordance for either — a toolbar plus beside the button, a pair of cards, or a
-    /// floating button over the list.
-    @Test("Budget detail gives each of its two actions one home")
+    /// Each action has exactly one home (V2 `Budget-mois`): adding a prévision is the foot of
+    /// its section, comparing the accounts, switching month and deleting it are the "…" menu.
+    @Test("Budget detail gives each of its actions one home")
     func budgetActionsEachHaveOneHome() {
         let directory = Self.featureDirectory()
         let source = Self.read(directory.appendingPathComponent("BudgetDetailsView.swift"))
-        let button = Self.read(directory.appendingPathComponent("BudgetDetailsAddLineButton.swift"))
+        let section = Self.read(directory.appendingPathComponent("BudgetMixedSection.swift"))
+        let menu = Self.read(directory.appendingPathComponent("DeleteMonthMenu.swift"))
+        let addButtonPath = directory.appendingPathComponent("BudgetDetailsAddLineButton.swift").path
         let fabPath = directory.appendingPathComponent("BudgetDetailsAddFAB.swift").path
         let cardsPath = directory.appendingPathComponent("BudgetDetailsActionCards.swift").path
 
-        #expect(source.contains("BudgetDetailsAddLineButton { router.present(.addBudgetLine) }"))
-        #expect(button.contains(#"AppLocale.string("Ajouter une prévision")"#))
-        #expect(button.contains(".primaryButtonStyle()"))
-        #expect(source.contains("router.present(.realizedBalance)"))
-        #expect(source.contains(#".accessibilityIdentifier("budgetTrackingButton")"#))
-        // The bar carries the reading action, plus the overflow menu of a future month
-        // (`DeleteMonthMenu`); a plus back beside them is the regression.
+        // Adding a prévision: the foot of its section, the section's kind preselected.
+        // Every month keeps its footers: the floating « + » is hidden on a pushed month, so a
+        // month that has not started would otherwise have no way to add (board 5's « + »).
+        #expect(source.contains("onAdd: { router.present(.addBudgetLine(section.kind)) }"))
+        #expect(section.contains(#"SectionAddRow(title: AppLocale.string("Ajouter une prévision"), action: onAdd)"#))
+        // Comparing the accounts, switching month and deleting it: the "…" menu.
+        #expect(menu.contains("router.present(.realizedBalance)"))
+        #expect(menu.contains(#".accessibilityIdentifier("budgetTrackingButton")"#))
+        #expect(menu.contains("selection: monthSelection"))
+        #expect(menu.contains("DeleteMenuButton("))
+        #expect(!source.contains(#".accessibilityIdentifier("budgetTrackingButton")"#))
+        #expect(!source.contains(".toolbarTitleMenu"))
+        // No add button of its own above the list, no search bar: not on the board.
         #expect(!source.contains("Image(systemName: \"plus\")"))
-        #expect(!source.contains(".overlay(alignment: .bottomTrailing)"))
+        #expect(!source.contains(".searchable("))
+        #expect(!FileManager.default.fileExists(atPath: addButtonPath))
         #expect(!FileManager.default.fileExists(atPath: fabPath))
         #expect(!FileManager.default.fileExists(atPath: cardsPath))
     }

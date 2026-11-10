@@ -21,21 +21,12 @@ struct RootViewAlerts: ViewModifier {
             } message: {
                 Text("La configuration de ton compte n'a pas abouti — vérifie ta connexion et réessaie.")
             }
-            .alert(
-                "Générer une clé de récupération ?",
-                isPresented: $appState.isRecoveryConsentVisible
-            ) {
-                Button("Générer maintenant") {
-                    appState.send(.recoveryKeyConsentAccepted)
-                }
-                Button("Plus tard", role: .cancel) {
-                    appState.send(.recoveryKeyConsentDeclined)
-                }
-            } message: {
-                Text("""
-                    Ton coffre est configuré sans clé de récupération. \
-                    Génère-la maintenant pour éviter de perdre l'accès à tes données chiffrées.
-                    """)
+            .overlay {
+                RecoveryKeyConsentDialog(
+                    isPresented: appState.isRecoveryConsentVisible,
+                    onAccept: { appState.send(.recoveryKeyConsentAccepted) },
+                    onLater: { appState.send(.recoveryKeyConsentDeclined) }
+                )
             }
             .onShake {
                 guard appState.authState == .authenticated else { return }

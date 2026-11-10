@@ -2,9 +2,8 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-/// The hero is one conditional line after another. Asserting the *branch* — the
-/// resolved copy compared against the same catalog lookup — keeps these tests
-/// about which sentence shows, never about how a language spells it.
+/// The V2 goal hero card is one conditional line after another. Asserting the branch,
+/// resolved against the same catalog lookup, keeps these tests about which line shows.
 @MainActor
 struct GoalHeroPresentationTests {
     private let currency = SupportedCurrency.chf
@@ -42,6 +41,8 @@ struct GoalHeroPresentationTests {
         required: Decimal? = 320,
         paceStatus: SavingsGoalPaceStatus? = .onTrack,
         linkedLineCount: Int = 1,
+        isOverdue: Bool = false,
+        suggestCompletion: Bool? = false,
         months: [SavingsGoalPlanMonth]? = nil
     ) -> SavingsGoalProgress {
         SavingsGoalProgress(
@@ -57,13 +58,13 @@ struct GoalHeroPresentationTests {
             achievementPercent: achievementPercent,
             monthsElapsed: 6,
             monthsRemaining: 6,
-            isOverdue: false,
+            isOverdue: isOverdue,
             pace: 300,
             confirmedPace: 300,
             required: required,
             projected: projected,
             paceStatus: paceStatus,
-            suggestCompletion: false,
+            suggestCompletion: suggestCompletion,
             linkedLineCount: linkedLineCount,
             originalTargetAmount: nil,
             originalCurrency: nil,
@@ -76,227 +77,47 @@ struct GoalHeroPresentationTests {
         )
     }
 
-    private func makePresentation(
-        _ progress: SavingsGoalProgress,
-        status: SavingsGoalStatus = .active
-    ) -> GoalHeroPresentation {
-        GoalHeroPresentation(progress: progress, status: status, currency: currency)
+    @Test func ordinaryActiveGoalShowsTheSentence() {
+        let hero = GoalHeroPresentation(progress: makeProgress(), status: .active, currency: currency)
+        #expect(hero.sentence?.contains("320.00") == true)
+        #expect(hero.caption == AppLocale.string("sur \(Decimal(3_000).asAmount(for: currency))"))
+        #expect(hero.dateLine?.identifier == "savingsGoalDeadlineRange")
     }
 
-    // MARK: - Verdict vs day-1 beat
+    @Test func barSaysWhatIsLeftThenWhatIsMissingOnceLate() {
+        let ordinary = GoalHeroPresentation(progress: makeProgress(), status: .active, currency: currency)
+        #expect(ordinary.bar?.trailing == AppLocale.string("il reste \(Decimal(900).asAmount(for: currency))"))
 
-    @Test("a closed plan month turns the pace status into the cible verdict")
-    func verdict_readsAgainstTheTarget() {
-        let presentation = makePresentation(makeProgress())
-
-        #expect(presentation.verdict == AppLocale.string("Au niveau de la cible"))
-        #expect(presentation.dayOneBeat == nil)
+        let late = GoalHeroPresentation(progress: makeProgress(isOverdue: true), status: .active, currency: currency)
+        #expect(late.bar?.trailing == AppLocale.string("il manque \(Decimal(900).asAmount(for: currency))"))
+        #expect(late.sentence == nil)
     }
 
-    @Test("before the first month closes, the day-1 beat replaces the verdict")
-    func dayOneBeat_standsInForTheVerdict() throws {
-        let planned = try #require(Decimal(string: "300.01"))
-        let progress = makeProgress(months: [
-            makeMonth(month: 6, state: .current, isLocked: false, planned: planned),
-        ])
-
-        let presentation = makePresentation(progress)
-
-        #expect(presentation.verdict == nil)
-        #expect(presentation.dayOneBeat?.contains(planned.asAdaptiveCurrency(currency)) == true)
-    }
-
-    @Test("no pace status at all leaves both the verdict and the beat empty")
-    func noPaceStatus_leavesBothEmpty() {
-        let progress = makeProgress(paceStatus: nil, months: [makeMonth(month: 6, state: .current, isLocked: false)])
-
-        let presentation = makePresentation(progress)
-
-        #expect(presentation.verdict == nil)
-        #expect(presentation.dayOneBeat == nil)
-    }
-
-    // MARK: - Projection and required pace
-
-    @Test("the projection quotes the displayed figure and names the échéance")
-    func projection_quotesTheDisplayedProjection() throws {
-        let projection = try #require(Decimal(string: "3600.01"))
-        let presentation = makePresentation(makeProgress(projected: projection))
-
-        #expect(presentation.projection == AppLocale.string(
-            "Ton plan te mène à \(projection.asAdaptiveCurrency(currency)) à l'échéance."
-        ))
-    }
-
-    /// Sans cible ni échéance le serveur ne calcule plus `projected`, et le repli
-    /// historique `plannedProjection` somme les contributions sans jamais
-    /// retrancher un retrait : la phrase annonçait 3 600 quand la courbe finissait
-    /// à 2 900. Le dernier `projectedCumulative` ferme la même courbe que le chart.
-    @Test("a targetless plan quotes the balance the curve reaches, not the gross plan")
-    func projection_quotesTheNetBalanceWhenTheServerHasNoProjection() {
-        let presentation = makePresentation(makeProgress(
-            targetAmount: nil,
-            targetDate: nil,
-            projected: nil,
-            months: [
-                makeMonth(month: 5, state: .past, isLocked: true, projectedCumulative: 3_200),
-                makeMonth(month: 6, state: .current, isLocked: false, projectedCumulative: 2_900),
-            ]
-        ))
-
-        #expect(presentation.projection == AppLocale.string(
-            "Ton plan te mène à \(Decimal(2_900).asCompactCurrency(currency)) au total."
-        ))
-    }
-
-    @Test("without a plan there is no plan to project")
-    func projection_hiddenWithoutLinkedLines() {
-        let presentation = makePresentation(makeProgress(linkedLineCount: 0))
-
-        #expect(presentation.projection == nil)
-    }
-
-    @Test("a plan that reaches the target says nothing about a required pace")
-    func requiredPace_hiddenWhenThePlanSuffices() {
-        let presentation = makePresentation(makeProgress())
-
-        #expect(presentation.requiredPace == nil, "3 600 ≥ 3 000: repeating the plan under another name")
-    }
-
-    @Test("a plan short of the target advises the pace that closes the gap")
-    func requiredPace_shownWhenThePlanFallsShort() throws {
-        let required = try #require(Decimal(string: "320.01"))
-        let presentation = makePresentation(makeProgress(
-            plannedProjection: 2_400,
-            projected: 2_400,
-            required: required
-        ))
-
-        #expect(
-            presentation.requiredPace?.contains(
-                required.asAdaptiveCurrency(currency)
-            ) == true
+    @Test func reachedGoalSaysCibleAtteinte() {
+        let hero = GoalHeroPresentation(
+            progress: makeProgress(confirmed: 3_000, achievementPercent: 100, suggestCompletion: true),
+            status: .active,
+            currency: currency
         )
+        #expect(hero.bar?.trailing == AppLocale.string("cible atteinte"))
+        #expect(hero.sentence == nil)
     }
 
-    @Test("a sub-cent projection residue does not advise a zero pace")
-    func requiredPace_hiddenForASubCentResidue() {
-        let presentation = makePresentation(makeProgress(
-            targetAmount: 3_000,
-            projected: Decimal(string: "2999.999"),
-            required: Decimal(string: "0.001")
-        ))
-
-        #expect(presentation.requiredPace == nil)
+    @Test func pausedGoalMutesTheBarAndDropsTheSentence() {
+        let hero = GoalHeroPresentation(progress: makeProgress(), status: .paused, currency: currency)
+        #expect(hero.bar?.isMuted == true)
+        #expect(hero.sentence == nil)
     }
 
-    @Test("a one-cent projection gap rounds a sub-cent pace up to one cent")
-    func requiredPace_roundsUpForAOneCentGap() throws {
-        let oneCent = try #require(Decimal(string: "0.01"))
-        let subCentRequired = try #require(Decimal(string: "0.001"))
-        let presentation = makePresentation(makeProgress(
-            targetAmount: 3_000,
-            projected: Decimal(string: "2999.99"),
-            required: subCentRequired
-        ))
-
-        #expect(presentation.requiredPace?.contains(oneCent.asAdaptiveCurrency(currency)) == true)
+    @Test func initialAmountJoinsTheCaption() {
+        let hero = GoalHeroPresentation(progress: makeProgress(initialAmount: 400), status: .active, currency: currency)
+        let target = Decimal(3_000).asAmount(for: currency)
+        let initial = Decimal(400).asAmount(for: currency)
+        #expect(hero.caption == AppLocale.string("sur \(target) · dont \(initial) de départ"))
     }
 
-    // MARK: - Bar, chip, meta
-
-    @Test("a one-cent target gap stays visible in the hero amounts")
-    func amounts_keepAOneCentTargetGapVisible() throws {
-        let confirmed = try #require(Decimal(string: "999.99"))
-        let presentation = makePresentation(makeProgress(
-            targetAmount: 1_000,
-            confirmed: confirmed
-        ))
-
-        #expect(presentation.amount == confirmed.asAdaptiveCurrency(currency))
-        #expect(presentation.targetLine == AppLocale.string("sur \(Decimal(1_000).asAdaptiveCurrency(currency))"))
-    }
-
-    @Test("the bar layers confirmed over the displayed projection and shares one percent")
-    func bar_layersConfirmedOverProjection() throws {
-        let bar = try #require(makePresentation(makeProgress()).bar)
-
-        #expect(bar.confirmed == 0.7)
-        #expect(bar.projected == 1, "3 600 against a 3 000 target clamps to a full bar")
-        #expect(bar.percent == Decimal(70).asPercentage())
-    }
-
-    @Test("no target, no bar to draw")
-    func bar_absentWithoutATarget() {
-        let presentation = makePresentation(makeProgress(targetAmount: nil, achievementPercent: nil))
-
-        #expect(presentation.bar == nil)
-    }
-
-    @Test("the status chip only shows once the status carries information")
-    func statusChip_hiddenOnAnActiveGoal() {
-        let progress = makeProgress()
-
-        #expect(makePresentation(progress, status: .active).showsStatusChip == false)
-        #expect(makePresentation(progress, status: .paused).showsStatusChip == true)
-        #expect(makePresentation(progress, status: .completed).showsStatusChip == true)
-    }
-
-    @Test("the date fragment keeps the identifier of the variant it renders")
-    func dateLine_keepsItsIdentifier() {
-        let range = makePresentation(makeProgress()).dateLine
-        let deadlineOnly = makePresentation(makeProgress(startDate: nil)).dateLine
-        let none = makePresentation(makeProgress(targetDate: nil, startDate: nil)).dateLine
-
-        #expect(range?.identifier == "savingsGoalDeadlineRange")
-        #expect(deadlineOnly?.identifier == "savingsGoalDeadlineDate")
-        #expect(none == nil)
-    }
-
-    @Test("the starting stock only earns a line when there is one")
-    func initialAmountLine_onlyWhenThereIsAStock() {
-        #expect(makePresentation(makeProgress()).initialAmountLine == nil)
-        #expect(makePresentation(makeProgress(initialAmount: 500)).initialAmountLine?.isEmpty == false)
-    }
-
-    // MARK: - Tiles and accent (HeroZone)
-
-    @Test("day 1: no verdict, the beat stands in, and no date tile yet")
-    func tiles_dayOneHasNoDateTile() {
-        let progress = makeProgress(months: [makeMonth(month: 6, state: .current, isLocked: false)])
-
-        let presentation = makePresentation(progress)
-
-        #expect(presentation.verdict == nil)
-        #expect(presentation.dayOneBeat != nil)
-        #expect(presentation.tiles.isEmpty)
-        #expect(presentation.accent == .neutral)
-    }
-
-    @Test("without a target there is no bar and no pace tile")
-    func tiles_noTargetHasNoBarNorPaceTile() {
-        let presentation = makePresentation(makeProgress(targetAmount: nil))
-
-        let hasPaceTile = presentation.tiles.contains { $0.identifier == "savingsGoalPaceTile" }
-        #expect(presentation.bar == nil)
-        #expect(!hasPaceTile)
-    }
-
-    @Test("a plan that falls behind reads as caution, never as deficit")
-    func accent_behindIsCaution() {
-        let presentation = makePresentation(makeProgress(
-            plannedProjection: 2_400,
-            projected: 2_400,
-            paceStatus: .behind
-        ))
-
-        let hasPaceTile = presentation.tiles.contains { $0.identifier == "savingsGoalPaceTile" }
-        #expect(presentation.accent == .caution)
-        #expect(hasPaceTile)
-    }
-
-    @Test("on track reads as positive once a month has closed")
-    func accent_onTrackIsPositive() {
-        #expect(makePresentation(makeProgress()).accent == .positive)
+    @Test func noTargetMeansNoBar() {
+        let hero = GoalHeroPresentation(progress: makeProgress(targetAmount: nil), status: .active, currency: currency)
+        #expect(hero.bar == nil)
     }
 }

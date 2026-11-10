@@ -6,7 +6,9 @@ import SwiftUI
 struct PinEntryView: View {
     // Computed, not stored: a `static let` would freeze the language of the first
     // access and survive a language change made later in the same session.
-    static var pinEntryTitle: String { AppLocale.string("Saisis ton code PIN") }
+    static func pinEntryTitle(firstName: String) -> String {
+        firstName.isEmpty ? AppLocale.string("Bonjour") : AppLocale.string("Bonjour, \(firstName)")
+    }
     static var forgotPinLabel: String { AppLocale.string("Code PIN oublié ?") }
 
     let firstName: String
@@ -47,11 +49,11 @@ struct PinEntryView: View {
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
                 onBiometric: onBiometric,
-                isDisabled: viewModel.isValidating || viewModel.isError
+                isDisabled: viewModel.isValidating
             )
-            Spacer().frame(height: 24)
+            Spacer().frame(height: DesignTokens.Spacing.xxl)
             forgotPinLink
-            Spacer().frame(height: 16)
+            Spacer().frame(height: DesignTokens.Spacing.lg)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
     }
@@ -65,8 +67,9 @@ struct PinEntryView: View {
                 Task { await onLogout() }
             } label: {
                 Text("Se déconnecter")
-                    .font(PulpeTypography.footnote)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.pulpePrimary)
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
             }
             .disabled(viewModel.isValidating)
         }
@@ -77,17 +80,24 @@ struct PinEntryView: View {
 
     private var headerSection: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            PulpeIcon(size: 56)
+            ProfileAvatar(
+                firstName: firstName,
+                email: nil,
+                avatarUrl: nil,
+                diameter: DesignTokens.IconSize.heroBadge,
+                background: .accentWash,
+                foreground: .accentInk,
+                font: PulpeTypography.sectionTitle
+            )
+            .accessibilityHidden(true)
 
-            Text(Self.pinEntryTitle)
-                .font(PulpeTypography.onboardingTitle)
-                .foregroundStyle(Color.textPrimaryOnboarding)
+            Text(Self.pinEntryTitle(firstName: firstName))
+                .font(PulpeTypography.entryTitle)
+                .foregroundStyle(Color.textPrimary)
 
-            if !firstName.isEmpty {
-                Text("Bonjour, \(firstName)")
-                    .font(PulpeTypography.stepSubtitle)
-                    .foregroundStyle(Color.textSecondaryOnboarding)
-            }
+            Text("Saisis ton code pour ouvrir ton budget.")
+                .font(PulpeTypography.stepSubtitle)
+                .foregroundStyle(Color.textSecondary)
         }
     }
 
@@ -110,8 +120,8 @@ struct PinEntryView: View {
             onForgotPin()
         } label: {
             Text(Self.forgotPinLabel)
-                .font(PulpeTypography.stepSubtitle)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.pulpePrimary)
         }
         .frame(minHeight: DesignTokens.TapTarget.minimum)
         .contentShape(Rectangle())
@@ -145,7 +155,6 @@ final class PinEntryViewModel {
 
     // MARK: - Private
 
-    private var errorResetTask: Task<Void, Never>?
     private let cryptoService: any PinCryptoKeyDerivation
     private let encryptionAPI: any PinEncryptionValidation
     private let clientKeyManager: any PinClientKeyStorage
@@ -165,7 +174,9 @@ final class PinEntryViewModel {
     // MARK: - Actions
 
     func appendDigit(_ digit: Int) {
-        guard digits.count < pinLength, !isValidating, !isError else { return }
+        guard digits.count < pinLength, !isValidating else { return }
+        // The wrong-code message stays until the next try begins (board « PIN · erreur »).
+        clearError()
         digits.append(digit)
 
         if digits.count == pinLength {
@@ -231,13 +242,6 @@ final class PinEntryViewModel {
         isError = true
         digits = []
         hapticError.toggle()
-
-        errorResetTask?.cancel()
-        errorResetTask = Task {
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            clearError()
-        }
     }
 
     private func clearError() {

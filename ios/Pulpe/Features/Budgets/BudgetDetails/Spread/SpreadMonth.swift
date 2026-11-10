@@ -17,6 +17,9 @@ struct SpreadMonth: Identifiable, Hashable, Sendable {
     /// "Janvier 2026" — used in the De/À picker rows.
     var longName: String { "\(name) \(year)" }
 
+    /// "nov. 26" — a month tile's label.
+    var shortLabel: String { "\(Formatters.shortMonthName(for: month)) \(String(format: "%02d", year % 100))" }
+
     static func from(ordinal: Int) -> SpreadMonth {
         SpreadMonth(year: ordinal / 12, month: ordinal % 12 + 1)
     }

@@ -1,14 +1,11 @@
 import SwiftUI
 
-/// Hosts an operation's « Modifier » page on its own, for the accueil's one-push route.
-/// The page is written against the budget feature's stores, so the host owns a
-/// coordinator and a projector exactly like the budget page does, and binds them to the
-/// app stores (rule 11): every mutation made here reaches the accueil, the list and the
-/// dashboard. The budget opens from the cache the accueil already primed.
+/// Hosts an operation's « Modifier » sheet on its own, for the accueil. The sheet is written
+/// against the budget feature's stores, so the host owns a coordinator and a projector exactly
+/// like the budget page does, and binds them to the app stores (rule 11): every mutation made
+/// here reaches the accueil, the list and the dashboard. The budget opens from the cache the
+/// accueil already primed.
 ///
-/// The page is only shown once the budget is present: it auto-pops after
-/// `autoPopGraceMs` when its operation is missing, which is also what an empty store
-/// looks like during the first load.
 /// A tapped row is always in the entry or the entry is absent: the accueil mirrors its
 /// own row changes into it (`CurrentMonthStore.applyLocalRowChange`).
 struct EditTransactionHost: View {
@@ -53,7 +50,7 @@ struct EditTransactionHost: View {
         return Group {
             switch screenState.content {
             case .loaded:
-                EditTransactionPage(transactionId: transactionId)
+                BudgetMovementSheet(transactionId: transactionId)
             case .failed: // the projector sets terminalError in the same pass; the fallback never renders
                 ErrorView(error: projector.terminalError ?? APIError.invalidResponse) {
                     await coordinator.dispatch(.loadDetails(force: false))
@@ -61,15 +58,17 @@ struct EditTransactionHost: View {
             case .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .pulpeBackground()
+                    .background(Color.sheetBackground)
             }
         }
-        // The page sets the same title itself; this covers the spinner and the error.
-        .localizedNavigationTitle("Modifier")
-        .navigationBarTitleDisplayMode(.inline)
         .environment(coordinator)
         .environment(projector)
-        .sheet(item: $router.sheet) { destination in
+        // « Lisser » closes this sheet: presenting the spread sheet inside it would lose the
+        // destination with the dismissal, so the budget page the tab opens next shows it.
+        .sheet(item: Binding(
+            get: { if case .spreadExisting = router.sheet { nil } else { router.sheet } },
+            set: { router.sheet = $0 }
+        )) { destination in
             BudgetDetailSheetContent(destination: destination)
                 .environment(coordinator)
         }
@@ -81,7 +80,7 @@ struct EditTransactionHost: View {
                 savingsGoalStore: savingsGoalStore
             )
             await coordinator.dispatch(.loadDetails(force: false))
-            // The page's "Objectif" source chip and the tags on the form.
+            // The goal behind an income's origin and the tags on the form.
             await savingsGoalStore.loadIfNeeded()
             await tagStore.loadIfNeeded(for: projector.screenState.referencedTagIds)
         }

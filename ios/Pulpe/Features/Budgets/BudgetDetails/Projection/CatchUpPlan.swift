@@ -1,0 +1,97 @@
+import Foundation
+
+/// « Rattraper » (V2 `Rattraper`): what overruns this month, and which dépense still has margin
+/// to take it back. Taking it back moves min(overrun, reste) from that prévision to the ones
+/// that overran: the disponible gets back what the overrun took, as far as the margin goes,
+/// and the part taken back no longer shows as an overrun, so it cannot be taken back twice.
+struct CatchUpPlan: Equatable {
+    struct Overrun: Equatable {
+        let line: BudgetLine
+        let amount: Decimal
+
+        var name: String { line.name }
+    }
+
+    /// An overrun prévision raised by the share `choice` takes back.
+    struct Raise: Equatable {
+        let line: BudgetLine
+        let newAmount: Decimal
+    }
+
+    struct Choice: Equatable, Identifiable {
+        let line: BudgetLine
+        let remaining: Decimal
+        /// The prévision once it takes back what it can.
+        let newAmount: Decimal
+        /// `false`: the margin covers only part of the overrun.
+        let coversAll: Bool
+
+        var id: String { line.id }
+    }
+
+    let overruns: [Overrun]
+    /// Most margin first.
+    let choices: [Choice]
+
+    var total: Decimal { overruns.reduce(0) { $0 + $1.amount } }
+
+    /// The first prévision that covers the whole overrun, else the one with the most margin.
+    var defaultChoiceId: String? {
+        (choices.first { $0.coversAll } ?? choices.first)?.id
+    }
+
+    /// `focusLineId`: opened from one prévision, only its overrun is taken back.
+    /// Lines typed in another currency are left out: re-planning them needs a conversion.
+    static func make(ledger: MonthLedger, focusLineId: String?, userCurrency: SupportedCurrency) -> CatchUpPlan {
+        let expenses = ledger.lines.filter { line in
+            line.kind == .expense && !(line.isRollover ?? false) && line.savingsGoalId == nil
+        }
+        let reste = Dictionary(uniqueKeysWithValues: expenses.map { line in
+            (line.id, BudgetFormulas.calculateConsumption(for: line, transactions: ledger.transactions).available)
+        })
+        let overruns = expenses
+            .filter { (reste[$0.id] ?? 0) < 0 && (focusLineId == nil || $0.id == focusLineId) }
+            .map { Overrun(line: $0, amount: -(reste[$0.id] ?? 0)) }
+        let total = overruns.reduce(Decimal.zero) { $0 + $1.amount }
+        guard total > 0 else { return CatchUpPlan(overruns: [], choices: []) }
+
+        // A pointée prévision counts as fully spent (`calculateRealizedExpenses`): no margin left.
+        let withMargin = expenses
+            .filter { !$0.isChecked && (reste[$0.id] ?? 0) > 0 }
+            .filter { !EditBudgetLineSheet.shouldShowAlternateCurrency(for: $0, userCurrency: userCurrency) }
+        let candidates: [Choice] = withMargin.map { line in
+            let remaining = reste[line.id] ?? 0
+            return Choice(
+                line: line,
+                remaining: remaining,
+                newAmount: line.amount - min(total, remaining),
+                coversAll: remaining >= total
+            )
+        }
+        // The API refuses a prévision at zero: an untouched one the overrun would empty is not offered.
+        let choices = candidates
+            .filter { $0.newAmount > 0 }
+            .sorted { $0.remaining > $1.remaining }
+        return CatchUpPlan(overruns: overruns, choices: choices)
+    }
+
+    /// The overrun prévisions raised by what `choice` takes back, in order, as far as it goes.
+    func raises(for choice: Choice) -> [Raise] {
+        var left = choice.line.amount - choice.newAmount
+        return overruns.compactMap { overrun in
+            let share = min(overrun.amount, left)
+            guard share > 0 else { return nil }
+            left -= share
+            return Raise(line: overrun.line, newAmount: overrun.line.amount + share)
+        }
+    }
+
+    /// What taking it back on `choice` does to the disponible. Raising an overrun prévision up
+    /// to what it spent leaves its envelope as it was: only the lowered prévision moves it.
+    func impact(of choice: Choice, in ledger: MonthLedger) -> MovementImpact {
+        let after = raises(for: choice).reduce(ledger.replacing(lineId: choice.line.id, amount: choice.newAmount)) {
+            $0.replacing(lineId: $1.line.id, amount: $1.newAmount)
+        }
+        return .between(ledger, after)
+    }
+}

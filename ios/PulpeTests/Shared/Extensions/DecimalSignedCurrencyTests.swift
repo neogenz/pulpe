@@ -2,59 +2,8 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-@Suite("Decimal asArithmeticSignedCurrency / asArithmeticSignedCompactCurrency")
+@Suite("Decimal asArithmeticSignedCompactCurrency")
 struct DecimalSignedCurrencyTests {
-    // MARK: - asArithmeticSignedCurrency (CHF)
-
-    @Test func arithmeticSignedCurrency_positiveCHF_prependsPlusAndKeepsCode() {
-        let value: Decimal = 1234.56
-        let formatted = value.asArithmeticSignedCurrency(.chf)
-
-        #expect(formatted.hasPrefix("+"))
-        #expect(formatted.hasSuffix("CHF"))
-        #expect(containsSwissGroupingSeparator(formatted))
-    }
-
-    @Test func arithmeticSignedCurrency_negativeCHF_prependsMinusAndKeepsCode() {
-        let value: Decimal = -1234.56
-        let formatted = value.asArithmeticSignedCurrency(.chf)
-
-        #expect(formatted.hasPrefix("-"))
-        #expect(formatted.hasSuffix("CHF"))
-        #expect(containsSwissGroupingSeparator(formatted))
-    }
-
-    @Test func arithmeticSignedCurrency_zeroCHF_noSignPrefix() {
-        let value: Decimal = 0
-        let formatted = value.asArithmeticSignedCurrency(.chf)
-
-        #expect(!formatted.hasPrefix("+"))
-        #expect(!formatted.hasPrefix("-"))
-        #expect(formatted.hasSuffix("CHF"))
-    }
-
-    // MARK: - asArithmeticSignedCurrency (EUR)
-
-    @Test func arithmeticSignedCurrency_positiveEUR_prependsPlusAndUsesEuroSign() {
-        let value: Decimal = 1234.56
-        let formatted = value.asArithmeticSignedCurrency(.eur)
-
-        #expect(formatted.hasPrefix("+"))
-        #expect(formatted.hasSuffix("€"))
-        #expect(!formatted.contains("EUR"))
-        #expect(!containsSwissGroupingSeparator(formatted), "EUR amounts must not use Swiss apostrophe separators")
-    }
-
-    @Test func arithmeticSignedCurrency_negativeEUR_prependsMinusAndUsesEuroSign() {
-        let value: Decimal = -1234.56
-        let formatted = value.asArithmeticSignedCurrency(.eur)
-
-        #expect(formatted.hasPrefix("-"))
-        #expect(formatted.hasSuffix("€"))
-        #expect(!formatted.contains("EUR"))
-        #expect(!containsSwissGroupingSeparator(formatted))
-    }
-
     // MARK: - asSignedCurrency(for:) — kind-driven sign
 
     @Test func signedCurrencyForKind_chf_income_prependsPlusAndKeepsCode() {

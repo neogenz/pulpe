@@ -52,40 +52,40 @@ struct CurrentMonthWidgetView: View {
         if entry.hasData { view } else { emptyView }
     }
 
+    private var isOverBudget: Bool { entry.available < 0 }
+
+    /// Small (V2 `Widgets`): the label, the figure in ink, « CHF · novembre », and the one green
+    /// thing, the plus, at the bottom trailing corner.
     private var smallWidgetView: some View {
-        VStack(spacing: DesignTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Disponible")
-                .font(PulpeTypography.metricMini)
+                .font(PulpeTypography.detailLabel)
                 .foregroundStyle(Color.textSecondary)
 
-            Text(entry.available.asCompactCurrency(entry.currency))
+            Text(verbatim: entry.available.asAmount(for: entry.currency))
                 .font(PulpeTypography.amountXL)
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
-                .foregroundStyle(entry.available >= 0 ? Color.pulpePrimary : Color.financialOverBudget)
+                .foregroundStyle(isOverBudget ? Color.financialOverBudget : Color.textPrimary)
                 .privacySensitive()
 
-            Text(entry.monthName)
+            Text(verbatim: "\(entry.currency.symbol) · \(entry.monthInText)")
                 .font(PulpeTypography.metricMini)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.textSecondary)
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Link(destination: DeepLinks.addExpense) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: DesignTokens.IconSize.badge))
-                    .foregroundStyle(Color.pulpePrimary)
-            }
-            .accessibilityLabel("Ajouter une dépense")
+            WidgetAddLink()
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.sm)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Budget \(entry.monthName)")
         .accessibilityValue("\(entry.available.asCurrency(entry.currency)) disponible")
     }
 
+    /// Medium: the figure with its currency as a smaller suffix, the month under it.
     private var mediumWidgetView: some View {
         HStack {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -93,17 +93,17 @@ struct CurrentMonthWidgetView: View {
                     .font(PulpeTypography.detailLabel)
                     .foregroundStyle(Color.textSecondary)
 
-                Text(entry.available.asCompactCurrency(entry.currency))
-                    .font(PulpeTypography.amountLarge)
+                entry.currency.widgetFigure(
+                    entry.available, font: PulpeTypography.amountLarge, isOverBudget: isOverBudget
+                )
                     .monospacedDigit()
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
-                    .foregroundStyle(entry.available >= 0 ? Color.pulpePrimary : Color.financialOverBudget)
                     .privacySensitive()
 
-                Text(entry.monthName)
+                Text(entry.monthInText.capitalized)
                     .font(PulpeTypography.metricMini)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Budget \(entry.monthName)")
@@ -111,12 +111,7 @@ struct CurrentMonthWidgetView: View {
 
             Spacer()
 
-            Link(destination: DeepLinks.addExpense) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: DesignTokens.IconSize.widgetAction))
-                    .foregroundStyle(Color.pulpePrimary)
-            }
-            .accessibilityLabel("Ajouter une dépense")
+            WidgetAddLink()
         }
         .padding(DesignTokens.Spacing.lg)
     }

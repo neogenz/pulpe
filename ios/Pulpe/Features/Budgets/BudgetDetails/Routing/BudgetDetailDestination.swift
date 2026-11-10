@@ -23,9 +23,7 @@ struct SpreadExistingSource: Identifiable, Hashable, Sendable {
 
 /// Prefill + anchor for the "piocher dans son épargne" sheet (PUL-292). Carries
 /// the viewed month M (the couple's income lands here; the repayment saving in
-/// M+1) plus an optional pre-filled amount / source. `startsAtPreview` skips the
-/// amount step — used when the AddBudgetLineSheet income toggle routes straight
-/// to the preview with the amount + name already typed. `id` is fresh per
+/// M+1) plus an optional pre-filled amount / source. `id` is fresh per
 /// presentation so `.sheet(item:)` rebuilds the sheet (and its minted
 /// idempotency key) for each new intent.
 struct SavingsWithdrawalPrefill: Identifiable {
@@ -43,7 +41,9 @@ struct SavingsWithdrawalPrefill: Identifiable {
     /// an amount typed in EUR isn't re-anchored to CHF (PUL-292).
     var inputCurrency: SupportedCurrency?
     var source: String?
-    var startsAtPreview: Bool = false
+    /// Opened from « Nouvelle prévision »: that sheet offers the goal origin itself, and the
+    /// goal withdrawal here would write a Réel instead of a prévision.
+    var isFromForecast = false
 }
 
 /// Sheet destinations for `BudgetDetailsView`.
@@ -53,7 +53,12 @@ struct SavingsWithdrawalPrefill: Identifiable {
 /// than stacking multiple `.sheet(...)` siblings — chained presentations
 /// only animate cleanly when the system owns the transition.
 enum BudgetDetailDestination: Identifiable {
-    case addBudgetLine
+    /// « Nouvelle prévision », its kind preselected by the section it was opened from.
+    case addBudgetLine(TransactionKind)
+    /// The movement sheet: a new movement (under `lineId` when set) or "Modifier" on `transactionId`.
+    case movement(lineId: String?, transactionId: String?)
+    /// The goal withdrawal as a movement: a revenu from savings, the goal still to pick.
+    case goalWithdrawal(GoalWithdrawalStart)
     case editBudgetLine(BudgetLine)
     case previousBudget(PreviousBudgetItem)
     case realizedBalance
@@ -63,16 +68,22 @@ enum BudgetDetailDestination: Identifiable {
     case spreadExisting(SpreadExistingSource)
     /// "Piocher dans son épargne" sheet (PUL-292) — amount → 2-month preview.
     case savingsWithdrawal(SavingsWithdrawalPrefill)
+    /// « Rattraper »: take an overrun back on a dépense with margin. `focusLineId` limits it
+    /// to that prévision's overrun; `nil` takes back every overrun of the month.
+    case catchUp(focusLineId: String?)
 
     var id: String {
         switch self {
-        case .addBudgetLine: "addBudgetLine"
+        case .addBudgetLine(let kind): "addBudgetLine-\(kind.rawValue)"
+        case .movement(let lineId, let movementId): "movement-\(lineId ?? "")-\(movementId ?? "")"
+        case .goalWithdrawal(let start): "goalWithdrawal-\(start.amount.map(String.init(describing:)) ?? "")"
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"
         case .realizedBalance: "realizedBalance"
         case .spreadOccurrences(let groupId, _): "spreadOccurrences-\(groupId)"
         case .spreadExisting(let source): "spreadExisting-\(source.id)"
         case .savingsWithdrawal(let prefill): "savingsWithdrawal-\(prefill.id)"
+        case .catchUp(let focusLineId): "catchUp-\(focusLineId ?? "")"
         }
     }
 }

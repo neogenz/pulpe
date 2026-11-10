@@ -21,9 +21,6 @@ struct PayDayPickerSheet: View {
                     header
 
                     dayGrid
-                        .padding(DesignTokens.Spacing.lg)
-                        .background(Color.surface)
-                        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
 
                     hintCard
                 }
@@ -61,13 +58,13 @@ struct PayDayPickerSheet: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Le mois commencera un...")
+            Text("Ton mois commence le…")
                 .font(PulpeTypography.stepTitle)
                 .foregroundStyle(Color.textPrimary)
 
             Text("""
-                Choisis la date à laquelle tu souhaites commencer \
-                à suivre tes dépenses et revenus (ton jour de paie, par exemple).
+                Le jour où ta paie arrive, en général. Chaque budget va de ce jour \
+                à la veille du mois suivant.
                 """)
                 .font(PulpeTypography.subheadline)
                 .foregroundStyle(Color.onSurfaceVariant)
@@ -77,15 +74,9 @@ struct PayDayPickerSheet: View {
     // MARK: - Day Grid
 
     private var dayGrid: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Sélectionne une date")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.onSurfaceVariant)
-
-            LazyVGrid(columns: Self.gridColumns, spacing: DesignTokens.Spacing.sm) {
-                ForEach(1...31, id: \.self) { day in
-                    dayCell(day)
-                }
+        LazyVGrid(columns: Self.gridColumns, spacing: DesignTokens.Spacing.md) {
+            ForEach(1...31, id: \.self) { day in
+                dayCell(day)
             }
         }
     }
@@ -102,15 +93,16 @@ struct PayDayPickerSheet: View {
         } label: {
             Text("\(day)")
                 .font(PulpeTypography.labelLarge)
-                .foregroundStyle(isSelected ? Color.textOnPrimary : Color.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background {
-                    if isSelected {
-                        Circle()
-                            .fill(Color.pulpePrimary)
-                    }
+                .foregroundStyle(isSelected ? Color.accentInk : Color.textPrimary)
+                .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
+                .background(isSelected ? Color.accentWash : Color.surface, in: Circle())
+                .overlay {
+                    Circle().strokeBorder(
+                        isSelected ? Color.pulpePrimary : Color.outlineVariant,
+                        lineWidth: isSelected ? DesignTokens.BorderWidth.thick : DesignTokens.BorderWidth.thin
+                    )
                 }
+                .frame(maxWidth: .infinity)
                 .contentShape(Circle())
                 .animation(DesignTokens.Animation.defaultSpring, value: isSelected)
         }
@@ -121,25 +113,27 @@ struct PayDayPickerSheet: View {
 
     // MARK: - Hint Card
 
-    @ViewBuilder
     private var hintCard: some View {
-        if let day = viewModel?.selectedDay, day >= 2 {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text("Ton mois budgétaire")
-                    .font(PulpeTypography.labelLargeBold)
-                    .foregroundStyle(Color.textPrimary)
+        let day = viewModel?.selectedDay ?? 1
+        let bounds = PayDayPeriod.bounds(payDay: day)
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text("Ton budget «\u{00A0}\(PayDayPeriod.monthName)\u{00A0}»")
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textSecondary)
 
-                Text(hintPeriod(for: day))
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.onSurfaceVariant)
-                    .minimumScaleFactor(0.85)
+            if let bounds {
+                Text("\(bounds.start) \u{2192} \(bounds.end)")
+                    .font(PulpeTypography.title3)
+                    .foregroundStyle(Color.textPrimary)
+                    .minimumScaleFactor(DesignTokens.TextScale.compact)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.surface)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            Text("Le 1er : le budget suit le mois du calendrier.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(DesignTokens.Spacing.lg)
+        .background(Color.sunk, in: .rect(cornerRadius: DesignTokens.CornerRadius.card))
     }
 
     // MARK: - Continue Button
@@ -171,28 +165,37 @@ struct PayDayPickerSheet: View {
             if viewModel?.isSaving == true {
                 ProgressView()
             } else {
-                Text("Continuer")
+                if let day = viewModel?.selectedDay {
+                    Text("Commencer le \(day)")
+                } else {
+                    Text("Commencer le 1er")
+                }
             }
         }
         .primaryButtonStyle(isEnabled: true)
         .disabled(viewModel?.isSaving == true)
     }
+}
 
-    // MARK: - Helpers
+/// The budget period a pay day opens, for the current calendar month: « 25 oct. » and « 24 nov. ».
+enum PayDayPeriod {
+    static var monthName: String {
+        let month = Calendar.current.component(.month, from: Date())
+        return Formatters.monthYear.monthSymbols[month - 1].capitalized
+    }
 
-    private func hintPeriod(for day: Int) -> String {
-        let calendar = Calendar.current
+    /// `nil` for the 1st: the budget follows the calendar month.
+    static func bounds(payDay: Int?) -> (start: String, end: String)? {
         let now = Date()
-        let exampleMonth = calendar.component(.month, from: now)
-        let exampleYear = calendar.component(.year, from: now)
+        let calendar = Calendar.current
         guard let period = BudgetPeriodCalculator.formatPeriod(
-            month: exampleMonth, year: exampleYear, payDayOfMonth: day
-        ) else {
-            return AppLocale.string("Le budget suit le calendrier mensuel standard.")
-        }
-        let monthName = Formatters.monthYear.monthSymbols[exampleMonth - 1].capitalized
-        let suffix = period.hasSuffix(".") ? "" : "."
-        return AppLocale.string("Ton budget «\u{00A0}\(monthName)\u{00A0}» couvrira du \(period)\(suffix)")
+            month: calendar.component(.month, from: now),
+            year: calendar.component(.year, from: now),
+            payDayOfMonth: payDay
+        ) else { return nil }
+        let parts = period.components(separatedBy: " - ")
+        guard parts.count == 2 else { return nil }
+        return (parts[0], parts[1])
     }
 }
 
@@ -204,6 +207,7 @@ struct PayDaySettingRow: View {
     var body: some View {
         HStack {
             Text("Jour de paie")
+                .font(PulpeTypography.listRowTitle)
             Spacer()
             Text(displayValue)
                 .foregroundStyle(Color.onSurfaceVariant)

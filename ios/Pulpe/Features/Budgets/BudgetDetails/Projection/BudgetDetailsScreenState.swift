@@ -54,10 +54,6 @@ struct BudgetDetailsScreenState: Equatable {
     /// filters, in source order.
     let free: [FreeTransactionItem]
 
-    /// Pointed transactions allocated to an envelope still to point, shown only
-    /// under the "Pointé" filter — otherwise nothing on the list surfaces them.
-    let pointedAllocated: [FreeTransactionItem]
-
     let kindCounts: BudgetLineKindCounts
     let checkedCounts: CheckedFilterCounts
     let pagerMonths: [PagerMonth]
@@ -78,6 +74,10 @@ struct BudgetDetailsScreenState: Equatable {
     /// nothing is left to point AND there were items to begin with — i.e. the
     /// "Tout est pointé" empty state should render.
     let canShowEmptyChecked: Bool
+
+    /// True when « Dépassées » is on, search is empty, the month has prévisions
+    /// and none of them overruns: the « Plus rien ne dépasse » state renders.
+    let canShowEmptyOver: Bool
 
     /// O(1) lookup so `BudgetLineDetailPage` (or any other consumer) can grab
     /// a precomputed consumption for any line in the current source state,
@@ -115,7 +115,6 @@ struct BudgetDetailsScreenState: Equatable {
         rollover: nil,
         sections: [],
         free: [],
-        pointedAllocated: [],
         kindCounts: .zero,
         checkedCounts: .zero,
         pagerMonths: [],
@@ -125,6 +124,7 @@ struct BudgetDetailsScreenState: Equatable {
         canPostpone: false,
         nextMonthLabel: nil,
         canShowEmptyChecked: false,
+        canShowEmptyOver: false,
         consumptionByLineId: [:],
         lineById: [:],
         transactionsByLineId: [:],
@@ -180,6 +180,8 @@ struct BudgetDetailsScreenState: Equatable {
     struct Section: Identifiable, Equatable {
         let kind: TransactionKind
         let items: [LineItem]
+        /// What the header states on the right: each row's shown amount, max(planned, spent).
+        var total: Decimal = 0
         var id: TransactionKind { kind }
     }
 
@@ -193,8 +195,6 @@ struct BudgetDetailsScreenState: Equatable {
     struct FreeTransactionItem: Identifiable, Equatable {
         let transaction: Transaction
         let isSyncing: Bool
-        /// The envelope the transaction is allocated to; nil for a free one.
-        var envelopeName: String?
         var id: String { transaction.id }
     }
 

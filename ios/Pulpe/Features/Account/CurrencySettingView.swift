@@ -34,24 +34,28 @@ struct CurrencySettingView: View {
             currencySelectorToggle
             converterDisclosure
         } header: {
-            Text("DEVISE")
-                .font(PulpeTypography.labelLarge)
+            SettingsSectionHeader(text: AppLocale.string("Devise"))
+        } footer: {
+            Text("""
+                Activé, un choix de devise apparaît à côté du montant quand tu ajoutes une dépense \
+                ou un revenu. Pulpe convertit au cours du jour.
+                """)
         }
         .listRowSettingsBackground()
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         // PUL-205: alert (not action sheet) confirming the flip before it
         // persists — the copy makes explicit that amounts are not converted.
         .alert(
-            "Changer la devise d'affichage ?",
+            "Afficher tes montants en \(pendingCurrency?.rawValue ?? "") ?",
             isPresented: isCurrencyConfirmationPresented,
             presenting: pendingCurrency
         ) { currency in
-            Button("Annuler", role: .cancel) {}
-            Button("Changer") { applyCurrencyChange(to: currency) }
+            Button("Garder \(userSettingsStore.currency.rawValue)", role: .cancel) {}
+            Button("Afficher en \(currency.rawValue)") { applyCurrencyChange(to: currency) }
         } message: { currency in
             Text("""
-                Tes montants existants ne sont pas convertis — 100 restera 100, affiché en \
-                \(currency.symbol). Seule la devise d'affichage change.
+                Rien n'est converti : 100 reste 100, affiché en \(currency.symbol). \
+                Seul le symbole change.
                 """)
         }
         .onChange(of: userSettingsStore.currency) { _, newValue in
@@ -76,11 +80,6 @@ struct CurrencySettingView: View {
 
     private var currencyPicker: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("On l'utilise pour afficher tous tes montants.")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.onSurfaceVariant)
-                .fixedSize(horizontal: false, vertical: true)
-
             SegmentedPicker(
                 selection: Binding(
                     get: { viewModel.selectedCurrency },
@@ -94,8 +93,13 @@ struct CurrencySettingView: View {
                 ),
                 title: nil
             ) { currency in
-                Text("\(currency.flag) \(currency.rawValue)")
+                Text(verbatim: "\(currency.rawValue) · \(currency.nativeName)")
             }
+
+            Text("Tous tes montants s'affichent dans cette devise.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.onSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
     }
@@ -112,17 +116,8 @@ struct CurrencySettingView: View {
                 }
             }
         )) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Saisir dans une autre devise")
-                    .font(PulpeTypography.listRowTitle)
-                Text("""
-                    Un sélecteur de devise apparaît à côté du montant. \
-                    Pulpe convertit au cours du jour.
-                    """)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.onSurfaceVariant)
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            Text("Saisir dans une autre devise")
+                .font(PulpeTypography.listRowTitle)
         }
         .tint(Color.pulpePrimary)
         .accessibilityLabel("Saisir dans une autre devise")

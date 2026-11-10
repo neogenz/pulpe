@@ -4,10 +4,9 @@ import Testing
 @Suite("Currency gate architecture invariants")
 struct CurrencyGateArchitectureTests {
     private static let creationFormPaths = [
-        "Features/Budgets/BudgetDetails/AddAllocatedTransactionPage.swift",
         "Features/Budgets/BudgetDetails/AddBudgetLineSheet.swift",
         "Features/Budgets/BudgetDetails/SavingsWithdrawal/SavingsWithdrawalSheet.swift",
-        "Features/CurrentMonth/Components/AddTransactionSheet.swift",
+        "Shared/Components/MovementSheet/MovementSheet.swift",
     ]
 
     private static func sourceDirectory() -> URL {

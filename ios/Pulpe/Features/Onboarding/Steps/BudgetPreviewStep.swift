@@ -1,62 +1,21 @@
 import SwiftUI
 
-// MARK: - Shared types
-
-/// Staged reveal of the budget preview — a single source of truth consumed by
-/// every subview so that hero, breakdown and encouraging message animate in
-/// strict order without each owning its own boolean. Comparable via the `Int`
-/// raw value makes conditions like `phase >= .cardShown` natural.
-///
-/// Not `private` — the extracted subview files (`BudgetPreviewHero.swift`, etc.)
-/// need access to it from outside this file.
-enum BudgetPreviewRevealPhase: Int, Comparable {
-    case initial
-    case heroShown
-    case cardShown
-    case messageShown
-
-    static func < (lhs: BudgetPreviewRevealPhase, rhs: BudgetPreviewRevealPhase) -> Bool {
-        lhs.rawValue < rhs.rawValue
-    }
-}
-
-private struct PartitionedTransactions {
-    var income: [OnboardingTransaction] = []
-    var expense: [OnboardingTransaction] = []
-    var saving: [OnboardingTransaction] = []
-}
-
-// MARK: - BudgetPreviewStep (coordinator)
-
-/// Final onboarding step. Keeps only what cannot be delegated: the reveal
-/// orchestration (`.task { await revealSequence() }`), the screen-view
-/// analytics event and the one-shot sensory feedback tied to the hero reveal.
-/// All UI is expressed by three dedicated subviews below.
+/// Final onboarding step: the ring and the verdict in the forest zone, then one row per block
+/// (Revenus, Charges fixes, Épargne prévue) that leads back to its step.
 struct BudgetPreviewStep: View {
     @Bindable var state: OnboardingState
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isRevealed = false
 
-    @State private var phase: BudgetPreviewRevealPhase = .initial
+    private var emotionState: BudgetFormulas.EmotionState { state.emotionState }
+    private var isDeficit: Bool { emotionState == .deficit }
 
-    /// Canonical 3-state health — forwarded to subviews that need it for copy,
-    /// colors or haptics. SOT is `BudgetFormulas.emotionState` via OnboardingState.
-    private var emotionState: BudgetFormulas.EmotionState {
-        state.emotionState
+    /// Light haptic for a deficit (acknowledgement without celebration), success otherwise.
+    private var feedback: SensoryFeedback {
+        isDeficit ? .impact(weight: .light) : .success
     }
 
-    /// Light haptic for deficit (acknowledgement without celebration), success
-    /// for healthy/tight (positive reinforcement). Matches "aucun haptique
-    /// célébrant un déficit" from the design brief.
-    private var heroSensoryFeedback: SensoryFeedback {
-        switch emotionState {
-        case .comfortable, .tight: .success
-        case .deficit: .impact(weight: .light)
-        }
-    }
-
-    /// Stable analytics string — decoupled from the enum `Equatable` identity so
-    /// renames in `BudgetFormulas.EmotionState` can't silently break funnels.
+    /// Stable analytics string, decoupled from the enum so a rename can't silently break funnels.
     private var analyticsHealthState: String {
         switch emotionState {
         case .comfortable: "comfortable"
@@ -70,356 +29,169 @@ struct BudgetPreviewStep: View {
             step: .budgetPreview,
             state: state,
             canProceed: true,
+            showsCardTitle: false,
             onNext: { state.nextStep() },
+            zone: { zone },
             content: {
-                VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    BudgetPreviewHero(
-                        state: state,
-                        emotionState: emotionState,
-                        phase: phase
-                    )
-                    BudgetPreviewBreakdownCard(
-                        state: state,
-                        phase: phase
-                    )
-                    BudgetPreviewEncouragingMessage(
-                        state: state,
-                        emotionState: emotionState,
-                        phase: phase
-                    )
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    FormCard {
+                        breakdownRow(
+                            step: .income,
+                            kind: .income,
+                            title: AppLocale.string("Revenus"),
+                            names: [AppLocale.string("Salaire")] + names(of: .income),
+                            amount: state.totalIncome.asSignedAmount(for: .income, in: state.currency)
+                        )
+                        if state.totalCharges > 0 {
+                            FormRowDivider()
+                            breakdownRow(
+                                step: .charges,
+                                kind: .expense,
+                                title: AppLocale.string("Charges fixes"),
+                                names: state.fixedChargeLines.map(\.label) + names(of: .expense),
+                                amount: state.totalCharges.asAmount(for: state.currency)
+                            )
+                        }
+                        if state.totalSavings > 0 {
+                            FormRowDivider()
+                            breakdownRow(
+                                step: .savings,
+                                kind: .saving,
+                                title: AppLocale.string("Épargne prévue"),
+                                names: names(of: .saving),
+                                amount: state.totalSavings.asAmount(for: state.currency)
+                            )
+                        }
+                    }
+                    Text("""
+                        Ces montants deviennent ton modèle de mois : chaque nouveau mois \
+                        repart de là, et tu les changes quand tu veux.
+                        """)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
         )
-        // Background stays neutral across the whole onboarding flow. The
-        // health state is communicated by the hero copy ("disponible" / "à
-        // combler"), the hero glyph (checkmark / equal / up-down arrows) and
-        // the accent color on the amount — not by a full-width chromatic wash
-        // that a first-time user would have no prior context to decode.
-        //
-        // Enrich the screen-view event with the health band so the funnel can
-        // split drop-off and time-on-screen by comfortable/tight/deficit.
-        .trackScreen("Onboarding_BudgetPreview", properties: [
-            "health_state": analyticsHealthState
-        ])
-        // Only fires once — when the phase transitions past `.initial` onto
-        // `.heroShown`. Subsequent transitions (cardShown, messageShown) return
-        // `nil` and stay silent, so we never double-haptic.
-        .sensoryFeedback(trigger: phase) { _, newValue in
-            newValue == .heroShown ? heroSensoryFeedback : nil
-        }
-        .task { await revealSequence() }
+        // The health state lives in the ring, its label and the copy, never in a tinted background.
+        .trackScreen("Onboarding_BudgetPreview", properties: ["health_state": analyticsHealthState])
+        .sensoryFeedback(feedback, trigger: isRevealed)
+        .task { isRevealed = true }
     }
 
-    /// Staggered entrance choreography. Drives the single `phase` state that
-    /// every subview reads to trigger its own local animation. Kept on the
-    /// coordinator (not in a subview) so the sequencing is explicit and sits
-    /// next to the `.task` that starts it.
-    private func revealSequence() async {
-        // Give the parent's step transition time to settle before the peak.
-        try? await Task.sleep(for: .milliseconds(400))
-        await delayedAnimation(0, animation: DesignTokens.Animation.bouncySpring) {
-            phase = .heroShown
-        }
-        await delayedAnimation(0.4, animation: DesignTokens.Animation.defaultSpring) {
-            phase = .cardShown
-        }
-        await delayedAnimation(0.2) {
-            phase = .messageShown
-        }
-    }
-}
+    // MARK: - Zone
 
-// MARK: - Breakdown Card
-
-/// Three-block breakdown (Revenus / Charges fixes / Épargne prévue) plus the
-/// flow bars. Owns its reveal animation locally, reading the parent phase to
-/// decide when to scale-in and fade-in.
-private struct BudgetPreviewBreakdownCard: View {
-    let state: OnboardingState
-    let phase: BudgetPreviewRevealPhase
-
-    private var isRevealed: Bool { phase >= .cardShown }
-
-    /// Single-pass partition of custom transactions — avoids three separate
-    /// `.filter` traversals during the body re-evaluations that happen on
-    /// every phase transition.
-    private var partitioned: PartitionedTransactions {
-        var result = PartitionedTransactions()
-        for tx in state.customTransactions {
-            switch tx.type {
-            case .income: result.income.append(tx)
-            case .expense: result.expense.append(tx)
-            case .saving: result.saving.append(tx)
-            }
-        }
-        return result
-    }
-
-    /// Full sentence read by VoiceOver for the whole card — preserves the
-    /// Entrées / Sorties / dont / et structure so the summary flows.
-    ///
-    /// The trailing clause is one key per shape rather than fragments glued
-    /// together: "dont" and "et" don't sit in the same place in every language,
-    /// so a translator needs the whole clause to work with.
-    private var breakdownAccessibilityLabel: String {
-        let income = state.totalIncome.asCompactCurrency(state.currency)
-        let outflows = state.totalExpenses.asCompactCurrency(state.currency)
-        let base = AppLocale.string("Résumé du budget. Entrées \(income), sorties \(outflows)")
-        let charges = state.totalCharges.asCompactCurrency(state.currency)
-        let savings = state.totalSavings.asCompactCurrency(state.currency)
-        switch (state.totalCharges > 0, state.totalSavings > 0) {
-        case (true, true):
-            return base + " " + AppLocale.string("dont \(charges) de charges et \(savings) d'épargne")
-        case (true, false):
-            return base + " " + AppLocale.string("dont \(charges) de charges")
-        case (false, true):
-            return base + " " + AppLocale.string("dont \(savings) d'épargne")
-        case (false, false):
-            return base
-        }
-    }
-
-    var body: some View {
-        let custom = partitioned
-        let charges = state.totalCharges
-        let savings = state.totalSavings
-
-        // Visual rhythm: generous gap between category blocks, tight gap
-        // within a block (header → sub-items). Spacing replaces dividers.
-        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-            BudgetPreviewFlowBars(
-                income: state.totalIncome,
-                charges: charges,
-                savings: savings,
-                isRevealed: isRevealed,
-                currency: state.currency
+    private var zone: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            // No legend: the rows below name each block with its amount.
+            OnboardingBudgetZone(
+                state: state,
+                subtitle: isDeficit
+                    ? AppLocale.string("\(state.currency.rawValue) par mois")
+                    : AppLocale.string("\(state.currency.rawValue) · à dépenser")
             )
-
-            // Category icons are outlined (not `.fill`) per brand iconography —
-            // "outlined style, 1.5-2px stroke, rounded corners".
-            categoryBlock {
-                breakdownRow(
-                    icon: "arrow.down.circle",
-                    label: AppLocale.string("Revenus"),
-                    amount: state.totalIncome,
-                    kind: .income,
-                    onEdit: { state.jumpToStepForEdit(.income) }
-                )
-
-                ForEach(custom.income) { tx in
-                    detailRow(label: tx.name, amount: tx.amount, kind: .income, color: .financialIncome)
-                }
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(PulpeTypography.onboardingTitle)
+                    .foregroundStyle(Color.heroInk)
+                    .accessibilityAddTraits(.isHeader)
+                Text(subtitle)
+                    .font(PulpeTypography.onboardingSubtitle)
+                    .foregroundStyle(Color.heroInkSecondary)
             }
-
-            if charges > 0 {
-                categoryBlock {
-                    breakdownRow(
-                        icon: "arrow.up.circle",
-                        label: AppLocale.string("Charges fixes"),
-                        amount: charges,
-                        kind: .expense,
-                        onEdit: { state.jumpToStepForEdit(.charges) }
-                    )
-
-                    ForEach(state.fixedChargeLines) { line in
-                        detailRow(label: line.label, amount: line.amount, kind: .expense)
-                    }
-
-                    ForEach(custom.expense) { tx in
-                        detailRow(label: tx.name, amount: tx.amount, kind: .expense)
-                    }
-                }
-            }
-
-            if savings > 0 {
-                categoryBlock {
-                    breakdownRow(
-                        icon: "building.columns",
-                        label: AppLocale.string("Épargne prévue"),
-                        amount: savings,
-                        kind: .saving,
-                        onEdit: { state.jumpToStepForEdit(.savings) }
-                    )
-
-                    ForEach(custom.saving) { tx in
-                        detailRow(label: tx.name, amount: tx.amount, kind: .saving)
-                    }
-                }
-            }
-        }
-        .padding(DesignTokens.Spacing.lg)
-        // Generic "rounded rectangle + drop shadow" is explicitly called out as
-        // AI slop in the design context. A thin outline + flat fill gives the
-        // card its own presence against the pale emotion-zone gradient without
-        // relying on elevation as a crutch — quieter and more confident.
-        .background(
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                .fill(Color.onboardingCardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                        .strokeBorder(Color.outlineVariant, lineWidth: DesignTokens.BorderWidth.thin)
-                )
-        )
-        // `.contain` (not `.combine`) groups children semantically while
-        // keeping each child individually focusable — the three "Modifier
-        // {Revenus, Charges, Épargne}" edit buttons need to stay reachable for
-        // VoiceOver users to round-trip back to the income/charges/savings steps.
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(breakdownAccessibilityLabel)
-        .scaleEffect(isRevealed ? 1 : 0.95)
-        .opacity(isRevealed ? 1 : 0)
-    }
-
-    /// Category block: tight vertical spacing between the header row and its
-    /// sub-items so they read as one unit. The parent VStack handles the
-    /// larger gap between blocks.
-    @ViewBuilder
-    private func categoryBlock<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            content()
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
         }
     }
 
-    @ViewBuilder
-    private func breakdownRow(
-        icon: String,
-        label: String,
-        amount: Decimal,
-        kind: TransactionKind,
-        onEdit: (() -> Void)? = nil
-    ) -> some View {
-        if let onEdit {
-            // Whole-row tap target: the pencil was a 44×44 island surrounded
-            // by inert content. Making the entire row the button surface
-            // increases discoverability and hit area without changing the
-            // visual design — the pencil stays as a pure affordance cue.
-            Button(action: onEdit) {
-                breakdownRowContent(icon: icon, label: label, amount: amount, kind: kind, showEditGlyph: true)
-            }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .accessibilityLabel("\(label), \(amount.asCompactCurrency(state.currency)). Toucher pour modifier.")
-        } else {
-            breakdownRowContent(icon: icon, label: label, amount: amount, kind: kind, showEditGlyph: false)
-        }
-    }
-
-    private func breakdownRowContent(
-        icon: String,
-        label: String,
-        amount: Decimal,
-        kind: TransactionKind,
-        showEditGlyph: Bool
-    ) -> some View {
-        let color = Color.financialColor(for: kind)
-        return HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: icon)
-                .font(PulpeTypography.body)
-                .foregroundStyle(color)
-
-            Text(label)
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-
-            Spacer()
-
-            Text(amount.asSignedCompactCurrency(state.currency, for: kind))
-                .font(PulpeTypography.onboardingSubtitle)
-                .monospacedDigit()
-                .foregroundStyle(color)
-
-            if showEditGlyph {
-                Image(systemName: "square.and.pencil")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiaryOnboarding)
-                    // Decorative affordance only — the whole row carries the
-                    // `Modifier X` action label, so the pencil must not be
-                    // separately announced to VoiceOver.
-                    .accessibilityHidden(true)
-            }
-        }
-    }
-
-    private func detailRow(
-        label: String,
-        amount: Decimal,
-        kind: TransactionKind,
-        color: Color = .textTertiary
-    ) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Text(label)
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textTertiary)
-            Spacer()
-            Text(amount.asSignedCompactCurrency(state.currency, for: kind))
-                .font(PulpeTypography.caption)
-                .monospacedDigit()
-                .foregroundStyle(color)
-        }
-        .padding(.leading, DesignTokens.Spacing.xl)
-    }
-}
-
-// MARK: - Encouraging Message
-
-/// Coach-tone afterword rendered below the breakdown. Three registers
-/// (confort / tendu / déficit), with an optional first-name suffix so the one
-/// moment of personal address in the onboarding lands naturally.
-private struct BudgetPreviewEncouragingMessage: View {
-    let state: OnboardingState
-    let emotionState: BudgetFormulas.EmotionState
-    let phase: BudgetPreviewRevealPhase
-
-    private var isRevealed: Bool { phase >= .messageShown }
-
-    /// Title — confirm (comfortable) / acknowledge (tight) / reassure (deficit).
-    /// Appended with the user's first name when available for a warm, one-beat
-    /// personal touch — the single moment the interface addresses them by name.
+    /// Confirm (comfortable), acknowledge (tight) or name the gap (deficit), with the first name
+    /// when known. One message per state: the deficit says what is wrong and where to fix it,
+    /// and the row to fix carries the same tint.
     private var title: String {
         let base: String
         switch emotionState {
         case .comfortable: base = AppLocale.string("Ton budget respire")
         case .tight: base = AppLocale.string("Ton budget tient debout")
-        case .deficit: base = AppLocale.string("Tu vois clairement où tu en es")
+        case .deficit: base = AppLocale.string("Ton mois ne tient pas encore")
         }
-        let trimmedName = state.firstName.trimmingCharacters(in: .whitespaces)
-        return trimmedName.isEmpty ? "\(base)." : "\(base), \(trimmedName)."
+        let name = state.firstName.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? "\(base)." : "\(base), \(name)."
     }
 
     private var subtitle: String {
         switch emotionState {
-        case .comfortable:
-            AppLocale.string("Belle marge pour le mois. Tu pourras affiner plus tard.")
-        case .tight:
-            AppLocale.string("C'est équilibré mais serré. Tu pourras affiner plus tard.")
+        case .comfortable: AppLocale.string("Belle marge pour le mois. Tu pourras affiner plus tard.")
+        case .tight: AppLocale.string("C'est équilibré mais serré. Tu pourras affiner plus tard.")
+        case .deficit where chargesExceedIncome:
+            AppLocale.string("Tes charges dépassent tes revenus. Touche-les pour les ajuster.")
         case .deficit:
-            AppLocale.string("Rien n'est figé — tu pourras ajuster ton budget quand tu veux.")
+            AppLocale.string("""
+                Baisse ton épargne de \(state.availableToSpend.magnitude.asAmount(for: state.currency)) \
+                et tout tient.
+                """)
         }
     }
 
-    var body: some View {
-        VStack(spacing: DesignTokens.Spacing.xs) {
-            Text(title)
-                .font(PulpeTypography.onboardingSubtitle)
-                .foregroundStyle(Color.textTertiaryOnboarding)
+    /// Charges alone past the income cannot be fixed by saving less: the charges are what to fix.
+    private var chargesExceedIncome: Bool { state.totalCharges > state.totalIncome }
 
-            Text(subtitle)
-                .font(PulpeTypography.footnote)
-                .foregroundStyle(Color.textTertiaryOnboarding)
+    /// The block a deficit asks to fix, tinted in its row.
+    private var stepToFix: OnboardingStep? {
+        guard isDeficit else { return nil }
+        return chargesExceedIncome ? .charges : .savings
+    }
+
+    // MARK: - Rows
+
+    private func names(of kind: TransactionKind) -> [String] {
+        state.customTransactions.filter { $0.type == kind }.map(\.name)
+    }
+
+    private func breakdownRow(
+        step: OnboardingStep,
+        kind: TransactionKind,
+        title: String,
+        names: [String],
+        amount: String
+    ) -> some View {
+        Button { state.jumpToStepForEdit(step) } label: {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                RowIcon(systemName: kind.icon, tint: kind.color)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(title)
+                        .font(PulpeTypography.rowTitle)
+                        .foregroundStyle(Color.textPrimary)
+                    if let summary = Self.summary(of: names) {
+                        Text(summary)
+                            .font(PulpeTypography.captionRegular)
+                            .foregroundStyle(Color.textSecondary)
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(amount)
+                    .font(PulpeTypography.rowAmount)
+                    .foregroundStyle(step == stepToFix ? Color.financialOverBudget : Color.textPrimary)
+                RowChevron()
+            }
+            .frame(minHeight: DesignTokens.ListRow.minHeight)
+            .contentShape(Rectangle())
         }
-        .multilineTextAlignment(.center)
-        .blurSlide(isRevealed)
+        .plainPressedButtonStyle()
+        .accessibilityLabel("\(title), \(amount). Toucher pour modifier.")
+    }
+
+    /// First name of the block, then how many others: "Loyer et 4 autres".
+    static func summary(of names: [String]) -> String? {
+        guard let first = names.first else { return nil }
+        switch names.count - 1 {
+        case 0: return first
+        case 1: return AppLocale.string("\(first) et 1 autre")
+        case let others: return AppLocale.string("\(first) et \(others) autres")
+        }
     }
 }
 
-// MARK: - Previews
-
-/// Sanity-check all three emotion bands in design review so the two-zone
-/// composition, copy register and accent color can be compared side-by-side.
-/// Each preview is rendered standalone — the parent `OnboardingFlow` scaffold
-/// (progress bar, back button, CTA overlay) is NOT included, since that's the
-/// step-agnostic chrome already validated elsewhere.
 #Preview("Comfortable") {
     BudgetPreviewStep(state: {
         let state = OnboardingState()
@@ -432,19 +204,6 @@ private struct BudgetPreviewEncouragingMessage: View {
     }())
 }
 
-#Preview("Tight") {
-    BudgetPreviewStep(state: {
-        let state = OnboardingState()
-        state.firstName = "Marie"
-        state.monthlyIncome = 3500
-        state.housingCosts = 1800
-        state.healthInsurance = 400
-        state.phonePlan = 60
-        state.transportCosts = 300
-        return state
-    }())
-}
-
 #Preview("Deficit") {
     BudgetPreviewStep(state: {
         let state = OnboardingState()
@@ -452,8 +211,6 @@ private struct BudgetPreviewEncouragingMessage: View {
         state.monthlyIncome = 2500
         state.housingCosts = 1900
         state.healthInsurance = 450
-        state.phonePlan = 70
-        state.transportCosts = 350
         state.leasingCredit = 400
         return state
     }())

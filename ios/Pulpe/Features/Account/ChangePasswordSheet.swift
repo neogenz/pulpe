@@ -23,11 +23,13 @@ struct ChangePasswordSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: DesignTokens.Spacing.lg) {
-                    Text("Confirme ton identité pour modifier ton accès.")
-                        .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textSecondaryOnboarding)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                    Text("""
+                        Confirme ton identité pour modifier ton accès. \
+                        Ton code PIN et tes montants ne changent pas.
+                        """)
+                        .font(PulpeTypography.subheadline)
+                        .foregroundStyle(Color.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.bottom, DesignTokens.Spacing.sm)
 
                     currentPasswordField
@@ -37,36 +39,17 @@ struct ChangePasswordSheet: View {
                     if let error = viewModel.errorMessage {
                         ErrorBanner(message: error)
                     }
-
-                    Spacer(minLength: DesignTokens.Spacing.xl)
-
-                    Button {
-                        Task {
-                            await viewModel.submit(email: appState.currentUser?.email)
-                            if viewModel.isCompleted {
-                                submitSuccessTrigger.toggle()
-                                dismiss()
-                                onSuccess()
-                            }
-                        }
-                    } label: {
-                        if viewModel.isSubmitting {
-                            ProgressView()
-                                .tint(.white)
-                                .accessibilityLabel("Mise à jour en cours")
-                        } else {
-                            Text("Confirmer")
-                        }
-                    }
-                    .primaryButtonStyle(isEnabled: viewModel.canSubmit)
-                    .disabled(!viewModel.canSubmit)
-                    .accessibilityIdentifier("changePasswordSubmit")
                 }
                 .padding(DesignTokens.Spacing.xl)
             }
-            .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.interactively)
-            .localizedNavigationTitle("Changer le mot de passe")
+            .safeAreaInset(edge: .bottom) {
+                submitButton
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    .padding(.vertical, DesignTokens.Spacing.md)
+                    .background(Color.sheetBackground)
+            }
+            .localizedNavigationTitle("Mot de passe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -81,11 +64,35 @@ struct ChangePasswordSheet: View {
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
+    private var submitButton: some View {
+        Button {
+            Task {
+                await viewModel.submit(email: appState.currentUser?.email)
+                if viewModel.isCompleted {
+                    submitSuccessTrigger.toggle()
+                    dismiss()
+                    onSuccess()
+                }
+            }
+        } label: {
+            if viewModel.isSubmitting {
+                ProgressView()
+                    .tint(.white)
+                    .accessibilityLabel("Mise à jour en cours")
+            } else {
+                Text("Changer le mot de passe")
+            }
+        }
+        .primaryButtonStyle(isEnabled: viewModel.canSubmit)
+        .disabled(!viewModel.canSubmit)
+        .accessibilityIdentifier("changePasswordSubmit")
+    }
+
     private var currentPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Mot de passe actuel")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textSecondary)
 
             AuthSecureField(
                 prompt: AppLocale.string("Ton mot de passe actuel"),
@@ -103,8 +110,8 @@ struct ChangePasswordSheet: View {
     private var newPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text("Nouveau mot de passe")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textSecondary)
 
             AuthSecureField(
                 prompt: AppLocale.string("Ton nouveau mot de passe"),
@@ -128,9 +135,9 @@ struct ChangePasswordSheet: View {
 
     private var confirmPasswordField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Confirmer le nouveau mot de passe")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
+            Text("Confirme le nouveau")
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textSecondary)
 
             AuthSecureField(
                 prompt: AppLocale.string("Confirme ton nouveau mot de passe"),

@@ -75,7 +75,6 @@ enum Endpoint {
     case savingsGoals
     case savingsGoal(id: String)
     case savingsGoalProgress(id: String)
-    case savingsGoalContributions(id: String)
     case savingsGoalPlanApply(id: String)
     case savingsGoalFutureLines(id: String, targetDate: String?)
     case savingsGoalGenerationStop(id: String)
@@ -83,6 +82,15 @@ enum Endpoint {
     case savingsGoalDeletion(id: String)
     case savingsGoalWithdrawalOptions
     case savingsGoalWithdrawals(id: String)
+
+    // MARK: - Net Worth
+
+    case assets
+    case asset(id: String)
+    case assetSnapshots
+    case assetDismissSuggestion(id: String)
+    case assetCategories
+    case assetCategory(id: String)
 
     // MARK: - Currency
 
@@ -180,7 +188,6 @@ enum Endpoint {
         case .savingsGoals: return "/savings-goals"
         case .savingsGoal(let id): return "/savings-goals/\(id)"
         case .savingsGoalProgress(let id): return "/savings-goals/\(id)/progress"
-        case .savingsGoalContributions(let id): return "/savings-goals/\(id)/contributions"
         case .savingsGoalPlanApply(let id): return "/savings-goals/\(id)/plan"
         case .savingsGoalFutureLines(let id, _): return "/savings-goals/\(id)/future-lines"
         case .savingsGoalGenerationStop(let id): return "/savings-goals/\(id)/generation-stop"
@@ -188,6 +195,14 @@ enum Endpoint {
         case .savingsGoalDeletion(let id): return "/savings-goals/\(id)/deletion"
         case .savingsGoalWithdrawalOptions: return "/savings-goals/withdrawal-options"
         case .savingsGoalWithdrawals(let id): return "/savings-goals/\(id)/withdrawals"
+
+        // Net Worth
+        case .assets: return "/assets"
+        case .asset(let id): return "/assets/\(id)"
+        case .assetSnapshots: return "/assets/snapshots"
+        case .assetDismissSuggestion(let id): return "/assets/\(id)/dismiss-suggestion"
+        case .assetCategories: return "/asset-categories"
+        case .assetCategory(let id): return "/asset-categories/\(id)"
 
         // Currency
         case .currencyRate: return "/currency/rate"
@@ -229,16 +244,18 @@ enum Endpoint {
              .feedback,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
              .encryptionVerifyRecoveryKey, .encryptionChangePin,
-             .savingsGoalPlanApply, .savingsGoalGenerationStop, .savingsGoalDeletion:
+             .savingsGoalPlanApply, .savingsGoalGenerationStop, .savingsGoalDeletion,
+             .assetSnapshots, .assetDismissSuggestion, .assetCategories:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetDeletionImpact, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .transactionsExists, .budgetsSparse, .feedbackStatus,
-             .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
+             .savingsGoals, .savingsGoal, .savingsGoalProgress,
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,
              .encryptionVaultStatus, .encryptionSalt,
+             .assets, .asset, .assetCategory,
              .userSettings, .tags, .currencyRate, .whatsNewIos,
              .mcpConnections, .mcpConnectionActivity:
             return .get

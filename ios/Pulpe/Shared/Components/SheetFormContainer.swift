@@ -21,13 +21,23 @@ struct SheetFormContainer<Field: Hashable, Content: View>: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    content
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: DesignTokens.Spacing.xxl) {
+                        content
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xl)
                 }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl)
+                // A field tagged `.id(field)` is brought back into view when the bottom inset grows:
+                // the keyboard toolbar lands after the focus, and on a short screen a pinned bottom
+                // button then covers the field being typed into.
+                .onScrollGeometryChange(for: CGFloat.self) { $0.contentInsets.bottom } action: { old, new in
+                    guard new > old, let field = focus.wrappedValue else { return }
+                    // An explicit anchor: without one, a field under the button still counts as visible.
+                    withAnimation(DesignTokens.Animation.smoothEaseInOut) { proxy.scrollTo(field, anchor: .center) }
+                }
             }
             .contentMargins(.bottom, DesignTokens.Spacing.xxl, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize)
@@ -43,11 +53,10 @@ struct SheetFormContainer<Field: Hashable, Content: View>: View {
             .loadingOverlay(isLoading)
             .dismissKeyboardOnTap()
             .keyboardFieldNavigation(focus: focus, order: focusOrder)
-            .task {
-                guard let first = focusOrder.first else { return }
-                try? await Task.sleep(for: .milliseconds(200))
-                guard !Task.isCancelled else { return }
-                focus.wrappedValue = first
+            // Focused as the sheet appears, so the keyboard rises with it in one movement. A
+            // delayed focus raised it mid-slide and swept the bottom button across the form.
+            .onAppear {
+                if let first = focusOrder.first { focus.wrappedValue = first }
             }
         }
         .standardSheetPresentation()

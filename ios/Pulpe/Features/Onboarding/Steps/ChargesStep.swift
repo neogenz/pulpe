@@ -5,8 +5,6 @@ struct ChargesStep: View {
     @State private var showAddCharge = false
     @State private var editingTransaction: OnboardingTransaction?
     @State private var suggestionToggleTrigger = false
-    @State private var isInsuranceExpanded = false
-    @State private var isMobilityExpanded = false
 
     private var customExpenses: [OnboardingTransaction] {
         state.customTransactions.filter { $0.type == .expense }
@@ -17,56 +15,38 @@ struct ChargesStep: View {
             step: .charges,
             state: state,
             canProceed: true,
+            subtitle: AppLocale.string("""
+                Ce qui part chaque mois, quoi qu'il arrive. Laisse vide ce qui ne te concerne pas.
+                """),
             onNext: { state.nextStep() },
+            zone: { OnboardingBudgetZone(state: state, legend: .charges) },
             content: {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
-                    OnboardingSectionHeader(title: AppLocale.string("Logement"), icon: "house.fill") {
-                        CurrencyField(
-                            value: $state.housingCosts,
-                            hint: "1500",
-                            label: AppLocale.string("Loyer mensuel"),
-                            currency: state.currency
-                        )
-                    }
-
-                    OnboardingSectionHeader(
-                        title: AppLocale.string("Assurance & Abonnements"),
-                        icon: "shield.fill",
-                        isExpanded: $isInsuranceExpanded
-                    ) {
-                        if state.currency == .chf {
-                            CurrencyField(
-                                value: $state.healthInsurance,
-                                hint: "400",
-                                label: AppLocale.string("Assurance maladie"),
-                                currency: state.currency
-                            )
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                    OnboardingSectionHeader(title: AppLocale.string("Logement")) {
+                        FormCard {
+                            amountRow(AppLocale.string("Loyer"), "house", $state.housingCosts)
                         }
-                        CurrencyField(
-                            value: $state.phonePlan,
-                            hint: "50",
-                            label: AppLocale.string("Forfait téléphone"),
-                            currency: state.currency
-                        )
                     }
 
-                    OnboardingSectionHeader(
-                        title: AppLocale.string("Mobilité & Crédit"),
-                        icon: "car.fill",
-                        isExpanded: $isMobilityExpanded
-                    ) {
-                        CurrencyField(
-                            value: $state.transportCosts,
-                            hint: "100",
-                            label: AppLocale.string("Transport (abonnement, essence...)"),
-                            currency: state.currency
-                        )
-                        CurrencyField(
-                            value: $state.leasingCredit,
-                            hint: "300",
-                            label: AppLocale.string("Leasing ou mensualité de crédit"),
-                            currency: state.currency
-                        )
+                    OnboardingSectionHeader(title: AppLocale.string("Assurances et abonnements")) {
+                        FormCard {
+                            if state.currency == .chf {
+                                amountRow(AppLocale.string("Assurance maladie"), "heart", $state.healthInsurance)
+                                FormRowDivider()
+                            }
+                            amountRow(AppLocale.string("Forfait téléphone"), "iphone", $state.phonePlan)
+                        }
+                    }
+
+                    OnboardingSectionHeader(title: AppLocale.string("Mobilité et crédit")) {
+                        FormCard {
+                            amountRow(AppLocale.string("Transport"), "tram", $state.transportCosts)
+                            FormRowDivider()
+                            amountRow(AppLocale.string("Leasing ou crédit"), "car", $state.leasingCredit)
+                        }
+                        Text("Abonnement, essence, mensualité de crédit.")
+                            .font(PulpeTypography.caption)
+                            .foregroundStyle(Color.textSecondary)
                     }
 
                     suggestionsSection
@@ -75,41 +55,27 @@ struct ChargesStep: View {
                         customChargesSection
                     }
 
-                    addChargeButton
-
-                    if state.totalCharges > 0 {
-                        OnboardingRunningTotal(
-                            label: AppLocale.string("Total charges"),
-                            amount: state.totalCharges,
-                            color: .financialExpense,
-                            currency: state.currency
-                        )
-                    }
+                    OnboardingAddLink(title: AppLocale.string("Ajouter une charge")) { showAddCharge = true }
                 }
             }
         )
         .sheet(isPresented: $showAddCharge) {
-            AddCustomExpenseSheet(kind: .expense, currency: state.currency) { tx in
+            AddCustomExpenseSheet(kind: .expense, currency: state.currency, available: state.availableToSpend) { tx in
                 state.addCustomTransaction(tx)
             }
             .standardSheetPresentation()
         }
         .sheet(item: $editingTransaction) { tx in
-            AddCustomExpenseSheet(editing: tx, currency: state.currency) { updated in
+            AddCustomExpenseSheet(editing: tx, currency: state.currency, available: state.availableToSpend) { updated in
                 state.replaceCustomTransaction(id: tx.id, with: updated)
             }
             .standardSheetPresentation()
         }
         .trackScreen("Onboarding_Charges")
-        .task {
-            // Auto-expand sections that already have data (e.g., returning from BudgetPreview edit)
-            if state.healthInsurance != nil || state.phonePlan != nil {
-                isInsuranceExpanded = true
-            }
-            if state.transportCosts != nil || state.leasingCredit != nil {
-                isMobilityExpanded = true
-            }
-        }
+    }
+
+    private func amountRow(_ label: String, _ systemImage: String, _ value: Binding<Decimal?>) -> some View {
+        OnboardingAmountRow(label: label, systemImage: systemImage, value: value, currency: state.currency)
     }
 
     // MARK: - Suggestions
@@ -118,7 +84,6 @@ struct ChargesStep: View {
         OnboardingSuggestionGrid(
             suggestions: OnboardingState.chargeSuggestions,
             state: state,
-            accentColor: .pulpePrimary,
             toggleTrigger: $suggestionToggleTrigger
         )
     }
@@ -128,29 +93,10 @@ struct ChargesStep: View {
     private var customChargesSection: some View {
         OnboardingTransactionListSection(
             title: AppLocale.string("Mes prévisions"),
-            icon: "list.bullet",
             transactions: customExpenses,
             state: state,
             onEdit: { editingTransaction = $0 }
         )
-    }
-
-    // MARK: - Add Button
-
-    private var addChargeButton: some View {
-        Button {
-            showAddCharge = true
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: "plus.circle.fill")
-                Text("Ajouter une charge")
-            }
-            .font(PulpeTypography.labelLarge)
-            .foregroundStyle(Color.pulpePrimary)
-        }
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Rectangle())
-        .plainPressedButtonStyle()
     }
 }
 

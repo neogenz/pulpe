@@ -19,65 +19,7 @@ struct CheckedFilterOptionTests {
         let option = CheckedFilterOption.all
 
         // Assert
-        #expect(option.label == "Tout voir")
-    }
-
-    @Test func uncheckedOptionHasCorrectIcon() {
-        // Arrange
-        let option = CheckedFilterOption.unchecked
-
-        // Assert
-        #expect(option.icon == "square")
-    }
-
-    @Test func allOptionHasCorrectIcon() {
-        // Arrange
-        let option = CheckedFilterOption.all
-
-        // Assert
-        #expect(option.icon == "list.bullet")
-    }
-
-    // MARK: - Accessibility Labels
-
-    @Test func uncheckedOptionHasAccessibilityLabel() {
-        // Arrange
-        let option = CheckedFilterOption.unchecked
-
-        // Assert
-        #expect(option.accessibilityLabel == "Afficher uniquement les éléments à pointer")
-    }
-
-    @Test func allOptionHasAccessibilityLabel() {
-        // Arrange
-        let option = CheckedFilterOption.all
-
-        // Assert
-        #expect(option.accessibilityLabel == "Afficher tous les éléments")
-    }
-
-    @Test func checkedOptionHasCorrectLabel() {
-        // Arrange
-        let option = CheckedFilterOption.checked
-
-        // Assert
-        #expect(option.label == "Pointé")
-    }
-
-    @Test func checkedOptionHasCorrectIcon() {
-        // Arrange
-        let option = CheckedFilterOption.checked
-
-        // Assert
-        #expect(option.icon == "checkmark.square")
-    }
-
-    @Test func checkedOptionHasAccessibilityLabel() {
-        // Arrange
-        let option = CheckedFilterOption.checked
-
-        // Assert
-        #expect(option.accessibilityLabel == "Afficher uniquement les éléments pointés")
+        #expect(option.label == "Tout")
     }
 
     // MARK: - CaseIterable
@@ -88,8 +30,8 @@ struct CheckedFilterOptionTests {
 
         // Assert
         #expect(allCases.count == 3)
+        #expect(allCases.contains(.over))
         #expect(allCases.contains(.unchecked))
-        #expect(allCases.contains(.checked))
         #expect(allCases.contains(.all))
     }
 
@@ -98,12 +40,10 @@ struct CheckedFilterOptionTests {
     @Test func idMatchesRawValue() {
         // Arrange
         let unchecked = CheckedFilterOption.unchecked
-        let checked = CheckedFilterOption.checked
         let all = CheckedFilterOption.all
 
         // Assert
         #expect(unchecked.id == "unchecked")
-        #expect(checked.id == "checked")
         #expect(all.id == "all")
     }
 
@@ -117,14 +57,6 @@ struct CheckedFilterOptionTests {
         #expect(option.rawValue == "unchecked")
     }
 
-    @Test func rawValueChecked() {
-        // Arrange
-        let option = CheckedFilterOption.checked
-
-        // Assert
-        #expect(option.rawValue == "checked")
-    }
-
     @Test func rawValueAll() {
         // Arrange
         let option = CheckedFilterOption.all
@@ -136,12 +68,10 @@ struct CheckedFilterOptionTests {
     @Test func initFromRawValueValid() {
         // Arrange & Act
         let unchecked = CheckedFilterOption(rawValue: "unchecked")
-        let checked = CheckedFilterOption(rawValue: "checked")
         let all = CheckedFilterOption(rawValue: "all")
 
         // Assert
         #expect(unchecked == .unchecked)
-        #expect(checked == .checked)
         #expect(all == .all)
     }
 
@@ -153,25 +83,21 @@ struct CheckedFilterOptionTests {
         #expect(invalid == nil)
     }
 
-    // MARK: - Three Families Rule (ios/DESIGN.md)
+    // MARK: - Dépassées
 
-    @Test func checkedChipStyle_all_isOutlined() {
-        let style: PulpeChip<EmptyView>.Style = BudgetTypeFilter.checkedChipStyle(for: .all)
-        #expect(style == .outlined)
-    }
+    @MainActor @Test func overOptionKeepsOnlyLinesPastTheirPlan() {
+        let over = TestDataFactory.createBudgetLine(id: "over", amount: 100, kind: .expense)
+        let within = TestDataFactory.createBudgetLine(id: "within", amount: 100, kind: .expense)
+        let consumption: [String: BudgetFormulas.Consumption] = [
+            "over": .init(allocated: 130, available: -30, percentage: 130),
+            "within": .init(allocated: 40, available: 60, percentage: 40),
+        ]
 
-    @Test func checkedChipStyle_narrowing_isSemanticNotSolid() {
-        let unchecked: PulpeChip<EmptyView>.Style = BudgetTypeFilter.checkedChipStyle(for: .unchecked)
-        let checked: PulpeChip<EmptyView>.Style = BudgetTypeFilter.checkedChipStyle(for: .checked)
-        #expect(unchecked == .semantic(.financialSavings))
-        #expect(checked == .semantic(.financialSavings))
-        #expect(unchecked != .solid)
-    }
+        let shown = FiltersStore.applyCheckedFilter([over, within], filter: .over, consumptionByLineId: consumption)
+        let counts = FiltersStore.checkedCounts(for: [over, within], typeFilter: .all, consumptionByLineId: consumption)
 
-    @Test func kindChipStyle_solidOnlyWhenSelected() {
-        let selected: PulpeChip<EmptyView>.Style = BudgetTypeFilter.kindChipStyle(isSelected: true)
-        let idle: PulpeChip<EmptyView>.Style = BudgetTypeFilter.kindChipStyle(isSelected: false)
-        #expect(selected == .solid)
-        #expect(idle == .outlined)
+        #expect(shown.map(\.id) == ["over"])
+        #expect(counts.count(for: .over) == 1)
+        #expect(CheckedFilterOption.over.label == "Dépassées")
     }
 }

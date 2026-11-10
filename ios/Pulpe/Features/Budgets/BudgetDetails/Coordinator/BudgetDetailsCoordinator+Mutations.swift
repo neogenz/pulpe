@@ -136,7 +136,7 @@ extension BudgetDetailsCoordinator {
 
     // MARK: - Form-driven server mutations
     //
-    // Form pages (`AddAllocatedTransactionPage`, `EditTransactionPage`) need
+    // Form pages (`MovementSheet` hosts) need
     // the server-confirmed entity to drive their dismiss/error path. Routing
     // through `dispatch(_:)` would require shipping the error back via a
     // callback or a transient store; instead, expose typed throwing async

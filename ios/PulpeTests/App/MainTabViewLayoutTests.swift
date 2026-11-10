@@ -16,18 +16,22 @@ struct MainTabViewNavigationOwnershipTests {
         try String(contentsOf: iosSource(components), encoding: .utf8)
     }
 
-    @Test("Global navigation uses the native four-item tab bar")
+    @Test("Global navigation uses the native tab bar, Patrimoine behind its flag")
     func globalNavigationUsesNativeTabBar() throws {
         let source = try Self.read("Pulpe", "App", "MainTabView.swift")
 
-        #expect(Tab.allCases.count == 4)
-        #expect(source.components(separatedBy: "SwiftUI.Tab(").count == 5)
+        #expect(Tab.allCases.count == 5)
+        #expect(source.components(separatedBy: "SwiftUI.Tab(").count == 6)
+        #expect(source.contains("if featureFlags.isNetWorthEnabled {"))
         #expect(source.contains(".tint(Color.pulpePrimary)"))
         #expect(!source.contains("toolbarVisibility(.hidden, for: .tabBar)"))
         #expect(!source.contains("floatingTabBar"))
         #expect(!source.contains("tabBarClearance"))
-        #expect(!source.contains("AddTransactionSheet("))
-        #expect(!source.contains("actionFAB("))
+        // V2: one global add button on the root screens, solid green, hosted by the shell.
+        #expect(source.contains(".floatingAddFlow("))
+        #expect(source.contains("isVisible: showsFloatingAddButton"))
+        let addFlow = try Self.read("Pulpe", "App", "FloatingAddFlow.swift")
+        #expect(addFlow.contains("FloatingAddButton {"))
     }
 
     @Test("Current Month owns transaction creation")
@@ -37,38 +41,7 @@ struct MainTabViewNavigationOwnershipTests {
             .joined()
 
         #expect(source.contains("case addTransaction"))
-        #expect(source.contains("AddTransactionSheet("))
+        #expect(source.contains("MovementSheet("))
         #expect(source.contains("onAdd: store.addTransaction"))
-    }
-
-    @Test("Current Month transaction action fills its declared hit area")
-    func currentMonthTransactionActionFillsHitArea() throws {
-        let source = try Self.read(
-            "Pulpe",
-            "Features",
-            "CurrentMonth",
-            "Components",
-            "HomeAddOperationRow.swift"
-        )
-        guard let start = source.range(of: "private var addOperationRow: some View {"),
-              let end = source.range(
-                  of: #".accessibilityLabel("Ajouter une opération")"#,
-                  range: start.upperBound..<source.endIndex
-              )
-        else {
-            Issue.record("Missing Current Month transaction action")
-            return
-        }
-
-        // The action declares no geometry of its own any more — it is the house primary
-        // button. So the hit area is checked where it is actually defined, one file over:
-        // naming the style here would pass even if the style stopped filling its width.
-        let action = source[start.lowerBound..<end.upperBound]
-        #expect(action.contains(".primaryButtonStyle()"))
-
-        let style = try Self.read("Pulpe", "Shared", "Design", "PrimaryButtonStyle.swift")
-        #expect(style.contains("frame(maxWidth: .infinity)"))
-        #expect(style.contains("frame(height: DesignTokens.FrameHeight.button)"))
-        #expect(style.contains(".contentShape(Capsule())"))
     }
 }

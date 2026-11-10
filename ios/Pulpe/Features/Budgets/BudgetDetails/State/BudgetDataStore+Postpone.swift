@@ -33,4 +33,10 @@ extension BudgetDataStore {
         guard let next = nextCalendarMonth else { return nil }
         return Formatters.monthNameInText(for: next.month)
     }
+
+    /// What next month has left (« Décembre reste à 2'345.70 »), from the month list.
+    var nextMonthRemaining: Decimal? {
+        guard let next = nextCalendarMonth else { return nil }
+        return allBudgets.first { $0.month == next.month && $0.year == next.year }?.remaining
+    }
 }

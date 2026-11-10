@@ -25,6 +25,7 @@ enum AddBudgetLineSpreadLogic {
         let conversion: CurrencyConversion?
         let spreadGroupId: String
         let savingsGoalId: String?
+        let assetId: String?
 
         init(
             name: String,
@@ -33,7 +34,8 @@ enum AddBudgetLineSpreadLogic {
             mode: SpreadAmountMode,
             conversion: CurrencyConversion?,
             spreadGroupId: String,
-            savingsGoalId: String? = nil
+            savingsGoalId: String? = nil,
+            assetId: String? = nil
         ) {
             self.name = name
             self.kind = kind
@@ -42,6 +44,7 @@ enum AddBudgetLineSpreadLogic {
             self.conversion = conversion
             self.spreadGroupId = spreadGroupId
             self.savingsGoalId = savingsGoalId
+            self.assetId = assetId
         }
     }
 
@@ -65,6 +68,7 @@ enum AddBudgetLineSpreadLogic {
             name: input.name.trimmingCharacters(in: .whitespaces),
             kind: input.kind,
             savingsGoalId: input.kind.savingsGoalLink(input.savingsGoalId),
+            assetId: input.kind.assetLink(input.assetId),
             mode: isTotal ? .total : .perMonth,
             months: months,
             perMonthAmount: isTotal ? nil : convertedAmount,

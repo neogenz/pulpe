@@ -13,70 +13,34 @@ final class ContextualCreationUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testHomeCreationActionRemainsAccessibleAtLargeText() {
-        launch("UITEST_CONTEXTUAL_CREATION_HOME")
-
-        let addOperation = app.buttons["homeAddOperationButton"]
-        XCTAssertTrue(addOperation.waitForExistence(timeout: 10), app.debugDescription)
-        scrollUntilHittable(addOperation)
-        assertMinimumHitArea(addOperation)
-        attachScreenshot("contextual-creation-home-accessibility3")
-
-        addOperation.tap()
-        XCTAssertTrue(app.buttons["addTransactionSubmit"].firstMatch.waitForExistence(timeout: 5))
-    }
-
-    func testTappingAnActivityRowOpensItsEditPageAndBackReturnsToTheAccueil() {
+    func testTappingAnActivityRowOpensItsEditSheetAndClosingReturnsToTheAccueil() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
 
-        let row = app.buttons["homeActivityRow-marketing-bonus"]
+        let row = app.buttons["movementRow-marketing-bonus"]
         scrollUntilHittable(row)
         row.tap()
 
-        let editPage = app.navigationBars.matching(
-            NSPredicate(format: "identifier IN %@", ["Modifier", "Edit", "Ändern", "Modifica"])
-        ).firstMatch
-        XCTAssertTrue(editPage.waitForExistence(timeout: 10), app.debugDescription)
+        // « Modifier » is a sheet now: its save button tells it is up.
+        let save = app.buttons["movementSave"]
+        XCTAssertTrue(save.waitForExistence(timeout: 10), app.debugDescription)
 
-        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["sheetCloseButton"].firstMatch.tap()
         XCTAssertTrue(
             app.descendants(matching: .any)["homeActivityCard"].waitForExistence(timeout: 5),
             app.debugDescription
         )
     }
 
-    func testBudgetActionsRemainDistinctAtLargeText() {
+    func testBudgetSectionAddRowsStayReachableAtLargeText() {
         launch("UITEST_CONTEXTUAL_CREATION_BUDGET")
 
-        let tracking = app.buttons["budgetTrackingButton"]
-        let addForecast = app.buttons["budgetAddLineButton"]
-        XCTAssertTrue(tracking.waitForExistence(timeout: 10), app.debugDescription)
-        XCTAssertTrue(addForecast.waitForExistence(timeout: 10), app.debugDescription)
+        // Each section ends on its own « Ajouter une prévision » row; the expense one is
+        // always there on a seeded month.
+        let addForecast = app.buttons["budgetSectionAdd-expense"]
+        scrollUntilHittable(addForecast)
         attachScreenshot("contextual-creation-budget-accessibility3")
-        // The tracking glyph is a system toolbar item: iOS 26 sizes its own glass capsule
-        // (36 pt tall) and extends the touch region around it, the way it does for the
-        // month chevron beside it, which reports 25 pt. Asserting a 44 pt accessibility
-        // frame here would force a button the system does not draw — exactly the
-        // non-standard shape this glyph was stripped bare to stop being.
-        XCTAssertTrue(tracking.isHittable, app.debugDescription)
-        // The add button we lay out ourselves, so the rule applies to it in full.
+        // Laid out by us, so the 44 pt rule applies to it in full.
         assertMinimumHitArea(addForecast)
-        // The two no longer share a container — one is a toolbar glyph, the other lives in
-        // the content zone — so a frame intersection is structurally impossible and would
-        // assert nothing. What the largest text size can still break is the rail: the
-        // button spans the content zone, DesignTokens.Spacing.xxl on each side, which is
-        // the width the accueil gives its own.
-        // A UI test bundle runs out of process and cannot import the app's module, so the
-        // rail is restated here rather than read from the token. The failure says which
-        // token to look at, since the number alone would not.
-        let rail: CGFloat = 24
-        let contentWidth = app.windows.firstMatch.frame.width - 2 * rail
-        XCTAssertEqual(
-            addForecast.frame.width,
-            contentWidth,
-            accuracy: 1,
-            "The add button no longer spans the \(rail) pt rail (DesignTokens.Spacing.xxl)"
-        )
 
         addForecast.tap()
         XCTAssertTrue(app.buttons["addBudgetLineSubmit"].firstMatch.waitForExistence(timeout: 5))
@@ -140,10 +104,8 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["homeAccountButton"].exists, app.debugDescription)
 
         // `SwiftUI.Tab` gives no seam for an identifier on the bar button it builds, so
-        // the production container is asserted by its four tabs rather than their titles.
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.exists, app.debugDescription)
-        XCTAssertEqual(tabBar.buttons.count, 4, app.debugDescription)
+        // the production container is asserted by its four tabs (`net_worth` pinned off at launch).
+        XCTAssertEqual(app.rootTabButtons.count, 4, app.debugDescription)
 
         attachScreenshot("home-skeleton-production-container")
     }
@@ -154,37 +116,25 @@ final class ContextualCreationUITests: XCTestCase {
     func testFreshSignupHomeIsFilledAndSaysWhatIsMissing() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", freshSignup: true)
 
-        // The estimate and its plot: the page has a subject, not an empty frame. The plot
-        // draws the month's whole slope before anything is pointed, and its label is the
-        // assertable proof of it — the marks themselves are a graphic.
-        let chart = app.descendants(matching: .any)["home-balance-chart"]
-        XCTAssertTrue(chart.waitForExistence(timeout: 10), app.debugDescription)
+        // The estimate: the page has a subject, not an empty frame. A first month has no
+        // slope to draw yet, so the hero leaves its plot out and keeps the figure.
+        let amount = app.descendants(matching: .any)["homeProjectedBalanceAmount"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(
-            chart.label.contains(Self.currencyCode),
-            "The plot announces no figure: \(chart.label)"
+            amount.label.contains(Self.currencyCode),
+            "The hero announces no figure: \(amount.label)"
         )
+        XCTAssertFalse(app.descendants(matching: .any)["home-balance-chart"].exists, app.debugDescription)
 
         // The verdict sentence's own copy is asserted in `HomeHeroCardTests`: it lives in a
         // Button whose accessibility label is its action, so its text reaches no query here.
 
-        // The one thing to do, and the card listing what is waiting to be pointed.
-        XCTAssertTrue(app.buttons["homeAddOperationButton"].exists, app.debugDescription)
+        // A first month has nothing to point yet: the home says how to start instead.
         XCTAssertTrue(
-            app.descendants(matching: .any)["homeUncheckedOperationsCard"].exists,
+            app.descendants(matching: .any)["homeStartAddExpense"].exists,
             app.debugDescription
         )
-        // The income the template opened the budget with — the harness names it, so the
-        // row proves the card is showing the line and not an empty frame.
-        let uncheckedRow = app.descendants(matching: .any)["homeUncheckedOperationRow"].firstMatch
-        XCTAssertTrue(uncheckedRow.exists, app.debugDescription)
-        XCTAssertTrue(uncheckedRow.label.contains("Revenu"), uncheckedRow.label)
-
-        // Nothing has happened yet, so no card may report activity or drift.
-        XCTAssertFalse(
-            app.descendants(matching: .any)["homeActivityCard"].exists,
-            app.debugDescription
-        )
-        XCTAssertFalse(app.descendants(matching: .any)["homeDriftCard"].exists, app.debugDescription)
+        XCTAssertFalse(app.descendants(matching: .any)["homeTodoDrift"].exists, app.debugDescription)
 
         attachScreenshot("home-fresh-signup")
     }
@@ -193,15 +143,18 @@ final class ContextualCreationUITests: XCTestCase {
     /// stack bound to it moves. A harness that wraps `CurrentMonthView` in its own stack
     /// swallows all five of them, and a tap that does nothing looks exactly like a tap that
     /// missed its target — this is the test that tells the two apart.
-    func testHomeShortcutPushesTheBudgetDetail() {
-        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large")
+    func testSeeAllPushesTheMovementsPage() {
+        // « Tout voir » only shows once the month has a movement to list.
+        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", marketingGain: true)
 
-        let seeDetail = app.buttons["homeBudgetDetailLink"]
-        XCTAssertTrue(seeDetail.waitForExistence(timeout: 10), app.debugDescription)
-        seeDetail.tap()
+        let viewAll = app.buttons["homeActivityViewAll"]
+        XCTAssertTrue(viewAll.waitForExistence(timeout: 10), app.debugDescription)
+        viewAll.tap()
 
+        // The movements page's search is a plain text field (`PulpeSearchField`), not a
+        // system search field; its filter chips are what only that page draws.
         XCTAssertTrue(
-            app.buttons["budgetAddLineButton"].waitForExistence(timeout: 10),
+            app.buttons["movementsFilter-all"].firstMatch.waitForExistence(timeout: 10),
             "Le tap n'a rien poussé — écran après le tap : "
                 + "\(app.descendants(matching: .any).allElementsBoundByIndex.map(\.label))"
         )
@@ -217,25 +170,26 @@ final class ContextualCreationUITests: XCTestCase {
         let chart = app.descendants(matching: .any)["home-balance-chart"]
         XCTAssertTrue(chart.waitForExistence(timeout: 10), app.debugDescription)
 
-        // The hero speaks neither its estimate nor its comparison.
-        let hero = app.buttons["homeHeroMetrics"]
-        XCTAssertTrue(hero.exists, app.debugDescription)
+        // The hero figure is dropped from the accessibility tree while hidden (visible, its
+        // label carries the currency: `testFreshSignupHomeIsFilledAndSaysWhatIsMissing`), and
+        // the hero is still on screen, so a missing card cannot pass for a masked one.
+        XCTAssertTrue(app.buttons["homeHeroMetrics"].waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertFalse(
-            hero.label.contains(Self.currencyCode),
-            "Le héros annonce encore un montant : \(hero.label)"
+            app.descendants(matching: .any)["homeProjectedBalanceAmount"].exists,
+            "Le héros annonce encore son montant"
         )
         // The plot too — it is one accessibility element with its whole trajectory inside.
         XCTAssertFalse(
             chart.label.contains(Self.currencyCode),
             "Le graphe annonce encore sa trajectoire : \(chart.label)"
         )
-        // And the card below, whose rows each carry an amount of their own.
-        let uncheckedRow = app.descendants(matching: .any)["homeUncheckedOperationRow"].firstMatch
-        XCTAssertTrue(uncheckedRow.exists, app.debugDescription)
-        XCTAssertTrue(uncheckedRow.label.contains("Logement"), uncheckedRow.label)
-        XCTAssertFalse(
-            uncheckedRow.label.contains(Self.currencyCode),
-            "La ligne à pointer annonce son montant : \(uncheckedRow.label)"
+        // And the « À faire » rows below, which each carry an amount of their own (formatted
+        // without the currency code, so the check is on digits: seeded names carry none).
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'toPointRow-'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertNil(
+            row.label.rangeOfCharacter(from: .decimalDigits),
+            "La ligne annonce son montant : \(row.label)"
         )
 
         attachScreenshot("home-amounts-hidden")
@@ -253,7 +207,8 @@ final class ContextualCreationUITests: XCTestCase {
         marketingGain: Bool = false
     ) {
         app = XCUIApplication()
-        app.launchArguments = ["-\(scenario)"]
+        // Pins the `net_worth` flag off so the tab count never depends on a cached flag.
+        app.launchArguments = ["-\(scenario)", "-pulpe.feature_flags.net_worth", "NO"]
         app.launchEnvironment["UITEST_SCENARIO"] = scenario
         app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = dynamicType
         if let colorScheme {

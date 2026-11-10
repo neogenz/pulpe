@@ -31,6 +31,7 @@ struct AnalyticsServiceTests {
             "onboarding_paused",
             "onboarding_abandoned",
             "onboarding_resumed",
+            "onboarding_step_back",
             "onboarding_suggestion_toggled",
             "custom_transaction_added",
             "custom_transaction_removed",
@@ -41,10 +42,12 @@ struct AnalyticsServiceTests {
             "auth_session_observed",
             "logout_completed",
             "pin_setup_completed",
+            "recovery_key_acknowledged",
             "pin_entered",
             "pin_changed",
             "budget_created",
             "first_budget_created",
+            "onboarding_handoff_completed",
             "transaction_created",
             "first_transaction_created",
             "account_reconciliation_completed",
@@ -277,12 +280,6 @@ struct AnalyticsServiceTests {
         #expect(service.isFeatureEnabled("disabled-flag") == false)
 
         service.identify(userId: userId, properties: identityProperties)
-        var reloadCompleted = false
-        service.reloadFeatureFlags {
-            reloadCompleted = true
-        }
-        #expect(reloadCompleted)
-
         service.setDiagnosticSharingEnabled(true)
         #expect(service.isDiagnosticSharingEnabled)
         #expect(service.isEventCapturingEnabled)

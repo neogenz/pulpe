@@ -65,6 +65,8 @@ struct GoalDeletionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(SavingsGoalStore.self) private var store
+    @Environment(BudgetListStore.self) private var budgetListStore: BudgetListStore?
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     @State private var presentation = GoalDeletionPresentation()
     @State private var isLoading = true
@@ -86,10 +88,7 @@ struct GoalDeletionSheet: View {
             .localizedNavigationTitle("Supprimer l'objectif")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                        .disabled(isApplying)
-                }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
         }
         .task { await loadImpact() }
@@ -153,14 +152,20 @@ private extension GoalDeletionSheet {
             .accessibilityLabel("Liste complète des éléments rattachés")
         }
         .safeAreaInset(edge: .bottom) {
-            Button {
-                Task { await applyDeletion() }
-            } label: {
-                isApplying ? Text("Suppression…") : Text(confirmationLabel)
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Button {
+                    Task { await applyDeletion() }
+                } label: {
+                    isApplying ? Text("Suppression…") : Text(confirmationLabel)
+                }
+                .destructiveButtonStyle()
+                .disabled(isApplying || presentation.command == nil)
+                .accessibilityLabel(confirmationLabel)
+
+                Button("Annuler") { dismiss() }
+                    .sheetDismissLinkStyle()
+                    .disabled(isApplying)
             }
-            .destructiveButtonStyle()
-            .disabled(isApplying || presentation.command == nil)
-            .accessibilityLabel(confirmationLabel)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.md)
             .background(Color.sheetBackground)
@@ -171,6 +176,7 @@ private extension GoalDeletionSheet {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 selection(impact)
+                availabilityImpact
 
                 if let error {
                     ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -205,60 +211,36 @@ private extension GoalDeletionSheet {
     }
 
     private func summary(_ summary: SavingsGoalDeletionSummary) -> some View {
-        ViewThatFits(in: .horizontal) {
+        let tiles = [
+            (AppLocale.string("Mois Type"), summary.templateLineCount, summary.templateLineTotal),
+            (AppLocale.string("Budgets"), summary.budgetLineCount, summary.budgetLineTotal),
+            (AppLocale.string("Mouvements"), summary.transactionCount, summary.transactionTotal)
+        ]
+        return ViewThatFits(in: .horizontal) {
             HStack(spacing: DesignTokens.Spacing.sm) {
-                summaryCard(
-                    label: AppLocale.string("Mois Type"),
-                    count: String(summary.templateLineCount),
-                    amount: summary.templateLineTotal
-                )
-                summaryCard(
-                    label: AppLocale.string("\(summary.budgetLineCount) prévision(s)"),
-                    count: AppLocale.string("\(summary.budgetCount) budget(s)"),
-                    amount: summary.budgetLineTotal
-                )
-                summaryCard(
-                    label: AppLocale.string("Mouvements"),
-                    count: String(summary.transactionCount),
-                    amount: summary.transactionTotal
-                )
+                ForEach(tiles, id: \.0) { summaryCard(label: $0.0, count: $0.1, amount: $0.2) }
             }
-
             VStack(spacing: DesignTokens.Spacing.sm) {
-                summaryCard(
-                    label: AppLocale.string("Mois Type"),
-                    count: String(summary.templateLineCount),
-                    amount: summary.templateLineTotal
-                )
-                summaryCard(
-                    label: AppLocale.string("\(summary.budgetLineCount) prévision(s)"),
-                    count: AppLocale.string("\(summary.budgetCount) budget(s)"),
-                    amount: summary.budgetLineTotal
-                )
-                summaryCard(
-                    label: AppLocale.string("Mouvements"),
-                    count: String(summary.transactionCount),
-                    amount: summary.transactionTotal
-                )
+                ForEach(tiles, id: \.0) { summaryCard(label: $0.0, count: $0.1, amount: $0.2) }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Résumé de l'impact")
     }
 
-    private func summaryCard(label: String, count: String, amount: Decimal) -> some View {
+    private func summaryCard(label: String, count: Int, amount: Decimal) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text(label)
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)
                 .lineLimit(2)
-            Text(count)
-                .font(PulpeTypography.listRowTitle)
+            Text(String(count))
+                .font(PulpeTypography.totalAmount)
                 .foregroundStyle(Color.textPrimary)
                 .monospacedDigit()
-            Text(amount.asCompactCurrency(currency))
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textPrimary)
+            Text(count == 0 ? AppLocale.string("aucun") : amount.asAmount(for: currency))
+                .font(PulpeTypography.captionRegular)
+                .foregroundStyle(Color.textSecondary)
                 .monospacedDigit()
                 .sensitiveAmount()
         }
@@ -270,37 +252,81 @@ private extension GoalDeletionSheet {
 
 private extension GoalDeletionSheet {
     private func selection(_ impact: SavingsGoalDeletionImpact) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Que veux-tu supprimer ?")
-                .font(PulpeTypography.cardTitle)
-                .foregroundStyle(Color.textPrimary)
-
-            Toggle(
-                "Supprimer aussi toutes les prévisions rattachées",
-                isOn: Binding(
-                    get: { presentation.deletesForecasts },
-                    set: { presentation.setDeletesForecasts($0) }
-                )
-            )
-            .tint(Color.pulpePrimary)
-
-            if !presentation.deletesForecasts {
-                Text("Seul l'objectif sera supprimé. Tout le reste sera conservé.")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textSecondary)
-            } else if impact.summary.transactionCount > 0 {
+        let canDeleteTransactions = presentation.deletesForecasts && impact.summary.transactionCount > 0
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            FormCard(title: "Que veux-tu supprimer ?") {
                 Toggle(
-                    "Supprimer aussi les mouvements rattachés à ces prévisions",
+                    AppLocale.string("Aussi les \(impact.summary.budgetLineCount) prévisions"),
+                    isOn: Binding(
+                        get: { presentation.deletesForecasts },
+                        set: { presentation.setDeletesForecasts($0) }
+                    )
+                )
+                .frame(minHeight: DesignTokens.ListRow.minHeight)
+                FormRowDivider()
+                Toggle(
+                    "Aussi leurs mouvements",
                     isOn: Binding(
                         get: { presentation.deletesTransactions },
                         set: { presentation.setDeletesTransactions($0) }
                     )
                 )
-                .tint(Color.pulpePrimary)
+                .frame(minHeight: DesignTokens.ListRow.minHeight)
+                .disabled(!canDeleteTransactions)
+                .opacity(canDeleteTransactions ? 1 : DesignTokens.Opacity.disabled)
+            }
+            .font(PulpeTypography.rowTitleRegular)
+            .tint(Color.pulpePrimary)
+
+            if !presentation.deletesForecasts {
+                Text("Seul l'objectif sera supprimé. Tout le reste sera conservé.")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
             }
         }
-        .padding(DesignTokens.Spacing.lg)
-        .pulpeCardBackground()
+    }
+
+    /// « Ton disponible de <mois> »: deleting the prévisions frees what they cost this month,
+    /// max(prévu, Réels) each. Their Réels stay as free Réels unless the movements go too.
+    @ViewBuilder
+    private var availabilityImpact: some View {
+        let period = BudgetPeriodCalculator.periodForDate(
+            Date(), payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+        let (month, year) = (period.month, period.year)
+        if let before = budgetListStore?.budgets.first(where: { $0.month == month && $0.year == year })?.remaining {
+            let freed = presentation.deletesForecasts
+                ? presentation.budgets
+                    .filter { $0.month == month && $0.year == year }
+                    .flatMap(\.lines)
+                    .reduce(Decimal.zero) { total, line in
+                        let real = line.transactions.reduce(Decimal.zero) { $0 + $1.amount }
+                        let cost = max(line.amount, real)
+                        return total + cost - (presentation.deletesTransactions ? 0 : real)
+                    }
+                : 0
+            let title = GoalMonthAvailability.title(month: month)
+            if freed == 0 {
+                ImpactBlock(
+                    title: title,
+                    before: nil,
+                    after: before,
+                    currency: currency,
+                    note: presentation.deletesForecasts ? nil : AppLocale.string("""
+                        Les \(presentation.impact?.summary.budgetLineCount ?? 0) prévisions Épargne \
+                        restent dans tes budgets, sans objectif.
+                        """),
+                    noteHasAmount: false
+                )
+            } else {
+                ImpactBlock(
+                    title: title,
+                    impact: MovementImpact(before: before, after: before + freed, lineBefore: nil, lineAfter: nil),
+                    currency: currency
+                )
+            }
+        }
     }
 
     private func templateSection(

@@ -76,7 +76,7 @@ final class BudgetListStore: StoreProtocol {
             defer { if loadGeneration == currentGeneration { isLoading = false } }
 
             do {
-                let fields = "month,year,remaining,totalIncome,totalExpenses,rollover"
+                let fields = "month,year,remaining,totalIncome,totalExpenses,totalSavings,rollover"
                 let fetchedBudgets = try await budgetService.getBudgetsSparse(fields: fields, limit: nil, year: nil)
 
                 // Check for cancellation before updating state
@@ -122,6 +122,13 @@ final class BudgetListStore: StoreProtocol {
         budgets
             .filter { $0.year == year }
             .sorted { ($0.month ?? 0) < ($1.month ?? 0) }
+    }
+
+    /// Months that already have a budget: the month pickers refuse them.
+    var existingPeriods: Set<BudgetPeriod> {
+        Set(budgets.compactMap { budget in
+            budget.month.flatMap { month in budget.year.map { BudgetPeriod(month: month, year: $0) } }
+        })
     }
 
     var nextAvailableMonth: (month: Int, year: Int)? {

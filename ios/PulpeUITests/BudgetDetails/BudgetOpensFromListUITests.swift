@@ -28,9 +28,11 @@ final class BudgetOpensFromListUITests: XCTestCase {
         let hero = app.staticTexts["budgetDetailHeroAmount"]
         XCTAssertTrue(hero.waitForExistence(timeout: 15), app.debugDescription)
 
-        let back = app.buttons["BackButton"]
-        XCTAssertTrue(back.exists, app.debugDescription)
-        XCTAssertEqual(back.label, "Budgets", app.debugDescription)
+        XCTAssertTrue(app.backButton.exists, app.debugDescription)
+        // The folded iPhone Duo has no navigation bar: its back button is a bare chevron in
+        // a vertical bar, and the page names its month in its own header.
+        guard app.navigationBars.firstMatch.exists else { return }
+        XCTAssertEqual(app.backButton.label, "Budgets", app.debugDescription)
 
         // The seed budget is August 2026; the scheme runs in French. SwiftUI puts
         // the title on the bar itself; its title view may be a button (title menu).

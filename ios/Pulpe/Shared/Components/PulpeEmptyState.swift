@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Branded full-screen empty state: pulsing glyph, title, guidance, optional CTA.
+/// Full-screen empty state (V2 `empty`): a 56pt pale-green disc, a title, one sentence, one action.
 ///
 /// Fills the available space and paints the app background itself, like
 /// `LoadingView` — a placeholder that only hugs its content leaves the rest of
@@ -30,28 +30,33 @@ struct PulpeEmptyState: View {
     }
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
+        VStack(spacing: DesignTokens.Spacing.compactGap) {
             Image(systemName: systemImage)
-                .font(PulpeTypography.emojiDisplay)
-                .foregroundStyle(Color.textTertiary)
-                .symbolEffect(.pulse, options: .nonRepeating)
+                .font(.system(size: DesignTokens.Control.emptyGlyph, weight: .regular))
+                .foregroundStyle(Color.accentInk)
+                .frame(width: DesignTokens.Control.emptyDisc, height: DesignTokens.Control.emptyDisc)
+                .background(Color.accentWash, in: Circle())
                 // Decorative: VoiceOver would otherwise read the SF Symbol name
                 // before the title.
                 .accessibilityHidden(true)
             Text(title)
-                .font(PulpeTypography.stepTitle)
+                .font(PulpeTypography.statusTitle)
                 .foregroundStyle(Color.textPrimary)
-            Text(message)
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textTertiary)
                 .multilineTextAlignment(.center)
+            Text(message)
+                .font(PulpeTypography.bannerText)
+                .foregroundStyle(Color.textSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: DesignTokens.Layout.emptyMessageMaxWidth)
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
                     .disabled(!isActionEnabled)
-                    .primaryButtonStyle(isEnabled: isActionEnabled)
+                    .primaryButtonStyle(isEnabled: isActionEnabled, size: .small)
+                    .padding(.top, DesignTokens.Spacing.sm)
             }
         }
-        .padding(DesignTokens.Spacing.xxxl)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.vertical, DesignTokens.Spacing.xxxl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .pulpeBackground()
     }

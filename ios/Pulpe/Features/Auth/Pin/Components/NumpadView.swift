@@ -54,17 +54,17 @@ struct NumpadView: View {
             .accessibilityLabel("\(number)")
 
         case .biometric:
-            NumpadButton(isDisabled: isDisabled) {
+            NumpadButton(isDisabled: isDisabled, hasDisc: false) {
                 onBiometric?()
             } label: {
                 Image(systemName: biometricIconName)
                     .font(PulpeTypography.title2)
-                    .foregroundStyle(Color.pinText)
+                    .foregroundStyle(Color.pulpePrimary)
             }
             .accessibilityLabel(BiometricService.shared.biometryDisplayName)
 
         case .delete:
-            NumpadButton(isDisabled: isDisabled) {
+            NumpadButton(isDisabled: isDisabled, hasDisc: false) {
                 onDelete()
             } label: {
                 Image(systemName: "delete.backward")
@@ -111,6 +111,8 @@ private enum NumpadItem: Hashable, Identifiable {
 
 private struct NumpadButton<Label: View>: View {
     let isDisabled: Bool
+    /// Digits sit on a white disc with a soft shadow; Face ID and delete float bare (V2).
+    var hasDisc = true
     let action: () -> Void
     @ViewBuilder let label: () -> Label
 
@@ -123,8 +125,11 @@ private struct NumpadButton<Label: View>: View {
         } label: {
             label()
                 .frame(width: DesignTokens.Numpad.buttonSize, height: DesignTokens.Numpad.buttonSize)
-                .background(Circle().fill(Color.pinButtonFill))
-                .overlay(Circle().stroke(Color.pinButtonStroke, lineWidth: DesignTokens.BorderWidth.thin))
+                .background {
+                    if hasDisc {
+                        Circle().fill(Color.surface).shadow(DesignTokens.Shadow.subtle)
+                    }
+                }
         }
         .buttonStyle(NumpadButtonStyle())
         .sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)
@@ -145,7 +150,7 @@ private struct NumpadButtonStyle: ButtonStyle {
 
 #Preview {
     ZStack {
-        Color.loginGradientBackground
+        Color.appBackground
         NumpadView(
             onDigit: { _ in },
             onDelete: {},

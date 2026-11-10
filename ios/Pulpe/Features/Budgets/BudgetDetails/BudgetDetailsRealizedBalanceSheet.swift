@@ -17,15 +17,18 @@ struct BudgetDetailsRealizedBalanceSheet: View {
         )
         .sheet(isPresented: $isReconciling) {
             if let month = reconciledMonth {
-                ReconcileAccountsSheet(
-                    month: month,
-                    checking: coordinator.reconciliationChecking(
-                        ToastContext(toastManager: toastManager, presentationCurrency: settings.currency),
-                        amountsHidden: amountsHidden
-                    )
-                ) { transaction in
-                    FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
-                    Task { await coordinator.dispatch(.addReconciliationAdjustment(transaction)) }
+                ReconcileLinkedAccountsGate { linkedAccounts in
+                    ReconcileAccountsSheet(
+                        month: month,
+                        checking: coordinator.reconciliationChecking(
+                            ToastContext(toastManager: toastManager, presentationCurrency: settings.currency),
+                            amountsHidden: amountsHidden
+                        ),
+                        linkedAccounts: linkedAccounts
+                    ) { transaction in
+                        FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
+                        Task { await coordinator.dispatch(.addReconciliationAdjustment(transaction)) }
+                    }
                 }
             }
         }
@@ -33,15 +36,10 @@ struct BudgetDetailsRealizedBalanceSheet: View {
 
     private var reconciledMonth: ReconcileAccountsSheet.Month? {
         guard let budget = coordinator.dataStore.budget else { return nil }
-        let realized = coordinator.dataStore.realizedMetrics
         return ReconcileAccountsSheet.Month(
             budgetId: budget.id,
-            realizedMetrics: realized,
+            realizedMetrics: coordinator.dataStore.realizedMetrics,
             rollover: coordinator.dataStore.metrics.rollover,
-            periodLabel: BudgetPeriodCalculator.formatPeriod(
-                month: budget.month, year: budget.year, payDayOfMonth: settings.payDayOfMonth
-            ),
-            uncheckedCount: realized.totalItemsCount - realized.checkedItemsCount,
             hasPointingInFlight: !coordinator.syncStore.syncingBudgetLineIds.isEmpty
                 || !coordinator.syncStore.syncingTransactionIds.isEmpty
         )

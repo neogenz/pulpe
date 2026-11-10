@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// Clear both the legacy Bool key and the post-Wave-A String rawValue key so
-/// `.checked` state from one test cannot bleed into the next via UserDefaults.
+/// filter state from one test cannot bleed into the next via UserDefaults.
 private func clearFilterPrefs() {
     UserDefaults.standard.removeObject(forKey: "pulpe-budget-show-only-unchecked")
     UserDefaults.standard.removeObject(forKey: "pulpe-budget-checked-filter")
@@ -80,19 +80,19 @@ struct FiltersStoreTests {
         #expect(recreated.typeFilter == .income)
     }
 
-    /// Regression test: the `.checked` raw value must survive a relaunch.
-    /// The earlier persistence path relied on a legacy Bool key that collapsed
-    /// `.checked` onto `.all`, dropping the third state on restore.
+    /// Regression test: a raw value beyond the legacy Bool key must survive a relaunch.
+    /// The earlier persistence path collapsed every state onto `.unchecked` / `.all`.
+    /// A retired "checked" value restores as `.all` (FiltersStoreRailTests).
     @Test
     func setCheckedFilter_persistsRawValue_acrossInit() {
         clearFilterPrefs()
         defer { clearFilterPrefs() }
 
         let first = FiltersStore()
-        first.setCheckedFilter(.checked)
+        first.setCheckedFilter(.over)
 
         let recreated = FiltersStore()
-        #expect(recreated.checkedFilter == .checked)
+        #expect(recreated.checkedFilter == .over)
     }
 }
 
@@ -122,17 +122,6 @@ struct FiltersStorePureTests {
         let filtered = FiltersStore.applyCheckedFilter([unchecked, checked], filter: .all)
 
         #expect(filtered.count == 2)
-    }
-
-    @Test
-    func applyCheckedFilter_checked_returnsOnlyChecked() {
-        let unchecked = TestDataFactory.createBudgetLine(id: "1", kind: .expense)
-        let checked = TestDataFactory.createBudgetLine(id: "2", kind: .expense, isChecked: true)
-
-        let filtered = FiltersStore.applyCheckedFilter([unchecked, checked], filter: .checked)
-
-        #expect(filtered.count == 1)
-        #expect(filtered.first?.id == "2")
     }
 
     @Test
@@ -235,7 +224,6 @@ struct FiltersStorePureTests {
         let counts = FiltersStore.checkedCounts(for: lines, typeFilter: .all)
 
         #expect(counts.unchecked == 3)
-        #expect(counts.checked == 3)
         #expect(counts.all == 6)
     }
 
@@ -252,7 +240,6 @@ struct FiltersStorePureTests {
         let counts = FiltersStore.checkedCounts(for: lines, typeFilter: .income)
 
         #expect(counts.unchecked == 2)
-        #expect(counts.checked == 1)
         #expect(counts.all == 3)
     }
 
@@ -461,38 +448,5 @@ struct FiltersStorePureTests {
         let result = FiltersStore.filteredLines(lines, searchText: "xyz", transactions: [])
 
         #expect(result.isEmpty)
-    }
-
-    // MARK: - Pointed allocated transactions
-
-    @Test
-    func pointedAllocated_surfacesOnlyPointedMovementsOfEnvelopesStillToPoint() {
-        let open = TestDataFactory.createBudgetLine(id: "open", name: "Courses", kind: .expense)
-        let pointed = TestDataFactory.createBudgetLine(id: "pointed", kind: .expense, isChecked: true)
-        // The projector passes only envelopes still to point; `pointed` is left out.
-        let openLineById = [open.id: open]
-        let transactions = [
-            TestDataFactory.createTransaction(id: "visible", budgetLineId: "open", isChecked: true),
-            TestDataFactory.createTransaction(id: "unpointed", budgetLineId: "open"),
-            TestDataFactory.createTransaction(id: "covered", budgetLineId: pointed.id, isChecked: true),
-            TestDataFactory.createTransaction(id: "free", isChecked: true)
-        ]
-
-        func ids(_ filter: CheckedFilterOption, _ type: BudgetLineKindFilter = .all, search: String = "") -> [String] {
-            FiltersStore.pointedAllocatedTransactions(
-                transactions,
-                openLineById: openLineById,
-                typeFilter: type,
-                checkedFilter: filter,
-                searchText: search
-            ).map(\.id)
-        }
-
-        #expect(ids(.checked) == ["visible"])
-        #expect(ids(.unchecked).isEmpty)
-        #expect(ids(.all).isEmpty)
-        #expect(ids(.checked, .income).isEmpty)
-        #expect(ids(.checked, search: "courses") == ["visible"])
-        #expect(ids(.checked, search: "loyer").isEmpty)
     }
 }

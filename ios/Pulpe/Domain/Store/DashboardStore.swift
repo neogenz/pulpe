@@ -109,9 +109,9 @@ final class DashboardStore: StoreProtocol {
                     year: currentYear + 1
                 )
 
-                let (yearBudgets, pastBudgets, aheadBudgets) = try await (
-                    currentYearBudgets, recentBudgets, nextYearBudgets
-                )
+                let (yearBudgets, pastBudgets) = try await (currentYearBudgets, recentBudgets)
+                // Next year only extends the forecast: its failure must not fail the dashboard.
+                let aheadBudgets = (try? await nextYearBudgets) ?? []
 
                 // Check for cancellation before updating state
                 try Task.checkCancellation()

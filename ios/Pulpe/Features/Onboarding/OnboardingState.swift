@@ -62,6 +62,9 @@ final class OnboardingState {
     /// and forwarded to `completeOnboarding` so the finish path enters the app directly.
     var hasCompletedPinSetup: Bool = false
 
+    /// The PIN ceremony still has to cover the budget preview before its reveal.
+    var needsPinBeforePreview: Bool { isAuthenticated && !hasCompletedPinSetup }
+
     // MARK: - Analytics Idempotency Guards
     //
     // These live on the state (not on individual step views) because step views are
@@ -105,6 +108,8 @@ final class OnboardingState {
     var hasCompleted: Bool = false
     var hasAbandoned: Bool = false
     var isSubmitting: Bool = false
+    /// A background fired `onboarding_paused`: the next return to the foreground resumes it.
+    var isPausedInBackground: Bool = false
 
     /// When set, nextStep()/previousStep() return to this step instead of sequential navigation.
     /// Used by BudgetPreview to round-trip edits back to the preview.
@@ -281,8 +286,14 @@ final class OnboardingState {
         }
 
         isMovingForward = true
-        withAnimation(PulpeAnimations.stepTransition) {
+        if next == .budgetPreview, needsPinBeforePreview {
+            // The PIN cover rises over the preview as it arrives: sliding the step under it
+            // too would run two motions at once and tear the forest zone mid-slide.
             currentStep = next
+        } else {
+            withAnimation(PulpeAnimations.stepTransition) {
+                currentStep = next
+            }
         }
         saveToStorage()
     }
@@ -301,7 +312,13 @@ final class OnboardingState {
         return previousVisibleStep(before: currentIndex) == .welcome
     }
 
-    func previousStep() {
+    /// `reportsStepBack` is false when leaving the flow (Quitter), which is not a back navigation.
+    func previousStep(
+        reportsStepBack: Bool = true,
+        send: (AnalyticsEvent, [String: Any]) -> Void = {
+            AnalyticsService.shared.capture($0, properties: $1)
+        }
+    ) {
         // Edit round-trip: cancel edit and return to preview
         if let returnStep = editReturnStep {
             editReturnStep = nil
@@ -318,6 +335,7 @@ final class OnboardingState {
             return
         }
 
+        if reportsStepBack { captureStepBack(from: currentStep, to: prev, send: send) }
         isMovingForward = false
         withAnimation(PulpeAnimations.stepTransition) {
             currentStep = prev

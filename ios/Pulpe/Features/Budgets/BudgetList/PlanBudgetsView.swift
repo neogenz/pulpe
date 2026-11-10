@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// « Planifier plusieurs mois » (V2 `Mois-plusieurs`): a range, one template, and the grid
+/// of the months it covers, those already there and those it creates, before validation.
 struct PlanBudgetsView: View {
     let onSuccess: (BudgetGenerateResponse) -> Void
 
@@ -14,8 +16,15 @@ struct PlanBudgetsView: View {
         var id: Self { self }
     }
 
-    init(payDayOfMonth: Int?, onSuccess: @escaping (BudgetGenerateResponse) -> Void) {
-        self.init(viewModel: PlanBudgetsViewModel(payDayOfMonth: payDayOfMonth), onSuccess: onSuccess)
+    init(
+        payDayOfMonth: Int?,
+        existingPeriods: Set<BudgetPeriod> = [],
+        onSuccess: @escaping (BudgetGenerateResponse) -> Void
+    ) {
+        self.init(
+            viewModel: PlanBudgetsViewModel(payDayOfMonth: payDayOfMonth, existingPeriods: existingPeriods),
+            onSuccess: onSuccess
+        )
     }
 
     init(viewModel: PlanBudgetsViewModel, onSuccess: @escaping (BudgetGenerateResponse) -> Void) {
@@ -23,16 +32,39 @@ struct PlanBudgetsView: View {
         self._viewModel = State(initialValue: viewModel)
     }
 
+    private let gridColumns = Array(
+        repeating: GridItem(.flexible(), spacing: DesignTokens.Spacing.sm),
+        count: 3
+    )
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-                    periodSection
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                    FormCard {
+                        periodRow(AppLocale.string("Du"), period: viewModel.start, picker: .start)
+                        FormRowDivider()
+                        periodRow(AppLocale.string("Au"), period: viewModel.end, picker: .end)
+                    }
                     templateSection
 
-                    Text("Les budgets existants ne seront pas modifiés.")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textSecondary)
+                    if let message = viewModel.validationMessage {
+                        ErrorBanner(message: message)
+                    } else {
+                        monthsGrid
+                    }
+
+                    ImpactBlock(
+                        title: AppLocale.string("Ton disponible actuel ne change pas"),
+                        before: nil,
+                        after: 0,
+                        currency: .chf,
+                        note: AppLocale.string(
+                            "Chaque nouveau mois part avec les prévisions du modèle, plus son report."
+                        ),
+                        showsFigures: false,
+                        noteHasAmount: false
+                    )
 
                     if let error = viewModel.error {
                         if viewModel.templates.isEmpty {
@@ -40,7 +72,7 @@ struct PlanBudgetsView: View {
                             Button("Réessayer") {
                                 Task { await viewModel.loadTemplates() }
                             }
-                            .buttonStyle(.borderedProminent)
+                            .secondaryButtonStyle(size: .small)
                         } else {
                             ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                                 viewModel.error = nil
@@ -53,21 +85,22 @@ struct PlanBudgetsView: View {
             }
             .scrollIndicators(.hidden)
             .background(Color.sheetBackground)
-            .localizedNavigationTitle("Planifier des budgets")
+            .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) {
+                BudgetSheetCTA(
+                    title: AppLocale.string("Créer \(viewModel.newCount) mois"),
+                    isEnabled: viewModel.canGenerate,
+                    accessibilityIdentifier: "planBudgetsSubmit"
+                ) {
+                    Task { await generate() }
+                }
+            }
+            .localizedNavigationTitle("Planifier plusieurs mois")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()
                         .disabled(viewModel.isGenerating)
                         .accessibilityIdentifier("planBudgetsClose")
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Planifier") {
-                        Task { await generate() }
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(!viewModel.canGenerate)
-                    .accessibilityIdentifier("planBudgetsSubmit")
                 }
             }
             .loadingOverlay(viewModel.isGenerating, message: AppLocale.string("Planification..."))
@@ -90,93 +123,121 @@ struct PlanBudgetsView: View {
         }
     }
 
-    private var periodSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Période")
-                .font(PulpeTypography.buttonPrimary)
-
-            HStack(spacing: DesignTokens.Spacing.md) {
-                periodButton(label: AppLocale.string("De"), period: viewModel.start) {
-                    activePicker = .start
-                }
-                periodButton(label: AppLocale.string("À"), period: viewModel.end) {
-                    activePicker = .end
-                }
-            }
-
-            if viewModel.showsPeriodCount {
-                Text(AppLocale.string("\(viewModel.inclusiveCount) périodes"))
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textSecondary)
-            }
-
-            if let message = viewModel.validationMessage {
-                ErrorBanner(message: message)
-            }
+    private func periodRow(_ title: String, period: BudgetPeriod, picker: PeriodPicker) -> some View {
+        Button { activePicker = picker } label: {
+            BudgetFormValueRow(title: title, value: BudgetListPresentation.monthYear(period))
         }
-    }
-
-    private var templateSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Choisir un modèle")
-                .font(PulpeTypography.buttonPrimary)
-
-            if viewModel.isLoadingTemplates {
-                ProgressView("Chargement des modèles...")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignTokens.Spacing.xl)
-            } else if viewModel.templates.isEmpty {
-                Text("Aucun modèle disponible")
-                    .font(PulpeTypography.subheadline)
-                    .foregroundStyle(Color.textSecondary)
-            } else {
-                VStack(spacing: DesignTokens.Spacing.sm) {
-                    ForEach(viewModel.templates) { template in
-                        TemplateSelectionCard(
-                            template: template,
-                            totals: nil,
-                            isSelected: viewModel.selectedTemplateId == template.id
-                        ) {
-                            viewModel.selectedTemplateId = template.id
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func periodButton(label: String, period: BudgetPeriod, action: @escaping () -> Void) -> some View {
-        let value = period.formatted
-        return Button(action: action) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(label)
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.onSurfaceVariant)
-                HStack {
-                    Text(value)
-                        .font(PulpeTypography.subheadline)
-                        .foregroundStyle(Color.textPrimary)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(Color.textTertiary)
-                }
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.surfaceContainerHigh, in: .rect(cornerRadius: DesignTokens.CornerRadius.button))
-        }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.button))
         .plainPressedButtonStyle()
-        .accessibilityLabel("\(label) : \(value)")
+    }
+
+    @ViewBuilder
+    private var templateSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Avec quel modèle ?")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textSecondary)
+                .padding(.horizontal, DesignTokens.Spacing.xs)
+                .accessibilityAddTraits(.isHeader)
+
+            FormCard {
+                if viewModel.isLoadingTemplates {
+                    BudgetFormValueRow(
+                        title: AppLocale.string("Chargement des modèles..."),
+                        value: "",
+                        showsChevron: false
+                    )
+                } else if viewModel.templates.isEmpty {
+                    BudgetFormValueRow(
+                        title: AppLocale.string("Aucun modèle disponible"),
+                        value: "",
+                        showsChevron: false
+                    )
+                } else {
+                    // One row, the choice in a native menu: the grid below is what matters.
+                    Menu {
+                        Picker(AppLocale.string("Modèle"), selection: $viewModel.selectedTemplateId) {
+                            ForEach(viewModel.templates) { template in
+                                Text(template.name).tag(Optional(template.id))
+                            }
+                        }
+                    } label: {
+                        BudgetFormValueRow(
+                            title: viewModel.selectedTemplate?.name ?? "",
+                            value: viewModel.selectedTemplate?.isDefaultTemplate == true
+                                ? AppLocale.string("Par défaut") : "",
+                            emphasizesValue: false
+                        )
+                    }
+                    .plainPressedButtonStyle()
+                }
+            }
+        }
+    }
+
+    private var monthsGrid: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack {
+                Text(AppLocale.string("\(viewModel.inclusiveCount) mois choisis"))
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textSecondary)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                Text(AppLocale.string("\(PlanBudgetsViewModel.maximumCount) au maximum"))
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .monospacedDigit()
+            .padding(.horizontal, DesignTokens.Spacing.xs)
+
+            LazyVGrid(columns: gridColumns, spacing: DesignTokens.Spacing.sm) {
+                ForEach(viewModel.plannedMonths, id: \.period) { month in
+                    PlannedMonthTile(month: month)
+                }
+            }
+
+            if let sentence = viewModel.coverageSentence {
+                Text(sentence)
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
+            }
+        }
     }
 
     private func generate() async {
         guard let response = await viewModel.generate() else { return }
         dismiss()
         onSuccess(response)
+    }
+}
+
+/// One month of the range: « oct. 27 / déjà là » on white, « nov. 27 / nouveau » in green.
+private struct PlannedMonthTile: View {
+    let month: PlanBudgetsViewModel.PlannedMonth
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.xxs) {
+            Text(PlanBudgetsViewModel.shortLabel(month.period))
+                .font(PulpeTypography.labelLarge)
+            Text(month.exists ? AppLocale.string("déjà là") : AppLocale.string("nouveau"))
+                .font(PulpeTypography.captionRegular)
+        }
+        .foregroundStyle(month.exists ? Color.textSecondary : Color.accentInk)
+        .lineLimit(1)
+        .minimumScaleFactor(DesignTokens.TextScale.compact)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .background(
+            month.exists ? Color.surface : Color.accentWash,
+            in: .rect(cornerRadius: DesignTokens.CornerRadius.button)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
+                .strokeBorder(
+                    month.exists ? Color.outlineVariant : Color.pulpePrimary,
+                    lineWidth: DesignTokens.BorderWidth.thin
+                )
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -194,11 +255,14 @@ final class PlanBudgetsViewModel {
     private(set) var isGenerating = false
 
     let yearRange: ClosedRange<Int>
+    /// The months that already have a budget: the range skips them.
+    let existingPeriods: Set<BudgetPeriod>
     private let loadTemplatesAction: @Sendable () async throws -> [BudgetTemplate]
     private let generateAction: @Sendable (BudgetGenerate) async throws -> BudgetGenerateResponse
 
     init(
         payDayOfMonth: Int?,
+        existingPeriods: Set<BudgetPeriod> = [],
         now: Date = Date(),
         loadTemplates: @escaping @Sendable () async throws -> [BudgetTemplate] = {
             try await TemplateService.shared.getAllTemplates()
@@ -213,6 +277,7 @@ final class PlanBudgetsViewModel {
             BudgetPeriodCalculator.periodIndex(current) + 11
         )
         self.yearRange = current.year...(current.year + AppConfiguration.maxBudgetYearsAhead)
+        self.existingPeriods = existingPeriods
         self.loadTemplatesAction = loadTemplates
         self.generateAction = generate
     }
@@ -242,6 +307,47 @@ final class PlanBudgetsViewModel {
         validationMessage == nil
     }
 
+    struct PlannedMonth: Equatable {
+        let period: BudgetPeriod
+        let exists: Bool
+    }
+
+    /// The range's months, each marked « déjà là » or « nouveau ». Empty while the range is invalid.
+    var plannedMonths: [PlannedMonth] {
+        guard validationMessage == nil else { return [] }
+        let first = BudgetPeriodCalculator.periodIndex(start)
+        return (first..<(first + inclusiveCount)).map { index in
+            let period = BudgetPeriodCalculator.periodFromIndex(index)
+            return PlannedMonth(period: period, exists: existingPeriods.contains(period))
+        }
+    }
+
+    /// How many months the CTA creates: the range minus the months already there.
+    var newCount: Int {
+        plannedMonths.count { !$0.exists }
+    }
+
+    var coverageSentence: String? {
+        let months = plannedMonths
+        guard months.contains(where: \.exists) else { return nil }
+        if newCount == 0 {
+            return AppLocale.string("Ces mois existent déjà : rien à créer.")
+        }
+        return AppLocale.string("Les mois déjà là, je n'y touche pas. Les autres sont créés.")
+    }
+
+    var selectedTemplate: BudgetTemplate? {
+        templates.first { $0.id == selectedTemplateId }
+    }
+
+    /// « oct. 27 »
+    static func shortLabel(_ period: BudgetPeriod) -> String {
+        guard let date = Date.from(month: period.month, year: period.year) else {
+            return String(format: "%02d.%02d", period.month, period.year % 100)
+        }
+        return Formatters.dateFormatter("MMMyy").string(from: date)
+    }
+
     var generateRequest: BudgetGenerate? {
         guard let selectedTemplateId, validationMessage == nil else { return nil }
         return BudgetGenerate(
@@ -253,7 +359,7 @@ final class PlanBudgetsViewModel {
     }
 
     var canGenerate: Bool {
-        generateRequest != nil && !isLoadingTemplates && !isGenerating
+        generateRequest != nil && newCount > 0 && !isLoadingTemplates && !isGenerating
     }
 
     func loadTemplates() async {
@@ -289,12 +395,6 @@ enum BudgetGenerationResultAnnouncement {
         let created = AppLocale.string("\(response.budgets.count) budgets créés")
         let skipped = AppLocale.string("\(response.skippedMonths.count) budgets déjà existants ignorés")
         return "\(created), \(skipped)"
-    }
-}
-
-private extension BudgetPeriod {
-    var formatted: String {
-        Date.from(month: month, year: year)?.monthYearFormatted ?? String(format: "%02d.%d", month, year)
     }
 }
 

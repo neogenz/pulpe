@@ -29,44 +29,45 @@ struct PreferencesView: View {
                 }
                 .buttonStyle(.plain)
             } header: {
-                Text("JOUR DE PAIE")
-                    .font(PulpeTypography.labelLarge)
-            }
-            .listRowSettingsBackground()
-
-            Section {
-                Toggle("Rappels mensuels", isOn: reminderBinding)
-                    .tint(Color.pulpePrimary)
-                Toggle("Récap du lundi", isOn: weeklyRecapBinding)
-                    .tint(Color.pulpePrimary)
-            } header: {
-                Text("RAPPELS")
-                    .font(PulpeTypography.labelLarge)
+                SettingsSectionHeader(text: AppLocale.string("Ton mois"))
             } footer: {
-                Text("""
-                    Le jour de paie, ton nouveau mois. Le lundi matin, le récap \
-                    de ta semaine et ce qu'il te reste pour la suivante. Tu peux couper quand tu veux.
-                    """)
+                if let bounds = PayDayPeriod.bounds(payDay: userSettingsStore.payDayOfMonth) {
+                    Text("\(PayDayPeriod.monthName) court du \(bounds.start) au \(bounds.end).")
+                } else {
+                    Text("Le mois suit le calendrier.")
+                }
             }
             .listRowSettingsBackground()
 
             Section {
-                Toggle(
-                    "Partager les diagnostics",
-                    isOn: diagnosticSharingBinding
+                reminderToggle(
+                    "Rappel du jour de paie", detail: "Pour ouvrir ton nouveau mois", isOn: reminderBinding
                 )
+                reminderToggle(
+                    "Récap du lundi", detail: "Ta semaine et ce qu'il te reste", isOn: weeklyRecapBinding
+                )
+            } header: {
+                SettingsSectionHeader(text: AppLocale.string("Rappels"))
+            } footer: {
+                Text("Tu peux couper quand tu veux.")
+            }
+            .listRowSettingsBackground()
+
+            Section {
+                Toggle(isOn: diagnosticSharingBinding) {
+                    Text("Partager les diagnostics")
+                        .font(PulpeTypography.listRowTitle)
+                }
                 .tint(Color.pulpePrimary)
             } header: {
-                Text("DONNÉES ET CONFIDENTIALITÉ")
-                    .font(PulpeTypography.labelLarge)
+                SettingsSectionHeader(text: AppLocale.string("Données et confidentialité"))
             } footer: {
                 // One literal, continued across lines: `"a" + "b"` is a String expression,
                 // so `Text` picks its non-localizing overload and the copy never reaches
                 // the catalog. Same trap everywhere long copy is wrapped.
                 Text("""
-                    Associe à ton compte les événements techniques et erreurs pour comprendre \
-                    les problèmes et t’aider plus rapidement. Aucun montant ni contenu saisi \
-                    n’est collecté.
+                    Erreurs et événements techniques, liés à ton compte pour t'aider plus vite. \
+                    Aucun montant ni texte saisi.
                     """)
             }
             .listRowSettingsBackground()
@@ -75,6 +76,7 @@ struct PreferencesView: View {
         .pulpeBackground()
         .listStyle(.insetGrouped)
         .localizedNavigationTitle("Préférences")
+        .navigationBarTitleDisplayMode(.large)
         .keyboardFieldNavigation(focus: $currencyConverterFocus, order: [.input])
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
@@ -83,6 +85,21 @@ struct PreferencesView: View {
         .sheet(isPresented: $showPayDayPicker) {
             PayDayPickerSheet()
         }
+    }
+
+    private func reminderToggle(
+        _ title: LocalizedStringKey, detail: LocalizedStringKey, isOn: Binding<Bool>
+    ) -> some View {
+        Toggle(isOn: isOn) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(title)
+                    .font(PulpeTypography.listRowTitle)
+                Text(detail)
+                    .font(PulpeTypography.footnote)
+                    .foregroundStyle(Color.textSecondary)
+            }
+        }
+        .tint(Color.pulpePrimary)
     }
 
     /// User-driven toggle state. A custom `Binding` (not `.onChange`) so the

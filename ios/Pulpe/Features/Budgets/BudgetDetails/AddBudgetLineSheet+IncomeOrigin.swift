@@ -12,6 +12,8 @@ enum IncomeOrigin: String, CaseIterable, Identifiable {
     case savingsGoal
     /// "Piocher dans son épargne" (PUL-292): an advance repaid by a saving in M+1.
     case repayNextMonth
+    /// Drawn from an own asset (Mon patrimoine); pointed like a regular income.
+    case asset
 
     var id: String { rawValue }
 
@@ -22,13 +24,20 @@ enum IncomeOrigin: String, CaseIterable, Identifiable {
         case (false, _): self = .regular
         case (true, .goal): self = .savingsGoal
         case (true, .repay): self = .repayNextMonth
+        case (true, .asset): self = .asset
         }
     }
 
     var isFromSavings: Bool { self != .regular }
 
     /// What the segment shows; a regular income has none, so it shows the default.
-    var savingsOrigin: SavingsOrigin { self == .repayNextMonth ? .repay : .goal }
+    var savingsOrigin: SavingsOrigin {
+        switch self {
+        case .repayNextMonth: .repay
+        case .asset: .asset
+        case .regular, .savingsGoal: .goal
+        }
+    }
 }
 
 // MARK: - Origine du revenu (PUL-292 / PUL-329 v2)
@@ -50,13 +59,27 @@ extension AddBudgetLineSheet {
         kind == .income && origin == .savingsGoal
     }
 
-    /// The two origins that forbid pointing, for opposite reasons: an announced
-    /// withdrawal is realized by creating the real income, and the PUL-292 advance
-    /// routes away before a line exists at all. Read by the toggle's gate, the
-    /// origin reset and the submit, so the three cannot disagree.
-    static func forbidsChecked(kind: TransactionKind, origin: IncomeOrigin) -> Bool {
-        isSavingsWithdrawal(kind: kind, origin: origin)
-            || isPlannedWithdrawal(kind: kind, origin: origin)
+    /// Mon patrimoine on, and an own asset to draw from.
+    var offersAsset: Bool {
+        Self.offersAsset(flagOn: featureFlags.isNetWorthEnabled, store: assetStore)
+    }
+
+    static func offersAsset(flagOn: Bool, store: AssetStore) -> Bool {
+        flagOn && !store.activeAssets(direction: .own).isEmpty
+    }
+
+    /// The origin reads the store, and an income sheet is the only thing opened here: load it.
+    static func loadAssets(flagOn: Bool, store: AssetStore) async {
+        if flagOn { await store.loadIfNeeded() }
+    }
+
+    /// The asset to write: an income carries one only when drawn from it.
+    var linkedAssetId: String? {
+        Self.linkedAssetId(kind: kind, origin: incomeOrigin, assetId: assetId)
+    }
+
+    static func linkedAssetId(kind: TransactionKind, origin: IncomeOrigin, assetId: String?) -> String? {
+        kind == .income ? (origin == .asset ? assetId : nil) : kind.assetLink(assetId)
     }
 
     var isSavingsWithdrawalMode: Bool {
@@ -78,7 +101,8 @@ extension AddBudgetLineSheet {
                 get: { incomeOrigin.savingsOrigin },
                 set: { incomeOrigin = IncomeOrigin(isFromSavings: true, savingsOrigin: $0) }
             ),
-            offersRepay: true,
+            offersRepay: onRequestSavingsWithdrawal != nil,
+            offersAsset: offersAsset,
             tintColor: kind.color
         )
     }
@@ -87,16 +111,22 @@ extension AddBudgetLineSheet {
     /// never the amount or the description, which stay true whatever the origin.
     func resetIncompatibleOriginState() {
         if !isPlannedWithdrawalMode { sourceSavingsGoalId = nil }
-        if Self.forbidsChecked(kind: kind, origin: incomeOrigin) { isChecked = false }
+        if kind == .income, incomeOrigin != .asset { assetId = nil }
+        if mode == .everyMonth, !offersEveryMonth { mode = .once }
     }
 
-    /// Keeps the projection judged on the amount the goal would actually give up.
+    /// Keeps the projections (impact block, planned withdrawal) judged on the amount in the
+    /// account currency.
     /// The rate is cached for a day, so retyping does not hit the network. A
     /// failure leaves `convertedAmount` nil: the preview drops its "après" and
     /// the planification carries on.
     func refreshConvertedAmount() async {
-        guard isPlannedWithdrawalMode, let amount, amount > 0 else {
+        guard let amount, amount > 0 else {
             convertedAmount = nil
+            return
+        }
+        guard inputCurrency != userSettingsStore.currency else {
+            convertedAmount = amount
             return
         }
         let conversion = try? await conversionService.convert(
@@ -104,14 +134,14 @@ extension AddBudgetLineSheet {
             from: inputCurrency,
             to: userSettingsStore.currency
         )
-        convertedAmount = conversion?.convertedAmount ?? amount
+        convertedAmount = conversion?.convertedAmount
     }
 }
 
 /// Re-runs the conversion only when what it depends on moved. Local to this
 /// sheet: `Features/X` cannot import `Features/Y`, so it cannot share the
-/// identical key `AddTransactionSheet` declares for its own preview.
-struct PlannedWithdrawalConversionKey: Equatable {
+/// identical key `MovementSheet` declares for its own preview.
+struct AmountConversionKey: Equatable {
     let amount: Decimal?
     let currency: SupportedCurrency
 }

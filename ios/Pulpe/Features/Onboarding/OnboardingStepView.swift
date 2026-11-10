@@ -1,367 +1,219 @@
 import SwiftUI
-import VariableBlur
 
-private enum OnboardingStepScrollAnchor: Hashable {
-    case cta
-}
-
-/// The flow's back action, read by the step's bottom zone. `nil` on the welcome step.
-extension EnvironmentValues {
-    @Entry var onboardingBack: (@MainActor () -> Void)?
-}
-
-/// Label content swaps instantly while the outer capsule animates width — avoids overlapping “mid-morph” layouts.
-private struct MorphingOnboardingCTALabel: View {
-    let expanded: Bool
-    let isKeyboardVisible: Bool
-    let title: String
-    let showTrailingChevron: Bool
-    let isLoading: Bool
-
-    private var fabSymbolName: String {
-        isKeyboardVisible ? "keyboard.chevron.compact.down" : "arrow.down"
-    }
-
-    var body: some View {
-        ZStack {
-            if expanded {
-                expandedInterior
-            } else {
-                Image(systemName: fabSymbolName)
-                    .font(PulpeTypography.labelLarge)
-                    .contentTransition(.symbolEffect(.replace))
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentTransition(.identity)
-        .animation(nil, value: expanded)
-        .animation(nil, value: isLoading)
-    }
-
-    @ViewBuilder
-    private var expandedInterior: some View {
-        if isLoading {
-            ProgressView()
-                .tint(.white)
-                .accessibilityLabel("Chargement")
-        } else {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Spacer(minLength: 0)
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Text(title)
-                    if showTrailingChevron {
-                        Image(systemName: "arrow.right")
-                            .font(PulpeTypography.labelLarge)
-                    }
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-        }
-    }
-}
-
-/// Base scaffold used by every concrete onboarding step (firstName, income, …).
-/// Owns the step header, error banner, full-width CTA and keyboard/scroll chrome.
-struct OnboardingStepView<Content: View>: View {
+/// Base scaffold of every onboarding step: a forest zone (a slot that answers the input, under the
+/// flow's top bar) with a light card pulled up over it (question, form) and a pinned CTA.
+struct OnboardingStepView<Zone: View, Content: View>: View {
     let step: OnboardingStep
     let state: OnboardingState
     let canProceed: Bool
+    var subtitle: String?
+    /// The preview step carries its title in the zone and rows in the card.
+    var showsCardTitle = true
+    /// The registration step renders its own inline error.
+    var showsGenericError = true
+    var ctaTitle: String?
     let onNext: () -> Void
+    @ViewBuilder let zone: () -> Zone
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.onboardingBack) private var onboardingBack
     @State private var showContent = false
-    @State private var isAtBottom = false
-    @State private var contentOverflows = false
-    @State private var keyboardHeight: CGFloat = 0
-    /// Dedicated trigger for the CTA "unlocked" haptic — fires only on false→true flip.
     @State private var canProceedTrigger = false
-    @State private var showCurrencySwap = false
+    /// The keyboard leaves room for the zone or for the form, not both: while it is up the zone
+    /// folds to one line so the field, its label and the CTA stay readable.
+    @State private var isKeyboardUp = false
+    @State private var cardViewportHeight: CGFloat = 0
 
-    private var isKeyboardVisible: Bool { keyboardHeight > 0 }
-
-    /// Full-width primary CTA (Revolut-style) when the user reached the end of the scroll — keyboard up or down.
-    private var useExpandedCTAChrome: Bool { isAtBottom || !contentOverflows }
-
-    private var ctaOverlayBottomPadding: CGFloat {
-        return DesignTokens.Spacing.lg
-    }
-
-    private var shouldShowCurrencyChip: Bool {
-        [.charges, .savings, .budgetPreview].contains(step)
+    /// The ring steps fold their zone on a short screen too: the ring and the form don't both fit.
+    private func showsCompactZone(isShortScreen: Bool) -> Bool {
+        isKeyboardUp || (isShortScreen && [.income, .charges, .savings].contains(step))
     }
 
     private var isEnabled: Bool {
-        // `readyToComplete` / `isSubmitting` close the rapid-double-tap window on
-        // the BudgetPreview CTA: between "tap → nextStep() fires → onChange(readyToComplete)
-        // kicks off finishOnboarding", the button stays tappable unless we block it here.
+        // `readyToComplete` / `isSubmitting` close the rapid-double-tap window on the preview CTA:
+        // between "tap, nextStep() fires" and "onChange(readyToComplete) starts finishOnboarding",
+        // the button stays tappable unless we block it here.
         canProceed && !state.isLoading && !state.readyToComplete && !state.isSubmitting
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxxl) {
-                    if shouldShowCurrencyChip {
-                        HStack {
-                            Button {
-                                showCurrencySwap = true
-                            } label: {
-                                HStack(spacing: DesignTokens.Spacing.xxs) {
-                                    Text(state.currency.compactLabel)
-                                    Image(systemName: "chevron.down")
-                                        .font(PulpeTypography.caption2)
-                                }
-                                .padding(.horizontal, DesignTokens.Spacing.md)
-                                .padding(.vertical, DesignTokens.Spacing.xs)
-                                .background(Color.surfaceContainerHigh)
-                                .foregroundStyle(Color.onSurfaceVariant)
-                                .clipShape(Capsule())
-                            }
-                            .frame(minHeight: DesignTokens.TapTarget.minimum)
-                            .contentShape(Capsule())
-                            .plainPressedButtonStyle()
-                            .accessibilityLabel("Devise actuelle : \(state.currency.nativeName). Toucher pour changer.")
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                    }
-
-                    OnboardingStepHeader(step: step)
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-
-                    content()
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .blurSlide(showContent)
-
-                    // Error banner
-                    if let error = state.error {
-                        ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
-                            state.error = nil
-                        }
-                        .padding(.horizontal, DesignTokens.Spacing.xxl)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-
-                    // Scroll anchor only — primary CTA is pinned in overlay (morphs FAB ↔ full width).
-                    Color.clear
-                        .frame(height: DesignTokens.FrameHeight.button + DesignTokens.Spacing.xl)
-                        .id(OnboardingStepScrollAnchor.cta)
+        // Read in the layout pass, not after it: a flag flipped once the step is on screen would
+        // swap its zone mid-slide, over the band of the step sliding out.
+        GeometryReader { proxy in
+            let isShortScreen = proxy.size.height < DesignTokens.Entry.ringZoneMinHeight
+            VStack(spacing: DesignTokens.Spacing.none) {
+                // A ZStack, not a Group: a Group hands its modifiers to each child, so an empty
+                // compact zone would drop the padding and pull the card over the top bar.
+                ZStack {
+                    if showsCompactZone(isShortScreen: isShortScreen) { compactZone } else { zone() }
                 }
-                .padding(.top, DesignTokens.Spacing.stepHeaderTop)
-                .padding(.bottom, DesignTokens.Spacing.xxxl)
+                    .frame(maxWidth: .infinity)
+                    // The card's inset and column: the greeting and the card title share one left edge.
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, DesignTokens.Spacing.md)
+                    .padding(.bottom, DesignTokens.Entry.cardRadius + DesignTokens.Spacing.sm)
+                    .background { EntryZoneBackground(keepsHaloInside: true) }
+                    .environment(\.colorScheme, .dark)
+                    .environment(\.foldsOnboardingRing, isShortScreen)
+
+                card
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
-            .onScrollGeometryChange(for: ScrollMetrics.self) { geometry in
-                ScrollMetrics(
-                    remaining: geometry.contentSize.height
-                        - geometry.contentOffset.y - geometry.containerSize.height,
-                    overflows: geometry.contentSize.height > geometry.containerSize.height + 40
-                )
-            } action: { _, metrics in
-                let newAtBottom = metrics.remaining < 80
-                let newOverflows = metrics.overflows
-                guard newAtBottom != isAtBottom || newOverflows != contentOverflows else { return }
-                withAnimation(DesignTokens.Animation.defaultSpring) {
-                    isAtBottom = newAtBottom
-                    contentOverflows = newOverflows
-                }
-            }
-            // Bottom blur — ignoresSafeArea BEFORE frame so it extends past home indicator
-            .overlay(alignment: .bottom) {
-                if (contentOverflows && !isAtBottom) || isKeyboardVisible {
-                    VariableBlurView(
-                        maxBlurRadius: 8,
-                        direction: .blurredBottomClearTop
-                    )
-                    .allowsHitTesting(false)
-                    .ignoresSafeArea(edges: .bottom)
-                    .frame(height: DesignTokens.Blur.bottomFadeHeight)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
-            }
-            .overlay(alignment: .bottom) {
-                bottomZone(proxy: proxy)
-                    .padding(.bottom, ctaOverlayBottomPadding)
-            }
-        }
-        .background(Color.clear)
-        .sheet(isPresented: $showCurrencySwap) {
-            OnboardingCurrencySwapSheet(state: state)
         }
         .dismissKeyboardOnTap()
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            setKeyboardUp(true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            setKeyboardUp(false)
+        }
         .onChange(of: canProceed) { oldValue, newValue in
             // Celebration haptic only on the false→true flip (CTA just unlocked)
             if !oldValue && newValue { canProceedTrigger.toggle() }
         }
-        .onReceive(
-            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-        ) { notification in
-            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
-            let height = frame?.height ?? 0
-            withAnimation(DesignTokens.Animation.defaultSpring) {
-                keyboardHeight = height
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            withAnimation(DesignTokens.Animation.defaultSpring) {
-                keyboardHeight = 0
-            }
-        }
         .task {
             guard !showContent else { return }
-            if reduceMotion {
-                showContent = true
-            } else {
-                await delayedAnimation(0.25) { showContent = true }
-            }
+            // No delay: the step already slides in, and its field must be usable as it lands.
+            withAnimation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut) { showContent = true }
         }
     }
 
-    // MARK: - Bottom zone (back · CTA · progress)
-
-    /// Where the thumb is: the back circle, the morphing CTA and, under them, the thin
-    /// progress bar — all above the keyboard.
-    private func bottomZone(proxy: ScrollViewProxy) -> some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            onboardingMorphingCTA(proxy: proxy)
-            if step.showProgressBar {
-                OnboardingProgressIndicator(currentStep: step, progressSteps: state.progressBarSteps)
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
-            }
-        }
+    private func setKeyboardUp(_ isUp: Bool) {
+        guard isUp != isKeyboardUp else { return }
+        withAnimation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseInOut) { isKeyboardUp = isUp }
     }
 
+    // MARK: - Compact Zone
+
+    /// What the ring says, on one line, for the steps whose input moves it; the other steps
+    /// keep only the zone's margin above the card.
     @ViewBuilder
-    private var backButton: some View {
-        if let onboardingBack {
-            Button(action: onboardingBack) {
-                Image(systemName: "chevron.left")
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textPrimaryOnboarding)
-                    .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
-                    .background(Color.surfaceContainerLow, in: Circle())
+    private var compactZone: some View {
+        switch step {
+        case .income, .charges, .savings:
+            OnboardingAvailableBand(state: state)
+        case .firstName:
+            // The greeting is this step's answer: it stays, on one line.
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
+                Text("Enchanté,")
+                    .font(PulpeTypography.detailLabel)
+                    .foregroundStyle(Color.heroAccentPositive)
+                Text(FirstNameResolver.normalized(state.firstName) ?? AppLocale.string("toi"))
+                    .font(PulpeTypography.rowAmount)
+                    .foregroundStyle(Color.heroInk)
+                    .lineLimit(1)
             }
-            .iconButtonStyle()
-            .accessibilityLabel(state.editReturnStep != nil ? "Retour au résumé" : "Retour")
+            .accessibilityElement(children: .combine)
+        default:
+            EmptyView()
         }
     }
 
-    // MARK: - Morphing CTA (single control: frame animates circle ↔ full-width pill)
+    // MARK: - Card
 
-    private func onboardingMorphingCTA(proxy: ScrollViewProxy) -> some View {
-        let expanded = useExpandedCTAChrome
-        let buttonHeight = DesignTokens.FrameHeight.button
-        let fabShadow = DesignTokens.Shadow.elevated
-        let isDisabled = expanded && !isEnabled
-        return HStack(spacing: DesignTokens.Spacing.md) {
-            if expanded {
-                backButton
+    private var card: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                if showsCardTitle {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text(step.title)
+                            .font(PulpeTypography.entryTitle)
+                            .foregroundStyle(Color.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(PulpeTypography.onboardingSubtitle)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                    }
+                }
+
+                content()
+                    .blurSlide(
+                        showContent,
+                        blur: DesignTokens.Animation.stepContentBlur,
+                        rise: DesignTokens.Animation.stepContentRise
+                    )
+
+                if showsGenericError, let error = state.error {
+                    ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
+                        state.error = nil
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
-            Spacer(minLength: 0)
-            Button {
-                // Apple docs: `.plain` ButtonStyle "may apply a visual effect to indicate the
-                // pressed, focused, or enabled state of the button." Combined with `.disabled()`
-                // this dims the button via `\.isEnabled`, composing transparency over our opaque
-                // fill and letting backdrop content bleed through. We gate the action manually
-                // and block hit-testing instead, so visuals stay solid while behavior matches
-                // a disabled button.
-                guard !isDisabled else { return }
-                morphingCTAAction(proxy: proxy)
-            } label: {
-                MorphingOnboardingCTALabel(
-                    expanded: expanded,
-                    isKeyboardVisible: isKeyboardVisible,
-                    title: buttonTitle,
-                    showTrailingChevron: step != .registration && step != .budgetPreview,
-                    isLoading: state.isLoading
-                )
-                .font(PulpeTypography.buttonPrimary)
-                .frame(height: buttonHeight)
-                .frame(maxWidth: expanded ? .infinity : buttonHeight)
-                .foregroundStyle(ctaForeground(expanded: expanded))
-                .background(ctaBackground(expanded: expanded))
-                .clipShape(Capsule())
-                .overlay(ctaDisabledOutline(expanded: expanded))
-                .scaleEffect(expanded && !canProceed ? 0.98 : 1)
-                .shadow(
-                    color: expanded ? .clear : fabShadow.color,
-                    radius: expanded ? 0 : fabShadow.radius,
-                    y: expanded ? 0 : fabShadow.y
-                )
-                .animation(reduceMotion ? .none : DesignTokens.Animation.bouncySpring, value: expanded && !canProceed)
-            }
-            .buttonStyle(.plain)
-            .allowsHitTesting(!isDisabled)
-            .sensoryFeedback(.success, trigger: canProceedTrigger)
-            .accessibilityLabel(ctaAccessibilityLabel(expanded: expanded))
-            .accessibilityValue(isDisabled ? "désactivé" : "")
-            .animation(reduceMotion ? .none : DesignTokens.Animation.onboardingCTAMorph, value: expanded)
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.xl)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+            .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+            // As tall as the card's visible part, so a tap anywhere on its empty area lands
+            // on the tap catcher: the scroll view sits over the step's own one.
+            .frame(maxWidth: .infinity, minHeight: cardViewportHeight, alignment: .top)
+            .dismissKeyboardOnTap()
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
-    }
-
-    private func ctaAccessibilityLabel(expanded: Bool) -> String {
-        if expanded, state.isLoading {
-            return AppLocale.string("Chargement")
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.containerSize.height - geometry.contentInsets.top - geometry.contentInsets.bottom
+        } action: { _, height in
+            cardViewportHeight = max(0, height)
         }
-        if expanded {
-            return buttonTitle
-        }
-        return isKeyboardVisible
-            ? AppLocale.string("Fermer le clavier")
-            : AppLocale.string("Voir la suite")
-    }
-
-    private func morphingCTAAction(proxy: ScrollViewProxy) {
-        if useExpandedCTAChrome {
-            onNext()
-        } else if isKeyboardVisible {
-            UIApplication.shared.sendAction(
-                #selector(UIResponder.resignFirstResponder),
-                to: nil, from: nil, for: nil
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollDismissesKeyboard(.interactively)
+        // The fade's height between the rows and the CTA: the keyboard scrolls the focused field
+        // up to this edge, and without the gap the CTA cuts the field's bottom border.
+        .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.lg) { cta }
+        // The card's fill runs under the home indicator and the side insets (the open iPhone
+        // Duo's status column); a clip on the view would stop it at the safe area and leave a
+        // forest strip with the zone's hard bottom edge showing.
+        .background {
+            UnevenRoundedRectangle(
+                topLeadingRadius: DesignTokens.Entry.cardRadius,
+                topTrailingRadius: DesignTokens.Entry.cardRadius
             )
-        } else {
-            withAnimation(DesignTokens.Animation.onboardingCTAMorph) {
-                proxy.scrollTo(OnboardingStepScrollAnchor.cta, anchor: .bottom)
+            .fill(Color.appBackground)
+            .ignoresSafeArea(edges: [.bottom, .horizontal])
+        }
+        .padding(.top, -DesignTokens.Entry.cardRadius)
+    }
+
+    private var cta: some View {
+        Button {
+            guard isEnabled else { return }
+            onNext()
+        } label: {
+            if state.isLoading {
+                ProgressView().tint(.white).accessibilityLabel("Chargement")
+            } else {
+                Text(ctaTitle ?? buttonTitle)
             }
         }
-    }
-
-    private func ctaForeground(expanded: Bool) -> Color {
-        if expanded, isEnabled {
-            return Color.textOnPrimary
+        // A request in flight keeps the solid fill: its white spinner would vanish on the
+        // disabled tint, and the CTA would flash pale then green again before the step slides.
+        .primaryButtonStyle(isEnabled: isEnabled || state.isLoading)
+        .sensoryFeedback(.success, trigger: canProceedTrigger)
+        .accessibilityValue(isEnabled ? "" : "désactivé")
+        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DesignTokens.Spacing.md)
+        // The rows fade out above the CTA instead of being sliced by its edge, so the card
+        // reads as going on under it.
+        // Down under the keyboard too: it is see-through, and the rows scrolled under the CTA
+        // would show through it.
+        .background(Color.appBackground.ignoresSafeArea(edges: .bottom))
+        .overlay(alignment: .top) {
+            LinearGradient(
+                colors: [Color.appBackground.opacity(0), Color.appBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+                .frame(height: DesignTokens.Spacing.lg)
+                .offset(y: -DesignTokens.Spacing.lg)
+                // The keyboard scrolls the focused field just above the CTA: the fade would wash
+                // out its bottom edge.
+                .opacity(isKeyboardUp ? 0 : 1)
+                .allowsHitTesting(false)
         }
-        if expanded, !isEnabled {
-            return Color.onSurfaceVariant
-        }
-        return Color.textOnPrimary
-    }
-
-    /// Both fills always rendered; opacity crossfades during morph so SwiftUI tweens
-    /// a single ZStack instead of swapping view identities (which was producing the
-    /// ugly two-tone split FAB↔pill during the bouncy spring transition).
-    @ViewBuilder
-    private func ctaBackground(expanded: Bool) -> some View {
-        let showDisabled = expanded && !isEnabled
-        ZStack {
-            Color.pulpePrimary
-            Color.primaryContainerDisabled
-                .opacity(showDisabled ? 1 : 0)
-        }
-    }
-
-    @ViewBuilder
-    private func ctaDisabledOutline(expanded: Bool) -> some View {
-        let showDisabled = expanded && !isEnabled
-        Capsule()
-            .strokeBorder(Color.outlineVariant, lineWidth: DesignTokens.BorderWidth.thin)
-            .opacity(showDisabled ? 1 : 0)
     }
 
     private var buttonTitle: String {
@@ -373,24 +225,30 @@ struct OnboardingStepView<Content: View>: View {
         }
     }
 
-    /// The user has just spent 5+ steps configuring their budget — "Créer mon budget"
-    /// at the finale reads as if they haven't done the work. Branch by emotion state
-    /// so the CTA confirms what actually happened and sets the right tone for the
-    /// next screen (relief / validation / intent to adjust later).
+    /// The user has just spent 5+ steps configuring their budget: "Créer mon budget" would read as if
+    /// they hadn't done the work. The title confirms what actually happened, by health state.
     private var budgetPreviewButtonTitle: String {
         switch state.emotionState {
         case .comfortable: AppLocale.string("C'est parti")
-        case .tight: AppLocale.string("Valider mon budget")
-        case .deficit: AppLocale.string("Valider et affiner")
+        case .tight, .deficit: AppLocale.string("Valider mon budget")
         }
     }
 }
 
-// MARK: - Scroll Metrics
-
-struct ScrollMetrics: Equatable {
-    let remaining: CGFloat
-    let overflows: Bool
+extension OnboardingStepView where Zone == EmptyView {
+    init(
+        step: OnboardingStep,
+        state: OnboardingState,
+        canProceed: Bool,
+        subtitle: String? = nil,
+        onNext: @escaping () -> Void,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.init(
+            step: step, state: state, canProceed: canProceed, subtitle: subtitle,
+            onNext: onNext, zone: { EmptyView() }, content: content
+        )
+    }
 }
 
 // MARK: - Currency Swap Sheet

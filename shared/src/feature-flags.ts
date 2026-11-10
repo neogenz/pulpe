@@ -62,7 +62,7 @@ export const ANALYTICS_EVENTS = {
   SIGNUP_STARTED: 'signup_started',
   /** Fires after registration succeeds. Properties: `method`. */
   SIGNUP_COMPLETED: 'signup_completed',
-  /** Fires after registration fails. Properties: `method`, `error_kind`, `error_message`. */
+  /** iOS: fires after registration fails. Properties: `method`, `error_kind` (never the error message). */
   SIGNUP_FAILED: 'signup_failed',
   /**
    * Fires after an onboarding step. Properties: `step`, optional `skipped`,
@@ -79,8 +79,14 @@ export const ANALYTICS_EVENTS = {
   ONBOARDING_PAUSED: 'onboarding_paused',
   /** Fires when the user confirms an early exit from onboarding. Properties: `last_step`, `exit_method`, `was_authenticated`, `auth_method`. */
   ONBOARDING_ABANDONED: 'onboarding_abandoned',
-  /** Fires when an incomplete signup resumes. Properties: `method`, `source`, `resumed_at_step`. */
+  /**
+   * Fires when an incomplete signup resumes. Properties: `method`, `source`, `resumed_at_step`.
+   * iOS `source`: `pending_user` or `session_fallback` after a cold start, `foreground` when
+   * the app returns from a background that fired `onboarding_paused`.
+   */
   ONBOARDING_RESUMED: 'onboarding_resumed',
+  /** iOS: fires when the user goes back one onboarding step. Properties: `from_step`, `to_step`. */
+  ONBOARDING_STEP_BACK: 'onboarding_step_back',
   /** Fires when an onboarding suggestion changes. Properties: `step`, `suggestion_name`, `selected`. */
   ONBOARDING_SUGGESTION_TOGGLED: 'onboarding_suggestion_toggled',
   /** Fires when a custom onboarding row is added. Properties: `step`, `kind`, `source`. */
@@ -89,6 +95,8 @@ export const ANALYTICS_EVENTS = {
   CUSTOM_TRANSACTION_REMOVED: 'custom_transaction_removed',
   /** Fires after the initial budget is created. Properties: `signup_method`, `has_pay_day`, `charges_count`, `custom_transactions_count`. */
   FIRST_BUDGET_CREATED: 'first_budget_created',
+  /** iOS: fires when the user leaves the screen shown after onboarding for their month. Properties: `widget_help_opened`. */
+  ONBOARDING_HANDOFF_COMPLETED: 'onboarding_handoff_completed',
   /** Fires after login succeeds. Properties: `method`. */
   LOGIN_COMPLETED: 'login_completed',
   /** Fires after login fails. Properties: `method`, `error_kind`, `error_message`. */
@@ -101,6 +109,8 @@ export const ANALYTICS_EVENTS = {
   LOGOUT_COMPLETED: 'logout_completed',
   /** Fires after PIN creation succeeds. Properties: none. */
   PIN_SETUP_COMPLETED: 'pin_setup_completed',
+  /** iOS: fires when the user confirms the recovery key shown after PIN creation. Properties: none. */
+  RECOVERY_KEY_ACKNOWLEDGED: 'recovery_key_acknowledged',
   /** Fires after an existing PIN is accepted. Properties: none. */
   PIN_ENTERED: 'pin_entered',
   /** Fires after an existing PIN is changed. Properties: none. */

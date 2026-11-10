@@ -87,7 +87,7 @@ test.describe('Settings Recovery Key', () => {
     await page.getByTestId('submit-regenerate-button').click();
 
     await expect(page.getByTestId('regenerate-key-error')).toContainText(
-      'Code PIN incorrect ou clé de chiffrement invalide',
+      'Code PIN incorrect',
     );
     await expect(page.getByTestId('recovery-key-dialog')).toHaveCount(0);
   });

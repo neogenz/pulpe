@@ -130,4 +130,35 @@ struct ToastManagerTests {
         #expect(firstFinished == false)
         #expect(secondFinished == true)
     }
+
+    @Test
+    func bottomClearance_hiddenFloatingButton_dropsItsRoom() {
+        let withButton = ToastManager.bottomClearance(tabBarHeight: 50, showsFloatingAddButton: true)
+        let withoutButton = ToastManager.bottomClearance(tabBarHeight: 50, showsFloatingAddButton: false)
+
+        #expect(withButton - withoutButton == DesignTokens.Control.fabTabBarGap + DesignTokens.Control.fab)
+        #expect(withoutButton == 50 + DesignTokens.Spacing.md)
+    }
+
+    @Test
+    func bottomClearance_sideRailWithoutButton_sitsJustAboveSafeArea() {
+        let clearance = ToastManager.bottomClearance(tabBarHeight: 0, showsFloatingAddButton: false)
+
+        #expect(clearance == DesignTokens.Spacing.md)
+    }
+
+    @Test
+    func floatingAddButtons_pushOverAnother_countsUntilBothLeave() {
+        let manager = ToastManager()
+
+        // A pushed month page shows its own « + » before the tab's one leaves.
+        manager.floatingAddButtonAppeared()
+        manager.floatingAddButtonAppeared()
+        manager.floatingAddButtonDisappeared()
+        #expect(manager.floatingAddButtonsOnScreen == 1)
+
+        manager.floatingAddButtonDisappeared()
+        manager.floatingAddButtonDisappeared()
+        #expect(manager.floatingAddButtonsOnScreen == 0)
+    }
 }

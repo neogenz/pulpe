@@ -48,8 +48,8 @@ struct PulpeChipTests {
     // MARK: - Style equality
 
     @Test("Style values are distinct", arguments: [
-        (PulpeChip<EmptyView>.Style.solid, PulpeChip<EmptyView>.Style.outlined),
-        (PulpeChip<EmptyView>.Style.solid, PulpeChip<EmptyView>.Style.muted),
+        (PulpeChip<EmptyView>.Style.selected, PulpeChip<EmptyView>.Style.outlined),
+        (PulpeChip<EmptyView>.Style.selected, PulpeChip<EmptyView>.Style.muted),
         (PulpeChip<EmptyView>.Style.outlined, PulpeChip<EmptyView>.Style.muted)
     ])
     func style_distinctValues_areNotEqual(
@@ -59,7 +59,7 @@ struct PulpeChipTests {
     }
 
     @Test func style_equalValues_areEqual() {
-        #expect(PulpeChip<EmptyView>.Style.solid == .solid)
+        #expect(PulpeChip<EmptyView>.Style.selected == .selected)
         #expect(PulpeChip<EmptyView>.Style.outlined == .outlined)
         #expect(PulpeChip<EmptyView>.Style.muted == .muted)
     }
@@ -79,8 +79,8 @@ struct PulpeChipTests {
 
     @Test func body_constructsForAllStyleSizeCombinations() {
         let combos: [(PulpeChip<EmptyView>.Style, PulpeChip<EmptyView>.Size)] = [
-            (.solid, .standard),
-            (.solid, .prominent),
+            (.selected, .standard),
+            (.selected, .prominent),
             (.outlined, .standard),
             (.outlined, .prominent),
             (.muted, .standard),

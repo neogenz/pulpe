@@ -190,7 +190,7 @@
       "enterTitle": "Scrivi il tuo codice PIN",
       "enterSubtitle": "Scrivi il tuo codice per arrivare ai tuoi dati.",
       "setupTitle": "Crea il tuo codice PIN",
-      "setupSubtitle": "Questo codice protegge i tuoi dati cifrati. Tienilo al sicuro: nessun altro può arrivarci al posto tuo, e se lo dimentichi non si può recuperare.",
+      "setupSubtitle": "Questo codice protegge i tuoi importi. Tienilo al sicuro: nessun altro può arrivarci al posto tuo, e se lo dimentichi non si può recuperare.",
       "pinLabel": "Codice PIN",
       "setupPinLabel": "Il tuo codice PIN",
       "pinRequired": "Il tuo codice PIN serve",
@@ -202,7 +202,7 @@
       "confirmPinRequired": "Conferma il tuo codice",
       "pinsMismatch": "I due codici non sono uguali — riprova",
       "rememberDevice": "Non chiedermelo più su questo dispositivo",
-      "rememberDeviceHint": "Se spunti questa casella, la tua chiave di decifratura viene salvata su questo dispositivo. Meglio evitarlo su un computer condiviso.",
+      "rememberDeviceHint": "Se spunti questa casella, i tuoi importi si aprono senza codice su questo dispositivo. Meglio evitarlo su un computer condiviso.",
       "lostCode": "Codice perso?",
       "setupSubmitting": "Prepariamo il tuo spazio...",
       "setupSubmit": "Crea il mio codice PIN",
@@ -277,7 +277,7 @@
     "benefits": {
       "setup": "Un piano chiaro per ogni mese",
       "track": "Le tue spese spuntate con un gesto",
-      "privacy": "Cifrato — i tuoi importi restano privati"
+      "privacy": "I tuoi importi restano privati"
     },
     "emailSignup": "Registrati con l'email",
     "tryWithoutAccount": "Prova senza account",
@@ -389,7 +389,7 @@
     "saveError": "Il salvataggio non è riuscito — riprova",
     "passwordChanged": "Password modificata",
     "securitySection": "Sicurezza",
-    "securityDescription": "Proteggi l'accesso ai tuoi dati e gestisci le tue chiavi di cifratura.",
+    "securityDescription": "Proteggi l'accesso ai tuoi dati e il tuo codice PIN e la tua chiave di recupero.",
     "diagnosticDataSection": "Dati diagnostici",
     "diagnosticSharingLabel": "Condividi i dati diagnostici",
     "diagnosticSharingDescription": "Collega al tuo account gli eventi tecnici e gli errori per capire i problemi e aiutarti più in fretta. Non viene raccolto nessun importo né quello che scrivi.",
@@ -438,7 +438,7 @@
     "passwordRequired": "La password è obbligatoria",
     "passwordMinLength": "Almeno {{ min }} caratteri",
     "deleteAccountConfirm": "Conferma eliminazione",
-    "pinIncorrect": "Codice PIN sbagliato o chiave di cifratura non valida",
+    "pinIncorrect": "Codice PIN sbagliato",
     "deleteAccountVerificationFailed": "La verifica non è riuscita — riprova più tardi",
     "passwordIncorrect": "Password sbagliata",
     "regenerateKeyTitle": "Rigenera la mia chiave",
@@ -446,7 +446,7 @@
     "regenerateKeyWarning": "Questa azione invalida la vecchia chiave. Senza il tuo codice PIN o la tua chiave di recupero, l'accesso ai tuoi dati va perso per sempre.",
     "regenerateKeySubmit": "Rigenera",
     "pinCode": "Codice PIN",
-    "pinCodeDescription": "Modifica il tuo codice di cifratura.",
+    "pinCodeDescription": "Modifica il tuo codice PIN.",
     "pinChanged": "Codice PIN modificato",
     "pinChangedNoRecovery": "Codice PIN modificato — rigenera la tua chiave di recupero nelle impostazioni",
     "changePin": {
@@ -467,7 +467,7 @@
       "rateLimited": "Troppi tentativi — riprova più tardi",
       "genericError": "Qualcosa è andato storto — riprova più tardi",
       "changeFailed": "Il cambio del codice PIN non è riuscito — riprova più tardi",
-      "rekeyFailed": "La ri-cifratura non è riuscita — il tuo vecchio codice PIN resta attivo, riprova più tardi"
+      "rekeyFailed": "La modifica del codice non è riuscita: il tuo vecchio codice PIN resta attivo, riprova più tardi"
     },
     "connections": {
       "setup": {

@@ -131,7 +131,6 @@ struct BudgetLineRow: View {
                 Text(line.name)
                     .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(line.isChecked ? .secondary : .primary)
-                    .strikethrough(line.isChecked, color: .secondary)
                     .lineLimit(1)
                     // The rhythm rides the name, because only one of the two rhythms
                     // has a glyph: on screen a ponctuel line is marked by the absence

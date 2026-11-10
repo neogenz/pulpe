@@ -32,18 +32,28 @@ extension DesignTokens {
             .spring(response: 0.6, dampingFraction: 0.85)
         }
 
-        static var bouncySpring: SwiftUI.Animation {
-            .spring(response: 0.4, dampingFraction: 0.65)
-        }
-
         static var entranceSpring: SwiftUI.Animation {
             .spring(response: 0.6, dampingFraction: 0.8)
+        }
+
+        /// A ring drawing itself in, clockwise, without overshooting its end.
+        static var ringDrawIn: SwiftUI.Animation {
+            .spring(duration: 1.1, bounce: 0)
         }
 
         // MARK: - Easing
 
         /// Scale a confirmed element settles to as it resolves away (check-exit transition).
         static let settleScale: CGFloat = 0.94
+        /// Scale of a V2 button while pressed
+        static let pressedButtonScale: CGFloat = 0.96
+        /// Scale a revealed block grows from as it fades in under its trigger.
+        static let revealScale: CGFloat = 0.98
+
+        /// Snappy spring of a segmented control's selection pill.
+        static var selectionSpring: SwiftUI.Animation {
+            .spring(response: 0.3, dampingFraction: 0.85)
+        }
 
         static var smoothEaseOut: SwiftUI.Animation {
             .easeOut(duration: normal)
@@ -59,13 +69,12 @@ extension DesignTokens {
 
         // MARK: - Step Transitions
 
+        /// Blur and rise a step's fields enter with while the step slides in: light, so the slide leads.
+        static let stepContentBlur: CGFloat = 4
+        static let stepContentRise: CGFloat = 12
+
         static var stepTransition: SwiftUI.Animation {
             .spring(response: 0.5, dampingFraction: 0.85)
-        }
-
-        /// FAB ↔ full-width onboarding CTA — one continuous control (layout + content).
-        static var onboardingCTAMorph: SwiftUI.Animation {
-            .spring(response: 0.48, dampingFraction: 0.88)
         }
 
         static var iconEntrance: SwiftUI.Animation {
@@ -91,14 +100,6 @@ extension DesignTokens {
 
         static var pulse: SwiftUI.Animation {
             .easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)
-        }
-
-        /// Slow breathing effect for brand heroes (glow/shadow opacity oscillation).
-        /// Deliberately slow so it feels like ambient life, not a notification.
-        static let heroBreathingDuration: Double = 3.5
-
-        static var heroBreathing: SwiftUI.Animation {
-            .easeInOut(duration: heroBreathingDuration).repeatForever(autoreverses: true)
         }
 
         // MARK: - Push transition timings (BudgetDetails feature pattern)
@@ -128,5 +129,12 @@ extension DesignTokens {
                 try await Task.sleep(for: skeletonMinimumDuration - elapsed)
             }
         }
+    }
+}
+
+extension AnyTransition {
+    /// A block fading in just under the control that revealed it.
+    static var revealBelowTrigger: AnyTransition {
+        .opacity.combined(with: .scale(scale: DesignTokens.Animation.revealScale, anchor: .top))
     }
 }

@@ -15,7 +15,9 @@ struct EditBudgetLineSheetTests {
         originalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
-        exchangeRate: Decimal? = nil
+        exchangeRate: Decimal? = nil,
+        kind: TransactionKind = .expense,
+        assetId: String? = nil
     ) -> BudgetLine {
         BudgetLine(
             id: id,
@@ -24,12 +26,13 @@ struct EditBudgetLineSheetTests {
             savingsGoalId: nil,
             name: "Test",
             amount: amount,
-            kind: .expense,
+            kind: kind,
             recurrence: .fixed,
             isManuallyAdjusted: false,
             checkedAt: nil,
             createdAt: TestDataFactory.fixedDate,
             updatedAt: TestDataFactory.fixedDate,
+            assetId: assetId,
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,
@@ -244,5 +247,18 @@ struct EditBudgetLineSheetTests {
         #expect(receivedData?.name == "Updated")
         #expect(receivedData?.amount == 200)
         #expect(result.id == "line-1")
+    }
+
+    @Test("An income drawn from an asset sends no assetId key on edit")
+    func assetChange_incomeStaysUntouched() {
+        let income = Self.makeLine(kind: .income, assetId: "a1")
+        #expect(EditBudgetLineSheet.assetChange(line: income, kind: .income, assetId: "a1") == nil)
+        #expect(EditBudgetLineSheet.assetChange(line: income, kind: .income, assetId: nil) == nil)
+    }
+
+    @Test("Turning an asset-drawn income into another kind clears the link")
+    func assetChange_kindChangeClears() {
+        let income = Self.makeLine(kind: .income, assetId: "a1")
+        #expect(EditBudgetLineSheet.assetChange(line: income, kind: .expense, assetId: nil) == .some(nil))
     }
 }

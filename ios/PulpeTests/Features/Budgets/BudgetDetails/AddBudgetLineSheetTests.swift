@@ -8,20 +8,13 @@ struct AddBudgetLineSheetTests {
     // different sentences for the same screen.
     @Test("Each sheet title is a verb the chosen nature completes")
     func sheetTitlesCarryTheVerb() {
-        #expect(TransactionKind.expense.newTransactionTitle == "Noter une dépense")
-        #expect(TransactionKind.income.newTransactionTitle == "Noter un revenu")
-        #expect(TransactionKind.saving.newTransactionTitle == "Noter une épargne")
+        #expect(TransactionKind.expense.newTransactionTitle == "Nouvelle dépense")
+        #expect(TransactionKind.income.newTransactionTitle == "Nouveau revenu")
+        #expect(TransactionKind.saving.newTransactionTitle == "Nouvelle épargne")
 
         #expect(TransactionKind.expense.newBudgetLineTitle == "Prévoir une dépense")
         #expect(TransactionKind.income.newBudgetLineTitle == "Prévoir un revenu")
         #expect(TransactionKind.saving.newBudgetLineTitle == "Prévoir une épargne")
-    }
-
-    @Test("Tag picker is visible only when the selected flow saves tags")
-    func tagPickerVisibility() {
-        #expect(AddBudgetLineSheet.showsTagPicker(spread: false, withdrawal: false))
-        #expect(!AddBudgetLineSheet.showsTagPicker(spread: true, withdrawal: false))
-        #expect(!AddBudgetLineSheet.showsTagPicker(spread: false, withdrawal: true))
     }
 
     @Test("Savings goal picker is visible for saving in both creation modes")

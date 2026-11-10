@@ -14,6 +14,9 @@ final class SavingsGoalStore: StoreProtocol {
     // MARK: - State
 
     private(set) var goals: [SavingsGoal] = []
+    /// Each goal's progression, for the list's figures and facts. A goal whose read
+    /// failed is simply absent: its row falls back to the target alone.
+    private(set) var progressById: [String: SavingsGoalProgress] = [:]
     private(set) var isLoading = false
     private(set) var error: APIError?
 
@@ -89,6 +92,31 @@ final class SavingsGoalStore: StoreProtocol {
         loadTask = task
         await task.value
         if loadGeneration == currentGeneration { loadTask = nil }
+    }
+
+    /// Loads every goal's progression for the list. Only the list asks for it, so the
+    /// mutations that refresh `goals` stay one read.
+    /// ponytail: one `getProgress` per goal, in parallel (N+1 reads). A list-summary
+    /// endpoint replaces this once the backend offers one.
+    func refreshProgress() async {
+        let loaded = await loadProgress(of: goals)
+        // A cancelled `.task(id:)` turns in-flight reads into nil: assigning would drop cards.
+        guard !Task.isCancelled else { return }
+        progressById = loaded
+    }
+
+    private func loadProgress(of goals: [SavingsGoal]) async -> [String: SavingsGoalProgress] {
+        let service = service
+        return await withTaskGroup(of: (String, SavingsGoalProgress?).self) { group in
+            for goal in goals {
+                group.addTask { (goal.id, try? await service.getProgress(id: goal.id)) }
+            }
+            var result: [String: SavingsGoalProgress] = [:]
+            for await (id, progress) in group {
+                if let progress { result[id] = progress }
+            }
+            return result
+        }
     }
 
     // MARK: - Mutations
@@ -247,6 +275,7 @@ final class SavingsGoalStore: StoreProtocol {
         loadTask = nil
         loadGeneration += 1
         goals = []
+        progressById = [:]
         isLoading = false
         hasLoadedOnce = false
         lastLoadTime = nil

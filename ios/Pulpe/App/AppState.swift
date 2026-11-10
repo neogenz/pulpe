@@ -72,6 +72,9 @@ final class AppState {
 
     var selectedTab: Tab = .currentMonth
     var currentMonthPath = NavigationPath()
+    /// « À remettre » asked from the global « + »: the accueil's tab opens the month's budget
+    /// page with the withdrawal preview, then clears it (PUL-292).
+    var pendingSavingsWithdrawal: SavingsWithdrawalRequest?
     var budgetPath = NavigationPath()
     /// Month shown beside the budgets list on a regular-width window (the open iPhone Duo).
     var budgetSelection: String?
@@ -79,7 +82,10 @@ final class AppState {
     /// (the widget) then becomes the selection instead of a second page pushed on top.
     var showsBudgetMonthBesideList = false
     var savingsGoalsPath = NavigationPath()
+    var netWorthPath = NavigationPath()
     var templatePath = NavigationPath()
+    /// Bumped when a model is edited or deleted on its page, so the list beside or under it reloads.
+    var templatesVersion = 0
     // Pushing and popping these live in `AppState+Navigation.swift`.
 
     // MARK: - Returning User
@@ -415,7 +421,7 @@ final class AppState {
 
 enum Tab: String, CaseIterable, Identifiable {
     case currentMonth = "current-month", budgets = "budgets"
-    case savingsGoals = "savings-goals", templates = "templates"
+    case savingsGoals = "savings-goals", netWorth = "net-worth", templates = "templates"
 
     var id: String { rawValue }
 
@@ -424,6 +430,7 @@ enum Tab: String, CaseIterable, Identifiable {
         case .currentMonth: AppLocale.string("Accueil")
         case .budgets: AppLocale.string("Budgets")
         case .savingsGoals: AppLocale.string("Objectifs")
+        case .netWorth: AppLocale.string("Patrimoine")
         case .templates: AppLocale.string("Modèles")
         }
     }
@@ -433,6 +440,7 @@ enum Tab: String, CaseIterable, Identifiable {
         case .currentMonth: "house"
         case .budgets: "calendar"
         case .savingsGoals: "target"
+        case .netWorth: "building.columns"
         case .templates: "doc.text"
         }
     }

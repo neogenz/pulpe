@@ -10,20 +10,23 @@ extension EnvironmentValues {
 // MARK: - Sensitive Amount Modifier
 
 private struct SensitiveAmountModifier: ViewModifier {
+    let applies: Bool
     @Environment(\.amountsHidden) private var amountsHidden
 
     func body(content: Content) -> some View {
+        let hidden = amountsHidden && applies
         content
-            .blur(radius: amountsHidden ? 8 : 0)
-            .accessibilityHidden(amountsHidden)
-            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: amountsHidden)
+            .blur(radius: hidden ? 8 : 0)
+            .accessibilityHidden(hidden)
+            .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: hidden)
     }
 }
 
 extension View {
     /// Blur this view when amounts are hidden (shake-to-hide feature)
-    func sensitiveAmount() -> some View {
-        modifier(SensitiveAmountModifier())
+    /// `applies: false` for a view that carries no amount.
+    func sensitiveAmount(_ applies: Bool = true) -> some View {
+        modifier(SensitiveAmountModifier(applies: applies))
     }
 }
 
@@ -355,6 +358,37 @@ extension View {
             .pulpeCardBorder(cornerRadius: cornerRadius)
     }
 
+    /// Bottom inset of a root tab screen's scrolling content: clears the tab bar and the
+    /// floating add button so the last row is never hidden under them.
+    func pulpeRootBottomInset() -> some View {
+        contentMargins(.bottom, DesignTokens.Layout.rootBottomInset, for: .scrollContent)
+    }
+
+    /// A root tab screen hides its navigation bar title, so iOS draws no scroll edge effect
+    /// there: this blur keeps scrolled content from running bare under the status bar.
+    /// It spans the top inset, not a fixed height: the open iPhone Duo moves the status bar
+    /// into a side column and leaves a thin top inset, where a taller blur lands on the title.
+    func pulpeStatusBarBlur() -> some View {
+        overlay(alignment: .top) {
+            GeometryReader { proxy in
+                ProgressiveBlurEdge(edge: .top, height: proxy.safeAreaInsets.top)
+            }
+            .ignoresSafeArea(edges: .top)
+        }
+    }
+
+    /// V2 card shadow, both layers (`0 1px 2px` contact, `0 6px 20px -10px` ambient).
+    func pulpeSurfaceShadow() -> some View {
+        shadow(DesignTokens.Shadow.surfaceContact)
+            .shadow(DesignTokens.Shadow.surfaceAmbient)
+    }
+
+    /// V2 card: white surface, 22pt radius, soft shadow.
+    func pulpeSurfaceCard() -> some View {
+        pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.surface)
+            .pulpeSurfaceShadow()
+    }
+
     /// Glass effect for floating navigation elements (toasts, overlays)
     func pulpeFloatingGlass(cornerRadius: CGFloat = DesignTokens.CornerRadius.md) -> some View {
         modifier(GlassEffectModifier(cornerRadius: cornerRadius))
@@ -444,7 +478,7 @@ extension View {
     /// holds nothing. Five bugs have been filed on that band under different names.
     ///
     /// Apply it to every navigation screen that raises **no keyboard of its own from the
-    /// bottom**. A screen that does (`EditTransactionPage`, `AddAllocatedTransactionPage`)
+    /// bottom**. A screen that does (`MovementSheet`)
     /// stays bare: it needs the inset it raises. A field in the top search drawer
     /// (`BudgetDetailsView`) is not one — nothing of its own sits under the keyboard, so
     /// refusing the bottom inset hides nothing. Sheets don't count either: they are their

@@ -28,7 +28,7 @@ This feature uses a layered split that other complex iOS features should adopt w
 3. **No `@Environment(UserSettingsStore.self)` inside row files** (`Views/Rows/**`). Pass `currency: SupportedCurrency` via init.
 4. **No `appState.budgetPath` mutation outside `BudgetDetailsRouter.swift`.** All push/pop go through the router.
 5. **No `Task.sleep` inside the feature outside `Helpers/AutoPopView.swift` and `Helpers/View+afterPushTransition.swift`.**
-6. **No magic timing literals** (`.milliseconds(150 | 200 | 300)`). Use `DesignTokens.Animation.autoPopGraceMs` / `DesignTokens.Animation.pushAutofocusDelayMs` / `DesignTokens.Sync.indicatorRampDelayMs`.
+6. **No magic timing literals** (`.milliseconds(150 | 200 | 300)`). Use `DesignTokens.Animation.autoPopGraceMs` / `DesignTokens.Animation.pushAutofocusDelayMs`.
 7. **No `swiftlint:disable file_length` or `type_body_length`** anywhere in the feature. Split the file.
 8. **Every file in this feature ≤ 350 LOC.** Hard error in CI after Phase 5.
 9. **All mutations route through `BudgetDetailsCoordinator.dispatch(_:)`.** Views never call `*Service.shared.*` directly for mutations.

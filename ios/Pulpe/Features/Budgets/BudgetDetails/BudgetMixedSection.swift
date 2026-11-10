@@ -23,10 +23,19 @@ struct BudgetMixedSection: View {
     let onPrepareTogglePointed: (BudgetLine) -> Bool
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
+    /// Header total, already summed by the projector (plus the report on Revenus).
+    var total: Decimal = 0
+    /// The month carried over, as a row of Revenus. Not a prévision: no ring, no pointing.
+    var rollover: SectionRollover?
+    /// Footer « Ajouter une prévision », preselecting this section's kind.
+    var onAdd: (() -> Void)?
 
     init(
         kind: TransactionKind,
         items: [BudgetDetailsScreenState.LineItem],
+        total: Decimal = 0,
+        rollover: SectionRollover? = nil,
+        onAdd: (() -> Void)? = nil,
         currency: SupportedCurrency,
         goalNamesById: [String: String] = [:],
         tagNamesById: [String: String] = [:],
@@ -38,6 +47,9 @@ struct BudgetMixedSection: View {
     ) {
         self.kind = kind
         self.items = items
+        self.total = total
+        self.rollover = rollover
+        self.onAdd = onAdd
         self.currency = currency
         self.goalNamesById = goalNamesById
         self.tagNamesById = tagNamesById
@@ -65,7 +77,7 @@ struct BudgetMixedSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SectionHeader(title: headerTitle, count: items.count)
+            SectionHeader(title: headerTitle, trailingAmount: total.asAmount(for: currency))
 
             VStack(spacing: 0) {
                 ForEach(items) { item in
@@ -92,12 +104,89 @@ struct BudgetMixedSection: View {
                         )
                     ))
                 }
+                if let rollover {
+                    if !items.isEmpty { Divider().padding(.leading, DesignTokens.ListRow.dividerInset) }
+                    SectionRolloverRow(rollover: rollover, currency: currency)
+                }
+                if let onAdd {
+                    Divider().padding(.leading, DesignTokens.ListRow.dividerInset)
+                    SectionAddRow(title: AppLocale.string("Ajouter une prévision"), action: onAdd)
+                        .accessibilityIdentifier("budgetSectionAdd-\(kind.rawValue)")
+                }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .pulpeRowCard()
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .padding(.top, DesignTokens.Spacing.xxl)
+    }
+}
+
+// MARK: - Report row
+
+/// The amount the previous month left, carried into this one.
+struct SectionRollover: Equatable {
+    let previousMonth: Int
+    let amount: Decimal
+    var onTap: (() -> Void)?
+    /// « Estimé, novembre en cours » on a month that has not started; `nil` keeps the default.
+    var subtitle: String?
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.previousMonth == rhs.previousMonth && lhs.amount == rhs.amount && lhs.subtitle == rhs.subtitle
+    }
+}
+
+private struct SectionRolloverRow: View {
+    let rollover: SectionRollover
+    let currency: SupportedCurrency
+
+    private var amountText: String {
+        let rounded = rollover.amount.rounded(2)
+        return rounded > 0 ? "+\(rounded.asAmount(for: currency))" : rounded.asAmount(for: currency)
+    }
+
+    var body: some View {
+        Button {
+            rollover.onTap?()
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(width: DesignTokens.Checkbox.size, height: DesignTokens.Checkbox.size)
+                    .background(Color.sunk, in: Circle())
+                    .frame(width: DesignTokens.TapTarget.minimum)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.dividerGap) {
+                    Text(ReportWording.reportTitle(of: rollover.previousMonth))
+                        .font(PulpeTypography.rowTitle)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(rollover.subtitle ?? AppLocale.string(
+                        "Ce qu'il te restait fin \(Formatters.monthNameInText(for: rollover.previousMonth))"
+                    ))
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(amountText)
+                    .font(PulpeTypography.rowAmount)
+                    .foregroundStyle(Color.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(DesignTokens.TextScale.compact)
+                    .layoutPriority(1)
+                    .sensitiveAmount()
+
+                if rollover.onTap != nil { RowChevron() }
+            }
+            .padding(.vertical, DesignTokens.ListRow.verticalPadding + DesignTokens.Spacing.xxs)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("budgetRolloverRow")
     }
 }
 

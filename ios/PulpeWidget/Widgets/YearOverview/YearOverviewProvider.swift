@@ -43,7 +43,8 @@ struct YearOverviewProvider: TimelineProvider {
                 month: budget.month,
                 shortName: budget.shortMonthName,
                 available: budget.available,
-                isCurrentMonth: budget.month == todayPeriod.month && budget.year == todayPeriod.year
+                isCurrentMonth: budget.month == todayPeriod.month && budget.year == todayPeriod.year,
+                isFuture: (budget.year, budget.month) > (todayPeriod.year, todayPeriod.month)
             )
         }
 

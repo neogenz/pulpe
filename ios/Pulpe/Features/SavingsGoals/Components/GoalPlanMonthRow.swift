@@ -104,11 +104,9 @@ struct GoalPlanMonthRow: View {
         !month.lines.isEmpty && month.lines.allSatisfy(\.isChecked)
     }
 
-    /// Statut de pointage/verrouillage dans la ligne de métadonnées — même
-    /// grammaire que « Ton suivi » (`GoalContributionsSection`). L'ancien slot
-    /// d'icône réservé (28pt) laissait une colonne fantôme sur tout le plan
-    /// quand aucun mois ne portait de coche ni de cadenas (le cas commun d'un
-    /// objectif qui démarre).
+    /// Pointing/lock status in the metadata line. A reserved icon slot left a ghost
+    /// column across the whole plan when no month carried a check or a lock (the
+    /// common case for a goal that just started).
     private var stateText: (label: String, color: Color)? {
         if allChecked { return (AppLocale.string("Pointé"), .financialSavings) }
         if isEffectivelyLocked { return (AppLocale.string("Verrouillé"), .textTertiary) }
@@ -188,7 +186,7 @@ struct GoalPlanMonthRow: View {
 
                 amountView
             }
-            .opacity(isEffectivelyLocked ? DesignTokens.Opacity.pointedDim : 1)
+            .opacity(isEffectivelyLocked ? DesignTokens.Opacity.lockedDim : 1)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityIdentifier("savingsGoalPlanMonthRow-\(month.year)-\(month.month)")

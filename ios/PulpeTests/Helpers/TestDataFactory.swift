@@ -196,4 +196,35 @@ enum TestDataFactory {
             )
         )
     }
+
+    // MARK: - Net worth
+
+    static func makeAsset(
+        id: String = "a1",
+        categoryId: String = "c1",
+        name: String = "UBS",
+        currency: SupportedCurrency = .chf,
+        direction: AssetDirection = .own,
+        inPulpe: Bool = false,
+        archivedAt: Date? = nil,
+        latestValue: Decimal = 1000,
+        suggestion: AssetSuggestion? = nil
+    ) -> Asset {
+        Asset(
+            id: id, categoryId: categoryId, name: name, currency: currency, direction: direction,
+            inPulpe: inPulpe, archivedAt: archivedAt, latestValue: latestValue,
+            latestRecordedAt: fixedDate, convertedValue: latestValue, suggestion: suggestion
+        )
+    }
+
+    static func makeNetWorth(
+        assets: [Asset] = [makeAsset()],
+        categories: [AssetCategory] = [AssetCategory(id: "c1", name: "Comptes", total: 1000)]
+    ) -> NetWorth {
+        NetWorth(
+            totals: NetWorthTotals(baseCurrency: .chf, gross: 1000, debts: 0, net: 1000, incomplete: false),
+            categories: categories,
+            assets: assets
+        )
+    }
 }

@@ -48,7 +48,6 @@ struct WithdrawalRealizationProjectionTests {
 
         #expect(state.sections.isEmpty)
         #expect(state.checkedCounts.unchecked == 0)
-        #expect(state.checkedCounts.checked == 1)
         #expect(state.checkedCounts.all == 1)
     }
 
@@ -95,7 +94,6 @@ struct WithdrawalRealizationProjectionTests {
 
         #expect(state.sections.flatMap(\.items).map(\.line.id) == [line.id])
         #expect(state.checkedCounts.unchecked == 1)
-        #expect(state.checkedCounts.checked == 0)
         #expect(state.checkedCounts.all == 1)
     }
 }

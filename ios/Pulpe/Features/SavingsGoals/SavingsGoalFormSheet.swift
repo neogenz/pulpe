@@ -1,9 +1,6 @@
-// swiftlint:disable file_length type_body_length
 import SwiftUI
 
 /// Create / edit a savings goal (PUL-12). `goal == nil` → create.
-/// In edit mode it also drives status changes (Actif / En pause / Atteint —
-/// COMPLETED is reversible) and deletion through an exhaustive impact preview.
 /// Target amount is in the account currency (no currency selector in v1, CA27).
 struct SavingsGoalFormSheet: View {
     let goal: SavingsGoal?
@@ -13,18 +10,19 @@ struct SavingsGoalFormSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(SavingsGoalStore.self) private var store
+    @Environment(BudgetListStore.self) private var budgetListStore: BudgetListStore?
+    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     @State private var name: String
     @State private var amount: Decimal?
+    @State private var amountText: String
     @State private var initialAmount: Decimal?
     @State private var startDate: Date
     @State private var hasStartDate: Bool
     @State private var targetDate: Date
     @State private var hasTargetDate: Bool
-    @State private var status: SavingsGoalStatus
     @State private var isLoading = false
     @State private var error: Error?
-    @State private var showDeletionSheet = false
     @State private var submitSuccessTrigger = 0
     // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
     @State private var decomposeEnabled = true
@@ -41,6 +39,7 @@ struct SavingsGoalFormSheet: View {
         goal: SavingsGoal?,
         userCurrency: SupportedCurrency,
         payDayOfMonth: Int? = nil,
+        initialName: String? = nil,
         onUpdate: ((SavingsGoalUpdate) -> Void)? = nil,
         onCreate: ((SavingsGoal) -> Void)? = nil
     ) {
@@ -49,11 +48,11 @@ struct SavingsGoalFormSheet: View {
         self.payDayOfMonth = payDayOfMonth
         self.onUpdate = onUpdate
         self.onCreate = onCreate
-        _name = State(initialValue: goal?.name ?? "")
-        _status = State(initialValue: goal?.status ?? .active)
+        _name = State(initialValue: goal?.name ?? initialName ?? "")
 
         let amount = goal?.targetAmount
         _amount = State(initialValue: amount)
+        _amountText = State(initialValue: amount.map { "\($0)" } ?? "")
         _initialAmount = State(initialValue: goal?.initialAmount)
 
         let now = Date()
@@ -67,99 +66,6 @@ struct SavingsGoalFormSheet: View {
         allowedTargetDates = Self.targetDateRange(goal: goal, now: now, calendar: calendar)
     }
 
-    nonisolated static func targetDateRange(
-        goal: SavingsGoal?,
-        now: Date,
-        calendar: Calendar
-    ) -> ClosedRange<Date> {
-        let today = calendar.startOfDay(for: now)
-        let monthComponents = calendar.dateComponents([.year, .month], from: today)
-        let currentMonth = calendar.date(from: monthComponents) ?? today
-        let lastPeriodStart = calendar.date(byAdding: .month, value: 119, to: currentMonth) ?? currentMonth
-        let nextPeriodStart = calendar.date(byAdding: .month, value: 1, to: lastPeriodStart) ?? lastPeriodStart
-        let planningMaximum = calendar.date(byAdding: .day, value: -1, to: nextPeriodStart) ?? lastPeriodStart
-        let existingTarget = goal?.targetDate.flatMap {
-            SavingsGoalDateFormatter.parse($0, timeZone: calendar.timeZone)
-        }
-
-        return min(today, existingTarget ?? today)...max(planningMaximum, existingTarget ?? planningMaximum)
-    }
-
-    nonisolated static func targetDateUpdate(
-        for date: Date,
-        isEnabled: Bool = true,
-        original goal: SavingsGoal,
-        timeZone: TimeZone = .autoupdatingCurrent
-    ) -> String?? {
-        let value = isEnabled
-            ? SavingsGoalDateFormatter.string(from: date, timeZone: timeZone)
-            : nil
-        return value == goal.targetDate ? nil : .some(value)
-    }
-
-    nonisolated static func startDateUpdate(
-        for date: Date,
-        isEnabled: Bool,
-        original goal: SavingsGoal,
-        timeZone: TimeZone = .autoupdatingCurrent
-    ) -> String?? {
-        let value = isEnabled
-            ? SavingsGoalDateFormatter.string(from: date, timeZone: timeZone)
-            : nil
-        return value == goal.startDate ? nil : .some(value)
-    }
-
-    nonisolated static func targetAmountUpdate(
-        for value: Decimal?,
-        original goal: SavingsGoal
-    ) -> Decimal?? {
-        value == goal.targetAmount ? nil : .some(value)
-    }
-
-    /// Diffs the edited initial amount against the goal's current one (both
-    /// normalized to 0 for `nil`) so an untouched field omits the PATCH key
-    /// (unchanged) while a cleared field sends explicit `0` (erasure).
-    nonisolated static func initialAmountUpdate(for value: Decimal?, original goal: SavingsGoal) -> Decimal? {
-        let normalized = value ?? 0
-        return normalized == (goal.initialAmount ?? 0) ? nil : normalized
-    }
-
-    // Kept explicit so a deadline reconciliation reuses the complete form PATCH.
-    // swiftlint:disable:next function_parameter_count
-    nonisolated static func editPayload(
-        name: String,
-        targetAmount: Decimal?,
-        initialAmount: Decimal?,
-        startDate: Date,
-        hasStartDate: Bool,
-        targetDate: Date,
-        hasTargetDate: Bool,
-        status: SavingsGoalStatus,
-        original goal: SavingsGoal
-    ) -> SavingsGoalUpdate {
-        SavingsGoalUpdate(
-            name: name.trimmingCharacters(in: .whitespaces),
-            targetAmount: targetAmountUpdate(for: targetAmount, original: goal),
-            targetDate: targetDateUpdate(for: targetDate, isEnabled: hasTargetDate, original: goal),
-            status: status,
-            initialAmount: initialAmountUpdate(for: initialAmount, original: goal),
-            startDate: startDateUpdate(for: startDate, isEnabled: hasStartDate, original: goal)
-        )
-    }
-
-    nonisolated static func isTargetDateSubmittable(
-        _ date: Date,
-        original goal: SavingsGoal?,
-        planningRange: ClosedRange<Date>,
-        calendar: Calendar
-    ) -> Bool {
-        if planningRange.contains(date) { return true }
-        guard let existingTarget = goal?.targetDate.flatMap({
-            SavingsGoalDateFormatter.parse($0, timeZone: calendar.timeZone)
-        }) else { return false }
-        return calendar.isDate(date, inSameDayAs: existingTarget)
-    }
-
     private var isEditing: Bool { goal != nil }
 
     var body: some View {
@@ -169,13 +75,25 @@ struct SavingsGoalFormSheet: View {
                 : AppLocale.string("Nouvel objectif"),
             isLoading: isLoading,
             focus: $focusedField,
-            focusOrder: [.description]
+            focusOrder: [.amount, .description]
         ) {
+            HeroAmountField(
+                amount: $amount,
+                amountText: $amountText,
+                focus: $focusedField,
+                field: .amount,
+                hint: AppLocale.string("ta cible, à mettre de côté"),
+                currency: currency,
+                caption: AppLocale.string("ta cible, à mettre de côté")
+            )
             nameField
-            initialAmountField
-            targetAmountField
-            startDateField
-            targetDateField
+            FormCard {
+                targetDateField
+                FormRowDivider()
+                initialAmountField
+                FormRowDivider()
+                startDateField
+            }
             if !isEditing && hasTargetDate && hasRemainingToSave {
                 decomposeSection
             } else if Self.showsManualMonthlyContribution(
@@ -185,11 +103,7 @@ struct SavingsGoalFormSheet: View {
             ) {
                 manualMonthlySection
             }
-            if isEditing {
-                SegmentedPicker(selection: $status, title: AppLocale.string("Statut")) { item in
-                    Text(item.label)
-                }
-            }
+            if !isEditing { availabilityImpact }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -198,19 +112,6 @@ struct SavingsGoalFormSheet: View {
             }
 
             saveButton
-            if isEditing {
-                deleteButton
-            }
-        }
-        .sheet(isPresented: $showDeletionSheet) {
-            if let goal {
-                GoalDeletionSheet(
-                    goal: goal,
-                    currency: currency,
-                    onDeleted: deletionDidCommit
-                )
-                .standardSheetPresentation(detents: [.large])
-            }
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
@@ -229,63 +130,99 @@ struct SavingsGoalFormSheet: View {
         .accessibilityIdentifier("savingsGoalNameField")
     }
 
-    /// Second amount field (PUL-293), same `CurrencyField` component already
-    /// used for the monthly-contribution override below — its own internal
-    /// focus keeps it out of `focusOrder` without a new field enum case.
+    /// Montant de départ (PUL-293): already saved, so the plan only covers what is left.
     private var initialAmountField: some View {
-        CurrencyField(
-            value: $initialAmount,
-            label: AppLocale.string("Montant de départ (optionnel)"),
-            currency: currency,
-            visualStyle: .flat
-        )
-    }
-
-    private var targetAmountField: some View {
-        CurrencyField(
-            value: $amount,
-            label: AppLocale.string("Cible (optionnelle)"),
-            currency: currency,
-            visualStyle: .flat
-        )
+        inlineAmountRow(AppLocale.string("Montant de départ"), value: $initialAmount)
     }
 
     private var startDateField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Toggle("Début (optionnel)", isOn: $hasStartDate)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-                .tint(accentColor)
-            if hasStartDate {
-                DatePicker(
-                    "Date de début",
-                    selection: $startDate,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.compact)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        optionalDateRow(
+            AppLocale.string("Début"),
+            isOn: $hasStartDate,
+            date: $startDate,
+            range: Date.distantPast...Date.distantFuture,
+            emptyLabel: AppLocale.string("Ce mois-ci")
+        )
     }
 
     private var targetDateField: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Toggle("Échéance (optionnelle)", isOn: $hasTargetDate)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.onSurfaceVariant)
-                .tint(accentColor)
-            if hasTargetDate {
-                DatePicker(
-                    "Date d'échéance",
-                    selection: $targetDate,
-                    in: allowedTargetDates,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.compact)
-                .accessibilityIdentifier("savingsGoalTargetDatePicker")
+        optionalDateRow(
+            AppLocale.string("Échéance"),
+            isOn: $hasTargetDate,
+            date: $targetDate,
+            range: allowedTargetDates,
+            emptyLabel: AppLocale.string("Aucune"),
+            pickerIdentifier: "savingsGoalTargetDatePicker"
+        )
+    }
+
+    /// An optional date: « Aucune » until tapped, then a compact picker and a way back to none.
+    private func optionalDateRow(
+        _ title: String,
+        isOn: Binding<Bool>,
+        date: Binding<Date>,
+        range: ClosedRange<Date>,
+        emptyLabel: String,
+        pickerIdentifier: String = ""
+    ) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(PulpeTypography.rowTitleRegular)
+                .foregroundStyle(Color.textPrimary)
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            if isOn.wrappedValue {
+                DatePicker(title, selection: date, in: range, displayedComponents: .date)
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .accessibilityIdentifier(pickerIdentifier)
+                Button {
+                    isOn.wrappedValue = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color.textTertiary)
+                }
+                .iconButtonStyle()
+                .accessibilityLabel(AppLocale.string("Retirer : \(title)"))
+            } else {
+                Button {
+                    isOn.wrappedValue = true
+                } label: {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
+                        Text(emptyLabel)
+                        RowChevron()
+                    }
+                    .font(PulpeTypography.rowTitleRegular)
+                    .foregroundStyle(Color.textSecondary)
+                }
+                .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
+                .contentShape(Rectangle())
+                .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+                .plainPressedButtonStyle()
+                .accessibilityLabel("\(title), \(emptyLabel)")
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
+    }
+
+    private func inlineAmountRow(_ title: String, value: Binding<Decimal?>) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(PulpeTypography.rowTitleRegular)
+                .foregroundStyle(Color.textPrimary)
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            TextField(
+                Decimal.zero.asAmount(for: currency),
+                value: value,
+                format: .number.precision(.fractionLength(0...2))
+            )
+            .font(PulpeTypography.rowAmount)
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.trailing)
+            .monospacedDigit()
+            .frame(minWidth: DesignTokens.Control.inlineAmountFieldMinWidth, minHeight: DesignTokens.TapTarget.minimum)
+            .accessibilityLabel(title)
+        }
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
     }
 
     /// Suggestion « reste à épargner ÷ mois restants » (payDay-aware, ceil au
@@ -311,49 +248,76 @@ struct SavingsGoalFormSheet: View {
 
     private var decomposeSection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Toggle(isOn: $decomposeEnabled) {
-                Text("Décomposer en mensualités")
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.onSurfaceVariant)
-            }
-            .tint(accentColor)
+            FormCard {
+                Toggle(isOn: $decomposeEnabled) {
+                    Text("Décomposer en mensualités")
+                        .font(PulpeTypography.rowTitleRegular)
+                        .foregroundStyle(Color.textPrimary)
+                }
+                .tint(accentColor)
+                .frame(minHeight: DesignTokens.ListRow.minHeight)
 
+                if decomposeEnabled {
+                    FormRowDivider()
+                    // Override falls back to the live suggestion; clearing the field
+                    // hands control back to it (matches the webapp override model).
+                    inlineAmountRow(
+                        AppLocale.string("Chaque mois"),
+                        value: Binding(
+                            get: { monthlyContributionOverride ?? suggestedMonthly },
+                            set: { newValue in
+                                monthlyContributionOverride =
+                                    (newValue == nil || newValue == suggestedMonthly) ? nil : newValue
+                            }
+                        )
+                    )
+                }
+            }
             if decomposeEnabled {
-                // Override falls back to the live suggestion; clearing the field
-                // hands control back to it (matches the webapp override model).
-                CurrencyField(
-                    value: Binding(
-                        get: { monthlyContributionOverride ?? suggestedMonthly },
-                        set: { newValue in
-                            monthlyContributionOverride =
-                                (newValue == nil || newValue == suggestedMonthly) ? nil : newValue
-                        }
-                    ),
-                    label: AppLocale.string("Épargne mensuelle"),
-                    currency: currency,
-                    visualStyle: .flat
-                )
-                Text(Self.decomposeContributionHint)
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.onSurfaceVariant)
+                hint(Self.decomposeContributionHint)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var manualMonthlySection: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            CurrencyField(
-                value: $monthlyContributionOverride,
-                label: AppLocale.string("Épargne mensuelle (optionnelle)"),
-                currency: currency,
-                visualStyle: .flat
-            )
-            Text(Self.manualMonthlyContributionHint(hasTargetDate: hasTargetDate))
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.onSurfaceVariant)
+            FormCard {
+                inlineAmountRow(AppLocale.string("Chaque mois"), value: $monthlyContributionOverride)
+            }
+            hint(Self.manualMonthlyContributionHint(hasTargetDate: hasTargetDate))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func hint(_ text: String) -> some View {
+        Text(text)
+            .font(PulpeTypography.captionRegular)
+            .foregroundStyle(Color.textSecondary)
+            .padding(.horizontal, DesignTokens.Spacing.xs)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// « Ton disponible de <mois> » A → A − the monthly share, when the plan starts this month,
+    /// plus the months up to the échéance that have no budget yet.
+    @ViewBuilder
+    private var availabilityImpact: some View {
+        let payDay = userSettingsStore.payDayOfMonth
+        let current = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: payDay)
+        let (month, year) = (current.month, current.year)
+        let budgets = budgetListStore?.budgets ?? []
+        let startsNow = !hasStartDate
+            || BudgetPeriodCalculator.periodForDate(startDate, payDayOfMonth: payDay) == current
+        if startsNow,
+           let contribution = creationContribution, contribution > 0,
+           let before = budgets.first(where: { $0.month == month && $0.year == year })?.remaining {
+            ImpactBlock(
+                title: GoalMonthAvailability.title(month: month),
+                impact: MovementImpact(before: before, after: before - contribution, lineBefore: nil, lineAfter: nil),
+                currency: currency,
+                tone: .neutral,
+                note: hasTargetDate ? Self.monthsWithoutBudgetNote(until: targetDate, budgets: budgets) : nil,
+                noteHasAmount: false
+            )
+        }
     }
 
     // MARK: - Buttons
@@ -367,21 +331,6 @@ struct SavingsGoalFormSheet: View {
         .disabled(!canSubmit)
         .primaryButtonStyle(isEnabled: canSubmit)
         .accessibilityIdentifier("savingsGoalFormSubmit")
-    }
-
-    private var deleteButton: some View {
-        Button(role: .destructive) {
-            showDeletionSheet = true
-        } label: {
-            Text("Supprimer l'objectif")
-                .font(PulpeTypography.buttonSecondary)
-                .foregroundStyle(Color.destructivePrimary)
-                .frame(maxWidth: .infinity)
-        }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Rectangle())
-        .plainPressedButtonStyle()
-        .disabled(isLoading)
     }
 }
 
@@ -412,7 +361,6 @@ private extension SavingsGoalFormSheet {
                     hasStartDate: hasStartDate,
                     targetDate: targetDate,
                     hasTargetDate: hasTargetDate,
-                    status: status,
                     original: goal
                 )
             )
@@ -439,62 +387,6 @@ private extension SavingsGoalFormSheet {
         } catch {
             self.error = error
         }
-    }
-
-    private func deletionDidCommit(warning: String?) {
-        showDeletionSheet = false
-        if let warning {
-            toastManager.show(warning, type: .error)
-        } else {
-            toastManager.show(AppLocale.string("Objectif supprimé"))
-            submitSuccessTrigger += 1
-        }
-        dismiss()
-    }
-}
-
-extension SavingsGoalFormSheet {
-    nonisolated static func isFormSubmittable(
-        name: String,
-        targetAmount: Decimal?,
-        startDate: Date?,
-        targetDate: Date?,
-        calendar: Calendar = .current
-    ) -> Bool {
-        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
-        if let targetAmount, targetAmount <= 0 { return false }
-        guard let startDate, let targetDate else { return true }
-        return calendar.startOfDay(for: startDate) <= calendar.startOfDay(for: targetDate)
-    }
-
-    nonisolated static func isMonthlyContributionSubmittable(
-        isEditing: Bool,
-        decomposeEnabled: Bool,
-        hasRemainingToSave: Bool,
-        contribution: Decimal?
-    ) -> Bool {
-        isEditing || !decomposeEnabled || !hasRemainingToSave || (contribution ?? 0) > 0
-    }
-
-    nonisolated static func showsManualMonthlyContribution(
-        isEditing: Bool,
-        hasTargetDate: Bool,
-        targetAmount: Decimal?
-    ) -> Bool {
-        !isEditing && (!hasTargetDate || targetAmount == nil)
-    }
-
-    nonisolated static func manualMonthlyContributionHint(hasTargetDate: Bool) -> String {
-        hasTargetDate
-            ? AppLocale.string("Ce montant sera prévu chaque mois, jusqu'à l'échéance.")
-            : AppLocale.string("Ce montant alimentera ton pot chaque mois, sans échéance imposée.")
-    }
-
-    /// Two complete sentences, keyed separately: neither is a fragment a
-    /// translator has to reassemble, and each fits the line budget.
-    static var decomposeContributionHint: String {
-        AppLocale.string("Pré-rempli avec cible ÷ mois restants.")
-            + " " + AppLocale.string("Ce montant sera prévu sur chacun de tes budgets, jusqu'à l'échéance.")
     }
 }
 

@@ -10,9 +10,10 @@ extension DesignTokens {
         static let dash: [CGFloat] = [5, 4]
         static let markerDash: [CGFloat] = [3, 3]
         static let pointSymbolArea: CGFloat = 100
-        static let dashboardHeight: CGFloat = 150
+        /// Home hero trajectory (V2 board: 96pt plot).
+        static let dashboardHeight: CGFloat = 96
         /// A savings goal spans ~24 months and is read for its shape, not for a
-        /// value at a date — it needs more room than the dashboard's 150pt strip,
+        /// value at a date — it needs more room than the dashboard's 96pt strip,
         /// and the same room in the detail and in the simulator.
         static let goalHeight: CGFloat = 160
         static let domainPaddingRatio = 0.12
@@ -26,14 +27,10 @@ extension DesignTokens {
         /// the frame edge to edge and reads as an accident.
         static let landingScaleFloorRatio = 0.05
 
-        /// Below this share of the plotted range, the gap has no room for a label of its
-        /// own: it would sit within a line height of the plan's. The metric above the plot
-        /// still carries the figure, so the drawing simply stays quiet.
+        /// Below this share of the plotted range, the trend and the plan end on one point:
+        /// VoiceOver does not speak the trend apart.
         static let gapLabelMinimumRatio = 0.08
 
-        /// The anchor label is part of the drawing, so the range reserves a one-line band
-        /// for it on the far side of the rule instead of letting it fall out of the frame.
-        static let anchorLabelBandRatio = 0.18
         /// Days of plan-as-prior the trend pace is shrunk against when the user has no
         /// drift history yet: a week, so the first few days of a month bend the projection
         /// without throwing it. With a history, `DriftHistory.priorStrength` takes over.
@@ -51,5 +48,22 @@ extension DesignTokens {
         /// rows) the dots stop being countable and the card falls back to a progress bar.
         static let checkDotColumns = 25
         static let checkDotLimit = 50
+
+        /// Breakdown diagram: below `sankeyMinWidth` the card scrolls sideways instead of
+        /// squeezing the columns. `sankeyLabelWidth` is kept free beside the first and last
+        /// columns for their labels.
+        static let sankeyMinWidth: CGFloat = 560
+        static let sankeyHeight: CGFloat = 260
+        static let sankeyNodeWidth: CGFloat = 10
+        static let sankeyNodeGap: CGFloat = 14
+        static let sankeyMinNodeHeight: CGFloat = 20
+        /// Height added above the per-node floors and gaps when the diagram grows, so the nodes of a
+        /// crowded column stay proportional to their value instead of all sitting on the floor.
+        static let sankeyProportionalRoom: CGFloat = 130
+        static let sankeyLabelWidth: CGFloat = 96
+        static let sankeyLabelHeadroom: CGFloat = 40
+        /// Pill carrying the label of a middle-column node; the layout keeps a gap of this height free above each.
+        static let sankeyPillHeight: CGFloat = 28
+        static let sankeyBandOpacity = 0.3
     }
 }

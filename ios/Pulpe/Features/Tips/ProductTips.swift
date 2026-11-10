@@ -139,41 +139,11 @@ enum ProductTips {
         }
     }
 
-    // MARK: - Templates Web Parity Tip
-
-    struct TemplatesWebParityTip: Tip {
-        var title: Text {
-            Text("Modèles : ajouter ou retirer une ligne")
-        }
-
-        var message: Text? {
-            Text("""
-                Ici tu peux modifier les lignes d'un modèle. Pour en ajouter ou en retirer, \
-                passe par l'app web.
-                """)
-        }
-
-        var image: Image? {
-            Image(systemName: "laptopcomputer.and.iphone")
-        }
-
-        var actions: [Action] {
-            [Action(id: "open-web", title: AppLocale.string("Ouvrir sur le web"))]
-        }
-
-        var rules: [Rule] {
-            [
-                #Rule(ProductTips.$isSheetPresented) { $0 == false }
-            ]
-        }
-    }
-
     // MARK: - Shared Instances
 
     static let checking = CheckingTip()
     static let pessimisticCheck = PessimisticCheckTip()
     static let firstExpense = FirstExpenseTip()
-    static let templatesWebParity = TemplatesWebParityTip()
 
     // MARK: - Reset
 

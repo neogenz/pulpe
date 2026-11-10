@@ -47,14 +47,12 @@ struct TypographyTests {
         _ = PulpeTypography.amountDisplayLarge
         _ = PulpeTypography.previewAmount
         _ = PulpeTypography.amountXL
-        _ = PulpeTypography.emojiDisplay
         _ = PulpeTypography.cardTitle
         _ = PulpeTypography.sectionIcon
         _ = PulpeTypography.actionIcon
         _ = PulpeTypography.listRowTitle
         _ = PulpeTypography.listRowSubtitle
         _ = PulpeTypography.detailLabel
-        _ = PulpeTypography.detailLabelBold
         _ = PulpeTypography.metricLabel
         _ = PulpeTypography.metricLabelBold
         _ = PulpeTypography.metricMini
@@ -63,10 +61,8 @@ struct TypographyTests {
         _ = PulpeTypography.inputHelper
         _ = PulpeTypography.buttonPrimary
         _ = PulpeTypography.buttonSecondary
-        _ = PulpeTypography.tabLabel
         _ = PulpeTypography.numpadKey
         _ = PulpeTypography.numpadSubtext
-        _ = PulpeTypography.heroIcon
         _ = PulpeTypography.welcomeEmoji
         _ = PulpeTypography.displayYear
         _ = PulpeTypography.amountCard

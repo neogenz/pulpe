@@ -85,13 +85,6 @@ extension Decimal {
         "\(signPrefix)\(asCHF)"
     }
 
-    /// Format as arithmetic-signed currency — sign reflects the value's sign.
-    /// Use for balances and totals where the sign is the math result.
-    /// For transaction-kind signing (income vs expense/saving), prefer `asSignedCurrency(_:for:)`.
-    func asArithmeticSignedCurrency(_ currency: SupportedCurrency) -> String {
-        "\(signPrefix)\(asCurrency(currency))"
-    }
-
     /// Format as signed compact amount only using the currency's locale.
     func asSignedCompactAmount(for currency: SupportedCurrency) -> String {
         "\(signPrefix)\(asCompactAmount(for: currency))"

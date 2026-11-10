@@ -75,4 +75,34 @@ struct APIErrorLocalizationTests {
                 == "Une phrase absente du catalogue"
         )
     }
+
+    /// Every `ERR_ASSET_*` code shows its own sentence, never the server's English message.
+    @Test(arguments: [
+        ("ERR_ASSET_NOT_FOUND", "Cet élément est introuvable — il a peut-être déjà été supprimé"),
+        ("ERR_ASSET_CATEGORY_NOT_FOUND", "Cette catégorie est introuvable — elle a peut-être déjà été supprimée"),
+        (
+            "ERR_ASSET_CATEGORY_NOT_EMPTY",
+            "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie"
+        ),
+        ("ERR_ASSET_CATEGORY_DUPLICATE", "Une catégorie porte déjà ce nom"),
+        ("ERR_ASSET_VALUE_INVALID", "Cette valeur n'est pas valide — une dette ne peut pas être négative"),
+        ("ERR_ASSET_FETCH_FAILED", "Impossible de charger ton patrimoine — réessaie"),
+        ("ERR_ASSET_CREATE_FAILED", "L'ajout a échoué — réessaie"),
+        ("ERR_ASSET_UPDATE_FAILED", "La modification a échoué — réessaie"),
+        ("ERR_ASSET_DELETE_FAILED", "La suppression a échoué — réessaie"),
+    ])
+    func from_assetCode_mapsToItsFrenchMessage_andTranslatesElsewhere(code: String, french: String) {
+        let error = APIError.from(code: code, message: "English server message", statusCode: 400)
+
+        #expect(error.message(in: AppLocale.uiLocale(for: .fr)) == french)
+        for locale in [german, italian, AppLocale.uiLocale(for: .en)] {
+            #expect(error.message(in: locale) != french)
+        }
+    }
+
+    @Test func from_unknownAssetCode_fallsBackToServerMessage() {
+        let error = APIError.from(code: "ERR_ASSET_SOMETHING", message: "Server says", statusCode: 400)
+
+        #expect(error.message(in: german) == "Server says")
+    }
 }

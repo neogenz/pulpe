@@ -11,16 +11,15 @@ struct HomeHeroCard: View {
     let fallbackPlannedBalance: Decimal
     let trajectory: BudgetFormulas.BalanceTrajectory?
     let monthName: String
-    let uncheckedCount: Int
     /// A home entry is still on its way to the server: the projection is drawn from an
     /// optimistic store and says so by shimmering until the response lands.
     var isSettling = false
-    /// Each tile opens its own thing: the count goes to the deck of operations to point,
-    /// the variance to the realized sheet. One button for both was one tap with two
-    /// chevrons and one surprise.
-    var onTapUnchecked: () -> Void
-    var onTapVariance: () -> Void
-    var onTapDetail: () -> Void
+    /// The first month of an account with nothing recorded: no plot to read yet, and the
+    /// sentence invites instead of judging.
+    var startsFresh = false
+    /// Hides or shows every amount: the eye sits beside the figure it hides.
+    var onToggleAmounts: (() -> Void)?
+    var onTapCalculation: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) var amountsHidden
@@ -30,18 +29,16 @@ struct HomeHeroCard: View {
     @State var settlePulse = false
     /// The day under the finger while the plot is being scrubbed, `nil` at rest.
     @State var scrubDay: Int?
-    /// Each pill's measured size, so the plot can lay the three out around the dot.
-    @State var pillSizes: [HeroChartLabelLayout.Label: CGSize] = [:]
 
     var currency: SupportedCurrency { userSettingsStore.currency }
     private var scrubReading: ScrubReading? {
         guard let scrubDay, let trajectory else { return nil }
         return Self.scrubReading(at: scrubDay, in: trajectory)
     }
-    private var presentation: HeroVerdictPresentation {
+    var presentation: HeroVerdictPresentation {
         HeroVerdictPresentation(
-            // The plot's own origin whenever there is a plot, so the rule under the hero and
-            // the `Imprévus` beside it quote one number rather than two calculations of it.
+            // The plot's own origin whenever there is a plot, so the sentence and the line it
+            // describes quote one number rather than two calculations of it.
             plannedBalance: trajectory?.plannedBalance ?? fallbackPlannedBalance,
             estimatedBalance: metrics.remaining,
             // The plot's own drift date, so the sentence dates the same departure the line
@@ -50,110 +47,129 @@ struct HomeHeroCard: View {
         )
     }
 
-    // MARK: - Semantic Styling
-
-    /// One accent for the whole card, spent on the variance tile alone. The surface never
-    /// takes it (The Two-Zone Rule).
-    private var accentColor: Color { presentation.accent }
-
-    // MARK: - Accessibility
-
-    private var accessibilityDescription: String {
-        presentation.accessibilityDescription(
-            monthName: monthName,
-            currency: currency,
-            amountsHidden: amountsHidden,
-            uncheckedCount: uncheckedCount
-        )
-    }
+    /// One accent for the card, spent on the sentence's verdict and the projected stroke.
+    var accentColor: Color { presentation.lightAccent }
 
     // MARK: - Body
 
-    /// One read order, top to bottom: the figure, the line that explains it, the two
-    /// numbers that qualify it, the sentence that concludes. The chart runs edge to edge
-    /// because it is the picture of the month, not a widget inside it.
+    /// One read order, top to bottom: what is available, the picture of the month, then the
+    /// sentence that reads it. The figure leads; the sentence is the plot's caption, not a
+    /// second headline. A white card on the page, no forest.
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            // While the plot is scrubbed the title hands itself to the finger: the day
-            // in the eyebrow, the day's reading as the figure, digits morphing between.
-            HeroFigure(
-                eyebrow: scrubReading.map { Self.scrubEyebrow($0, currency: currency) }
-                    ?? AppLocale.string("Estimé fin \(monthName)"),
-                amount: scrubReading.map(Self.scrubFigure) ?? presentation.estimatedBalance,
-                currency: currency,
-                alignment: .leading,
-                accessibilityIdentifier: "homeProjectedBalanceAmount"
-            )
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                headerRow
+                figure
+            }
 
             VStack(spacing: DesignTokens.Spacing.xs) {
                 balanceChart
                 chartTimeAxis
             }
 
-            summaryMetrics
-
             verdictSentence
         }
-        // Drives the digit morph above: `contentTransition` is inert unless the value
+        .padding(DesignTokens.Spacing.xl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .pulpeSurfaceCard()
+        // Drives the digit morph of the figure: `contentTransition` is inert unless the value
         // change happens inside an animation, so the two ship together or neither works.
         .animation(DesignTokens.Animation.smoothEaseInOut, value: metrics)
         .animation(reduceMotion ? nil : DesignTokens.Animation.quickEaseInOut, value: scrubDay)
     }
 
-    // MARK: - Summary
+    // MARK: - Figure
 
-    /// Only the two tiles open anything. The amount and the chart stay outside any
-    /// control: wrapping them made the chart tappable by accident.
-    private var summaryMetrics: some View {
-        HeroMetricTileRow {
+    /// While the plot is scrubbed the eyebrow hands itself to the finger: the day and the
+    /// plan's reading, and the figure becomes the day's reading.
+    private var headerRow: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+            Text(scrubReading.map { Self.scrubEyebrow($0, currency: currency, amountsHidden: amountsHidden) }
+                ?? AppLocale.string("Disponible à dépenser"))
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textSecondary)
+                .lineLimit(2)
+                .minimumScaleFactor(DesignTokens.TextScale.compact)
+            if let onToggleAmounts, scrubReading == nil {
+                amountsToggle(onToggleAmounts)
+            }
+            Spacer(minLength: DesignTokens.Spacing.sm)
             Button {
                 tapTrigger.toggle()
-                onTapUnchecked()
+                onTapCalculation()
             } label: {
-                HeroMetricTile(label: uncheckedLabel, value: uncheckedValue, showsChevron: uncheckedCount > 0)
+                HStack(spacing: DesignTokens.Spacing.xxs) {
+                    Text("Le calcul")
+                    Image(systemName: "chevron.right").font(PulpeTypography.metricLabel)
+                }
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.pulpePrimary)
+                // 44pt hit area without growing the row (swiftui-hit-areas.md).
+                .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
+                .contentShape(Rectangle())
+                .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
             }
-            .disabled(uncheckedCount == 0)
-            .accessibilityLabel(presentation.uncheckedAccessibilityText(count: uncheckedCount))
-            .accessibilityHint(AppLocale.string("Aller aux opérations à pointer"))
-            .accessibilityIdentifier("homeHeroUnchecked")
-
-            Button {
-                tapTrigger.toggle()
-                onTapVariance()
-            } label: {
-                HeroMetricTile(label: varianceLabel, value: varianceValue, tint: accentColor, showsChevron: true)
-            }
-            .accessibilityLabel(accessibilityDescription)
-            .accessibilityHint("Ouvrir le suivi du réalisé")
+            .textLinkButtonStyle()
+            .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
+            .accessibilityHint("Ouvrir le détail du calcul")
             .accessibilityIdentifier("homeHeroMetrics")
         }
-        .plainPressedButtonStyle()
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
     }
 
-    private var uncheckedValue: String { "\(uncheckedCount)" }
+    /// The action, like the password field: a slashed eye while the amounts show.
+    private func amountsToggle(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: amountsHidden ? "eye" : "eye.slash")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(amountsHidden ? Color.accentInk : Color.textSecondary)
+                .contentTransition(.symbolEffect(.replace))
+                // 44pt hit area without growing the row (swiftui-hit-areas.md).
+                .padding(DesignTokens.TapTarget.minimum / 2)
+                .contentShape(Rectangle())
+                .padding(-DesignTokens.TapTarget.minimum / 2)
+        }
+        .plainPressedButtonStyle()
+        .accessibilityLabel(amountsHidden ? "Afficher les montants" : "Masquer les montants")
+        .accessibilityIdentifier("homeAmountsToggle")
+    }
 
-    private var uncheckedLabel: String { AppLocale.string("À pointer") }
-
-    private var varianceValue: String { presentation.varianceText(for: currency) }
-
-    private var varianceLabel: String { AppLocale.string("Imprévus") }
+    private var figure: some View {
+        let amount = scrubReading.map(Self.scrubFigure) ?? metrics.remaining
+        return (Text(verbatim: amount.asAdaptiveAmount(for: currency))
+            .font(PulpeTypography.heroAmount)
+            .tracking(DesignTokens.Tracking.hero)
+            + Text(verbatim: " \(currency.symbol)")
+            .font(PulpeTypography.heroCurrencySuffix)
+            .foregroundStyle(Color.textTertiary))
+            .monospacedDigit()
+            .minimumScaleFactor(DesignTokens.TextScale.floor)
+            .lineLimit(1)
+            .foregroundStyle(Color.textPrimary)
+            .contentTransition(.numericText())
+            .sensitiveAmount()
+            .accessibilityIdentifier("homeProjectedBalanceAmount")
+    }
 
     // MARK: - Verdict
 
-    /// One sentence that ends in its own action. The verdict is already spoken by the
-    /// metrics element above; repeating it here would make VoiceOver say it twice in a row.
-    /// The link takes the hero's ink: the accent is spent on the `Imprévus` amount alone,
-    /// so orange means "the month's gap", never "tap here".
+    /// The one sentence the card spends on the rhythm: the verdict in the accent, then where
+    /// the month lands if it keeps its pace, quieter. Figures drop out under the privacy mode.
     private var verdictSentence: some View {
-        HeroVerdictRow(
-            sentence: presentation.verdictText,
-            linkTitle: AppLocale.string("Voir le budget"),
-            accent: .heroInk,
-            action: onTapDetail,
-            accessibilityLabel: AppLocale.string("Voir le détail du budget"),
-            accessibilityIdentifier: "homeBudgetDetailLink"
-        )
+        let rhythm = trajectory.flatMap {
+            Self.rhythmSentence(for: $0, currency: currency, amountsHidden: amountsHidden)
+        }
+        let verdict = startsFresh ? AppLocale.string("Pile sur ton plan.") : presentation.verdictText
+        let tail = startsFresh
+            ? AppLocale.string("Ajoute tes dépenses au fil du mois : ce chiffre se met à jour aussitôt.")
+            : rhythm
+        return (Text(verdict)
+            .fontWeight(.semibold)
+            .foregroundStyle(startsFresh ? Color.pulpePrimary : accentColor)
+            + Text(tail.map { " \($0)" } ?? "")
+            .foregroundStyle(Color.textSecondary))
+            .font(PulpeTypography.callout)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("homeHeroVerdict")
     }
 }
 
@@ -193,13 +209,10 @@ struct HomeHeroCard: View {
             fallbackPlannedBalance: 632,
             trajectory: gainTrajectory,
             monthName: "juillet",
-            uncheckedCount: 5,
-            onTapUnchecked: {},
-            onTapVariance: {},
-            onTapDetail: {}
+            onTapCalculation: {}
         )
         .padding(DesignTokens.Spacing.lg)
     }
-    .background(Color.heroSurface)
+    .background(Color.appBackground)
     .environment(UserSettingsStore())
 }

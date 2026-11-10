@@ -1,72 +1,75 @@
 import SwiftUI
 
+/// « Nouveau mois » (V2 `Mois-nouveau`): the month and its dates, the template it starts
+/// from with each template's opening disponible, and what the new month will hold.
 struct CreateBudgetView: View {
-    let month: Int
-    let year: Int
     let onCreate: (Budget) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var viewModel: CreateBudgetViewModel
-    @State private var hasAppeared = false
     @State private var showCreateTemplate = false
+    @State private var showsMonthPicker = false
 
-    init(month: Int, year: Int, onCreate: @escaping (Budget) -> Void) {
-        self.month = month
-        self.year = year
+    init(month: Int, year: Int, existingPeriods: Set<BudgetPeriod> = [], onCreate: @escaping (Budget) -> Void) {
         self.onCreate = onCreate
-        self._viewModel = State(initialValue: CreateBudgetViewModel(month: month, year: year))
+        self._viewModel = State(
+            initialValue: CreateBudgetViewModel(month: month, year: year, existingPeriods: existingPeriods)
+        )
     }
+
+    private var currency: SupportedCurrency { userSettingsStore.currency }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: DesignTokens.Spacing.xxl) {
-                    // Period header card
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     periodCard
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 15)
-
-                    // Template selection
                     templateSection
-                        .opacity(hasAppeared ? 1 : 0)
-                        .offset(y: hasAppeared ? 0 : 15)
 
-                    // Error display
+                    if let balance = viewModel.selectedBalance {
+                        ImpactBlock(
+                            title: AppLocale.string("Disponible à dépenser en \(viewModel.monthYearFormatted)"),
+                            before: nil,
+                            after: balance,
+                            currency: currency,
+                            note: AppLocale.string(
+                                "Plus le report du mois précédent. Ton disponible actuel ne change pas."
+                            ),
+                            noteHasAmount: false
+                        )
+                    }
+
                     if let error = viewModel.error {
                         ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                             viewModel.error = nil
                         }
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .top).combined(with: .opacity),
-                            removal: .opacity
-                        ))
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xl)
                 .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xxxl)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
             .scrollIndicators(.hidden)
             .background(Color.sheetBackground)
-            .localizedNavigationTitle("Nouveau budget")
+            .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) {
+                BudgetSheetCTA(
+                    title: AppLocale.string("Créer \(viewModel.monthYearFormatted)"),
+                    isEnabled: viewModel.canCreate,
+                    accessibilityIdentifier: "createBudgetSubmit"
+                ) {
+                    Task { await createBudget() }
+                }
+            }
+            .localizedNavigationTitle("Nouveau mois")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     SheetCloseButton()
                 }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    createButton
-                }
             }
             .loadingOverlay(viewModel.isCreating, message: AppLocale.string("Création..."))
-            .task {
-                await viewModel.loadTemplates()
-                withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
-                    hasAppeared = true
-                }
-            }
+            .task { await viewModel.loadTemplates() }
         }
         .standardSheetPresentation()
         .sheet(isPresented: $showCreateTemplate) {
@@ -74,165 +77,121 @@ struct CreateBudgetView: View {
                 Task(name: "CreateBudget.reloadTemplates") { await viewModel.loadTemplates() }
             }
         }
-    }
-
-    // MARK: - Create Button
-
-    private var createButton: some View {
-        Button {
-            Task { await createBudget() }
-        } label: {
-            Text("Créer")
-                .fontWeight(.semibold)
+        .sheet(isPresented: $showsMonthPicker) {
+            let firstYear = Calendar.current.component(.year, from: Date())
+            MonthYearPickerSheet(
+                title: AppLocale.string("Mois"),
+                initial: viewModel.period,
+                yearRange: min(firstYear, viewModel.period.year)...(firstYear + AppConfiguration.maxBudgetYearsAhead)
+            ) { viewModel.period = $0 }
         }
-        .disabled(!viewModel.canCreate)
     }
 
-    // MARK: - Period Card
+    // MARK: - Period
 
     private var periodCard: some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            // Calendar icon with gradient background
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.pulpePrimary.opacity(0.15), Color.pulpePrimary.opacity(0.08)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 52, height: 52)
-
-                Image(systemName: "calendar")
-                    .font(PulpeTypography.sectionIcon)
-                    .foregroundStyle(Color.pulpePrimary)
-            }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text("Période du budget")
-                    .font(PulpeTypography.detailLabel)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            periodRows
+            if viewModel.periodAlreadyExists {
+                Text(AppLocale.string("Un budget existe déjà pour cette période — choisis un autre mois"))
+                    .font(PulpeTypography.footnote)
                     .foregroundStyle(Color.textSecondary)
-
-                Text(viewModel.monthYearFormatted)
-                    .font(PulpeTypography.sectionTitle)
-                    .foregroundStyle(.primary)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
             }
-
-            Spacer()
-
-            // Month indicator badge — MM.YYYY (CHF) / MM/YYYY (EUR), follows user currency
-            Text(String(format: "%02d\(userSettingsStore.currency.dateSeparator)%d", month, year))
-                .font(PulpeTypography.inputHelper).monospacedDigit()
-                .foregroundStyle(Color.textSecondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.surfaceContainerLow, in: Capsule())
         }
-        .padding(DesignTokens.Spacing.lg)
-        .pulpeCardBackground()
     }
 
-    // MARK: - Template Section
+    private var periodRows: some View {
+        FormCard {
+            Button { showsMonthPicker = true } label: {
+                BudgetFormValueRow(title: AppLocale.string("Mois"), value: viewModel.monthYearFormatted)
+            }
+            .plainPressedButtonStyle()
+            .accessibilityIdentifier("createBudgetMonthRow")
+            FormRowDivider()
+            BudgetFormValueRow(
+                title: AppLocale.string("Période"),
+                // The month page's own subtitle: « 25 oct. au 24 nov. ».
+                value: BudgetDetailsView.periodSubtitle(
+                    month: viewModel.period.month,
+                    year: viewModel.period.year,
+                    payDayOfMonth: userSettingsStore.payDayOfMonth
+                ),
+                emphasizesValue: false,
+                showsChevron: false
+            )
+        }
+    }
+
+    // MARK: - Templates
 
     private var templateSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            // Section header
-            HStack {
-                Text("Choisir un modèle")
-                    .font(PulpeTypography.buttonPrimary)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Avec quel modèle ?")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textSecondary)
+                .padding(.horizontal, DesignTokens.Spacing.xs)
+                .accessibilityAddTraits(.isHeader)
 
-                Spacer()
-
-                if viewModel.isLoadingTemplates {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                }
-            }
-            .padding(.horizontal, DesignTokens.Spacing.xs)
-
-            // Template list
             if viewModel.isLoadingTemplates && viewModel.templates.isEmpty {
-                loadingTemplates
+                SkeletonShape(height: DesignTokens.ListRow.minHeight * 2, cornerRadius: DesignTokens.CornerRadius.card)
+                    .shimmering()
             } else if viewModel.templates.isEmpty {
                 emptyTemplates
             } else {
-                templateList
-            }
-
-            // Footer hint
-            Text("Le budget sera créé avec les prévisions du modèle sélectionné")
-                .font(PulpeTypography.detailLabel)
-                .foregroundStyle(Color.textTertiary)
-                .padding(.horizontal, DesignTokens.Spacing.xs)
-                .padding(.top, DesignTokens.Spacing.xs)
-        }
-    }
-
-    // MARK: - Loading Templates
-
-    private var loadingTemplates: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            ForEach(0..<2, id: \.self) { _ in
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-                    .fill(Color.surfaceContainerLow)
-                    .frame(height: 80)
-                    .shimmering()
+                FormCard {
+                    ForEach(viewModel.templates) { template in
+                        if template.id != viewModel.templates.first?.id {
+                            FormRowDivider()
+                        }
+                        templateRow(template)
+                    }
+                }
+                Text("Le mois reprend les prévisions du modèle. Tu pourras les ajuster ensuite.")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
             }
         }
     }
 
-    // MARK: - Empty Templates
+    private func templateRow(_ template: BudgetTemplate) -> some View {
+        let isSelected = viewModel.selectedTemplateId == template.id
+        return Button {
+            viewModel.selectedTemplateId = template.id
+        } label: {
+            TemplateChoiceRow(
+                template: template,
+                subtitle: BudgetListPresentation.templateSubtitle(
+                    template, lineCount: viewModel.templateLineCounts[template.id]
+                ),
+                balance: viewModel.templateTotals[template.id]?.balance,
+                currency: currency,
+                isSelected: isSelected
+            )
+        }
+        .plainPressedButtonStyle()
+        .sensoryFeedback(.selection, trigger: isSelected)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
 
     private var emptyTemplates: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(PulpeTypography.amountDisplayLarge)
-                .foregroundStyle(Color.textTertiary)
-
             Text("Pas encore de modèle")
-                .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondary)
-
+                .font(PulpeTypography.rowTitle)
+                .foregroundStyle(Color.textPrimary)
             Text("Crée-en un pour préparer ton budget")
-                .font(PulpeTypography.detailLabel)
-                .foregroundStyle(Color.textTertiary)
+                .font(PulpeTypography.captionRegular)
+                .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
-
             Button("Créer un modèle") {
                 showCreateTemplate = true
             }
-            .primaryButtonStyle()
-            .padding(.top, DesignTokens.Spacing.sm)
+            .secondaryButtonStyle(size: .small)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, DesignTokens.Spacing.xxxl)
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
-    }
-
-    // MARK: - Template List
-
-    private var templateList: some View {
-        VStack(spacing: 10) {
-            ForEach(Array(viewModel.templates.enumerated()), id: \.element.id) { index, template in
-                TemplateSelectionCard(
-                    template: template,
-                    totals: viewModel.templateTotals[template.id],
-                    isSelected: viewModel.selectedTemplateId == template.id
-                ) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        viewModel.selectedTemplateId = template.id
-                    }
-                }
-                .opacity(hasAppeared ? 1 : 0)
-                .offset(y: hasAppeared ? 0 : 10)
-                .animation(
-                    .spring(response: 0.4, dampingFraction: 0.8).delay(Double(index) * 0.05 + 0.15),
-                    value: hasAppeared
-                )
-            }
-        }
+        .padding(DesignTokens.Spacing.xl)
+        .pulpeSurfaceCard()
     }
 
     // MARK: - Actions
@@ -246,145 +205,56 @@ struct CreateBudgetView: View {
     }
 }
 
-// MARK: - Template Selection Card
+// MARK: - Template Choice Row
 
-struct TemplateSelectionCard: View {
+/// One template to start from: its name, « Par défaut · 11 lignes », the disponible it
+/// opens with, and a check on the chosen one.
+struct TemplateChoiceRow: View {
     let template: BudgetTemplate
-    let totals: BudgetFormulas.TemplateTotals?
+    let subtitle: String?
+    let balance: Decimal?
+    let currency: SupportedCurrency
     let isSelected: Bool
-    let onSelect: () -> Void
-
-    @State private var isPressed = false
-    @Environment(UserSettingsStore.self) private var userSettingsStore
 
     var body: some View {
-        Button(action: onSelect) {
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                // Selection indicator
-                selectionIndicator
-
-                // Template info
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Text(template.name)
-                            .font(PulpeTypography.labelLarge)
-                            .foregroundStyle(.primary)
-
-                        if template.isDefaultTemplate {
-                            defaultBadge
-                        }
-                    }
-
-                    if let totals {
-                        totalsRow(totals)
-                    }
+        HStack(spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(template.name)
+                    .font(PulpeTypography.rowTitle)
+                    .foregroundStyle(Color.textPrimary)
+                    .lineLimit(1)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
+                        .lineLimit(1)
                 }
-
-                Spacer()
             }
-            .padding(DesignTokens.Spacing.lg)
-            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
-            .overlay(cardBorder)
-            .scaleEffect(isPressed ? 0.98 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let balance {
+                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                    Text(verbatim: balance.asAmount(for: currency))
+                        .font(PulpeTypography.rowAmount)
+                        .foregroundStyle(balance < 0 ? Color.financialOverBudget : Color.textPrimary)
+                        .lineLimit(1)
+                        .sensitiveAmount()
+                    Text("disponible")
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
+                }
+            }
+
+            Image(systemName: "checkmark")
+                .font(PulpeTypography.rowTitle)
+                .foregroundStyle(Color.pulpePrimary)
+                .opacity(isSelected ? 1 : 0)
+                .accessibilityHidden(true)
         }
-        .buttonStyle(.plain)
-        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-            isPressed = pressing
-        }, perform: {})
-        .accessibilityLabel(
-            template.isDefaultTemplate
-                ? AppLocale.string("\(template.name), modèle par défaut")
-                : template.name
-        )
-        .accessibilityHint(
-            isSelected
-                ? AppLocale.string("Sélectionné")
-                : AppLocale.string("Appuie pour sélectionner")
-        )
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-    }
-
-    // MARK: - Selection Indicator
-
-    private var selectionIndicator: some View {
-        ZStack {
-            Circle()
-                .strokeBorder(
-                    isSelected ? Color.pulpePrimary : Color.outlineVariant,
-                    lineWidth: DesignTokens.BorderWidth.thick
-                )
-                .frame(width: 24, height: 24)
-
-            if isSelected {
-                Circle()
-                    .fill(Color.pulpePrimary)
-                    .frame(width: 14, height: 14)
-                    .transition(.scale.combined(with: .opacity))
-            }
-        }
-        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
-    }
-
-    // MARK: - Default Badge
-
-    private var defaultBadge: some View {
-        Text("Par défaut")
-            .font(PulpeTypography.tabLabel)
-            .foregroundStyle(Color.pulpePrimary)
-            .padding(.horizontal, DesignTokens.Spacing.sm)
-            .padding(.vertical, 3)
-            .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
-    }
-
-    // MARK: - Totals Row
-
-    private func totalsRow(_ totals: BudgetFormulas.TemplateTotals) -> some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                Image(systemName: "arrow.down.circle.fill")
-                    .font(PulpeTypography.detailLabel)
-                    .foregroundStyle(Color.financialIncome)
-
-                Text(totals.totalIncome.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
-                    .font(PulpeTypography.inputHelper)
-                    .foregroundStyle(Color.financialIncome)
-                    .sensitiveAmount()
-            }
-
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(PulpeTypography.detailLabel)
-                    .foregroundStyle(Color.financialExpense)
-
-                Text(totals.totalExpenses.asSignedCompactCurrency(userSettingsStore.currency, for: .expense))
-                    .font(PulpeTypography.inputHelper)
-                    .foregroundStyle(Color.financialExpense)
-                    .sensitiveAmount()
-            }
-
-            // Balance indicator
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                Image(systemName: totals.balance >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                    .font(PulpeTypography.detailLabel)
-                    .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
-
-                Text(totals.balance.asArithmeticSignedCompactCurrency(userSettingsStore.currency))
-                    .font(PulpeTypography.inputHelper)
-                    .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : Color.financialOverBudget)
-                    .sensitiveAmount()
-            }
-        }
-    }
-
-    // MARK: - Card Border
-
-    private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
-            .stroke(
-                isSelected ? Color.pulpePrimary : Color.outlineVariant.opacity(DesignTokens.Opacity.heavy),
-                lineWidth: isSelected ? DesignTokens.BorderWidth.medium : DesignTokens.BorderWidth.hairline
-            )
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -392,11 +262,11 @@ struct TemplateSelectionCard: View {
 
 @Observable @MainActor
 final class CreateBudgetViewModel {
-    let month: Int
-    let year: Int
+    var period: BudgetPeriod
 
     private(set) var templates: [BudgetTemplate] = []
     private(set) var templateTotals: [String: BudgetFormulas.TemplateTotals] = [:]
+    private(set) var templateLineCounts: [String: Int] = [:]
     var selectedTemplateId: String?
 
     private(set) var isLoadingTemplates = false
@@ -406,17 +276,26 @@ final class CreateBudgetViewModel {
     private let templateService = TemplateService.shared
     private let budgetService = BudgetService.shared
 
-    init(month: Int, year: Int) {
-        self.month = month
-        self.year = year
+    private let existingPeriods: Set<BudgetPeriod>
+
+    init(month: Int, year: Int, existingPeriods: Set<BudgetPeriod> = []) {
+        self.period = BudgetPeriod(month: month, year: year)
+        self.existingPeriods = existingPeriods
     }
 
     var monthYearFormatted: String {
-        Date.from(month: month, year: year)?.monthYearFormatted ?? String(format: "%02d.%d", month, year)
+        BudgetListPresentation.monthYear(period)
     }
 
+    /// What the chosen template opens the month with.
+    var selectedBalance: Decimal? {
+        selectedTemplateId.flatMap { templateTotals[$0]?.balance }
+    }
+
+    var periodAlreadyExists: Bool { existingPeriods.contains(period) }
+
     var canCreate: Bool {
-        selectedTemplateId != nil && !isCreating && !isLoadingTemplates
+        selectedTemplateId != nil && !periodAlreadyExists && !isCreating && !isLoadingTemplates
     }
 
     func loadTemplates() async {
@@ -426,16 +305,17 @@ final class CreateBudgetViewModel {
             templates = try await templateService.getAllTemplates()
 
             // Load totals for each template in parallel
-            await withTaskGroup(of: (String, BudgetFormulas.TemplateTotals?).self) { group in
+            await withTaskGroup(of: (String, BudgetFormulas.TemplateTotals?, Int?).self) { group in
                 for template in templates {
                     group.addTask {
                         let lines = try? await self.templateService.getTemplateLines(templateId: template.id)
                         let totals = lines.map { BudgetFormulas.calculateTemplateTotals(lines: $0) }
-                        return (template.id, totals)
+                        return (template.id, totals, lines?.count)
                     }
                 }
-                for await (id, totals) in group {
+                for await (id, totals, count) in group {
                     if let totals { self.templateTotals[id] = totals }
+                    if let count { self.templateLineCounts[id] = count }
                 }
             }
 
@@ -460,8 +340,8 @@ final class CreateBudgetViewModel {
 
         do {
             let data = BudgetCreate(
-                month: month,
-                year: year,
+                month: period.month,
+                year: period.year,
                 description: monthYearFormatted,
                 templateId: templateId
             )

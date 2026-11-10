@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Shared chrome for auth input fields: capsule background, border, icon, checkmark, shadow.
+/// Shared chrome for auth input fields (V2 input): white 14pt-radius field, 1pt border, 2pt accent border when focused.
 private struct AuthFieldContainer<Content: View>: View {
     var systemImage: String?
     var isFocused: Bool
@@ -9,21 +9,14 @@ private struct AuthFieldContainer<Content: View>: View {
     var requestFocus: (() -> Void)?
     @ViewBuilder let content: () -> Content
 
-    @Environment(\.colorScheme) private var colorScheme
-
-    private var fillColor: Color {
-        hasError ? Color.errorBackground : Color.authInputBackground
-    }
-
     private var borderColor: Color {
-        if hasError { return Color.errorPrimary.opacity(DesignTokens.Opacity.heavy) }
-        if isFocused { return Color.pulpePrimary.opacity(DesignTokens.Opacity.borderFocused) }
-        if isFilled { return Color.pulpePrimary.opacity(DesignTokens.Opacity.secondary) }
-        return Color.authInputBorder
+        if hasError { return Color.errorPrimary }
+        if isFocused { return Color.pulpePrimary }
+        return Color.outline
     }
 
     private var strokeWidth: CGFloat {
-        (isFocused || hasError) ? DesignTokens.BorderWidth.thick : DesignTokens.BorderWidth.hairline
+        (isFocused || hasError) ? DesignTokens.Control.inputFocusBorder : DesignTokens.BorderWidth.thin
     }
 
     private var showCheckmark: Bool {
@@ -35,7 +28,7 @@ private struct AuthFieldContainer<Content: View>: View {
             if let systemImage {
                 Image(systemName: systemImage)
                     .font(.callout)
-                    .foregroundStyle(Color.authInputText.opacity(0.5))
+                    .foregroundStyle(Color.textTertiary)
                     .frame(width: 24)
                     .accessibilityHidden(true)
             }
@@ -43,26 +36,23 @@ private struct AuthFieldContainer<Content: View>: View {
             content()
 
             if showCheckmark {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.pulpePrimary.opacity(0.7))
+                Image(systemName: "checkmark")
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.pulpePrimary)
                     .transition(.scale.combined(with: .opacity))
                     .accessibilityHidden(true)
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .frame(height: DesignTokens.FrameHeight.button)
+        .padding(.horizontal, DesignTokens.CornerRadius.input)
+        .frame(minHeight: DesignTokens.FrameHeight.input)
         .background {
-            Capsule(style: .continuous)
-                .fill(fillColor)
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .fill(Color.surface)
                 .overlay {
-                    Capsule(style: .continuous)
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
                         .strokeBorder(borderColor, lineWidth: strokeWidth)
                 }
         }
-        .shadow(colorScheme == .dark
-            ? ShadowStyle(color: .black.opacity(0.01), radius: 2, y: 1)
-            : DesignTokens.Shadow.input)
         .contentShape(.interaction, Rectangle())
         // Expands tap target to the padded capsule; focus is managed by parent `FocusState`, not a `Button` action.
         .onTapGesture { requestFocus?() }
@@ -73,8 +63,8 @@ private struct AuthFieldContainer<Content: View>: View {
 
 /// Styled text field for auth screens (login, registration).
 ///
-/// Provides the standard auth input appearance: rounded background, focus-reactive
-/// border, and lightweight shadow. Supports a "filled" state with trailing checkmark.
+/// Provides the standard auth input appearance: white rounded field, focus-reactive
+/// border. Supports a "filled" state with trailing checkmark.
 struct AuthTextField<Field: Hashable>: View {
     let prompt: String
     @Binding var text: String
@@ -94,7 +84,7 @@ struct AuthTextField<Field: Hashable>: View {
             content: {
                 TextField(prompt, text: $text)
                     .font(PulpeTypography.body)
-                    .foregroundStyle(Color.authInputText)
+                    .foregroundStyle(Color.textPrimary)
                     .focused(focusBinding, equals: focusField)
             }
         )
@@ -131,7 +121,7 @@ struct AuthSecureField<Field: Hashable>: View {
                     }
                 }
                 .font(PulpeTypography.body)
-                .foregroundStyle(Color.authInputText)
+                .foregroundStyle(Color.textPrimary)
                 .focused(focusBinding, equals: focusField)
                 .ifLet(fieldAccessibilityIdentifier) { view, identifier in
                     view.accessibilityIdentifier(identifier)
@@ -142,9 +132,9 @@ struct AuthSecureField<Field: Hashable>: View {
                         isVisible.toggle()
                     }
                 } label: {
-                    Image(systemName: isVisible ? "eye.slash.fill" : "eye.fill")
+                    Image(systemName: isVisible ? "eye.slash" : "eye")
                         .font(PulpeTypography.body)
-                        .foregroundStyle(Color.authInputText.opacity(0.6))
+                        .foregroundStyle(Color.textSecondary)
                         .contentTransition(.symbolEffect(.replace))
                 }
                 .iconButtonStyle()

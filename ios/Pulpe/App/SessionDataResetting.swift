@@ -15,6 +15,8 @@ final class LiveSessionDataResetter: SessionDataResetting {
     private let userSettingsStore: UserSettingsStore
     private let savingsGoalStore: SavingsGoalStore
     private let tagStore: TagStore
+    private let assetStore: AssetStore
+    private let featureFlagsStore: FeatureFlagsStore
 
     init(
         currentMonthStore: CurrentMonthStore,
@@ -22,7 +24,9 @@ final class LiveSessionDataResetter: SessionDataResetting {
         dashboardStore: DashboardStore,
         userSettingsStore: UserSettingsStore,
         savingsGoalStore: SavingsGoalStore,
-        tagStore: TagStore
+        tagStore: TagStore,
+        assetStore: AssetStore,
+        featureFlagsStore: FeatureFlagsStore
     ) {
         self.currentMonthStore = currentMonthStore
         self.budgetListStore = budgetListStore
@@ -30,6 +34,8 @@ final class LiveSessionDataResetter: SessionDataResetting {
         self.userSettingsStore = userSettingsStore
         self.savingsGoalStore = savingsGoalStore
         self.tagStore = tagStore
+        self.assetStore = assetStore
+        self.featureFlagsStore = featureFlagsStore
     }
 
     func resetStores() {
@@ -39,6 +45,8 @@ final class LiveSessionDataResetter: SessionDataResetting {
         userSettingsStore.reset()
         savingsGoalStore.reset()
         tagStore.reset()
+        assetStore.reset()
+        featureFlagsStore.reset()
         // App-wide rather than injected: every create surface reports to it (PUL-306).
         FirstTransactionTracker.shared.reset()
     }

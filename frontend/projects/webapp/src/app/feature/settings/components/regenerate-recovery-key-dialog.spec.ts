@@ -87,9 +87,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
 
     await component['onSubmit']();
 
-    expect(component['errorMessage']()).toBe(
-      'Code PIN incorrect ou clé de chiffrement invalide',
-    );
+    expect(component['errorMessage']()).toBe('Code PIN incorrect');
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });
 

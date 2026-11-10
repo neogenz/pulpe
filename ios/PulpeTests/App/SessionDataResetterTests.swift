@@ -71,13 +71,20 @@ struct SessionDataResetterTests {
     // MARK: - LiveSessionDataResetter
 
     @Test("LiveSessionDataResetter resets all stores")
-    func liveResetter_resetsAllStores() {
+    func liveResetter_resetsAllStores() async {
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
         let dashboardStore = DashboardStore()
         let userSettingsStore = UserSettingsStore()
         let savingsGoalStore = SavingsGoalStore()
         let tagStore = TagStore()
+        let assetStore = AssetStore(service: MockAssetService())
+        let flagDefaults = UserDefaults(suiteName: "resetter-flags") ?? .standard
+        flagDefaults.set(true, forKey: "pulpe.feature_flags." + FeatureFlagsStore.netWorthKey)
+        let featureFlagsStore = FeatureFlagsStore(defaults: flagDefaults)
+        await assetStore.loadIfNeeded()
+        #expect(assetStore.netWorth != nil)
+        #expect(featureFlagsStore.isNetWorthEnabled)
 
         let sut = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
@@ -85,7 +92,9 @@ struct SessionDataResetterTests {
             dashboardStore: dashboardStore,
             userSettingsStore: userSettingsStore,
             savingsGoalStore: savingsGoalStore,
-            tagStore: tagStore
+            tagStore: tagStore,
+            assetStore: assetStore,
+            featureFlagsStore: featureFlagsStore
         )
 
         sut.resetStores()
@@ -100,6 +109,8 @@ struct SessionDataResetterTests {
         #expect(userSettingsStore.payDayOfMonth == nil)
         #expect(savingsGoalStore.goals.isEmpty)
         #expect(tagStore.tags.isEmpty)
+        #expect(assetStore.netWorth == nil)
+        #expect(featureFlagsStore.isNetWorthEnabled == false)
     }
 }
 

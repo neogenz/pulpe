@@ -3,28 +3,35 @@ import SwiftUI
 /// Sheet for adding a new budget line (prévision) — hero amount layout
 struct AddBudgetLineSheet: View {
     let budgetId: String
+    /// The model behind the budget. `nil`, a closed month or a withdrawal origin turns "Mensuel" off.
+    let templateId: String?
+    /// The month as it stands, to judge what the new prévision does to the disponible.
+    let ledger: MonthLedger?
     let onAdd: (BudgetLine) -> Void
     /// PUL-292: routes the CTA to a prefilled withdrawal instead of creating plain income.
     let onRequestSavingsWithdrawal: ((SavingsWithdrawalPrefill) -> Void)?
+    /// Called once an every-month prévision is written into the model, so the month reloads.
+    let onTemplateLineAdded: (() -> Void)?
 
     @Environment(\.dismiss) var dismiss
     @Environment(ToastManager.self) var toastManager
     @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(BudgetListStore.self) var budgetListStore
+    @Environment(FeatureFlagsStore.self) var featureFlags
+    @Environment(AssetStore.self) var assetStore
     @State var name = ""
     @State var amount: Decimal?
     @State var kind: TransactionKind = .expense
     @State var savingsGoalId: String?
-    @State var selectedTagIds: Set<String> = []
-    @State var isChecked = false
+    @State var assetId: String?
     @State var isLoading = false
     @State var error: Error?
-    @FocusState private var focusedField: AmountDescriptionField?
-    @State private var amountText = ""
+    @FocusState var focusedField: AmountDescriptionField?
+    @State var amountText = ""
     @State var submitSuccessTrigger = false
     @State var inputCurrency: SupportedCurrency = .chf
-    @State private var mode: BudgetLineCreationMode = .once
-    @State var amountMode: SpreadAmountMode = .total
+    @State var mode: BudgetLineCreationMode = .once
+    @State var spreadMonthCount = 6
     /// Income-only, `.regular` by default. `.repayNextMonth` reroutes the CTA to
     /// the "piocher dans son épargne" preview (PUL-292); `.savingsGoal` plans a
     /// withdrawal from the picked goal (PUL-329 v2).
@@ -51,11 +58,19 @@ struct AddBudgetLineSheet: View {
         budgetId: String,
         anchorMonth: Int,
         anchorYear: Int,
+        templateId: String? = nil,
+        initialKind: TransactionKind = .expense,
+        ledger: MonthLedger? = nil,
         dependencies: AddBudgetLineDependencies = .live,
         onRequestSavingsWithdrawal: ((SavingsWithdrawalPrefill) -> Void)? = nil,
+        onTemplateLineAdded: (() -> Void)? = nil,
         onAdd: @escaping (BudgetLine) -> Void
     ) {
         self.budgetId = budgetId
+        self.templateId = templateId
+        self.ledger = ledger
+        self.onTemplateLineAdded = onTemplateLineAdded
+        self._kind = State(initialValue: initialKind)
         self.anchorMonth = anchorMonth
         self.anchorYear = anchorYear
         self.dependencies = dependencies
@@ -69,8 +84,6 @@ struct AddBudgetLineSheet: View {
     }
 
     var isSpreadMode: Bool { mode == .spread }
-
-    static func showsTagPicker(spread: Bool, withdrawal: Bool) -> Bool { !spread && !withdrawal }
 
     static func showsSavingsGoalPicker(kind: TransactionKind) -> Bool { kind == .saving }
 
@@ -90,20 +103,15 @@ struct AddBudgetLineSheet: View {
         return BudgetPeriod(month: last.month, year: last.year)
     }
 
-    private var amountFieldHint: String? {
-        guard isSpreadMode else { return nil }
-        return amountMode == .total
-            ? AppLocale.string("Montant total")
-            : AppLocale.string("Montant par mois")
-    }
-
-    private var canSubmit: Bool {
+    var canSubmit: Bool {
         guard (amount ?? 0) > 0, !isLoading else { return false }
         // Withdrawal reroute: the source name is optional (defaults to "Mon épargne").
         if isSavingsWithdrawalMode { return true }
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
         // An announcement without a goal names no pot to draw from.
         if isPlannedWithdrawalMode, sourceSavingsGoalId == nil { return false }
+        if kind == .income, incomeOrigin == .asset, assetId == nil { return false }
+        if mode == .everyMonth, !offersEveryMonth { return false }
         return isSpreadMode ? spreadCalculator.isValid : true
     }
 
@@ -111,7 +119,7 @@ struct AddBudgetLineSheet: View {
         (amount ?? 0) > 0 || !name.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    private var validationHint: String? {
+    var validationHint: String? {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
         if (amount ?? 0) <= 0 { return AppLocale.string("Ajoute un montant") }
         if name.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -123,25 +131,12 @@ struct AddBudgetLineSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: kind.newBudgetLineTitle,
+            title: AppLocale.string("Nouvelle prévision"),
             isLoading: isLoading,
             focus: $focusedField,
             focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
-
-            // The band that separates this screen from « Noter » : une fois, ou
-            // étalé sur plusieurs mois. It reads before the amount because it
-            // decides what the amount means — a monthly share or a total to
-            // split. It stays under the nature that governs it: an income can't
-            // be spread, so raising it higher would make it flicker in answer to
-            // a control further down.
-            if kind != .income {
-                SpreadModeToggle(selection: $mode)
-            }
-            if isSpreadMode {
-                SpreadAmountModeToggle(mode: $amountMode)
-            }
 
             if userSettingsStore.showCurrencySelector {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency)
@@ -151,40 +146,17 @@ struct AddBudgetLineSheet: View {
                 amountText: $amountText,
                 focus: $focusedField,
                 field: .amount,
-                hint: amountFieldHint,
-                currency: inputCurrency,
-                accentColor: kind.color
-            )
-            QuickAmountChips(
-                amount: $amount,
-                amountText: $amountText,
-                focus: $focusedField,
-                amountField: .amount,
-                color: kind.color,
+                hint: amountCaption,
                 currency: inputCurrency
             )
-            .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
 
-            // Three blocks: the amount above, what it is, then the details.
-            FormCard {
-                descriptionField
-                if Self.showsTagPicker(spread: isSpreadMode, withdrawal: isSavingsWithdrawalMode) {
-                    FormRowDivider()
-                    TagPickerField(selection: $selectedTagIds, style: .row)
-                }
-            }
+            FormCard { descriptionField }
+
+            whenSection
+
+            impactBlock
 
             detailsCard
-
-            if isSpreadMode {
-                SpreadFormSection(
-                    calculator: spreadCalculator,
-                    amount: amount,
-                    amountMode: amountMode,
-                    currency: inputCurrency,
-                    accentColor: kind.color
-                )
-            }
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -198,18 +170,21 @@ struct AddBudgetLineSheet: View {
         .onAppear { inputCurrency = userSettingsStore.currency }
         .onChange(of: kind) { _, newKind in
             // Income can't be spread; only savings carry a goal; origin is income-only.
-            if newKind == .income { mode = .once }
+            if newKind == .income, mode == .spread { mode = .once }
             if newKind != .saving { savingsGoalId = nil }
+            assetId = nil
             if newKind != .income { incomeOrigin = .regular }
             resetIncompatibleOriginState()
         }
         .onChange(of: incomeOrigin) { _, _ in resetIncompatibleOriginState() }
-        .task(id: PlannedWithdrawalConversionKey(amount: amount, currency: inputCurrency)) {
+        .task { await Self.loadAssets(flagOn: featureFlags.isNetWorthEnabled, store: assetStore) }
+        .onChange(of: spreadMonthCount, initial: true) { _, count in
+            spreadCalculator.setEnd(SpreadMonth.from(ordinal: spreadCalculator.start.ordinal + count - 1))
+        }
+        .task(id: AmountConversionKey(amount: amount, currency: inputCurrency)) {
             await refreshConvertedAmount()
         }
     }
-
-    // MARK: - Description
 
     private var descriptionField: some View {
         FormTextField(
@@ -226,79 +201,6 @@ struct AddBudgetLineSheet: View {
             }
         )
     }
-
-    // MARK: - Details
-
-    /// Never empty: an expense or a saving can be pointed, an income always names its origin.
-    private var detailsCard: some View {
-        FormCard {
-            // An announced withdrawal is realized by creating the real income,
-            // never by arriving already pointed.
-            if !Self.forbidsChecked(kind: kind, origin: incomeOrigin) {
-                CheckedToggle(isOn: $isChecked, tintColor: kind.color, style: .row)
-            }
-            if Self.showsSavingsGoalPicker(kind: kind) {
-                FormRowDivider()
-                SavingsGoalPickerField(
-                    selection: $savingsGoalId,
-                    budgetPeriod: Self.savingsGoalPeriod(
-                        spreadMonths: isSpreadMode ? spreadCalculator.selectedMonths : [],
-                        anchorMonth: anchorMonth,
-                        anchorYear: anchorYear
-                    ),
-                    style: .row
-                )
-            }
-            if kind == .income {
-                if !Self.forbidsChecked(kind: kind, origin: incomeOrigin) {
-                    FormRowDivider()
-                }
-                originPicker
-            }
-            if isPlannedWithdrawalMode {
-                FormRowDivider()
-                SavingsGoalPickerField(
-                    selection: $sourceSavingsGoalId,
-                    mode: .plannedWithdrawal,
-                    budgetPeriod: BudgetPeriod(month: anchorMonth, year: anchorYear),
-                    withdrawalAmount: convertedAmount,
-                    style: .row
-                )
-                // The picker ends on its note, free text with no row height of its own:
-                // without this the note sits on the card's bottom edge.
-                .padding(.bottom, DesignTokens.Spacing.lg)
-            }
-        }
-    }
-
-    // MARK: - Add Button
-
-    private var ctaTitle: String {
-        if isSavingsWithdrawalMode { return AppLocale.string("Continuer") }
-        if isPlannedWithdrawalMode { return AppLocale.string("Planifier le retrait") }
-        return isSpreadMode
-            ? AddBudgetLineSpreadLogic.ctaTitle(for: kind)
-            : AppLocale.string("Ajouter")
-    }
-
-    private var addButton: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Button { Task { await submit() } } label: {
-                Text(ctaTitle)
-            }
-            .disabled(!canSubmit)
-            .primaryButtonStyle(isEnabled: canSubmit)
-            .accessibilityIdentifier("addBudgetLineSubmit")
-
-            if let hint = validationHint {
-                Text(hint)
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.onSurfaceVariant)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
-    }
 }
 
 #Preview {
@@ -309,5 +211,7 @@ struct AddBudgetLineSheet: View {
     .environment(UserSettingsStore())
     .environment(BudgetListStore())
     .environment(SavingsGoalStore())
+    .environment(AssetStore())
+    .environment(FeatureFlagsStore())
     .environment(TagStore())
 }

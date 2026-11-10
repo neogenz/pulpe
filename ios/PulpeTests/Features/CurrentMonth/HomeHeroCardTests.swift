@@ -34,24 +34,6 @@ struct HomeHeroCardTests {
         let cent = HeroVerdictPresentation(plannedBalance: 58.50, estimatedBalance: 58.49)
         #expect(cent.variance == -0.01)
         #expect(cent.verdict == .overrun)
-        #expect(cent.varianceText(for: .chf) == "-0.01 CHF")
-    }
-
-    @Test func envelopeOverrun_countsAsAbsorbedWhenTheMonthLandsExactlyOnPlan() {
-        // A 200 overrun cancelled by 200 of free income lands the month exactly on plan.
-        // `DriftCard` gates its "compensé ailleurs ce mois" clause on this: without the
-        // on-plan case it says "200 CHF au-delà du plan" flat while the hero says
-        // "Tu es pile sur ton plan" — two claims that contradict each other.
-        let onPlan = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 450)
-        #expect(onPlan.verdict == .onPlan)
-        #expect(onPlan.absorbsEnvelopeOverrun)
-
-        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
-        #expect(gain.absorbsEnvelopeOverrun)
-
-        // The one month that genuinely leaves the excess uncovered.
-        let overrun = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 300)
-        #expect(!overrun.absorbsEnvelopeOverrun)
     }
 
     @Test func verdictSentence_datesTheDayTheMonthLeftItsPlan() throws {
@@ -91,20 +73,6 @@ struct HomeHeroCardTests {
         #expect(undated.verdictText == "Il te reste moins que prévu.")
     }
 
-    @Test func varianceMetric_carriesItsCurrencyBesideTheOperationCount() {
-        // "Imprévus" shares its row with "à pointer", which is a count of operations. With
-        // no unit the two are the same figure in the same type, and the money one is the
-        // one that becomes unreadable.
-        let onPlan = HeroVerdictPresentation(plannedBalance: 2_500, estimatedBalance: 2_500)
-        #expect(onPlan.varianceText(for: .chf) == "0 CHF")
-
-        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
-        #expect(gain.varianceText(for: .chf) == "+350 CHF")
-
-        let overrun = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 300)
-        #expect(overrun.varianceText(for: .eur) == "-150 €")
-    }
-
     @Test func deficitAcrossZero_isOverrunAndDeficit() {
         let state = HeroVerdictPresentation(
             plannedBalance: 450,
@@ -135,27 +103,6 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func labels_sitUnderAFallingStrokeAndOverAClimbingOne() {
-        // A label grows leftward from the stroke's end, where a falling line is higher:
-        // it goes under. A plan with outflows always falls; the trend follows its slope.
-        let spending = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31)
-        #expect(HomeHeroCard.planLabelPosition(for: spending) == .bottom)
-        #expect(HomeHeroCard.trendLabelPosition(for: spending) == .bottom)
-        // Today's word hangs right of its dot, so the stroke it can meet is the projection:
-        // it reads the same slope as the trend's figure and lands on the same side.
-        #expect(HomeHeroCard.todayLabelPosition(for: spending) == .bottom)
-        // Even a month above its plan still has money to spend: the dashed stroke falls
-        // from what is left today to what is left at the end, and its figure goes under.
-        let recovering = trajectory(landing: [2_500, 2_900], plannedOutflows: 9_000, totalDays: 31)
-        #expect(HomeHeroCard.trendLabelPosition(for: recovering) == .bottom)
-        #expect(HomeHeroCard.todayLabelPosition(for: recovering) == .bottom)
-        // A month held on its plan draws a flat projection, and both words take the top.
-        #expect(HomeHeroCard.planLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
-        #expect(HomeHeroCard.trendLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
-        #expect(HomeHeroCard.todayLabelPosition(for: trajectory(landing: [2_500, 2_500])) == .top)
-    }
-
-    @MainActor
     @Test func plan_fallsFromTheOpeningAmountToWhatThePeriodKeeps() {
         let plan = HomeHeroCard.plan(for: trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31))
         #expect(plan.map(\.day) == [0, 31])
@@ -174,122 +121,6 @@ struct HomeHeroCardTests {
         let flatDomain = HomeHeroCard.chartYDomain(for: flat)
         #expect(flatDomain.lowerBound < 50)
         #expect(flatDomain.upperBound > 50)
-    }
-
-    @Test func hiddenAmounts_accessibilityDescriptionContainsNoFinancialValue() {
-        let state = HeroVerdictPresentation(
-            plannedBalance: 450,
-            estimatedBalance: -3000
-        )
-
-        let description = state.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: true,
-            uncheckedCount: 1
-        )
-
-        #expect(
-            description
-                == """
-                Juillet. Solde estimé fin de mois, montant masqué. \
-                Comparaison au budget masquée. 1 opération à pointer.
-                """
-        )
-        #expect(!description.contains("CHF"))
-        #expect(!description.contains("450"))
-        #expect(!description.contains("3000"))
-    }
-
-    @Test func accessibilityDescription_explainsComparisonInEverydayFrench() throws {
-        let gain = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 800)
-        let overrun = HeroVerdictPresentation(
-            plannedBalance: 450,
-            estimatedBalance: 300,
-            driftDate: try date(year: 2026, month: 7, day: 6)
-        )
-        let onPlan = HeroVerdictPresentation(plannedBalance: 450, estimatedBalance: 450)
-
-        #expect(gain.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: false,
-            uncheckedCount: 2
-        ).contains("350 CHF de mieux que prévu"))
-        // Mirrors the sentence on screen, date included: the two must not describe the same
-        // month differently depending on who is reading it.
-        #expect(overrun.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: false,
-            uncheckedCount: 0
-        ).contains("150 CHF de moins que prévu depuis le 6 juillet"))
-        #expect(onPlan.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: false,
-            uncheckedCount: 1
-        ).contains("Pile sur ton plan"))
-    }
-
-    @Test func loadedDashboardUsesOneFullScreenGradientBackground() throws {
-        let iosRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let viewSource = try String(
-            contentsOf: iosRoot.appending(path: "Pulpe/Features/CurrentMonth/CurrentMonthView.swift"),
-            encoding: .utf8
-        )
-        let backgroundSource = try String(
-            contentsOf: iosRoot.appending(
-                path: "Pulpe/Shared/Components/HeroZone/HeroZoneSurface.swift"
-            ),
-            encoding: .utf8
-        )
-
-        #expect(viewSource.contains(".heroZone(parallax: true)"))
-        #expect(viewSource.contains(".contentZone()"))
-        #expect(!viewSource.contains(".background(Color.homeBackground)"))
-        #expect(!viewSource.contains("HeroZoneTracker"))
-        #expect(!viewSource.contains("LinearGradient("))
-        #expect(backgroundSource.components(separatedBy: "LinearGradient(").count == 2)
-    }
-
-    /// The row used to state the tag count twice, in the same ink and the same size: once
-    /// spelled out in the subtitle ("récurrent · 2 tags") and once by the component beside
-    /// it ("· 🏷 2"). `TagChips` owns the icon, the separator and the ink, so it is the one
-    /// that speaks — and the subtitle went back to being a subtitle.
-    @Test func uncheckedOperationStatesItsTagCountOnce() throws {
-        let sourceFile = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard+Row.swift")
-        let source = try String(contentsOf: sourceFile, encoding: .utf8)
-
-        #expect(source.contains("Text(Self.subtitle(for: item))"))
-        #expect(!source.contains("tag\\("))
-        #expect(source.components(separatedBy: "presentation: .count").count == 2)
-    }
-
-    @Test func loadingDashboardSkeletonMirrorsTheChartHero() throws {
-        let sourceFile = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Pulpe/Features/CurrentMonth/Components/CurrentMonthSkeletonView.swift")
-        let source = try String(contentsOf: sourceFile, encoding: .utf8)
-
-        #expect(source.contains("CurrentMonthHeroSkeleton()"))
-        #expect(source.contains("private var chartSkeleton: some View"))
-        #expect(source.contains("contentActionSkeleton"))
-        #expect(source.contains("uncheckedCardSkeleton"))
-        #expect(source.contains("activityCardSkeleton"))
-        #expect(!source.contains("height: DesignTokens.Skeleton.heroHeight"))
     }
 
     @Test func drift_isTheDistanceFromThePlanTheLineOpenedOn() {

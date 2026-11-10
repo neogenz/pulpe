@@ -21,6 +21,10 @@ struct FormCard<Content: View>: View {
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)
+                    .strokeBorder(Color.outlineVariant, lineWidth: DesignTokens.BorderWidth.thin)
+            }
         }
     }
 }

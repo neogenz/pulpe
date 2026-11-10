@@ -1,30 +1,27 @@
 import SwiftUI
 
-/// Reusable section listing custom onboarding transactions of a single kind.
-/// Replaces the near-identical `customChargesSection` / `customSavingsSection` /
-/// `customIncomesSection` blocks that previously lived in each step file.
-///
-/// The lookup-by-id and animated-remove logic is consolidated here so each step
-/// only declares the section's title, icon, and the filtered transaction array.
+/// Section listing the custom onboarding transactions of one kind: name and amount per row, a tap
+/// edits, an × removes. Each step only declares the title and the filtered transactions.
 struct OnboardingTransactionListSection: View {
     let title: String
-    let icon: String
     let transactions: [OnboardingTransaction]
     let state: OnboardingState
     let onEdit: (OnboardingTransaction) -> Void
 
     var body: some View {
-        OnboardingSectionHeader(title: title, icon: icon) {
-            ForEach(transactions) { tx in
-                if tx.id != transactions.first?.id {
-                    Divider().opacity(DesignTokens.Opacity.accent)
+        OnboardingSectionHeader(title: title) {
+            FormCard {
+                ForEach(transactions) { tx in
+                    if tx.id != transactions.first?.id {
+                        FormRowDivider()
+                    }
+                    OnboardingTransactionRow(
+                        transaction: tx,
+                        onEdit: { onEdit(tx) },
+                        onRemove: { remove(tx) },
+                        currency: state.currency
+                    )
                 }
-                OnboardingTransactionRow(
-                    transaction: tx,
-                    onEdit: { onEdit(tx) },
-                    onRemove: { remove(tx) },
-                    currency: state.currency
-                )
             }
         }
     }

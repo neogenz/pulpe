@@ -23,7 +23,6 @@ struct SpreadOccurrenceRow: View {
                 Text(monthLabel)
                     .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(item.isChecked ? Color.secondary : Color.textPrimary)
-                    .strikethrough(item.isChecked, color: .secondary)
 
                 if item.isCurrent {
                     (isCurrentPeriod ? Text("Ce mois") : Text("Ici"))
@@ -72,7 +71,6 @@ struct SpreadOccurrenceRow: View {
                 .font(PulpeTypography.amountCard)
                 .monospacedDigit()
                 .foregroundStyle(item.isChecked ? Color.secondary : Color.textPrimary)
-                .strikethrough(item.isChecked, color: .secondary)
                 .sensitiveAmount()
         }
     }

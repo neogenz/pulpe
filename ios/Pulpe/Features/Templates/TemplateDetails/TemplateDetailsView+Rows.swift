@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - Template Line Row
 
-/// One ledger row of the template detail: nature disc, name, a words-only subtitle
-/// (« Mensuel » / « Ponctuel », the linked goal, the tag count) and the signed amount.
+/// One ledger row of the template detail (V2 `row`): the name, a words-only subtitle
+/// (« Mensuel », the linked goal, the tag count) and the amount in ink, no icon.
 struct TemplateLineRow: View {
     let line: TemplateLine
     let tagNamesById: [String: String]
@@ -22,27 +22,27 @@ struct TemplateLineRow: View {
     }
 
     private var subtitle: String {
-        var parts = [line.recurrence.label]
-        if let goalName {
-            parts.append(AppLocale.string("Objectif : \(goalName)"))
-        }
-        return parts.joined(separator: " · ")
+        TemplatePresentation.lineSubtitle(recurrence: line.recurrence, isLinkedToGoal: goalName != nil)
+    }
+
+    /// An income is signed, the rest are plain.
+    private var amountText: String {
+        let amount = line.amount.asAmount(for: userSettingsStore.currency)
+        return line.kind == .income ? "+" + amount : amount
     }
 
     var body: some View {
         Button(action: onEdit) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                RowIcon(systemName: line.kind.icon, tint: line.kind.color)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.dividerGap) {
                     Text(line.name)
-                        .font(PulpeTypography.listRowTitle)
+                        .font(PulpeTypography.rowTitle)
                         .foregroundStyle(Color.textPrimary)
                         .lineLimit(1)
 
                     HStack(spacing: DesignTokens.Spacing.xs) {
                         Text(subtitle)
-                            .font(PulpeTypography.listRowSubtitle)
+                            .font(PulpeTypography.captionRegular)
                             .foregroundStyle(Color.textSecondary)
                             .lineLimit(1)
                             .ifLet(goalName) { view, _ in
@@ -58,21 +58,19 @@ struct TemplateLineRow: View {
 
                 Spacer(minLength: DesignTokens.Spacing.sm)
 
-                Text(line.amount.asSignedAmount(for: line.kind, in: userSettingsStore.currency))
-                    .font(PulpeTypography.listRowTitle)
-                    .monospacedDigit()
-                    .foregroundStyle(line.kind.color)
+                Text(amountText)
+                    .font(PulpeTypography.rowAmount)
+                    .foregroundStyle(Color.textPrimary)
+                    .lineLimit(1)
                     .sensitiveAmount()
 
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityHidden(true)
+                RowChevron()
             }
-            .padding(.vertical, DesignTokens.ListRow.verticalPadding)
+            .padding(.vertical, DesignTokens.ListRow.verticalPadding + DesignTokens.Spacing.xxs)
+            .frame(minHeight: DesignTokens.ListRow.minHeight)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .plainPressedButtonStyle()
         .accessibilityHint("Touche pour modifier")
     }
 }

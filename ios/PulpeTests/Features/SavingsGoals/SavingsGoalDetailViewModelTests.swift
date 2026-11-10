@@ -74,35 +74,6 @@ struct SavingsGoalDetailViewModelTests {
         #expect(viewModel.progress?.goalId == "g1")
         #expect(viewModel.error == nil)
         #expect(service.getProgressCallCount == 1)
-        #expect(service.getContributionsCallCount == 1)
-    }
-
-    @Test("load fetches linked forecasts and their real transactions")
-    func load_fetchesContributions() async {
-        let service = MockSavingsGoalService()
-        service.stubbedProgress = makeProgress(goalId: "g1")
-        service.stubbedContributions = [makeContribution()]
-        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
-
-        await viewModel.load()
-
-        #expect(viewModel.contributions.map(\.lineId) == ["line-1"])
-        #expect(viewModel.contributions.first?.transactions.map(\.id) == ["tx-1"])
-        #expect(viewModel.contributionsError == nil)
-    }
-
-    @Test("a contributions failure keeps the goal progress usable")
-    func load_contributionsFailureIsInline() async {
-        let service = MockSavingsGoalService()
-        service.stubbedProgress = makeProgress(goalId: "g1")
-        service.getContributionsError = APIError.networkError(URLError(.timedOut))
-        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
-
-        await viewModel.load()
-
-        #expect(viewModel.progress != nil)
-        #expect(viewModel.error == nil)
-        #expect(viewModel.contributionsError != nil)
     }
 
     @Test("recovery applies only repairable budgets with the rounded required amount")
@@ -238,37 +209,11 @@ struct SavingsGoalDetailViewModelTests {
             lines: []
         )
     }
-
-    private func makeContribution() -> SavingsGoalContribution {
-        SavingsGoalContribution(
-            lineId: "line-1",
-            name: "Épargne maison",
-            amount: 500,
-            checkedAt: nil,
-            budgetMonth: 7,
-            budgetYear: 2026,
-            transactions: [
-                Transaction(
-                    id: "tx-1",
-                    budgetId: "budget-1",
-                    budgetLineId: "line-1",
-                    name: "Virement épargne",
-                    amount: 500,
-                    kind: .saving,
-                    transactionDate: Date(timeIntervalSince1970: 0),
-                    category: nil,
-                    checkedAt: Date(timeIntervalSince1970: 0),
-                    createdAt: Date(timeIntervalSince1970: 0),
-                    updatedAt: Date(timeIntervalSince1970: 0)
-                ),
-            ]
-        )
-    }
 }
 
 extension SavingsGoalDetailViewModelTests {
-    @Test("timeline stays visible before the first forecast is linked")
-    func timeline_zeroLinkedRepairableMonth_isVisible() {
+    @Test("a gap month is repairable before the first forecast is linked")
+    func repair_zeroLinkedRepairableMonth_isAllowed() {
         let progress = makeProgress(
             linkedLineCount: 0,
             months: [
@@ -283,7 +228,6 @@ extension SavingsGoalDetailViewModelTests {
             ]
         )
 
-        #expect(SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress))
         #expect(SavingsGoalDetailViewModel.canRepairPlan(progress, status: .active))
     }
 
@@ -434,58 +378,18 @@ extension SavingsGoalDetailViewModelTests {
         #expect(viewModel.plannedWithdrawals.isEmpty)
     }
 
-    @Test("a withdrawals failure keeps the goal progress and the contributions usable")
+    @Test("a withdrawals failure keeps the goal progress usable")
     func load_withdrawalsFailureIsInline() async {
         let service = MockSavingsGoalService()
         service.stubbedProgress = makeProgress(goalId: "g1")
-        service.stubbedContributions = [makeContribution()]
         service.withdrawalsError = APIError.networkError(URLError(.timedOut))
         let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
 
         await viewModel.load()
 
         #expect(viewModel.progress != nil)
-        #expect(viewModel.contributions.count == 1)
         #expect(viewModel.error == nil)
-        #expect(viewModel.contributionsError == nil)
         #expect(viewModel.withdrawalsError != nil)
-    }
-
-    /// A goal nobody ever drew from says nothing by staying silent — the section
-    /// disappears instead of announcing an emptiness the user never asked about.
-    @Test("the section shows only when there is history, a load or a failure")
-    func withdrawalsSection_isRelevantOnlyWhenItHasSomethingToSay() {
-        #expect(!GoalWithdrawalsSection.isRelevant(
-            withdrawals: [], planned: [], isLoading: false, error: nil
-        ))
-        #expect(GoalWithdrawalsSection.isRelevant(
-            withdrawals: [makeWithdrawal(id: "tx-1")],
-            planned: [],
-            isLoading: false,
-            error: nil
-        ))
-        #expect(GoalWithdrawalsSection.isRelevant(
-            withdrawals: [],
-            planned: [],
-            planOnly: [SavingsGoalPlanOnlyWithdrawal(
-                planWithdrawalId: "plan-withdrawal-1",
-                name: "Retrait ponctuel",
-                month: 9,
-                year: 2026,
-                plannedAmount: 450
-            )],
-            isLoading: false,
-            error: nil
-        ))
-        #expect(GoalWithdrawalsSection.isRelevant(
-            withdrawals: [], planned: [], isLoading: true, error: nil
-        ))
-        #expect(GoalWithdrawalsSection.isRelevant(
-            withdrawals: [],
-            planned: [],
-            isLoading: false,
-            error: APIError.networkError(URLError(.timedOut))
-        ))
     }
 }
 

@@ -17,8 +17,10 @@ final class BudgetLinkedForecastDeleteUITests: XCTestCase {
 
         let detail = app.descendants(matching: .any)["budgetLineDetailPageRoot"]
         XCTAssertTrue(detail.waitForExistence(timeout: 10))
-        app.buttons["Plus d'options"].tap()
-        app.buttons["Supprimer"].tap()
+        let deleteRow = app.buttons["budgetLineDetailDeleteRow"]
+        XCTAssertTrue(deleteRow.waitForExistence(timeout: 5))
+        for _ in 0..<5 where !deleteRow.isHittable { app.swipeUp() }
+        deleteRow.tap()
 
         let alert = app.alerts["Quelles prévisions supprimer ?"]
         XCTAssertTrue(alert.waitForExistence(timeout: 5))

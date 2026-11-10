@@ -46,23 +46,16 @@ struct HeroVerdictPresentation: Equatable {
         self.init(plannedBalance: plannedBalance, estimatedBalance: metrics.remaining, driftDate: driftDate)
     }
 
-    /// The accent the hero may spend on its link or chart — never on its surface. A month
-    /// exactly on plan takes the plain ink: green is how the hero says "better than planned".
-    var accent: Color {
-        guard verdict != .onPlan else { return .heroInk }
+    /// The same accent on a light card (the Accueil's white hero): green when ahead of the
+    /// plan, ocre behind it, coral once the month is in deficit, plain ink exactly on plan.
+    var lightAccent: Color {
+        guard verdict != .onPlan else { return .textPrimary }
         return switch tone {
-        case .favorable: .heroAccentPositive
-        case .caution: .heroAccentCaution
-        case .deficit: .heroAccentDeficit
+        case .favorable: .pulpePrimary
+        case .caution: .financialOverBudget
+        case .deficit: .coral
         }
     }
-
-    /// Whether an envelope that ran past its plan was paid for elsewhere in the month.
-    /// A month that lands exactly on plan absorbed it just as surely as one that landed
-    /// above: only a month behind its own plan leaves the excess uncovered. Lives here
-    /// rather than in the view so the card that says "compensé ailleurs" and the hero
-    /// that says "pile sur ton plan" can never claim opposite things.
-    var absorbsEnvelopeOverrun: Bool { verdict != .overrun }
 
     /// The one thing on the card the plot cannot draw and the metrics cannot show: *when*
     /// the month left its plan. The size of the gap is in `Imprévus`, its shape is in the
@@ -90,53 +83,5 @@ struct HeroVerdictPresentation: Equatable {
     /// "\(lead) depuis le …" template: only French puts the clause in that order.
     private var driftDay: String? {
         driftDate.map { Formatters.dayMonthLabel(for: $0) }
-    }
-
-    /// Carries its unit even though the hero above already shows one: its neighbour in
-    /// the pair is a count of operations, and two figures set in the same type on the
-    /// same row have nothing else to say which of them is money.
-    func varianceText(for currency: SupportedCurrency) -> String {
-        "\(variance > 0 ? "+" : "")\(variance.asAdaptiveCurrency(currency))"
-    }
-
-    /// One key for every non-zero count: the singular is a plural variant of it in
-    /// the catalog, not a second sentence assembled here.
-    func uncheckedAccessibilityText(count: Int) -> String {
-        count == 0
-            ? AppLocale.string("Aucune opération à pointer.")
-            : AppLocale.string("\(count) opérations à pointer.")
-    }
-
-    func accessibilityDescription(
-        monthName: String,
-        currency: SupportedCurrency,
-        amountsHidden: Bool,
-        uncheckedCount: Int
-    ) -> String {
-        let month = monthName.capitalized
-        let unchecked = uncheckedAccessibilityText(count: uncheckedCount)
-        guard !amountsHidden else {
-            return AppLocale.string("""
-                \(month). Solde estimé fin de mois, montant masqué. \
-                Comparaison au budget masquée. \(unchecked)
-                """)
-        }
-
-        // Mirrors `verdictText`: VoiceOver and the sentence on screen say the same thing
-        // about the same month, down to the day it left its plan.
-        let gap = abs(variance).asAdaptiveCurrency(currency)
-        let comparison = switch (verdict, driftDay) {
-        case (.gain, let day?): AppLocale.string("\(gap) de mieux que prévu depuis le \(day)")
-        case (.gain, nil): AppLocale.string("\(gap) de mieux que prévu")
-        case (.overrun, let day?): AppLocale.string("\(gap) de moins que prévu depuis le \(day)")
-        case (.overrun, nil): AppLocale.string("\(gap) de moins que prévu")
-        case (.onPlan, _): AppLocale.string("Pile sur ton plan")
-        }
-
-        let formattedEstimate = "\(estimatedBalance > 0 ? "+" : "")\(estimatedBalance.asAdaptiveCurrency(currency))"
-        return AppLocale.string("""
-            \(month). Solde estimé fin de mois \
-            \(formattedEstimate). \(comparison). \(unchecked)
-            """)
     }
 }

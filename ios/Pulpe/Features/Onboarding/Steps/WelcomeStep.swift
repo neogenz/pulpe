@@ -4,7 +4,6 @@ struct WelcomeStep: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showLogin = false
     @State private var isAppeared = false
-    @State private var isBreathing = false
     @Bindable var state: OnboardingState
 
     /// Computed, not `static let`: a stored constant would freeze the language the app
@@ -14,127 +13,39 @@ struct WelcomeStep: View {
     }
 
     var body: some View {
-        ZStack {
-            // Full-screen gradient background
-            Color.welcomeGradientBackground
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                header
+                illustration
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
 
-            VStack(spacing: 0) {
-                // Gradient breathing space
-                Spacer()
-
-                // Hero — PulpeIcon at the gradient/white transition.
-                // Subtle "breathing" brand glow gives the logo ambient life without competing with the headline.
-                PulpeIcon(size: 80)
-                    .shadow(DesignTokens.Shadow.elevated)
-                    .shadow(
-                        color: Color.pulpePrimary.opacity(
-                            isBreathing ? DesignTokens.Opacity.heavy : DesignTokens.Opacity.strong
-                        ),
-                        radius: isBreathing ? 28 : 18,
-                        y: 8
-                    )
-                    .scaleEffect(isAppeared ? 1 : 0.6)
-                    .opacity(isAppeared ? 1 : 0)
-                    .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring, value: isAppeared)
-                    .animation(reduceMotion ? nil : DesignTokens.Animation.heroBreathing, value: isBreathing)
-
-                Spacer()
-                    .frame(height: DesignTokens.Spacing.xxl)
-
-                // Value proposition — sits on white zone, centered under the icon
-                VStack(spacing: DesignTokens.Spacing.lg) {
-                    Text("Vois clair dans tes finances")
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Ton mois, prévu d'avance.")
                         .font(PulpeTypography.brandTitle)
-                        .foregroundStyle(Color.textPrimaryOnboarding)
-                        .multilineTextAlignment(.center)
-
+                        .foregroundStyle(Color.heroInk)
+                        .accessibilityAddTraits(.isHeader)
                     Text("Ton budget est prêt en 2 minutes")
                         .font(PulpeTypography.onboardingSubtitle)
-                        .foregroundStyle(Color.textPrimaryOnboarding)
-                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.heroInkSecondary)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, DesignTokens.Spacing.xxxl)
                 .opacity(isAppeared ? 1 : 0)
                 .offset(y: isAppeared ? 0 : 20)
                 .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.15), value: isAppeared)
 
-                Spacer()
-                    .frame(height: DesignTokens.Spacing.xl)
-
-                // Benefits — concrete value props, left-aligned for scannability
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    benefitRow(
-                        icon: "list.bullet.rectangle",
-                        text: AppLocale.string("Un plan clair pour chaque mois")
-                    )
-                    benefitRow(
-                        icon: "checkmark.circle",
-                        text: AppLocale.string("Tes dépenses pointées en un geste")
-                    )
-                    benefitRow(
-                        icon: "lock",
-                        text: AppLocale.string("Chiffré — tes montants restent privés")
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, DesignTokens.Spacing.xxxl)
-                .opacity(isAppeared ? 1 : 0)
-                .offset(y: isAppeared ? 0 : 20)
-                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.25), value: isAppeared)
-
-                Spacer()
-                    .frame(height: DesignTokens.Spacing.xxxl)
-
-                // Bottom buttons
-                VStack(spacing: DesignTokens.Spacing.md) {
-                    // Social login — primary path (onboarding context)
-                    SocialLoginSection(onAuthenticated: { user, persistError in
-                        state.applySocialSignup(user, persistError: persistError)
-                    })
-
-                    SocialLoginDivider()
-
-                    // Email signup — secondary path
-                    Button {
-                        state.nextStep()
-                    } label: {
-                        HStack(spacing: DesignTokens.Spacing.xs) {
-                            Text("S'inscrire avec email")
-                            Image(systemName: "arrow.right")
-                                .font(PulpeTypography.labelLarge)
-                        }
-                        .font(PulpeTypography.buttonSecondary)
-                        .foregroundStyle(Color.pulpePrimary)
-                    }
-                    .textLinkButtonStyle()
-                    .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    .contentShape(Rectangle())
-
-                    // Existing user — tertiary path
-                    Button {
-                        showLogin = true
-                    } label: {
-                        Text("J'ai déjà un compte")
-                            .font(PulpeTypography.buttonSecondary)
-                            .foregroundStyle(Color.textSecondaryOnboarding)
-                    }
-                    .textLinkButtonStyle()
-                    .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    .contentShape(Rectangle())
-                    .accessibilityIdentifier("existingAccountButton")
-
-                    // Implicit consent — covers all auth methods (foundation of the stack)
-                    OnboardingConsentText(attributed: Self.consentMarkdown)
-                        .padding(.horizontal, DesignTokens.Spacing.md)
-                }
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
-                .padding(.bottom, DesignTokens.Spacing.xxxl)
-                .opacity(isAppeared ? 1 : 0)
-                .offset(y: isAppeared ? 0 : 10)
-                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.35), value: isAppeared)
+                actions
+                    .opacity(isAppeared ? 1 : 0)
+                    .offset(y: isAppeared ? 0 : 10)
+                    .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.3), value: isAppeared)
             }
+            .padding(.horizontal, DesignTokens.Spacing.xxl)
+            .padding(.vertical, DesignTokens.Spacing.lg)
+            .frame(maxWidth: DesignTokens.Entry.columnMaxWidth)
+            .frame(maxWidth: .infinity)
         }
+        .scrollBounceBehavior(.basedOnSize)
+        .background { EntryZoneBackground() }
+        .environment(\.colorScheme, .dark)
         .trackScreen("Onboarding_Welcome")
         .task {
             // Idempotency guard lives on `OnboardingState`, not on this view: the
@@ -152,29 +63,138 @@ struct WelcomeStep: View {
             if reduceMotion {
                 isAppeared = true
             } else {
-                // Start breathing glow when the entrance spring lands — tied to the
-                // actual animation lifecycle, not a magic delay.
                 withAnimation(DesignTokens.Animation.entranceSpring.delay(0.1)) {
                     isAppeared = true
-                } completion: {
-                    isBreathing = true
                 }
             }
         }
     }
 
-    private func benefitRow(icon: String, text: String) -> some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            Image(systemName: icon)
-                .font(PulpeTypography.title3)
-                .foregroundStyle(Color.pulpePrimary)
-                .frame(width: DesignTokens.IconSize.compact)
-                .accessibilityHidden(true)
-
-            Text(text)
-                .font(PulpeTypography.subheadline)
-                .foregroundStyle(Color.textSecondaryOnboarding)
+    private var header: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            PulpeIcon(size: DesignTokens.IconSize.compact)
+            Text("pulpe")
+                .font(PulpeTypography.sectionTitle)
+                .foregroundStyle(Color.heroInk)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Pulpe")
+    }
+
+    /// Decorative: a sample month as the ring, with three stickers that read as its legend —
+    /// the salary it starts from, then a charge and a saving in their segment's colour. They sit
+    /// around the ring, never over the figure in its middle.
+    private var illustration: some View {
+        let month = Formatters.monthNameInText(for: Calendar.current.component(.month, from: .now))
+        // The stickers add up to the centre: a budget app's first figures must check out.
+        let income: Decimal = 6200, charges: Decimal = 3021.5, savings: Decimal = 588
+        return OnboardingBudgetRing(
+            income: income, charges: charges, savings: savings, currency: .chf,
+            subtitle: "\(SupportedCurrency.chf.rawValue) · \(month)",
+            drawsIn: true
+        )
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xxxl)
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .topLeading) {
+                OnboardingSticker(
+                    systemImage: "house", tint: .financialExpense, wash: .overWash,
+                    label: AppLocale.string("Charges"), amount: charges.asAmount(for: .chf)
+                )
+                .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltTopLeading))
+            }
+            .overlay(alignment: .bottomTrailing) {
+                OnboardingSticker(
+                    systemImage: TransactionKind.saving.icon, tint: .financialSavings, wash: .accentWash,
+                    label: AppLocale.string("Épargne"), amount: savings.asAmount(for: .chf)
+                )
+                .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltTrailing))
+                .offset(y: -DesignTokens.Spacing.xl)
+            }
+            .overlay(alignment: .bottomLeading) {
+                OnboardingSticker(
+                    systemImage: TransactionKind.income.icon, tint: .financialIncome, wash: .accentWash,
+                    label: AppLocale.string("Salaire"), amount: "+" + income.asAmount(for: .chf)
+                )
+                .rotationEffect(.degrees(DesignTokens.Entry.stickerTiltBottomLeading))
+            }
+    }
+
+    private var actions: some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            // Social login: the primary path
+            SocialLoginSection(
+                onAuthenticated: { user, persistError in
+                    state.applySocialSignup(user, persistError: persistError)
+                },
+                onForest: true
+            )
+
+            SocialLoginDivider(onForest: true)
+
+            Button("S'inscrire avec email") { state.nextStep() }
+                .buttonStyle(ForestTintButtonStyle())
+
+            Button("J'ai déjà un compte") { showLogin = true }
+                .font(PulpeTypography.buttonSecondary)
+                .foregroundStyle(Color.heroAccentPositive)
+                .textLinkButtonStyle()
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("existingAccountButton")
+
+            // Implicit consent covers all auth methods
+            OnboardingConsentText(attributed: Self.consentMarkdown, onForest: true)
+        }
+    }
+}
+
+/// Floating white card of the welcome illustration (V2 sticker): a tinted icon, a label, an
+/// amount. Light tokens inside, though the forest around it runs in dark mode.
+private struct OnboardingSticker: View {
+    let systemImage: String
+    let tint: Color
+    let wash: Color
+    let label: String
+    let amount: String
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: systemImage)
+                .font(PulpeTypography.caption2.weight(.bold))
+                .foregroundStyle(tint)
+                .frame(width: DesignTokens.Entry.stepBadge, height: DesignTokens.Entry.stepBadge)
+                .background(wash, in: Circle())
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
+                Text(label)
+                    .font(PulpeTypography.caption2)
+                    .foregroundStyle(Color.textSecondary)
+                Text(verbatim: amount)
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(Color.textPrimary)
+                    .monospacedDigit()
+            }
+        }
+        .padding(.leading, DesignTokens.Spacing.sm)
+        .padding(.trailing, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .background(Color.surface, in: Capsule())
+        .shadow(DesignTokens.Shadow.elevated)
+        .environment(\.colorScheme, .light)
+    }
+}
+
+/// Translucent white capsule on the forest (V2 `btn.tint`).
+private struct ForestTintButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(PulpeTypography.buttonPrimary)
+            .foregroundStyle(Color.heroInk)
+            .frame(maxWidth: .infinity)
+            .frame(height: DesignTokens.FrameHeight.button)
+            .background(Color.heroTile, in: Capsule())
+            .contentShape(Capsule())
+            .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1)
     }
 }
 
