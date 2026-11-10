@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-test("existing App Store version stops before any submission mutation", async () => {
+const version = (id, versionString, appStoreState) => ({
+  id,
+  type: "appStoreVersions",
+  attributes: { versionString, appStoreState },
+});
+
+test("a version already in review stops before any submission mutation", async () => {
   const module = await import("./submit-app-store.mjs").catch(() => ({}));
   assert.equal(
     typeof module.prepareVersion,
@@ -13,19 +19,29 @@ test("existing App Store version stops before any submission mutation", async ()
       module.prepareVersion(
         {
           data: [
-            {
-              id: "target",
-              type: "appStoreVersions",
-              attributes: {
-                versionString: "1.2.0",
-                appStoreState: "PREPARE_FOR_SUBMISSION",
-              },
-            },
+            version("old", "1.1.0", "READY_FOR_SALE"),
+            version("target", "1.2.0", "WAITING_FOR_REVIEW"),
           ],
         },
         "1.2.0",
       ),
     /already exists/,
+  );
+});
+
+test("a version staged by hand for its screenshots is accepted", async () => {
+  const { prepareVersion } = await import("./submit-app-store.mjs");
+  assert.equal(
+    prepareVersion(
+      {
+        data: [
+          version("old", "1.1.0", "READY_FOR_SALE"),
+          version("target", "1.2.0", "PREPARE_FOR_SUBMISSION"),
+        ],
+      },
+      "1.2.0",
+    ),
+    "1.1.0",
   );
 });
 

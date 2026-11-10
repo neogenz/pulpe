@@ -76,7 +76,7 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 ## GitHub Actions distribution
 
 - `internal`: manual dispatch from `main`, `PulpeProd` / `Prod`, next unused build under the selected marketing version. The existing staging-proof and upload-provenance checks remain; no App Review submission.
-- `release`: called only by finalization after exact `production` and tag verification. The approved `ios/app-store-release.json` supplies version/build and copy. Archive/upload/submission is automatic, first-attempt-only and fresh-identity-only; an existing version/build or any ambiguous result stops for inspection. No automatic recovery or internal-build promotion.
+- `release`: called only by finalization after exact `production` and tag verification. The approved `ios/app-store-release.json` supplies version/build and copy. Archive/upload/submission is automatic, first-attempt-only and fresh-build-only; an existing build, a version past `PREPARE_FOR_SUBMISSION` or any ambiguous result stops for inspection. A version created by hand beforehand to carry new screenshots, still in `PREPARE_FOR_SUBMISSION`, is accepted. No automatic recovery or internal-build promotion.
 - Signing secrets remain isolated in `ios-distribution`; an ephemeral keychain, imported profiles and all private files are cleaned under `always()`.
 - Canonical setup, ordering, readbacks and failure handling: [Deployment](../../../../docs/DEPLOYMENT.md#release-process). Publication is `AFTER_APPROVAL`; Apple review is external.
 
