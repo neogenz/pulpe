@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.59.0",
-  "marketingVersion": "1.13.1",
-  "buildNumber": "1",
+  "productVersion": "0.60.0",
+  "marketingVersion": "1.14.0",
+  "buildNumber": "13",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "Corrections :\n- Si le serveur refuse une saisie, l’erreur s’affiche dans la langue de l’app."
+    "frFR": "Pulpe fait peau neuve !\n\nNouveautés :\n- Un nouveau design, plus clair, sur tous les écrans.\n- Dès l’accueil, tu vois ce qu’il te reste à pointer ce mois.\n- Objectifs : tu vois tout de suite où tu en es.\n- Le suivi du budget affiche le solde pointé à côté du reste à dépenser.\n\nCorrections :\n- Face ID n’est plus demandé une seconde fois après la connexion.\n- Meilleur affichage sur iPhone Duo."
   },
-  "reviewNotes": "This update only changes error wording: when the server rejects invalid input or an unknown route, the app shows a localized message instead of the raw server text. There are no new screens. Sign in with the configured demo account; all budget flows work as before."
+  "reviewNotes": "This update is a visual redesign of the whole app; features and data are unchanged. Sign in with the configured demo account. The home screen now lists this month's items still to check; the Budgets, Goals and Templates tabs keep the same flows with a new layout. New screenshots are included, with an iPhone Duo set: on iPhone Duo, opening the device shows lists next to their detail."
 }
