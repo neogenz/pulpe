@@ -220,6 +220,14 @@ struct BudgetDetailsView: View {
                     .padding(.vertical, DesignTokens.Spacing.xxl)
                 }
 
+                if screenState.canShowEmptyOver {
+                    ContentUnavailableView {
+                        Label("Plus rien ne dépasse ce mois-ci.", systemImage: "checkmark.circle")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignTokens.Spacing.xxl)
+                }
+
                 ForEach(screenState.sections) { section in
                     BudgetMixedSection(
                         kind: section.kind,
@@ -242,7 +250,7 @@ struct BudgetDetailsView: View {
                 }
 
                 // No section left to carry a footer (empty month, every kind filtered out).
-                if screenState.sections.isEmpty, !screenState.canShowEmptyChecked {
+                if screenState.sections.isEmpty, !screenState.canShowEmptyChecked, !screenState.canShowEmptyOver {
                     SectionAddRow(title: AppLocale.string("Ajouter une prévision")) {
                         router.present(.addBudgetLine(.expense))
                     }

@@ -118,4 +118,80 @@ struct BudgetDetailsCheckedProjectionTests {
 
         #expect(!state.canShowEmptyChecked)
     }
+
+    // MARK: - "Plus rien ne dépasse" state under « Dépassées »
+
+    @Test
+    func project_overFilterNoOverrun_showsEmptyOver() {
+        let stack = ProjectionTestStack.makeStores(checkedFilter: .over)
+        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", amount: 100))
+
+        #expect(Self.project(stack).canShowEmptyOver)
+    }
+
+    @Test
+    func project_overFilterEmptyMonth_hidesEmptyOver() {
+        // Without prévision the add row stays: nothing to celebrate.
+        let stack = ProjectionTestStack.makeStores(checkedFilter: .over)
+
+        #expect(!Self.project(stack).canShowEmptyOver)
+    }
+
+    @Test
+    func project_overFilterOneOverrun_hidesEmptyOver() {
+        let stack = ProjectionTestStack.makeStores(checkedFilter: .over)
+        Self.appendOverrunExpense(to: stack)
+
+        #expect(!Self.project(stack).canShowEmptyOver)
+    }
+
+    @Test
+    func project_overFilterIncomeTypeFilterHidesOverrun_hidesEmptyOver() {
+        // The type filter hides the overrun, but the month still has one.
+        let stack = ProjectionTestStack.makeStores(checkedFilter: .over)
+        stack.filters.setTypeFilter(.income)
+        Self.appendOverrunExpense(to: stack)
+
+        let state = Self.project(stack)
+        #expect(state.sections.isEmpty)
+        #expect(!state.canShowEmptyOver)
+    }
+
+    @Test
+    func project_overFilterNoOverrunWithSearch_hidesEmptyOver() {
+        let stack = ProjectionTestStack.makeStores(checkedFilter: .over)
+        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", amount: 100))
+
+        #expect(!Self.project(stack, searchText: "Loyer").canShowEmptyOver)
+    }
+
+    @Test
+    func project_overFilterSavedRailHidden_hidesEmptyOver() {
+        let stack = ProjectionTestStack.makeStores(checkedFilter: .over)
+        stack.filters.setRailHidden(true)
+        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", amount: 100))
+
+        #expect(!Self.project(stack).canShowEmptyOver)
+    }
+
+    private static func appendOverrunExpense(to stack: ProjectionTestStack.StoreStack) {
+        stack.data.appendBudgetLine(
+            TestDataFactory.createBudgetLine(id: "line-1", amount: 100, kind: .expense)
+        )
+        stack.data.appendTransaction(
+            TestDataFactory.createTransaction(id: "tx-1", budgetLineId: "line-1", amount: 150, kind: .expense)
+        )
+    }
+
+    private static func project(
+        _ stack: ProjectionTestStack.StoreStack,
+        searchText: String = ""
+    ) -> BudgetDetailsScreenState {
+        BudgetDetailsProjector.project(
+            dataStore: stack.data,
+            filtersStore: stack.filters,
+            syncStore: stack.sync,
+            searchText: searchText
+        )
+    }
 }

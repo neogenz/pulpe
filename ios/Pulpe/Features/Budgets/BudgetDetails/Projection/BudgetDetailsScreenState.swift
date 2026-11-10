@@ -75,6 +75,10 @@ struct BudgetDetailsScreenState: Equatable {
     /// "Tout est pointé" empty state should render.
     let canShowEmptyChecked: Bool
 
+    /// True when « Dépassées » is on, search is empty, the month has prévisions
+    /// and none of them overruns: the « Plus rien ne dépasse » state renders.
+    let canShowEmptyOver: Bool
+
     /// O(1) lookup so `BudgetLineDetailPage` (or any other consumer) can grab
     /// a precomputed consumption for any line in the current source state,
     /// even ones currently filtered out.
@@ -120,6 +124,7 @@ struct BudgetDetailsScreenState: Equatable {
         canPostpone: false,
         nextMonthLabel: nil,
         canShowEmptyChecked: false,
+        canShowEmptyOver: false,
         consumptionByLineId: [:],
         lineById: [:],
         transactionsByLineId: [:],

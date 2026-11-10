@@ -185,6 +185,7 @@ final class BudgetDetailsProjector {
                 sections: ctx.sections,
                 free: ctx.free
             ),
+            canShowEmptyOver: makeCanShowEmptyOver(ctx),
             consumptionByLineId: ctx.consumptionByLineId,
             lineById: ctx.lineById,
             transactionsByLineId: ctx.transactionsByLineId,
@@ -222,6 +223,19 @@ final class BudgetDetailsProjector {
             && sections.isEmpty
             && free.isEmpty
             && (!dataStore.budgetLines.isEmpty || !dataStore.transactions.isEmpty)
+    }
+
+    /// Counts overruns across every kind: a type filter that hides the overrun dépenses
+    /// must not read as nothing overrunning.
+    private static func makeCanShowEmptyOver(_ ctx: AssemblyContext) -> Bool {
+        ctx.searchText.isEmpty
+            && ctx.filtersStore.checkedFilter == .over
+            && !ctx.dataStore.budgetLines.isEmpty
+            && FiltersStore.checkedCounts(
+                for: ctx.dataStore.budgetLines,
+                typeFilter: .all,
+                consumptionByLineId: ctx.consumptionByLineId
+            ).over == 0
     }
 
     // MARK: - Index builders (private helpers)
