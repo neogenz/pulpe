@@ -10,8 +10,14 @@ export function prepareVersion(versions, target) {
     assert.ok(typeof v.id === "string" && v.id.length > 0);
     assert.match(v.attributes.versionString, /^[0-9]+\.[0-9]+\.[0-9]+$/);
   }
+  // A version staged by hand to carry its screenshots is still untouched by this
+  // chain. A retry cannot hide here: its build already exists, which stops earlier.
   assert.ok(
-    !versions.data.some((v) => v.attributes.versionString === target),
+    versions.data.every(
+      (v) =>
+        v.attributes.versionString !== target ||
+        v.attributes.appStoreState === "PREPARE_FOR_SUBMISSION",
+    ),
     "App Store version already exists; inspect remote state, do not retry automatically",
   );
   const published = versions.data.filter((v) =>
