@@ -1,15 +1,14 @@
 import SwiftUI
 
-/// « Mon patrimoine » (PUL-366): net worth, then what I have by category, what I owe and the
-/// archives. Read-only; every figure comes from `GET /v1/assets`.
+/// « Mon patrimoine » (PUL-366): net worth, then what I have and what I owe, each by Type, and
+/// the archives. Read-only; every figure comes from `GET /v1/assets`.
 struct NetWorthView: View {
     @Environment(AssetStore.self) private var store
     @Environment(ToastManager.self) private var toastManager
     @State private var showsArchived = false
     @State private var form: FormTarget?
     @State private var pendingDelete: Asset?
-    @State private var valueTarget: Asset?
-    @State private var showsCategories = false
+    @State private var renameTarget: NetWorthSections.Group?
 
     private enum FormTarget: Identifiable {
         case create
@@ -70,8 +69,7 @@ struct NetWorthView: View {
             case .edit(let asset): AssetFormSheet(asset: asset, currency: baseCurrency)
             }
         }
-        .sheet(item: $valueTarget) { AssetValueSheet(asset: $0) }
-        .sheet(isPresented: $showsCategories) { AssetCategoriesSheet() }
+        .sheet(item: $renameTarget) { RenameAssetTypeSheet(type: $0) }
         .confirmationDialog(
             pendingDelete.map { AppLocale.string("Supprimer \($0.name) ?") } ?? "",
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
@@ -91,28 +89,13 @@ struct NetWorthView: View {
     }
 
     private var emptyScreen: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            PulpeEmptyState(
-                systemImage: "building.columns",
-                title: AppLocale.string("Ton patrimoine commence ici"),
-                // swiftlint:disable:next line_length
-                message: AppLocale.string("Ajoute un compte, un livret ou une dette pour voir ta fortune nette du jour."),
-                actionTitle: AppLocale.string("Ajouter un avoir"),
-                action: { form = .create }
-            )
-            // Categories outlive their assets: manageable on the empty screen too.
-            categoriesRow
-                .padding([.horizontal, .bottom], DesignTokens.Spacing.lg)
-        }
-    }
-
-    private var categoriesRow: some View {
-        ContextLinkRow(
-            icon: "folder",
-            iconTint: .pulpePrimary,
-            title: AppLocale.string("Gérer les catégories")
-        ) { showsCategories = true }
-            .accessibilityIdentifier("netWorthCategories")
+        PulpeEmptyState(
+            systemImage: "building.columns",
+            title: AppLocale.string("Ton patrimoine commence ici"),
+            message: AppLocale.string("Ajoute un compte, un livret ou une dette pour voir ta fortune nette du jour."),
+            actionTitle: AppLocale.string("Ajouter un avoir"),
+            action: { form = .create }
+        )
     }
 
     private func loaded(_ sections: NetWorthSections) -> some View {
@@ -124,27 +107,9 @@ struct NetWorthView: View {
                 if let netWorth = store.netWorth, let graph = NetWorthSankey.build(netWorth) {
                     NetWorthBreakdownCard(graph: graph, totals: netWorth.totals)
                 }
-                ForEach(sections.categories) { category in
-                    section(
-                        title: category.name,
-                        total: category.total,
-                        currency: sections.baseCurrency,
-                        assets: category.assets,
-                        sections: sections
-                    )
-                }
-                if !sections.debts.isEmpty {
-                    section(
-                        title: AppLocale.string("Ce que je dois"),
-                        total: sections.debtsTotal,
-                        currency: sections.baseCurrency,
-                        assets: sections.debts,
-                        sections: sections,
-                        showsCategory: true
-                    )
-                }
+                side(AppLocale.string("Ce que j'ai"), groups: sections.categories, sections: sections)
+                side(AppLocale.string("Ce que je dois"), groups: sections.debtGroups, sections: sections)
                 if !sections.archived.isEmpty { archived(sections) }
-                categoriesRow
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
             }
@@ -154,17 +119,59 @@ struct NetWorthView: View {
         .refreshable { await store.forceRefresh() }
     }
 
-    private func section(
-        title: String,
-        total: Decimal,
-        currency: SupportedCurrency,
-        assets: [Asset],
-        sections: NetWorthSections,
-        showsCategory: Bool = false
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            SectionHeader(title: title, trailingAmount: total.asCurrency(currency))
-            rows(assets, sections: sections, showsCategory: showsCategory)
+    /// Both sides are built the same way: a heading, then one card per Type.
+    @ViewBuilder
+    private func side(_ title: String, groups: [NetWorthSections.Group], sections: NetWorthSections) -> some View {
+        if !groups.isEmpty {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                SectionHeader(title: title)
+                ForEach(groups) { group in
+                    card(group, sections: sections)
+                }
+            }
+        }
+    }
+
+    private func card(_ group: NetWorthSections.Group, sections: NetWorthSections) -> some View {
+        VStack(spacing: DesignTokens.Spacing.none) {
+            groupHeader(group, currency: sections.baseCurrency)
+            ForEach(group.assets, id: \.id) { asset in
+                Divider().overlay(Color.outlineVariant)
+                assetRow(asset, sections: sections, showsCategory: !group.isType)
+            }
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .pulpeSurfaceCard()
+    }
+
+    private func groupHeader(_ group: NetWorthSections.Group, currency: SupportedCurrency) -> some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Text(group.name)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            Text(group.total.asCurrency(currency))
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textSecondary)
+                .monospacedDigit()
+                .sensitiveAmount()
+            if group.isType {
+                Menu {
+                    Button(AppLocale.string("Renommer le type"), systemImage: "pencil") { renameTarget = group }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(PulpeTypography.rowTitle)
+                        .foregroundStyle(Color.textSecondary)
+                        .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel(AppLocale.string("Actions pour \(group.name)"))
+                .accessibilityIdentifier("netWorthTypeMenu")
+            } else {
+                // Keeps the total aligned with the cards that carry a menu.
+                Color.clear.frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
+            }
         }
     }
 
@@ -186,7 +193,6 @@ struct NetWorthView: View {
                 baseCurrency: sections.baseCurrency,
                 categoryName: showsCategory ? sections.categoryName(of: asset) : nil,
                 actions: NetWorthAssetActions(
-                    updateValue: { valueTarget = asset },
                     edit: { form = .edit(asset) },
                     toggleArchive: {
                         run { try await store.setArchived(id: asset.id, asset.archivedAt == nil) }

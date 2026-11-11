@@ -1,7 +1,7 @@
 import Foundation
 
-/// How a new or moved asset picks its category. A starter name is created first, so the
-/// category only exists once an asset lands in it (same as the web `resolveCategory`).
+/// How a new or moved element picks its Type. A name is created first when no Type carries it,
+/// so a Type only exists once an element lands in it (same as the web `resolveAssetCategory`).
 enum AssetCategoryChoice: Hashable, Sendable {
     case existing(id: String)
     case starter(name: String)
@@ -129,11 +129,16 @@ final class AssetStore: StoreProtocol {
         }
     }
 
-    func update(id: String, _ data: AssetUpdate, category: AssetCategoryChoice? = nil) async throws {
+    /// The `PATCH` then the snapshot, each only when the edit carries it.
+    func save(id: String, _ edit: AssetEdit) async throws {
         try await write {
-            var data = data
-            if let category { data.categoryId = try await self.resolve(category) }
-            _ = try await self.service.update(id: id, data)
+            var updates = edit.updates ?? AssetUpdate()
+            if let category = edit.category { updates.categoryId = try await self.resolve(category) }
+            if updates != AssetUpdate() { _ = try await self.service.update(id: id, updates) }
+            if let value = edit.value {
+                let item = AssetSnapshotItem(assetId: id, value: value)
+                _ = try await self.service.recordSnapshots(AssetSnapshotsCreate(items: [item]))
+            }
         }
     }
 
@@ -153,16 +158,8 @@ final class AssetStore: StoreProtocol {
         try await write { _ = try await self.service.dismissSuggestion(id: id) }
     }
 
-    func createCategory(name: String) async throws {
-        try await write { _ = try await self.service.createCategory(AssetCategoryWrite(name: name)) }
-    }
-
     func renameCategory(id: String, name: String) async throws {
         try await write { _ = try await self.service.renameCategory(id: id, AssetCategoryWrite(name: name)) }
-    }
-
-    func deleteCategory(id: String) async throws {
-        try await write { try await self.service.deleteCategory(id: id) }
     }
 
     // MARK: - Private
@@ -171,6 +168,10 @@ final class AssetStore: StoreProtocol {
         switch choice {
         case .existing(let id): return id
         case .starter(let name):
+            // A Type no element uses is hidden, never deleted: its name reuses it.
+            if let match = categories.first(where: { $0.name.lowercased() == name.lowercased() }) {
+                return match.id
+            }
             return try await service.createCategory(AssetCategoryWrite(name: name)).id
         }
     }

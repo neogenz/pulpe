@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct NetWorthAssetActions {
-    let updateValue: () -> Void
     let edit: () -> Void
     let toggleArchive: () -> Void
     let delete: () -> Void
@@ -12,47 +11,59 @@ struct NetWorthAssetActions {
 struct NetWorthAssetRow: View {
     let asset: Asset
     let baseCurrency: SupportedCurrency
-    /// Shown before « mis à jour » on a debt, which is not under its category.
+    /// Shown before « mis à jour » where the card is not the element's Type (« Découverts »).
     var categoryName: String?
     var actions: NetWorthAssetActions?
 
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.xs) {
-            content
+            if let actions, asset.archivedAt == nil {
+                // The row and its menu are siblings: tapping the row edits, the menu holds the rest.
+                Button(action: actions.edit) { content }
+                    .contentShape(Rectangle())
+                    .plainPressedButtonStyle()
+                    .accessibilityHint(AppLocale.string("Modifier"))
+                    .accessibilityIdentifier("netWorthRowEdit")
+            } else {
+                content
+            }
             if let actions { menu(actions) }
         }
     }
 
     private var content: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(asset.name)
-                    .font(PulpeTypography.rowTitle)
-                    .foregroundStyle(Color.textPrimary)
-                Text(updatedLine)
-                    .font(PulpeTypography.captionRegular)
-                    .foregroundStyle(Color.textSecondary)
-                if !asset.badges.isEmpty {
-                    HStack(spacing: DesignTokens.Spacing.xs) {
-                        ForEach(asset.badges, id: \.self) { badge in
-                            PulpeChip(label: label(of: badge), style: style(of: badge))
-                        }
+        // Badges sit under the whole row: beside the amount, a long one would be cut.
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(asset.name)
+                        .font(PulpeTypography.rowTitle)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(updatedLine)
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                    Text(asset.latestValue.asCurrency(asset.currency))
+                        .font(PulpeTypography.rowAmount)
+                        .foregroundStyle(Color.textPrimary)
+                    if asset.showsConversion(in: baseCurrency), let converted = asset.convertedValue {
+                        Text("≈ \(converted.asCurrency(baseCurrency))")
+                            .font(PulpeTypography.captionRegular)
+                            .foregroundStyle(Color.textSecondary)
+                            .monospacedDigit()
+                    }
+                }
+                .sensitiveAmount()
+            }
+            if !asset.badges.isEmpty {
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    ForEach(asset.badges, id: \.self) { badge in
+                        PulpeChip(label: label(of: badge), style: style(of: badge))
                     }
                 }
             }
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                Text(asset.latestValue.asCurrency(asset.currency))
-                    .font(PulpeTypography.rowAmount)
-                    .foregroundStyle(Color.textPrimary)
-                if asset.showsConversion(in: baseCurrency), let converted = asset.convertedValue {
-                    Text("≈ \(converted.asCurrency(baseCurrency))")
-                        .font(PulpeTypography.captionRegular)
-                        .foregroundStyle(Color.textSecondary)
-                        .monospacedDigit()
-                }
-            }
-            .sensitiveAmount()
         }
         .padding(.vertical, DesignTokens.Spacing.md)
         .accessibilityElement(children: .combine)
@@ -61,11 +72,6 @@ struct NetWorthAssetRow: View {
     private func menu(_ actions: NetWorthAssetActions) -> some View {
         Menu {
             if asset.archivedAt == nil {
-                Button(
-                    AppLocale.string("Mettre à jour la valeur"),
-                    systemImage: "arrow.up.arrow.down",
-                    action: actions.updateValue
-                )
                 Button(AppLocale.string("Modifier"), systemImage: "pencil", action: actions.edit)
             }
             Button(
@@ -95,7 +101,7 @@ struct NetWorthAssetRow: View {
 
     private func label(of badge: NetWorthBadge) -> String {
         switch badge {
-        case .inPulpe: AppLocale.string("Dans Pulpe")
+        case .inPulpe: AppLocale.string("Mis à jour au rapprochement")
         case .overdraft: AppLocale.string("Découvert")
         case .excluded: AppLocale.string("Hors total")
         }

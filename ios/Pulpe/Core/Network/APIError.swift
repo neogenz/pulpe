@@ -194,11 +194,11 @@ enum APIError: LocalizedError {
         case .assetNotFound:
             return "Cet élément est introuvable — il a peut-être déjà été supprimé"
         case .assetCategoryNotFound:
-            return "Cette catégorie est introuvable — elle a peut-être déjà été supprimée"
+            return "Ce type est introuvable — il a peut-être déjà été supprimé"
         case .assetCategoryNotEmpty:
-            return "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie"
+            return "Ce type contient encore des éléments — déplace-les d'abord vers un autre type"
         case .assetCategoryDuplicate:
-            return "Une catégorie porte déjà ce nom"
+            return "Un type porte déjà ce nom"
         case .assetValueInvalid:
             return "Cette valeur n'est pas valide — une dette ne peut pas être négative"
         case .assetFetchFailed:

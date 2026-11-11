@@ -40,6 +40,44 @@ struct AssetStoreTests {
         #expect(service.lastCreate?.categoryId == "c9")
     }
 
+    @Test func create_typeNamedLikeAnExistingOne_reusesIt() async throws {
+        let service = MockAssetService()
+        let store = AssetStore(service: service)
+        await store.forceRefresh()
+
+        try await store.create(makeCreate(), category: .starter(name: "comptes"))
+
+        #expect(service.calls == ["get", "create", "get"])
+        #expect(service.lastCreate?.categoryId == "c1")
+    }
+
+    @Test func save_valueOnly_recordsASnapshotWithoutPatch() async throws {
+        let service = MockAssetService()
+        let store = AssetStore(service: service)
+
+        try await store.save(id: "a1", AssetEdit(value: 1500))
+
+        #expect(service.calls == ["snapshots", "get"])
+    }
+
+    @Test func save_nameOnly_patchesWithoutSnapshot() async throws {
+        let service = MockAssetService()
+        let store = AssetStore(service: service)
+
+        try await store.save(id: "a1", AssetEdit(updates: AssetUpdate(name: "UBS")))
+
+        #expect(service.calls == ["update", "get"])
+    }
+
+    @Test func save_newTypeAndValue_createsTheTypeThenPatchesThenSnapshots() async throws {
+        let service = MockAssetService()
+        let store = AssetStore(service: service)
+
+        try await store.save(id: "a1", AssetEdit(category: .starter(name: "Crypto"), value: 20))
+
+        #expect(service.calls == ["createCategory", "update", "snapshots", "get"])
+    }
+
     @Test func create_assetFails_refetchesAndRethrows() async {
         let service = MockAssetService()
         service.createError = APIError.assetCreateFailed
@@ -63,9 +101,9 @@ struct AssetStoreTests {
         service.holdCreateCategory = true
         let store = AssetStore(service: service)
 
-        let first = Task { try await store.createCategory(name: "A") }
+        let first = Task { try await store.create(makeCreate(), category: .starter(name: "A")) }
         while !service.didEnterHold { await Task.yield() }
-        try await store.createCategory(name: "B")
+        try await store.create(makeCreate(), category: .starter(name: "B"))
         service.release()
         try await first.value
 
