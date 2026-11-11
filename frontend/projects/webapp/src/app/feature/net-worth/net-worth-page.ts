@@ -357,26 +357,23 @@ export default class NetWorthPage {
   }
 
   protected async onAdd(): Promise<void> {
-    const request = await this.#dialogs.openCreate(this.store.categories());
+    const request = await this.#dialogs.openCreate(
+      this.store.categories(),
+      this.store.assets(),
+    );
     if (request) await this.#attempt(() => this.store.addAsset(request));
   }
 
   protected async onAction({ asset, action }: AssetRowEvent): Promise<void> {
     switch (action) {
-      case 'updateValue': {
-        const value = await this.#dialogs.openValue(asset);
-        if (value !== undefined) {
-          await this.#attempt(() => this.store.recordValue(asset.id, value));
-        }
-        return;
-      }
       case 'edit': {
         const request = await this.#dialogs.openEdit(
           asset,
           this.store.categories(),
+          this.store.assets(),
         );
         if (request) {
-          await this.#attempt(() => this.store.editAsset(asset.id, request));
+          await this.#attempt(() => this.store.saveAsset(asset.id, request));
         }
         return;
       }

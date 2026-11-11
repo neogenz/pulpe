@@ -191,11 +191,11 @@ describe('NetWorthAssetRow', () => {
       .click();
     fixture.detectChanges();
     document
-      .querySelector<HTMLElement>('[data-testid="asset-update-value-action"]')!
+      .querySelector<HTMLElement>('[data-testid="asset-edit-action"]')!
       .click();
 
     expect(fixture.componentInstance.events).toEqual([
-      { asset, action: 'updateValue' },
+      { asset, action: 'edit' },
     ]);
   });
 

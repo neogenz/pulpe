@@ -20,9 +20,11 @@ export interface AssetCreateRequest {
   category: CategoryChoice;
 }
 
+/** Only what changed; `value` is the new signed value of today. */
 export interface AssetEditRequest {
-  updates: Omit<AssetUpdate, 'categoryId'>;
-  category: CategoryChoice;
+  updates?: Pick<AssetUpdate, 'name'>;
+  category?: CategoryChoice;
+  value?: number;
 }
 
 /**
@@ -78,13 +80,26 @@ export class NetWorthStore {
     });
   }
 
-  editAsset(
+  /** Patches the name and the Type, then records the value: each only when present. */
+  saveAsset(
     id: string,
-    { updates, category }: AssetEditRequest,
+    { updates, category, value }: AssetEditRequest,
   ): Promise<void> {
     return this.#run(async () => {
-      const categoryId = await this.#resolveCategory(category);
-      await firstValueFrom(this.#api.update$(id, { ...updates, categoryId }));
+      if (updates || category) {
+        const categoryId = category && (await this.#resolveCategory(category));
+        await firstValueFrom(
+          this.#api.update$(id, {
+            ...updates,
+            ...(categoryId && { categoryId }),
+          }),
+        );
+      }
+      if (value !== undefined) {
+        await firstValueFrom(
+          this.#api.recordSnapshots$({ items: [{ assetId: id, value }] }),
+        );
+      }
     });
   }
 

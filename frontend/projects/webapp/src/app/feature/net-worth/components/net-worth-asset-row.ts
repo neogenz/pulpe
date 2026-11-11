@@ -17,7 +17,6 @@ import type { Asset, SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 
 export type AssetRowAction =
-  | 'updateValue'
   | 'edit'
   | 'archive'
   | 'unarchive'
@@ -178,14 +177,6 @@ const DAYS_PER_YEAR = 365;
           <span>{{ 'netWorth.menu.unarchive' | transloco }}</span>
         </button>
       } @else {
-        <button
-          mat-menu-item
-          (click)="emit('updateValue')"
-          data-testid="asset-update-value-action"
-        >
-          <mat-icon>edit_note</mat-icon>
-          <span>{{ 'netWorth.menu.updateValue' | transloco }}</span>
-        </button>
         <button
           mat-menu-item
           (click)="emit('edit')"

@@ -1485,7 +1485,6 @@
     },
     "menu": {
       "actions": "Actions for {{name}}",
-      "updateValue": "Update value",
       "edit": "Edit",
       "archive": "Archive",
       "unarchive": "Unarchive",
@@ -1500,25 +1499,14 @@
       "direction": "Type",
       "own": "What I have",
       "owe": "What I owe",
-      "category": "Category",
-      "myCategories": "My categories",
-      "suggestions": "Suggestions",
-      "newTag": "New",
-      "newCategoryHint": "New category: I create it when you save.",
-      "currency": "Currency",
+      "category": "Type",
+      "otherType": "Other type…",
+      "typeName": "Type name",
       "value": "Current value",
-      "inPulpe": "In Pulpe",
-      "inPulpeHint": "For the account you check in your budget. I pre-fill it when you match your accounts.",
-      "readOnlyHint": "The type and the currency stay as they were at creation.",
-      "editNote": "To change its value, use “Update value” in the row menu.",
       "nameRequired": "Give it a name",
       "add": "Add"
     },
     "value": {
-      "title": "Update value",
-      "subtitleOwn": "{{name}} · what I have today",
-      "subtitleOwe": "{{name}} · what I owe today",
-      "label": "New value",
       "lastValue": "Last value: {{amount}}, on {{date}}",
       "overdraft": "Negative balance (overdraft)"
     },
@@ -1560,6 +1548,12 @@
       "cash": "Cash",
       "valuables": "Valuables",
       "property": "Property"
+    },
+    "starterDebt": {
+      "loan": "Loan",
+      "mortgage": "Mortgage",
+      "leasing": "Leasing",
+      "card": "Credit card"
     }
   },
   "completeProfile": {
@@ -2151,9 +2145,9 @@
     "transactionImportFailed": "Nothing was created, try again",
     "transactionImportRecalculationFailed": "The entries were imported, but the balances couldn't be refreshed — reload the page without importing the file again",
     "assetNotFound": "This item was not found — it may already be deleted",
-    "assetCategoryNotFound": "This category was not found — it may already be deleted",
-    "assetCategoryNotEmpty": "This category still holds items — move them to another category first",
-    "assetCategoryDuplicate": "A category already has this name",
+    "assetCategoryNotFound": "This type was not found — it may already be deleted",
+    "assetCategoryNotEmpty": "This type still holds items — move them to another type first",
+    "assetCategoryDuplicate": "A type already has this name",
     "assetValueInvalid": "This value isn't valid — a debt can't be negative",
     "assetFetchFailed": "Couldn't load your net worth — try again",
     "assetCreateFailed": "Couldn't add it — try again",

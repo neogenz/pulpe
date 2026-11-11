@@ -103,6 +103,7 @@ describe('NetWorthPage', () => {
     netWorth: { status, value },
     totals: computed(() => value()?.totals ?? null),
     categories: computed(() => value()?.categories ?? []),
+    assets: computed(() => value()?.assets ?? []),
     activeAssets: computed(() =>
       (value()?.assets ?? []).filter((asset) => asset.archivedAt === null),
     ),
@@ -179,7 +180,7 @@ describe('NetWorthPage', () => {
     (
       byTestId('net-worth-empty')!.querySelector('button') as HTMLButtonElement
     ).click();
-    expect(dialogs.openCreate).toHaveBeenCalledWith([]);
+    expect(dialogs.openCreate).toHaveBeenCalledWith([], []);
   });
 
   it('shows the API totals, with overdrawn and owe assets on the debts side only', () => {

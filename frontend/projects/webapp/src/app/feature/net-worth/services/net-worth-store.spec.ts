@@ -183,16 +183,36 @@ describe('NetWorthStore', () => {
     expect(cache.invalidate).toHaveBeenCalledWith(['assets']);
   });
 
-  it('edits an asset with its resolved category', async () => {
-    await store.editAsset(ASSET_ID, {
-      updates: { name: 'UBS Pro', inPulpe: false },
+  it('patches the name and the resolved Type, without a snapshot, when the value is unchanged', async () => {
+    await store.saveAsset(ASSET_ID, {
+      updates: { name: 'UBS Pro' },
       category: { name: 'Placements' },
     });
 
     expect(api['update$']).toHaveBeenCalledWith(ASSET_ID, {
       name: 'UBS Pro',
-      inPulpe: false,
       categoryId: NEW_CATEGORY_ID,
+    });
+    expect(api['recordSnapshots$']).not.toHaveBeenCalled();
+  });
+
+  it('records one snapshot and no patch when only the value changed', async () => {
+    await store.saveAsset(ASSET_ID, { value: 25400 });
+
+    expect(api['update$']).not.toHaveBeenCalled();
+    expect(api['recordSnapshots$']).toHaveBeenCalledExactlyOnceWith({
+      items: [{ assetId: ASSET_ID, value: 25400 }],
+    });
+  });
+
+  it('reuses a Type that no element shows any more instead of creating a duplicate', async () => {
+    await settle();
+
+    await store.saveAsset(ASSET_ID, { category: { name: 'comptes' } });
+
+    expect(api['createCategory$']).not.toHaveBeenCalled();
+    expect(api['update$']).toHaveBeenCalledWith(ASSET_ID, {
+      categoryId: CHECKING,
     });
   });
 

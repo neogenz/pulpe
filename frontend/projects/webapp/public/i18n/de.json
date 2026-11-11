@@ -1485,7 +1485,6 @@
     },
     "menu": {
       "actions": "Aktionen für {{name}}",
-      "updateValue": "Wert aktualisieren",
       "edit": "Bearbeiten",
       "archive": "Archivieren",
       "unarchive": "Wiederherstellen",
@@ -1500,25 +1499,14 @@
       "direction": "Art",
       "own": "Was ich habe",
       "owe": "Was ich schulde",
-      "category": "Kategorie",
-      "myCategories": "Meine Kategorien",
-      "suggestions": "Vorschläge",
-      "newTag": "Neu",
-      "newCategoryHint": "Neue Kategorie: Ich lege sie beim Speichern an.",
-      "currency": "Währung",
+      "category": "Typ",
+      "otherType": "Anderer Typ…",
+      "typeName": "Name des Typs",
       "value": "Aktueller Wert",
-      "inPulpe": "In Pulpe",
-      "inPulpeHint": "Für das Konto, das du in deinem Budget abhakst. Ich fülle es vor, wenn du deine Konten abgleichst.",
-      "readOnlyHint": "Art und Währung bleiben wie bei der Erstellung.",
-      "editNote": "Um den Wert zu ändern, nutze „Wert aktualisieren“ im Menü der Zeile.",
       "nameRequired": "Gib einen Namen ein",
       "add": "Hinzufügen"
     },
     "value": {
-      "title": "Wert aktualisieren",
-      "subtitleOwn": "{{name}} · was ich heute habe",
-      "subtitleOwe": "{{name}} · was ich heute schulde",
-      "label": "Neuer Wert",
       "lastValue": "Letzter Wert: {{amount}}, am {{date}}",
       "overdraft": "Negativer Saldo (überzogen)"
     },
@@ -1560,6 +1548,12 @@
       "cash": "Bargeld",
       "valuables": "Wertgegenstände",
       "property": "Sachwerte"
+    },
+    "starterDebt": {
+      "loan": "Kredit",
+      "mortgage": "Hypothek",
+      "leasing": "Leasing",
+      "card": "Kreditkarte"
     }
   },
   "completeProfile": {
@@ -2151,9 +2145,9 @@
     "transactionImportFailed": "Nichts wurde erstellt, versuch es nochmal",
     "transactionImportRecalculationFailed": "Die Bewegungen wurden importiert, aber die Salden konnten nicht aktualisiert werden — lade die Seite neu, ohne die Datei erneut zu importieren",
     "assetNotFound": "Dieser Eintrag wurde nicht gefunden — vielleicht ist er schon gelöscht",
-    "assetCategoryNotFound": "Diese Kategorie wurde nicht gefunden — vielleicht ist sie schon gelöscht",
-    "assetCategoryNotEmpty": "Diese Kategorie enthält noch Einträge — verschiebe sie zuerst in eine andere Kategorie",
-    "assetCategoryDuplicate": "Eine Kategorie trägt schon diesen Namen",
+    "assetCategoryNotFound": "Dieser Typ wurde nicht gefunden — vielleicht ist er schon gelöscht",
+    "assetCategoryNotEmpty": "Dieser Typ enthält noch Einträge — verschiebe sie zuerst in einen anderen Typ",
+    "assetCategoryDuplicate": "Ein Typ trägt schon diesen Namen",
     "assetValueInvalid": "Dieser Wert ist ungültig — eine Schuld kann nicht negativ sein",
     "assetFetchFailed": "Dein Vermögen konnte nicht geladen werden — versuche es nochmal",
     "assetCreateFailed": "Hinzufügen fehlgeschlagen — versuche es nochmal",

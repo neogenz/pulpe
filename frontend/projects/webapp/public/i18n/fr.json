@@ -1485,7 +1485,6 @@
     },
     "menu": {
       "actions": "Actions pour {{name}}",
-      "updateValue": "Mettre à jour la valeur",
       "edit": "Modifier",
       "archive": "Archiver",
       "unarchive": "Désarchiver",
@@ -1500,25 +1499,14 @@
       "direction": "Sens",
       "own": "Ce que j'ai",
       "owe": "Ce que je dois",
-      "category": "Catégorie",
-      "myCategories": "Mes catégories",
-      "suggestions": "Suggestions",
-      "newTag": "Nouvelle",
-      "newCategoryHint": "Nouvelle catégorie : je la crée à l'enregistrement.",
-      "currency": "Devise",
+      "category": "Type",
+      "otherType": "Autre type…",
+      "typeName": "Nom du type",
       "value": "Valeur actuelle",
-      "inPulpe": "Dans Pulpe",
-      "inPulpeHint": "Pour le compte que tu pointes dans ton budget. Je le pré-remplis quand tu fais le point sur tes comptes.",
-      "readOnlyHint": "Le sens et la devise restent ceux de la création.",
-      "editNote": "Pour changer sa valeur, passe par « Mettre à jour la valeur » dans le menu de la ligne.",
       "nameRequired": "Donne-lui un nom",
       "add": "Ajouter"
     },
     "value": {
-      "title": "Mettre à jour la valeur",
-      "subtitleOwn": "{{name}} · ce que j'ai aujourd'hui",
-      "subtitleOwe": "{{name}} · ce que je dois aujourd'hui",
-      "label": "Nouvelle valeur",
       "lastValue": "Dernière valeur : {{amount}}, le {{date}}",
       "overdraft": "Solde négatif (découvert)"
     },
@@ -1560,6 +1548,12 @@
       "cash": "Cash",
       "valuables": "Objets de valeur",
       "property": "Biens"
+    },
+    "starterDebt": {
+      "loan": "Crédit",
+      "mortgage": "Hypothèque",
+      "leasing": "Leasing",
+      "card": "Carte de crédit"
     }
   },
   "completeProfile": {
@@ -2151,9 +2145,9 @@
     "transactionImportFailed": "Rien n'a été créé, réessaie",
     "transactionImportRecalculationFailed": "Les mouvements ont bien été importés, mais les soldes n'ont pas pu être actualisés — recharge la page sans réimporter le fichier",
     "assetNotFound": "Cet élément est introuvable — il a peut-être déjà été supprimé",
-    "assetCategoryNotFound": "Cette catégorie est introuvable — elle a peut-être déjà été supprimée",
-    "assetCategoryNotEmpty": "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie",
-    "assetCategoryDuplicate": "Une catégorie porte déjà ce nom",
+    "assetCategoryNotFound": "Ce type est introuvable — il a peut-être déjà été supprimé",
+    "assetCategoryNotEmpty": "Ce type contient encore des éléments — déplace-les d'abord vers un autre type",
+    "assetCategoryDuplicate": "Un type porte déjà ce nom",
     "assetValueInvalid": "Cette valeur n'est pas valide — une dette ne peut pas être négative",
     "assetFetchFailed": "Impossible de charger ton patrimoine — réessaie",
     "assetCreateFailed": "L'ajout a échoué — réessaie",
