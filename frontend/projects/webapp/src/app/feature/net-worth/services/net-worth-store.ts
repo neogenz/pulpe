@@ -9,10 +9,11 @@ import type {
   NetWorthTotals,
 } from 'pulpe-shared';
 import { AssetApi } from '@core/asset/asset-api';
+import {
+  resolveAssetCategory,
+  type CategoryChoice,
+} from '@core/asset/asset-category';
 import { injectNetWorthResource } from '@core/asset/net-worth';
-
-/** An existing category, or a starter suggestion to create on save. */
-export type CategoryChoice = { id: string } | { name: string };
 
 export interface AssetCreateRequest {
   asset: Omit<AssetCreate, 'categoryId'>;
@@ -134,11 +135,7 @@ export class NetWorthStore {
     }
   }
 
-  async #resolveCategory(choice: CategoryChoice): Promise<string> {
-    if ('id' in choice) return choice.id;
-    const created = await firstValueFrom(
-      this.#api.createCategory$({ name: choice.name }),
-    );
-    return created.data.id;
+  #resolveCategory(choice: CategoryChoice): Promise<string> {
+    return resolveAssetCategory(this.#api, this.categories(), choice);
   }
 }

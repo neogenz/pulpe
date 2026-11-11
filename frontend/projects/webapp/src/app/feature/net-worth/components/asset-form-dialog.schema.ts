@@ -4,10 +4,10 @@ import {
   type AssetDirection,
   type SupportedCurrency,
 } from 'pulpe-shared';
+import type { CategoryChoice } from '@core/asset/asset-category';
 import type {
   AssetCreateRequest,
   AssetEditRequest,
-  CategoryChoice,
 } from '../services/net-worth-store';
 
 export interface AssetFormValue {
