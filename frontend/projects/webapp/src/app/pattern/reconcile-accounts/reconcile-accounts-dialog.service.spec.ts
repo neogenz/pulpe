@@ -78,7 +78,7 @@ function setup(
     ],
   });
 
-  const data: Omit<ReconcileAccountsDialogData, 'linkedAccounts'> = {
+  const data: Omit<ReconcileAccountsDialogData, 'netWorth'> = {
     realized: signal(null),
     currency: signal(options.currency ?? 'CHF'),
     periodDates: signal(getBudgetPeriodDates(11, 2026)),
@@ -114,7 +114,7 @@ describe('ReconcileAccountsDialogService', () => {
     TestBed.resetTestingModule();
   });
 
-  it('should open at once on no linked account when the flag is off', () => {
+  it('should open at once without « Mon patrimoine » when the flag is off', () => {
     const view = setup({ isFlagOn: false });
     view.seed([UBS]);
 
@@ -125,15 +125,20 @@ describe('ReconcileAccountsDialogService', () => {
       ReconcileAccountsDialog,
       expect.objectContaining({ disableClose: true }),
     );
-    expect(view.openedData()?.linkedAccounts).toEqual([]);
+    expect(view.openedData()?.netWorth).toBeNull();
     expect(view.assetApi.getNetWorth$).not.toHaveBeenCalled();
   });
 
-  it('should keep the active in-Pulpe accounts of the budget currency', async () => {
+  it('should offer every active own account of the budget currency, followed or not', async () => {
     const view = setup();
+    const livret = makeAsset({
+      id: 'a-livret',
+      name: 'Livret',
+      inPulpe: false,
+    });
     view.seed([
       UBS,
-      makeAsset({ id: 'a-livret', name: 'Livret', inPulpe: false }),
+      livret,
       makeAsset({ id: 'a-eur', name: 'Compte EUR', currency: 'EUR' }),
       makeAsset({
         id: 'a-old',
@@ -145,7 +150,7 @@ describe('ReconcileAccountsDialogService', () => {
 
     await view.service.open(view.data, false);
 
-    expect(view.openedData()?.linkedAccounts).toEqual([UBS]);
+    expect(view.openedData()?.netWorth?.accounts).toEqual([UBS, livret]);
   });
 
   it('should follow the currency of the budget', async () => {
@@ -155,7 +160,7 @@ describe('ReconcileAccountsDialogService', () => {
 
     await view.service.open(view.data, false);
 
-    expect(view.openedData()?.linkedAccounts).toEqual([eur]);
+    expect(view.openedData()?.netWorth?.accounts).toEqual([eur]);
   });
 
   it('should read through the shared cache and skip the request when it is fresh', async () => {
@@ -174,7 +179,7 @@ describe('ReconcileAccountsDialogService', () => {
     expect(view.dialog.open).toHaveBeenCalledTimes(2);
   });
 
-  it('should open on no linked account when the read fails', async () => {
+  it('should open without « Mon patrimoine » when the read fails', async () => {
     const view = setup();
     view.assetApi.getNetWorth$.mockReturnValue(
       throwError(() => new Error('offline')),
@@ -183,7 +188,7 @@ describe('ReconcileAccountsDialogService', () => {
     await view.service.open(view.data, false);
 
     expect(view.dialog.open).toHaveBeenCalledTimes(1);
-    expect(view.openedData()?.linkedAccounts).toEqual([]);
+    expect(view.openedData()?.netWorth).toBeNull();
   });
 
   it('should wait for a slow read and open once, whatever the clicks in between', async () => {
@@ -199,7 +204,7 @@ describe('ReconcileAccountsDialogService', () => {
     await opening;
 
     expect(view.dialog.open).toHaveBeenCalledTimes(1);
-    expect(view.openedData()?.linkedAccounts).toEqual([UBS]);
+    expect(view.openedData()?.netWorth?.accounts).toEqual([UBS]);
   });
 
   it('should frame the dialog full-height on a phone and centred elsewhere', async () => {

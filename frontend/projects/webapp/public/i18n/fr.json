@@ -1155,7 +1155,12 @@
         "numbered": "Compte {{ index }}",
         "privateHint": "Les comptes saisis ne sont pas enregistrés.",
         "lastBalance": "Dernier solde : {{ amount }}, {{ when }}",
-        "linkedHint": "Je garde le solde de tes comptes « Dans Pulpe » dans Mon patrimoine. Les autres lignes ne sont pas enregistrées."
+        "linkedHint": "Je mets à jour le solde de tes comptes de Mon patrimoine. Les autres lignes ne sont pas enregistrées.",
+        "account": "Compte",
+        "otherAccount": "Autre compte…",
+        "addToNetWorth": "Ajouter à Mon patrimoine",
+        "accountNameLabel": "Nom du compte",
+        "nameRequired": "Donne un nom à ce compte pour l'ajouter"
       },
       "realized": {
         "heading": "Ton solde pointé",

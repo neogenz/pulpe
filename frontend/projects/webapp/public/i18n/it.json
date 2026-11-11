@@ -1155,7 +1155,12 @@
         "numbered": "Conto {{ index }}",
         "privateHint": "I conti inseriti non vengono salvati.",
         "lastBalance": "Ultimo saldo: {{ amount }}, {{ when }}",
-        "linkedHint": "Conservo il saldo dei tuoi conti «In Pulpe» in Il mio patrimonio. Le altre righe non vengono salvate."
+        "linkedHint": "Aggiorno il saldo dei tuoi conti in Il mio patrimonio. Le altre righe non vengono salvate.",
+        "account": "Conto",
+        "otherAccount": "Altro conto…",
+        "addToNetWorth": "Aggiungi a Il mio patrimonio",
+        "accountNameLabel": "Nome del conto",
+        "nameRequired": "Dai un nome a questo conto per aggiungerlo"
       },
       "realized": {
         "heading": "Il tuo saldo spuntato",

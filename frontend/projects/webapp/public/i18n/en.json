@@ -1155,7 +1155,12 @@
         "numbered": "Account {{ index }}",
         "privateHint": "The accounts you enter are not saved.",
         "lastBalance": "Last balance: {{ amount }}, {{ when }}",
-        "linkedHint": "I keep the balance of your “In Pulpe” accounts in My net worth. The other rows are not saved."
+        "linkedHint": "I update the balance of your accounts in My net worth. The other rows are not saved.",
+        "account": "Account",
+        "otherAccount": "Other account…",
+        "addToNetWorth": "Add to My net worth",
+        "accountNameLabel": "Account name",
+        "nameRequired": "Name this account to add it"
       },
       "realized": {
         "heading": "Your checked balance",

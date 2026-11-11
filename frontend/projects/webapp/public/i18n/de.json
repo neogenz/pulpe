@@ -1155,7 +1155,12 @@
         "numbered": "Konto {{ index }}",
         "privateHint": "Die eingegebenen Konten werden nicht gespeichert.",
         "lastBalance": "Letzter Saldo: {{ amount }}, {{ when }}",
-        "linkedHint": "Den Saldo deiner Konten „In Pulpe“ behalte ich in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert."
+        "linkedHint": "Ich aktualisiere den Saldo deiner Konten in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert.",
+        "account": "Konto",
+        "otherAccount": "Anderes Konto…",
+        "addToNetWorth": "Zu Mein Vermögen hinzufügen",
+        "accountNameLabel": "Kontoname",
+        "nameRequired": "Gib dem Konto einen Namen, um es hinzuzufügen"
       },
       "realized": {
         "heading": "Dein abgehakter Saldo",

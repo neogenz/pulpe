@@ -37,6 +37,38 @@
       {{ 'currentMonth.reconcile.accounts.hint' | transloco }}
     </p>
 
+    <ng-template #nameField let-account let-index="index">
+      <mat-form-field
+        appearance="outline"
+        subscriptSizing="dynamic"
+        class="ph-no-capture flex-1 min-w-0"
+      >
+        <mat-label
+          >{{ (account.addToNetWorth ?
+          'currentMonth.reconcile.accounts.accountNameLabel' :
+          'currentMonth.reconcile.accounts.accountName') | transloco
+          }}</mat-label
+        >
+        <input
+          #labelInput
+          matInput
+          autocomplete="off"
+          maxlength="60"
+          [attr.data-row]="account.id"
+          [required]="account.addToNetWorth"
+          [placeholder]="'currentMonth.reconcile.accounts.numbered' | transloco: { index: index + 1 }"
+          [ngModel]="account.label"
+          (ngModelChange)="updateAccount(account.id, { label: $event })"
+          (keydown.enter)="addAccountFromKeyboard($event)"
+          data-testid="reconcile-label-input"
+        />
+        <mat-error
+          >{{ 'currentMonth.reconcile.accounts.nameRequired' | transloco
+          }}</mat-error
+        >
+      </mat-form-field>
+    </ng-template>
+
     <div class="account-list grid gap-3">
       @for (account of accountViews(); track account.id; let index = $index) {
       <div
@@ -45,28 +77,40 @@
         [attr.aria-label]="'currentMonth.reconcile.accounts.numbered' | transloco: { index: index + 1 }"
       >
         <div class="account-header flex items-start gap-1 mb-3">
+          @if (hasOwnAccounts) {
           <mat-form-field
             appearance="outline"
             subscriptSizing="dynamic"
             class="ph-no-capture flex-1 min-w-0"
           >
             <mat-label
-              >{{ 'currentMonth.reconcile.accounts.accountName' | transloco
+              >{{ 'currentMonth.reconcile.accounts.account' | transloco
               }}</mat-label
             >
-            <input
-              #labelInput
-              matInput
-              autocomplete="off"
-              maxlength="60"
-              [placeholder]="'currentMonth.reconcile.accounts.numbered' | transloco: { index: index + 1 }"
-              [ngModel]="account.label"
-              (ngModelChange)="updateAccount(account.id, { label: $event })"
-              (keydown.enter)="addAccountFromKeyboard($event)"
-              data-testid="reconcile-label-input"
-            />
+            <mat-select
+              [value]="account.assetId ?? otherAccount"
+              (selectionChange)="selectAccount(account.id, $event.value)"
+              data-testid="reconcile-account-select"
+            >
+              @for (choice of account.choices; track choice.id) {
+              <mat-option [value]="choice.id"
+                ><span class="ph-no-capture"
+                  >{{ choice.name }}</span
+                ></mat-option
+              >
+              }
+              <mat-option [value]="otherAccount"
+                >{{ 'currentMonth.reconcile.accounts.otherAccount' | transloco
+                }}</mat-option
+              >
+            </mat-select>
           </mat-form-field>
-          @if (index > 0) {
+          } @else {
+          <ng-container
+            [ngTemplateOutlet]="nameField"
+            [ngTemplateOutletContext]="{ $implicit: account, index }"
+          />
+          } @if (accountViews().length > 1) {
           <button
             matIconButton
             type="button"
@@ -80,6 +124,14 @@
           </button>
           }
         </div>
+        @if (hasOwnAccounts && account.assetId === null) {
+        <div class="flex mb-3">
+          <ng-container
+            [ngTemplateOutlet]="nameField"
+            [ngTemplateOutletContext]="{ $implicit: account, index }"
+          />
+        </div>
+        }
         <mat-form-field
           appearance="outline"
           subscriptSizing="dynamic"
@@ -119,14 +171,24 @@
             }}</mat-error
           >
         </mat-form-field>
-        <mat-checkbox
-          class="mt-1 -ml-2"
-          [checked]="account.isNegative"
-          (change)="toggleNegative(account.id)"
-          data-testid="reconcile-overdraft-checkbox"
-        >
-          {{ 'currentMonth.reconcile.accounts.negative' | transloco }}
-        </mat-checkbox>
+        <div class="mt-1 -ml-2 flex flex-col items-start">
+          <mat-checkbox
+            [checked]="account.isNegative"
+            (change)="toggleNegative(account.id)"
+            data-testid="reconcile-overdraft-checkbox"
+          >
+            {{ 'currentMonth.reconcile.accounts.negative' | transloco }}
+          </mat-checkbox>
+          @if (data.netWorth && account.assetId === null) {
+          <mat-checkbox
+            [checked]="account.addToNetWorth"
+            (change)="setAddToNetWorth(account.id, $event.checked)"
+            data-testid="reconcile-add-to-net-worth-checkbox"
+          >
+            {{ 'currentMonth.reconcile.accounts.addToNetWorth' | transloco }}
+          </mat-checkbox>
+          }
+        </div>
       </div>
       }
     </div>
@@ -146,8 +208,7 @@
       <mat-icon class="shrink-0 size-4! text-base! mt-px" aria-hidden="true"
         >lock_outline</mat-icon
       >
-      {{ (data.linkedAccounts.length > 0 ?
-      'currentMonth.reconcile.accounts.linkedHint' :
+      {{ (data.netWorth ? 'currentMonth.reconcile.accounts.linkedHint' :
       'currentMonth.reconcile.accounts.privateHint') | transloco }}
     </p>
   </section>
@@ -389,7 +450,7 @@
       matButton="filled"
       class="primary-action"
       (click)="next()"
-      [disabled]="!summary().canContinue"
+      [disabled]="!canContinue()"
       data-testid="reconcile-next-button"
     >
       {{ (step() === 2 ? 'currentMonth.reconcile.compare' :
