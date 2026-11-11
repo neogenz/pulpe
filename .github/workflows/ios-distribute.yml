@@ -60,7 +60,7 @@ jobs:
       run:
         working-directory: ios
     env:
-      ASC_CLI_VERSION: "4.11.0"
+      ASC_CLI_VERSION: "6.5.3"
       ASC_BYPASS_KEYCHAIN: "true"
       ASC_STRICT_AUTH: "true"
       ASC_KEY_ID: ${{ vars.ASC_KEY_ID }}
@@ -228,11 +228,11 @@ jobs:
           case "$(uname -m)" in
             arm64)
               asset="asc_${ASC_CLI_VERSION}_macOS_arm64"
-              checksum="b928a12dec6be975271a2d374ba811717447a211089c6c89d3318d32c61c8202"
+              checksum="1c490d5df9b8263c043f43e6dfc10d7d5f3ec7821137e39a603b9348221f248d"
               ;;
             x86_64)
               asset="asc_${ASC_CLI_VERSION}_macOS_amd64"
-              checksum="276b0ca833041294983fa2506e428b2a5ad29915a141b709251ea90e4a4ef3b4"
+              checksum="128d379d962755bf76ab81017b4ffe0df0b346055d272d7233f51f09eec880b8"
               ;;
             *) echo "::error::Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
           esac
