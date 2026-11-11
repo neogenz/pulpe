@@ -17,6 +17,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
@@ -130,6 +131,7 @@ const LEADING_MINUS = /^\s*[-−]/;
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     TranslocoPipe,
     AppCurrencyPipe,
@@ -256,6 +258,12 @@ export class ReconcileAccountsDialog {
     isErrorState: (control) =>
       !!control?.touched &&
       parseAccountAmount(String(control.value ?? '')).status === 'invalid',
+  };
+
+  // Ticking « Ajouter à Mon patrimoine » asks for a name in plain ink; red is
+  // kept for a name typed then emptied.
+  protected readonly clearedName: ErrorStateMatcher = {
+    isErrorState: (control) => !!control?.invalid && !!control.dirty,
   };
 
   protected readonly summary = computed(() =>

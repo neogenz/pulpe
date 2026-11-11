@@ -1160,7 +1160,8 @@
         "otherAccount": "Altro conto…",
         "addToNetWorth": "Aggiungi a Il mio patrimonio",
         "accountNameLabel": "Nome del conto",
-        "nameRequired": "Dai un nome a questo conto per aggiungerlo"
+        "nameRequired": "Dai un nome a questo conto per aggiungerlo",
+        "addToNetWorthHint": "Conservo questo conto e ne aggiorno il saldo a ogni allineamento."
       },
       "realized": {
         "heading": "Il tuo saldo spuntato",

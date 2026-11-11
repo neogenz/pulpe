@@ -1160,7 +1160,8 @@
         "otherAccount": "Other account…",
         "addToNetWorth": "Add to My net worth",
         "accountNameLabel": "Account name",
-        "nameRequired": "Name this account to add it"
+        "nameRequired": "Name this account to add it",
+        "addToNetWorthHint": "I keep this account and update its balance each time you match your accounts."
       },
       "realized": {
         "heading": "Your checked balance",

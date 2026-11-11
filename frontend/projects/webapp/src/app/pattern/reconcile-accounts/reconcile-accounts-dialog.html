@@ -56,12 +56,19 @@
           maxlength="60"
           [attr.data-row]="account.id"
           [required]="account.addToNetWorth"
+          [errorStateMatcher]="clearedName"
           [placeholder]="'currentMonth.reconcile.accounts.numbered' | transloco: { index: index + 1 }"
           [ngModel]="account.label"
           (ngModelChange)="updateAccount(account.id, { label: $event })"
           (keydown.enter)="addAccountFromKeyboard($event)"
           data-testid="reconcile-label-input"
         />
+        @if (account.isNameMissing) {
+        <mat-hint
+          >{{ 'currentMonth.reconcile.accounts.nameRequired' | transloco
+          }}</mat-hint
+        >
+        }
         <mat-error
           >{{ 'currentMonth.reconcile.accounts.nameRequired' | transloco
           }}</mat-error
@@ -171,24 +178,29 @@
             }}</mat-error
           >
         </mat-form-field>
-        <div class="mt-1 -ml-2 flex flex-col items-start">
-          <mat-checkbox
-            [checked]="account.isNegative"
-            (change)="toggleNegative(account.id)"
-            data-testid="reconcile-overdraft-checkbox"
-          >
-            {{ 'currentMonth.reconcile.accounts.negative' | transloco }}
-          </mat-checkbox>
-          @if (data.netWorth && account.assetId === null) {
-          <mat-checkbox
+        <mat-checkbox
+          class="mt-1 -ml-2"
+          [checked]="account.isNegative"
+          (change)="toggleNegative(account.id)"
+          data-testid="reconcile-overdraft-checkbox"
+        >
+          {{ 'currentMonth.reconcile.accounts.negative' | transloco }}
+        </mat-checkbox>
+        @if (data.netWorth && account.assetId === null) {
+        <div class="mt-3 border-t border-outline-variant pt-3">
+          <mat-slide-toggle
             [checked]="account.addToNetWorth"
             (change)="setAddToNetWorth(account.id, $event.checked)"
-            data-testid="reconcile-add-to-net-worth-checkbox"
+            data-testid="reconcile-add-to-net-worth-toggle"
           >
             {{ 'currentMonth.reconcile.accounts.addToNetWorth' | transloco }}
-          </mat-checkbox>
-          }
+          </mat-slide-toggle>
+          <p class="m-0 mt-1 text-on-surface-variant text-xs leading-normal">
+            {{ 'currentMonth.reconcile.accounts.addToNetWorthHint' | transloco
+            }}
+          </p>
         </div>
+        }
       </div>
       }
     </div>
@@ -205,7 +217,9 @@
     <p
       class="privacy-note flex items-start gap-1.5 mt-4 mb-0 text-on-surface-variant text-xs leading-normal"
     >
-      <mat-icon class="shrink-0 size-4! text-base! mt-px" aria-hidden="true"
+      <mat-icon
+        class="shrink-0 size-4! text-base! leading-none! mt-px"
+        aria-hidden="true"
         >lock_outline</mat-icon
       >
       {{ (data.netWorth ? 'currentMonth.reconcile.accounts.linkedHint' :

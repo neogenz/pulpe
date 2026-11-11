@@ -1160,7 +1160,8 @@
         "otherAccount": "Anderes Konto…",
         "addToNetWorth": "Zu Mein Vermögen hinzufügen",
         "accountNameLabel": "Kontoname",
-        "nameRequired": "Gib dem Konto einen Namen, um es hinzuzufügen"
+        "nameRequired": "Gib dem Konto einen Namen, um es hinzuzufügen",
+        "addToNetWorthHint": "Ich behalte dieses Konto und aktualisiere seinen Saldo bei jedem Abgleich."
       },
       "realized": {
         "heading": "Dein abgehakter Saldo",

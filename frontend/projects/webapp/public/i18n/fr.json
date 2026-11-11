@@ -1160,7 +1160,8 @@
         "otherAccount": "Autre compte…",
         "addToNetWorth": "Ajouter à Mon patrimoine",
         "accountNameLabel": "Nom du compte",
-        "nameRequired": "Donne un nom à ce compte pour l'ajouter"
+        "nameRequired": "Donne un nom à ce compte pour l'ajouter",
+        "addToNetWorthHint": "Je garde ce compte et je mets son solde à jour à chaque rapprochement."
       },
       "realized": {
         "heading": "Ton solde pointé",

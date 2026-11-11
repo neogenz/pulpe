@@ -903,8 +903,8 @@ describe('ReconcileAccountsDialog', () => {
       await view.type(view.byTestId('reconcile-label-input'), 'Neon');
       await view.click(
         view
-          .byTestId('reconcile-add-to-net-worth-checkbox')
-          ?.querySelector('input'),
+          .byTestId('reconcile-add-to-net-worth-toggle')
+          ?.querySelector('button'),
       );
       await reachVerdictOn(view, { 0: '300' });
 
@@ -932,8 +932,8 @@ describe('ReconcileAccountsDialog', () => {
 
       await view.click(
         view
-          .byTestId('reconcile-add-to-net-worth-checkbox')
-          ?.querySelector('input'),
+          .byTestId('reconcile-add-to-net-worth-toggle')
+          ?.querySelector('button'),
       );
 
       expect(next?.disabled).toBe(true);
@@ -948,7 +948,7 @@ describe('ReconcileAccountsDialog', () => {
       const view = await setup();
 
       expect(view.byTestId('reconcile-account-select')).toBeNull();
-      expect(view.byTestId('reconcile-add-to-net-worth-checkbox')).toBeNull();
+      expect(view.byTestId('reconcile-add-to-net-worth-toggle')).toBeNull();
     });
 
     it('should write no snapshot when only free rows are filled', async () => {
