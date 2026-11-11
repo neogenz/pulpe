@@ -11,12 +11,15 @@ struct NetWorthSankeyLayoutTests {
     ) throws -> NetWorthSankey.Graph {
         let assets = [
             TestDataFactory.makeAsset(id: "a", categoryId: "c1", name: "UBS", latestValue: 900),
-            TestDataFactory.makeAsset(id: "b", categoryId: "c1", name: "Cash", latestValue: 100),
+            TestDataFactory.makeAsset(id: "b", categoryId: "c2", name: "Cash", latestValue: 100),
             TestDataFactory.makeAsset(id: "d", name: "Leasing", direction: .owe, latestValue: owed),
         ]
         return try #require(NetWorthSankey.build(NetWorth(
             totals: NetWorthTotals(baseCurrency: .chf, gross: gross, debts: debts, net: net, incomplete: false),
-            categories: [AssetCategory(id: "c1", name: "Comptes", total: gross)],
+            categories: [
+                AssetCategory(id: "c1", name: "Comptes", total: gross * 9 / 10),
+                AssetCategory(id: "c2", name: "Cash", total: gross / 10),
+            ],
             assets: assets
         )))
     }
@@ -25,7 +28,7 @@ struct NetWorthSankeyLayoutTests {
         let result = NetWorthSankeyLayout.layout(try graph(), in: size)
         let height = { (id: String) in result.nodes.first { $0.id == id }?.rect.height ?? 0 }
 
-        #expect(abs(height("asset:a") / height("asset:b") - 9) < 0.001)
+        #expect(abs(height("category:c1") / height("category:c2") - 9) < 0.001)
         #expect(abs(height("gross") / height("net") - 1000.0 / 700.0) < 0.001)
     }
 
@@ -85,7 +88,7 @@ struct NetWorthSankeyLayoutTests {
         let result = NetWorthSankeyLayout.layout(graph, in: drawn)
         let labels = result.nodes.compactMap { frame in frame.labelRect.map { (frame.id, $0) } }
 
-        #expect(labels.count >= 3)
+        #expect(labels.count == (overdraft ? 2 : 1))
         for (id, label) in labels {
             #expect(label.minY >= -DesignTokens.Chart.sankeyLabelHeadroom)
             for node in result.nodes { #expect(!label.intersects(node.rect), "\(id) label covers \(node.id)") }
@@ -93,21 +96,19 @@ struct NetWorthSankeyLayoutTests {
         }
     }
 
-    @Test func sevenCategoriesStayInsideTheReturnedFrameWithClearLabels() throws {
+    @Test func sevenTypesStayInsideTheReturnedFrameWithClearLabels() throws {
         var assets: [Asset] = []
         var categories: [AssetCategory] = []
         for index in 1...7 {
-            categories.append(AssetCategory(id: "c\(index)", name: "Cat \(index)", total: 1000))
-            for part in 1...2 {
-                assets.append(TestDataFactory.makeAsset(
-                    id: "a\(index)\(part)", categoryId: "c\(index)", name: "Avoir \(index)\(part)",
-                    latestValue: part == 1 ? 900 : 100
-                ))
-            }
+            let total = Decimal(index * 1000)
+            categories.append(AssetCategory(id: "c\(index)", name: "Type \(index)", total: total))
+            assets.append(TestDataFactory.makeAsset(
+                id: "a\(index)", categoryId: "c\(index)", name: "Avoir \(index)", latestValue: total
+            ))
         }
         assets.append(TestDataFactory.makeAsset(id: "d", name: "Leasing", direction: .owe, latestValue: 2000))
         let graph = try #require(NetWorthSankey.build(NetWorth(
-            totals: NetWorthTotals(baseCurrency: .chf, gross: 7000, debts: 2000, net: 5000, incomplete: false),
+            totals: NetWorthTotals(baseCurrency: .chf, gross: 28000, debts: 2000, net: 26000, incomplete: false),
             categories: categories, assets: assets
         )))
         let headroom = DesignTokens.Chart.sankeyLabelHeadroom

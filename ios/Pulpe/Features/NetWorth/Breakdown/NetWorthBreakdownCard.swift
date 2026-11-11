@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// « Répartition aujourd'hui »: what I have, by asset and category, set against what I owe and
+/// « Répartition aujourd'hui »: what I have, by Type, set against what I owe and
 /// my net worth. Every width comes from the API figures (`NetWorthSankey`); a negative net
 /// reads in the warning ink with the « Il manque » node, never in red.
 struct NetWorthBreakdownCard: View {
@@ -8,7 +8,8 @@ struct NetWorthBreakdownCard: View {
     let totals: NetWorthTotals
 
     @Environment(\.amountsHidden) private var amountsHidden
-    @Environment(\.horizontalSizeClass) private var sizeClass
+    /// Width the card gives the diagram; it only scrolls sideways below its minimum width.
+    @State private var availableWidth = DesignTokens.Chart.sankeyMinWidth
 
     /// The drawing height (grown when any column needs more room) plus the label headroom.
     private var diagramHeight: CGFloat {
@@ -28,15 +29,13 @@ struct NetWorthBreakdownCard: View {
                     .foregroundStyle(Color.textSecondary)
             }
             ScrollView(.horizontal, showsIndicators: false) {
-                GeometryReader { proxy in
-                    diagram(width: max(proxy.size.width, DesignTokens.Chart.sankeyMinWidth))
-                }
-                .frame(minWidth: DesignTokens.Chart.sankeyMinWidth)
-                .frame(height: diagramHeight)
+                diagram(width: max(availableWidth, DesignTokens.Chart.sankeyMinWidth))
+                    .frame(height: diagramHeight, alignment: .top)
             }
+            .onGeometryChange(for: CGFloat.self, of: \.size.width) { availableWidth = $0 }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(summary)
-            if sizeClass == .compact {
+            if availableWidth < DesignTokens.Chart.sankeyMinWidth {
                 Text(graph.hasShortfall
                     ? "Fais glisser pour voir jusqu'à ce que tu dois"
                     : "Fais glisser pour voir jusqu'à ta fortune nette")
@@ -118,13 +117,13 @@ struct NetWorthBreakdownCard: View {
         case .gross: AppLocale.string("Ce que j'ai")
         case .net: AppLocale.string("Fortune nette")
         case .shortfall: AppLocale.string("Il manque")
-        case .asset, .category, .debt: name ?? ""
+        case .category, .debt: name ?? ""
         }
     }
 
     private func color(_ kind: NetWorthSankey.Kind) -> Color {
         switch kind {
-        case .asset, .category, .gross: Color.pulpePrimary
+        case .category, .gross: Color.pulpePrimary
         case .net: Color.financialIncome
         case .debt, .shortfall: Color.financialOverBudget
         }
