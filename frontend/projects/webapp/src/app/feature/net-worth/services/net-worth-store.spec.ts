@@ -266,10 +266,12 @@ describe('NetWorthStore', () => {
     expect(api['delete$']).toHaveBeenCalledWith(ASSET_ID);
   });
 
-  it('surfaces a refused category deletion to the caller', async () => {
-    const refusal = new Error('ASSET_CATEGORY_NOT_EMPTY');
-    api['deleteCategory$'].mockReturnValue(throwError(() => refusal));
+  it('surfaces a refused Type rename to the caller', async () => {
+    const refusal = new Error('ASSET_CATEGORY_DUPLICATE');
+    api['updateCategory$'].mockReturnValue(throwError(() => refusal));
 
-    await expect(store.deleteCategory(CHECKING)).rejects.toBe(refusal);
+    await expect(store.renameCategory(CHECKING, 'Épargne')).rejects.toBe(
+      refusal,
+    );
   });
 });

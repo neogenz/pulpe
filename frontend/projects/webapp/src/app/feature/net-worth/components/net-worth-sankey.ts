@@ -41,21 +41,23 @@ Chart.register(SankeyController, Flow, LinearScale);
 const wholeAmount = new AppCurrencyPipe();
 
 const LABEL_SIDE: Record<SankeyNodeKind, SankeyLabelPosition> = {
-  asset: 'left',
-  category: 'right',
+  category: 'left',
   gross: 'right',
   net: 'right',
   // Left of its bar: the space under the categories' flows is empty.
   shortfall: 'left',
   debt: 'right',
+  overdrafts: 'right',
 };
-// Room for the labels that sit outside the plot: assets on the left, the
+// Room for the labels that sit outside the plot: the Types on the left, the
 // net and debts column on the right.
 const LABEL_GUTTER = 150;
+// Two lines of 12px text.
+const LABEL_HEIGHT = 32;
 
 /**
- * « Répartition aujourd'hui »: each asset flows into its category, the
- * categories into « Ce que j'ai », which splits into debts and Fortune nette.
+ * « Répartition aujourd'hui »: each Type flows into « Ce que j'ai », which
+ * splits into the debt Types and Fortune nette.
  * Widths come from the figures the API computed (see `net-worth-sankey.flows`);
  * nothing is summed here.
  */
@@ -66,7 +68,7 @@ const LABEL_GUTTER = 150;
   template: `
     @if (hasFlows()) {
       <section
-        class="min-w-0 rounded-2xl border border-outline-variant p-4 md:p-6"
+        class="min-w-0 rounded-2xl bg-surface-container-low p-4 md:p-6"
         aria-labelledby="net-worth-sankey-title"
         data-testid="net-worth-sankey"
       >
@@ -152,7 +154,7 @@ export class NetWorthSankey {
       this.theme.set(
         resolveColors(
           {
-            primary: 'var(--mat-sys-primary)',
+            primary: 'var(--pulpe-financial-savings)',
             amber: 'var(--pulpe-amber)',
             text: 'var(--mat-sys-on-surface)',
           },
@@ -170,7 +172,8 @@ export class NetWorthSankey {
     const colors = this.theme();
     const colorOf = (id: string): string => {
       const kind = nodes[id]?.kind;
-      const isDebtSide = kind === 'debt' || kind === 'shortfall';
+      const isDebtSide =
+        kind === 'debt' || kind === 'overdrafts' || kind === 'shortfall';
       return (isDebtSide ? colors?.amber : colors?.primary) ?? '';
     };
     // The fixed nodes carry no name: the chart labels them by kind.
@@ -178,6 +181,7 @@ export class NetWorthSankey {
       gross: this.#transloco.translate('netWorth.gross'),
       net: this.#transloco.translate('netWorth.sankey.net'),
       shortfall: this.#transloco.translate('netWorth.sankey.shortfall'),
+      overdrafts: this.#transloco.translate('netWorth.sankey.overdrafts'),
     };
 
     return {
@@ -209,7 +213,9 @@ export class NetWorthSankey {
           color: colors?.text,
           font: { family: CHART_FONT_FAMILY, size: 12, weight: 600 },
           nodeWidth: 12,
-          nodePadding: 14,
+          // A label is two lines tall: thin nodes stay far enough apart for
+          // their labels never to overlap.
+          nodePadding: LABEL_HEIGHT,
         },
       ],
     };
@@ -219,7 +225,15 @@ export class NetWorthSankey {
     responsive: true,
     maintainAspectRatio: false,
     animation: resolveChartAnimation(),
-    layout: { padding: { left: LABEL_GUTTER, right: LABEL_GUTTER } },
+    layout: {
+      padding: {
+        left: LABEL_GUTTER,
+        right: LABEL_GUTTER,
+        // The label of a thin first or last node overflows it by half.
+        top: LABEL_HEIGHT / 2,
+        bottom: LABEL_HEIGHT / 2,
+      },
+    },
     plugins: { legend: { display: false }, tooltip: { enabled: false } },
   }));
 

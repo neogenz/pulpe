@@ -94,10 +94,34 @@ describe('NetWorthAssetRow', () => {
     expect(text('asset-overdraft-chip')).toBeNull();
   });
 
-  it('shows the Pulpe link chip', () => {
+  it('tells which account the reconciliation follows', () => {
     render({ inPulpe: true });
 
-    expect(text('asset-in-pulpe-chip')).toBe('Dans Pulpe');
+    expect(text('asset-linked-chip')).toBe('Suivi au rapprochement');
+  });
+
+  it('opens the edit sheet from a tap on the row, beside the menu and never around it', () => {
+    render();
+    const row = fixture.nativeElement.querySelector(
+      '[data-testid="asset-row-edit-button"]',
+    ) as HTMLButtonElement;
+
+    expect(row.querySelector('button')).toBeNull();
+    row.click();
+
+    expect(fixture.componentInstance.events).toEqual([
+      { asset, action: 'edit' },
+    ]);
+  });
+
+  it('leaves an archived row untappable', () => {
+    render({ archivedAt: '2026-10-01T00:00:00.000Z' });
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="asset-row-edit-button"]',
+      ),
+    ).toBeNull();
   });
 
   it('shows the converted value of a foreign asset, or says it is left out of the total', () => {

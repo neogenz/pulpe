@@ -1452,7 +1452,6 @@
   },
   "netWorth": {
     "addButton": "Add",
-    "categoriesButton": "Categories",
     "loadError": "Couldn't load your net worth — try again",
     "emptyTitle": "Your net worth starts here",
     "emptyMessage": "Add an account, a savings book or a debt to see today's net worth.",
@@ -1461,11 +1460,11 @@
     "heroSubtitle": "What I have minus what I owe, as of {{date}}",
     "gross": "What I have",
     "debts": "What I owe",
-    "fxNote": "{{asset}} converted at today's rate: 1 {{foreign}} = {{rate}} {{base}}",
+    "fxNote": "Today's rate for {{asset}}: 1 {{foreign}} = {{rate}} {{base}}",
     "negativeNote": "What I owe is more than what I have today. Every checked repayment brings this figure closer to zero.",
     "incompleteNotice": "I don't have today's {{currency}} rate: the total leaves out {{assets}}. It comes back as soon as the rate is available.",
     "excluded": "Not in total",
-    "inPulpe": "In Pulpe",
+    "linkedBadge": "Tracked when matching",
     "overdraft": "Overdrawn",
     "updated": "Updated {{when}}",
     "updatedDebt": "{{category}} · updated {{when}}",
@@ -1481,7 +1480,8 @@
       "mobileHint": "Drag to see all the way to your net worth",
       "mobileHintDebts": "Drag to see all the way to what you owe",
       "ariaNet": "Breakdown of what I have: gross worth {{gross}}, split between {{debts}} owed and {{net}} of net worth.",
-      "ariaDebts": "What I have, {{gross}}, set against {{debts}} owed."
+      "ariaDebts": "What I have, {{gross}}, set against {{debts}} owed.",
+      "overdrafts": "Overdrafts"
     },
     "menu": {
       "actions": "Actions for {{name}}",
@@ -1489,6 +1489,11 @@
       "archive": "Archive",
       "unarchive": "Unarchive",
       "delete": "Delete"
+    },
+    "type": {
+      "menu": "Actions for the type {{name}}",
+      "rename": "Rename type",
+      "nameLabel": "Type name"
     },
     "deleteTitle": "Delete {{name}}?",
     "deleteMessage": "Its whole history of values is deleted too. Archive it instead to take it out of the totals and keep the history.",
@@ -1509,20 +1514,6 @@
     "value": {
       "lastValue": "Last value: {{amount}}, on {{date}}",
       "overdraft": "Negative balance (overdraft)"
-    },
-    "categoriesDialog": {
-      "title": "My categories",
-      "description": "They sort your accounts, savings and debts on the page.",
-      "empty": "No category yet: they get created when you add an account, or here.",
-      "rename": "Rename {{name}}",
-      "delete": "Delete {{name}}",
-      "nameLabel": "Category name",
-      "saveName": "Save name",
-      "cancelRename": "Cancel renaming",
-      "newLabel": "New category",
-      "newPlaceholder": "E.g. Crypto",
-      "add": "Add",
-      "notEmpty": "First move {{names}} to another category."
     },
     "link": {
       "none": "None",

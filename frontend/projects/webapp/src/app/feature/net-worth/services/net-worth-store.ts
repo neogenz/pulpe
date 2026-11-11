@@ -123,18 +123,10 @@ export class NetWorthStore {
     return this.#run(() => firstValueFrom(this.#api.delete$(id)));
   }
 
-  addCategory(name: string): Promise<void> {
-    return this.#run(() => firstValueFrom(this.#api.createCategory$({ name })));
-  }
-
   renameCategory(id: string, name: string): Promise<void> {
     return this.#run(() =>
       firstValueFrom(this.#api.updateCategory$(id, { name })),
     );
-  }
-
-  deleteCategory(id: string): Promise<void> {
-    return this.#run(() => firstValueFrom(this.#api.deleteCategory$(id)));
   }
 
   /**

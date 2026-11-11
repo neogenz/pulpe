@@ -40,6 +40,7 @@ import {
   typeOptionsFor,
   type AssetFormValue,
 } from './asset-form-dialog.schema';
+import { MAX_TYPE_NAME_LENGTH } from './rename-type-dialog';
 
 export interface AssetFormDialogData {
   categories: AssetCategory[];
@@ -249,7 +250,7 @@ export class AssetFormDialog {
   protected readonly assetForm = form(this.model, (path) => {
     required(path.name);
     maxLength(path.name, 100);
-    maxLength(path.typeName, 100);
+    maxLength(path.typeName, MAX_TYPE_NAME_LENGTH);
   });
   protected readonly nameErrors = touchedFieldErrors(
     () => this.assetForm.name,

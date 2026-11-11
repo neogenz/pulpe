@@ -10,11 +10,13 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
+import type { AssetCategory } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { TitleDisplay } from '@core/routing';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { type AssetRowEvent } from './components/net-worth-asset-row';
+import { debtGroups, ownGroups } from './components/net-worth-groups';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
 import { NetWorthSankey } from './components/net-worth-sankey';
 import { NetWorthSection } from './components/net-worth-section';
@@ -52,14 +54,6 @@ import { injectWriteAttempt } from './services/write-attempt';
           </h1>
         </div>
         <div class="ml-auto flex shrink-0 items-center gap-2">
-          <button
-            matButton="outlined"
-            (click)="onOpenCategories()"
-            data-testid="net-worth-categories-button"
-          >
-            <mat-icon>category</mat-icon>
-            {{ 'netWorth.categoriesButton' | transloco }}
-          </button>
           <button
             matButton="filled"
             (click)="onAdd()"
@@ -194,66 +188,105 @@ import { injectWriteAttempt } from './services/write-attempt';
               <pulpe-net-worth-sankey [netWorth]="netWorth" />
             }
 
-            <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-              <div class="flex min-w-0 flex-col gap-4 lg:col-span-2">
-                @for (section of categorySections(); track section.id) {
-                  <pulpe-net-worth-section
-                    [title]="section.name"
-                    [total]="section.total"
-                    [assets]="section.assets"
-                    [baseCurrency]="totals.baseCurrency"
-                    [busy]="store.isSaving()"
-                    (action)="onAction($event)"
-                  />
-                }
-              </div>
+            <section
+              class="flex min-w-0 flex-col gap-3"
+              aria-labelledby="net-worth-own-title"
+              data-testid="net-worth-own"
+            >
+              <h2
+                id="net-worth-own-title"
+                class="text-title-large font-semibold"
+              >
+                {{ 'netWorth.gross' | transloco }}
+              </h2>
+              @for (group of ownGroups(); track group.category?.id) {
+                <pulpe-net-worth-section
+                  [title]="group.category!.name"
+                  [total]="group.total"
+                  [assets]="group.assets"
+                  [baseCurrency]="totals.baseCurrency"
+                  [busy]="store.isSaving()"
+                  [renamable]="true"
+                  (action)="onAction($event)"
+                  (rename)="onRenameType(group.category!)"
+                />
+              }
+            </section>
 
-              <div class="flex min-w-0 flex-col gap-3">
-                @if (debtAssets().length > 0) {
-                  <pulpe-net-worth-section
-                    [title]="'netWorth.debts' | transloco"
-                    [total]="totals.debts"
-                    [assets]="debtAssets()"
-                    [baseCurrency]="totals.baseCurrency"
-                    [busy]="store.isSaving()"
-                    [isDebts]="true"
-                    [showCategory]="true"
-                    [categoryNames]="categoryNames()"
-                    (action)="onAction($event)"
-                  />
-                }
-                @if (store.archivedAssets().length > 0) {
-                  <button
-                    matButton
-                    class="self-start"
-                    [attr.aria-expanded]="isArchivedShown()"
-                    (click)="isArchivedShown.set(!isArchivedShown())"
-                    data-testid="net-worth-archived-toggle"
-                  >
-                    <mat-icon>{{
-                      isArchivedShown() ? 'expand_less' : 'expand_more'
-                    }}</mat-icon>
-                    {{
-                      isArchivedShown()
-                        ? ('netWorth.hideArchived' | transloco)
-                        : ('netWorth.showArchived'
-                          | transloco: { count: store.archivedAssets().length })
-                    }}
-                  </button>
-                  @if (isArchivedShown()) {
+            @if (debtGroups().length > 0) {
+              <section
+                class="flex min-w-0 flex-col gap-3"
+                aria-labelledby="net-worth-owe-title"
+                data-testid="net-worth-owe"
+              >
+                <h2
+                  id="net-worth-owe-title"
+                  class="text-title-large font-semibold"
+                >
+                  {{ 'netWorth.debts' | transloco }}
+                </h2>
+                @for (group of debtGroups(); track group.category?.id) {
+                  @if (group.category; as category) {
                     <pulpe-net-worth-section
-                      [title]="'netWorth.archivedTitle' | transloco"
-                      [assets]="store.archivedAssets()"
+                      [title]="category.name"
+                      [total]="group.total"
+                      [assets]="group.assets"
                       [baseCurrency]="totals.baseCurrency"
                       [busy]="store.isSaving()"
+                      [isDebts]="true"
+                      [renamable]="true"
+                      (action)="onAction($event)"
+                      (rename)="onRenameType(category)"
+                    />
+                  } @else {
+                    <pulpe-net-worth-section
+                      [title]="'netWorth.sankey.overdrafts' | transloco"
+                      [total]="group.total"
+                      [assets]="group.assets"
+                      [baseCurrency]="totals.baseCurrency"
+                      [busy]="store.isSaving()"
+                      [isDebts]="true"
                       [showCategory]="true"
                       [categoryNames]="categoryNames()"
                       (action)="onAction($event)"
                     />
                   }
                 }
+              </section>
+            }
+
+            @if (store.archivedAssets().length > 0) {
+              <div class="flex min-w-0 flex-col gap-3">
+                <button
+                  matButton
+                  class="self-start"
+                  [attr.aria-expanded]="isArchivedShown()"
+                  (click)="isArchivedShown.set(!isArchivedShown())"
+                  data-testid="net-worth-archived-toggle"
+                >
+                  <mat-icon>{{
+                    isArchivedShown() ? 'expand_less' : 'expand_more'
+                  }}</mat-icon>
+                  {{
+                    isArchivedShown()
+                      ? ('netWorth.hideArchived' | transloco)
+                      : ('netWorth.showArchived'
+                        | transloco: { count: store.archivedAssets().length })
+                  }}
+                </button>
+                @if (isArchivedShown()) {
+                  <pulpe-net-worth-section
+                    [title]="'netWorth.archivedTitle' | transloco"
+                    [assets]="store.archivedAssets()"
+                    [baseCurrency]="totals.baseCurrency"
+                    [busy]="store.isSaving()"
+                    [showCategory]="true"
+                    [categoryNames]="categoryNames()"
+                    (action)="onAction($event)"
+                  />
+                }
               </div>
-            </div>
+            }
           }
         }
       }
@@ -317,27 +350,11 @@ export default class NetWorthPage {
       ),
   );
 
-  // An overdrawn account sits with the debts, not in its category.
-  protected readonly categorySections = computed(() =>
-    this.store
-      .categories()
-      .map((category) => ({
-        ...category,
-        assets: this.store
-          .activeAssets()
-          .filter(
-            (asset) =>
-              asset.categoryId === category.id &&
-              asset.direction === 'own' &&
-              asset.latestValue >= 0,
-          ),
-      }))
-      .filter((section) => section.assets.length > 0),
+  protected readonly ownGroups = computed(() =>
+    ownGroups(this.store.categories(), this.store.activeAssets()),
   );
-  protected readonly debtAssets = computed(() =>
-    this.store
-      .activeAssets()
-      .filter((asset) => asset.direction === 'owe' || asset.latestValue < 0),
+  protected readonly debtGroups = computed(() =>
+    debtGroups(this.store.categories(), this.store.activeAssets()),
   );
 
   readonly #unconverted = computed(() =>
@@ -352,8 +369,11 @@ export default class NetWorthPage {
     ),
   );
 
-  protected onOpenCategories(): Promise<void> {
-    return this.#dialogs.openCategories();
+  protected async onRenameType(category: AssetCategory): Promise<void> {
+    const name = await this.#dialogs.openRenameType(category.name);
+    if (name) {
+      await this.#attempt(() => this.store.renameCategory(category.id, name));
+    }
   }
 
   protected async onAdd(): Promise<void> {

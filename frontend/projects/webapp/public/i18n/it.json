@@ -1452,7 +1452,6 @@
   },
   "netWorth": {
     "addButton": "Aggiungi",
-    "categoriesButton": "Categorie",
     "loadError": "Impossibile caricare il tuo patrimonio — riprova",
     "emptyTitle": "Il tuo patrimonio comincia qui",
     "emptyMessage": "Aggiungi un conto, un libretto o un debito per vedere il tuo patrimonio netto di oggi.",
@@ -1461,11 +1460,11 @@
     "heroSubtitle": "Ciò che ho meno ciò che devo, al {{date}}",
     "gross": "Ciò che ho",
     "debts": "Ciò che devo",
-    "fxNote": "{{asset}} convertito al tasso del giorno: 1 {{foreign}} = {{rate}} {{base}}",
+    "fxNote": "Tasso del giorno per {{asset}}: 1 {{foreign}} = {{rate}} {{base}}",
     "negativeNote": "Ciò che devo supera ciò che ho oggi. Ogni rimborso spuntato avvicina questa cifra allo zero.",
     "incompleteNotice": "Non ho il tasso {{currency}} di oggi: il totale non conta {{assets}}. Tornerà non appena il tasso sarà disponibile.",
     "excluded": "Fuori dal totale",
-    "inPulpe": "In Pulpe",
+    "linkedBadge": "Seguito all'allineamento",
     "overdraft": "Scoperto",
     "updated": "Aggiornato {{when}}",
     "updatedDebt": "{{category}} · aggiornato {{when}}",
@@ -1481,7 +1480,8 @@
       "mobileHint": "Trascina per vedere fino al tuo patrimonio netto",
       "mobileHintDebts": "Trascina per vedere fino a ciò che devi",
       "ariaNet": "Ripartizione di ciò che ho: patrimonio lordo {{gross}}, diviso tra {{debts}} di debiti e {{net}} di patrimonio netto.",
-      "ariaDebts": "Ciò che ho, {{gross}}, a fronte di {{debts}} di debiti."
+      "ariaDebts": "Ciò che ho, {{gross}}, a fronte di {{debts}} di debiti.",
+      "overdrafts": "Scoperti"
     },
     "menu": {
       "actions": "Azioni per {{name}}",
@@ -1489,6 +1489,11 @@
       "archive": "Archivia",
       "unarchive": "Ripristina",
       "delete": "Elimina"
+    },
+    "type": {
+      "menu": "Azioni per il tipo {{name}}",
+      "rename": "Rinomina il tipo",
+      "nameLabel": "Nome del tipo"
     },
     "deleteTitle": "Eliminare {{name}}?",
     "deleteMessage": "Viene eliminata anche tutta la cronologia dei valori. Archivialo invece per toglierlo dai totali e conservare la cronologia.",
@@ -1509,20 +1514,6 @@
     "value": {
       "lastValue": "Ultimo valore: {{amount}}, il {{date}}",
       "overdraft": "Saldo negativo (scoperto)"
-    },
-    "categoriesDialog": {
-      "title": "Le mie categorie",
-      "description": "Ordinano i tuoi conti, i tuoi risparmi e i tuoi debiti nella pagina.",
-      "empty": "Ancora nessuna categoria: si creano quando aggiungi un conto, o qui.",
-      "rename": "Rinomina {{name}}",
-      "delete": "Elimina {{name}}",
-      "nameLabel": "Nome della categoria",
-      "saveName": "Salva il nome",
-      "cancelRename": "Annulla la rinomina",
-      "newLabel": "Nuova categoria",
-      "newPlaceholder": "Es. Crypto",
-      "add": "Aggiungi",
-      "notEmpty": "Sposta prima {{names}} in un'altra categoria."
     },
     "link": {
       "none": "Nessuno",

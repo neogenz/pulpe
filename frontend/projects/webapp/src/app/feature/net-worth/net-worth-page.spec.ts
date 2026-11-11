@@ -113,9 +113,10 @@ describe('NetWorthPage', () => {
     isEmpty: computed(() => (value()?.assets ?? []).length === 0),
     setArchived: vi.fn(),
     recordValue: vi.fn(),
+    renameCategory: vi.fn(),
     dismissSuggestion: vi.fn(),
   };
-  const dialogs = { openCreate: vi.fn() };
+  const dialogs = { openCreate: vi.fn(), openRenameType: vi.fn() };
   const snackBar = { open: vi.fn() };
 
   const byTestId = (id: string) =>
@@ -193,21 +194,62 @@ describe('NetWorthPage', () => {
       false,
     );
 
-    const [comptes, debts] = sections();
+    const [comptes, loans, overdrafts] = sections();
     expect(rowNames(comptes)).toEqual(['UBS']);
-    expect(rowNames(debts)).toEqual(['Compte à découvert', 'Leasing']);
+    expect(comptes.closest('[data-testid="net-worth-own"]')).not.toBeNull();
+    expect(rowNames(loans)).toEqual(['Leasing']);
+    expect(loans.getAttribute('aria-label')).toBe('Prêts');
+    expect(loans.textContent).toContain('3’000');
+    expect(rowNames(overdrafts)).toEqual(['Compte à découvert']);
+    expect(overdrafts.getAttribute('aria-label')).toBe('Découverts');
+    expect(overdrafts.closest('[data-testid="net-worth-owe"]')).not.toBeNull();
+  });
+
+  it('shows no debts block and no second action when I owe nothing', () => {
+    render({
+      ...populated,
+      totals: { ...populated.totals, debts: 0, net: 10_000 },
+      assets: [populated.assets[0]],
+    });
+
+    expect(byTestId('net-worth-owe')).toBeNull();
+    expect(byTestId('net-worth-categories-button')).toBeNull();
+    expect(sections()).toHaveLength(1);
+  });
+
+  it('renames a Type, own or debt, from its header menu', async () => {
+    dialogs.openRenameType.mockResolvedValue('Crédits');
+    store.renameCategory.mockResolvedValue(undefined);
+    render(populated);
+
+    const buttons = fixture.nativeElement.querySelectorAll(
+      '[data-testid="net-worth-type-menu-button"]',
+    ) as NodeListOf<HTMLButtonElement>;
+    // The overdrafts card is not a Type: only « Comptes » and « Prêts » rename.
+    expect(buttons).toHaveLength(2);
+    buttons[1].click();
+    fixture.detectChanges();
+    document
+      .querySelector<HTMLElement>(
+        '[data-testid="net-worth-type-rename-action"]',
+      )!
+      .click();
+    await fixture.whenStable();
+
+    expect(dialogs.openRenameType).toHaveBeenCalledWith('Prêts');
+    expect(store.renameCategory).toHaveBeenCalledWith(LOANS, 'Crédits');
   });
 
   it('keeps archived assets out until asked, and out of the category sections', () => {
     render(populated);
     expect(text('net-worth-archived-toggle')).toContain('(1)');
-    expect(sections()).toHaveLength(2);
+    expect(sections()).toHaveLength(3);
 
     byTestId('net-worth-archived-toggle')!.click();
     fixture.detectChanges();
 
-    expect(sections()).toHaveLength(3);
-    expect(rowNames(sections()[2])).toEqual(['Ancien compte']);
+    expect(sections()).toHaveLength(4);
+    expect(rowNames(sections()[3])).toEqual(['Ancien compte']);
   });
 
   it('turns the hero amber, never red, when the net is negative', () => {

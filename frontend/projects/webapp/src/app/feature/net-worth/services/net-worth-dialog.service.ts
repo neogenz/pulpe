@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { inject, Injector, Service } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
@@ -8,18 +8,20 @@ import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
-import { AssetCategoriesDialog } from '../components/asset-categories-dialog';
 import {
   AssetFormDialog,
   type AssetFormDialogData,
 } from '../components/asset-form-dialog';
+import {
+  RenameTypeDialog,
+  type RenameTypeDialogData,
+} from '../components/rename-type-dialog';
 import type { AssetCreateRequest, AssetEditRequest } from './net-worth-store';
 
 @Service({ autoProvided: false })
 export class NetWorthDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #transloco = inject(TranslocoService);
-  readonly #injector = inject(Injector);
   readonly #breakpoints = inject(BreakpointObserver);
 
   async openCreate(
@@ -58,14 +60,14 @@ export class NetWorthDialogService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  // The dialog writes through the route-scoped store, so it gets this injector.
-  async openCategories(): Promise<void> {
-    const dialogRef = this.#dialog.open(AssetCategoriesDialog, {
-      injector: this.#injector,
-      width: '560px',
+  /** Resolves with the new name, only when it changed. */
+  async openRenameType(name: string): Promise<string | undefined> {
+    const dialogRef = this.#dialog.open(RenameTypeDialog, {
+      data: { name } satisfies RenameTypeDialogData,
+      width: '400px',
       maxWidth: '90vw',
     });
-    await firstValueFrom(dialogRef.afterClosed());
+    return firstValueFrom(dialogRef.afterClosed());
   }
 
   async confirmDelete(asset: Asset): Promise<boolean> {
