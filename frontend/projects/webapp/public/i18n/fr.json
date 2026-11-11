@@ -1464,7 +1464,7 @@
     "negativeNote": "Ce que je dois dépasse ce que j'ai aujourd'hui. Chaque remboursement pointé ramène ce chiffre vers zéro.",
     "incompleteNotice": "Je n'ai pas le taux {{currency}} du jour : le total ne compte pas {{assets}}. Il reviendra dès que le taux sera disponible.",
     "excluded": "Hors total",
-    "linkedBadge": "Suivi au rapprochement",
+    "linkedBadge": "Mis à jour au rapprochement",
     "overdraft": "Découvert",
     "updated": "Mis à jour {{when}}",
     "updatedDebt": "{{category}} · mis à jour {{when}}",

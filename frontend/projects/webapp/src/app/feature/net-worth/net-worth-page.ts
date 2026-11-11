@@ -53,16 +53,19 @@ import { injectWriteAttempt } from './services/write-attempt';
             {{ title.currentTitle() }}
           </h1>
         </div>
-        <div class="ml-auto flex shrink-0 items-center gap-2">
-          <button
-            matButton="filled"
-            (click)="onAdd()"
-            data-testid="net-worth-add-button"
-          >
-            <mat-icon>add_circle</mat-icon>
-            {{ 'netWorth.addButton' | transloco }}
-          </button>
-        </div>
+        <!-- The empty state carries its own action: one way in, not two. -->
+        @if (!store.isEmpty()) {
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <button
+              matButton="filled"
+              (click)="onAdd()"
+              data-testid="net-worth-add-button"
+            >
+              <mat-icon>add_circle</mat-icon>
+              {{ 'netWorth.addButton' | transloco }}
+            </button>
+          </div>
+        }
       </header>
 
       @switch (store.netWorth.status()) {

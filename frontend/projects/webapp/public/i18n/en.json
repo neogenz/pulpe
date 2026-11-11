@@ -1464,7 +1464,7 @@
     "negativeNote": "What I owe is more than what I have today. Every checked repayment brings this figure closer to zero.",
     "incompleteNotice": "I don't have today's {{currency}} rate: the total leaves out {{assets}}. It comes back as soon as the rate is available.",
     "excluded": "Not in total",
-    "linkedBadge": "Tracked when matching",
+    "linkedBadge": "Updated when matching",
     "overdraft": "Overdrawn",
     "updated": "Updated {{when}}",
     "updatedDebt": "{{category}} · updated {{when}}",

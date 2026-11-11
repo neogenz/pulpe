@@ -1464,7 +1464,7 @@
     "negativeNote": "Was ich schulde, übersteigt heute, was ich habe. Jede abgehakte Rückzahlung bringt diese Zahl näher an null.",
     "incompleteNotice": "Mir fehlt der heutige {{currency}}-Kurs: Die Summe enthält {{assets}} nicht. Das ändert sich, sobald der Kurs verfügbar ist.",
     "excluded": "Nicht in der Summe",
-    "linkedBadge": "Beim Abgleich verfolgt",
+    "linkedBadge": "Beim Abgleich aktualisiert",
     "overdraft": "Überzogen",
     "updated": "Aktualisiert {{when}}",
     "updatedDebt": "{{category}} · aktualisiert {{when}}",

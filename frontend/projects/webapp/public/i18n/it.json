@@ -1464,7 +1464,7 @@
     "negativeNote": "Ciò che devo supera ciò che ho oggi. Ogni rimborso spuntato avvicina questa cifra allo zero.",
     "incompleteNotice": "Non ho il tasso {{currency}} di oggi: il totale non conta {{assets}}. Tornerà non appena il tasso sarà disponibile.",
     "excluded": "Fuori dal totale",
-    "linkedBadge": "Seguito all'allineamento",
+    "linkedBadge": "Aggiornato all'allineamento",
     "overdraft": "Scoperto",
     "updated": "Aggiornato {{when}}",
     "updatedDebt": "{{category}} · aggiornato {{when}}",

@@ -60,7 +60,7 @@ frontend/
 ├──────────────────────────────────────────────────────┤
 │ (5) Ce que j'ai                                      │
 │     ┌ Comptes ············ 240 952 CHF   ⋮ ┐         │
-│     │ BCGE · Suivi au rapprochement  229 016   ⋮ │   │
+│     │ BCGE · Mis à jour au rapprochement  229 016   ⋮ │   │
 │     │ Revolut                          6 789   ⋮ │   │
 │     └────────────────────────────────────────────┘   │
 │     ┌ Objets de valeur ···· 20 521 CHF    ⋮ ┐        │
@@ -97,7 +97,7 @@ frontend/
 
 1. `net-worth-section.ts`: tonal surface, header with a ⋮ (`renamable` input, on for own and debt Types, off for Archives). The page groups debts by Type the way it groups own elements. In a row, the edit button and the ⋮ button are siblings, never nested.
 2. `rename-type-dialog.ts`: one field, max 30 chars, opened from the header menu, calls `renameCategory`. Add the keys `netWorth.type.{menu,rename,nameLabel}` and `netWorth.sankey.overdrafts` (« Découverts ») in fr, en, de and it.
-3. `net-worth-asset-row.ts`: the row click emits `edit`. The menu holds Modifier, Archiver / Désarchiver and Supprimer; only « Mettre à jour la valeur » leaves it. The `inPulpe` chip becomes « Suivi au rapprochement » (`netWorth.linkedBadge`).
+3. `net-worth-asset-row.ts`: the row click emits `edit`. The menu holds Modifier, Archiver / Désarchiver and Supprimer; only « Mettre à jour la valeur » leaves it. The `inPulpe` chip becomes « Mis à jour au rapprochement » (`netWorth.linkedBadge`).
 
 ### `3)` Sankey by Type
 

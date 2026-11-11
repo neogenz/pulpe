@@ -86,13 +86,13 @@ ios/
 1. Starter lists by direction in `AssetFormDraft`; the menu lists the Types used by that direction, then the suggestions, then « Autre type… ».
 2. Delete `AssetCategoriesSheet`, `AssetCategoriesLogic` and the « Gérer les catégories » `ContextLinkRow`.
 3. `RenameAssetTypeSheet` opened from a Type header menu in `NetWorthSections`, which groups debts by Type the way it groups own elements.
-4. `Localizable.xcstrings` (fr, en, de, it): « Type », « Autre type… », « Renommer le type », the debt suggestions, « Suivi au rapprochement »; remove « Gérer les catégories », « Mes catégories », « Dans Pulpe » and the other obsolete keys; reword the three category API errors (« Une catégorie porte déjà ce nom »…) with « type ».
+4. `Localizable.xcstrings` (fr, en, de, it): « Type », « Autre type… », « Renommer le type », the debt suggestions, « Mis à jour au rapprochement »; remove « Gérer les catégories », « Mes catégories », « Dans Pulpe » and the other obsolete keys; reword the three category API errors (« Une catégorie porte déjà ce nom »…) with « type ».
 
 ### `3)` Row gestures
 
 > Tap edits, ⋮ holds every action.
 
-1. `NetWorthAssetRow`: the whole row is a button opening `form = .edit(asset)`; the menu keeps Modifier, Archiver/Désarchiver and Supprimer and loses « Mettre à jour la valeur »; the « Dans Pulpe » badge becomes « Suivi au rapprochement ».
+1. `NetWorthAssetRow`: the whole row is a button opening `form = .edit(asset)`; the menu keeps Modifier, Archiver/Désarchiver and Supprimer and loses « Mettre à jour la valeur »; the « Dans Pulpe » badge becomes « Mis à jour au rapprochement ».
 
 ## Test acceptance criteria
 

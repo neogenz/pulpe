@@ -98,7 +98,8 @@ test.describe('Mon patrimoine', () => {
 
     await expect(page.getByTestId('net-worth-empty')).toBeVisible();
     await expect(page.getByTestId('net-worth-hero')).toBeHidden();
-    await page.getByTestId('net-worth-add-button').click();
+    await expect(page.getByTestId('net-worth-add-button')).toBeHidden();
+    await page.getByTestId('net-worth-empty').getByRole('button').click();
     await expect(page.getByTestId('asset-form-dialog')).toBeVisible();
   });
 

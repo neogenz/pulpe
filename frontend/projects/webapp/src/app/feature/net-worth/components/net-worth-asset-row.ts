@@ -9,6 +9,7 @@ import {
   output,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatRippleModule } from '@angular/material/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -42,6 +43,7 @@ const DAYS_PER_YEAR = 365;
   imports: [
     NgTemplateOutlet,
     MatButtonModule,
+    MatRippleModule,
     MatDividerModule,
     MatIconModule,
     MatMenuModule,
@@ -59,6 +61,7 @@ const DAYS_PER_YEAR = 365;
       <button
         type="button"
         class="summary summary-action"
+        matRipple
         [disabled]="busy()"
         (click)="emit('edit')"
         data-testid="asset-row-edit-button"
@@ -239,6 +242,7 @@ const DAYS_PER_YEAR = 365;
       color: inherit;
     }
     .summary-action {
+      position: relative;
       cursor: pointer;
     }
     .summary-action:hover:not(:disabled) {

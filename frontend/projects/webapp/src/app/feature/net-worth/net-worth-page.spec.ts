@@ -177,6 +177,7 @@ describe('NetWorthPage', () => {
 
     expect(byTestId('net-worth-empty')).not.toBeNull();
     expect(byTestId('net-worth-hero')).toBeNull();
+    expect(byTestId('net-worth-add-button')).toBeNull();
 
     (
       byTestId('net-worth-empty')!.querySelector('button') as HTMLButtonElement
