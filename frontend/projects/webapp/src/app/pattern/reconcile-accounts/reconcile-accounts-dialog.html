@@ -172,6 +172,11 @@
             amount: (last.amount | appCurrency: data.currency() : '1.2-2'),
             when: last.when } }}</mat-hint
           >
+          } @else if (account.isAmountMissing && !account.isNameMissing) {
+          <mat-hint
+            >{{ 'currentMonth.reconcile.accounts.balanceRequired' | transloco
+            }}</mat-hint
+          >
           }
           <mat-error
             >{{ 'currentMonth.reconcile.accounts.invalidAmount' | transloco

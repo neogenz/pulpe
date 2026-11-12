@@ -133,6 +133,22 @@ struct ReconcileLinkedAccountsTests {
         #expect(flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
     }
 
+    @Test func addingToMonPatrimoineWithoutABalance_cannotFinish() {
+        let flow = makeFlow([bcge])
+        flow.accounts[0].amountText = "100"
+        let id = flow.addAccount()
+        flow.accounts[1].label = "Neon"
+        flow.setAddToNetWorth(id: id, true)
+
+        #expect(flow.isBalanceMissing(id: id))
+        #expect(!flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
+        #expect(!flow.canSubmitAdjustment(realizedBalance: 40, of: "b"))
+
+        flow.accounts[1].amountText = "0"
+        #expect(!flow.isBalanceMissing(id: id))
+        #expect(flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
+    }
+
     // MARK: - Write
 
     @Test func completion_createsThenLinksThenUnlinksThenOneBatch() async {

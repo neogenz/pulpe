@@ -80,6 +80,10 @@ struct ReconcileAccountRow: View {
                 Text("Donne un nom à ce compte pour l'ajouter")
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textSecondary)
+            } else if flow.isBalanceMissing(id: account.id) {
+                Text("Saisis son solde pour l'ajouter")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
             }
             if let asset { LinkedAccountHint(asset: asset) }
             if isInvalid {

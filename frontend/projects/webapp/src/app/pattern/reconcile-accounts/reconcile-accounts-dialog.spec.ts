@@ -849,6 +849,9 @@ describe('ReconcileAccountsDialog', () => {
         accounts: [UBS, POSTFINANCE],
         realized: { ...REALIZED, balance: 300 },
       });
+      expect(
+        view.byTestId('reconcile-remove-button')?.getAttribute('aria-label'),
+      ).toBe('Ne plus suivre le compte 1');
       await view.click(view.byTestId('reconcile-remove-button'));
       await reachVerdictOn(view, { 0: '300' });
 
@@ -945,20 +948,25 @@ describe('ReconcileAccountsDialog', () => {
     });
 
     it('should require a readable balance before going on once « Ajouter à Mon patrimoine » is ticked', async () => {
+      // A first row with a balance: the total alone no longer holds the button.
       const view = await setup({ accounts: [] });
-      await view.type(view.byTestId('reconcile-label-input'), 'Neon');
+      await view.type(view.byTestId('reconcile-amount-input'), '100');
+      await view.click(view.byTestId('reconcile-add-account-button'));
+      const [, label] = view.allByTestId('reconcile-label-input');
+      const [, amount] = view.allByTestId('reconcile-amount-input');
+      await view.type(label, 'Neon');
       await view.click(
         view
-          .byTestId('reconcile-add-to-net-worth-toggle')
+          .allByTestId('reconcile-add-to-net-worth-toggle')[1]
           ?.querySelector('button'),
       );
       const next = view.byTestId<HTMLButtonElement>('reconcile-next-button');
       expect(next?.disabled).toBe(true);
+      expect(view.host.textContent).toContain(
+        "Saisis son solde pour l'ajouter",
+      );
 
-      await view.type(view.byTestId('reconcile-amount-input'), '12.');
-      expect(next?.disabled).toBe(true);
-
-      await view.type(view.byTestId('reconcile-amount-input'), '300');
+      await view.type(amount, '300');
       expect(next?.disabled).toBe(false);
     });
 

@@ -363,7 +363,7 @@ export class ReconcileAccountsDialog {
           ? 'currentMonth.reconcile.accounts.stopFollowingNumbered'
           : 'currentMonth.reconcile.accounts.removeNumbered',
         isNameMissing: addToNetWorth && row.label.trim() === '',
-        // The plan drops a followed account without a readable balance.
+        // The plan creates nothing for a ticked row without a readable balance.
         isAmountMissing:
           addToNetWorth &&
           parseAccountAmount(row.amountText).status !== 'valid',

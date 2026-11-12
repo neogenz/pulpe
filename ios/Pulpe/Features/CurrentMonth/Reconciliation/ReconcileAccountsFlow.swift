@@ -133,7 +133,15 @@ final class ReconcileAccountsFlow {
         return accounts.first { $0.id == id }?.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? false
     }
 
-    private var hasMissingName: Bool { accounts.contains { isNameMissing(id: $0.id) } }
+    /// ...and a balance to start from: the plan creates nothing without one.
+    func isBalanceMissing(id: AccountReconciliation.Account.ID) -> Bool {
+        guard rowAccount(id: id) == .other(addToNetWorth: true) else { return false }
+        return accounts.first { $0.id == id }?.amount == .blank
+    }
+
+    private var hasIncompleteNewAccount: Bool {
+        accounts.contains { isNameMissing(id: $0.id) || isBalanceMissing(id: $0.id) }
+    }
 
     var linkPlan: LinkPlan {
         guard let ownAccounts else { return LinkPlan() }
@@ -195,7 +203,7 @@ final class ReconcileAccountsFlow {
     /// The balance must be read from the month this flow opened on: a refresh can load
     /// another one under the sheet, and its balance never meets a draft aimed at this budget.
     func canSubmitAdjustment(realizedBalance: Decimal, of loadedBudgetId: String) -> Bool {
-        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted, !hasMissingName else { return false }
+        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted, !hasIncompleteNewAccount else { return false }
         return adjustmentPayload(realizedBalance: realizedBalance) != nil
     }
 
@@ -223,7 +231,7 @@ final class ReconcileAccountsFlow {
     /// A write already out ends the flow itself, even if a refresh brings the balance level
     /// meanwhile: "Terminer" waits for it rather than completing a second time.
     func canConfirmUpToDate(realizedBalance: Decimal, of loadedBudgetId: String) -> Bool {
-        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted, !hasMissingName else { return false }
+        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted, !hasIncompleteNewAccount else { return false }
         return verdict(realizedBalance: realizedBalance) == .upToDate
     }
 

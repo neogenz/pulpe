@@ -115,7 +115,7 @@ describe('NetWorthPage', () => {
     ),
     isEmpty: computed(() => (value()?.assets ?? []).length === 0),
     setArchived: vi.fn(),
-    recordValue: vi.fn(),
+    saveAsset: vi.fn(),
     renameCategory: vi.fn(),
     dismissSuggestion: vi.fn(),
   };
@@ -150,7 +150,7 @@ describe('NetWorthPage', () => {
     status.set('resolved');
     dialogs.openCreate.mockResolvedValue(undefined);
     store.setArchived.mockResolvedValue(undefined);
-    store.recordValue.mockResolvedValue(undefined);
+    store.saveAsset.mockResolvedValue(undefined);
     store.dismissSuggestion.mockResolvedValue(undefined);
 
     await TestBed.configureTestingModule({
@@ -335,7 +335,7 @@ describe('NetWorthPage', () => {
       click('asset-suggestion-apply-button');
       await fixture.whenStable();
 
-      expect(store.recordValue).toHaveBeenCalledWith('a1', 3500);
+      expect(store.saveAsset).toHaveBeenCalledWith('a1', { value: 3500 });
       expect(store.dismissSuggestion).not.toHaveBeenCalled();
     });
 
@@ -346,12 +346,12 @@ describe('NetWorthPage', () => {
       await fixture.whenStable();
 
       expect(store.dismissSuggestion).toHaveBeenCalledWith('a1');
-      expect(store.recordValue).not.toHaveBeenCalled();
+      expect(store.saveAsset).not.toHaveBeenCalled();
     });
 
     it('surfaces a refused apply in a snackbar', async () => {
       render(withSuggestion);
-      store.recordValue.mockRejectedValue(new Error('boom'));
+      store.saveAsset.mockRejectedValue(new Error('boom'));
 
       click('asset-suggestion-apply-button');
       await fixture.whenStable();

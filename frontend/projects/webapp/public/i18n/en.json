@@ -1162,6 +1162,7 @@
         "addToNetWorth": "Add to My net worth",
         "accountNameLabel": "Account name",
         "nameRequired": "Name this account to add it",
+        "balanceRequired": "Enter its balance to add it",
         "addToNetWorthHint": "I keep this account and update its balance each time you match your accounts."
       },
       "realized": {

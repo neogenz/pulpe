@@ -103,14 +103,6 @@ export class NetWorthStore {
     });
   }
 
-  recordValue(assetId: string, value: number): Promise<void> {
-    return this.#run(() =>
-      firstValueFrom(
-        this.#api.recordSnapshots$({ items: [{ assetId, value }] }),
-      ),
-    );
-  }
-
   dismissSuggestion(id: string): Promise<void> {
     return this.#run(() => firstValueFrom(this.#api.dismissSuggestion$(id)));
   }

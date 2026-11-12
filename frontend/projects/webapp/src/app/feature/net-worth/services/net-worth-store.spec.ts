@@ -216,7 +216,7 @@ describe('NetWorthStore', () => {
   });
 
   it('records a signed value as a snapshot', async () => {
-    await store.recordValue(ASSET_ID, -300);
+    await store.saveAsset(ASSET_ID, { value: -300 });
 
     expect(api['recordSnapshots$']).toHaveBeenCalledWith({
       items: [{ assetId: ASSET_ID, value: -300 }],
@@ -230,9 +230,9 @@ describe('NetWorthStore', () => {
     }>();
     api['recordSnapshots$'].mockReturnValueOnce(pending);
 
-    const first = store.recordValue(ASSET_ID, 100);
+    const first = store.saveAsset(ASSET_ID, { value: 100 });
     expect(store.isSaving()).toBe(true);
-    await store.recordValue(ASSET_ID, 100);
+    await store.saveAsset(ASSET_ID, { value: 100 });
     pending.next({
       success: true,
       data: { recordedAt: '2026-11-03T10:00:00.000Z' },

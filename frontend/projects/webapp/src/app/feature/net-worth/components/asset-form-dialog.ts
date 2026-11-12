@@ -136,7 +136,7 @@ export interface AssetFormDialogData {
         <mat-form-field
           appearance="outline"
           subscriptSizing="dynamic"
-          class="w-full"
+          class="ph-no-capture w-full"
         >
           <mat-label>{{ 'netWorth.form.category' | transloco }}</mat-label>
           <mat-select

@@ -418,7 +418,9 @@ export default class NetWorthPage {
         const { suggestion } = asset;
         if (suggestion) {
           await this.#attempt(() =>
-            this.store.recordValue(asset.id, suggestion.proposedValue),
+            this.store.saveAsset(asset.id, {
+              value: suggestion.proposedValue,
+            }),
           );
         }
         return;

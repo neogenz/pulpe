@@ -32850,6 +32850,29 @@
         }
       }
     },
+    "Saisis son solde pour l'ajouter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib den Saldo ein, um es hinzuzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter its balance to add it"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci il saldo per aggiungerlo"
+          }
+        }
+      }
+    },
     "Sans doute passé sans être pointé" : {
       "localizations" : {
         "de" : {

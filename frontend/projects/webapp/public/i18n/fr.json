@@ -1162,6 +1162,7 @@
         "addToNetWorth": "Ajouter à Mon patrimoine",
         "accountNameLabel": "Nom du compte",
         "nameRequired": "Donne un nom à ce compte pour l'ajouter",
+        "balanceRequired": "Saisis son solde pour l'ajouter",
         "addToNetWorthHint": "Je garde ce compte et je mets son solde à jour à chaque rapprochement."
       },
       "realized": {

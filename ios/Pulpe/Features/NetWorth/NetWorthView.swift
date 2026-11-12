@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// « Mon patrimoine » (PUL-366): net worth, then what I have and what I owe, each by Type, and
-/// the archives. Read-only; every figure comes from `GET /v1/assets`.
+/// the archives. Totals come from `GET /v1/assets`; only a debt Type's total is summed here.
 struct NetWorthView: View {
     @Environment(AssetStore.self) private var store
     @Environment(ToastManager.self) private var toastManager
