@@ -149,6 +149,16 @@ struct ReconcileLinkedAccountsTests {
         #expect(flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
     }
 
+    @Test func addingToMonPatrimoine_capsTheNameAtWhatTheAPIAccepts() {
+        let flow = makeFlow([bcge])
+        let id = flow.addAccount()
+        flow.accounts[1].label = String(repeating: "n", count: 140)
+        flow.accounts[1].amountText = "300"
+        flow.setAddToNetWorth(id: id, true)
+
+        #expect(flow.linkPlan.creates.map(\.name.count) == [100])
+    }
+
     @Test func addingToMonPatrimoineWithAnUnreadableBalance_cannotFinish() {
         let flow = makeFlow([bcge])
         flow.accounts[0].amountText = "100"

@@ -157,7 +157,8 @@ final class ReconcileAccountsFlow {
                 picked.append(id)
                 if let value { plan.snapshots.append(AssetSnapshotItem(assetId: id, value: value)) }
             case .other(let addToNetWorth):
-                let name = account.label.trimmingCharacters(in: .whitespacesAndNewlines)
+                // The API refuses a longer name, and a refused create stops every write after it.
+                let name = String(account.label.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
                 if addToNetWorth, let value, !name.isEmpty { plan.creates.append(.init(name: name, value: value)) }
             }
         }
