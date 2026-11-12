@@ -145,6 +145,7 @@ Unmet
 ### Criteria
 
 - [x] Toggle on cannot finish while the plan would drop the account — `ios/Pulpe/Features/CurrentMonth/Reconciliation/ReconcileAccountsFlow.swift:137`, pinned by `addingToMonPatrimoineWithoutABalance_cannotFinish`; the web spec goes red when its gate is removed
+- [x] A ticked row with an unreadable balance cannot finish either — the total is empty as soon as one amount does not read (`AccountReconciliation.swift:50`); pinned by `addingToMonPatrimoineWithAnUnreadableBalance_cannotFinish`, green with no production change
 - [x] Runtime on `9897c5b17` — iOS 2639 tests passed and SwiftLint strict clean; web 142 specs passed, `ng build`, eslint, prettier and lexicon green
 
 ### Findings

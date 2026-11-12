@@ -133,7 +133,8 @@ final class ReconcileAccountsFlow {
         return accounts.first { $0.id == id }?.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? false
     }
 
-    /// ...and a balance to start from: the plan creates nothing without one.
+    /// ...and a balance to start from: the plan creates nothing without one. Only a blank one
+    /// needs this gate: an unreadable amount already leaves the total, hence the verdict, empty.
     func isBalanceMissing(id: AccountReconciliation.Account.ID) -> Bool {
         guard rowAccount(id: id) == .other(addToNetWorth: true) else { return false }
         return accounts.first { $0.id == id }?.amount == .blank
