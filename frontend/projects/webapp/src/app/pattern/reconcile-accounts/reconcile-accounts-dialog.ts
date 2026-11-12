@@ -16,7 +16,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelect, MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -161,6 +161,7 @@ export class ReconcileAccountsDialog {
     inject<ReconcileAccountsDialogData>(MAT_DIALOG_DATA);
   protected readonly centsPerUnit = CENTS_PER_UNIT;
 
+  private readonly accountSelects = viewChildren(MatSelect);
   private readonly labelInputs =
     viewChildren<ElementRef<HTMLInputElement>>('labelInput');
   private readonly amountInputs =
@@ -444,9 +445,16 @@ export class ReconcileAccountsDialog {
         account: FREE_ROW,
       },
     ]);
-    afterNextRender(() => this.labelInputs().at(-1)?.nativeElement.focus(), {
-      injector: this.#injector,
-    });
+    // The cursor lands on the first control of the new row: the account list
+    // when there are accounts to pick from, the name otherwise.
+    afterNextRender(
+      () =>
+        (
+          this.accountSelects().at(-1) ??
+          this.labelInputs().at(-1)?.nativeElement
+        )?.focus(),
+      { injector: this.#injector },
+    );
   }
 
   // Enter adds the next account rather than submitting anything: the step has

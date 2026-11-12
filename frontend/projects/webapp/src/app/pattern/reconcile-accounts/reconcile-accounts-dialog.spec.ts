@@ -770,6 +770,16 @@ describe('ReconcileAccountsDialog', () => {
       );
     });
 
+    it('should move focus to the account list of an added row', async () => {
+      const view = await setup({ accounts: [UBS, POSTFINANCE, REVOLUT] });
+
+      await view.click(view.byTestId('reconcile-add-account-button'));
+
+      expect(document.activeElement).toBe(
+        view.allByTestId('reconcile-account-select')[2],
+      );
+    });
+
     it('should keep one empty free row and the private note without linked accounts', async () => {
       const view = await setup();
 
