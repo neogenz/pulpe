@@ -14,6 +14,8 @@ Un utilisateur demande de pouvoir rattacher une dépense (prévue, imprévue ou 
 - Pointer un mouvement qui a un compte change la valeur de ce compte tout de suite. Dépointer annule. Il n'y a plus de « Appliquer » ni de « Écarter », pour aucun élément : la valeur d'un élément est ma dernière saisie plus ce que j'ai pointé depuis.
 - Je peux toujours écraser la valeur à la main ; la suite repart de cette saisie.
 - La liste des mouvements rattachés ne s'affiche pas sur la page « Mon patrimoine » : elle vit dans le détail d'un élément, un écran qui n'existe pas encore.
+- Ce détail montre tout l'historique de l'élément depuis sa création : mes saisies et les mouvements pointés. Seuls ceux pointés après ma dernière saisie entrent dans la valeur ; les autres restent visibles pour mémoire.
+- Le compte par défaut ne fait que préremplir les mouvements que je crée ensuite. Il ne change rien à ce qui est déjà saisi, pointé ou non, ni aux lignes de modèle.
 - Les virements entre mes comptes ne sont pas modélisés. Le rapprochement recale.
 - Le lien existant (une épargne vers un avoir, une dépense qui rembourse une dette, un revenu tiré d'un avoir) reste et se cumule avec le compte : une épargne payée depuis le compte courant vers le Livret baisse l'un et monte l'autre.
 - Le rapprochement reste une action spontanée. Il n'est pas la source de ce lien, seulement une des deux façons de saisir une valeur.
@@ -24,8 +26,6 @@ Un utilisateur demande de pouvoir rattacher une dépense (prévue, imprévue ou 
 
 Proposées pendant l'échange, non corrigées, à confirmer avant de démarrer la story concernée.
 
-- Le détail montre les mouvements pointés depuis ma dernière saisie, pas tout l'historique : la liste et le chiffre s'additionnent.
-- Choisir un compte par défaut s'applique aussi à ce qui est déjà saisi et pas encore pointé, dans le mois en cours et les suivants, et aux lignes de modèle sans compte. Ce qui est déjà pointé ne bouge pas.
 - On peut choisir tout élément « ce que j'ai » actif, jamais une dette. Payer par carte de crédit est hors périmètre.
 - Un mouvement réel rattaché à une prévision n'a pas son propre compte : il suit celui de sa prévision.
 - Ce qui compte pour un compte suit la règle du solde pointé : une prévision pointée compte pour le plus grand de son montant et de ses mouvements réels pointés ; non pointée, pour ses mouvements réels pointés.
