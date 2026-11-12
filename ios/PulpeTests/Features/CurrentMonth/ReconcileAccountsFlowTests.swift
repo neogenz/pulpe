@@ -17,21 +17,20 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.totalCents == nil)
     }
 
-    @Test("an added account can be removed, the first one cannot")
-    func removeAccount_onlyRemovesAddedRows() throws {
+    @Test("any account can be removed while another remains")
+    func removeAccount_keepsTheLastRow() throws {
         let flow = makeFlow()
         let first = try #require(flow.accounts.first?.id)
-        let added = flow.addAccount()
-
-        #expect(flow.accounts.map(\.id) == [first, added])
         #expect(!flow.canRemoveAccount(id: first))
-        #expect(flow.canRemoveAccount(id: added))
+
+        let added = flow.addAccount()
+        #expect(flow.canRemoveAccount(id: first))
 
         flow.removeAccount(id: first)
-        #expect(flow.accounts.map(\.id) == [first, added])
+        #expect(flow.accounts.map(\.id) == [added])
 
         flow.removeAccount(id: added)
-        #expect(flow.accounts.map(\.id) == [first])
+        #expect(flow.accounts.map(\.id) == [added])
     }
 
     @Test("the total follows every typed amount live, negative account included")

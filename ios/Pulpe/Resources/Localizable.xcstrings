@@ -1,6 +1,52 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "Ajouter à Mon patrimoine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu Mein Vermögen hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to My net worth"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi a Il mio patrimonio"
+          }
+        }
+      }
+    },
+    "Autre compte…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anderes Konto…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other account…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altro conto…"
+          }
+        }
+      }
+    },
     "Autre type…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -93,6 +139,29 @@
         }
       }
     },
+    "Compte %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account %lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conto %lld"
+          }
+        }
+      }
+    },
     "Crédit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -112,6 +181,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prestito"
+          }
+        }
+      }
+    },
+    "Donne un nom à ce compte pour l'ajouter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib dem Konto einen Namen, um es hinzuzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name this account to add it"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dai un nome a questo conto per aggiungerlo"
           }
         }
       }
@@ -158,6 +250,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mutuo"
+          }
+        }
+      }
+    },
+    "Je garde ce compte et je mets son solde à jour à chaque rapprochement." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich behalte dieses Konto und aktualisiere seinen Saldo bei jedem Abgleich."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I keep this account and update its balance each time you match your accounts."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservo questo conto e ne aggiorno il saldo a ogni allineamento."
+          }
+        }
+      }
+    },
+    "Je mets à jour le solde de tes comptes de Mon patrimoine. Les autres lignes ne sont pas enregistrées." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich aktualisiere den Saldo deiner Konten in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I update the balance of your accounts in My net worth. The other rows are not saved."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorno il saldo dei tuoi conti in Il mio patrimonio. Le altre righe non vengono salvate."
           }
         }
       }
@@ -46841,29 +46979,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ultimo saldo: %@, %@"
-          }
-        }
-      }
-    },
-    "Je garde le solde de tes comptes « Dans Pulpe » dans Mon patrimoine. Les autres lignes ne sont pas enregistrées." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Den Saldo deiner Konten „In Pulpe“ behalte ich in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I keep the balance of your “In Pulpe” accounts in My net worth. The other rows are not saved."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conservo il saldo dei tuoi conti «In Pulpe» in Il mio patrimonio. Le altre righe non vengono salvate."
           }
         }
       }

@@ -130,6 +130,7 @@ struct AssetStoreTests {
         let service = MockAssetService()
         service.stubbedNetWorth = TestDataFactory.makeNetWorth(assets: [
             TestDataFactory.makeAsset(id: "own-chf", inPulpe: true),
+            TestDataFactory.makeAsset(id: "own-chf-unfollowed"),
             TestDataFactory.makeAsset(id: "own-eur", currency: .eur, inPulpe: true),
             TestDataFactory.makeAsset(id: "debt", direction: .owe, inPulpe: true),
             TestDataFactory.makeAsset(id: "old", inPulpe: true, archivedAt: TestDataFactory.fixedDate),
@@ -139,6 +140,6 @@ struct AssetStoreTests {
 
         #expect(store.archivedAssets.map(\.id) == ["old"])
         #expect(store.activeAssets(direction: .owe).map(\.id) == ["debt"])
-        #expect(store.inPulpeAccounts(currency: .chf).map(\.id) == ["own-chf"])
+        #expect(store.ownAccounts(currency: .chf).map(\.id) == ["own-chf", "own-chf-unfollowed"])
     }
 }

@@ -49,9 +49,9 @@ final class AssetStore: StoreProtocol {
         activeAssets.filter { $0.direction == direction }
     }
 
-    /// Accounts a prévision can be drawn from or paid into: active, owned, tracked in Pulpe.
-    func inPulpeAccounts(currency: SupportedCurrency) -> [Asset] {
-        activeAssets.filter { $0.direction == .own && $0.inPulpe && $0.currency == currency }
+    /// What the reconciliation can finish with: active, owned, in this currency.
+    func ownAccounts(currency: SupportedCurrency) -> [Asset] {
+        activeAssets.filter { $0.direction == .own && $0.currency == currency }
     }
 
     // MARK: - Smart Loading (StoreProtocol)
@@ -152,6 +152,34 @@ final class AssetStore: StoreProtocol {
 
     func recordSnapshots(_ data: AssetSnapshotsCreate) async throws {
         try await write { _ = try await self.service.recordSnapshots(data) }
+    }
+
+    /// What a reconciliation leaves in « Mon patrimoine », as one write: the new accounts, the
+    /// ones now followed or no longer, then one batch of balances. A created account carries
+    /// its balance as its first value.
+    func followAccounts(
+        creates: [AssetCreate],
+        category: AssetCategoryChoice,
+        links: [String],
+        unlinks: [String],
+        snapshots: [AssetSnapshotItem]
+    ) async throws {
+        try await write {
+            if !creates.isEmpty {
+                let categoryId = try await self.resolve(category)
+                for asset in creates {
+                    _ = try await self.service.create(AssetCreate(
+                        name: asset.name, categoryId: categoryId, currency: asset.currency,
+                        direction: asset.direction, inPulpe: asset.inPulpe, value: asset.value
+                    ))
+                }
+            }
+            for id in links { _ = try await self.service.update(id: id, AssetUpdate(inPulpe: true)) }
+            for id in unlinks { _ = try await self.service.update(id: id, AssetUpdate(inPulpe: false)) }
+            if !snapshots.isEmpty {
+                _ = try await self.service.recordSnapshots(AssetSnapshotsCreate(items: snapshots))
+            }
+        }
     }
 
     func dismissSuggestion(id: String) async throws {

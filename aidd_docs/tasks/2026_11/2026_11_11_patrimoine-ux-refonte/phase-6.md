@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: iOS : lien au patrimoine depuis le rapprochement

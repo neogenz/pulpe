@@ -47,7 +47,7 @@ struct ReconcileAccountsSheet: View {
         month: Month,
         checking: ReconciliationChecking,
         dependencies: AddTransactionDependencies = .live,
-        linkedAccounts: [Asset] = [],
+        netWorthAccounts: [Asset]? = nil,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void
     ) {
         self.month = month
@@ -63,7 +63,7 @@ struct ReconcileAccountsSheet: View {
                     properties: completion.analyticsProperties
                 )
             },
-            linkedAccounts: linkedAccounts
+            netWorthAccounts: netWorthAccounts
         ))
     }
 
@@ -88,7 +88,7 @@ struct ReconcileAccountsSheet: View {
                         .foregroundStyle(Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     accountsCard
-                    if flow.hasLinkedAccounts { LinkedAccountsFootnote() }
+                    if flow.linksToNetWorth { LinkedAccountsFootnote() }
                     if let total = flow.total { totalsCard(total) }
                     if let missedMovement { missedSection(missedMovement) }
                     outcomeBlock
@@ -118,7 +118,7 @@ struct ReconcileAccountsSheet: View {
             if shouldClose { dismiss() }
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
-        .recordsLinkedSnapshots(of: flow)
+        .appliesAccountLinks(of: flow)
         .suppressesTips()
         .task {
             // Opening on an empty flow focuses its one amount, as the add sheets do.
@@ -138,7 +138,9 @@ extension ReconcileAccountsSheet {
     private var accountsCard: some View {
         FormCard {
             ForEach(Array(flow.accounts.enumerated()), id: \.element.id) { index, account in
-                accountRow(account, number: index + 1)
+                ReconcileAccountRow(
+                    flow: flow, account: account, number: index + 1, currency: currency, focus: $focusedField
+                ) { removeAccount(account.id) }
                 FormRowDivider()
             }
             SectionAddRow(title: AppLocale.string("Ajouter un compte")) {
@@ -147,98 +149,6 @@ extension ReconcileAccountsSheet {
             }
             .accessibilityIdentifier("reconcileAddAccountButton")
         }
-    }
-
-    /// The name on the leading edge, the bordered balance on the trailing one. The decimal pad
-    /// has no minus key: a balance that counts against the user (a credit card, an overdraft)
-    /// is said with the line under the name.
-    private func accountRow(_ account: AccountReconciliation.Account, number: Int) -> some View {
-        let row = accountBinding(for: account.id)
-        let isInvalid = flow.hasInvalidAmount(id: account.id)
-        return HStack(spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                TextField(AppLocale.string("Nom du compte"), text: row.label)
-                    .font(PulpeTypography.rowTitleRegular)
-                    .foregroundStyle(Color.textPrimary)
-                    .focused($focusedField, equals: .label(account.id))
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .amount(account.id) }
-                    .accessibilityLabel(AppLocale.string("Nom du compte \(number)"))
-                Button {
-                    row.wrappedValue.isNegative.toggle()
-                } label: {
-                    Text(account.isNegative ? "Comptée en négatif" : "Compter en négatif")
-                        .font(PulpeTypography.captionRegular)
-                        .foregroundStyle(account.isNegative ? Color.textSecondary : Color.pulpePrimary)
-                }
-                .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-                .contentShape(Rectangle())
-                .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
-                .textLinkButtonStyle()
-                .accessibilityAddTraits(account.isNegative ? .isSelected : [])
-                .accessibilityHint(AppLocale.string("Carte de crédit, découvert"))
-                if let linked = flow.lastValueHint(id: account.id) { LinkedAccountHint(asset: linked) }
-                if isInvalid {
-                    Text("Chiffres et 2 décimales au plus")
-                        .font(PulpeTypography.captionRegular)
-                        .foregroundStyle(Color.errorPrimary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            amountField(row, number: number, isInvalid: isInvalid)
-        }
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .frame(minHeight: DesignTokens.ListRow.formRowHeight)
-        .contextMenu {
-            if flow.canRemoveAccount(id: account.id) {
-                Button(AppLocale.string("Retirer ce compte"), systemImage: "minus.circle", role: .destructive) {
-                    removeAccount(account.id)
-                }
-            }
-        }
-        .accessibilityActions {
-            if flow.canRemoveAccount(id: account.id) {
-                Button(AppLocale.string("Retirer ce compte")) { removeAccount(account.id) }
-            }
-        }
-    }
-
-    private func amountField(
-        _ account: Binding<AccountReconciliation.Account>,
-        number: Int,
-        isInvalid: Bool
-    ) -> some View {
-        let id = account.wrappedValue.id
-        let isFocused = focusedField == .amount(id)
-        return HStack(spacing: DesignTokens.Spacing.xxs) {
-            if account.wrappedValue.isNegative {
-                Text(verbatim: "\u{2212}")
-            }
-            TextField(Decimal.zero.asAmount(for: currency), text: account.amountText)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .fixedSize()
-                .focused($focusedField, equals: .amount(id))
-                .accessibilityLabel(AppLocale.string("Solde du compte \(number)"))
-        }
-        .font(PulpeTypography.impactAmount)
-        .foregroundStyle(Color.textPrimary)
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .frame(minWidth: DesignTokens.Control.inlineAmountFieldMinWidth, alignment: .trailing)
-        .frame(minHeight: DesignTokens.FrameHeight.buttonSmall)
-        .background(Color.surface, in: .rect(cornerRadius: DesignTokens.CornerRadius.input))
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input)
-                .strokeBorder(
-                    isInvalid ? Color.errorPrimary : isFocused ? Color.pulpePrimary : Color.outline,
-                    lineWidth: isFocused || isInvalid
-                        ? DesignTokens.Control.inputFocusBorder
-                        : DesignTokens.BorderWidth.thin
-                )
-        }
-        .sensitiveAmount()
-        .contentShape(.interaction, Rectangle())
-        .onTapGesture { focusedField = .amount(id) }
     }
 
     // MARK: - Totals
@@ -449,17 +359,6 @@ extension ReconcileAccountsSheet {
     private func removeAccount(_ id: UUID) {
         focusedField = nil
         withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) { flow.removeAccount(id: id) }
-    }
-
-    /// Rows are addressed by id, so removing one never shifts another row's binding.
-    private func accountBinding(for id: UUID) -> Binding<AccountReconciliation.Account> {
-        Binding(
-            get: { flow.accounts.first { $0.id == id } ?? AccountReconciliation.Account(id: id) },
-            set: { updated in
-                guard let index = flow.accounts.firstIndex(where: { $0.id == id }) else { return }
-                flow.accounts[index] = updated
-            }
-        )
     }
 }
 
