@@ -277,8 +277,9 @@ export class AssetFormDialog {
     const asset = this.asset();
     if (!asset) return undefined;
     return this.#transloco.translate('netWorth.value.lastValue', {
+      // The overdraft box carries the sign, as in the field above.
       amount: this.#currencyPipe.transform(
-        asset.latestValue,
+        Math.abs(asset.latestValue),
         asset.currency,
         '1.2-2',
       ),

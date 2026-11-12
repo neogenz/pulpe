@@ -255,6 +255,9 @@ describe('AssetFormDialog', () => {
         byTestId(fixture, 'asset-overdraft-checkbox').querySelector('input')!
           .checked,
       ).toBe(true);
+      const hint = fixture.nativeElement.querySelector('mat-hint').textContent;
+      expect(hint).toContain('250');
+      expect(hint).not.toMatch(/[-−]/);
     });
   });
 });
