@@ -180,6 +180,20 @@ describe('AssetFormDialog', () => {
     await pickCategory(fixture, 'Autre type…');
     expect(submitButton(fixture).disabled).toBe(true);
 
+    // Left empty, the field says why saving is off; typing is capped at what
+    // the API accepts, so no name can be refused for its length.
+    const typeName = byTestId(
+      fixture,
+      'asset-type-name-input',
+    ) as HTMLInputElement;
+    typeName.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Donne-lui un nom');
+    expect(typeName.maxLength).toBe(30);
+    expect(
+      (byTestId(fixture, 'asset-name-input') as HTMLInputElement).maxLength,
+    ).toBe(100);
+
     type(fixture, 'asset-type-name-input', 'Crypto');
     submitButton(fixture).click();
 

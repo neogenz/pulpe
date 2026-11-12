@@ -173,6 +173,11 @@ export interface AssetFormDialogData {
               [formField]="assetForm.typeName"
               data-testid="asset-type-name-input"
             />
+            @if (typeNameErrors().required) {
+              <mat-error>{{
+                'netWorth.form.nameRequired' | transloco
+              }}</mat-error>
+            }
           </mat-form-field>
         }
 
@@ -250,10 +255,18 @@ export class AssetFormDialog {
   protected readonly assetForm = form(this.model, (path) => {
     required(path.name);
     maxLength(path.name, 100);
+    required(path.typeName, {
+      when: ({ valueOf }) => valueOf(path.categoryKey) === OTHER_TYPE_KEY,
+    });
     maxLength(path.typeName, MAX_TYPE_NAME_LENGTH);
   });
   protected readonly nameErrors = touchedFieldErrors(
     () => this.assetForm.name,
+    'required',
+  );
+
+  protected readonly typeNameErrors = touchedFieldErrors(
+    () => this.assetForm.typeName,
     'required',
   );
 
