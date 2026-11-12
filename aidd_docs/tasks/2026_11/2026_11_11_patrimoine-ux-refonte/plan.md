@@ -1,6 +1,6 @@
 ---
 objective: "Mon patrimoine reads as one coherent screen on web and iOS: one sheet per element, Types instead of Catégories, a reconciliation link set where it is used, a legible Sankey in both themes."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Refonte UX de Mon patrimoine
