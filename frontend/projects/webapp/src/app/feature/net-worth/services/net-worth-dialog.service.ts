@@ -12,10 +12,6 @@ import {
   AssetFormDialog,
   type AssetFormDialogData,
 } from '../components/asset-form-dialog';
-import {
-  RenameTypeDialog,
-  type RenameTypeDialogData,
-} from '../components/rename-type-dialog';
 import type { AssetCreateRequest, AssetEditRequest } from './net-worth-store';
 
 @Service({ autoProvided: false })
@@ -56,16 +52,6 @@ export class NetWorthDialogService {
             maxHeight: '100dvh',
           }
         : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
-    });
-    return firstValueFrom(dialogRef.afterClosed());
-  }
-
-  /** Resolves with the new name, only when it changed. */
-  async openRenameType(name: string): Promise<string | undefined> {
-    const dialogRef = this.#dialog.open(RenameTypeDialog, {
-      data: { name } satisfies RenameTypeDialogData,
-      width: '400px',
-      maxWidth: '90vw',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

@@ -7,6 +7,21 @@ enum AssetCategoryChoice: Hashable, Sendable {
     case starter(name: String)
 }
 
+/// What saving an edited element sends: only the parts that changed.
+struct AssetEdit: Equatable {
+    var updates: AssetUpdate?
+    var category: AssetCategoryChoice?
+    var value: Decimal?
+}
+
+/// The accounts a reconciliation adds to « Mon patrimoine »: mine, followed from the start,
+/// each with its balance as its first value.
+struct NewFollowedAccounts {
+    var accounts: [(name: String, value: Decimal)]
+    var currency: SupportedCurrency
+    var category: AssetCategoryChoice
+}
+
 /// Caches `GET /v1/assets` (PUL-366). Writes return records without amounts, so every write
 /// is followed by a refetch, also on failure. No amount is computed here: the server owns
 /// totals and conversions.
@@ -155,22 +170,20 @@ final class AssetStore: StoreProtocol {
     }
 
     /// What a reconciliation leaves in « Mon patrimoine », as one write: the new accounts, the
-    /// ones now followed or no longer, then one batch of balances. A created account carries
-    /// its balance as its first value.
+    /// ones now followed or no longer, then one batch of balances.
     func followAccounts(
-        creates: [AssetCreate],
-        category: AssetCategoryChoice,
+        creating new: NewFollowedAccounts?,
         links: [String],
         unlinks: [String],
         snapshots: [AssetSnapshotItem]
     ) async throws {
         try await write {
-            if !creates.isEmpty {
-                let categoryId = try await self.resolve(category)
-                for asset in creates {
+            if let new, !new.accounts.isEmpty {
+                let categoryId = try await self.resolve(new.category)
+                for account in new.accounts {
                     _ = try await self.service.create(AssetCreate(
-                        name: asset.name, categoryId: categoryId, currency: asset.currency,
-                        direction: asset.direction, inPulpe: asset.inPulpe, value: asset.value
+                        name: account.name, categoryId: categoryId, currency: new.currency,
+                        direction: .own, inPulpe: true, value: account.value
                     ))
                 }
             }

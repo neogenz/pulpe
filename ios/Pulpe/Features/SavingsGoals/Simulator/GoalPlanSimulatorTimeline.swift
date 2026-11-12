@@ -56,9 +56,7 @@ struct GoalPlanSimulatorTimeline: View {
             .font(PulpeTypography.labelLarge)
             .foregroundStyle(Color.pulpePrimary)
             .lineLimit(1)
-            .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-            .contentShape(Rectangle())
-            .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+            .expandedTapArea()
             .textLinkButtonStyle()
             .accessibilityLabel("Réinitialiser le plan")
     }

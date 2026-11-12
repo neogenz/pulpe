@@ -1,3 +1,4 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { DOCUMENT } from '@angular/common';
 import {
   afterRenderEffect,
@@ -8,6 +9,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Chart, LinearScale, type ChartData } from 'chart.js';
 import {
@@ -19,6 +21,7 @@ import {
 } from 'chartjs-chart-sankey';
 import { BaseChartDirective } from 'ng2-charts';
 import type { NetWorth } from 'pulpe-shared';
+import { map } from 'rxjs';
 import {
   CHART_FONT_FAMILY,
   formatCurrencyForAria,
@@ -52,6 +55,14 @@ const LABEL_SIDE: Record<SankeyNodeKind, SankeyLabelPosition> = {
 // Room for the labels that sit outside the plot: the Types on the left, the
 // net and debts column on the right.
 const LABEL_GUTTER = 150;
+// On a phone the gutters give way, so the diagram fits its card instead of scrolling.
+const HANDSET_LABEL_GUTTER = 96;
+// The columns are then too close for a label between them: « Ce que j'ai »
+// sits above its node, as on iOS.
+const HANDSET_LABEL_SIDE: Record<SankeyNodeKind, SankeyLabelPosition> = {
+  ...LABEL_SIDE,
+  gross: 'top',
+};
 // Two lines of 12px text.
 const LABEL_HEIGHT = 32;
 
@@ -91,30 +102,20 @@ const LABEL_HEIGHT = 32;
           </p>
         </div>
 
-        <div class="overflow-x-auto">
-          @if (theme()) {
-            <div class="ph-no-capture relative h-[380px] min-w-[760px] w-full">
-              <canvas
-                baseChart
-                aria-hidden="true"
-                [type]="chartType"
-                [data]="chartData()"
-                [options]="chartOptions()"
-              ></canvas>
-            </div>
-          }
-        </div>
+        @if (theme()) {
+          <div class="ph-no-capture relative h-[300px] w-full md:h-[380px]">
+            <canvas
+              baseChart
+              aria-hidden="true"
+              [type]="chartType"
+              [data]="chartData()"
+              [options]="chartOptions()"
+            ></canvas>
+          </div>
+        }
 
         <p class="ph-no-capture sr-only" data-testid="net-worth-sankey-aria">
           {{ ariaSentence() }}
-        </p>
-        <p class="mt-2 text-body-small text-on-surface-variant md:hidden">
-          {{
-            (isNetPositive()
-              ? 'netWorth.sankey.mobileHint'
-              : 'netWorth.sankey.mobileHintDebts'
-            ) | transloco
-          }}
         </p>
       </section>
     }
@@ -130,6 +131,19 @@ export class NetWorthSankey {
   readonly #doc = inject(DOCUMENT);
   readonly #transloco = inject(TranslocoService);
   readonly #themeService = inject(ThemeService);
+
+  readonly #isHandset = toSignal(
+    inject(BreakpointObserver)
+      .observe(Breakpoints.Handset)
+      .pipe(map((state) => state.matches)),
+    { initialValue: false },
+  );
+  readonly #labelGutter = computed(() =>
+    this.#isHandset() ? HANDSET_LABEL_GUTTER : LABEL_GUTTER,
+  );
+  readonly #labelSide = computed(() =>
+    this.#isHandset() ? HANDSET_LABEL_SIDE : LABEL_SIDE,
+  );
 
   readonly netWorth = input.required<NetWorth>();
 
@@ -170,6 +184,7 @@ export class NetWorthSankey {
     const { flows, nodes, columns, priorities } = this.#sankey();
     const { baseCurrency } = this.netWorth().totals;
     const colors = this.theme();
+    const labelSide = this.#labelSide();
     const colorOf = (id: string): string => {
       const kind = nodes[id]?.kind;
       const isDebtSide =
@@ -202,7 +217,7 @@ export class NetWorthSankey {
             position: Object.fromEntries(
               Object.entries(nodes).map(([id, node]) => [
                 id,
-                LABEL_SIDE[node.kind],
+                labelSide[node.kind],
               ]),
             ),
           },
@@ -227,10 +242,11 @@ export class NetWorthSankey {
     animation: resolveChartAnimation(),
     layout: {
       padding: {
-        left: LABEL_GUTTER,
-        right: LABEL_GUTTER,
-        // The label of a thin first or last node overflows it by half.
-        top: LABEL_HEIGHT / 2,
+        left: this.#labelGutter(),
+        right: this.#labelGutter(),
+        // The label of a thin first or last node overflows it by half; on a
+        // phone a whole label sits above the middle node.
+        top: this.#isHandset() ? LABEL_HEIGHT + 8 : LABEL_HEIGHT / 2,
         bottom: LABEL_HEIGHT / 2,
       },
     },

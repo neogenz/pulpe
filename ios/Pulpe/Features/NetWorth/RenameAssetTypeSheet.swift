@@ -9,6 +9,7 @@ struct RenameAssetTypeSheet: View {
 
     @State private var name: String
     @State private var errorMessage: String?
+    @State private var submitSuccessTrigger = false
     @FocusState private var focus: Field?
 
     private enum Field: Hashable {
@@ -52,6 +53,7 @@ struct RenameAssetTypeSheet: View {
             .accessibilityIdentifier("renameAssetTypeSubmit")
         }
         .task { focus = .name }
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
 
     private func save() async {
@@ -60,6 +62,7 @@ struct RenameAssetTypeSheet: View {
         errorMessage = nil
         do {
             try await store.renameCategory(id: type.id, name: trimmed)
+            submitSuccessTrigger.toggle()
             dismiss()
         } catch {
             errorMessage = DomainErrorLocalizer.localize(error)

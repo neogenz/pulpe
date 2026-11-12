@@ -944,6 +944,24 @@ describe('ReconcileAccountsDialog', () => {
       expect(next?.disabled).toBe(false);
     });
 
+    it('should require a readable balance before going on once « Ajouter à Mon patrimoine » is ticked', async () => {
+      const view = await setup({ accounts: [] });
+      await view.type(view.byTestId('reconcile-label-input'), 'Neon');
+      await view.click(
+        view
+          .byTestId('reconcile-add-to-net-worth-toggle')
+          ?.querySelector('button'),
+      );
+      const next = view.byTestId<HTMLButtonElement>('reconcile-next-button');
+      expect(next?.disabled).toBe(true);
+
+      await view.type(view.byTestId('reconcile-amount-input'), '12.');
+      expect(next?.disabled).toBe(true);
+
+      await view.type(view.byTestId('reconcile-amount-input'), '300');
+      expect(next?.disabled).toBe(false);
+    });
+
     it('should offer neither select nor checkbox when the feature is off', async () => {
       const view = await setup();
 

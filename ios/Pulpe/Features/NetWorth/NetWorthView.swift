@@ -160,11 +160,7 @@ struct NetWorthView: View {
                 Menu {
                     Button(AppLocale.string("Renommer le type"), systemImage: "pencil") { renameTarget = group }
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(PulpeTypography.rowTitle)
-                        .foregroundStyle(Color.textSecondary)
-                        .frame(width: DesignTokens.TapTarget.minimum, height: DesignTokens.TapTarget.minimum)
-                        .contentShape(Rectangle())
+                    NetWorthMenuLabel()
                 }
                 .accessibilityLabel(AppLocale.string("Actions pour \(group.name)"))
                 .accessibilityIdentifier("netWorthTypeMenu")

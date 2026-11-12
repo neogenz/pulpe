@@ -1,8 +1,8 @@
 import Foundation
 
 /// Flow mapping of the « Répartition aujourd'hui » diagram: a port of the web's
-/// `net-worth-sankey.flows.ts`. No money is computed here; widths come from the API figures
-/// (`convertedValue`, category `total`, `totals`). The only arithmetic is the ratio of gross
+/// `net-worth-sankey.flows.ts`. Widths come from the API figures (`totals`, category `total`)
+/// and from the debt Type totals of `NetWorthSections`. The only arithmetic is the ratio of gross
 /// over debts that splits a debt between gross and the shortfall when debts exceed gross.
 enum NetWorthSankey {
     enum Kind: Equatable, Sendable {

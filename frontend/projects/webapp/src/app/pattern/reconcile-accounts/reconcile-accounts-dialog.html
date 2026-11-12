@@ -122,8 +122,8 @@
             matIconButton
             type="button"
             class="remove-account mt-1 -mr-2"
-            [attr.aria-label]="'currentMonth.reconcile.accounts.removeNumbered' | transloco: { index: index + 1 }"
-            [matTooltip]="'currentMonth.reconcile.accounts.removeNumbered' | transloco: { index: index + 1 }"
+            [attr.aria-label]="account.removeLabelKey | transloco: { index: index + 1 }"
+            [matTooltip]="account.removeLabelKey | transloco: { index: index + 1 }"
             (click)="removeAccount(account.id)"
             data-testid="reconcile-remove-button"
           >
@@ -217,9 +217,7 @@
     <p
       class="privacy-note flex items-start gap-1.5 mt-4 mb-0 text-on-surface-variant text-xs leading-normal"
     >
-      <mat-icon
-        class="shrink-0 size-4! text-base! leading-none! mt-px"
-        aria-hidden="true"
+      <mat-icon class="shrink-0 mat-icon-sm mt-px" aria-hidden="true"
         >lock_outline</mat-icon
       >
       {{ (data.netWorth ? 'currentMonth.reconcile.accounts.linkedHint' :

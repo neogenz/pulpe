@@ -34,13 +34,13 @@ import {
   buildAssetCreate,
   buildAssetEdit,
   defaultCategoryKey,
+  MAX_TYPE_NAME_LENGTH,
   NEW_CATEGORY_PREFIX,
   OTHER_TYPE_KEY,
   STARTER_TYPE_KEYS,
   typeOptionsFor,
   type AssetFormValue,
 } from './asset-form-dialog.schema';
-import { MAX_TYPE_NAME_LENGTH } from './rename-type-dialog';
 
 export interface AssetFormDialogData {
   categories: AssetCategory[];

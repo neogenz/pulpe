@@ -1,12 +1,5 @@
 import Foundation
 
-/// What saving an edited element sends: only the parts that changed.
-struct AssetEdit: Equatable {
-    var updates: AssetUpdate?
-    var category: AssetCategoryChoice?
-    var value: Decimal?
-}
-
 /// What the element sheet holds, with its validation and its payloads, away from the view.
 struct AssetFormDraft: Equatable {
     var name = ""

@@ -8,8 +8,10 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { firstValueFrom } from 'rxjs';
 import type { AssetCategory } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { TitleDisplay } from '@core/routing';
@@ -17,6 +19,10 @@ import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { type AssetRowEvent } from './components/net-worth-asset-row';
 import { debtGroups, ownGroups } from './components/net-worth-groups';
+import {
+  RenameTypeDialog,
+  type RenameTypeDialogData,
+} from './components/rename-type-dialog';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
 import { NetWorthSankey } from './components/net-worth-sankey';
 import { NetWorthSection } from './components/net-worth-section';
@@ -110,7 +116,7 @@ import { injectWriteAttempt } from './services/write-attempt';
                   {{ 'netWorth.heroTitle' | transloco }}
                 </p>
                 <p
-                  class="ph-no-capture m-0 mt-2 text-display-large font-extrabold tabular-nums"
+                  class="ph-no-capture m-0 mt-2 text-display-medium font-extrabold tabular-nums sm:text-display-large"
                   [class.amber]="totals.net < 0"
                   data-testid="net-worth-net"
                 >
@@ -191,30 +197,32 @@ import { injectWriteAttempt } from './services/write-attempt';
               <pulpe-net-worth-sankey [netWorth]="netWorth" />
             }
 
-            <section
-              class="flex min-w-0 flex-col gap-3"
-              aria-labelledby="net-worth-own-title"
-              data-testid="net-worth-own"
-            >
-              <h2
-                id="net-worth-own-title"
-                class="text-title-large font-semibold"
+            @if (ownGroups().length > 0) {
+              <section
+                class="flex min-w-0 flex-col gap-3"
+                aria-labelledby="net-worth-own-title"
+                data-testid="net-worth-own"
               >
-                {{ 'netWorth.gross' | transloco }}
-              </h2>
-              @for (group of ownGroups(); track group.category?.id) {
-                <pulpe-net-worth-section
-                  [title]="group.category!.name"
-                  [total]="group.total"
-                  [assets]="group.assets"
-                  [baseCurrency]="totals.baseCurrency"
-                  [busy]="store.isSaving()"
-                  [renamable]="true"
-                  (action)="onAction($event)"
-                  (rename)="onRenameType(group.category!)"
-                />
-              }
-            </section>
+                <h2
+                  id="net-worth-own-title"
+                  class="text-title-large font-semibold"
+                >
+                  {{ 'netWorth.gross' | transloco }}
+                </h2>
+                @for (group of ownGroups(); track group.category.id) {
+                  <pulpe-net-worth-section
+                    [title]="group.category.name"
+                    [total]="group.total"
+                    [assets]="group.assets"
+                    [baseCurrency]="totals.baseCurrency"
+                    [busy]="store.isSaving()"
+                    [renamable]="true"
+                    (action)="onAction($event)"
+                    (rename)="onRenameType(group.category)"
+                  />
+                }
+              </section>
+            }
 
             @if (debtGroups().length > 0) {
               <section
@@ -337,6 +345,7 @@ export default class NetWorthPage {
   protected readonly store = inject(NetWorthStore);
   protected readonly title = inject(TitleDisplay);
   readonly #dialogs = inject(NetWorthDialogService);
+  readonly #matDialog = inject(MatDialog);
   readonly #attempt = injectWriteAttempt();
   readonly #listFormat = new Intl.ListFormat(inject(LOCALE_ID), {
     style: 'long',
@@ -373,7 +382,12 @@ export default class NetWorthPage {
   );
 
   protected async onRenameType(category: AssetCategory): Promise<void> {
-    const name = await this.#dialogs.openRenameType(category.name);
+    const dialogRef = this.#matDialog.open(RenameTypeDialog, {
+      data: { name: category.name } satisfies RenameTypeDialogData,
+      width: '400px',
+      maxWidth: '90vw',
+    });
+    const name = await firstValueFrom(dialogRef.afterClosed());
     if (name) {
       await this.#attempt(() => this.store.renameCategory(category.id, name));
     }

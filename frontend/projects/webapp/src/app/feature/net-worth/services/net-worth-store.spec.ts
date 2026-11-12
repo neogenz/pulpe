@@ -86,7 +86,6 @@ describe('NetWorthStore', () => {
         }),
       ),
       updateCategory$: vi.fn(),
-      deleteCategory$: vi.fn(),
     };
 
     TestBed.configureTestingModule({

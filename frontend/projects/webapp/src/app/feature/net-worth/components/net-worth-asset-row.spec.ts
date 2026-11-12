@@ -97,7 +97,7 @@ describe('NetWorthAssetRow', () => {
   it('tells which account the reconciliation follows', () => {
     render({ inPulpe: true });
 
-    expect(text('asset-linked-chip')).toBe('Mis à jour au rapprochement');
+    expect(text('asset-linked-note')).toBe('· au rapprochement');
   });
 
   it('opens the edit sheet from a tap on the row, beside the menu and never around it', () => {

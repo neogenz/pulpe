@@ -55,6 +55,7 @@ import { AppCurrencyPipe } from '@core/currency';
 import { LoadingButton } from '@ui/loading-button';
 import { StepProgress } from '@ui/step-progress';
 import {
+  CENTS_PER_UNIT,
   isEmptyPlan,
   planAccountLinks,
   type AccountLinkPlan,
@@ -115,7 +116,6 @@ const FREE_ROW: RowAccount = { kind: 'other', addToNetWorth: false };
 
 type Step = 1 | 2 | 3;
 
-const CENTS_PER_UNIT = 100;
 const LEADING_MINUS = /^\s*[-−]/;
 
 @Component({
@@ -358,7 +358,15 @@ export class ReconcileAccountsDialog {
         ...row,
         assetId,
         addToNetWorth,
+        // Taking a followed account off the list stops following it: the button says so.
+        removeLabelKey: this.#followed.some((asset) => asset.id === assetId)
+          ? 'currentMonth.reconcile.accounts.stopFollowingNumbered'
+          : 'currentMonth.reconcile.accounts.removeNumbered',
         isNameMissing: addToNetWorth && row.label.trim() === '',
+        // The plan drops a followed account without a readable balance.
+        isAmountMissing:
+          addToNetWorth &&
+          parseAccountAmount(row.amountText).status !== 'valid',
         choices: this.#ownAccounts.filter(
           (asset) => asset.id === assetId || !picked.has(asset.id),
         ),
@@ -370,7 +378,9 @@ export class ReconcileAccountsDialog {
   protected readonly canContinue = computed(
     () =>
       this.summary().canContinue &&
-      !this.accountViews().some((account) => account.isNameMissing),
+      !this.accountViews().some(
+        (account) => account.isNameMissing || account.isAmountMissing,
+      ),
   );
 
   protected selectAccount(id: number, choice: string): void {

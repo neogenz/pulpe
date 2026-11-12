@@ -15,12 +15,11 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { MAX_TYPE_NAME_LENGTH } from './asset-form-dialog.schema';
 
 export interface RenameTypeDialogData {
   name: string;
 }
-
-export const MAX_TYPE_NAME_LENGTH = 30;
 
 /** Closes with the new name of a Type, only when it changed. */
 @Component({

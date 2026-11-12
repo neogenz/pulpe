@@ -105,9 +105,7 @@ struct HomeHeroCard: View {
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.pulpePrimary)
                 // 44pt hit area without growing the row (swiftui-hit-areas.md).
-                .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-                .contentShape(Rectangle())
-                .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+                .expandedTapArea()
             }
             .textLinkButtonStyle()
             .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
@@ -124,9 +122,7 @@ struct HomeHeroCard: View {
                 .foregroundStyle(amountsHidden ? Color.accentInk : Color.textSecondary)
                 .contentTransition(.symbolEffect(.replace))
                 // 44pt hit area without growing the row (swiftui-hit-areas.md).
-                .padding(DesignTokens.TapTarget.minimum / 2)
-                .contentShape(Rectangle())
-                .padding(-DesignTokens.TapTarget.minimum / 2)
+                .expandedTapArea(.all)
         }
         .plainPressedButtonStyle()
         .accessibilityLabel(amountsHidden ? "Afficher les montants" : "Masquer les montants")

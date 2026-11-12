@@ -37,8 +37,8 @@ private struct AppliesAccountLinks: ViewModifier {
 }
 
 extension ReconcileAccountsFlow {
-    /// The link plan, written once completed. A new account lands in « Comptes », followed
-    /// from the start. A failure only toasts: the reconciliation itself stays done.
+    /// The link plan, written once completed. A new account lands in « Comptes ». A failure
+    /// only toasts, in words of its own: the reconciliation itself stays done.
     func applyAccountLinks(
         into assetStore: AssetStore, currency: SupportedCurrency, toastManager: ToastManager
     ) async {
@@ -46,17 +46,20 @@ extension ReconcileAccountsFlow {
         guard isCompleted, !plan.isEmpty else { return }
         do {
             try await assetStore.followAccounts(
-                creates: plan.creates.map {
-                    AssetCreate(
-                        name: $0.name, categoryId: "", currency: currency, direction: .own,
-                        inPulpe: true, value: $0.value
-                    )
-                },
-                category: .starter(name: AppLocale.string("Comptes")),
+                creating: NewFollowedAccounts(
+                    accounts: plan.creates.map { (name: $0.name, value: $0.value) },
+                    currency: currency,
+                    category: .starter(name: AppLocale.string("Comptes"))
+                ),
                 links: plan.links, unlinks: plan.unlinks, snapshots: plan.snapshots
             )
         } catch {
-            toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+            toastManager.show(
+                AppLocale.string(
+                    "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine."
+                ),
+                type: .error
+            )
         }
     }
 }

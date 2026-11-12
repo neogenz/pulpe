@@ -27,6 +27,7 @@ export interface AssetFormValue {
 
 export const NEW_CATEGORY_PREFIX = 'new:';
 export const OTHER_TYPE_KEY = 'other';
+export const MAX_TYPE_NAME_LENGTH = 30;
 
 /** Translation keys under `netWorth.starter` / `netWorth.starterDebt`. */
 export const STARTER_TYPE_KEYS: Record<AssetDirection, readonly string[]> = {

@@ -1,6 +1,29 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "%@ · au rapprochement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · beim Abgleich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · when matching"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · all'allineamento"
+          }
+        }
+      }
+    },
     "Ajouter à Mon patrimoine" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -368,25 +391,25 @@
         }
       }
     },
-    "Mis à jour au rapprochement" : {
+    "Ne plus suivre ce compte" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beim Abgleich aktualisiert"
+            "value" : "Diesem Konto nicht mehr folgen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Updated when matching"
+            "value" : "Stop following this account"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aggiornato all'allineamento"
+            "value" : "Non seguire più questo conto"
           }
         }
       }
@@ -569,6 +592,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il %@ ti resterà più del previsto."
+          }
+        }
+      }
+    },
+    "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching done, but I couldn't save your balances in My net worth."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allineamento fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio."
           }
         }
       }

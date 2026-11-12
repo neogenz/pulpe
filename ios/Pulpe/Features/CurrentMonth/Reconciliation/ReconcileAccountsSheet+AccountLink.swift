@@ -15,6 +15,12 @@ struct ReconcileAccountRow: View {
     private var isInvalid: Bool { flow.hasInvalidAmount(id: account.id) }
     private var choices: [Asset] { flow.choices(for: account.id) }
 
+    /// Taking a followed account off the list stops following it: the action says so.
+    private var removeTitle: String {
+        asset?.inPulpe == true
+            ? AppLocale.string("Ne plus suivre ce compte") : AppLocale.string("Retirer ce compte")
+    }
+
     /// Rows are addressed by id, so removing one never shifts another row's binding.
     private var row: Binding<AccountReconciliation.Account> {
         Binding(
@@ -41,14 +47,12 @@ struct ReconcileAccountRow: View {
         .frame(minHeight: DesignTokens.ListRow.formRowHeight)
         .contextMenu {
             if flow.canRemoveAccount(id: account.id) {
-                Button(AppLocale.string("Retirer ce compte"), systemImage: "minus.circle", role: .destructive) {
-                    remove()
-                }
+                Button(removeTitle, systemImage: "minus.circle", role: .destructive, action: remove)
             }
         }
         .accessibilityActions {
             if flow.canRemoveAccount(id: account.id) {
-                Button(AppLocale.string("Retirer ce compte"), action: remove)
+                Button(removeTitle, action: remove)
             }
         }
     }
@@ -102,16 +106,16 @@ struct ReconcileAccountRow: View {
                     }
                 }
             }
-            Button(AppLocale.string("Autre compte…")) {
-                flow.selectAccount(id: account.id, nil)
-                focus.wrappedValue = .label(account.id)
+            // A typed line is already another account: offering it again would erase its name.
+            if asset != nil {
+                Button(AppLocale.string("Autre compte…")) {
+                    flow.selectAccount(id: account.id, nil)
+                    focus.wrappedValue = .label(account.id)
+                }
             }
             if flow.canRemoveAccount(id: account.id) {
                 Divider()
-                Button(
-                    AppLocale.string("Retirer ce compte"), systemImage: "minus.circle", role: .destructive,
-                    action: remove
-                )
+                Button(removeTitle, systemImage: "minus.circle", role: .destructive, action: remove)
             }
         } label: {
             HStack(spacing: DesignTokens.Spacing.xs) {
@@ -124,13 +128,11 @@ struct ReconcileAccountRow: View {
                 Image(systemName: "chevron.up.chevron.down")
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textSecondary)
+                    // Alone beside a typed name, the chevron is the whole target.
+                    .frame(minWidth: asset == nil ? DesignTokens.TapTarget.minimum : nil)
             }
         }
-        .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .contentShape(Rectangle())
-        .padding(.horizontal, -DesignTokens.Spacing.md)
-        .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+        .expandedTapArea()
         .accessibilityLabel(AppLocale.string("Compte \(number)"))
         .accessibilityValue(asset?.name ?? AppLocale.string("Autre compte…"))
         .accessibilityIdentifier("reconcileAccountMenu")
@@ -156,9 +158,7 @@ struct ReconcileAccountRow: View {
                 .font(PulpeTypography.captionRegular)
                 .foregroundStyle(account.isNegative ? Color.textSecondary : Color.pulpePrimary)
         }
-        .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-        .contentShape(Rectangle())
-        .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+        .expandedTapArea()
         .textLinkButtonStyle()
         .accessibilityAddTraits(account.isNegative ? .isSelected : [])
         .accessibilityHint(AppLocale.string("Carte de crédit, découvert"))

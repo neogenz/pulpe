@@ -70,37 +70,17 @@ const DAYS_PER_YEAR = 365;
       </button>
     }
     <ng-template #summary>
-      <span class="block min-w-0 flex-1">
-        <span class="flex flex-wrap items-center gap-2">
-          <span
-            class="ph-no-capture min-w-0 truncate text-body-large font-semibold"
-            data-testid="asset-row-name"
-            >{{ asset().name }}</span
-          >
-          @if (isOverdraft()) {
-            <span class="chip chip-amber" data-testid="asset-overdraft-chip">{{
-              'netWorth.overdraft' | transloco
-            }}</span>
-          }
-          @if (asset().inPulpe) {
-            <span class="chip chip-pulpe" data-testid="asset-linked-chip">{{
-              'netWorth.linkedBadge' | transloco
-            }}</span>
-          }
-        </span>
+      <span class="flex flex-wrap items-center gap-2 min-w-0 flex-1">
         <span
-          class="ph-no-capture block text-body-small text-on-surface-variant"
-          data-testid="asset-row-meta"
+          class="ph-no-capture min-w-0 truncate text-body-large font-semibold"
+          data-testid="asset-row-name"
+          >{{ asset().name }}</span
         >
-          @if (categoryName(); as category) {
-            {{
-              'netWorth.updatedDebt'
-                | transloco: { category, when: updatedWhen() }
-            }}
-          } @else {
-            {{ 'netWorth.updated' | transloco: { when: updatedWhen() } }}
-          }
-        </span>
+        @if (isOverdraft()) {
+          <span class="chip chip-amber" data-testid="asset-overdraft-chip">{{
+            'netWorth.overdraft' | transloco
+          }}</span>
+        }
       </span>
 
       <span class="block text-right">
@@ -125,6 +105,26 @@ const DAYS_PER_YEAR = 365;
               {{ 'netWorth.excluded' | transloco }}
             }
           </span>
+        }
+      </span>
+      <!-- Under the whole row: beside the amount, it would wrap on a phone. -->
+      <span
+        class="ph-no-capture block w-full text-body-small text-on-surface-variant"
+        data-testid="asset-row-meta"
+      >
+        @if (categoryName(); as category) {
+          {{
+            'netWorth.updatedDebt'
+              | transloco: { category, when: updatedWhen() }
+          }}
+        } @else {
+          {{ 'netWorth.updated' | transloco: { when: updatedWhen() } }}
+        }
+        <!-- A followed account says where its balance comes from, in the same breath. -->
+        @if (asset().inPulpe) {
+          <span data-testid="asset-linked-note">{{
+            'netWorth.linkedSuffix' | transloco
+          }}</span>
         }
       </span>
     </ng-template>
@@ -235,8 +235,9 @@ const DAYS_PER_YEAR = 365;
       display: flex;
       min-width: 0;
       flex: 1;
-      align-items: center;
-      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.125rem 0.75rem;
       padding: 0.75rem 0.25rem 0.75rem 1.25rem;
       text-align: left;
       color: inherit;
@@ -257,10 +258,6 @@ const DAYS_PER_YEAR = 365;
       padding: 0.125rem 0.5rem;
       font-size: 0.6875rem;
       font-weight: 600;
-    }
-    .chip-pulpe {
-      background: var(--mat-sys-secondary-container);
-      color: var(--mat-sys-on-secondary-container);
     }
     .chip-amber {
       background: var(--pulpe-amber-container);

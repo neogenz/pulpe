@@ -120,9 +120,7 @@ struct SectionHeader: View {
             // the label's original, un-padded size; only the contentShape keeps the wider
             // bounds. Symmetric and half the tap target on each edge, so it clears 44pt
             // regardless of the label's own line height at any text size.
-            .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-            .contentShape(Rectangle())
-            .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+            .expandedTapArea()
             .textLinkButtonStyle()
             // Out of its visual context "Tout voir" names nothing; paired with the
             // section it does, and that saves every call site a hint of its own.

@@ -87,7 +87,7 @@ struct NetWorthSectionsTests {
         )
         let sections = NetWorthSections(netWorth([usd], incomplete: true))
 
-        #expect(usd.badges == [.inPulpe, .excluded])
+        #expect(usd.badges == [.excluded])
         #expect(!usd.showsConversion(in: .chf))
         #expect(sections.unconverted.map(\.name) == ["Livret"])
         #expect(sections.incomplete)

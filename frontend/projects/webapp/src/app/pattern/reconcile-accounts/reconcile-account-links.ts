@@ -20,7 +20,7 @@ export interface AccountLinkPlan {
   readonly snapshots: AssetSnapshotsCreate['items'];
 }
 
-const CENTS_PER_UNIT = 100;
+export const CENTS_PER_UNIT = 100;
 
 /**
  * What finishing a reconciliation writes to « Mon patrimoine »: the accounts

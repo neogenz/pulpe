@@ -75,9 +75,7 @@ struct ToPointPage: View {
                     }
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.pulpePrimary)
-                    .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-                    .contentShape(Rectangle())
-                    .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+                    .expandedTapArea()
                 }
                 .textLinkButtonStyle()
                 .accessibilityIdentifier("toPointCompare")

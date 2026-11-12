@@ -199,14 +199,6 @@ describe('AssetApi', () => {
       data: { id: CATEGORY_ID, name: 'Placements' },
     });
     expect((await renamed).data.name).toBe('Placements');
-
-    const removed = firstValueFrom(api.deleteCategory$(CATEGORY_ID));
-    const deleteReq = httpTesting.expectOne(
-      `${BASE_URL}/asset-categories/${CATEGORY_ID}`,
-    );
-    expect(deleteReq.request.method).toBe('DELETE');
-    deleteReq.flush({ success: true, message: 'deleted' });
-    expect((await removed).success).toBe(true);
   });
 
   it('clearCache wipes every cached entry', () => {

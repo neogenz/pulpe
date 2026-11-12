@@ -106,6 +106,16 @@ struct ReconcileLinkedAccountsTests {
         #expect(flow.linkPlan.isEmpty)
     }
 
+    @Test func theSameAccountOnTwoRows_isSnapshottedOnce() {
+        let flow = makeFlow([bcge])
+        flow.accounts[0].amountText = "10"
+        flow.selectAccount(id: flow.addAccount(), bcge)
+        flow.accounts[1].amountText = "20"
+
+        #expect(flow.linkPlan.snapshots.map(\.assetId) == ["bcge"])
+        #expect(flow.linkPlan.links.isEmpty)
+    }
+
     // MARK: - Name
 
     @Test func addingToMonPatrimoineWithoutAName_cannotFinish() {
@@ -144,6 +154,25 @@ struct ReconcileLinkedAccountsTests {
         #expect(service.calls == ["createCategory", "create", "update", "update", "snapshots", "get"])
         #expect(service.lastCreate?.inPulpe == true)
         #expect(service.lastCreate?.name == "Neon")
+        #expect(service.updates == [
+            "revolut": AssetUpdate(inPulpe: true), "bcge": AssetUpdate(inPulpe: false),
+        ])
+    }
+
+    @Test func refusedLink_showsItsOwnToast_andRecordsNoBalance() async {
+        let service = MockAssetService()
+        service.updateError = APIError.assetCreateFailed
+        let toast = ToastManager()
+        let flow = makeFlow([bcge, revolut])
+        flow.accounts[0].amountText = "40"
+        flow.selectAccount(id: flow.addAccount(), revolut)
+        flow.accounts[1].amountText = "60"
+        _ = flow.confirmUpToDate(realizedBalance: 100, of: "b")
+
+        await flow.applyAccountLinks(into: AssetStore(service: service), currency: .chf, toastManager: toast)
+
+        #expect(service.calls == ["update", "get"])
+        #expect(toast.currentToast?.type == .error)
     }
 
     @Test func dismiss_writesNothing() async {

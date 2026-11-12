@@ -113,14 +113,6 @@ struct AssetServiceTests {
         #expect(seen.json["name"] as? String == "Épargne")
     }
 
-    @Test
-    func deleteCategory_deletesCategory() async throws {
-        let seen = try await capture(data: "null") { try await $0.deleteCategory(id: "c1") }
-
-        #expect(seen.method == "DELETE")
-        #expect(seen.path == "/asset-categories/c1")
-    }
-
     private func makeAPIClient() -> APIClient {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [InterceptingURLProtocol.self]

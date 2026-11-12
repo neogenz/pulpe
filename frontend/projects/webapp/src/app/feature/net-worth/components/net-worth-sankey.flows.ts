@@ -65,8 +65,8 @@ export function buildNetWorthSankey({
   if (owned.length <= 1 && debts.length === 0) return empty;
 
   for (const { category, total } of owned) {
-    const id = `category:${category!.id}`;
-    nodes[id] = { kind: 'category', name: category!.name, value: total };
+    const id = `category:${category.id}`;
+    nodes[id] = { kind: 'category', name: category.name, value: total };
     flows.push({ from: id, to: GROSS_NODE, flow: total });
   }
 

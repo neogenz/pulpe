@@ -1,7 +1,7 @@
 import Foundation
 
-/// The page's sections, a pure projection of the API response: grouping and ordering only,
-/// no sum and no conversion (the server owns every figure).
+/// The page's sections, a projection of the API response: grouping, ordering, and the total
+/// of a debt Type, summed from the converted values the server sends. No conversion here.
 struct NetWorthSections: Equatable {
     /// One card of the page: a Type and its elements, or the overdrawn accounts.
     struct Group: Identifiable, Equatable {
@@ -83,8 +83,8 @@ struct NetWorthSections: Equatable {
 
 // MARK: - Row presentation
 
+/// What a row warns about. A followed account is not one: its caption says it.
 enum NetWorthBadge: Equatable {
-    case inPulpe
     case overdraft
     case excluded
 }
@@ -94,7 +94,6 @@ extension Asset {
 
     var badges: [NetWorthBadge] {
         var badges: [NetWorthBadge] = []
-        if inPulpe { badges.append(.inPulpe) }
         if direction == .own, latestValue < 0 { badges.append(.overdraft) }
         if isActive, convertedValue == nil { badges.append(.excluded) }
         return badges

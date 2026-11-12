@@ -9,6 +9,9 @@ export interface AssetGroup {
   assets: Asset[];
 }
 
+/** A Type card of what I own: it always has its Type. */
+export type OwnGroup = AssetGroup & { category: AssetCategory };
+
 const isOverdrawn = (asset: Asset): boolean =>
   asset.direction === 'own' && asset.latestValue < 0;
 
@@ -16,7 +19,7 @@ const isOverdrawn = (asset: Asset): boolean =>
 export function ownGroups(
   categories: readonly AssetCategory[],
   activeAssets: readonly Asset[],
-): AssetGroup[] {
+): OwnGroup[] {
   return categories
     .map((category) => ({
       category,

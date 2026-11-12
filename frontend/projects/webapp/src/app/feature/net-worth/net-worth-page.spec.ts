@@ -6,12 +6,15 @@ import {
   signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import type { Asset, NetWorth } from 'pulpe-shared';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TitleDisplay } from '@core/routing';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
+import { RenameTypeDialog } from './components/rename-type-dialog';
 import { NetWorthSankey } from './components/net-worth-sankey';
 import NetWorthPage from './net-worth-page';
 import { NetWorthDialogService } from './services/net-worth-dialog.service';
@@ -116,7 +119,8 @@ describe('NetWorthPage', () => {
     renameCategory: vi.fn(),
     dismissSuggestion: vi.fn(),
   };
-  const dialogs = { openCreate: vi.fn(), openRenameType: vi.fn() };
+  const dialogs = { openCreate: vi.fn() };
+  const matDialog = { open: vi.fn() };
   const snackBar = { open: vi.fn() };
 
   const byTestId = (id: string) =>
@@ -156,6 +160,7 @@ describe('NetWorthPage', () => {
         ...provideTranslocoForTest(),
         { provide: NetWorthStore, useValue: store },
         { provide: NetWorthDialogService, useValue: dialogs },
+        { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
         {
           provide: TitleDisplay,
@@ -219,7 +224,7 @@ describe('NetWorthPage', () => {
   });
 
   it('renames a Type, own or debt, from its header menu', async () => {
-    dialogs.openRenameType.mockResolvedValue('Crédits');
+    matDialog.open.mockReturnValue({ afterClosed: () => of('Crédits') });
     store.renameCategory.mockResolvedValue(undefined);
     render(populated);
 
@@ -237,7 +242,10 @@ describe('NetWorthPage', () => {
       .click();
     await fixture.whenStable();
 
-    expect(dialogs.openRenameType).toHaveBeenCalledWith('Prêts');
+    expect(matDialog.open).toHaveBeenCalledWith(
+      RenameTypeDialog,
+      expect.objectContaining({ data: { name: 'Prêts' } }),
+    );
     expect(store.renameCategory).toHaveBeenCalledWith(LOANS, 'Crédits');
   });
 
