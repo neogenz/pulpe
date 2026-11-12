@@ -8,13 +8,21 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { firstValueFrom } from 'rxjs';
+import type { AssetCategory } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { TitleDisplay } from '@core/routing';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { type AssetRowEvent } from './components/net-worth-asset-row';
+import { debtGroups, ownGroups } from './components/net-worth-groups';
+import {
+  RenameTypeDialog,
+  type RenameTypeDialogData,
+} from './components/rename-type-dialog';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
 import { NetWorthSankey } from './components/net-worth-sankey';
 import { NetWorthSection } from './components/net-worth-section';
@@ -51,24 +59,19 @@ import { injectWriteAttempt } from './services/write-attempt';
             {{ title.currentTitle() }}
           </h1>
         </div>
-        <div class="ml-auto flex shrink-0 items-center gap-2">
-          <button
-            matButton="outlined"
-            (click)="onOpenCategories()"
-            data-testid="net-worth-categories-button"
-          >
-            <mat-icon>category</mat-icon>
-            {{ 'netWorth.categoriesButton' | transloco }}
-          </button>
-          <button
-            matButton="filled"
-            (click)="onAdd()"
-            data-testid="net-worth-add-button"
-          >
-            <mat-icon>add_circle</mat-icon>
-            {{ 'netWorth.addButton' | transloco }}
-          </button>
-        </div>
+        <!-- The empty state carries its own action: one way in, not two. -->
+        @if (!store.isEmpty()) {
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <button
+              matButton="filled"
+              (click)="onAdd()"
+              data-testid="net-worth-add-button"
+            >
+              <mat-icon>add_circle</mat-icon>
+              {{ 'netWorth.addButton' | transloco }}
+            </button>
+          </div>
+        }
       </header>
 
       @switch (store.netWorth.status()) {
@@ -113,7 +116,7 @@ import { injectWriteAttempt } from './services/write-attempt';
                   {{ 'netWorth.heroTitle' | transloco }}
                 </p>
                 <p
-                  class="ph-no-capture m-0 mt-2 text-display-large font-extrabold tabular-nums"
+                  class="ph-no-capture m-0 mt-2 text-display-medium font-extrabold tabular-nums sm:text-display-large"
                   [class.amber]="totals.net < 0"
                   data-testid="net-worth-net"
                 >
@@ -194,66 +197,107 @@ import { injectWriteAttempt } from './services/write-attempt';
               <pulpe-net-worth-sankey [netWorth]="netWorth" />
             }
 
-            <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-              <div class="flex min-w-0 flex-col gap-4 lg:col-span-2">
-                @for (section of categorySections(); track section.id) {
+            @if (ownGroups().length > 0) {
+              <section
+                class="flex min-w-0 flex-col gap-3"
+                aria-labelledby="net-worth-own-title"
+                data-testid="net-worth-own"
+              >
+                <h2
+                  id="net-worth-own-title"
+                  class="text-title-large font-semibold"
+                >
+                  {{ 'netWorth.gross' | transloco }}
+                </h2>
+                @for (group of ownGroups(); track group.category.id) {
                   <pulpe-net-worth-section
-                    [title]="section.name"
-                    [total]="section.total"
-                    [assets]="section.assets"
+                    [title]="group.category.name"
+                    [total]="group.total"
+                    [assets]="group.assets"
                     [baseCurrency]="totals.baseCurrency"
                     [busy]="store.isSaving()"
+                    [renamable]="true"
                     (action)="onAction($event)"
+                    (rename)="onRenameType(group.category)"
                   />
                 }
-              </div>
+              </section>
+            }
 
-              <div class="flex min-w-0 flex-col gap-3">
-                @if (debtAssets().length > 0) {
-                  <pulpe-net-worth-section
-                    [title]="'netWorth.debts' | transloco"
-                    [total]="totals.debts"
-                    [assets]="debtAssets()"
-                    [baseCurrency]="totals.baseCurrency"
-                    [busy]="store.isSaving()"
-                    [isDebts]="true"
-                    [showCategory]="true"
-                    [categoryNames]="categoryNames()"
-                    (action)="onAction($event)"
-                  />
-                }
-                @if (store.archivedAssets().length > 0) {
-                  <button
-                    matButton
-                    class="self-start"
-                    [attr.aria-expanded]="isArchivedShown()"
-                    (click)="isArchivedShown.set(!isArchivedShown())"
-                    data-testid="net-worth-archived-toggle"
-                  >
-                    <mat-icon>{{
-                      isArchivedShown() ? 'expand_less' : 'expand_more'
-                    }}</mat-icon>
-                    {{
-                      isArchivedShown()
-                        ? ('netWorth.hideArchived' | transloco)
-                        : ('netWorth.showArchived'
-                          | transloco: { count: store.archivedAssets().length })
-                    }}
-                  </button>
-                  @if (isArchivedShown()) {
+            @if (debtGroups().length > 0) {
+              <section
+                class="flex min-w-0 flex-col gap-3"
+                aria-labelledby="net-worth-owe-title"
+                data-testid="net-worth-owe"
+              >
+                <h2
+                  id="net-worth-owe-title"
+                  class="text-title-large font-semibold"
+                >
+                  {{ 'netWorth.debts' | transloco }}
+                </h2>
+                @for (group of debtGroups(); track group.category?.id) {
+                  @if (group.category; as category) {
                     <pulpe-net-worth-section
-                      [title]="'netWorth.archivedTitle' | transloco"
-                      [assets]="store.archivedAssets()"
+                      [title]="category.name"
+                      [total]="group.total"
+                      [assets]="group.assets"
                       [baseCurrency]="totals.baseCurrency"
                       [busy]="store.isSaving()"
+                      [isDebts]="true"
+                      [renamable]="true"
+                      (action)="onAction($event)"
+                      (rename)="onRenameType(category)"
+                    />
+                  } @else {
+                    <pulpe-net-worth-section
+                      [title]="'netWorth.sankey.overdrafts' | transloco"
+                      [total]="group.total"
+                      [assets]="group.assets"
+                      [baseCurrency]="totals.baseCurrency"
+                      [busy]="store.isSaving()"
+                      [isDebts]="true"
                       [showCategory]="true"
                       [categoryNames]="categoryNames()"
                       (action)="onAction($event)"
                     />
                   }
                 }
+              </section>
+            }
+
+            @if (store.archivedAssets().length > 0) {
+              <div class="flex min-w-0 flex-col gap-3">
+                <button
+                  matButton
+                  class="self-start"
+                  [attr.aria-expanded]="isArchivedShown()"
+                  (click)="isArchivedShown.set(!isArchivedShown())"
+                  data-testid="net-worth-archived-toggle"
+                >
+                  <mat-icon>{{
+                    isArchivedShown() ? 'expand_less' : 'expand_more'
+                  }}</mat-icon>
+                  {{
+                    isArchivedShown()
+                      ? ('netWorth.hideArchived' | transloco)
+                      : ('netWorth.showArchived'
+                        | transloco: { count: store.archivedAssets().length })
+                  }}
+                </button>
+                @if (isArchivedShown()) {
+                  <pulpe-net-worth-section
+                    [title]="'netWorth.archivedTitle' | transloco"
+                    [assets]="store.archivedAssets()"
+                    [baseCurrency]="totals.baseCurrency"
+                    [busy]="store.isSaving()"
+                    [showCategory]="true"
+                    [categoryNames]="categoryNames()"
+                    (action)="onAction($event)"
+                  />
+                }
               </div>
-            </div>
+            }
           }
         }
       }
@@ -301,6 +345,7 @@ export default class NetWorthPage {
   protected readonly store = inject(NetWorthStore);
   protected readonly title = inject(TitleDisplay);
   readonly #dialogs = inject(NetWorthDialogService);
+  readonly #matDialog = inject(MatDialog);
   readonly #attempt = injectWriteAttempt();
   readonly #listFormat = new Intl.ListFormat(inject(LOCALE_ID), {
     style: 'long',
@@ -317,27 +362,11 @@ export default class NetWorthPage {
       ),
   );
 
-  // An overdrawn account sits with the debts, not in its category.
-  protected readonly categorySections = computed(() =>
-    this.store
-      .categories()
-      .map((category) => ({
-        ...category,
-        assets: this.store
-          .activeAssets()
-          .filter(
-            (asset) =>
-              asset.categoryId === category.id &&
-              asset.direction === 'own' &&
-              asset.latestValue >= 0,
-          ),
-      }))
-      .filter((section) => section.assets.length > 0),
+  protected readonly ownGroups = computed(() =>
+    ownGroups(this.store.categories(), this.store.activeAssets()),
   );
-  protected readonly debtAssets = computed(() =>
-    this.store
-      .activeAssets()
-      .filter((asset) => asset.direction === 'owe' || asset.latestValue < 0),
+  protected readonly debtGroups = computed(() =>
+    debtGroups(this.store.categories(), this.store.activeAssets()),
   );
 
   readonly #unconverted = computed(() =>
@@ -352,31 +381,36 @@ export default class NetWorthPage {
     ),
   );
 
-  protected onOpenCategories(): Promise<void> {
-    return this.#dialogs.openCategories();
+  protected async onRenameType(category: AssetCategory): Promise<void> {
+    const dialogRef = this.#matDialog.open(RenameTypeDialog, {
+      data: { name: category.name } satisfies RenameTypeDialogData,
+      width: '400px',
+      maxWidth: '90vw',
+    });
+    const name = await firstValueFrom(dialogRef.afterClosed());
+    if (name) {
+      await this.#attempt(() => this.store.renameCategory(category.id, name));
+    }
   }
 
   protected async onAdd(): Promise<void> {
-    const request = await this.#dialogs.openCreate(this.store.categories());
+    const request = await this.#dialogs.openCreate(
+      this.store.categories(),
+      this.store.assets(),
+    );
     if (request) await this.#attempt(() => this.store.addAsset(request));
   }
 
   protected async onAction({ asset, action }: AssetRowEvent): Promise<void> {
     switch (action) {
-      case 'updateValue': {
-        const value = await this.#dialogs.openValue(asset);
-        if (value !== undefined) {
-          await this.#attempt(() => this.store.recordValue(asset.id, value));
-        }
-        return;
-      }
       case 'edit': {
         const request = await this.#dialogs.openEdit(
           asset,
           this.store.categories(),
+          this.store.assets(),
         );
         if (request) {
-          await this.#attempt(() => this.store.editAsset(asset.id, request));
+          await this.#attempt(() => this.store.saveAsset(asset.id, request));
         }
         return;
       }
@@ -384,7 +418,9 @@ export default class NetWorthPage {
         const { suggestion } = asset;
         if (suggestion) {
           await this.#attempt(() =>
-            this.store.recordValue(asset.id, suggestion.proposedValue),
+            this.store.saveAsset(asset.id, {
+              value: suggestion.proposedValue,
+            }),
           );
         }
         return;

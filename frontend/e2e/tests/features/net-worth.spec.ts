@@ -3,6 +3,7 @@ import { enableFeatureFlags } from '../../utils/feature-flags';
 
 const CHECKING_ID = '11111111-1111-4111-8111-111111111111';
 const LOANS_ID = '22222222-2222-4222-8222-222222222222';
+const SAVINGS_ID = '77777777-7777-4777-8777-777777777777';
 
 const emptyNetWorth = {
   totals: {
@@ -45,7 +46,8 @@ const populatedNetWorth = {
     incomplete: false,
   },
   categories: [
-    { id: CHECKING_ID, name: 'Comptes', total: 10_000 },
+    { id: CHECKING_ID, name: 'Comptes', total: 8000 },
+    { id: SAVINGS_ID, name: 'Épargne', total: 2000 },
     { id: LOANS_ID, name: 'Prêts', total: 0 },
   ],
   assets: [
@@ -54,7 +56,14 @@ const populatedNetWorth = {
       'UBS',
       CHECKING_ID,
       'own',
-      10_000,
+      8000,
+    ),
+    asset(
+      '66666666-6666-4666-8666-666666666666',
+      'Livret',
+      SAVINGS_ID,
+      'own',
+      2000,
     ),
     asset(
       '44444444-4444-4444-8444-444444444444',
@@ -89,7 +98,8 @@ test.describe('Mon patrimoine', () => {
 
     await expect(page.getByTestId('net-worth-empty')).toBeVisible();
     await expect(page.getByTestId('net-worth-hero')).toBeHidden();
-    await page.getByTestId('net-worth-add-button').click();
+    await expect(page.getByTestId('net-worth-add-button')).toBeHidden();
+    await page.getByTestId('net-worth-empty').getByRole('button').click();
     await expect(page.getByTestId('asset-form-dialog')).toBeVisible();
   });
 
@@ -110,7 +120,15 @@ test.describe('Mon patrimoine', () => {
     ).toBeVisible();
 
     const rows = page.getByTestId('asset-row-name');
-    await expect(rows).toHaveText(['UBS', 'Compte à découvert', 'Leasing']);
+    await expect(rows).toHaveText([
+      'UBS',
+      'Livret',
+      'Leasing',
+      'Compte à découvert',
+    ]);
     await expect(page.getByTestId('asset-overdraft-chip')).toBeVisible();
+
+    await page.getByTestId('asset-row-edit-button').first().click();
+    await expect(page.getByTestId('asset-form-dialog')).toBeVisible();
   });
 });

@@ -1151,11 +1151,19 @@
         "negative": "Solde négatif (découvert)",
         "addAccount": "Ajouter un compte",
         "removeNumbered": "Retirer le compte {{ index }}",
+        "stopFollowingNumbered": "Ne plus suivre le compte {{ index }}",
         "total": "Total de tes comptes",
         "numbered": "Compte {{ index }}",
         "privateHint": "Les comptes saisis ne sont pas enregistrés.",
         "lastBalance": "Dernier solde : {{ amount }}, {{ when }}",
-        "linkedHint": "Je garde le solde de tes comptes « Dans Pulpe » dans Mon patrimoine. Les autres lignes ne sont pas enregistrées."
+        "linkedHint": "Je mets à jour le solde de tes comptes de Mon patrimoine. Les autres lignes ne sont pas enregistrées.",
+        "account": "Compte",
+        "otherAccount": "Autre compte…",
+        "addToNetWorth": "Ajouter à Mon patrimoine",
+        "accountNameLabel": "Nom du compte",
+        "nameRequired": "Donne un nom à ce compte pour l'ajouter",
+        "balanceRequired": "Saisis son solde pour l'ajouter",
+        "addToNetWorthHint": "Je garde ce compte et je mets son solde à jour à chaque rapprochement."
       },
       "realized": {
         "heading": "Ton solde pointé",
@@ -1452,7 +1460,6 @@
   },
   "netWorth": {
     "addButton": "Ajouter",
-    "categoriesButton": "Catégories",
     "loadError": "Impossible de charger ton patrimoine — réessaie",
     "emptyTitle": "Ton patrimoine commence ici",
     "emptyMessage": "Ajoute un compte, un livret ou une dette pour voir ta fortune nette du jour.",
@@ -1461,11 +1468,11 @@
     "heroSubtitle": "Ce que j'ai moins ce que je dois, au {{date}}",
     "gross": "Ce que j'ai",
     "debts": "Ce que je dois",
-    "fxNote": "{{asset}} converti au taux du jour : 1 {{foreign}} = {{rate}} {{base}}",
+    "fxNote": "Taux du jour pour {{asset}} : 1 {{foreign}} = {{rate}} {{base}}",
     "negativeNote": "Ce que je dois dépasse ce que j'ai aujourd'hui. Chaque remboursement pointé ramène ce chiffre vers zéro.",
     "incompleteNotice": "Je n'ai pas le taux {{currency}} du jour : le total ne compte pas {{assets}}. Il reviendra dès que le taux sera disponible.",
     "excluded": "Hors total",
-    "inPulpe": "Dans Pulpe",
+    "linkedSuffix": "· au rapprochement",
     "overdraft": "Découvert",
     "updated": "Mis à jour {{when}}",
     "updatedDebt": "{{category}} · mis à jour {{when}}",
@@ -1478,18 +1485,21 @@
       "subtitleDebts": "De ce que j'ai à ce que je dois",
       "net": "Fortune nette",
       "shortfall": "Il manque",
-      "mobileHint": "Fais glisser pour voir jusqu'à ta fortune nette",
-      "mobileHintDebts": "Fais glisser pour voir jusqu'à ce que tu dois",
       "ariaNet": "Répartition de ce que j'ai : fortune brute {{gross}}, partagée entre {{debts}} dus et {{net}} de fortune nette.",
-      "ariaDebts": "Ce que j'ai, {{gross}}, face à {{debts}} dus."
+      "ariaDebts": "Ce que j'ai, {{gross}}, face à {{debts}} dus.",
+      "overdrafts": "Découverts"
     },
     "menu": {
       "actions": "Actions pour {{name}}",
-      "updateValue": "Mettre à jour la valeur",
       "edit": "Modifier",
       "archive": "Archiver",
       "unarchive": "Désarchiver",
       "delete": "Supprimer"
+    },
+    "type": {
+      "menu": "Actions pour le type {{name}}",
+      "rename": "Renommer le type",
+      "nameLabel": "Nom du type"
     },
     "deleteTitle": "Supprimer {{name}} ?",
     "deleteMessage": "Tout son historique de valeurs est supprimé aussi. Archive-le plutôt pour le sortir des totaux en gardant l'historique.",
@@ -1500,41 +1510,16 @@
       "direction": "Sens",
       "own": "Ce que j'ai",
       "owe": "Ce que je dois",
-      "category": "Catégorie",
-      "myCategories": "Mes catégories",
-      "suggestions": "Suggestions",
-      "newTag": "Nouvelle",
-      "newCategoryHint": "Nouvelle catégorie : je la crée à l'enregistrement.",
-      "currency": "Devise",
+      "category": "Type",
+      "otherType": "Autre type…",
+      "typeName": "Nom du type",
       "value": "Valeur actuelle",
-      "inPulpe": "Dans Pulpe",
-      "inPulpeHint": "Pour le compte que tu pointes dans ton budget. Je le pré-remplis quand tu fais le point sur tes comptes.",
-      "readOnlyHint": "Le sens et la devise restent ceux de la création.",
-      "editNote": "Pour changer sa valeur, passe par « Mettre à jour la valeur » dans le menu de la ligne.",
       "nameRequired": "Donne-lui un nom",
       "add": "Ajouter"
     },
     "value": {
-      "title": "Mettre à jour la valeur",
-      "subtitleOwn": "{{name}} · ce que j'ai aujourd'hui",
-      "subtitleOwe": "{{name}} · ce que je dois aujourd'hui",
-      "label": "Nouvelle valeur",
       "lastValue": "Dernière valeur : {{amount}}, le {{date}}",
       "overdraft": "Solde négatif (découvert)"
-    },
-    "categoriesDialog": {
-      "title": "Mes catégories",
-      "description": "Elles rangent tes comptes, ton épargne et tes dettes sur la page.",
-      "empty": "Aucune catégorie pour l'instant : elles se créent quand tu ajoutes un compte, ou ici.",
-      "rename": "Renommer {{name}}",
-      "delete": "Supprimer {{name}}",
-      "nameLabel": "Nom de la catégorie",
-      "saveName": "Enregistrer le nom",
-      "cancelRename": "Annuler le renommage",
-      "newLabel": "Nouvelle catégorie",
-      "newPlaceholder": "Ex. Crypto",
-      "add": "Ajouter",
-      "notEmpty": "Déplace d'abord {{names}} vers une autre catégorie."
     },
     "link": {
       "none": "Aucun",
@@ -1560,6 +1545,12 @@
       "cash": "Cash",
       "valuables": "Objets de valeur",
       "property": "Biens"
+    },
+    "starterDebt": {
+      "loan": "Crédit",
+      "mortgage": "Hypothèque",
+      "leasing": "Leasing",
+      "card": "Carte de crédit"
     }
   },
   "completeProfile": {
@@ -2151,9 +2142,9 @@
     "transactionImportFailed": "Rien n'a été créé, réessaie",
     "transactionImportRecalculationFailed": "Les mouvements ont bien été importés, mais les soldes n'ont pas pu être actualisés — recharge la page sans réimporter le fichier",
     "assetNotFound": "Cet élément est introuvable — il a peut-être déjà été supprimé",
-    "assetCategoryNotFound": "Cette catégorie est introuvable — elle a peut-être déjà été supprimée",
-    "assetCategoryNotEmpty": "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie",
-    "assetCategoryDuplicate": "Une catégorie porte déjà ce nom",
+    "assetCategoryNotFound": "Ce type est introuvable — il a peut-être déjà été supprimé",
+    "assetCategoryNotEmpty": "Ce type contient encore des éléments — déplace-les d'abord vers un autre type",
+    "assetCategoryDuplicate": "Un type porte déjà ce nom",
     "assetValueInvalid": "Cette valeur n'est pas valide — une dette ne peut pas être négative",
     "assetFetchFailed": "Impossible de charger ton patrimoine — réessaie",
     "assetCreateFailed": "L'ajout a échoué — réessaie",

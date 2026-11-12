@@ -49,6 +49,20 @@ struct NetWorthSectionsTests {
         #expect(sections.debts.last?.badges.contains(.overdraft) == true)
     }
 
+    @Test func debtsAreGroupedByType_thenTheOverdrafts() {
+        let sections = NetWorthSections(netWorth([
+            TestDataFactory.makeAsset(id: "over", categoryId: "c1", latestValue: -300),
+            TestDataFactory.makeAsset(id: "lease", categoryId: "c2", direction: .owe, latestValue: 8000),
+            TestDataFactory.makeAsset(id: "card", categoryId: "c2", direction: .owe, latestValue: 200),
+            TestDataFactory.makeAsset(id: "loan", categoryId: "c1", direction: .owe, latestValue: 500),
+        ]))
+
+        #expect(sections.debtGroups.map(\.id) == ["c1", "c2", NetWorthSections.overdraftsId])
+        #expect(sections.debtGroups.map(\.total) == [500, 8200, 300])
+        #expect(sections.debtGroups.map(\.isType) == [true, true, false])
+        #expect(sections.debtGroups.last?.assets.map(\.id) == ["over"])
+    }
+
     @Test func archivedAssetsAreListedApart_outsideCategoriesAndDebts() {
         let sections = NetWorthSections(netWorth([
             TestDataFactory.makeAsset(id: "old", archivedAt: TestDataFactory.fixedDate),
@@ -73,7 +87,7 @@ struct NetWorthSectionsTests {
         )
         let sections = NetWorthSections(netWorth([usd], incomplete: true))
 
-        #expect(usd.badges == [.inPulpe, .excluded])
+        #expect(usd.badges == [.excluded])
         #expect(!usd.showsConversion(in: .chf))
         #expect(sections.unconverted.map(\.name) == ["Livret"])
         #expect(sections.incomplete)

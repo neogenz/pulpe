@@ -13,8 +13,11 @@ import {
   type ElementRef,
   type Signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { MatSelect, MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
@@ -39,17 +42,25 @@ import {
   reconciliationVerdict,
   summarizeAccounts,
   type Asset,
-  type AssetSnapshotsCreate,
+  type AssetCategory,
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from 'pulpe-shared';
-import { filter, merge } from 'rxjs';
+import { filter, firstValueFrom, merge } from 'rxjs';
 
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
+import { resolveAssetCategory } from '@core/asset/asset-category';
 import { AppCurrencyPipe } from '@core/currency';
 import { LoadingButton } from '@ui/loading-button';
 import { StepProgress } from '@ui/step-progress';
+import {
+  CENTS_PER_UNIT,
+  isEmptyPlan,
+  planAccountLinks,
+  type AccountLinkPlan,
+  type RowAccount,
+} from './reconcile-account-links';
 
 /** The pointed side of the viewed month, as the page already computes it. */
 export interface RealizedPosition {
@@ -66,6 +77,13 @@ export interface ReconciliationAdjustment {
   readonly amount: number;
 }
 
+/** What the reconciliation reads from « Mon patrimoine ». */
+export interface ReconcileNetWorth {
+  /** My active accounts in the budget's currency, followed or not. */
+  readonly accounts: readonly Asset[];
+  readonly categories: readonly AssetCategory[];
+}
+
 export interface ReconcileAccountsDialogData {
   /**
    * Read live, so a refresh landing mid-flow moves the comparison with it.
@@ -80,28 +98,30 @@ export interface ReconcileAccountsDialogData {
   ) => Promise<boolean>;
   readonly viewItemsToCheck: () => void;
   /**
-   * The « Dans Pulpe » accounts of the budget's currency, resolved before the
-   * dialog opens: its rows are built once from them, never re-read.
+   * Resolved before the dialog opens: its rows are built once from the
+   * followed accounts, never re-read. `null` when the feature is off.
    */
-  readonly linkedAccounts: readonly Asset[];
+  readonly netWorth: ReconcileNetWorth | null;
 }
 
 interface AccountRow {
   readonly id: number;
   readonly label: string;
   readonly amountText: string;
-  /** The account this balance refreshes in « Mon patrimoine »; `null` for a free row. */
-  readonly assetId: string | null;
+  readonly account: RowAccount;
 }
+
+const OTHER_ACCOUNT = 'other';
+const FREE_ROW: RowAccount = { kind: 'other', addToNetWorth: false };
 
 type Step = 1 | 2 | 3;
 
-const CENTS_PER_UNIT = 100;
 const LEADING_MINUS = /^\s*[-−]/;
 
 @Component({
   selector: 'pulpe-reconcile-accounts-dialog',
   imports: [
+    NgTemplateOutlet,
     FormsModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -110,6 +130,8 @@ const LEADING_MINUS = /^\s*[-−]/;
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatSelectModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     TranslocoPipe,
     AppCurrencyPipe,
@@ -139,6 +161,7 @@ export class ReconcileAccountsDialog {
     inject<ReconcileAccountsDialogData>(MAT_DIALOG_DATA);
   protected readonly centsPerUnit = CENTS_PER_UNIT;
 
+  private readonly accountSelects = viewChildren(MatSelect);
   private readonly labelInputs =
     viewChildren<ElementRef<HTMLInputElement>>('labelInput');
   private readonly amountInputs =
@@ -155,19 +178,24 @@ export class ReconcileAccountsDialog {
     { labelKey: 'currentMonth.reconcile.steps.verdict' },
   ] as const;
   protected readonly step = signal<Step>(1);
+  protected readonly otherAccount = OTHER_ACCOUNT;
+  protected readonly hasOwnAccounts =
+    (this.data.netWorth?.accounts.length ?? 0) > 0;
+  readonly #ownAccounts = this.data.netWorth?.accounts ?? [];
+  readonly #followed = this.#ownAccounts.filter((asset) => asset.inPulpe);
   protected readonly accounts = signal<AccountRow[]>(
-    this.data.linkedAccounts.length === 0
-      ? [{ id: 0, label: '', amountText: '', assetId: null }]
-      : this.data.linkedAccounts.map((asset, id) => ({
+    this.#followed.length === 0
+      ? [{ id: 0, label: '', amountText: '', account: FREE_ROW }]
+      : this.#followed.map((asset, id) => ({
           id,
           label: asset.name,
           amountText: '',
-          assetId: asset.id,
+          account: { kind: 'asset', id: asset.id },
         })),
   );
   #nextAccountId = this.accounts().length;
   protected readonly lastBalances = new Map(
-    this.data.linkedAccounts.map((asset) => [
+    this.#ownAccounts.map((asset) => [
       asset.id,
       {
         amount: asset.latestValue,
@@ -181,11 +209,48 @@ export class ReconcileAccountsDialog {
       },
     ]),
   );
-  readonly #recordBalances = cachedMutation({
+  readonly #writeLinks = cachedMutation<
+    { plan: AccountLinkPlan; currency: SupportedCurrency },
+    true
+  >({
     cache: this.#assetApi.cache,
-    mutationFn: (items: AssetSnapshotsCreate['items']) =>
-      this.#assetApi.recordSnapshots$({ items }),
     invalidateKeys: () => [['assets']],
+    mutationFn: async ({ plan, currency }) => {
+      if (plan.creates.length > 0) {
+        const categoryId = await resolveAssetCategory(
+          this.#assetApi,
+          this.data.netWorth?.categories ?? [],
+          { name: this.#transloco.translate('netWorth.starter.accounts') },
+        );
+        for (const account of plan.creates) {
+          await firstValueFrom(
+            this.#assetApi.create$({
+              ...account,
+              categoryId,
+              currency,
+              direction: 'own',
+              inPulpe: true,
+            }),
+          );
+        }
+      }
+      for (const [ids, inPulpe] of [
+        [plan.links, true],
+        [plan.unlinks, false],
+      ] as const) {
+        for (const id of ids) {
+          await firstValueFrom(this.#assetApi.update$(id, { inPulpe }));
+        }
+      }
+      if (plan.snapshots.length > 0) {
+        await firstValueFrom(
+          this.#assetApi.recordSnapshots$({ items: plan.snapshots }),
+        );
+      }
+      return true as const;
+    },
+    // A write that stopped halfway still changed « Mon patrimoine ».
+    onError: () => this.#assetApi.cache.invalidate(['assets']),
   });
 
   // Flagged once the field is left, never mid-keystroke: "12." is on its way
@@ -194,6 +259,12 @@ export class ReconcileAccountsDialog {
     isErrorState: (control) =>
       !!control?.touched &&
       parseAccountAmount(String(control.value ?? '')).status === 'invalid',
+  };
+
+  // Ticking « Ajouter à Mon patrimoine » asks for a name in plain ink; red is
+  // kept for a name typed then emptied.
+  protected readonly clearedName: ErrorStateMatcher = {
+    isErrorState: (control) => !!control?.invalid && !!control.dirty,
   };
 
   protected readonly summary = computed(() =>
@@ -271,12 +342,75 @@ export class ReconcileAccountsDialog {
     };
   });
 
-  protected readonly accountViews = computed(() =>
-    this.accounts().map((account) => ({
-      ...account,
-      isNegative: LEADING_MINUS.test(account.amountText),
-    })),
+  // An account sits on one row at most: a select never offers what another
+  // row already holds.
+  protected readonly accountViews = computed(() => {
+    const accounts = this.accounts();
+    const picked = new Set(
+      accounts.flatMap(({ account }) =>
+        account.kind === 'asset' ? [account.id] : [],
+      ),
+    );
+    return accounts.map((row) => {
+      const assetId = row.account.kind === 'asset' ? row.account.id : null;
+      const addToNetWorth =
+        row.account.kind === 'other' && row.account.addToNetWorth;
+      return {
+        ...row,
+        assetId,
+        addToNetWorth,
+        // Taking a followed account off the list stops following it: the button says so.
+        removeLabelKey: this.#followed.some((asset) => asset.id === assetId)
+          ? 'currentMonth.reconcile.accounts.stopFollowingNumbered'
+          : 'currentMonth.reconcile.accounts.removeNumbered',
+        isNameMissing: addToNetWorth && row.label.trim() === '',
+        // The plan creates nothing for a ticked row without a readable balance.
+        isAmountMissing:
+          addToNetWorth &&
+          parseAccountAmount(row.amountText).status !== 'valid',
+        choices: this.#ownAccounts.filter(
+          (asset) => asset.id === assetId || !picked.has(asset.id),
+        ),
+        isNegative: LEADING_MINUS.test(row.amountText),
+      };
+    });
+  });
+
+  protected readonly canContinue = computed(
+    () =>
+      this.summary().canContinue &&
+      !this.accountViews().some(
+        (account) => account.isNameMissing || account.isAmountMissing,
+      ),
   );
+
+  protected selectAccount(id: number, choice: string): void {
+    const asset = this.#ownAccounts.find((account) => account.id === choice);
+    this.updateAccount(
+      id,
+      asset
+        ? { label: asset.name, account: { kind: 'asset', id: asset.id } }
+        : { label: '', account: FREE_ROW },
+    );
+  }
+
+  // The name becomes mandatory with the tick, so the cursor goes to it.
+  protected setAddToNetWorth(id: number, addToNetWorth: boolean): void {
+    this.updateAccount(id, { account: { kind: 'other', addToNetWorth } });
+    const isNameMissing = this.accountViews().some(
+      (account) => account.id === id && account.isNameMissing,
+    );
+    if (!isNameMissing) return;
+    afterNextRender(() => this.#labelInputOf(id)?.focus(), {
+      injector: this.#injector,
+    });
+  }
+
+  #labelInputOf(id: number): HTMLInputElement | undefined {
+    return this.labelInputs().find(
+      (input) => input.nativeElement.dataset['row'] === String(id),
+    )?.nativeElement;
+  }
 
   protected updateAccount(
     id: number,
@@ -304,11 +438,23 @@ export class ReconcileAccountsDialog {
   protected addAccount(): void {
     this.accounts.update((accounts) => [
       ...accounts,
-      { id: this.#nextAccountId++, label: '', amountText: '', assetId: null },
+      {
+        id: this.#nextAccountId++,
+        label: '',
+        amountText: '',
+        account: FREE_ROW,
+      },
     ]);
-    afterNextRender(() => this.labelInputs().at(-1)?.nativeElement.focus(), {
-      injector: this.#injector,
-    });
+    // The cursor lands on the first control of the new row: the account list
+    // when there are accounts to pick from, the name otherwise.
+    afterNextRender(
+      () =>
+        (
+          this.accountSelects().at(-1) ??
+          this.labelInputs().at(-1)?.nativeElement
+        )?.focus(),
+      { injector: this.#injector },
+    );
   }
 
   // Enter adds the next account rather than submitting anything: the step has
@@ -320,20 +466,20 @@ export class ReconcileAccountsDialog {
 
   protected removeAccount(id: number): void {
     const index = this.accounts().findIndex((account) => account.id === id);
-    if (index <= 0) return;
+    if (index === -1 || this.accounts().length === 1) return;
     this.accounts.update((accounts) =>
       accounts.filter((account) => account.id !== id),
     );
     // Focus lands on the account above, rather than on the page body.
     afterNextRender(
-      () => this.amountInputs()[index - 1]?.nativeElement.focus(),
+      () => this.amountInputs()[Math.max(index - 1, 0)]?.nativeElement.focus(),
       { injector: this.#injector },
     );
   }
 
   protected next(): void {
     const step = this.step();
-    if (!this.summary().canContinue || step === 3) return;
+    if (!this.canContinue() || step === 3) return;
     this.#goTo((step + 1) as Step);
   }
 
@@ -404,13 +550,16 @@ export class ReconcileAccountsDialog {
   // nothing about how the dialog ends: the rows are read before the first
   // await, and only a toast says the balances did not reach « Mon patrimoine ».
   async #saveBalances(): Promise<void> {
-    const items = this.accounts().flatMap(({ assetId, amountText }) => {
-      const amount = parseAccountAmount(amountText);
-      return assetId !== null && amount.status === 'valid'
-        ? [{ assetId, value: amount.cents / CENTS_PER_UNIT }]
-        : [];
-    });
-    if (items.length === 0 || (await this.#recordBalances.mutate(items)))
+    if (this.data.netWorth === null) return;
+    const plan = planAccountLinks(
+      this.accounts(),
+      this.#followed.map((asset) => asset.id),
+    );
+    const currency = this.data.currency();
+    if (
+      isEmptyPlan(plan) ||
+      (await this.#writeLinks.mutate({ plan, currency }))
+    )
       return;
     this.#snackBar.open(
       this.#transloco.translate('currentMonth.reconcile.balancesNotSaved'),

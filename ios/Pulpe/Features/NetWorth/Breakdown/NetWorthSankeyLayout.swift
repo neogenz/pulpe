@@ -100,7 +100,7 @@ enum NetWorthSankeyLayout {
                     width: DesignTokens.Chart.sankeyLabelWidth, height: DesignTokens.Chart.sankeyPillHeight
                 ) : nil
                 frames.append(NodeFrame(
-                    id: id, kind: graph.nodes[id]?.kind ?? .asset, column: column, rect: rect, labelRect: labelRect
+                    id: id, kind: graph.nodes[id]?.kind ?? .category, column: column, rect: rect, labelRect: labelRect
                 ))
                 y += height + gap
             }
@@ -194,8 +194,8 @@ enum NetWorthSankeyLayout {
             let thickness = CGFloat(flow.flow) * scale
             return LinkBand(
                 from: flow.from, to: flow.to,
-                sourceKind: graph.nodes[flow.from]?.kind ?? .asset,
-                targetKind: graph.nodes[flow.to]?.kind ?? .asset,
+                sourceKind: graph.nodes[flow.from]?.kind ?? .category,
+                targetKind: graph.nodes[flow.to]?.kind ?? .category,
                 sourceTop: sy, targetTop: ty, thickness: thickness,
                 path: bandPath(x0: from.maxX, x1: to.minX, sy: sy, ty: ty, thickness: thickness)
             )

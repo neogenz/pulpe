@@ -79,12 +79,12 @@ struct APIErrorLocalizationTests {
     /// Every `ERR_ASSET_*` code shows its own sentence, never the server's English message.
     @Test(arguments: [
         ("ERR_ASSET_NOT_FOUND", "Cet élément est introuvable — il a peut-être déjà été supprimé"),
-        ("ERR_ASSET_CATEGORY_NOT_FOUND", "Cette catégorie est introuvable — elle a peut-être déjà été supprimée"),
+        ("ERR_ASSET_CATEGORY_NOT_FOUND", "Ce type est introuvable — il a peut-être déjà été supprimé"),
         (
             "ERR_ASSET_CATEGORY_NOT_EMPTY",
-            "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie"
+            "Ce type contient encore des éléments — déplace-les d'abord vers un autre type"
         ),
-        ("ERR_ASSET_CATEGORY_DUPLICATE", "Une catégorie porte déjà ce nom"),
+        ("ERR_ASSET_CATEGORY_DUPLICATE", "Un type porte déjà ce nom"),
         ("ERR_ASSET_VALUE_INVALID", "Cette valeur n'est pas valide — une dette ne peut pas être négative"),
         ("ERR_ASSET_FETCH_FAILED", "Impossible de charger ton patrimoine — réessaie"),
         ("ERR_ASSET_CREATE_FAILED", "L'ajout a échoué — réessaie"),

@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,6 +9,7 @@ import {
   output,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatRippleModule } from '@angular/material/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -17,7 +19,6 @@ import type { Asset, SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 
 export type AssetRowAction =
-  | 'updateValue'
   | 'edit'
   | 'archive'
   | 'unarchive'
@@ -36,12 +37,13 @@ const DAYS_PER_YEAR = 365;
 @Component({
   selector: 'pulpe-net-worth-asset-row',
   host: {
-    class:
-      'flex flex-wrap items-center gap-3 border-t border-outline-variant py-3 pl-5 pr-2',
+    class: 'flex flex-wrap items-center border-t border-outline-variant pr-2',
     'data-testid': 'asset-row',
   },
   imports: [
+    NgTemplateOutlet,
     MatButtonModule,
+    MatRippleModule,
     MatDividerModule,
     MatIconModule,
     MatMenuModule,
@@ -50,8 +52,25 @@ const DAYS_PER_YEAR = 365;
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-w-0 flex-1">
-      <div class="flex flex-wrap items-center gap-2">
+    <!-- The row and its menu are siblings: a button never holds a button. -->
+    @if (asset().archivedAt) {
+      <div class="summary">
+        <ng-container [ngTemplateOutlet]="summary" />
+      </div>
+    } @else {
+      <button
+        type="button"
+        class="summary summary-action"
+        matRipple
+        [disabled]="busy()"
+        (click)="emit('edit')"
+        data-testid="asset-row-edit-button"
+      >
+        <ng-container [ngTemplateOutlet]="summary" />
+      </button>
+    }
+    <ng-template #summary>
+      <span class="flex flex-wrap items-center gap-2 min-w-0 flex-1">
         <span
           class="ph-no-capture min-w-0 truncate text-body-large font-semibold"
           data-testid="asset-row-name"
@@ -62,14 +81,35 @@ const DAYS_PER_YEAR = 365;
             'netWorth.overdraft' | transloco
           }}</span>
         }
-        @if (asset().inPulpe) {
-          <span class="chip chip-pulpe" data-testid="asset-in-pulpe-chip">{{
-            'netWorth.inPulpe' | transloco
-          }}</span>
+      </span>
+
+      <span class="block text-right">
+        <span
+          class="ph-no-capture block whitespace-nowrap text-title-medium font-bold tabular-nums"
+          [class.amber]="isDebt()"
+          data-testid="asset-row-value"
+        >
+          {{ asset().latestValue | appCurrency: asset().currency : '1.2-2' }}
+        </span>
+        @if (asset().currency !== baseCurrency()) {
+          <span
+            class="ph-no-capture block text-body-small text-on-surface-variant tabular-nums"
+            data-testid="asset-row-converted"
+          >
+            @if (asset().convertedValue !== null) {
+              ≈
+              {{
+                asset().convertedValue | appCurrency: baseCurrency() : '1.2-2'
+              }}
+            } @else if (!asset().archivedAt) {
+              {{ 'netWorth.excluded' | transloco }}
+            }
+          </span>
         }
-      </div>
-      <p
-        class="ph-no-capture text-body-small text-on-surface-variant"
+      </span>
+      <!-- Under the whole row: beside the amount, it would wrap on a phone. -->
+      <span
+        class="ph-no-capture block w-full text-body-small text-on-surface-variant"
         data-testid="asset-row-meta"
       >
         @if (categoryName(); as category) {
@@ -80,31 +120,14 @@ const DAYS_PER_YEAR = 365;
         } @else {
           {{ 'netWorth.updated' | transloco: { when: updatedWhen() } }}
         }
-      </p>
-    </div>
-
-    <div class="text-right">
-      <p
-        class="ph-no-capture whitespace-nowrap text-title-medium font-bold tabular-nums"
-        [class.amber]="isDebt()"
-        data-testid="asset-row-value"
-      >
-        {{ asset().latestValue | appCurrency: asset().currency : '1.2-2' }}
-      </p>
-      @if (asset().currency !== baseCurrency()) {
-        <p
-          class="ph-no-capture text-body-small text-on-surface-variant tabular-nums"
-          data-testid="asset-row-converted"
-        >
-          @if (asset().convertedValue !== null) {
-            ≈
-            {{ asset().convertedValue | appCurrency: baseCurrency() : '1.2-2' }}
-          } @else if (!asset().archivedAt) {
-            {{ 'netWorth.excluded' | transloco }}
-          }
-        </p>
-      }
-    </div>
+        <!-- A followed account says where its balance comes from, in the same breath. -->
+        @if (asset().inPulpe) {
+          <span data-testid="asset-linked-note">{{
+            'netWorth.linkedSuffix' | transloco
+          }}</span>
+        }
+      </span>
+    </ng-template>
 
     <button
       matIconButton
@@ -119,7 +142,7 @@ const DAYS_PER_YEAR = 365;
     </button>
     @if (visibleSuggestion(); as suggestion) {
       <div
-        class="mr-3 flex w-full flex-wrap items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-low py-3 pl-3.5 pr-3"
+        class="mb-3 ml-5 mr-3 flex w-full flex-wrap items-center gap-3 rounded-xl bg-surface-container-high py-3 pl-3.5 pr-3"
         data-testid="asset-suggestion"
       >
         <mat-icon class="text-primary" aria-hidden="true"
@@ -180,14 +203,6 @@ const DAYS_PER_YEAR = 365;
       } @else {
         <button
           mat-menu-item
-          (click)="emit('updateValue')"
-          data-testid="asset-update-value-action"
-        >
-          <mat-icon>edit_note</mat-icon>
-          <span>{{ 'netWorth.menu.updateValue' | transloco }}</span>
-        </button>
-        <button
-          mat-menu-item
           (click)="emit('edit')"
           data-testid="asset-edit-action"
         >
@@ -216,15 +231,33 @@ const DAYS_PER_YEAR = 365;
     </mat-menu>
   `,
   styles: `
+    .summary {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.125rem 0.75rem;
+      padding: 0.75rem 0.25rem 0.75rem 1.25rem;
+      text-align: left;
+      color: inherit;
+    }
+    .summary-action {
+      position: relative;
+      cursor: pointer;
+    }
+    .summary-action:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+    }
+    .summary-action:focus-visible {
+      outline: 2px solid var(--mat-sys-primary);
+      outline-offset: -2px;
+    }
     .chip {
       border-radius: 9999px;
       padding: 0.125rem 0.5rem;
       font-size: 0.6875rem;
       font-weight: 600;
-    }
-    .chip-pulpe {
-      background: var(--mat-sys-secondary-container);
-      color: var(--mat-sys-on-secondary-container);
     }
     .chip-amber {
       background: var(--pulpe-amber-container);

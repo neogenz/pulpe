@@ -34,8 +34,10 @@ function netWorth(
   };
 }
 
+const LOANS = '33333333-3333-4333-8333-333333333333';
+
 describe('buildNetWorthSankey', () => {
-  it('flows assets into their category, then gross, then net and debts', () => {
+  it('flows each Type into gross, then gross into net and the debt Types', () => {
     const { flows, nodes } = buildNetWorthSankey(
       netWorth(
         [
@@ -43,28 +45,76 @@ describe('buildNetWorthSankey', () => {
           asset({ id: 'b', name: 'Cash', convertedValue: 100 }),
           asset({
             id: 'c',
-            name: 'Leasing',
+            name: 'Leasing auto',
+            categoryId: LOANS,
             direction: 'owe',
-            convertedValue: 300,
+            convertedValue: 200,
+          }),
+          asset({
+            id: 'd',
+            name: 'Prêt Paul',
+            categoryId: LOANS,
+            direction: 'owe',
+            convertedValue: 100,
           }),
         ],
         { gross: 1000, debts: 300, net: 700 },
+        [
+          { id: CHECKING, name: 'Comptes', total: 1000 },
+          { id: LOANS, name: 'Crédit', total: 0 },
+        ],
       ),
     );
 
     expect(flows).toEqual([
-      { from: 'asset:a', to: `category:${CHECKING}`, flow: 900 },
-      { from: 'asset:b', to: `category:${CHECKING}`, flow: 100 },
-      { from: 'gross', to: 'debt:c', flow: 300 },
       { from: `category:${CHECKING}`, to: 'gross', flow: 1000 },
+      { from: 'gross', to: `debt:${LOANS}`, flow: 300 },
       { from: 'gross', to: 'net', flow: 700 },
     ]);
-    expect(nodes['debt:c']).toEqual({
+    expect(nodes[`debt:${LOANS}`]).toEqual({
       kind: 'debt',
-      name: 'Leasing',
+      name: 'Crédit',
       value: 300,
     });
     expect(nodes['net']).toEqual({ kind: 'net', name: null, value: 700 });
+  });
+
+  it('keeps one left node per Type however many elements there are', () => {
+    const types = [CHECKING, SAVINGS, LOANS];
+    const assets = Array.from({ length: 30 }, (_, index) =>
+      asset({
+        id: `a${index}`,
+        name: `Élément ${index}`,
+        categoryId: types[index % 3],
+        convertedValue: 100,
+      }),
+    );
+    const { nodes } = buildNetWorthSankey(
+      netWorth(
+        assets,
+        { gross: 3000, debts: 0, net: 3000 },
+        types.map((id, index) => ({ id, name: `Type ${index}`, total: 1000 })),
+      ),
+    );
+
+    expect(
+      Object.values(nodes).filter((node) => node.kind === 'category'),
+    ).toHaveLength(3);
+  });
+
+  it('draws nothing when a single Type and no debt leave nothing to split', () => {
+    const { flows, nodes } = buildNetWorthSankey(
+      netWorth(
+        [
+          asset({ id: 'a', name: 'UBS', convertedValue: 900 }),
+          asset({ id: 'b', name: 'Cash', convertedValue: 100 }),
+        ],
+        { gross: 1000, debts: 0, net: 1000 },
+      ),
+    );
+
+    expect(flows).toEqual([]);
+    expect(nodes).toEqual({});
   });
 
   it('covers debts beyond gross with a shortfall node beside gross', () => {
@@ -75,25 +125,43 @@ describe('buildNetWorthSankey', () => {
           asset({
             id: 'c',
             name: 'Prêt',
+            categoryId: LOANS,
             direction: 'owe',
             convertedValue: 3000,
           }),
           asset({
             id: 'd',
             name: 'Leasing',
+            categoryId: SAVINGS,
             direction: 'owe',
             convertedValue: 1000,
           }),
         ],
         { gross: 1000, debts: 4000, net: -3000 },
+        [
+          { id: CHECKING, name: 'Comptes', total: 1000 },
+          { id: LOANS, name: 'Crédit', total: 0 },
+          { id: SAVINGS, name: 'Leasing', total: 0 },
+        ],
       ),
     );
 
-    // Each debt is drawn at its real size: gross covers a quarter of it.
-    expect(flows).toContainEqual({ from: 'gross', to: 'debt:c', flow: 750 });
-    expect(flows).toContainEqual({ from: 'net', to: 'debt:c', flow: 2250 });
-    expect(flows).toContainEqual({ from: 'gross', to: 'debt:d', flow: 250 });
-    expect(flows).toContainEqual({ from: 'net', to: 'debt:d', flow: 750 });
+    // Each debt Type is drawn at its real size: gross covers a quarter of it.
+    expect(flows).toContainEqual({
+      from: 'gross',
+      to: `debt:${LOANS}`,
+      flow: 750,
+    });
+    expect(flows).toContainEqual({
+      from: 'net',
+      to: `debt:${LOANS}`,
+      flow: 2250,
+    });
+    expect(flows).toContainEqual({
+      from: 'gross',
+      to: `debt:${SAVINGS}`,
+      flow: 250,
+    });
     expect(nodes['net']).toEqual({
       kind: 'shortfall',
       name: null,
@@ -104,56 +172,36 @@ describe('buildNetWorthSankey', () => {
     expect(priorities).toEqual({ gross: 0, net: 1 });
   });
 
-  it('flows assets straight into gross when no category holds two of them', () => {
-    const { flows, nodes } = buildNetWorthSankey(
-      netWorth(
-        [
-          asset({ id: 'a', name: 'UBS', convertedValue: 900 }),
-          asset({
-            id: 's',
-            name: 'Livret',
-            categoryId: SAVINGS,
-            convertedValue: 100,
-          }),
-        ],
-        { gross: 1000, debts: 0, net: 1000 },
-        [
-          { id: CHECKING, name: 'Comptes', total: 900 },
-          { id: SAVINGS, name: 'Épargne', total: 100 },
-        ],
-      ),
-    );
-
-    expect(flows).toEqual([
-      { from: 'asset:a', to: 'gross', flow: 900 },
-      { from: 'asset:s', to: 'gross', flow: 100 },
-      { from: 'gross', to: 'net', flow: 1000 },
-    ]);
-    expect(Object.values(nodes).map((node) => node.kind)).not.toContain(
-      'category',
-    );
-  });
-
-  it('sends an overdrawn own asset to the debts side, out of its category', () => {
+  it('gathers the overdrawn accounts in one node on the debts side', () => {
     const { flows, nodes } = buildNetWorthSankey(
       netWorth(
         [
           asset({ id: 'a', name: 'UBS', convertedValue: 1000 }),
-          asset({ id: 'o', name: 'Compte courant', convertedValue: -300 }),
+          asset({
+            id: 'o',
+            name: 'Compte courant',
+            latestValue: -300,
+            convertedValue: -300,
+          }),
         ],
         { gross: 1000, debts: 300, net: 700 },
       ),
     );
 
-    expect(flows).not.toContainEqual(
-      expect.objectContaining({ from: 'asset:o' }),
-    );
-    expect(flows).toContainEqual({ from: 'gross', to: 'debt:o', flow: 300 });
-    expect(nodes['debt:o']?.kind).toBe('debt');
+    expect(flows).toContainEqual({
+      from: 'gross',
+      to: 'debt:overdrafts',
+      flow: 300,
+    });
+    expect(nodes['debt:overdrafts']).toEqual({
+      kind: 'overdrafts',
+      name: null,
+      value: 300,
+    });
   });
 
-  it('skips archived and unconverted assets, and categories left empty', () => {
-    const { flows, nodes } = buildNetWorthSankey(
+  it('skips archived and unconverted assets, and Types left empty', () => {
+    const { nodes } = buildNetWorthSankey(
       netWorth(
         [
           asset({ id: 'a', name: 'UBS', convertedValue: 500 }),
@@ -165,22 +213,28 @@ describe('buildNetWorthSankey', () => {
             archivedAt: '2026-10-01T00:00:00.000Z',
           }),
           asset({
-            id: 'e',
-            name: 'Livret EUR',
-            currency: 'EUR',
-            convertedValue: null,
+            id: 'c',
+            name: 'Prêt',
+            categoryId: LOANS,
+            direction: 'owe',
+            convertedValue: 100,
           }),
         ],
-        { gross: 500, debts: 0, net: 500 },
+        { gross: 500, debts: 100, net: 400 },
         [
           { id: CHECKING, name: 'Comptes', total: 500 },
           { id: SAVINGS, name: 'Épargne', total: 0 },
+          { id: LOANS, name: 'Crédit', total: 0 },
         ],
       ),
     );
 
-    expect(Object.keys(nodes).sort()).toEqual(['asset:a', 'gross', 'net']);
-    expect(flows).toHaveLength(2);
+    expect(Object.keys(nodes).sort()).toEqual([
+      `category:${CHECKING}`,
+      `debt:${LOANS}`,
+      'gross',
+      'net',
+    ]);
   });
 
   it('returns an empty diagram when there is no gross', () => {

@@ -1,4 +1,5 @@
-import { inject, Injector, Service } from '@angular/core';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { inject, Service } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
@@ -7,64 +8,52 @@ import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
-import { AssetCategoriesDialog } from '../components/asset-categories-dialog';
 import {
   AssetFormDialog,
   type AssetFormDialogData,
 } from '../components/asset-form-dialog';
-import {
-  AssetValueDialog,
-  type AssetValueDialogData,
-} from '../components/asset-value-dialog';
 import type { AssetCreateRequest, AssetEditRequest } from './net-worth-store';
 
 @Service({ autoProvided: false })
 export class NetWorthDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #transloco = inject(TranslocoService);
-  readonly #injector = inject(Injector);
+  readonly #breakpoints = inject(BreakpointObserver);
 
   async openCreate(
     categories: AssetCategory[],
+    assets: Asset[],
   ): Promise<AssetCreateRequest | undefined> {
-    const dialogRef = this.#dialog.open(AssetFormDialog, {
-      data: { categories } satisfies AssetFormDialogData,
-      width: '560px',
-      maxWidth: '90vw',
-    });
-    return firstValueFrom(dialogRef.afterClosed());
+    return this.#openForm({ categories, assets });
   }
 
+  /** Resolves with what changed, or nothing when the sheet was left untouched. */
   async openEdit(
     asset: Asset,
     categories: AssetCategory[],
+    assets: Asset[],
   ): Promise<AssetEditRequest | undefined> {
+    return this.#openForm({ categories, assets, asset });
+  }
+
+  // Full screen on a phone: the fields would not fit a centred card above a keyboard.
+  #openForm<Result>(
+    data: Omit<AssetFormDialogData, 'isFullScreen'>,
+  ): Promise<Result | undefined> {
+    const isFullScreen = this.#breakpoints.isMatched(Breakpoints.Handset);
     const dialogRef = this.#dialog.open(AssetFormDialog, {
-      data: { categories, asset } satisfies AssetFormDialogData,
-      width: '560px',
-      maxWidth: '90vw',
+      data: { ...data, isFullScreen } satisfies AssetFormDialogData,
+      ...(isFullScreen
+        ? {
+            panelClass: 'full-screen-dialog',
+            width: '100dvw',
+            maxWidth: '100dvw',
+            height: '100dvh',
+            maxHeight: '100dvh',
+          }
+        : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
     });
     return firstValueFrom(dialogRef.afterClosed());
-  }
-
-  /** Resolves with the new signed value. */
-  async openValue(asset: Asset): Promise<number | undefined> {
-    const dialogRef = this.#dialog.open(AssetValueDialog, {
-      data: { asset } satisfies AssetValueDialogData,
-      width: '480px',
-      maxWidth: '90vw',
-    });
-    return firstValueFrom(dialogRef.afterClosed());
-  }
-
-  // The dialog writes through the route-scoped store, so it gets this injector.
-  async openCategories(): Promise<void> {
-    const dialogRef = this.#dialog.open(AssetCategoriesDialog, {
-      injector: this.#injector,
-      width: '560px',
-      maxWidth: '90vw',
-    });
-    await firstValueFrom(dialogRef.afterClosed());
   }
 
   async confirmDelete(asset: Asset): Promise<boolean> {

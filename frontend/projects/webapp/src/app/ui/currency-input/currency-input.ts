@@ -83,6 +83,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
         <mat-hint [id]="ariaDescribedBy()!" class="ph-no-capture">
           {{ 'currency.inputHint' | transloco: { currency: currency() } }}
         </mat-hint>
+      } @else if (hint()) {
+        <mat-hint class="ph-no-capture">{{ hint() }}</mat-hint>
       }
       @if (
         requiredError() &&
@@ -93,6 +95,18 @@ import { TranslocoPipe } from '@jsverse/transloco';
       }
     </mat-form-field>
   `,
+  // The stepper arrows of a number input eat into a narrow field and make its
+  // dialog content a few pixels taller on hover.
+  styles: `
+    input[type='number'] {
+      appearance: textfield;
+    }
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      appearance: none;
+      margin: 0;
+    }
+  `,
 })
 export class CurrencyInput {
   readonly #elementRef = inject(ElementRef);
@@ -102,6 +116,8 @@ export class CurrencyInput {
   readonly placeholder = input<string>('0.00');
   readonly icon = input<string | null>(null);
   readonly ariaDescribedBy = input<string>();
+  /** Free text under the field. `ariaDescribedBy` already fills that slot when set. */
+  readonly hint = input<string>();
   /** Id of the element carrying this field's error message. Its presence is
    *  what marks the field invalid for assistive tech, so pass it only while
    *  the error is on screen. */

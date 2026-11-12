@@ -6,12 +6,15 @@ import {
   signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import type { Asset, NetWorth } from 'pulpe-shared';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TitleDisplay } from '@core/routing';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
+import { RenameTypeDialog } from './components/rename-type-dialog';
 import { NetWorthSankey } from './components/net-worth-sankey';
 import NetWorthPage from './net-worth-page';
 import { NetWorthDialogService } from './services/net-worth-dialog.service';
@@ -103,6 +106,7 @@ describe('NetWorthPage', () => {
     netWorth: { status, value },
     totals: computed(() => value()?.totals ?? null),
     categories: computed(() => value()?.categories ?? []),
+    assets: computed(() => value()?.assets ?? []),
     activeAssets: computed(() =>
       (value()?.assets ?? []).filter((asset) => asset.archivedAt === null),
     ),
@@ -111,10 +115,12 @@ describe('NetWorthPage', () => {
     ),
     isEmpty: computed(() => (value()?.assets ?? []).length === 0),
     setArchived: vi.fn(),
-    recordValue: vi.fn(),
+    saveAsset: vi.fn(),
+    renameCategory: vi.fn(),
     dismissSuggestion: vi.fn(),
   };
   const dialogs = { openCreate: vi.fn() };
+  const matDialog = { open: vi.fn() };
   const snackBar = { open: vi.fn() };
 
   const byTestId = (id: string) =>
@@ -144,7 +150,7 @@ describe('NetWorthPage', () => {
     status.set('resolved');
     dialogs.openCreate.mockResolvedValue(undefined);
     store.setArchived.mockResolvedValue(undefined);
-    store.recordValue.mockResolvedValue(undefined);
+    store.saveAsset.mockResolvedValue(undefined);
     store.dismissSuggestion.mockResolvedValue(undefined);
 
     await TestBed.configureTestingModule({
@@ -154,6 +160,7 @@ describe('NetWorthPage', () => {
         ...provideTranslocoForTest(),
         { provide: NetWorthStore, useValue: store },
         { provide: NetWorthDialogService, useValue: dialogs },
+        { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
         {
           provide: TitleDisplay,
@@ -175,11 +182,12 @@ describe('NetWorthPage', () => {
 
     expect(byTestId('net-worth-empty')).not.toBeNull();
     expect(byTestId('net-worth-hero')).toBeNull();
+    expect(byTestId('net-worth-add-button')).toBeNull();
 
     (
       byTestId('net-worth-empty')!.querySelector('button') as HTMLButtonElement
     ).click();
-    expect(dialogs.openCreate).toHaveBeenCalledWith([]);
+    expect(dialogs.openCreate).toHaveBeenCalledWith([], []);
   });
 
   it('shows the API totals, with overdrawn and owe assets on the debts side only', () => {
@@ -192,21 +200,65 @@ describe('NetWorthPage', () => {
       false,
     );
 
-    const [comptes, debts] = sections();
+    const [comptes, loans, overdrafts] = sections();
     expect(rowNames(comptes)).toEqual(['UBS']);
-    expect(rowNames(debts)).toEqual(['Compte à découvert', 'Leasing']);
+    expect(comptes.closest('[data-testid="net-worth-own"]')).not.toBeNull();
+    expect(rowNames(loans)).toEqual(['Leasing']);
+    expect(loans.getAttribute('aria-label')).toBe('Prêts');
+    expect(loans.textContent).toContain('3’000');
+    expect(rowNames(overdrafts)).toEqual(['Compte à découvert']);
+    expect(overdrafts.getAttribute('aria-label')).toBe('Découverts');
+    expect(overdrafts.closest('[data-testid="net-worth-owe"]')).not.toBeNull();
+  });
+
+  it('shows no debts block and no second action when I owe nothing', () => {
+    render({
+      ...populated,
+      totals: { ...populated.totals, debts: 0, net: 10_000 },
+      assets: [populated.assets[0]],
+    });
+
+    expect(byTestId('net-worth-owe')).toBeNull();
+    expect(byTestId('net-worth-categories-button')).toBeNull();
+    expect(sections()).toHaveLength(1);
+  });
+
+  it('renames a Type, own or debt, from its header menu', async () => {
+    matDialog.open.mockReturnValue({ afterClosed: () => of('Crédits') });
+    store.renameCategory.mockResolvedValue(undefined);
+    render(populated);
+
+    const buttons = fixture.nativeElement.querySelectorAll(
+      '[data-testid="net-worth-type-menu-button"]',
+    ) as NodeListOf<HTMLButtonElement>;
+    // The overdrafts card is not a Type: only « Comptes » and « Prêts » rename.
+    expect(buttons).toHaveLength(2);
+    buttons[1].click();
+    fixture.detectChanges();
+    document
+      .querySelector<HTMLElement>(
+        '[data-testid="net-worth-type-rename-action"]',
+      )!
+      .click();
+    await fixture.whenStable();
+
+    expect(matDialog.open).toHaveBeenCalledWith(
+      RenameTypeDialog,
+      expect.objectContaining({ data: { name: 'Prêts' } }),
+    );
+    expect(store.renameCategory).toHaveBeenCalledWith(LOANS, 'Crédits');
   });
 
   it('keeps archived assets out until asked, and out of the category sections', () => {
     render(populated);
     expect(text('net-worth-archived-toggle')).toContain('(1)');
-    expect(sections()).toHaveLength(2);
+    expect(sections()).toHaveLength(3);
 
     byTestId('net-worth-archived-toggle')!.click();
     fixture.detectChanges();
 
-    expect(sections()).toHaveLength(3);
-    expect(rowNames(sections()[2])).toEqual(['Ancien compte']);
+    expect(sections()).toHaveLength(4);
+    expect(rowNames(sections()[3])).toEqual(['Ancien compte']);
   });
 
   it('turns the hero amber, never red, when the net is negative', () => {
@@ -283,7 +335,7 @@ describe('NetWorthPage', () => {
       click('asset-suggestion-apply-button');
       await fixture.whenStable();
 
-      expect(store.recordValue).toHaveBeenCalledWith('a1', 3500);
+      expect(store.saveAsset).toHaveBeenCalledWith('a1', { value: 3500 });
       expect(store.dismissSuggestion).not.toHaveBeenCalled();
     });
 
@@ -294,12 +346,12 @@ describe('NetWorthPage', () => {
       await fixture.whenStable();
 
       expect(store.dismissSuggestion).toHaveBeenCalledWith('a1');
-      expect(store.recordValue).not.toHaveBeenCalled();
+      expect(store.saveAsset).not.toHaveBeenCalled();
     });
 
     it('surfaces a refused apply in a snackbar', async () => {
       render(withSuggestion);
-      store.recordValue.mockRejectedValue(new Error('boom'));
+      store.saveAsset.mockRejectedValue(new Error('boom'));
 
       click('asset-suggestion-apply-button');
       await fixture.whenStable();

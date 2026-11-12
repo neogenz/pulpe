@@ -240,8 +240,7 @@ extension GoalPlanSimulatorTests {
         // The reset link shares its row with the section title, so it buys its tap
         // target by padding out and back in — a `minHeight` frame would grow the
         // whole header (`swiftui-hit-areas.md`).
-        #expect(resetButtonSource.contains(".padding(.vertical, DesignTokens.TapTarget.minimum / 2)"))
-        #expect(resetButtonSource.contains(".padding(.vertical, -DesignTokens.TapTarget.minimum / 2)"))
+        #expect(resetButtonSource.contains(".expandedTapArea()"))
         #expect(rowSource.contains("ViewThatFits(in: .horizontal)"))
         #expect(rowSource.contains("amountEditor(width: 104)"))
         #expect(rowSource.contains("amountEditor(width: nil)"))

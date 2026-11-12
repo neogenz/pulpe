@@ -10,6 +10,7 @@ final class MockAssetService: AssetServicing {
     /// When set, `create` throws it after the category step.
     var createError: Error?
     var snapshotsError: Error?
+    var updateError: Error?
     var holdGetNetWorth = false
     var holdCreateCategory = false
 
@@ -17,6 +18,7 @@ final class MockAssetService: AssetServicing {
     private(set) var createCallCount = 0
     private(set) var createCategoryCallCount = 0
     private(set) var lastCreate: AssetCreate?
+    private(set) var updates: [String: AssetUpdate] = [:]
     private(set) var calls: [String] = []
     private(set) var didEnterHold = false
     private var heldContinuation: CheckedContinuation<Void, Never>?
@@ -55,6 +57,8 @@ final class MockAssetService: AssetServicing {
 
     func update(id: String, _ data: AssetUpdate) async throws -> AssetRecord {
         calls.append("update")
+        if let updateError { throw updateError }
+        updates[id] = data
         return Self.record(id: id)
     }
 
@@ -82,6 +86,4 @@ final class MockAssetService: AssetServicing {
         calls.append("renameCategory")
         return AssetCategoryRecord(id: id, name: data.name)
     }
-
-    func deleteCategory(id: String) async throws { calls.append("deleteCategory") }
 }

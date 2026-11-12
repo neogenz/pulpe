@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Adds an asset or a debt, or edits one (`asset != nil`). Direction and currency are frozen at
-/// creation; the value changes through its own sheet, never here.
+/// Adds an element to « Mon patrimoine », or edits one (`asset != nil`): its value, its name and
+/// its Type, in one sheet. Direction and currency are frozen at creation.
 struct AssetFormSheet: View {
     let asset: Asset?
 
@@ -9,21 +9,23 @@ struct AssetFormSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var draft: AssetFormDraft
-    @State private var amountText = ""
-    @State private var typedCategory = ""
-    @State private var isTypingCategory = false
+    @State private var amountText: String
+    @State private var typedType = ""
+    @State private var isTypingType = false
     @State private var errorMessage: String?
     @FocusState private var focus: Field?
 
     private enum Field: Hashable {
         case amount
         case name
-        case category
+        case type
     }
 
     init(asset: Asset?, currency: SupportedCurrency) {
         self.asset = asset
-        _draft = State(initialValue: asset.map(AssetFormDraft.init(asset:)) ?? AssetFormDraft(currency: currency))
+        let draft = asset.map(AssetFormDraft.init(asset:)) ?? AssetFormDraft(currency: currency)
+        _draft = State(initialValue: draft)
+        _amountText = State(initialValue: asset == nil ? "" : draft.amount.map { "\($0)" } ?? "")
     }
 
     private var isEditing: Bool { asset != nil }
@@ -35,41 +37,75 @@ struct AssetFormSheet: View {
 
     private var canSave: Bool { draft.isValid && !store.isSaving }
 
+    private var typeOptions: AssetFormDraft.TypeOptions {
+        AssetFormDraft.typeOptions(
+            direction: draft.direction,
+            categories: store.categories,
+            assets: store.netWorth?.assets ?? []
+        )
+    }
+
+    private var lastValue: String? {
+        guard let asset else { return nil }
+        let date = asset.latestRecordedAt.formatted(
+            .dateTime.day().month(.abbreviated).locale(AppLocale.currentUILocale)
+        )
+        return AppLocale.string(
+            "Dernière valeur : \(asset.latestValue.magnitude.asCurrency(asset.currency)), le \(date)"
+        )
+    }
+
     var body: some View {
         SheetFormContainer(
             title: title,
             isLoading: false,
             focus: $focus,
-            focusOrder: isEditing ? [.name] : [.amount, .name]
+            focusOrder: [.amount, .name]
         ) {
-            if isEditing {
-                Text("Pour changer sa valeur, passe par « Mettre à jour la valeur » dans le menu de la ligne.")
-                    .font(PulpeTypography.captionRegular)
-                    .foregroundStyle(Color.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                HeroAmountField(
-                    amount: $draft.amount,
-                    amountText: $amountText,
-                    focus: $focus,
-                    field: .amount,
-                    hint: AppLocale.string("Valeur actuelle"),
-                    currency: draft.currency,
-                    caption: AppLocale.string("Valeur actuelle")
-                )
-            }
+            HeroAmountField(
+                amount: $draft.amount,
+                amountText: $amountText,
+                focus: $focus,
+                field: .amount,
+                hint: AppLocale.string("Valeur actuelle"),
+                currency: draft.currency,
+                caption: lastValue ?? AppLocale.string("Valeur actuelle")
+            )
+            if draft.direction == .own { overdraftToggle }
             nameField
             directionAndCurrency
-            categoryBlock
-            if draft.direction == .own { inPulpeBlock }
+            typeBlock
             if let errorMessage {
                 ErrorBanner(message: errorMessage) { self.errorMessage = nil }
             }
             saveButton
         }
+        .onAppear {
+            if draft.category == nil { draft.category = typeOptions.defaultChoice }
+        }
+        // The Types and the overdraft follow the direction: a debt is never filed under « Comptes ».
+        .onChange(of: draft.direction) {
+            isTypingType = false
+            typedType = ""
+            draft.isOverdraft = false
+            draft.category = typeOptions.defaultChoice
+        }
     }
 
     // MARK: - Fields
+
+    private var overdraftToggle: some View {
+        FormCard {
+            Toggle(isOn: $draft.isOverdraft) {
+                Text("Solde négatif (découvert)")
+                    .font(PulpeTypography.rowTitleRegular)
+                    .foregroundStyle(Color.textPrimary)
+            }
+            .tint(Color.pulpePrimary)
+            .frame(minHeight: DesignTokens.ListRow.minHeight)
+            .accessibilityIdentifier("assetFormOverdraft")
+        }
+    }
 
     private var nameField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -100,72 +136,61 @@ struct AssetFormSheet: View {
             ) { direction in
                 Text(direction == .own ? AppLocale.string("Ce que j'ai") : AppLocale.string("Ce que je dois"))
             }
-            CurrencyAmountPicker(selectedCurrency: $draft.currency, isReadOnly: isEditing)
             if isEditing {
                 Text("Le sens et la devise restent ceux de la création.")
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textSecondary)
+            } else {
+                CurrencyAmountPicker(selectedCurrency: $draft.currency, isReadOnly: false)
             }
         }
     }
 
-    private var categoryBlock: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            FormCard {
-                categoryRow
-                if isTypingCategory {
-                    FormRowDivider()
-                    FormTextField(
-                        hint: AppLocale.string("Nom de la catégorie"),
-                        text: $typedCategory,
-                        accessibilityLabel: AppLocale.string("Nom de la catégorie"),
-                        focusBinding: $focus,
-                        field: .category
-                    )
-                    .padding(.vertical, DesignTokens.Spacing.sm)
-                    .onChange(of: typedCategory) { _, name in
-                        draft.category = AssetFormDraft.choice(forName: name, existing: store.categories)
-                    }
+    private var typeBlock: some View {
+        FormCard {
+            typeRow
+            if isTypingType {
+                FormRowDivider()
+                FormTextField(
+                    hint: AppLocale.string("Nom du type"),
+                    text: $typedType,
+                    accessibilityLabel: AppLocale.string("Nom du type"),
+                    focusBinding: $focus,
+                    field: .type
+                )
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .onChange(of: typedType) { _, name in
+                    draft.category = AssetFormDraft.choice(forName: name, existing: store.categories)
                 }
             }
-            if isNewCategory {
-                Text("Nouvelle catégorie : je la crée à l'enregistrement.")
-                    .font(PulpeTypography.captionRegular)
-                    .foregroundStyle(Color.textSecondary)
-                    .padding(.horizontal, DesignTokens.Spacing.xs)
-            }
         }
     }
 
-    private var categoryRow: some View {
+    private var typeRow: some View {
         Menu {
-            if !store.categories.isEmpty {
-                Section(AppLocale.string("Mes catégories")) {
-                    ForEach(store.categories) { category in
-                        Button(category.name) { pick(.existing(id: category.id)) }
-                    }
+            let options = typeOptions
+            Section {
+                ForEach(options.used) { category in
+                    Button(category.name) { pick(.existing(id: category.id)) }
                 }
             }
-            let suggestions = AssetFormDraft.starterSuggestions(existing: store.categories.map(\.name))
-            if !suggestions.isEmpty {
-                Section(AppLocale.string("Suggestions")) {
-                    ForEach(suggestions, id: \.self) { name in
-                        Button(name) { pick(.starter(name: name)) }
-                    }
+            Section {
+                ForEach(options.suggestions, id: \.self) { name in
+                    Button(name) { pick(.starter(name: name)) }
                 }
             }
-            Button(AppLocale.string("Autre catégorie…")) {
-                isTypingCategory = true
-                focus = .category
+            Button(AppLocale.string("Autre type…")) {
+                isTypingType = true
+                draft.category = AssetFormDraft.choice(forName: typedType, existing: store.categories)
+                focus = .type
             }
         } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Catégorie")
+                Text("Type")
                     .font(PulpeTypography.rowTitleRegular)
                     .foregroundStyle(Color.textPrimary)
                 Spacer(minLength: DesignTokens.Spacing.sm)
-                if isNewCategory { PulpeChip(label: AppLocale.string("Nouvelle"), style: .semantic(.pulpePrimary)) }
-                Text(categoryName ?? AppLocale.string("Choisir"))
+                Text(typeLabel)
                     .font(PulpeTypography.rowTitleRegular)
                     .foregroundStyle(Color.textSecondary)
                 RowChevron()
@@ -173,26 +198,7 @@ struct AssetFormSheet: View {
             .frame(minHeight: DesignTokens.ListRow.formRowHeight)
             .contentShape(Rectangle())
         }
-        .accessibilityIdentifier("assetFormCategory")
-    }
-
-    private var inPulpeBlock: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            FormCard {
-                Toggle(isOn: $draft.inPulpe) {
-                    Text("Dans Pulpe")
-                        .font(PulpeTypography.rowTitleRegular)
-                        .foregroundStyle(Color.textPrimary)
-                }
-                .tint(Color.pulpePrimary)
-                .frame(minHeight: DesignTokens.ListRow.minHeight)
-            }
-            // swiftlint:disable:next line_length
-            Text("Pour le compte que tu pointes dans ton budget. Je le pré-remplis quand tu fais le point sur tes comptes.")
-                .font(PulpeTypography.captionRegular)
-                .foregroundStyle(Color.textSecondary)
-                .padding(.horizontal, DesignTokens.Spacing.xs)
-        }
+        .accessibilityIdentifier("assetFormType")
     }
 
     private var saveButton: some View {
@@ -208,23 +214,19 @@ struct AssetFormSheet: View {
 
     // MARK: - Logic
 
-    private var categoryName: String? {
+    private var typeLabel: String {
+        if isTypingType { return AppLocale.string("Autre type…") }
         switch draft.category {
-        case .existing(let id): store.categories.first { $0.id == id }?.name
-        case .starter(let name): name
-        case nil: nil
+        case .existing(let id): return store.categories.first { $0.id == id }?.name ?? AppLocale.string("Choisir")
+        case .starter(let name): return name
+        case nil: return AppLocale.string("Choisir")
         }
-    }
-
-    private var isNewCategory: Bool {
-        if case .starter = draft.category { return true }
-        return false
     }
 
     private func pick(_ choice: AssetCategoryChoice) {
         draft.category = choice
-        isTypingCategory = false
-        typedCategory = ""
+        isTypingType = false
+        typedType = ""
     }
 
     private func save() async {
@@ -233,12 +235,9 @@ struct AssetFormSheet: View {
         do {
             switch draft.submission(original: asset) {
             case .close: break
-            case .update(let asset):
-                try await store.update(
-                    id: asset.id,
-                    draft.updatePayload(original: asset),
-                    category: draft.categoryChange(from: asset)
-                )
+            case .edit(let edit):
+                guard let asset else { return }
+                try await store.save(id: asset.id, edit)
             case .create:
                 var existingId = ""
                 if case .existing(let id) = category { existingId = id }

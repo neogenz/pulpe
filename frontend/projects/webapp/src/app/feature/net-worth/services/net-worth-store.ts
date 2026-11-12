@@ -9,19 +9,22 @@ import type {
   NetWorthTotals,
 } from 'pulpe-shared';
 import { AssetApi } from '@core/asset/asset-api';
+import {
+  resolveAssetCategory,
+  type CategoryChoice,
+} from '@core/asset/asset-category';
 import { injectNetWorthResource } from '@core/asset/net-worth';
-
-/** An existing category, or a starter suggestion to create on save. */
-export type CategoryChoice = { id: string } | { name: string };
 
 export interface AssetCreateRequest {
   asset: Omit<AssetCreate, 'categoryId'>;
   category: CategoryChoice;
 }
 
+/** Only what changed; `value` is the new signed value of today. */
 export interface AssetEditRequest {
-  updates: Omit<AssetUpdate, 'categoryId'>;
-  category: CategoryChoice;
+  updates?: Pick<AssetUpdate, 'name'>;
+  category?: CategoryChoice;
+  value?: number;
 }
 
 /**
@@ -77,22 +80,27 @@ export class NetWorthStore {
     });
   }
 
-  editAsset(
+  /** Patches the name and the Type, then records the value: each only when present. */
+  saveAsset(
     id: string,
-    { updates, category }: AssetEditRequest,
+    { updates, category, value }: AssetEditRequest,
   ): Promise<void> {
     return this.#run(async () => {
-      const categoryId = await this.#resolveCategory(category);
-      await firstValueFrom(this.#api.update$(id, { ...updates, categoryId }));
+      if (updates || category) {
+        const categoryId = category && (await this.#resolveCategory(category));
+        await firstValueFrom(
+          this.#api.update$(id, {
+            ...updates,
+            ...(categoryId && { categoryId }),
+          }),
+        );
+      }
+      if (value !== undefined) {
+        await firstValueFrom(
+          this.#api.recordSnapshots$({ items: [{ assetId: id, value }] }),
+        );
+      }
     });
-  }
-
-  recordValue(assetId: string, value: number): Promise<void> {
-    return this.#run(() =>
-      firstValueFrom(
-        this.#api.recordSnapshots$({ items: [{ assetId, value }] }),
-      ),
-    );
   }
 
   dismissSuggestion(id: string): Promise<void> {
@@ -107,18 +115,10 @@ export class NetWorthStore {
     return this.#run(() => firstValueFrom(this.#api.delete$(id)));
   }
 
-  addCategory(name: string): Promise<void> {
-    return this.#run(() => firstValueFrom(this.#api.createCategory$({ name })));
-  }
-
   renameCategory(id: string, name: string): Promise<void> {
     return this.#run(() =>
       firstValueFrom(this.#api.updateCategory$(id, { name })),
     );
-  }
-
-  deleteCategory(id: string): Promise<void> {
-    return this.#run(() => firstValueFrom(this.#api.deleteCategory$(id)));
   }
 
   /**
@@ -134,11 +134,7 @@ export class NetWorthStore {
     }
   }
 
-  async #resolveCategory(choice: CategoryChoice): Promise<string> {
-    if ('id' in choice) return choice.id;
-    const created = await firstValueFrom(
-      this.#api.createCategory$({ name: choice.name }),
-    );
-    return created.data.id;
+  #resolveCategory(choice: CategoryChoice): Promise<string> {
+    return resolveAssetCategory(this.#api, this.categories(), choice);
   }
 }

@@ -1,15 +1,15 @@
 import Foundation
 
-/// What the asset form holds, with its validation and its payloads, away from the view.
+/// What the element sheet holds, with its validation and its payloads, away from the view.
 struct AssetFormDraft: Equatable {
     var name = ""
     var direction: AssetDirection = .own
     var currency: SupportedCurrency = .chf
-    /// `nil` until a category is picked or typed.
+    /// `nil` until a Type is picked or typed.
     var category: AssetCategoryChoice?
-    var inPulpe = false
+    /// Always a magnitude; `isOverdraft` carries the sign of an account.
     var amount: Decimal?
-    private var isEditing = false
+    var isOverdraft = false
 
     init(currency: SupportedCurrency = .chf) {
         self.currency = currency
@@ -20,36 +20,69 @@ struct AssetFormDraft: Equatable {
         direction = asset.direction
         currency = asset.currency
         category = .existing(id: asset.categoryId)
-        inPulpe = asset.inPulpe
-        isEditing = true
+        amount = asset.latestValue.magnitude
+        isOverdraft = asset.direction == .own && asset.latestValue < 0
     }
 
-    /// Localized, so a category created from a suggestion reads in the user's language.
-    static var starterNames: [String] {
-        [
-            AppLocale.string("Comptes"), AppLocale.string("Épargne"), AppLocale.string("Placements"),
-            AppLocale.string("Cash"), AppLocale.string("Objets de valeur"), AppLocale.string("Biens")
-        ]
+    // MARK: - Types
+
+    struct TypeOptions: Equatable {
+        /// Types an element of this direction already uses, most used first.
+        let used: [AssetCategory]
+        /// Suggested names for this direction that no listed Type carries.
+        let suggestions: [String]
+
+        /// The most used Type of the direction, or its first suggestion.
+        var defaultChoice: AssetCategoryChoice? {
+            if let first = used.first { return .existing(id: first.id) }
+            return suggestions.first.map { .starter(name: $0) }
+        }
     }
 
-    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-    /// Creating needs a first value (the web requires it); editing does not touch the value here.
-    var isValid: Bool { !trimmedName.isEmpty && category != nil && (isEditing || amount != nil) }
-
-    /// Shown once the user has typed then cleared the name, never on a pristine form.
-    var nameError: String? {
-        trimmedName.isEmpty && !name.isEmpty ? AppLocale.string("Donne-lui un nom") : nil
+    /// Localized, so a Type created from a suggestion reads in the user's language.
+    static func starterNames(for direction: AssetDirection) -> [String] {
+        switch direction {
+        case .own:
+            [
+                AppLocale.string("Comptes"), AppLocale.string("Épargne"), AppLocale.string("Placements"),
+                AppLocale.string("Cash"), AppLocale.string("Objets de valeur"), AppLocale.string("Biens")
+            ]
+        case .owe:
+            [
+                AppLocale.string("Crédit"), AppLocale.string("Hypothèque"),
+                AppLocale.string("Leasing"), AppLocale.string("Carte de crédit")
+            ]
+        }
     }
 
-    /// The starter names no category already uses (case-insensitive).
-    static func starterSuggestions(existing: [String], starters: [String] = starterNames) -> [String] {
-        let used = Set(existing.map { $0.lowercased() })
-        return starters.filter { !used.contains($0.lowercased()) }
+    /// A Type has no direction of its own: it is offered where its elements are.
+    static func typeOptions(
+        direction: AssetDirection,
+        categories: [AssetCategory],
+        assets: [Asset],
+        starters: [String]? = nil
+    ) -> TypeOptions {
+        var uses: [String: Int] = [:]
+        for asset in assets where asset.direction == direction {
+            uses[asset.categoryId, default: 0] += 1
+        }
+        let used = categories
+            .enumerated()
+            .filter { uses[$0.element.id] != nil }
+            .sorted { lhs, rhs in
+                let (left, right) = (uses[lhs.element.id] ?? 0, uses[rhs.element.id] ?? 0)
+                return left == right ? lhs.offset < rhs.offset : left > right
+            }
+            .map(\.element)
+        let taken = Set(used.map { $0.name.lowercased() })
+        return TypeOptions(
+            used: used,
+            suggestions: (starters ?? starterNames(for: direction)).filter { !taken.contains($0.lowercased()) }
+        )
     }
 
-    /// A typed or suggested name resolves to the matching category when there is one, so the
-    /// server never sees a duplicate; a blank name is no choice.
+    /// A typed name resolves to the matching Type when there is one, hidden ones included, so
+    /// the server never sees a duplicate; a blank name is no choice.
     static func choice(forName name: String, existing: [AssetCategory]) -> AssetCategoryChoice? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -59,38 +92,46 @@ struct AssetFormDraft: Equatable {
         return .starter(name: trimmed)
     }
 
-    /// The first value is never negative: an overdraft is entered later, as an update.
-    /// `categoryId` is overwritten by `AssetStore.create` from the category choice.
+    // MARK: - Validation
+
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    var isValid: Bool { !trimmedName.isEmpty && category != nil && amount != nil }
+
+    /// Shown once the user has typed then cleared the name, never on a pristine form.
+    var nameError: String? {
+        trimmedName.isEmpty && !name.isEmpty ? AppLocale.string("Donne-lui un nom") : nil
+    }
+
+    // MARK: - Payloads
+
+    /// A debt is what remains due, never negative; an account goes negative as an overdraft.
+    var signedValue: Decimal? {
+        amount.map { direction == .own && isOverdraft ? -$0 : $0 }
+    }
+
+    /// `categoryId` is overwritten by `AssetStore.create` from the Type choice.
     func createPayload(categoryId: String) -> AssetCreate {
         AssetCreate(
             name: trimmedName, categoryId: categoryId, currency: currency, direction: direction,
-            inPulpe: direction == .own && inPulpe, value: max(amount ?? 0, 0)
+            inPulpe: false, value: signedValue ?? 0
         )
     }
 
-    /// Only the keys that changed. The category goes through `categoryChange(from:)`.
-    func updatePayload(original: Asset) -> AssetUpdate {
-        AssetUpdate(
-            name: trimmedName == original.name ? nil : trimmedName,
-            inPulpe: direction == .own && inPulpe != original.inPulpe ? inPulpe : nil
-        )
+    enum Submission: Equatable {
+        case create
+        case edit(AssetEdit)
+        case close
     }
 
-    /// False for an untouched edit: the backend rejects an empty PATCH, so nothing is sent.
-    func hasChanges(from original: Asset) -> Bool {
-        updatePayload(original: original) != AssetUpdate() || categoryChange(from: original) != nil
-    }
-
-    enum Submission: Equatable { case create, update(Asset), close }
-
-    /// What saving does: an untouched edit just closes.
+    /// What saving does. An untouched edit just closes: the backend rejects an empty `PATCH`,
+    /// and a value left as it was is not a new snapshot.
     func submission(original: Asset?) -> Submission {
         guard let original else { return .create }
-        return hasChanges(from: original) ? .update(original) : .close
-    }
-
-    /// `nil` when the asset stays in its category.
-    func categoryChange(from original: Asset) -> AssetCategoryChoice? {
-        category == .existing(id: original.categoryId) ? nil : category
+        var edit = AssetEdit()
+        if trimmedName != original.name { edit.updates = AssetUpdate(name: trimmedName) }
+        if category != .existing(id: original.categoryId) { edit.category = category }
+        if let signedValue, signedValue != original.latestValue { edit.value = signedValue }
+        return edit == AssetEdit() ? .close : .edit(edit)
     }
 }

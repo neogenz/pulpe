@@ -77,9 +77,7 @@ struct BudgetDetailHero: View {
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.pulpePrimary)
                 // 44pt hit area without growing the row (swiftui-hit-areas.md).
-                .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-                .contentShape(Rectangle())
-                .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+                .expandedTapArea()
             }
             .textLinkButtonStyle()
             .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
@@ -125,9 +123,7 @@ struct BudgetDetailHero: View {
                 .foregroundStyle(Color.pulpePrimary)
             }
             // 44pt hit area without growing the stack (swiftui-hit-areas.md).
-            .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-            .contentShape(Rectangle())
-            .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+            .expandedTapArea()
             .plainPressedButtonStyle()
             .accessibilityAction(named: "Voir le budget précédent", onRolloverTap)
         } else {

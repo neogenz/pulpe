@@ -189,6 +189,17 @@ describe('CurrencyInput', () => {
     });
   });
 
+  it('shows a free hint under the field', async () => {
+    setTestInput(component.label, 'Valeur actuelle');
+    setTestInput(component.hint, 'Dernière valeur : 1 000 CHF');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(
+      fixture.nativeElement.querySelector('mat-hint').textContent.trim(),
+    ).toBe('Dernière valeur : 1 000 CHF');
+  });
+
   it('rejects negative optional amounts', async () => {
     setTestInput(component.label, 'Loyer');
     fixture.detectChanges();

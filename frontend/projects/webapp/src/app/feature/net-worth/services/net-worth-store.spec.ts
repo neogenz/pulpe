@@ -86,7 +86,6 @@ describe('NetWorthStore', () => {
         }),
       ),
       updateCategory$: vi.fn(),
-      deleteCategory$: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -183,21 +182,41 @@ describe('NetWorthStore', () => {
     expect(cache.invalidate).toHaveBeenCalledWith(['assets']);
   });
 
-  it('edits an asset with its resolved category', async () => {
-    await store.editAsset(ASSET_ID, {
-      updates: { name: 'UBS Pro', inPulpe: false },
+  it('patches the name and the resolved Type, without a snapshot, when the value is unchanged', async () => {
+    await store.saveAsset(ASSET_ID, {
+      updates: { name: 'UBS Pro' },
       category: { name: 'Placements' },
     });
 
     expect(api['update$']).toHaveBeenCalledWith(ASSET_ID, {
       name: 'UBS Pro',
-      inPulpe: false,
       categoryId: NEW_CATEGORY_ID,
+    });
+    expect(api['recordSnapshots$']).not.toHaveBeenCalled();
+  });
+
+  it('records one snapshot and no patch when only the value changed', async () => {
+    await store.saveAsset(ASSET_ID, { value: 25400 });
+
+    expect(api['update$']).not.toHaveBeenCalled();
+    expect(api['recordSnapshots$']).toHaveBeenCalledExactlyOnceWith({
+      items: [{ assetId: ASSET_ID, value: 25400 }],
+    });
+  });
+
+  it('reuses a Type that no element shows any more instead of creating a duplicate', async () => {
+    await settle();
+
+    await store.saveAsset(ASSET_ID, { category: { name: 'comptes' } });
+
+    expect(api['createCategory$']).not.toHaveBeenCalled();
+    expect(api['update$']).toHaveBeenCalledWith(ASSET_ID, {
+      categoryId: CHECKING,
     });
   });
 
   it('records a signed value as a snapshot', async () => {
-    await store.recordValue(ASSET_ID, -300);
+    await store.saveAsset(ASSET_ID, { value: -300 });
 
     expect(api['recordSnapshots$']).toHaveBeenCalledWith({
       items: [{ assetId: ASSET_ID, value: -300 }],
@@ -211,9 +230,9 @@ describe('NetWorthStore', () => {
     }>();
     api['recordSnapshots$'].mockReturnValueOnce(pending);
 
-    const first = store.recordValue(ASSET_ID, 100);
+    const first = store.saveAsset(ASSET_ID, { value: 100 });
     expect(store.isSaving()).toBe(true);
-    await store.recordValue(ASSET_ID, 100);
+    await store.saveAsset(ASSET_ID, { value: 100 });
     pending.next({
       success: true,
       data: { recordedAt: '2026-11-03T10:00:00.000Z' },
@@ -246,10 +265,12 @@ describe('NetWorthStore', () => {
     expect(api['delete$']).toHaveBeenCalledWith(ASSET_ID);
   });
 
-  it('surfaces a refused category deletion to the caller', async () => {
-    const refusal = new Error('ASSET_CATEGORY_NOT_EMPTY');
-    api['deleteCategory$'].mockReturnValue(throwError(() => refusal));
+  it('surfaces a refused Type rename to the caller', async () => {
+    const refusal = new Error('ASSET_CATEGORY_DUPLICATE');
+    api['updateCategory$'].mockReturnValue(throwError(() => refusal));
 
-    await expect(store.deleteCategory(CHECKING)).rejects.toBe(refusal);
+    await expect(store.renameCategory(CHECKING, 'Épargne')).rejects.toBe(
+      refusal,
+    );
   });
 });

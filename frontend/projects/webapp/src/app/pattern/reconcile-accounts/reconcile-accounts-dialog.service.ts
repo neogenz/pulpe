@@ -2,7 +2,6 @@ import { inject, Service } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import {
   FEATURE_FLAGS,
-  type Asset,
   type NetWorth,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -14,6 +13,7 @@ import { loadNetWorth } from '@core/asset/net-worth';
 import {
   ReconcileAccountsDialog,
   type ReconcileAccountsDialogData,
+  type ReconcileNetWorth,
 } from './reconcile-accounts-dialog';
 
 @Service()
@@ -27,26 +27,24 @@ export class ReconcileAccountsDialogService {
   // takes the whole height: three steps of fields would not fit a centred card
   // above a keyboard.
   //
-  // The linked accounts are read before the dialog exists, because it builds
-  // its rows once: rows arriving after opening would overwrite what the user
-  // already typed. With the flag off no request is made and the dialog opens
-  // at once, on one empty row.
+  // My accounts are read before the dialog exists, because it builds its rows
+  // once: rows arriving after opening would overwrite what the user already
+  // typed. With the flag off no request is made and the dialog opens at once,
+  // on one empty row.
   async open(
-    data: Omit<ReconcileAccountsDialogData, 'linkedAccounts'>,
+    data: Omit<ReconcileAccountsDialogData, 'netWorth'>,
     isHandset: boolean,
   ): Promise<void> {
     if (this.#isOpening) return;
     this.#isOpening = true;
     try {
-      const linkedAccounts = this.#postHog.isFeatureEnabled(
-        FEATURE_FLAGS.NET_WORTH,
-      )
-        ? await this.#readLinkedAccounts(data.currency())
-        : [];
+      const netWorth = this.#postHog.isFeatureEnabled(FEATURE_FLAGS.NET_WORTH)
+        ? await this.#readNetWorth(data.currency())
+        : null;
       this.#dialog.open<ReconcileAccountsDialog, ReconcileAccountsDialogData>(
         ReconcileAccountsDialog,
         {
-          data: { ...data, linkedAccounts },
+          data: { ...data, netWorth },
           autoFocus: '[inputmode="decimal"]',
           disableClose: true,
           ...(isHandset
@@ -66,8 +64,10 @@ export class ReconcileAccountsDialogService {
   }
 
   // A failed read is already reported by the HTTP interceptor; the user loses
-  // only the pre-filled rows and reconciles as before.
-  async #readLinkedAccounts(currency: SupportedCurrency): Promise<Asset[]> {
+  // only the link to « Mon patrimoine » and reconciles as before.
+  async #readNetWorth(
+    currency: SupportedCurrency,
+  ): Promise<ReconcileNetWorth | null> {
     try {
       const cache = this.#assetApi.cache;
       if (!cache.get<NetWorth>(NET_WORTH_CACHE_KEY)?.fresh) {
@@ -76,15 +76,18 @@ export class ReconcileAccountsDialogService {
         );
       }
       const netWorth = cache.get<NetWorth>(NET_WORTH_CACHE_KEY)?.data;
-      return (netWorth?.assets ?? []).filter(
-        (asset) =>
-          asset.direction === 'own' &&
-          asset.inPulpe &&
-          asset.archivedAt === null &&
-          asset.currency === currency,
-      );
+      if (!netWorth) return null;
+      return {
+        categories: netWorth.categories,
+        accounts: netWorth.assets.filter(
+          (asset) =>
+            asset.direction === 'own' &&
+            asset.archivedAt === null &&
+            asset.currency === currency,
+        ),
+      };
     } catch {
-      return [];
+      return null;
     }
   }
 }

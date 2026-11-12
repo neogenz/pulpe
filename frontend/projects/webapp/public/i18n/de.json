@@ -1151,11 +1151,19 @@
         "negative": "Negativer Saldo (Überziehung)",
         "addAccount": "Konto hinzufügen",
         "removeNumbered": "Konto {{ index }} entfernen",
+        "stopFollowingNumbered": "Konto {{ index }} nicht mehr folgen",
         "total": "Summe deiner Konten",
         "numbered": "Konto {{ index }}",
         "privateHint": "Die eingegebenen Konten werden nicht gespeichert.",
         "lastBalance": "Letzter Saldo: {{ amount }}, {{ when }}",
-        "linkedHint": "Den Saldo deiner Konten „In Pulpe“ behalte ich in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert."
+        "linkedHint": "Ich aktualisiere den Saldo deiner Konten in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert.",
+        "account": "Konto",
+        "otherAccount": "Anderes Konto…",
+        "addToNetWorth": "Zu Mein Vermögen hinzufügen",
+        "accountNameLabel": "Kontoname",
+        "nameRequired": "Gib dem Konto einen Namen, um es hinzuzufügen",
+        "balanceRequired": "Gib den Saldo ein, um es hinzuzufügen",
+        "addToNetWorthHint": "Ich behalte dieses Konto und aktualisiere seinen Saldo bei jedem Abgleich."
       },
       "realized": {
         "heading": "Dein abgehakter Saldo",
@@ -1452,7 +1460,6 @@
   },
   "netWorth": {
     "addButton": "Hinzufügen",
-    "categoriesButton": "Kategorien",
     "loadError": "Dein Vermögen konnte nicht geladen werden — versuche es nochmal",
     "emptyTitle": "Dein Vermögen beginnt hier",
     "emptyMessage": "Füge ein Konto, ein Sparbuch oder eine Schuld hinzu, um dein heutiges Nettovermögen zu sehen.",
@@ -1461,11 +1468,11 @@
     "heroSubtitle": "Was ich habe minus was ich schulde, am {{date}}",
     "gross": "Was ich habe",
     "debts": "Was ich schulde",
-    "fxNote": "{{asset}} zum Tageskurs umgerechnet: 1 {{foreign}} = {{rate}} {{base}}",
+    "fxNote": "Tageskurs für {{asset}}: 1 {{foreign}} = {{rate}} {{base}}",
     "negativeNote": "Was ich schulde, übersteigt heute, was ich habe. Jede abgehakte Rückzahlung bringt diese Zahl näher an null.",
     "incompleteNotice": "Mir fehlt der heutige {{currency}}-Kurs: Die Summe enthält {{assets}} nicht. Das ändert sich, sobald der Kurs verfügbar ist.",
     "excluded": "Nicht in der Summe",
-    "inPulpe": "In Pulpe",
+    "linkedSuffix": "· beim Abgleich",
     "overdraft": "Überzogen",
     "updated": "Aktualisiert {{when}}",
     "updatedDebt": "{{category}} · aktualisiert {{when}}",
@@ -1478,18 +1485,21 @@
       "subtitleDebts": "Von dem, was ich habe, bis zu dem, was ich schulde",
       "net": "Nettovermögen",
       "shortfall": "Es fehlen",
-      "mobileHint": "Zieh, um bis zu deinem Nettovermögen zu sehen",
-      "mobileHintDebts": "Zieh, um bis zu dem zu sehen, was du schuldest",
       "ariaNet": "Verteilung dessen, was ich habe: Bruttovermögen {{gross}}, aufgeteilt in {{debts}} Schulden und {{net}} Nettovermögen.",
-      "ariaDebts": "Was ich habe, {{gross}}, gegenüber {{debts}} Schulden."
+      "ariaDebts": "Was ich habe, {{gross}}, gegenüber {{debts}} Schulden.",
+      "overdrafts": "Überziehungen"
     },
     "menu": {
       "actions": "Aktionen für {{name}}",
-      "updateValue": "Wert aktualisieren",
       "edit": "Bearbeiten",
       "archive": "Archivieren",
       "unarchive": "Wiederherstellen",
       "delete": "Löschen"
+    },
+    "type": {
+      "menu": "Aktionen für den Typ {{name}}",
+      "rename": "Typ umbenennen",
+      "nameLabel": "Name des Typs"
     },
     "deleteTitle": "{{name}} löschen?",
     "deleteMessage": "Auch der ganze Wertverlauf wird gelöscht. Archiviere stattdessen, um den Eintrag aus den Summen zu nehmen und den Verlauf zu behalten.",
@@ -1500,41 +1510,16 @@
       "direction": "Art",
       "own": "Was ich habe",
       "owe": "Was ich schulde",
-      "category": "Kategorie",
-      "myCategories": "Meine Kategorien",
-      "suggestions": "Vorschläge",
-      "newTag": "Neu",
-      "newCategoryHint": "Neue Kategorie: Ich lege sie beim Speichern an.",
-      "currency": "Währung",
+      "category": "Typ",
+      "otherType": "Anderer Typ…",
+      "typeName": "Name des Typs",
       "value": "Aktueller Wert",
-      "inPulpe": "In Pulpe",
-      "inPulpeHint": "Für das Konto, das du in deinem Budget abhakst. Ich fülle es vor, wenn du deine Konten abgleichst.",
-      "readOnlyHint": "Art und Währung bleiben wie bei der Erstellung.",
-      "editNote": "Um den Wert zu ändern, nutze „Wert aktualisieren“ im Menü der Zeile.",
       "nameRequired": "Gib einen Namen ein",
       "add": "Hinzufügen"
     },
     "value": {
-      "title": "Wert aktualisieren",
-      "subtitleOwn": "{{name}} · was ich heute habe",
-      "subtitleOwe": "{{name}} · was ich heute schulde",
-      "label": "Neuer Wert",
       "lastValue": "Letzter Wert: {{amount}}, am {{date}}",
       "overdraft": "Negativer Saldo (überzogen)"
-    },
-    "categoriesDialog": {
-      "title": "Meine Kategorien",
-      "description": "Kategorien ordnen deine Konten, dein Erspartes und deine Schulden auf der Seite.",
-      "empty": "Noch keine Kategorie: Du legst sie an, wenn du ein Konto hinzufügst, oder hier.",
-      "rename": "{{name}} umbenennen",
-      "delete": "{{name}} löschen",
-      "nameLabel": "Kategoriename",
-      "saveName": "Namen speichern",
-      "cancelRename": "Umbenennen abbrechen",
-      "newLabel": "Neue Kategorie",
-      "newPlaceholder": "z. B. Krypto",
-      "add": "Hinzufügen",
-      "notEmpty": "Verschiebe zuerst {{names}} in eine andere Kategorie."
     },
     "link": {
       "none": "Keine",
@@ -1560,6 +1545,12 @@
       "cash": "Bargeld",
       "valuables": "Wertgegenstände",
       "property": "Sachwerte"
+    },
+    "starterDebt": {
+      "loan": "Kredit",
+      "mortgage": "Hypothek",
+      "leasing": "Leasing",
+      "card": "Kreditkarte"
     }
   },
   "completeProfile": {
@@ -2151,9 +2142,9 @@
     "transactionImportFailed": "Nichts wurde erstellt, versuch es nochmal",
     "transactionImportRecalculationFailed": "Die Bewegungen wurden importiert, aber die Salden konnten nicht aktualisiert werden — lade die Seite neu, ohne die Datei erneut zu importieren",
     "assetNotFound": "Dieser Eintrag wurde nicht gefunden — vielleicht ist er schon gelöscht",
-    "assetCategoryNotFound": "Diese Kategorie wurde nicht gefunden — vielleicht ist sie schon gelöscht",
-    "assetCategoryNotEmpty": "Diese Kategorie enthält noch Einträge — verschiebe sie zuerst in eine andere Kategorie",
-    "assetCategoryDuplicate": "Eine Kategorie trägt schon diesen Namen",
+    "assetCategoryNotFound": "Dieser Typ wurde nicht gefunden — vielleicht ist er schon gelöscht",
+    "assetCategoryNotEmpty": "Dieser Typ enthält noch Einträge — verschiebe sie zuerst in einen anderen Typ",
+    "assetCategoryDuplicate": "Ein Typ trägt schon diesen Namen",
     "assetValueInvalid": "Dieser Wert ist ungültig — eine Schuld kann nicht negativ sein",
     "assetFetchFailed": "Dein Vermögen konnte nicht geladen werden — versuche es nochmal",
     "assetCreateFailed": "Hinzufügen fehlgeschlagen — versuche es nochmal",

@@ -89,13 +89,24 @@ describe('AssetFormDialog', () => {
     close.mockClear();
   });
 
-  it('creates an asset in an existing category', async () => {
-    const fixture = render({ categories });
+  const optionLabels = (fixture: ComponentFixture<AssetFormDialog>) => {
+    byTestId(fixture, 'asset-category-select')
+      .querySelector<HTMLElement>('.mat-mdc-select-trigger')!
+      .click();
+    fixture.detectChanges();
+    const labels = [
+      ...document.querySelectorAll<HTMLElement>('mat-option'),
+    ].map((element) => element.textContent?.trim() ?? '');
+    document.body.click();
+    return labels;
+  };
+
+  it('creates an asset in the Type preselected for what I own', () => {
+    const fixture = render({ categories, assets: [asset] });
     expect(submitButton(fixture).disabled).toBe(true);
 
     type(fixture, 'asset-name-input', 'Compte courant');
     type(fixture, 'asset-value-input', '1250.5');
-    await pickCategory(fixture, 'Comptes');
     expect(submitButton(fixture).disabled).toBe(false);
 
     submitButton(fixture).click();
@@ -112,48 +123,141 @@ describe('AssetFormDialog', () => {
     });
   });
 
-  it('offers only the starter suggestions not yet used, and creates the picked one on save', async () => {
-    const fixture = render({ categories });
-    byTestId(fixture, 'asset-category-select')
-      .querySelector<HTMLElement>('.mat-mdc-select-trigger')!
-      .click();
-    fixture.detectChanges();
-    const labels = [
-      ...document.querySelectorAll<HTMLElement>('mat-option'),
-    ].map((element) => element.textContent ?? '');
-    expect(labels.filter((label) => label.includes('Comptes'))).toHaveLength(1);
-    expect(labels.some((label) => label.includes('Placements'))).toBe(true);
-    document.body.click();
-
-    type(fixture, 'asset-name-input', 'ETF monde');
-    type(fixture, 'asset-value-input', '500');
-    await pickCategory(fixture, 'Placements');
+  it('preselects « Comptes » as a suggestion when nothing exists yet', () => {
+    const fixture = render({ categories: [], assets: [] });
+    type(fixture, 'asset-name-input', 'Compte courant');
+    type(fixture, 'asset-value-input', '10');
     submitButton(fixture).click();
 
     expect(close).toHaveBeenCalledWith(
-      expect.objectContaining({ category: { name: 'Placements' } }),
+      expect.objectContaining({ category: { name: 'Comptes' } }),
     );
   });
 
-  it('refuses a negative first value', async () => {
-    const fixture = render({ categories });
+  it('lists used Types once, then the unused suggestions, then « Autre type… »', () => {
+    const fixture = render({ categories, assets: [asset] });
+
+    expect(optionLabels(fixture)).toEqual([
+      'Comptes',
+      'Épargne',
+      'Placements',
+      'Cash',
+      'Objets de valeur',
+      'Biens',
+      'Autre type…',
+    ]);
+  });
+
+  it('switches to the debt suggestions, preselects the first and hides the overdraft box', () => {
+    const fixture = render({ categories, assets: [asset] });
+    expect(byTestId(fixture, 'asset-overdraft-checkbox')).not.toBeNull();
+
+    byTestId(fixture, 'asset-direction-toggle')
+      .querySelectorAll<HTMLElement>('button')[1]
+      .click();
+    fixture.detectChanges();
+
+    expect(optionLabels(fixture)).toEqual([
+      'Crédit',
+      'Hypothèque',
+      'Leasing',
+      'Carte de crédit',
+      'Autre type…',
+    ]);
+    expect(byTestId(fixture, 'asset-overdraft-checkbox')).toBeNull();
+    type(fixture, 'asset-name-input', 'Prêt auto');
+    type(fixture, 'asset-value-input', '8000');
+    submitButton(fixture).click();
+    expect(close).toHaveBeenCalledWith(
+      expect.objectContaining({ category: { name: 'Crédit' } }),
+    );
+  });
+
+  it('asks for a name after « Autre type… » and saves it as the Type', async () => {
+    const fixture = render({ categories, assets: [asset] });
+    type(fixture, 'asset-name-input', 'Bitcoin');
+    type(fixture, 'asset-value-input', '500');
+    await pickCategory(fixture, 'Autre type…');
+    expect(submitButton(fixture).disabled).toBe(true);
+
+    // Left empty, the field says why saving is off; typing is capped at what
+    // the API accepts, so no name can be refused for its length.
+    const typeName = byTestId(
+      fixture,
+      'asset-type-name-input',
+    ) as HTMLInputElement;
+    typeName.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Donne-lui un nom');
+    expect(typeName.maxLength).toBe(30);
+    expect(
+      (byTestId(fixture, 'asset-name-input') as HTMLInputElement).maxLength,
+    ).toBe(100);
+
+    type(fixture, 'asset-type-name-input', 'Crypto');
+    submitButton(fixture).click();
+
+    expect(close).toHaveBeenCalledWith(
+      expect.objectContaining({ category: { name: 'Crypto' } }),
+    );
+  });
+
+  it('refuses a negative value', () => {
+    const fixture = render({ categories, assets: [asset] });
     type(fixture, 'asset-name-input', 'Compte courant');
     type(fixture, 'asset-value-input', '-10');
-    await pickCategory(fixture, 'Comptes');
 
     expect(submitButton(fixture).disabled).toBe(true);
   });
 
-  it('edits name, category and Pulpe link only, without asking for a value', () => {
-    const fixture = render({ categories, asset });
+  describe('editing', () => {
+    const value = (fixture: ComponentFixture<AssetFormDialog>) =>
+      (byTestId(fixture, 'asset-value-input') as HTMLInputElement).value;
 
-    expect(byTestId(fixture, 'asset-value-input')).toBeNull();
-    type(fixture, 'asset-name-input', 'UBS Pro');
-    submitButton(fixture).click();
+    it('starts from the current value and sends only a changed value', async () => {
+      const fixture = render({ categories, assets: [asset], asset });
+      await fixture.whenStable();
+      expect(value(fixture)).toBe('1000');
+      expect(fixture.nativeElement.textContent).toContain('Dernière valeur');
 
-    expect(close).toHaveBeenCalledWith({
-      updates: { name: 'UBS Pro', inPulpe: true },
-      category: { id: CHECKING },
+      type(fixture, 'asset-value-input', '1400');
+      submitButton(fixture).click();
+
+      expect(close).toHaveBeenCalledWith({ value: 1400 });
+    });
+
+    it('sends only a changed name', () => {
+      const fixture = render({ categories, assets: [asset], asset });
+      type(fixture, 'asset-name-input', 'UBS Pro');
+      submitButton(fixture).click();
+
+      expect(close).toHaveBeenCalledWith({ updates: { name: 'UBS Pro' } });
+    });
+
+    it('closes without a request when nothing changed', () => {
+      const fixture = render({ categories, assets: [asset], asset });
+      submitButton(fixture).click();
+
+      expect(close).toHaveBeenCalledWith(undefined);
+    });
+
+    it('shows the magnitude of an overdrawn account with the box ticked', async () => {
+      const overdrawn = { ...asset, latestValue: -250 };
+      const fixture = render({
+        categories,
+        assets: [overdrawn],
+        asset: overdrawn,
+      });
+      await fixture.whenStable();
+
+      expect(value(fixture)).toBe('250');
+      expect(
+        byTestId(fixture, 'asset-overdraft-checkbox').querySelector('input')!
+          .checked,
+      ).toBe(true);
+      const hint = fixture.nativeElement.querySelector('mat-hint').textContent;
+      expect(hint).toContain('250');
+      expect(hint).not.toMatch(/[-−]/);
     });
   });
 });

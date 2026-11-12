@@ -3,8 +3,6 @@ import { type Observable, tap } from 'rxjs';
 import {
   type AssetCategoryCreate,
   assetCategoryCreateSchema,
-  type AssetCategoryDeleteResponse,
-  assetCategoryDeleteResponseSchema,
   type AssetCategoryResponse,
   assetCategoryResponseSchema,
   type AssetCategoryUpdate,
@@ -135,13 +133,6 @@ export class AssetApi {
       category,
       assetCategoryResponseSchema,
       assetCategoryUpdateSchema,
-    );
-  }
-
-  deleteCategory$(id: string): Observable<AssetCategoryDeleteResponse> {
-    return this.#api.delete$(
-      `/asset-categories/${id}`,
-      assetCategoryDeleteResponseSchema,
     );
   }
 }

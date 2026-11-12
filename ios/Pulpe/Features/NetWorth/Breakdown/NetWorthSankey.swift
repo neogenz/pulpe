@@ -1,12 +1,12 @@
 import Foundation
 
 /// Flow mapping of the « Répartition aujourd'hui » diagram: a port of the web's
-/// `net-worth-sankey.flows.ts`. No money is computed here; widths come from the API figures
-/// (`convertedValue`, category `total`, `totals`). The only arithmetic is the ratio of gross
+/// `net-worth-sankey.flows.ts`. Widths come from the API figures (`totals`, category `total`)
+/// and from the debt Type totals of `NetWorthSections`. The only arithmetic is the ratio of gross
 /// over debts that splits a debt between gross and the shortfall when debts exceed gross.
 enum NetWorthSankey {
     enum Kind: Equatable, Sendable {
-        case asset, category, gross, net, shortfall, debt
+        case category, gross, net, shortfall, debt
     }
 
     struct Flow: Equatable, Sendable {
@@ -39,10 +39,17 @@ enum NetWorthSankey {
     static let grossNode = "gross"
     static let netNode = "net"
 
-    /// `nil` when there is nothing to draw: no gross, or no own asset.
+    /// Each Type I own flows into gross; gross leaves on the debts side, one node per debt Type
+    /// plus one for the overdrawn accounts, and into « Fortune nette » when net is positive.
+    /// Elements are not drawn: the cards carry them, and the diagram stays readable however
+    /// many there are. `nil` when there is nothing to split: no gross, or one Type and no debt.
     static func build(_ netWorth: NetWorth) -> Graph? {
         let totals = netWorth.totals
         guard totals.gross > 0 else { return nil }
+        let sections = NetWorthSections(netWorth)
+        let owned = sections.categories.filter { $0.total > 0 }
+        let debts = sections.debtGroups.filter { $0.total > 0 }
+        guard owned.count > 1 || !debts.isEmpty else { return nil }
 
         var flows: [Flow] = []
         var nodes: [String: Node] = [:]
@@ -51,35 +58,19 @@ enum NetWorthSankey {
             if nodes.updateValue(node, forKey: id) == nil { order.append(id) }
         }
 
+        for type in owned {
+            let id = "category:\(type.id)"
+            add(id, Node(kind: .category, name: type.name, value: type.total))
+            flows.append(Flow(from: id, to: grossNode, flow: double(type.total)))
+        }
+
         // Share of each debt that gross covers; the shortfall covers the rest.
         let covered = totals.net < 0 ? double(totals.gross) / double(totals.debts) : 1
-        let owned = netWorth.assets.filter {
-            $0.archivedAt == nil && $0.direction == .own && ($0.convertedValue ?? 0) > 0
-        }
-        guard !owned.isEmpty else { return nil }
-        let categoryIds = Set(owned.map(\.categoryId))
-        let hasCategoryColumn = categoryIds.count < owned.count
-
-        for asset in owned {
-            let id = "asset:\(asset.id)"
-            let value = asset.convertedValue ?? 0
-            add(id, Node(kind: .asset, name: asset.name, value: value))
-            flows.append(Flow(
-                from: id, to: hasCategoryColumn ? "category:\(asset.categoryId)" : grossNode, flow: double(value)
-            ))
-        }
-
-        for debt in debts(netWorth.assets, covered: covered) {
-            add(debt.id, debt.node)
-            flows += debt.flows
-        }
-
-        if hasCategoryColumn {
-            for category in netWorth.categories where categoryIds.contains(category.id) {
-                let id = "category:\(category.id)"
-                add(id, Node(kind: .category, name: category.name, value: category.total))
-                flows.append(Flow(from: id, to: grossNode, flow: double(category.total)))
-            }
+        for debt in debts {
+            let id = "debt:\(debt.id)"
+            add(id, Node(kind: .debt, name: debt.name, value: debt.total))
+            flows.append(Flow(from: grossNode, to: id, flow: double(debt.total) * covered))
+            if covered < 1 { flows.append(Flow(from: netNode, to: id, flow: double(debt.total) * (1 - covered))) }
         }
 
         add(grossNode, Node(kind: .gross, name: nil, value: totals.gross))
@@ -93,30 +84,10 @@ enum NetWorthSankey {
             add(netNode, Node(kind: .shortfall, name: nil, value: totals.net.magnitude))
             return Graph(
                 flows: flows, nodes: nodes, order: order,
-                columns: [netNode: hasCategoryColumn ? 2 : 1],
-                priorities: [grossNode: 0, netNode: 1]
+                columns: [netNode: 1], priorities: [grossNode: 0, netNode: 1]
             )
         }
         return Graph(flows: flows, nodes: nodes, order: order, columns: [:], priorities: [:])
-    }
-
-    private struct Debt {
-        let id: String
-        let node: Node
-        let flows: [Flow]
-    }
-
-    /// Active `owe` assets and overdrawn `own` ones, drawn at their real size: gross covers
-    /// `covered` of each, the shortfall node the rest.
-    private static func debts(_ assets: [Asset], covered: Double) -> [Debt] {
-        assets.filter { $0.archivedAt == nil }.compactMap { asset in
-            guard let value = asset.convertedValue, value != 0, asset.direction == .owe || value < 0 else { return nil }
-            let id = "debt:\(asset.id)"
-            let magnitude = double(value.magnitude)
-            var flows = [Flow(from: grossNode, to: id, flow: magnitude * covered)]
-            if covered < 1 { flows.append(Flow(from: netNode, to: id, flow: magnitude * (1 - covered))) }
-            return Debt(id: id, node: Node(kind: .debt, name: asset.name, value: value.magnitude), flows: flows)
-        }
     }
 
     private static func double(_ value: Decimal) -> Double {

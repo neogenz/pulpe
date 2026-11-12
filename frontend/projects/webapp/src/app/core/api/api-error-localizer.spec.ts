@@ -186,9 +186,9 @@ describe('ApiErrorLocalizer', () => {
     [
       'ERR_ASSET_CATEGORY_NOT_EMPTY',
       409,
-      "Cette catégorie contient encore des éléments — déplace-les d'abord vers une autre catégorie",
+      "Ce type contient encore des éléments — déplace-les d'abord vers un autre type",
     ],
-    ['ERR_ASSET_CATEGORY_DUPLICATE', 409, 'Une catégorie porte déjà ce nom'],
+    ['ERR_ASSET_CATEGORY_DUPLICATE', 409, 'Un type porte déjà ce nom'],
     [
       'ERR_ASSET_VALUE_INVALID',
       422,

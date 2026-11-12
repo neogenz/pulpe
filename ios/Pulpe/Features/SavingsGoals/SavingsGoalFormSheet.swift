@@ -194,9 +194,7 @@ struct SavingsGoalFormSheet: View {
                     .font(PulpeTypography.rowTitleRegular)
                     .foregroundStyle(Color.textSecondary)
                 }
-                .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
-                .contentShape(Rectangle())
-                .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+                .expandedTapArea()
                 .plainPressedButtonStyle()
                 .accessibilityLabel("\(title), \(emptyLabel)")
             }

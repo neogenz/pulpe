@@ -1,12 +1,13 @@
-import type { Asset, NetWorth } from 'pulpe-shared';
+import type { NetWorth } from 'pulpe-shared';
+import { debtGroups, ownGroups } from './net-worth-groups';
 
 export type SankeyNodeKind =
-  | 'asset'
   | 'category'
   | 'gross'
   | 'net'
   | 'shortfall'
-  | 'debt';
+  | 'debt'
+  | 'overdrafts';
 
 export interface SankeyFlow {
   from: string;
@@ -16,7 +17,7 @@ export interface SankeyFlow {
 
 export interface SankeyNode {
   kind: SankeyNodeKind;
-  /** `null` for the two fixed nodes, which the chart labels itself. */
+  /** `null` for the fixed nodes, which the chart labels itself. */
   name: string | null;
   /** What the node is worth in base currency, for its label. */
   value: number;
@@ -35,14 +36,14 @@ export const GROSS_NODE = 'gross';
 export const NET_NODE = 'net';
 
 /**
- * Maps the figures the API computed to flow widths: no money is computed here.
- * Positive `own` assets flow into their category, then into gross; the
- * category column is left out when every category holds a single asset, since
- * it would only repeat the assets. `owe` assets and overdrawn `own` assets
- * leave gross on the debts side, into a Fortune nette node when net is
- * positive. When the debts exceed gross, a negative Fortune nette node beside
- * gross covers the rest of each debt, so every column keeps the same scale and
- * a debt is drawn at its real size.
+ * Maps the figures of the page to flow widths. Each Type I own flows into
+ * gross; gross leaves on the debts side, one node per debt Type plus one for
+ * the overdrawn accounts, and into a Fortune nette node when net is positive.
+ * Elements are not drawn: the lists carry them, and the chart stays readable
+ * however many there are. When the debts exceed gross, a negative Fortune
+ * nette node beside gross covers the rest of each debt, so every column keeps
+ * the same scale and a debt is drawn at its real size. Nothing is returned
+ * when there is nothing to split: a single Type and no debt.
  */
 export function buildNetWorthSankey({
   totals,
@@ -51,52 +52,35 @@ export function buildNetWorthSankey({
 }: NetWorth): NetWorthSankey {
   const flows: SankeyFlow[] = [];
   const nodes: NetWorthSankey['nodes'] = {};
-  if (totals.gross <= 0) return { flows, nodes, columns: {}, priorities: {} };
+  const empty = { flows, nodes, columns: {}, priorities: {} };
+  if (totals.gross <= 0) return empty;
+
+  const active = assets.filter((asset) => asset.archivedAt === null);
+  const owned = ownGroups(categories, active).filter(
+    (group) => group.total > 0,
+  );
+  const debts = debtGroups(categories, active).filter(
+    (group) => group.total > 0,
+  );
+  if (owned.length <= 1 && debts.length === 0) return empty;
+
+  for (const { category, total } of owned) {
+    const id = `category:${category.id}`;
+    nodes[id] = { kind: 'category', name: category.name, value: total };
+    flows.push({ from: id, to: GROSS_NODE, flow: total });
+  }
 
   // Share of each debt that gross covers; the shortfall covers the rest.
   const covered = totals.net < 0 ? totals.gross / totals.debts : 1;
-  const owned = assets.filter(
-    (asset): asset is Asset & { convertedValue: number } =>
-      asset.archivedAt === null &&
-      asset.direction === 'own' &&
-      asset.convertedValue !== null &&
-      asset.convertedValue > 0,
-  );
-  const categoryIds = new Set(owned.map((asset) => asset.categoryId));
-  const hasCategoryColumn = categoryIds.size < owned.length;
-
-  for (const asset of owned) {
-    const id = `asset:${asset.id}`;
-    const value = asset.convertedValue;
-    nodes[id] = { kind: 'asset', name: asset.name, value };
-    const to = hasCategoryColumn ? `category:${asset.categoryId}` : GROSS_NODE;
-    flows.push({ from: id, to, flow: value });
-  }
-
-  for (const asset of assets) {
-    const value = asset.convertedValue;
-    if (asset.archivedAt !== null || value === null) continue;
-
-    if (value !== 0 && (asset.direction === 'owe' || value < 0)) {
-      const id = `debt:${asset.id}`;
-      const magnitude = Math.abs(value);
-      nodes[id] = { kind: 'debt', name: asset.name, value: magnitude };
-      flows.push({ from: GROSS_NODE, to: id, flow: magnitude * covered });
-      if (covered < 1) {
-        flows.push({ from: NET_NODE, to: id, flow: magnitude * (1 - covered) });
-      }
+  for (const { category, total } of debts) {
+    const id = category ? `debt:${category.id}` : 'debt:overdrafts';
+    nodes[id] = category
+      ? { kind: 'debt', name: category.name, value: total }
+      : { kind: 'overdrafts', name: null, value: total };
+    flows.push({ from: GROSS_NODE, to: id, flow: total * covered });
+    if (covered < 1) {
+      flows.push({ from: NET_NODE, to: id, flow: total * (1 - covered) });
     }
-  }
-
-  for (const category of categories) {
-    if (!hasCategoryColumn || !categoryIds.has(category.id)) continue;
-    const id = `category:${category.id}`;
-    nodes[id] = {
-      kind: 'category',
-      name: category.name,
-      value: category.total,
-    };
-    flows.push({ from: id, to: GROSS_NODE, flow: category.total });
   }
 
   nodes[GROSS_NODE] = { kind: 'gross', name: null, value: totals.gross };
@@ -112,13 +96,12 @@ export function buildNetWorthSankey({
       value: Math.abs(totals.net),
     };
     // Without inflows the chart would start it in the first column; it sits
-    // beside gross, right after the assets (and their categories), and under
-    // it so the main flow stays on top.
-    const grossColumn = hasCategoryColumn ? 2 : 1;
+    // beside gross, right after the Types, and under it so the main flow
+    // stays on top.
     return {
       flows,
       nodes,
-      columns: { [NET_NODE]: grossColumn },
+      columns: { [NET_NODE]: 1 },
       priorities: { [GROSS_NODE]: 0, [NET_NODE]: 1 },
     };
   }

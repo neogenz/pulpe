@@ -1,22 +1,29 @@
 import Foundation
 
-/// The page's sections, a pure projection of the API response: grouping and ordering only,
-/// no sum and no conversion (the server owns every figure).
+/// The page's sections, a projection of the API response: grouping, ordering, and the total
+/// of a debt Type, summed from the converted values the server sends. No conversion here.
 struct NetWorthSections: Equatable {
-    struct Category: Identifiable, Equatable {
+    /// One card of the page: a Type and its elements, or the overdrawn accounts.
+    struct Group: Identifiable, Equatable {
         let id: String
         let name: String
-        /// `category.total` as the API returns it.
         let total: Decimal
         let assets: [Asset]
+        /// False for « Découverts », which gathers accounts of several Types.
+        var isType = true
     }
+
+    static let overdraftsId = "overdrafts"
 
     let baseCurrency: SupportedCurrency
     let net: Decimal
     let gross: Decimal
     let debtsTotal: Decimal
     let incomplete: Bool
-    let categories: [Category]
+    /// What I have, by Type, with `category.total` as the API returns it.
+    let categories: [Group]
+    /// What I owe, by Type, then the overdrawn accounts.
+    let debtGroups: [Group]
     /// Active `owe` assets and active `own` assets below zero, API order.
     let debts: [Asset]
     let archived: [Asset]
@@ -33,13 +40,30 @@ struct NetWorthSections: Equatable {
             let assets = active.filter {
                 $0.categoryId == category.id && $0.direction == .own && $0.latestValue >= 0
             }
-            return assets.isEmpty ? nil : Category(
+            return assets.isEmpty ? nil : Group(
                 id: category.id, name: category.name, total: category.total, assets: assets
             )
         }
         debts = active.filter { $0.direction == .owe || $0.latestValue < 0 }
+        // The API gives no subtotal per debt Type: the page adds the converted values the API
+        // already rounded, and their sum is its debts total.
+        let owed = netWorth.categories.compactMap { category -> Group? in
+            let assets = active.filter { $0.categoryId == category.id && $0.direction == .owe }
+            return assets.isEmpty ? nil : Group(
+                id: category.id, name: category.name, total: Self.converted(assets), assets: assets
+            )
+        }
+        let overdrawn = active.filter { $0.direction == .own && $0.latestValue < 0 }
+        debtGroups = owed + (overdrawn.isEmpty ? [] : [Group(
+            id: Self.overdraftsId, name: AppLocale.string("Découverts"),
+            total: Self.converted(overdrawn), assets: overdrawn, isType: false
+        )])
         archived = netWorth.assets.filter { $0.archivedAt != nil }
         categoryNames = Dictionary(netWorth.categories.map { ($0.id, $0.name) }) { first, _ in first }
+    }
+
+    private static func converted(_ assets: [Asset]) -> Decimal {
+        assets.reduce(0) { $0 + ($1.convertedValue ?? 0).magnitude }
     }
 
     var isEmpty: Bool { categories.isEmpty && debts.isEmpty && archived.isEmpty }
@@ -59,8 +83,8 @@ struct NetWorthSections: Equatable {
 
 // MARK: - Row presentation
 
+/// What a row warns about. A followed account is not one: its caption says it.
 enum NetWorthBadge: Equatable {
-    case inPulpe
     case overdraft
     case excluded
 }
@@ -70,7 +94,6 @@ extension Asset {
 
     var badges: [NetWorthBadge] {
         var badges: [NetWorthBadge] = []
-        if inPulpe { badges.append(.inPulpe) }
         if direction == .own, latestValue < 0 { badges.append(.overdraft) }
         if isActive, convertedValue == nil { badges.append(.excluded) }
         return badges

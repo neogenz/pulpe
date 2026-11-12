@@ -9,7 +9,7 @@ struct CurrentMonthReconcileSheet: View {
         if let budget = store.budget {
             // `addTransaction` is the store's own landing for a created entry: the checked
             // balance moves at once and the sibling stores are invalidated.
-            ReconcileLinkedAccountsGate { linkedAccounts in
+            ReconcileLinkedAccountsGate { netWorthAccounts in
                 ReconcileAccountsSheet(
                     month: .init(
                         budgetId: budget.id,
@@ -29,7 +29,7 @@ struct CurrentMonthReconcileSheet: View {
                             }
                         }
                     ),
-                    linkedAccounts: linkedAccounts,
+                    netWorthAccounts: netWorthAccounts,
                     onAdjustmentCreated: { transaction in
                         FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
                         store.addTransaction(transaction)
