@@ -1,6 +1,6 @@
 # Review: Refonte UX de Mon patrimoine (web + iOS)
 
-- Rounds: 2
+- Rounds: 3
 - Started: 2026-11-12
 
 ## Round 1 · r-3f9a
@@ -132,3 +132,21 @@ Unmet
 - `ios/Pulpe/Features/NetWorth/NetWorthView.swift:4` : the header says read-only for a view that edits and sums debt Types → reword — 🟢 minor, code-health
 - `frontend/projects/webapp/src/app/feature/net-worth/components/net-worth-sankey.ts:62` : on a phone the shortfall label stays left of its bar; a 390px render with a negative net shows it clear of every node — 🟢 minor, frontend, no change
 - `ios/Pulpe/Features/NetWorth/AssetFormSheet.swift:242` : the form still hands `createPayload` an empty `categoryId` the store overwrites; already on `main` — 🟢 minor, code-health, out of this change
+
+## Round 3 · r-b84e
+
+- Date: 2026-11-12
+- By: Maxime De Sogus
+- Diff: `35e76b1bd..9897c5b17`
+- Axes: code, functional, relevancy
+- Verdict: approve
+- Score: 32/32 met, 0 unmet, 0 unverified at runtime, 0 out of the diff
+
+### Criteria
+
+- [x] Toggle on cannot finish while the plan would drop the account — `ios/Pulpe/Features/CurrentMonth/Reconciliation/ReconcileAccountsFlow.swift:137`, pinned by `addingToMonPatrimoineWithoutABalance_cannotFinish`; the web spec goes red when its gate is removed
+- [x] Runtime on `9897c5b17` — iOS 2639 tests passed and SwiftLint strict clean; web 142 specs passed, `ng build`, eslint, prettier and lexicon green
+
+### Findings
+
+None.
