@@ -20,6 +20,10 @@ import { budgetKeys } from "@/features/budgets/budget-queries";
 import { createTransaction, fetchTransaction } from "./transaction-api";
 import { isUnsavedCreate, useCreateTransaction } from "./transaction-mutations";
 
+jest.mock("@/core/observability/product-events", () => ({
+  captureTransactionCreated: jest.fn(),
+}));
+
 jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => true }));
 jest.mock("@/features/budgets/budget-api", () => ({}));
 jest.mock("@/features/savings-goals/goals-api", () => ({}));

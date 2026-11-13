@@ -2,7 +2,7 @@ import { i18n, translate } from "./i18n";
 
 describe("phase 6 mutation localization", () => {
   it.each([
-    ["fr", "Nouvelle prévision", "Opération ajoutée"],
+    ["fr", "Nouvelle prévision", "Mouvement ajouté"],
     ["en", "New forecast", "Entry added"],
     ["de", "Neue Planung", "Vorgang hinzugefügt"],
     ["it", "Nuova previsione", "Movimento aggiunto"],

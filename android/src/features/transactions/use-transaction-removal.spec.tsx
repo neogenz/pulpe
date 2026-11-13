@@ -9,6 +9,10 @@ import { Notice } from "@/core/ui/notice";
 
 import { useTransactionRemoval } from "./use-transaction-removal";
 
+jest.mock("@/core/observability/product-events", () => ({
+  captureTransactionCreated: jest.fn(),
+}));
+
 interface Pending {
   resolve: () => void;
   reject: (error: Error) => void;

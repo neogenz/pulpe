@@ -1,11 +1,12 @@
 import { Tabs, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTheme } from "react-native-paper";
 
 import { AmountMaskBoundary } from "@/core/ui/amount-mask-boundary";
 import { NavigationBar } from "@/core/ui/navigation-bar";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useFeatureFlag } from "@/core/observability/feature-flags";
+import { captureTabSwitched } from "@/core/observability/product-events";
 import {
   shouldLeaveNetWorthTab,
   withoutNetWorthTab,
@@ -34,6 +35,15 @@ export default function TabsLayout() {
       router.replace("/home");
     }
   }, [isNetWorthEnabled, segments, router]);
+
+  // The route name, never a label. The tab the app opens on is not a switch.
+  const tab = segments[segments.length - 1];
+  const previousTab = useRef(tab);
+  useEffect(() => {
+    if (previousTab.current === tab) return;
+    previousTab.current = tab;
+    captureTabSwitched(tab);
+  }, [tab]);
 
   return (
     <Tabs

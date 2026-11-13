@@ -113,14 +113,3 @@ export function captureBudgetCreated(): void {
 export function captureTransactionCreated(type: EntryType): void {
   captureEvent(ANALYTICS_EVENTS.TRANSACTION_CREATED, { type });
 }
-
-export function captureFirstTransactionCreated(
-  type: EntryType,
-  source:
-    | "activation_prompt"
-    | "add_button"
-    | "budget_details"
-    | "reconciliation",
-): void {
-  captureEvent(ANALYTICS_EVENTS.FIRST_TRANSACTION_CREATED, { type, source });
-}

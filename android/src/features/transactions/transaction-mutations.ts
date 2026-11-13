@@ -1,3 +1,4 @@
+import { captureTransactionCreated } from "@/core/observability/product-events";
 import {
   type QueryClient,
   useMutation,
@@ -182,7 +183,11 @@ function addToBudgetDetails(queryClient: QueryClient, created: Transaction) {
 }
 
 export function useCreateTransaction() {
-  return useTransactionMutation(createOnce, addToBudgetDetails);
+  return useTransactionMutation(createOnce, (queryClient, transaction) => {
+    addToBudgetDetails(queryClient, transaction);
+    // Here and not in `createOnce`: restoring a deleted row is not a new entry.
+    captureTransactionCreated(transaction.kind);
+  });
 }
 
 export function useUpdateTransaction() {
