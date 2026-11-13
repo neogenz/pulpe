@@ -5,6 +5,7 @@ import {
   HERO_COLORS,
   PREVIEW_COLORS,
   SHEET_COLORS,
+  V2_COLORS,
 } from "@/core/ui/theme";
 
 /**
@@ -37,4 +38,9 @@ export function usePreviewColors() {
 /** The surface a form sheet rises on, for the scheme in force. */
 export function useSheetColors() {
   return SHEET_COLORS[useSchemeName()];
+}
+
+/** The V2 board tokens MD3 has no role for, for the scheme in force. */
+export function useV2Colors() {
+  return V2_COLORS[useSchemeName()];
 }

@@ -1,29 +1,42 @@
-import { Chip } from "react-native-paper";
+import { Chip, useTheme } from "react-native-paper";
 import type { ComponentProps } from "react";
+
+import { useV2Colors } from "@/core/ui/scheme-colors";
 
 type ChipProps = ComponentProps<typeof Chip>;
 
 /**
  * One choice in a row of them: the selected month, the kind being filtered on.
+ * `PulpeChip` on iOS.
  *
- * Paper's flat chip paints `secondaryContainer` whether or not it is selected,
- * and signals the selection with a leading check alone — so a rail that hides
- * the check to keep its labels short comes out as five identical mint pills
- * with nothing saying which month you are looking at. Selection is carried by
- * the fill instead, the way Material means a filter chip to work and the way
- * the budget list already reads: filled is the one you are on, outlined is one
- * you could go to.
+ * Selected, it is the pale green wash ringed in the action green, with a
+ * check, in the wash's own ink; idle, a white capsule with a quiet border.
+ * Two signals rather than one, so the selection survives a colour-blind eye
+ * and a dark theme alike.
  */
 export function FilterChip({
   selected,
+  style,
   ...rest
-}: Omit<ChipProps, "mode" | "showSelectedCheck">) {
+}: Omit<ChipProps, "mode">) {
+  const theme = useTheme();
+  const v2 = useV2Colors();
+  const isSelected = selected === true;
+
   return (
     <Chip
       {...rest}
       selected={selected}
-      mode={selected === true ? "flat" : "outlined"}
-      showSelectedCheck={false}
+      mode="outlined"
+      selectedColor={isSelected ? v2.accentInk : theme.colors.onSurface}
+      style={[
+        {
+          backgroundColor: isSelected ? v2.accentWash : theme.colors.surface,
+          borderColor: isSelected ? theme.colors.primary : v2.line2,
+          borderWidth: isSelected ? SELECTED_RING : 1,
+        },
+        style,
+      ]}
       // Paper sets no minimum height on an MD3 chip: six points of margin
       // around a 20-point line comes out at 32, sixteen short of Material's
       // floor, on the row this app asks the most taps of. The slop is what
@@ -36,3 +49,4 @@ export function FilterChip({
 
 /** Half of what `TOUCH_TARGET` is missing, taken on each side. */
 const CHIP_SLOP = 8;
+const SELECTED_RING = 1.5;

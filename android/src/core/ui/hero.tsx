@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { LinearGradient } from "expo-linear-gradient";
 import type { ComponentProps, ReactNode } from "react";
 import {
   type LayoutChangeEvent,
@@ -23,15 +22,14 @@ import {
 } from "@/core/ui/theme";
 
 /**
- * The Two-Zone Rule, Android side. A screen with a dominant financial state
- * opens on the forest (`HeroZone`) and the content rises over it on the canvas
- * (`ContentZone`), whose rounded top is what marks where reading starts. The
- * curve belongs to the content, never to the forest — the same split iOS draws
- * with `heroZone()` / `contentZone()`.
+ * The Two-Zone Rule, Android side, on the V2 boards. A screen with a dominant
+ * financial state opens on a white hero card (`HeroZone`) and the content
+ * follows on the same canvas (`ContentZone`). The card's edge is what marks
+ * where the figure ends and the ledger starts.
  *
- * The app bar is forest too and stays put while the hero scrolls under it, the
- * way a Material top app bar holds its colour: the month and the account live
- * in the bar, not in a header rebuilt inside the scroll.
+ * The app bar is canvas too and stays put while the hero scrolls under it: the
+ * month and the account live in the bar, not in a header rebuilt inside the
+ * scroll.
  */
 
 interface HeroAppBarProps {
@@ -78,27 +76,22 @@ interface ZoneProps {
   onLayout?: (event: LayoutChangeEvent) => void;
 }
 
-/**
- * The forest a hero sits on: a two-stop gradient whose top stop is the app
- * bar's own colour, so the bar and the hero read as one surface.
- */
+/** The hero card: white on the canvas, one per screen. */
 export function HeroZone({ children, style }: ZoneProps) {
   const hero = useHeroColors();
 
   return (
-    <LinearGradient
-      colors={[hero.surfaceTop, hero.surface]}
-      style={[styles.heroZone, style]}
-    >
-      {children}
-    </LinearGradient>
+    <View style={[styles.heroGround, { backgroundColor: hero.surfaceTop }]}>
+      <View style={[styles.heroZone, { backgroundColor: hero.surface }, style]}>
+        {children}
+      </View>
+    </View>
   );
 }
 
 /**
- * The canvas the content reads on, rising over the hero by its own corner
- * radius. It grows to the bottom of the scroll, so a short list never shows the
- * forest underneath it.
+ * The canvas the content reads on, under the hero. It grows to the bottom of
+ * the scroll, so a short list never ends above the fold on another colour.
  */
 export function ContentZone({ children, style, onLayout }: ZoneProps) {
   const theme = useTheme();
@@ -188,7 +181,7 @@ interface HeroTileProps {
 }
 
 /**
- * A metric on the forest: a translucent tile, never a chip — a chip on a hero
+ * A metric in the hero: a recessed tile, never a chip — a chip on a hero
  * reads as something to filter by. A tile that opens something ripples like any
  * Material surface that can be pressed, without a chevron.
  */
@@ -270,7 +263,7 @@ export function HeroTileRow({ children }: { children: ReactNode }) {
 
 interface HeroVerdictProps {
   sentence: string;
-  /** The accent the sentence is read in; the forest ink when on plan. */
+  /** The accent the sentence is read in; plain ink when on plan. */
   tint?: string;
   /** A named way into the detail — `Voir le budget`. */
   link?: { label: string; onPress: () => void; accessibilityLabel?: string };
@@ -313,7 +306,7 @@ interface HeroProgressProps {
   accessibilityLabel?: string;
 }
 
-/** A bar on the forest, its fill in the support ink, its percentage beside it. */
+/** A bar in the hero, its fill in the support ink, its percentage beside it. */
 export function HeroProgress({
   progress,
   label,
@@ -351,18 +344,14 @@ export function HeroProgress({
 const PROGRESS_HEIGHT = 10;
 
 const styles = StyleSheet.create({
+  heroGround: { paddingHorizontal: SPACING.md, paddingTop: SPACING.xs },
   heroZone: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
-    // The content zone overlaps the hero by its own radius.
-    paddingBottom: SPACING.lg + RADIUS.zone,
+    padding: SPACING.md + SPACING.xs,
+    borderRadius: RADIUS.zone,
     gap: SPACING.md,
   },
   contentZone: {
     flexGrow: 1,
-    marginTop: -RADIUS.zone,
-    borderTopLeftRadius: RADIUS.zone,
-    borderTopRightRadius: RADIUS.zone,
     paddingTop: SPACING.lg,
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.xl,

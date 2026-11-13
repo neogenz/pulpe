@@ -53,7 +53,7 @@ it("clears the FAB when asked and sits on the edge otherwise", async () => {
   expect(StyleSheet.flatten(wrapperOf(flush).props.style).bottom).toBe(0);
 });
 
-it("keeps the inversion in light and drops it in dark", async () => {
+it("is a surface card in light and a lifted one in dark", async () => {
   const light = await render(
     <PaperProvider theme={MD3LightTheme}>
       <Notice visible onDismiss={jest.fn()} testID="notice">
@@ -71,7 +71,7 @@ it("keeps the inversion in light and drops it in dark", async () => {
 
   expect(
     StyleSheet.flatten(light.getByTestId("notice").props.style).backgroundColor,
-  ).toBe(MD3LightTheme.colors.inverseSurface);
+  ).toBe(MD3LightTheme.colors.surface);
   expect(
     StyleSheet.flatten(dark.getByTestId("notice").props.style).backgroundColor,
   ).toBe(MD3DarkTheme.colors.elevation.level3);

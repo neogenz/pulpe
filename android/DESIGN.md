@@ -66,10 +66,12 @@ Two Android-specific consequences:
 it is tuned to clear 4.5:1 on the onboarding preview's mint surface, the darkest background it
 lands on.
 
-The canvas is the sage `#EFF3EE` (`#121611` dark), the value iOS already paints every screen
+The canvas is the V2 warm paper `#F2F1EC` (`#121611` dark), the value iOS paints every screen
 with, rather than the root doc's neutral `#F7F6F3`: the two native apps read as one product, and
 cards sit on it in `surface` — white — so a list is paper on a calm ground. `Card` forces that fill
-on Paper's contained mode, whose `surfaceVariant` vanished into the sage.
+on Paper's contained mode, whose `surfaceVariant` vanishes into the canvas. The V2 tokens MD3 has
+no role for (`accentWash`, `accentInk`, `sunk`, `overWash`, `coral`, `pointRing`, `ink3`, `line`,
+`line2`) are `V2_COLORS`, read through `useV2Colors()`.
 
 ## Two zones
 
@@ -222,7 +224,7 @@ on its own:
 The adaptive background is `#C6F0BA`, the pale green sampled from the iOS icon's gradient.
 Android takes a flat colour here and a gradient is invisible at 48dp.
 
-The splash background is the app's own canvas (`#EFF3EE` light, `#121611` dark), not the iOS
+The splash background is the app's own canvas (`#F2F1EC` light, `#121611` dark), not the iOS
 launch screen's `#F8FAF9` — the splash hands off to the first rendered frame, and matching the
 canvas is what makes that handoff invisible.
 

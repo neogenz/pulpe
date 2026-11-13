@@ -34,18 +34,21 @@ const PALETTE = {
     tertiaryContainer: "#D2E4FF",
     onTertiaryContainer: "#001D36",
 
-    // The sage canvas iOS paints every screen with (`Color.appBackground`).
-    // Cards sit on it in `surface`, white, so a list reads as a stack of
-    // paper on a calm ground rather than grey slabs on grey.
-    background: "#EFF3EE",
+    // The warm paper canvas iOS paints every screen with (V2 `bg`,
+    // `Color.appBackground`). Cards sit on it in `surface`, white, so a list
+    // reads as a stack of paper on a calm ground rather than grey slabs on grey.
+    background: "#F2F1EC",
     onBackground: "#1A1C19",
     surface: "#FFFFFF",
     onSurface: "#1A1C19",
-    surfaceVariant: "#EBE9E5",
-    onSurfaceVariant: "#524D48",
+    // V2 `sunk` and `ink2`.
+    surfaceVariant: "#ECEAE4",
+    onSurfaceVariant: "#4A4540",
 
-    outline: "#6F7A6D",
-    outlineVariant: "#BFCABA",
+    // `outline` stays dark enough to be read: Paper draws field borders and
+    // some labels with it. The V2 hairline is `outlineVariant` (`line`).
+    outline: "#77706A",
+    outlineVariant: "#E6E2DA",
 
     // Amber, not red: a form error is not a punishment. True red is reserved
     // for irreversible actions, exposed below as `destructive`.
@@ -85,11 +88,11 @@ const PALETTE = {
     onBackground: "#E5E2DD",
     surface: "#1A1816",
     onSurface: "#E5E2DD",
-    surfaceVariant: "#242220",
-    onSurfaceVariant: "#B8B0A8",
+    surfaceVariant: "#2A2826",
+    onSurfaceVariant: "#C4BCB3",
 
-    outline: "#899486",
-    outlineVariant: "#3F493E",
+    outline: "#A39C94",
+    outlineVariant: "#3A3733",
 
     error: "#F0A050",
     onError: "#3A2510",
@@ -145,8 +148,40 @@ export const FINANCIAL_COLORS = {
  * Android a sheet has no material behind it to tell it from the page.
  */
 export const SHEET_COLORS = {
-  light: { background: "#F5F3F0" },
+  light: { background: "#F6F5F1" },
   dark: { background: "#1A1816" },
+} as const;
+
+/**
+ * The V2 board tokens MD3 has no role for, from `Color+Pulpe.swift`. Green
+ * acts, ink reads, ocre says « dépassé »: `accentWash` is the fill of a
+ * selected chip or a secondary action, `sunk` a recessed block, `overWash` the
+ * ground under an ocre label, `coral` a deficit, `pointRing` the ring of a
+ * circle not pointed yet, `ink3` a placeholder or a struck-through figure.
+ */
+export const V2_COLORS = {
+  light: {
+    accentWash: "#E2F0E5",
+    accentInk: "#0B4F1E",
+    sunk: "#ECEAE4",
+    overWash: "#F6EBDB",
+    coral: "#C45028",
+    pointRing: "#8F877C",
+    ink3: "#77706A",
+    line: "#E6E2DA",
+    line2: "#CFC8BC",
+  },
+  dark: {
+    accentWash: "#1F3B27",
+    accentInk: "#A6E6AA",
+    sunk: "#2A2826",
+    overWash: "#3A2A10",
+    coral: "#E8825A",
+    pointRing: "#8A837A",
+    ink3: "#A39C94",
+    line: "#3A3733",
+    line2: "#4A4640",
+  },
 } as const;
 
 /**
@@ -168,42 +203,39 @@ export const PREVIEW_COLORS = {
 } as const;
 
 /**
- * The emotion zone: the constant forest every hero sits on (home, budgets,
- * budget detail, savings goal), mirrored from the `hero*` tokens in
- * `Color+Pulpe.swift`. The surface never changes with the month's state — the
- * verdict is read in the sentence, one tile and the chart accent, so a hero
- * that also turned amber would say it twice and shout the second time.
- *
- * Every ink is measured against `surface`, the darker stop: `ink` 12.8:1,
- * `support` 9.9:1, and each accent clears 4.5:1.
+ * The hero: since the V2 boards it is a white card on the canvas, not a forest.
+ * Ink reads, green is the one accent, ocre says « dépassé » and coral a
+ * deficit — the verdict is still read in the sentence and one accent, never in
+ * the surface turning colour. `surfaceTop` is the canvas the app bar and the
+ * hero's margin sit on; `surface` is the card.
  */
 export const HERO_COLORS = {
   light: {
-    surfaceTop: "#14512A",
-    surface: "#0E3A1C",
-    ink: "#F3F9F5",
-    support: "#CFE8D6",
-    /** A tile, a selected chip: a lift in the surface, never a signal. */
-    tile: "rgba(243, 249, 245, 0.12)",
+    surfaceTop: "#F2F1EC",
+    surface: "#FFFFFF",
+    ink: "#1A1C19",
+    support: "#4A4540",
+    /** A tile, a track: a recessed block in the card, never a signal. */
+    tile: "#ECEAE4",
     /** The disc behind an app bar action, so the glyph keeps a 48dp target. */
-    disc: "rgba(243, 249, 245, 0.2)",
-    muted: "rgba(243, 249, 245, 0.6)",
-    positive: "#7EDB83",
-    caution: "#E5A33A",
-    deficit: "#F08A6A",
-    info: "#5AA8E0",
+    disc: "#ECEAE4",
+    muted: "#77706A",
+    positive: "#006E25",
+    caution: "#905800",
+    deficit: "#C45028",
+    info: "#0061A6",
   },
   dark: {
-    surfaceTop: "#0E3A1C",
-    surface: "#0B2E16",
-    ink: "#F3F9F5",
-    support: "#CFE8D6",
-    tile: "rgba(243, 249, 245, 0.12)",
-    disc: "rgba(243, 249, 245, 0.2)",
-    muted: "rgba(243, 249, 245, 0.6)",
+    surfaceTop: "#121611",
+    surface: "#1A1816",
+    ink: "#F5F3EF",
+    support: "#C4BCB3",
+    tile: "#2A2826",
+    disc: "#2A2826",
+    muted: "#A39C94",
     positive: "#7EDB83",
     caution: "#E5A33A",
-    deficit: "#F08A6A",
+    deficit: "#E8825A",
     info: "#5AA8E0",
   },
 } as const;
@@ -301,11 +333,7 @@ export const RADIUS = {
   sm: 8,
   card: 18,
   md: 24,
-  /**
-   * The content zone's upper corners, where it rises over the hero. iOS draws
-   * 44 with continuous corners; a circular Android corner at that radius reads
-   * as a bubble, so this is Material's extra-large shape instead.
-   */
+  /** The hero card and a toast: Material's extra-large shape. */
   zone: 28,
   full: 999,
 } as const;
