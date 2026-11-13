@@ -47,6 +47,7 @@ import type {
 import {
   extractGeneratedBudgetIds,
   validateCreateBudgetResponse,
+  validateCreateBudgetsResponse,
   validateGenerateBudgetsResponse,
 } from '../../schemas/rpc-responses.schema';
 
@@ -548,25 +549,43 @@ export class SupabaseBudgetRepository
   }): Promise<Budget[]> {
     if (input.periods.length === 0) return [];
 
-    const excludedGoalIds = await this.goalIdsExcludedByPeriod(input.periods);
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    const budgets: Budget[] = [];
-    // Sequential on purpose: concurrent template copies for one user deadlock
-    // on the savings_goal rows bumped by the budget_line revision trigger.
-    for (const period of input.periods) {
-      const { budget } = await this.#callCreateBudgetFromTemplate(
-        {
-          p_user_id: input.userId,
-          p_template_id: input.templateId,
-          p_month: period.month,
-          p_year: period.year,
-          p_description: period.description,
-        },
-        excludedGoalIds[`${period.month}/${period.year}`] ?? [],
-      );
-      budgets.push(this.toEntity(budget, dek));
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase.rpc('create_budgets_from_template', {
+      p_user_id: input.userId,
+      p_template_id: input.templateId,
+      p_periods: input.periods.map(({ month, year, description }) => ({
+        month,
+        year,
+        description,
+      })),
+      p_excluded_savings_goal_ids_by_period: await this.goalIdsExcludedByPeriod(
+        input.periods,
+      ),
+    });
+
+    if (error) {
+      throw error;
     }
-    return budgets;
+
+    try {
+      const { budgets } = validateCreateBudgetsResponse(data);
+      const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+      return budgets.map((budget) => this.toEntity(budget as BudgetRow, dek));
+    } catch (err) {
+      if (err instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+          { reason: 'Invalid result structure from RPC' },
+          {
+            operation: 'createBudgetsFromTemplate',
+            userId: input.userId,
+            validationErrors: err.issues,
+          },
+          { cause: err },
+        );
+      }
+      throw err;
+    }
   }
 
   async #callCreateBudgetFromTemplate(

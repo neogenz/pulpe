@@ -103,8 +103,8 @@ export interface BudgetRepositoryPort {
 
   /**
    * Creates one budget per period from the template (non-consecutive periods
-   * allowed), in order, and returns them decrypted. Stops at the first failure;
-   * budgets already created are kept.
+   * allowed), in order, and returns them decrypted. All periods are created
+   * or none is.
    */
   createBudgetsFromTemplate(input: {
     userId: string;
