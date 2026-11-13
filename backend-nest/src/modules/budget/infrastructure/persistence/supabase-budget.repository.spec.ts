@@ -315,6 +315,7 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
   const USER_UUID = 'f1f0c5d6-9b3a-4c2e-8d7f-1a2b3c4d5e6f';
   const TEMPLATE_UUID = '2b7c1e90-5d4a-4f31-9c8b-6e5d4c3b2a19';
   const BUDGET_UUID = '9c8b7a65-4d3e-4210-8f7e-6d5c4b3a2918';
+  const OTHER_BUDGET_UUID = '3d2c1b0a-9f8e-4d7c-8b6a-5f4e3d2c1b0a';
   const OVERDUE_GOAL_UUID = '11111111-2222-4333-8444-555555555555';
   const ON_TIME_GOAL_UUID = '66666666-7777-4888-8999-aaaaaaaaaaaa';
 
@@ -607,8 +608,12 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     });
   });
 
-  it('creates budgets one period after another, loading goal horizons once', async () => {
-    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+  it('creates every period in one RPC call, loading goal horizons once', async () => {
+    const october = { ...rpcResponse.budget, id: OTHER_BUDGET_UUID, month: 10 };
+    const rpc = jest.fn().mockResolvedValue({
+      data: { budgets: [october, rpcResponse.budget] },
+      error: null,
+    });
     const provider = generationProvider(
       [
         {
@@ -641,32 +646,44 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     expect(provider.client.from).toHaveBeenCalledTimes(1);
     expect(rpc.mock.calls).toEqual([
       [
-        'create_budget_from_template',
+        'create_budgets_from_template',
         {
           p_user_id: USER_UUID,
           p_template_id: TEMPLATE_UUID,
-          p_month: 10,
-          p_year: 2026,
-          p_description: 'Budget 10/2026',
-          p_excluded_savings_goal_ids: [ON_TIME_GOAL_UUID],
-        },
-      ],
-      [
-        'create_budget_from_template',
-        {
-          p_user_id: USER_UUID,
-          p_template_id: TEMPLATE_UUID,
-          p_month: 11,
-          p_year: 2026,
-          p_description: 'Budget 11/2026',
-          p_excluded_savings_goal_ids: [OVERDUE_GOAL_UUID],
+          p_periods: [
+            { month: 10, year: 2026, description: 'Budget 10/2026' },
+            { month: 11, year: 2026, description: 'Budget 11/2026' },
+          ],
+          p_excluded_savings_goal_ids_by_period: {
+            '10/2026': [ON_TIME_GOAL_UUID],
+            '11/2026': [OVERDUE_GOAL_UUID],
+          },
         },
       ],
     ]);
-    expect(budgets.map((budget) => budget.id)).toEqual([
-      BUDGET_UUID,
-      BUDGET_UUID,
+    expect(budgets.map(({ id, month }) => ({ id, month }))).toEqual([
+      { id: OTHER_BUDGET_UUID, month: 10 },
+      { id: BUDGET_UUID, month: 11 },
     ]);
+  });
+
+  it('rejects a malformed batch creation response', async () => {
+    const rpc = jest.fn().mockResolvedValue({
+      data: { budgets: [{ id: BUDGET_UUID }] },
+      error: null,
+    });
+    const repo = new SupabaseBudgetRepository(
+      generationProvider([], null, rpc),
+      createMockEncryption(),
+    );
+
+    await expect(
+      repo.createBudgetsFromTemplate({
+        userId: USER_UUID,
+        templateId: TEMPLATE_UUID,
+        periods: [{ month: 11, year: 2026, description: 'Budget 11/2026' }],
+      }),
+    ).rejects.toMatchObject({ code: 'ERR_BUDGET_CREATE_FAILED' });
   });
 
   it('creates nothing and reads nothing for an empty period list', async () => {

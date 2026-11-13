@@ -1298,6 +1298,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      create_budgets_from_template: {
+        Args: {
+          p_excluded_savings_goal_ids_by_period?: Json
+          p_periods: Json
+          p_template_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_savings_goal_withdrawal: {
         Args: {
           p_expected_revision: number

@@ -20,6 +20,10 @@ export const createBudgetFromTemplateResponseSchema = z.object({
   template_name: z.string().min(1),
 });
 
+export const createBudgetsFromTemplateResponseSchema = z.strictObject({
+  budgets: z.array(createBudgetFromTemplateResponseSchema.shape.budget),
+});
+
 export const generateBudgetsFromTemplateResponseSchema = z.strictObject({
   created_budget_ids: z.array(z.string().uuid()),
   skipped_months: z.array(
@@ -73,6 +77,12 @@ export function validateCreateBudgetResponse(
   data: unknown,
 ): CreateBudgetFromTemplateResponse {
   return createBudgetFromTemplateResponseSchema.parse(data);
+}
+
+export function validateCreateBudgetsResponse(
+  data: unknown,
+): z.infer<typeof createBudgetsFromTemplateResponseSchema> {
+  return createBudgetsFromTemplateResponseSchema.parse(data);
 }
 
 export function validateGenerateBudgetsResponse(
