@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.61.0
+
+### Minor Changes
+
+- Répartition d’une dépense et chargement des budgets plus rapides, création de plusieurs budgets plus sûre, refonte de Mon patrimoine encore réservée aux comptes de test.
+
+### Patch Changes
+
+- pulpe-shared@0.61.0
+
 ## 0.60.0
 
 ### Minor Changes
