@@ -37,19 +37,14 @@ export class ReadBudgetMonthUseCase implements BudgetMonthReadPort {
   ): Promise<BudgetWithDetails | null> {
     const budgetId = await this.repo.fetchBudgetIdByPeriod(month, year);
     if (!budgetId) return null;
-    return this.findWithDetails.execute(
-      budgetId,
-      this.session.user,
-      this.session.client,
-    );
+    return this.findWithDetails.execute(budgetId, this.session.user);
   }
 
   async listMonths(limit: number): Promise<BudgetMonthSummary[]> {
-    const items = await this.findAllSparse.execute(
-      this.session.user,
-      this.session.client,
-      { fields: SUMMARY_FIELDS, limit },
-    );
+    const items = await this.findAllSparse.execute(this.session.user, {
+      fields: SUMMARY_FIELDS,
+      limit,
+    });
     return items.map((item) => this.#toSummary(item));
   }
 

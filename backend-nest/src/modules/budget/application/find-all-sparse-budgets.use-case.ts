@@ -1,10 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { type ListBudgetsQuery, PAY_DAY_MIN, PAY_DAY_MAX } from 'pulpe-shared';
+import { type ListBudgetsQuery, PAY_DAY_MIN } from 'pulpe-shared';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
@@ -38,7 +37,6 @@ export class FindAllSparseBudgetsUseCase {
 
   async execute(
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
     query: ListBudgetsQuery,
   ): Promise<SparseBudgetItem[]> {
     const requestedFields = query.fields!.split(',').map((f) => f.trim());
@@ -69,7 +67,7 @@ export class FindAllSparseBudgetsUseCase {
       : new Map();
 
     const rolloversMap = needsRollover
-      ? await this.fetchRolloversForBudgets(budgetsList, supabase)
+      ? await this.fetchRolloversForBudgets(budgetsList, user)
       : new Map<string, number>();
 
     const items: SparseBudgetItem[] = budgetsList.map((budget) => ({
@@ -93,9 +91,9 @@ export class FindAllSparseBudgetsUseCase {
 
   private async fetchRolloversForBudgets(
     budgets: Budget[],
-    supabase: AuthenticatedSupabaseClient,
+    user: AuthenticatedUser,
   ): Promise<Map<string, number>> {
-    const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+    const payDayOfMonth = user.payDayOfMonth ?? PAY_DAY_MIN;
     const rolloversMap = new Map<string, number>();
 
     await Promise.all(
@@ -123,16 +121,5 @@ export class FindAllSparseBudgetsUseCase {
     );
 
     return rolloversMap;
-  }
-
-  private async getPayDayOfMonth(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
-    const { data } = await supabase.auth.getUser();
-    const raw = data?.user?.user_metadata?.payDayOfMonth;
-
-    if (typeof raw !== 'number' || !Number.isInteger(raw)) return PAY_DAY_MIN;
-
-    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 }

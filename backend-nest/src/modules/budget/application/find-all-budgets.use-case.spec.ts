@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
+import { BudgetFormulas } from 'pulpe-shared';
 import { FindAllBudgetsUseCase } from './find-all-budgets.use-case';
 import type { BudgetRepositoryPort } from '../domain/ports/budget-repository.port';
 import type { Budget } from '../domain/budget.entity';
@@ -130,20 +131,9 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
     accessToken: 't',
     clientKey: CLIENT_KEY,
   };
-  const fakeSupabase = {
-    auth: {
-      getUser: () =>
-        Promise.resolve({
-          data: { user: { user_metadata: { payDayOfMonth: 1 } } },
-        }),
-    },
-  };
 
   it('should return remaining = persisted delta + rollover for each month (live recompute path)', async () => {
-    const result = await useCase.execute(
-      fakeUser as never,
-      fakeSupabase as never,
-    );
+    const result = await useCase.execute(fakeUser as never);
 
     if (result.kind !== 'list') throw new Error('expected list result');
 
@@ -154,10 +144,7 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
   });
 
   it('should never store rollover into endingBalance — persisted column stays the month delta', async () => {
-    const result = await useCase.execute(
-      fakeUser as never,
-      fakeSupabase as never,
-    );
+    const result = await useCase.execute(fakeUser as never);
 
     if (result.kind !== 'list') throw new Error('expected list result');
 
@@ -182,10 +169,7 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
     // Equivalently: the last month's `remaining` MUST equal the running sum of
     // every month's persisted `endingBalance` (plus initial rollover, which is 0
     // here since Jan has no prior month).
-    const result = await useCase.execute(
-      fakeUser as never,
-      fakeSupabase as never,
-    );
+    const result = await useCase.execute(fakeUser as never);
 
     if (result.kind !== 'list') throw new Error('expected list result');
 
@@ -200,13 +184,32 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
     expect(totalPersistedDelta).toBe(lastMonthRemaining);
   });
 
+  it.each([
+    [
+      'the pay day carried by the authenticated user',
+      { payDayOfMonth: 25 },
+      25,
+    ],
+    ['calendar months when the user has no pay day', {}, 1],
+  ])('computes the rollover on %s', async (_case, payDay, expected) => {
+    const calculateRollover = spyOn(BudgetFormulas, 'calculateRollover');
+    try {
+      await useCase.execute({ ...fakeUser, ...payDay } as never);
+
+      const payDays = calculateRollover.mock.calls.map((call) => call[2]);
+      expect(payDays).toEqual([expected, expected, expected]);
+    } finally {
+      calculateRollover.mockRestore();
+    }
+  });
+
   it('uses a distinct cache entry for each sparse page', async () => {
-    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+    await useCase.execute(fakeUser as never, {
       fields: 'month,year',
       limit: 36,
       offset: 0,
     });
-    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+    await useCase.execute(fakeUser as never, {
       fields: 'month,year',
       limit: 36,
       offset: 36,
@@ -218,11 +221,11 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
   });
 
   it('shares the first sparse page cache entry with an explicit zero offset', async () => {
-    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+    await useCase.execute(fakeUser as never, {
       fields: 'month,year',
       limit: 36,
     });
-    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+    await useCase.execute(fakeUser as never, {
       fields: 'month,year',
       limit: 36,
       offset: 0,

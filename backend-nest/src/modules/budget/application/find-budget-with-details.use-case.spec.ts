@@ -57,11 +57,8 @@ describe('FindBudgetWithDetailsUseCase — drift history', () => {
     fetchHistoryData: ReturnType<typeof mock>;
   };
   let logger: { info: ReturnType<typeof mock>; warn: ReturnType<typeof mock> };
+  let getRollover: ReturnType<typeof mock>;
   let useCase: FindBudgetWithDetailsUseCase;
-  // Calendar months (pay day 1); the demo user has no payDayOfMonth metadata.
-  const supabase = {
-    auth: { getUser: async () => ({ data: { user: { user_metadata: {} } } }) },
-  } as never;
   // Inside the "cur" (Aug 2026) budget's own period — the gate that skips
   // history off the current period must let it through here.
   const now = new Date('2026-08-15T00:00:00Z');
@@ -80,22 +77,39 @@ describe('FindBudgetWithDetailsUseCase — drift history', () => {
       ),
     };
     logger = { info: mock(() => {}), warn: mock(() => {}) };
+    getRollover = mock(async () => ({
+      rollover: 0,
+      previousBudgetId: 'jul',
+    }));
     useCase = new FindBudgetWithDetailsUseCase(
       repo as never,
       {
         getOrSet: (_u: string, _k: string, _ttl: number, fn: () => unknown) =>
           fn(),
       } as never,
-      {
-        getRollover: async () => ({ rollover: 0, previousBudgetId: 'jul' }),
-      } as never,
+      { getRollover } as never,
       logger as never,
     );
     useCase.now = () => now;
   });
 
+  it('computes the rollover on the pay day carried by the authenticated user', async () => {
+    await useCase.execute('cur', {
+      ...(USER as object),
+      payDayOfMonth: 25,
+    } as never);
+
+    expect(getRollover).toHaveBeenCalledWith('cur', 25);
+  });
+
+  it('falls back to calendar months when the user has no pay day', async () => {
+    await useCase.execute('cur', USER);
+
+    expect(getRollover).toHaveBeenCalledWith('cur', 1);
+  });
+
   it('attaches the history of the budgets strictly before this one, newest first', async () => {
-    const result = await useCase.execute('cur', USER, supabase);
+    const result = await useCase.execute('cur', USER);
 
     expect(repo.fetchHistoryData).toHaveBeenCalledWith([
       budgets[2],
@@ -141,7 +155,7 @@ describe('FindBudgetWithDetailsUseCase — drift history', () => {
         })),
       );
 
-      const result = await useCase.execute('cur', USER, supabase);
+      const result = await useCase.execute('cur', USER);
 
       expect(result.checkingDays).toEqual({ rent: 5 });
       expect(
@@ -154,7 +168,7 @@ describe('FindBudgetWithDetailsUseCase — drift history', () => {
   it('history is null when no closed month precedes the budget', async () => {
     repo.fetchHistoryData = mock(async () => []);
 
-    const result = await useCase.execute('cur', USER, supabase);
+    const result = await useCase.execute('cur', USER);
 
     expect(result.history).toBeNull();
   });
@@ -167,7 +181,7 @@ describe('FindBudgetWithDetailsUseCase — drift history', () => {
       transactions: [],
     }));
 
-    const result = await useCase.execute('past', USER, supabase);
+    const result = await useCase.execute('past', USER);
 
     expect(result.history).toBeNull();
     expect(repo.fetchAllBudgetsForRollover).not.toHaveBeenCalled();
@@ -179,7 +193,7 @@ describe('FindBudgetWithDetailsUseCase — drift history', () => {
       throw new Error('boom');
     });
 
-    const result = await useCase.execute('cur', USER, supabase);
+    const result = await useCase.execute('cur', USER);
 
     expect(result.history).toBeNull();
     expect(logger.warn).toHaveBeenCalledWith(

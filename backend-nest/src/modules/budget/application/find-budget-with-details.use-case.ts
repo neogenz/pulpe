@@ -1,10 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   PAY_DAY_MIN,
-  PAY_DAY_MAX,
   compareBudgetPeriods,
   getBudgetPeriodDates,
 } from 'pulpe-shared';
@@ -39,20 +37,19 @@ export class FindBudgetWithDetailsUseCase {
   async execute(
     budgetId: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetWithDetails> {
     const clientKeyHash = user.clientKey.toString('hex').slice(0, 16);
     const cacheKey = `budgets:detail:${clientKeyHash}:${budgetId}`;
     return this.cacheService.getOrSet(user.id, cacheKey, 30_000, () =>
-      this.fetchBudgetWithDetails(budgetId, supabase),
+      this.fetchBudgetWithDetails(budgetId, user),
     );
   }
 
   private async fetchBudgetWithDetails(
     budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
+    user: AuthenticatedUser,
   ): Promise<BudgetWithDetails> {
-    const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+    const payDayOfMonth = user.payDayOfMonth ?? PAY_DAY_MIN;
     const { budget, budgetLines, transactions } =
       await this.repo.fetchBudgetData(budgetId);
 
@@ -141,16 +138,5 @@ export class FindBudgetWithDetailsUseCase {
       );
       return empty;
     }
-  }
-
-  private async getPayDayOfMonth(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
-    const { data } = await supabase.auth.getUser();
-    const raw = data?.user?.user_metadata?.payDayOfMonth;
-
-    if (typeof raw !== 'number' || !Number.isInteger(raw)) return PAY_DAY_MIN;
-
-    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 }
