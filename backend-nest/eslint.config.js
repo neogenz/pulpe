@@ -111,7 +111,12 @@ module.exports = tseslint.config(
 
       // === CODE QUALITY RULES ===
       complexity: ['warn', 15],
-      'max-lines-per-function': ['warn', 50],
+      // Counts code only: comments explaining the why, and query builders that
+      // prettier splits one call per line, made 50 an alarm nobody acted on.
+      'max-lines-per-function': [
+        'warn',
+        { max: 80, skipBlankLines: true, skipComments: true },
+      ],
       'max-params': ['warn', 7],
       'no-console': 'warn',
       'no-debugger': 'error',
