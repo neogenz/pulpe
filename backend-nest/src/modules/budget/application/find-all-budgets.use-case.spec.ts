@@ -55,7 +55,6 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
   let mockSparse: { execute: ReturnType<typeof mock> };
   let mockRecalculate: {
     calculateEndingBalance: ReturnType<typeof mock>;
-    getRollover: ReturnType<typeof mock>;
   };
   let mockLogger: {
     info: ReturnType<typeof mock>;
@@ -69,15 +68,6 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
   const JAN = makeBudget('budget-jan', 1, 2026, 500);
   const FEB = makeBudget('budget-feb', 2, 2026, 400);
   const MAR = makeBudget('budget-mar', 3, 2026, -100);
-
-  // Rollover seen by each month at READ time. These are prior-month CUMULATIVES,
-  // computed by `calculateRolloverFromBudgets` from the same persisted deltas.
-  // They are NEVER stored — they live at read time only.
-  const ROLLOVER_BY_BUDGET: Record<string, number> = {
-    'budget-jan': 0,
-    'budget-feb': 500, // = Jan delta
-    'budget-mar': 900, // = Jan delta + Feb delta
-  };
 
   // Per-month delta returned by the formula (mirrors what's persisted).
   const DELTA_BY_BUDGET: Record<string, number> = {
@@ -100,12 +90,6 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
     mockRecalculate = {
       calculateEndingBalance: mock((budgetId: string) =>
         Promise.resolve(DELTA_BY_BUDGET[budgetId]),
-      ),
-      getRollover: mock((budgetId: string) =>
-        Promise.resolve({
-          rollover: ROLLOVER_BY_BUDGET[budgetId],
-          previousBudgetId: null,
-        }),
       ),
     };
 
