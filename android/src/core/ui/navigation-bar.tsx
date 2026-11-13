@@ -17,6 +17,7 @@ const ICONS: Record<string, { focused: IconName; unfocused: IconName }> = {
   budgets: { focused: "calendar-month", unfocused: "calendar-month-outline" },
   goals: { focused: "target", unfocused: "target" },
   templates: { focused: "file-document", unfocused: "file-document-outline" },
+  "net-worth": { focused: "bank", unfocused: "bank-outline" },
 };
 
 /**

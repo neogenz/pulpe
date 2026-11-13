@@ -13,11 +13,15 @@ import {
   writeOnboardingCompleted,
 } from "./draft-storage";
 import {
+  captureCustomTransactionAdded,
+  captureCustomTransactionRemoved,
   captureOnboardingResumed,
   captureOnboardingStarted,
   capturePinSetupCompleted,
   captureSignupCompleted,
+  captureStepBack,
   captureStepCompleted,
+  captureSuggestionToggled,
   resetOnboardingAnalytics,
 } from "./onboarding-analytics";
 import { nextVisibleStep, previousVisibleStep } from "./onboarding-selectors";
@@ -308,24 +312,33 @@ export function toggleSuggestion(suggestion: OnboardingTransaction): void {
         (transaction) => transaction.id !== suggestion.id,
       ),
     });
+    captureSuggestionToggled(suggestion, false);
     return;
   }
-  addCustomTransaction(suggestion);
+  if (customTransactions.length >= MAX_CUSTOM_TRANSACTIONS) return;
+  patch({ customTransactions: [...customTransactions, suggestion] });
+  captureSuggestionToggled(suggestion, true);
 }
 
 export function addCustomTransaction(transaction: OnboardingTransaction): void {
   const { customTransactions } = useOnboardingStore.getState();
   if (customTransactions.length >= MAX_CUSTOM_TRANSACTIONS) return;
   patch({ customTransactions: [...customTransactions, transaction] });
+  captureCustomTransactionAdded(transaction);
 }
 
 export function removeCustomTransaction(id: string): void {
   const { customTransactions } = useOnboardingStore.getState();
+  const removed = customTransactions.find(
+    (transaction) => transaction.id === id,
+  );
+  if (removed === undefined) return;
   patch({
     customTransactions: customTransactions.filter(
       (transaction) => transaction.id !== id,
     ),
   });
+  captureCustomTransactionRemoved(removed);
 }
 
 export function replaceCustomTransaction(
@@ -382,6 +395,7 @@ export function goToPreviousStep(): boolean {
   const previous = previousVisibleStep(state, state.currentStep);
   if (previous === null) return false;
 
+  captureStepBack(state.currentStep, previous);
   patch({ currentStep: previous });
   return true;
 }

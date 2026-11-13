@@ -16,7 +16,7 @@ import {
   TOUCH_TARGET,
 } from "@/core/ui/theme";
 
-import type { AmountAccent, LineItem } from "../budget-details-selectors";
+import type { LineItem } from "../budget-details-selectors";
 
 import { PointCircle } from "./point-circle";
 import { SwipeToPoint } from "./swipe-to-point";
@@ -50,7 +50,6 @@ export function BudgetLineRow({
   const ripple = useRipple();
   const financial = useFinancialColors();
   const muted = theme.colors.onSurfaceVariant;
-  const accent = accentColor(item.accent, financial, muted);
   // The disc wears the nature, whatever the amount beside it says: an income
   // is blue, a saving green, an expense amber — burnt once it has overrun.
   const discColor =
@@ -61,31 +60,31 @@ export function BudgetLineRow({
         : item.isOverBudget
           ? financial.overBudget
           : financial.expense;
-  const amountSuffix =
-    item.amountSuffix === null
-      ? null
-      : t(`budgets.detail.amountSuffix.${item.amountSuffix.kind}`, {
-          amount:
-            "amount" in item.amountSuffix
-              ? formatCurrency(item.amountSuffix.amount, currency)
-              : undefined,
-        });
-  const statusLabel =
-    item.statusLabel === null
-      ? null
-      : t(`budgets.detail.status.${item.statusLabel.kind}`, {
-          amount:
-            "amount" in item.statusLabel
-              ? formatCurrency(item.statusLabel.amount, currency)
-              : undefined,
-        });
-  const metadata = [
-    recurrenceLabel(t, item.line.recurrence),
-    // A spread month is one of a window, not something that comes back.
-    item.line.spreadGroupId != null ? t("budgets.detail.spread") : null,
-    item.line.savingsGoalId != null ? t("budgets.detail.goalShort") : null,
-    tagSummary,
-  ].filter((part): part is string => part !== null);
+  const { line, consumed } = item;
+  // Consumption speaks first (« Reste 188.00 »); an untouched line names where
+  // it comes from instead, then whether it is pointed.
+  const fact =
+    line.spreadGroupId != null
+      ? t("budgets.detail.spread")
+      : line.savingsGoalId != null
+        ? t("budgets.detail.goalShort")
+        : line.kind === "income" && line.savingsWithdrawalGroupId != null
+          ? t("budgets.detail.withdrawal")
+          : line.sourceSavingsGoalName != null
+            ? t("budgets.detail.withdrawnFrom", {
+                name: line.sourceSavingsGoalName,
+              })
+            : recurrenceLabel(t, line.recurrence);
+  const subtitle =
+    consumed === null
+      ? [fact, item.isChecked ? t("budgets.detail.pointed") : null, tagSummary]
+      : [
+          t(`budgets.detail.row.${consumed.kind}`, {
+            amount: formatCurrency(Math.abs(consumed.amount), currency),
+          }),
+          tagSummary,
+        ];
+  const metadata = subtitle.filter((part): part is string => part !== null);
 
   const isPointable = item.line.sourceSavingsGoalId == null;
 
@@ -135,22 +134,12 @@ export function BudgetLineRow({
             <Text
               variant="bodySmall"
               numberOfLines={1}
-              style={{ color: muted }}
+              style={{
+                color: item.isOverBudget ? financial.overBudget : muted,
+              }}
             >
               {metadata.join(" · ")}
             </Text>
-            {statusLabel !== null && (
-              <Text
-                variant="labelMedium"
-                numberOfLines={1}
-                style={[
-                  styles.status,
-                  { color: item.isOverBudget ? financial.overBudget : muted },
-                ]}
-              >
-                {statusLabel}
-              </Text>
-            )}
           </View>
 
           <View style={styles.amounts}>
@@ -158,45 +147,19 @@ export function BudgetLineRow({
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.8}
-              style={[BRAND_TYPE.rowAmount, TABULAR_DIGITS, { color: accent }]}
+              style={[
+                BRAND_TYPE.rowAmount,
+                TABULAR_DIGITS,
+                { color: theme.colors.onSurface },
+              ]}
             >
-              {formatCurrency(item.displayAmount, currency)}
+              {`${line.kind === "income" ? "+" : ""}${formatCurrency(item.shownAmount, currency)}`}
             </Text>
-            {amountSuffix !== null && (
-              <Text
-                variant="bodySmall"
-                numberOfLines={1}
-                style={[TABULAR_DIGITS, { color: muted }]}
-              >
-                {amountSuffix}
-              </Text>
-            )}
           </View>
         </Pressable>
       )}
     </SwipeToPoint>
   );
-}
-
-function accentColor(
-  accent: AmountAccent | "expense",
-  palette: ReturnType<typeof useFinancialColors>,
-  neutral: string,
-): string {
-  switch (accent) {
-    case "income":
-      return palette.income;
-    case "savings":
-      return palette.savings;
-    case "expense":
-      return palette.expense;
-    case "overBudget":
-      return palette.overBudget;
-    case "warning":
-      return palette.warning;
-    default:
-      return neutral;
-  }
 }
 
 /** Lines the disc up with the 16dp rail a `LedgerRow` keeps: (48 − 36) / 2. */
@@ -218,7 +181,6 @@ const styles = StyleSheet.create({
   },
   struck: { textDecorationLine: "line-through" },
   labels: { flex: 1, gap: SPACING.xxs, paddingVertical: SPACING.sm },
-  status: { fontWeight: "700" },
   // The row's gap is shaved for the disc's touch target; the amount takes the
   // shave back, or a long name ellipsized 6dp from it and the two read as one.
   amounts: {

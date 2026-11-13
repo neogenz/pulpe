@@ -9,6 +9,11 @@ import {
   writeHandoffSeen,
   writeOnboardingCompleted,
 } from "./draft-storage";
+import {
+  captureOnboardingPaused,
+  captureOnboardingResumedFromBackground,
+  captureWelcomeViewed,
+} from "./onboarding-analytics";
 import { hasAccount, wouldExitOnBack } from "./onboarding-selectors";
 import {
   acknowledgeHandoff,
@@ -590,5 +595,104 @@ describe("the funnel", () => {
     beginOnboarding();
 
     expect(timesCaptured("onboarding_started")).toBe(1);
+  });
+});
+
+describe("funnel parity with iOS", () => {
+  it("reports a step back once, with the steps it left and reached", () => {
+    beginOnboarding();
+    goToNextStep();
+    captured.mockClear();
+
+    goToPreviousStep();
+
+    expect(timesCaptured("onboarding_step_back")).toBe(1);
+    expect(propertiesOf("onboarding_step_back")).toEqual({
+      from_step: "registration",
+      to_step: "first_name",
+    });
+  });
+
+  it("stays silent when back only cancels an edit round-trip", () => {
+    jumpToStepForEdit("income");
+    captured.mockClear();
+
+    goToPreviousStep();
+
+    expect(timesCaptured("onboarding_step_back")).toBe(0);
+  });
+
+  it("reports a chip toggle without also reporting a custom line", () => {
+    const chip = transaction("f1a1e501-c0a5-4000-a000-000000000001", {
+      name: "Courses / alimentation",
+    });
+    toggleSuggestion(chip);
+    toggleSuggestion(chip);
+
+    expect(
+      captured.mock.calls
+        .filter(([name]) => name === "onboarding_suggestion_toggled")
+        .map(([, properties]) => properties),
+    ).toEqual([
+      {
+        step: "charges",
+        suggestion_name: "Courses / alimentation",
+        selected: true,
+      },
+      {
+        step: "charges",
+        suggestion_name: "Courses / alimentation",
+        selected: false,
+      },
+    ]);
+    expect(timesCaptured("custom_transaction_added")).toBe(0);
+  });
+
+  it("reports a hand-added line and its removal without its name", () => {
+    addCustomTransaction(transaction("mine", { type: "saving" }));
+    removeCustomTransaction("mine");
+
+    expect(propertiesOf("custom_transaction_added")).toEqual({
+      step: "savings",
+      kind: "saving",
+      source: "manual",
+    });
+    expect(propertiesOf("custom_transaction_removed")).toEqual({
+      step: "savings",
+      kind: "saving",
+      source: "manual",
+    });
+  });
+
+  it("pairs a background pause with exactly one resume", () => {
+    beginOnboarding();
+    const state = useOnboardingStore.getState();
+
+    captureOnboardingResumedFromBackground(state);
+    captureOnboardingPaused(state, false);
+    captureOnboardingResumedFromBackground(state);
+    captureOnboardingResumedFromBackground(state);
+
+    expect(timesCaptured("onboarding_paused")).toBe(1);
+    expect(propertiesOf("onboarding_resumed")).toMatchObject({
+      source: "foreground",
+    });
+    expect(timesCaptured("onboarding_resumed")).toBe(1);
+  });
+
+  it("does not pause on welcome or while the budget is being created", () => {
+    const welcome = useOnboardingStore.getState();
+    captureOnboardingPaused(welcome, false);
+    goToNextStep();
+    captureOnboardingPaused(useOnboardingStore.getState(), true);
+
+    expect(timesCaptured("onboarding_paused")).toBe(0);
+  });
+
+  it("reports the welcome view once per run, however often it remounts", () => {
+    captureWelcomeViewed();
+    captureWelcomeViewed();
+
+    expect(timesCaptured("welcome_viewed")).toBe(1);
   });
 });

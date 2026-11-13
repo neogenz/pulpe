@@ -40,8 +40,7 @@ jest.mock("@/core/ui/theme", () => ({
   SPACING: { md: 16, sm: 8, xxs: 2 },
 }));
 jest.mock("react-native-paper", () => {
-  const { Pressable, Text, TextInput, View } =
-    jest.requireActual("react-native");
+  const { Pressable, Text, TextInput } = jest.requireActual("react-native");
   return {
     Button: ({
       children,
@@ -65,40 +64,6 @@ jest.mock("react-native-paper", () => {
     HelperText: ({ children }: { children: React.ReactNode }) => (
       <Text>{children}</Text>
     ),
-    SegmentedButtons: ({
-      buttons,
-      onValueChange,
-    }: {
-      buttons: { label: string; value: string }[];
-      onValueChange: (value: string) => void;
-    }) => (
-      <View>
-        {buttons.map((button) => (
-          <Pressable
-            key={button.value}
-            onPress={() => onValueChange(button.value)}
-          >
-            <Text>{button.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-    ),
-    Switch: ({
-      value,
-      onValueChange,
-      accessibilityLabel,
-    }: {
-      value: boolean;
-      onValueChange: (value: boolean) => void;
-      accessibilityLabel: string;
-    }) => (
-      <Pressable
-        accessibilityLabel={accessibilityLabel}
-        onPress={() => onValueChange(!value)}
-      >
-        <Text>{String(value)}</Text>
-      </Pressable>
-    ),
     Text,
     TextInput: ({
       label,
@@ -116,6 +81,31 @@ jest.mock("react-native-paper", () => {
       />
     ),
     useTheme: () => ({ colors: { onSurfaceVariant: "gray" } }),
+  };
+});
+jest.mock("@/core/ui/segmented-picker", () => {
+  const { Pressable, Text, View } = jest.requireActual("react-native");
+  return {
+    SegmentedPicker: ({
+      buttons,
+      onValueChange,
+    }: {
+      buttons: { label: string; value: string; disabled?: boolean }[];
+      onValueChange: (value: string) => void;
+    }) => (
+      <View>
+        {buttons.map((button) => (
+          <Pressable
+            key={button.value}
+            disabled={button.disabled}
+            accessibilityState={{ disabled: button.disabled === true }}
+            onPress={() => onValueChange(button.value)}
+          >
+            <Text>{button.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    ),
   };
 });
 jest.mock("@/core/ui/quick-amount-chips", () => {
@@ -322,9 +312,7 @@ it("closes the sheet before opening its linked savings goal", async () => {
 it("spreads a total or monthly amount over the selected window", async () => {
   const total = await render(<BudgetLineSheet {...baseProps} />);
   await fill(total);
-  await fireEvent.press(
-    total.getByLabelText("budgets.mutations.forecast.spreadTitle"),
-  );
+  await fireEvent.press(total.getByText("budgets.detail.spread"));
   await fireEvent.press(total.getByText("budgets.mutations.spread"));
   expect(mockSpread.mutate).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -343,9 +331,7 @@ it("spreads a total or monthly amount over the selected window", async () => {
 
   const monthly = await render(<BudgetLineSheet {...baseProps} />);
   await fill(monthly);
-  await fireEvent.press(
-    monthly.getByLabelText("budgets.mutations.forecast.spreadTitle"),
-  );
+  await fireEvent.press(monthly.getByText("budgets.detail.spread"));
   await fireEvent.press(monthly.getByText("mode:perMonth"));
   await fireEvent.press(monthly.getByText("budgets.mutations.spread"));
   expect(mockSpread.mutate).toHaveBeenLastCalledWith(
@@ -355,6 +341,42 @@ it("spreads a total or monthly amount over the selected window", async () => {
     }),
     expect.any(Object),
   );
+});
+
+it("asks « Quand ? » once, with the amount captioned by what it covers", async () => {
+  const view = await render(<BudgetLineSheet {...baseProps} />);
+
+  expect(view.getByText("budgets.mutations.forecast.when")).toBeTruthy();
+  expect(view.getByText("budgets.mutations.forecast.perMonth")).toBeTruthy();
+
+  await fireEvent.press(view.getByText("vocabulary.recurrence.one_off"));
+  expect(view.queryByText("budgets.mutations.forecast.perMonth")).toBeNull();
+
+  await fireEvent.press(view.getByText("budgets.detail.spread"));
+  expect(view.getByText("budgets.mutations.forecast.inTotal")).toBeTruthy();
+  await fireEvent.press(view.getByText("mode:perMonth"));
+  expect(view.getByText("budgets.mutations.forecast.perMonth")).toBeTruthy();
+});
+
+it("starts a closed month on « Ponctuel » and keeps « Mensuel » out of reach", async () => {
+  const view = await render(
+    <BudgetLineSheet {...baseProps} isEveryMonthDisabled />,
+  );
+  await fill(view);
+
+  await fireEvent.press(view.getByText("vocabulary.recurrence.fixed"));
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  expect(mockCreate.mutate).toHaveBeenCalledWith(
+    expect.objectContaining({ recurrence: "one_off" }),
+    expect.any(Object),
+  );
+});
+
+it("offers no spread to an income", async () => {
+  const view = await render(<BudgetLineSheet {...baseProps} />);
+  await fireEvent.press(view.getByText("vocabulary.kind.income"));
+
+  expect(view.queryByText("budgets.detail.spread")).toBeNull();
 });
 
 it("blocks dismissal while pending and keeps a rejected form editable", async () => {

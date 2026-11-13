@@ -1,19 +1,22 @@
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { CURRENCY_METADATA } from "pulpe-shared";
-import { StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
-import { formatCompactAmount } from "@/core/ui/amount-format";
-import { Eyebrow } from "@/core/ui/eyebrow";
-import { usePreviewColors } from "@/core/ui/scheme-colors";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { formatCurrency } from "@/core/ui/amount-format";
+import { useRipple } from "@/core/ui/ripple";
+import { useFinancialColors, useV2Colors } from "@/core/ui/scheme-colors";
+import { ICON_SIZE, RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 
-import { FlowBars } from "../components/flow-bars";
+import { OnboardingBudgetRing } from "../components/onboarding-budget-ring";
 import { StepScaffold } from "../components/step-scaffold";
 import {
   availableToSpend,
+  blockToFix,
   emotionState,
+  previewBlockNames,
   totalCharges,
   totalIncome,
   totalSavings,
@@ -24,19 +27,37 @@ import {
   useOnboardingStore,
 } from "../onboarding-store";
 import { submitOnboarding } from "../onboarding-submission";
+import type { OnboardingStep } from "../onboarding-step";
+
+type BlockKind = "income" | "expense" | "saving";
 
 /**
- * What the six previous steps add up to. The one number that matters is shown
- * first and largest; the flows below it explain where the rest went, and every
- * row is a way back into the step that produced it.
+ * What the six previous steps add up to: the ring and the verdict first, then
+ * one row per block, each a way back into the step that produced it.
  */
 export function BudgetPreviewStep({ onExit }: { onExit: () => void }) {
-  const hero = usePreviewColors();
   const { t } = useTranslation();
+  const theme = useTheme();
   const state = useOnboardingStore();
 
   const available = availableToSpend(state);
   const emotion = emotionState(state);
+  const toFix = blockToFix(state);
+  const charges = totalCharges(state);
+  const savings = totalSavings(state);
+  const currency = state.currency;
+  const symbol = CURRENCY_METADATA[currency].symbol;
+
+  const name = state.firstName.trim();
+  const headline = t(`onboarding.preview.headline.${emotion}`);
+  const sentence =
+    emotion === "deficit"
+      ? toFix === "charges"
+        ? t("onboarding.preview.sentence.deficitCharges")
+        : t("onboarding.preview.sentence.deficitSavings", {
+            amount: formatCurrency(Math.abs(available), currency),
+          })
+      : t(`onboarding.preview.sentence.${emotion}`);
 
   // The PIN ceremony is the next step until it has been done; after that the
   // CTA is the submission itself.
@@ -49,64 +70,159 @@ export function BudgetPreviewStep({ onExit }: { onExit: () => void }) {
     <StepScaffold
       isCtaEnabled
       ctaLabel={t("onboarding.preview.start")}
-      title={t("onboarding.preview.title")}
-      subtitle={t("onboarding.preview.subtitle")}
+      title={name === "" ? `${headline}.` : `${headline}, ${name}.`}
+      subtitle={sentence}
       onContinue={handleContinue}
       onExit={onExit}
     >
-      {/* The mint the dashboard uses, in every emotion — `home-hero-card.tsx`
-          already made this choice and wrote down why: the verdict is in the ink
-          and the caption, so a card that also changed colour says it twice. It
-          mattered most here, where a coral card was the first red-adjacent
-          surface a new user met, at the moment they were promised relief. */}
-      <View style={[styles.hero, { backgroundColor: hero.surface }]}>
-        <Eyebrow style={{ color: hero.support }}>
-          {t("onboarding.preview.available", {
-            currency: CURRENCY_METADATA[state.currency].symbol,
-          })}
-        </Eyebrow>
-        <Amount size="hero" style={{ color: hero.ink }}>
-          {/* Compact, like the home hero this becomes one screen later: the
-              same figure, printed two ways, reads as two figures. */}
-          {formatCompactAmount(available, state.currency)}
-        </Amount>
-        <Text variant="bodySmall" style={{ color: hero.support }}>
-          {t(`onboarding.preview.emotion.${emotion}`)}
-        </Text>
+      <View style={styles.ring}>
+        <OnboardingBudgetRing
+          income={totalIncome(state)}
+          charges={charges}
+          savings={savings}
+          currency={currency}
+          subtitle={t(
+            emotion === "deficit"
+              ? "onboarding.preview.ringPerMonth"
+              : "onboarding.preview.ringToSpend",
+            { currency: symbol },
+          )}
+        />
       </View>
 
-      <FlowBars
-        currency={state.currency}
-        editHint={(label) => t("onboarding.preview.edit", { label })}
-        flows={[
-          {
-            label: t("onboarding.preview.income"),
-            amount: totalIncome(state),
-            accent: "income",
-            onPress: () => jumpToStepForEdit("income"),
-          },
-          {
-            label: t("onboarding.preview.expenses"),
-            amount: totalCharges(state),
-            accent: "expense",
-            onPress: () => jumpToStepForEdit("charges"),
-          },
-          {
-            label: t("onboarding.preview.savings"),
-            amount: totalSavings(state),
-            accent: "savings",
-            onPress: () => jumpToStepForEdit("savings"),
-          },
-        ]}
-      />
+      <View style={styles.rows}>
+        <BlockRow
+          step="income"
+          kind="income"
+          title={t("onboarding.preview.income")}
+          names={[
+            t("onboarding.preview.salary"),
+            ...previewBlockNames(state, "income"),
+          ]}
+          amount={`+${formatCurrency(totalIncome(state), currency)}`}
+        />
+        {charges > 0 && (
+          <BlockRow
+            step="charges"
+            kind="expense"
+            title={t("onboarding.preview.fixedCharges")}
+            names={previewBlockNames(state, "expense")}
+            amount={formatCurrency(charges, currency)}
+            isToFix={toFix === "charges"}
+          />
+        )}
+        {savings > 0 && (
+          <BlockRow
+            step="savings"
+            kind="saving"
+            title={t("onboarding.preview.plannedSavings")}
+            names={previewBlockNames(state, "saving")}
+            amount={formatCurrency(savings, currency)}
+            isToFix={toFix === "savings"}
+          />
+        )}
+      </View>
+
+      <Text
+        variant="bodySmall"
+        style={{ color: theme.colors.onSurfaceVariant }}
+      >
+        {t("onboarding.preview.template")}
+      </Text>
     </StepScaffold>
   );
 }
 
+const ICONS: Record<BlockKind, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  income: "arrow-down-circle-outline",
+  expense: "home-outline",
+  saving: "piggy-bank-outline",
+};
+
+function BlockRow({
+  step,
+  kind,
+  title,
+  names,
+  amount,
+  isToFix = false,
+}: {
+  step: OnboardingStep;
+  kind: BlockKind;
+  title: string;
+  names: string[];
+  amount: string;
+  isToFix?: boolean;
+}) {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const ripple = useRipple();
+  const financial = useFinancialColors();
+  const v2 = useV2Colors();
+  const tint =
+    kind === "income"
+      ? financial.income
+      : kind === "expense"
+        ? financial.expense
+        : financial.savings;
+  const [first, ...others] = names;
+
+  return (
+    <Pressable
+      onPress={() => jumpToStepForEdit(step)}
+      android_ripple={ripple}
+      accessibilityRole="button"
+      accessibilityLabel={t("onboarding.preview.edit", { label: title })}
+      style={[
+        styles.row,
+        { backgroundColor: theme.colors.surface, borderColor: v2.line },
+      ]}
+    >
+      <MaterialCommunityIcons
+        name={ICONS[kind]}
+        size={ICON_SIZE.lg}
+        color={tint}
+      />
+      <View style={styles.labels}>
+        <Text variant="titleSmall">{title}</Text>
+        {first !== undefined && (
+          <Text
+            variant="bodySmall"
+            numberOfLines={1}
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {others.length === 0
+              ? first
+              : t(
+                  others.length === 1
+                    ? "onboarding.preview.summaryOne"
+                    : "onboarding.preview.summaryMany",
+                  {
+                    first,
+                    count: others.length,
+                  },
+                )}
+          </Text>
+        )}
+      </View>
+      <Amount size="row" tone={isToFix ? "overBudget" : "neutral"}>
+        {amount}
+      </Amount>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  hero: {
-    padding: SPACING.lg,
+  ring: { alignItems: "center" },
+  rows: { gap: SPACING.sm },
+  row: {
+    minHeight: TOUCH_TARGET,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+    padding: SPACING.md,
     borderRadius: RADIUS.card,
-    gap: SPACING.xs,
+    borderWidth: StyleSheet.hairlineWidth,
   },
+  labels: { flex: 1, gap: SPACING.xxs },
 });

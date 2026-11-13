@@ -11,56 +11,11 @@ import { DeleteMonthAction } from "./delete-month-action";
 jest.mock("expo-router", () => ({
   router: { back: jest.fn(), dismissTo: jest.fn() },
 }));
-// Paper's Menu and Dialog animate and measure through portals; the behaviour
-// under test is which content they show and what their buttons send.
+// Paper's Menu animates and measures through portals; the behaviour under
+// test is which content it shows and what its entries send.
 jest.mock("react-native-paper", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
-  const Passthrough = ({ children }: { children?: React.ReactNode }) => (
-    <View>{children}</View>
-  );
+  const { Pressable, Text } = jest.requireActual("react-native");
   return {
-    ActivityIndicator: ({
-      accessibilityLabel,
-    }: {
-      accessibilityLabel: string;
-    }) => <Text>{accessibilityLabel}</Text>,
-    Button: ({
-      children,
-      onPress,
-      disabled,
-    }: {
-      children: React.ReactNode;
-      onPress: () => void;
-      disabled?: boolean;
-    }) => (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled: disabled === true }}
-        disabled={disabled}
-        onPress={onPress}
-      >
-        <Text>{children}</Text>
-      </Pressable>
-    ),
-    Dialog: Object.assign(
-      ({
-        visible,
-        children,
-      }: {
-        visible: boolean;
-        children: React.ReactNode;
-      }) => (visible ? <View>{children}</View> : null),
-      {
-        Title: ({ children }: { children: React.ReactNode }) => (
-          <Text>{children}</Text>
-        ),
-        Content: Passthrough,
-        Actions: Passthrough,
-      },
-    ),
-    HelperText: ({ children }: { children: React.ReactNode }) => (
-      <Text>{children}</Text>
-    ),
     Menu: Object.assign(
       ({
         visible,
@@ -71,21 +26,88 @@ jest.mock("react-native-paper", () => {
         anchor: React.ReactNode;
         children: React.ReactNode;
       }) => (
-        <View>
+        <>
           {anchor}
           {visible ? children : null}
-        </View>
+        </>
       ),
       {
-        Item: ({ title, onPress }: { title: string; onPress: () => void }) => (
-          <Pressable onPress={onPress}>
-            <Text>{title}</Text>
+        Item: ({
+          title,
+          onPress,
+          disabled,
+        }: {
+          title: React.ReactNode;
+          onPress: () => void;
+          disabled?: boolean;
+        }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: disabled === true }}
+            disabled={disabled}
+            onPress={onPress}
+          >
+            {typeof title === "string" ? <Text>{title}</Text> : title}
           </Pressable>
         ),
       },
     ),
-    Portal: Passthrough,
     Text,
+  };
+});
+// The sheet itself is tested on its own; here it is what the action asks it to say.
+jest.mock("./impact-confirm-sheet", () => {
+  const { Pressable, Text, View } = jest.requireActual("react-native");
+  return {
+    ImpactConfirmSheet: ({
+      isVisible,
+      title,
+      message,
+      note,
+      error,
+      isLoading,
+      loadingLabel,
+      confirmLabel,
+      confirmDisabled,
+      isBusy,
+      onConfirm,
+      onDismiss,
+    }: {
+      isVisible: boolean;
+      title: string;
+      message?: string;
+      note?: string;
+      error: string | null;
+      isLoading: boolean;
+      loadingLabel: string;
+      confirmLabel: string;
+      confirmDisabled: boolean;
+      isBusy: boolean;
+      onConfirm: () => void;
+      onDismiss: () => void;
+    }) =>
+      isVisible ? (
+        <View>
+          <Text>{title}</Text>
+          {isLoading && <Text>{loadingLabel}</Text>}
+          {message?.split("\n").map((paragraph) => (
+            <Text key={paragraph}>{paragraph}</Text>
+          ))}
+          <Text>{note}</Text>
+          {error !== null && <Text>{error}</Text>}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: confirmDisabled || isBusy }}
+            disabled={confirmDisabled || isBusy}
+            onPress={onConfirm}
+          >
+            <Text>{confirmLabel}</Text>
+          </Pressable>
+          <Pressable onPress={onDismiss}>
+            <Text>common.cancel</Text>
+          </Pressable>
+        </View>
+      ) : null,
   };
 });
 jest.mock("@/core/ui/hero", () => {
@@ -102,9 +124,6 @@ jest.mock("@/core/ui/hero", () => {
     ),
   };
 });
-jest.mock("@/core/ui/scheme-colors", () => ({
-  useFinancialColors: () => ({ destructive: "red" }),
-}));
 jest.mock("@/core/api/api", () => ({
   api: { get: jest.fn(), deleteVoid: jest.fn() },
 }));
@@ -149,7 +168,7 @@ function impact(
 
 let client: QueryClient;
 
-async function renderAction() {
+async function renderAction(isAllowed = true) {
   client = new QueryClient({
     // The app's own 30s stale window: the impact read has to opt out of it.
     defaultOptions: {
@@ -159,7 +178,13 @@ async function renderAction() {
   });
   return render(
     <QueryClientProvider client={client}>
-      <DeleteMonthAction budgetId="budget-1" monthTitle="Novembre 2026" />
+      <DeleteMonthAction
+        budgetId="budget-1"
+        monthTitle="Novembre 2026"
+        currency="CHF"
+        isAllowed={isAllowed}
+        liveMonthName="octobre"
+      />
     </QueryClientProvider>,
   );
 }
@@ -172,7 +197,9 @@ async function openDialog(view: View) {
 }
 
 const confirmButton = (view: View) =>
-  view.getByRole("button", { name: `${PREFIX}.confirm` });
+  view.getByRole("button", { name: `${PREFIX}.confirm month=Novembre 2026` });
+
+const COUNTS = `${PREFIX}.forecasts count=3 ${PREFIX}.movements count=1`;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -188,9 +215,8 @@ it("lists the counts, then deletes without confirming links and leaves the scree
   await openDialog(view);
 
   expect(view.getByText(`${PREFIX}.title month=Novembre 2026`)).toBeTruthy();
-  expect(
-    await view.findByText(`${PREFIX}.body forecastCount=3 movementCount=1`),
-  ).toBeTruthy();
+  expect(await view.findByText(COUNTS)).toBeTruthy();
+  expect(view.getByText(`${PREFIX}.finalityElided month=octobre`)).toBeTruthy();
   expect(view.queryByText(new RegExp(`^${PREFIX}\\.links `))).toBeNull();
   expect(mockedGet).toHaveBeenCalledWith(
     ENDPOINTS.budgetDeletionImpact("budget-1"),
@@ -239,7 +265,7 @@ it("names the links that are present, adds forecasts to movements for a withdraw
 it("closes on cancel without deleting, and reads the impact again on the next opening", async () => {
   const view = await renderAction();
   await openDialog(view);
-  await view.findByText(`${PREFIX}.body forecastCount=3 movementCount=1`);
+  await view.findByText(COUNTS);
 
   await fireEvent.press(view.getByText("common.cancel"));
 
@@ -269,7 +295,7 @@ it("keeps the dialog open with an error line when the delete fails", async () =>
   mockedDeleteVoid.mockRejectedValue(new Error("409"));
   const view = await renderAction();
   await openDialog(view);
-  await view.findByText(`${PREFIX}.body forecastCount=3 movementCount=1`);
+  await view.findByText(COUNTS);
 
   await fireEvent.press(confirmButton(view));
 
@@ -282,7 +308,7 @@ it("reads the impact again after a failed delete, so the retry confirms the link
   mockedDeleteVoid.mockRejectedValueOnce(new Error("409"));
   const view = await renderAction();
   await openDialog(view);
-  await view.findByText(`${PREFIX}.body forecastCount=3 movementCount=1`);
+  await view.findByText(COUNTS);
   expect(view.queryByText(new RegExp(`^${PREFIX}\\.links `))).toBeNull();
   mockedGet.mockResolvedValue({
     success: true,
@@ -306,4 +332,30 @@ it("reads the impact again after a failed delete, so the retry confirms the link
     ENDPOINTS.budget("budget-1"),
     { confirmLinks: true },
   );
+});
+
+it("keeps the entry visible but disabled, with its reason, on a month that already started", async () => {
+  const view = await renderAction(false);
+  await fireEvent.press(view.getByLabelText("common.moreOptions"));
+
+  expect(view.getByText(`${PREFIX}.onlyUpcoming`)).toBeTruthy();
+  expect(
+    view.getByRole("button", { name: new RegExp(`${PREFIX}.action`) }),
+  ).toBeDisabled();
+  expect(mockedGet).not.toHaveBeenCalled();
+});
+
+it("says there is no movement yet instead of counting zero", async () => {
+  mockedGet.mockResolvedValue({
+    success: true,
+    data: { ...impact(), movementCount: 0 },
+  });
+  const view = await renderAction();
+  await openDialog(view);
+
+  expect(
+    await view.findByText(
+      `${PREFIX}.forecasts count=3 ${PREFIX}.movementsNone`,
+    ),
+  ).toBeTruthy();
 });

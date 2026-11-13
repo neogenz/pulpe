@@ -13,6 +13,11 @@ const mockDeletePair = jest.fn();
 const mockPostpone = jest.fn();
 const mockUndo = jest.fn();
 const mockRemoveTransaction = jest.fn();
+const mockMutationState = {
+  isPending: false,
+  isError: false,
+  reset: jest.fn(),
+};
 const mockRemoval = {
   last: null as Transaction | null,
   undoable: [] as Transaction[],
@@ -27,8 +32,8 @@ jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
 }));
 jest.mock("../budget-line-mutations", () => ({
-  useDeleteBudgetLine: () => ({ mutate: mockDeleteLine, isPending: false }),
-  usePostponeBudgetLine: () => ({ mutate: mockPostpone, isPending: false }),
+  useDeleteBudgetLine: () => ({ mutate: mockDeleteLine, ...mockMutationState }),
+  usePostponeBudgetLine: () => ({ mutate: mockPostpone, ...mockMutationState }),
 }));
 jest.mock("../savings-withdrawal/withdrawal-mutations", () => ({
   useDeleteSavingsWithdrawal: () => ({
@@ -102,6 +107,11 @@ async function renderOverlays(overrides: Partial<BudgetLine> = {}) {
         payDayOfMonth={null}
         line={{ ...line, ...overrides }}
         transactions={[transaction]}
+        ledger={{
+          lines: [{ ...line, ...overrides }],
+          transactions: [],
+          rollover: 0,
+        }}
         onLeave={onLeave}
       />
     </PaperProvider>,
@@ -114,6 +124,7 @@ beforeEach(() => {
   mockRemoval.last = null;
   mockRemoval.undoable = [];
   mockRemoval.failure = null;
+  mockMutationState.isError = false;
 });
 
 it("owns add, edit, activity removal and undo transitions", async () => {
@@ -137,27 +148,52 @@ it("owns add, edit, activity removal and undo transitions", async () => {
   expect(mockUndo).toHaveBeenCalledTimes(1);
 });
 
-it("surfaces a failed simple deletion", async () => {
-  const { ref, view } = await renderOverlays();
+it("says what a deletion does to the disponible before it happens", async () => {
+  const { ref, view, onLeave } = await renderOverlays();
   await act(() => ref.current?.confirmDelete());
-  await fireEvent.press(view.getByText("budgets.mutations.delete"));
 
-  const callbacks = mockDeleteLine.mock.calls[0][1] as { onError: () => void };
-  await act(() => callbacks.onError());
+  expect(mockDeleteLine).not.toHaveBeenCalled();
+  expect(view.getByText("budgets.impact.ok")).toBeTruthy();
+  await fireEvent.press(view.getByText("budgets.actions.line.deleteConfirm"));
 
   expect(mockDeleteLine).toHaveBeenCalledWith("line-1", expect.any(Object));
+  const callbacks = mockDeleteLine.mock.calls[0][1] as {
+    onSuccess: () => void;
+  };
+  await act(() => callbacks.onSuccess());
+  expect(onLeave).toHaveBeenCalledTimes(1);
+});
+
+it("surfaces a failed simple deletion in the sheet", async () => {
+  mockMutationState.isError = true;
+  const { ref, view } = await renderOverlays();
+  await act(() => ref.current?.confirmDelete());
+
   expect(
     view.getByText("budgets.actions.line.failure.deleteLine"),
   ).toBeTruthy();
 });
 
-it("surfaces a failed postpone without leaving the detail", async () => {
-  const { ref, view } = await renderOverlays();
+it("asks before postponing, then leaves the detail", async () => {
+  const { ref, view, onLeave } = await renderOverlays();
   await act(() => ref.current?.postpone());
-  const callbacks = mockPostpone.mock.calls[0][1] as { onError: () => void };
-  await act(() => callbacks.onError());
+
+  expect(mockPostpone).not.toHaveBeenCalled();
+  expect(view.getByText("budgets.postpone.title")).toBeTruthy();
+  await fireEvent.press(view.getByText("budgets.postpone.confirm"));
 
   expect(mockPostpone).toHaveBeenCalledWith("line-1", expect.any(Object));
+  await act(() =>
+    (mockPostpone.mock.calls[0][1] as { onSuccess: () => void }).onSuccess(),
+  );
+  expect(onLeave).toHaveBeenCalledTimes(1);
+});
+
+it("surfaces a failed postpone in the sheet", async () => {
+  mockMutationState.isError = true;
+  const { ref, view } = await renderOverlays();
+  await act(() => ref.current?.postpone());
+
   expect(view.getByText("budgets.actions.line.failure.postpone")).toBeTruthy();
 });
 

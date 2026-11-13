@@ -8,6 +8,8 @@ import { SPACING } from "@/core/ui/theme";
 
 interface PinScreenProps {
   testID?: string;
+  /** Where this step sits in a ceremony ("Étape 1 sur 2"). */
+  eyebrow?: string;
   title: string;
   subtitle?: string;
   /** The pad, or whatever the step asks for instead. */
@@ -23,6 +25,7 @@ interface PinScreenProps {
  */
 export function PinScreen({
   testID,
+  eyebrow,
   title,
   subtitle,
   children,
@@ -50,6 +53,14 @@ export function PinScreen({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
+          {eyebrow ? (
+            <Text
+              variant="labelLarge"
+              style={[styles.centered, { color: theme.colors.primary }]}
+            >
+              {eyebrow}
+            </Text>
+          ) : null}
           <Text variant="headlineMedium" style={styles.centered}>
             {title}
           </Text>

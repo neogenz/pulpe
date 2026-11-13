@@ -11,6 +11,7 @@ import { Area, CartesianChart, Line } from "victory-native";
 import { Amount } from "@/core/ui/amount";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
+import { areAmountsHidden } from "@/core/ui/amount-visibility";
 import { formatMonthYearShort } from "@/core/ui/date-format";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
@@ -52,9 +53,22 @@ export function GoalProjectionChart({
 
   const domain = projectionYDomain(series);
   const lastIndex = series.points.length - 1;
+  const last = series.points[lastIndex];
+  // Read aloud, the plot is two figures; while amounts are hidden it speaks
+  // none (the formatters would read their mask out as a string of dots).
+  const summary = areAmountsHidden()
+    ? t("goals.chart.accessibilityHidden")
+    : t("goals.chart.accessibility", {
+        saved: formatCompactCurrency(
+          series.points.findLast((point) => point.confirmed !== null)
+            ?.confirmed ?? 0,
+          currency,
+        ),
+        projection: formatCompactCurrency(last.projection ?? 0, currency),
+      });
 
   return (
-    <View style={styles.chart}>
+    <View style={styles.chart} accessible accessibilityLabel={summary}>
       <View style={{ height: CHART_HEIGHT }}>
         <CartesianChart
           data={series.points}

@@ -217,9 +217,15 @@ it("reads the month in progress first, then the ones ahead, and opens a month", 
   expect(view.getByText("budgets.list.current")).toBeTruthy();
   expect(view.getByText(/^budgets\.list\.upcoming/)).toBeTruthy();
   // The year closes on its last month's remaining.
-  expect(view.getByLabelText(/budgets\.list\.yearBalance \+300/)).toBeTruthy();
+  expect(
+    view.getByLabelText(/budgets\.list\.yearBalance:\{"year":2026\} \+300/),
+  ).toBeTruthy();
   // The count is the verdict's to say; the only bar left is the current month's.
-  expect(view.getByText(/^budgets\.list\.verdict\.some/)).toBeTruthy();
+  expect(
+    view.getByText(
+      /^budgets\.list\.verdict\.estimated budgets\.list\.verdict\.some/,
+    ),
+  ).toBeTruthy();
   expect(view.queryByText("3 / 12")).toBeNull();
   // The month in progress carries the budget page's consumption: 500 of 1000.
   expect(view.getByText("50 %")).toBeTruthy();
@@ -232,7 +238,7 @@ it("folds the closed months of the year being lived in until asked", async () =>
   mockBudgets.data = [budget(2026, 1, 50), budget(2026, 10)];
   const view = await renderScreen();
 
-  expect(view.getByText(/^budgets\.list\.closed/)).toBeTruthy();
+  expect(view.getByText(/^budgets\.list\.closed(?!Subtitle)/)).toBeTruthy();
   expect(view.queryByText("Janvier")).toBeNull();
 
   await fireEvent.press(
@@ -254,7 +260,7 @@ it.each([300, -300, 0])(
     const view = await renderScreen();
 
     expect(
-      view.getByLabelText("budgets.list.yearBalance ••• CHF"),
+      view.getByLabelText(`budgets.list.yearBalance:{"year":2026} ••• CHF`),
     ).toBeTruthy();
     expect(view.queryByText(/[+-]•••/)).toBeNull();
   },
@@ -281,6 +287,8 @@ it("moves to another year from the picker, which closes as a review", async () =
   expect(view.getByText("Juin")).toBeTruthy();
   expect(view.queryByText("Octobre")).toBeNull();
   expect(view.getByLabelText(/budgets\.list\.yearReview/)).toBeTruthy();
+  // A closed year has no projection to caveat.
+  expect(view.queryByText(/verdict\.estimated/)).toBeNull();
   // A year behind us has nothing left to create.
   expect(view.queryByTestId("budgets-create-missing")).toBeNull();
 });

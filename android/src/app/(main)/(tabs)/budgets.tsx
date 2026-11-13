@@ -303,6 +303,7 @@ export default function BudgetsScreen() {
                 isPastYear
                   ? "budgets.list.yearReview"
                   : "budgets.list.yearBalance",
+                { year },
               )}
               amount={signedCompact(recap.closingBalance, currency)}
               currency={CURRENCY_METADATA[currency].symbol}
@@ -314,11 +315,17 @@ export default function BudgetsScreen() {
               sentence={
                 recap.budgetedMonths === 0
                   ? t("budgets.list.verdict.none")
-                  : recap.budgetedMonths >= MONTHS_PER_YEAR
-                    ? t("budgets.list.verdict.all")
-                    : t("budgets.list.verdict.some", {
-                        count: recap.budgetedMonths,
-                      })
+                  : [
+                      // The figure rests on the rest of the year following the plan.
+                      isPastYear ? null : t("budgets.list.verdict.estimated"),
+                      recap.budgetedMonths >= MONTHS_PER_YEAR
+                        ? t("budgets.list.verdict.all", { year })
+                        : t("budgets.list.verdict.some", {
+                            count: recap.budgetedMonths,
+                          }),
+                    ]
+                      .filter((part) => part !== null)
+                      .join(" ")
               }
             />
           </HeroZone>
@@ -343,6 +350,7 @@ export default function BudgetsScreen() {
               <View style={styles.section}>
                 <SectionHeader
                   title={t("budgets.list.closed")}
+                  subtitle={t("budgets.list.closedSubtitle")}
                   count={closedRows.length}
                   link={
                     foldsClosed

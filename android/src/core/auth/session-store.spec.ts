@@ -29,6 +29,12 @@ let mockAuthListener:
   | ((event: string, session: Session | null) => void)
   | null = null;
 
+jest.mock("@/core/observability/product-events", () => ({
+  captureLogoutCompleted: jest.fn(),
+  capturePinChanged: jest.fn(),
+  capturePinEntered: jest.fn(),
+  captureRecoveryKeyAcknowledged: jest.fn(),
+}));
 jest.mock("./password-recovery", () => ({
   clearRecoveryPending: () => mockClearRecoveryPending(),
   isRecoveryPending: () => mockIsRecoveryPending(),

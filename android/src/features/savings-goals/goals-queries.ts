@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type { SavingsGoal, SavingsGoalProgress } from "pulpe-shared";
 
 import { useVaultStore } from "@/core/vault/vault-store";
 import { budgetKeys } from "@/features/budgets/budget-queries";
@@ -50,6 +56,30 @@ export function useSavingsGoals() {
     queryKey: goalKeys.list(),
     queryFn: fetchSavingsGoals,
     enabled: isUnlocked,
+  });
+}
+
+/**
+ * One progress read per goal: the list shows each goal's confirmed amount and
+ * bar, and no endpoint answers for them all. Same keys as the detail screen,
+ * so opening a goal reuses what the list already fetched.
+ */
+export function useSavingsGoalsProgress(goals: SavingsGoal[]) {
+  const isUnlocked = useUnlocked();
+
+  return useQueries({
+    queries: goals.map((goal) => ({
+      queryKey: goalKeys.progress(goal.id),
+      queryFn: () => fetchSavingsGoalProgress(goal.id),
+      enabled: isUnlocked,
+    })),
+    combine: (results) => {
+      const byGoalId: Record<string, SavingsGoalProgress> = {};
+      results.forEach((result, index) => {
+        if (result.data !== undefined) byGoalId[goals[index].id] = result.data;
+      });
+      return byGoalId;
+    },
   });
 }
 

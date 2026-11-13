@@ -2,25 +2,18 @@ import type {
   BudgetLine,
   SupportedCurrency,
   TransactionKind,
-  TransactionRecurrence,
 } from "pulpe-shared";
 import { useState } from "react";
 import { randomUUID } from "react-native-quick-crypto";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  SegmentedButtons,
-  Switch,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, Text, TextInput, useTheme } from "react-native-paper";
 
-import { kindOptions, recurrenceOptions } from "@/core/ui/vocabulary";
+import { kindOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { QuickAmountChips } from "@/core/ui/quick-amount-chips";
 import { AmountField } from "@/core/ui/amount-field";
+import { SegmentedPicker } from "@/core/ui/segmented-picker";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -53,11 +46,8 @@ import {
 
 const NAME_MAX_LENGTH = 100;
 
-const KIND_ICONS = {
-  expense: "arrow-up",
-  income: "arrow-down",
-  saving: "piggy-bank-outline",
-} as const;
+/** The three answers of « Quand ? » (`SpreadModeToggle.swift`). */
+type When = "fixed" | "one_off" | "spread";
 
 interface BudgetLineSheetProps {
   isVisible: boolean;
@@ -68,6 +58,8 @@ interface BudgetLineSheetProps {
   currency: SupportedCurrency;
   /** Absent when creating; the line being corrected otherwise. */
   line?: BudgetLine;
+  /** « Mensuel » writes into the model, so a closed month cannot take it. */
+  isEveryMonthDisabled?: boolean;
   onSaved: () => void;
 }
 
@@ -83,6 +75,7 @@ export function BudgetLineSheet({
   anchor,
   currency,
   line,
+  isEveryMonthDisabled = false,
   onSaved,
 }: BudgetLineSheetProps) {
   const theme = useTheme();
@@ -90,9 +83,14 @@ export function BudgetLineSheet({
   const create = useCreateBudgetLine();
   const update = useUpdateBudgetLine();
   const spread = useCreateSpread();
-  const [draft, setDraft] = useState<BudgetLineDraft>(() =>
-    line === undefined ? emptyBudgetLineDraft() : budgetLineDraftFrom(line),
-  );
+  const startingDraft = (): BudgetLineDraft =>
+    line === undefined
+      ? {
+          ...emptyBudgetLineDraft(),
+          ...(isEveryMonthDisabled && { recurrence: "one_off" as const }),
+        }
+      : budgetLineDraftFrom(line);
+  const [draft, setDraft] = useState<BudgetLineDraft>(startingDraft);
   // Bumped on reset. The amount field holds its own text, so clearing the
   // number behind it is not enough to clear what is on screen.
   const [generation, setGeneration] = useState(0);
@@ -109,6 +107,31 @@ export function BudgetLineSheet({
   const canSpread = !isEditing && draft.kind !== "income";
   const cells = spreadWindow(anchor, spreadLength, deselected);
   const isSpreading = isSpread && canSpread;
+  const when: When = isSpreading ? "spread" : draft.recurrence;
+  // Spreading says which side of the division the amount is on.
+  const amountCaption =
+    when === "fixed"
+      ? "perMonth"
+      : when === "spread"
+        ? spreadMode === "total"
+          ? "inTotal"
+          : "perMonth"
+        : null;
+  const whenOptions: { value: When; label: string; disabled?: boolean }[] = [
+    {
+      value: "fixed",
+      label: t("vocabulary.recurrence.fixed"),
+      disabled: isPlannedWithdrawal || isEveryMonthDisabled,
+    },
+    {
+      value: "one_off",
+      label: t("vocabulary.recurrence.one_off"),
+      disabled: isPlannedWithdrawal,
+    },
+    ...(canSpread
+      ? [{ value: "spread" as const, label: t("budgets.detail.spread") }]
+      : []),
+  ];
   const mutation = isSpreading ? spread : isEditing ? update : create;
 
   function change(changes: Partial<BudgetLineDraft>) {
@@ -116,9 +139,7 @@ export function BudgetLineSheet({
   }
 
   function reset() {
-    setDraft(
-      line === undefined ? emptyBudgetLineDraft() : budgetLineDraftFrom(line),
-    );
+    setDraft(startingDraft());
     setGeneration((current) => current + 1);
     setSpread(false);
     setSpreadMode("total");
@@ -216,12 +237,11 @@ export function BudgetLineSheet({
         <SavingsGoalLinks line={line} onNavigate={dismiss} />
       )}
 
-      <SegmentedButtons
+      <SegmentedPicker
         value={draft.kind}
         onValueChange={(kind) => change({ kind: kind as TransactionKind })}
         buttons={kindOptions(t).map((button) => ({
           ...button,
-          icon: KIND_ICONS[button.value],
           disabled: isPlannedWithdrawal,
         }))}
       />
@@ -250,6 +270,15 @@ export function BudgetLineSheet({
         }}
       />
 
+      {amountCaption !== null && (
+        <Text
+          variant="labelMedium"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
+          {t(`budgets.mutations.forecast.${amountCaption}`)}
+        </Text>
+      )}
+
       <TextInput
         mode="outlined"
         label={t("budgets.mutations.name")}
@@ -259,50 +288,23 @@ export function BudgetLineSheet({
         maxLength={NAME_MAX_LENGTH}
       />
 
-      {!isSpreading && (
-        <>
-          <SegmentedButtons
-            value={draft.recurrence}
-            onValueChange={(recurrence) =>
-              change({ recurrence: recurrence as TransactionRecurrence })
-            }
-            buttons={recurrenceOptions(t).map((button) => ({
-              ...button,
-              disabled: isPlannedWithdrawal,
-            }))}
-          />
-
-          <Text
-            variant="labelMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {draft.recurrence === "fixed"
-              ? t("budgets.mutations.forecast.recurringHint")
-              : t("budgets.mutations.forecast.oneOffHint")}
-          </Text>
-        </>
-      )}
-
-      {canSpread && (
-        <View style={styles.spreadRow}>
-          <View style={styles.spreadLabels}>
-            <Text variant="bodyLarge">
-              {t("budgets.mutations.forecast.spreadTitle")}
-            </Text>
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {t("budgets.mutations.forecast.spreadHint")}
-            </Text>
-          </View>
-          <Switch
-            value={isSpread}
-            onValueChange={setSpread}
-            accessibilityLabel={t("budgets.mutations.forecast.spreadTitle")}
-          />
-        </View>
-      )}
+      <View style={styles.when}>
+        <Text
+          variant="labelLarge"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
+          {t("budgets.mutations.forecast.when")}
+        </Text>
+        <SegmentedPicker
+          value={when}
+          accessibilityLabel={t("budgets.mutations.forecast.when")}
+          onValueChange={(next) => {
+            setSpread(next === "spread");
+            if (next !== "spread") change({ recurrence: next });
+          }}
+          buttons={whenOptions}
+        />
+      </View>
 
       {isSpreading && (
         <SpreadFormSection
@@ -327,12 +329,6 @@ export function BudgetLineSheet({
 }
 
 const styles = StyleSheet.create({
-  spreadRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.md,
-  },
-  spreadLabels: { flex: 1, gap: SPACING.xxs },
+  when: { gap: SPACING.xs },
   hint: { textAlign: "center" },
 });

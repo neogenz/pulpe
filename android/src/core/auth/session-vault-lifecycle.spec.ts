@@ -17,6 +17,12 @@ const mockGetSession = jest
 const mockSetSession = jest.fn();
 const mockSignOutEverywhere = jest.fn();
 
+jest.mock("@/core/observability/product-events", () => ({
+  captureLogoutCompleted: jest.fn(),
+  capturePinChanged: jest.fn(),
+  capturePinEntered: jest.fn(),
+  captureRecoveryKeyAcknowledged: jest.fn(),
+}));
 jest.mock("./google-sign-in", () => ({ forgetGoogleAccount: jest.fn() }));
 jest.mock("./supabase", () => ({
   getPersistedSessionSnapshot: jest.fn(async () => null),

@@ -11,6 +11,7 @@ import {
   type BudgetDetailOverlaysHandle,
 } from "./budget-detail-overlays";
 
+jest.mock("./catch-up-sheet", () => ({ CatchUpSheet: () => null }));
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
 }));
@@ -99,6 +100,8 @@ async function renderOverlays(month = 10) {
           currency="CHF"
           payDayOfMonth={null}
           missingAmount={0}
+          monthName="octobre"
+          ledger={{ lines: [], transactions: [], rollover: -120 }}
           viewModel={buildCurrentMonthViewModel(
             {
               budget: {

@@ -6,33 +6,36 @@ const { readFileSync } = jest.requireActual<{
 
 describe("phase 4 current-month activity localization", () => {
   it.each([
-    ["fr", "Dernier jour de la période", "+2 autres enveloppes"],
-    ["en", "Last day of the period", "+2 other forecasts"],
-    ["de", "Letzter Tag der Periode", "+2 weitere Planungen"],
-    ["it", "Ultimo giorno del periodo", "+2 altre previsioni"],
-  ])("serves activity status and plurals in %s", (locale, period, hidden) => {
-    i18n.locale = locale;
-    expect(translate("home.periodRemaining", { count: 1 })).toBe(period);
-    expect(translate("home.drift.hidden", { count: 2 })).toBe(hidden);
-  });
+    ["fr", "Jour 3 sur 30 · jusqu'au 24 août", "2 mouvements"],
+    ["en", "Day 3 of 30 · until 24 August", "2 movements"],
+    ["de", "Tag 3 von 30 · bis 24 August", "2 Bewegungen"],
+    ["it", "Giorno 3 di 30 · fino al 24 August", "2 movimenti"],
+  ])(
+    "serves the period caption and plurals in %s",
+    (locale, caption, count) => {
+      i18n.locale = locale;
+      const date = locale === "fr" ? "24 août" : "24 August";
+      expect(translate("home.periodCaption", { day: 3, total: 30, date })).toBe(
+        caption,
+      );
+      expect(
+        translate("home.movements.subtitle", { month: "x", count: 2 }),
+      ).toBe(`x · ${count}`);
+    },
+  );
 
   it("keeps dates and pointing failures semantic until render", () => {
-    const activityWindow = readFileSync(
-      "src/features/current-month/activity-window.ts",
-      "utf8",
-    );
-    const activityCard = readFileSync(
-      "src/features/current-month/components/activity-card.tsx",
+    const section = readFileSync(
+      "src/features/current-month/components/recent-movements-section.tsx",
       "utf8",
     );
     const home = readFileSync("src/app/(main)/(tabs)/home.tsx", "utf8");
 
-    expect(activityWindow).not.toContain("formatRelativeDay");
-    expect(activityCard).toContain("formatRelativeDay(day.date, now, locale)");
+    expect(section).toContain("formatRelativeDay(day.date, now, locale)");
     expect(home).toContain('step: "point" | "undo"');
     expect(home).toContain("t(`home.checking.${current.step}Failure`)");
-    expect(`${activityCard}\n${home}`).not.toMatch(
-      /Activité sur \$|Le pointage n'a pas été enregistré|Dernier jour de la période/,
+    expect(`${section}\n${home}`).not.toMatch(
+      /Le pointage n'a pas été enregistré/,
     );
   });
 });

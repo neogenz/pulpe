@@ -14,6 +14,7 @@ import { clearLocaleSnapshot } from "@/core/i18n/locale-store";
 import { forgetLandingPreference } from "@/core/navigation/landing-preference";
 import { writeRemindersEnabled } from "@/core/notifications/reminder-flags";
 import { cancelMonthlyReminder } from "@/core/notifications/scheduler";
+import { captureLogoutCompleted } from "@/core/observability/product-events";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
 
@@ -44,7 +45,8 @@ interface SessionState {
   session: Session | null;
   user: User | null;
   retrySessionRestore: () => Promise<void>;
-  signOut: () => Promise<void>;
+  /** `system` is a session the device lost, not one the user ended. */
+  signOut: (source?: "user_initiated" | "system") => Promise<void>;
 }
 
 interface AccountTeardownResult {
@@ -71,7 +73,8 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   retrySessionRestore: () => restorePersistedSession(false),
 
-  signOut: async () => {
+  signOut: async (source = "user_initiated") => {
+    captureLogoutCompleted(source);
     const { providerError } = await teardownAccount(signOutThisDevice);
     if (providerError !== null) throw providerError;
   },

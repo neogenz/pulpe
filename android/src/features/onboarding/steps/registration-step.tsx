@@ -10,6 +10,10 @@ import {
 } from "@/core/auth/password-rules";
 import { signUpWithEmail } from "@/core/auth/sign-up";
 import { useTranslation } from "@/core/i18n/locale-store";
+import {
+  captureSignupFailed,
+  captureSignupStarted,
+} from "@/core/observability/product-events";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
@@ -53,12 +57,14 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
 
     setIsSubmitting(true);
     setErrorMessage(null);
+    captureSignupStarted("email");
     try {
       await signUpWithEmail(email.trim(), password, firstName);
       captureSignupCompleted("email");
       configureEmailUser();
       goToNextStep();
-    } catch {
+    } catch (error) {
+      captureSignupFailed("email", error);
       setErrorMessage(t("onboarding.registration.error"));
     } finally {
       setIsSubmitting(false);

@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
+import { captureRecoveryKeyAcknowledged } from "@/core/observability/product-events";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import { formatRecoveryKey } from "@/core/vault/recovery-key";
@@ -127,6 +128,9 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
             >
               {t(isCopied ? "vault.notice.copied" : "vault.notice.copy")}
             </Button>
+            <Text variant="bodySmall" style={styles.centered}>
+              {t("vault.notice.clipboardClears")}
+            </Text>
 
             <View
               style={[
@@ -153,7 +157,13 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
         </Dialog.ScrollArea>
 
         <Dialog.Actions>
-          <Button mode="contained" onPress={acknowledgeRecoveryNotice}>
+          <Button
+            mode="contained"
+            onPress={() => {
+              captureRecoveryKeyAcknowledged();
+              acknowledgeRecoveryNotice();
+            }}
+          >
             {t("vault.notice.acknowledge")}
           </Button>
         </Dialog.Actions>

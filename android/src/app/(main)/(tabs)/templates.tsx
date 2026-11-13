@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import * as Linking from "expo-linking";
 import type { BudgetTemplate } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
@@ -7,13 +6,11 @@ import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { usePushOnce } from "@/core/navigation/push-once";
-import { Tooltip } from "@/core/tips/tooltip";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { IconDisc } from "@/core/ui/icon-disc";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
-import { SectionHeader } from "@/core/ui/section-header";
+import { ActionButton } from "@/core/ui/action-button";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
-import { APP_URLS } from "@/core/ui/app-urls";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
@@ -80,37 +77,45 @@ export default function TemplatesScreen() {
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       {header}
       {list.length === 0 ? (
-        <PlaceholderScreen
-          icon="file-document-outline"
-          title={t("templates.list.emptyTitle")}
-          hint={t("templates.list.emptyHint")}
-          action={{
-            label: t("templates.list.create"),
-            onPress: () => setCreating(true),
-          }}
-        />
+        <ScrollView contentContainerStyle={styles.content}>
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("templates.list.subtitle")}
+          </Text>
+          <View style={styles.section}>
+            <Text variant="titleLarge">{t("templates.list.emptyTitle")}</Text>
+            <Text
+              variant="bodyMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {t("templates.list.emptyHint")}
+            </Text>
+            <ActionButton variant="primary" onPress={() => setCreating(true)}>
+              {t("templates.list.create")}
+            </ActionButton>
+          </View>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("templates.list.emptyExplainer")}
+          </Text>
+        </ScrollView>
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl {...pull} />}
         >
-          <Tooltip
-            id="templates-web-parity"
-            icon="laptop"
-            title={t("templates.list.webTitle")}
-            message={t("templates.list.webBody")}
-            action={{
-              label: t("templates.list.openWeb"),
-              onPress: () =>
-                void Linking.openURL(APP_URLS.webappBudgetTemplates),
-            }}
-          />
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("templates.list.subtitle")}
+          </Text>
 
           <View style={styles.section}>
-            <SectionHeader
-              title={t("templates.list.section")}
-              count={list.length}
-            />
             <LedgerCard>
               {list.map((template) => (
                 <TemplateRow key={template.id} template={template} />

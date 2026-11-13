@@ -74,6 +74,12 @@ export default function ForgotPasswordScreen() {
         ) : (
           <>
             <Text variant="bodyMedium">{t("auth.forgot.intro")}</Text>
+            <Text
+              variant="bodyMedium"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {t("auth.forgot.reassurance")}
+            </Text>
 
             <TextInput
               mode="outlined"

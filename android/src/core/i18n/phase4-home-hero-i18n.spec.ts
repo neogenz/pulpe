@@ -21,14 +21,14 @@ describe("phase 4 home hero presentation boundary", () => {
     expect(home).toContain("formatMonthName(");
     expect(home).toContain("locale,");
     expect(home).toContain('t("home.states.loadErrorTitle")');
-    expect(hero).toContain('t("home.hero.metricsAccessibility"');
+    expect(hero).toContain('t("home.hero.eyebrow")');
     expect(chart).toContain('accessibilityRole="image"');
     expect(chart).toContain('t("home.hero.chartAccessibility")');
     expect(chart).toContain('t("home.hero.chart.today")');
     expect(chart).not.toMatch(/aujourd'hui/);
     expect(presentation).toContain("t(`home.hero.verdict.${verdict}Dated`");
     expect(`${home}\n${hero}`).not.toMatch(
-      /On n'a pas pu charger ton mois|Estimé fin \$|Voir le détail du budget/,
+      /On n'a pas pu charger ton mois|Disponible à dépenser|Le calcul/,
     );
   });
 });

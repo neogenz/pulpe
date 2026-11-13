@@ -58,7 +58,7 @@ function recoverSession(): Promise<boolean> {
       // Scoped to this device: the account is fine, only this session died.
       await useSessionStore
         .getState()
-        .signOut()
+        .signOut("system")
         .catch(() => undefined);
     }
     return isRefreshed;

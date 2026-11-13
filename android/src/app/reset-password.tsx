@@ -290,6 +290,7 @@ function PasswordForm({
   return (
     <>
       <Text variant="bodyMedium">{t("auth.reset.intro")}</Text>
+      <Text variant="bodyMedium">{t("auth.reset.reassurance")}</Text>
 
       <TextInput
         mode="outlined"

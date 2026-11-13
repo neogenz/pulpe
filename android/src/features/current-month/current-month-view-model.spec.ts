@@ -279,6 +279,17 @@ describe("unchecked", () => {
     expect(model.uncheckedCount).toBe(8);
   });
 
+  it("tells movements from forecasts in the count, and names the envelope", () => {
+    const model = viewModelOf(
+      [line({ id: "line-1", name: "Courses" })],
+      [transaction({ id: "tx-1", budgetLineId: "line-1" })],
+    );
+
+    expect(model.uncheckedCount).toBe(2);
+    expect(model.uncheckedMovementCount).toBe(1);
+    expect(model.uncheckedItems[0].envelopeName).toBe("Courses");
+  });
+
   it("never asks the user to point the carry-over", () => {
     const model = viewModelOf([
       line({ id: "rollover-x", isRollover: true, amount: 200 }),

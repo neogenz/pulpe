@@ -1,13 +1,14 @@
 import { render } from "@testing-library/react-native";
 import type { SavingsGoalProgress } from "pulpe-shared";
-import { useColorScheme } from "react-native";
-
-import { HERO_COLORS } from "@/core/ui/theme";
 
 import { GoalProgressCard } from "./goal-progress-card";
 
 jest.mock("@/core/i18n/locale-store", () => ({
-  useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
+  useTranslation: () => ({
+    locale: "fr",
+    t: (key: string, options?: Record<string, unknown>) =>
+      options === undefined ? key : `${key} ${JSON.stringify(options)}`,
+  }),
 }));
 
 const progress: SavingsGoalProgress = {
@@ -33,38 +34,19 @@ const progress: SavingsGoalProgress = {
   cumulativeGap: 250,
   estimatedCompletion: null,
   initialAmount: 0,
-  months: [
-    {
-      month: 9,
-      year: 2026,
-      state: "past",
-      isLocked: true,
-      isContributionEligible: true,
-      plannedAmount: 250,
-      confirmedAmount: 125,
-      plannedCumulative: 250,
-      confirmedCumulative: 125,
-      lines: [],
-    },
-  ],
+  months: [],
   originalTargetAmount: null,
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
 };
 
-afterEach(() => jest.restoreAllMocks());
+it("says the percent and what is left on the bar", async () => {
+  const view = await render(
+    <GoalProgressCard progress={progress} status="ACTIVE" currency="CHF" />,
+  );
 
-it.each(["light", "dark"] as const)(
-  "keeps a behind goal's verdict neutral in the %s scheme",
-  async (scheme) => {
-    jest.mocked(useColorScheme).mockReturnValue(scheme);
-    const view = await render(
-      <GoalProgressCard progress={progress} currency="CHF" period={null} />,
-    );
-
-    expect(view.getByText("goals.progress.pace.behind")).toHaveStyle({
-      color: HERO_COLORS[scheme].ink,
-    });
-  },
-);
+  expect(view.getByText("25 %")).toBeTruthy();
+  expect(view.getByText(/goals\.hero\.left/)).toBeTruthy();
+  expect(view.getByText(/goals\.hero\.captionTarget/)).toBeTruthy();
+});

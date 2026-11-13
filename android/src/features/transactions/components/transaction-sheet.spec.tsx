@@ -42,11 +42,50 @@ jest.mock("@/core/i18n/locale-store", () => ({
 }));
 jest.mock("@/core/ui/haptics", () => ({ hapticSuccess: jest.fn() }));
 jest.mock("@/core/ui/theme", () => ({
-  SPACING: { lg: 24, md: 16, sm: 8, xxs: 2 },
+  SPACING: { lg: 24, md: 16, sm: 8, xs: 4, xxs: 2 },
+  RADIUS: { card: 18 },
+  EMPHASIS: { disabled: 0.38 },
+  TABULAR_DIGITS: {},
+  TOUCH_TARGET: 48,
 }));
+jest.mock("@/core/ui/amount-visibility", () => ({
+  useAmountMasking: () => undefined,
+  areAmountsHidden: () => false,
+}));
+jest.mock("@/core/ui/scheme-colors", () => ({
+  useV2Colors: () => ({}),
+  useFinancialColors: () => ({}),
+}));
+jest.mock("@/core/ui/ripple", () => ({ useRipple: () => ({}) }));
+let mockDetails: { data: unknown } = { data: undefined };
+jest.mock("@/features/budgets/budget-queries", () => ({
+  useBudgetDetails: () => mockDetails,
+}));
+jest.mock("@/core/ui/segmented-picker", () => {
+  const { Pressable, Text, View } = jest.requireActual("react-native");
+  return {
+    SegmentedPicker: ({
+      buttons,
+      onValueChange,
+    }: {
+      buttons: { label: string; value: string }[];
+      onValueChange: (value: string) => void;
+    }) => (
+      <View>
+        {buttons.map((button) => (
+          <Pressable
+            key={button.value}
+            onPress={() => onValueChange(button.value)}
+          >
+            <Text>{button.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    ),
+  };
+});
 jest.mock("react-native-paper", () => {
-  const { Pressable, Text, TextInput, View } =
-    jest.requireActual("react-native");
+  const { Pressable, Text, TextInput } = jest.requireActual("react-native");
   return {
     ActivityIndicator: () => <Text>loading</Text>,
     Button: ({
@@ -70,24 +109,6 @@ jest.mock("react-native-paper", () => {
     ),
     HelperText: ({ children }: { children: React.ReactNode }) => (
       <Text>{children}</Text>
-    ),
-    SegmentedButtons: ({
-      buttons,
-      onValueChange,
-    }: {
-      buttons: { label: string; value: string }[];
-      onValueChange: (value: string) => void;
-    }) => (
-      <View>
-        {buttons.map((button) => (
-          <Pressable
-            key={button.value}
-            onPress={() => onValueChange(button.value)}
-          >
-            <Text>{button.label}</Text>
-          </Pressable>
-        ))}
-      </View>
     ),
     Switch: ({
       value,
@@ -212,11 +233,22 @@ jest.mock("@/core/ui/filter-chip", () => {
     FilterChip: ({
       children,
       onPress,
+      disabled,
+      selected,
+      testID,
     }: {
       children: React.ReactNode;
       onPress: () => void;
+      disabled?: boolean;
+      selected?: boolean;
+      testID?: string;
     }) => (
-      <Pressable onPress={onPress}>
+      <Pressable
+        testID={testID}
+        onPress={onPress}
+        disabled={disabled}
+        accessibilityState={{ selected: selected === true }}
+      >
         <Text>{children}</Text>
       </Pressable>
     ),
@@ -258,6 +290,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   Object.assign(mockCreate, { isPending: false, isError: false });
   Object.assign(mockUpdate, { isPending: false, isError: false });
+  mockDetails = { data: undefined };
   mockWithdrawalOptions.data = [
     { goalId: "goal-1", name: "Voyage", availableAmount: 300, currency: "CHF" },
   ];
@@ -281,7 +314,7 @@ it("creates the visible operation with its date and tags", async () => {
   await fireEvent.press(view.getByLabelText("select-tag"));
   await fireEvent.press(view.getByLabelText("budgets.mutations.activity.date"));
   await fireEvent.press(view.getByText("select-date"));
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   expect(mockCreate.mutate).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -315,8 +348,8 @@ it("replays the same id on a retry, and a new one for the next operation", async
   // the same id lets the server tell it from a second operation.
   const view = await render(<TransactionSheet {...baseProps} />);
   await fill(view);
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   const ids = mockCreate.mutate.mock.calls.map(
     ([payload]) => (payload as { id: string }).id,
@@ -332,7 +365,7 @@ it("replays the same id on a retry, and a new one for the next operation", async
   };
   await act(() => callbacks.onSuccess());
   await fill(view);
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   const next = mockCreate.mutate.mock.calls[2][0] as { id: string };
   expect(next.id).not.toBe(ids[0]);
@@ -343,7 +376,9 @@ it("locks every creation field at submission and explains the unchanged retry", 
   try {
     const view = await render(<TransactionSheet {...baseProps} />);
     await fill(view, 120, "First values");
-    await fireEvent.press(view.getByText("budgets.mutations.add"));
+    await fireEvent.press(
+      view.getByText("budgets.mutations.activity.addAmount"),
+    );
     const firstPayload = mockCreate.mutate.mock.calls[0][0];
 
     // Before the request settles, neither the active keyboard nor a chip,
@@ -374,7 +409,7 @@ it("locks every creation field at submission and explains the unchanged retry", 
 it("refreshes the budget when an unconfirmed operation is abandoned", async () => {
   const view = await render(<TransactionSheet {...baseProps} />);
   await fill(view, 120, "Maybe saved");
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   mockCreate.isError = true;
   await view.rerender(<TransactionSheet {...baseProps} />);
@@ -406,7 +441,7 @@ async function failAttempt(index: number, error: Error) {
 it("reopens the form, same id, when a refusal is known to have saved nothing", async () => {
   const view = await render(<TransactionSheet {...baseProps} />);
   await fill(view, 120, "Too much");
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
   const first = mockCreate.mutate.mock.calls[0][0];
 
   const refusal = new Error("refused");
@@ -423,7 +458,7 @@ it("reopens the form, same id, when a refusal is known to have saved nothing", a
   );
 
   await fireEvent.press(view.getByLabelText("set-amount-500"));
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   expect(mockCreate.mutate.mock.calls[1][0]).toEqual(
     expect.objectContaining({ id: first.id, amount: 500, name: "Too much" }),
@@ -433,7 +468,7 @@ it("reopens the form, same id, when a refusal is known to have saved nothing", a
 it("keeps the submitted values once an attempt's answer was lost", async () => {
   const view = await render(<TransactionSheet {...baseProps} />);
   await fill(view, 120, "Maybe landed");
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   await failAttempt(0, new Error("network"));
   await view.rerender(<TransactionSheet {...baseProps} />);
@@ -460,7 +495,7 @@ it("retries submitted withdrawals even if refreshed options now show a smaller b
     view.getByLabelText("budgets.mutations.activity.originAccessibility"),
   );
   await fireEvent.press(view.getByText(/Voyage/));
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
   const firstPayload = mockCreate.mutate.mock.calls[0][0];
 
   mockCreate.isError = true;
@@ -490,7 +525,9 @@ it("dates a new operation inside its budget, and offers no other day", async () 
       view.getByLabelText("budgets.mutations.activity.date"),
     );
     expect(view.getByText("bounds:25-24")).toBeTruthy();
-    await fireEvent.press(view.getByText("budgets.mutations.add"));
+    await fireEvent.press(
+      view.getByText("budgets.mutations.activity.addAmount"),
+    );
 
     const { transactionDate } = mockCreate.mutate.mock.calls[0][0] as {
       transactionDate: string;
@@ -511,7 +548,7 @@ it("takes a quick amount in one tap", async () => {
     view.getByLabelText("budgets.mutations.description"),
     "Café",
   );
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   expect(mockCreate.mutate).toHaveBeenCalledWith(
     expect.objectContaining({ name: "Café", amount: 15 }),
@@ -534,7 +571,7 @@ it("requires a savings origin and refuses an excessive withdrawal", async () => 
   expect(mockCreate.mutate).not.toHaveBeenCalled();
 
   await fireEvent.press(view.getByLabelText("set-amount-120"));
-  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
   expect(mockCreate.mutate).toHaveBeenCalledWith(
     expect.objectContaining({
       kind: "income",
@@ -589,4 +626,94 @@ it("blocks dismissal while pending and preserves input on error", async () => {
   );
   expect(baseProps.onDismiss).not.toHaveBeenCalled();
   expect(mockCreate.mutate).not.toHaveBeenCalled();
+});
+
+describe("« C'était prévu dans ton budget ? »", () => {
+  beforeEach(() => {
+    mockDetails = {
+      data: {
+        budget: { rollover: 0 },
+        transactions: [],
+        budgetLines: [
+          {
+            id: "line-1",
+            name: "Loyer",
+            kind: "expense",
+            amount: 500,
+            checkedAt: null,
+          },
+        ],
+      },
+    };
+  });
+
+  function createdPayload() {
+    return mockCreate.mutate.mock.calls[0][0] as { budgetLineId?: string };
+  }
+
+  it("files the movement as an imprévu until a prévision is picked", async () => {
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view);
+
+    expect(
+      view.getByTestId("movement-unplanned").props.accessibilityState,
+    ).toMatchObject({ selected: true });
+    expect(
+      view.getByText("budgets.mutations.activity.impact.down"),
+    ).toBeTruthy();
+    await fireEvent.press(
+      view.getByText("budgets.mutations.activity.addAmount"),
+    );
+
+    expect(createdPayload().budgetLineId).toBeUndefined();
+  });
+
+  it("files it under the suggested prévision once picked, and covers the impact", async () => {
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view);
+    await fireEvent.press(view.getByText(/^Loyer · /));
+
+    expect(
+      view.getByText("budgets.mutations.activity.impact.neutral"),
+    ).toBeTruthy();
+    await fireEvent.press(
+      view.getByText("budgets.mutations.activity.addAmount"),
+    );
+
+    expect(createdPayload().budgetLineId).toBe("line-1");
+  });
+
+  it("opens the picker from « Autre » and files under the chosen prévision", async () => {
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view);
+    await fireEvent.press(view.getByTestId("movement-other-line"));
+    await fireEvent.press(view.getByText("Loyer"));
+    await fireEvent.press(
+      view.getByText("budgets.mutations.activity.addAmount"),
+    );
+
+    expect(createdPayload().budgetLineId).toBe("line-1");
+  });
+
+  it("locks the answer when editing", async () => {
+    const transaction = {
+      id: "tx-1",
+      name: "Loyer",
+      amount: 120,
+      kind: "expense",
+      budgetId: "budget-1",
+      budgetLineId: "line-1",
+      transactionDate: "2026-09-10T10:00:00.000Z",
+      checkedAt: null,
+      tagIds: [],
+    } as unknown as Transaction;
+    const view = await render(
+      <TransactionSheet {...baseProps} transaction={transaction} />,
+    );
+
+    expect(
+      view.getByTestId("movement-unplanned").props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+    expect(view.queryByTestId("movement-other-line")).toBeNull();
+  });
 });

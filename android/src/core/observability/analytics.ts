@@ -2,7 +2,11 @@ import * as Application from "expo-application";
 import type { User } from "@supabase/supabase-js";
 import { useSegments } from "expo-router";
 import { PostHog } from "posthog-react-native";
-import { ANALYTICS_PROPERTIES, type AnalyticsEventName } from "pulpe-shared";
+import {
+  ANALYTICS_EVENTS,
+  ANALYTICS_PROPERTIES,
+  type AnalyticsEventName,
+} from "pulpe-shared";
 import { useEffect } from "react";
 
 import { useSessionStore } from "@/core/auth/session-store";
@@ -22,6 +26,11 @@ import {
 let client: PostHog | null = null;
 let identifiedUserId: string | null = null;
 let identitySignature: string | null = null;
+
+/** The running client, for feature flags; null wherever analytics is off. */
+export function getAnalyticsClient(): PostHog | null {
+  return client;
+}
 
 /**
  * Which app is reporting, on every event. Without it an Android event is
@@ -124,6 +133,7 @@ export function startAnalytics(): () => void {
     // Registered once so every manual event carries the same app identity.
     void client.register(appContextProperties());
     setApiErrorCapture(captureException);
+    captureEvent(ANALYTICS_EVENTS.APP_OPENED);
   }
 
   syncIdentity();

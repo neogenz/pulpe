@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import type { SavingsGoal, SupportedCurrency } from "pulpe-shared";
+import { isContributivePlanMonth, type SupportedCurrency } from "pulpe-shared";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Menu, useTheme } from "react-native-paper";
@@ -18,31 +18,46 @@ import { SectionHeader } from "@/core/ui/section-header";
 import { useHeroColors } from "@/core/ui/scheme-colors";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
-import { formatIsoDate } from "@/core/ui/date-format";
+import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
 import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
-import { GoalContributions } from "@/features/savings-goals/components/goal-contributions";
 import { GoalDeletionSheet } from "@/features/savings-goals/components/goal-deletion-sheet";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
 import { GoalGenerationStopSheet } from "@/features/savings-goals/components/goal-generation-stop-sheet";
-import { GoalPlanTimeline } from "@/features/savings-goals/components/goal-plan-timeline";
+import { GoalThisMonth } from "@/features/savings-goals/components/goal-this-month";
+import { GoalUpcoming } from "@/features/savings-goals/components/goal-upcoming";
 import { GoalProgressCard } from "@/features/savings-goals/components/goal-progress-card";
 import { GoalProjectionChart } from "@/features/savings-goals/components/goal-projection-chart";
 import { GoalStateCards } from "@/features/savings-goals/components/goal-state-cards";
-import { GoalWithdrawals } from "@/features/savings-goals/components/goal-withdrawals";
+import { GoalPlanApplyRecap } from "@/features/savings-goals/components/simulator/goal-plan-apply-recap";
 import { GoalPlanSimulatorSheet } from "@/features/savings-goals/components/simulator/goal-plan-simulator-sheet";
 import {
   goalKeys,
   useSavingsGoal,
-  useSavingsGoalContributions,
   useSavingsGoalFutureLines,
   useSavingsGoalProgress,
+  useApplySavingsGoalPlan,
   useSavingsGoalWithdrawals,
   useUpdateSavingsGoal,
 } from "@/features/savings-goals/goals-queries";
+import {
+  goalHero,
+  goalHistory,
+  historySummary,
+  monthRuns,
+  planTitle,
+  repairTitle,
+  thisMonth,
+  upcomingItems,
+} from "@/features/savings-goals/goal-presentation";
+import {
+  buildPlanApply,
+  canRepairPlan,
+  repairChanges,
+} from "@/features/savings-goals/plan-simulator";
 import { projectionSeries } from "@/features/savings-goals/projection-series";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
@@ -64,15 +79,16 @@ export default function GoalDetailScreen() {
   const settings = useUserSettings();
   const goal = useSavingsGoal(id);
   const progress = useSavingsGoalProgress(id);
-  const contributions = useSavingsGoalContributions(id);
   const withdrawals = useSavingsGoalWithdrawals(id);
   const futureLines = useSavingsGoalFutureLines(id);
   const update = useUpdateSavingsGoal();
+  const repair = useApplySavingsGoalPlan();
   const [isEditVisible, setEditVisible] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [isDeleteVisible, setDeleteVisible] = useState(false);
   const [isStopVisible, setStopVisible] = useState(false);
   const [isSimulatorVisible, setSimulatorVisible] = useState(false);
+  const [isRepairVisible, setRepairVisible] = useState(false);
   // A status change that did not happen has to say so: the button only
   // re-enabled, and nothing on the screen moved.
   const [hasStatusFailed, setStatusFailed] = useState(false);
@@ -175,18 +191,65 @@ export default function GoalDetailScreen() {
     );
   }
 
+  /** Pausing asks the same second question as completing. */
+  function pause() {
+    update.mutate(
+      { goalId: id, changes: { status: "PAUSED" } },
+      {
+        onSuccess: () => setStopVisible(lines.length > 0),
+        onError: () => setStatusFailed(true),
+      },
+    );
+  }
+
+  function resume() {
+    update.mutate(
+      { goalId: id, changes: { status: "ACTIVE" } },
+      { onError: () => setStatusFailed(true) },
+    );
+  }
+
+  const words = { t, locale, currency };
+  const status = goal.data.status;
+  const runs = monthRuns(progress.data?.months ?? [], words);
+  const nextPlanTitle = planTitle(runs, words);
+  const canAdjust =
+    progress.data !== undefined &&
+    areFutureLinesReady &&
+    status === "ACTIVE" &&
+    progress.data.linkedLineCount > 0 &&
+    progress.data.months.some(isContributivePlanMonth);
+  const canRepair =
+    progress.data !== undefined &&
+    nextPlanTitle !== null &&
+    canRepairPlan(progress.data);
+  let plan = null;
+  if (progress.data !== undefined && canAdjust) {
+    plan = {
+      title: nextPlanTitle ?? t("goals.detail.plan.adjust"),
+      explainsChoice: nextPlanTitle !== null,
+      onPress: () => setSimulatorVisible(true),
+    };
+  } else if (progress.data !== undefined && canRepair) {
+    plan = {
+      title: repairTitle(progress.data.months, words) ?? nextPlanTitle,
+      explainsChoice: true,
+      onPress: () => setRepairVisible(true),
+    };
+  }
+  const summary =
+    progress.data === undefined ? null : goalHero(progress.data, status, words);
+  const history =
+    progress.data === undefined
+      ? null
+      : goalHistory(progress.data, withdrawals.data?.data ?? [], payDayOfMonth);
+
   return (
     <SafeAreaView
       edges={["bottom"]}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
       <HeroAppBar title={goal.data.name} onBack={() => router.back()}>
-        <HeroAppBarAction
-          icon="pencil-outline"
-          onPress={() => setEditVisible(true)}
-          disabled={!areFutureLinesReady}
-          accessibilityLabel={t("goals.form.editTitle")}
-        />
         <Menu
           visible={isMenuVisible}
           onDismiss={() => setMenuVisible(false)}
@@ -198,6 +261,31 @@ export default function GoalDetailScreen() {
             />
           }
         >
+          <Menu.Item
+            leadingIcon="pencil-outline"
+            title={t("goals.form.editTitle")}
+            disabled={!areFutureLinesReady}
+            onPress={() => {
+              setMenuVisible(false);
+              setEditVisible(true);
+            }}
+          />
+          {status !== "COMPLETED" && (
+            <Menu.Item
+              leadingIcon={status === "ACTIVE" ? "pause" : "play"}
+              title={t(
+                status === "ACTIVE"
+                  ? "goals.detail.menu.pause"
+                  : "goals.detail.menu.resume",
+              )}
+              disabled={update.isPending}
+              onPress={() => {
+                setMenuVisible(false);
+                if (status === "ACTIVE") pause();
+                else resume();
+              }}
+            />
+          )}
           <Menu.Item
             leadingIcon="delete-outline"
             title={t("goals.detail.delete")}
@@ -217,8 +305,8 @@ export default function GoalDetailScreen() {
           {progress.data !== undefined && (
             <GoalProgressCard
               progress={progress.data}
+              status={status}
               currency={currency}
-              period={goalPeriod(goal.data, locale, t)}
             />
           )}
         </HeroZone>
@@ -261,45 +349,37 @@ export default function GoalDetailScreen() {
           )}
 
           {progress.data !== undefined && (
-            <GoalPlanTimeline
-              months={progress.data.months}
-              currency={currency}
-              onAdjust={
-                goal.data.status === "ACTIVE" && areFutureLinesReady
-                  ? () => setSimulatorVisible(true)
-                  : undefined
+            <GoalThisMonth
+              month={thisMonth(progress.data.months, status, words)}
+              sentence={
+                status === "ACTIVE" ? (summary?.sentence ?? null) : null
               }
+              plan={plan}
             />
           )}
 
-          {withdrawals.data !== undefined && (
-            <GoalWithdrawals
-              realized={withdrawals.data.data}
-              planned={withdrawals.data.planned}
-              planOnly={withdrawals.data.planOnly}
+          {progress.data !== undefined && (
+            <GoalUpcoming
+              items={upcomingItems(
+                runs,
+                withdrawals.data?.planned ?? [],
+                withdrawals.data?.planOnly ?? [],
+                words,
+              )}
               currency={currency}
-            />
-          )}
-
-          {withdrawals.isError && (
-            <InlineQueryError
-              message={t("goals.withdrawals.loadError")}
+              hasWithdrawalsFailed={withdrawals.isError}
               onRetry={() => void withdrawals.refetch()}
             />
           )}
 
-          {contributions.data !== undefined && (
-            <GoalContributions
-              contributions={contributions.data}
-              currency={currency}
-            />
-          )}
-
-          {contributions.isError && (
-            <InlineQueryError
-              message={t("goals.contributions.loadError")}
-              onRetry={() => void contributions.refetch()}
-            />
+          {history !== null && history.months.length > 0 && (
+            <LedgerCard>
+              <LedgerRow
+                title={t("goals.detail.history")}
+                subtitle={historySummary(history, words)}
+                onPress={() => router.push(`/goal/${id}/history`)}
+              />
+            </LedgerCard>
           )}
         </ContentZone>
       </ScrollView>
@@ -348,6 +428,28 @@ export default function GoalDetailScreen() {
         />
       )}
 
+      {progress.data !== undefined && (
+        <GoalPlanApplyRecap
+          isVisible={isRepairVisible}
+          onDismiss={() => {
+            repair.reset();
+            setRepairVisible(false);
+          }}
+          changes={repairChanges(progress.data)}
+          currency={currency}
+          isApplying={repair.isPending}
+          hasFailed={repair.isError}
+          onConfirm={() => {
+            const planToApply = buildPlanApply(repairChanges(progress.data));
+            if (planToApply === null) return;
+            repair.mutate(
+              { goalId: id, plan: planToApply },
+              { onSuccess: () => setRepairVisible(false) },
+            );
+          }}
+        />
+      )}
+
       <GoalDeletionSheet
         isVisible={isDeleteVisible}
         onDismiss={() => setDeleteVisible(false)}
@@ -360,28 +462,6 @@ export default function GoalDetailScreen() {
       />
     </SafeAreaView>
   );
-}
-
-/** The span a goal runs over, or its deadline, or when it started. */
-function goalPeriod(
-  goal: SavingsGoal,
-  locale: string,
-  t: ReturnType<typeof useTranslation>["t"],
-): string | null {
-  if (goal.startDate !== null && goal.targetDate !== null) {
-    return `${formatIsoDate(goal.startDate, locale)} → ${formatIsoDate(goal.targetDate, locale)}`;
-  }
-  if (goal.targetDate !== null) {
-    return t("goals.detail.deadline", {
-      date: formatIsoDate(goal.targetDate, locale),
-    });
-  }
-  if (goal.startDate !== null) {
-    return t("goals.list.since", {
-      date: formatIsoDate(goal.startDate, locale),
-    });
-  }
-  return null;
 }
 
 const styles = StyleSheet.create({

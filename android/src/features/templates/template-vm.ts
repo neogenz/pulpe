@@ -56,3 +56,21 @@ export function propagationBudgetCount(
 export function canCreateTemplate(templateCount: number): boolean {
   return templateCount < MAX_TEMPLATES;
 }
+
+/**
+ * The current period when its budget was built from this model, so the
+ * propagation step can speak of « novembre » rather than « tes mois déjà
+ * créés ». Null when the month does not follow the model.
+ */
+export function propagationCurrentPeriod(
+  usage: TemplateUsage,
+  payDayOfMonth: number | null | undefined,
+  now = new Date(),
+): { month: number; year: number } | null {
+  const current = getBudgetPeriodForDate(now, payDayOfMonth);
+  return usage.budgets.some(
+    (budget) => compareBudgetPeriods(budget, current) === 0,
+  )
+    ? current
+    : null;
+}

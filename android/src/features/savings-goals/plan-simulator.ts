@@ -170,3 +170,43 @@ export function planVerdict(
   }
   return { kind: "attained", ...result.attainedPeriod };
 }
+
+/** What a repair puts in each month it fills: the pace the goal still asks for. */
+export function repairAmount(progress: SavingsGoalProgress): number | null {
+  if (progress.required === null) return null;
+  const amount = Math.ceil(progress.required * 100) / 100;
+  return amount > 0 ? amount : null;
+}
+
+function repairableTimeline(
+  progress: SavingsGoalProgress,
+): SavingsPlanTimelineMonth[] {
+  return progress.months.filter(
+    (month) => month.hasBudget === true && month.isProvisionable === true,
+  );
+}
+
+/** An active goal that still asks for money, with a month a forecast can be created in. */
+export function canRepairPlan(progress: SavingsGoalProgress): boolean {
+  return (
+    progress.status === "ACTIVE" &&
+    repairAmount(progress) !== null &&
+    repairableTimeline(progress).length > 0
+  );
+}
+
+/**
+ * The forecasts a repair would create, as the months the apply recap lists.
+ * Goes through the same simulation as the plan editor, so the recap and the
+ * write cannot disagree.
+ */
+export function repairChanges(
+  progress: SavingsGoalProgress,
+): SavingsPlanSimulatedMonth[] {
+  const amount = repairAmount(progress);
+  if (amount === null) return [];
+  const overrides = Object.fromEntries(
+    repairableTimeline(progress).map((month) => [monthKey(month), amount]),
+  );
+  return planChanges(simulatePlan(progress.months, progress, overrides));
+}

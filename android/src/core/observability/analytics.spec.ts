@@ -7,6 +7,7 @@ const mockClient = {
   optIn: jest.fn(),
   optOut: jest.fn(),
   captureException: jest.fn(),
+  capture: jest.fn(),
 };
 const mockPostHog = jest.fn(() => mockClient);
 const mockStopListening = jest.fn();
@@ -119,6 +120,7 @@ describe("PostHog startup", () => {
       build_number: "42",
       locale: "de",
     });
+    expect(mockClient.capture).toHaveBeenCalledWith("app_opened", {});
     stop();
     expect(mockStopListening).toHaveBeenCalledTimes(1);
     expect(mockStopSessionListening).toHaveBeenCalledTimes(1);

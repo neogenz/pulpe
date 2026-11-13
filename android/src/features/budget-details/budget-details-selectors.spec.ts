@@ -1,6 +1,7 @@
 import type { BudgetLine, Transaction, TransactionKind } from "pulpe-shared";
 
 import {
+  checkedCounts,
   DEFAULT_FILTERS,
   detailsSections,
   freeTransactions,
@@ -147,69 +148,76 @@ describe("detailsSections", () => {
 });
 
 describe("line amounts", () => {
-  it("shows an untouched expense as planned", () => {
+  it("prints the planned amount of an untouched expense, with no subtitle", () => {
     const item = firstItem([line("loyer", "expense", 1650)], []);
 
-    expect(item?.displayAmount).toBe(1650);
-    expect(item?.amountSuffix).toEqual({ kind: "planned" });
+    expect(item?.shownAmount).toBe(1650);
+    expect(item?.consumed).toBeNull();
   });
 
-  it("shows a partly spent expense as what is left", () => {
+  it("says what is left of a partly spent expense", () => {
     const item = firstItem(
       [line("courses", "expense", 600)],
       [transaction("t1", 412, { budgetLineId: "courses" })],
     );
 
-    expect(item?.displayAmount).toBe(188);
-    expect(item?.amountSuffix).toEqual({ kind: "remaining", amount: 600 });
-    expect(item?.accent).toBe("warning");
+    expect(item?.shownAmount).toBe(600);
+    expect(item?.consumed).toEqual({ kind: "remaining", amount: 188 });
   });
 
-  it("shows an overrun expense as the overshoot", () => {
+  it("prints what was spent, and the overshoot, on an overrun", () => {
     const item = firstItem(
       [line("courses", "expense", 600)],
       [transaction("t1", 700, { budgetLineId: "courses" })],
     );
 
-    expect(item?.displayAmount).toBe(100);
-    expect(item?.amountSuffix).toEqual({ kind: "overrun" });
-    expect(item?.statusLabel).toEqual({ kind: "overBudget" });
-    expect(item?.accent).toBe("overBudget");
+    expect(item?.shownAmount).toBe(700);
+    expect(item?.consumed).toEqual({ kind: "overrun", amount: 100 });
+    expect(item?.isOverBudget).toBe(true);
   });
 
-  it("shows a partial income as what has landed, against the plan", () => {
+  it("has no consumption subtitle on an income", () => {
     const item = firstItem(
       [line("salaire", "income", 4500)],
       [transaction("t1", 3000, { budgetLineId: "salaire", kind: "income" })],
     );
 
-    expect(item?.displayAmount).toBe(3000);
-    expect(item?.amountSuffix).toEqual({ kind: "plannedTotal", amount: 4500 });
-    expect(item?.statusLabel).toEqual({ kind: "toReceive", amount: 1500 });
+    expect(item?.shownAmount).toBe(4500);
+    expect(item?.consumed).toBeNull();
+    expect(item?.isOverBudget).toBe(false);
+  });
+});
+
+describe("over filter", () => {
+  const lines = [
+    line("courses", "expense", 100),
+    line("loyer", "expense", 1000),
+    line("salaire", "income", 100),
+  ];
+  const transactions = [
+    transaction("t1", 130, { budgetLineId: "courses" }),
+    transaction("t2", 500, { budgetLineId: "salaire", kind: "income" }),
+    transaction("free", 40),
+  ];
+
+  it("keeps the expenses that went past their plan, and no loose movement", () => {
+    const filter = filters({ checked: "over" });
+
+    expect(
+      detailsSections(lines, transactions, filter).flatMap((section) =>
+        section.items.map((item) => item.line.id),
+      ),
+    ).toEqual(["courses"]);
+    expect(freeTransactions(transactions, filter)).toEqual([]);
   });
 
-  it("says nothing under a pointed line", () => {
-    const item = firstItem(
-      [
-        line("salaire", "income", 4500, {
-          checkedAt: "2026-08-06T00:00:00.000Z",
-        }),
-      ],
-      [],
-    );
-
-    expect(item?.statusLabel).toBeNull();
-  });
-
-  // Over-received income is good news, not the red an overrun expense earns.
-  it("keeps the income ink past plan", () => {
-    const item = firstItem(
-      [line("salaire", "income", 4500)],
-      [transaction("t1", 5000, { budgetLineId: "salaire", kind: "income" })],
-    );
-
-    expect(item?.accent).toBe("income");
-    expect(item?.statusLabel).toEqual({ kind: "received" });
+  it("counts each state chip against the kind in force", () => {
+    expect(checkedCounts(lines, transactions, "all")).toEqual({
+      unchecked: 3,
+      all: 3,
+      over: 1,
+    });
+    expect(checkedCounts(lines, transactions, "income").over).toBe(0);
   });
 });
 
@@ -274,12 +282,12 @@ describe("kindCounts", () => {
       line("c", "income", 200),
     ];
 
-    expect(kindCounts(lines, "unchecked")).toEqual({
+    expect(kindCounts(lines, [], "unchecked")).toEqual({
       all: 2,
       income: 1,
       saving: 0,
       expense: 1,
     });
-    expect(kindCounts(lines, "all").all).toBe(3);
+    expect(kindCounts(lines, [], "all").all).toBe(3);
   });
 });

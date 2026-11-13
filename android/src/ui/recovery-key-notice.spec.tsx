@@ -5,6 +5,12 @@ import { RecoveryKeyNotice } from "./recovery-key-notice";
 
 let mockClipboard = "";
 
+jest.mock("@/core/observability/product-events", () => ({
+  captureLogoutCompleted: jest.fn(),
+  capturePinChanged: jest.fn(),
+  capturePinEntered: jest.fn(),
+  captureRecoveryKeyAcknowledged: jest.fn(),
+}));
 jest.mock("expo-clipboard", () => ({
   getStringAsync: async () => mockClipboard,
   setStringAsync: async (text: string) => {

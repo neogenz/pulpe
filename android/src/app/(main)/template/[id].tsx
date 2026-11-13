@@ -4,7 +4,7 @@ import {
   type SupportedCurrency,
   type TemplateLine,
 } from "pulpe-shared";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -21,22 +21,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { ActionButton } from "@/core/ui/action-button";
-import { IconDisc } from "@/core/ui/icon-disc";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
+import { Notice } from "@/core/ui/notice";
 import { SectionHeader } from "@/core/ui/section-header";
-import { StateChip } from "@/core/ui/state-chip";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useAmountMasking } from "@/core/ui/amount-visibility";
-import { formatCompactCurrency } from "@/core/ui/amount-format";
-import { formatMonthLabel } from "@/core/ui/date-format";
+import { formatCurrency } from "@/core/ui/amount-format";
+import { formatMonthLabel, formatMonthName } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
 import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { FieldError } from "@/core/ui/field-error";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { Amount } from "@/core/ui/amount";
-import { SPACING } from "@/core/ui/theme";
+import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { useNow } from "@/features/current-month/current-month-queries";
@@ -50,7 +49,11 @@ import {
   useTemplateLines,
   useTemplateUsage,
 } from "@/features/templates/template-queries";
-import { propagationBudgetCount } from "@/features/templates/template-vm";
+import {
+  propagationBudgetCount,
+  propagationCurrentPeriod,
+} from "@/features/templates/template-vm";
+import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 
@@ -78,6 +81,12 @@ export default function TemplateDetailScreen() {
     return lines.refetch();
   });
   const usage = useTemplateUsage(id);
+  const goals = useSavingsGoals();
+  const goalIds = useMemo(
+    () => new Set((goals.data ?? []).map((goal) => goal.id)),
+    [goals.data],
+  );
+  const [toast, setToast] = useState<string | null>(null);
   const removeLine = useDeleteTemplateLine();
   const removeTemplate = useDeleteTemplate();
   const [isMenuVisible, setMenuVisible] = useState(false);
@@ -136,10 +145,41 @@ export default function TemplateDetailScreen() {
 
   const list = lines.data ?? [];
   const totals = BudgetFormulas.calculateTemplateTotals(list);
+  const financialOverBudget = financial.overBudget;
   const isUsageReady = usage.data !== undefined && !usage.isError;
   const propagationCount = isUsageReady
     ? propagationBudgetCount(usage.data, settings.data?.payDayOfMonth, now)
     : 0;
+  const currentPeriod = isUsageReady
+    ? propagationCurrentPeriod(usage.data, settings.data?.payDayOfMonth, now)
+    : null;
+  const propagationMonth =
+    currentPeriod === null
+      ? null
+      : formatMonthName(currentPeriod.month, currentPeriod.year, locale);
+  const usedBudgetCount = isUsageReady ? usage.data.budgets.length : null;
+  const subtitle = [
+    template.data.isDefault === true
+      ? t("templates.detail.defaultLabel")
+      : null,
+    template.data.isDefault !== true && (template.data.description ?? "") !== ""
+      ? template.data.description
+      : null,
+    usedBudgetCount === null
+      ? null
+      : usedBudgetCount === 0
+        ? t("templates.detail.neverUsed")
+        : t("templates.detail.usedFor", { count: usedBudgetCount }),
+  ]
+    .filter((part) => part !== null)
+    .join(" · ");
+  const savedLine = (updatedBudgets: number) => {
+    setToast(
+      updatedBudgets > 0
+        ? t("templates.lines.updated", { count: updatedBudgets })
+        : t("templates.lines.updatedTemplateOnly"),
+    );
+  };
 
   function dismissLineDeletion() {
     if (removeLine.isPending) return;
@@ -183,14 +223,6 @@ export default function TemplateDetailScreen() {
               setRenaming(true);
             }}
           />
-          <Menu.Item
-            leadingIcon="delete-outline"
-            title={t("templates.detail.delete")}
-            onPress={() => {
-              setMenuVisible(false);
-              setDeletingTemplate(true);
-            }}
-          />
         </Menu>
       </ScreenAppBar>
 
@@ -198,55 +230,38 @@ export default function TemplateDetailScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl {...pull} />}
       >
-        {(template.data.isDefault === true ||
-          (template.data.description !== undefined &&
-            template.data.description.length > 0)) && (
-          <View style={styles.identity}>
-            {template.data.description !== undefined &&
-              template.data.description.length > 0 && (
-                <Text
-                  variant="bodyLarge"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {template.data.description}
-                </Text>
-              )}
-            {template.data.isDefault === true && (
-              <StateChip tint={financial.savings} icon="check-circle">
-                {t("templates.form.default")}
-              </StateChip>
-            )}
-          </View>
+        {subtitle !== "" && (
+          <Text
+            variant="bodyLarge"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {subtitle}
+          </Text>
         )}
 
-        <View style={styles.section}>
-          <SectionHeader title={t("templates.detail.summary")} />
-          <LedgerCard>
-            <TotalRow
-              icon="arrow-down"
-              tint={financial.income}
-              label={t("templates.detail.income")}
-              amount={totals.totalIncome}
-              currency={currency}
-            />
-            <TotalRow
-              icon="arrow-up"
-              tint={financial.expense}
-              label={t("templates.detail.outgoing")}
-              amount={totals.totalExpenses}
-              currency={currency}
-            />
-            <TotalRow
-              icon="scale-balance"
-              tint={
-                totals.balance < 0 ? financial.overBudget : financial.savings
-              }
-              label={t("templates.detail.balance")}
-              amount={totals.balance}
-              currency={currency}
-              isEmphasised
-            />
-          </LedgerCard>
+        <View style={[styles.hero, { backgroundColor: theme.colors.surface }]}>
+          <Text
+            variant="labelLarge"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("templates.detail.heroLabel")}
+          </Text>
+          <Amount
+            size="hero"
+            style={
+              totals.balance < 0 ? { color: financialOverBudget } : undefined
+            }
+          >
+            {formatCurrency(totals.balance, currency)}
+          </Amount>
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("templates.detail.heroSentence", {
+              income: formatCurrency(totals.totalIncome, currency),
+            })}
+          </Text>
         </View>
 
         {list.length === 0 ? (
@@ -264,6 +279,7 @@ export default function TemplateDetailScreen() {
             <TemplateLines
               lines={list}
               currency={currency}
+              goalIds={goalIds}
               isDeleting={removeLine.isPending || !isUsageReady}
               onEdit={isUsageReady ? setEditedLine : () => undefined}
               onDelete={isUsageReady ? setDeletedLine : () => undefined}
@@ -318,7 +334,39 @@ export default function TemplateDetailScreen() {
             </Text>
           </View>
         )}
+
+        <View style={styles.section}>
+          <SectionHeader title={t("templates.detail.deleteSection")} />
+          <LedgerCard>
+            <LedgerRow
+              title={t("templates.detail.delete")}
+              subtitle={
+                usedBudgetCount === null
+                  ? t("templates.detail.deleteChecking")
+                  : usedBudgetCount === 0
+                    ? t("templates.detail.deleteFree")
+                    : t("templates.detail.deleteBlocked", {
+                        count: usedBudgetCount,
+                      })
+              }
+              isPending={usedBudgetCount !== 0}
+              onPress={
+                usedBudgetCount === 0
+                  ? () => setDeletingTemplate(true)
+                  : undefined
+              }
+            />
+          </LedgerCard>
+        </View>
       </ScrollView>
+
+      <Notice
+        visible={toast !== null}
+        onDismiss={() => setToast(null)}
+        duration={4000}
+      >
+        {toast}
+      </Notice>
 
       {/* Mounted only while open: each sheet seeds its fields once, so one kept
           alive would reopen on the last thing that was typed into it. */}
@@ -337,7 +385,9 @@ export default function TemplateDetailScreen() {
           onDismiss={() => setAdding(false)}
           templateId={id}
           currency={currency}
+          templateName={template.data.name}
           propagationCount={propagationCount}
+          propagationMonth={propagationMonth}
           onSaved={() => setAdding(false)}
         />
       )}
@@ -348,9 +398,14 @@ export default function TemplateDetailScreen() {
           onDismiss={() => setEditedLine(null)}
           templateId={id}
           currency={currency}
+          templateName={template.data.name}
           propagationCount={propagationCount}
+          propagationMonth={propagationMonth}
           line={editedLine}
-          onSaved={() => setEditedLine(null)}
+          onSaved={(outcome) => {
+            setEditedLine(null);
+            savedLine(outcome.updatedBudgets);
+          }}
         />
       )}
 
@@ -444,42 +499,11 @@ export default function TemplateDetailScreen() {
   );
 }
 
-function TotalRow({
-  icon,
-  tint,
-  label,
-  amount,
-  currency,
-  isEmphasised = false,
-}: {
-  icon: "arrow-down" | "arrow-up" | "scale-balance";
-  tint: string;
-  label: string;
-  amount: number;
-  currency: SupportedCurrency;
-  isEmphasised?: boolean;
-}) {
-  return (
-    <LedgerRow
-      leading={<IconDisc name={icon} tint={tint} />}
-      title={label}
-      trailing={
-        <Amount
-          size={isEmphasised ? "row" : "meta"}
-          style={isEmphasised ? { color: tint } : undefined}
-        >
-          {formatCompactCurrency(amount, currency)}
-        </Amount>
-      }
-    />
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACING.md, gap: SPACING.lg, paddingBottom: SPACING.xxl },
-  identity: { gap: SPACING.sm },
+  hero: { borderRadius: RADIUS.card, padding: SPACING.lg, gap: SPACING.xs },
   sections: { gap: SPACING.lg },
   section: { gap: SPACING.sm },
   usage: { gap: SPACING.sm },

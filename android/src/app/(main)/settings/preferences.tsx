@@ -1,21 +1,8 @@
 import { router } from "expo-router";
-import {
-  LOCALE_METADATA,
-  SUPPORTED_CURRENCIES,
-  type SupportedCurrency,
-} from "pulpe-shared";
+import { LOCALE_METADATA, type SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import {
-  Appbar,
-  Button,
-  Dialog,
-  Portal,
-  SegmentedButtons,
-  Switch,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { Appbar, Switch, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
@@ -40,11 +27,10 @@ import {
   useAmountVisibility,
 } from "@/core/ui/amount-visibility";
 import { SPACING } from "@/core/ui/theme";
+import { captureReminderToggled } from "@/core/observability/product-events";
 import { Notice } from "@/core/ui/notice";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
-import { useUpdateUserSettings } from "@/features/account/account-queries";
-import { useCurrencyRate } from "@/features/account/currency-queries";
 import {
   SettingsRow,
   SettingsSection,
@@ -62,10 +48,7 @@ export default function PreferencesScreen() {
   const theme = useTheme();
   const settings = useUserSettings();
   const pull = usePullToRefresh(() => settings.refetch());
-  const update = useUpdateUserSettings();
   const { locale, t } = useTranslation();
-  const [pendingCurrency, setPendingCurrency] =
-    useState<SupportedCurrency | null>(null);
   const [areRemindersEnabled, setRemindersEnabled] =
     useState(readRemindersEnabled);
   const [notice, setNotice] = useState<string | null>(null);
@@ -77,26 +60,13 @@ export default function PreferencesScreen() {
   );
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
-  const otherCurrency =
-    SUPPORTED_CURRENCIES.find((candidate) => candidate !== currency) ??
-    currency;
-  const rate = useCurrencyRate(currency, otherCurrency);
   const payDay = settings.data?.payDayOfMonth ?? null;
-
-  function applyCurrency(next: SupportedCurrency) {
-    setPendingCurrency(null);
-    update.mutate(
-      { currency: next },
-      {
-        onError: () => setNotice(t("settings.preferences.currencySaveError")),
-      },
-    );
-  }
 
   async function applyReminders(isEnabled: boolean) {
     // Optimistic: the switch answers instantly, and a denied permission flips
     // it back rather than leaving it claiming a reminder that will not fire.
     setRemindersEnabled(isEnabled);
+    captureReminderToggled("monthly", isEnabled);
 
     if (!isEnabled) {
       writeRemindersEnabled(false);
@@ -143,44 +113,15 @@ export default function PreferencesScreen() {
           />
         </SettingsSection>
 
-        <View style={styles.section}>
-          <SettingsSectionTitle>
-            {t("settings.preferences.currencyTitle")}
-          </SettingsSectionTitle>
-          <Card mode="contained">
-            <Card.Content style={styles.card}>
-              <Text
-                variant="bodyMedium"
-                style={{ color: theme.colors.onSurfaceVariant }}
-              >
-                {t("settings.preferences.currencyDescription")}
-              </Text>
-              <SegmentedButtons
-                value={currency}
-                onValueChange={(next) =>
-                  setPendingCurrency(next as SupportedCurrency)
-                }
-                buttons={SUPPORTED_CURRENCIES.map((candidate) => ({
-                  value: candidate,
-                  label: candidate,
-                  disabled: update.isPending,
-                }))}
-              />
-              {rate.data !== undefined && (
-                <Text
-                  variant="labelMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {t("settings.preferences.currencyRate", {
-                    base: rate.data.base,
-                    rate: rate.data.rate.toFixed(RATE_DECIMALS),
-                    target: rate.data.target,
-                  })}
-                </Text>
-              )}
-            </Card.Content>
-          </Card>
-        </View>
+        <SettingsSection title={t("settings.preferences.currencyTitle")}>
+          <SettingsRow
+            icon="currency-usd"
+            title={t("settings.preferences.currencyTitle")}
+            description={t("settings.preferences.currencyDescription")}
+            value={currency}
+            onPress={() => router.push("/settings/currency")}
+          />
+        </SettingsSection>
 
         <SettingsSection title={t("settings.payDay.title")}>
           <SettingsRow
@@ -278,44 +219,12 @@ export default function PreferencesScreen() {
         </View>
       </ScrollView>
 
-      <Portal>
-        <Dialog
-          visible={pendingCurrency !== null}
-          onDismiss={() => setPendingCurrency(null)}
-        >
-          <Dialog.Title>
-            {t("settings.preferences.currencyDialogTitle")}
-          </Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">
-              {t("settings.preferences.currencyDialogDescription", {
-                currency: pendingCurrency ?? "",
-              })}
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setPendingCurrency(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onPress={() => {
-                if (pendingCurrency !== null) applyCurrency(pendingCurrency);
-              }}
-            >
-              {t("settings.preferences.currencyDialogAction")}
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-
       <Notice visible={notice !== null} onDismiss={() => setNotice(null)}>
         {notice ?? ""}
       </Notice>
     </SafeAreaView>
   );
 }
-
-const RATE_DECIMALS = 4;
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },

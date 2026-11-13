@@ -193,3 +193,27 @@ export function emotionState(state: OnboardingState): EmotionState {
     rollover: 0,
   });
 }
+
+/** The names behind one block of the preview, fixed charges first. */
+export function previewBlockNames(
+  state: OnboardingState,
+  kind: "income" | "expense" | "saving",
+): string[] {
+  const custom = state.customTransactions
+    .filter((transaction) => transaction.type === kind)
+    .map((transaction) => transaction.name);
+  return kind === "expense"
+    ? [...fixedChargeLines(state).map((line) => line.label), ...custom]
+    : custom;
+}
+
+/**
+ * The block a deficit asks to fix. Charges past the income cannot be fixed by
+ * saving less, so then the charges are what to change.
+ */
+export function blockToFix(
+  state: OnboardingState,
+): "charges" | "savings" | null {
+  if (emotionState(state) !== "deficit") return null;
+  return totalCharges(state) > totalIncome(state) ? "charges" : "savings";
+}

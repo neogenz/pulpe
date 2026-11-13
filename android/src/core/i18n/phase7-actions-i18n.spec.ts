@@ -23,6 +23,6 @@ describe("phase 7 budget action localization", () => {
       "src/features/budget-details/components/budget-line-sheet.tsx",
       "utf8",
     );
-    expect(sheet.match(/disabled: isPlannedWithdrawal/g)).toHaveLength(2);
+    expect(sheet.match(/disabled: isPlannedWithdrawal/g)).toHaveLength(3);
   });
 });

@@ -11,11 +11,11 @@ const KIND_ORDER: TransactionKind[] = ["income", "saving", "expense"];
 
 const PERCENT = 100;
 
-/** Past this share of an envelope the remaining amount stops being reassuring. */
-const WARNING_THRESHOLD_PERCENT = 50;
+const CENTIMES_PER_UNIT = 100;
 
 export type KindFilter = "all" | TransactionKind;
-export type CheckedFilter = "all" | "unchecked" | "checked";
+/** `over`: expenses whose movements went past the planned amount. */
+export type CheckedFilter = "all" | "unchecked" | "checked" | "over";
 
 export interface DetailsFilters {
   kind: KindFilter;
@@ -29,37 +29,20 @@ export const DEFAULT_FILTERS: DetailsFilters = {
   search: "",
 };
 
-/** Which ink the row's amount takes — resolved here so the row holds no rules. */
-export type AmountAccent =
-  | "income"
-  | "savings"
-  | "overBudget"
-  | "warning"
-  | "neutral";
-
-export type AmountSuffix =
-  | { kind: "overrun" | "planned" }
-  | { kind: "remaining" | "plannedTotal"; amount: number };
-
-export type StatusLabel =
-  | { kind: "received" | "transferred" | "overBudget" }
-  | { kind: "toReceive" | "toTransfer"; amount: number };
+/**
+ * The row's second line when something is being consumed, mirroring
+ * `BudgetLineRowPresentation`. Absent, the row names where the line comes from.
+ */
+export type ConsumedSubtitle =
+  | { kind: "overrun"; amount: number }
+  | { kind: "remaining"; amount: number };
 
 export interface LineItem {
   line: BudgetLine;
   consumption: Consumption;
-  /**
-   * The one number the row shouts. Expenses surface what is left to spend —
-   * the actionable figure — while income and savings surface what has actually
-   * landed, because the question there is "did it arrive?", not "how much is
-   * left?". An overrun surfaces the overshoot itself.
-   */
-  displayAmount: number;
-  /** The grey caption under it, absent when the amount speaks for itself. */
-  amountSuffix: AmountSuffix | null;
-  /** The line under the name; empty once the row is pointed. */
-  statusLabel: StatusLabel | null;
-  accent: AmountAccent;
+  /** max(planned, spent): what the row prints. */
+  shownAmount: number;
+  consumed: ConsumedSubtitle | null;
   isOverBudget: boolean;
   isChecked: boolean;
 }
@@ -67,6 +50,12 @@ export interface LineItem {
 export interface DetailsSection {
   kind: TransactionKind;
   items: LineItem[];
+}
+
+export interface CheckedCounts {
+  unchecked: number;
+  all: number;
+  over: number;
 }
 
 export interface KindCounts {
@@ -96,7 +85,9 @@ export function detailsSections(
       kind,
       items: budgetLines
         .filter((line) => line.kind === kind)
-        .filter((line) => matchesCheckedFilter(line, filters.checked))
+        .filter((line) =>
+          matchesLineFilter(line, transactions, filters.checked),
+        )
         .filter((line) =>
           matchesSearch(line, transactions, filters.search, needle),
         )
@@ -110,6 +101,7 @@ export function freeTransactions(
   transactions: Transaction[],
   filters: DetailsFilters,
 ): Transaction[] {
+  if (filters.checked === "over") return [];
   const needle = amountSearchKey(filters.search);
 
   return transactions
@@ -172,10 +164,11 @@ export function pointedAllocatedTransactions(
  */
 export function kindCounts(
   budgetLines: BudgetLine[],
+  transactions: Transaction[],
   checked: CheckedFilter,
 ): KindCounts {
   const visible = budgetLines.filter((line) =>
-    matchesCheckedFilter(line, checked),
+    matchesLineFilter(line, transactions, checked),
   );
 
   return {
@@ -184,6 +177,43 @@ export function kindCounts(
     saving: visible.filter((line) => line.kind === "saving").length,
     expense: visible.filter((line) => line.kind === "expense").length,
   };
+}
+
+/**
+ * What each state chip would show given the kind filter in force — the rail
+ * `BudgetTypeFilter` counts "À pointer" and "Dépassées" the same way.
+ */
+export function checkedCounts(
+  budgetLines: BudgetLine[],
+  transactions: Transaction[],
+  kind: KindFilter,
+): CheckedCounts {
+  const lines = budgetLines.filter(
+    (line) => kind === "all" || line.kind === kind,
+  );
+  const count = (checked: CheckedFilter) =>
+    lines.filter((line) => matchesLineFilter(line, transactions, checked))
+      .length;
+
+  return {
+    unchecked: count("unchecked"),
+    all: lines.length,
+    over: count("over"),
+  };
+}
+
+/** An expense whose movements went past what was planned for it. */
+export function isOverrun(
+  line: BudgetLine,
+  transactions: Transaction[],
+): boolean {
+  return (
+    line.kind === "expense" &&
+    Math.round(
+      BudgetFormulas.calculateConsumption(line, transactions).available *
+        CENTIMES_PER_UNIT,
+    ) < 0
+  );
 }
 
 /**
@@ -203,92 +233,30 @@ export function budgetUsagePercentage(metrics: {
 
 function toLineItem(line: BudgetLine, transactions: Transaction[]): LineItem {
   const consumption = BudgetFormulas.calculateConsumption(line, transactions);
-  const isOverBudget = line.kind === "expense" && consumption.available < 0;
+  const isOverBudget = isOverrun(line, transactions);
 
   return {
     line,
     consumption,
-    displayAmount: displayAmount(line, consumption, isOverBudget),
-    amountSuffix: amountSuffix(line, consumption, isOverBudget),
-    statusLabel: statusLabel(line, consumption, isOverBudget),
-    accent: amountAccent(line, consumption, isOverBudget),
+    shownAmount: Math.max(line.amount, consumption.allocated),
+    consumed: consumedSubtitle(line, consumption, isOverBudget),
     isOverBudget,
     isChecked: line.checkedAt !== null,
   };
 }
 
-function displayAmount(
+function consumedSubtitle(
   line: BudgetLine,
   consumption: Consumption,
   isOverBudget: boolean,
-): number {
-  if (line.kind === "expense") {
-    if (isOverBudget) return consumption.allocated - line.amount;
-    return consumption.allocated > 0 ? consumption.available : line.amount;
+): ConsumedSubtitle | null {
+  if (line.kind !== "expense") return null;
+  if (isOverBudget) {
+    return { kind: "overrun", amount: consumption.allocated - line.amount };
   }
-  return consumption.allocated > 0 ? consumption.allocated : line.amount;
-}
-
-function amountSuffix(
-  line: BudgetLine,
-  consumption: Consumption,
-  isOverBudget: boolean,
-): AmountSuffix | null {
-  if (line.kind === "expense") {
-    if (isOverBudget) return { kind: "overrun" };
-    if (consumption.allocated === 0) return { kind: "planned" };
-    if (consumption.allocated === line.amount) return null;
-    return { kind: "remaining", amount: line.amount };
-  }
-  if (consumption.allocated > 0 && consumption.allocated < line.amount) {
-    return { kind: "plannedTotal", amount: line.amount };
-  }
-  return null;
-}
-
-/**
- * A pointed row says nothing: the ring already carries that. The rest mirrors
- * `BudgetLineMixedRow.subtitleView` — a partial figure only, never a repeat of
- * the amount the row is already printing.
- */
-function statusLabel(
-  line: BudgetLine,
-  consumption: Consumption,
-  isOverBudget: boolean,
-): StatusLabel | null {
-  if (line.checkedAt !== null) return null;
-
-  const hasReal = consumption.allocated > 0;
-  if (line.kind === "income") {
-    if (!hasReal) return null;
-    return consumption.allocated >= line.amount
-      ? { kind: "received" }
-      : { kind: "toReceive", amount: consumption.available };
-  }
-  if (line.kind === "saving") {
-    if (!hasReal) return null;
-    return consumption.allocated >= line.amount
-      ? { kind: "transferred" }
-      : { kind: "toTransfer", amount: consumption.available };
-  }
-  return isOverBudget ? { kind: "overBudget" } : null;
-}
-
-/**
- * Income and savings keep their own ink even past plan — an over-received
- * salary is good news. The overrun red belongs to expenses alone.
- */
-function amountAccent(
-  line: BudgetLine,
-  consumption: Consumption,
-  isOverBudget: boolean,
-): AmountAccent {
-  if (line.kind === "income") return "income";
-  if (line.kind === "saving") return "savings";
-  if (isOverBudget) return "overBudget";
-  return consumption.percentage >= WARNING_THRESHOLD_PERCENT
-    ? "warning"
-    : "neutral";
+  return consumption.allocated > 0 && line.amount > 0
+    ? { kind: "remaining", amount: consumption.available }
+    : null;
 }
 
 function matchesCheckedFilter(
@@ -299,6 +267,16 @@ function matchesCheckedFilter(
   return filter === "checked"
     ? item.checkedAt !== null
     : item.checkedAt === null;
+}
+
+function matchesLineFilter(
+  line: BudgetLine,
+  transactions: Transaction[],
+  filter: CheckedFilter,
+): boolean {
+  return filter === "over"
+    ? isOverrun(line, transactions)
+    : matchesCheckedFilter(line, filter);
 }
 
 /** A line answers a search through its own name, its amount, or its spending. */

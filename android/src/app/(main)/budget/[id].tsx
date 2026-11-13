@@ -8,7 +8,7 @@ import {
 } from "pulpe-shared";
 import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
 import { BackHandler, RefreshControl, StyleSheet, View } from "react-native";
-import { Searchbar, Text, useTheme } from "react-native-paper";
+import { Button, Searchbar, Text, useTheme } from "react-native-paper";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -28,7 +28,7 @@ import { armTip, dismissTip, useIsTipArmed } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { formatMonthName } from "@/core/ui/date-format";
+import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import {
   FAB_CLEARANCE,
@@ -54,6 +54,7 @@ import {
   useToggleCheck,
 } from "@/features/budgets/toggle-check-mutation";
 import {
+  checkedCounts,
   DEFAULT_FILTERS,
   type DetailsFilters,
   detailsSections,
@@ -74,6 +75,11 @@ import {
 import { BudgetLineRow } from "@/features/budget-details/components/budget-line-row";
 import { DeleteMonthAction } from "@/features/budget-details/components/delete-month-action";
 import { DetailsFilterBar } from "@/features/budget-details/components/details-filter-bar";
+import {
+  periodProgress,
+  periodSubtitle,
+} from "@/features/budget-details/month-period";
+import { UpcomingBanner } from "@/features/budget-details/components/upcoming-banner";
 import { MonthPager } from "@/features/budget-details/components/month-pager";
 import { TightMonthCard } from "@/features/budget-details/savings-withdrawal/components/tight-month-card";
 import {
@@ -239,6 +245,18 @@ export default function BudgetDetailScreen() {
           : null,
   );
   const tags = useTags();
+  const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
+  // A month that has not started reads as a projection: nothing to point, nothing over.
+  const progress =
+    viewedBudget === undefined
+      ? null
+      : periodProgress(
+          viewedBudget.month,
+          viewedBudget.year,
+          payDayOfMonth,
+          new Date(),
+        );
+  const isUpcoming = progress !== null && progress.startsIn !== null;
   const toggle = useToggleCheck(id);
   const isPendingCheck = usePendingCheck(id);
   const pull = usePullToRefresh(invalidateBudgetData);
@@ -270,7 +288,11 @@ export default function BudgetDetailScreen() {
       () => overlays.current?.showToggleFailure(),
     );
   }
-  const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
+  const [chosenFilters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
+  const filters: DetailsFilters = useMemo(
+    () => (isUpcoming ? { ...chosenFilters, checked: "all" } : chosenFilters),
+    [isUpcoming, chosenFilters],
+  );
   const [isSearchVisible, setSearchVisible] = useState(false);
   const [isCardDismissed, setCardDismissed] = useState(() =>
     isWithdrawalDismissed(id),
@@ -297,11 +319,10 @@ export default function BudgetDetailScreen() {
         },
       );
       return () => subscription.remove();
-    }, [isSearchVisible]),
+    }, [isSearchVisible, setFilters]),
   );
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
-  const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
   const sections = useMemo(
     () =>
       details.data === undefined
@@ -335,8 +356,23 @@ export default function BudgetDetailScreen() {
     () =>
       details.data === undefined
         ? { all: 0, income: 0, saving: 0, expense: 0 }
-        : kindCounts(details.data.budgetLines, filters.checked),
+        : kindCounts(
+            details.data.budgetLines,
+            details.data.transactions,
+            filters.checked,
+          ),
     [details.data, filters.checked],
+  );
+  const stateCounts = useMemo(
+    () =>
+      details.data === undefined
+        ? { unchecked: 0, all: 0, over: 0 }
+        : checkedCounts(
+            details.data.budgetLines,
+            details.data.transactions,
+            filters.kind,
+          ),
+    [details.data, filters.kind],
   );
   // The dashboard's own view model, reused whole: the realized sheet asks the
   // same question of any budget, not only of the month being lived in.
@@ -416,11 +452,6 @@ export default function BudgetDetailScreen() {
     details.data.transactions,
     budget.rollover ?? 0,
   );
-  const previousMonthName = namePreviousMonth(
-    budget.previousBudgetId ?? null,
-    [...(budgetPeriods.data ?? []), ...(boundaryPeriods.data ?? [])],
-    locale,
-  );
   const rows = detailRows(sections, pointedAllocated, free);
   const isTight = shouldOfferWithdrawal({
     available: metrics.remaining,
@@ -444,6 +475,18 @@ export default function BudgetDetailScreen() {
   const monthTitle = `${monthName.charAt(0).toLocaleUpperCase(locale)}${monthName.slice(1)} ${budget.year}`;
   // Mid-sentence, the month keeps the casing its language gives it.
   const monthInSentence = `${monthName} ${budget.year}`;
+  const liveMonth = getBudgetPeriodForDate(new Date(), payDayOfMonth).month;
+  const projectedReportMonth = isUpcoming
+    ? formatMonthName(
+        budget.month === 1 ? 12 : budget.month - 1,
+        budget.year,
+        locale,
+      )
+    : null;
+  const periodLine =
+    progress === null
+      ? ""
+      : periodSubtitle(progress, (date) => formatDayMonth(date, locale), t);
 
   // Leaving the search puts the whole list back: a term left behind would keep
   // filtering it from a field the user can no longer see.
@@ -489,12 +532,13 @@ export default function BudgetDetailScreen() {
             accessibilityLabel={t("budgets.detail.tracking")}
             onPress={() => overlays.current?.showRealizedBalance()}
           />
-          {isFutureMonth && (
-            <DeleteMonthAction
-              budgetId={budget.id}
-              monthTitle={monthInSentence}
-            />
-          )}
+          <DeleteMonthAction
+            budgetId={budget.id}
+            monthTitle={monthInSentence}
+            currency={currency}
+            isAllowed={isFutureMonth}
+            liveMonthName={formatMonthName(liveMonth, budget.year, locale)}
+          />
         </HeroAppBar>
       )}
 
@@ -625,20 +669,35 @@ export default function BudgetDetailScreen() {
               { color: theme.colors.onSurfaceVariant },
             ]}
           >
-            {filters.checked === "unchecked" && filters.search === ""
-              ? t("budgets.detail.allChecked")
-              : t("budgets.detail.noResults")}
+            {filters.search !== "" || filters.kind !== "all"
+              ? t("budgets.detail.noResults")
+              : filters.checked === "unchecked"
+                ? t("budgets.detail.allChecked")
+                : filters.checked === "over"
+                  ? t("budgets.detail.noOver")
+                  : t("budgets.detail.noResults")}
           </Text>
         }
         ListHeaderComponent={
           <View>
+            <Text
+              variant="bodyMedium"
+              style={[styles.period, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {periodLine}
+            </Text>
+
+            {isUpcoming && <UpcomingBanner />}
+
             <HeroZone>
               <BudgetDetailHero
                 metrics={metrics}
                 currency={currency}
                 rollover={budget.rollover ?? 0}
-                previousMonthName={previousMonthName}
-                onPressMetrics={() => overlays.current?.showRealizedBalance()}
+                projectedReportMonth={projectedReportMonth}
+                onPressCalculation={() =>
+                  overlays.current?.showRealizedBalance()
+                }
                 onPressRollover={
                   budget.previousBudgetId == null
                     ? undefined
@@ -680,8 +739,22 @@ export default function BudgetDetailScreen() {
               <DetailsFilterBar
                 filters={filters}
                 counts={counts}
+                checkedCounts={stateCounts}
+                hideChecked={isUpcoming}
                 onChange={setFilters}
               />
+
+              {filters.checked === "over" && stateCounts.over > 0 && (
+                <View style={styles.gutter}>
+                  <Button
+                    mode="outlined"
+                    icon="swap-horizontal"
+                    onPress={() => overlays.current?.showCatchUp()}
+                  >
+                    {t("budgets.catchUp.fromMonth")}
+                  </Button>
+                </View>
+              )}
 
               <View style={styles.gutter}>
                 <Tooltip
@@ -704,24 +777,15 @@ export default function BudgetDetailScreen() {
         payDayOfMonth={payDayOfMonth}
         missingAmount={Math.max(0, -metrics.remaining)}
         viewModel={viewModel}
+        ledger={{
+          lines: details.data.budgetLines,
+          transactions: details.data.transactions,
+          rollover: budget.rollover ?? 0,
+        }}
+        monthName={monthName}
       />
     </SafeAreaView>
   );
-}
-
-/**
- * The carry-over disclosure names the month it came from when that budget is
- * in the list, and stays generic when it is not — the list is capped by nothing
- * today, but a budget older than the account's first one would still be absent.
- */
-function namePreviousMonth(
-  previousBudgetId: string | null,
-  budgets: { id: string; month?: number; year?: number }[],
-  locale: string,
-): string | null {
-  const previous = budgets.find((budget) => budget.id === previousBudgetId);
-  if (previous?.month === undefined || previous.year === undefined) return null;
-  return formatMonthName(previous.month, previous.year, locale);
 }
 
 const styles = StyleSheet.create({
@@ -734,6 +798,7 @@ const styles = StyleSheet.create({
   // that the chip rail inside it can still run the full width of the display.
   zone: { paddingHorizontal: 0, paddingBottom: 0, gap: SPACING.md },
   gutter: { paddingHorizontal: SCREEN_PADDING },
+  period: { paddingHorizontal: SCREEN_PADDING, paddingBottom: SPACING.sm },
   sectionHeader: {
     paddingHorizontal: SCREEN_PADDING,
     paddingTop: SPACING.lg,

@@ -51,6 +51,7 @@ import {
   usePendingCheck,
   useToggleCheck,
 } from "@/features/budgets/toggle-check-mutation";
+import { isOverrun } from "@/features/budget-details/budget-details-selectors";
 import {
   hasBudgetForPeriod,
   isPostponeEligible,
@@ -249,6 +250,16 @@ export default function BudgetLineDetailScreen() {
               }}
             />
           )}
+          {isOverrun(line, transactions) && (
+            <Menu.Item
+              leadingIcon="swap-horizontal"
+              title={t("budgets.catchUp.fromForecast")}
+              onPress={() => {
+                setMenuOpen(false);
+                overlays.current?.catchUp();
+              }}
+            />
+          )}
           <Menu.Item
             leadingIcon="trash-can-outline"
             title={t("budgets.mutations.delete")}
@@ -426,6 +437,11 @@ export default function BudgetLineDetailScreen() {
         payDayOfMonth={payDayOfMonth}
         line={line}
         transactions={transactions}
+        ledger={{
+          lines: details.data?.budgetLines ?? [],
+          transactions: details.data?.transactions ?? [],
+          rollover: budget.rollover ?? 0,
+        }}
         onLeave={() => router.back()}
       />
     </SafeAreaView>

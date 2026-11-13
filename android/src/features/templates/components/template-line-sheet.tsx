@@ -11,7 +11,6 @@ import {
   Chip,
   Dialog,
   Portal,
-  SegmentedButtons,
   Text,
   TextInput,
   useTheme,
@@ -21,6 +20,7 @@ import { kindOptions, recurrenceOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
+import { SegmentedPicker } from "@/core/ui/segmented-picker";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -45,11 +45,16 @@ interface TemplateLineSheetProps {
   onDismiss: () => void;
   templateId: string;
   currency: SupportedCurrency;
+  /** The model's name, which the « Quand ? » captions speak of. */
+  templateName: string;
   /** How many budgets an edit would reach — decides whether to ask. */
   propagationCount: number;
+  /** The current month's name when its budget was built from this model. */
+  propagationMonth?: string | null;
   /** Absent when adding; the line being corrected otherwise. */
   line?: TemplateLine;
-  onSaved: () => void;
+  /** `updatedBudgets` is how many budgets the save reached, 0 for the model alone. */
+  onSaved: (outcome: { updatedBudgets: number }) => void;
 }
 
 /**
@@ -66,7 +71,9 @@ export function TemplateLineSheet({
   onDismiss,
   templateId,
   currency,
+  templateName,
   propagationCount,
+  propagationMonth = null,
   line,
   onSaved,
 }: TemplateLineSheetProps) {
@@ -112,10 +119,10 @@ export function TemplateLineSheet({
     onDismiss();
   }
 
-  function succeed() {
+  function succeed(updatedBudgets = 0) {
     hapticSuccess();
     setPropagationVisible(false);
-    onSaved();
+    onSaved({ updatedBudgets });
   }
 
   function submit() {
@@ -132,7 +139,7 @@ export function TemplateLineSheet({
           description: "",
           savingsGoalId: goalLink,
         },
-        { onSuccess: succeed },
+        { onSuccess: () => succeed() },
       );
       return;
     }
@@ -162,7 +169,7 @@ export function TemplateLineSheet({
           savingsGoalId: goalLink,
         },
       },
-      { onSuccess: succeed, onError: leaveDialogOnError },
+      { onSuccess: () => succeed(), onError: leaveDialogOnError },
     );
   }
 
@@ -188,7 +195,10 @@ export function TemplateLineSheet({
           propagateToBudgets: true,
         },
       },
-      { onSuccess: succeed, onError: leaveDialogOnError },
+      {
+        onSuccess: () => succeed(propagationCount),
+        onError: leaveDialogOnError,
+      },
     );
   }
 
@@ -219,9 +229,9 @@ export function TemplateLineSheet({
           </>
         }
       >
-        <SegmentedButtons
+        <SegmentedPicker
           value={kind}
-          onValueChange={(next) => setKind(next as TransactionKind)}
+          onValueChange={setKind}
           buttons={kindOptions(t).map((button) => ({
             ...button,
             icon: KIND_ICONS[button.value],
@@ -243,11 +253,30 @@ export function TemplateLineSheet({
           maxLength={NAME_MAX_LENGTH}
         />
 
-        <SegmentedButtons
-          value={recurrence}
-          onValueChange={(next) => setRecurrence(next as TransactionRecurrence)}
-          buttons={recurrenceOptions(t)}
-        />
+        <View style={styles.when}>
+          <Text
+            variant="labelMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t("templates.lines.when")}
+          </Text>
+          <SegmentedPicker
+            value={recurrence}
+            onValueChange={setRecurrence}
+            buttons={recurrenceOptions(t)}
+          />
+          <Text
+            variant="bodySmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {t(
+              recurrence === "fixed"
+                ? "templates.lines.whenFixed"
+                : "templates.lines.whenOneOff",
+              { name: templateName },
+            )}
+          </Text>
+        </View>
 
         {kind === "saving" && (goals.data ?? []).length > 0 && (
           <View style={styles.goals}>
@@ -284,7 +313,13 @@ export function TemplateLineSheet({
           onDismiss={() => setPropagationVisible(false)}
           dismissable={!mutation.isPending}
         >
-          <Dialog.Title>{t("templates.lines.propagationTitle")}</Dialog.Title>
+          <Dialog.Title>
+            {propagationMonth === null
+              ? t("templates.lines.propagationTitle")
+              : t("templates.lines.propagationTitleMonth", {
+                  month: propagationMonth,
+                })}
+          </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
               {t("templates.lines.propagationBody", {
@@ -308,7 +343,9 @@ export function TemplateLineSheet({
               disabled={mutation.isPending}
               loading={bulk.isPending}
             >
-              {t("templates.lines.apply")}
+              {propagationMonth === null
+                ? t("templates.lines.apply")
+                : t("templates.lines.applyMonth", { month: propagationMonth })}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -319,6 +356,7 @@ export function TemplateLineSheet({
 
 const styles = StyleSheet.create({
   goals: { gap: SPACING.xs },
+  when: { gap: SPACING.xs },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.xs },
   dialogActions: { flexWrap: "wrap", gap: SPACING.xs },
 });

@@ -195,6 +195,7 @@ jest.mock("@/core/i18n/locale-store", () => ({
 }));
 jest.mock("@/core/ui/date-format", () => ({
   formatMonthName: (month: number, year: number) => `${year}-${month}`,
+  formatDayMonth: () => "day",
 }));
 jest.mock("@/core/ui/theme", () => ({
   SPRING: { duration: 500, dampingRatio: 0.8 },
@@ -301,13 +302,24 @@ jest.mock("@/features/current-month/current-month-view-model", () => ({
 jest.mock("./components/budget-detail-hero", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return {
-    BudgetDetailHero: ({ onPressMetrics }: { onPressMetrics: () => void }) => (
-      <Pressable onPress={onPressMetrics}>
+    BudgetDetailHero: ({
+      onPressCalculation,
+      projectedReportMonth,
+    }: {
+      onPressCalculation: () => void;
+      projectedReportMonth: string | null;
+    }) => (
+      <Pressable onPress={onPressCalculation}>
         <Text>open-metrics</Text>
+        <Text>{`projected:${projectedReportMonth}`}</Text>
       </Pressable>
     ),
     BudgetDetailSkeleton: () => <Text>common.loading</Text>,
   };
+});
+jest.mock("./components/upcoming-banner", () => {
+  const { Text } = jest.requireActual("react-native");
+  return { UpcomingBanner: () => <Text>upcoming-banner</Text> };
 });
 jest.mock("./components/budget-line-row", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
@@ -360,9 +372,13 @@ jest.mock("./components/details-filter-bar", () => {
   return {
     DetailsFilterBar: ({
       filters,
+      checkedCounts,
+      hideChecked,
       onChange,
     }: {
       filters: { kind: string; checked: string; search: string };
+      checkedCounts: { over: number };
+      hideChecked: boolean;
       onChange: (filters: {
         kind: "all" | "income";
         checked: "all" | "unchecked";
@@ -371,6 +387,12 @@ jest.mock("./components/details-filter-bar", () => {
     }) => (
       <View>
         <Text>{`filters:${filters.kind}:${filters.checked}`}</Text>
+        <Text>{`rail:${hideChecked ? "hidden" : "shown"}:over=${checkedCounts.over}`}</Text>
+        <Pressable
+          onPress={() => onChange({ ...filters, checked: "over" } as never)}
+        >
+          <Text>show-over</Text>
+        </Pressable>
         <Pressable
           onPress={() => onChange({ ...filters, checked: "all" } as never)}
         >
@@ -388,9 +410,13 @@ jest.mock("./components/details-filter-bar", () => {
 jest.mock("./components/delete-month-action", () => {
   const { Text } = jest.requireActual("react-native");
   return {
-    DeleteMonthAction: ({ budgetId }: { budgetId: string }) => (
-      <Text>{`delete-month:${budgetId}`}</Text>
-    ),
+    DeleteMonthAction: ({
+      budgetId,
+      isAllowed,
+    }: {
+      budgetId: string;
+      isAllowed: boolean;
+    }) => <Text>{`delete-month:${budgetId}:${isAllowed}`}</Text>,
   };
 });
 jest.mock("./components/month-pager", () => {
@@ -434,6 +460,7 @@ jest.mock("./components/budget-detail-overlays", () => {
         showTransactionMenu: () => setMessage("transaction-menu"),
         showWithdrawal: () => setMessage("withdrawal"),
         showRealizedBalance: () => setMessage("realized"),
+        showCatchUp: () => setMessage("catch-up"),
         showToggleFailure: () => setToggleFailed(true),
         showPointed: setPointed,
       }));
@@ -712,6 +739,45 @@ it.each([
 
     const view = await render(<BudgetDetailScreen />);
 
-    expect(view.queryByText("delete-month:budget-1") !== null).toBe(canDelete);
+    expect(view.getByText(`delete-month:budget-1:${canDelete}`)).toBeTruthy();
   },
 );
+
+it("reads a month that has not started as a projection, with no state rail", async () => {
+  jest.useFakeTimers({ now: new Date(2026, 9, 26, 12), advanceTimers: true });
+  const details = readyDetails();
+  details.budget.month = 12;
+  mockDetails.data = details;
+
+  const view = await render(<BudgetDetailScreen />);
+
+  expect(view.getByText("upcoming-banner")).toBeTruthy();
+  expect(view.getByText("projected:2026-11")).toBeTruthy();
+  expect(view.getByText(/^rail:hidden/)).toBeTruthy();
+  // Nothing to point yet: the list shows everything, not only what is unpointed.
+  expect(view.getByText("filters:all:all")).toBeTruthy();
+});
+
+it("offers to catch up from the over filter, and says when nothing is over", async () => {
+  jest.useFakeTimers({ now: new Date(2026, 9, 26, 12), advanceTimers: true });
+  const details = readyDetails();
+  details.budget.month = 10;
+  mockDetails.data = details;
+  const view = await render(<BudgetDetailScreen />);
+
+  expect(view.queryByText("upcoming-banner")).toBeNull();
+  expect(view.getByText(/^rail:shown/)).toBeTruthy();
+  await fireEvent.press(view.getByText("show-over"));
+  expect(view.getByText("budgets.detail.noOver")).toBeTruthy();
+  expect(view.queryByText("budgets.catchUp.fromMonth")).toBeNull();
+
+  mockDetails.data = {
+    ...details,
+    transactions: [
+      transaction({ id: "big", budgetLineId: "rent", amount: 1500 }),
+    ],
+  };
+  await view.rerender(<BudgetDetailScreen />);
+  await fireEvent.press(view.getByText("budgets.catchUp.fromMonth"));
+  expect(view.getByText("catch-up")).toBeTruthy();
+});

@@ -1,4 +1,4 @@
-import { TextInput } from "react-native-paper";
+import { Text, TextInput } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 
@@ -22,6 +22,11 @@ export function FirstNameStep({ onExit }: { onExit: () => void }) {
       onContinue={goToNextStep}
       onExit={onExit}
     >
+      {/* The step answers what is typed: "Enchanté, Léa", live. */}
+      <Text variant="titleLarge">
+        {t("onboarding.firstName.greeting")}{" "}
+        {state.firstName.trim() || t("onboarding.firstName.greetingFallback")}
+      </Text>
       <TextInput
         mode="outlined"
         label={t("onboarding.firstName.label")}

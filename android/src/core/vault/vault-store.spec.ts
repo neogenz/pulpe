@@ -42,6 +42,12 @@ import {
  * pulls in the configured API client, which refuses to load without the
  * `EXPO_PUBLIC_*` values Metro inlines into a real bundle.
  */
+jest.mock("@/core/observability/product-events", () => ({
+  captureLogoutCompleted: jest.fn(),
+  capturePinChanged: jest.fn(),
+  capturePinEntered: jest.fn(),
+  captureRecoveryKeyAcknowledged: jest.fn(),
+}));
 jest.mock("./vault-api", () => ({
   fetchSalt: jest.fn(),
   fetchVaultStatus: jest.fn(),

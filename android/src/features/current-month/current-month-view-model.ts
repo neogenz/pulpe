@@ -44,6 +44,8 @@ export interface CheckableItem extends CheckTarget {
   amount: number;
   /** Present when the item is, or belongs to, an envelope with a plan. */
   consumption: Consumption | null;
+  /** The forecast a movement is counted in, when it has one. */
+  envelopeName: string | null;
   /** Stable data rendered as a localized date or recurrence by the card. */
   subtitle:
     | { kind: "date"; value: string }
@@ -86,6 +88,8 @@ export interface CurrentMonthViewModel {
   driftLines: DriftLine[];
   driftTotal: number;
   uncheckedCount: number;
+  /** The part of `uncheckedCount` that is movements; the rest are forecasts. */
+  uncheckedMovementCount: number;
   uncheckedItems: CheckableItem[];
   savings: SavingsSummary;
   realized: RealizedMetrics;
@@ -172,6 +176,7 @@ export function buildCurrentMonthViewModel(
       0,
     ),
     uncheckedCount: countUnchecked(budgetLines, transactions),
+    uncheckedMovementCount: transactions.filter(isUnchecked).length,
     uncheckedItems: selectUncheckedItems(
       budgetLines,
       transactions,
@@ -292,7 +297,7 @@ function selectUncheckedItems(
   const freeTransactions = unchecked
     .filter((transaction) => transaction.budgetLineId === null)
     .sort(byTransactionDateDesc)
-    .map((transaction) => toCheckableItem(transaction, null));
+    .map((transaction) => toCheckableItem(transaction, null, null));
 
   const allocatedTransactions = unchecked
     .filter((transaction) => transaction.budgetLineId !== null)
@@ -302,37 +307,52 @@ function selectUncheckedItems(
       return toCheckableItem(
         transaction,
         line ? BudgetFormulas.calculateConsumption(line, transactions) : null,
+        line?.name ?? null,
       );
     });
 
-  const uncheckedLines = budgetLines
-    .filter(
+  const uncheckedLines = orderForChecking(
+    budgetLines.filter(
       (line) =>
         isUnchecked(line) &&
         line.isRollover !== true &&
         line.sourceSavingsGoalId == null,
-    )
-    .sort(
-      (a, b) =>
-        checkingPriority(days[a.id], today) -
-          checkingPriority(days[b.id], today) || byKindThenNewest(a, b),
-    )
-    .map((line) => ({
-      id: `bl-${line.id}`,
-      source: "budgetLine" as const,
-      sourceId: line.id,
-      name: line.name,
-      kind: line.kind,
-      amount: line.amount,
-      consumption: BudgetFormulas.calculateConsumption(line, transactions),
-      subtitle: { kind: "recurrence" as const, value: line.recurrence },
-    }));
+    ),
+    days,
+    today,
+  ).map((line) => ({
+    id: `bl-${line.id}`,
+    source: "budgetLine" as const,
+    sourceId: line.id,
+    name: line.name,
+    kind: line.kind,
+    amount: line.amount,
+    consumption: BudgetFormulas.calculateConsumption(line, transactions),
+    envelopeName: null,
+    subtitle: { kind: "recurrence" as const, value: line.recurrence },
+  }));
 
   return [
     ...freeTransactions,
     ...allocatedTransactions,
     ...uncheckedLines,
   ].slice(0, MAX_UNCHECKED_ITEMS);
+}
+
+/**
+ * Forecasts in the order they are likely to be pointed: the days the user has
+ * learned to point them on first, then income before outflows, newest first.
+ */
+export function orderForChecking(
+  lines: BudgetLine[],
+  days: Record<string, number> = {},
+  today: number,
+): BudgetLine[] {
+  return [...lines].sort(
+    (a, b) =>
+      checkingPriority(days[a.id], today) -
+        checkingPriority(days[b.id], today) || byKindThenNewest(a, b),
+  );
 }
 
 function summarizeSavings(
@@ -415,6 +435,7 @@ function isUnchecked(item: { checkedAt: string | null }): boolean {
 function toCheckableItem(
   transaction: Transaction,
   consumption: Consumption | null,
+  envelopeName: string | null,
 ): CheckableItem {
   return {
     id: `tx-${transaction.id}`,
@@ -424,6 +445,7 @@ function toCheckableItem(
     kind: transaction.kind,
     amount: transaction.amount,
     consumption,
+    envelopeName,
     subtitle: { kind: "date", value: transaction.transactionDate },
   };
 }

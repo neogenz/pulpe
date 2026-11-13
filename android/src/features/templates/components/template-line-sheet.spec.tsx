@@ -34,8 +34,36 @@ jest.mock("@/features/savings-goals/goals-queries", () => ({
   useSavingsGoals: () => mockGoals,
 }));
 jest.mock("@/core/i18n/locale-store", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) =>
+      options === undefined
+        ? key
+        : `${key}:${Object.values(options).join("|")}`,
+  }),
 }));
+jest.mock("@/core/ui/segmented-picker", () => {
+  const { Pressable, Text, View } = jest.requireActual("react-native");
+  return {
+    SegmentedPicker: ({
+      buttons,
+      onValueChange,
+    }: {
+      buttons: { value: string; label: string }[];
+      onValueChange: (value: string) => void;
+    }) => (
+      <View>
+        {buttons.map((button) => (
+          <Pressable
+            key={button.value}
+            onPress={() => onValueChange(button.value)}
+          >
+            <Text>{button.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    ),
+  };
+});
 jest.mock("@/core/ui/haptics", () => ({ hapticSuccess: jest.fn() }));
 jest.mock("@/core/ui/vocabulary", () => ({
   kindOptions: () => [
@@ -146,24 +174,6 @@ jest.mock("react-native-paper", () => {
       },
     ),
     Portal: ({ children }: { children: React.ReactNode }) => children,
-    SegmentedButtons: ({
-      buttons,
-      onValueChange,
-    }: {
-      buttons: { value: string; label: string }[];
-      onValueChange: (value: string) => void;
-    }) => (
-      <View>
-        {buttons.map((button) => (
-          <Pressable
-            key={button.value}
-            onPress={() => onValueChange(button.value)}
-          >
-            <Text>{button.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-    ),
     Text,
     TextInput: ({
       label,
@@ -189,6 +199,7 @@ const baseProps = {
   onDismiss: jest.fn(),
   templateId: "template-1",
   currency: "CHF" as const,
+  templateName: "Mois standard",
   propagationCount: 0,
   onSaved: jest.fn(),
 };
@@ -320,7 +331,7 @@ it("propagates exact edited values only after explicit confirmation", async () =
   };
   await act(() => callbacks.onSuccess());
   expect(hapticSuccess).toHaveBeenCalledTimes(1);
-  expect(baseProps.onSaved).toHaveBeenCalledTimes(1);
+  expect(baseProps.onSaved).toHaveBeenCalledWith({ updatedBudgets: 3 });
 });
 
 it("says so when applying to the budgets fails, with the values kept", async () => {
@@ -365,4 +376,34 @@ it("keeps rejected values editable and blocks dismissal while pending", async ()
   );
   await fireEvent.press(view.getByLabelText("dismiss-form"));
   expect(baseProps.onDismiss).not.toHaveBeenCalled();
+});
+
+it("names the current month in the propagation step", async () => {
+  const view = await render(
+    <TemplateLineSheet
+      {...baseProps}
+      line={existingLine}
+      propagationCount={3}
+      propagationMonth="novembre"
+    />,
+  );
+  await editFields(view);
+  await fireEvent.press(view.getByText("templates.lines.save"));
+
+  expect(
+    view.getByText("templates.lines.propagationTitleMonth:novembre"),
+  ).toBeTruthy();
+  expect(view.getByText("templates.lines.applyMonth:novembre")).toBeTruthy();
+});
+
+it("captions what « Quand ? » means for the model's months", async () => {
+  const view = await render(<TemplateLineSheet {...baseProps} />);
+  expect(
+    view.getByText("templates.lines.whenFixed:Mois standard"),
+  ).toBeTruthy();
+
+  await fireEvent.press(view.getByText("recurrence:one_off"));
+  expect(
+    view.getByText("templates.lines.whenOneOff:Mois standard"),
+  ).toBeTruthy();
 });

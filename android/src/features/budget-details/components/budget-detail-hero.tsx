@@ -2,17 +2,13 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency } from "pulpe-shared";
 import { BudgetFormulas, CURRENCY_METADATA } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
+import { Text, useTheme } from "react-native-paper";
 
-import {
-  formatAmount,
-  formatCurrency,
-  formatSignedCurrency,
-} from "@/core/ui/amount-format";
+import { formatAmount } from "@/core/ui/amount-format";
 import { useTranslation } from "@/core/i18n/locale-store";
-import { HeroFigure, HeroProgress, HeroVerdict } from "@/core/ui/hero";
-import { useHeroColors } from "@/core/ui/scheme-colors";
+import { useFinancialColors, useHeroColors } from "@/core/ui/scheme-colors";
 import {
+  BRAND_TYPE,
   ICON_SIZE,
   RADIUS,
   SPACING,
@@ -20,7 +16,7 @@ import {
   TOUCH_TARGET,
 } from "@/core/ui/theme";
 
-import { budgetUsagePercentage } from "../budget-details-selectors";
+import { MonthSplit } from "./month-split";
 
 /** Amounts are shown to the centime, so that is the precision that counts. */
 const CENTIMES_PER_UNIT = 100;
@@ -32,64 +28,91 @@ interface BudgetDetailHeroProps {
   currency: SupportedCurrency;
   /** Non-zero when the month opened on last month's carry-over. */
   rollover: number;
-  /** Names the month the carry-over came from, when that budget is known. */
-  previousMonthName: string | null;
-  onPressMetrics: () => void;
+  /**
+   * The month before, named, when this one has not started: the figure is a
+   * projection and its carry-over an estimate.
+   */
+  projectedReportMonth: string | null;
+  /** Opens « Le calcul ». */
+  onPressCalculation: () => void;
   /** Opens the month the carry-over came from, when there is one to open. */
   onPressRollover?: () => void;
 }
 
 /**
- * The month's state on the forest — `BudgetDetailHero.swift`: what is left to
- * spend, what it already includes from last month, how much of the month is
- * consumed, and one sentence that says what that means. The surface never
- * carries the state; the sentence and its accent do.
+ * The month's state on a white card — `BudgetDetailHero.swift`: what is left to
+ * spend, to the cent, the carry-over it already includes, then where the money
+ * goes in one split bar. The figure turns ocre only when the month is over its
+ * plan.
  */
 export function BudgetDetailHero({
   metrics,
   currency,
   rollover,
-  previousMonthName,
-  onPressMetrics,
+  projectedReportMonth,
+  onPressCalculation,
   onPressRollover,
 }: BudgetDetailHeroProps) {
   const hero = useHeroColors();
+  const theme = useTheme();
+  const financial = useFinancialColors();
   const { t } = useTranslation();
-  const isDeficit = metrics.remaining < 0;
-  const usagePercentage = budgetUsagePercentage(metrics);
   // Rounded to what the eye will read: a residual centime would print a
   // disclosure announcing an amount it then shows as zero.
   const hasRollover = Math.round(rollover * CENTIMES_PER_UNIT) !== 0;
-  const state = BudgetFormulas.emotionState(metrics);
-  const verdictTint =
-    state === "comfortable"
-      ? hero.positive
-      : state === "tight"
-        ? hero.caution
-        : hero.deficit;
   const eyebrow = t(
-    `budgets.detail.hero.${isDeficit ? "deficit" : "available"}`,
+    projectedReportMonth === null
+      ? "budgets.detail.hero.available"
+      : "budgets.detail.hero.availableProjected",
   );
+  const rolloverAmount = formatAmount(rollover, currency);
 
   return (
     <View style={styles.hero}>
-      <Pressable
-        onPress={onPressMetrics}
-        android_ripple={{ color: hero.tile }}
-        style={styles.summary}
-        accessibilityRole="button"
-        accessibilityLabel={t("budgets.detail.hero.accessibility", {
-          state: eyebrow,
-          amount: formatCurrency(Math.abs(metrics.remaining), currency),
-          percent: Math.round(usagePercentage),
-        })}
+      <View style={styles.header}>
+        <Text
+          variant="labelLarge"
+          style={[styles.eyebrow, { color: hero.support }]}
+        >
+          {eyebrow}
+        </Text>
+        <Pressable
+          onPress={onPressCalculation}
+          android_ripple={{ color: hero.tile }}
+          style={styles.link}
+          accessibilityRole="link"
+          accessibilityHint={t("budgets.detail.hero.calculationHint")}
+          testID="budget-calculation-link"
+        >
+          <Text variant="labelLarge" style={{ color: theme.colors.primary }}>
+            {t("budgets.detail.hero.calculation")}
+          </Text>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={ICON_SIZE.md}
+            color={theme.colors.primary}
+          />
+        </Pressable>
+      </View>
+
+      <Text
+        accessibilityLabel={`${eyebrow} ${formatAmount(metrics.remaining, currency)} ${CURRENCY_METADATA[currency].symbol}`}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+        style={[
+          BRAND_TYPE.heroFigure,
+          TABULAR_DIGITS,
+          {
+            color: metrics.remaining < 0 ? financial.overBudget : hero.ink,
+          },
+        ]}
       >
-        <HeroFigure
-          eyebrow={eyebrow}
-          amount={signedAmount(metrics.remaining, currency)}
-          currency={CURRENCY_METADATA[currency].symbol}
-        />
-      </Pressable>
+        {formatAmount(metrics.remaining, currency)}
+        <Text style={[BRAND_TYPE.heroCurrency, { color: hero.support }]}>
+          {` ${CURRENCY_METADATA[currency].symbol}`}
+        </Text>
+      </Text>
 
       {hasRollover && (
         // The carry-over is the figure's second line: it says what the amount
@@ -103,47 +126,46 @@ export function BudgetDetailHero({
           accessibilityHint={
             onPressRollover === undefined
               ? undefined
-              : t("budgets.detail.hero.viewMonth", {
-                  month:
-                    previousMonthName ?? t("budgets.detail.hero.previousMonth"),
-                })
+              : t("budgets.detail.hero.viewPrevious")
           }
         >
-          <MaterialCommunityIcons
-            name="autorenew"
-            size={ICON_SIZE.sm}
-            color={hero.support}
-          />
-          <Text variant="labelLarge" style={{ color: hero.support }}>
-            {previousMonthName === null
-              ? t("budgets.detail.hero.rollover")
-              : t("budgets.detail.hero.rolloverNamed", {
-                  month: previousMonthName,
-                })}
-          </Text>
           <Text
             variant="labelLarge"
-            style={[TABULAR_DIGITS, styles.rolloverAmount, { color: hero.ink }]}
+            style={[
+              TABULAR_DIGITS,
+              {
+                color:
+                  onPressRollover === undefined
+                    ? hero.support
+                    : theme.colors.primary,
+              },
+            ]}
           >
-            {formatSignedCurrency(rollover, currency)}
+            {projectedReportMonth === null
+              ? t("budgets.detail.hero.rolloverIncluded", {
+                  amount: rolloverAmount,
+                })
+              : t("budgets.detail.hero.rolloverEstimated", {
+                  month: projectedReportMonth,
+                  amount: rolloverAmount,
+                })}
           </Text>
         </Pressable>
       )}
 
-      <HeroProgress
-        progress={usagePercentage / 100}
-        label={`${Math.round(usagePercentage)} %`}
-      />
-
-      <HeroVerdict
-        sentence={t(`budgets.detail.hero.verdict.${state}`)}
-        tint={verdictTint}
+      {/* Savings are counted inside `totalExpenses`: the expense part is what
+          is left of it. */}
+      <MonthSplit
+        expenses={metrics.totalExpenses - metrics.totalSavings}
+        savings={metrics.totalSavings}
+        available={metrics.remaining}
+        currency={currency}
       />
     </View>
   );
 }
 
-/** The hero's shape before its numbers, on the forest it will land on. */
+/** The hero's shape before its numbers. */
 export function BudgetDetailSkeleton() {
   const hero = useHeroColors();
   const { t } = useTranslation();
@@ -159,38 +181,26 @@ export function BudgetDetailSkeleton() {
       <View style={[styles.bone, styles.boneEyebrow, tone]} />
       <View style={[styles.bone, styles.boneFigure, tone]} />
       <View style={[styles.bone, styles.boneBar, tone]} />
-      <View style={[styles.bone, styles.boneSentence, tone]} />
     </View>
   );
 }
 
-/**
- * A `+` only where it adds meaning: a negative amount already reads as one.
- * Decimals, always — this is the screen where a line is being edited, and a
- * hero that rounds forty centimes to `+0` announces a sign with nothing after
- * it. The rule iOS keeps on the same screen.
- */
-function signedAmount(value: number, currency: SupportedCurrency): string {
-  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-  return `${sign}${formatAmount(Math.abs(value), currency)}`;
-}
-
 const styles = StyleSheet.create({
   hero: { gap: SPACING.sm },
-  summary: { alignSelf: "stretch" },
-  // A link that navigates to another month owes the finger the same floor
-  // every other control keeps.
-  rollover: {
+  header: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  eyebrow: { flex: 1 },
+  // A link owes the finger the same floor every other control keeps, and
+  // sits flush right without growing the header past it.
+  link: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
-    gap: SPACING.xs,
     minHeight: TOUCH_TARGET,
+    marginVertical: -SPACING.sm,
+    paddingLeft: SPACING.sm,
   },
-  rolloverAmount: { fontWeight: "700" },
+  rollover: { minHeight: TOUCH_TARGET, justifyContent: "center" },
   bone: { borderRadius: RADIUS.sm },
   boneEyebrow: { width: 140, height: 14 },
   boneFigure: { width: 200, height: 48 },
   boneBar: { alignSelf: "stretch", height: 10, marginTop: SPACING.sm },
-  boneSentence: { width: 220, height: 18, marginTop: SPACING.sm },
 });
