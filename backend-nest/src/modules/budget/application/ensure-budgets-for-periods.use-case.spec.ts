@@ -20,8 +20,7 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
   let useCase: EnsureBudgetsForPeriodsUseCase;
   let mockRepo: {
     getExistingPeriods: ReturnType<typeof jest.fn>;
-    createBudgetFromTemplateRpc: ReturnType<typeof jest.fn>;
-    fetchBudgetById: ReturnType<typeof jest.fn>;
+    createBudgetsFromTemplate: ReturnType<typeof jest.fn>;
   };
 
   beforeEach(async () => {
@@ -29,8 +28,7 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
       getExistingPeriods: jest
         .fn()
         .mockResolvedValue(new Map<string, string>()),
-      createBudgetFromTemplateRpc: jest.fn(),
-      fetchBudgetById: jest.fn(),
+      createBudgetsFromTemplate: jest.fn(),
     };
 
     const module = await Test.createTestingModule({
@@ -66,16 +64,13 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
 
     expect(result.budgetIdByPeriod.get('1/2026')).toBe('existing-b');
     expect(result.createdBudgets).toHaveLength(0);
-    expect(mockRepo.createBudgetFromTemplateRpc).not.toHaveBeenCalled();
+    expect(mockRepo.createBudgetsFromTemplate).not.toHaveBeenCalled();
   });
 
   it('auto-creates a missing period from the default template', async () => {
-    mockRepo.createBudgetFromTemplateRpc.mockResolvedValue({
-      budget: { id: 'new-b' },
-      budget_lines_created: 0,
-      template_name: 'Default',
-    });
-    mockRepo.fetchBudgetById.mockResolvedValue(makeBudget('new-b', 9, 2026));
+    mockRepo.createBudgetsFromTemplate.mockResolvedValue([
+      makeBudget('new-b', 9, 2026),
+    ]);
 
     const result = await useCase.ensureBudgetsForPeriods(
       [{ month: 9, year: 2026 }],
@@ -83,12 +78,10 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
       'user-1',
     );
 
-    expect(mockRepo.createBudgetFromTemplateRpc).toHaveBeenCalledWith({
-      p_user_id: 'user-1',
-      p_template_id: 'tpl-1',
-      p_month: 9,
-      p_year: 2026,
-      p_description: 'Budget 9/2026',
+    expect(mockRepo.createBudgetsFromTemplate).toHaveBeenCalledWith({
+      userId: 'user-1',
+      templateId: 'tpl-1',
+      periods: [{ month: 9, year: 2026, description: 'Budget 9/2026' }],
     });
     expect(result.budgetIdByPeriod.get('9/2026')).toBe('new-b');
     expect(result.createdBudgets).toHaveLength(1);
@@ -99,12 +92,9 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
     mockRepo.getExistingPeriods
       .mockResolvedValueOnce(new Map())
       .mockResolvedValueOnce(new Map([['9/2026', 'new-b']]));
-    mockRepo.createBudgetFromTemplateRpc.mockResolvedValue({
-      budget: { id: 'new-b' },
-      budget_lines_created: 1,
-      template_name: 'Default',
-    });
-    mockRepo.fetchBudgetById.mockResolvedValue(makeBudget('new-b', 9, 2026));
+    mockRepo.createBudgetsFromTemplate.mockResolvedValue([
+      makeBudget('new-b', 9, 2026),
+    ]);
     const periods = [{ month: 9, year: 2026 }];
 
     const first = await useCase.ensureBudgetsForPeriods(
@@ -121,7 +111,41 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
     expect(first.createdBudgets).toHaveLength(1);
     expect(retry.createdBudgets).toHaveLength(0);
     expect(retry.budgetIdByPeriod.get('9/2026')).toBe('new-b');
-    expect(mockRepo.createBudgetFromTemplateRpc).toHaveBeenCalledTimes(1);
+    expect(mockRepo.createBudgetsFromTemplate).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates every distinct missing period in one batch and maps them all', async () => {
+    mockRepo.getExistingPeriods.mockResolvedValue(
+      new Map([['9/2026', 'existing-b']]),
+    );
+    mockRepo.createBudgetsFromTemplate.mockResolvedValue([
+      makeBudget('new-10', 10, 2026),
+      makeBudget('new-11', 11, 2026),
+    ]);
+
+    const result = await useCase.ensureBudgetsForPeriods(
+      [
+        { month: 9, year: 2026 },
+        { month: 10, year: 2026 },
+        { month: 11, year: 2026 },
+        { month: 10, year: 2026 },
+      ],
+      'tpl-1',
+      'user-1',
+    );
+
+    expect(mockRepo.createBudgetsFromTemplate).toHaveBeenCalledTimes(1);
+    expect(mockRepo.createBudgetsFromTemplate.mock.calls[0][0].periods).toEqual(
+      [
+        { month: 10, year: 2026, description: 'Budget 10/2026' },
+        { month: 11, year: 2026, description: 'Budget 11/2026' },
+      ],
+    );
+    expect(Object.fromEntries(result.budgetIdByPeriod)).toEqual({
+      '9/2026': 'existing-b',
+      '10/2026': 'new-10',
+      '11/2026': 'new-11',
+    });
   });
 
   it('skips a missing period when there is no default template', async () => {
@@ -133,7 +157,7 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
 
     expect(result.skippedMonths).toEqual([{ month: 9, year: 2026 }]);
     expect(result.budgetIdByPeriod.size).toBe(0);
-    expect(mockRepo.createBudgetFromTemplateRpc).not.toHaveBeenCalled();
+    expect(mockRepo.createBudgetsFromTemplate).not.toHaveBeenCalled();
   });
 
   it('returns an empty result without querying for an empty period list', async () => {

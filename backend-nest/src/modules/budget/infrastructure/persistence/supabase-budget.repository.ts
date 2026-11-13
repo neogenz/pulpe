@@ -532,13 +532,61 @@ export class SupabaseBudgetRepository
     budget_lines_created: number;
     template_name: string;
   }> {
-    const supabase = this.supabaseProvider.client;
-    const { data, error } = await supabase.rpc('create_budget_from_template', {
-      ...payload,
-      p_excluded_savings_goal_ids: await this.goalIdsExcludedFromPeriod({
+    return this.#callCreateBudgetFromTemplate(
+      payload,
+      await this.goalIdsExcludedFromPeriod({
         month: payload.p_month,
         year: payload.p_year,
       }),
+    );
+  }
+
+  async createBudgetsFromTemplate(input: {
+    userId: string;
+    templateId: string;
+    periods: (BudgetPeriod & { description: string })[];
+  }): Promise<Budget[]> {
+    if (input.periods.length === 0) return [];
+
+    const excludedGoalIds = await this.goalIdsExcludedByPeriod(input.periods);
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const budgets: Budget[] = [];
+    // Sequential on purpose: concurrent template copies for one user deadlock
+    // on the savings_goal rows bumped by the budget_line revision trigger.
+    for (const period of input.periods) {
+      const { budget } = await this.#callCreateBudgetFromTemplate(
+        {
+          p_user_id: input.userId,
+          p_template_id: input.templateId,
+          p_month: period.month,
+          p_year: period.year,
+          p_description: period.description,
+        },
+        excludedGoalIds[`${period.month}/${period.year}`] ?? [],
+      );
+      budgets.push(this.toEntity(budget, dek));
+    }
+    return budgets;
+  }
+
+  async #callCreateBudgetFromTemplate(
+    payload: {
+      p_user_id: string;
+      p_template_id: string;
+      p_month: number;
+      p_year: number;
+      p_description: string;
+    },
+    excludedGoalIds: string[],
+  ): Promise<{
+    budget: BudgetRow;
+    budget_lines_created: number;
+    template_name: string;
+  }> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase.rpc('create_budget_from_template', {
+      ...payload,
+      p_excluded_savings_goal_ids: excludedGoalIds,
     });
 
     if (error) {

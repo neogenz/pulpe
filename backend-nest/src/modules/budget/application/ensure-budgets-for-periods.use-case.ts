@@ -26,33 +26,34 @@ export class EnsureBudgetsForPeriodsUseCase implements BudgetProvisioningPort {
     userId: string,
   ): Promise<EnsureBudgetsResult> {
     const budgetIdByPeriod = new Map<string, string>();
-    const createdBudgets: Budget[] = [];
+    const missingPeriods = new Map<string, SpreadPeriod>();
     const skippedMonths: SpreadPeriod[] = [];
 
     if (periods.length === 0) {
-      return { budgetIdByPeriod, createdBudgets, skippedMonths };
+      return { budgetIdByPeriod, createdBudgets: [], skippedMonths };
     }
 
     const existingPeriods = await this.repo.getExistingPeriods(userId, periods);
 
     for (const period of periods) {
       const key = `${period.month}/${period.year}`;
-      if (budgetIdByPeriod.has(key)) continue;
-
       const existingId = existingPeriods.get(key);
       if (existingId) {
         budgetIdByPeriod.set(key, existingId);
-        continue;
-      }
-
-      if (!templateId) {
+      } else if (templateId) {
+        missingPeriods.set(key, period);
+      } else {
         skippedMonths.push(period);
-        continue;
       }
+    }
 
-      const created = await this.createFromTemplate(period, templateId, userId);
-      budgetIdByPeriod.set(key, created.id);
-      createdBudgets.push(created);
+    const createdBudgets = await this.createFromTemplate(
+      [...missingPeriods.values()],
+      templateId,
+      userId,
+    );
+    for (const budget of createdBudgets) {
+      budgetIdByPeriod.set(`${budget.month}/${budget.year}`, budget.id);
     }
 
     this.logger.info(
@@ -70,17 +71,18 @@ export class EnsureBudgetsForPeriodsUseCase implements BudgetProvisioningPort {
   }
 
   private async createFromTemplate(
-    period: SpreadPeriod,
-    templateId: string,
+    periods: SpreadPeriod[],
+    templateId: string | null,
     userId: string,
-  ): Promise<Budget> {
-    const result = await this.repo.createBudgetFromTemplateRpc({
-      p_user_id: userId,
-      p_template_id: templateId,
-      p_month: period.month,
-      p_year: period.year,
-      p_description: `Budget ${period.month}/${period.year}`,
+  ): Promise<Budget[]> {
+    if (!templateId || periods.length === 0) return [];
+    return this.repo.createBudgetsFromTemplate({
+      userId,
+      templateId,
+      periods: periods.map((period) => ({
+        ...period,
+        description: `Budget ${period.month}/${period.year}`,
+      })),
     });
-    return this.repo.fetchBudgetById(result.budget.id, userId);
   }
 }

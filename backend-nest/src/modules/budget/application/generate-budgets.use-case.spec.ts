@@ -90,12 +90,7 @@ describe('GenerateBudgetsUseCase', () => {
     useCase = module.get(GenerateBudgetsUseCase);
   });
 
-  it('generates once, recalculates chronologically and returns created and skipped periods', async () => {
-    const recalculationOrder: string[] = [];
-    recalculate.mockImplementation(async (id: string) => {
-      recalculationOrder.push(id);
-    });
-
+  it('generates once, recalculates every created budget and returns created and skipped periods', async () => {
     const result = await useCase.execute(
       {
         templateId: '11111111-1111-4111-8111-111111111111',
@@ -113,7 +108,7 @@ describe('GenerateBudgetsUseCase', () => {
       startYear: 2026,
       count: 3,
     });
-    expect(recalculationOrder).toEqual(['budget-1', 'budget-2']);
+    expect(recalculate.mock.calls).toEqual([['budget-1'], ['budget-2']]);
     expect(result).toEqual({
       budgets,
       skippedMonths: [{ month: 2, year: 2027 }],

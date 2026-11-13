@@ -1,4 +1,4 @@
-import type { TransactionKind } from 'pulpe-shared';
+import type { BudgetPeriod, TransactionKind } from 'pulpe-shared';
 import type {
   Budget,
   BudgetForRollover,
@@ -100,6 +100,17 @@ export interface BudgetRepositoryPort {
     budget_lines_created: number;
     template_name: string;
   }>;
+
+  /**
+   * Creates one budget per period from the template (non-consecutive periods
+   * allowed), in order, and returns them decrypted. Stops at the first failure;
+   * budgets already created are kept.
+   */
+  createBudgetsFromTemplate(input: {
+    userId: string;
+    templateId: string;
+    periods: (BudgetPeriod & { description: string })[];
+  }): Promise<Budget[]>;
 
   generateBudgetsFromTemplateAtomically(input: {
     userId: string;

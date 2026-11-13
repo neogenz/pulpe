@@ -59,9 +59,13 @@ export class GenerateBudgetsUseCase {
       createdBudgetIds = generated.createdBudgetIds;
       skippedMonths = generated.skippedMonths;
 
-      for (const budgetId of createdBudgetIds) {
-        await this.budgetRecalculation.recalculate(budgetId);
-      }
+      // Each ending balance depends only on its own budget (the rollover is
+      // derived at read time), so the recalculations are independent.
+      await Promise.all(
+        createdBudgetIds.map((budgetId) =>
+          this.budgetRecalculation.recalculate(budgetId),
+        ),
+      );
     } catch (error) {
       if (createdBudgetIds.length === 0) {
         createdBudgetIds = this.createdBudgetIdsFrom(error);
