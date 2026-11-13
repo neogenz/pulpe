@@ -570,19 +570,9 @@ export class SupabaseBudgetRepository
   }
 
   async #callCreateBudgetFromTemplate(
-    payload: {
-      p_user_id: string;
-      p_template_id: string;
-      p_month: number;
-      p_year: number;
-      p_description: string;
-    },
+    payload: Parameters<BudgetRepositoryPort['createBudgetFromTemplateRpc']>[0],
     excludedGoalIds: string[],
-  ): Promise<{
-    budget: BudgetRow;
-    budget_lines_created: number;
-    template_name: string;
-  }> {
+  ): ReturnType<BudgetRepositoryPort['createBudgetFromTemplateRpc']> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc('create_budget_from_template', {
       ...payload,
