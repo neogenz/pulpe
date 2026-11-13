@@ -1,6 +1,10 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency } from "pulpe-shared";
-import { BudgetFormulas, CURRENCY_METADATA } from "pulpe-shared";
+import {
+  BudgetFormulas,
+  CURRENCY_METADATA,
+  moneyDifference,
+} from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
@@ -17,9 +21,6 @@ import {
 } from "@/core/ui/theme";
 
 import { MonthSplit } from "./month-split";
-
-/** Amounts are shown to the centime, so that is the precision that counts. */
-const CENTIMES_PER_UNIT = 100;
 
 type Metrics = ReturnType<typeof BudgetFormulas.calculateAllMetrics>;
 
@@ -59,7 +60,7 @@ export function BudgetDetailHero({
   const { t } = useTranslation();
   // Rounded to what the eye will read: a residual centime would print a
   // disclosure announcing an amount it then shows as zero.
-  const hasRollover = Math.round(rollover * CENTIMES_PER_UNIT) !== 0;
+  const hasRollover = moneyDifference(rollover, 0) !== 0;
   const eyebrow = t(
     projectedReportMonth === null
       ? "budgets.detail.hero.available"

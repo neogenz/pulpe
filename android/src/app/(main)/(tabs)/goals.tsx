@@ -292,7 +292,7 @@ function GoalRow({
           isMuted={goal.status === "PAUSED"}
         />
       )}
-      <View style={styles.rowLine}>
+      <View style={[styles.rowLine, styles.rowFooter]}>
         <View style={styles.fact}>
           {fact.chip !== null && (
             <StateChip tint={theme.colors.onSurfaceVariant}>
@@ -381,7 +381,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
-    flexShrink: 1,
   },
+  // The target drops under the fact rather than truncating it on a narrow row.
+  rowFooter: { flexWrap: "wrap", rowGap: SPACING.xxs },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

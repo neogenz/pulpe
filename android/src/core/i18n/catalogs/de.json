@@ -170,9 +170,6 @@
     "actions": {
       "line": {
         "actions": "Aktionen für die Planung",
-        "activityMany": "%{count} Vorgänge",
-        "activityNone": "Keine Vorgänge",
-        "activityOne": "1 Vorgang",
         "cancelPair": "Beide stornieren",
         "createTargetBudget": "Erstelle zuerst das Budget für %{month}",
         "deleteTitle": "%{name} löschen?",
@@ -186,12 +183,10 @@
         "loadError": "Diese Planung konnte nicht geladen werden.",
         "missingHint": "Möglicherweise wurde sie auf einem anderen Gerät gelöscht.",
         "missingTitle": "Diese Planung existiert nicht mehr",
-        "overrun": "%{amount} über dem Budget",
         "pairDescription": "+%{amount} in %{incomeMonth} ist mit -%{amount} in %{repaymentMonth} verknüpft.",
         "pairTitle": "Diese beiden Zeilen sind verknüpft",
         "plannedAmount": "von %{amount} geplant",
         "postpone": "Auf nächsten Monat verschieben",
-        "remaining": "%{amount} übrig",
         "viewSpread": "Verteilte Monate anzeigen",
         "leftEyebrow": "Übrig",
         "overrunEyebrow": "Überschreitung",
@@ -289,14 +284,11 @@
         "error": "Der Vorgang konnte nicht gespeichert werden. Versuche es erneut.",
         "goalsAvailable": "Verfügbare Ziele",
         "impact": {
-          "down": "Dein Verfügbares sinkt um %{amount}",
-          "neutral": "Dein Verfügbares ändert sich nicht",
           "note": {
             "covered": "Das war in %{name} geplant: %{after} übrig statt %{before}.",
             "overLine": "%{name} ist überschritten: der Mehrbetrag geht von deinem Verfügbaren ab.",
             "uncovered": "Keine Planung deckt das ab."
-          },
-          "up": "Dein Verfügbares steigt um %{amount}"
+          }
         },
         "leftChip": "noch %{amount}",
         "noGoals": "Derzeit ist in keinem Ziel Geld verfügbar.",
@@ -640,6 +632,8 @@
       "missingHint": "Es wurde vielleicht auf einem anderen Gerät gelöscht.",
       "missingTitle": "Dieses Ziel existiert nicht mehr",
       "statusError": "Der Status konnte nicht geändert werden. Versuch es nochmal.",
+      "statusPaused": "Ziel pausiert",
+      "statusReopened": "Sparziel wieder geöffnet",
       "since": "Seit %{date}",
       "thisMonth": "Diesen Monat",
       "upcoming": "Kommend",
@@ -1101,7 +1095,7 @@
     "owe": "Was ich schulde",
     "negativeNote": "Was ich schulde, übersteigt heute, was ich habe. Jede abgehakte Rückzahlung bringt diese Zahl näher an null.",
     "foreignNote": "Werte in Fremdwährung werden zum Tageskurs umgerechnet.",
-    "incompleteNote": "Mir fehlt der heutige %{currencies}-Kurs: Die Summe enthält %{names} nicht. Sie kommt zurück, sobald der Kurs verfügbar ist.",
+    "incompleteNote": "Mir fehlt der heutige %{currencies}-Kurs: Die Summe enthält %{names} nicht. Das ändert sich, sobald der Kurs verfügbar ist.",
     "overdrafts": "Überziehungen",
     "renameType": "Typ umbenennen",
     "typeName": "Name des Typs",
@@ -1116,6 +1110,19 @@
     "updated": "Aktualisiert %{when}",
     "updatedIn": "%{category} · aktualisiert %{when}",
     "today": "heute",
+    "ageYesterday": "gestern",
+    "ageDays": {
+      "one": "vor %{count} Tag",
+      "other": "vor %{count} Tagen"
+    },
+    "ageMonths": {
+      "one": "vor %{count} Monat",
+      "other": "vor %{count} Monaten"
+    },
+    "ageYears": {
+      "one": "vor %{count} Jahr",
+      "other": "vor %{count} Jahren"
+    },
     "whenMatching": "%{line} · beim Abgleich",
     "badgeOverdraft": "Überzogen",
     "badgeExcluded": "Nicht in der Summe",
@@ -1619,7 +1626,10 @@
       "deleteLineBody": "„%{name}“ wird aus der Vorlage entfernt. Bestehende Budgets behalten ihre Kopie.",
       "deleteLineError": "Die Planung konnte nicht gelöscht werden. Versuche es erneut.",
       "deleteLineTitle": "Diese Planung löschen?",
-      "deleteTemplateBody": "Budgets, die bereits aus „%{name}“ erstellt wurden, bleiben unverändert. Nur die Vorlage verschwindet.",
+      "deleteTemplateBody": {
+        "one": "Kein Budget nutzt sie. %{count} Zeile verschwindet mit ihr, ohne Rückgängig.",
+        "other": "Kein Budget nutzt sie. %{count} Zeilen verschwinden mit ihr, ohne Rückgängig."
+      },
       "deleteTemplateError": "Die Vorlage konnte nicht gelöscht werden. Versuche es erneut.",
       "deleteTemplateTitle": "Diese Vorlage löschen?",
       "empty": "Diese Vorlage ist noch leer. Füge Einnahmen, Ausgaben und Ersparnisse hinzu, damit sie als typischer Monat dienen kann.",
@@ -1632,7 +1642,6 @@
         "other": "%{count} Budgets aus dieser Vorlage erstellt"
       },
       "usageError": "Die mit dieser Vorlage verknüpften Budgets konnten nicht geprüft werden.",
-      "usageHint": "Das Löschen der Vorlage wirkt sich nicht auf diese Budgets aus.",
       "heroLabel": "Verfügbar zum Start",
       "heroSentence": "Was diese Vorlage von %{income} Einnahmen zum Ausgeben lässt, vor dem Übertrag des Vormonats.",
       "defaultLabel": "Standard",

@@ -658,9 +658,7 @@ describe("« C'était prévu dans ton budget ? »", () => {
     expect(
       view.getByTestId("movement-unplanned").props.accessibilityState,
     ).toMatchObject({ selected: true });
-    expect(
-      view.getByText("budgets.mutations.activity.impact.down"),
-    ).toBeTruthy();
+    expect(view.getByText("budgets.impact.over")).toBeTruthy();
     await fireEvent.press(
       view.getByText("budgets.mutations.activity.addAmount"),
     );
@@ -673,9 +671,7 @@ describe("« C'était prévu dans ton budget ? »", () => {
     await fill(view);
     await fireEvent.press(view.getByText(/^Loyer · /));
 
-    expect(
-      view.getByText("budgets.mutations.activity.impact.neutral"),
-    ).toBeTruthy();
+    expect(view.getByText("budgets.impact.neutral")).toBeTruthy();
     await fireEvent.press(
       view.getByText("budgets.mutations.activity.addAmount"),
     );

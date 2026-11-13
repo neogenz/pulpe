@@ -14,7 +14,6 @@ import {
   createSavingsGoal,
   deleteSavingsGoal,
   fetchSavingsGoal,
-  fetchSavingsGoalContributions,
   fetchSavingsGoalDeletionImpact,
   fetchSavingsGoalFutureLines,
   fetchSavingsGoalProgress,
@@ -30,8 +29,6 @@ export const goalKeys = {
   list: () => ["savings-goals", "list"] as const,
   detail: (goalId: string) => ["savings-goals", "detail", goalId] as const,
   progress: (goalId: string) => ["savings-goals", "progress", goalId] as const,
-  contributions: (goalId: string) =>
-    ["savings-goals", "contributions", goalId] as const,
   withdrawals: (goalId: string) =>
     ["savings-goals", "withdrawals", goalId] as const,
   withdrawalOptions: () => ["savings-goals", "withdrawal-options"] as const,
@@ -99,16 +96,6 @@ export function useSavingsGoalProgress(goalId: string) {
   return useQuery({
     queryKey: goalKeys.progress(goalId),
     queryFn: () => fetchSavingsGoalProgress(goalId),
-    enabled: isUnlocked,
-  });
-}
-
-export function useSavingsGoalContributions(goalId: string) {
-  const isUnlocked = useUnlocked();
-
-  return useQuery({
-    queryKey: goalKeys.contributions(goalId),
-    queryFn: () => fetchSavingsGoalContributions(goalId),
     enabled: isUnlocked,
   });
 }

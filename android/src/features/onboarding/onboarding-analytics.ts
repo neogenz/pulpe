@@ -1,6 +1,7 @@
 import { ANALYTICS_EVENTS } from "pulpe-shared";
 
 import { captureEvent } from "@/core/observability/analytics";
+import { captureSignupStarted } from "@/core/observability/product-events";
 
 import {
   fixedChargeLines,
@@ -31,8 +32,14 @@ let hasEmittedStarted = false;
 let hasEmittedResumed = false;
 let hasEmittedAbandoned = false;
 let hasEmittedWelcomeViewed = false;
+let hasEmittedEmailSignupStarted = false;
 /** Set by a background pause, so only a return from one reports a resume. */
 let isPausedInBackground = false;
+
+/** True once the draft on disk brought this run back, until the run ends. */
+export function isRunResumedFromDraft(): boolean {
+  return hasEmittedResumed;
+}
 
 /** Matches `login_completed.method` on every platform: `email | google | apple`. */
 function authMethod(state: OnboardingState): string {
@@ -44,6 +51,7 @@ export function resetOnboardingAnalytics(): void {
   hasEmittedResumed = false;
   hasEmittedAbandoned = false;
   hasEmittedWelcomeViewed = false;
+  hasEmittedEmailSignupStarted = false;
   isPausedInBackground = false;
 }
 
@@ -55,6 +63,13 @@ export function captureWelcomeViewed(): void {
   if (hasEmittedWelcomeViewed) return;
   hasEmittedWelcomeViewed = true;
   captureEvent(ANALYTICS_EVENTS.WELCOME_VIEWED);
+}
+
+/** Once per run, when the registration form is reached (not per submit attempt). */
+export function captureEmailSignupStarted(): void {
+  if (hasEmittedEmailSignupStarted) return;
+  hasEmittedEmailSignupStarted = true;
+  captureSignupStarted("email");
 }
 
 /** Leaving the welcome screen into the flow, by either signup path. */
@@ -78,7 +93,7 @@ export function captureOnboardingResumed(state: OnboardingState): void {
   // the funnel for the one user who relaunched.
   hasEmittedStarted = true;
   captureEvent(ANALYTICS_EVENTS.ONBOARDING_RESUMED, {
-    method: authMethod(state),
+    method: state.isSocialAuth ? "social" : "email",
     source: "draft",
     resumed_at_step: STEP_ANALYTICS_NAMES[state.currentStep],
   });

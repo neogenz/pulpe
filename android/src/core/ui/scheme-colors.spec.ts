@@ -16,7 +16,6 @@ describe("the financial and hero palettes", () => {
         return (
           source.includes("FINANCIAL_COLORS[") ||
           source.includes("HERO_COLORS[") ||
-          source.includes("PREVIEW_COLORS[") ||
           source.includes("SHEET_COLORS[") ||
           source.includes("V2_COLORS[")
         );

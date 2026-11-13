@@ -92,6 +92,7 @@ export default function GoalDetailScreen() {
   // A status change that did not happen has to say so: the button only
   // re-enabled, and nothing on the screen moved.
   const [hasStatusFailed, setStatusFailed] = useState(false);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
   // Everything on the page, not the progress alone: a pull that left the
   // contributions and withdrawals as they were looked like a refresh and was
   // not one.
@@ -196,7 +197,10 @@ export default function GoalDetailScreen() {
     update.mutate(
       { goalId: id, changes: { status: "PAUSED" } },
       {
-        onSuccess: () => setStopVisible(lines.length > 0),
+        onSuccess: () => {
+          setStatusNotice(t("goals.detail.statusPaused"));
+          setStopVisible(lines.length > 0);
+        },
         onError: () => setStatusFailed(true),
       },
     );
@@ -205,7 +209,10 @@ export default function GoalDetailScreen() {
   function resume() {
     update.mutate(
       { goalId: id, changes: { status: "ACTIVE" } },
-      { onError: () => setStatusFailed(true) },
+      {
+        onSuccess: () => setStatusNotice(t("goals.detail.statusReopened")),
+        onError: () => setStatusFailed(true),
+      },
     );
   }
 
@@ -393,6 +400,13 @@ export default function GoalDetailScreen() {
         }}
       >
         {t("goals.detail.statusError")}
+      </Notice>
+
+      <Notice
+        visible={statusNotice !== null}
+        onDismiss={() => setStatusNotice(null)}
+      >
+        {statusNotice}
       </Notice>
 
       <GoalFormSheet

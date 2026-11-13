@@ -19,6 +19,7 @@ import {
 } from "@/core/ui/date-format";
 
 import { hasClosedPlanMonth } from "./goals-vm";
+import { roundUpToCentime } from "./round-up-to-centime";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -151,7 +152,7 @@ export function goalHero(
     progress.suggestCompletion !== true;
   const parts: string[] = [];
   if (isOrdinary && end !== null && progress.required !== null) {
-    const required = Math.ceil(progress.required * 100) / 100;
+    const required = roundUpToCentime(progress.required);
     if (required > 0) {
       parts.push(
         t("goals.hero.required", {
@@ -424,13 +425,10 @@ export function thisMonth(
   const isPointed = month.lines.every((line) => line.checkedAt !== null);
   const checked = latestChecked(month.lines);
   let subtitle: string;
-  if (isPointed) {
-    subtitle =
-      checked === null
-        ? t("goals.plan.state.checked")
-        : t("goals.detail.month.checkedOn", {
-            date: formatDayMonth(checked, locale),
-          });
+  if (isPointed && checked !== null) {
+    subtitle = t("goals.detail.month.checkedOn", {
+      date: formatDayMonth(checked, locale),
+    });
   } else if (month.confirmedAmount > 0) {
     subtitle = t("goals.detail.month.partial", {
       amount: formatCurrency(month.confirmedAmount, currency),

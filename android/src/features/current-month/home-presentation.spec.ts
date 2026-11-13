@@ -6,7 +6,10 @@ import {
   filterMovements,
   isPointedNow,
   lineFact,
+  movementSubtitle,
+  periodCaption,
   startSubtitle,
+  toPointMovementFact,
 } from "./home-presentation";
 
 const t = (key: string, options?: Record<string, unknown>) =>
@@ -57,6 +60,64 @@ describe("lineFact", () => {
     expect(
       lineFact(t, line, { available: 20, allocated: 0 } as never, "CHF").text,
     ).toContain("home.toPoint.saving");
+  });
+});
+
+describe("lineFact rhythm", () => {
+  const rest = { available: 20, allocated: 0 } as never;
+
+  it("reads « Lissé » for a spread prévision, its recurrence otherwise", () => {
+    const spread = {
+      kind: "expense",
+      recurrence: "one_off",
+      spreadGroupId: "g",
+    } as BudgetLine;
+    const plain = { ...spread, spreadGroupId: null } as BudgetLine;
+
+    expect(lineFact(t, spread, rest, "CHF").text).toBe("budgets.detail.spread");
+    expect(lineFact(t, plain, rest, "CHF").text).toBe(
+      "vocabulary.recurrence.one_off",
+    );
+  });
+});
+
+describe("movement wording", () => {
+  const now = new Date("2026-08-11T12:00:00.000Z");
+
+  it("names the prévision, else « Hors prévision » even for a saving", () => {
+    const saving = movement("s", { kind: "saving" });
+
+    expect(
+      toPointMovementFact(t, "fr-CH", saving, undefined, false, now),
+    ).toMatch(/^home\.movements\.unplanned · /);
+    expect(toPointMovementFact(t, "fr-CH", saving, "Courses", true, now)).toBe(
+      "Courses · home.toPoint.pointedNow",
+    );
+  });
+
+  it("tells a pointed row from an unpointed one", () => {
+    expect(movementSubtitle(t, movement("a"), "Courses")).toBe("Courses");
+    expect(
+      movementSubtitle(
+        t,
+        movement("a", { checkedAt: "2026-08-11" }),
+        "Courses",
+      ),
+    ).toBe("Courses · home.movements.pointed");
+    expect(
+      movementSubtitle(t, movement("s", { kind: "saving" }), undefined),
+    ).toBe("home.movements.saving");
+  });
+
+  it("captions the day of the period", () => {
+    expect(
+      periodCaption(
+        t,
+        "fr-CH",
+        { day: 10, totalDays: 31 },
+        new Date(2026, 10, 24),
+      ),
+    ).toContain('"day":10,"total":31');
   });
 });
 

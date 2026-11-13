@@ -76,18 +76,16 @@ no role for (`accentWash`, `accentInk`, `sunk`, `overWash`, `coral`, `pointRing`
 ## Two zones
 
 The Two-Zone Rule is `core/ui/hero.tsx`. Home, the budget list, budget detail and a savings goal
-open on the constant forest (`HERO_COLORS`, iOS's `hero*` tokens): `HeroAppBar` is forest too and
-holds still while the `HeroZone` gradient scrolls under it — a Material top app bar holding its
-colour — and the `ContentZone` rises over the hero on the canvas, its upper corners at
-`RADIUS.zone` (28, Material's extra-large shape; iOS's 44 continuous corner reads as a bubble when
-drawn circular). Templates, the goal list and settings have no dominant state and stay on the
+open on a white hero card (`HeroZone`, radius `RADIUS.zone`) laid on the paper canvas, with the
+content (`ContentZone`) flat on the same canvas below it. There is no coloured ground: the state
+shows in the ink of the figure and its verdict (`HERO_COLORS`: positive, caution, deficit), never
+in a background. Templates, the goal list and settings have no dominant state and stay on the
 canvas with `ScreenAppBar` / `TabHeader`.
 
 A hero is composed, never drawn: `HeroFigure` (eyebrow, Manrope figure, smaller currency on the
-same line), `HeroTile` (a translucent tile, never a chip), `HeroProgress`, `HeroVerdict` (one
-sentence, its accent the only place the state shows, optionally ending in a named link). The status
-bar turns light on exactly those routes, decided once from the path (`RouteStatusBar`,
-`hero-routes.ts`) because the tabs keep every visited screen mounted.
+same line), `HeroTile`, `HeroProgress`, `HeroVerdict` (one sentence, its accent the only place the
+state shows, optionally ending in a named link). The status bar follows the scheme on every route
+(`RouteStatusBar`).
 
 ## Ledger
 

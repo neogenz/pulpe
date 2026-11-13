@@ -2,7 +2,7 @@ import { ANALYTICS_EVENTS } from "pulpe-shared";
 
 import { AUTH_ISSUE_CODES } from "@/core/auth/auth-error";
 
-import { captureEvent } from "./analytics";
+import { captureEvent } from "./analytics-client";
 
 /**
  * The cross-platform events that are one line at their call site, under the
@@ -41,8 +41,15 @@ export function authErrorKind(error: unknown): string {
 
 export type AuthMethod = "email" | "google";
 
-export function captureLoginCompleted(method: AuthMethod): void {
-  captureEvent(ANALYTICS_EVENTS.LOGIN_COMPLETED, { method });
+/** `signup_redirect`: a signup attempt that turned out to be an existing account. */
+export function captureLoginCompleted(
+  method: AuthMethod,
+  source?: "signup_redirect",
+): void {
+  captureEvent(
+    ANALYTICS_EVENTS.LOGIN_COMPLETED,
+    source === undefined ? { method } : { method, source },
+  );
 }
 
 export function captureLoginFailed(method: AuthMethod, error: unknown): void {

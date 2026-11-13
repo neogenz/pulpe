@@ -1,5 +1,6 @@
 import type { Asset, NetWorth } from "pulpe-shared";
 
+import { translateForLocale } from "@/core/i18n/i18n";
 import {
   assetAgeLabel,
   assetBadges,
@@ -123,13 +124,19 @@ describe("row presentation", () => {
     ).toBeNull();
   });
 
-  it("says today, then a relative phrase", () => {
+  describe("assetAgeLabel", () => {
     const now = new Date("2026-11-13T12:00:00.000Z");
-    expect(
-      assetAgeLabel("2026-11-13T08:00:00.000Z", now, "fr", "aujourd'hui"),
-    ).toBe("aujourd'hui");
-    expect(assetAgeLabel("2026-11-10T12:00:00.000Z", now, "fr", "x")).toMatch(
-      /3 jours/,
-    );
+    const t = (key: string, options?: Record<string, unknown>) =>
+      translateForLocale("fr", key, options);
+
+    it.each([
+      ["2026-11-13T08:00:00.000Z", "aujourd'hui"],
+      ["2026-11-12T12:00:00.000Z", "hier"],
+      ["2026-11-10T12:00:00.000Z", "il y a 3 jours"],
+      ["2026-09-10T12:00:00.000Z", "il y a 2 mois"],
+      ["2024-11-01T12:00:00.000Z", "il y a 2 ans"],
+    ])("words %s as %s", (recordedAt, expected) => {
+      expect(assetAgeLabel(recordedAt, now, t)).toBe(expected);
+    });
   });
 });

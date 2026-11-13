@@ -78,6 +78,7 @@ import { DetailsFilterBar } from "@/features/budget-details/components/details-f
 import {
   periodProgress,
   periodSubtitle,
+  upcomingReportMonth,
 } from "@/features/budget-details/month-period";
 import { UpcomingBanner } from "@/features/budget-details/components/upcoming-banner";
 import { MonthPager } from "@/features/budget-details/components/month-pager";
@@ -476,13 +477,12 @@ export default function BudgetDetailScreen() {
   // Mid-sentence, the month keeps the casing its language gives it.
   const monthInSentence = `${monthName} ${budget.year}`;
   const liveMonth = getBudgetPeriodForDate(new Date(), payDayOfMonth).month;
-  const projectedReportMonth = isUpcoming
-    ? formatMonthName(
-        budget.month === 1 ? 12 : budget.month - 1,
-        budget.year,
-        locale,
-      )
-    : null;
+  const reportMonth =
+    progress === null ? null : upcomingReportMonth(budget.month, progress);
+  const projectedReportMonth =
+    reportMonth === null
+      ? null
+      : formatMonthName(reportMonth, budget.year, locale);
   const periodLine =
     progress === null
       ? ""

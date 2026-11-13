@@ -1,6 +1,7 @@
 import {
   BudgetFormulas,
   type BudgetLine,
+  moneyDifference,
   type SupportedCurrency,
 } from "pulpe-shared";
 
@@ -11,9 +12,8 @@ import {
   replacingAmount,
 } from "./month-impact";
 
-const CENTIMES_PER_UNIT = 100;
-
-const cents = (value: number) => Math.round(value * CENTIMES_PER_UNIT);
+/** `left + right`, to the centime. */
+const moneySum = (left: number, right: number) => moneyDifference(left, -right);
 
 export interface Overrun {
   line: BudgetLine;
@@ -57,7 +57,11 @@ export function catchUpPlan(
   const reste = new Map(
     expenses.map((line) => [
       line.id,
-      BudgetFormulas.calculateConsumption(line, ledger.transactions).available,
+      moneyDifference(
+        BudgetFormulas.calculateConsumption(line, ledger.transactions)
+          .available,
+        0,
+      ),
     ]),
   );
   const left = (line: BudgetLine) => reste.get(line.id) ?? 0;
@@ -65,16 +69,15 @@ export function catchUpPlan(
   const overruns = expenses
     .filter(
       (line) =>
-        cents(left(line)) < 0 &&
-        (focusLineId === null || line.id === focusLineId),
+        left(line) < 0 && (focusLineId === null || line.id === focusLineId),
     )
     .map((line) => ({ line, amount: -left(line) }));
-  const total = overruns.reduce((sum, { amount }) => sum + amount, 0);
-  if (cents(total) <= 0) return { overruns: [], choices: [], total: 0 };
+  const total = overruns.reduce((sum, { amount }) => moneySum(sum, amount), 0);
+  if (total <= 0) return { overruns: [], choices: [], total: 0 };
 
   // A pointed prévision counts as fully spent: no margin left on it.
   const choices = expenses
-    .filter((line) => line.checkedAt === null && cents(left(line)) > 0)
+    .filter((line) => line.checkedAt === null && left(line) > 0)
     .filter(
       (line) =>
         line.originalCurrency == null || line.originalCurrency === userCurrency,
@@ -82,10 +85,10 @@ export function catchUpPlan(
     .map((line) => ({
       line,
       remaining: left(line),
-      newAmount: line.amount - Math.min(total, left(line)),
-      coversAll: cents(left(line)) >= cents(total),
+      newAmount: moneyDifference(line.amount, Math.min(total, left(line))),
+      coversAll: left(line) >= total,
     }))
-    .filter((choice) => cents(choice.newAmount) > 0)
+    .filter((choice) => choice.newAmount > 0)
     .sort((a, b) => b.remaining - a.remaining);
 
   return { overruns, choices, total };
@@ -101,12 +104,12 @@ export function raisesFor(
   plan: CatchUpPlan,
   choice: CatchUpChoice,
 ): { line: BudgetLine; newAmount: number }[] {
-  let left = choice.line.amount - choice.newAmount;
+  let left = moneyDifference(choice.line.amount, choice.newAmount);
   return plan.overruns.flatMap(({ line, amount }) => {
     const share = Math.min(amount, left);
-    if (cents(share) <= 0) return [];
-    left -= share;
-    return [{ line, newAmount: line.amount + share }];
+    if (share <= 0) return [];
+    left = moneyDifference(left, share);
+    return [{ line, newAmount: moneySum(line.amount, share) }];
   });
 }
 

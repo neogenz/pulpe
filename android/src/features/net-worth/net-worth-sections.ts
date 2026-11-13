@@ -161,20 +161,35 @@ export function suggestionDetail(asset: Asset): SuggestionDetail {
 
 const MS_PER_DAY = 86_400_000;
 
-/** « aujourd'hui », else a relative phrase (« il y a 3 jours ») in the app language. */
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+function startOfDay(date: Date): number {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  ).getTime();
+}
+
+/**
+ * « aujourd'hui », « hier », else a count of days, months or years — worded by
+ * the catalogs rather than `Intl.RelativeTimeFormat`, which Hermes may lack.
+ */
 export function assetAgeLabel(
   recordedAt: string,
   now: Date,
-  locale: string,
-  todayLabel: string,
+  t: Translate,
 ): string {
-  const then = new Date(recordedAt);
-  if (then.toDateString() === now.toDateString()) return todayLabel;
-
-  const days = Math.round((then.getTime() - now.getTime()) / MS_PER_DAY);
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
-  const ago = Math.abs(days);
-  if (ago >= 365) return formatter.format(-Math.floor(ago / 365), "year");
-  if (ago >= 30) return formatter.format(-Math.floor(ago / 30), "month");
-  return formatter.format(days, "day");
+  const days = Math.round(
+    (startOfDay(now) - startOfDay(new Date(recordedAt))) / MS_PER_DAY,
+  );
+  if (days <= 0) return t("netWorth.today");
+  if (days === 1) return t("netWorth.ageYesterday");
+  if (days >= 365) {
+    return t("netWorth.ageYears", { count: Math.floor(days / 365) });
+  }
+  if (days >= 30) {
+    return t("netWorth.ageMonths", { count: Math.floor(days / 30) });
+  }
+  return t("netWorth.ageDays", { count: days });
 }

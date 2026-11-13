@@ -170,9 +170,6 @@
     "actions": {
       "line": {
         "actions": "Actions sur la prévision",
-        "activityMany": "%{count} mouvements",
-        "activityNone": "Aucun mouvement",
-        "activityOne": "1 mouvement",
         "cancelPair": "Tout annuler",
         "createTargetBudget": "Crée d'abord le budget de %{month}",
         "deleteTitle": "Supprimer %{name} ?",
@@ -186,12 +183,10 @@
         "loadError": "Impossible de charger cette prévision.",
         "missingHint": "Elle a peut-être été supprimée depuis un autre appareil.",
         "missingTitle": "Cette prévision n'existe plus",
-        "overrun": "%{amount} de dépassement",
         "pairDescription": "+%{amount} sur %{incomeMonth} est lié à -%{amount} sur %{repaymentMonth}.",
         "pairTitle": "Ces deux lignes sont liées",
         "plannedAmount": "sur %{amount} prévus",
         "postpone": "Reporter au mois suivant",
-        "remaining": "%{amount} restants",
         "viewSpread": "Voir les mois lissés",
         "leftEyebrow": "Il reste",
         "overrunEyebrow": "Dépassement",
@@ -289,14 +284,11 @@
         "error": "Le mouvement n'a pas pu être enregistré. Réessaie.",
         "goalsAvailable": "Objectifs disponibles",
         "impact": {
-          "down": "Ton disponible baisse de %{amount}",
-          "neutral": "Ton disponible ne bouge pas",
           "note": {
             "covered": "C'était prévu dans %{name} : il y reste %{after} au lieu de %{before}.",
             "overLine": "%{name} est dépassée : le surplus sort de ton disponible.",
             "uncovered": "Aucune prévision ne la couvre."
-          },
-          "up": "Ton disponible monte de %{amount}"
+          }
         },
         "leftChip": "reste %{amount}",
         "noGoals": "Aucun objectif n'a d'argent disponible pour l'instant.",
@@ -640,6 +632,8 @@
       "missingHint": "Il a peut-être été supprimé depuis un autre appareil.",
       "missingTitle": "Cet objectif n'existe plus",
       "statusError": "Le statut n'a pas pu être changé. Réessaie.",
+      "statusPaused": "Objectif mis en pause",
+      "statusReopened": "Objectif ré-ouvert",
       "since": "Depuis %{date}",
       "thisMonth": "Ce mois-ci",
       "upcoming": "À venir",
@@ -1116,6 +1110,19 @@
     "updated": "Mis à jour %{when}",
     "updatedIn": "%{category} · mis à jour %{when}",
     "today": "aujourd'hui",
+    "ageYesterday": "hier",
+    "ageDays": {
+      "one": "il y a %{count} jour",
+      "other": "il y a %{count} jours"
+    },
+    "ageMonths": {
+      "one": "il y a %{count} mois",
+      "other": "il y a %{count} mois"
+    },
+    "ageYears": {
+      "one": "il y a %{count} an",
+      "other": "il y a %{count} ans"
+    },
     "whenMatching": "%{line} · au rapprochement",
     "badgeOverdraft": "Découvert",
     "badgeExcluded": "Hors total",
@@ -1619,7 +1626,10 @@
       "deleteLineBody": "« %{name} » quittera le modèle. Les budgets déjà créés gardent la leur.",
       "deleteLineError": "La prévision n'a pas pu être supprimée. Réessaie.",
       "deleteLineTitle": "Supprimer cette prévision ?",
-      "deleteTemplateBody": "Les budgets déjà créés depuis « %{name} » restent intacts. Seul le modèle disparaît.",
+      "deleteTemplateBody": {
+        "one": "Aucun budget ne l'utilise. %{count} ligne part avec lui, sans retour possible.",
+        "other": "Aucun budget ne l'utilise. Ses %{count} lignes partent avec lui, sans retour possible."
+      },
       "deleteTemplateError": "Le modèle n'a pas pu être supprimé. Réessaie.",
       "deleteTemplateTitle": "Supprimer ce modèle ?",
       "empty": "Ce modèle est encore vide. Ajoute tes revenus, tes charges et ton épargne pour qu'il puisse servir de mois type.",
@@ -1632,7 +1642,6 @@
         "other": "%{count} budgets créés depuis ce modèle"
       },
       "usageError": "Impossible de vérifier les budgets liés à ce modèle.",
-      "usageHint": "Supprimer le modèle ne touche pas ces budgets.",
       "heroLabel": "Disponible de départ",
       "heroSentence": "Ce que ce modèle laisse à dépenser sur %{income} de revenus, avant le report du mois précédent.",
       "defaultLabel": "Par défaut",

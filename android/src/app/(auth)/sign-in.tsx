@@ -46,8 +46,9 @@ export default function SignInScreen() {
     setPending(action);
     setErrorMessage(null);
     try {
-      await work();
-      captureLoginCompleted(method);
+      const result = await work();
+      // A cancelled Google chooser resolves to null: not a login.
+      if (result !== null) captureLoginCompleted(method);
     } catch (error) {
       captureLoginFailed(method, error);
       setErrorMessage(

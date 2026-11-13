@@ -21,7 +21,6 @@ import {
 import { preferSignIn } from "@/core/navigation/landing-preference";
 import { useTranslation } from "@/core/i18n/locale-store";
 import {
-  captureLoginCompleted,
   captureLoginFailed,
   captureSignupStarted,
 } from "@/core/observability/product-events";
@@ -65,7 +64,6 @@ export function WelcomeStep() {
       captureSignupStarted("google");
       const result = await signInWithGoogle();
       if (result === null) return;
-      captureLoginCompleted("google");
       // The vault bootstrap decides whether this is a signup or a returning
       // account. Until then, keep only the provider data needed by either path.
       configureSocialUser(result.firstName);

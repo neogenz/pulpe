@@ -1,4 +1,8 @@
-import { periodProgress, upcomingReportMonth } from "./month-period";
+import {
+  periodProgress,
+  periodSubtitle,
+  upcomingReportMonth,
+} from "./month-period";
 
 describe("periodProgress", () => {
   it("counts the day while the period runs", () => {
@@ -26,5 +30,31 @@ describe("periodProgress", () => {
 
     expect(progress.day).toBeNull();
     expect(upcomingReportMonth(10, progress)).toBeNull();
+  });
+});
+
+describe("periodSubtitle", () => {
+  const t = (key: string, options?: Record<string, unknown>) =>
+    `${key}:${JSON.stringify(options)}`;
+  const format = (date: Date) => String(date.getDate());
+
+  it("adds the day count while the period runs", () => {
+    const progress = periodProgress(11, 2026, 25, new Date(2026, 10, 3));
+
+    expect(periodSubtitle(progress, format, t)).toContain(
+      "budgets.detail.period.day",
+    );
+  });
+
+  it("announces the start before the period, and only the range after it", () => {
+    const upcoming = periodProgress(12, 2026, null, new Date(2026, 10, 28));
+    const over = periodProgress(10, 2026, null, new Date(2026, 10, 3));
+
+    expect(periodSubtitle(upcoming, format, t)).toContain(
+      'budgets.detail.period.startsIn:{"range":',
+    );
+    expect(periodSubtitle(over, format, t)).toMatch(
+      /^budgets\.detail\.period\.range:/,
+    );
   });
 });

@@ -1,10 +1,9 @@
 import {
   BudgetFormulas,
   type BudgetLine,
+  moneyDifference,
   type Transaction,
 } from "pulpe-shared";
-
-const CENTIMES_PER_UNIT = 100;
 
 export type ImpactTone = "neutral" | "over" | "ok";
 
@@ -35,9 +34,7 @@ export function impactBetween(
   after: MonthLedger,
 ): DisponibleImpact {
   const figures = { before: remaining(before), after: remaining(after) };
-  const delta =
-    Math.round((figures.after - figures.before) * CENTIMES_PER_UNIT) /
-    CENTIMES_PER_UNIT;
+  const delta = moneyDifference(figures.after, figures.before);
   return {
     ...figures,
     delta,

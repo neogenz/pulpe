@@ -142,16 +142,11 @@ function AssetRow({
   const theme = useTheme();
   const financial = useFinancialColors();
   const ripple = useRipple();
-  const { locale, t } = useTranslation();
+  const { t } = useTranslation();
   const [isMenuVisible, setMenuVisible] = useState(false);
   const isArchived = asset.archivedAt !== null;
 
-  const when = assetAgeLabel(
-    asset.latestRecordedAt,
-    new Date(),
-    locale,
-    t("netWorth.today"),
-  );
+  const when = assetAgeLabel(asset.latestRecordedAt, new Date(), t);
   const updated =
     categoryName === undefined
       ? t("netWorth.updated", { when })

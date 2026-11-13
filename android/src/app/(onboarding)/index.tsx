@@ -8,6 +8,7 @@ import { SubmissionOverlay } from "@/features/onboarding/components/submission-o
 import { Notice } from "@/core/ui/notice";
 import {
   captureOnboardingAbandoned,
+  isRunResumedFromDraft,
   captureOnboardingPaused,
   captureOnboardingResumedFromBackground,
 } from "@/features/onboarding/onboarding-analytics";
@@ -43,9 +44,10 @@ export default function OnboardingRoute() {
   const currentStep = useOnboardingStore((state) => state.currentStep);
   const isSubmitting = useSubmissionStore((state) => state.status !== "idle");
   const [isExitConfirmed, setExitConfirmed] = useState(false);
-  // Mounting anywhere but welcome means the draft brought the run back.
+  // Only the draft restore says the run was left; a fresh signup also mounts
+  // this route past welcome while the vault status is still unknown.
   const [isResumeNoticeVisible, setResumeNoticeVisible] = useState(
-    () => useOnboardingStore.getState().currentStep !== "welcome",
+    isRunResumedFromDraft,
   );
 
   // Paper's dialog rather than `Alert.alert`, which is the platform's own and

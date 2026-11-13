@@ -1,10 +1,6 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { router } from "expo-router";
-import {
-  type BudgetPeriodDates,
-  BudgetFormulas,
-  type SupportedCurrency,
-} from "pulpe-shared";
+import type { BudgetPeriodDates, SupportedCurrency } from "pulpe-shared";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
 
@@ -13,6 +9,7 @@ import { ActionButton } from "@/core/ui/action-button";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
 import { FieldError } from "@/core/ui/field-error";
+import { InlineQueryError } from "@/core/ui/inline-query-error";
 import { useV2Colors } from "@/core/ui/scheme-colors";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import { useCreateBudget } from "@/features/budgets/create-budget-mutation";
@@ -20,6 +17,8 @@ import {
   useTemplateLines,
   useTemplates,
 } from "@/features/templates/template-queries";
+
+import { noBudgetSummary } from "../home-no-budget-summary";
 
 interface HomeNoBudgetViewProps {
   month: number;
@@ -52,11 +51,9 @@ export function HomeNoBudgetView({
     templates.data?.[0];
   const lines = useTemplateLines(template?.id ?? "");
   const items = template === undefined ? undefined : lines.data;
-  const sum = (kind: "expense" | "saving") =>
-    (items ?? [])
-      .filter((line) => line.kind === kind)
-      .reduce((total, line) => total + line.amount, 0);
-  const totals = BudgetFormulas.calculateTemplateTotals(items ?? []);
+  const summary = noBudgetSummary(items ?? []);
+  const hasFailed = templates.isError || lines.isError;
+  const hasNoTemplate = templates.data?.length === 0;
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -92,7 +89,15 @@ export function HomeNoBudgetView({
           {t("home.states.emptyHint")}
         </Text>
 
-        {items === undefined || template === undefined ? (
+        {hasFailed ? (
+          <InlineQueryError
+            onRetry={() => {
+              void templates.refetch();
+              if (template !== undefined) void lines.refetch();
+            }}
+          />
+        ) : hasNoTemplate ? null : items === undefined ||
+          template === undefined ? (
           <ActivityIndicator accessibilityLabel={t("common.loading")} />
         ) : (
           <View style={styles.summary}>
@@ -109,10 +114,10 @@ export function HomeNoBudgetView({
             </View>
             {(
               [
-                ["income", totals.totalIncome],
-                ["expenses", sum("expense")],
-                ["savings", sum("saving")],
-                ["available", totals.balance],
+                ["income", summary.income],
+                ["expenses", summary.expenses],
+                ["savings", summary.savings],
+                ["available", summary.available],
               ] as const
             ).map(([key, amount]) => (
               <View
@@ -138,22 +143,24 @@ export function HomeNoBudgetView({
       </View>
 
       <View style={styles.actions}>
-        <ActionButton
-          testID="home-create-budget"
-          loading={create.isPending}
-          disabled={template === undefined || create.isPending}
-          onPress={() => {
-            if (template === undefined) return;
-            create.mutate({
-              month,
-              year,
-              description: monthName,
-              templateId: template.id,
-            });
-          }}
-        >
-          {t("home.states.createBudget", { month: monthName })}
-        </ActionButton>
+        {!hasNoTemplate && (
+          <ActionButton
+            testID="home-create-budget"
+            loading={create.isPending}
+            disabled={template === undefined || create.isPending}
+            onPress={() => {
+              if (template === undefined) return;
+              create.mutate({
+                month,
+                year,
+                description: monthName,
+                templateId: template.id,
+              });
+            }}
+          >
+            {t("home.states.createBudget", { month: monthName })}
+          </ActionButton>
+        )}
         <Button
           testID="home-other-template"
           mode="text"

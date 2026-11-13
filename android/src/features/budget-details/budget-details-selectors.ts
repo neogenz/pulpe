@@ -2,6 +2,7 @@ import {
   type BudgetLine,
   BudgetFormulas,
   type Consumption,
+  moneyDifference,
   type Transaction,
   type TransactionKind,
 } from "pulpe-shared";
@@ -10,8 +11,6 @@ import {
 const KIND_ORDER: TransactionKind[] = ["income", "saving", "expense"];
 
 const PERCENT = 100;
-
-const CENTIMES_PER_UNIT = 100;
 
 export type KindFilter = "all" | TransactionKind;
 /** `over`: expenses whose movements went past the planned amount. */
@@ -209,9 +208,9 @@ export function isOverrun(
 ): boolean {
   return (
     line.kind === "expense" &&
-    Math.round(
-      BudgetFormulas.calculateConsumption(line, transactions).available *
-        CENTIMES_PER_UNIT,
+    moneyDifference(
+      BudgetFormulas.calculateConsumption(line, transactions).available,
+      0,
     ) < 0
   );
 }

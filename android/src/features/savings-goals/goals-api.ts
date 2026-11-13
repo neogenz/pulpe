@@ -1,7 +1,5 @@
 import {
   type SavingsGoal,
-  type SavingsGoalContribution,
-  savingsGoalContributionsResponseSchema,
   type SavingsGoalCreate,
   savingsGoalCreateSchema,
   type SavingsGoalDeletionCommand,
@@ -56,17 +54,6 @@ export function fetchSavingsGoalProgress(
     .get(
       ENDPOINTS.savingsGoalProgress(goalId),
       savingsGoalProgressResponseSchema,
-    )
-    .then((response) => response.data);
-}
-
-export function fetchSavingsGoalContributions(
-  goalId: string,
-): Promise<SavingsGoalContribution[]> {
-  return api
-    .get(
-      ENDPOINTS.savingsGoalContributions(goalId),
-      savingsGoalContributionsResponseSchema,
     )
     .then((response) => response.data);
 }

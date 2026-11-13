@@ -407,7 +407,6 @@ function readyMonth() {
       savings: { isComplete: false, totalRealized: 0 },
       uncheckedCount: 1,
       uncheckedItems: [{ id: "item-1", name: "Courses", type: "transaction" }],
-      daysRemaining: 5,
       realized: {},
     },
   };

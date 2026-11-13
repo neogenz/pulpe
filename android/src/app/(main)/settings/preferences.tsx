@@ -66,10 +66,10 @@ export default function PreferencesScreen() {
     // Optimistic: the switch answers instantly, and a denied permission flips
     // it back rather than leaving it claiming a reminder that will not fire.
     setRemindersEnabled(isEnabled);
-    captureReminderToggled("monthly", isEnabled);
 
     if (!isEnabled) {
       writeRemindersEnabled(false);
+      captureReminderToggled("monthly", false);
       await cancelMonthlyReminder();
       return;
     }
@@ -82,6 +82,7 @@ export default function PreferencesScreen() {
       return;
     }
     writeRemindersEnabled(true);
+    captureReminderToggled("monthly", true);
     await scheduleMonthlyReminder(payDay);
   }
 

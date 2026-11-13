@@ -326,12 +326,6 @@ export default function TemplateDetailScreen() {
                 ))}
               </FadingRail>
             </View>
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {t("templates.detail.usageHint")}
-            </Text>
           </View>
         )}
 
@@ -462,7 +456,7 @@ export default function TemplateDetailScreen() {
           <Dialog.Content>
             <Text variant="bodyMedium">
               {t("templates.detail.deleteTemplateBody", {
-                name: template.data.name,
+                count: list.length,
               })}
             </Text>
             {removeTemplate.isError && (

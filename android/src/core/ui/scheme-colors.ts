@@ -3,7 +3,6 @@ import { useColorScheme } from "react-native";
 import {
   FINANCIAL_COLORS,
   HERO_COLORS,
-  PREVIEW_COLORS,
   SHEET_COLORS,
   V2_COLORS,
 } from "@/core/ui/theme";
@@ -28,11 +27,6 @@ export function useFinancialColors() {
 /** The forest every hero sits on, and the inks that read on it. */
 export function useHeroColors() {
   return HERO_COLORS[useSchemeName()];
-}
-
-/** The onboarding preview's mint card and its ink, for the scheme in force. */
-export function usePreviewColors() {
-  return PREVIEW_COLORS[useSchemeName()];
 }
 
 /** The surface a form sheet rises on, for the scheme in force. */

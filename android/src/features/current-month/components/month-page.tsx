@@ -4,7 +4,7 @@ import {
   getBudgetPeriodDates,
   type SupportedCurrency,
 } from "pulpe-shared";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { ActivityIndicator, Appbar, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -44,6 +44,12 @@ export function MonthPage({ title, children }: MonthPageProps) {
   const { t } = useTranslation();
   const month = useCurrentMonth();
   const { budgetId, details, viewModel } = month;
+  const isEmpty = month.status === "empty";
+
+  // The period rolled to a month without a budget: nothing left to show here.
+  useEffect(() => {
+    if (isEmpty) router.back();
+  }, [isEmpty]);
 
   const bar = (
     <ScreenAppBar>

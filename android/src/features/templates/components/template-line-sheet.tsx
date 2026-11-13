@@ -196,7 +196,8 @@ export function TemplateLineSheet({
         },
       },
       {
-        onSuccess: () => succeed(propagationCount),
+        onSuccess: (result) =>
+          succeed(result.propagation?.affectedBudgetsCount ?? 0),
         onError: leaveDialogOnError,
       },
     );

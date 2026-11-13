@@ -1,6 +1,7 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { create } from "zustand";
 
+import { captureLoginCompleted } from "@/core/observability/product-events";
 import type { VaultStatus } from "@/core/vault/vault-store";
 
 import {
@@ -259,6 +260,9 @@ export function reconcileOnboardingWithVault(status: VaultStatus): void {
 
   // A configured vault cannot belong to an onboarding run that has not reached
   // PIN setup. This is a stale draft from a returning account.
+  if (state.isSocialAuth && state.currentStep === "welcome") {
+    captureLoginCompleted("google", "signup_redirect");
+  }
   resetOnboarding();
 }
 

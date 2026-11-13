@@ -170,9 +170,6 @@
     "actions": {
       "line": {
         "actions": "Azioni sulla previsione",
-        "activityMany": "%{count} movimenti",
-        "activityNone": "Nessun movimento",
-        "activityOne": "1 movimento",
         "cancelPair": "Annulla entrambi",
         "createTargetBudget": "Crea prima il budget di %{month}",
         "deleteTitle": "Eliminare %{name}?",
@@ -186,12 +183,10 @@
         "loadError": "Impossibile caricare questa previsione.",
         "missingHint": "Potrebbe essere stata eliminata da un altro dispositivo.",
         "missingTitle": "Questa previsione non esiste più",
-        "overrun": "%{amount} oltre il budget",
         "pairDescription": "+%{amount} a %{incomeMonth} è collegato a -%{amount} a %{repaymentMonth}.",
         "pairTitle": "Queste due righe sono collegate",
         "plannedAmount": "su %{amount} previsti",
         "postpone": "Rimanda al mese successivo",
-        "remaining": "%{amount} rimanenti",
         "viewSpread": "Vedi i mesi distribuiti",
         "leftEyebrow": "Rimane",
         "overrunEyebrow": "Sforamento",
@@ -289,14 +284,11 @@
         "error": "Non è stato possibile salvare il movimento. Riprova.",
         "goalsAvailable": "Obiettivi disponibili",
         "impact": {
-          "down": "Il tuo disponibile scende di %{amount}",
-          "neutral": "Il tuo disponibile non cambia",
           "note": {
             "covered": "Era previsto in %{name}: restano %{after} invece di %{before}.",
             "overLine": "%{name} è superata: l'eccedenza esce dal tuo disponibile.",
             "uncovered": "Nessuna previsione la copre."
-          },
-          "up": "Il tuo disponibile sale di %{amount}"
+          }
         },
         "leftChip": "resta %{amount}",
         "noGoals": "Nessun obiettivo ha denaro disponibile al momento.",
@@ -640,6 +632,8 @@
       "missingHint": "Potrebbe essere stato eliminato da un altro dispositivo.",
       "missingTitle": "Questo obiettivo non esiste più",
       "statusError": "Non è stato possibile cambiare lo stato. Riprova.",
+      "statusPaused": "Obiettivo in pausa",
+      "statusReopened": "Obiettivo riaperto",
       "since": "Da %{date}",
       "thisMonth": "Questo mese",
       "upcoming": "In arrivo",
@@ -1116,6 +1110,19 @@
     "updated": "Aggiornato %{when}",
     "updatedIn": "%{category} · aggiornato %{when}",
     "today": "oggi",
+    "ageYesterday": "ieri",
+    "ageDays": {
+      "one": "%{count} giorno fa",
+      "other": "%{count} giorni fa"
+    },
+    "ageMonths": {
+      "one": "%{count} mese fa",
+      "other": "%{count} mesi fa"
+    },
+    "ageYears": {
+      "one": "%{count} anno fa",
+      "other": "%{count} anni fa"
+    },
     "whenMatching": "%{line} · all'allineamento",
     "badgeOverdraft": "Scoperto",
     "badgeExcluded": "Fuori dal totale",
@@ -1619,7 +1626,10 @@
       "deleteLineBody": "«%{name}» verrà rimosso dal modello. I budget esistenti manterranno la loro copia.",
       "deleteLineError": "Non è stato possibile eliminare la previsione. Riprova.",
       "deleteLineTitle": "Eliminare questa previsione?",
-      "deleteTemplateBody": "I budget già creati da «%{name}» restano intatti. Scompare solo il modello.",
+      "deleteTemplateBody": {
+        "one": "Nessun budget lo usa. %{count} riga se ne va con lui, senza ritorno.",
+        "other": "Nessun budget lo usa. Le sue %{count} righe se ne vanno con lui, senza ritorno."
+      },
       "deleteTemplateError": "Non è stato possibile eliminare il modello. Riprova.",
       "deleteTemplateTitle": "Eliminare questo modello?",
       "empty": "Questo modello è ancora vuoto. Aggiungi entrate, spese e risparmi perché possa servire come mese tipo.",
@@ -1632,7 +1642,6 @@
         "other": "%{count} budget creati da questo modello"
       },
       "usageError": "Non è stato possibile verificare i budget collegati a questo modello.",
-      "usageHint": "L'eliminazione del modello non influisce su questi budget.",
       "heroLabel": "Disponibile di partenza",
       "heroSentence": "Quanto questo modello lascia da spendere su %{income} di entrate, prima del riporto del mese precedente.",
       "defaultLabel": "Predefinito",

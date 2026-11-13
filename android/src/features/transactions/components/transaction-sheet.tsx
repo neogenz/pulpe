@@ -37,13 +37,16 @@ import { EMPHASIS, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-queries";
 
-import { computeMovementImpact } from "../movement-impact";
+import {
+  computeMovementImpact,
+  movementImpactContent,
+} from "../movement-impact";
 import {
   eligibleLines,
   lineSections,
   suggestedLine,
 } from "../movement-line-choices";
-import { MovementImpactBlock } from "./movement-impact-block";
+import { ImpactBlock } from "@/features/budget-details/components/impact-confirm-sheet";
 import { MovementLinePicker } from "./movement-line-picker";
 
 import {
@@ -492,9 +495,8 @@ export function TransactionSheet({
             />
 
             {impact !== null && (
-              <MovementImpactBlock
-                impact={impact}
-                line={selectedLine}
+              <ImpactBlock
+                {...movementImpactContent(t, impact, selectedLine, currency)}
                 currency={currency}
               />
             )}

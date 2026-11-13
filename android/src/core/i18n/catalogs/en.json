@@ -170,9 +170,6 @@
     "actions": {
       "line": {
         "actions": "Forecast actions",
-        "activityMany": "%{count} entries",
-        "activityNone": "No entries",
-        "activityOne": "1 entry",
         "cancelPair": "Cancel both",
         "createTargetBudget": "Create the %{month} budget first",
         "deleteTitle": "Delete %{name}?",
@@ -186,12 +183,10 @@
         "loadError": "Unable to load this forecast.",
         "missingHint": "It may have been deleted from another device.",
         "missingTitle": "This forecast no longer exists",
-        "overrun": "%{amount} over budget",
         "pairDescription": "+%{amount} in %{incomeMonth} is linked to -%{amount} in %{repaymentMonth}.",
         "pairTitle": "These two lines are linked",
         "plannedAmount": "of %{amount} planned",
         "postpone": "Postpone to next month",
-        "remaining": "%{amount} remaining",
         "viewSpread": "View spread months",
         "leftEyebrow": "Left",
         "overrunEyebrow": "Overrun",
@@ -289,14 +284,11 @@
         "error": "The entry could not be saved. Try again.",
         "goalsAvailable": "Available goals",
         "impact": {
-          "down": "Your available amount drops by %{amount}",
-          "neutral": "Your available amount doesn't change",
           "note": {
             "covered": "It was planned in %{name}: %{after} left instead of %{before}.",
             "overLine": "%{name} is over: the excess comes out of your available amount.",
             "uncovered": "No forecast covers it."
-          },
-          "up": "Your available amount rises by %{amount}"
+          }
         },
         "leftChip": "%{amount} left",
         "noGoals": "No goal has money available right now.",
@@ -640,6 +632,8 @@
       "missingHint": "It may have been deleted from another device.",
       "missingTitle": "This goal no longer exists",
       "statusError": "The status couldn't be changed. Try again.",
+      "statusPaused": "Goal paused",
+      "statusReopened": "Goal reopened",
       "since": "Since %{date}",
       "thisMonth": "This month",
       "upcoming": "Upcoming",
@@ -1116,6 +1110,19 @@
     "updated": "Updated %{when}",
     "updatedIn": "%{category} · updated %{when}",
     "today": "today",
+    "ageYesterday": "yesterday",
+    "ageDays": {
+      "one": "%{count} day ago",
+      "other": "%{count} days ago"
+    },
+    "ageMonths": {
+      "one": "%{count} month ago",
+      "other": "%{count} months ago"
+    },
+    "ageYears": {
+      "one": "%{count} year ago",
+      "other": "%{count} years ago"
+    },
     "whenMatching": "%{line} · when matching",
     "badgeOverdraft": "Overdrawn",
     "badgeExcluded": "Not in total",
@@ -1619,7 +1626,10 @@
       "deleteLineBody": "“%{name}” will leave the template. Existing budgets keep their copy.",
       "deleteLineError": "The forecast couldn't be deleted. Try again.",
       "deleteLineTitle": "Delete this forecast?",
-      "deleteTemplateBody": "Budgets already created from “%{name}” stay intact. Only the template disappears.",
+      "deleteTemplateBody": {
+        "one": "No budget uses it. %{count} line goes with it, with no way back.",
+        "other": "No budget uses it. Its %{count} lines go with it, with no way back."
+      },
       "deleteTemplateError": "The template couldn't be deleted. Try again.",
       "deleteTemplateTitle": "Delete this template?",
       "empty": "This template is still empty. Add your income, expenses and savings so it can serve as a typical month.",
@@ -1632,7 +1642,6 @@
         "other": "%{count} budgets created from this template"
       },
       "usageError": "Couldn't check the budgets linked to this template.",
-      "usageHint": "Deleting the template doesn't affect these budgets.",
       "heroLabel": "Starting available",
       "heroSentence": "What this template leaves to spend out of %{income} of income, before the previous month's carry-over.",
       "defaultLabel": "Default",

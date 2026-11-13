@@ -1,4 +1,4 @@
-import { captureEvent } from "./analytics";
+import { captureEvent } from "./analytics-client";
 import {
   authErrorKind,
   captureLoginFailed,
@@ -7,7 +7,7 @@ import {
   captureSignupFailed,
 } from "./product-events";
 
-jest.mock("./analytics", () => ({ captureEvent: jest.fn() }));
+jest.mock("./analytics-client", () => ({ captureEvent: jest.fn() }));
 
 describe("authErrorKind", () => {
   it("shares iOS's value space for provider codes", () => {

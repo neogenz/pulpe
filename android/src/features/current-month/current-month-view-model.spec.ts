@@ -121,16 +121,6 @@ describe("metrics", () => {
     expect(model.metrics.available).toBe(5200);
     expect(model.metrics.totalExpenses).toBe(1500);
     expect(model.metrics.remaining).toBe(3700);
-    expect(model.emotion).toBe("comfortable");
-  });
-
-  it("calls the month a deficit once the plan goes past what came in", () => {
-    const model = viewModelOf([
-      line({ id: "salary", kind: "income", amount: 1000 }),
-      line({ id: "rent", amount: 1400 }),
-    ]);
-
-    expect(model.emotion).toBe("deficit");
   });
 });
 
@@ -140,9 +130,7 @@ describe("period", () => {
       line({ id: "salary", kind: "income", amount: 2100 }),
     ]);
 
-    expect(model.daysRemaining).toBe(21);
     expect(model.periodProgress).toEqual({ day: 11, totalDays: 31 });
-    expect(model.dailyBudget).toBe(100);
   });
 
   it("follows the pay day instead of the calendar month", () => {
@@ -153,14 +141,7 @@ describe("period", () => {
       27,
     );
 
-    expect(model.daysRemaining).toBe(16);
     expect(model.periodProgress).toEqual({ day: 16, totalDays: 31 });
-  });
-
-  it("offers nothing to spend per day when the month is already in deficit", () => {
-    const model = viewModelOf([line({ id: "rent", amount: 1200 })]);
-
-    expect(model.dailyBudget).toBe(0);
   });
 });
 
@@ -360,13 +341,7 @@ describe("savings", () => {
       }),
     ]);
 
-    expect(model.savings).toMatchObject({
-      totalPlanned: 500,
-      totalRealized: 500,
-      checkedCount: 1,
-      totalCount: 1,
-      isComplete: true,
-    });
+    expect(model.savings.isComplete).toBe(true);
   });
 
   it("stays incomplete while a transfer is still to be pointed", () => {
@@ -381,13 +356,11 @@ describe("savings", () => {
     ]);
 
     expect(model.savings.isComplete).toBe(false);
-    expect(model.savings.progressPercentage).toBe(60);
   });
 
   it("says there is nothing to save rather than reporting a complete month", () => {
     const model = viewModelOf([line({ id: "rent", amount: 1200 })]);
 
-    expect(model.savings.hasSavings).toBe(false);
     expect(model.savings.isComplete).toBe(false);
   });
 });

@@ -1,22 +1,26 @@
 import {
   BudgetFormulas,
-  moneyDifference,
   type BudgetLine,
+  type SupportedCurrency,
   type Transaction,
   type TransactionKind,
 } from "pulpe-shared";
 
-export type ImpactTone = "neutral" | "over" | "ok";
+import {
+  type ImpactBlockContent,
+  impactBlockFor,
+  impactTitle,
+} from "@/features/budget-details/components/impact-confirm-sheet";
+import { formatAmount } from "@/core/ui/amount-format";
+import {
+  type DisponibleImpact,
+  impactBetween,
+} from "@/features/budget-details/month-impact";
 
-export interface MovementImpact {
-  before: number;
-  after: number;
+export interface MovementImpact extends DisponibleImpact {
   /** What is left on the chosen prévision, before and after; null without one. */
   lineBefore: number | null;
   lineAfter: number | null;
-  /** How far the disponible moves: negative lowers it. */
-  delta: number;
-  tone: ImpactTone;
 }
 
 export interface MovementDraft {
@@ -42,27 +46,18 @@ export function computeMovementImpact(input: {
   const { lines, rollover, draft } = input;
   const transactions = input.transactions as Transaction[];
   const lineList = lines as BudgetLine[];
+  // Only what the formulas read of the draft: it has no id nor date yet.
   const drafted = [
     ...transactions.filter((tx) => tx.id !== input.replacingId),
     { kind: draft.kind, amount: draft.amount, budgetLineId: draft.lineId },
-  ];
-
-  const before = BudgetFormulas.calculateAllMetrics(
-    lineList,
-    transactions,
-    rollover,
-  ).remaining;
-  const after = BudgetFormulas.calculateAllMetrics(
-    lineList,
-    drafted,
-    rollover,
-  ).remaining;
+  ] as Transaction[];
   const line = lines.find((candidate) => candidate.id === draft.lineId);
-  const delta = moneyDifference(after, before);
 
   return {
-    before,
-    after,
+    ...impactBetween(
+      { lines: lineList, transactions, rollover },
+      { lines: lineList, transactions: drafted, rollover },
+    ),
     lineBefore:
       line === undefined
         ? null
@@ -71,8 +66,6 @@ export function computeMovementImpact(input: {
       line === undefined
         ? null
         : BudgetFormulas.calculateConsumption(line, drafted).available,
-    delta,
-    tone: delta === 0 ? "neutral" : delta < 0 ? "over" : "ok",
   };
 }
 
@@ -104,4 +97,27 @@ export function impactNote(
       : null;
   }
   return impact.tone === "over" ? { kind: "uncovered" } : null;
+}
+
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+/** What the movement sheet's impact block says: the shared block's content. */
+export function movementImpactContent(
+  t: Translate,
+  impact: MovementImpact,
+  line: BudgetLine | undefined,
+  currency: SupportedCurrency,
+): ImpactBlockContent {
+  const note = impactNote(impact, line);
+  return impactBlockFor(
+    impact,
+    impactTitle(t, impact, currency),
+    note === null
+      ? undefined
+      : t(`budgets.mutations.activity.impact.note.${note.kind}`, {
+          name: "lineName" in note ? note.lineName : "",
+          before: "before" in note ? formatAmount(note.before, currency) : "",
+          after: "after" in note ? formatAmount(note.after, currency) : "",
+        }),
+  );
 }

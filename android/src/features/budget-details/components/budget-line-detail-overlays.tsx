@@ -1,4 +1,5 @@
 import {
+  BudgetFormulas,
   type BudgetLine,
   type BudgetPeriod,
   getBudgetPeriodDates,
@@ -134,7 +135,7 @@ export const BudgetLineDetailOverlays = forwardRef<
       ? t("budgets.actions.line.deleteMovements", {
           count: transactions.length,
           total: formatAmount(
-            transactions.reduce((sum, { amount }) => sum + amount, 0),
+            BudgetFormulas.calculateConsumption(line, transactions).allocated,
             currency,
           ),
         })

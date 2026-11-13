@@ -318,7 +318,13 @@ export default function HomeScreen() {
     void toggle.mutateAsync(item).then(
       () => {
         hapticSuccess();
-        if (wasPointed) return;
+        if (wasPointed) {
+          // Its « Annuler » would point the movement again.
+          setNotice((current) =>
+            current?.kind === "pointed" ? null : current,
+          );
+          return;
+        }
         setNotice({ kind: "pointed", item });
         // Offered here and nowhere else: a reminder to point is worth
         // something only to someone who has just found out what pointing does.

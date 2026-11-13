@@ -67,9 +67,11 @@ describe("event properties", () => {
  * name no dashboard knows.
  */
 describe("the single exit", () => {
-  it("keeps the PostHog client out of every file but its own", () => {
+  it("keeps the PostHog client out of every file but its own two", () => {
     const holders = sourceFiles("src").filter((path) => {
-      if (path.endsWith("core/observability/analytics.ts")) return false;
+      if (/core\/observability\/analytics(-client)?\.ts$/.test(path)) {
+        return false;
+      }
       return /from "posthog-react-native"/.test(readFileSync(path, "utf8"));
     });
 

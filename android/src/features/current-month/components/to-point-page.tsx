@@ -16,7 +16,7 @@ import { useV2Colors } from "@/core/ui/scheme-colors";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 
 import { sortNewestFirst } from "../activity-window";
-import { orderForChecking } from "../current-month-view-model";
+import { isPointableLine, orderForChecking } from "../current-month-view-model";
 import {
   isPointedNow,
   lineFact,
@@ -76,8 +76,7 @@ function ToPoint({ month }: { month: LoadedMonth }) {
   const lines = orderForChecking(
     budgetLines.filter(
       (line) =>
-        line.isRollover !== true &&
-        line.sourceSavingsGoalId == null &&
+        isPointableLine(line) &&
         (line.checkedAt === null || pointedHere.has(line.id)),
     ),
     checkingDays,

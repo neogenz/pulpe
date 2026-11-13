@@ -10,9 +10,12 @@ import {
   writeOnboardingCompleted,
 } from "./draft-storage";
 import {
+  captureEmailSignupStarted,
   captureOnboardingPaused,
   captureOnboardingResumedFromBackground,
   captureWelcomeViewed,
+  isRunResumedFromDraft,
+  resetOnboardingAnalytics,
 } from "./onboarding-analytics";
 import { hasAccount, wouldExitOnBack } from "./onboarding-selectors";
 import {
@@ -77,6 +80,10 @@ jest.mock("./draft-storage", () => {
 jest.mock("@/core/observability/analytics", () => ({
   captureEvent: jest.fn(),
 }));
+// The product events reach the same exit through its leaf module.
+jest.mock("@/core/observability/analytics-client", () =>
+  jest.requireMock("@/core/observability/analytics"),
+);
 
 const captured = jest.mocked(captureEvent);
 
@@ -419,6 +426,10 @@ describe("draft", () => {
     });
     expect(mocked.readDraft()).toBeNull();
     expect(propertiesOf("signup_completed")).toBeNull();
+    expect(propertiesOf("login_completed")).toEqual({
+      method: "google",
+      source: "signup_redirect",
+    });
   });
 
   it("keeps an interrupted PIN run and requires the existing PIN", () => {
@@ -561,6 +572,7 @@ describe("the funnel", () => {
 
     restoreOnboardingDraft();
 
+    expect(isRunResumedFromDraft()).toBe(true);
     expect(propertiesOf("onboarding_resumed")).toEqual({
       method: "email",
       source: "draft",
@@ -678,6 +690,18 @@ describe("funnel parity with iOS", () => {
       source: "foreground",
     });
     expect(timesCaptured("onboarding_resumed")).toBe(1);
+  });
+
+  it("emits signup_started once per run, however often the form mounts", () => {
+    captureEmailSignupStarted();
+    captureEmailSignupStarted();
+
+    expect(propertiesOf("signup_started")).toEqual({ method: "email" });
+    expect(timesCaptured("signup_started")).toBe(1);
+
+    resetOnboardingAnalytics();
+    captureEmailSignupStarted();
+    expect(timesCaptured("signup_started")).toBe(2);
   });
 
   it("does not pause on welcome or while the budget is being created", () => {

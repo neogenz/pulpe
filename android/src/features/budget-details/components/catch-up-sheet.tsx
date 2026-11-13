@@ -192,7 +192,6 @@ export function CatchUpSheet({
                       )
                     }
                     onPress={() => setSelectedId(choice.line.id)}
-                    accessibilityLabel={choice.line.name}
                   />
                 ))}
               </LedgerCard>

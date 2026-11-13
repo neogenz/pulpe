@@ -57,7 +57,8 @@ export interface GoogleSignInResult {
 
 /**
  * `null` means the user backed out — not an error, and nothing to report.
- * Anything genuinely wrong throws with a French message.
+ * Anything genuinely wrong throws the original error, so its `code` survives
+ * for analytics; callers show their own message.
  */
 export async function signInWithGoogle(): Promise<GoogleSignInResult | null> {
   const webClientId = ENV.googleWebClientId;
@@ -76,7 +77,7 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult | null> {
     provider: "google",
     token: response,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 
   return { firstName: firstNameFromMetadata(data.user?.user_metadata) };
 }
@@ -114,16 +115,6 @@ async function requestGoogleIdToken(): Promise<string | null> {
     // Backing out reaches us as a response on this SDK version, but the older
     // rejection path is still live on some devices, so treat both as a no-op.
     if (error.code === statusCodes.SIGN_IN_CANCELLED) return null;
-    throw new Error(googleErrorMessage(error.code));
+    throw error;
   }
-}
-
-function googleErrorMessage(code: string): string {
-  if (code === statusCodes.IN_PROGRESS) {
-    return "Une connexion Google est déjà en cours.";
-  }
-  if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-    return "Les services Google Play ne sont pas disponibles sur cet appareil.";
-  }
-  return "Connexion Google impossible — réessaie.";
 }

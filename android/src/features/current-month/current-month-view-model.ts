@@ -8,7 +8,6 @@ import {
   calculateBalanceTrajectory,
   checkingPriority,
   type Consumption,
-  type EmotionState,
   getBudgetPeriodDates,
   type Transaction,
   type TransactionKind,
@@ -53,13 +52,9 @@ export interface CheckableItem extends CheckTarget {
 }
 
 export interface SavingsSummary {
-  totalPlanned: number;
   totalRealized: number;
-  checkedCount: number;
-  totalCount: number;
-  progressPercentage: number;
+  /** Every planned transfer reached its amount. */
   isComplete: boolean;
-  hasSavings: boolean;
 }
 
 export interface PeriodProgress {
@@ -82,9 +77,6 @@ export interface RealizedMetrics {
 
 export interface CurrentMonthViewModel {
   metrics: ReturnType<typeof BudgetFormulas.calculateAllMetrics>;
-  emotion: EmotionState;
-  daysRemaining: number;
-  dailyBudget: number;
   driftLines: DriftLine[];
   driftTotal: number;
   uncheckedCount: number;
@@ -162,14 +154,10 @@ export function buildCurrentMonthViewModel(
     budget.rollover ?? 0,
   );
   const driftLines = selectDriftLines(budgetLines, transactions);
-  const daysRemaining = countDaysRemaining(budget, now, payDayOfMonth);
   const periodProgress = measurePeriodProgress(budget, now, payDayOfMonth);
 
   return {
     metrics,
-    emotion: BudgetFormulas.emotionState(metrics),
-    daysRemaining,
-    dailyBudget: metrics.remaining > 0 ? metrics.remaining / daysRemaining : 0,
     driftLines,
     driftTotal: driftLines.reduce(
       (total, drift) => total - drift.consumption.available,
@@ -273,10 +261,7 @@ function countUnchecked(
 ): number {
   const uncheckedTransactions = transactions.filter(isUnchecked).length;
   const uncheckedLines = budgetLines.filter(
-    (line) =>
-      isUnchecked(line) &&
-      line.isRollover !== true &&
-      line.sourceSavingsGoalId == null,
+    (line) => isUnchecked(line) && isPointableLine(line),
   ).length;
   return uncheckedTransactions + uncheckedLines;
 }
@@ -312,12 +297,7 @@ function selectUncheckedItems(
     });
 
   const uncheckedLines = orderForChecking(
-    budgetLines.filter(
-      (line) =>
-        isUnchecked(line) &&
-        line.isRollover !== true &&
-        line.sourceSavingsGoalId == null,
-    ),
+    budgetLines.filter((line) => isUnchecked(line) && isPointableLine(line)),
     days,
     today,
   ).map((line) => ({
@@ -373,28 +353,9 @@ function summarizeSavings(
       : 0;
 
   return {
-    totalPlanned,
     totalRealized,
-    checkedCount: savingLines.filter((line) => !isUnchecked(line)).length,
-    totalCount: savingLines.length,
-    progressPercentage,
     isComplete: totalPlanned > 0 && progressPercentage >= PERCENT,
-    hasSavings: totalPlanned > 0 || totalRealized > 0,
   };
-}
-
-/** Today included, so the last day of the period still reads as one day left. */
-function countDaysRemaining(
-  budget: Budget,
-  now: Date,
-  payDayOfMonth?: number | null,
-): number {
-  const { endDate } = getBudgetPeriodDates(
-    budget.month,
-    budget.year,
-    payDayOfMonth,
-  );
-  return Math.max(countDaysBetween(now, endDate) + 1, 1);
 }
 
 function measurePeriodProgress(
@@ -426,6 +387,13 @@ function countDaysBetween(from: Date, to: Date): number {
 
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/** A prévision the user points: not the carry-over, nor a savings withdrawal. */
+export function isPointableLine(
+  line: Pick<BudgetLine, "isRollover" | "sourceSavingsGoalId">,
+): boolean {
+  return line.isRollover !== true && line.sourceSavingsGoalId == null;
 }
 
 function isUnchecked(item: { checkedAt: string | null }): boolean {

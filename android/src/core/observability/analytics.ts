@@ -2,17 +2,15 @@ import * as Application from "expo-application";
 import type { User } from "@supabase/supabase-js";
 import { useSegments } from "expo-router";
 import { PostHog } from "posthog-react-native";
-import {
-  ANALYTICS_EVENTS,
-  ANALYTICS_PROPERTIES,
-  type AnalyticsEventName,
-} from "pulpe-shared";
+import { ANALYTICS_EVENTS, ANALYTICS_PROPERTIES } from "pulpe-shared";
 import { useEffect } from "react";
+import { AppState } from "react-native";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { ENV } from "@/core/config/env";
 import { useLocaleStore } from "@/core/i18n/locale-store";
 
+import { captureEvent, setAnalyticsClient } from "./analytics-client";
 import {
   sanitizeProperties,
   type AnalyticsProperties,
@@ -23,14 +21,11 @@ import {
   useDiagnosticsConsent,
 } from "./diagnostics-consent";
 
+export { captureEvent, getAnalyticsClient } from "./analytics-client";
+
 let client: PostHog | null = null;
 let identifiedUserId: string | null = null;
 let identitySignature: string | null = null;
-
-/** The running client, for feature flags; null wherever analytics is off. */
-export function getAnalyticsClient(): PostHog | null {
-  return client;
-}
 
 /**
  * Which app is reporting, on every event. Without it an Android event is
@@ -130,6 +125,7 @@ export function startAnalytics(): () => void {
         },
       },
     });
+    setAnalyticsClient(client);
     // Registered once so every manual event carries the same app identity.
     void client.register(appContextProperties());
     setApiErrorCapture(captureException);
@@ -140,6 +136,17 @@ export function startAnalytics(): () => void {
   const stopSessionListening = useSessionStore.subscribe(syncIdentity);
   const stopLocaleListening = useLocaleStore.subscribe(() => {
     void client?.register(appContextProperties());
+  });
+  // iOS reports every return to the foreground. Only a return counts: the
+  // cold launch is reported above, and a first `active` after a headless start
+  // must not report it twice.
+  let wasBackgrounded = false;
+  const appStateSubscription = AppState.addEventListener("change", (next) => {
+    if (next === "background") wasBackgrounded = true;
+    if (next === "active" && wasBackgrounded) {
+      wasBackgrounded = false;
+      captureEvent(ANALYTICS_EVENTS.APP_OPENED);
+    }
   });
   const stopConsentListening = useDiagnosticsConsent.subscribe((state) => {
     if (state.isDiagnosticSharingEnabled) {
@@ -156,23 +163,9 @@ export function startAnalytics(): () => void {
   return () => {
     stopSessionListening();
     stopLocaleListening();
+    appStateSubscription.remove();
     stopConsentListening();
   };
-}
-
-/**
- * The one way an event leaves this app.
- *
- * The name is an `AnalyticsEventName`, so it can only be a string that already
- * exists in `ANALYTICS_EVENTS` — the cross-platform catalogue in
- * `shared/src/feature-flags.ts`. A list of names declared locally would be a
- * second catalogue that no dashboard knows about.
- */
-export function captureEvent(
-  event: AnalyticsEventName,
-  properties: AnalyticsProperties = {},
-): void {
-  void client?.capture(event, sanitizeProperties(properties));
 }
 
 /** Captures a handled incident without bypassing the diagnostics preference. */

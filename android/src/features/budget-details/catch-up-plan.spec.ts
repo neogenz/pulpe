@@ -60,7 +60,7 @@ describe("catchUpPlan", () => {
   it("totals the overruns and offers the lines with margin, most margin first", () => {
     const plan = catchUpPlan(month, null, "CHF");
 
-    expect(plan.total).toBeCloseTo(64.2);
+    expect(plan.total).toBe(64.2);
     expect(plan.overruns.map((overrun) => overrun.line.id)).toEqual([
       "courses",
     ]);
@@ -79,10 +79,25 @@ describe("catchUpPlan", () => {
       "loisirs",
       "courses",
     ]);
-    expect(updatesFor(plan, choice)[0]?.amount).toBeCloseTo(85.8);
-    expect(updatesFor(plan, choice)[1]?.amount).toBeCloseTo(364.2);
+    expect(updatesFor(plan, choice)[0]?.amount).toBe(85.8);
+    expect(updatesFor(plan, choice)[1]?.amount).toBe(364.2);
     // The overrun is absorbed, the envelope shrinks by what it gave.
     expect(catchUpImpact(plan, choice, month).tone).toBe("ok");
+  });
+
+  it("keeps every amount to the centime", () => {
+    const plan = catchUpPlan(
+      ledger(
+        [expense("courses", 300), expense("loisirs", 250.3)],
+        [spent("courses", 364.2)],
+      ),
+      null,
+      "CHF",
+    );
+    const [lowered, raised] = updatesFor(plan, defaultChoice(plan)!);
+
+    expect(lowered?.amount).toBe(186.1);
+    expect(raised?.amount).toBe(364.2);
   });
 
   it("never offers to empty an untouched prévision", () => {
@@ -126,7 +141,7 @@ describe("catchUpPlan", () => {
       "CHF",
     );
 
-    expect(plan.total).toBeCloseTo(30);
+    expect(plan.total).toBe(30);
     expect(plan.overruns.map((overrun) => overrun.line.id)).toEqual(["a"]);
   });
 

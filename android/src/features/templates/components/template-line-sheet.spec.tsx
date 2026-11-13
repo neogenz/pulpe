@@ -327,11 +327,14 @@ it("propagates exact edited values only after explicit confirmation", async () =
     expect.any(Object),
   );
   const callbacks = mockBulk.mutate.mock.calls[0][1] as {
-    onSuccess: () => void;
+    onSuccess: (result: unknown) => void;
   };
-  await act(() => callbacks.onSuccess());
+  // The server's count wins over the 3 the sheet was told to expect.
+  await act(() =>
+    callbacks.onSuccess({ propagation: { affectedBudgetsCount: 2 } }),
+  );
   expect(hapticSuccess).toHaveBeenCalledTimes(1);
-  expect(baseProps.onSaved).toHaveBeenCalledWith({ updatedBudgets: 3 });
+  expect(baseProps.onSaved).toHaveBeenCalledWith({ updatedBudgets: 2 });
 });
 
 it("says so when applying to the budgets fails, with the values kept", async () => {

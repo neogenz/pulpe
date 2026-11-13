@@ -185,24 +185,6 @@ export const V2_COLORS = {
 } as const;
 
 /**
- * The onboarding preview's mint card, from `Color+Pulpe.swift`. Its surface is
- * the same in every emotion state — the brand stays calm and the verdict is
- * carried by the ink on it, not by the card turning colour underneath.
- */
-export const PREVIEW_COLORS = {
-  light: {
-    surface: "#CFE8D6",
-    ink: "#0E3A1C",
-    support: "#2C5136",
-  },
-  dark: {
-    surface: "#1D3A28",
-    ink: "#D5ECDC",
-    support: "#9FC3AA",
-  },
-} as const;
-
-/**
  * The hero: since the V2 boards it is a white card on the canvas, not a forest.
  * Ink reads, green is the one accent, ocre says « dépassé » and coral a
  * deficit — the verdict is still read in the sentence and one accent, never in

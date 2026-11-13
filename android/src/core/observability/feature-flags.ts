@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAnalyticsClient } from "./analytics";
+import { getAnalyticsClient } from "./analytics-client";
 
 /** A flag is on only when PostHog says `true`: unknown, loading or a variant string is off. */
 export function isFlagEnabled(value: boolean | string | undefined): boolean {

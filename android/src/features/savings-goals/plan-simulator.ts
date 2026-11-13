@@ -13,6 +13,8 @@ import {
   simulateSavingsPlan,
 } from "pulpe-shared";
 
+import { roundUpToCentime } from "./round-up-to-centime";
+
 /** `year * 12 + month` — the key `simulateSavingsPlan` adjustments are matched on. */
 export function monthKey(period: { month: number; year: number }): number {
   return period.year * 12 + period.month;
@@ -174,7 +176,7 @@ export function planVerdict(
 /** What a repair puts in each month it fills: the pace the goal still asks for. */
 export function repairAmount(progress: SavingsGoalProgress): number | null {
   if (progress.required === null) return null;
-  const amount = Math.ceil(progress.required * 100) / 100;
+  const amount = roundUpToCentime(progress.required);
   return amount > 0 ? amount : null;
 }
 

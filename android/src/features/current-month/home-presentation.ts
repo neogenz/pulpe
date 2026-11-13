@@ -86,7 +86,7 @@ export interface LineFact {
  */
 export function lineFact(
   t: Translate,
-  line: Pick<BudgetLine, "kind" | "recurrence">,
+  line: Pick<BudgetLine, "kind" | "recurrence" | "spreadGroupId">,
   consumption: Consumption,
   currency: SupportedCurrency,
 ): LineFact {
@@ -108,7 +108,10 @@ export function lineFact(
       hasAmount: true,
     };
   }
-  const rhythm = recurrenceLabel(t, line.recurrence);
+  const rhythm =
+    line.spreadGroupId == null
+      ? recurrenceLabel(t, line.recurrence)
+      : t("budgets.detail.spread");
   return {
     text:
       line.kind === "saving" ? t("home.toPoint.saving", { rhythm }) : rhythm,
@@ -129,7 +132,10 @@ export function movementPlace(
   );
 }
 
-/** « Courses · pointé à l'instant », « Hors prévision · Aujourd'hui ». */
+/**
+ * « Courses · pointé à l'instant », « Hors prévision · Aujourd'hui ». Unlike
+ * the home's list, an unallocated saving reads « Hors prévision » here too.
+ */
 export function toPointMovementFact(
   t: Translate,
   locale: string,
@@ -141,7 +147,7 @@ export function toPointMovementFact(
   const tail = isPointedNow
     ? t("home.toPoint.pointedNow")
     : formatRelativeDay(new Date(transaction.transactionDate), now, locale);
-  return `${movementPlace(t, transaction.kind, lineName)} · ${tail}`;
+  return `${lineName ?? t("home.movements.unplanned")} · ${tail}`;
 }
 
 /** What a row of the latest movements says under its name. */
