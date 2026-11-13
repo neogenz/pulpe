@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
+import { BudgetFormulas } from 'pulpe-shared';
 import { FindAllBudgetsUseCase } from './find-all-budgets.use-case';
 import type { BudgetRepositoryPort } from '../domain/ports/budget-repository.port';
 import type { Budget } from '../domain/budget.entity';
@@ -181,6 +182,25 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
     )!.remaining;
 
     expect(totalPersistedDelta).toBe(lastMonthRemaining);
+  });
+
+  it.each([
+    [
+      'the pay day carried by the authenticated user',
+      { payDayOfMonth: 25 },
+      25,
+    ],
+    ['calendar months when the user has no pay day', {}, 1],
+  ])('computes the rollover on %s', async (_case, payDay, expected) => {
+    const calculateRollover = spyOn(BudgetFormulas, 'calculateRollover');
+    try {
+      await useCase.execute({ ...fakeUser, ...payDay } as never);
+
+      const payDays = calculateRollover.mock.calls.map((call) => call[2]);
+      expect(payDays).toEqual([expected, expected, expected]);
+    } finally {
+      calculateRollover.mockRestore();
+    }
   });
 
   it('uses a distinct cache entry for each sparse page', async () => {
