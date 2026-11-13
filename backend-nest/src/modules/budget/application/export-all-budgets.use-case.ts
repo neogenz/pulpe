@@ -1,8 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { PAY_DAY_MIN, PAY_DAY_MAX } from 'pulpe-shared';
+import { PAY_DAY_MIN } from 'pulpe-shared';
 import {
   BUDGET_REPOSITORY,
   type BudgetRepositoryPort,
@@ -22,12 +21,9 @@ export class ExportAllBudgetsUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
-  async execute(
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetForExport[]> {
+  async execute(user: AuthenticatedUser): Promise<BudgetForExport[]> {
     const startTime = Date.now();
-    const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+    const payDayOfMonth = user.payDayOfMonth ?? PAY_DAY_MIN;
     const budgets = await this.repo.fetchAllBudgetsForExport();
 
     const budgetsForRollover = budgets.map((b) => ({
@@ -100,16 +96,5 @@ export class ExportAllBudgetsUseCase {
       previousBudgetId: rolloverData.previousBudgetId,
       remaining,
     };
-  }
-
-  private async getPayDayOfMonth(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
-    const { data } = await supabase.auth.getUser();
-    const raw = data?.user?.user_metadata?.payDayOfMonth;
-
-    if (typeof raw !== 'number' || !Number.isInteger(raw)) return PAY_DAY_MIN;
-
-    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 }

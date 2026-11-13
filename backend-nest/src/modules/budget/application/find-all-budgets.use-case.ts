@@ -1,8 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { type ListBudgetsQuery, PAY_DAY_MIN, PAY_DAY_MAX } from 'pulpe-shared';
+import { type ListBudgetsQuery, PAY_DAY_MIN } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
   BUDGET_REPOSITORY,
@@ -42,7 +41,6 @@ export class FindAllBudgetsUseCase {
 
   async execute(
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
     query?: ListBudgetsQuery,
   ): Promise<FindAllBudgetsResult> {
     const keyParts = [
@@ -54,26 +52,21 @@ export class FindAllBudgetsUseCase {
     ].join(':');
     const cacheKey = `budgets:list:${keyParts}`;
     return this.cacheService.getOrSet(user.id, cacheKey, 30_000, () =>
-      this.fetchBudgetList(user, supabase, query),
+      this.fetchBudgetList(user, query),
     );
   }
 
   private async fetchBudgetList(
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
     query?: ListBudgetsQuery,
   ): Promise<FindAllBudgetsResult> {
     if (query?.fields) {
-      const items = await this.findAllSparseUseCase.execute(
-        user,
-        supabase,
-        query,
-      );
+      const items = await this.findAllSparseUseCase.execute(user, query);
       return { kind: 'sparse', items };
     }
 
     const budgets = await this.repo.fetchAllBudgets();
-    const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+    const payDayOfMonth = user.payDayOfMonth ?? PAY_DAY_MIN;
 
     const rolloverInputs: RolloverInput[] = budgets.map((b) => ({
       id: b.id,
@@ -128,16 +121,5 @@ export class FindAllBudgetsUseCase {
         }
       }),
     );
-  }
-
-  private async getPayDayOfMonth(
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
-    const { data } = await supabase.auth.getUser();
-    const raw = data?.user?.user_metadata?.payDayOfMonth;
-
-    if (typeof raw !== 'number' || !Number.isInteger(raw)) return PAY_DAY_MIN;
-
-    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 }

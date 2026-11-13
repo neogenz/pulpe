@@ -39,10 +39,8 @@ import {
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
-  SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import {
   BudgetCreateDto,
@@ -140,11 +138,9 @@ export class BudgetController {
   async findAll(
     @Query() query: ListBudgetsQueryDto,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetListResponse | BudgetSparseListResponse> {
     const result = await this.findAllBudgetsUseCase.execute(
       user,
-      supabase,
       query as ListBudgetsQuery,
     );
 
@@ -225,12 +221,8 @@ export class BudgetController {
   })
   async exportAll(
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetExportResponse> {
-    const composites = await this.exportAllBudgetsUseCase.execute(
-      user,
-      supabase,
-    );
+    const composites = await this.exportAllBudgetsUseCase.execute(user);
     return this.mapper.toExportResponse(composites);
   }
 
@@ -311,13 +303,8 @@ export class BudgetController {
   async findOneWithDetails(
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
-    const composite = await this.findBudgetWithDetailsUseCase.execute(
-      id,
-      user,
-      supabase,
-    );
+    const composite = await this.findBudgetWithDetailsUseCase.execute(id, user);
     return this.mapper.toBudgetDetailsResponse(composite);
   }
 

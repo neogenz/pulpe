@@ -130,20 +130,9 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
     accessToken: 't',
     clientKey: CLIENT_KEY,
   };
-  const fakeSupabase = {
-    auth: {
-      getUser: () =>
-        Promise.resolve({
-          data: { user: { user_metadata: { payDayOfMonth: 1 } } },
-        }),
-    },
-  };
 
   it('should return remaining = persisted delta + rollover for each month (live recompute path)', async () => {
-    const result = await useCase.execute(
-      fakeUser as never,
-      fakeSupabase as never,
-    );
+    const result = await useCase.execute(fakeUser as never);
 
     if (result.kind !== 'list') throw new Error('expected list result');
 
@@ -154,10 +143,7 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
   });
 
   it('should never store rollover into endingBalance — persisted column stays the month delta', async () => {
-    const result = await useCase.execute(
-      fakeUser as never,
-      fakeSupabase as never,
-    );
+    const result = await useCase.execute(fakeUser as never);
 
     if (result.kind !== 'list') throw new Error('expected list result');
 
@@ -182,10 +168,7 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
     // Equivalently: the last month's `remaining` MUST equal the running sum of
     // every month's persisted `endingBalance` (plus initial rollover, which is 0
     // here since Jan has no prior month).
-    const result = await useCase.execute(
-      fakeUser as never,
-      fakeSupabase as never,
-    );
+    const result = await useCase.execute(fakeUser as never);
 
     if (result.kind !== 'list') throw new Error('expected list result');
 
@@ -201,12 +184,12 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
   });
 
   it('uses a distinct cache entry for each sparse page', async () => {
-    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+    await useCase.execute(fakeUser as never, {
       fields: 'month,year',
       limit: 36,
       offset: 0,
     });
-    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+    await useCase.execute(fakeUser as never, {
       fields: 'month,year',
       limit: 36,
       offset: 36,
@@ -218,11 +201,11 @@ describe('FindAllBudgetsUseCase — persist-delta / read-time-rollover contract'
   });
 
   it('shares the first sparse page cache entry with an explicit zero offset', async () => {
-    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+    await useCase.execute(fakeUser as never, {
       fields: 'month,year',
       limit: 36,
     });
-    await useCase.execute(fakeUser as never, fakeSupabase as never, {
+    await useCase.execute(fakeUser as never, {
       fields: 'month,year',
       limit: 36,
       offset: 0,
