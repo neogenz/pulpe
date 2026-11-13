@@ -60,12 +60,15 @@ export class GenerateBudgetsUseCase {
       skippedMonths = generated.skippedMonths;
 
       // Each ending balance depends only on its own budget (the rollover is
-      // derived at read time), so the recalculations are independent.
-      await Promise.all(
+      // derived at read time), so the recalculations are independent. Wait for
+      // all of them before failing, so the rollback never races a write.
+      const recalculations = await Promise.allSettled(
         createdBudgetIds.map((budgetId) =>
           this.budgetRecalculation.recalculate(budgetId),
         ),
       );
+      const failed = recalculations.find((r) => r.status === 'rejected');
+      if (failed) throw failed.reason;
     } catch (error) {
       if (createdBudgetIds.length === 0) {
         createdBudgetIds = this.createdBudgetIdsFrom(error);

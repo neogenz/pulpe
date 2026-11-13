@@ -221,6 +221,34 @@ describe('GenerateBudgetsUseCase', () => {
     );
   });
 
+  it('rolls back only once every recalculation has settled', async () => {
+    const calls: string[] = [];
+    recalculate
+      .mockRejectedValueOnce(new Error('decrypt failed'))
+      .mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        calls.push('slow recalculation');
+      });
+    repo.deleteBudgetsByIds.mockImplementationOnce(async () => {
+      calls.push('rollback');
+      return true;
+    });
+
+    await expect(
+      useCase.execute(
+        {
+          templateId: '11111111-1111-4111-8111-111111111111',
+          startMonth: 12,
+          startYear: 2026,
+          count: 2,
+        },
+        user,
+      ),
+    ).rejects.toBeInstanceOf(BusinessException);
+
+    expect(calls).toEqual(['slow recalculation', 'rollback']);
+  });
+
   it('reports every created budget as orphaned when rollback fails', async () => {
     const recalculationError = new Error('decrypt failed');
     const rollbackError = new Error('database unavailable');
