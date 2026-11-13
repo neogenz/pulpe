@@ -245,13 +245,10 @@ export class GenerateDemoDataUseCase {
   private async recalculateAllBudgetBalances(
     budgets: DemoSeededBudget[],
   ): Promise<void> {
-    const sorted = [...budgets].sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    });
-
-    for (const budget of sorted) {
-      await this.budgetRecalculation.recalculate(budget.id);
-    }
+    // Each ending balance depends only on its own budget (the rollover is
+    // derived at read time), so the recalculations are independent.
+    await Promise.all(
+      budgets.map((budget) => this.budgetRecalculation.recalculate(budget.id)),
+    );
   }
 }

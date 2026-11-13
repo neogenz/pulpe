@@ -90,12 +90,7 @@ describe('GenerateBudgetsUseCase', () => {
     useCase = module.get(GenerateBudgetsUseCase);
   });
 
-  it('generates once, recalculates chronologically and returns created and skipped periods', async () => {
-    const recalculationOrder: string[] = [];
-    recalculate.mockImplementation(async (id: string) => {
-      recalculationOrder.push(id);
-    });
-
+  it('generates once, recalculates every created budget and returns created and skipped periods', async () => {
     const result = await useCase.execute(
       {
         templateId: '11111111-1111-4111-8111-111111111111',
@@ -113,7 +108,7 @@ describe('GenerateBudgetsUseCase', () => {
       startYear: 2026,
       count: 3,
     });
-    expect(recalculationOrder).toEqual(['budget-1', 'budget-2']);
+    expect(recalculate.mock.calls).toEqual([['budget-1'], ['budget-2']]);
     expect(result).toEqual({
       budgets,
       skippedMonths: [{ month: 2, year: 2027 }],
@@ -224,6 +219,34 @@ describe('GenerateBudgetsUseCase', () => {
       }),
       'Cache invalidation failed after budget generation rollback',
     );
+  });
+
+  it('rolls back only once every recalculation has settled', async () => {
+    const calls: string[] = [];
+    recalculate
+      .mockRejectedValueOnce(new Error('decrypt failed'))
+      .mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        calls.push('slow recalculation');
+      });
+    repo.deleteBudgetsByIds.mockImplementationOnce(async () => {
+      calls.push('rollback');
+      return true;
+    });
+
+    await expect(
+      useCase.execute(
+        {
+          templateId: '11111111-1111-4111-8111-111111111111',
+          startMonth: 12,
+          startYear: 2026,
+          count: 2,
+        },
+        user,
+      ),
+    ).rejects.toBeInstanceOf(BusinessException);
+
+    expect(calls).toEqual(['slow recalculation', 'rollback']);
   });
 
   it('reports every created budget as orphaned when rollback fails', async () => {

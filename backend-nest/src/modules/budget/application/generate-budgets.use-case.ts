@@ -59,9 +59,16 @@ export class GenerateBudgetsUseCase {
       createdBudgetIds = generated.createdBudgetIds;
       skippedMonths = generated.skippedMonths;
 
-      for (const budgetId of createdBudgetIds) {
-        await this.budgetRecalculation.recalculate(budgetId);
-      }
+      // Each ending balance depends only on its own budget (the rollover is
+      // derived at read time), so the recalculations are independent. Wait for
+      // all of them before failing, so the rollback never races a write.
+      const recalculations = await Promise.allSettled(
+        createdBudgetIds.map((budgetId) =>
+          this.budgetRecalculation.recalculate(budgetId),
+        ),
+      );
+      const failed = recalculations.find((r) => r.status === 'rejected');
+      if (failed) throw failed.reason;
     } catch (error) {
       if (createdBudgetIds.length === 0) {
         createdBudgetIds = this.createdBudgetIdsFrom(error);

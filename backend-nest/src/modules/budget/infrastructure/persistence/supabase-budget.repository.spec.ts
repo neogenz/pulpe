@@ -607,6 +607,84 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     });
   });
 
+  it('creates budgets one period after another, loading goal horizons once', async () => {
+    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const provider = generationProvider(
+      [
+        {
+          id: OVERDUE_GOAL_UUID,
+          created_at: '2026-01-01T00:00:00Z',
+          start_date: null,
+          target_date: '2026-10-12',
+        },
+        {
+          id: ON_TIME_GOAL_UUID,
+          created_at: '2026-01-01T00:00:00Z',
+          start_date: '2026-11-01',
+          target_date: null,
+        },
+      ],
+      27,
+      rpc,
+    );
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    const budgets = await repo.createBudgetsFromTemplate({
+      userId: USER_UUID,
+      templateId: TEMPLATE_UUID,
+      periods: [
+        { month: 10, year: 2026, description: 'Budget 10/2026' },
+        { month: 11, year: 2026, description: 'Budget 11/2026' },
+      ],
+    });
+
+    expect(provider.client.from).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls).toEqual([
+      [
+        'create_budget_from_template',
+        {
+          p_user_id: USER_UUID,
+          p_template_id: TEMPLATE_UUID,
+          p_month: 10,
+          p_year: 2026,
+          p_description: 'Budget 10/2026',
+          p_excluded_savings_goal_ids: [ON_TIME_GOAL_UUID],
+        },
+      ],
+      [
+        'create_budget_from_template',
+        {
+          p_user_id: USER_UUID,
+          p_template_id: TEMPLATE_UUID,
+          p_month: 11,
+          p_year: 2026,
+          p_description: 'Budget 11/2026',
+          p_excluded_savings_goal_ids: [OVERDUE_GOAL_UUID],
+        },
+      ],
+    ]);
+    expect(budgets.map((budget) => budget.id)).toEqual([
+      BUDGET_UUID,
+      BUDGET_UUID,
+    ]);
+  });
+
+  it('creates nothing and reads nothing for an empty period list', async () => {
+    const rpc = jest.fn();
+    const provider = generationProvider([], null, rpc);
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    const budgets = await repo.createBudgetsFromTemplate({
+      userId: USER_UUID,
+      templateId: TEMPLATE_UUID,
+      periods: [],
+    });
+
+    expect(budgets).toEqual([]);
+    expect(provider.client.from).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it('rejects a malformed atomic generation response', async () => {
     const rpc = jest.fn().mockResolvedValue({
       data: { created_budget_ids: [BUDGET_UUID] },

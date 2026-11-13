@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient } from '@supabase/supabase-js';
@@ -20,8 +21,10 @@ export class SupabaseService {
   #supabaseAnonKey: string;
   #supabaseServiceKey?: string;
   #baseClient: SupabaseClient;
+  #global: { fetch?: typeof fetch };
 
   constructor(private readonly configService: ConfigService) {
+    this.#global = this.#simulatedLatencyFetch();
     this.#supabaseUrl = this.configService.get<string>('SUPABASE_URL')!;
     this.#supabaseAnonKey =
       this.configService.get<string>('SUPABASE_ANON_KEY')!;
@@ -36,8 +39,33 @@ export class SupabaseService {
     this.#baseClient = createClient<Database>(
       this.#supabaseUrl,
       this.#supabaseAnonKey,
-      { auth: SERVER_AUTH_OPTIONS },
+      { auth: SERVER_AUTH_OPTIONS, global: this.#global },
     );
+  }
+
+  /**
+   * Dev-only: delays every Supabase call (PostgREST, RPC, Auth) by
+   * SUPABASE_SIMULATED_LATENCY_MS so a local run pays the production network
+   * round trip. Used by scripts/bench-slow-endpoints.ts; ignored in production.
+   */
+  #simulatedLatencyFetch(): { fetch?: typeof fetch } {
+    const latencyMs =
+      process.env.NODE_ENV === 'production'
+        ? 0
+        : Number(
+            this.configService.get<string>('SUPABASE_SIMULATED_LATENCY_MS') ??
+              0,
+          );
+    if (!(latencyMs > 0)) return {};
+    return {
+      fetch: Object.assign(
+        async (...args: Parameters<typeof fetch>) => {
+          await sleep(latencyMs);
+          return fetch(...args);
+        },
+        { preconnect: fetch.preconnect },
+      ),
+    };
   }
 
   /**
@@ -47,6 +75,7 @@ export class SupabaseService {
     return createClient<Database>(this.#supabaseUrl, this.#supabaseAnonKey, {
       auth: SERVER_AUTH_OPTIONS,
       global: {
+        ...this.#global,
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -71,6 +100,7 @@ export class SupabaseService {
 
     return createClient<Database>(this.#supabaseUrl, this.#supabaseServiceKey, {
       auth: SERVER_AUTH_OPTIONS,
+      global: this.#global,
     });
   }
 }
