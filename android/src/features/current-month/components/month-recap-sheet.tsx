@@ -94,7 +94,11 @@ export function MonthRecapSheet({
     >
       <View style={styles.carryOver}>
         <Text variant="labelLarge" style={muted}>
-          {t("home.recap.finished", { month: closedName })}
+          {t("home.recap.finished", {
+            month:
+              closedName.charAt(0).toLocaleUpperCase(locale) +
+              closedName.slice(1),
+          })}
         </Text>
         <Text variant="displaySmall" style={TABULAR_DIGITS}>
           {amount(recap.carriedOver)}
