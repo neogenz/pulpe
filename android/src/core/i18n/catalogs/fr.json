@@ -1572,6 +1572,8 @@
     },
     "currency": {
       "description": "Tous tes montants s'affichent dans cette devise.",
+      "selectorTitle": "Saisir dans une autre devise",
+      "selectorDescription": "Activé, un choix de devise apparaît à côté du montant quand tu ajoutes une dépense ou un revenu. Pulpe convertit au cours du jour.",
       "confirmTitle": "Afficher tes montants en %{currency} ?",
       "confirmBody": "Rien n'est converti : 100 reste 100, affiché en %{symbol}. Seul le symbole change.",
       "keep": "Garder %{currency}",

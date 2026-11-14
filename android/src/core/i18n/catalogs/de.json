@@ -1572,6 +1572,8 @@
     },
     "currency": {
       "description": "Alle deine Beträge werden in dieser Währung angezeigt.",
+      "selectorTitle": "In einer anderen Währung erfassen",
+      "selectorDescription": "Wenn aktiviert, erscheint neben dem Betrag eine Währungsauswahl, sobald du eine Ausgabe oder ein Einkommen hinzufügst. Pulpe rechnet zum Tageskurs um.",
       "confirmTitle": "Deine Beträge in %{currency} anzeigen?",
       "confirmBody": "Nichts wird umgerechnet: 100 bleibt 100, angezeigt in %{symbol}. Nur das Symbol ändert sich.",
       "keep": "%{currency} behalten",

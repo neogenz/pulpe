@@ -1,4 +1,9 @@
-import { exceedsCents, parseAmount, seedAmountText } from "./money";
+import {
+  amountCharacters,
+  exceedsCents,
+  parseAmount,
+  seedAmountText,
+} from "./money";
 
 describe("parseAmount", () => {
   it.each([
@@ -39,5 +44,13 @@ describe("seedAmountText", () => {
 
   it("seeds an existing amount so an edit starts from it", () => {
     expect(seedAmountText(1500.5)).toBe("1500.5");
+  });
+});
+
+describe("amountCharacters", () => {
+  it("drops what a numeric pad could not have typed", () => {
+    expect(amountCharacters("50Diner")).toBe("50");
+    expect(amountCharacters("1'200.50")).toBe("1200.50");
+    expect(amountCharacters("12,5")).toBe("12,5");
   });
 });
