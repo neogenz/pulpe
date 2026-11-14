@@ -92,16 +92,19 @@ describe('AndroidBetaInvite', () => {
     );
   });
 
-  it('should report which step was followed', async () => {
-    const { find } = await render();
-    const link = find('android-beta-invite-group-link');
-    link?.addEventListener('click', (event) => event.preventDefault());
+  it.each(['group', 'install'] as const)(
+    'should report the %s step when its link is followed',
+    async (step) => {
+      const { find } = await render();
+      const link = find(`android-beta-invite-${step}-link`);
+      link?.addEventListener('click', (event) => event.preventDefault());
 
-    link?.click();
+      link?.click();
 
-    expect(postHog.captureEvent).toHaveBeenCalledWith(
-      ANALYTICS_EVENTS.ANDROID_BETA_INVITE_CLICKED,
-      { step: 'group' },
-    );
-  });
+      expect(postHog.captureEvent).toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.ANDROID_BETA_INVITE_CLICKED,
+        { step },
+      );
+    },
+  );
 });
