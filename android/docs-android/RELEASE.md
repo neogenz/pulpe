@@ -107,6 +107,24 @@ declaration, Expo Doctor traverses the monorepo and borrows Landing's 19.2.8,
 then reports a duplicate React installation. Landing deliberately remains on
 React/ReactDOM 19.2.8.
 
+## Closed test
+
+A personal Play developer account gets production access only after a closed
+test that keeps at least 12 opted-in testers for 14 consecutive days. The
+counter starts once the twelfth tester has opted in.
+
+- The internal draft is promoted by hand to the closed track in the Play
+  Console, and Google reviews every closed release before testers see it.
+- The testers of the closed track are the members of the Google Group
+  `pulpe-android-beta` (<https://groups.google.com/g/pulpe-android-beta>). A
+  track takes either e-mail lists or groups, never both: joining the group is
+  the whole enrolment, then
+  <https://play.google.com/apps/testing/app.pulpe.android> installs the app.
+- The webapp recruits them: the dashboard shows `pulpe-android-beta-invite` to
+  Android browsers behind the PostHog flag `android_beta_invite`. Turn the flag
+  on only once Google has approved a closed release and the webapp carrying the
+  card is in production; before that the second step leads nowhere.
+
 ## Crash symbols
 
 R8 obfuscates release builds, and Hermes compiles the JavaScript bundle, so a

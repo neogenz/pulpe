@@ -21,7 +21,7 @@ flowchart LR
 ## Native access
 
 - Face ID/Touch ID, Keychain, Sign in with Apple/Google callback, deep links, BackgroundTasks, WidgetKit, and App Group storage. No camera/location/push permission exists.
-- Android uses SecureStore, biometric unlock, App Links/deep links and notifications; sensitive data backup is disabled.
+- Android uses SecureStore, biometric unlock, App Links/deep links and local notifications (monthly budget reminder, Monday recap; no push); sensitive data backup is disabled.
 
 ## UI controls
 
@@ -36,3 +36,5 @@ flowchart LR
 
 - Generate with XcodeGen, build/test through Xcode/GitHub Actions, and export for App Store Connect; no OTA path exists.
 - Android uses EAS for distributable builds and GitHub Actions for Maestro smoke flows; Expo Updates provides the OTA path within the configured runtime version.
+- Each production AAB reaches the Play internal track as a draft and is promoted by hand to the closed test, whose testers are a Google Group; the 12-testers/14-days gate, the webapp invite and its flag are in `android/docs-android/RELEASE.md#closed-test`.
+- Android mirrors the iOS feedback sheet, assistant connections and reminders. Feedback is stored under its own `platform` value, and every analytics event carries `platform: android` (`android/docs-android/ANALYTICS.md`).
