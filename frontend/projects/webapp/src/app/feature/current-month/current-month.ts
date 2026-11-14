@@ -50,6 +50,7 @@ import { DashboardRecentTransactions } from './components/dashboard-recent-trans
 import { DashboardSavingsSummary } from './components/dashboard-savings-summary';
 import { DashboardNextMonth } from './components/dashboard-next-month';
 import { DashboardMonthRecap } from './components/dashboard-month-recap';
+import { AndroidBetaInvite } from '@pattern/android-beta-invite';
 import {
   MonthRecapDialog,
   type MonthRecapDialogData,
@@ -114,6 +115,7 @@ type UndoableAction =
     DashboardHistoryChart,
     DashboardFutureProjectionChart,
     DashboardMonthRecap,
+    AndroidBetaInvite,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
@@ -176,6 +178,8 @@ type UndoableAction =
               data-testid="dashboard-block-month-recap"
             />
           }
+
+          <pulpe-android-beta-invite />
 
           <!-- Hero "Disponible à dépenser" -->
           <pulpe-dashboard-hero
