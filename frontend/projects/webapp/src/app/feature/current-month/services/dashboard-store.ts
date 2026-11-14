@@ -804,38 +804,13 @@ export class DashboardStore {
     const transaction = this.transactions().find((t) => t.id === transactionId);
     if (!transaction || transaction.checkedAt !== null) return null;
 
-    const patch = (checkedAt: string | null) =>
-      this.#patchTransactions((transactions) =>
-        transactions.map((t) =>
-          t.id === transactionId ? { ...t, checkedAt } : t,
-        ),
-      );
-    this.#pendingChecks.update((s) => new Set([...s, transactionId]));
-    patch(new Date().toISOString());
-    try {
-      await firstValueFrom(
-        this.#budgetApi.toggleTransactionCheck$(transactionId),
-      );
-      for (const key of CHECK_INVALIDATION_KEYS) {
-        this.#budgetApi.cache.invalidate(key);
-      }
-      return null;
-    } catch (error: unknown) {
-      patch(null);
-      this.#logger.error('Toggle transaction check failed', {
-        transactionId,
-        error,
-      });
-      return isApiError(error)
-        ? this.#apiErrorLocalizer.localizeApiError(error)
-        : this.#transloco.translate('currentMonth.updateError');
-    } finally {
-      this.#pendingChecks.update((s) => {
-        const next = new Set(s);
-        next.delete(transactionId);
-        return next;
-      });
-    }
+    return this.#sendCheckToggle(
+      transactionId,
+      new Date().toISOString(),
+      null,
+      'currentMonth.updateError',
+      'transaction',
+    );
   }
 
   // ── 6. Private utils ──
@@ -843,26 +818,33 @@ export class DashboardStore {
   // "vérifie ta connexion" over a considered refusal sends the user to their
   // wifi for a rule the response spelled out. The generic line is the fallback.
   async #sendCheckToggle(
-    budgetLineId: string,
+    id: string,
     optimisticCheckedAt: string | null,
     rollbackCheckedAt: string | null,
     transportErrorKey: string,
+    row: 'budgetLine' | 'transaction' = 'budgetLine',
   ): Promise<string | null> {
-    this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
-    this.#patchBudgetLineCheckedAt(budgetLineId, optimisticCheckedAt);
+    const patch = (checkedAt: string | null) =>
+      row === 'budgetLine'
+        ? this.#patchBudgetLineCheckedAt(id, checkedAt)
+        : this.#patchTransactions((transactions) =>
+            transactions.map((t) => (t.id === id ? { ...t, checkedAt } : t)),
+          );
+    this.#pendingChecks.update((s) => new Set([...s, id]));
+    patch(optimisticCheckedAt);
 
     try {
-      await firstValueFrom(
-        this.#budgetApi.toggleBudgetLineCheck$(budgetLineId),
-      );
+      await (row === 'budgetLine'
+        ? firstValueFrom(this.#budgetApi.toggleBudgetLineCheck$(id))
+        : firstValueFrom(this.#budgetApi.toggleTransactionCheck$(id)));
       for (const key of CHECK_INVALIDATION_KEYS) {
         this.#budgetApi.cache.invalidate(key);
       }
       return null;
     } catch (error: unknown) {
-      this.#patchBudgetLineCheckedAt(budgetLineId, rollbackCheckedAt);
-      this.#logger.error('Toggle budget line check failed', {
-        budgetLineId,
+      patch(rollbackCheckedAt);
+      this.#logger.error(`Toggle ${row} check failed`, {
+        id,
         error,
       });
       return isApiError(error)
@@ -870,9 +852,9 @@ export class DashboardStore {
         : this.#transloco.translate(transportErrorKey);
     } finally {
       this.#pendingChecks.update((s) => {
-        if (!s.has(budgetLineId)) return s;
+        if (!s.has(id)) return s;
         const next = new Set(s);
-        next.delete(budgetLineId);
+        next.delete(id);
         return next;
       });
     }

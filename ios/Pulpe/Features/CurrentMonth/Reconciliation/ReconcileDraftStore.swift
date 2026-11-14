@@ -10,17 +10,17 @@ final class ReconcileDraftStore {
     static let shared = ReconcileDraftStore()
 
     private(set) var draft: ReconcileAccountsFlow.Draft?
-    /// The sheet went away under a lock, not by the user's hand: the Accueil opens it again.
+    /// The sheet went away under the lock: the Accueil opens it again.
     private(set) var isResumePending = false
 
     func draft(for budgetId: String) -> ReconcileAccountsFlow.Draft? {
         draft?.budgetId == budgetId ? draft : nil
     }
 
-    /// `nil` once the sheet is closed by hand or finished: the next one opens empty.
-    func keep(_ draft: ReconcileAccountsFlow.Draft?, resume: Bool) {
+    /// A draft taken by the lock, reopened once unlocked; `nil` and the next sheet opens empty.
+    func keep(_ draft: ReconcileAccountsFlow.Draft?) {
         self.draft = draft
-        isResumePending = draft != nil && resume
+        isResumePending = draft != nil
     }
 
     /// True once per lock: the first screen that reopens the sheet takes it.

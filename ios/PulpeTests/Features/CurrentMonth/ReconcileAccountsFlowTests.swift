@@ -261,18 +261,18 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.draft == nil)
     }
 
-    @Test("the resume is taken once, and closing by hand drops the draft")
+    @Test("the resume is taken once, and a sheet left without a draft drops it")
     func draftStore_resumeTakenOnce() throws {
         let store = ReconcileDraftStore()
         let draft = try #require(makeFlow().draft)
 
-        store.keep(draft, resume: true)
+        store.keep(draft)
         #expect(store.draft(for: "budget-current") == draft)
         #expect(store.draft(for: "budget-other") == nil)
         #expect(store.takeResume())
         #expect(!store.takeResume())
 
-        store.keep(nil, resume: true)
+        store.keep(nil)
         #expect(store.draft(for: "budget-current") == nil)
         #expect(!store.takeResume())
     }

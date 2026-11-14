@@ -33,8 +33,8 @@ struct CurrentMonthReconcileSheet: View {
                     ),
                     netWorthAccounts: netWorthAccounts,
                     restoring: drafts.draft(for: budget.id),
-                    // Gone while locked: the lock took it, so unlocking brings it back.
-                    onLeave: { drafts.keep($0, resume: appState.authState != .authenticated) },
+                    // Only the PIN lock takes the sheet without the user: closed any other way, it starts over.
+                    onLeave: { drafts.keep(appState.authState == .needsPinEntry ? $0 : nil) },
                     onAdjustmentCreated: { transaction in
                         FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
                         store.addTransaction(transaction)

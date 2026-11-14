@@ -14,8 +14,8 @@ struct ReconciliationChecking {
 /// « Comparer avec mes comptes » (PUL-351, V2): one sheet. The balances typed by the user, the
 /// gap to the pointed balance, the movement that probably explains it, and the two ways to
 /// close it: point that movement, or write one adjustment. Every input lives in `flow`, owned
-/// here, so closing discards it and writes nothing. A sheet that goes away any other way (a
-/// lock rebuilding the screen) hands its draft to `onLeave`.
+/// here, so closing discards it and writes nothing. Whatever is left unfinished goes to `onLeave`,
+/// whose owner decides whether it outlives the sheet.
 struct ReconcileAccountsSheet: View {
     /// The loaded month, read again on every render.
     struct Month {
@@ -29,7 +29,7 @@ struct ReconcileAccountsSheet: View {
 
     let month: Month
     let checking: ReconciliationChecking
-    /// What the sheet leaves behind when it goes away: `nil` when closed by hand or finished.
+    /// What the sheet leaves behind when it goes away: `nil` once finished.
     var onLeave: (@MainActor (ReconcileAccountsFlow.Draft?) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
@@ -39,7 +39,6 @@ struct ReconcileAccountsSheet: View {
     @State private var flow: ReconcileAccountsFlow
     @State private var submitSuccessTrigger = false
     @State private var isPointing = false
-    @State private var isClosedByHand = false
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable {
@@ -122,11 +121,7 @@ struct ReconcileAccountsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton {
-                        isClosedByHand = true
-                        dismiss()
-                    }
-                    .disabled(flow.isSubmitting)
+                    SheetCloseButton().disabled(flow.isSubmitting)
                 }
             }
         }
@@ -136,7 +131,7 @@ struct ReconcileAccountsSheet: View {
         .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, shouldClose in
             if shouldClose { dismiss() }
         }
-        .onDisappear { onLeave?(isClosedByHand ? nil : flow.draft) }
+        .onDisappear { onLeave?(flow.draft) }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .appliesAccountLinks(of: flow)
         .suppressesTips()
@@ -236,10 +231,11 @@ extension ReconcileAccountsSheet {
 
     private func candidateRow(_ candidate: AccountReconciliation.PointingCandidate) -> some View {
         let transaction = candidate.transaction
-        // What remains after pointing is the one fact that decides, and the row has one subtitle line.
-        let subtitle = candidate.remainingGap == 0
+        let lineName = transaction.budgetLineId.flatMap { id in checking.budgetLines.first { $0.id == id }?.name }
+        let remaining = candidate.remainingGap == 0
             ? AppLocale.string("même montant")
             : AppLocale.string("il restera \(candidate.remainingGap.asFormulaAmount(for: currency))")
+        let subtitle = "\(lineName ?? PendingWording.unplanned) · \(remaining)"
         let isBusy = month.hasPointingInFlight || isPointing || flow.isSubmitting
         return PulpeListRow(title: transaction.name, subtitle: subtitle, showsChevron: false) {
             HStack(spacing: DesignTokens.Spacing.md) {
