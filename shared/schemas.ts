@@ -2967,7 +2967,7 @@ export const feedbackCreateSchema = z
       .optional()
       .transform((value) => value || undefined),
     appVersion: z.string().trim().min(1).max(32),
-    platform: z.enum(['ios', 'web']).default('ios'),
+    platform: z.enum(['ios', 'web', 'android']).default('ios'),
     iosVersion: z.string().trim().min(1).max(32).optional(),
   })
   .refine((feedback) => feedback.platform !== 'ios' || feedback.iosVersion, {

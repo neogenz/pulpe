@@ -19,6 +19,16 @@ describe('feedbackCreateSchema', () => {
     ).toEqual({ overallRating: 3, appVersion: '0.52.0', platform: 'web' });
   });
 
+  it('accepts Android feedback without an iOS version', () => {
+    expect(
+      feedbackCreateSchema.parse({
+        overallRating: 5,
+        appVersion: '0.60.0',
+        platform: 'android',
+      }),
+    ).toEqual({ overallRating: 5, appVersion: '0.60.0', platform: 'android' });
+  });
+
   it('requires an iOS version on iOS feedback', () => {
     expect(
       feedbackCreateSchema.safeParse({ overallRating: 3, appVersion: '1.7.0' })

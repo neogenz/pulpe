@@ -123,9 +123,7 @@ export function FeedbackSheet({
       ...areas,
       comment: trimmedComment.length > 0 ? trimmedComment : undefined,
       appVersion: Constants.expoConfig?.version ?? "0",
-      // The contract knows no Android platform yet; `web` is the only value
-      // that needs no iOS version.
-      platform: "web",
+      platform: "android",
     };
     send.mutate(feedback, {
       onSuccess: () => {

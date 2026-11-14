@@ -133,6 +133,23 @@ describe('POST /api/v1/feedback (local Supabase)', () => {
     expect(data).toEqual([{ platform: 'web', ios_version: null }]);
   });
 
+  it('stores Android feedback under its own platform', async () => {
+    if (!hasSupabase) return;
+    await request(app.getHttpServer())
+      .post('/api/v1/feedback')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ overallRating: 5, appVersion: '0.60.0', platform: 'android' })
+      .expect(204);
+
+    const { data, error } = await admin
+      .from('user_feedback')
+      .select('platform, ios_version')
+      .eq('user_id', userId)
+      .eq('platform', 'android');
+    if (error) throw error;
+    expect(data).toEqual([{ platform: 'android', ios_version: null }]);
+  });
+
   it('never lets the client read feedback content back', async () => {
     if (!hasSupabase) return;
     const { error } = await userClient.from('user_feedback').select('comment');
