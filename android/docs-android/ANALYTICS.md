@@ -20,7 +20,13 @@ on iOS.
   (`src/core/observability/api-error-reporting.ts`): HTTP method, status,
   error code, request id and a path with every id replaced by `:id`. Auth
   refusals (401, 403), rate limits and the vault's own codes are dropped.
-- App identity: version, build, platform, locale.
+- App identity: version, build, platform, locale. `platform` is always `android`,
+  which is what separates this app from iOS and the webapp in an insight.
+
+Google Play's pre-launch robots run the production build, so they emit real
+events. The PostHog project's test-account filter excludes Google's address
+ranges: keep that filter on in every insight, and never count Android users
+from raw events.
 
 Never sent: amounts, budget or transaction labels, tokens, e-mail addresses,
 raw error payloads, deep-link URLs. Lifecycle autocapture is off because it
