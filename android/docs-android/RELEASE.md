@@ -117,9 +117,10 @@ counter starts once the twelfth tester has opted in.
   Console, and Google reviews every closed release before testers see it.
 - The testers of the closed track are the members of the Google Group
   `pulpe-android-beta` (<https://groups.google.com/g/pulpe-android-beta>). A
-  track takes either e-mail lists or groups, never both: joining the group is
-  the whole enrolment, then
-  <https://play.google.com/apps/testing/app.pulpe.android> installs the app.
+  track takes either e-mail lists or groups, never both. Joining the group
+  only makes someone eligible: they count toward the twelve once they have
+  opted in at <https://play.google.com/apps/testing/app.pulpe.android>, which
+  is also where the app installs from.
 - The webapp recruits them: the dashboard shows `pulpe-android-beta-invite` to
   Android browsers behind the PostHog flag `android_beta_invite`. Turn the flag
   on only once Google has approved a closed release and the webapp carrying the
