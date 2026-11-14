@@ -1,11 +1,13 @@
-import type { TemplateLine } from "pulpe-shared";
+import type { BudgetLine, TemplateLine } from "pulpe-shared";
 
 import {
   canCreateTemplate,
   MAX_TEMPLATES,
+  propagationAvailableImpact,
   propagationBudgetCount,
   propagationCurrentPeriod,
   type TemplateUsage,
+  templateAvailable,
   templateLineSections,
 } from "./template-vm";
 
@@ -166,6 +168,64 @@ describe("propagationCurrentPeriod", () => {
   it("is null when the current month was not built from the model", () => {
     expect(
       propagationCurrentPeriod(usage([{ month: 9, year: 2026 }]), null, now),
+    ).toBeNull();
+  });
+});
+
+describe("templateAvailable", () => {
+  it("is income minus everything that leaves, savings included", () => {
+    expect(
+      templateAvailable([
+        line({ kind: "income", amount: 5000 }),
+        line({ kind: "expense", amount: 1200 }),
+        line({ kind: "saving", amount: 300 }),
+      ]),
+    ).toBe(3500);
+  });
+});
+
+describe("propagationAvailableImpact", () => {
+  const monthLine = (overrides: Partial<BudgetLine>): BudgetLine =>
+    ({
+      id: "month-rent",
+      budgetId: "b",
+      templateLineId: "tpl-rent",
+      savingsGoalId: null,
+      assetId: null,
+      name: "Loyer",
+      amount: 1200,
+      kind: "expense",
+      recurrence: "fixed",
+      isManuallyAdjusted: false,
+      checkedAt: null,
+      createdAt: "2026-11-01T00:00:00.000Z",
+      updatedAt: "2026-11-01T00:00:00.000Z",
+      ...overrides,
+    }) as BudgetLine;
+  const ledgerWith = (lines: BudgetLine[]) => ({
+    lines,
+    transactions: [],
+    rollover: 0,
+  });
+
+  it("shows the disponible before and after the month follows the line", () => {
+    const impact = propagationAvailableImpact(
+      ledgerWith([monthLine({})]),
+      "tpl-rent",
+      { amount: 1300, kind: "expense" },
+    );
+
+    expect(impact?.delta).toBe(-100);
+    expect(impact?.after).toBe((impact?.before ?? 0) - 100);
+  });
+
+  it("is null when the month's copy was changed by hand", () => {
+    expect(
+      propagationAvailableImpact(
+        ledgerWith([monthLine({ isManuallyAdjusted: true })]),
+        "tpl-rent",
+        { amount: 1300, kind: "expense" },
+      ),
     ).toBeNull();
   });
 });

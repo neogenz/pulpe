@@ -2,6 +2,7 @@ import type { Asset, NetWorth } from "pulpe-shared";
 
 import { translateForLocale } from "@/core/i18n/i18n";
 import {
+  allocationShares,
   assetAgeLabel,
   assetBadges,
   buildNetWorthSections,
@@ -138,5 +139,31 @@ describe("row presentation", () => {
     ])("words %s as %s", (recordedAt, expected) => {
       expect(assetAgeLabel(recordedAt, now, t)).toBe(expected);
     });
+  });
+});
+
+describe("allocationShares", () => {
+  const group = (id: string, total: number) => ({
+    id,
+    name: id,
+    total,
+    assets: [],
+    isType: true,
+  });
+
+  it("orders Types largest first as a share of gross", () => {
+    const shares = allocationShares(
+      [group("a", 25), group("b", 75), group("c", 0)],
+      100,
+    );
+
+    expect(shares.map((s) => [s.id, s.share])).toEqual([
+      ["b", 0.75],
+      ["a", 0.25],
+    ]);
+  });
+
+  it("has no allocation without a positive gross", () => {
+    expect(allocationShares([group("a", 10)], 0)).toEqual([]);
   });
 });

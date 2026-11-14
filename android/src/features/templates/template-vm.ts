@@ -1,10 +1,17 @@
 import {
+  BudgetFormulas,
   compareBudgetPeriods,
   getBudgetPeriodForDate,
   type TemplateLine,
   type TemplateUsageResponse,
   type TransactionKind,
 } from "pulpe-shared";
+
+import {
+  type DisponibleImpact,
+  impactBetween,
+  type MonthLedger,
+} from "@/features/budget-details/month-impact";
 
 /** Same ceiling as iOS (`AppConfiguration.maxTemplates`). */
 export const MAX_TEMPLATES = 5;
@@ -73,4 +80,32 @@ export function propagationCurrentPeriod(
   )
     ? current
     : null;
+}
+
+/** What a model leaves to spend at the start of a month: its lines' balance. */
+export function templateAvailable(lines: TemplateLine[]): number {
+  return BudgetFormulas.calculateTemplateTotals(lines).balance;
+}
+
+/**
+ * The current month's « disponible » before and after the edited model line
+ * reaches it. Null when the month holds no copy of the line that follows the
+ * model (never built from it, or changed by hand there): nothing would move.
+ */
+export function propagationAvailableImpact(
+  ledger: MonthLedger,
+  templateLineId: string,
+  edit: { amount: number; kind: TransactionKind },
+): DisponibleImpact | null {
+  const monthLine = ledger.lines.find(
+    (line) =>
+      line.templateLineId === templateLineId && !line.isManuallyAdjusted,
+  );
+  if (monthLine === undefined) return null;
+  return impactBetween(ledger, {
+    ...ledger,
+    lines: ledger.lines.map((line) =>
+      line.id === monthLine.id ? { ...line, ...edit } : line,
+    ),
+  });
 }

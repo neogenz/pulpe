@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { NetWorth } from "pulpe-shared";
+
 import { queryClient } from "@/core/query/query-client";
 import { useVaultStore } from "@/core/vault/vault-store";
 
+import { followAccounts, type FollowAccountsInput } from "./follow-accounts";
 import {
   createAsset,
   createAssetCategory,
@@ -27,13 +30,13 @@ export function refetchStaleNetWorth(): Promise<void> {
 }
 
 /** Values are decrypted server-side: no read before the vault is open. */
-export function useNetWorth() {
+export function useNetWorth(isWanted = true) {
   const isUnlocked = useVaultStore((state) => state.status === "unlocked");
 
   return useQuery({
     queryKey: netWorthKeys.all,
     queryFn: fetchNetWorth,
-    enabled: isUnlocked,
+    enabled: isUnlocked && isWanted,
   });
 }
 
@@ -76,4 +79,14 @@ export function useCreateAssetCategory() {
 
 export function useRenameAssetCategory() {
   return useNetWorthMutation(renameAssetCategory);
+}
+
+/** New accounts land in a Type read from the cache: a reconciliation loads it first. */
+export function useFollowAccounts() {
+  return useNetWorthMutation((input: FollowAccountsInput) =>
+    followAccounts(
+      input,
+      queryClient.getQueryData<NetWorth>(netWorthKeys.all)?.categories ?? [],
+    ),
+  );
 }

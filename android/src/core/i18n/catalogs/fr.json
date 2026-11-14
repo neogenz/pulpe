@@ -274,6 +274,8 @@
         "allocatedIn": "Comptée dans « %{name} »",
         "alreadyChecked": "Déjà pointé",
         "alreadyCheckedAccessibility": "Mouvement déjà pointé",
+        "currencyPicker": "Sélection de la devise",
+        "rateUnavailable": "Taux de change indisponible",
         "alreadyCheckedHint": "Le montant est déjà passé sur ton compte.",
         "date": "Date du mouvement",
         "editTitles": {
@@ -641,7 +643,8 @@
       "history": "Historique",
       "menu": {
         "pause": "Mettre en pause",
-        "resume": "Reprendre"
+        "resume": "Reprendre",
+        "withdraw": "Faire un retrait"
       },
       "month": {
         "planned": "%{month} · %{amount} prévus",
@@ -855,6 +858,15 @@
       "chart": {
         "today": "aujourd'hui"
       },
+      "scrub": {
+        "estimated": "Estimé le %{date}",
+        "estimatedWithPlan": "Estimé le %{date} · Prévu %{amount}"
+      },
+      "rhythm": {
+        "pace": "À ce rythme, il te restera %{amount} le %{date} au lieu des %{planned} prévus.",
+        "lessHidden": "Le %{date}, il te restera moins que prévu.",
+        "moreHidden": "Le %{date}, il te restera plus que prévu."
+      },
       "eyebrow": "Disponible à dépenser",
       "hideAmounts": "Masquer les montants",
       "showAmounts": "Afficher les montants",
@@ -863,6 +875,43 @@
       "fresh": {
         "verdict": "Pile sur ton plan.",
         "tail": "Ajoute tes dépenses au fil du mois : ce chiffre se met à jour aussitôt."
+      }
+    },
+    "recap": {
+      "rowTitle": "%{month} est terminé",
+      "subtitleCarried": "%{amount} reportés sur %{month}",
+      "subtitleSaved": "Bien joué, tu as mis %{amount} de côté.",
+      "subtitleOverspent": "Ça arrive : %{amount} de plus que prévu.",
+      "subtitleBalanced": "Budget respecté.",
+      "title": "Bilan de %{month}",
+      "titleElided": "Bilan d'%{month}",
+      "finished": "%{month} est terminé",
+      "carriedCaption": "reportés sur %{month}, déjà comptés dans ton disponible",
+      "income": "Revenus",
+      "report": "Report de %{month}",
+      "reportElided": "Report d'%{month}",
+      "expenses": "Dépenses",
+      "savings": "Épargne versée",
+      "finalBalance": "Solde final",
+      "acknowledge": "C'est noté",
+      "showBudget": "Voir le budget de %{month}",
+      "showBudgetElided": "Voir le budget d'%{month}",
+      "findings": {
+        "title": "Ce qui a compté",
+        "savingsFull": "Épargne versée en entier",
+        "savingsPartial": "Épargne versée en partie",
+        "notPaid": "Pas versé : %{names}",
+        "overruns": {
+          "one": "%{count} prévision dépassée",
+          "other": "%{count} prévisions dépassées"
+        },
+        "allPointed": "Tout est pointé",
+        "waiting": "%{count} encore à pointer",
+        "pointed": {
+          "one": "%{count} mouvement pointé en %{month}",
+          "other": "%{count} mouvements pointés en %{month}"
+        },
+        "nothingPointed": "Rien de pointé en %{month}"
       }
     },
     "prepareNextMonth": "Préparer le mois suivant",
@@ -909,6 +958,16 @@
     },
     "reconcile": {
       "accounts": {
+        "accountNumbered": "Compte %{index}",
+        "addToNetWorth": "Ajouter à Mon patrimoine",
+        "addToNetWorthHint": "Je garde ce compte et je mets son solde à jour à chaque rapprochement.",
+        "balanceMissing": "Saisis son solde pour l'ajouter",
+        "lastBalance": "Dernier solde : %{amount}, %{when}",
+        "linkedFootnote": "Je mets à jour le solde de tes comptes de Mon patrimoine. Les autres lignes ne sont pas enregistrées.",
+        "nameMissing": "Donne un nom à ce compte pour l'ajouter",
+        "newAccountName": "Nom du compte",
+        "otherAccount": "Autre compte…",
+        "stopFollowing": "Ne plus suivre ce compte",
         "accountName": "Nom du compte (facultatif)",
         "addAccount": "Ajouter un compte",
         "amount": "Solde",
@@ -923,6 +982,7 @@
       },
       "back": "Retour",
       "continue": "Continuer",
+      "followFailed": "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine.",
       "realized": {
         "balance": "Solde pointé",
         "checkedIncome": "Revenus pointés",
@@ -1094,6 +1154,10 @@
     "have": "Ce que j'ai",
     "owe": "Ce que je dois",
     "negativeNote": "Ce que je dois dépasse ce que j'ai aujourd'hui. Chaque remboursement pointé ramène ce chiffre vers zéro.",
+    "allocation": {
+      "title": "Répartition aujourd'hui",
+      "subtitle": "De ce que j'ai à ma fortune nette"
+    },
     "foreignNote": "Les valeurs en devise étrangère sont converties au taux du jour.",
     "incompleteNote": "Je n'ai pas le taux %{currencies} du jour : le total ne compte pas %{names}. Il reviendra dès que le taux sera disponible.",
     "overdrafts": "Découverts",
@@ -1548,8 +1612,9 @@
       "title": "Tes préférences sont indisponibles"
     },
     "whatsNew": {
-      "acknowledge": "J'ai vu",
-      "title": "Quoi de neuf"
+      "acknowledge": "C'est parti",
+      "title": "Quoi de neuf",
+      "version": "Version %{version}"
     }
   },
   "startup": {
@@ -1570,6 +1635,7 @@
       "loadErrorTitle": "On n'a pas pu charger tes modèles",
       "title": "Modèles",
       "subtitle": "Le point de départ de chaque nouveau mois",
+      "available": "disponible",
       "emptyExplainer": "Un modèle liste tes revenus, tes dépenses et ton épargne habituels. Chaque nouveau mois part de lui, tu ajustes ensuite."
     },
     "form": {
@@ -1604,6 +1670,8 @@
         "one": "Ce modèle est utilisé par %{count} budget. Les budgets en cours et futurs peuvent suivre ta modification. Une prévision que tu as changée à la main dans un mois ne bouge jamais.",
         "other": "Ce modèle est utilisé par %{count} budgets. Les budgets en cours et futurs peuvent suivre ta modification. Une prévision que tu as changée à la main dans un mois ne bouge jamais."
       },
+      "availableImpact": "Disponible : %{before} → %{after}",
+      "availableUnchanged": "Disponible inchangé.",
       "propagationTitle": "Et tes mois déjà créés ?",
       "save": "Enregistrer",
       "templateOnly": "Modèle uniquement",

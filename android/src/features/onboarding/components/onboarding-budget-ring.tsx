@@ -5,7 +5,7 @@ import { Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
-import { formatCurrency } from "@/core/ui/amount-format";
+import { formatAmount, formatCurrency } from "@/core/ui/amount-format";
 import { useFinancialColors, useV2Colors } from "@/core/ui/scheme-colors";
 
 import { ringGeometry } from "../budget-ring-segments";
@@ -131,8 +131,9 @@ export function OnboardingBudgetRing({
         >
           {label}
         </Text>
+        {/* The line below names the currency: the figure stands alone. */}
         <Amount size="row" numberOfLines={1}>
-          {amount}
+          {formatAmount(Math.abs(available), currency)}
         </Amount>
         <Text variant="bodySmall" style={{ color: v2.ink3 }}>
           {subtitle ?? currency}

@@ -26,6 +26,7 @@ export {
 } from './spread-progress.js';
 export {
   calculateBalanceTrajectory,
+  trendBalance,
   type BalanceTrajectory,
   type BalanceTrajectoryInput,
   type BalanceTrajectoryPoint,

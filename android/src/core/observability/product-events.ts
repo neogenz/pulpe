@@ -120,3 +120,11 @@ export function captureBudgetCreated(): void {
 export function captureTransactionCreated(type: EntryType): void {
   captureEvent(ANALYTICS_EVENTS.TRANSACTION_CREATED, { type });
 }
+
+/** `source` says which surface recorded it; never an amount or a label. */
+export function captureFirstTransactionCreated(
+  type: EntryType,
+  source: string,
+): void {
+  captureEvent(ANALYTICS_EVENTS.FIRST_TRANSACTION_CREATED, { type, source });
+}

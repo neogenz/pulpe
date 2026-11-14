@@ -7,6 +7,7 @@ import {
 import type { BalanceTrajectory, BudgetPeriodDates } from "pulpe-shared";
 import { useState } from "react";
 import { type LayoutChangeEvent, StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Text } from "react-native-paper";
 import { CartesianChart, Line } from "victory-native";
 
@@ -14,6 +15,7 @@ import { formatDayMonth } from "@/core/ui/date-format";
 import { SPACING } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
 
+import { scrubDayAt } from "../balance-scrub";
 import {
   type CaptionWidths,
   chartSeries,
@@ -30,6 +32,8 @@ const RULE_DASH = 3;
 const PROJECTION_DASH = 5;
 const PROJECTION_GAP = 4;
 const CAPTION_GAP = SPACING.sm;
+// A bare drag would take the page's vertical scroll with it; a short hold first keeps the two apart.
+const SCRUB_HOLD_MS = 150;
 
 interface BalanceTrajectoryChartProps {
   trajectory: BalanceTrajectory;
@@ -38,6 +42,9 @@ interface BalanceTrajectoryChartProps {
   /** One ink for the line, the gap and the marker — the hero's own accent. */
   accent: string;
   ruleColor: string;
+  /** The day under the finger while scrubbing, null at rest. */
+  scrubDay?: number | null;
+  onScrub?: (day: number | null) => void;
 }
 
 /**
@@ -54,6 +61,8 @@ export function BalanceTrajectoryChart({
   period,
   accent,
   ruleColor,
+  scrubDay = null,
+  onScrub,
 }: BalanceTrajectoryChartProps) {
   const { locale, t } = useTranslation();
   const data = chartSeries(trajectory);
@@ -72,72 +81,92 @@ export function BalanceTrajectoryChart({
   };
   const todayFraction =
     trajectory.totalDays > 0 ? trajectory.today / trajectory.totalDays : 0;
+  const [plotWidth, setPlotWidth] = useState(0);
+  const scrub = Gesture.Pan()
+    .activateAfterLongPress(SCRUB_HOLD_MS)
+    .runOnJS(true)
+    .onUpdate((event) =>
+      onScrub?.(scrubDayAt(event.x, plotWidth, trajectory.totalDays)),
+    )
+    .onFinalize(() => onScrub?.(null));
   const captionStyle = { color: ruleColor };
 
   return (
     <View style={styles.chart}>
-      <View
-        style={{ height: CHART_HEIGHT }}
-        accessible
-        accessibilityRole="image"
-        accessibilityLabel={t("home.hero.chartAccessibility")}
-      >
-        <CartesianChart
-          data={data}
-          xKey="day"
-          yKeys={["landed", "projected"]}
-          domain={{ x: [0, trajectory.totalDays], y: domain }}
-          // No axes and no grid. The only reference this plot needs is the
-          // plan, and that is the dashed rule below — a lattice of unlabelled
-          // lines behind it would only compete with the one line that means
-          // something.
-          xAxis={{ lineWidth: 0 }}
-          yAxis={[{ lineWidth: 0 }]}
+      <GestureDetector gesture={scrub}>
+        <View
+          style={{ height: CHART_HEIGHT }}
+          onLayout={(event) => setPlotWidth(event.nativeEvent.layout.width)}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={t("home.hero.chartAccessibility")}
         >
-          {({ points, chartBounds, xScale, yScale }) => {
-            const planY = yScale(trajectory.plannedBalance);
-            return (
-              <>
-                <SkiaLine
-                  p1={vec(chartBounds.left, planY)}
-                  p2={vec(chartBounds.right, planY)}
-                  color={ruleColor}
-                  strokeWidth={RULE_WIDTH}
-                >
-                  <DashPathEffect intervals={[RULE_DASH, RULE_DASH]} />
-                </SkiaLine>
+          <CartesianChart
+            data={data}
+            xKey="day"
+            yKeys={["landed", "projected"]}
+            domain={{ x: [0, trajectory.totalDays], y: domain }}
+            // No axes and no grid. The only reference this plot needs is the
+            // plan, and that is the dashed rule below — a lattice of unlabelled
+            // lines behind it would only compete with the one line that means
+            // something.
+            xAxis={{ lineWidth: 0 }}
+            yAxis={[{ lineWidth: 0 }]}
+          >
+            {({ points, chartBounds, xScale, yScale }) => {
+              const planY = yScale(trajectory.plannedBalance);
+              return (
+                <>
+                  <SkiaLine
+                    p1={vec(chartBounds.left, planY)}
+                    p2={vec(chartBounds.right, planY)}
+                    color={ruleColor}
+                    strokeWidth={RULE_WIDTH}
+                  >
+                    <DashPathEffect intervals={[RULE_DASH, RULE_DASH]} />
+                  </SkiaLine>
 
-                <Line
-                  points={points.landed}
-                  color={accent}
-                  strokeWidth={LINE_WIDTH}
-                  curveType="monotoneX"
-                  connectMissingData={false}
-                />
-
-                <Line
-                  points={points.projected}
-                  color={accent}
-                  strokeWidth={LINE_WIDTH}
-                  opacity={PROJECTION_OPACITY}
-                  connectMissingData={false}
-                >
-                  <DashPathEffect
-                    intervals={[PROJECTION_DASH, PROJECTION_GAP]}
+                  <Line
+                    points={points.landed}
+                    color={accent}
+                    strokeWidth={LINE_WIDTH}
+                    curveType="monotoneX"
+                    connectMissingData={false}
                   />
-                </Line>
 
-                <Circle
-                  cx={xScale(trajectory.today)}
-                  cy={yScale(trajectory.estimatedBalance)}
-                  r={TODAY_MARKER_RADIUS}
-                  color={accent}
-                />
-              </>
-            );
-          }}
-        </CartesianChart>
-      </View>
+                  <Line
+                    points={points.projected}
+                    color={accent}
+                    strokeWidth={LINE_WIDTH}
+                    opacity={PROJECTION_OPACITY}
+                    connectMissingData={false}
+                  >
+                    <DashPathEffect
+                      intervals={[PROJECTION_DASH, PROJECTION_GAP]}
+                    />
+                  </Line>
+
+                  {scrubDay !== null && (
+                    <SkiaLine
+                      p1={vec(xScale(scrubDay), chartBounds.top)}
+                      p2={vec(xScale(scrubDay), chartBounds.bottom)}
+                      color={ruleColor}
+                      strokeWidth={RULE_WIDTH}
+                    />
+                  )}
+
+                  <Circle
+                    cx={xScale(trajectory.today)}
+                    cy={yScale(trajectory.estimatedBalance)}
+                    r={TODAY_MARKER_RADIUS}
+                    color={accent}
+                  />
+                </>
+              );
+            }}
+          </CartesianChart>
+        </View>
+      </GestureDetector>
 
       <View style={styles.captions} onLayout={measure("row")}>
         <Text

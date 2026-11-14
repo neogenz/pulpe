@@ -1,7 +1,15 @@
-import type { BalanceTrajectory } from "pulpe-shared";
+import {
+  trendBalance,
+  type BalanceTrajectory,
+  type SupportedCurrency,
+} from "pulpe-shared";
 import type { TranslateOptions } from "i18n-js";
 
+import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
+
+/** Mirror of `DesignTokens.Chart.trendPriorDays` on iOS. */
+const TREND_PRIOR_DAYS = 7;
 
 /**
  * What the hero says about the month, kept apart from how it is drawn. Port of
@@ -85,4 +93,50 @@ function datedVerdict(
     : t(`home.hero.verdict.${verdict}Dated`, {
         date: formatDayMonth(driftDate, locale),
       });
+}
+
+export interface RhythmSentenceInput {
+  trajectory: BalanceTrajectory;
+  periodEnd: Date;
+  currency: SupportedCurrency;
+  amountsHidden: boolean;
+}
+
+/**
+ * Where the month lands if it keeps its pace, against what the plan kept: the
+ * sentence that follows the verdict. `null` on the period's last day (nothing
+ * left to project) or when the pace lands exactly on the plan. Under the
+ * privacy mode it keeps the direction and drops both figures. Port of
+ * `HomeHeroCard.rhythmSentence` in Swift.
+ */
+export function rhythmSentence(
+  t: Translate,
+  locale: string,
+  { trajectory, periodEnd, currency, amountsHidden }: RhythmSentenceInput,
+): string | null {
+  if (trajectory.today >= trajectory.totalDays || trajectory.real.length === 0)
+    return null;
+  const landing = toCents(trendBalance(trajectory, TREND_PRIOR_DAYS));
+  const planned = toCents(trajectory.plannedBalance);
+  if (landing === planned) return null;
+
+  const date = formatDayMonth(periodEnd, locale);
+  if (amountsHidden) {
+    return t(
+      landing < planned
+        ? "home.hero.rhythm.lessHidden"
+        : "home.hero.rhythm.moreHidden",
+      { date },
+    );
+  }
+  return t("home.hero.rhythm.pace", {
+    amount: formatCompactCurrency(landing / 100, currency),
+    date,
+    planned: formatCompactCurrency(planned / 100, currency),
+  });
+}
+
+/** Compared in whole cents: two floats a rounding apart are the same landing. */
+function toCents(value: number): number {
+  return Math.round(value * 100);
 }

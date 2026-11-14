@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { useVaultStore } from "@/core/vault/vault-store";
 import { budgetKeys } from "@/features/budgets/budget-queries";
@@ -17,6 +22,7 @@ import {
   updateTemplate,
   updateTemplateLine,
 } from "./template-api";
+import { templateAvailable } from "./template-vm";
 
 export const templateKeys = {
   all: ["templates"] as const,
@@ -58,6 +64,32 @@ export function useTemplateLines(templateId: string) {
     queryFn: () => fetchTemplateLines(templateId),
     enabled: isUnlocked,
   });
+}
+
+/**
+ * What each model leaves to spend, by template id. One read of the lines per
+ * model (the list is capped); a model whose lines fail to load has no entry.
+ */
+export function useTemplateAvailables(
+  templateIds: string[],
+): Map<string, number> {
+  const isUnlocked = useUnlocked();
+  const results = useQueries({
+    queries: templateIds.map((templateId) => ({
+      queryKey: templateKeys.lines(templateId),
+      queryFn: () => fetchTemplateLines(templateId),
+      enabled: isUnlocked,
+    })),
+  });
+
+  return new Map(
+    templateIds.flatMap((templateId, index) => {
+      const lines = results[index]?.data;
+      return lines === undefined
+        ? []
+        : [[templateId, templateAvailable(lines)] as const];
+    }),
+  );
 }
 
 export function useTemplateUsage(templateId: string) {

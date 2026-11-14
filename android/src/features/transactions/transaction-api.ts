@@ -2,6 +2,8 @@ import {
   type Transaction,
   type TransactionCreate,
   transactionCreateSchema,
+  transactionExistsResponseSchema,
+  transactionPostponeResponseSchema,
   transactionResponseSchema,
   type TransactionUpdate,
   transactionUpdateSchema,
@@ -47,4 +49,25 @@ export function updateTransaction(input: {
 
 export function deleteTransaction(transactionId: string): Promise<void> {
   return api.deleteVoid(ENDPOINTS.transaction(transactionId));
+}
+
+/**
+ * Moves a free, unpointed movement to the month after its own. The response
+ * names both budgets, but the write refreshes every budget view anyway.
+ */
+export function postponeTransaction(transactionId: string): Promise<void> {
+  return api
+    .post(
+      ENDPOINTS.transactionPostpone(transactionId),
+      undefined,
+      transactionPostponeResponseSchema,
+    )
+    .then(() => undefined);
+}
+
+/** Whether the account has recorded a movement in any budget (PUL-306). */
+export function fetchHasTransaction(): Promise<boolean> {
+  return api
+    .get(ENDPOINTS.transactionsExists, transactionExistsResponseSchema)
+    .then((response) => response.hasTransaction);
 }

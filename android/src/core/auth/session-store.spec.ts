@@ -87,7 +87,7 @@ jest.mock("@/core/notifications/reminder-flags", () => ({
 const session = (id: string) => ({ user: { id } }) as Session;
 
 async function settle(): Promise<void> {
-  for (let index = 0; index < 16; index += 1) await Promise.resolve();
+  for (let index = 0; index < 32; index += 1) await Promise.resolve();
 }
 
 function deferred() {

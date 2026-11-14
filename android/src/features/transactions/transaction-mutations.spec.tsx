@@ -17,19 +17,31 @@ import { ApiError, CLIENT_ERROR_CODES } from "@/core/api/api-error";
 import type { BudgetDetails } from "@/features/budgets/budget-api";
 import { budgetKeys } from "@/features/budgets/budget-queries";
 
-import { createTransaction, fetchTransaction } from "./transaction-api";
-import { isUnsavedCreate, useCreateTransaction } from "./transaction-mutations";
+import {
+  createTransaction,
+  fetchTransaction,
+  postponeTransaction,
+} from "./transaction-api";
+import {
+  isUnsavedCreate,
+  useCreateTransaction,
+  usePostponeTransaction,
+} from "./transaction-mutations";
 
 jest.mock("@/core/observability/product-events", () => ({
   captureTransactionCreated: jest.fn(),
 }));
 
+jest.mock("./first-movement-tracker", () => ({
+  recordMovementCreated: jest.fn(),
+}));
 jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => true }));
 jest.mock("@/features/budgets/budget-api", () => ({}));
 jest.mock("@/features/savings-goals/goals-api", () => ({}));
 jest.mock("./transaction-api", () => ({
   createTransaction: jest.fn(),
   fetchTransaction: jest.fn(),
+  postponeTransaction: jest.fn(),
   deleteTransaction: jest.fn(),
   updateTransaction: jest.fn(),
 }));
@@ -489,4 +501,21 @@ describe("the created entry in its month's cache", () => {
     ).toEqual([written]);
     await hook.unmount();
   });
+});
+
+it("refreshes the budget views once a movement is postponed", async () => {
+  jest.mocked(postponeTransaction).mockResolvedValueOnce(undefined);
+  const client = new QueryClient({
+    defaultOptions: { mutations: { retry: false, gcTime: 0 } },
+  });
+  jest.spyOn(client, "invalidateQueries").mockResolvedValue(undefined);
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const hook = await renderHook(() => usePostponeTransaction(), { wrapper });
+
+  await act(() => hook.result.current.mutateAsync(PAYLOAD.id!));
+
+  expect(jest.mocked(postponeTransaction).mock.calls[0][0]).toBe(PAYLOAD.id);
+  expect(client.invalidateQueries).toHaveBeenCalled();
 });

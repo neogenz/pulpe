@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
+import { formatIsoDate } from "@/core/ui/date-format";
 import { captureCurrencyChanged } from "@/core/observability/product-events";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { Notice } from "@/core/ui/notice";
@@ -42,7 +43,7 @@ const RATE_DECIMALS = 4;
 export default function CurrencyScreen() {
   const theme = useTheme();
   const keyboardHeight = useKeyboardHeight();
-  const { t } = useTranslation();
+  const { locale, t } = useTranslation();
   const settings = useUserSettings();
   const update = useUpdateUserSettings();
   const [pending, setPending] = useState<SupportedCurrency | null>(null);
@@ -102,7 +103,11 @@ export default function CurrencyScreen() {
             }}
             buttons={SUPPORTED_CURRENCIES.map((candidate) => ({
               value: candidate,
-              label: `${candidate} · ${CURRENCY_METADATA[candidate].symbol}`,
+              // CHF's symbol is its own code: say it once.
+              label:
+                CURRENCY_METADATA[candidate].symbol === candidate
+                  ? candidate
+                  : `${candidate} · ${CURRENCY_METADATA[candidate].symbol}`,
               disabled: update.isPending,
             }))}
           />
@@ -163,7 +168,7 @@ export default function CurrencyScreen() {
                       base: rate.data.base,
                       rate: rate.data.rate.toFixed(RATE_DECIMALS),
                       target: rate.data.target,
-                      date: rate.data.date,
+                      date: formatIsoDate(rate.data.date, locale),
                     })
               }
             />

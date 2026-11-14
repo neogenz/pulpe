@@ -119,3 +119,18 @@ it("stops at the first failed write, says so, and a retry replays the sequence",
   expect(onDone).toHaveBeenCalledTimes(1);
   expect(view.queryByText("budgets.catchUp.error")).toBeNull();
 });
+
+it("exposes the chosen forecast as selected, then locked once a write failed", async () => {
+  mockUpdate.mockRejectedValue(new Error("offline"));
+  const { view } = await open();
+
+  expect(
+    view.getByRole("button", { selected: true, name: /loisirs/ }),
+  ).toBeTruthy();
+
+  await act(async () => {
+    await fireEvent.press(view.getByText(submitLabel));
+  });
+
+  expect(view.getByText("loisirs")).toBeDisabled();
+});

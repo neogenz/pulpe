@@ -196,6 +196,10 @@ export function CatchUpSheet({
                         <View style={styles.checkSpace} />
                       )
                     }
+                    accessibilityState={{
+                      selected: choice.line.id === selectedId,
+                      disabled: isChoiceLocked,
+                    }}
                     onPress={
                       isChoiceLocked
                         ? undefined

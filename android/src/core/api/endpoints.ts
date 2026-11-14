@@ -43,6 +43,8 @@ export const ENDPOINTS = {
   transactionsByBudget: (budgetId: string) =>
     `/transactions/budget/${budgetId}`,
   transactionToggle: (id: string) => `/transactions/${id}/toggle-check`,
+  transactionPostpone: (id: string) => `/transactions/${id}/postpone`,
+  transactionsExists: "/transactions/exists",
   transactionSpreadFromTransaction: (id: string) =>
     `/transactions/${id}/spread`,
 
@@ -60,8 +62,6 @@ export const ENDPOINTS = {
   savingsGoals: "/savings-goals",
   savingsGoal: (id: string) => `/savings-goals/${id}`,
   savingsGoalProgress: (id: string) => `/savings-goals/${id}/progress`,
-  savingsGoalContributions: (id: string) =>
-    `/savings-goals/${id}/contributions`,
   savingsGoalPlan: (id: string) => `/savings-goals/${id}/plan`,
   savingsGoalFutureLines: (id: string) => `/savings-goals/${id}/future-lines`,
   savingsGoalGenerationStop: (id: string) =>

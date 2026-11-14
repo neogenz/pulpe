@@ -429,13 +429,18 @@ function mixHex(base: string, overlay: string, ratio: number): string {
   return `#${channels.map((value) => value.toString(HEX_RADIX).padStart(HEX_CHANNEL_LENGTH, "0")).join("")}`;
 }
 
+// Paper's Dialog (and the Searchbar's view mode) sit on level 3: the V2 card
+// surface, untinted, rather than the sage wash the ladder would give them.
 export const pulpeLightTheme: MD3Theme = {
   ...MD3LightTheme,
   roundness: RADIUS.sm,
   colors: {
     ...MD3LightTheme.colors,
     ...PALETTE.light,
-    elevation: elevationLadder(PALETTE.light.surface, PALETTE.light.primary),
+    elevation: {
+      ...elevationLadder(PALETTE.light.surface, PALETTE.light.primary),
+      level3: PALETTE.light.surface,
+    },
   },
   fonts: configureFonts({ config: pulpeFonts(MD3LightTheme.fonts) }),
 };
@@ -446,7 +451,10 @@ export const pulpeDarkTheme: MD3Theme = {
   colors: {
     ...MD3DarkTheme.colors,
     ...PALETTE.dark,
-    elevation: elevationLadder(PALETTE.dark.surface, PALETTE.dark.primary),
+    elevation: {
+      ...elevationLadder(PALETTE.dark.surface, PALETTE.dark.primary),
+      level3: PALETTE.dark.surface,
+    },
   },
   fonts: configureFonts({ config: pulpeFonts(MD3DarkTheme.fonts) }),
 };

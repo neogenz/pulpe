@@ -38,6 +38,7 @@ import { Amount } from "@/core/ui/amount";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
+import { useBudgetDetails } from "@/features/budgets/budget-queries";
 import { useNow } from "@/features/current-month/current-month-queries";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
 import { TemplateLines } from "@/features/templates/components/template-lines";
@@ -81,6 +82,29 @@ export default function TemplateDetailScreen() {
     return lines.refetch();
   });
   const usage = useTemplateUsage(id);
+  // The current month's budget when it was built from this model: the
+  // propagation step shows what the edit does to its « disponible ».
+  const currentPeriodNow =
+    usage.data === undefined
+      ? null
+      : propagationCurrentPeriod(usage.data, settings.data?.payDayOfMonth, now);
+  const currentBudget = useBudgetDetails(
+    currentPeriodNow === null
+      ? null
+      : (usage.data?.budgets.find(
+          (budget) =>
+            budget.month === currentPeriodNow.month &&
+            budget.year === currentPeriodNow.year,
+        )?.id ?? null),
+  );
+  const monthLedger =
+    currentPeriodNow === null || currentBudget.data === undefined
+      ? null
+      : {
+          lines: currentBudget.data.budgetLines,
+          transactions: currentBudget.data.transactions,
+          rollover: currentBudget.data.budget.rollover ?? 0,
+        };
   const goals = useSavingsGoals();
   const goalIds = useMemo(
     () => new Set((goals.data ?? []).map((goal) => goal.id)),
@@ -382,6 +406,7 @@ export default function TemplateDetailScreen() {
           templateName={template.data.name}
           propagationCount={propagationCount}
           propagationMonth={propagationMonth}
+          monthLedger={monthLedger}
           onSaved={() => setAdding(false)}
         />
       )}
@@ -395,6 +420,7 @@ export default function TemplateDetailScreen() {
           templateName={template.data.name}
           propagationCount={propagationCount}
           propagationMonth={propagationMonth}
+          monthLedger={monthLedger}
           line={editedLine}
           onSaved={(outcome) => {
             setEditedLine(null);

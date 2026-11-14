@@ -1,6 +1,7 @@
 import { captureEvent } from "./analytics-client";
 import {
   authErrorKind,
+  captureFirstTransactionCreated,
   captureLoginFailed,
   captureOnboardingHandoffCompleted,
   captureReminderToggled,
@@ -54,6 +55,17 @@ describe("product events", () => {
     });
     expect(captureEvent).toHaveBeenCalledWith("onboarding_handoff_completed", {
       widget_help_opened: false,
+    });
+  });
+});
+
+describe("captureFirstTransactionCreated", () => {
+  it("sends the kind and the surface, nothing else", () => {
+    captureFirstTransactionCreated("expense", "add_button");
+
+    expect(captureEvent).toHaveBeenCalledWith("first_transaction_created", {
+      type: "expense",
+      source: "add_button",
     });
   });
 });

@@ -27,6 +27,7 @@ import {
   AssetGroupCard,
   AssetRows,
 } from "@/features/net-worth/components/asset-group-card";
+import { NetWorthAllocation } from "@/features/net-worth/components/net-worth-allocation";
 import { NetWorthHero } from "@/features/net-worth/components/net-worth-hero";
 import { RenameTypeSheet } from "@/features/net-worth/components/rename-type-sheet";
 import {
@@ -38,6 +39,7 @@ import {
   useUpdateAsset,
 } from "@/features/net-worth/net-worth-queries";
 import {
+  allocationShares,
   buildNetWorthSections,
   type NetWorthGroup,
 } from "@/features/net-worth/net-worth-sections";
@@ -172,6 +174,10 @@ export default function NetWorthScreen() {
       >
         <NetWorthHero sections={sections} />
         <ContentZone style={styles.content}>
+          <NetWorthAllocation
+            shares={allocationShares(sections.categories, sections.gross)}
+            baseCurrency={sections.baseCurrency}
+          />
           {side(t("netWorth.have"), sections.categories)}
           {side(t("netWorth.owe"), sections.debtGroups)}
           {sections.archived.length > 0 && (

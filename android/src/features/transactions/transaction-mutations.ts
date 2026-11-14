@@ -19,9 +19,14 @@ import {
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
+  type FirstMovementSource,
+  recordMovementCreated,
+} from "./first-movement-tracker";
+import {
   createTransaction,
   deleteTransaction,
   fetchTransaction,
+  postponeTransaction,
   updateTransaction,
 } from "./transaction-api";
 
@@ -182,16 +187,23 @@ function addToBudgetDetails(queryClient: QueryClient, created: Transaction) {
   );
 }
 
-export function useCreateTransaction() {
+export function useCreateTransaction(
+  source: FirstMovementSource = "budget_details",
+) {
   return useTransactionMutation(createOnce, (queryClient, transaction) => {
     addToBudgetDetails(queryClient, transaction);
     // Here and not in `createOnce`: restoring a deleted row is not a new entry.
     captureTransactionCreated(transaction.kind);
+    recordMovementCreated(transaction.kind, source);
   });
 }
 
 export function useUpdateTransaction() {
   return useTransactionMutation(updateTransaction);
+}
+
+export function usePostponeTransaction() {
+  return useTransactionMutation(postponeTransaction);
 }
 
 /** Takes the whole row rather than its id, as the undo restores it whole. */

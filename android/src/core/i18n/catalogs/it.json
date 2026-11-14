@@ -274,6 +274,8 @@
         "allocatedIn": "Conteggiato in «%{name}»",
         "alreadyChecked": "Già spuntato",
         "alreadyCheckedAccessibility": "Movimento già spuntato",
+        "currencyPicker": "Selezione della valuta",
+        "rateUnavailable": "Tasso di cambio non disponibile",
         "alreadyCheckedHint": "L'importo è già passato sul tuo conto.",
         "date": "Data del movimento",
         "editTitles": {
@@ -641,7 +643,8 @@
       "history": "Cronologia",
       "menu": {
         "pause": "Metti in pausa",
-        "resume": "Riprendi"
+        "resume": "Riprendi",
+        "withdraw": "Fai un prelievo"
       },
       "month": {
         "planned": "%{month} · %{amount} previsti",
@@ -855,6 +858,15 @@
       "chart": {
         "today": "oggi"
       },
+      "scrub": {
+        "estimated": "Stimato il %{date}",
+        "estimatedWithPlan": "Stimato il %{date} · Previsto %{amount}"
+      },
+      "rhythm": {
+        "pace": "Di questo passo ti resteranno %{amount} il %{date} invece dei %{planned} previsti.",
+        "lessHidden": "Il %{date} ti resterà meno del previsto.",
+        "moreHidden": "Il %{date} ti resterà più del previsto."
+      },
       "eyebrow": "Disponibile da spendere",
       "hideAmounts": "Nascondi gli importi",
       "showAmounts": "Mostra gli importi",
@@ -863,6 +875,43 @@
       "fresh": {
         "verdict": "Proprio come previsto.",
         "tail": "Aggiungi le tue spese durante il mese: questa cifra si aggiorna subito."
+      }
+    },
+    "recap": {
+      "rowTitle": "%{month} è finito",
+      "subtitleCarried": "%{amount} riportati su %{month}",
+      "subtitleSaved": "Ben fatto: hai messo %{amount} da parte.",
+      "subtitleOverspent": "Capita: %{amount} in più del previsto.",
+      "subtitleBalanced": "Budget rispettato.",
+      "title": "Bilancio di %{month}",
+      "titleElided": "Bilancio di %{month}",
+      "finished": "%{month} è finito",
+      "carriedCaption": "riportati su %{month}, già contati nel tuo disponibile",
+      "income": "Entrate",
+      "report": "Riporto di %{month}",
+      "reportElided": "Riporto di %{month}",
+      "expenses": "Spese",
+      "savings": "Risparmio versato",
+      "finalBalance": "Saldo finale",
+      "acknowledge": "Ho capito",
+      "showBudget": "Vedi il budget di %{month}",
+      "showBudgetElided": "Vedi il budget di %{month}",
+      "findings": {
+        "title": "Cosa ha contato",
+        "savingsFull": "Risparmio versato per intero",
+        "savingsPartial": "Risparmio versato in parte",
+        "notPaid": "Non versato: %{names}",
+        "overruns": {
+          "one": "%{count} previsione superata",
+          "other": "%{count} previsioni superate"
+        },
+        "allPointed": "È tutto spuntato",
+        "waiting": "%{count} ancora da spuntare",
+        "pointed": {
+          "one": "%{count} movimento spuntato a %{month}",
+          "other": "%{count} movimenti spuntati a %{month}"
+        },
+        "nothingPointed": "Niente spuntato a %{month}"
       }
     },
     "prepareNextMonth": "Prepara il mese successivo",
@@ -909,6 +958,16 @@
     },
     "reconcile": {
       "accounts": {
+        "accountNumbered": "Conto %{index}",
+        "addToNetWorth": "Aggiungi a Il mio patrimonio",
+        "addToNetWorthHint": "Conservo questo conto e ne aggiorno il saldo a ogni allineamento.",
+        "balanceMissing": "Inserisci il saldo per aggiungerlo",
+        "lastBalance": "Ultimo saldo: %{amount}, %{when}",
+        "linkedFootnote": "Aggiorno il saldo dei tuoi conti in Il mio patrimonio. Le altre righe non vengono salvate.",
+        "nameMissing": "Dai un nome a questo conto per aggiungerlo",
+        "newAccountName": "Nome del conto",
+        "otherAccount": "Altro conto…",
+        "stopFollowing": "Non seguire più questo conto",
         "accountName": "Nome del conto (facoltativo)",
         "addAccount": "Aggiungi un conto",
         "amount": "Saldo",
@@ -923,6 +982,7 @@
       },
       "back": "Indietro",
       "continue": "Continua",
+      "followFailed": "Allineamento fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio.",
       "realized": {
         "balance": "Saldo spuntato",
         "checkedIncome": "Entrate spuntate",
@@ -1094,6 +1154,10 @@
     "have": "Ciò che ho",
     "owe": "Ciò che devo",
     "negativeNote": "Ciò che devo supera ciò che ho oggi. Ogni rimborso spuntato avvicina questa cifra allo zero.",
+    "allocation": {
+      "title": "Ripartizione di oggi",
+      "subtitle": "Da ciò che ho al mio patrimonio netto"
+    },
     "foreignNote": "I valori in valuta estera sono convertiti al tasso del giorno.",
     "incompleteNote": "Non ho il tasso %{currencies} di oggi: il totale non conta %{names}. Tornerà appena il tasso sarà disponibile.",
     "overdrafts": "Scoperti",
@@ -1548,8 +1612,9 @@
       "title": "Le tue preferenze non sono disponibili"
     },
     "whatsNew": {
-      "acknowledge": "Ho capito",
-      "title": "Novità"
+      "acknowledge": "Si comincia",
+      "title": "Novità",
+      "version": "Versione %{version}"
     }
   },
   "startup": {
@@ -1570,6 +1635,7 @@
       "loadErrorTitle": "Non siamo riusciti a caricare i tuoi modelli",
       "title": "Modelli",
       "subtitle": "Il punto di partenza di ogni nuovo mese",
+      "available": "disponibile",
       "emptyExplainer": "Un modello elenca le tue entrate, spese e risparmi abituali. Ogni nuovo mese parte da lui, poi aggiusti."
     },
     "form": {
@@ -1604,6 +1670,8 @@
         "one": "Questo modello è usato da %{count} budget. I budget attuali e futuri possono seguire la tua modifica. Una previsione che hai cambiato a mano in un mese non si muove mai.",
         "other": "Questo modello è usato da %{count} budget. I budget attuali e futuri possono seguire la tua modifica. Una previsione che hai cambiato a mano in un mese non si muove mai."
       },
+      "availableImpact": "Disponibile: %{before} → %{after}",
+      "availableUnchanged": "Disponibile invariato.",
       "propagationTitle": "E i tuoi mesi già creati?",
       "save": "Salva",
       "templateOnly": "Solo modello",

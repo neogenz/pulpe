@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Button, Text, useTheme } from "react-native-paper";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { useVaultStore } from "@/core/vault/vault-store";
 
@@ -15,6 +16,7 @@ import {
   useWhatsNewStore,
   whatsNewIdentity,
 } from "./whats-new-store";
+import { CURRENT_APP_VERSION } from "./system-store";
 
 /**
  * What changed since the last version this device ran. Checked once the vault
@@ -48,60 +50,72 @@ export function WhatsNewSheet() {
   if (!canShowWhatsNew(whatsNew, identity)) return null;
 
   return (
-    <Portal>
-      <Dialog visible onDismiss={acknowledgeWhatsNew}>
-        <Dialog.Icon icon="party-popper" />
-        <Dialog.Title style={styles.centered}>
-          {t("system.whatsNew.title")}
-        </Dialog.Title>
-
-        <Dialog.ScrollArea>
-          <ScrollView contentContainerStyle={styles.content}>
-            {whatsNew.entries.map((entry) => (
-              <Release key={entry.version} {...entry} />
-            ))}
-          </ScrollView>
-        </Dialog.ScrollArea>
-
-        <Dialog.Actions>
-          <Button mode="contained" onPress={acknowledgeWhatsNew}>
-            {t("system.whatsNew.acknowledge")}
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+    <FormModal
+      isVisible
+      onDismiss={acknowledgeWhatsNew}
+      title={t("system.whatsNew.title")}
+      subtitle={t("system.whatsNew.version", { version: CURRENT_APP_VERSION })}
+      footer={
+        <Button mode="contained" onPress={acknowledgeWhatsNew}>
+          {t("system.whatsNew.acknowledge")}
+        </Button>
+      }
+    >
+      {whatsNew.entries.map((entry) => (
+        <Release
+          key={entry.version}
+          version={entry.version}
+          body={entry.body}
+          showVersion={whatsNew.entries.length > 1}
+        />
+      ))}
+    </FormModal>
   );
 }
 
-export function Release({ title, body }: { title: string; body: string }) {
+interface ReleaseProps {
+  version: string;
+  body: string;
+  /** Only an aggregate of several skipped versions needs to say which is which. */
+  showVersion: boolean;
+}
+
+/**
+ * The body arrives as one markdown block per release, a
+ * `- **Title** — detail` line per note. Only that shape occurs, so it is read
+ * here rather than through a markdown renderer.
+ */
+export function Release({ version, body, showVersion }: ReleaseProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
-  const muted = { color: theme.colors.onSurfaceVariant };
 
   return (
     <View style={styles.release}>
-      <Text variant="titleSmall">{title}</Text>
-      {/* The body arrives as one markdown block per release, a `- ` line per
-          note. Only that bullet syntax and the `**` emphasis occur, so they are
-          read here rather than through a markdown renderer. */}
+      {showVersion && (
+        <Text variant="labelLarge">
+          {t("system.whatsNew.version", { version })}
+        </Text>
+      )}
       {body
         .split("\n")
         .filter((line) => line.trim() !== "")
         .map((line, index) => {
-          const isItem = line.startsWith("- ");
-          const text = (isItem ? line.slice(2) : line).replaceAll("**", "");
+          const { title, detail } = parseNote(line);
           return (
-            <View key={index} style={styles.item}>
-              {isItem && (
-                <Text
-                  variant="bodyMedium"
-                  style={muted}
-                  importantForAccessibility="no"
-                >
-                  •
-                </Text>
+            <View key={index} style={styles.note}>
+              {title !== undefined && (
+                <Text variant="titleMedium">{title}</Text>
               )}
-              <Text variant="bodyMedium" style={[muted, styles.itemText]}>
-                {text}
+              <Text
+                variant="bodyMedium"
+                style={{
+                  color:
+                    title === undefined
+                      ? theme.colors.onSurface
+                      : theme.colors.onSurfaceVariant,
+                }}
+              >
+                {detail}
               </Text>
             </View>
           );
@@ -110,10 +124,14 @@ export function Release({ title, body }: { title: string; body: string }) {
   );
 }
 
+export function parseNote(line: string): { title?: string; detail: string } {
+  const content = line.trim().replace(/^- /, "");
+  const match = /^\*\*(.+?)\*\*\s*(?:[—-]\s*)?(.*)$/.exec(content);
+  if (match === null) return { detail: content.replaceAll("**", "") };
+  return { title: match[1], detail: match[2].replaceAll("**", "") };
+}
+
 const styles = StyleSheet.create({
-  centered: { textAlign: "center" },
-  content: { gap: SPACING.lg, paddingVertical: SPACING.md },
-  release: { gap: SPACING.xs },
-  item: { flexDirection: "row", gap: SPACING.sm },
-  itemText: { flex: 1 },
+  release: { gap: SPACING.md },
+  note: { gap: SPACING.xxs },
 });

@@ -35,7 +35,7 @@ describe("system surface localization", () => {
     expect(required).toContain('t("system.requiredSettings.loading")');
     expect(inline).toContain('t("system.queryError")');
     expect(whatsNew.indexOf("if (!canShowWhatsNew")).toBeLessThan(
-      whatsNew.indexOf("<Portal>"),
+      whatsNew.indexOf("<FormModal"),
     );
     expect(`${system}\n${required}\n${inline}`).not.toMatch(
       /Réessayer|Chargement de tes préférences|Impossible de charger cette section/,

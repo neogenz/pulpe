@@ -1,6 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { isContributivePlanMonth, type SupportedCurrency } from "pulpe-shared";
+import {
+  getBudgetPeriodDates,
+  isContributivePlanMonth,
+  type SupportedCurrency,
+} from "pulpe-shared";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Menu, useTheme } from "react-native-paper";
@@ -24,6 +28,8 @@ import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
+import { useCurrentMonth } from "@/features/current-month/current-month-queries";
+import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
 import { GoalDeletionSheet } from "@/features/savings-goals/components/goal-deletion-sheet";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
 import { GoalGenerationStopSheet } from "@/features/savings-goals/components/goal-generation-stop-sheet";
@@ -89,6 +95,9 @@ export default function GoalDetailScreen() {
   const [isStopVisible, setStopVisible] = useState(false);
   const [isSimulatorVisible, setSimulatorVisible] = useState(false);
   const [isRepairVisible, setRepairVisible] = useState(false);
+  const [isWithdrawVisible, setWithdrawVisible] = useState(false);
+  // A withdrawal is an income of the current month: no month, no entry.
+  const currentMonth = useCurrentMonth();
   // A status change that did not happen has to say so: the button only
   // re-enabled, and nothing on the screen moved.
   const [hasStatusFailed, setStatusFailed] = useState(false);
@@ -293,6 +302,16 @@ export default function GoalDetailScreen() {
               }}
             />
           )}
+          {currentMonth.budgetId !== null && currentMonth.details !== null && (
+            <Menu.Item
+              leadingIcon="cash-minus"
+              title={t("goals.detail.menu.withdraw")}
+              onPress={() => {
+                setMenuVisible(false);
+                setWithdrawVisible(true);
+              }}
+            />
+          )}
           <Menu.Item
             leadingIcon="delete-outline"
             title={t("goals.detail.delete")}
@@ -464,6 +483,21 @@ export default function GoalDetailScreen() {
         />
       )}
 
+      {currentMonth.budgetId !== null && currentMonth.details !== null && (
+        <TransactionSheet
+          isVisible={isWithdrawVisible}
+          onDismiss={() => setWithdrawVisible(false)}
+          onSaved={() => setWithdrawVisible(false)}
+          budgetId={currentMonth.budgetId}
+          currency={currency}
+          period={getBudgetPeriodDates(
+            currentMonth.details.budget.month,
+            currentMonth.details.budget.year,
+            currentMonth.payDayOfMonth,
+          )}
+          withdrawFromGoalId={id}
+        />
+      )}
       <GoalDeletionSheet
         isVisible={isDeleteVisible}
         onDismiss={() => setDeleteVisible(false)}

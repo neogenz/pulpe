@@ -1,22 +1,14 @@
 import {
-  BudgetFormulas,
   type BudgetPeriodDates,
   type SupportedCurrency,
   type Transaction,
   type TransactionCreate,
   type TransactionKind,
 } from "pulpe-shared";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { randomUUID } from "react-native-quick-crypto";
 import { Keyboard, StyleSheet, View } from "react-native";
-import {
-  ActivityIndicator,
-  Button,
-  Switch,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, Switch, Text, TextInput, useTheme } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { hapticSuccess } from "@/core/ui/haptics";
@@ -28,13 +20,13 @@ import { kindOptions } from "@/core/ui/vocabulary";
 import { TagPicker } from "@/features/tags/tag-picker";
 import { QuickAmountChips } from "@/core/ui/quick-amount-chips";
 import { AmountField } from "@/core/ui/amount-field";
-import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
+import { formatCurrency } from "@/core/ui/amount-format";
 import { formatRelativeDay } from "@/core/ui/date-format";
-import { FadingRail } from "@/core/ui/fading-rail";
-import { FilterChip } from "@/core/ui/filter-chip";
 import { FormModal } from "@/core/ui/sheet";
 import { EMPHASIS, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { useCurrencyRate } from "@/features/account/currency-queries";
 import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -47,15 +39,33 @@ import {
   suggestedLine,
 } from "../movement-line-choices";
 import { ImpactBlock } from "@/features/budget-details/components/impact-confirm-sheet";
+import {
+  loadFirstMovementState,
+  type FirstMovementSource,
+} from "../first-movement-tracker";
+import {
+  convertMovementAmount,
+  foreignLegOf,
+  withConversion,
+} from "../movement-conversion";
+import { MovementCurrencyField } from "./movement-currency-field";
 import { MovementLinePicker } from "./movement-line-picker";
+import { MovementLineQuestion } from "./movement-line-question";
+import { MovementOrigin } from "./movement-origin";
+import { MovementPostponeAction } from "./movement-postpone-action";
 
+import {
+  initialForm,
+  originProblemOf,
+  type EnvelopeTarget,
+  type FormState,
+} from "../movement-form";
 import {
   buildTransactionPayload,
   buildTransactionUpdate,
   defaultOperationDay,
   draftHint,
   isDraftSubmittable,
-  transactionDraftFrom,
   type TransactionDraft,
 } from "../transaction-draft";
 import {
@@ -69,13 +79,6 @@ const NAME_MAX_LENGTH = 100;
 
 /** The gutter `core/ui/sheet` keeps, and so the one the rail has to give back. */
 const SHEET_PADDING = SPACING.lg;
-
-/** What an operation can be attached to, as far as this form is concerned. */
-export interface EnvelopeTarget {
-  id: string;
-  name: string;
-  kind: TransactionKind;
-}
 
 interface TransactionSheetProps {
   isVisible: boolean;
@@ -91,6 +94,13 @@ interface TransactionSheetProps {
    * calendar offers no other.
    */
   period?: BudgetPeriodDates;
+  /**
+   * Opens a new income already « depuis mon épargne », this goal chosen
+   * (« Faire un retrait » on a goal). Ignored when editing or with an envelope.
+   */
+  withdrawFromGoalId?: string;
+  /** Which surface opened the sheet, for `first_transaction_created`. */
+  source?: FirstMovementSource;
   onSaved: () => void;
   onDelete?: () => void;
   /**
@@ -121,6 +131,8 @@ export function TransactionSheet({
   transaction,
   envelope,
   period,
+  withdrawFromGoalId,
+  source,
   onSaved,
   onDelete,
   isDeleting = false,
@@ -128,21 +140,29 @@ export function TransactionSheet({
 }: TransactionSheetProps) {
   const theme = useTheme();
   useAmountMasking();
+  const isEditing = transaction !== undefined;
+  const prefilledGoalId =
+    isEditing || envelope !== undefined ? undefined : withdrawFromGoalId;
   const { locale, t } = useTranslation();
   const details = useBudgetDetails(budgetId);
-  const create = useCreateTransaction();
+  const create = useCreateTransaction(source);
   const update = useUpdateTransaction();
   const refreshAfterWrite = useRefreshAfterTransactionWrite();
   // The budget is not part of the draft: it belongs to the screen, and holding
   // a copy in form state is how a sheet ends up posting to last month's budget
   // after a period rolls over while it is open.
+  // A movement booked from another currency is edited in that currency.
+  const foreign =
+    transaction === undefined ? null : foreignLegOf(transaction, currency);
   const [form, setForm] = useState<FormState>(() =>
-    initialForm(transaction, envelope, period),
+    initialForm(transaction, envelope, period, prefilledGoalId, foreign),
   );
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   // Held apart from the chosen goal: "yes, from a goal" and "which one" are two
   // answers, and the block has to stay open between them.
-  const [isFromSavingsGoal, setFromSavingsGoal] = useState(false);
+  const [isFromSavingsGoal, setFromSavingsGoal] = useState(
+    prefilledGoalId !== undefined,
+  );
   // The answer to « C'était prévu dans ton budget ? »: null is the untouched
   // « imprévu », and a suggestion is only ever offered, never picked for the user.
   const [pickedLineId, setPickedLineId] = useState<string | null>(null);
@@ -163,7 +183,30 @@ export function TransactionSheet({
   // one is refused: from then on the submitted values stay as they are.
   const hasUncertainAttempt = useRef(false);
   const draft: TransactionDraft = { ...form, budgetId };
-  const isEditing = transaction !== undefined;
+  const settings = useUserSettings();
+  // Entered in the other currency, converted on the way out: an edit keeps the
+  // currency the row was typed in, and cannot change it.
+  const canPickCurrency =
+    !isEditing && settings.data?.showCurrencySelector === true;
+  const [pickedCurrency, setPickedCurrency] = useState(currency);
+  const inputCurrency = canPickCurrency
+    ? pickedCurrency
+    : (foreign?.currency ?? currency);
+  const rate = useCurrencyRate(inputCurrency, currency);
+  const conversion = convertMovementAmount(
+    draft.amount,
+    inputCurrency,
+    currency,
+    rate.data?.rate,
+  );
+  const isRatePending =
+    inputCurrency !== currency &&
+    draft.amount !== null &&
+    draft.amount > 0 &&
+    draft.amount !== foreign?.amount &&
+    conversion === null;
+  // What the budget will hold, whichever currency it was typed in.
+  const bookedAmount = conversion?.amount ?? draft.amount;
   // A sheet that stays mounted keeps the day it was mounted on: opened two
   // days later, it booked the operation on the wrong day — possibly in the
   // previous month — unless the user happened to look at the date. A new
@@ -178,6 +221,10 @@ export function TransactionSheet({
       }));
     }
   }
+  // Asked before the first create: once it is saved, the server always says yes.
+  useEffect(() => {
+    if (isVisible && !isEditing) void loadFirstMovementState();
+  }, [isVisible, isEditing]);
   const mutation = isEditing ? update : create;
   // An allocated operation must keep its envelope's kind: the server refuses
   // the mismatch, and the envelope is the reason the user opened this form.
@@ -196,9 +243,9 @@ export function TransactionSheet({
       (option) => option.goalId === draft.sourceSavingsGoalId,
     ) ?? null;
   const remainingAfterWithdrawal =
-    chosenOption === null || draft.amount === null
+    chosenOption === null || bookedAmount === null
       ? null
-      : chosenOption.availableAmount - draft.amount;
+      : chosenOption.availableAmount - bookedAmount;
   const originProblem = originProblemOf({
     isActive: isOriginOffered && isFromSavingsGoal,
     hasChosenGoal: draft.sourceSavingsGoalId !== null,
@@ -234,12 +281,12 @@ export function TransactionSheet({
       undefined);
   const isUnchangedEdit =
     transaction !== undefined &&
-    transaction.amount === draft.amount &&
+    (foreign?.amount ?? transaction.amount) === draft.amount &&
     transaction.kind === draft.kind;
   const impact =
     details.data === undefined ||
-    draft.amount === null ||
-    draft.amount <= 0 ||
+    bookedAmount === null ||
+    bookedAmount <= 0 ||
     isUnchangedEdit
       ? null
       : computeMovementImpact({
@@ -249,7 +296,7 @@ export function TransactionSheet({
           replacingId: transaction?.id,
           draft: {
             kind: draft.kind,
-            amount: draft.amount,
+            amount: bookedAmount,
             lineId: selectedLineId,
           },
         });
@@ -268,8 +315,11 @@ export function TransactionSheet({
   }
 
   function reset() {
-    setForm(initialForm(transaction, envelope, period));
-    setFromSavingsGoal(false);
+    setForm(
+      initialForm(transaction, envelope, period, prefilledGoalId, foreign),
+    );
+    setPickedCurrency(currency);
+    setFromSavingsGoal(prefilledGoalId !== undefined);
     setPickedLineId(null);
     setPickingLine(false);
     setGeneration((current) => current + 1);
@@ -293,7 +343,7 @@ export function TransactionSheet({
   function submit() {
     if (
       createAttempt.current === null &&
-      (!isDraftSubmittable(draft) || originProblem !== null)
+      (!isDraftSubmittable(draft) || originProblem !== null || isRatePending)
     ) {
       return;
     }
@@ -306,7 +356,10 @@ export function TransactionSheet({
 
     if (transaction === undefined) {
       const payload = createAttempt.current ?? {
-        ...buildTransactionPayload(draft, new Date()),
+        ...withConversion(
+          buildTransactionPayload(draft, new Date()),
+          conversion,
+        ),
         id: createId,
         ...(selectedLineId === null ? {} : { budgetLineId: selectedLineId }),
       };
@@ -333,7 +386,11 @@ export function TransactionSheet({
     update.mutate(
       {
         id: transaction.id,
-        changes: buildTransactionUpdate(draft, transaction),
+        changes: buildTransactionUpdate(
+          draft,
+          transaction,
+          foreign === null ? null : { leg: foreign, conversion },
+        ),
       },
       { onSuccess },
     );
@@ -378,7 +435,9 @@ export function TransactionSheet({
                 onPress={submit}
                 disabled={
                   (submittedCreate === null &&
-                    (!isDraftSubmittable(draft) || originProblem !== null)) ||
+                    (!isDraftSubmittable(draft) ||
+                      originProblem !== null ||
+                      isRatePending)) ||
                   mutation.isPending
                 }
                 loading={mutation.isPending}
@@ -389,7 +448,7 @@ export function TransactionSheet({
                     ? t("budgets.mutations.save")
                     : draft.amount !== null && draft.amount > 0
                       ? t("budgets.mutations.activity.addAmount", {
-                          amount: formatCurrency(draft.amount, currency),
+                          amount: formatCurrency(draft.amount, inputCurrency),
                         })
                       : t("budgets.mutations.add")}
               </Button>
@@ -404,6 +463,15 @@ export function TransactionSheet({
                 >
                   {t(`budgets.mutations.validation.${problem}`)}
                 </Text>
+              )}
+
+              {transaction !== undefined && details.data !== undefined && (
+                <MovementPostponeAction
+                  transaction={transaction}
+                  period={details.data.budget}
+                  currency={currency}
+                  onPostponed={dismiss}
+                />
               )}
 
               {onDelete !== undefined && isEditing && (
@@ -476,17 +544,27 @@ export function TransactionSheet({
               />
             )}
 
+            {(canPickCurrency || foreign !== null) && (
+              <MovementCurrencyField
+                isReadOnly={isEditing}
+                inputCurrency={inputCurrency}
+                onChange={setPickedCurrency}
+                currency={currency}
+                rate={rate}
+                conversion={conversion}
+              />
+            )}
             <AmountField
               key={generation}
               isProminent
               label={t("budgets.mutations.amount")}
               amount={draft.amount}
-              currency={currency}
+              currency={inputCurrency}
               onChange={(amount) => change({ amount })}
             />
             <QuickAmountChips
               amount={draft.amount}
-              currency={currency}
+              currency={inputCurrency}
               onSelect={(amount) => {
                 change({ amount });
                 // The field holds its own text; only a remount shows the new one.
@@ -514,66 +592,17 @@ export function TransactionSheet({
             />
 
             {showsQuestion && (
-              <View
-                testID="movement-question"
-                style={[
-                  styles.question,
-                  isQuestionLocked && !isEditing && styles.locked,
-                ]}
-              >
-                <Text
-                  variant="labelLarge"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {t("budgets.mutations.activity.question")}
-                </Text>
-                <View style={styles.chips}>
-                  {shownLine !== undefined && (
-                    <FilterChip
-                      selected={selectedLineId === shownLine.id}
-                      disabled={isQuestionLocked}
-                      onPress={() => setPickedLineId(shownLine.id)}
-                      accessibilityState={{
-                        selected: selectedLineId === shownLine.id,
-                      }}
-                    >
-                      {`${shownLine.name} · ${t(
-                        "budgets.mutations.activity.leftChip",
-                        {
-                          amount: formatCompactCurrency(
-                            Math.max(
-                              BudgetFormulas.calculateConsumption(
-                                shownLine,
-                                transactions,
-                              ).available,
-                              0,
-                            ),
-                            currency,
-                          ),
-                        },
-                      )}`}
-                    </FilterChip>
-                  )}
-                  {hasEligibleLines && !isEditing && (
-                    <FilterChip
-                      testID="movement-other-line"
-                      disabled={isQuestionLocked}
-                      onPress={() => setPickingLine(true)}
-                    >
-                      {t("budgets.mutations.activity.other")}
-                    </FilterChip>
-                  )}
-                  <FilterChip
-                    testID="movement-unplanned"
-                    selected={selectedLineId === null}
-                    disabled={isQuestionLocked}
-                    onPress={() => setPickedLineId(null)}
-                    accessibilityState={{ selected: selectedLineId === null }}
-                  >
-                    {t("budgets.mutations.activity.unplanned")}
-                  </FilterChip>
-                </View>
-              </View>
+              <MovementLineQuestion
+                isEditing={isEditing}
+                isLocked={isQuestionLocked}
+                shownLine={shownLine}
+                selectedLineId={selectedLineId}
+                hasEligibleLines={hasEligibleLines}
+                transactions={transactions}
+                currency={currency}
+                onPick={setPickedLineId}
+                onPickOther={() => setPickingLine(true)}
+              />
             )}
 
             <Button
@@ -585,98 +614,20 @@ export function TransactionSheet({
               {formatRelativeDay(draft.day, new Date(), locale)}
             </Button>
 
-            {/* An income can be money coming in, or money coming back out of a pot
-            the user already filled. Only the second empties a goal, and the
-            server needs to be told which one this is. */}
             {isOriginOffered && (
-              <View style={styles.origin}>
-                <View style={styles.checkedRow}>
-                  <View style={styles.checkedLabels}>
-                    <Text variant="bodyLarge">
-                      {t("budgets.mutations.activity.originTitle")}
-                    </Text>
-                    {isFromSavingsGoal && (
-                      <Text
-                        variant="labelMedium"
-                        style={{ color: theme.colors.onSurfaceVariant }}
-                      >
-                        {t("budgets.mutations.activity.originHint")}
-                      </Text>
-                    )}
-                  </View>
-                  <Switch
-                    value={isFromSavingsGoal}
-                    onValueChange={(isOn) => {
-                      setFromSavingsGoal(isOn);
-                      if (!isOn) change({ sourceSavingsGoalId: null });
-                    }}
-                    accessibilityLabel={t(
-                      "budgets.mutations.activity.originAccessibility",
-                    )}
-                  />
-                </View>
-
-                {isFromSavingsGoal &&
-                  (options.isPending ? (
-                    <ActivityIndicator
-                      accessibilityLabel={t("common.loading")}
-                    />
-                  ) : (options.data ?? []).length === 0 ? (
-                    <Text
-                      variant="labelMedium"
-                      style={{ color: theme.colors.onSurfaceVariant }}
-                    >
-                      {t("budgets.mutations.activity.noGoals")}
-                    </Text>
-                  ) : (
-                    <FadingRail
-                      inset={SHEET_PADDING}
-                      background={theme.colors.surface}
-                      accessibilityLabel={t(
-                        "budgets.mutations.activity.goalsAvailable",
-                      )}
-                    >
-                      {(options.data ?? []).map((option) => (
-                        <FilterChip
-                          key={option.goalId}
-                          selected={option.goalId === draft.sourceSavingsGoalId}
-                          icon="piggy-bank-outline"
-                          onPress={() =>
-                            change({ sourceSavingsGoalId: option.goalId })
-                          }
-                          accessibilityState={{
-                            selected:
-                              option.goalId === draft.sourceSavingsGoalId,
-                          }}
-                        >
-                          {`${option.name} · ${formatCompactCurrency(
-                            option.availableAmount,
-                            option.currency,
-                          )}`}
-                        </FilterChip>
-                      ))}
-                    </FadingRail>
-                  ))}
-
-                {/* What the goal has left afterwards, which is the number the
-                choice is actually made on. */}
-                {isFromSavingsGoal &&
-                  chosenOption !== null &&
-                  remainingAfterWithdrawal !== null && (
-                    <Text
-                      variant="labelMedium"
-                      style={{ color: theme.colors.onSurfaceVariant }}
-                    >
-                      {`${chosenOption.name} · ${formatCompactCurrency(
-                        chosenOption.availableAmount,
-                        chosenOption.currency,
-                      )} → ${formatCompactCurrency(
-                        remainingAfterWithdrawal,
-                        chosenOption.currency,
-                      )}`}
-                    </Text>
-                  )}
-              </View>
+              <MovementOrigin
+                isFromSavingsGoal={isFromSavingsGoal}
+                onToggle={(isOn) => {
+                  setFromSavingsGoal(isOn);
+                  if (!isOn) change({ sourceSavingsGoalId: null });
+                }}
+                options={options}
+                selectedGoalId={draft.sourceSavingsGoalId}
+                chosenOption={chosenOption}
+                onPick={(goalId) => change({ sourceSavingsGoalId: goalId })}
+                remaining={remainingAfterWithdrawal}
+                railInset={SHEET_PADDING}
+              />
             )}
 
             {!isEditing && (
@@ -727,52 +678,6 @@ export function TransactionSheet({
       )}
     </>
   );
-}
-
-type FormState = Omit<TransactionDraft, "budgetId">;
-
-/**
- * The two ways an announced withdrawal is not ready to send, in the order the
- * user meets them. Both are refusals the server would state itself, and neither
- * is worth a round trip to hear.
- */
-function originProblemOf(input: {
-  isActive: boolean;
-  hasChosenGoal: boolean;
-  remainingAfterWithdrawal: number | null;
-}): "goal" | "exceedsGoal" | null {
-  if (!input.isActive) return null;
-  if (!input.hasChosenGoal) return "goal";
-  if (
-    input.remainingAfterWithdrawal !== null &&
-    input.remainingAfterWithdrawal < 0
-  ) {
-    return "exceedsGoal";
-  }
-  return null;
-}
-
-function initialForm(
-  transaction: Transaction | undefined,
-  envelope: EnvelopeTarget | undefined,
-  period: BudgetPeriodDates | undefined,
-): FormState {
-  if (transaction !== undefined) {
-    const { budgetId: _budgetId, ...form } = transactionDraftFrom(transaction);
-    return form;
-  }
-
-  return {
-    name: "",
-    amount: null,
-    kind: envelope?.kind ?? "expense",
-    day: defaultOperationDay(new Date(), period),
-    // An operation entered by hand is one the user has just seen happen, so it
-    // arrives pointed; the toggle is there for the one they are anticipating.
-    isChecked: true,
-    tagIds: [],
-    sourceSavingsGoalId: null,
-  };
 }
 
 const styles = StyleSheet.create({
