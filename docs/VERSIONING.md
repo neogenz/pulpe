@@ -105,7 +105,7 @@ Sept variables d'env pilotent ce gate côté backend, validées par Zod (`backen
 La dernière version web vient de `backend-nest/package.json`, embarqué dans l'artifact.
 Les politiques minimales restent dans Railway (env Production).
 
-Android n'a pas d'équivalent public au lookup App Store. `LATEST_ANDROID_VERSION` se bump donc à la main à chaque release, et `MIN_ANDROID_VERSION` doit rester ≤ `LATEST_ANDROID_VERSION` — un refine Zod refuse le boot sinon.
+Android n'a pas d'équivalent public au lookup App Store. `LATEST_ANDROID_VERSION` se bump donc à la main, une fois la version disponible sur Play. L'app Android ne lit que `minVersion` (`android/src/core/system/system-store.ts`) : une valeur en retard n'a aucun effet pour l'utilisateur. Elle compte seulement avant de relever le plancher, car `MIN_ANDROID_VERSION` doit rester ≤ `LATEST_ANDROID_VERSION` — un refine Zod refuse le boot sinon.
 
 ### iOS : la version publiée se résout toute seule
 
