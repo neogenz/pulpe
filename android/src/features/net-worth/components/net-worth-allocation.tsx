@@ -104,5 +104,5 @@ const styles = StyleSheet.create({
   legendRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
   dot: { width: 10, height: 10, borderRadius: 5 },
   name: { flex: 1 },
-  percent: { width: 40, textAlign: "right", fontVariant: ["tabular-nums"] },
+  percent: { width: 56, textAlign: "right", fontVariant: ["tabular-nums"] },
 });
