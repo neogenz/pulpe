@@ -385,7 +385,63 @@
       </div>
     </dl>
     @if (currentVerdict.kind !== 'upToDate') { @let gap = currentVerdict.amount
-    | appCurrency: data.currency() : '1.2-2';
+    | appCurrency: data.currency() : '1.2-2'; @if (candidates().length > 0) {
+    <section
+      class="mb-4"
+      aria-labelledby="reconcile-candidates-title"
+      data-testid="reconcile-candidates"
+    >
+      <h4
+        id="reconcile-candidates-title"
+        class="m-0 mb-2 text-title-small font-semibold"
+      >
+        {{ 'currentMonth.reconcile.verdict.candidatesTitle' | transloco }}
+      </h4>
+      <ul class="m-0 p-0 list-none">
+        @for (candidate of candidates(); track candidate.transaction.id) {
+        <li
+          class="flex items-center gap-3 py-2 border-b border-outline-variant last:border-b-0"
+          data-testid="reconcile-candidate"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="ph-no-capture text-body-medium truncate">
+              {{ candidate.transaction.name }}
+            </div>
+            <div
+              class="ph-no-capture text-body-small text-on-surface-variant"
+              data-testid="reconcile-candidate-detail"
+            >
+              {{ candidate.budgetLineName ??
+              ('currentMonth.reconcile.verdict.unplanned' | transloco) }} · @if
+              (candidate.remainingGap === 0) { {{
+              'currentMonth.reconcile.verdict.sameAmount' | transloco }} } @else
+              { {{ 'currentMonth.reconcile.verdict.remaining' | transloco: {
+              amount: candidate.remainingSign + (candidate.remainingAmount |
+              appCurrency: data.currency() : '1.2-2') } }} }
+            </div>
+          </div>
+          <span class="ph-no-capture tabular-nums text-body-medium">
+            {{ candidate.transaction.amount | appCurrency: data.currency() :
+            '1.2-2' }}
+          </span>
+          <button
+            matButton="tonal"
+            type="button"
+            [disabled]="pointingId() !== null || isRecording()"
+            (click)="point(candidate.transaction.id)"
+            data-testid="reconcile-candidate-point-button"
+            [attr.aria-label]="
+              'currentMonth.reconcile.verdict.pointNamed'
+                | transloco: { name: candidate.transaction.name }
+            "
+          >
+            {{ 'currentMonth.uncheckedForecasts.toggleVerb' | transloco }}
+          </button>
+        </li>
+        }
+      </ul>
+    </section>
+    }
     <div class="adjustment-card p-5 rounded-2xl bg-surface-container-low">
       <div
         class="adjustment-header flex flex-wrap items-center justify-between gap-2 mb-3"
@@ -409,7 +465,8 @@
         {{ (currentVerdict.kind === 'income' ?
         'currentMonth.reconcile.verdict.moreMessage' :
         'currentMonth.reconcile.verdict.lessMessage') | transloco: { amount: gap
-        } }}
+        } }} @if (candidates().length > 0) { {{
+        'currentMonth.reconcile.verdict.countedTwice' | transloco }} }
       </p>
       <mat-form-field
         appearance="outline"

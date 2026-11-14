@@ -1191,7 +1191,13 @@
         "lessTitle": "Fehlt auf deinen Konten",
         "adjustmentTitle": "Vorgeschlagener Ausgleich",
         "income": "Einnahme",
-        "expense": "Ausgabe"
+        "expense": "Ausgabe",
+        "candidatesTitle": "Zuerst abhaken, wenn sie auf deinem Konto eingegangen sind",
+        "unplanned": "Ungeplant",
+        "sameAmount": "gleicher Betrag",
+        "remaining": "es bleiben {{ amount }}",
+        "countedTwice": "Ein Ausgleich jetzt würde doppelt zählen, was du danach abhakst.",
+        "pointNamed": "{{ name }} abhaken"
       },
       "cancel": "Abbrechen",
       "compare": "Differenz ansehen",

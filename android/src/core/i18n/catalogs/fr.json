@@ -997,6 +997,10 @@
       "stepOf": "Étape %{step} sur 3",
       "title": "Rapprocher mes comptes",
       "verdict": {
+        "candidateRemaining": "il restera %{amount}",
+        "candidateSameAmount": "même montant",
+        "candidatesTitle": "À pointer d'abord, s'ils sont passés sur ton compte",
+        "countsTwice": "Un ajustement maintenant compterait deux fois ce que tu pointeras ensuite.",
         "defaultLabel": "Ajustement",
         "finish": "Terminer",
         "label": "Libellé",
@@ -1005,6 +1009,8 @@
         "lessTitle": "Il manque %{amount} sur tes comptes",
         "moreMessage": "On note un revenu d'ajustement de %{amount}, déjà pointé : ton solde pointé rejoindra le total de tes comptes.",
         "moreTitle": "Tes comptes ont %{amount} de plus",
+        "point": "Pointer",
+        "pointNamed": "Pointer %{name}",
         "record": "Enregistrer l'ajustement",
         "upToDateMessage": "Tes comptes correspondent à ton solde pointé.",
         "upToDateTitle": "Tout est à jour"

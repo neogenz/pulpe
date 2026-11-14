@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { of, throwError, NEVER, Subject } from 'rxjs';
+import { of, throwError, NEVER, Subject, type Observable } from 'rxjs';
 import { DashboardStore, DASHBOARD_NOW } from './dashboard-store';
 import { BudgetApi } from '@core/budget';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
@@ -104,6 +104,7 @@ function createMocks() {
       createTransaction$: vi.fn(),
       deleteTransaction$: vi.fn(),
       toggleBudgetLineCheck$: vi.fn(),
+      toggleTransactionCheck$: vi.fn(),
       cache,
     },
     savingsGoalApi: {
@@ -591,6 +592,44 @@ describe('DashboardStore - Business Scenarios', () => {
 
       expect(refusal).toBeTruthy();
       expect(store.transactions()).toEqual([existingTx]);
+    });
+  });
+
+  describe('User can point a movement from the reconciliation', () => {
+    async function setupWithMovement(toggle: Observable<unknown>) {
+      const tx = createMockTransaction({ id: 'tx-point', checkedAt: null });
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget: createMockBudget(), transactions: [tx], budgetLines: [] }),
+      );
+      mocks.budgetApi.toggleTransactionCheck$.mockReturnValue(toggle);
+      const { store } = setup(mocks);
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.transactions().length).toBe(1);
+      });
+      return { store, tx, budgetApi: mocks.budgetApi };
+    }
+
+    it('should point it through the transaction toggle', async () => {
+      const { store, budgetApi } = await setupWithMovement(
+        of({ success: true, data: {} }),
+      );
+
+      expect(await store.checkTransaction('tx-point')).toBeNull();
+      expect(budgetApi.toggleTransactionCheck$).toHaveBeenCalledWith(
+        'tx-point',
+      );
+      expect(store.transactions()[0].checkedAt).not.toBeNull();
+    });
+
+    it('should leave it unpointed and give a reason when the toggle fails', async () => {
+      const { store } = await setupWithMovement(
+        throwError(() => new Error('API error')),
+      );
+
+      expect(await store.checkTransaction('tx-point')).toBeTruthy();
+      expect(store.transactions()[0].checkedAt).toBeNull();
     });
   });
 

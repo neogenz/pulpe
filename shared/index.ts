@@ -299,10 +299,12 @@ export {
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   parseAccountAmount,
+  pointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
   type AccountAmount,
   type AccountsSummary,
+  type PointingCandidate,
   type ReconciliationVerdict,
 } from './src/calculators/index.js';
 export {

@@ -4,7 +4,8 @@
  * finger — the total and the verdict follow every keystroke — so the web and
  * Android clients import it from here.
  *
- * SWIFT TWIN: `parseAmount`, `totalCents(of:)` and `verdict` in
+ * SWIFT TWIN: `parseAmount`, `totalCents(of:)`, `verdict` and
+ * `pointingCandidates` in
  * `ios/Pulpe/Features/CurrentMonth/Reconciliation/AccountReconciliation.swift`.
  * A change here is a change there, tests and fixtures included, same commit —
  * nothing fails the build when the two diverge (see
@@ -12,6 +13,7 @@
  */
 
 import { moneyDifference } from '../money.js';
+import { BudgetFormulas } from './budget-formulas.js';
 
 // A bank balance as typed: an optional minus (an overdraft), at most nine
 // digits of units and two of cents. Anything else is refused rather than read
@@ -96,4 +98,66 @@ export function reconciliationVerdict(
   return gap > 0
     ? { kind: 'income', amount: gap }
     : { kind: 'expense', amount: -gap };
+}
+
+type FormulaLines = Parameters<
+  typeof BudgetFormulas.calculateRealizedBalance
+>[0];
+type FormulaTransaction = NonNullable<
+  Parameters<typeof BudgetFormulas.calculateRealizedBalance>[1]
+>[number];
+
+const MAX_POINTING_CANDIDATES = 3;
+
+export interface PointingCandidate<T> {
+  readonly transaction: T;
+  /** The gap once this one is pointed: `0` settles it. */
+  readonly remainingGap: number;
+}
+
+/**
+ * The movements not pointed yet that most likely explain the gap: each one,
+ * pointed alone, moves the pointed balance toward the accounts total without
+ * going past it. An adjustment written instead would count them twice once
+ * they are pointed. The effect is measured, not read from the amount: under a
+ * pointée prévision a dépense moves the balance by less, or not at all.
+ * Closest to settling first, at most three.
+ */
+export function pointingCandidates<
+  T extends FormulaTransaction & { readonly id: string },
+>(
+  gap: number,
+  budgetLines: FormulaLines,
+  transactions: readonly T[],
+): PointingCandidate<T>[] {
+  if (gap === 0) return [];
+  const balance = BudgetFormulas.calculateRealizedBalance(budgetLines, [
+    ...transactions,
+  ]);
+  return transactions
+    .filter((transaction) => transaction.checkedAt == null)
+    .map((transaction) => {
+      const pointed = transactions.map((t) =>
+        t.id === transaction.id
+          ? { ...t, checkedAt: new Date(0).toISOString() }
+          : t,
+      );
+      const effect = moneyDifference(
+        BudgetFormulas.calculateRealizedBalance(budgetLines, pointed),
+        balance,
+      );
+      return { transaction, effect };
+    })
+    .filter(
+      ({ effect }) =>
+        effect !== 0 &&
+        Math.sign(effect) === Math.sign(gap) &&
+        Math.abs(effect) <= Math.abs(gap),
+    )
+    .map(({ transaction, effect }) => ({
+      transaction,
+      remainingGap: moneyDifference(gap, effect),
+    }))
+    .sort((a, b) => Math.abs(a.remainingGap) - Math.abs(b.remainingGap))
+    .slice(0, MAX_POINTING_CANDIDATES);
 }

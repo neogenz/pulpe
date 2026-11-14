@@ -1,5 +1,9 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { type Asset, getBudgetPeriodDates } from "pulpe-shared";
+import {
+  type Asset,
+  getBudgetPeriodDates,
+  type Transaction,
+} from "pulpe-shared";
 
 import { captureEvent } from "@/core/observability/analytics";
 
@@ -53,7 +57,14 @@ jest.mock("@/core/ui/filter-chip", () => {
 jest.mock("@/core/observability/analytics", () => ({
   captureEvent: jest.fn(),
 }));
-jest.mock("@/core/ui/haptics", () => ({ hapticSuccess: jest.fn() }));
+jest.mock("@/core/ui/haptics", () => ({
+  hapticSuccess: jest.fn(),
+  hapticFailure: jest.fn(),
+}));
+const mockToggle = { mutateAsync: jest.fn(() => Promise.resolve()) };
+jest.mock("@/features/budgets/toggle-check-mutation", () => ({
+  useToggleCheck: () => mockToggle,
+}));
 jest.mock("@/core/ui/amount-visibility", () => ({
   areAmountsHidden: () => false,
 }));
@@ -231,11 +242,16 @@ const REALIZED: RealizedMetrics = {
 };
 const REALIZED_LEVEL: RealizedMetrics = { ...REALIZED, realizedBalance: 1500 };
 
-function renderSheet(realized: Partial<RealizedMetrics> = {}) {
+function renderSheet(
+  realized: Partial<RealizedMetrics> = {},
+  transactions: Transaction[] = [],
+) {
   const month: ReconcileMonth = {
     realized: { ...REALIZED, ...realized },
     rollover: -120,
     period: getBudgetPeriodDates(6, 2025, 27),
+    budgetLines: [],
+    transactions,
   };
   const props = {
     isVisible: true,
@@ -660,4 +676,58 @@ it("completes once when a write already out succeeds after the month went away",
   );
   expect(props.onRecorded).toHaveBeenCalledTimes(1);
   expect(props.onRecordFailed).not.toHaveBeenCalled();
+});
+
+describe("movements to point before adjusting", () => {
+  // The bank already has this income; the pointed balance does not.
+  const salary: Transaction = {
+    id: "t-salary",
+    budgetId: "budget-1",
+    budgetLineId: null,
+    name: "Salaire",
+    amount: 800,
+    kind: "income",
+    transactionDate: "2025-06-28T10:00:00.000Z",
+    checkedAt: null,
+    createdAt: "2025-06-28T10:00:00.000Z",
+    updatedAt: "2025-06-28T10:00:00.000Z",
+  };
+
+  it("offers to point it, says what would remain, and points it", async () => {
+    const view = await renderSheet({}, [salary]).view;
+    await reachVerdict(view, "2314.92");
+
+    expect(
+      view.getByText("home.reconcile.verdict.candidatesTitle"),
+    ).toBeTruthy();
+    expect(
+      view.getByText(
+        /home\.movements\.unplanned · home\.reconcile\.verdict\.candidateRemaining:\+14\.93/,
+      ),
+    ).toBeTruthy();
+    expect(
+      view.getByText(/home\.reconcile\.verdict\.countsTwice/),
+    ).toBeTruthy();
+
+    await fireEvent.press(
+      view.getByLabelText("home.reconcile.verdict.pointNamed:Salaire"),
+    );
+    expect(mockToggle.mutateAsync).toHaveBeenCalledWith({
+      source: "transaction",
+      sourceId: "t-salary",
+    });
+  });
+
+  it("shows no such section when nothing pointable explains the gap", async () => {
+    const view = await renderSheet().view;
+    await reachVerdict(view, "2314.92");
+
+    expect(view.getByText("home.reconcile.verdict.record")).toBeTruthy();
+    expect(
+      view.queryByText("home.reconcile.verdict.candidatesTitle"),
+    ).toBeNull();
+    expect(
+      view.queryByText(/home\.reconcile\.verdict\.countsTwice/),
+    ).toBeNull();
+  });
 });

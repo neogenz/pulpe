@@ -223,6 +223,8 @@ export default function HomeScreen() {
           realized: loadedMonth.realized,
           rollover: loadedMonth.details.budget.rollover ?? 0,
           period,
+          budgetLines: loadedMonth.details.budgetLines,
+          transactions: loadedMonth.details.transactions,
         }
       : null;
 

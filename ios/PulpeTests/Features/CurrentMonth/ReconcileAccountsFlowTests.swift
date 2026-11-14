@@ -56,48 +56,6 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.totalCents == 1250)
     }
 
-    // MARK: - Missed movement
-
-    @Test("the one unpointed outflow of the gap's size is the likely missed movement")
-    func likelyMissedMovement_matchesSizeDirectionAndPointing() throws {
-        let size = try #require(Decimal(string: "84.30"))
-        let migros = TestDataFactory.createTransaction(id: "migros", amount: size, kind: .expense)
-        let pointed = TestDataFactory.createTransaction(
-            id: "pointed", amount: size, kind: .expense, isChecked: true
-        )
-        let salary = TestDataFactory.createTransaction(id: "salary", amount: size, kind: .income)
-        let gap = -size
-
-        let all = [pointed, salary, migros]
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: gap, among: all, lines: [])?.id == "migros")
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -gap, among: all, lines: [])?.id == "salary")
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: 0, among: [migros], lines: []) == nil)
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: gap - 1, among: [migros], lines: []) == nil)
-    }
-
-    @Test("two movements of the same size name no movement: guessing could point the wrong one")
-    func likelyMissedMovement_tie_isNil() {
-        let first = TestDataFactory.createTransaction(id: "a", amount: 20, kind: .expense)
-        let second = TestDataFactory.createTransaction(id: "b", amount: 20, kind: .saving)
-
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -20, among: [first, second], lines: []) == nil)
-    }
-
-    @Test("a dépense under a pointée prévision that pointing would not move is never suggested")
-    func likelyMissedMovement_underPointedPrevision_onlyWhenPointingMovesTheBalance() {
-        let groceries = TestDataFactory.createBudgetLine(id: "groceries", amount: 100, isChecked: true)
-        let small = TestDataFactory.createTransaction(id: "small", budgetLineId: "groceries", amount: 50)
-        let big = TestDataFactory.createTransaction(id: "big", budgetLineId: "groceries", amount: 150)
-
-        // Pointing 50 under the pointed 100 leaves the balance where it is.
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -50, among: [small], lines: [groceries]) == nil)
-        // Pointing 150 under it moves the balance by 50 only: its size no longer settles the gap.
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -150, among: [big], lines: [groceries]) == nil)
-        // Under a prévision not pointed yet, the movement counts in full.
-        let open = TestDataFactory.createBudgetLine(id: "groceries", amount: 100)
-        #expect(ReconcileAccountsFlow.likelyMissedMovement(gap: -50, among: [small], lines: [open])?.id == "small")
-    }
-
     // MARK: - Adjustment
 
     @Test("a gap is written once, as the edited label, and completes once")
@@ -275,17 +233,66 @@ struct ReconcileAccountsFlowTests {
         #expect(payload.checkedAt != nil)
     }
 
+    // MARK: - Draft
+
+    @Test("a draft reopens on the same month's typed rows and label, never on another month's")
+    func restoringDraft_onlyForTheSameBudget() throws {
+        let typed = makeFlow()
+        typed.accounts[0].amountText = "4600"
+        typed.adjustmentLabel = "Écart banque"
+        let draft = try #require(typed.draft)
+
+        let reopened = makeFlow(restoring: draft)
+        #expect(reopened.accounts == typed.accounts)
+        #expect(reopened.adjustmentLabel == "Écart banque")
+
+        let otherMonth = makeFlow(id: "budget-other", restoring: draft)
+        #expect(otherMonth.accounts.first?.amountText.isEmpty == true)
+        #expect(otherMonth.adjustmentLabel == "Ajustement")
+    }
+
+    @Test("a finished reconciliation leaves no draft behind")
+    func draft_isNilOnceCompleted() async {
+        let flow = makeFlow()
+        flow.accounts[0].amountText = "100"
+        #expect(flow.draft != nil)
+
+        #expect(await flow.submitAdjustment(realizedBalance: 50, of: "budget-current") == .created)
+        #expect(flow.draft == nil)
+    }
+
+    @Test("the resume is taken once, and a sheet left without a draft drops it")
+    func draftStore_resumeTakenOnce() throws {
+        let store = ReconcileDraftStore()
+        let draft = try #require(makeFlow().draft)
+
+        store.keep(draft)
+        #expect(store.draft(for: "budget-current") == draft)
+        #expect(store.draft(for: "budget-other") == nil)
+        #expect(store.takeResume())
+        #expect(!store.takeResume())
+
+        store.keep(nil)
+        #expect(store.draft(for: "budget-current") == nil)
+        #expect(!store.takeResume())
+    }
+
     // MARK: - Helpers
 
     private static let now = Date(timeIntervalSince1970: 1_790_000_000)
 
-    private func makeFlow(recorder: Recorder = Recorder(), id: String = "budget-current") -> ReconcileAccountsFlow {
+    private func makeFlow(
+        recorder: Recorder = Recorder(),
+        id: String = "budget-current",
+        restoring draft: ReconcileAccountsFlow.Draft? = nil
+    ) -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
             budgetId: id,
             adjustmentLabel: "Ajustement",
             createTransaction: { payload in try await recorder.create(payload) },
             onAdjustmentCreated: { recorder.created.append($0) },
             onCompleted: { recorder.completions.append($0) },
+            restoring: draft,
             now: { Self.now }
         )
     }

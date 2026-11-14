@@ -210,6 +210,69 @@ struct AccountReconciliationTests {
 
     private static let now = Date(timeIntervalSince1970: 1_790_000_000)
 
+    // MARK: - Pointing candidates (same fixtures as account-reconciliation.spec.ts)
+
+    @Test("an income not pointed yet that explains most of the gap is named, with what would remain")
+    func pointingCandidates_partialIncome() throws {
+        let gap = try #require(Decimal(string: "814.93"))
+        let bonus = TestDataFactory.createTransaction(id: "bonus", amount: 800, kind: .income)
+        let dinner = TestDataFactory.createTransaction(id: "dinner", amount: 50, kind: .expense)
+
+        let candidates = AccountReconciliation.pointingCandidates(gap: gap, lines: [], transactions: [bonus, dinner])
+
+        #expect(candidates == [.init(transaction: bonus, remainingGap: try #require(Decimal(string: "14.93")))])
+    }
+
+    @Test("a movement that would go past the gap, or already pointed, is left out")
+    func pointingCandidates_overshootAndPointed_areLeftOut() throws {
+        let gap = try #require(Decimal(string: "814.93"))
+        let big = TestDataFactory.createTransaction(id: "big", amount: 900, kind: .income)
+        let pointed = TestDataFactory.createTransaction(id: "pointed", amount: 100, kind: .income, isChecked: true)
+        let any = TestDataFactory.createTransaction(id: "any", amount: 1, kind: .income)
+
+        #expect(AccountReconciliation.pointingCandidates(gap: gap, lines: [], transactions: [big, pointed]).isEmpty)
+        #expect(AccountReconciliation.pointingCandidates(gap: 0, lines: [], transactions: [any]).isEmpty)
+    }
+
+    @Test("the movement that settles the gap comes first")
+    func pointingCandidates_settlingFirst() throws {
+        let size = try #require(Decimal(string: "84.30"))
+        let coffee = TestDataFactory.createTransaction(id: "coffee", amount: 20, kind: .expense)
+        let migros = TestDataFactory.createTransaction(id: "migros", amount: size, kind: .expense)
+
+        let candidates = AccountReconciliation.pointingCandidates(
+            gap: -size, lines: [], transactions: [coffee, migros]
+        )
+
+        #expect(candidates == [
+            .init(transaction: migros, remainingGap: 0),
+            .init(transaction: coffee, remainingGap: try #require(Decimal(string: "-64.30"))),
+        ])
+    }
+
+    @Test("under a pointée prévision, what pointing moves counts, not the amount")
+    func pointingCandidates_underPointedPrevision() {
+        let groceries = TestDataFactory.createBudgetLine(id: "groceries", amount: 100, isChecked: true)
+        let small = TestDataFactory.createTransaction(id: "small", budgetLineId: "groceries", amount: 50)
+        let big = TestDataFactory.createTransaction(id: "big", budgetLineId: "groceries", amount: 150)
+
+        let candidates = AccountReconciliation.pointingCandidates(
+            gap: -150, lines: [groceries], transactions: [small, big]
+        )
+
+        #expect(candidates == [.init(transaction: big, remainingGap: -100)])
+    }
+
+    @Test("three candidates at most")
+    func pointingCandidates_keepsThree() {
+        let four = ["a", "b", "c", "d"].map { TestDataFactory.createTransaction(id: $0, amount: 10, kind: .expense) }
+
+        let ids = AccountReconciliation.pointingCandidates(gap: -100, lines: [], transactions: four)
+            .map(\.transaction.id)
+
+        #expect(ids == ["a", "b", "c"])
+    }
+
     private func account(_ amountText: String, isNegative: Bool = false) -> AccountReconciliation.Account {
         AccountReconciliation.Account(amountText: amountText, isNegative: isNegative)
     }

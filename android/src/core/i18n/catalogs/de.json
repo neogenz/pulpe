@@ -997,6 +997,10 @@
       "stepOf": "Schritt %{step} von 3",
       "title": "Konten abgleichen",
       "verdict": {
+        "candidateRemaining": "es bleiben %{amount}",
+        "candidateSameAmount": "gleicher Betrag",
+        "candidatesTitle": "Zuerst abhaken, falls sie schon auf deinem Konto sind",
+        "countsTwice": "Ein Ausgleich jetzt würde doppelt zählen, was du danach abhakst.",
         "defaultLabel": "Ausgleich",
         "finish": "Fertig",
         "label": "Bezeichnung",
@@ -1005,6 +1009,8 @@
         "lessTitle": "Auf deinen Konten fehlen %{amount}",
         "moreMessage": "Wir erfassen eine Ausgleichseinnahme von %{amount}, bereits abgehakt: Dein abgehakter Saldo entspricht dann der Summe deiner Konten.",
         "moreTitle": "Auf deinen Konten sind %{amount} mehr",
+        "point": "Abhaken",
+        "pointNamed": "%{name} abhaken",
         "record": "Ausgleich erfassen",
         "upToDateMessage": "Deine Konten stimmen mit deinem abgehakten Saldo überein.",
         "upToDateTitle": "Alles ist aktuell"

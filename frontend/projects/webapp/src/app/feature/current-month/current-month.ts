@@ -1070,6 +1070,19 @@ export default class Dashboard {
               }
             : null,
         ),
+        ledger: computed(() =>
+          this.store.dashboardData()?.budget?.id === budgetId
+            ? {
+                budgetLines: this.store.budgetLines(),
+                transactions: this.store.transactions(),
+              }
+            : null,
+        ),
+        pointTransaction: async (transactionId) => {
+          const refusal = await this.store.checkTransaction(transactionId);
+          // Top, so the toast stays clear of the full-height dialog's actions.
+          if (refusal) this.#notify(refusal, 'top');
+        },
         currency: this.currency,
         periodDates: this.store.periodDates,
         recordAdjustment: (adjustment) =>

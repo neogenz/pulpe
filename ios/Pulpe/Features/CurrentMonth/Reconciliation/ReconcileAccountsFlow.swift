@@ -2,8 +2,9 @@ import Foundation
 import Observation
 
 /// State of one "Comparer avec mes comptes" presentation (PUL-351). Owned by
-/// `ReconcileAccountsSheet` through `@State`, so every account typed here dies with the
-/// sheet: reopening starts on one empty amount. Foundation-only so its rules run without UIKit.
+/// `ReconcileAccountsSheet` through `@State`: closing it by hand discards every account typed
+/// here, only a sheet lost to a lock hands its `draft` to the next one. Foundation-only so
+/// its rules run without UIKit.
 @Observable @MainActor
 final class ReconcileAccountsFlow {
     /// Form input, bound field by field.
@@ -70,20 +71,43 @@ final class ReconcileAccountsFlow {
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void,
         onCompleted: @escaping @MainActor (AccountReconciliation.Completion) -> Void,
         netWorthAccounts: [Asset]? = nil,
+        restoring draft: Draft? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.budgetId = budgetId
         // The accounts followed so far open the sheet, one row each.
         let seeded = (netWorthAccounts ?? []).filter(\.inPulpe)
             .map { (account: AccountReconciliation.Account(label: $0.name), asset: $0) }
-        self.accounts = seeded.isEmpty ? [AccountReconciliation.Account()] : seeded.map(\.account)
         self.ownAccounts = netWorthAccounts
-        self.rowAccounts = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, .asset(id: $0.asset.id)) })
-        self.adjustmentLabel = adjustmentLabel
+        if let draft, draft.budgetId == budgetId {
+            self.accounts = draft.accounts
+            self.rowAccounts = draft.rowAccounts
+            self.adjustmentLabel = draft.adjustmentLabel
+        } else {
+            self.accounts = seeded.isEmpty ? [AccountReconciliation.Account()] : seeded.map(\.account)
+            self.rowAccounts = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, .asset(id: $0.asset.id)) })
+            self.adjustmentLabel = adjustmentLabel
+        }
         self.createTransaction = createTransaction
         self.onAdjustmentCreated = onAdjustmentCreated
         self.onCompleted = onCompleted
         self.now = now
+    }
+
+    // MARK: - Draft
+
+    /// Everything typed so far, to reopen on after a lock rebuilt the screen.
+    struct Draft: Equatable {
+        let budgetId: String
+        let accounts: [AccountReconciliation.Account]
+        let rowAccounts: [AccountReconciliation.Account.ID: RowAccount]
+        let adjustmentLabel: String
+    }
+
+    /// `nil` once finished: a completed reconciliation leaves nothing to reopen.
+    var draft: Draft? {
+        guard !isCompleted else { return nil }
+        return Draft(budgetId: budgetId, accounts: accounts, rowAccounts: rowAccounts, adjustmentLabel: adjustmentLabel)
     }
 
     // MARK: - Accounts
@@ -249,26 +273,6 @@ final class ReconcileAccountsFlow {
     /// once no write is in flight: one already out keeps its month and stays the only request.
     func shouldClose(loadedBudgetId: String) -> Bool {
         loadedBudgetId != budgetId && !isSubmitting
-    }
-
-    /// The movement that most likely explains the gap: one not pointed yet, of exactly its size,
-    /// whose pointing moves the pointed balance by exactly the gap. Under a pointée prévision a
-    /// dépense can move it by less, or not at all (`calculateRealizedExpenses` counts the
-    /// prévision's whole amount), so the size alone would promise a pointing that settles nothing.
-    /// `nil` when none or several tie: guessing between two would point the wrong one.
-    static func likelyMissedMovement(
-        gap: Decimal, among transactions: [Transaction], lines: [BudgetLine]
-    ) -> Transaction? {
-        let size = gap.rounded(2)
-        guard size != 0 else { return nil }
-        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: transactions)
-        let matches = transactions.filter { transaction in
-            guard !transaction.isChecked, transaction.amount.rounded(2) == size.absoluteValue else { return false }
-            let pointed = transactions.map { $0.id == transaction.id ? $0.toggled() : $0 }
-            let after = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: pointed)
-            return (after - balance).rounded(2) == size
-        }
-        return matches.count == 1 ? matches.first : nil
     }
 
     private func adjustmentPayload(realizedBalance: Decimal) -> TransactionCreate? {

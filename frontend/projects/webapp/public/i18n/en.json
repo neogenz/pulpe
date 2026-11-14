@@ -1191,7 +1191,13 @@
         "lessTitle": "Missing from your accounts",
         "adjustmentTitle": "Suggested adjustment",
         "income": "Income",
-        "expense": "Expense"
+        "expense": "Expense",
+        "candidatesTitle": "Check these first, if they have reached your account",
+        "unplanned": "Unplanned",
+        "sameAmount": "same amount",
+        "remaining": "{{ amount }} will remain",
+        "countedTwice": "An adjustment now would count twice what you check afterwards.",
+        "pointNamed": "Check off {{ name }}"
       },
       "cancel": "Cancel",
       "compare": "See the difference",

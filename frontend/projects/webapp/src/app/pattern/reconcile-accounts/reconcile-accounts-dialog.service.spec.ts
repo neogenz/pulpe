@@ -80,6 +80,8 @@ function setup(
 
   const data: Omit<ReconcileAccountsDialogData, 'netWorth'> = {
     realized: signal(null),
+    ledger: signal(null),
+    pointTransaction: vi.fn(),
     currency: signal(options.currency ?? 'CHF'),
     periodDates: signal(getBudgetPeriodDates(11, 2026)),
     recordAdjustment: vi.fn(),

@@ -55,7 +55,10 @@ struct ToPointPage: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(removing: .title)
         .trackScreen("ToPoint")
-        .onAppear { if openingBalance == nil { openingBalance = balance } }
+        .onAppear {
+            if openingBalance == nil { openingBalance = balance }
+            if ReconcileDraftStore.shared.takeResume() { isReconciling = true }
+        }
         .sheet(isPresented: $isReconciling) { CurrentMonthReconcileSheet() }
     }
 

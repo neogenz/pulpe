@@ -14,6 +14,10 @@ import {
   type BudgetPeriodDates,
 } from 'pulpe-shared';
 
+import {
+  createMockBudgetLine,
+  createMockTransaction,
+} from '@app/testing/mock-factories';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
@@ -22,6 +26,7 @@ import {
   ReconcileAccountsDialog,
   type RealizedPosition,
   type ReconcileAccountsDialogData,
+  type ReconcileLedger,
 } from './reconcile-accounts-dialog';
 
 const REALIZED: RealizedPosition = {
@@ -75,6 +80,8 @@ const REVOLUT = linkedAsset({
 async function setup(
   options: {
     realized?: RealizedPosition;
+    ledger?: ReconcileLedger;
+    pointTransaction?: ReconcileAccountsDialogData['pointTransaction'];
     periodDates?: BudgetPeriodDates;
     recordAdjustment?: ReconcileAccountsDialogData['recordAdjustment'];
     /** My accounts in « Mon patrimoine »; left out, the feature is off. */
@@ -93,8 +100,14 @@ async function setup(
   const realized = signal<RealizedPosition | null>(
     options.realized ?? REALIZED,
   );
+  const ledger = signal<ReconcileLedger | null>(
+    options.ledger ?? { budgetLines: [], transactions: [] },
+  );
   const data: ReconcileAccountsDialogData = {
     realized,
+    ledger,
+    pointTransaction:
+      options.pointTransaction ?? vi.fn().mockResolvedValue(undefined),
     currency: signal('CHF'),
     periodDates: signal(options.periodDates ?? getBudgetPeriodDates(6, 2025)),
     recordAdjustment:
@@ -171,6 +184,7 @@ async function setup(
     dialogRef,
     data,
     realized,
+    ledger,
     postHog,
     assetApi,
     snackBar,
@@ -532,6 +546,105 @@ describe('ReconcileAccountsDialog', () => {
       expect(view.dialogRef.close).toHaveBeenCalled();
       expect(view.data.recordAdjustment).not.toHaveBeenCalled();
       expect(view.postHog.captureEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('movements to point before adjusting', () => {
+    const SALARY_LINE = createMockBudgetLine({
+      id: 'line-salary',
+      name: 'Salaire',
+      kind: 'income',
+      amount: 814.93,
+    });
+    const BONUS = createMockTransaction({
+      id: 'tx-bonus',
+      name: 'Prime',
+      kind: 'income',
+      amount: 800,
+    });
+    const SALARY = createMockTransaction({
+      id: 'tx-salary',
+      budgetLineId: SALARY_LINE.id,
+      name: 'Salaire novembre',
+      kind: 'income',
+      amount: 814.93,
+    });
+
+    it('should offer an unpointed movement with what would remain, and point it through the page', async () => {
+      let settle = () => undefined as void;
+      const pointTransaction = vi.fn(
+        () => new Promise<void>((resolve) => (settle = resolve)),
+      );
+      const view = await setup({
+        ledger: { budgetLines: [], transactions: [BONUS] },
+        pointTransaction,
+      });
+      await reachVerdict(view, '2314.92');
+
+      const rows = view.allByTestId('reconcile-candidate');
+      expect(rows).toHaveLength(1);
+      expect(rows[0].textContent).toContain('Prime');
+      expect(
+        view
+          .byTestId('reconcile-candidate-detail')
+          ?.textContent?.replace(/\s+/g, ' '),
+      ).toContain('Hors prévision · il restera +14.93 CHF');
+      expect(view.byTestId('reconcile-verdict-message')?.textContent).toContain(
+        'compterait deux fois',
+      );
+
+      await view.click(view.byTestId('reconcile-candidate-point-button'));
+      expect(pointTransaction).toHaveBeenCalledWith('tx-bonus');
+      expect(
+        view.byTestId<HTMLButtonElement>('reconcile-candidate-point-button')
+          ?.disabled,
+      ).toBe(true);
+      expect(
+        view.byTestId<HTMLButtonElement>('reconcile-record-button')?.disabled,
+      ).toBe(true);
+
+      // The page points it: the live balance and movements move together.
+      view.realized.set({ ...REALIZED, balance: 2299.99 });
+      view.ledger.set({
+        budgetLines: [],
+        transactions: [{ ...BONUS, checkedAt: '2025-06-10T00:00:00Z' }],
+      });
+      settle();
+      await view.render();
+
+      expect(view.byTestId('reconcile-candidates')).toBeNull();
+      expect(view.byTestId('reconcile-verdict-title')?.textContent).toContain(
+        '+14.93 CHF',
+      );
+    });
+
+    it('should name the prévision of a movement that settles the gap exactly', async () => {
+      const view = await setup({
+        ledger: { budgetLines: [SALARY_LINE], transactions: [SALARY] },
+      });
+      await reachVerdict(view, '2314.92');
+
+      expect(
+        view
+          .byTestId('reconcile-candidate-detail')
+          ?.textContent?.replace(/\s+/g, ' '),
+      ).toContain('Salaire · même montant');
+    });
+
+    it('should show no movement to point when none moves the balance toward the accounts', async () => {
+      const view = await setup({
+        ledger: {
+          budgetLines: [],
+          transactions: [{ ...BONUS, kind: 'expense' }],
+        },
+      });
+      await reachVerdict(view, '2314.92');
+
+      expect(view.byTestId('reconcile-record-button')).not.toBeNull();
+      expect(view.byTestId('reconcile-candidates')).toBeNull();
+      expect(
+        view.byTestId('reconcile-verdict-message')?.textContent,
+      ).not.toContain('compterait deux fois');
     });
   });
 

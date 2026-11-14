@@ -997,6 +997,10 @@
       "stepOf": "Step %{step} of 3",
       "title": "Match my accounts",
       "verdict": {
+        "candidateRemaining": "%{amount} will remain",
+        "candidateSameAmount": "same amount",
+        "candidatesTitle": "Check these off first, if they've reached your account",
+        "countsTwice": "An adjustment now would count twice what you check off afterwards.",
         "defaultLabel": "Adjustment",
         "finish": "Done",
         "label": "Label",
@@ -1005,6 +1009,8 @@
         "lessTitle": "Your accounts are %{amount} short",
         "moreMessage": "We'll record an adjustment income of %{amount}, already checked: your checked balance will match the total of your accounts.",
         "moreTitle": "Your accounts hold %{amount} more",
+        "point": "Check off",
+        "pointNamed": "Check off %{name}",
         "record": "Record the adjustment",
         "upToDateMessage": "Your accounts match your checked balance.",
         "upToDateTitle": "Everything is up to date"

@@ -277,6 +277,28 @@
         }
       }
     },
+    "il restera %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "es bleiben %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ will remain"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "resteranno %@"
+          }
+        }
+      }
+    },
     "Je garde ce compte et je mets son solde à jour à chaque rapprochement." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -596,6 +618,28 @@
         }
       }
     },
+    "Pointe d'abord ce qui est passé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake zuerst ab, was erfolgt ist"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check off what went through first"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta prima ciò che è passato"
+          }
+        }
+      }
+    },
     "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -661,6 +705,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tipo"
+          }
+        }
+      }
+    },
+    "Un ajustement maintenant compterait deux fois ce que tu pointeras ensuite." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Anpassung jetzt würde doppelt zählen, was du danach abhakst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An adjustment now would count twice what you check off later."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una rettifica ora conterebbe due volte ciò che spunterai dopo."
           }
         }
       }
@@ -1336,6 +1402,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "spuntato ora"
+          }
+        }
+      }
+    },
+    "À pointer d'abord, s'il est passé sur ton compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuerst abhaken, falls die Buchung über dein Konto gelaufen ist"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check this first if it went through your account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da spuntare prima, se è passato sul tuo conto"
+          }
+        }
+      }
+    },
+    "À pointer d'abord, s'ils sont passés sur ton compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuerst abhaken, falls sie über dein Konto gelaufen sind"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check these first if they went through your account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da spuntare prima, se sono passati sul tuo conto"
           }
         }
       }

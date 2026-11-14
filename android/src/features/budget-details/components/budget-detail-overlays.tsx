@@ -345,6 +345,8 @@ export const BudgetDetailOverlays = forwardRef<
                 realized: viewModel.realized,
                 rollover: viewModel.metrics.rollover,
                 period: periodDates,
+                budgetLines: ledger.lines,
+                transactions: ledger.transactions,
               }
             : null
         }

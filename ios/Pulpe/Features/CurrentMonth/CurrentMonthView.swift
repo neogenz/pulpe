@@ -157,6 +157,12 @@ struct CurrentMonthView: View {
                     hasAppeared = true
                 }
             }
+            // A lock took « Comparer avec mes comptes » from « Le calcul »: reopen it there,
+            // which takes the resume. From « À pointer », that page takes it on its own.
+            if ReconcileDraftStore.shared.isResumePending, appState.currentMonthPath.isEmpty,
+               activeSheet == nil, store.budget != nil {
+                activeSheet = .calculation
+            }
             // After the reveal: the first-expense tip (PUL-306) can arrive a beat late
             await FirstTransactionTracker.shared.loadIfNeeded()
             // Sparse budget list feeds "retour au vert" (deficit hero) + create-budget gating
