@@ -15,7 +15,8 @@ import { StorageService, STORAGE_KEYS } from '@core/storage';
 
 // Google Play only admits members of this group into the closed test, so
 // joining it comes before the store page.
-const TESTER_GROUP_URL = 'https://groups.google.com/g/pulpe-android-beta';
+// The About page is the only one a signed-out visitor can read: the group home shows them a permission error.
+const TESTER_GROUP_URL = 'https://groups.google.com/g/pulpe-android-beta/about';
 const PLAY_OPT_IN_URL =
   'https://play.google.com/apps/testing/app.pulpe.android';
 
