@@ -54,6 +54,110 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.61.0',
+    date: '2026-11-14',
+    platforms: ['android'],
+    changes: {
+      features: [
+        {
+          title: 'Pulpe fait peau neuve sur Android',
+          description: 'Un nouveau design, plus clair, sur tous les écrans.',
+        },
+        {
+          title: 'Un récap chaque lundi',
+          description:
+            'Sur Android, active « Récap du lundi » dans les préférences pour recevoir un point sur ton mois.',
+        },
+        {
+          title: 'Saisie dans une autre devise',
+          description:
+            'Sur Android, active « Saisir dans une autre devise » dans les réglages pour noter une dépense faite à l’étranger.',
+        },
+        {
+          title: 'Tes connexions dans ton compte',
+          description:
+            'Sur Android, « Connexions » montre les assistants reliés à Pulpe et te laisse couper leur accès.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: 'Pulpe gets a fresh look on Android',
+            description: 'A new, lighter design on every screen.',
+          },
+          {
+            title: 'A recap every Monday',
+            description:
+              'On Android, turn on “Monday recap” in preferences to get an update on your month.',
+          },
+          {
+            title: 'Enter amounts in another currency',
+            description:
+              'On Android, turn on “Enter in another currency” in settings to log spending made abroad.',
+          },
+          {
+            title: 'Your connections in your account',
+            description:
+              'On Android, “Connections” shows the assistants linked to Pulpe and lets you cut their access.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: 'Pulpe im neuen Look auf Android',
+            description: 'Ein neues, helleres Design auf allen Bildschirmen.',
+          },
+          {
+            title: 'Jeden Montag ein Rückblick',
+            description:
+              'Aktiviere auf Android «Montags-Rückblick» in den Einstellungen und erhalte einen Überblick über deinen Monat.',
+          },
+          {
+            title: 'Eingabe in einer anderen Währung',
+            description:
+              'Aktiviere auf Android «In einer anderen Währung erfassen», um Ausgaben im Ausland zu erfassen.',
+          },
+          {
+            title: 'Deine Verbindungen im Konto',
+            description:
+              'Auf Android zeigt «Verbindungen» die mit Pulpe verknüpften Assistenten, deren Zugriff du trennen kannst.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: 'Pulpe si rinnova su Android',
+            description: 'Un nuovo design, più chiaro, su tutte le schermate.',
+          },
+          {
+            title: 'Un riepilogo ogni lunedì',
+            description:
+              'Su Android, attiva «Riepilogo del lunedì» nelle preferenze per ricevere un punto sul tuo mese.',
+          },
+          {
+            title: 'Inserimento in un’altra valuta',
+            description:
+              'Su Android, attiva «Inserisci in un’altra valuta» nelle impostazioni per annotare una spesa fatta all’estero.',
+          },
+          {
+            title: 'Le tue connessioni nel tuo account',
+            description:
+              'Su Android, «Connessioni» mostra gli assistenti collegati a Pulpe e ti permette di interromperne l’accesso.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
     version: '0.60.0',
     iosVersion: '1.14.0',
     date: '2026-11-10',

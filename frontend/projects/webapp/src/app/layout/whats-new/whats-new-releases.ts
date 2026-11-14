@@ -29,6 +29,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.61.0',
+    reason:
+      'Refonte Android et gains de vitesse serveur : aucun changement visible dans la webapp',
+  },
+  {
     version: '0.60.0',
     reason:
       'Refonte de l’app iOS et corrections Android : aucun changement visible dans la webapp',

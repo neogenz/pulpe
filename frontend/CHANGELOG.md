@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.61.0
+
+### Minor Changes
+
+- Refonte de l’app Android, récap du lundi, saisie dans une autre devise, connexions, budgets plus rapides.
+
+### Patch Changes
+
+- pulpe-shared@0.61.0
+
 ## 0.60.0
 
 ### Minor Changes
