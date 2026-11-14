@@ -211,41 +211,45 @@ export default function PreferencesScreen() {
             {t("settings.preferences.remindersSection")}
           </SettingsSectionTitle>
           <Card mode="contained">
-            <Card.Content style={styles.switchRow}>
-              <View style={styles.switchLabels}>
-                <Text variant="bodyLarge">
-                  {t("settings.preferences.reminderTitle")}
-                </Text>
-                <Text
-                  variant="labelMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {t("settings.preferences.reminderDescription")}
-                </Text>
+            <Card.Content style={styles.card}>
+              <View style={styles.switchRow}>
+                <View style={styles.switchLabels}>
+                  <Text variant="bodyLarge">
+                    {t("settings.preferences.reminderTitle")}
+                  </Text>
+                  <Text
+                    variant="labelMedium"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {t("settings.preferences.reminderDescription")}
+                  </Text>
+                </View>
+                <Switch
+                  value={areRemindersEnabled}
+                  onValueChange={(next) => void applyReminders(next)}
+                  accessibilityLabel={t("settings.preferences.reminderTitle")}
+                />
               </View>
-              <Switch
-                value={areRemindersEnabled}
-                onValueChange={(next) => void applyReminders(next)}
-                accessibilityLabel={t("settings.preferences.reminderTitle")}
-              />
-            </Card.Content>
-            <Card.Content style={styles.switchRow}>
-              <View style={styles.switchLabels}>
-                <Text variant="bodyLarge">
-                  {t("settings.preferences.weeklyRecap.title")}
-                </Text>
-                <Text
-                  variant="labelMedium"
-                  style={{ color: theme.colors.onSurfaceVariant }}
-                >
-                  {t("settings.preferences.weeklyRecap.description")}
-                </Text>
+              <View style={styles.switchRow}>
+                <View style={styles.switchLabels}>
+                  <Text variant="bodyLarge">
+                    {t("settings.preferences.weeklyRecap.title")}
+                  </Text>
+                  <Text
+                    variant="labelMedium"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                  >
+                    {t("settings.preferences.weeklyRecap.description")}
+                  </Text>
+                </View>
+                <Switch
+                  value={isWeeklyRecapEnabled}
+                  onValueChange={(next) => void applyWeeklyRecap(next)}
+                  accessibilityLabel={t(
+                    "settings.preferences.weeklyRecap.title",
+                  )}
+                />
               </View>
-              <Switch
-                value={isWeeklyRecapEnabled}
-                onValueChange={(next) => void applyWeeklyRecap(next)}
-                accessibilityLabel={t("settings.preferences.weeklyRecap.title")}
-              />
             </Card.Content>
           </Card>
         </View>
