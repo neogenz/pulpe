@@ -85,3 +85,19 @@ it("clears the delivered recaps too when the account leaves", async () => {
     "pulpe.reminder.monthly",
   );
 });
+
+it("schedules nothing once the account left while the system was answering", async () => {
+  let grant: (value: never) => void = () => undefined;
+  jest.mocked(Notifications.getPermissionsAsync).mockReturnValue(
+    new Promise((resolve) => {
+      grant = resolve;
+    }),
+  );
+
+  const scheduling = scheduleWeeklyRecaps(input);
+  await cancelAllReminders();
+  grant({ granted: true } as never);
+  await scheduling;
+
+  expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+});

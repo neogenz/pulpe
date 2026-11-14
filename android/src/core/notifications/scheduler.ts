@@ -110,14 +110,16 @@ export async function scheduleWeeklyRecaps({
   payDayOfMonth,
   currency,
 }: WeeklyRecapInput): Promise<void> {
+  const run = ++weeklyRecapRun;
   const permissions = await Notifications.getPermissionsAsync();
-  if (!permissions.granted) return;
+  if (!permissions.granted || run !== weeklyRecapRun) return;
 
-  await cancelWeeklyRecaps();
+  await clearWeeklyRecaps();
   const firstMonday = nextRecapDate(new Date());
   for (const [week, identifier] of WEEKLY_RECAP_IDS.entries()) {
     const fireDate = new Date(firstMonday);
     fireDate.setDate(fireDate.getDate() + 7 * week);
+    if (run !== weeklyRecapRun) return;
     const recap = makeWeeklyRecap(fireDate, details, payDayOfMonth);
     await Notifications.scheduleNotificationAsync({
       identifier,
@@ -133,8 +135,20 @@ export async function scheduleWeeklyRecaps({
   }
 }
 
+/**
+ * A cancellation outdates any scheduling still awaiting the system: without
+ * this, a sign-out landing mid-schedule would leave the departing account's
+ * amounts armed for the next Mondays.
+ */
+let weeklyRecapRun = 0;
+
+export function cancelWeeklyRecaps(): Promise<void> {
+  weeklyRecapRun += 1;
+  return clearWeeklyRecaps();
+}
+
 /** Delivered ones too: a recap left in the shade keeps showing its amounts. */
-export async function cancelWeeklyRecaps(): Promise<void> {
+async function clearWeeklyRecaps(): Promise<void> {
   await Promise.all(
     WEEKLY_RECAP_IDS.flatMap((identifier) => [
       Notifications.cancelScheduledNotificationAsync(identifier),
