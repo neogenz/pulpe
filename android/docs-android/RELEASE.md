@@ -116,8 +116,11 @@ counter starts once the twelfth tester has opted in.
 - The internal draft is promoted by hand to the closed track in the Play
   Console, and Google reviews every closed release before testers see it.
 - The testers of the closed track are the members of the Google Group
-  `pulpe-android-beta` (<https://groups.google.com/g/pulpe-android-beta>). A
-  track takes either e-mail lists or groups, never both. Joining the group
+  `pulpe-android-beta`. Link to its About page
+  (<https://groups.google.com/g/pulpe-android-beta/about>): the group home
+  shows a permission error to signed-out visitors, and the About page is
+  readable only while the group setting "who can see the group" is "anyone on
+  the web". A track takes either e-mail lists or groups, never both. Joining the group
   only makes someone eligible: they count toward the twelve once they have
   opted in at <https://play.google.com/apps/testing/app.pulpe.android>, which
   is also where the app installs from.

@@ -640,7 +640,7 @@ The Step 5 approval already authorized this handoff. Do not ask again.
 
    Verify the head still equals `RELEASE_SHA` and auto-merge is enabled (or the PR already merged that exact head). Do not use `--admin`, change the approved head or bypass CI. A changed base that invalidates the one-commit topology stops production.
 
-4. Follow the single `main`-push Actions run: staging → production → GitHub publication → optional iOS App Review with `AFTER_APPROVAL`. There is no routine dispatch or second approval. Exact SHA/notes checks remain at mutation boundaries. See [deployment operations](../../../../docs/DEPLOYMENT.md#release-process) for setup, concurrency and failure handling.
+4. Follow the single `main`-push Actions run named `✅ Staging Ready (shadow)`: staging → production → GitHub publication → optional iOS App Review with `AFTER_APPROVAL`. Other runs on the same merge commit (CodeQL `Push on main`, Dependabot updates) say nothing about the release. Merge nothing else into `main` while the release PR is open: a moved base breaks the one-commit topology and stops the release. There is no routine dispatch or second approval. Exact SHA/notes checks remain at mutation boundaries. See [deployment operations](../../../../docs/DEPLOYMENT.md#release-process) for setup, concurrency and failure handling.
 
 5. Read back production SHA, provider identities, annotated tag, exact GitHub notes and—when included—the iOS build and App Review state. Any ambiguity stops automatic mutation; do not rerun upload/submission or invent a replacement build. A failed run is not a completed release.
 
