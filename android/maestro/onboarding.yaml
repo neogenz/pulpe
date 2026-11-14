@@ -7,7 +7,7 @@
 #   maestro test -e EMAIL=pulpe+$(date +%s)@example.test maestro/onboarding.yaml
 #
 # Deliberately shallow on the money steps — it answers the minimum each one
-# demands and moves on. What it proves is that the eight steps chain without
+# demands and moves on. What it proves is that the nine steps chain without
 # a dead end, not that the arithmetic is right; that is what the unit tests do.
 #
 # Step order follows `src/features/onboarding/onboarding-step.ts`: the account
@@ -15,9 +15,10 @@
 # it is encrypted under the code chosen at the end.
 appId: app.pulpe.android
 env:
-  EMAIL: pulpe-e2e@example.test
-  PASSWORD: "MaestroTest2026!"
-  PIN: "1234"
+  # A flow-level value wins over `-e`, so each one yields to it explicitly.
+  EMAIL: ${EMAIL || "pulpe-e2e@example.test"}
+  PASSWORD: ${PASSWORD || "MaestroTest2026!"}
+  PIN: ${PIN || "1234"}
 ---
 - launchApp:
     clearState: true
@@ -84,6 +85,12 @@ env:
     visible: "J'ai noté ma clé"
     timeout: 60000
 - tapOn: "J'ai noté ma clé"
+
+# 9. firstSteps — how to keep the budget right, then the month itself.
+- extendedWaitUntil:
+    visible: "Ouvrir mon mois"
+    timeout: 30000
+- tapOn: "Ouvrir mon mois"
 - extendedWaitUntil:
     visible:
       id: "home-add-entry"
