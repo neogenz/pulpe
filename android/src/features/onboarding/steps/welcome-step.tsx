@@ -200,23 +200,33 @@ function Sticker({
   label: string;
   amount: string;
 }) {
+  const theme = useTheme();
   return (
+    // Opaque under the tint: a sticker crosses the ring, and its label must
+    // not be read through it.
     <View
       style={[
         styles.sticker,
-        { backgroundColor: `${tint}${TINT_ALPHA.surface}` },
+        { backgroundColor: theme.colors.background },
         style,
       ]}
     >
-      <Text variant="labelSmall" style={{ color: tint }}>
-        {label}
-      </Text>
-      <Text
-        variant="labelLarge"
-        style={[styles.stickerAmount, { color: tint }]}
+      <View
+        style={[
+          styles.stickerTint,
+          { backgroundColor: `${tint}${TINT_ALPHA.surface}` },
+        ]}
       >
-        {amount}
-      </Text>
+        <Text variant="labelSmall" style={{ color: tint }}>
+          {label}
+        </Text>
+        <Text
+          variant="labelLarge"
+          style={[styles.stickerAmount, { color: tint }]}
+        >
+          {amount}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -233,9 +243,12 @@ const styles = StyleSheet.create({
   headlines: { gap: SPACING.sm },
   sticker: {
     position: "absolute",
+    borderRadius: RADIUS.md,
+    overflow: "hidden",
+  },
+  stickerTint: {
     paddingHorizontal: SPACING.sm + SPACING.xs,
     paddingVertical: SPACING.xs + SPACING.xxs,
-    borderRadius: RADIUS.md,
   },
   stickerAmount: { fontVariant: ["tabular-nums"], fontWeight: "700" },
   stickerTop: { top: 0, left: 0 },
