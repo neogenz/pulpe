@@ -233,17 +233,66 @@ struct ReconcileAccountsFlowTests {
         #expect(payload.checkedAt != nil)
     }
 
+    // MARK: - Draft
+
+    @Test("a draft reopens on the same month's typed rows and label, never on another month's")
+    func restoringDraft_onlyForTheSameBudget() throws {
+        let typed = makeFlow()
+        typed.accounts[0].amountText = "4600"
+        typed.adjustmentLabel = "Écart banque"
+        let draft = try #require(typed.draft)
+
+        let reopened = makeFlow(restoring: draft)
+        #expect(reopened.accounts == typed.accounts)
+        #expect(reopened.adjustmentLabel == "Écart banque")
+
+        let otherMonth = makeFlow(id: "budget-other", restoring: draft)
+        #expect(otherMonth.accounts.first?.amountText.isEmpty == true)
+        #expect(otherMonth.adjustmentLabel == "Ajustement")
+    }
+
+    @Test("a finished reconciliation leaves no draft behind")
+    func draft_isNilOnceCompleted() async {
+        let flow = makeFlow()
+        flow.accounts[0].amountText = "100"
+        #expect(flow.draft != nil)
+
+        #expect(await flow.submitAdjustment(realizedBalance: 50, of: "budget-current") == .created)
+        #expect(flow.draft == nil)
+    }
+
+    @Test("the resume is taken once, and closing by hand drops the draft")
+    func draftStore_resumeTakenOnce() throws {
+        let store = ReconcileDraftStore()
+        let draft = try #require(makeFlow().draft)
+
+        store.keep(draft, resume: true)
+        #expect(store.draft(for: "budget-current") == draft)
+        #expect(store.draft(for: "budget-other") == nil)
+        #expect(store.takeResume())
+        #expect(!store.takeResume())
+
+        store.keep(nil, resume: true)
+        #expect(store.draft(for: "budget-current") == nil)
+        #expect(!store.takeResume())
+    }
+
     // MARK: - Helpers
 
     private static let now = Date(timeIntervalSince1970: 1_790_000_000)
 
-    private func makeFlow(recorder: Recorder = Recorder(), id: String = "budget-current") -> ReconcileAccountsFlow {
+    private func makeFlow(
+        recorder: Recorder = Recorder(),
+        id: String = "budget-current",
+        restoring draft: ReconcileAccountsFlow.Draft? = nil
+    ) -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
             budgetId: id,
             adjustmentLabel: "Ajustement",
             createTransaction: { payload in try await recorder.create(payload) },
             onAdjustmentCreated: { recorder.created.append($0) },
             onCompleted: { recorder.completions.append($0) },
+            restoring: draft,
             now: { Self.now }
         )
     }

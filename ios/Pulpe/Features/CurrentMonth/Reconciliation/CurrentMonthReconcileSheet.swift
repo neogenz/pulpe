@@ -3,7 +3,9 @@ import SwiftUI
 /// « Comparer avec mes comptes » (PUL-351) on the month the Accueil has loaded, opened from
 /// « Le calcul » and from « À pointer ». Budget details supplies its own viewed month.
 struct CurrentMonthReconcileSheet: View {
+    @Environment(AppState.self) private var appState
     @Environment(CurrentMonthStore.self) private var store
+    private let drafts = ReconcileDraftStore.shared
 
     var body: some View {
         if let budget = store.budget {
@@ -30,6 +32,9 @@ struct CurrentMonthReconcileSheet: View {
                         }
                     ),
                     netWorthAccounts: netWorthAccounts,
+                    restoring: drafts.draft(for: budget.id),
+                    // Gone while locked: the lock took it, so unlocking brings it back.
+                    onLeave: { drafts.keep($0, resume: appState.authState != .authenticated) },
                     onAdjustmentCreated: { transaction in
                         FirstTransactionTracker.shared.recordCreated(kind: transaction.kind, source: .reconciliation)
                         store.addTransaction(transaction)

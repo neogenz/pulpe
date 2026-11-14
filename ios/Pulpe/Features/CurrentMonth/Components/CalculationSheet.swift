@@ -50,6 +50,7 @@ struct CalculationSheet: View {
         }
         .standardSheetPresentation()
         .sheet(isPresented: $isReconciling) { CurrentMonthReconcileSheet() }
+        .onAppear { if ReconcileDraftStore.shared.takeResume() { isReconciling = true } }
         .trackScreen("Calculation")
     }
 

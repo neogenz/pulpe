@@ -14,7 +14,8 @@ struct ReconciliationChecking {
 /// « Comparer avec mes comptes » (PUL-351, V2): one sheet. The balances typed by the user, the
 /// gap to the pointed balance, the movement that probably explains it, and the two ways to
 /// close it: point that movement, or write one adjustment. Every input lives in `flow`, owned
-/// here, so closing discards it and writes nothing.
+/// here, so closing discards it and writes nothing. A sheet that goes away any other way (a
+/// lock rebuilding the screen) hands its draft to `onLeave`.
 struct ReconcileAccountsSheet: View {
     /// The loaded month, read again on every render.
     struct Month {
@@ -28,6 +29,8 @@ struct ReconcileAccountsSheet: View {
 
     let month: Month
     let checking: ReconciliationChecking
+    /// What the sheet leaves behind when it goes away: `nil` when closed by hand or finished.
+    var onLeave: (@MainActor (ReconcileAccountsFlow.Draft?) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -36,6 +39,7 @@ struct ReconcileAccountsSheet: View {
     @State private var flow: ReconcileAccountsFlow
     @State private var submitSuccessTrigger = false
     @State private var isPointing = false
+    @State private var isClosedByHand = false
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable {
@@ -48,10 +52,13 @@ struct ReconcileAccountsSheet: View {
         checking: ReconciliationChecking,
         dependencies: AddTransactionDependencies = .live,
         netWorthAccounts: [Asset]? = nil,
+        restoring draft: ReconcileAccountsFlow.Draft? = nil,
+        onLeave: (@MainActor (ReconcileAccountsFlow.Draft?) -> Void)? = nil,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void
     ) {
         self.month = month
         self.checking = checking
+        self.onLeave = onLeave
         _flow = State(initialValue: ReconcileAccountsFlow(
             budgetId: month.budgetId,
             adjustmentLabel: AppLocale.string("Ajustement"),
@@ -63,7 +70,8 @@ struct ReconcileAccountsSheet: View {
                     properties: completion.analyticsProperties
                 )
             },
-            netWorthAccounts: netWorthAccounts
+            netWorthAccounts: netWorthAccounts,
+            restoring: draft
         ))
     }
 
@@ -114,7 +122,11 @@ struct ReconcileAccountsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton().disabled(flow.isSubmitting)
+                    SheetCloseButton {
+                        isClosedByHand = true
+                        dismiss()
+                    }
+                    .disabled(flow.isSubmitting)
                 }
             }
         }
@@ -124,6 +136,7 @@ struct ReconcileAccountsSheet: View {
         .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, shouldClose in
             if shouldClose { dismiss() }
         }
+        .onDisappear { onLeave?(isClosedByHand ? nil : flow.draft) }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .appliesAccountLinks(of: flow)
         .suppressesTips()

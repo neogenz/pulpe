@@ -2,8 +2,9 @@ import Foundation
 import Observation
 
 /// State of one "Comparer avec mes comptes" presentation (PUL-351). Owned by
-/// `ReconcileAccountsSheet` through `@State`, so every account typed here dies with the
-/// sheet: reopening starts on one empty amount. Foundation-only so its rules run without UIKit.
+/// `ReconcileAccountsSheet` through `@State`: closing it by hand discards every account typed
+/// here, only a sheet lost to a lock hands its `draft` to the next one. Foundation-only so
+/// its rules run without UIKit.
 @Observable @MainActor
 final class ReconcileAccountsFlow {
     /// Form input, bound field by field.
@@ -70,20 +71,43 @@ final class ReconcileAccountsFlow {
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void,
         onCompleted: @escaping @MainActor (AccountReconciliation.Completion) -> Void,
         netWorthAccounts: [Asset]? = nil,
+        restoring draft: Draft? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.budgetId = budgetId
         // The accounts followed so far open the sheet, one row each.
         let seeded = (netWorthAccounts ?? []).filter(\.inPulpe)
             .map { (account: AccountReconciliation.Account(label: $0.name), asset: $0) }
-        self.accounts = seeded.isEmpty ? [AccountReconciliation.Account()] : seeded.map(\.account)
         self.ownAccounts = netWorthAccounts
-        self.rowAccounts = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, .asset(id: $0.asset.id)) })
-        self.adjustmentLabel = adjustmentLabel
+        if let draft, draft.budgetId == budgetId {
+            self.accounts = draft.accounts
+            self.rowAccounts = draft.rowAccounts
+            self.adjustmentLabel = draft.adjustmentLabel
+        } else {
+            self.accounts = seeded.isEmpty ? [AccountReconciliation.Account()] : seeded.map(\.account)
+            self.rowAccounts = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, .asset(id: $0.asset.id)) })
+            self.adjustmentLabel = adjustmentLabel
+        }
         self.createTransaction = createTransaction
         self.onAdjustmentCreated = onAdjustmentCreated
         self.onCompleted = onCompleted
         self.now = now
+    }
+
+    // MARK: - Draft
+
+    /// Everything typed so far, to reopen on after a lock rebuilt the screen.
+    struct Draft: Equatable {
+        let budgetId: String
+        let accounts: [AccountReconciliation.Account]
+        let rowAccounts: [AccountReconciliation.Account.ID: RowAccount]
+        let adjustmentLabel: String
+    }
+
+    /// `nil` once finished: a completed reconciliation leaves nothing to reopen.
+    var draft: Draft? {
+        guard !isCompleted else { return nil }
+        return Draft(budgetId: budgetId, accounts: accounts, rowAccounts: rowAccounts, adjustmentLabel: adjustmentLabel)
     }
 
     // MARK: - Accounts
