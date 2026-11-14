@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "format": "prettier --write \"**/*.{ts,json}\"",
-    "format:check": "prettier --check \"**/*.{ts,json}\""
+    "format:check": "prettier --check \"**/*.{ts,json}\"",
+    "typecheck:spec": "tsc -p tsconfig.json --noEmit"
   },
   "exports": {
     ".": {
