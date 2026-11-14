@@ -99,6 +99,10 @@ export function captureCurrencyChanged(from: string, to: string): void {
   captureEvent(ANALYTICS_EVENTS.CURRENCY_CHANGED, { from, to });
 }
 
+export function captureCurrencySelectorToggled(enabled: boolean): void {
+  captureEvent(ANALYTICS_EVENTS.CURRENCY_SELECTOR_TOGGLED, { enabled });
+}
+
 export function captureReminderToggled(
   reminder: "monthly" | "weekly_recap",
   enabled: boolean,

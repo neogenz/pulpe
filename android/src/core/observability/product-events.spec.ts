@@ -2,6 +2,7 @@ import { captureEvent } from "./analytics-client";
 import {
   authErrorKind,
   captureFirstTransactionCreated,
+  captureCurrencySelectorToggled,
   captureLoginFailed,
   captureOnboardingHandoffCompleted,
   captureReminderToggled,
@@ -55,6 +56,16 @@ describe("product events", () => {
     });
     expect(captureEvent).toHaveBeenCalledWith("onboarding_handoff_completed", {
       widget_help_opened: false,
+    });
+  });
+});
+
+describe("captureCurrencySelectorToggled", () => {
+  it("sends the new state only", () => {
+    captureCurrencySelectorToggled(true);
+
+    expect(captureEvent).toHaveBeenCalledWith("currency_selector_toggled", {
+      enabled: true,
     });
   });
 });

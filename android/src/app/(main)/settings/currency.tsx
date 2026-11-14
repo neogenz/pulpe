@@ -22,7 +22,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatIsoDate } from "@/core/ui/date-format";
-import { captureCurrencyChanged } from "@/core/observability/product-events";
+import {
+  captureCurrencyChanged,
+  captureCurrencySelectorToggled,
+} from "@/core/observability/product-events";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { Card } from "@/core/ui/card";
 import { Notice } from "@/core/ui/notice";
@@ -142,6 +145,7 @@ export default function CurrencyScreen() {
                 update.mutate(
                   { showCurrencySelector: next },
                   {
+                    onSuccess: () => captureCurrencySelectorToggled(next),
                     onError: () => setNotice(t("settings.currency.saveError")),
                   },
                 )
