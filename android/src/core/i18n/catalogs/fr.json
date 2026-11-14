@@ -1701,7 +1701,6 @@
       "biometric": "Déverrouiller avec la biométrie",
       "forgot": "Code oublié ?",
       "subtitle": "Il déverrouille tes montants",
-      "title": "Ton code",
       "greeting": "Bonjour, %{name}",
       "greetingAnonymous": "Bonjour"
     },

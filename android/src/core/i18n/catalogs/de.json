@@ -1701,7 +1701,6 @@
       "biometric": "Mit Biometrie entsperren",
       "forgot": "Code vergessen?",
       "subtitle": "Er entsperrt deine Beträge",
-      "title": "Dein Code",
       "greeting": "Hallo, %{name}",
       "greetingAnonymous": "Hallo"
     },

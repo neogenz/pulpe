@@ -1701,7 +1701,6 @@
       "biometric": "Sblocca con la biometria",
       "forgot": "Codice dimenticato?",
       "subtitle": "Sblocca i tuoi importi",
-      "title": "Il tuo codice",
       "greeting": "Ciao, %{name}",
       "greetingAnonymous": "Ciao"
     },

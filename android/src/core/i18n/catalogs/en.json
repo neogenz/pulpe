@@ -1701,7 +1701,6 @@
       "biometric": "Unlock with biometrics",
       "forgot": "Forgot your code?",
       "subtitle": "It unlocks your amounts",
-      "title": "Your code",
       "greeting": "Hello, %{name}",
       "greetingAnonymous": "Hello"
     },
