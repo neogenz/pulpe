@@ -80,8 +80,8 @@
   },
   "devDependencies": {
     "@angular-eslint/builder": "22.1.0",
-    "@angular/build": "^22.0.7",
-    "@angular/cli": "^22.0.7",
+    "@angular/build": "^22.2.1",
+    "@angular/cli": "^22.2.1",
     "@angular/compiler-cli": "22.2.1",
     "@eslint/js": "^9.28.0",
     "@playwright/test": "^1.65.1",
