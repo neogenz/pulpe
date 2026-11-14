@@ -2,8 +2,8 @@ import Foundation
 
 /// "Rapprocher mes comptes" (PUL-351): the user's bank balances held against the
 /// checked balance of the loaded month. Pure and Foundation-only — the flow model
-/// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)` and
-/// `verdict` are the Swift twin of `shared/src/calculators/account-reconciliation.ts`,
+/// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)`,
+/// `verdict` and `pointingCandidates` are the Swift twin of `shared/src/calculators/account-reconciliation.ts`,
 /// fixtures included (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
 enum AccountReconciliation {
     /// A balance as typed. `blank` is a row nobody filled; `invalid` is never read as zero.
@@ -122,6 +122,44 @@ enum AccountReconciliation {
         var analyticsProperties: [String: String] {
             ["adjustment_kind": rawValue]
         }
+    }
+
+    /// An unpointed movement that most likely explains part of the gap.
+    struct PointingCandidate: Equatable, Sendable {
+        let transaction: Transaction
+        /// The gap once this one is pointed: `0` settles it.
+        let remainingGap: Decimal
+    }
+
+    private static let maxPointingCandidates = 3
+
+    /// The movements not pointed yet that most likely explain the gap: each one, pointed alone,
+    /// moves the pointed balance toward the accounts total without going past it. An adjustment
+    /// written instead would count them twice once they are pointed. The effect is measured, not
+    /// read from the amount: under a pointée prévision a dépense moves the balance by less, or not
+    /// at all. Closest to settling first, at most three. Twin of `pointingCandidates`.
+    static func pointingCandidates(
+        gap: Decimal, lines: [BudgetLine], transactions: [Transaction]
+    ) -> [PointingCandidate] {
+        let gap = gap.rounded(maxCentDigits)
+        guard gap != 0 else { return [] }
+        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: transactions)
+        let candidates = transactions.filter { !$0.isChecked }.compactMap { transaction -> PointingCandidate? in
+            let pointed = transactions.map { $0.id == transaction.id ? $0.toggled() : $0 }
+            let after = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: pointed)
+            let effect = (after - balance).rounded(maxCentDigits)
+            guard effect != 0, (effect > 0) == (gap > 0), effect.absoluteValue <= gap.absoluteValue else {
+                return nil
+            }
+            return PointingCandidate(transaction: transaction, remainingGap: gap - effect)
+        }
+        // A stable sort keeps the month's order between equally close movements.
+        return candidates.enumerated()
+            .sorted {
+                ($0.element.remainingGap.absoluteValue, $0.offset) < ($1.element.remainingGap.absoluteValue, $1.offset)
+            }
+            .prefix(maxPointingCandidates)
+            .map(\.element)
     }
 
     private static let maxUnitDigits = 9

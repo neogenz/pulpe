@@ -39,12 +39,15 @@ import {
   ANALYTICS_EVENTS,
   CURRENCY_METADATA,
   parseAccountAmount,
+  pointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
   type Asset,
   type AssetCategory,
+  type BudgetLine,
   type BudgetPeriodDates,
   type SupportedCurrency,
+  type Transaction,
 } from 'pulpe-shared';
 import { filter, firstValueFrom, merge } from 'rxjs';
 
@@ -77,6 +80,12 @@ export interface ReconciliationAdjustment {
   readonly amount: number;
 }
 
+/** The month's prévisions and movements, as the page holds them. */
+export interface ReconcileLedger {
+  readonly budgetLines: BudgetLine[];
+  readonly transactions: Transaction[];
+}
+
 /** What the reconciliation reads from « Mon patrimoine ». */
 export interface ReconcileNetWorth {
   /** My active accounts in the budget's currency, followed or not. */
@@ -90,6 +99,10 @@ export interface ReconcileAccountsDialogData {
    * `null` once the page no longer holds the month the dialog opened on.
    */
   readonly realized: Signal<RealizedPosition | null>;
+  /** Read live like `realized`: a pointed movement leaves the candidates. */
+  readonly ledger: Signal<ReconcileLedger | null>;
+  /** Settles once the check is in or refused; on refusal the page says why. */
+  readonly pointTransaction: (transactionId: string) => Promise<void>;
   readonly currency: Signal<SupportedCurrency>;
   readonly periodDates: Signal<BudgetPeriodDates>;
   /** `true` once the adjustment is written; on refusal the page says why. */
@@ -285,6 +298,31 @@ export class ReconcileAccountsDialog {
     return verdict === null || verdict.kind === 'upToDate' ? null : verdict;
   });
 
+  // Movements the bank already shows but the balance does not: an adjustment
+  // written instead would count them twice once they are pointed.
+  protected readonly candidates = computed(() => {
+    const adjustment = this.adjustment();
+    const ledger = this.data.ledger();
+    if (adjustment === null || ledger === null) return [];
+    const gap =
+      adjustment.kind === 'income' ? adjustment.amount : -adjustment.amount;
+    return pointingCandidates(gap, ledger.budgetLines, ledger.transactions).map(
+      ({ transaction, remainingGap }) => ({
+        transaction,
+        remainingGap,
+        remainingSign: remainingGap > 0 ? '+' : '−',
+        remainingAmount: Math.abs(remainingGap),
+        budgetLineName:
+          ledger.budgetLines.find(
+            (line) => line.id === transaction.budgetLineId,
+          )?.name ?? null,
+      }),
+    );
+  });
+
+  // One pointing at a time: the gap and the candidates move with each one.
+  protected readonly pointingId = signal<string | null>(null);
+
   protected readonly adjustmentLabel = signal(
     this.#transloco.translate('currentMonth.reconcile.verdict.defaultLabel'),
   );
@@ -300,12 +338,16 @@ export class ReconcileAccountsDialog {
     () =>
       this.adjustment() !== null &&
       this.adjustmentLabel().trim() !== '' &&
-      !this.isRecording(),
+      !this.isRecording() &&
+      this.pointingId() === null,
   );
   // A refresh can bring the balance level while the write is out. That write
   // ends the flow, so Finish waits rather than completing a second time.
   protected readonly canFinish = computed(
-    () => this.verdict()?.kind === 'upToDate' && !this.isRecording(),
+    () =>
+      this.verdict()?.kind === 'upToDate' &&
+      !this.isRecording() &&
+      this.pointingId() === null,
   );
   #isCompleted = false;
 
@@ -530,6 +572,16 @@ export class ReconcileAccountsDialog {
       this.#dialogRef.close();
     } finally {
       this.isRecording.set(false);
+    }
+  }
+
+  protected async point(transactionId: string): Promise<void> {
+    if (this.pointingId() !== null || this.isRecording()) return;
+    this.pointingId.set(transactionId);
+    try {
+      await this.data.pointTransaction(transactionId);
+    } finally {
+      this.pointingId.set(null);
     }
   }
 

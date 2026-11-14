@@ -299,6 +299,8 @@ function ToPoint({ month }: { month: LoadedMonth }) {
           realized: viewModel.realized,
           rollover: budget.rollover ?? 0,
           period: month.period,
+          budgetLines,
+          transactions,
         }}
         currency={currency}
       />

@@ -997,6 +997,10 @@
       "stepOf": "Passo %{step} di 3",
       "title": "Allinea i miei conti",
       "verdict": {
+        "candidateRemaining": "resteranno %{amount}",
+        "candidateSameAmount": "stesso importo",
+        "candidatesTitle": "Spunta prima questi, se sono già passati sul tuo conto",
+        "countsTwice": "Un allineamento adesso conterebbe due volte ciò che spunterai dopo.",
         "defaultLabel": "Allineamento",
         "finish": "Fatto",
         "label": "Descrizione",
@@ -1005,6 +1009,8 @@
         "lessTitle": "Sui tuoi conti mancano %{amount}",
         "moreMessage": "Registriamo un'entrata di allineamento di %{amount}, già spuntata: il tuo saldo spuntato corrisponderà al totale dei tuoi conti.",
         "moreTitle": "Sui tuoi conti ci sono %{amount} in più",
+        "point": "Spunta",
+        "pointNamed": "Spunta %{name}",
         "record": "Registra l'allineamento",
         "upToDateMessage": "I tuoi conti corrispondono al tuo saldo spuntato.",
         "upToDateTitle": "Tutto è aggiornato"

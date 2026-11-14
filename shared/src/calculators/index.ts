@@ -34,10 +34,12 @@ export {
 export { splitTotalPreserving } from './spread-split.js';
 export {
   parseAccountAmount,
+  pointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
   type AccountAmount,
   type AccountsSummary,
+  type PointingCandidate,
   type ReconciliationVerdict,
 } from './account-reconciliation.js';
 export {

@@ -72,11 +72,18 @@ struct ReconcileAccountsSheet: View {
     private var verdict: AccountReconciliation.Verdict? { flow.verdict(realizedBalance: realizedBalance) }
     private var gap: Decimal? { flow.difference(realizedBalance: realizedBalance) }
 
-    private var missedMovement: Transaction? {
-        guard let gap else { return nil }
-        return ReconcileAccountsFlow.likelyMissedMovement(
-            gap: gap, among: checking.transactions, lines: checking.budgetLines
+    private var pointingCandidates: [AccountReconciliation.PointingCandidate] {
+        guard let gap else { return [] }
+        return AccountReconciliation.pointingCandidates(
+            gap: gap, lines: checking.budgetLines, transactions: checking.transactions
         )
+    }
+
+    /// The one movement whose pointing settles the gap: two that tie name none, guessing
+    /// could point the wrong one.
+    private var missedMovement: Transaction? {
+        let settling = pointingCandidates.filter { $0.remainingGap == 0 }
+        return settling.count == 1 ? settling.first?.transaction : nil
     }
 
     var body: some View {
@@ -90,7 +97,7 @@ struct ReconcileAccountsSheet: View {
                     accountsCard
                     if flow.linksToNetWorth { LinkedAccountsFootnote() }
                     if let total = flow.total { totalsCard(total) }
-                    if let missedMovement { missedSection(missedMovement) }
+                    if !pointingCandidates.isEmpty { candidatesSection(pointingCandidates) }
                     outcomeBlock
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -192,31 +199,52 @@ extension ReconcileAccountsSheet {
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: - Missed movement
+    // MARK: - Movements to point
 
-    private func missedSection(_ transaction: Transaction) -> some View {
-        let lineName = transaction.budgetLineId.flatMap { id in
-            checking.budgetLines.first { $0.id == id }?.name
-        }
-        let subtitle = [
-            lineName ?? PendingWording.unplanned,
-            AppLocale.string("ajouté le \(Formatters.dayMonthLabel(for: transaction.transactionDate))"),
-            AppLocale.string("même montant"),
-        ].joined(separator: " · ")
-        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Sans doute passé sans être pointé")
+    /// Pointing one of them first keeps an adjustment from counting it twice later.
+    private func candidatesSection(_ candidates: [AccountReconciliation.PointingCandidate]) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(candidates.count == 1 && missedMovement != nil
+                ? AppLocale.string("Sans doute passé sans être pointé")
+                : AppLocale.string("À pointer d'abord, s'ils sont passés sur ton compte"))
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)
                 .padding(.leading, DesignTokens.Spacing.xs)
                 .accessibilityAddTraits(.isHeader)
-            PulpeListRow(title: transaction.name, subtitle: subtitle, showsChevron: false) {
-                Text(verbatim: transaction.amount.asAmount(for: currency))
-                    .sensitiveAmount()
+            VStack(spacing: DesignTokens.Spacing.none) {
+                ForEach(candidates, id: \.transaction.id) { candidate in
+                    candidateRow(candidate)
+                }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .pulpeSurfaceCard()
-            .accessibilityIdentifier("reconcileMissedMovement")
         }
+    }
+
+    private func candidateRow(_ candidate: AccountReconciliation.PointingCandidate) -> some View {
+        let transaction = candidate.transaction
+        // What remains after pointing is the one fact that decides, and the row has one subtitle line.
+        let subtitle = candidate.remainingGap == 0
+            ? AppLocale.string("même montant")
+            : AppLocale.string("il restera \(candidate.remainingGap.asFormulaAmount(for: currency))")
+        let isBusy = month.hasPointingInFlight || isPointing || flow.isSubmitting
+        return PulpeListRow(title: transaction.name, subtitle: subtitle, showsChevron: false) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Text(verbatim: transaction.amount.asAmount(for: currency))
+                    .sensitiveAmount()
+                // The settling one already owns the footer's primary button.
+                if transaction.id != missedMovement?.id {
+                    Button(AppLocale.string("Pointer")) {
+                        Task { await point(transaction) }
+                    }
+                    .disabled(isBusy)
+                    .secondaryButtonStyle(size: .small)
+                    .fixedSize()
+                    .accessibilityLabel(AppLocale.string("Pointer \(transaction.name)"))
+                }
+            }
+        }
+        .accessibilityIdentifier("reconcilePointingCandidate")
     }
 
     // MARK: - Outcome
@@ -242,7 +270,9 @@ extension ReconcileAccountsSheet {
             let after = impact.after.asAmount(for: currency)
             ImpactBlock(
                 title: missedMovement.map { AppLocale.string("Pointer \($0.name) règle l'écart") }
-                    ?? AppLocale.string("Un ajustement règle l'écart"),
+                    ?? (pointingCandidates.isEmpty
+                        ? AppLocale.string("Un ajustement règle l'écart")
+                        : AppLocale.string("Pointe d'abord ce qui est passé")),
                 before: nil,
                 after: impact.after,
                 currency: currency,
@@ -260,7 +290,11 @@ extension ReconcileAccountsSheet {
     /// What an adjustment would do to the disponible; pointing, by contrast, leaves it alone.
     private func adjustmentNote(gap: String, before: String, after: String, pointingSettles: Bool) -> String {
         guard pointingSettles else {
-            return AppLocale.string("Un ajustement de \(gap) ferait passer ton disponible de \(before) à \(after).")
+            let note = AppLocale.string("Un ajustement de \(gap) ferait passer ton disponible de \(before) à \(after).")
+            guard !pointingCandidates.isEmpty else { return note }
+            // swiftlint:disable:next line_length
+            let countedTwice = AppLocale.string("Un ajustement maintenant compterait deux fois ce que tu pointeras ensuite.")
+            return note + " " + countedTwice
         }
         // swiftlint:disable:next line_length
         return AppLocale.string("Ton disponible ne bouge pas. Un ajustement de \(gap), lui, le ferait passer de \(before) à \(after).")

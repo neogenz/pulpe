@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseAccountAmount,
+  pointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
 } from './account-reconciliation.js';
@@ -151,5 +152,76 @@ describe('reconciliationVerdict', () => {
       kind: 'income',
       amount: 2_999_999_999.97,
     });
+  });
+});
+
+describe('pointingCandidates', () => {
+  const movement = (
+    id: string,
+    kind: 'income' | 'expense',
+    amount: number,
+    options: { budgetLineId?: string; checkedAt?: string } = {},
+  ) => ({
+    id,
+    kind,
+    amount,
+    budgetLineId: options.budgetLineId ?? null,
+    checkedAt: options.checkedAt ?? null,
+  });
+  const ids = (candidates: { transaction: { id: string } }[]) =>
+    candidates.map(({ transaction }) => transaction.id);
+
+  it('names an income not pointed yet that explains most of the gap, and what would remain', () => {
+    const bonus = movement('bonus', 'income', 800);
+    const dinner = movement('dinner', 'expense', 50);
+
+    expect(pointingCandidates(814.93, [], [bonus, dinner])).toEqual([
+      { transaction: bonus, remainingGap: 14.93 },
+    ]);
+  });
+
+  it('leaves out a movement that would go past the gap, or that is already pointed', () => {
+    const big = movement('big', 'income', 900);
+    const pointed = movement('pointed', 'income', 100, {
+      checkedAt: '2026-11-01',
+    });
+
+    expect(pointingCandidates(814.93, [], [big, pointed])).toEqual([]);
+    expect(pointingCandidates(0, [], [movement('any', 'income', 1)])).toEqual(
+      [],
+    );
+  });
+
+  it('puts the movement that settles the gap first', () => {
+    const coffee = movement('coffee', 'expense', 20);
+    const migros = movement('migros', 'expense', 84.3);
+
+    expect(pointingCandidates(-84.3, [], [coffee, migros])).toEqual([
+      { transaction: migros, remainingGap: 0 },
+      { transaction: coffee, remainingGap: -64.3 },
+    ]);
+  });
+
+  it('measures what pointing moves under a pointée prévision, not the amount', () => {
+    const groceries = {
+      id: 'groceries',
+      kind: 'expense' as const,
+      amount: 100,
+      checkedAt: '2026-11-01',
+    };
+    const small = movement('small', 'expense', 50, {
+      budgetLineId: 'groceries',
+    });
+    const big = movement('big', 'expense', 150, { budgetLineId: 'groceries' });
+
+    expect(pointingCandidates(-150, [groceries], [small, big])).toEqual([
+      { transaction: big, remainingGap: -100 },
+    ]);
+  });
+
+  it('keeps three at most', () => {
+    const four = ['a', 'b', 'c', 'd'].map((id) => movement(id, 'expense', 10));
+
+    expect(ids(pointingCandidates(-100, [], four))).toEqual(['a', 'b', 'c']);
   });
 });

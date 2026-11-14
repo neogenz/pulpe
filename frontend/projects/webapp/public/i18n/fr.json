@@ -1191,7 +1191,12 @@
         "lessTitle": "Manque sur tes comptes",
         "adjustmentTitle": "Ajustement proposé",
         "income": "Revenu",
-        "expense": "Dépense"
+        "expense": "Dépense",
+        "candidatesTitle": "À pointer d'abord, s'ils sont passés sur ton compte",
+        "unplanned": "Hors prévision",
+        "sameAmount": "même montant",
+        "remaining": "il restera {{ amount }}",
+        "countedTwice": "Un ajustement maintenant compterait deux fois ce que tu pointeras ensuite."
       },
       "cancel": "Annuler",
       "compare": "Voir l'écart",

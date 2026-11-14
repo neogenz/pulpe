@@ -796,6 +796,48 @@ export class DashboardStore {
     );
   }
 
+  // Pointing a movement from the reconciliation, guarded like
+  // `checkBudgetLine`: a movement already pointed or in flight is a no-op.
+  /** Returns the localized reason on refusal, or `null` when it went through. */
+  async checkTransaction(transactionId: string): Promise<string | null> {
+    if (this.#pendingChecks().has(transactionId)) return null;
+    const transaction = this.transactions().find((t) => t.id === transactionId);
+    if (!transaction || transaction.checkedAt !== null) return null;
+
+    const patch = (checkedAt: string | null) =>
+      this.#patchTransactions((transactions) =>
+        transactions.map((t) =>
+          t.id === transactionId ? { ...t, checkedAt } : t,
+        ),
+      );
+    this.#pendingChecks.update((s) => new Set([...s, transactionId]));
+    patch(new Date().toISOString());
+    try {
+      await firstValueFrom(
+        this.#budgetApi.toggleTransactionCheck$(transactionId),
+      );
+      for (const key of CHECK_INVALIDATION_KEYS) {
+        this.#budgetApi.cache.invalidate(key);
+      }
+      return null;
+    } catch (error: unknown) {
+      patch(null);
+      this.#logger.error('Toggle transaction check failed', {
+        transactionId,
+        error,
+      });
+      return isApiError(error)
+        ? this.#apiErrorLocalizer.localizeApiError(error)
+        : this.#transloco.translate('currentMonth.updateError');
+    } finally {
+      this.#pendingChecks.update((s) => {
+        const next = new Set(s);
+        next.delete(transactionId);
+        return next;
+      });
+    }
+  }
+
   // ── 6. Private utils ──
   // The server refuses some toggles on business grounds and says why: reporting
   // "vérifie ta connexion" over a considered refusal sends the user to their

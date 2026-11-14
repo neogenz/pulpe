@@ -1,11 +1,14 @@
 import {
   ANALYTICS_EVENTS,
+  type BudgetLine,
   type BudgetPeriodDates,
   CURRENCY_METADATA,
   parseAccountAmount,
+  pointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
   type SupportedCurrency,
+  type Transaction,
   type TransactionCreate,
 } from "pulpe-shared";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
@@ -23,13 +26,14 @@ import { randomUUID } from "react-native-quick-crypto";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { captureEvent } from "@/core/observability/analytics";
 import { Amount } from "@/core/ui/amount";
-import { formatCurrency } from "@/core/ui/amount-format";
+import { formatCurrency, formatSignedCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
 import { FieldError } from "@/core/ui/field-error";
-import { hapticSuccess } from "@/core/ui/haptics";
+import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import { Notice } from "@/core/ui/notice";
 import { FormModal } from "@/core/ui/sheet";
 import { RADIUS, SPACING } from "@/core/ui/theme";
+import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 import { useFollowAccounts } from "@/features/net-worth/net-worth-queries";
 import { loadFirstMovementState } from "@/features/transactions/first-movement-tracker";
 import { useCreateTransaction } from "@/features/transactions/transaction-mutations";
@@ -63,6 +67,9 @@ export interface ReconcileMonth {
   realized: RealizedMetrics;
   rollover: number;
   period: BudgetPeriodDates;
+  /** Its live rows: pointing one from here moves the gap. */
+  budgetLines: BudgetLine[];
+  transactions: Transaction[];
 }
 
 interface ReconcileAccountsSheetProps {
@@ -105,6 +112,14 @@ export function ReconcileAccountsSheet({
   const { locale, t } = useTranslation();
   const create = useCreateTransaction("reconciliation");
   const follow = useFollowAccounts();
+  const toggle = useToggleCheck(budgetId);
+  // Pointed from here and not settled yet: the gap has already moved, so
+  // nothing is written against it before the server keeps the pointing.
+  const [pointingIds, setPointingIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+  const [hasPointFailed, setPointFailed] = useState(false);
+  const isPointing = pointingIds.size > 0;
   // Asked before the adjustment is saved: afterwards the server always says yes.
   useEffect(() => {
     if (isVisible) void loadFirstMovementState();
@@ -150,6 +165,19 @@ export function ReconcileAccountsSheet({
   const adjustment =
     verdict === null || verdict.kind === "upToDate" ? null : verdict;
   const isBusy = create.isPending;
+  // Movements the bank may already hold: pointing them, not an adjustment,
+  // closes that part of the gap without counting it twice later.
+  const candidates =
+    adjustment === null || month === null
+      ? []
+      : pointingCandidates(
+          adjustment.kind === "income" ? adjustment.amount : -adjustment.amount,
+          month.budgetLines,
+          month.transactions,
+        );
+  const lineNames = new Map(
+    month?.budgetLines.map((line) => [line.id, line.name]),
+  );
 
   function reset() {
     setStep(1);
@@ -157,6 +185,7 @@ export function ReconcileAccountsSheet({
     setRows([FIRST_ROW]);
     setLeftRowIds(new Set());
     setLabel(null);
+    setPointFailed(false);
     nextRowId.current = 1;
     isSubmitting.current = false;
     attempt.current = null;
@@ -241,9 +270,30 @@ export function ReconcileAccountsSheet({
     });
   }
 
+  async function point(transaction: Transaction) {
+    setPointFailed(false);
+    setPointingIds((ids) => new Set(ids).add(transaction.id));
+    try {
+      await toggle.mutateAsync({
+        source: "transaction",
+        sourceId: transaction.id,
+      });
+      hapticSuccess();
+    } catch {
+      hapticFailure();
+      setPointFailed(true);
+    } finally {
+      setPointingIds((ids) => {
+        const next = new Set(ids);
+        next.delete(transaction.id);
+        return next;
+      });
+    }
+  }
+
   function record() {
     const name = adjustmentLabel.trim();
-    if (adjustment === null || name === "" || isBusy) return;
+    if (adjustment === null || name === "" || isBusy || isPointing) return;
     if (isSubmitting.current) return;
     isSubmitting.current = true;
 
@@ -283,7 +333,8 @@ export function ReconcileAccountsSheet({
   // A write already out ends the flow itself, even once a refresh brings the
   // balance level: Finish waits rather than completing a second time.
   function finish() {
-    if (isBusy || isSubmitting.current || verdict?.kind !== "upToDate") return;
+    if (isBusy || isPointing || isSubmitting.current) return;
+    if (verdict?.kind !== "upToDate") return;
     complete("none");
     followFinishedAccounts();
     reset();
@@ -304,6 +355,14 @@ export function ReconcileAccountsSheet({
         testID="reconcile-error-notice"
       >
         {t("budgets.mutations.activity.error")}
+      </Notice>
+      <Notice
+        visible={hasPointFailed}
+        onDismiss={() => setPointFailed(false)}
+        wrapperStyle={{ bottom: SPACING.md + 48 }}
+        testID="reconcile-point-error-notice"
+      >
+        {t("home.checking.pointFailure")}
       </Notice>
       <View style={styles.actions}>
         <Button
@@ -327,7 +386,7 @@ export function ReconcileAccountsSheet({
           <Button
             mode="contained"
             onPress={finish}
-            disabled={isBusy}
+            disabled={isBusy || isPointing}
             style={styles.action}
           >
             {t("home.reconcile.verdict.finish")}
@@ -337,7 +396,10 @@ export function ReconcileAccountsSheet({
             mode="contained"
             onPress={record}
             disabled={
-              adjustment === null || isBusy || adjustmentLabel.trim() === ""
+              adjustment === null ||
+              isBusy ||
+              isPointing ||
+              adjustmentLabel.trim() === ""
             }
             loading={isBusy}
             style={styles.action}
@@ -593,6 +655,57 @@ export function ReconcileAccountsSheet({
                   { amount: formatCurrency(verdict.amount, currency) },
                 )}
               </Text>
+              {candidates.length > 0 && (
+                <View
+                  style={[
+                    styles.card,
+                    { backgroundColor: theme.colors.surfaceVariant },
+                  ]}
+                >
+                  <Text variant="titleSmall">
+                    {t("home.reconcile.verdict.candidatesTitle")}
+                  </Text>
+                  {candidates.map(({ transaction, remainingGap }) => (
+                    <View key={transaction.id} style={styles.breakdownRow}>
+                      <View style={styles.candidateText}>
+                        <Text variant="bodyMedium">{transaction.name}</Text>
+                        <Text variant="bodySmall" style={muted}>
+                          {`${
+                            (transaction.budgetLineId === null
+                              ? undefined
+                              : lineNames.get(transaction.budgetLineId)) ??
+                            t("home.movements.unplanned")
+                          } · ${
+                            remainingGap === 0
+                              ? t("home.reconcile.verdict.candidateSameAmount")
+                              : t("home.reconcile.verdict.candidateRemaining", {
+                                  amount: formatSignedCurrency(
+                                    remainingGap,
+                                    currency,
+                                  ),
+                                })
+                          }`}
+                        </Text>
+                      </View>
+                      <Amount size="meta">
+                        {formatCurrency(transaction.amount, currency)}
+                      </Amount>
+                      <Button
+                        mode="text"
+                        compact
+                        onPress={() => void point(transaction)}
+                        disabled={isPointing || isBusy}
+                        accessibilityLabel={t(
+                          "home.reconcile.verdict.pointNamed",
+                          { name: transaction.name },
+                        )}
+                      >
+                        {t("home.reconcile.verdict.point")}
+                      </Button>
+                    </View>
+                  ))}
+                </View>
+              )}
               <Text variant="bodyMedium" style={muted}>
                 {t(
                   verdict.kind === "income"
@@ -600,6 +713,8 @@ export function ReconcileAccountsSheet({
                     : "home.reconcile.verdict.lessMessage",
                   { amount: formatCurrency(verdict.amount, currency) },
                 )}
+                {candidates.length > 0 &&
+                  ` ${t("home.reconcile.verdict.countsTwice")}`}
               </Text>
               <TextInput
                 mode="outlined"
@@ -665,6 +780,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: SPACING.sm,
   },
+  candidateText: { flex: 1 },
   actions: { flexDirection: "row", gap: SPACING.sm },
   action: { flex: 1 },
 });

@@ -234,6 +234,26 @@ export default class BudgetDetailsPage {
               }
             : null,
         ),
+        ledger: computed(() => {
+          const details = this.store.budgetDetails();
+          return matches() && details
+            ? {
+                budgetLines: details.budgetLines,
+                transactions: details.transactions,
+              }
+            : null;
+        }),
+        pointTransaction: async (transactionId) => {
+          const outcome =
+            await this.store.toggleTransactionCheck(transactionId);
+          if (outcome.status === 'failed') {
+            openMutationErrorSnackbar(
+              outcome.reason,
+              this.#snackBar,
+              this.#transloco,
+            );
+          }
+        },
         currency: this.userSettingsStore.currency,
         periodDates: computed(() =>
           getBudgetPeriodDates(

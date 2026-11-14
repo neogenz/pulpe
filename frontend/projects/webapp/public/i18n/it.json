@@ -1191,7 +1191,12 @@
         "lessTitle": "Manca sui tuoi conti",
         "adjustmentTitle": "Allineamento proposto",
         "income": "Entrata",
-        "expense": "Spesa"
+        "expense": "Spesa",
+        "candidatesTitle": "Da spuntare prima, se sono già passati sul tuo conto",
+        "unplanned": "Fuori previsione",
+        "sameAmount": "stesso importo",
+        "remaining": "resteranno {{ amount }}",
+        "countedTwice": "Un allineamento adesso conterebbe due volte ciò che spunterai dopo."
       },
       "cancel": "Annulla",
       "compare": "Vedi la differenza",
