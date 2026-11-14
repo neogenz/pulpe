@@ -81,6 +81,13 @@ export const ENDPOINTS = {
 
   currencyRate: "/currency/rate",
 
+  feedback: "/feedback",
+  feedbackStatus: "/feedback/status",
+
+  mcpConnections: "/mcp/connections",
+  mcpConnection: (id: string) => `/mcp/connections/${id}`,
+  mcpConnectionActivity: (id: string) => `/mcp/connections/${id}/activity`,
+
   appVersion: "/app/version",
   whatsNewAndroid: "/whats-new/android",
 

@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useIsFocused } from "expo-router";
 import { getBudgetPeriodDates } from "pulpe-shared";
 import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
@@ -41,6 +41,8 @@ import { RecentMovementsSection } from "@/features/current-month/components/rece
 import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
 import { HomeHeroSkeleton } from "@/features/current-month/components/home-hero-skeleton";
+import { FeedbackSheet } from "@/features/feedback/components/feedback-sheet";
+import { useAutomaticFeedbackPrompt } from "@/features/feedback/use-automatic-feedback-prompt";
 import { NotificationPrimeSheet } from "@/features/current-month/components/notification-prime-sheet";
 import { MonthRecapSheet } from "@/features/current-month/components/month-recap-sheet";
 import {
@@ -115,6 +117,7 @@ export default function HomeScreen() {
   const toggle = useToggleCheck(currentMonth.budgetId);
   const isPendingCheck = usePendingCheck(currentMonth.budgetId);
   const reminders = useReminderPriming();
+  const isFocused = useIsFocused();
   // Same cached query the current month resolves against, so this costs nothing
   // extra — it only asks a different question of it.
   const budgets = useBudgetList();
@@ -140,6 +143,18 @@ export default function HomeScreen() {
     currentMonth.currency,
     period,
   );
+  // Invited only on a quiet home: nothing else open, and the month loaded.
+  const feedback = useAutomaticFeedbackPrompt({
+    isReady: currentMonth.status === "ready" || currentMonth.status === "empty",
+    isBlocked:
+      !isFocused ||
+      isAddVisible ||
+      isRealizedVisible ||
+      isRecapOpen ||
+      reconcileBudgetId !== null ||
+      editor.isOpen ||
+      reminders.isVisible,
+  });
   // The account lives in the bar, in every state: an empty or failed month
   // used to drop the header with it, and with it the only way to the
   // settings — sign out, pay day, the very setting that can empty a month.
@@ -533,7 +548,8 @@ export default function HomeScreen() {
           !isRecapOpen &&
           reconcileBudgetId === null &&
           !editor.isOpen &&
-          !reminders.isVisible && (
+          !reminders.isVisible &&
+          feedback.promptNumber === null && (
             <FAB
               testID="home-add-entry"
               icon="plus"
@@ -584,6 +600,13 @@ export default function HomeScreen() {
           onDismiss={reminders.dismiss}
           onEnable={reminders.enable}
         />
+
+        {feedback.promptNumber !== null && (
+          <FeedbackSheet
+            onDismiss={feedback.dismiss}
+            source={{ kind: "automatic", promptNumber: feedback.promptNumber }}
+          />
+        )}
 
         {currentMonth.budgetId !== null && (
           <TransactionSheet

@@ -1430,6 +1430,10 @@
         "whatsNew": {
           "description": "What changed in %{version}",
           "title": "What's new"
+        },
+        "feedback": {
+          "title": "Give feedback",
+          "description": "A quick impression in 30 seconds"
         }
       },
       "sections": {
@@ -1592,6 +1596,33 @@
         "rate": "1 %{base} = %{rate} %{target} (%{date})",
         "input": "Amount in %{currency}",
         "output": "Equivalent in %{currency}"
+      }
+    },
+    "feedback": {
+      "title": "Your feedback on Pulpe",
+      "privacy": "Private, never published on the Play Store.",
+      "overallQuestion": "How is it going with Pulpe?",
+      "detailsTitle": "Add details",
+      "detailsDescription": "%{count} quick questions and a comment, if you like",
+      "commentLabel": "Optional comment",
+      "commentPlaceholder": "Anything you'd like to add?",
+      "send": "Send",
+      "later": "Later",
+      "thanks": "Thanks. Your feedback helps Pulpe improve.",
+      "error": "Your feedback wasn't sent. Try again.",
+      "ratings": {
+        "1": "Needs improvement",
+        "2": "Difficult",
+        "3": "Okay",
+        "4": "Good",
+        "5": "Very good"
+      },
+      "areas": {
+        "onboarding": "Creating my first budget",
+        "budgetClarity": "Interface clarity",
+        "currentMonth": "Managing this month's budget",
+        "futurePlanning": "Planning the coming months",
+        "homeClarity": "Home screen clarity"
       }
     }
   },

@@ -31,6 +31,7 @@ import { SPACING } from "@/core/ui/theme";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { useTags } from "@/features/tags/tag-queries";
 import { useUserProfile } from "@/features/account/account-queries";
+import { FeedbackSheet } from "@/features/feedback/components/feedback-sheet";
 import { ProfileSheet } from "@/features/account/components/profile-sheet";
 import {
   SettingsRow,
@@ -59,6 +60,7 @@ export default function SettingsScreen() {
   const signOut = useSessionStore((state) => state.signOut);
   const [isEditingProfile, setEditingProfile] = useState(false);
   const [isSigningOut, setSigningOut] = useState(false);
+  const [isGivingFeedback, setGivingFeedback] = useState(false);
 
   // The session knows the email before the profile request lands, so the
   // header is never blank on the way in.
@@ -155,6 +157,13 @@ export default function SettingsScreen() {
             onPress={() => void Linking.openURL(APP_URLS.support)}
           />
           <SettingsRow
+            testID="settings-feedback"
+            icon="message-outline"
+            title={t("settings.account.rows.feedback.title")}
+            description={t("settings.account.rows.feedback.description")}
+            onPress={() => setGivingFeedback(true)}
+          />
+          <SettingsRow
             icon="star-four-points-outline"
             title={t("settings.account.rows.whatsNew.title")}
             description={t("settings.account.rows.whatsNew.description", {
@@ -204,6 +213,13 @@ export default function SettingsScreen() {
           isVisible
           onDismiss={() => setEditingProfile(false)}
           profile={profile.data}
+        />
+      )}
+
+      {isGivingFeedback && (
+        <FeedbackSheet
+          onDismiss={() => setGivingFeedback(false)}
+          source={{ kind: "settings" }}
         />
       )}
 

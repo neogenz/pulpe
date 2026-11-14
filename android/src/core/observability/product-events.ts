@@ -3,6 +3,7 @@ import { ANALYTICS_EVENTS } from "pulpe-shared";
 import { AUTH_ISSUE_CODES } from "@/core/auth/auth-error";
 
 import { captureEvent } from "./analytics-client";
+import type { AnalyticsProperties } from "./analytics-properties";
 
 /**
  * The cross-platform events that are one line at their call site, under the
@@ -131,4 +132,42 @@ export function captureFirstTransactionCreated(
   source: string,
 ): void {
   captureEvent(ANALYTICS_EVENTS.FIRST_TRANSACTION_CREATED, { type, source });
+}
+
+/** Where the feedback form was opened from; mirrors `FeedbackSource` on iOS. */
+export type FeedbackSource =
+  | { kind: "automatic"; promptNumber: number }
+  | { kind: "settings" };
+
+function feedbackSourceProperties(source: FeedbackSource): AnalyticsProperties {
+  return source.kind === "automatic"
+    ? { source: "automatic", prompt_number: source.promptNumber }
+    : { source: "settings" };
+}
+
+export function captureFeedbackViewed(source: FeedbackSource): void {
+  captureEvent(
+    ANALYTICS_EVENTS.FEEDBACK_VIEWED,
+    feedbackSourceProperties(source),
+  );
+}
+
+export function captureFeedbackCancelled(source: FeedbackSource): void {
+  captureEvent(
+    ANALYTICS_EVENTS.FEEDBACK_CANCELLED,
+    feedbackSourceProperties(source),
+  );
+}
+
+/** Ratings and two booleans only: the comment text never leaves through here. */
+export function captureFeedbackSubmitted(
+  source: FeedbackSource,
+  summary: { rating: number; hasComment: boolean; hasDetails: boolean },
+): void {
+  captureEvent(ANALYTICS_EVENTS.FEEDBACK_SUBMITTED, {
+    ...feedbackSourceProperties(source),
+    rating: summary.rating,
+    has_comment: summary.hasComment,
+    has_details: summary.hasDetails,
+  });
 }

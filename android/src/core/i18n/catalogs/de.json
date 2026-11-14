@@ -1430,6 +1430,10 @@
         "whatsNew": {
           "description": "Was sich in %{version} geändert hat",
           "title": "Neuigkeiten"
+        },
+        "feedback": {
+          "title": "Feedback geben",
+          "description": "Ein Eindruck in 30 Sekunden"
         }
       },
       "sections": {
@@ -1592,6 +1596,33 @@
         "rate": "1 %{base} = %{rate} %{target} (%{date})",
         "input": "Betrag in %{currency}",
         "output": "Gegenwert in %{currency}"
+      }
+    },
+    "feedback": {
+      "title": "Dein Feedback zu Pulpe",
+      "privacy": "Privat, nie im Play Store veröffentlicht.",
+      "overallQuestion": "Wie läuft es mit Pulpe?",
+      "detailsTitle": "Feedback ergänzen",
+      "detailsDescription": "%{count} kurze Fragen und ein Kommentar, wenn du magst",
+      "commentLabel": "Optionaler Kommentar",
+      "commentPlaceholder": "Möchtest du etwas ergänzen?",
+      "send": "Senden",
+      "later": "Später",
+      "thanks": "Danke. Dein Feedback bringt Pulpe weiter.",
+      "error": "Dein Feedback wurde nicht gesendet. Versuch es noch einmal.",
+      "ratings": {
+        "1": "Ausbaufähig",
+        "2": "Schwierig",
+        "3": "Okay",
+        "4": "Gut",
+        "5": "Sehr gut"
+      },
+      "areas": {
+        "onboarding": "Erstellung meines ersten Budgets",
+        "budgetClarity": "Verständlichkeit der App",
+        "currentMonth": "Verwaltung des Monatsbudgets",
+        "futurePlanning": "Planung der kommenden Monate",
+        "homeClarity": "Klarheit der Startseite"
       }
     }
   },

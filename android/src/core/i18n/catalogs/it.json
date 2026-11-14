@@ -1430,6 +1430,10 @@
         "whatsNew": {
           "description": "Cosa è cambiato nella %{version}",
           "title": "Novità"
+        },
+        "feedback": {
+          "title": "Lascia un'opinione",
+          "description": "Un'impressione in 30 secondi"
         }
       },
       "sections": {
@@ -1592,6 +1596,33 @@
         "rate": "1 %{base} = %{rate} %{target} (%{date})",
         "input": "Importo in %{currency}",
         "output": "Equivalente in %{currency}"
+      }
+    },
+    "feedback": {
+      "title": "La tua opinione su Pulpe",
+      "privacy": "Privato, mai pubblicato sul Play Store.",
+      "overallQuestion": "Come ti trovi con Pulpe?",
+      "detailsTitle": "Aggiungi dettagli",
+      "detailsDescription": "%{count} domande rapide e un commento, se vuoi",
+      "commentLabel": "Commento facoltativo",
+      "commentPlaceholder": "Vuoi aggiungere un commento?",
+      "send": "Invia",
+      "later": "Più tardi",
+      "thanks": "Grazie. La tua opinione aiuta Pulpe a migliorare.",
+      "error": "La tua opinione non è stata inviata. Riprova.",
+      "ratings": {
+        "1": "Da migliorare",
+        "2": "Difficile",
+        "3": "Discreto",
+        "4": "Bene",
+        "5": "Molto bene"
+      },
+      "areas": {
+        "onboarding": "Creazione del mio primo budget",
+        "budgetClarity": "Chiarezza dell'interfaccia",
+        "currentMonth": "Gestione del budget del mese",
+        "futurePlanning": "Pianificazione dei prossimi mesi",
+        "homeClarity": "Chiarezza della schermata iniziale"
       }
     }
   },
