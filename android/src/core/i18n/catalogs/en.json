@@ -1572,6 +1572,8 @@
     },
     "currency": {
       "description": "All your amounts are shown in this currency.",
+      "selectorTitle": "Enter in another currency",
+      "selectorDescription": "When on, a currency choice appears next to the amount when you add an expense or an income. Pulpe converts at the day's rate.",
       "confirmTitle": "Show your amounts in %{currency}?",
       "confirmBody": "Nothing is converted: 100 stays 100, shown in %{symbol}. Only the symbol changes.",
       "keep": "Keep %{currency}",

@@ -1572,6 +1572,8 @@
     },
     "currency": {
       "description": "Tutti i tuoi importi sono mostrati in questa valuta.",
+      "selectorTitle": "Inserisci in un'altra valuta",
+      "selectorDescription": "Se attivo, accanto all'importo compare la scelta della valuta quando aggiungi una spesa o un'entrata. Pulpe converte al cambio del giorno.",
       "confirmTitle": "Mostrare i tuoi importi in %{currency}?",
       "confirmBody": "Nulla viene convertito: 100 resta 100, mostrato in %{symbol}. Cambia solo il simbolo.",
       "keep": "Mantieni %{currency}",
