@@ -34,26 +34,22 @@ Rules when touching either entry:
 
 Loaded via `<script src="init/*.js">` in `index.html`. Synchronous (head) for `theme.js` + `fonts.js`; in `<body>` after splash DOM for `splash.js`.
 
-## Critical CSS + hash-based attr CSP
+## Critical CSS + hash-based inline script CSP
 
-`inlineCritical: true` stays in `angular.json` — Angular's beasties optimizer inlines above-the-fold CSS (faster FCP/LCP) and emits a single deterministic inline handler on the non-critical CSS preload tag:
+`inlineCritical: true` stays in `angular.json` — Angular's beasties optimizer inlines above-the-fold CSS (faster FCP/LCP), loads the non-critical stylesheet with `media="print"` and `data-beasties-media="all"`, and emits a single deterministic inline script that restores the media:
 
-```html
-<link
-  rel="stylesheet"
-  href="styles-<hash>.css"
-  media="print"
-  onload="this.media='all'"
-/>
+```text
+<script>document.querySelectorAll('link[data-beasties-media]').forEach(function(l){l.media=l.getAttribute('data-beasties-media');l.removeAttribute('data-beasties-media')})</script>
 ```
 
-CSP allow-lists this exact handler value:
+CSP allow-lists this exact script in `script-src-elem` (and in `script-src` for browsers without `-elem` support):
 
 ```
-script-src-attr 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='
+script-src-elem 'self' 'sha256-LMY6wYoFV9I4wWzxaq1N/dTpl4iurQktw706UCHK3vM=' ...
+script-src-attr 'none'
 ```
 
-`'unsafe-hashes'` only enables hash matching for inline event handlers — arbitrary inline JS is still blocked. The hash is `sha256(this.media='all')`. The string is stable across builds; if beasties ever changes its template, the build-time scanner fails and surfaces the new hash.
+A hash only allows that exact source; arbitrary inline JS and every inline event handler stay blocked. The string is stable across builds; if beasties ever changes its template, the build-time scanner fails and surfaces the new hash.
 
 ## Regression guards (webapp)
 

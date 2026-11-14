@@ -330,7 +330,7 @@ Le scénario complet est le vol **combiné** : une XSS doit exfiltrer à la fois
 
 **Mitigations en place :**
 
-1. CSP stricte (`vercel.json`) : `script-src 'self'` + deux origines tierces explicites, ni `unsafe-inline` ni `unsafe-eval`. Seul `script-src-attr` porte un `'unsafe-hashes'` limité à un hash `sha256` précis. `frontend/scripts/check-no-inline-scripts.ts` échoue le build si un script inline non prévu apparaît
+1. CSP stricte (`vercel.json`) : `script-src 'self'` + deux origines tierces explicites, ni `unsafe-inline` ni `unsafe-eval`. Un seul script inline est autorisé, par son hash `sha256` précis dans `script-src-elem`, et `script-src-attr` vaut `'none'`. `frontend/scripts/check-no-inline-scripts.ts` échoue le build si un script inline non prévu apparaît
 2. Sanitizer Angular par défaut sur toute interpolation ; aucun `bypassSecurityTrust*` sur du contenu d'origine utilisateur
 3. La session Supabase reste soumise à son expiration et à la révocation côté serveur
 

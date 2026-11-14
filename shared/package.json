@@ -16,7 +16,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "format": "prettier --write \"**/*.{ts,json}\"",
-    "format:check": "prettier --check \"**/*.{ts,json}\""
+    "format:check": "prettier --check \"**/*.{ts,json}\"",
+    "type-check": "tsc -p tsconfig.esm.json --noEmit",
+    "typecheck:spec": "tsc -p tsconfig.json --noEmit"
   },
   "exports": {
     ".": {
@@ -28,8 +30,9 @@
     "zod": "4.6.6"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^3.2.7",
-    "@vitest/ui": "^3.2.7",
-    "vitest": "^3.2.7"
+    "@types/node": "^24.13.3",
+    "@vitest/coverage-v8": "^4.1.12",
+    "@vitest/ui": "^4.1.12",
+    "vitest": "^4.1.12"
   }
 }
