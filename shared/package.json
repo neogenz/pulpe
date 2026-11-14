@@ -17,6 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "format:check": "prettier --check \"**/*.{ts,json}\"",
+    "type-check": "tsc -p tsconfig.esm.json --noEmit",
     "typecheck:spec": "tsc -p tsconfig.json --noEmit"
   },
   "exports": {
