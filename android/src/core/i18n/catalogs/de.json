@@ -1430,6 +1430,18 @@
         "whatsNew": {
           "description": "Was sich in %{version} geändert hat",
           "title": "Neuigkeiten"
+        },
+        "feedback": {
+          "title": "Feedback geben",
+          "description": "Ein Eindruck in 30 Sekunden"
+        },
+        "connections": {
+          "title": "Verbindungen",
+          "description": "Autorisierte KI-Assistenten",
+          "count": {
+            "one": "%{count} KI-Assistent erlaubt",
+            "other": "%{count} KI-Assistenten erlaubt"
+          }
         }
       },
       "sections": {
@@ -1478,7 +1490,21 @@
       "reminderPermissionBlocked": "Benachrichtigungen sind in den Android-Einstellungen blockiert.",
       "remindersSection": "Erinnerungen",
       "reminderTitle": "Monatliche Erinnerung",
-      "title": "Einstellungen"
+      "title": "Einstellungen",
+      "weeklyRecap": {
+        "title": "Montags-Rückblick",
+        "description": "Deine Woche und was dir bleibt",
+        "notificationTitle": "Deine Woche im Überblick",
+        "lastWeek": {
+          "one": "Letzte Woche: %{count} Bewegung erfasst.",
+          "other": "Letzte Woche: %{count} Bewegungen erfasst."
+        },
+        "newWeek": "Neue Woche: eine Minute, um deine letzten Bewegungen zu erfassen?",
+        "exhausted": "Dein Verfügbares ist aufgebraucht: kurz reinschauen, um deine Woche anzupassen?",
+        "allowanceUsual": "Diese Woche: etwa %{amount} zum Ausgeben (normalerweise gibst du %{usual} aus).",
+        "allowance": "Diese Woche: etwa %{amount} zum Ausgeben.",
+        "expected": "Diese Woche geplant: %{names}."
+      }
     },
     "security": {
       "accessSection": "Zugriff",
@@ -1572,6 +1598,8 @@
     },
     "currency": {
       "description": "Alle deine Beträge werden in dieser Währung angezeigt.",
+      "selectorTitle": "In einer anderen Währung erfassen",
+      "selectorDescription": "Wenn aktiviert, erscheint neben dem Betrag eine Währungsauswahl, sobald du eine Ausgabe oder ein Einkommen hinzufügst. Pulpe rechnet zum Tageskurs um.",
       "confirmTitle": "Deine Beträge in %{currency} anzeigen?",
       "confirmBody": "Nichts wird umgerechnet: 100 bleibt 100, angezeigt in %{symbol}. Nur das Symbol ändert sich.",
       "keep": "%{currency} behalten",
@@ -1590,6 +1618,77 @@
         "rate": "1 %{base} = %{rate} %{target} (%{date})",
         "input": "Betrag in %{currency}",
         "output": "Gegenwert in %{currency}"
+      }
+    },
+    "feedback": {
+      "title": "Dein Feedback zu Pulpe",
+      "privacy": "Privat, nie im Play Store veröffentlicht.",
+      "overallQuestion": "Wie läuft es mit Pulpe?",
+      "detailsTitle": "Feedback ergänzen",
+      "detailsDescription": "%{count} kurze Fragen und ein Kommentar, wenn du magst",
+      "commentLabel": "Optionaler Kommentar",
+      "commentPlaceholder": "Möchtest du etwas ergänzen?",
+      "send": "Senden",
+      "later": "Später",
+      "thanks": "Danke. Dein Feedback bringt Pulpe weiter.",
+      "error": "Dein Feedback wurde nicht gesendet. Versuch es noch einmal.",
+      "ratings": {
+        "1": "Ausbaufähig",
+        "2": "Schwierig",
+        "3": "Okay",
+        "4": "Gut",
+        "5": "Sehr gut"
+      },
+      "areas": {
+        "onboarding": "Erstellung meines ersten Budgets",
+        "budgetClarity": "Verständlichkeit der App",
+        "currentMonth": "Verwaltung des Monatsbudgets",
+        "futurePlanning": "Planung der kommenden Monate",
+        "homeClarity": "Klarheit der Startseite"
+      }
+    },
+    "connections": {
+      "title": "Verbindungen",
+      "subtitle": "Die KI-Assistenten mit Zugriff auf dein Budget",
+      "since": "%{mode} · seit %{date}",
+      "listFooter": "Tippe auf einen Assistenten, um zu sehen, was er getan hat, oder ihm den Zugriff zu entziehen.",
+      "addHint": "Um einen neuen Assistenten zu verbinden, öffne Pulpe im Web unter Einstellungen, dann Verbindungen. Du wählst seine Rechte und bestätigst mit deinem PIN-Code.",
+      "emptyTitle": "Kein Assistent verbunden",
+      "emptyHint": "Du kannst Pulpe in ChatGPT oder Claude verbinden, um dein Budget im Gespräch zu verwalten. Nichts wird geteilt, solange du nichts autorisiert hast.",
+      "modes": {
+        "read": "Nur Lesen",
+        "read_write": "Lesen und Schreiben"
+      },
+      "detailTitle": "Anmeldung",
+      "grantedOn": "%{mode} · autorisiert am %{date}",
+      "activityTitle": "Letzte Aktionen",
+      "activityEmpty": "Noch keine Aktion.",
+      "activityError": "Die letzten Aktionen konnten nicht geladen werden.",
+      "failed": "Fehlgeschlagen",
+      "revoke": "Zugriff entziehen",
+      "revokeTitle": "Zugriff entziehen?",
+      "revokeConsequence": "%{name} kann dein Budget nicht mehr lesen oder ändern. Um den Assistenten wieder zu verbinden, musst du ihn erneut mit deinem Code autorisieren.",
+      "revokeError": "Der Zugriff konnte nicht entzogen werden. Versuch es noch einmal.",
+      "tools": {
+        "add_movement": "Bewegung hinzugefügt",
+        "update_movement": "Bewegung geändert",
+        "delete_movement": "Bewegung gelöscht",
+        "add_forecast": "Planposten hinzugefügt",
+        "update_forecast": "Planposten geändert",
+        "spread_expense": "Verteilte Ausgabe",
+        "create_month_from_template": "Monatsbudget erstellt",
+        "delete_month": "Monat gelöscht",
+        "toggle_check": "Abhaken geändert",
+        "create_tag": "Tag erstellt",
+        "rename_tag": "Tag umbenannt",
+        "delete_tag": "Tag gelöscht",
+        "tag_items": "Tags aktualisiert",
+        "create_template": "Vorlage erstellt",
+        "update_template": "Vorlage aktualisiert",
+        "delete_template": "Vorlage gelöscht",
+        "duplicate_template": "Vorlage dupliziert",
+        "edit_template_lines": "Planung der Vorlage aktualisiert",
+        "adjust_over_months": "Über mehrere Monate angepasst"
       }
     }
   },

@@ -29,8 +29,10 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
+import { useConnections } from "@/features/connections/connections-queries";
 import { useTags } from "@/features/tags/tag-queries";
 import { useUserProfile } from "@/features/account/account-queries";
+import { FeedbackSheet } from "@/features/feedback/components/feedback-sheet";
 import { ProfileSheet } from "@/features/account/components/profile-sheet";
 import {
   SettingsRow,
@@ -49,6 +51,7 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
   const profile = useUserProfile();
   const tags = useTags();
+  const connections = useConnections();
   const biometricKind = useQuery({
     queryKey: ["biometrics", "kind"],
     queryFn: describeBiometrics,
@@ -59,6 +62,7 @@ export default function SettingsScreen() {
   const signOut = useSessionStore((state) => state.signOut);
   const [isEditingProfile, setEditingProfile] = useState(false);
   const [isSigningOut, setSigningOut] = useState(false);
+  const [isGivingFeedback, setGivingFeedback] = useState(false);
 
   // The session knows the email before the profile request lands, so the
   // header is never blank on the way in.
@@ -144,6 +148,18 @@ export default function SettingsScreen() {
             }
             onPress={() => router.push("/settings/tags")}
           />
+          <SettingsRow
+            icon="link-variant"
+            title={t("settings.account.rows.connections.title")}
+            description={
+              connections.data === undefined
+                ? t("settings.account.rows.connections.description")
+                : t("settings.account.rows.connections.count", {
+                    count: connections.data.length,
+                  })
+            }
+            onPress={() => router.push("/settings/connections")}
+          />
         </SettingsSection>
 
         <SettingsSection title={t("settings.account.sections.support")}>
@@ -153,6 +169,13 @@ export default function SettingsScreen() {
             description={t("settings.account.rows.faq.description")}
             isExternal
             onPress={() => void Linking.openURL(APP_URLS.support)}
+          />
+          <SettingsRow
+            testID="settings-feedback"
+            icon="message-outline"
+            title={t("settings.account.rows.feedback.title")}
+            description={t("settings.account.rows.feedback.description")}
+            onPress={() => setGivingFeedback(true)}
           />
           <SettingsRow
             icon="star-four-points-outline"
@@ -204,6 +227,13 @@ export default function SettingsScreen() {
           isVisible
           onDismiss={() => setEditingProfile(false)}
           profile={profile.data}
+        />
+      )}
+
+      {isGivingFeedback && (
+        <FeedbackSheet
+          onDismiss={() => setGivingFeedback(false)}
+          source={{ kind: "settings" }}
         />
       )}
 

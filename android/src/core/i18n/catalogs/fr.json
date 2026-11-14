@@ -1430,6 +1430,18 @@
         "whatsNew": {
           "description": "Ce qui a changé dans la %{version}",
           "title": "Nouveautés"
+        },
+        "feedback": {
+          "title": "Donner mon avis",
+          "description": "Une impression en 30 secondes"
+        },
+        "connections": {
+          "title": "Connexions",
+          "description": "Assistants IA autorisés",
+          "count": {
+            "one": "%{count} assistant IA autorisé",
+            "other": "%{count} assistants IA autorisés"
+          }
         }
       },
       "sections": {
@@ -1478,7 +1490,21 @@
       "reminderPermissionBlocked": "Les notifications sont bloquées dans les réglages Android.",
       "remindersSection": "Rappels",
       "reminderTitle": "Rappel mensuel",
-      "title": "Préférences"
+      "title": "Préférences",
+      "weeklyRecap": {
+        "title": "Récap du lundi",
+        "description": "Ta semaine et ce qu'il te reste",
+        "notificationTitle": "Ta semaine en bref",
+        "lastWeek": {
+          "one": "Semaine passée : %{count} mouvement noté.",
+          "other": "Semaine passée : %{count} mouvements notés."
+        },
+        "newWeek": "Nouvelle semaine : une minute pour noter tes derniers mouvements ?",
+        "exhausted": "Ton disponible est épuisé : un coup d'œil pour ajuster ta semaine ?",
+        "allowanceUsual": "Cette semaine : environ %{amount} à dépenser (d'habitude, tu en dépenses %{usual}).",
+        "allowance": "Cette semaine : environ %{amount} à dépenser.",
+        "expected": "Prévu cette semaine : %{names}."
+      }
     },
     "security": {
       "accessSection": "Accès",
@@ -1572,6 +1598,8 @@
     },
     "currency": {
       "description": "Tous tes montants s'affichent dans cette devise.",
+      "selectorTitle": "Saisir dans une autre devise",
+      "selectorDescription": "Activé, un choix de devise apparaît à côté du montant quand tu ajoutes une dépense ou un revenu. Pulpe convertit au cours du jour.",
       "confirmTitle": "Afficher tes montants en %{currency} ?",
       "confirmBody": "Rien n'est converti : 100 reste 100, affiché en %{symbol}. Seul le symbole change.",
       "keep": "Garder %{currency}",
@@ -1590,6 +1618,77 @@
         "rate": "1 %{base} = %{rate} %{target} (%{date})",
         "input": "Montant en %{currency}",
         "output": "Équivalent %{currency}"
+      }
+    },
+    "feedback": {
+      "title": "Ton avis sur Pulpe",
+      "privacy": "Privé, jamais publié sur le Play Store.",
+      "overallQuestion": "Comment ça se passe avec Pulpe ?",
+      "detailsTitle": "Préciser mon avis",
+      "detailsDescription": "%{count} questions rapides et un commentaire, si tu veux",
+      "commentLabel": "Commentaire facultatif",
+      "commentPlaceholder": "Un commentaire à ajouter ?",
+      "send": "Envoyer",
+      "later": "Plus tard",
+      "thanks": "Merci. Ton avis fait progresser Pulpe.",
+      "error": "Ton avis n'est pas parti. Réessaie.",
+      "ratings": {
+        "1": "À améliorer",
+        "2": "Difficile",
+        "3": "Correct",
+        "4": "Bien",
+        "5": "Très bien"
+      },
+      "areas": {
+        "onboarding": "Création de mon premier budget",
+        "budgetClarity": "Clarté de l'interface",
+        "currentMonth": "Gestion du budget du mois",
+        "futurePlanning": "Planification des prochains mois",
+        "homeClarity": "Clarté de l'accueil"
+      }
+    },
+    "connections": {
+      "title": "Connexions",
+      "subtitle": "Les assistants IA qui ont accès à ton budget",
+      "since": "%{mode} · depuis le %{date}",
+      "listFooter": "Touche un assistant pour voir ce qu'il a fait ou lui couper l'accès.",
+      "addHint": "Pour brancher un nouvel assistant, ouvre Pulpe sur le web, dans Paramètres puis Connexions. Tu choisis ses droits et tu valides avec ton code PIN.",
+      "emptyTitle": "Aucun assistant branché",
+      "emptyHint": "Tu peux brancher Pulpe dans ChatGPT ou Claude pour gérer ton budget en parlant. Rien n'est partagé tant que tu n'as rien autorisé.",
+      "modes": {
+        "read": "Lecture seule",
+        "read_write": "Lecture et écriture"
+      },
+      "detailTitle": "Connexion",
+      "grantedOn": "%{mode} · autorisé le %{date}",
+      "activityTitle": "Dernières actions",
+      "activityEmpty": "Aucune action pour l'instant.",
+      "activityError": "Impossible de charger les dernières actions.",
+      "failed": "Échec",
+      "revoke": "Couper l'accès",
+      "revokeTitle": "Couper l'accès ?",
+      "revokeConsequence": "%{name} ne pourra plus lire ni modifier ton budget. Pour le rebrancher, il faudra l'autoriser à nouveau avec ton code.",
+      "revokeError": "L'accès n'a pas pu être coupé. Réessaie.",
+      "tools": {
+        "add_movement": "Mouvement ajouté",
+        "update_movement": "Mouvement modifié",
+        "delete_movement": "Mouvement supprimé",
+        "add_forecast": "Prévision ajoutée",
+        "update_forecast": "Prévision modifiée",
+        "spread_expense": "Dépense lissée",
+        "create_month_from_template": "Budget mensuel créé",
+        "delete_month": "Mois supprimé",
+        "toggle_check": "Pointage modifié",
+        "create_tag": "Tag créé",
+        "rename_tag": "Tag renommé",
+        "delete_tag": "Tag supprimé",
+        "tag_items": "Tags modifiés",
+        "create_template": "Modèle créé",
+        "update_template": "Modèle modifié",
+        "delete_template": "Modèle supprimé",
+        "duplicate_template": "Modèle dupliqué",
+        "edit_template_lines": "Prévisions du modèle modifiées",
+        "adjust_over_months": "Ajusté sur plusieurs mois"
       }
     }
   },

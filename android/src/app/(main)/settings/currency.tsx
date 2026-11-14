@@ -13,6 +13,7 @@ import {
   Button,
   Dialog,
   Portal,
+  Switch,
   Text,
   TextInput,
   useTheme,
@@ -21,8 +22,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatIsoDate } from "@/core/ui/date-format";
-import { captureCurrencyChanged } from "@/core/observability/product-events";
+import {
+  captureCurrencyChanged,
+  captureCurrencySelectorToggled,
+} from "@/core/observability/product-events";
 import { formatCurrency } from "@/core/ui/amount-format";
+import { Card } from "@/core/ui/card";
 import { Notice } from "@/core/ui/notice";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { SegmentedPicker } from "@/core/ui/segmented-picker";
@@ -118,6 +123,37 @@ export default function CurrencyScreen() {
             {t("settings.currency.description")}
           </Text>
         </View>
+
+        {/* Without it the currency field never shows in the movement sheet. */}
+        <Card mode="contained">
+          <Card.Content style={styles.switchRow}>
+            <View style={styles.switchLabels}>
+              <Text variant="bodyLarge">
+                {t("settings.currency.selectorTitle")}
+              </Text>
+              <Text
+                variant="labelMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {t("settings.currency.selectorDescription")}
+              </Text>
+            </View>
+            <Switch
+              value={settings.data?.showCurrencySelector === true}
+              disabled={update.isPending}
+              onValueChange={(next) =>
+                update.mutate(
+                  { showCurrencySelector: next },
+                  {
+                    onSuccess: () => captureCurrencySelectorToggled(next),
+                    onError: () => setNotice(t("settings.currency.saveError")),
+                  },
+                )
+              }
+              accessibilityLabel={t("settings.currency.selectorTitle")}
+            />
+          </Card.Content>
+        </Card>
 
         <SettingsSection title={t("settings.currency.converter.title")}>
           <View style={styles.converter}>
@@ -259,6 +295,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: SPACING.md, gap: SPACING.lg, paddingBottom: SPACING.xxl },
   block: { gap: SPACING.sm },
+  switchRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
+  switchLabels: { flex: 1, gap: SPACING.xxs },
   converter: { gap: SPACING.sm, padding: SPACING.md },
   loading: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
 });

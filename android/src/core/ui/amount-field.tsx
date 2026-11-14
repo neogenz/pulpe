@@ -6,7 +6,12 @@ import { TextInput } from "react-native-paper";
 import { translate } from "@/core/i18n/i18n";
 import { useTranslation } from "@/core/i18n/locale-store";
 
-import { exceedsCents, parseAmount, seedAmountText } from "./money";
+import {
+  amountCharacters,
+  exceedsCents,
+  parseAmount,
+  seedAmountText,
+} from "./money";
 import { TABULAR_DIGITS } from "./theme";
 
 export function amountFieldAccessibilityLabel(
@@ -58,7 +63,8 @@ export function AmountField({
       label={label}
       placeholder={placeholder}
       value={text}
-      onChangeText={(next) => {
+      onChangeText={(typed) => {
+        const next = amountCharacters(typed);
         if (exceedsCents(next)) return;
         setText(next);
         onChange(parseAmount(next));

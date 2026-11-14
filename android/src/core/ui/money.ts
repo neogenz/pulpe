@@ -12,6 +12,15 @@ export function parseAmount(input: string): number | null {
   return Number.isFinite(amount) ? amount : null;
 }
 
+/**
+ * What an amount field keeps of typed or pasted text. A physical keyboard or a
+ * paste is not bound by the numeric pad: "1'200.50" keeps its digits, letters
+ * are dropped instead of sitting in the field next to an amount that ignores them.
+ */
+export function amountCharacters(input: string): string {
+  return input.replace(/[^\d.,]/g, "");
+}
+
 /** Cents: the smallest unit of every currency the app handles. */
 const MAX_DECIMALS = 2;
 

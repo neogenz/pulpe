@@ -1430,6 +1430,18 @@
         "whatsNew": {
           "description": "What changed in %{version}",
           "title": "What's new"
+        },
+        "feedback": {
+          "title": "Give feedback",
+          "description": "A quick impression in 30 seconds"
+        },
+        "connections": {
+          "title": "Connections",
+          "description": "Authorized AI assistants",
+          "count": {
+            "one": "%{count} AI assistant allowed",
+            "other": "%{count} AI assistants allowed"
+          }
         }
       },
       "sections": {
@@ -1478,7 +1490,21 @@
       "reminderPermissionBlocked": "Notifications are blocked in Android settings.",
       "remindersSection": "Reminders",
       "reminderTitle": "Monthly reminder",
-      "title": "Preferences"
+      "title": "Preferences",
+      "weeklyRecap": {
+        "title": "Monday recap",
+        "description": "Your week and what's left",
+        "notificationTitle": "Your week at a glance",
+        "lastWeek": {
+          "one": "Last week: %{count} entry recorded.",
+          "other": "Last week: %{count} entries recorded."
+        },
+        "newWeek": "New week: a minute to log your latest activity?",
+        "exhausted": "Nothing left available: a quick look to adjust your week?",
+        "allowanceUsual": "This week: about %{amount} to spend (you usually spend %{usual}).",
+        "allowance": "This week: about %{amount} to spend.",
+        "expected": "Planned this week: %{names}."
+      }
     },
     "security": {
       "accessSection": "Access",
@@ -1572,6 +1598,8 @@
     },
     "currency": {
       "description": "All your amounts are shown in this currency.",
+      "selectorTitle": "Enter in another currency",
+      "selectorDescription": "When on, a currency choice appears next to the amount when you add an expense or an income. Pulpe converts at the day's rate.",
       "confirmTitle": "Show your amounts in %{currency}?",
       "confirmBody": "Nothing is converted: 100 stays 100, shown in %{symbol}. Only the symbol changes.",
       "keep": "Keep %{currency}",
@@ -1590,6 +1618,77 @@
         "rate": "1 %{base} = %{rate} %{target} (%{date})",
         "input": "Amount in %{currency}",
         "output": "Equivalent in %{currency}"
+      }
+    },
+    "feedback": {
+      "title": "Your feedback on Pulpe",
+      "privacy": "Private, never published on the Play Store.",
+      "overallQuestion": "How is it going with Pulpe?",
+      "detailsTitle": "Add details",
+      "detailsDescription": "%{count} quick questions and a comment, if you like",
+      "commentLabel": "Optional comment",
+      "commentPlaceholder": "Anything you'd like to add?",
+      "send": "Send",
+      "later": "Later",
+      "thanks": "Thanks. Your feedback helps Pulpe improve.",
+      "error": "Your feedback wasn't sent. Try again.",
+      "ratings": {
+        "1": "Needs improvement",
+        "2": "Difficult",
+        "3": "Okay",
+        "4": "Good",
+        "5": "Very good"
+      },
+      "areas": {
+        "onboarding": "Creating my first budget",
+        "budgetClarity": "Interface clarity",
+        "currentMonth": "Managing this month's budget",
+        "futurePlanning": "Planning the coming months",
+        "homeClarity": "Home screen clarity"
+      }
+    },
+    "connections": {
+      "title": "Connections",
+      "subtitle": "The AI assistants with access to your budget",
+      "since": "%{mode} · since %{date}",
+      "listFooter": "Tap an assistant to see what it did or cut its access.",
+      "addHint": "To connect a new assistant, open Pulpe on the web, in Settings then Connections. You choose its rights and confirm with your PIN.",
+      "emptyTitle": "No assistant connected",
+      "emptyHint": "You can connect Pulpe in ChatGPT or Claude to manage your budget by chatting. Nothing is shared until you authorize something.",
+      "modes": {
+        "read": "Read only",
+        "read_write": "Read and write"
+      },
+      "detailTitle": "Connection",
+      "grantedOn": "%{mode} · authorized on %{date}",
+      "activityTitle": "Latest actions",
+      "activityEmpty": "No actions yet.",
+      "activityError": "Couldn't load the latest actions.",
+      "failed": "Failed",
+      "revoke": "Revoke access",
+      "revokeTitle": "Revoke access?",
+      "revokeConsequence": "%{name} will no longer be able to read or change your budget. To reconnect it, you'll need to authorize it again with your PIN.",
+      "revokeError": "Access couldn't be revoked. Try again.",
+      "tools": {
+        "add_movement": "Entry added",
+        "update_movement": "Entry updated",
+        "delete_movement": "Entry deleted",
+        "add_forecast": "Planned item added",
+        "update_forecast": "Planned item updated",
+        "spread_expense": "Spread expense",
+        "create_month_from_template": "Monthly budget created",
+        "delete_month": "Month deleted",
+        "toggle_check": "Checked status changed",
+        "create_tag": "Tag created",
+        "rename_tag": "Tag renamed",
+        "delete_tag": "Tag deleted",
+        "tag_items": "Tags updated",
+        "create_template": "Template created",
+        "update_template": "Template updated",
+        "delete_template": "Template deleted",
+        "duplicate_template": "Template duplicated",
+        "edit_template_lines": "Template planned items updated",
+        "adjust_over_months": "Adjusted over several months"
       }
     }
   },

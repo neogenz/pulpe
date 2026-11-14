@@ -12,8 +12,11 @@ import {
 import { languageWriter } from "@/core/i18n/language-writer";
 import { clearLocaleSnapshot } from "@/core/i18n/locale-store";
 import { forgetLandingPreference } from "@/core/navigation/landing-preference";
-import { writeRemindersEnabled } from "@/core/notifications/reminder-flags";
-import { cancelMonthlyReminder } from "@/core/notifications/scheduler";
+import {
+  writeRemindersEnabled,
+  writeWeeklyRecapEnabled,
+} from "@/core/notifications/reminder-flags";
+import { cancelAllReminders } from "@/core/notifications/scheduler";
 import { captureLogoutCompleted } from "@/core/observability/product-events";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
@@ -160,10 +163,11 @@ async function purgeLocalAccountData(): Promise<void> {
     () => clearLocaleSnapshot(),
     () => resetVault(),
     () => forgetLandingPreference(),
-    // The reminder is the departing account's opt-in: left armed, it kept
+    // The reminders are the departing account's opt-in: left armed, it kept
     // firing after sign-out, and the next account on the device inherited it.
     () => cancelReminder(),
     () => writeRemindersEnabled(false),
+    () => writeWeeklyRecapEnabled(false),
     () => clearAllKeys(),
     () => forgetGoogleAccount(),
     () => clearRecoveryPending(),
@@ -188,7 +192,7 @@ async function purgeLocalAccountData(): Promise<void> {
  */
 async function cancelReminder(): Promise<void> {
   try {
-    await cancelMonthlyReminder();
+    await cancelAllReminders();
   } catch {
     // Already gone, or never there — either way nothing is left to fire.
   }
