@@ -212,9 +212,9 @@ extension ReconcileAccountsSheet {
     /// Pointing one of them first keeps an adjustment from counting it twice later.
     private func candidatesSection(_ candidates: [AccountReconciliation.PointingCandidate]) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(candidates.count == 1 && missedMovement != nil
-                ? AppLocale.string("Sans doute passé sans être pointé")
-                : AppLocale.string("À pointer d'abord, s'ils sont passés sur ton compte"))
+            Text(candidates.count > 1 ? AppLocale.string("À pointer d'abord, s'ils sont passés sur ton compte")
+                : missedMovement != nil ? AppLocale.string("Sans doute passé sans être pointé")
+                : AppLocale.string("À pointer d'abord, s'il est passé sur ton compte"))
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)
                 .padding(.leading, DesignTokens.Spacing.xs)

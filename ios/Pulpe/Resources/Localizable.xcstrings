@@ -1406,6 +1406,28 @@
         }
       }
     },
+    "À pointer d'abord, s'il est passé sur ton compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuerst abhaken, falls die Buchung über dein Konto gelaufen ist"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check this first if it went through your account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da spuntare prima, se è passato sul tuo conto"
+          }
+        }
+      }
+    },
     "À pointer d'abord, s'ils sont passés sur ton compte" : {
       "localizations" : {
         "de" : {
