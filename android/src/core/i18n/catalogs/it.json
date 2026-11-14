@@ -1434,6 +1434,14 @@
         "feedback": {
           "title": "Lascia un'opinione",
           "description": "Un'impressione in 30 secondi"
+        },
+        "connections": {
+          "title": "Connessioni",
+          "description": "Assistenti IA autorizzati",
+          "count": {
+            "one": "%{count} assistente IA autorizzato",
+            "other": "%{count} assistenti IA autorizzati"
+          }
         }
       },
       "sections": {
@@ -1623,6 +1631,50 @@
         "currentMonth": "Gestione del budget del mese",
         "futurePlanning": "Pianificazione dei prossimi mesi",
         "homeClarity": "Chiarezza della schermata iniziale"
+      }
+    },
+    "connections": {
+      "title": "Connessioni",
+      "subtitle": "Gli assistenti IA con accesso al tuo budget",
+      "since": "%{mode} · dal %{date}",
+      "listFooter": "Tocca un assistente per vedere cosa ha fatto o tagliargli l'accesso.",
+      "addHint": "Per collegare un nuovo assistente, apri Pulpe sul web, in Impostazioni poi Connessioni. Scegli i suoi diritti e confermi con il tuo codice PIN.",
+      "emptyTitle": "Nessun assistente collegato",
+      "emptyHint": "Puoi collegare Pulpe a ChatGPT o Claude per gestire il tuo budget a voce. Non viene condiviso nulla finché non autorizzi qualcosa.",
+      "modes": {
+        "read": "Sola lettura",
+        "read_write": "Lettura e scrittura"
+      },
+      "detailTitle": "Accesso",
+      "grantedOn": "%{mode} · autorizzato il %{date}",
+      "activityTitle": "Ultime azioni",
+      "activityEmpty": "Nessuna azione per ora.",
+      "activityError": "Impossibile caricare le ultime azioni.",
+      "failed": "Errore",
+      "revoke": "Revoca l'accesso",
+      "revokeTitle": "Revocare l'accesso?",
+      "revokeConsequence": "%{name} non potrà più leggere né modificare il tuo budget. Per ricollegarlo, dovrai autorizzarlo di nuovo con il tuo codice.",
+      "revokeError": "Non è stato possibile revocare l'accesso. Riprova.",
+      "tools": {
+        "add_movement": "Movimento aggiunto",
+        "update_movement": "Movimento modificato",
+        "delete_movement": "Movimento eliminato",
+        "add_forecast": "Previsione aggiunta",
+        "update_forecast": "Previsione modificata",
+        "spread_expense": "Spesa ripartita",
+        "create_month_from_template": "Budget mensile creato",
+        "delete_month": "Mese eliminato",
+        "toggle_check": "Spunta modificata",
+        "create_tag": "Tag creato",
+        "rename_tag": "Tag rinominato",
+        "delete_tag": "Tag eliminato",
+        "tag_items": "Tag aggiornati",
+        "create_template": "Modello creato",
+        "update_template": "Modello aggiornato",
+        "delete_template": "Modello eliminato",
+        "duplicate_template": "Modello duplicato",
+        "edit_template_lines": "Previsioni del modello aggiornate",
+        "adjust_over_months": "Modificato su più mesi"
       }
     }
   },

@@ -1434,6 +1434,14 @@
         "feedback": {
           "title": "Feedback geben",
           "description": "Ein Eindruck in 30 Sekunden"
+        },
+        "connections": {
+          "title": "Verbindungen",
+          "description": "Autorisierte KI-Assistenten",
+          "count": {
+            "one": "%{count} KI-Assistent erlaubt",
+            "other": "%{count} KI-Assistenten erlaubt"
+          }
         }
       },
       "sections": {
@@ -1623,6 +1631,50 @@
         "currentMonth": "Verwaltung des Monatsbudgets",
         "futurePlanning": "Planung der kommenden Monate",
         "homeClarity": "Klarheit der Startseite"
+      }
+    },
+    "connections": {
+      "title": "Verbindungen",
+      "subtitle": "Die KI-Assistenten mit Zugriff auf dein Budget",
+      "since": "%{mode} · seit %{date}",
+      "listFooter": "Tippe auf einen Assistenten, um zu sehen, was er getan hat, oder ihm den Zugriff zu entziehen.",
+      "addHint": "Um einen neuen Assistenten zu verbinden, öffne Pulpe im Web unter Einstellungen, dann Verbindungen. Du wählst seine Rechte und bestätigst mit deinem PIN-Code.",
+      "emptyTitle": "Kein Assistent verbunden",
+      "emptyHint": "Du kannst Pulpe in ChatGPT oder Claude verbinden, um dein Budget im Gespräch zu verwalten. Nichts wird geteilt, solange du nichts autorisiert hast.",
+      "modes": {
+        "read": "Nur Lesen",
+        "read_write": "Lesen und Schreiben"
+      },
+      "detailTitle": "Anmeldung",
+      "grantedOn": "%{mode} · autorisiert am %{date}",
+      "activityTitle": "Letzte Aktionen",
+      "activityEmpty": "Noch keine Aktion.",
+      "activityError": "Die letzten Aktionen konnten nicht geladen werden.",
+      "failed": "Fehlgeschlagen",
+      "revoke": "Zugriff entziehen",
+      "revokeTitle": "Zugriff entziehen?",
+      "revokeConsequence": "%{name} kann dein Budget nicht mehr lesen oder ändern. Um den Assistenten wieder zu verbinden, musst du ihn erneut mit deinem Code autorisieren.",
+      "revokeError": "Der Zugriff konnte nicht entzogen werden. Versuch es noch einmal.",
+      "tools": {
+        "add_movement": "Bewegung hinzugefügt",
+        "update_movement": "Bewegung geändert",
+        "delete_movement": "Bewegung gelöscht",
+        "add_forecast": "Planposten hinzugefügt",
+        "update_forecast": "Planposten geändert",
+        "spread_expense": "Verteilte Ausgabe",
+        "create_month_from_template": "Monatsbudget erstellt",
+        "delete_month": "Monat gelöscht",
+        "toggle_check": "Abhaken geändert",
+        "create_tag": "Tag erstellt",
+        "rename_tag": "Tag umbenannt",
+        "delete_tag": "Tag gelöscht",
+        "tag_items": "Tags aktualisiert",
+        "create_template": "Vorlage erstellt",
+        "update_template": "Vorlage aktualisiert",
+        "delete_template": "Vorlage gelöscht",
+        "duplicate_template": "Vorlage dupliziert",
+        "edit_template_lines": "Planung der Vorlage aktualisiert",
+        "adjust_over_months": "Über mehrere Monate angepasst"
       }
     }
   },

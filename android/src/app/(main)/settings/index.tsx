@@ -29,6 +29,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
+import { useConnections } from "@/features/connections/connections-queries";
 import { useTags } from "@/features/tags/tag-queries";
 import { useUserProfile } from "@/features/account/account-queries";
 import { FeedbackSheet } from "@/features/feedback/components/feedback-sheet";
@@ -50,6 +51,7 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
   const profile = useUserProfile();
   const tags = useTags();
+  const connections = useConnections();
   const biometricKind = useQuery({
     queryKey: ["biometrics", "kind"],
     queryFn: describeBiometrics,
@@ -145,6 +147,18 @@ export default function SettingsScreen() {
                   })
             }
             onPress={() => router.push("/settings/tags")}
+          />
+          <SettingsRow
+            icon="link-variant"
+            title={t("settings.account.rows.connections.title")}
+            description={
+              connections.data === undefined
+                ? t("settings.account.rows.connections.description")
+                : t("settings.account.rows.connections.count", {
+                    count: connections.data.length,
+                  })
+            }
+            onPress={() => router.push("/settings/connections")}
           />
         </SettingsSection>
 

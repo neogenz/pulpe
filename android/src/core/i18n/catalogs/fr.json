@@ -1434,6 +1434,14 @@
         "feedback": {
           "title": "Donner mon avis",
           "description": "Une impression en 30 secondes"
+        },
+        "connections": {
+          "title": "Connexions",
+          "description": "Assistants IA autorisés",
+          "count": {
+            "one": "%{count} assistant IA autorisé",
+            "other": "%{count} assistants IA autorisés"
+          }
         }
       },
       "sections": {
@@ -1623,6 +1631,50 @@
         "currentMonth": "Gestion du budget du mois",
         "futurePlanning": "Planification des prochains mois",
         "homeClarity": "Clarté de l'accueil"
+      }
+    },
+    "connections": {
+      "title": "Connexions",
+      "subtitle": "Les assistants IA qui ont accès à ton budget",
+      "since": "%{mode} · depuis le %{date}",
+      "listFooter": "Touche un assistant pour voir ce qu'il a fait ou lui couper l'accès.",
+      "addHint": "Pour brancher un nouvel assistant, ouvre Pulpe sur le web, dans Paramètres puis Connexions. Tu choisis ses droits et tu valides avec ton code PIN.",
+      "emptyTitle": "Aucun assistant branché",
+      "emptyHint": "Tu peux brancher Pulpe dans ChatGPT ou Claude pour gérer ton budget en parlant. Rien n'est partagé tant que tu n'as rien autorisé.",
+      "modes": {
+        "read": "Lecture seule",
+        "read_write": "Lecture et écriture"
+      },
+      "detailTitle": "Connexion",
+      "grantedOn": "%{mode} · autorisé le %{date}",
+      "activityTitle": "Dernières actions",
+      "activityEmpty": "Aucune action pour l'instant.",
+      "activityError": "Impossible de charger les dernières actions.",
+      "failed": "Échec",
+      "revoke": "Couper l'accès",
+      "revokeTitle": "Couper l'accès ?",
+      "revokeConsequence": "%{name} ne pourra plus lire ni modifier ton budget. Pour le rebrancher, il faudra l'autoriser à nouveau avec ton code.",
+      "revokeError": "L'accès n'a pas pu être coupé. Réessaie.",
+      "tools": {
+        "add_movement": "Mouvement ajouté",
+        "update_movement": "Mouvement modifié",
+        "delete_movement": "Mouvement supprimé",
+        "add_forecast": "Prévision ajoutée",
+        "update_forecast": "Prévision modifiée",
+        "spread_expense": "Dépense lissée",
+        "create_month_from_template": "Budget mensuel créé",
+        "delete_month": "Mois supprimé",
+        "toggle_check": "Pointage modifié",
+        "create_tag": "Tag créé",
+        "rename_tag": "Tag renommé",
+        "delete_tag": "Tag supprimé",
+        "tag_items": "Tags modifiés",
+        "create_template": "Modèle créé",
+        "update_template": "Modèle modifié",
+        "delete_template": "Modèle supprimé",
+        "duplicate_template": "Modèle dupliqué",
+        "edit_template_lines": "Prévisions du modèle modifiées",
+        "adjust_over_months": "Ajusté sur plusieurs mois"
       }
     }
   },
