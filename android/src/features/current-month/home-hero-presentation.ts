@@ -1,7 +1,6 @@
-import type { BalanceTrajectory, SupportedCurrency } from "pulpe-shared";
+import type { BalanceTrajectory } from "pulpe-shared";
 import type { TranslateOptions } from "i18n-js";
 
-import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
 
 /**
@@ -22,8 +21,6 @@ export interface HeroPresentation {
   tone: HeroTone;
   /** The day the month left its plan, or null when it never did. */
   driftDate: Date | null;
-  /** Whether an envelope overrun was paid for elsewhere in the month. */
-  absorbsEnvelopeOverrun: boolean;
 }
 
 export interface HeroPresentationInput {
@@ -54,9 +51,6 @@ export function heroPresentation({
     tone:
       estimatedBalance < 0 ? "deficit" : variance < 0 ? "caution" : "favorable",
     driftDate: trajectory?.driftDate ?? null,
-    // A month landing exactly on plan absorbed the overrun just as surely as
-    // one landing above it; only a month behind its own plan left it uncovered.
-    absorbsEnvelopeOverrun: verdict !== "overrun",
   };
 }
 
@@ -78,18 +72,6 @@ export function verdictSentence(
     case "gain":
       return datedVerdict(t, locale, "gain", presentation.driftDate);
   }
-}
-
-/**
- * Carries its unit even though the hero above already shows one: its neighbour
- * on the row is a count of operations, and two figures in the same type have
- * nothing else to say which of them is money.
- */
-export function varianceLabel(
-  presentation: HeroPresentation,
-  currency: SupportedCurrency,
-): string {
-  return formatSignedCompactCurrency(presentation.variance, currency);
 }
 
 function datedVerdict(

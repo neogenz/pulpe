@@ -14,6 +14,10 @@ import {
   storeClientKey,
 } from "@/core/crypto/client-key-manager";
 import { deriveClientKey } from "@/core/crypto/pbkdf2";
+import {
+  capturePinChanged,
+  capturePinEntered,
+} from "@/core/observability/product-events";
 import { queryClient } from "@/core/query/query-client";
 
 import { isVaultKeyRejected } from "./key-rejection";
@@ -190,6 +194,7 @@ export async function unlockVaultWithPin(pin: string): Promise<void> {
     const clientKeyHex = await deriveAndHold(pin);
     await validateClientKey(clientKeyHex);
     setState({ status: "unlocked" });
+    capturePinEntered();
   } catch (error) {
     await clearSessionKey();
     setState({ status: "locked" });
@@ -287,6 +292,7 @@ export async function changeVaultPin(
   }
 
   setState({ pendingRecoveryNotice: { kind: "minted", recoveryKey } });
+  capturePinChanged();
 }
 
 /**

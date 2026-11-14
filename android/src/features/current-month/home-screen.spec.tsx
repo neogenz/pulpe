@@ -184,6 +184,10 @@ jest.mock("@/core/tips/tips-store", () => ({ dismissTip: jest.fn() }));
 jest.mock("@/core/tips/tooltip", () => ({ Tooltip: () => null }));
 jest.mock("@/features/current-month/current-month-queries", () => ({
   useCurrentMonth: () => mockCurrentMonth,
+  currentBudgetPeriod: () => ({ month: 8, year: 2026 }),
+}));
+jest.mock("@/features/current-month/use-movement-editor", () => ({
+  useMovementEditor: () => ({ edit: jest.fn(), isOpen: false, element: null }),
 }));
 jest.mock("@/features/budgets/budget-queries", () => ({
   useBudgetList: () => mockBudgets,
@@ -198,8 +202,12 @@ jest.mock("@/features/current-month/home-hero-presentation", () => ({
 jest.mock("@/features/current-month/components/home-hero-card", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return {
-    HomeHeroCard: ({ onPressMetrics }: { onPressMetrics: () => void }) => (
-      <Pressable onPress={onPressMetrics}>
+    HomeHeroCard: ({
+      onPressCalculation,
+    }: {
+      onPressCalculation: () => void;
+    }) => (
+      <Pressable onPress={onPressCalculation}>
         <Text>open-realized</Text>
       </Pressable>
     ),
@@ -213,15 +221,25 @@ jest.mock("@/features/current-month/components/home-hero-skeleton", () => {
     ),
   };
 });
-jest.mock("@/features/current-month/components/drift-card", () => ({
-  DriftCard: () => null,
-}));
 jest.mock("@/features/current-month/components/savings-done-card", () => ({
   SavingsDoneCard: () => null,
 }));
-jest.mock("@/features/current-month/components/activity-card", () => ({
-  ActivityCard: () => null,
-}));
+jest.mock(
+  "@/features/current-month/components/recent-movements-section",
+  () => ({ RecentMovementsSection: () => null }),
+);
+jest.mock("@/features/current-month/components/home-start-card", () => {
+  const { Text } = jest.requireActual("react-native");
+  return { HomeStartCard: () => <Text>start-card</Text> };
+});
+jest.mock("@/features/current-month/components/home-no-budget-view", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    HomeNoBudgetView: ({ monthName }: { monthName: string }) => (
+      <Text>{`no-budget:${monthName}`}</Text>
+    ),
+  };
+});
 jest.mock("@/features/current-month/components/realized-balance-sheet", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return {
@@ -300,27 +318,24 @@ jest.mock(
   "@/features/current-month/components/notification-prime-sheet",
   () => ({ NotificationPrimeSheet: () => null }),
 );
-jest.mock(
-  "@/features/current-month/components/unchecked-operations-card",
-  () => {
-    const { Pressable, Text } = jest.requireActual("react-native");
-    return {
-      UncheckedOperationsCard: ({
-        items,
-        onToggle,
-      }: {
-        items: { id: string }[];
-        onToggle: (item: { id: string; name: string }) => void;
-      }) => (
-        <Pressable
-          onPress={() => onToggle(items[0] as { id: string; name: string })}
-        >
-          <Text>{`point:${items[0].id}`}</Text>
-        </Pressable>
-      ),
-    };
-  },
-);
+jest.mock("@/features/current-month/components/home-todo-card", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    HomeTodoCard: ({
+      items,
+      onPointItem,
+    }: {
+      items: { id: string }[];
+      onPointItem: (item: { id: string; name: string }) => void;
+    }) => (
+      <Pressable
+        onPress={() => onPointItem(items[0] as { id: string; name: string })}
+      >
+        <Text>{`point:${items[0].id}`}</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock("@/features/transactions/components/transaction-sheet", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
@@ -383,6 +398,8 @@ function readyMonth() {
     payDayOfMonth: null,
     refresh: mockRefresh,
     viewModel: {
+      periodProgress: { day: 3, totalDays: 30 },
+      uncheckedMovementCount: 1,
       metrics: { remaining: 100, endingBalance: 100 },
       trajectory: [],
       driftLines: [],
@@ -390,7 +407,6 @@ function readyMonth() {
       savings: { isComplete: false, totalRealized: 0 },
       uncheckedCount: 1,
       uncheckedItems: [{ id: "item-1", name: "Courses", type: "transaction" }],
-      daysRemaining: 5,
       realized: {},
     },
   };
@@ -405,7 +421,7 @@ beforeEach(() => {
   Object.assign(mockSheetLifecycle, { mounts: 0, unmounts: 0 });
 });
 
-it("renders loading, retryable failure and empty creation states", async () => {
+it("renders loading, retryable failure and the no-budget view", async () => {
   const loading = await render(<HomeScreen />);
   expect(loading.getByTestId("home-hero-skeleton")).toBeTruthy();
   expect(loading.getByLabelText("common.loading")).toBeTruthy();
@@ -419,8 +435,19 @@ it("renders loading, retryable failure and empty creation states", async () => {
 
   Object.assign(mockCurrentMonth, { status: "empty", viewModel: null });
   await loading.rerender(<HomeScreen />);
-  await fireEvent.press(loading.getByText("home.states.createBudget"));
-  expect(router.push).toHaveBeenCalledWith("/budget/create");
+  expect(loading.getByText("no-budget:août")).toBeTruthy();
+});
+
+it("swaps « À faire » for the start card on a first, untouched month", async () => {
+  Object.assign(mockCurrentMonth, readyMonth());
+  mockBudgets.data = [{ id: "budget-1" }];
+  const first = await render(<HomeScreen />);
+  expect(first.getByText("start-card")).toBeTruthy();
+  expect(first.queryByText("point:item-1")).toBeNull();
+
+  mockBudgets.data = [{ id: "budget-0" }, { id: "budget-1" }];
+  await first.rerender(<HomeScreen />);
+  expect(first.getByText("point:item-1")).toBeTruthy();
 });
 
 /**
@@ -450,7 +477,7 @@ it("opens addition from its action and a pending deep link", async () => {
   await fireEvent.press(view.getByTestId("home-add-entry"));
   expect(view.getByText("add-sheet")).toBeTruthy();
   await fireEvent.press(view.getByText("save-entry"));
-  expect(view.getByText("home.activity.added")).toBeTruthy();
+  expect(view.getByText("home.movements.added")).toBeTruthy();
 
   mockDeepLink.isAddExpenseRequested = true;
   await view.rerender(<HomeScreen />);

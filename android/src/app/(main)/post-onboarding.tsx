@@ -6,6 +6,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { captureOnboardingHandoffCompleted } from "@/core/observability/product-events";
+import { useV2Colors } from "@/core/ui/scheme-colors";
 import { acknowledgeHandoff } from "@/features/onboarding/onboarding-store";
 
 /**
@@ -19,6 +21,7 @@ export default function PostOnboardingScreen() {
   const { t } = useTranslation();
 
   function enterApp() {
+    captureOnboardingHandoffCompleted();
     acknowledgeHandoff();
     router.replace("/home");
   }
@@ -32,25 +35,27 @@ export default function PostOnboardingScreen() {
 
       <View style={styles.body}>
         <View style={styles.intro}>
-          <Text variant="headlineMedium">{t("main.handoff.title")}</Text>
+          <Text variant="headlineMedium" accessibilityRole="header">
+            {t("main.handoff.title")}
+          </Text>
           <Text
-            variant="bodyMedium"
+            variant="bodyLarge"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {t("main.handoff.intro")}
+            {t("main.handoff.subtitle")}
           </Text>
         </View>
 
         <View style={styles.steps}>
           <RitualStep
-            icon="checkbox-marked-circle-outline"
-            title={t("main.handoff.point.title")}
-            description={t("main.handoff.point.description")}
+            icon="plus"
+            title={t("main.handoff.add.title")}
+            description={t("main.handoff.add.description")}
           />
           <RitualStep
-            icon="eye-outline"
-            title={t("main.handoff.review.title")}
-            description={t("main.handoff.review.description")}
+            icon="check"
+            title={t("main.handoff.point.title")}
+            description={t("main.handoff.point.description")}
           />
           <RitualStep
             icon="calendar-month-outline"
@@ -77,19 +82,21 @@ function RitualStep({
   description: string;
 }) {
   const theme = useTheme();
+  const v2 = useV2Colors();
 
   return (
-    <View style={styles.step}>
-      <View
-        style={[
-          styles.stepIcon,
-          { backgroundColor: theme.colors.secondaryContainer },
-        ]}
-      >
+    <View
+      accessible
+      style={[
+        styles.step,
+        { backgroundColor: theme.colors.surface, borderColor: v2.line },
+      ]}
+    >
+      <View style={[styles.stepIcon, { backgroundColor: v2.accentWash }]}>
         <MaterialCommunityIcons
           name={icon}
-          size={ICON_SIZE.xl}
-          color={theme.colors.onSecondaryContainer}
+          size={ICON_SIZE.lg}
+          color={v2.accentInk}
         />
       </View>
       <View style={styles.stepText}>
@@ -113,11 +120,18 @@ const styles = StyleSheet.create({
    */
   body: { flex: 1, justifyContent: "center", gap: SPACING.xl },
   intro: { gap: SPACING.xs },
-  steps: { gap: SPACING.lg },
-  step: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
+  steps: { gap: SPACING.md },
+  step: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: RADIUS.card,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   stepIcon: {
-    width: SPACING.xxl,
-    height: SPACING.xxl,
+    width: SPACING.xl,
+    height: SPACING.xl,
     borderRadius: RADIUS.full,
     alignItems: "center",
     justifyContent: "center",

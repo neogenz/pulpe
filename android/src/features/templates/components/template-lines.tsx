@@ -16,6 +16,8 @@ import { templateLineSections } from "../template-vm";
 interface TemplateLinesProps {
   lines: TemplateLine[];
   currency: SupportedCurrency;
+  /** Goals that exist: a line linked to one reads « liée à l'objectif ». */
+  goalIds: ReadonlySet<string>;
   isDeleting: boolean;
   onEdit: (line: TemplateLine) => void;
   onDelete: (line: TemplateLine) => void;
@@ -30,6 +32,7 @@ interface TemplateLinesProps {
 export function TemplateLines({
   lines,
   currency,
+  goalIds,
   isDeleting,
   onEdit,
   onDelete,
@@ -66,7 +69,11 @@ export function TemplateLines({
                   />
                 }
                 title={line.name}
-                subtitle={recurrenceLabel(t, line.recurrence)}
+                subtitle={
+                  line.savingsGoalId !== null && goalIds.has(line.savingsGoalId)
+                    ? `${recurrenceLabel(t, line.recurrence)} · ${t("templates.detail.linkedToGoal")}`
+                    : recurrenceLabel(t, line.recurrence)
+                }
                 trailing={
                   <Amount
                     size="row"

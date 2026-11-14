@@ -11,10 +11,14 @@ appId: app.pulpe.android
 env:
   LINE: Loyer
 ---
+# The current month is the first row of the budget list.
 - extendedWaitUntil:
-    visible: "Voir le détail du budget"
+    visible: "Onglet Budgets"
     timeout: 30000
-- tapOn: "Voir le détail du budget"
+- tapOn: "Onglet Budgets"
+- tapOn:
+    id: "budget-row-.*"
+    index: 0
 - tapOn: "Tout"
 
 # On the Pixel 2 at 130% font scale, the expense section starts below the

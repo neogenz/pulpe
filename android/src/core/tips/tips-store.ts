@@ -2,15 +2,11 @@ import { createMMKV } from "react-native-mmkv";
 import { create } from "zustand";
 
 /**
- * The four things the app cannot make obvious by looking at it. Mirrors the
+ * The three things the app cannot make obvious by looking at it. Mirrors the
  * iOS TipKit set (`ios/Pulpe/Features/Tips/ProductTips.swift`), minus its
  * display-count rules: here each one shows once and never comes back.
  */
-export type TipId =
-  | "gestures"
-  | "checking"
-  | "pessimistic-check"
-  | "templates-web-parity";
+export type TipId = "gestures" | "checking" | "pessimistic-check";
 
 const DISMISSED_KEY = "pulpe-tips-dismissed";
 const ARMED_KEY = "pulpe-tips-armed";

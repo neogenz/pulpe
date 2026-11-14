@@ -43,7 +43,6 @@ export const ENDPOINTS = {
   transactionsByBudget: (budgetId: string) =>
     `/transactions/budget/${budgetId}`,
   transactionToggle: (id: string) => `/transactions/${id}/toggle-check`,
-  transactionPostpone: (id: string) => `/transactions/${id}/postpone`,
   transactionSpreadFromTransaction: (id: string) =>
     `/transactions/${id}/spread`,
 
@@ -72,6 +71,13 @@ export const ENDPOINTS = {
   savingsGoalDeletion: (id: string) => `/savings-goals/${id}/deletion`,
   savingsGoalWithdrawalOptions: "/savings-goals/withdrawal-options",
   savingsGoalWithdrawals: (id: string) => `/savings-goals/${id}/withdrawals`,
+
+  assets: "/assets",
+  asset: (id: string) => `/assets/${id}`,
+  assetSnapshots: "/assets/snapshots",
+  assetDismissSuggestion: (id: string) => `/assets/${id}/dismiss-suggestion`,
+  assetCategories: "/asset-categories",
+  assetCategory: (id: string) => `/asset-categories/${id}`,
 
   currencyRate: "/currency/rate",
 

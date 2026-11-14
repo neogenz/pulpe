@@ -1,11 +1,7 @@
 import type { BalanceTrajectory } from "pulpe-shared";
 import { i18n, translate } from "@/core/i18n/i18n";
 
-import {
-  heroPresentation,
-  varianceLabel,
-  verdictSentence,
-} from "./home-hero-presentation";
+import { heroPresentation, verdictSentence } from "./home-hero-presentation";
 
 function trajectory(
   overrides: Partial<BalanceTrajectory> = {},
@@ -65,19 +61,6 @@ describe("heroPresentation", () => {
     expect(presentation.verdict).toBe("gain");
     expect(presentation.tone).toBe("deficit");
   });
-
-  // The hero and the drift card have to agree: a month on plan absorbed the
-  // overrun, so the card cannot claim the money went missing.
-  it("treats a month exactly on plan as having absorbed its overruns", () => {
-    const presentation = heroPresentation({
-      estimatedBalance: 2500,
-      fallbackPlannedBalance: 2500,
-      trajectory: null,
-    });
-
-    expect(presentation.verdict).toBe("onPlan");
-    expect(presentation.absorbsEnvelopeOverrun).toBe(true);
-  });
 });
 
 describe("verdictSentence", () => {
@@ -129,23 +112,5 @@ describe("verdictSentence", () => {
     );
 
     expect(sentence).toBe("Tu es pile sur ton plan.");
-  });
-});
-
-describe("varianceLabel", () => {
-  it("signs a gain and leaves a loss to its own minus", () => {
-    const gain = heroPresentation({
-      estimatedBalance: 2900,
-      fallbackPlannedBalance: 2500,
-      trajectory: null,
-    });
-    const loss = heroPresentation({
-      estimatedBalance: 2200,
-      fallbackPlannedBalance: 2500,
-      trajectory: null,
-    });
-
-    expect(varianceLabel(gain, "CHF")).toBe("+400 CHF");
-    expect(varianceLabel(loss, "CHF")).toBe("-300 CHF");
   });
 });

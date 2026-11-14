@@ -27,6 +27,10 @@ export function PinSetupStep() {
 
   return (
     <PinScreen
+      eyebrow={t("vault.setup.step", {
+        current: isConfirming ? 2 : 1,
+        total: 2,
+      })}
       title={t(isConfirming ? "vault.confirmPin" : "vault.setup.title", {
         count: PIN_LENGTH,
       })}

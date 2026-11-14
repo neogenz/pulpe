@@ -1,8 +1,10 @@
 import Constants from "expo-constants";
 import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   Linking,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -22,10 +24,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { describeBiometrics } from "@/core/crypto/biometrics";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
+import { useTags } from "@/features/tags/tag-queries";
 import { useUserProfile } from "@/features/account/account-queries";
 import { ProfileSheet } from "@/features/account/components/profile-sheet";
 import {
@@ -44,6 +48,12 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const profile = useUserProfile();
+  const tags = useTags();
+  const biometricKind = useQuery({
+    queryKey: ["biometrics", "kind"],
+    queryFn: describeBiometrics,
+    staleTime: Infinity,
+  }).data;
   const pull = usePullToRefresh(() => profile.refetch());
   const sessionEmail = useSessionStore((state) => state.user?.email);
   const signOut = useSessionStore((state) => state.signOut);
@@ -58,6 +68,8 @@ export default function SettingsScreen() {
     .join(" ");
   const initial = (fullName || email || "?").slice(0, 1).toLocaleUpperCase();
   const version = Constants.expoConfig?.version ?? "";
+  const androidRelease =
+    Platform.OS === "android" ? Platform.constants.Release : "";
 
   return (
     <SafeAreaView
@@ -106,7 +118,11 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="shield-lock-outline"
             title={t("settings.account.rows.security.title")}
-            description={t("settings.account.rows.security.description")}
+            description={t("settings.account.rows.security.description", {
+              biometric: t(
+                `settings.security.biometric.${biometricKind ?? "generic"}`,
+              ),
+            })}
             onPress={() => router.push("/settings/security")}
           />
           <SettingsRow
@@ -119,7 +135,13 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="tag-outline"
             title={t("settings.account.rows.tags.title")}
-            description={t("settings.account.rows.tags.description")}
+            description={
+              tags.data === undefined
+                ? t("settings.account.rows.tags.description")
+                : t("settings.account.rows.tags.count", {
+                    count: tags.data.length,
+                  })
+            }
             onPress={() => router.push("/settings/tags")}
           />
         </SettingsSection>
@@ -135,7 +157,9 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="star-four-points-outline"
             title={t("settings.account.rows.whatsNew.title")}
-            description={t("settings.account.rows.whatsNew.description")}
+            description={t("settings.account.rows.whatsNew.description", {
+              version,
+            })}
             isExternal
             onPress={() => void Linking.openURL(APP_URLS.changelog)}
           />
@@ -170,7 +194,7 @@ export default function SettingsScreen() {
           variant="labelSmall"
           style={[styles.version, { color: theme.colors.onSurfaceVariant }]}
         >
-          Pulpe {version}
+          {t("settings.account.footer", { version, os: androidRelease })}
         </Text>
       </ScrollView>
 

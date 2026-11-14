@@ -1,9 +1,10 @@
-import type {
-  BudgetPeriodDates,
-  SupportedCurrency,
-  Transaction,
-  TransactionCreate,
-  TransactionKind,
+import {
+  BudgetFormulas,
+  type BudgetPeriodDates,
+  type SupportedCurrency,
+  type Transaction,
+  type TransactionCreate,
+  type TransactionKind,
 } from "pulpe-shared";
 import { useRef, useState } from "react";
 import { randomUUID } from "react-native-quick-crypto";
@@ -11,7 +12,6 @@ import { Keyboard, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
-  SegmentedButtons,
   Switch,
   Text,
   TextInput,
@@ -20,6 +20,9 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { hapticSuccess } from "@/core/ui/haptics";
+import { useAmountMasking } from "@/core/ui/amount-visibility";
+import { SegmentedPicker } from "@/core/ui/segmented-picker";
+import { useBudgetDetails } from "@/features/budgets/budget-queries";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { kindOptions } from "@/core/ui/vocabulary";
 import { TagPicker } from "@/features/tags/tag-picker";
@@ -30,9 +33,21 @@ import { formatRelativeDay } from "@/core/ui/date-format";
 import { FadingRail } from "@/core/ui/fading-rail";
 import { FilterChip } from "@/core/ui/filter-chip";
 import { FormModal } from "@/core/ui/sheet";
-import { SPACING } from "@/core/ui/theme";
+import { EMPHASIS, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-queries";
+
+import {
+  computeMovementImpact,
+  movementImpactContent,
+} from "../movement-impact";
+import {
+  eligibleLines,
+  lineSections,
+  suggestedLine,
+} from "../movement-line-choices";
+import { ImpactBlock } from "@/features/budget-details/components/impact-confirm-sheet";
+import { MovementLinePicker } from "./movement-line-picker";
 
 import {
   buildTransactionPayload,
@@ -54,12 +69,6 @@ const NAME_MAX_LENGTH = 100;
 
 /** The gutter `core/ui/sheet` keeps, and so the one the rail has to give back. */
 const SHEET_PADDING = SPACING.lg;
-
-const KIND_ICONS = {
-  expense: "arrow-up",
-  income: "arrow-down",
-  saving: "piggy-bank-outline",
-} as const;
 
 /** What an operation can be attached to, as far as this form is concerned. */
 export interface EnvelopeTarget {
@@ -118,7 +127,9 @@ export function TransactionSheet({
   hasDeleteFailed = false,
 }: TransactionSheetProps) {
   const theme = useTheme();
+  useAmountMasking();
   const { locale, t } = useTranslation();
+  const details = useBudgetDetails(budgetId);
   const create = useCreateTransaction();
   const update = useUpdateTransaction();
   const refreshAfterWrite = useRefreshAfterTransactionWrite();
@@ -132,6 +143,10 @@ export function TransactionSheet({
   // Held apart from the chosen goal: "yes, from a goal" and "which one" are two
   // answers, and the block has to stay open between them.
   const [isFromSavingsGoal, setFromSavingsGoal] = useState(false);
+  // The answer to « C'était prévu dans ton budget ? »: null is the untouched
+  // « imprévu », and a suggestion is only ever offered, never picked for the user.
+  const [pickedLineId, setPickedLineId] = useState<string | null>(null);
+  const [isPickingLine, setPickingLine] = useState(false);
   // Bumped on every reset. The amount field holds its own text so a decimal
   // separator survives typing, which means clearing the number behind it is not
   // enough to clear what is on screen — only a remount is.
@@ -190,6 +205,55 @@ export function TransactionSheet({
     remainingAfterWithdrawal,
   });
 
+  const lines = details.data?.budgetLines ?? [];
+  const transactions = details.data?.transactions ?? [];
+  // Savings drawn from a goal are free by backend rule: they carry no prévision.
+  const isQuestionLocked = isEditing || (isOriginOffered && isFromSavingsGoal);
+  const selectedLineId = isEditing
+    ? (transaction.budgetLineId ?? null)
+    : envelope !== undefined
+      ? envelope.id
+      : isQuestionLocked
+        ? null
+        : pickedLineId;
+  const selectedLine = lines.find((line) => line.id === selectedLineId);
+  const hasEligibleLines = eligibleLines(lines, draft.kind).length > 0;
+  const showsQuestion =
+    envelope === undefined && (hasEligibleLines || isEditing);
+  // The first chip: the user's own pick, else the suggestion; an edit shows
+  // the prévision it already sits in.
+  const shownLine = isEditing
+    ? selectedLine
+    : (lines.find((line) => line.id === pickedLineId) ??
+      suggestedLine({
+        lines,
+        transactions,
+        kind: draft.kind,
+        name: draft.name,
+      }) ??
+      undefined);
+  const isUnchangedEdit =
+    transaction !== undefined &&
+    transaction.amount === draft.amount &&
+    transaction.kind === draft.kind;
+  const impact =
+    details.data === undefined ||
+    draft.amount === null ||
+    draft.amount <= 0 ||
+    isUnchangedEdit
+      ? null
+      : computeMovementImpact({
+          lines,
+          transactions,
+          rollover: details.data.budget.rollover ?? 0,
+          replacingId: transaction?.id,
+          draft: {
+            kind: draft.kind,
+            amount: draft.amount,
+            lineId: selectedLineId,
+          },
+        });
+
   function change(changes: Partial<FormState>) {
     setForm((current) => ({ ...current, ...changes }));
   }
@@ -199,12 +263,15 @@ export function TransactionSheet({
       kind,
       ...(kind === "income" ? {} : { sourceSavingsGoalId: null }),
     });
+    setPickedLineId(null);
     if (kind !== "income") setFromSavingsGoal(false);
   }
 
   function reset() {
     setForm(initialForm(transaction, envelope, period));
     setFromSavingsGoal(false);
+    setPickedLineId(null);
+    setPickingLine(false);
     setGeneration((current) => current + 1);
     setCreateId(randomUUID());
     setSubmittedCreate(null);
@@ -241,7 +308,7 @@ export function TransactionSheet({
       const payload = createAttempt.current ?? {
         ...buildTransactionPayload(draft, new Date()),
         id: createId,
-        ...(envelope === undefined ? {} : { budgetLineId: envelope.id }),
+        ...(selectedLineId === null ? {} : { budgetLineId: selectedLineId }),
       };
       createAttempt.current = payload;
       setSubmittedCreate(payload);
@@ -280,10 +347,15 @@ export function TransactionSheet({
       <FormModal
         isVisible={isVisible}
         onDismiss={dismiss}
+        onBack={isPickingLine ? () => setPickingLine(false) : undefined}
         isBusy={mutation.isPending || isDeleting}
-        title={t(
-          `budgets.mutations.activity.${isEditing ? "editTitle" : "createTitle"}`,
-        )}
+        title={
+          isPickingLine
+            ? t("budgets.mutations.activity.picker.title")
+            : t(
+                `budgets.mutations.activity.${isEditing ? "editTitles" : "titles"}.${draft.kind}`,
+              )
+        }
         subtitle={
           envelope === undefined
             ? undefined
@@ -292,64 +364,87 @@ export function TransactionSheet({
               })
         }
         footer={
-          <>
-            {mutation.isError && (
-              <FieldError visible>
-                {t("budgets.mutations.activity.error")}
-              </FieldError>
-            )}
+          isPickingLine ? undefined : (
+            <>
+              {mutation.isError && (
+                <FieldError visible>
+                  {t("budgets.mutations.activity.error")}
+                </FieldError>
+              )}
 
-            <Button
-              testID="transaction-submit"
-              mode="contained"
-              onPress={submit}
-              disabled={
-                (submittedCreate === null &&
-                  (!isDraftSubmittable(draft) || originProblem !== null)) ||
-                mutation.isPending
-              }
-              loading={mutation.isPending}
-            >
-              {submittedCreate !== null && create.isError
-                ? t("common.retry")
-                : t(`budgets.mutations.${isEditing ? "save" : "add"}`)}
-            </Button>
-
-            {problem !== null && (
-              <Text
-                variant="labelMedium"
-                style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
+              <Button
+                testID="transaction-submit"
+                mode="contained"
+                onPress={submit}
+                disabled={
+                  (submittedCreate === null &&
+                    (!isDraftSubmittable(draft) || originProblem !== null)) ||
+                  mutation.isPending
+                }
+                loading={mutation.isPending}
               >
-                {t(`budgets.mutations.validation.${problem}`)}
-              </Text>
-            )}
+                {submittedCreate !== null && create.isError
+                  ? t("common.retry")
+                  : isEditing
+                    ? t("budgets.mutations.save")
+                    : draft.amount !== null && draft.amount > 0
+                      ? t("budgets.mutations.activity.addAmount", {
+                          amount: formatCurrency(draft.amount, currency),
+                        })
+                      : t("budgets.mutations.add")}
+              </Button>
 
-            {onDelete !== undefined && isEditing && (
-              <>
-                {hasDeleteFailed && (
-                  <FieldError visible>
-                    {t("budgets.mutations.removal.deleteError")}
-                  </FieldError>
-                )}
-                <Button
-                  testID="transaction-delete"
-                  mode="text"
-                  icon="trash-can-outline"
-                  textColor={theme.colors.error}
-                  onPress={onDelete}
-                  // One request at a time: a second tap used to send a second
-                  // DELETE for a row the first one had already removed.
-                  disabled={isDeleting || mutation.isPending}
-                  loading={isDeleting}
+              {problem !== null && (
+                <Text
+                  variant="labelMedium"
+                  style={[
+                    styles.hint,
+                    { color: theme.colors.onSurfaceVariant },
+                  ]}
                 >
-                  {t("budgets.mutations.delete")}
-                </Button>
-              </>
-            )}
-          </>
+                  {t(`budgets.mutations.validation.${problem}`)}
+                </Text>
+              )}
+
+              {onDelete !== undefined && isEditing && (
+                <>
+                  {hasDeleteFailed && (
+                    <FieldError visible>
+                      {t("budgets.mutations.removal.deleteError")}
+                    </FieldError>
+                  )}
+                  <Button
+                    testID="transaction-delete"
+                    mode="text"
+                    icon="trash-can-outline"
+                    textColor={theme.colors.error}
+                    onPress={onDelete}
+                    // One request at a time: a second tap used to send a second
+                    // DELETE for a row the first one had already removed.
+                    disabled={isDeleting || mutation.isPending}
+                    loading={isDeleting}
+                  >
+                    {t("budgets.mutations.delete")}
+                  </Button>
+                </>
+              )}
+            </>
+          )
         }
       >
-        {submittedCreate !== null ? (
+        {isPickingLine ? (
+          <MovementLinePicker
+            sections={lineSections(lines, transactions, draft.kind)}
+            transactions={transactions}
+            kind={draft.kind}
+            currency={currency}
+            selectedLineId={selectedLineId}
+            onPick={(lineId) => {
+              setPickedLineId(lineId);
+              setPickingLine(false);
+            }}
+          />
+        ) : submittedCreate !== null ? (
           <View style={styles.submitted}>
             {create.isError && (
               <Text variant="bodyMedium">
@@ -374,13 +469,10 @@ export function TransactionSheet({
         ) : (
           <>
             {!isKindLocked && (
-              <SegmentedButtons
+              <SegmentedPicker
                 value={draft.kind}
-                onValueChange={(kind) => changeKind(kind as TransactionKind)}
-                buttons={kindOptions(t).map((button) => ({
-                  ...button,
-                  icon: KIND_ICONS[button.value],
-                }))}
+                onValueChange={changeKind}
+                buttons={kindOptions(t)}
               />
             )}
 
@@ -402,6 +494,13 @@ export function TransactionSheet({
               }}
             />
 
+            {impact !== null && (
+              <ImpactBlock
+                {...movementImpactContent(t, impact, selectedLine, currency)}
+                currency={currency}
+              />
+            )}
+
             <TextInput
               testID="transaction-description"
               mode="outlined"
@@ -413,6 +512,69 @@ export function TransactionSheet({
               onChangeText={(name) => change({ name })}
               maxLength={NAME_MAX_LENGTH}
             />
+
+            {showsQuestion && (
+              <View
+                testID="movement-question"
+                style={[
+                  styles.question,
+                  isQuestionLocked && !isEditing && styles.locked,
+                ]}
+              >
+                <Text
+                  variant="labelLarge"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {t("budgets.mutations.activity.question")}
+                </Text>
+                <View style={styles.chips}>
+                  {shownLine !== undefined && (
+                    <FilterChip
+                      selected={selectedLineId === shownLine.id}
+                      disabled={isQuestionLocked}
+                      onPress={() => setPickedLineId(shownLine.id)}
+                      accessibilityState={{
+                        selected: selectedLineId === shownLine.id,
+                      }}
+                    >
+                      {`${shownLine.name} · ${t(
+                        "budgets.mutations.activity.leftChip",
+                        {
+                          amount: formatCompactCurrency(
+                            Math.max(
+                              BudgetFormulas.calculateConsumption(
+                                shownLine,
+                                transactions,
+                              ).available,
+                              0,
+                            ),
+                            currency,
+                          ),
+                        },
+                      )}`}
+                    </FilterChip>
+                  )}
+                  {hasEligibleLines && !isEditing && (
+                    <FilterChip
+                      testID="movement-other-line"
+                      disabled={isQuestionLocked}
+                      onPress={() => setPickingLine(true)}
+                    >
+                      {t("budgets.mutations.activity.other")}
+                    </FilterChip>
+                  )}
+                  <FilterChip
+                    testID="movement-unplanned"
+                    selected={selectedLineId === null}
+                    disabled={isQuestionLocked}
+                    onPress={() => setPickedLineId(null)}
+                    accessibilityState={{ selected: selectedLineId === null }}
+                  >
+                    {t("budgets.mutations.activity.unplanned")}
+                  </FilterChip>
+                </View>
+              </View>
+            )}
 
             <Button
               mode="outlined"
@@ -622,6 +784,9 @@ const styles = StyleSheet.create({
   },
   checkedLabels: { flex: 1, gap: SPACING.xxs },
   submitted: { gap: SPACING.sm },
+  question: { gap: SPACING.sm },
+  locked: { opacity: EMPHASIS.disabled },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   origin: { gap: SPACING.sm },
   hint: { textAlign: "center" },
 });

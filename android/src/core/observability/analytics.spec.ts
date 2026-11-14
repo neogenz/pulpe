@@ -1,3 +1,5 @@
+import { AppState, type AppStateStatus } from "react-native";
+
 import { ApiError } from "@/core/api/api-error";
 
 const mockClient = {
@@ -7,6 +9,7 @@ const mockClient = {
   optIn: jest.fn(),
   optOut: jest.fn(),
   captureException: jest.fn(),
+  capture: jest.fn(),
 };
 const mockPostHog = jest.fn(() => mockClient);
 const mockStopListening = jest.fn();
@@ -95,6 +98,32 @@ describe("PostHog startup", () => {
     });
   });
 
+  it("reports app_opened on a return to the foreground, not on cold launch", () => {
+    let onChange: (state: AppStateStatus) => void = () => undefined;
+    const remove = jest.fn();
+    jest
+      .spyOn(AppState, "addEventListener")
+      .mockImplementation((_, listener) => {
+        onChange = listener;
+        return { remove };
+      });
+
+    const stop = loadStartAnalytics()();
+    const opened = () =>
+      mockClient.capture.mock.calls.filter(([name]) => name === "app_opened")
+        .length;
+
+    onChange("active");
+    expect(opened()).toBe(1);
+
+    onChange("background");
+    onChange("active");
+    expect(opened()).toBe(2);
+
+    stop();
+    expect(remove).toHaveBeenCalled();
+  });
+
   it("captures JavaScript errors without console or native crash capture", () => {
     const stop = loadStartAnalytics()();
 
@@ -119,6 +148,7 @@ describe("PostHog startup", () => {
       build_number: "42",
       locale: "de",
     });
+    expect(mockClient.capture).toHaveBeenCalledWith("app_opened", {});
     stop();
     expect(mockStopListening).toHaveBeenCalledTimes(1);
     expect(mockStopSessionListening).toHaveBeenCalledTimes(1);

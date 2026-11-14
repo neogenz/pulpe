@@ -1,6 +1,7 @@
 import {
   type BudgetPeriod,
   getBudgetPeriodDates,
+  getBudgetPeriodForDate,
   type SupportedCurrency,
   type Transaction,
 } from "pulpe-shared";
@@ -8,6 +9,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { BackHandler, StyleSheet } from "react-native";
 import { FAB, Menu, useTheme } from "react-native-paper";
 
+import { budgetTiming } from "@/features/budgets/budget-list-selectors";
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";
 import type { CurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
@@ -16,8 +18,10 @@ import { RealizedBalanceSheet } from "@/features/current-month/components/realiz
 import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
 import { useTransactionRemoval } from "@/features/transactions/use-transaction-removal";
 
+import type { MonthLedger } from "../month-impact";
 import { SavingsWithdrawalSheet } from "../savings-withdrawal/components/savings-withdrawal-sheet";
 import { BudgetLineSheet } from "./budget-line-sheet";
+import { CatchUpSheet } from "./catch-up-sheet";
 
 export interface BudgetDetailOverlaysHandle {
   editTransaction: (transaction: Transaction) => void;
@@ -27,6 +31,7 @@ export interface BudgetDetailOverlaysHandle {
   ) => void;
   showWithdrawal: () => void;
   showRealizedBalance: () => void;
+  showCatchUp: () => void;
   showToggleFailure: () => void;
   /** Offers to take a pointing back: under "À pointer" the row just left. */
   showPointed: (pointed: { name: string; undo: () => void } | null) => void;
@@ -39,6 +44,10 @@ interface BudgetDetailOverlaysProps {
   payDayOfMonth: number | null;
   missingAmount: number;
   viewModel: CurrentMonthViewModel | null;
+  /** The whole month, for « Rattraper ». */
+  ledger: MonthLedger;
+  /** The month in a sentence: « novembre ». */
+  monthName: string;
 }
 
 /** One owner for every action surface mounted above the budget route. */
@@ -46,7 +55,16 @@ export const BudgetDetailOverlays = forwardRef<
   BudgetDetailOverlaysHandle,
   BudgetDetailOverlaysProps
 >(function BudgetDetailOverlays(
-  { budgetId, period, currency, payDayOfMonth, missingAmount, viewModel },
+  {
+    budgetId,
+    period,
+    currency,
+    payDayOfMonth,
+    missingAmount,
+    viewModel,
+    ledger,
+    monthName,
+  },
   ref,
 ) {
   const theme = useTheme();
@@ -61,6 +79,7 @@ export const BudgetDetailOverlays = forwardRef<
   } | null>(null);
   const [isWithdrawalVisible, setWithdrawalVisible] = useState(false);
   const [isRealizedVisible, setRealizedVisible] = useState(false);
+  const [isCatchUpVisible, setCatchUpVisible] = useState(false);
   const [reconcileBudgetId, setReconcileBudgetId] = useState<string | null>(
     null,
   );
@@ -70,6 +89,7 @@ export const BudgetDetailOverlays = forwardRef<
     | "activityAdded"
     | "activityUpdated"
     | "withdrawalReady"
+    | "forecastUpdated"
     | null
   >(null);
   const [hasToggleFailed, setToggleFailed] = useState(false);
@@ -78,6 +98,10 @@ export const BudgetDetailOverlays = forwardRef<
     undo: () => void;
   } | null>(null);
   const [isFabOpen, setFabOpen] = useState(false);
+  // A closed month has no model to write into: « Mensuel » would be a lie.
+  const isClosedMonth =
+    budgetTiming(period, getBudgetPeriodForDate(new Date(), payDayOfMonth)) ===
+    "past";
   const periodDates = getBudgetPeriodDates(
     period.month,
     period.year,
@@ -105,6 +129,7 @@ export const BudgetDetailOverlays = forwardRef<
       setContextual({ transaction, anchor }),
     showWithdrawal: () => setWithdrawalVisible(true),
     showRealizedBalance: () => setRealizedVisible(true),
+    showCatchUp: () => setCatchUpVisible(true),
     showToggleFailure: () => setToggleFailed(true),
     showPointed: setPointed,
   }));
@@ -213,6 +238,7 @@ export const BudgetDetailOverlays = forwardRef<
         budgetId={budgetId}
         anchor={period}
         currency={currency}
+        isEveryMonthDisabled={isClosedMonth}
         onSaved={() => {
           setLineSheetVisible(false);
           setSavedMessage("forecastAdded");
@@ -273,6 +299,20 @@ export const BudgetDetailOverlays = forwardRef<
           }}
         />
       </Menu>
+
+      {isCatchUpVisible && (
+        <CatchUpSheet
+          onDismiss={() => setCatchUpVisible(false)}
+          onDone={() => {
+            setCatchUpVisible(false);
+            setSavedMessage("forecastUpdated");
+          }}
+          ledger={ledger}
+          focusLineId={null}
+          monthName={monthName}
+          currency={currency}
+        />
+      )}
 
       <SavingsWithdrawalSheet
         isVisible={isWithdrawalVisible}

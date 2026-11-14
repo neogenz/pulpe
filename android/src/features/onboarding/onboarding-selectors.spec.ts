@@ -1,9 +1,11 @@
 import {
   availableToSpend,
+  blockToFix,
   canProceed,
   emotionState,
   fixedChargeLines,
   isStepNavigable,
+  previewBlockNames,
   progressBarSteps,
   totalCharges,
   totalExpenses,
@@ -185,5 +187,58 @@ describe("emotion state", () => {
 
   it("stays comfortable on an untouched flow rather than reading as a deficit", () => {
     expect(emotionState(BASE)).toBe("comfortable");
+  });
+});
+
+describe("blockToFix", () => {
+  it("names nothing when the month holds", () => {
+    expect(
+      blockToFix(stateWith({ monthlyIncome: 5000, housingCosts: 1000 })),
+    ).toBeNull();
+  });
+
+  it("asks to fix the charges when they alone pass the income", () => {
+    expect(
+      blockToFix(stateWith({ monthlyIncome: 1000, housingCosts: 1500 })),
+    ).toBe("charges");
+  });
+
+  it("asks to fix the savings when the charges fit but the whole does not", () => {
+    const saving = {
+      id: "s",
+      name: "Projet",
+      amount: 500,
+      type: "saving",
+      expenseType: "fixed",
+      isRecurring: true,
+    } as OnboardingTransaction;
+    expect(
+      blockToFix(
+        stateWith({
+          monthlyIncome: 1000,
+          housingCosts: 800,
+          customTransactions: [saving],
+        }),
+      ),
+    ).toBe("savings");
+  });
+});
+
+describe("previewBlockNames", () => {
+  it("lists the fixed charges before the expenses the user added", () => {
+    const extra = {
+      id: "e",
+      name: "Crèche",
+      amount: 300,
+      type: "expense",
+      expenseType: "fixed",
+      isRecurring: true,
+    } as OnboardingTransaction;
+    expect(
+      previewBlockNames(
+        stateWith({ housingCosts: 1500, customTransactions: [extra] }),
+        "expense",
+      ),
+    ).toEqual(["Loyer", "Crèche"]);
   });
 });

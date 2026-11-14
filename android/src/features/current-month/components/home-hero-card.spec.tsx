@@ -31,7 +31,6 @@ const presentation: HeroPresentation = {
   verdict: "gain",
   tone: "favorable",
   driftDate: null,
-  absorbsEnvelopeOverrun: true,
 };
 
 const trajectory = {
@@ -58,12 +57,8 @@ function renderHero(props: Partial<React.ComponentProps<typeof HomeHeroCard>>) {
       presentation={presentation}
       trajectory={trajectory}
       period={period}
-      monthName="août 2026"
-      uncheckedCount={3}
-      daysRemaining={12}
       currency="CHF"
-      onPressUnchecked={jest.fn()}
-      onPressMetrics={jest.fn()}
+      onPressCalculation={jest.fn()}
       {...props}
     />,
   );
@@ -72,45 +67,36 @@ function renderHero(props: Partial<React.ComponentProps<typeof HomeHeroCard>>) {
 beforeEach(() => useAmountVisibility.setState({ areAmountsHidden: false }));
 
 it("shows the estimate, the verdict and the three chart captions", async () => {
-  const onPressMetrics = jest.fn();
-  const view = await renderHero({ onPressMetrics });
+  const onPressCalculation = jest.fn();
+  const view = await renderHero({ onPressCalculation });
 
   // Whole digits on the hero; the thousands separator is the locale's.
   expect(view.getByText(/1.?241/)).toBeTruthy();
+  expect(view.getByText("home.hero.eyebrow")).toBeTruthy();
   expect(view.getByText("home.hero.verdict.gain")).toBeTruthy();
   expect(view.getByText("25 juillet")).toBeTruthy();
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();
   expect(view.getByText("24 août")).toBeTruthy();
 
-  await fireEvent.press(view.getByHintText("home.hero.metricsHint"));
-  expect(onPressMetrics).toHaveBeenCalledTimes(1);
+  await fireEvent.press(view.getByText("home.hero.calculation"));
+  expect(onPressCalculation).toHaveBeenCalledTimes(1);
 });
 
-it("brings the operations to point into view from the count tile", async () => {
-  const onPressUnchecked = jest.fn();
-  const view = await renderHero({ onPressUnchecked });
+it("hides and shows the amounts from the eye beside the eyebrow", async () => {
+  const view = await renderHero({});
 
-  await fireEvent.press(view.getByLabelText("3 home.hero.toCheck"));
-
-  expect(onPressUnchecked).toHaveBeenCalledTimes(1);
+  await fireEvent.press(view.getByLabelText("home.hero.hideAmounts"));
+  expect(useAmountVisibility.getState().areAmountsHidden).toBe(true);
+  expect(view.getByLabelText("home.hero.showAmounts")).toBeTruthy();
 });
 
-it("does not offer to scroll to operations when none is left to point", async () => {
-  const onPressUnchecked = jest.fn();
-  const view = await renderHero({ uncheckedCount: 0, onPressUnchecked });
+it("invites instead of judging on the first month, with no plot", async () => {
+  const view = await renderHero({ startsFresh: true });
 
   expect(
-    view.getByLabelText("0 home.hero.toCheck").props.accessibilityRole,
-  ).toBeUndefined();
-});
-
-it("names the way into the budget at the end of its verdict", async () => {
-  const onPressDetail = jest.fn();
-  const view = await renderHero({ onPressDetail });
-
-  await fireEvent.press(view.getByLabelText("home.hero.detailAccessibility"));
-
-  expect(onPressDetail).toHaveBeenCalledTimes(1);
+    view.getByText("home.hero.fresh.verdict home.hero.fresh.tail"),
+  ).toBeTruthy();
+  expect(view.queryByText("home.hero.chart.today")).toBeNull();
 });
 
 it("keeps the captions while the amounts are masked", async () => {

@@ -11,6 +11,10 @@ import {
 } from "@/core/auth/google-sign-in";
 import { supabase } from "@/core/auth/supabase";
 import { useTranslation } from "@/core/i18n/locale-store";
+import {
+  captureLoginCompleted,
+  captureLoginFailed,
+} from "@/core/observability/product-events";
 import { preferPitch } from "@/core/navigation/landing-preference";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { useKeyboardHeight } from "@/core/ui/keyboard-inset";
@@ -38,11 +42,15 @@ export default function SignInScreen() {
   }).success;
 
   async function run(action: Pending, work: () => Promise<unknown>) {
+    const method = action === "google" ? "google" : "email";
     setPending(action);
     setErrorMessage(null);
     try {
-      await work();
-    } catch {
+      const result = await work();
+      // A cancelled Google chooser resolves to null: not a login.
+      if (result !== null) captureLoginCompleted(method);
+    } catch (error) {
+      captureLoginFailed(method, error);
       setErrorMessage(
         t(
           action === "google" ? "auth.signIn.googleError" : "auth.signIn.error",
@@ -58,7 +66,7 @@ export default function SignInScreen() {
       email: email.trim(),
       password,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw error;
   }
 
   const isBusy = pending !== null;

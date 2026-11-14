@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type { SavingsGoal, SavingsGoalProgress } from "pulpe-shared";
 
 import { useVaultStore } from "@/core/vault/vault-store";
 import { budgetKeys } from "@/features/budgets/budget-queries";
@@ -8,7 +14,6 @@ import {
   createSavingsGoal,
   deleteSavingsGoal,
   fetchSavingsGoal,
-  fetchSavingsGoalContributions,
   fetchSavingsGoalDeletionImpact,
   fetchSavingsGoalFutureLines,
   fetchSavingsGoalProgress,
@@ -24,8 +29,6 @@ export const goalKeys = {
   list: () => ["savings-goals", "list"] as const,
   detail: (goalId: string) => ["savings-goals", "detail", goalId] as const,
   progress: (goalId: string) => ["savings-goals", "progress", goalId] as const,
-  contributions: (goalId: string) =>
-    ["savings-goals", "contributions", goalId] as const,
   withdrawals: (goalId: string) =>
     ["savings-goals", "withdrawals", goalId] as const,
   withdrawalOptions: () => ["savings-goals", "withdrawal-options"] as const,
@@ -53,6 +56,30 @@ export function useSavingsGoals() {
   });
 }
 
+/**
+ * One progress read per goal: the list shows each goal's confirmed amount and
+ * bar, and no endpoint answers for them all. Same keys as the detail screen,
+ * so opening a goal reuses what the list already fetched.
+ */
+export function useSavingsGoalsProgress(goals: SavingsGoal[]) {
+  const isUnlocked = useUnlocked();
+
+  return useQueries({
+    queries: goals.map((goal) => ({
+      queryKey: goalKeys.progress(goal.id),
+      queryFn: () => fetchSavingsGoalProgress(goal.id),
+      enabled: isUnlocked,
+    })),
+    combine: (results) => {
+      const byGoalId: Record<string, SavingsGoalProgress> = {};
+      results.forEach((result, index) => {
+        if (result.data !== undefined) byGoalId[goals[index].id] = result.data;
+      });
+      return byGoalId;
+    },
+  });
+}
+
 export function useSavingsGoal(goalId: string) {
   const isUnlocked = useUnlocked();
 
@@ -69,16 +96,6 @@ export function useSavingsGoalProgress(goalId: string) {
   return useQuery({
     queryKey: goalKeys.progress(goalId),
     queryFn: () => fetchSavingsGoalProgress(goalId),
-    enabled: isUnlocked,
-  });
-}
-
-export function useSavingsGoalContributions(goalId: string) {
-  const isUnlocked = useUnlocked();
-
-  return useQuery({
-    queryKey: goalKeys.contributions(goalId),
-    queryFn: () => fetchSavingsGoalContributions(goalId),
     enabled: isUnlocked,
   });
 }

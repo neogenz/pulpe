@@ -66,26 +66,26 @@ Two Android-specific consequences:
 it is tuned to clear 4.5:1 on the onboarding preview's mint surface, the darkest background it
 lands on.
 
-The canvas is the sage `#EFF3EE` (`#121611` dark), the value iOS already paints every screen
+The canvas is the V2 warm paper `#F2F1EC` (`#121611` dark), the value iOS paints every screen
 with, rather than the root doc's neutral `#F7F6F3`: the two native apps read as one product, and
 cards sit on it in `surface` — white — so a list is paper on a calm ground. `Card` forces that fill
-on Paper's contained mode, whose `surfaceVariant` vanished into the sage.
+on Paper's contained mode, whose `surfaceVariant` vanishes into the canvas. The V2 tokens MD3 has
+no role for (`accentWash`, `accentInk`, `sunk`, `overWash`, `coral`, `pointRing`, `ink3`, `line`,
+`line2`) are `V2_COLORS`, read through `useV2Colors()`.
 
 ## Two zones
 
 The Two-Zone Rule is `core/ui/hero.tsx`. Home, the budget list, budget detail and a savings goal
-open on the constant forest (`HERO_COLORS`, iOS's `hero*` tokens): `HeroAppBar` is forest too and
-holds still while the `HeroZone` gradient scrolls under it — a Material top app bar holding its
-colour — and the `ContentZone` rises over the hero on the canvas, its upper corners at
-`RADIUS.zone` (28, Material's extra-large shape; iOS's 44 continuous corner reads as a bubble when
-drawn circular). Templates, the goal list and settings have no dominant state and stay on the
+open on a white hero card (`HeroZone`, radius `RADIUS.zone`) laid on the paper canvas, with the
+content (`ContentZone`) flat on the same canvas below it. There is no coloured ground: the state
+shows in the ink of the figure and its verdict (`HERO_COLORS`: positive, caution, deficit), never
+in a background. Templates, the goal list and settings have no dominant state and stay on the
 canvas with `ScreenAppBar` / `TabHeader`.
 
 A hero is composed, never drawn: `HeroFigure` (eyebrow, Manrope figure, smaller currency on the
-same line), `HeroTile` (a translucent tile, never a chip), `HeroProgress`, `HeroVerdict` (one
-sentence, its accent the only place the state shows, optionally ending in a named link). The status
-bar turns light on exactly those routes, decided once from the path (`RouteStatusBar`,
-`hero-routes.ts`) because the tabs keep every visited screen mounted.
+same line), `HeroTile`, `HeroProgress`, `HeroVerdict` (one sentence, its accent the only place the
+state shows, optionally ending in a named link). The status bar follows the scheme on every route
+(`RouteStatusBar`).
 
 ## Ledger
 
@@ -222,7 +222,7 @@ on its own:
 The adaptive background is `#C6F0BA`, the pale green sampled from the iOS icon's gradient.
 Android takes a flat colour here and a gradient is invisible at 48dp.
 
-The splash background is the app's own canvas (`#EFF3EE` light, `#121611` dark), not the iOS
+The splash background is the app's own canvas (`#F2F1EC` light, `#121611` dark), not the iOS
 launch screen's `#F8FAF9` — the splash hands off to the first rendered frame, and matching the
 canvas is what makes that handoff invisible.
 

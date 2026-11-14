@@ -8,7 +8,6 @@ import {
   calculateBalanceTrajectory,
   checkingPriority,
   type Consumption,
-  type EmotionState,
   getBudgetPeriodDates,
   type Transaction,
   type TransactionKind,
@@ -44,6 +43,8 @@ export interface CheckableItem extends CheckTarget {
   amount: number;
   /** Present when the item is, or belongs to, an envelope with a plan. */
   consumption: Consumption | null;
+  /** The forecast a movement is counted in, when it has one. */
+  envelopeName: string | null;
   /** Stable data rendered as a localized date or recurrence by the card. */
   subtitle:
     | { kind: "date"; value: string }
@@ -51,13 +52,9 @@ export interface CheckableItem extends CheckTarget {
 }
 
 export interface SavingsSummary {
-  totalPlanned: number;
   totalRealized: number;
-  checkedCount: number;
-  totalCount: number;
-  progressPercentage: number;
+  /** Every planned transfer reached its amount. */
   isComplete: boolean;
-  hasSavings: boolean;
 }
 
 export interface PeriodProgress {
@@ -80,12 +77,11 @@ export interface RealizedMetrics {
 
 export interface CurrentMonthViewModel {
   metrics: ReturnType<typeof BudgetFormulas.calculateAllMetrics>;
-  emotion: EmotionState;
-  daysRemaining: number;
-  dailyBudget: number;
   driftLines: DriftLine[];
   driftTotal: number;
   uncheckedCount: number;
+  /** The part of `uncheckedCount` that is movements; the rest are forecasts. */
+  uncheckedMovementCount: number;
   uncheckedItems: CheckableItem[];
   savings: SavingsSummary;
   realized: RealizedMetrics;
@@ -158,20 +154,17 @@ export function buildCurrentMonthViewModel(
     budget.rollover ?? 0,
   );
   const driftLines = selectDriftLines(budgetLines, transactions);
-  const daysRemaining = countDaysRemaining(budget, now, payDayOfMonth);
   const periodProgress = measurePeriodProgress(budget, now, payDayOfMonth);
 
   return {
     metrics,
-    emotion: BudgetFormulas.emotionState(metrics),
-    daysRemaining,
-    dailyBudget: metrics.remaining > 0 ? metrics.remaining / daysRemaining : 0,
     driftLines,
     driftTotal: driftLines.reduce(
       (total, drift) => total - drift.consumption.available,
       0,
     ),
     uncheckedCount: countUnchecked(budgetLines, transactions),
+    uncheckedMovementCount: transactions.filter(isUnchecked).length,
     uncheckedItems: selectUncheckedItems(
       budgetLines,
       transactions,
@@ -268,10 +261,7 @@ function countUnchecked(
 ): number {
   const uncheckedTransactions = transactions.filter(isUnchecked).length;
   const uncheckedLines = budgetLines.filter(
-    (line) =>
-      isUnchecked(line) &&
-      line.isRollover !== true &&
-      line.sourceSavingsGoalId == null,
+    (line) => isUnchecked(line) && isPointableLine(line),
   ).length;
   return uncheckedTransactions + uncheckedLines;
 }
@@ -292,7 +282,7 @@ function selectUncheckedItems(
   const freeTransactions = unchecked
     .filter((transaction) => transaction.budgetLineId === null)
     .sort(byTransactionDateDesc)
-    .map((transaction) => toCheckableItem(transaction, null));
+    .map((transaction) => toCheckableItem(transaction, null, null));
 
   const allocatedTransactions = unchecked
     .filter((transaction) => transaction.budgetLineId !== null)
@@ -302,37 +292,47 @@ function selectUncheckedItems(
       return toCheckableItem(
         transaction,
         line ? BudgetFormulas.calculateConsumption(line, transactions) : null,
+        line?.name ?? null,
       );
     });
 
-  const uncheckedLines = budgetLines
-    .filter(
-      (line) =>
-        isUnchecked(line) &&
-        line.isRollover !== true &&
-        line.sourceSavingsGoalId == null,
-    )
-    .sort(
-      (a, b) =>
-        checkingPriority(days[a.id], today) -
-          checkingPriority(days[b.id], today) || byKindThenNewest(a, b),
-    )
-    .map((line) => ({
-      id: `bl-${line.id}`,
-      source: "budgetLine" as const,
-      sourceId: line.id,
-      name: line.name,
-      kind: line.kind,
-      amount: line.amount,
-      consumption: BudgetFormulas.calculateConsumption(line, transactions),
-      subtitle: { kind: "recurrence" as const, value: line.recurrence },
-    }));
+  const uncheckedLines = orderForChecking(
+    budgetLines.filter((line) => isUnchecked(line) && isPointableLine(line)),
+    days,
+    today,
+  ).map((line) => ({
+    id: `bl-${line.id}`,
+    source: "budgetLine" as const,
+    sourceId: line.id,
+    name: line.name,
+    kind: line.kind,
+    amount: line.amount,
+    consumption: BudgetFormulas.calculateConsumption(line, transactions),
+    envelopeName: null,
+    subtitle: { kind: "recurrence" as const, value: line.recurrence },
+  }));
 
   return [
     ...freeTransactions,
     ...allocatedTransactions,
     ...uncheckedLines,
   ].slice(0, MAX_UNCHECKED_ITEMS);
+}
+
+/**
+ * Forecasts in the order they are likely to be pointed: the days the user has
+ * learned to point them on first, then income before outflows, newest first.
+ */
+export function orderForChecking(
+  lines: BudgetLine[],
+  days: Record<string, number> = {},
+  today: number,
+): BudgetLine[] {
+  return [...lines].sort(
+    (a, b) =>
+      checkingPriority(days[a.id], today) -
+        checkingPriority(days[b.id], today) || byKindThenNewest(a, b),
+  );
 }
 
 function summarizeSavings(
@@ -353,28 +353,9 @@ function summarizeSavings(
       : 0;
 
   return {
-    totalPlanned,
     totalRealized,
-    checkedCount: savingLines.filter((line) => !isUnchecked(line)).length,
-    totalCount: savingLines.length,
-    progressPercentage,
     isComplete: totalPlanned > 0 && progressPercentage >= PERCENT,
-    hasSavings: totalPlanned > 0 || totalRealized > 0,
   };
-}
-
-/** Today included, so the last day of the period still reads as one day left. */
-function countDaysRemaining(
-  budget: Budget,
-  now: Date,
-  payDayOfMonth?: number | null,
-): number {
-  const { endDate } = getBudgetPeriodDates(
-    budget.month,
-    budget.year,
-    payDayOfMonth,
-  );
-  return Math.max(countDaysBetween(now, endDate) + 1, 1);
 }
 
 function measurePeriodProgress(
@@ -408,6 +389,13 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+/** A prévision the user points: not the carry-over, nor a savings withdrawal. */
+export function isPointableLine(
+  line: Pick<BudgetLine, "isRollover" | "sourceSavingsGoalId">,
+): boolean {
+  return line.isRollover !== true && line.sourceSavingsGoalId == null;
+}
+
 function isUnchecked(item: { checkedAt: string | null }): boolean {
   return item.checkedAt === null;
 }
@@ -415,6 +403,7 @@ function isUnchecked(item: { checkedAt: string | null }): boolean {
 function toCheckableItem(
   transaction: Transaction,
   consumption: Consumption | null,
+  envelopeName: string | null,
 ): CheckableItem {
   return {
     id: `tx-${transaction.id}`,
@@ -424,6 +413,7 @@ function toCheckableItem(
     kind: transaction.kind,
     amount: transaction.amount,
     consumption,
+    envelopeName,
     subtitle: { kind: "date", value: transaction.transactionDate },
   };
 }

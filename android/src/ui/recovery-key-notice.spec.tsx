@@ -5,6 +5,12 @@ import { RecoveryKeyNotice } from "./recovery-key-notice";
 
 let mockClipboard = "";
 
+jest.mock("@/core/observability/product-events", () => ({
+  captureLogoutCompleted: jest.fn(),
+  capturePinChanged: jest.fn(),
+  capturePinEntered: jest.fn(),
+  captureRecoveryKeyAcknowledged: jest.fn(),
+}));
 jest.mock("expo-clipboard", () => ({
   getStringAsync: async () => mockClipboard,
   setStringAsync: async (text: string) => {
@@ -78,12 +84,14 @@ it("leaves alone whatever was copied after it", async () => {
   expect(mockClipboard).toBe("something else");
 });
 
-it("takes the key back once the notice is acknowledged", async () => {
+it("keeps the two-minute promise after the notice is acknowledged", async () => {
   const view = await renderNotice();
 
   await fireEvent.press(view.getByText("vault.notice.acknowledge"));
-  await act(() => jest.advanceTimersByTimeAsync(0));
+  await act(() => jest.advanceTimersByTimeAsync(119_000));
 
   expect(view.queryByText("vault.notice.copy")).toBeNull();
+  expect(mockClipboard).toBe(RECOVERY_KEY);
+  await act(() => jest.advanceTimersByTimeAsync(1_000));
   expect(mockClipboard).toBe("");
 });

@@ -1,18 +1,7 @@
-import type {
-  SavingsGoal,
-  SavingsGoalStatus,
-  SupportedCurrency,
-} from "pulpe-shared";
+import type { SavingsGoal, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  SegmentedButtons,
-  Switch,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Button, Switch, Text, TextInput, useTheme } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { hapticSuccess } from "@/core/ui/haptics";
@@ -20,6 +9,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate, parseIsoDate, toIsoDate } from "@/core/ui/date-format";
+import { SegmentedPicker } from "@/core/ui/segmented-picker";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
@@ -51,6 +41,8 @@ interface GoalFormSheetProps {
   payDayOfMonth: number | null;
   /** Absent when creating; the goal being corrected otherwise. */
   goal?: SavingsGoal;
+  /** A « Pour commencer » preset the name opens pre-filled with. */
+  initialName?: string;
   onSaved: () => void;
 }
 
@@ -69,6 +61,7 @@ export function GoalFormSheet({
   currency,
   payDayOfMonth,
   goal,
+  initialName,
   onSaved,
 }: GoalFormSheetProps) {
   const theme = useTheme();
@@ -76,7 +69,9 @@ export function GoalFormSheet({
   const create = useCreateSavingsGoal();
   const update = useUpdateSavingsGoal();
   const [draft, setDraft] = useState<SavingsGoalDraft>(() =>
-    goal === undefined ? emptySavingsGoalDraft() : savingsGoalDraftFrom(goal),
+    goal === undefined
+      ? { ...emptySavingsGoalDraft(), name: initialName ?? "" }
+      : savingsGoalDraftFrom(goal),
   );
   // Bumped on reset — the amount fields hold their own text, so clearing the
   // numbers behind them is not enough to clear what is on screen.
@@ -280,11 +275,9 @@ export function GoalFormSheet({
         )}
 
         {isEditing && (
-          <SegmentedButtons
+          <SegmentedPicker
             value={draft.status}
-            onValueChange={(status) =>
-              change({ status: status as SavingsGoalStatus })
-            }
+            onValueChange={(status) => change({ status })}
             buttons={(["ACTIVE", "PAUSED", "COMPLETED"] as const).map(
               (value) => ({ value, label: t(`goals.status.${value}`) }),
             )}

@@ -37,7 +37,10 @@ jest.mock("@/core/i18n/locale-store", () => ({
 }));
 jest.mock("@/features/onboarding/onboarding-analytics", () => ({
   captureOnboardingAbandoned: jest.fn(),
+  captureOnboardingPaused: jest.fn(),
+  captureOnboardingResumedFromBackground: jest.fn(),
 }));
+jest.mock("@/core/ui/notice", () => ({ Notice: () => null }));
 jest.mock("@/features/onboarding/onboarding-selectors", () => ({
   wouldExitOnBack: jest.fn(() => false),
 }));

@@ -1,6 +1,7 @@
 import { ANALYTICS_EVENTS } from "pulpe-shared";
 
 import { captureEvent } from "@/core/observability/analytics";
+import { captureSignupStarted } from "@/core/observability/product-events";
 
 import {
   fixedChargeLines,
@@ -9,6 +10,8 @@ import {
 } from "./onboarding-selectors";
 import type { OnboardingState } from "./onboarding-state";
 import { STEP_ANALYTICS_NAMES, type OnboardingStep } from "./onboarding-step";
+import type { OnboardingTransaction } from "./onboarding-transaction";
+import { isSuggestion } from "./suggestions";
 
 /**
  * The onboarding funnel, under the names `shared/src/feature-flags.ts` already
@@ -28,6 +31,15 @@ import { STEP_ANALYTICS_NAMES, type OnboardingStep } from "./onboarding-step";
 let hasEmittedStarted = false;
 let hasEmittedResumed = false;
 let hasEmittedAbandoned = false;
+let hasEmittedWelcomeViewed = false;
+let hasEmittedEmailSignupStarted = false;
+/** Set by a background pause, so only a return from one reports a resume. */
+let isPausedInBackground = false;
+
+/** True once the draft on disk brought this run back, until the run ends. */
+export function isRunResumedFromDraft(): boolean {
+  return hasEmittedResumed;
+}
 
 /** Matches `login_completed.method` on every platform: `email | google | apple`. */
 function authMethod(state: OnboardingState): string {
@@ -38,6 +50,26 @@ export function resetOnboardingAnalytics(): void {
   hasEmittedStarted = false;
   hasEmittedResumed = false;
   hasEmittedAbandoned = false;
+  hasEmittedWelcomeViewed = false;
+  hasEmittedEmailSignupStarted = false;
+  isPausedInBackground = false;
+}
+
+/**
+ * Once per run: the flow remounts the welcome step on every way back to it, and
+ * a funnel top that counts each return is not a top.
+ */
+export function captureWelcomeViewed(): void {
+  if (hasEmittedWelcomeViewed) return;
+  hasEmittedWelcomeViewed = true;
+  captureEvent(ANALYTICS_EVENTS.WELCOME_VIEWED);
+}
+
+/** Once per run, when the registration form is reached (not per submit attempt). */
+export function captureEmailSignupStarted(): void {
+  if (hasEmittedEmailSignupStarted) return;
+  hasEmittedEmailSignupStarted = true;
+  captureSignupStarted("email");
 }
 
 /** Leaving the welcome screen into the flow, by either signup path. */
@@ -61,7 +93,7 @@ export function captureOnboardingResumed(state: OnboardingState): void {
   // the funnel for the one user who relaunched.
   hasEmittedStarted = true;
   captureEvent(ANALYTICS_EVENTS.ONBOARDING_RESUMED, {
-    method: authMethod(state),
+    method: state.isSocialAuth ? "social" : "email",
     source: "draft",
     resumed_at_step: STEP_ANALYTICS_NAMES[state.currentStep],
   });
@@ -126,4 +158,98 @@ export function captureOnboardingAbandoned(state: OnboardingState): void {
     was_authenticated: hasAccount(state),
     auth_method: authMethod(state),
   });
+}
+
+/**
+ * Backgrounding pauses the run without abandoning it. Not on welcome, which is
+ * not a run yet, and not while the budget is being created.
+ */
+export function captureOnboardingPaused(
+  state: OnboardingState,
+  isSubmitting: boolean,
+): void {
+  if (state.currentStep === "welcome" || isSubmitting || hasEmittedAbandoned) {
+    return;
+  }
+  isPausedInBackground = true;
+  captureEvent(ANALYTICS_EVENTS.ONBOARDING_PAUSED, {
+    last_step: STEP_ANALYTICS_NAMES[state.currentStep],
+    pause_method: "background",
+    was_authenticated: hasAccount(state),
+    auth_method: authMethod(state),
+  });
+}
+
+/** Pairs with the pause: a return to the foreground, not a cold start. */
+export function captureOnboardingResumedFromBackground(
+  state: OnboardingState,
+): void {
+  if (!isPausedInBackground) return;
+  isPausedInBackground = false;
+  captureEvent(ANALYTICS_EVENTS.ONBOARDING_RESUMED, {
+    method: state.isSocialAuth ? "social" : "email",
+    source: "foreground",
+    resumed_at_step: STEP_ANALYTICS_NAMES[state.currentStep],
+  });
+}
+
+/** So a repeated `onboarding_step_completed` reads as a revisit, not a double. */
+export function captureStepBack(
+  from: OnboardingStep,
+  to: OnboardingStep,
+): void {
+  captureEvent(ANALYTICS_EVENTS.ONBOARDING_STEP_BACK, {
+    from_step: STEP_ANALYTICS_NAMES[from],
+    to_step: STEP_ANALYTICS_NAMES[to],
+  });
+}
+
+/** Which bucket of the funnel a line belongs to, by its kind. */
+function analyticsStep(transaction: OnboardingTransaction): string {
+  switch (transaction.type) {
+    case "expense":
+      return "charges";
+    case "saving":
+      return "savings";
+    case "income":
+      return "income";
+  }
+}
+
+/** A chip tapped. The name is a preset label, never something the user typed. */
+export function captureSuggestionToggled(
+  suggestion: OnboardingTransaction,
+  selected: boolean,
+): void {
+  captureEvent(ANALYTICS_EVENTS.ONBOARDING_SUGGESTION_TOGGLED, {
+    step: analyticsStep(suggestion),
+    suggestion_name: suggestion.name,
+    selected,
+  });
+}
+
+function customTransactionProperties(transaction: OnboardingTransaction) {
+  return {
+    step: analyticsStep(transaction),
+    kind: transaction.type,
+    source: isSuggestion(transaction) ? "suggestion" : "manual",
+  };
+}
+
+export function captureCustomTransactionAdded(
+  transaction: OnboardingTransaction,
+): void {
+  captureEvent(
+    ANALYTICS_EVENTS.CUSTOM_TRANSACTION_ADDED,
+    customTransactionProperties(transaction),
+  );
+}
+
+export function captureCustomTransactionRemoved(
+  transaction: OnboardingTransaction,
+): void {
+  captureEvent(
+    ANALYTICS_EVENTS.CUSTOM_TRANSACTION_REMOVED,
+    customTransactionProperties(transaction),
+  );
 }

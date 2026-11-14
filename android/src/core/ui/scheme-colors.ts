@@ -3,8 +3,8 @@ import { useColorScheme } from "react-native";
 import {
   FINANCIAL_COLORS,
   HERO_COLORS,
-  PREVIEW_COLORS,
   SHEET_COLORS,
+  V2_COLORS,
 } from "@/core/ui/theme";
 
 /**
@@ -29,12 +29,12 @@ export function useHeroColors() {
   return HERO_COLORS[useSchemeName()];
 }
 
-/** The onboarding preview's mint card and its ink, for the scheme in force. */
-export function usePreviewColors() {
-  return PREVIEW_COLORS[useSchemeName()];
-}
-
 /** The surface a form sheet rises on, for the scheme in force. */
 export function useSheetColors() {
   return SHEET_COLORS[useSchemeName()];
+}
+
+/** The V2 board tokens MD3 has no role for, for the scheme in force. */
+export function useV2Colors() {
+  return V2_COLORS[useSchemeName()];
 }

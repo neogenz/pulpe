@@ -1,12 +1,21 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter, useSegments } from "expo-router";
+import { useEffect, useRef } from "react";
 import { useTheme } from "react-native-paper";
 
 import { AmountMaskBoundary } from "@/core/ui/amount-mask-boundary";
 import { NavigationBar } from "@/core/ui/navigation-bar";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { useFeatureFlag } from "@/core/observability/feature-flags";
+import { captureTabSwitched } from "@/core/observability/product-events";
+import {
+  shouldLeaveNetWorthTab,
+  withoutNetWorthTab,
+} from "@/features/net-worth/net-worth-tab";
+import { FEATURE_FLAGS } from "pulpe-shared";
 
 /**
- * The four top-level destinations, and nothing else. Every other screen is a
+ * The top-level destinations (a fifth, « Patrimoine », only behind the
+ * `net_worth` flag), and nothing else. Every other screen is a
  * push on the stack one level up: a screen that cannot be reached from the bar
  * has no business being a tab, and registering it here — even hidden behind
  * `href: null` — is what left the bar with no active item on a detail screen.
@@ -17,10 +26,35 @@ import { useTranslation } from "@/core/i18n/locale-store";
 export default function TabsLayout() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const router = useRouter();
+  const segments = useSegments();
+  const isNetWorthEnabled = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
+
+  useEffect(() => {
+    if (shouldLeaveNetWorthTab(isNetWorthEnabled, segments)) {
+      router.replace("/home");
+    }
+  }, [isNetWorthEnabled, segments, router]);
+
+  // The route name, never a label. The tab the app opens on is not a switch.
+  const tab = segments[segments.length - 1];
+  const previousTab = useRef(tab);
+  useEffect(() => {
+    if (previousTab.current === tab) return;
+    previousTab.current = tab;
+    captureTabSwitched(tab);
+  }, [tab]);
 
   return (
     <Tabs
-      tabBar={(props) => <NavigationBar {...props} />}
+      tabBar={(props) => (
+        <NavigationBar
+          {...props}
+          state={
+            isNetWorthEnabled ? props.state : withoutNetWorthTab(props.state)
+          }
+        />
+      )}
       screenLayout={({ children }) => (
         <AmountMaskBoundary>{children}</AmountMaskBoundary>
       )}
@@ -48,6 +82,13 @@ export default function TabsLayout() {
         options={{
           title: t("main.tabs.goals.short"),
           tabBarAccessibilityLabel: t("main.tabs.goals.accessibility"),
+        }}
+      />
+      <Tabs.Screen
+        name="net-worth"
+        options={{
+          title: t("main.tabs.netWorth.short"),
+          tabBarAccessibilityLabel: t("main.tabs.netWorth.accessibility"),
         }}
       />
       <Tabs.Screen

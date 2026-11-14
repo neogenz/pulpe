@@ -1,11 +1,17 @@
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { BackHandler, StyleSheet, View } from "react-native";
+import { AppState, BackHandler, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { SubmissionOverlay } from "@/features/onboarding/components/submission-overlay";
-import { captureOnboardingAbandoned } from "@/features/onboarding/onboarding-analytics";
+import { Notice } from "@/core/ui/notice";
+import {
+  captureOnboardingAbandoned,
+  isRunResumedFromDraft,
+  captureOnboardingPaused,
+  captureOnboardingResumedFromBackground,
+} from "@/features/onboarding/onboarding-analytics";
 import { wouldExitOnBack } from "@/features/onboarding/onboarding-selectors";
 import {
   goToPreviousStep,
@@ -38,6 +44,11 @@ export default function OnboardingRoute() {
   const currentStep = useOnboardingStore((state) => state.currentStep);
   const isSubmitting = useSubmissionStore((state) => state.status !== "idle");
   const [isExitConfirmed, setExitConfirmed] = useState(false);
+  // Only the draft restore says the run was left; a fresh signup also mounts
+  // this route past welcome while the vault status is still unknown.
+  const [isResumeNoticeVisible, setResumeNoticeVisible] = useState(
+    isRunResumedFromDraft,
+  );
 
   // Paper's dialog rather than `Alert.alert`, which is the platform's own and
   // came out in the platform's colours with shouted button labels — the one
@@ -79,6 +90,21 @@ export default function OnboardingRoute() {
     return () => subscription.remove();
   }, [confirmExit]);
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (next) => {
+      const state = useOnboardingStore.getState();
+      if (next === "background") {
+        captureOnboardingPaused(
+          state,
+          useSubmissionStore.getState().status !== "idle",
+        );
+      } else if (next === "active") {
+        captureOnboardingResumedFromBackground(state);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
   return (
     <>
       <View
@@ -91,6 +117,13 @@ export default function OnboardingRoute() {
         <CurrentStep step={currentStep} onExit={confirmExit} />
       </View>
       {isSubmitting && <SubmissionOverlay />}
+
+      <Notice
+        visible={isResumeNoticeVisible}
+        onDismiss={() => setResumeNoticeVisible(false)}
+      >
+        {t("onboarding.resumed")}
+      </Notice>
 
       <Portal>
         <Dialog

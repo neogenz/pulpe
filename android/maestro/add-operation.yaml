@@ -19,7 +19,7 @@ env:
     id: "budget-add"
 # The menu's actions are announced by their label: Paper hides each small FAB
 # from accessibility, and with it from Maestro.
-- tapOn: "Une opération"
+- tapOn: "Un mouvement"
 
 - extendedWaitUntil:
     visible:
@@ -42,7 +42,7 @@ env:
 # The confirmation sits over the bottom of the list, where the new operation
 # lands; Maestro taps by position, so it waits for the snackbar to go.
 - extendedWaitUntil:
-    notVisible: "Opération ajoutée"
+    notVisible: "Mouvement ajouté"
     timeout: 20000
 
 - scrollUntilVisible:

@@ -48,6 +48,7 @@ it("settles on the budget details and the goals, not on the whole prefix", async
   expect(invalidate.mock.calls.map(([options]) => options)).toEqual([
     { queryKey: budgetKeys.details() },
     { queryKey: budgetKeys.list(), refetchType: "none" },
+    { queryKey: ["net-worth"], refetchType: "none" },
     { queryKey: goalKeys.all },
   ]);
   await hook.unmount();

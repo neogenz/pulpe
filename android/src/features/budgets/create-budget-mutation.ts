@@ -1,3 +1,4 @@
+import { captureBudgetCreated } from "@/core/observability/product-events";
 import {
   type Budget,
   type BudgetCreate,
@@ -32,11 +33,13 @@ export function useCreateBudget() {
   return useMutation({
     mutationFn: createBudget,
     // The new lines carry their template line's goal, and the template its usage.
-    onSuccess: () =>
-      Promise.all([
+    onSuccess: () => {
+      captureBudgetCreated();
+      return Promise.all([
         queryClient.invalidateQueries({ queryKey: budgetKeys.all }),
         queryClient.invalidateQueries({ queryKey: goalKeys.all }),
         queryClient.invalidateQueries({ queryKey: templateKeys.all }),
-      ]),
+      ]);
+    },
   });
 }

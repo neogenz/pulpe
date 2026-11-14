@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { getBudgetPeriodDates } from "pulpe-shared";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { Button, FAB, useTheme } from "react-native-paper";
+import { Button, FAB, Text, useTheme } from "react-native-paper";
 
 import { usePushOnce } from "@/core/navigation/push-once";
 import {
@@ -29,19 +29,26 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { useBudgetList } from "@/features/budgets/budget-queries";
 import { hasAvailableMonth } from "@/features/budgets/available-months";
-import { ActivityCard } from "@/features/current-month/components/activity-card";
+import { latestMovements } from "@/features/current-month/activity-window";
+import { HomeNoBudgetView } from "@/features/current-month/components/home-no-budget-view";
+import { HomeStartCard } from "@/features/current-month/components/home-start-card";
+import { HomeTodoCard } from "@/features/current-month/components/home-todo-card";
+import { RecentMovementsSection } from "@/features/current-month/components/recent-movements-section";
 import { TransactionSheet } from "@/features/transactions/components/transaction-sheet";
-import { DriftCard } from "@/features/current-month/components/drift-card";
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
 import { HomeHeroSkeleton } from "@/features/current-month/components/home-hero-skeleton";
 import { NotificationPrimeSheet } from "@/features/current-month/components/notification-prime-sheet";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { ReconcileAccountsSheet } from "@/features/current-month/components/reconcile-accounts-sheet";
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
-import { UncheckedOperationsCard } from "@/features/current-month/components/unchecked-operations-card";
-import { useCurrentMonth } from "@/features/current-month/current-month-queries";
-import type { CheckableItem } from "@/features/current-month/current-month-view-model";
+import {
+  currentBudgetPeriod,
+  useCurrentMonth,
+} from "@/features/current-month/current-month-queries";
 import { heroPresentation } from "@/features/current-month/home-hero-presentation";
+import { periodCaption } from "@/features/current-month/home-presentation";
+import { useMovementEditor } from "@/features/current-month/use-movement-editor";
+import type { PointedItem } from "@/features/current-month/use-pointing-notice";
 import {
   usePendingCheck,
   useToggleCheck,
@@ -74,8 +81,6 @@ export default function HomeScreen() {
   // its step — a pointing that never reached the server and an undo that did
   // not go back are two different pieces of news.
   const [notice, setNotice] = useState<HomeNotice | null>(null);
-  const scroll = useRef<ScrollView>(null);
-  const [checkingY, setCheckingY] = useState({ zone: 0, section: 0 });
   const hero = useHeroColors();
   const push = usePushOnce();
   // A rolled-back row reappearing is not an explanation, so the failure is said
@@ -92,11 +97,23 @@ export default function HomeScreen() {
     hasAvailableMonth(budgets.data, new Date(), currentMonth.payDayOfMonth);
 
   // The calendar month while the details are still on their way, so the app
-  // bar does not change its title once they land on the same month.
-  const month = currentMonth.details?.budget.month ?? new Date().getMonth() + 1;
-  const year = currentMonth.details?.budget.year ?? new Date().getFullYear();
+  // bar does not change its title once they land on the same month. An empty
+  // month names the period the user is living in, which the pay day can put on
+  // another calendar month.
+  const lived = currentBudgetPeriod(currentMonth.payDayOfMonth);
+  const fallback =
+    currentMonth.status === "empty"
+      ? lived
+      : { month: new Date().getMonth() + 1, year: new Date().getFullYear() };
+  const month = currentMonth.details?.budget.month ?? fallback.month;
+  const year = currentMonth.details?.budget.year ?? fallback.year;
   const monthName = formatMonthName(month, year, locale);
   const period = getBudgetPeriodDates(month, year, currentMonth.payDayOfMonth);
+  const editor = useMovementEditor(
+    currentMonth.budgetId,
+    currentMonth.currency,
+    period,
+  );
   // The account lives in the bar, in every state: an empty or failed month
   // used to drop the header with it, and with it the only way to the
   // settings — sign out, pay day, the very setting that can empty a month.
@@ -120,7 +137,7 @@ export default function HomeScreen() {
       case "failure":
         return t(`home.checking.${current.step}Failure`);
       case "added":
-        return t("home.activity.added");
+        return t("home.movements.added");
       case "reconciled":
         return t("home.reconcile.recorded");
       case "reconcileFailure":
@@ -252,14 +269,12 @@ export default function HomeScreen() {
           style={[styles.screen, { backgroundColor: theme.colors.background }]}
         >
           {header}
-          <PlaceholderScreen
-            icon="calendar-blank-outline"
-            title={t("home.states.emptyTitle")}
-            hint={t("home.states.emptyHint")}
-            action={{
-              label: t("home.states.createBudget"),
-              onPress: () => router.push("/budget/create"),
-            }}
+          <HomeNoBudgetView
+            month={month}
+            year={year}
+            monthName={monthName}
+            period={period}
+            currency={currentMonth.currency}
           />
         </View>
         {persistent}
@@ -268,8 +283,6 @@ export default function HomeScreen() {
   }
 
   const { viewModel, currency } = currentMonth;
-  // One verdict for the whole screen: the hero states it, the drift card reads
-  // it to say whether the overrun was covered elsewhere.
   const presentation = heroPresentation({
     estimatedBalance: viewModel.metrics.remaining,
     fallbackPlannedBalance: viewModel.metrics.endingBalance,
@@ -285,6 +298,53 @@ export default function HomeScreen() {
     currentMonth.budgetId === null
       ? undefined
       : () => push(`/budget/${currentMonth.budgetId}`);
+  const transactions = currentMonth.details?.transactions ?? [];
+  const lineNames = new Map(
+    (currentMonth.details?.budgetLines ?? []).map((line) => [
+      line.id,
+      line.name,
+    ]),
+  );
+  // The first month of an account with nothing recorded: no plot to read yet,
+  // and « Pour bien démarrer » stands in for « À faire ».
+  const isFirstMonthStart =
+    transactions.length === 0 && budgets.data?.length === 1;
+
+  function pointItem(item: PointedItem, wasPointed = false) {
+    // Doing it explains it better than the tip ever could.
+    dismissTip("checking");
+    // Per call: `mutate`'s callbacks belong to the latest call alone, so
+    // pointing two operations quickly lost the first one's answer.
+    void toggle.mutateAsync(item).then(
+      () => {
+        hapticSuccess();
+        if (wasPointed) {
+          // Its « Annuler » would point the movement again.
+          setNotice((current) =>
+            current?.kind === "pointed" ? null : current,
+          );
+          return;
+        }
+        setNotice({ kind: "pointed", item });
+        // Offered here and nowhere else: a reminder to point is worth
+        // something only to someone who has just found out what pointing does.
+        reminders.offer();
+      },
+      () => {
+        hapticFailure();
+        setNotice({ kind: "failure", step: "point" });
+      },
+    );
+  }
+
+  function openItem(item: PointedItem) {
+    const transaction =
+      item.source === "transaction"
+        ? transactions.find((candidate) => candidate.id === item.sourceId)
+        : undefined;
+    if (transaction !== undefined) editor.edit(transaction);
+    else openBudget?.();
+  }
 
   return (
     <>
@@ -295,7 +355,6 @@ export default function HomeScreen() {
       >
         {header}
         <ScrollView
-          ref={scroll}
           contentContainerStyle={styles.scroll}
           refreshControl={
             <RefreshControl
@@ -305,106 +364,95 @@ export default function HomeScreen() {
             />
           }
         >
+          <View style={[styles.caption, { backgroundColor: hero.surfaceTop }]}>
+            <Text variant="bodyMedium" style={{ color: hero.support }}>
+              {periodCaption(
+                t,
+                locale,
+                viewModel.periodProgress,
+                period.endDate,
+              )}
+            </Text>
+          </View>
           <HeroZone>
             <HomeHeroCard
               presentation={presentation}
               trajectory={viewModel.trajectory}
               period={period}
-              monthName={monthName}
-              uncheckedCount={viewModel.uncheckedCount}
-              daysRemaining={viewModel.daysRemaining}
               currency={currency}
-              onPressUnchecked={() =>
-                scroll.current?.scrollTo({
-                  y: checkingY.zone + checkingY.section - SPACING.md,
-                  animated: true,
-                })
-              }
-              onPressMetrics={() => setRealizedVisible(true)}
-              onPressDetail={openBudget}
+              startsFresh={isFirstMonthStart}
+              onPressCalculation={() => setRealizedVisible(true)}
             />
           </HeroZone>
 
-          <ContentZone
-            style={styles.content}
-            onLayout={(event) => {
-              const zone = event.nativeEvent.layout.y;
-              setCheckingY((current) =>
-                current.zone === zone ? current : { ...current, zone },
-              );
-            }}
-          >
-            {viewModel.uncheckedItems.length > 0 && (
-              <View
-                style={styles.checking}
-                onLayout={(event) => {
-                  const section = event.nativeEvent.layout.y;
-                  setCheckingY((current) =>
-                    current.section === section
-                      ? current
-                      : { ...current, section },
-                  );
-                }}
-              >
-                <Tooltip
-                  id="checking"
-                  icon="check-circle-outline"
-                  title={t("home.checking.tooltipTitle")}
-                  message={t("home.checking.tooltipMessage")}
-                />
-                <UncheckedOperationsCard
+          <ContentZone style={styles.content}>
+            {isFirstMonthStart ? (
+              <HomeStartCard
+                uncheckedNames={viewModel.uncheckedItems.map(
+                  (item) => item.name,
+                )}
+                uncheckedCount={viewModel.uncheckedCount}
+                onAddFirstExpense={() => setAddOpen(true)}
+                onPoint={() => push("/to-point")}
+              />
+            ) : (
+              <View style={styles.checking}>
+                {viewModel.uncheckedItems.length > 0 && (
+                  <Tooltip
+                    id="checking"
+                    icon="check-circle-outline"
+                    title={t("home.checking.tooltipTitle")}
+                    message={t("home.checking.tooltipMessage")}
+                  />
+                )}
+                <HomeTodoCard
                   items={viewModel.uncheckedItems}
-                  totalCount={viewModel.uncheckedCount}
+                  uncheckedCount={viewModel.uncheckedCount}
+                  uncheckedMovementCount={viewModel.uncheckedMovementCount}
+                  drifts={viewModel.driftLines}
+                  driftTotal={viewModel.driftTotal}
                   currency={currency}
                   isPending={isPendingCheck}
-                  onViewAll={openBudget}
-                  onToggle={(item) => {
-                    // Doing it explains it better than the card ever could.
-                    dismissTip("checking");
-                    // Per call: `mutate`'s callbacks belong to the latest call
-                    // alone, so pointing two operations quickly lost the first
-                    // one's answer — its failure said nothing.
-                    void toggle.mutateAsync(item).then(
-                      // Offered here and nowhere else: a reminder to point is
-                      // worth something only to someone who has just found out
-                      // what pointing does.
-                      () => {
-                        hapticSuccess();
-                        setNotice({ kind: "pointed", item });
-                        reminders.offer();
-                      },
-                      () => {
-                        hapticFailure();
-                        setNotice({ kind: "failure", step: "point" });
-                      },
-                    );
-                  }}
+                  onPoint={() => push("/to-point")}
+                  onPointItem={(item) => pointItem(item)}
+                  onOpenItem={openItem}
+                  onCatchUp={() => openBudget?.()}
                 />
               </View>
             )}
 
-            {viewModel.driftLines.length > 0 ? (
-              <DriftCard
-                drifts={viewModel.driftLines}
-                totalOver={viewModel.driftTotal}
-                absorbsOverrun={presentation.absorbsEnvelopeOverrun}
-                currency={currency}
-                onCatchUp={openBudget}
-              />
-            ) : (
+            {viewModel.driftLines.length === 0 &&
               viewModel.savings.isComplete && (
                 <SavingsDoneCard
                   amount={viewModel.savings.totalRealized}
                   currency={currency}
                   onPress={() => push("/goals")}
                 />
-              )
-            )}
+              )}
 
-            <ActivityCard
-              transactions={currentMonth.details?.transactions ?? []}
+            <RecentMovementsSection
+              transactions={latestMovements(transactions)}
+              hasMovements={transactions.length > 0}
+              lineNames={lineNames}
               currency={currency}
-              onPressAll={openBudget}
+              isPending={(transaction) =>
+                isPendingCheck({
+                  source: "transaction",
+                  sourceId: transaction.id,
+                })
+              }
+              onToggle={(transaction) =>
+                pointItem(
+                  {
+                    source: "transaction",
+                    sourceId: transaction.id,
+                    name: transaction.name,
+                  },
+                  transaction.checkedAt !== null,
+                )
+              }
+              onEdit={editor.edit}
+              onViewAll={() => push("/movements")}
             />
 
             {hasMonthToPrepare && (
@@ -426,6 +474,7 @@ export default function HomeScreen() {
         {!isAddVisible &&
           !isRealizedVisible &&
           reconcileBudgetId === null &&
+          !editor.isOpen &&
           !reminders.isVisible && (
             <FAB
               testID="home-add-entry"
@@ -474,6 +523,7 @@ export default function HomeScreen() {
             }}
           />
         )}
+        {editor.element}
       </View>
       {persistent}
     </>
@@ -481,7 +531,7 @@ export default function HomeScreen() {
 }
 
 type HomeNotice =
-  | { kind: "pointed"; item: CheckableItem }
+  | { kind: "pointed"; item: PointedItem }
   | { kind: "failure"; step: "point" | "undo" }
   | { kind: "added" }
   | { kind: "reconciled" }
@@ -490,6 +540,7 @@ type HomeNotice =
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flexGrow: 1 },
+  caption: { paddingHorizontal: SPACING.md + SPACING.xs },
   content: { paddingBottom: FAB_CLEARANCE },
   checking: { gap: SPACING.md },
   prepare: { alignSelf: "center" },

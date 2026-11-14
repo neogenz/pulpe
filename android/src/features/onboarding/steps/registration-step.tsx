@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Text, TextInput, useTheme } from "react-native-paper";
 
@@ -10,12 +10,16 @@ import {
 } from "@/core/auth/password-rules";
 import { signUpWithEmail } from "@/core/auth/sign-up";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { captureSignupFailed } from "@/core/observability/product-events";
 import { ICON_SIZE, SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
 
 import { LegalConsent } from "../components/legal-consent";
 import { StepScaffold } from "../components/step-scaffold";
-import { captureSignupCompleted } from "../onboarding-analytics";
+import {
+  captureEmailSignupStarted,
+  captureSignupCompleted,
+} from "../onboarding-analytics";
 import { hasAccount } from "../onboarding-selectors";
 import {
   configureEmailUser,
@@ -40,6 +44,8 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => captureEmailSignupStarted(), []);
+
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   async function submit() {
@@ -58,7 +64,8 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
       captureSignupCompleted("email");
       configureEmailUser();
       goToNextStep();
-    } catch {
+    } catch (error) {
+      captureSignupFailed("email", error);
       setErrorMessage(t("onboarding.registration.error"));
     } finally {
       setIsSubmitting(false);

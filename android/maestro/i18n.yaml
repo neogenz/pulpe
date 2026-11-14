@@ -23,8 +23,10 @@ env:
 - stopApp
 - launchApp
 - extendedWaitUntil:
-    visible: "Your code"
+    visible:
+      id: "vault-unlock"
     timeout: 30000
+- assertVisible: "It unlocks your amounts"
 - tapOn: ${PIN.charAt(0)}
 - tapOn: ${PIN.charAt(1)}
 - tapOn: ${PIN.charAt(2)}

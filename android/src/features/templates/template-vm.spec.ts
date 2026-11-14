@@ -4,6 +4,7 @@ import {
   canCreateTemplate,
   MAX_TEMPLATES,
   propagationBudgetCount,
+  propagationCurrentPeriod,
   type TemplateUsage,
   templateLineSections,
 } from "./template-vm";
@@ -150,5 +151,21 @@ describe("canCreateTemplate", () => {
   it("closes at the ceiling", () => {
     expect(canCreateTemplate(MAX_TEMPLATES - 1)).toBe(true);
     expect(canCreateTemplate(MAX_TEMPLATES)).toBe(false);
+  });
+});
+
+describe("propagationCurrentPeriod", () => {
+  const now = new Date(2026, 7, 11);
+
+  it("names the current period when a budget of the model covers it", () => {
+    expect(
+      propagationCurrentPeriod(usage([{ month: 8, year: 2026 }]), null, now),
+    ).toEqual({ month: 8, year: 2026 });
+  });
+
+  it("is null when the current month was not built from the model", () => {
+    expect(
+      propagationCurrentPeriod(usage([{ month: 9, year: 2026 }]), null, now),
+    ).toBeNull();
   });
 });

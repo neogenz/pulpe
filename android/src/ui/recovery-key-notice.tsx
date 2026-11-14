@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
+import { captureRecoveryKeyAcknowledged } from "@/core/observability/product-events";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 import { formatRecoveryKey } from "@/core/vault/recovery-key";
@@ -33,6 +34,20 @@ async function withdrawFromClipboard(recoveryKey: string): Promise<void> {
 }
 
 /**
+ * Module-level, not the dialog's: the promise on screen is two minutes, and
+ * acknowledging the notice unmounts the dialog long before that.
+ */
+let withdrawTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleClipboardWithdrawal(recoveryKey: string): void {
+  if (withdrawTimeout) clearTimeout(withdrawTimeout);
+  withdrawTimeout = setTimeout(() => {
+    withdrawTimeout = null;
+    void withdrawFromClipboard(recoveryKey);
+  }, CLIPBOARD_LIFETIME_MS);
+}
+
+/**
  * The recovery key, shown once and never retrievable again — hence no dismiss
  * gesture: leaving by accident costs the user the only way back into their own
  * data if they forget their PIN.
@@ -57,17 +72,12 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
   const { t } = useTranslation();
   const [isCopied, setIsCopied] = useState(false);
   const resetTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const withdrawTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Acknowledging the notice unmounts it: the key has been noted by then.
   useEffect(
     () => () => {
       if (resetTimeout.current) clearTimeout(resetTimeout.current);
-      if (withdrawTimeout.current === null) return;
-      clearTimeout(withdrawTimeout.current);
-      void withdrawFromClipboard(recoveryKey);
     },
-    [recoveryKey],
+    [],
   );
 
   async function copy() {
@@ -80,11 +90,7 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
       () => setIsCopied(false),
       COPIED_RESET_MS,
     );
-    if (withdrawTimeout.current) clearTimeout(withdrawTimeout.current);
-    withdrawTimeout.current = setTimeout(() => {
-      withdrawTimeout.current = null;
-      void withdrawFromClipboard(recoveryKey);
-    }, CLIPBOARD_LIFETIME_MS);
+    scheduleClipboardWithdrawal(recoveryKey);
   }
 
   return (
@@ -127,6 +133,9 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
             >
               {t(isCopied ? "vault.notice.copied" : "vault.notice.copy")}
             </Button>
+            <Text variant="bodySmall" style={styles.centered}>
+              {t("vault.notice.clipboardClears")}
+            </Text>
 
             <View
               style={[
@@ -153,7 +162,13 @@ function MintedKeyDialog({ recoveryKey }: { recoveryKey: string }) {
         </Dialog.ScrollArea>
 
         <Dialog.Actions>
-          <Button mode="contained" onPress={acknowledgeRecoveryNotice}>
+          <Button
+            mode="contained"
+            onPress={() => {
+              captureRecoveryKeyAcknowledged();
+              acknowledgeRecoveryNotice();
+            }}
+          >
             {t("vault.notice.acknowledge")}
           </Button>
         </Dialog.Actions>

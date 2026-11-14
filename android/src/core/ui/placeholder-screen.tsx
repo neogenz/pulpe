@@ -1,13 +1,14 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { ComponentProps } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Text, useTheme } from "react-native-paper";
 
 import { ActionButton } from "./action-button";
-import { SPACING } from "./theme";
+import { useV2Colors } from "./scheme-colors";
+import { ICON_SIZE, RADIUS, SPACING } from "./theme";
 
-const PLACEHOLDER_ICON_SIZE = 48;
+const DISC_SIZE = 72;
 
 interface PlaceholderScreenProps {
   /**
@@ -23,6 +24,11 @@ interface PlaceholderScreenProps {
   hint: string;
   /** A way out of the state, when there is one to offer. */
   action?: { label: string; loading?: boolean; onPress: () => void };
+  /**
+   * `accent` guides (an empty state), `neutral` reports (a failure, a pause).
+   * The disc carries it — `StatusScreen` on iOS.
+   */
+  tone?: "accent" | "neutral";
   /** The other way out, when retrying may never get past the state. */
   secondaryAction?: { label: string; onPress: () => void };
 }
@@ -33,18 +39,28 @@ export function PlaceholderScreen({
   hint,
   action,
   secondaryAction,
+  tone = "accent",
 }: PlaceholderScreenProps) {
   const theme = useTheme();
+  const v2 = useV2Colors();
+  const isAccent = tone === "accent";
 
   return (
     <SafeAreaView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <MaterialCommunityIcons
-        name={icon}
-        size={PLACEHOLDER_ICON_SIZE}
-        color={theme.colors.onSurfaceVariant}
-      />
+      <View
+        style={[
+          styles.disc,
+          { backgroundColor: isAccent ? v2.accentWash : v2.sunk },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name={icon}
+          size={ICON_SIZE.xl}
+          color={isAccent ? v2.accentInk : theme.colors.onSurfaceVariant}
+        />
+      </View>
       <Text
         variant="titleLarge"
         style={[styles.centered, { color: theme.colors.onBackground }]}
@@ -83,6 +99,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: SPACING.xl,
     gap: SPACING.md,
+  },
+  disc: {
+    width: DISC_SIZE,
+    height: DISC_SIZE,
+    borderRadius: RADIUS.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
   centered: { textAlign: "center" },
   action: { marginTop: SPACING.sm },

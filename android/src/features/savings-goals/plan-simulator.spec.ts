@@ -2,6 +2,8 @@ import type { SavingsGoalPlanMonth, SavingsGoalProgress } from "pulpe-shared";
 
 import {
   buildPlanApply,
+  canRepairPlan,
+  repairChanges,
   isEditablePlanMonth,
   monthKey,
   pinnedAdjustments,
@@ -240,5 +242,31 @@ describe("planVerdict", () => {
     );
 
     expect(planVerdict(result)).toEqual({ kind: "total", amount: 200 });
+  });
+});
+
+describe("repair", () => {
+  const gap = month({
+    month: 9,
+    isProvisionable: true,
+    plannedAmount: 0,
+    plannedCumulative: 0,
+    lines: [],
+  });
+
+  it("creates one forecast per repairable month at the amount still asked", () => {
+    const plan = progress([month(), gap], { required: 150.001 });
+
+    expect(canRepairPlan(plan)).toBe(true);
+    const apply = buildPlanApply(repairChanges(plan));
+    expect(apply?.missingMonthAdjustments).toEqual([
+      { month: 9, year: 2026, amount: 150.01 },
+    ]);
+  });
+
+  it("offers no repair without a month to fill or a pace to hold", () => {
+    expect(canRepairPlan(progress([month()], { required: 150 }))).toBe(false);
+    expect(canRepairPlan(progress([gap], { required: 0 }))).toBe(false);
+    expect(canRepairPlan(progress([gap], { required: null }))).toBe(false);
   });
 });

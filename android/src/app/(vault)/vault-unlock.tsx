@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Button, useTheme } from "react-native-paper";
 
+import { sessionFirstName } from "@/core/auth/session-first-name";
 import { useSessionStore } from "@/core/auth/session-store";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useRipple } from "@/core/ui/ripple";
@@ -28,6 +29,7 @@ export default function VaultUnlockScreen() {
     (state) => state.isLegacyBiometricAvailable,
   );
   const signOut = useSessionStore((state) => state.signOut);
+  const firstName = useSessionStore((state) => sessionFirstName(state.user));
   const [biometricError, setBiometricError] = useState<string | null>(null);
 
   const { pin, setPin, errorMessage, isBusy } = usePinEntry(
@@ -58,7 +60,11 @@ export default function VaultUnlockScreen() {
   return (
     <PinScreen
       testID="vault-unlock"
-      title={t("vault.unlock.title")}
+      title={
+        firstName === null
+          ? t("vault.unlock.greetingAnonymous")
+          : t("vault.unlock.greeting", { name: firstName })
+      }
       subtitle={t("vault.unlock.subtitle")}
       footer={
         <>

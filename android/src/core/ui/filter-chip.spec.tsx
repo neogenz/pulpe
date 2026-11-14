@@ -19,7 +19,6 @@ it("carries the selection in its fill and its accessibility state", async () => 
     expect.objectContaining({ selected: false }),
   );
   expect(fill(selected)).not.toBe(fill(idle));
-  expect(selected.queryByTestId("chip-selected-icon")).toBeNull();
 });
 
 it("answers a press", async () => {

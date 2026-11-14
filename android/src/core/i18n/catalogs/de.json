@@ -8,7 +8,8 @@
       "sentBody": "Falls ein Konto mit dieser Adresse existiert, erhältst du eine E-Mail mit einem Link zum Zurücksetzen.",
       "sentTitle": "E-Mail gesendet",
       "spam": "Prüfe auch deinen Spam-Ordner, falls du sie nicht siehst.",
-      "title": "Passwort vergessen"
+      "title": "Passwort vergessen",
+      "reassurance": "Dein PIN und deine Beträge bleiben unverändert."
     },
     "reset": {
       "confirmPassword": "Neues Passwort bestätigen",
@@ -28,7 +29,8 @@
       "submit": "Bestätigen",
       "submitting": "Passwort wird zurückgesetzt",
       "title": "Passwort zurücksetzen",
-      "verifying": "Link wird überprüft"
+      "verifying": "Link wird überprüft",
+      "reassurance": "Dein PIN und deine Beträge bleiben unverändert."
     },
     "restore": {
       "hint": "Prüfe deine Verbindung und versuch es erneut. Deine Daten sind auf diesem Gerät geblieben.",
@@ -49,7 +51,7 @@
       "showPassword": "Passwort anzeigen",
       "submit": "Anmelden",
       "submitting": "Anmeldung läuft",
-      "subtitle": "Melde dich an, um auf dein Budget zuzugreifen",
+      "subtitle": "Melde dich an, um dein Budget wiederzufinden.",
       "terms": "Nutzungsbedingungen",
       "title": "Willkommen zurück"
     }
@@ -73,25 +75,30 @@
     },
     "detail": {
       "activityLongPressHint": "Lange drücken, um zu löschen oder zu bearbeiten",
-      "allChecked": "Für diesen Monat ist alles abgehakt.",
-      "amountSuffix": {
-        "overrun": "über dem Budget",
-        "planned": "geplant",
-        "plannedTotal": "/ %{amount} geplant",
-        "remaining": "übrig von %{amount}"
-      },
+      "allChecked": "Alles ist abgehakt.",
       "deletedGoal": "Dieses Ziel wurde gelöscht. Die Einnahme bleibt in deinem Budget.",
       "deleteMonth": {
         "action": "Diesen Monat löschen",
         "title": "%{month} löschen?",
-        "body": "Seine Planungen (%{forecastCount}) und seine Bewegungen (%{movementCount}) werden gelöscht. Das lässt sich nicht rückgängig machen.",
         "links": "Dieser Monat ist auch mit anderen Monaten oder einem Sparziel verknüpft: %{links}. Die anderen Monate behalten ihren Anteil.",
         "linkSpread": "verteilter Planposten (%{count})",
         "linkGoal": "Sparziel (%{count})",
         "linkWithdrawal": "Entnahme aus Ersparnissen (%{count})",
-        "confirm": "Löschen",
+        "confirm": "%{month} löschen",
         "loadError": "Die Details des Monats konnten nicht geladen werden. Versuche es erneut.",
-        "failure": "Der Monat konnte nicht gelöscht werden. Versuche es erneut."
+        "failure": "Der Monat konnte nicht gelöscht werden. Versuche es erneut.",
+        "onlyUpcoming": "Nur ein kommender Monat",
+        "forecasts": {
+          "one": "%{count} Planposten geht mit.",
+          "other": "Seine %{count} Planposten gehen mit."
+        },
+        "movements": {
+          "one": "%{count} Bewegung geht auch.",
+          "other": "Seine %{count} Bewegungen gehen auch."
+        },
+        "movementsNone": "Er hat noch keine Bewegungen.",
+        "finality": "Dein Verfügbares im %{month} ändert sich nicht. Das ist endgültig.",
+        "finalityElided": "Dein Verfügbares im %{month} ändert sich nicht. Das ist endgültig."
       },
       "filters": {
         "all": "Alle",
@@ -99,28 +106,25 @@
         "expense": "Ausgaben",
         "income": "Einnahmen",
         "saving": "Sparen",
-        "unchecked": "Abzuhaken"
+        "unchecked": "Abzuhaken",
+        "over": "Überschritten"
       },
       "gesturesMessage": "Tippe auf den Kreis oder wische die Zeile nach rechts zum Abhaken · Tippe zum Bearbeiten auf die Zeile",
       "gesturesTitle": "Zwei Gesten pro Zeile",
       "goal": "Ziel: %{name}",
       "goalShort": "Ziel",
       "hero": {
-        "accessibility": "%{state} %{amount}, %{percent} % verwendet",
         "available": "Verfügbar zum Ausgeben",
-        "deficit": "Defizit",
-        "distribution": "Monatsaufteilung",
-        "expenses": "Ausgaben",
-        "income": "Einnahmen",
-        "previousMonth": "den Vormonat",
-        "rollover": "Übertrag aus dem Vormonat enthalten",
-        "rolloverNamed": "Übertrag aus %{month} enthalten",
-        "savings": "Sparen",
-        "viewMonth": "%{month} anzeigen",
-        "verdict": {
-          "comfortable": "Du hast diesen Monat Spielraum.",
-          "tight": "Dieser Monat ist etwas knapp.",
-          "deficit": "Du gibst diesen Monat mehr aus, als du verdienst."
+        "availableProjected": "Geplant verfügbar",
+        "calculation": "Die Rechnung",
+        "calculationHint": "Rechendetails öffnen",
+        "rolloverIncluded": "Übertrag von %{amount} enthalten",
+        "rolloverEstimated": "Mit dem Übertrag aus %{month}, geschätzt auf %{amount}",
+        "viewPrevious": "Vorheriges Budget anzeigen",
+        "split": {
+          "expenses": "Ausgaben",
+          "savings": "Sparen",
+          "available": "Verfügbar"
         }
       },
       "inEnvelope": "In der Planung %{name}",
@@ -140,32 +144,35 @@
         "pointedAllocated": "In einer Planung abgehakt"
       },
       "spread": "Verteilt",
-      "status": {
-        "overBudget": "Budget überschritten",
-        "received": "Erhalten",
-        "toReceive": "%{amount} noch zu erhalten",
-        "toTransfer": "%{amount} noch zu übertragen",
-        "transferred": "Übertragen"
-      },
       "withdrawnFrom": "Entnommen aus: %{name}",
       "tracking": "Budgetverlauf",
       "swipe": {
         "point": "Abhaken",
         "unpoint": "Nicht mehr abhaken"
+      },
+      "noOver": "Diesen Monat ist nichts mehr überschritten.",
+      "upcomingBanner": "Dieser Monat hat noch nicht begonnen. Seine Planungen stammen aus deiner Vorlage: Passe sie jetzt an, wenn du schon weisst, was sich ändert.",
+      "period": {
+        "range": "%{start} bis %{end}",
+        "day": "%{range} · Tag %{day} von %{count}",
+        "startsIn": {
+          "one": "%{range} · beginnt in %{count} Tag",
+          "other": "%{range} · beginnt in %{count} Tagen"
+        }
+      },
+      "pointed": "abgehakt",
+      "withdrawal": "Aus deinem Ersparten geholt",
+      "row": {
+        "remaining": "%{amount} übrig",
+        "overrun": "%{amount} über dem Plan"
       }
     },
     "actions": {
       "line": {
         "actions": "Aktionen für die Planung",
-        "activityMany": "%{count} Vorgänge",
-        "activityNone": "Keine Vorgänge",
-        "activityOne": "1 Vorgang",
         "cancelPair": "Beide stornieren",
         "createTargetBudget": "Erstelle zuerst das Budget für %{month}",
-        "deleteEmpty": "Danach verschwindet sie aus diesem Monat.",
-        "deleteTitle": "Diese Planung löschen?",
-        "deleteWithMany": "Die %{count} verknüpften Vorgänge bleiben erhalten, aber ohne Planung.",
-        "deleteWithOne": "Der verknüpfte Vorgang bleibt erhalten, aber ohne Planung.",
+        "deleteTitle": "%{name} löschen?",
         "empty": "Mit dieser Planung ist noch nichts verknüpft.",
         "failure": {
           "deleteLine": "Die Planung konnte nicht gelöscht werden. Versuche es erneut.",
@@ -176,19 +183,24 @@
         "loadError": "Diese Planung konnte nicht geladen werden.",
         "missingHint": "Möglicherweise wurde sie auf einem anderen Gerät gelöscht.",
         "missingTitle": "Diese Planung existiert nicht mehr",
-        "overrun": "%{amount} über dem Budget",
         "pairDescription": "+%{amount} in %{incomeMonth} ist mit -%{amount} in %{repaymentMonth} verknüpft.",
         "pairTitle": "Diese beiden Zeilen sind verknüpft",
         "plannedAmount": "von %{amount} geplant",
         "postpone": "Auf nächsten Monat verschieben",
-        "remaining": "%{amount} übrig",
         "viewSpread": "Verteilte Monate anzeigen",
         "leftEyebrow": "Übrig",
         "overrunEyebrow": "Überschreitung",
         "notedOf": "%{noted} erfasst von %{planned} geplant",
         "movements": "Bewegungen",
         "emptyTitle": "Noch nichts erfasst",
-        "note": "Betrag erfassen"
+        "note": "Betrag erfassen",
+        "deleteConfirm": "Planung löschen",
+        "deleteMovements": {
+          "one": "%{count} Bewegung wird ungeplant: %{total}.",
+          "other": "Die %{count} Bewegungen werden ungeplant: insgesamt %{total}."
+        },
+        "deleteNoMove": "Dein Verfügbares bleibt gleich.",
+        "deleteTemplate": "Nur der %{month} ist betroffen: Deine Vorlage behält %{name}."
       },
       "spread": {
         "complete": "Ziel erreicht",
@@ -258,25 +270,58 @@
     },
     "mutations": {
       "activity": {
+        "addAmount": "%{amount} hinzufügen",
         "allocatedIn": "In „%{name}“ berücksichtigt",
         "alreadyChecked": "Bereits abgehakt",
         "alreadyCheckedAccessibility": "Vorgang bereits abgehakt",
-        "alreadyCheckedHint": "Im bisherigen Kontostand enthalten",
-        "createTitle": "Vorgang hinzufügen",
+        "alreadyCheckedHint": "Der Betrag ist bereits über dein Konto gelaufen.",
         "date": "Datum des Vorgangs",
-        "editTitle": "Vorgang bearbeiten",
+        "editTitles": {
+          "expense": "Ausgabe bearbeiten",
+          "income": "Einnahme bearbeiten",
+          "saving": "Sparen bearbeiten"
+        },
         "error": "Der Vorgang konnte nicht gespeichert werden. Versuche es erneut.",
         "goalsAvailable": "Verfügbare Ziele",
+        "impact": {
+          "note": {
+            "covered": "Das war in %{name} geplant: %{after} übrig statt %{before}.",
+            "overLine": "%{name} ist überschritten: der Mehrbetrag geht von deinem Verfügbaren ab.",
+            "uncovered": "Keine Planung deckt das ab."
+          }
+        },
+        "leftChip": "noch %{amount}",
         "noGoals": "Derzeit ist in keinem Ziel Geld verfügbar.",
         "originAccessibility": "Einnahme aus einem Sparziel",
         "originHint": "Der Betrag wird aus dem gewählten Ziel entnommen.",
-        "originTitle": "Diese Einnahme stammt aus einem Sparziel",
+        "originTitle": "Dieses Geld kommt aus meinem Ersparten",
+        "other": "Andere",
+        "picker": {
+          "left": "übrig",
+          "margin": "Mit Spielraum",
+          "otherExpense": "Andere Ausgaben",
+          "otherIncome": "Andere Einnahmen",
+          "over": "darüber",
+          "overSection": "Schon überschritten",
+          "planned": "%{amount} geplant",
+          "plannedCaption": "geplant",
+          "pointedRecurrence": "%{recurrence} · abgehakt",
+          "title": "In welcher Planung?",
+          "unplannedHint": "Keine Planung: dein Verfügbares sinkt"
+        },
         "placeholders": {
           "expense": "Restaurant, Benzin…",
           "income": "Bonus, Erstattung…",
           "saving": "Überweisung zum Sparen…"
         },
-        "retryUnchanged": "Dieser Eintrag wurde möglicherweise bereits gespeichert. Versuche es mit den unten stehenden Werten erneut, um ihn zu bestätigen. Danach kannst du ihn im Budget bearbeiten."
+        "question": "War das in deinem Budget geplant?",
+        "retryUnchanged": "Dieser Eintrag wurde möglicherweise bereits gespeichert. Versuche es mit den unten stehenden Werten erneut, um ihn zu bestätigen. Danach kannst du ihn im Budget bearbeiten.",
+        "titles": {
+          "expense": "Neue Ausgabe",
+          "income": "Neues Einkommen",
+          "saving": "Neue Ersparnis"
+        },
+        "unplanned": "Nein, das war unvorhergesehen"
       },
       "activityAction": "Ein Vorgang",
       "add": "Hinzufügen",
@@ -289,17 +334,17 @@
         "editTitle": "Planung bearbeiten",
         "error": "Die Planung konnte nicht gespeichert werden. Versuche es erneut.",
         "monthlyAmount": "Betrag pro Monat",
-        "oneOffHint": "Existiert nur in diesem Monat.",
         "placeholders": {
           "expense": "Miete, Einkäufe…",
           "income": "Gehalt, Zulage…",
           "saving": "Urlaubssparen…"
         },
         "plannedAmount": "Geplanter Betrag",
-        "recurringHint": "Kehrt jeden Monat in deinen nächsten Budgets zurück.",
-        "spreadHint": "Eine grosse Ausgabe, die nicht nur einen Monat verzerrt",
         "spreadTitle": "Auf mehrere Monate verteilen",
-        "totalAmount": "Gesamtbetrag"
+        "totalAmount": "Gesamtbetrag",
+        "when": "Wann?",
+        "perMonth": "pro Monat",
+        "inTotal": "insgesamt"
       },
       "forecastAction": "Eine Planung",
       "name": "Name",
@@ -307,7 +352,8 @@
         "activityAdded": "Vorgang hinzugefügt",
         "activityUpdated": "Vorgang geändert",
         "forecastAdded": "Planung hinzugefügt",
-        "withdrawalReady": "Alles erledigt"
+        "withdrawalReady": "Alles erledigt",
+        "forecastUpdated": "Planposten geändert"
       },
       "removal": {
         "deleteError": "Der Vorgang konnte nicht gelöscht werden. Versuche es erneut.",
@@ -339,12 +385,16 @@
       "planAccessibility": "Mehrere Budgets planen",
       "potential": "Potenzial",
       "title": "Budgets",
-      "yearBalance": "Saldo zum Jahresende",
-      "yearReview": "Jahresbilanz",
+      "yearBalance": "Saldo zum Jahresende %{year}",
+      "yearReview": "Bilanz %{year}",
       "verdict": {
         "none": "Noch kein Monat budgetiert. Fang jetzt an.",
-        "all": "Du hast das ganze Jahr budgetiert. Bravo!",
-        "some": "Du hast %{count} von 12 Monaten des Jahres budgetiert."
+        "all": "Alle 12 Monate von %{year} haben ihr Budget.",
+        "some": {
+          "one": "%{count} von 12 Monaten hat sein Budget.",
+          "other": "%{count} von 12 Monaten haben ihr Budget."
+        },
+        "estimated": "Geschätzt für Ende Dezember, wenn der Rest des Jahres dem Plan folgt."
       },
       "yearSelector": "Jahr wählen",
       "notCreated": "Noch kein Budget",
@@ -356,7 +406,8 @@
       "showClosed": "Anzeigen",
       "hideClosed": "Ausblenden",
       "showClosedAccessibility": "Abgeschlossene Monate anzeigen",
-      "hideClosedAccessibility": "Abgeschlossene Monate ausblenden"
+      "hideClosedAccessibility": "Abgeschlossene Monate ausblenden",
+      "closedSubtitle": "Was am Ende jedes Monats übrig blieb"
     },
     "plan": {
       "default": "Standard",
@@ -419,6 +470,36 @@
         "11": "Bald ist Bilanz – du schaffst das",
         "12": "Auf der Zielgeraden"
       }
+    },
+    "impact": {
+      "neutral": "Dein Verfügbares ändert sich nicht",
+      "over": "Dein Verfügbares sinkt um %{amount}",
+      "ok": "Dein Verfügbares steigt um %{amount}",
+      "availableOf": "Dein Verfügbares im %{month}",
+      "availableOfElided": "Dein Verfügbares im %{month}"
+    },
+    "postpone": {
+      "title": "In den %{month} verschieben?",
+      "message": "Die für %{name} geplanten %{amount} verlassen den %{current} und gehen in den %{next}.",
+      "confirm": "Verschieben"
+    },
+    "catchUp": {
+      "title": "Ausgleichen",
+      "fromMonth": "Das Zuviel aufholen",
+      "fromForecast": "Mit einer anderen Planung ausgleichen",
+      "bannerOne": "%{name} ist um %{total} überschritten.",
+      "bannerTwo": "%{first} und %{second} sind um %{total} überschritten.",
+      "bannerMany": "%{count} Planungen sind um %{total} überschritten.",
+      "inviteOne": "Gleiche es bei einer Planung aus, die diesen Monat noch Spielraum hat.",
+      "inviteMany": "Gleiche es bei einer Planung aus, die diesen Monat noch Spielraum hat.",
+      "toTakeBack": "Auszugleichen",
+      "whichForecast": "Bei welcher Planung?",
+      "noChoice": "Keine Planung kann diese Überschreitung diesen Monat ausgleichen.",
+      "coversAll": "Noch %{remaining} · wird zu %{amount}",
+      "coversPart": "Noch %{remaining} · deckt einen Teil",
+      "impactNote": "%{name} sinkt von %{from} auf %{to} geplant für %{month}.",
+      "submit": "Bei %{name} ausgleichen",
+      "error": "Die Planung konnte nicht geändert werden. Versuche es erneut."
     }
   },
   "common": {
@@ -461,13 +542,41 @@
     "list": {
       "addAccessibility": "Ziel hinzufügen",
       "create": "Ziel erstellen",
-      "deadline": "Zieldatum %{date}",
       "emptyHint": "Verfolge langfristige Sparprojekte, ohne selbst nachzurechnen.",
       "emptyTitle": "Lege dein erstes Ziel fest",
       "loadErrorTitle": "Deine Ziele konnten nicht geladen werden",
-      "since": "Seit %{date}",
       "title": "Sparziele",
-      "section": "Ziele"
+      "subtitle": "Deine Sparprojekte, Monat für Monat",
+      "total": "Für deine Ziele zurückgelegt",
+      "count": {
+        "one": "Über %{count} Ziel.",
+        "other": "Über %{count} Ziele."
+      },
+      "sections": {
+        "ACTIVE": "Laufend",
+        "PAUSED": "Pausiert",
+        "COMPLETED": "Erreicht"
+      },
+      "ofTarget": "von %{amount}",
+      "fact": {
+        "reached": "Ziel erreicht",
+        "toConfirm": "zu bestätigen",
+        "overdue": "Frist abgelaufen",
+        "toPlan": {
+          "one": "%{count} Monat zu planen",
+          "other": "%{count} Monate zu planen"
+        }
+      },
+      "starter": {
+        "title": "Für den Anfang",
+        "note": "Ich trage den Namen ein, du wählst Betrag und Datum.",
+        "cushion": "Notgroschen",
+        "cushionHint": "Drei Monate Fixkosten, ohne Frist",
+        "trip": "Reise",
+        "tripHint": "Ein Betrag und ein Abreisedatum",
+        "purchase": "Grosse Anschaffung",
+        "purchaseHint": "Auto, Sofa, Computer"
+      }
     },
     "intro": {
       "create": "Mein Ziel erstellen",
@@ -522,33 +631,56 @@
       "loadErrorTitle": "Dieses Ziel konnte nicht geladen werden",
       "missingHint": "Es wurde vielleicht auf einem anderen Gerät gelöscht.",
       "missingTitle": "Dieses Ziel existiert nicht mehr",
-      "statusError": "Der Status konnte nicht geändert werden. Versuch es nochmal."
+      "statusError": "Der Status konnte nicht geändert werden. Versuch es nochmal.",
+      "statusPaused": "Ziel pausiert",
+      "statusReopened": "Sparziel wieder geöffnet",
+      "since": "Seit %{date}",
+      "thisMonth": "Diesen Monat",
+      "upcoming": "Kommend",
+      "nothingPlanned": "Nichts geplant",
+      "history": "Verlauf",
+      "menu": {
+        "pause": "Pausieren",
+        "resume": "Fortsetzen"
+      },
+      "month": {
+        "planned": "%{month} · %{amount} geplant",
+        "checkedOn": "Abgehakt am %{date}",
+        "notChecked": "Noch nicht in deinem Budget abgehakt",
+        "partial": "%{amount} bisher abgehakt"
+      },
+      "plan": {
+        "adjust": "Meinen Plan anpassen",
+        "plan": "%{range} planen",
+        "planCount": {
+          "one": "%{count} Monat planen",
+          "other": "%{count} Monate planen"
+        },
+        "explain": "Du wählst den Betrag. Nichts ändert sich, bevor du bestätigst."
+      },
+      "range": {
+        "to": "%{first} bis %{last}",
+        "and": "%{first} und %{last}"
+      },
+      "run": {
+        "noBudget": "Noch kein Budget",
+        "noLine": "Keine verknüpfte Planung",
+        "same": {
+          "one": "%{count} Monat zu %{amount}",
+          "other": "%{count} Monate zu %{amount}"
+        },
+        "planned": {
+          "one": "%{count} Monat geplant",
+          "other": "%{count} Monate geplant"
+        }
+      }
     },
     "progress": {
-      "achievementAccessibility": "%{percent} % des Ziels gespart",
       "initial": "Startbetrag",
-      "ofTarget": "von %{amount}",
-      "pace": {
-        "ahead": "Voraus",
-        "behind": "Etwas im Rückstand",
-        "on_track": "Auf Kurs"
-      },
-      "paceAdvice": "Dein geplantes Tempo: %{pace}/Monat · für dein Zieldatum solltest du %{required}/Monat anstreben",
-      "paceAdviceDate": "Dein geplantes Tempo: %{pace}/Monat · für den Abschluss am %{date} solltest du %{required}/Monat anstreben",
-      "perMonth": "%{amount} / Monat",
-      "planReady": "Dein Plan ist bereit — lege diesen Monat %{amount} zurück.",
-      "planned": "Bereits geplant",
       "projection": "Planprojektion",
-      "required": "Für dein Zieldatum",
       "saved": "Gespart",
       "target": "Ziel %{amount}",
       "trajectory": "Dein Verlauf"
-    },
-    "contributions": {
-      "loadError": "Die Beiträge dieses Ziels konnten nicht geladen werden.",
-      "movements": "Tatsächliche Bewegungen",
-      "openBudget": "Budget für %{period} öffnen",
-      "title": "Dein Verlauf"
     },
     "states": {
       "complete": "Als erreicht markieren",
@@ -654,91 +786,65 @@
       "inPlan": "Im Plan vorgesehen",
       "loadError": "Die Entnahmen dieses Ziels konnten nicht geladen werden.",
       "openBudget": "Budget für %{name} öffnen",
-      "planned": "Geplante Entnahmen",
-      "realized": "Realisierte Entnahmen",
       "status": {
         "partially_realized": "Teilweise realisiert",
         "planned": "Ausstehend",
         "realized": "Realisiert"
-      },
-      "title": "Entnahmen"
+      }
     },
-    "plan": {
-      "adjust": "Anpassen",
-      "adjustAccessibility": "Plan anpassen",
-      "availability": {
-        "no-budget": "Kein Budget",
-        "unfunded": "Keine Ersparnis geplant"
+    "hero": {
+      "captionBoth": "von %{target} · davon %{initial} Startbetrag",
+      "captionTarget": "von %{target}",
+      "captionInitial": "Davon %{initial} Startbetrag",
+      "left": "noch %{amount}",
+      "short": "es fehlen %{amount}",
+      "reachedOn": "Ziel erreicht am %{date}",
+      "reached": "Ziel erreicht",
+      "required": "Peile %{amount} pro Monat an, um im %{month} fertig zu sein.",
+      "pace": "Seit %{month} legst du %{amount} pro Monat zurück.",
+      "barAccessibility": "%{percent} des Ziels gespart"
+    },
+    "history": {
+      "title": "Verlauf",
+      "start": "Start",
+      "paid": {
+        "one": "Eingezahlt, %{count} Monat abgehakt",
+        "other": "Eingezahlt, %{count} Monate abgehakt"
       },
-      "showAll": {
-        "one": "Gesamten Plan anzeigen (%{count} Monat)",
-        "other": "Gesamten Plan anzeigen (%{count} Monate)"
+      "withdrawn": "Entnommen",
+      "saved": "Zurückgelegt",
+      "endOfMonth": "%{amount} am Monatsende",
+      "initialHint": "Bei der Erstellung schon zurückgelegt",
+      "contribution": "Einzahlung",
+      "contributionAccessibility": "Einzahlung %{amount}, %{percent} des Geplanten",
+      "startAmount": "%{amount} zu Beginn",
+      "pointed": {
+        "one": "%{count} Monat abgehakt",
+        "other": "%{count} Monate abgehakt"
       },
-      "showLess": "Weniger anzeigen",
-      "state": {
-        "checked": "Abgehakt",
-        "locked": "Gesperrt"
-      },
-      "thisMonth": "Dieser Monat",
-      "title": "Dein Plan, Monat für Monat",
-      "unlinked": {
-        "one": "%{count} verbleibender Monat hat keine Planung für dieses Ziel.",
-        "other": "%{count} verbleibende Monate haben keine Planung für dieses Ziel."
-      },
-      "withdrawal": "davon %{amount} zur Entnahme"
+      "withdrawalCount": {
+        "one": "%{count} Entnahme",
+        "other": "%{count} Entnahmen"
+      }
+    },
+    "chart": {
+      "accessibility": "%{saved} gespart, Planprojektion %{projection}",
+      "accessibilityHidden": "Verlauf des Sparziels, Beträge ausgeblendet"
     }
   },
   "home": {
     "accountAccessibility": "Mein Konto",
-    "activity": {
-      "added": "Eintrag hinzugefügt",
-      "empty": {
-        "month": "Nichts in diesem Monat",
-        "week": "Nichts in den letzten 7 Tagen"
-      },
-      "emptyHint": "Deine Einträge erscheinen hier",
-      "title": "Aktivität",
-      "viewAll": "Alle ansehen",
-      "window": {
-        "month": "Dieser Monat",
-        "week": "7 Tage"
-      },
-      "windowAccessibility": "Aktivität für %{window}"
-    },
     "add": "Hinzufügen",
-    "addAccessibility": "Eintrag hinzufügen",
+    "addAccessibility": "Bewegung hinzufügen",
     "checking": {
-      "confirm": "Ist erfolgt",
-      "confirmAccessibility": "%{name} abhaken",
-      "later": "Später",
-      "laterAccessibility": "%{name} später prüfen",
       "pointFailure": "Der Eintrag konnte nicht abgehakt werden. Versuche es erneut.",
       "pointed": "%{name} abgehakt",
-      "title": "Offene Einträge",
       "tooltipMessage": "Wenn ein Eintrag auf deinem Konto erscheint, hake ihn hier ab, um den Überblick zu behalten.",
       "tooltipTitle": "Abhaken",
       "undoFailure": "Das Abhaken konnte nicht rückgängig gemacht werden. Versuche es im Budget erneut."
     },
-    "drift": {
-      "hidden": {
-        "one": "+1 weitere Planung",
-        "other": "+%{count} weitere Planungen"
-      },
-      "overBy": "+%{amount} zu viel",
-      "summary": "%{amount} über dem Plan",
-      "summaryAbsorbed": "%{amount} über dem Plan, diesen Monat an anderer Stelle ausgeglichen",
-      "title": "Vom Plan abgewichen",
-      "catchUp": "Diese %{amount} zu viel ausgleichen",
-      "catchUpHint": "Öffne das Budget, um deine Umschläge anzupassen"
-    },
     "hero": {
       "chartAccessibility": "Geschätzter Saldo im Monatsverlauf im Vergleich zum Plan",
-      "detail": "Budget ansehen",
-      "detailAccessibility": "Budgetdetails ansehen",
-      "estimate": "Geschätzt Ende %{month}",
-      "metricsAccessibility": "%{count} offen, %{variance} gegenüber dem Plan",
-      "metricsHint": "Übersicht der Ist-Werte öffnen",
-      "toCheck": "Offen",
       "verdict": {
         "gain": "Dir bleibt mehr als geplant.",
         "gainDated": "Seit %{date} über deinem Plan.",
@@ -746,14 +852,18 @@
         "overrun": "Dir bleibt weniger als geplant.",
         "overrunDated": "Seit %{date} unter deinem Plan."
       },
-      "vsPlanned": "Abweichung vom Plan",
       "chart": {
         "today": "heute"
+      },
+      "eyebrow": "Verfügbar zum Ausgeben",
+      "hideAmounts": "Beträge ausblenden",
+      "showAmounts": "Beträge anzeigen",
+      "calculation": "Die Rechnung",
+      "calculationHint": "Rechendetails öffnen",
+      "fresh": {
+        "verdict": "Genau nach Plan.",
+        "tail": "Trag deine Ausgaben im Lauf des Monats ein: Diese Zahl aktualisiert sich sofort."
       }
-    },
-    "periodRemaining": {
-      "one": "Letzter Tag der Periode",
-      "other": "%{count} Tage bis zum nächsten Zahltag"
     },
     "prepareNextMonth": "Nächsten Monat vorbereiten",
     "realized": {
@@ -852,30 +962,101 @@
       "title": "Monatliches Sparen überwiesen"
     },
     "states": {
-      "createBudget": "Budget erstellen",
-      "emptyHint": "Erstelle es, um deine Übersicht zu sehen.",
+      "createBudget": "Budget für %{month} erstellen",
+      "emptyHint": "Ich starte mit deiner Vorlage: Du passt an, was sich ändert, und fertig.",
       "emptyTitle": "Noch kein Budget für diesen Monat",
       "loadErrorHint": "Versuche es erneut. Falls es weiter nicht klappt, prüfe deine Verbindung.",
       "loadErrorTitle": "Dein Monat konnte nicht geladen werden"
+    },
+    "periodCaption": "Tag %{day} von %{total} · bis %{date}",
+    "todo": {
+      "title": "Zu erledigen",
+      "toPoint": "%{count} abzuhaken",
+      "toPointMovements": {
+        "one": "%{count} Bewegung abzuhaken",
+        "other": "%{count} Bewegungen abzuhaken"
+      },
+      "toPointHint": "Hak ab, was schon auf deinem Konto durch ist.",
+      "driftOne": "%{name} ist überschritten",
+      "driftTwo": "%{first} und %{second} sind überschritten",
+      "driftMany": "%{name} und %{count} weitere sind überschritten",
+      "driftHint": "%{amount} über dem Plan, aufzuholen"
+    },
+    "start": {
+      "title": "Zum Einstieg",
+      "addTitle": "Trag deine erste Ausgabe ein",
+      "addHint": "Ein Kaffee, eine Tankfüllung, Einkäufe",
+      "pointTitle": "Hak ab, was schon durch ist",
+      "pair": "%{first} und %{second}",
+      "many": {
+        "one": "%{first}, %{second} und %{count} weitere Planung",
+        "other": "%{first}, %{second} und %{count} weitere Planungen"
+      }
+    },
+    "movements": {
+      "title": "Bewegungen",
+      "latest": "Letzte Bewegungen",
+      "viewAll": "Alles zeigen",
+      "empty": "Deine Bewegungen erscheinen hier.\nMit dem + fügst du sie hinzu.",
+      "subtitle": {
+        "one": "%{month} · %{count} Bewegung",
+        "other": "%{month} · %{count} Bewegungen"
+      },
+      "search": "Bewegung suchen",
+      "filter": {
+        "all": "Alle",
+        "unpointed": "Offen",
+        "unplanned": "Ausserhalb der Planung"
+      },
+      "nothing": "Hier gibt es nichts anzuzeigen.",
+      "noMatch": "Keine Bewegung passt.",
+      "unplanned": "Ausserhalb der Planung",
+      "saving": "Sparen",
+      "pointed": "abgehakt",
+      "added": "Bewegung hinzugefügt"
+    },
+    "toPoint": {
+      "title": "Offen",
+      "subtitle": "Hak ab, was schon auf deinem Konto durch ist.",
+      "balance": "Dein abgehakter Saldo",
+      "compare": "Vergleichen",
+      "balanceHint": "Er ändert sich bei jedem Abhaken. Dein Verfügbares ändert sich nicht.",
+      "remaining": "%{count} abzuhaken",
+      "forecasts": "Planung des Monats",
+      "forecastsHint": "Hak sie ab, sobald die Abbuchung durch ist",
+      "done": "Alles ist abgehakt.",
+      "over": "%{amount} über dem Plan",
+      "left": "%{amount} übrig",
+      "saving": "Ersparnis · %{rhythm}",
+      "pointedNow": "gerade abgehakt"
+    },
+    "noBudget": {
+      "period": "Vom %{start} bis %{end}",
+      "default": "Standard",
+      "income": "Einnahmen",
+      "expenses": "Geplante Ausgaben",
+      "savings": "Geplantes Sparen",
+      "available": "Verfügbar zum Ausgeben",
+      "otherTemplate": "Mit einer anderen Vorlage starten"
     }
   },
   "main": {
     "handoff": {
       "future": {
-        "description": "Deine nächsten dreizehn Budgets sind erstellt – du kannst jedes davon im Voraus anpassen.",
-        "title": "Die nächsten Monate sind schon da"
+        "description": "Deine nächsten dreizehn Monate gibt es schon. Passe sie im Voraus an, wann du willst.",
+        "title": "Die nächsten Monate sind bereit"
       },
-      "intro": "Jetzt fehlt nur noch eine Gewohnheit – und dafür reicht eine Geste.",
       "point": {
-        "description": "Miete bezahlt, Einkauf erledigt: Hake es ab, und der verfügbare Betrag wird aktualisiert.",
-        "title": "Abhaken, was passiert ist"
+        "description": "Wenn die Ausgabe auf deinem Konto erscheint, tippe auf den Kreis. Dein Verfügbares bleibt korrekt.",
+        "title": "Hake ab, was durch ist"
       },
-      "review": {
-        "description": "Zwei Minuten genügen. Den Rest der Zeit wartet Pulpe.",
-        "title": "Einmal pro Woche nachsehen"
-      },
-      "start": "Loslegen",
-      "title": "Dein Budget ist bereit"
+      "start": "Meinen Monat öffnen",
+      "title": "Eine letzte Sache",
+      "subtitle": "Dein Budget ist eine Planung. So hältst du es aktuell.",
+      "add": {
+        "title": "Füge hinzu, was du ausgibst",
+        "description": "Das grüne +, auf jedem Bildschirm. Sag, in welche Planung es fällt, oder dass es unvorhergesehen ist."
+      }
     },
     "tabs": {
       "budgets": {
@@ -890,10 +1071,97 @@
         "accessibility": "Tab Start",
         "short": "Start"
       },
+      "netWorth": {
+        "accessibility": "Tab Vermögen",
+        "short": "Vermögen"
+      },
       "templates": {
         "accessibility": "Tab Vorlagen",
         "short": "Vorlagen"
       }
+    }
+  },
+  "netWorth": {
+    "title": "Mein Vermögen",
+    "add": "Hinzufügen",
+    "addAsset": "Vermögenswert hinzufügen",
+    "addAccessibility": "Vermögenswert hinzufügen",
+    "emptyTitle": "Dein Vermögen beginnt hier",
+    "emptyHint": "Füge ein Konto, ein Sparbuch oder eine Schuld hinzu, um dein heutiges Nettovermögen zu sehen.",
+    "loadErrorTitle": "Dein Vermögen konnte nicht geladen werden",
+    "saveError": "Speichern fehlgeschlagen. Versuch es noch einmal.",
+    "net": "Nettovermögen",
+    "have": "Was ich habe",
+    "owe": "Was ich schulde",
+    "negativeNote": "Was ich schulde, übersteigt heute, was ich habe. Jede abgehakte Rückzahlung bringt diese Zahl näher an null.",
+    "foreignNote": "Werte in Fremdwährung werden zum Tageskurs umgerechnet.",
+    "incompleteNote": "Mir fehlt der heutige %{currencies}-Kurs: Die Summe enthält %{names} nicht. Das ändert sich, sobald der Kurs verfügbar ist.",
+    "overdrafts": "Überziehungen",
+    "renameType": "Typ umbenennen",
+    "typeName": "Name des Typs",
+    "actionsFor": "Aktionen für %{name}",
+    "archive": "Archivieren",
+    "unarchive": "Wiederherstellen",
+    "editAccessibility": "%{name} bearbeiten",
+    "deleteTitle": "%{name} löschen?",
+    "deleteMessage": "Auch der ganze Wertverlauf wird gelöscht. Archiviere stattdessen, um den Eintrag aus den Summen zu nehmen und den Verlauf zu behalten.",
+    "hideArchived": "Archiv ausblenden",
+    "showArchived": "Archiv anzeigen (%{count})",
+    "updated": "Aktualisiert %{when}",
+    "updatedIn": "%{category} · aktualisiert %{when}",
+    "today": "heute",
+    "ageYesterday": "gestern",
+    "ageDays": {
+      "one": "vor %{count} Tag",
+      "other": "vor %{count} Tagen"
+    },
+    "ageMonths": {
+      "one": "vor %{count} Monat",
+      "other": "vor %{count} Monaten"
+    },
+    "ageYears": {
+      "one": "vor %{count} Jahr",
+      "other": "vor %{count} Jahren"
+    },
+    "whenMatching": "%{line} · beim Abgleich",
+    "badgeOverdraft": "Überzogen",
+    "badgeExcluded": "Nicht in der Summe",
+    "suggestion": {
+      "propose": "Ich schlage %{amount} vor",
+      "dismiss": "Verwerfen",
+      "apply": "Anwenden",
+      "saved": "%{amount} Sparen abgehakt seit dem letzten Wert",
+      "drawn": "%{amount} Einnahme entnommen seit dem letzten Wert",
+      "repaid": "%{amount} Rückzahlung abgehakt seit dem letzten Wert"
+    },
+    "form": {
+      "addTitle": "Zu meinem Vermögen hinzufügen",
+      "currency": "Währung",
+      "editTitle": "%{name} bearbeiten",
+      "lastValue": "Letzter Wert: %{amount}, am %{date}",
+      "value": "Aktueller Wert",
+      "overdraft": "Negativer Saldo (überzogen)",
+      "namePlaceholder": "UBS-Konto, Leasing…",
+      "name": "Name",
+      "nameError": "Gib einen Namen ein",
+      "side": "Art",
+      "frozen": "Seite und Währung bleiben wie bei der Erstellung.",
+      "type": "Typ",
+      "otherType": "Anderer Typ…",
+      "save": "Speichern",
+      "create": "Hinzufügen"
+    },
+    "starter": {
+      "accounts": "Konten",
+      "savings": "Sparen",
+      "investments": "Anlagen",
+      "cash": "Bargeld",
+      "valuables": "Wertgegenstände",
+      "property": "Sachwerte",
+      "loan": "Kredit",
+      "mortgage": "Hypothek",
+      "leasing": "Leasing",
+      "creditCard": "Kreditkarte"
     }
   },
   "onboarding": {
@@ -903,29 +1171,31 @@
       "addExpense": "Ausgabe hinzufügen",
       "healthInsurance": "Krankenkasse",
       "housing": "Wohnen",
-      "insurance": "Versicherungen & Abos",
+      "insurance": "Versicherungen und Abos",
       "leasingCredit": "Leasing oder Kreditrate",
-      "mobility": "Mobilität & Kredit",
+      "mobility": "Mobilität und Kredit",
       "phonePlan": "Handy-Abo",
       "plannedItems": "Meine Planposten",
       "rent": "Monatsmiete",
       "subtitle": "Trage ein, was du weisst — der Rest kann warten",
-      "title": "Deine Ausgaben",
+      "title": "Was sind deine Fixkosten?",
       "total": "Gesamtausgaben",
       "transport": "Transport (Abo, Treibstoff…)"
     },
     "exit": {
       "body": "Deine Eingaben werden gelöscht.",
       "leave": "Verlassen",
-      "stay": "Weiter",
-      "title": "Budget-Einrichtung verlassen?"
+      "stay": "Bleiben",
+      "title": "Registrierung verlassen?"
     },
     "firstName": {
       "accessibility": "Vorname, erforderlich",
       "label": "Vorname",
       "placeholder": "Dein Vorname",
-      "subtitle": "Nur dein Vorname",
-      "title": "Wie heisst du?"
+      "subtitle": "Ich nutze ihn nur, um dich zu begrüssen, sonst nichts.",
+      "title": "Wie heisst du?",
+      "greeting": "Freut mich,",
+      "greetingFallback": "dich"
     },
     "legal": {
       "possessive": "unsere",
@@ -940,27 +1210,36 @@
       "extraIncome": "Zusätzliches Einkommen",
       "monthlyIncome": "Monatliches Nettoeinkommen",
       "privacy": "Niemand sonst sieht diese Beträge — nicht einmal die Person, die Pulpe entwickelt.",
-      "subtitle": "Was jeden Monat auf deinem Konto eingeht",
-      "title": "Dein Einkommen",
+      "subtitle": "Dein Nettogehalt, das, was auf deinem Konto ankommt.",
+      "title": "Wie viel verdienst du pro Monat?",
       "total": "Gesamteinkommen"
     },
     "pin": {
       "back": "Zurück zur Vorschau"
     },
     "preview": {
-      "available": "Zum Ausgeben verfügbar · %{currency}",
       "edit": "Bereich %{label} bearbeiten",
-      "emotion": {
-        "comfortable": "Du hast Spielraum. Das bleibt nach allem anderen übrig.",
-        "deficit": "Deine Ausgaben übersteigen dein Einkommen — wir schauen uns das gemeinsam an.",
-        "tight": "Es geht auf, aber knapp. Du kannst jederzeit nachjustieren."
-      },
-      "expenses": "Ausgaben",
-      "income": "Einkommen",
-      "savings": "Sparen",
+      "income": "Einnahmen",
       "start": "Los geht's",
-      "subtitle": "So sieht es aus",
-      "title": "Dein Budget"
+      "headline": {
+        "comfortable": "Dein Budget hat Luft",
+        "tight": "Dein Budget steht",
+        "deficit": "Dein Monat geht noch nicht auf"
+      },
+      "sentence": {
+        "comfortable": "Schöner Spielraum für den Monat. Du kannst später feinjustieren.",
+        "tight": "Es ist ausgeglichen, aber knapp. Du kannst später feinjustieren.",
+        "deficitCharges": "Deine Fixkosten übersteigen dein Einkommen. Tippe darauf, um sie anzupassen.",
+        "deficitSavings": "Senke dein Sparen um %{amount} und alles geht auf."
+      },
+      "fixedCharges": "Fixkosten",
+      "plannedSavings": "Geplantes Sparen",
+      "salary": "Gehalt",
+      "summaryOne": "%{first} und 1 weitere",
+      "summaryMany": "%{first} und %{count} weitere",
+      "template": "Diese Beträge werden zu deiner Monatsvorlage: Jeder neue Monat startet hier, und du kannst sie jederzeit ändern.",
+      "ringToSpend": "%{currency} · zum Ausgeben",
+      "ringPerMonth": "%{currency} pro Monat"
     },
     "registration": {
       "criteria": {
@@ -981,7 +1260,7 @@
       "add": "Sparen hinzufügen",
       "items": "Mein Sparen",
       "subtitle": "Was du jeden Monat beiseitelegst",
-      "title": "Dein Sparen",
+      "title": "Wie viel legst du zur Seite?",
       "total": "Sparen gesamt"
     },
     "skip": "Diesen Schritt überspringen",
@@ -1025,18 +1304,23 @@
       }
     },
     "welcome": {
-      "benefits": {
-        "plan": "Ein klarer Plan für jeden Monat",
-        "privacy": "Deine Beträge bleiben privat",
-        "tracking": "Ausgaben mit einem Tippen abhaken"
-      },
       "emailSignup": "Mit E-Mail registrieren",
       "google": "Mit Google fortfahren",
       "googleError": "Google-Anmeldung nicht möglich — versuche es erneut.",
       "legalPrefix": "Wenn du fortfährst, akzeptierst du",
       "signIn": "Ich habe bereits ein Konto",
-      "subtitle": "Dein Budget ist in 2 Minuten bereit",
-      "title": "Behalte den Überblick über deine Finanzen"
+      "subtitle": "Dein Budget steht in 2 Minuten",
+      "title": "Dein Monat, im Voraus geplant.",
+      "stickers": {
+        "charges": "Kosten",
+        "savings": "Sparen",
+        "salary": "Gehalt"
+      }
+    },
+    "resumed": "Ich mache da weiter, wo du aufgehört hast.",
+    "ring": {
+      "available": "Verfügbar",
+      "missing": "Es fehlen"
     }
   },
   "settings": {
@@ -1056,7 +1340,7 @@
           "title": "FAQ und Support"
         },
         "preferences": {
-          "description": "Zahltag und Währung",
+          "description": "Währung, Sprache, Zahltag, Erinnerungen",
           "title": "Einstellungen"
         },
         "privacy": {
@@ -1064,19 +1348,23 @@
           "title": "Datenschutzhinweis"
         },
         "security": {
-          "description": "PIN-Code, Passwort und Biometrie",
+          "description": "PIN-Code, Passwort, %{biometric}",
           "title": "Sicherheit"
         },
         "tags": {
           "description": "Deine persönlichen Tags",
-          "title": "Meine Tags"
+          "title": "Meine Tags",
+          "count": {
+            "one": "%{count} Tag",
+            "other": "%{count} Tags"
+          }
         },
         "terms": {
           "description": "Nutzungsbedingungen von Pulpe",
           "title": "Allgemeine Geschäftsbedingungen"
         },
         "whatsNew": {
-          "description": "Letzte Aktualisierungen",
+          "description": "Was sich in %{version} geändert hat",
           "title": "Neuigkeiten"
         }
       },
@@ -1089,7 +1377,8 @@
         "description": "Du musst dich erneut mit deiner E-Mail-Adresse und deinem Passwort anmelden und danach deinen PIN-Code eingeben.",
         "title": "Abmelden"
       },
-      "title": "Konto"
+      "title": "Konto",
+      "footer": "Pulpe %{version} · Android %{os}"
     },
     "language": {
       "description": "Wähle die Sprache der App",
@@ -1109,11 +1398,6 @@
     },
     "preferences": {
       "currencyDescription": "Damit werden alle deine Beträge angezeigt.",
-      "currencyDialogAction": "Ändern",
-      "currencyDialogDescription": "Deine bestehenden Beträge werden nicht umgerechnet — 100 bleibt 100 und wird in %{currency} angezeigt. Nur die Anzeigewährung ändert sich.",
-      "currencyDialogTitle": "Anzeigewährung ändern?",
-      "currencyRate": "Richtkurs: 1 %{base} = %{rate} %{target}",
-      "currencySaveError": "Die Währung konnte nicht gespeichert werden.",
       "currencyTitle": "Währung",
       "dataPrivacySection": "Daten und Datenschutz",
       "diagnosticsDescription": "Verknüpft technische Ereignisse und Fehler mit deinem Konto, damit wir Probleme verstehen und dir schneller helfen können. Es werden keine Beträge oder eingegebenen Inhalte erfasst.",
@@ -1221,6 +1505,28 @@
         "selectionLimit": "Maximal %{count} Tags",
         "tooLong": "Maximal %{count} Zeichen"
       }
+    },
+    "currency": {
+      "description": "Alle deine Beträge werden in dieser Währung angezeigt.",
+      "confirmTitle": "Deine Beträge in %{currency} anzeigen?",
+      "confirmBody": "Nichts wird umgerechnet: 100 bleibt 100, angezeigt in %{symbol}. Nur das Symbol ändert sich.",
+      "keep": "%{currency} behalten",
+      "show": "In %{currency} anzeigen",
+      "saved": "Anzeige in %{symbol}. Deine Beträge behalten ihren Wert.",
+      "saveError": "Die Währung konnte nicht gespeichert werden.",
+      "converter": {
+        "title": "Umrechner",
+        "hint": "„Von“ übernimmt die Kontowährung; „Nach“ zeigt den berechneten Gegenwert.",
+        "from": "Von",
+        "to": "Nach",
+        "auto": "Automatisch berechnet",
+        "loading": "Tageskurs wird abgerufen…",
+        "failed": "Der aktuelle Kurs liess sich nicht holen. Deine bereits gespeicherten Beträge bleiben unangetastet.",
+        "retry": "Nochmal versuchen",
+        "rate": "1 %{base} = %{rate} %{target} (%{date})",
+        "input": "Betrag in %{currency}",
+        "output": "Gegenwert in %{currency}"
+      }
     }
   },
   "system": {
@@ -1258,15 +1564,13 @@
       "addAccessibility": "Vorlage hinzufügen",
       "count": "%{count}/%{max} Vorlagen",
       "create": "Vorlage erstellen",
-      "emptyHint": "Ein typischer Monat: Einnahmen, Ausgaben und Ersparnisse, bereit zur Wiederverwendung.",
-      "emptyTitle": "Erstelle deine erste Vorlage",
+      "emptyHint": "Erstelle eine, um deine nächsten Budgets schneller vorzubereiten.",
+      "emptyTitle": "Noch keine Vorlage",
       "limit": "Du hast das Limit von %{count} Vorlagen erreicht. Lösche eine, um eine neue zu erstellen.",
       "loadErrorTitle": "Deine Vorlagen konnten nicht geladen werden",
-      "openWeb": "Im Web öffnen",
       "title": "Vorlagen",
-      "webBody": "Noch sind nicht alle Vorlagenaktionen hier verfügbar. Die Web-App bietet bei Bedarf den vollständigen Umfang.",
-      "webTitle": "Vorlagen: Android ist noch reduziert",
-      "section": "Vorlagen"
+      "subtitle": "Der Ausgangspunkt jedes neuen Monats",
+      "emptyExplainer": "Eine Vorlage listet deine üblichen Einnahmen, Ausgaben und Ersparnisse auf. Jeder neue Monat startet damit, danach passt du an."
     },
     "form": {
       "create": "Vorlage erstellen",
@@ -1288,7 +1592,7 @@
     "lines": {
       "add": "Hinzufügen",
       "amount": "Geplanter Betrag",
-      "apply": "Anwenden",
+      "apply": "Die Vorlage und deine bereits erstellten Monate",
       "createTitle": "Neue Planung",
       "deleteAccessibility": "%{name} löschen",
       "editAccessibility": "%{name} bearbeiten",
@@ -1297,39 +1601,63 @@
       "linkGoal": "Mit einem Ziel verknüpfen",
       "noGoal": "Keines",
       "propagationBody": {
-        "one": "Diese Vorlage wird von %{count} Budget verwendet. „Anwenden“ aktualisiert aktuelle und zukünftige Budgets. Manuell bearbeitete Planungen bleiben unverändert.",
-        "other": "Diese Vorlage wird von %{count} Budgets verwendet. „Anwenden“ aktualisiert aktuelle und zukünftige Budgets. Manuell bearbeitete Planungen bleiben unverändert."
+        "one": "Diese Vorlage wird von %{count} Budget verwendet. Aktuelle und künftige Budgets können deiner Änderung folgen. Eine Planung, die du in einem Monat von Hand geändert hast, bewegt sich nie.",
+        "other": "Diese Vorlage wird von %{count} Budgets verwendet. Aktuelle und künftige Budgets können deiner Änderung folgen. Eine Planung, die du in einem Monat von Hand geändert hast, bewegt sich nie."
       },
-      "propagationTitle": "Auf folgende Monate anwenden?",
+      "propagationTitle": "Und deine bereits erstellten Monate?",
       "save": "Speichern",
       "templateOnly": "Nur Vorlage",
-      "longPressHint": "Lange drücken zum Löschen"
+      "longPressHint": "Lange drücken zum Löschen",
+      "when": "Wann?",
+      "whenFixed": "Jeder mit %{name} erstellte Monat erhält diese Planung.",
+      "whenOneOff": "Diese Planung ist in den mit %{name} erstellten Monaten als einmalig markiert.",
+      "propagationTitleMonth": "Und %{month}?",
+      "applyMonth": "Die Vorlage und %{month}",
+      "updated": {
+        "one": "Planposten geändert — %{count} Budget aktualisiert",
+        "other": "Planposten geändert — %{count} Budgets aktualisiert"
+      },
+      "updatedTemplateOnly": "Planposten geändert"
     },
     "detail": {
       "addLine": "Planung hinzufügen",
-      "balance": "Übrig",
       "confirmDelete": "Löschen",
       "delete": "Vorlage löschen",
       "deleteLineBody": "„%{name}“ wird aus der Vorlage entfernt. Bestehende Budgets behalten ihre Kopie.",
       "deleteLineError": "Die Planung konnte nicht gelöscht werden. Versuche es erneut.",
       "deleteLineTitle": "Diese Planung löschen?",
-      "deleteTemplateBody": "Budgets, die bereits aus „%{name}“ erstellt wurden, bleiben unverändert. Nur die Vorlage verschwindet.",
+      "deleteTemplateBody": {
+        "one": "Kein Budget nutzt sie. %{count} Zeile verschwindet mit ihr, ohne Rückgängig.",
+        "other": "Kein Budget nutzt sie. %{count} Zeilen verschwinden mit ihr, ohne Rückgängig."
+      },
       "deleteTemplateError": "Die Vorlage konnte nicht gelöscht werden. Versuche es erneut.",
       "deleteTemplateTitle": "Diese Vorlage löschen?",
       "empty": "Diese Vorlage ist noch leer. Füge Einnahmen, Ausgaben und Ersparnisse hinzu, damit sie als typischer Monat dienen kann.",
-      "income": "Einnahmen",
       "loadErrorTitle": "Diese Vorlage konnte nicht geladen werden",
       "missingHint": "Vielleicht wurde sie auf einem anderen Gerät gelöscht.",
       "missingTitle": "Diese Vorlage existiert nicht mehr",
-      "outgoing": "Ausgaben und Ersparnisse",
       "rename": "Umbenennen",
       "usageCount": {
         "one": "%{count} Budget aus dieser Vorlage erstellt",
         "other": "%{count} Budgets aus dieser Vorlage erstellt"
       },
       "usageError": "Die mit dieser Vorlage verknüpften Budgets konnten nicht geprüft werden.",
-      "usageHint": "Das Löschen der Vorlage wirkt sich nicht auf diese Budgets aus.",
-      "summary": "Übersicht"
+      "heroLabel": "Verfügbar zum Start",
+      "heroSentence": "Was diese Vorlage von %{income} Einnahmen zum Ausgeben lässt, vor dem Übertrag des Vormonats.",
+      "defaultLabel": "Standard",
+      "usedFor": {
+        "one": "hat %{count} Budget gedient",
+        "other": "hat %{count} Budgets gedient"
+      },
+      "neverUsed": "nie verwendet",
+      "deleteSection": "Vorlage",
+      "deleteChecking": "Ich prüfe, ob sie verwendet wird",
+      "deleteFree": "Kein Budget nutzt sie",
+      "deleteBlocked": {
+        "one": "Nicht möglich: Es hat %{count} Budget gedient",
+        "other": "Nicht möglich: Es hat %{count} Budgets gedient"
+      },
+      "linkedToGoal": "mit dem Ziel verknüpft"
     }
   },
   "vault": {
@@ -1347,7 +1675,8 @@
       "mintedBody": "Notiere diesen Schlüssel an einem sicheren Ort. Damit kannst du wieder auf deine Daten zugreifen, falls du deinen PIN-Code vergisst.",
       "mintFailedBody": "Die Wiederherstellung war erfolgreich, aber ein neuer Wiederherstellungsschlüssel konnte nicht erstellt werden. Du kannst ihn in den Einstellungen erstellen.",
       "understood": "Verstanden",
-      "warning": "Ohne diesen Schlüssel und deinen PIN-Code sind deine Finanzdaten dauerhaft nicht mehr zugänglich."
+      "warning": "Ohne diesen Schlüssel und deinen PIN-Code sind deine Finanzdaten dauerhaft nicht mehr zugänglich.",
+      "clipboardClears": "Die Kopie wird nach 2 Minuten gelöscht."
     },
     "recovery": {
       "invalidCharacters": "Dein Schlüssel enthält ungültige Zeichen",
@@ -1365,13 +1694,15 @@
       "subtitle": "Er schützt deine Beträge.",
       "confirmHint": "Gib die %{count} Ziffern, die du gerade gewählt hast, erneut ein.",
       "mismatch": "Dieser Code unterscheidet sich vom ersten. Versuche es erneut.",
-      "changeCode": "Meinen Code ändern"
+      "changeCode": "Meinen Code ändern",
+      "step": "Schritt %{current} von %{total}"
     },
     "unlock": {
       "biometric": "Mit Biometrie entsperren",
       "forgot": "Code vergessen?",
       "subtitle": "Er entsperrt deine Beträge",
-      "title": "Dein Code"
+      "greeting": "Hallo, %{name}",
+      "greetingAnonymous": "Hallo"
     },
     "offline": "Verbindungsfehler, versuch es nochmal",
     "tooManyAttempts": "Zu viele Versuche, warte einen Moment",

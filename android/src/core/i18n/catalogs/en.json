@@ -8,7 +8,8 @@
       "sentBody": "If an account exists for this address, you will receive an email with a reset link.",
       "sentTitle": "Email sent",
       "spam": "Check your spam folder if you don't see it.",
-      "title": "Forgot password"
+      "title": "Forgot password",
+      "reassurance": "Your PIN and your amounts don't change."
     },
     "reset": {
       "confirmPassword": "Confirm new password",
@@ -28,7 +29,8 @@
       "submit": "Confirm",
       "submitting": "Resetting password",
       "title": "Reset password",
-      "verifying": "Verifying link"
+      "verifying": "Verifying link",
+      "reassurance": "Your PIN and your amounts don't change."
     },
     "restore": {
       "hint": "Check your connection, then try again. Your data stayed on this device.",
@@ -49,7 +51,7 @@
       "showPassword": "Show password",
       "submit": "Sign in",
       "submitting": "Signing in",
-      "subtitle": "Sign in to access your budget",
+      "subtitle": "Log in to get your budget back.",
       "terms": "Terms",
       "title": "Welcome back"
     }
@@ -73,25 +75,30 @@
     },
     "detail": {
       "activityLongPressHint": "Long press to delete or edit",
-      "allChecked": "Everything is checked off for this month.",
-      "amountSuffix": {
-        "overrun": "over budget",
-        "planned": "planned",
-        "plannedTotal": "/ %{amount} planned",
-        "remaining": "left from %{amount}"
-      },
+      "allChecked": "Everything is checked.",
       "deletedGoal": "This goal was deleted. The income remains in your budget.",
       "deleteMonth": {
         "action": "Delete this month",
         "title": "Delete %{month}?",
-        "body": "Its planned items (%{forecastCount}) and its activity (%{movementCount}) will be deleted. This can't be undone.",
         "links": "This month is also linked to other months or to a savings goal: %{links}. The other months keep their share.",
         "linkSpread": "spread planned item (%{count})",
         "linkGoal": "savings goal (%{count})",
         "linkWithdrawal": "savings withdrawal (%{count})",
-        "confirm": "Delete",
+        "confirm": "Delete %{month}",
         "loadError": "The month's details couldn't be loaded. Try again.",
-        "failure": "The month couldn't be deleted. Try again."
+        "failure": "The month couldn't be deleted. Try again.",
+        "onlyUpcoming": "Only a month still to come",
+        "forecasts": {
+          "one": "%{count} planned item goes with it.",
+          "other": "Its %{count} planned items go with it."
+        },
+        "movements": {
+          "one": "%{count} movement goes too.",
+          "other": "Its %{count} movements go too."
+        },
+        "movementsNone": "It has no movements yet.",
+        "finality": "Your available amount for %{month} doesn't change. This is permanent.",
+        "finalityElided": "Your available amount for %{month} doesn't change. This is permanent."
       },
       "filters": {
         "all": "All",
@@ -99,28 +106,25 @@
         "expense": "Expenses",
         "income": "Income",
         "saving": "Savings",
-        "unchecked": "To check off"
+        "unchecked": "To check off",
+        "over": "Over plan"
       },
       "gesturesMessage": "Tap the circle or swipe the row right to check off · Tap the row to edit",
       "gesturesTitle": "Two gestures per row",
       "goal": "Goal: %{name}",
       "goalShort": "Goal",
       "hero": {
-        "accessibility": "%{state} %{amount}, %{percent}% used",
         "available": "Available to spend",
-        "deficit": "Deficit",
-        "distribution": "Monthly breakdown",
-        "expenses": "expenses",
-        "income": "income",
-        "previousMonth": "the previous month",
-        "rollover": "Previous month's rollover included",
-        "rolloverNamed": "Rollover from %{month} included",
-        "savings": "savings",
-        "viewMonth": "View %{month}",
-        "verdict": {
-          "comfortable": "You have room this month.",
-          "tight": "This month is a little tight.",
-          "deficit": "You're spending more than you earn this month."
+        "availableProjected": "Planned available to spend",
+        "calculation": "The calculation",
+        "calculationHint": "Open the calculation details",
+        "rolloverIncluded": "Includes %{amount} carried over",
+        "rolloverEstimated": "With the carry-over from %{month}, estimated at %{amount}",
+        "viewPrevious": "See previous budget",
+        "split": {
+          "expenses": "Expenses",
+          "savings": "Savings",
+          "available": "Available"
         }
       },
       "inEnvelope": "In forecast %{name}",
@@ -140,32 +144,35 @@
         "pointedAllocated": "Checked within a forecast"
       },
       "spread": "Spread",
-      "status": {
-        "overBudget": "Over budget",
-        "received": "Received",
-        "toReceive": "%{amount} to receive",
-        "toTransfer": "%{amount} to transfer",
-        "transferred": "Transferred"
-      },
       "withdrawnFrom": "Withdrawn from: %{name}",
       "tracking": "Budget tracking",
       "swipe": {
         "point": "Check off",
         "unpoint": "Uncheck"
+      },
+      "noOver": "Nothing is over this month anymore.",
+      "upcomingBanner": "This month has not started. Its forecasts come from your template: adjust them now if you already know what changes.",
+      "period": {
+        "range": "%{start} to %{end}",
+        "day": "%{range} · day %{day} of %{count}",
+        "startsIn": {
+          "one": "%{range} · starts in %{count} day",
+          "other": "%{range} · starts in %{count} days"
+        }
+      },
+      "pointed": "checked",
+      "withdrawal": "Taken from your savings",
+      "row": {
+        "remaining": "%{amount} left",
+        "overrun": "%{amount} over plan"
       }
     },
     "actions": {
       "line": {
         "actions": "Forecast actions",
-        "activityMany": "%{count} entries",
-        "activityNone": "No entries",
-        "activityOne": "1 entry",
         "cancelPair": "Cancel both",
         "createTargetBudget": "Create the %{month} budget first",
-        "deleteEmpty": "It will disappear from this month.",
-        "deleteTitle": "Delete this forecast?",
-        "deleteWithMany": "The %{count} linked entries will remain, but without a forecast.",
-        "deleteWithOne": "The linked entry will remain, but without a forecast.",
+        "deleteTitle": "Delete %{name}?",
         "empty": "Nothing has been linked to this forecast yet.",
         "failure": {
           "deleteLine": "The forecast could not be deleted. Try again.",
@@ -176,19 +183,24 @@
         "loadError": "Unable to load this forecast.",
         "missingHint": "It may have been deleted from another device.",
         "missingTitle": "This forecast no longer exists",
-        "overrun": "%{amount} over budget",
         "pairDescription": "+%{amount} in %{incomeMonth} is linked to -%{amount} in %{repaymentMonth}.",
         "pairTitle": "These two lines are linked",
         "plannedAmount": "of %{amount} planned",
         "postpone": "Postpone to next month",
-        "remaining": "%{amount} remaining",
         "viewSpread": "View spread months",
         "leftEyebrow": "Left",
         "overrunEyebrow": "Overrun",
         "notedOf": "%{noted} noted of %{planned} planned",
         "movements": "Movements",
         "emptyTitle": "Nothing noted here",
-        "note": "Note an amount"
+        "note": "Note an amount",
+        "deleteConfirm": "Delete the forecast",
+        "deleteMovements": {
+          "one": "%{count} movement becomes unplanned: %{total}.",
+          "other": "Its %{count} movements become unplanned: %{total} in total."
+        },
+        "deleteNoMove": "Your available amount doesn't move.",
+        "deleteTemplate": "Only %{month} is affected: your template keeps %{name}."
       },
       "spread": {
         "complete": "Target reached",
@@ -258,25 +270,58 @@
     },
     "mutations": {
       "activity": {
+        "addAmount": "Add %{amount}",
         "allocatedIn": "Counted in “%{name}”",
-        "alreadyChecked": "Already checked off",
+        "alreadyChecked": "Already checked",
         "alreadyCheckedAccessibility": "Entry already checked off",
-        "alreadyCheckedHint": "Included in your balance to date",
-        "createTitle": "Add an entry",
+        "alreadyCheckedHint": "The amount has already gone through your account.",
         "date": "Entry date",
-        "editTitle": "Edit entry",
+        "editTitles": {
+          "expense": "Edit the expense",
+          "income": "Edit the income",
+          "saving": "Edit the savings"
+        },
         "error": "The entry could not be saved. Try again.",
         "goalsAvailable": "Available goals",
+        "impact": {
+          "note": {
+            "covered": "It was planned in %{name}: %{after} left instead of %{before}.",
+            "overLine": "%{name} is over: the excess comes out of your available amount.",
+            "uncovered": "No forecast covers it."
+          }
+        },
+        "leftChip": "%{amount} left",
         "noGoals": "No goal has money available right now.",
         "originAccessibility": "Income from a savings goal",
         "originHint": "The amount will be withdrawn from the selected goal.",
-        "originTitle": "This income comes from a savings goal",
+        "originTitle": "This money comes from my savings",
+        "other": "Other",
+        "picker": {
+          "left": "left",
+          "margin": "With room left",
+          "otherExpense": "Other expenses",
+          "otherIncome": "Other income",
+          "over": "over",
+          "overSection": "Already over",
+          "planned": "%{amount} planned",
+          "plannedCaption": "planned",
+          "pointedRecurrence": "%{recurrence} · checked off",
+          "title": "Which forecast?",
+          "unplannedHint": "No forecast: your available amount drops"
+        },
         "placeholders": {
           "expense": "Restaurant, fuel…",
           "income": "Bonus, refund…",
           "saving": "Savings transfer…"
         },
-        "retryUnchanged": "This entry may already have been saved. Retry with the values below to confirm it. You can then edit it from the budget."
+        "question": "Was this planned in your budget?",
+        "retryUnchanged": "This entry may already have been saved. Retry with the values below to confirm it. You can then edit it from the budget.",
+        "titles": {
+          "expense": "New expense",
+          "income": "New income",
+          "saving": "New saving"
+        },
+        "unplanned": "No, it's unplanned"
       },
       "activityAction": "An entry",
       "add": "Add",
@@ -289,17 +334,17 @@
         "editTitle": "Edit forecast",
         "error": "The forecast could not be saved. Try again.",
         "monthlyAmount": "Amount per month",
-        "oneOffHint": "Only exists in this month.",
         "placeholders": {
           "expense": "Rent, groceries…",
           "income": "Salary, allowance…",
           "saving": "Holiday savings…"
         },
         "plannedAmount": "Planned amount",
-        "recurringHint": "Returns every month in your next budgets.",
-        "spreadHint": "A large expense that does not distort a single month",
         "spreadTitle": "Spread across several months",
-        "totalAmount": "Total amount"
+        "totalAmount": "Total amount",
+        "when": "When?",
+        "perMonth": "per month",
+        "inTotal": "in total"
       },
       "forecastAction": "A forecast",
       "name": "Name",
@@ -307,7 +352,8 @@
         "activityAdded": "Entry added",
         "activityUpdated": "Entry updated",
         "forecastAdded": "Forecast added",
-        "withdrawalReady": "All set"
+        "withdrawalReady": "All set",
+        "forecastUpdated": "Planned item updated"
       },
       "removal": {
         "deleteError": "The entry could not be deleted. Try again.",
@@ -339,12 +385,16 @@
       "planAccessibility": "Plan multiple budgets",
       "potential": "Potential",
       "title": "Budgets",
-      "yearBalance": "Year-end balance",
-      "yearReview": "Year in review",
+      "yearBalance": "Year-end balance %{year}",
+      "yearReview": "Summary %{year}",
       "verdict": {
         "none": "No month budgeted yet. Start now.",
-        "all": "You've budgeted the whole year. Well done!",
-        "some": "You've budgeted %{count} of 12 months this year."
+        "all": "All 12 months of %{year} have their budget.",
+        "some": {
+          "one": "%{count} month of 12 has its budget.",
+          "other": "%{count} months of 12 have their budget."
+        },
+        "estimated": "Estimated for the end of December, if the rest of the year follows the plan."
       },
       "yearSelector": "Choose the year",
       "notCreated": "No budget yet",
@@ -356,7 +406,8 @@
       "showClosed": "Show",
       "hideClosed": "Hide",
       "showClosedAccessibility": "Show closed months",
-      "hideClosedAccessibility": "Hide closed months"
+      "hideClosedAccessibility": "Hide closed months",
+      "closedSubtitle": "What was left at the end of each month"
     },
     "plan": {
       "default": "default",
@@ -419,6 +470,36 @@
         "11": "Time to review soon — you've got this",
         "12": "The home stretch"
       }
+    },
+    "impact": {
+      "neutral": "Your available amount doesn't change",
+      "over": "Your available amount drops by %{amount}",
+      "ok": "Your available amount rises by %{amount}",
+      "availableOf": "Your available amount for %{month}",
+      "availableOfElided": "Your available amount for %{month}"
+    },
+    "postpone": {
+      "title": "Move to %{month}?",
+      "message": "The %{amount} planned for %{name} leave %{current} and move to %{next}.",
+      "confirm": "Postpone"
+    },
+    "catchUp": {
+      "title": "Catch up",
+      "fromMonth": "Catch up the overspend",
+      "fromForecast": "Make it up on another forecast",
+      "bannerOne": "%{name} is over by %{total}.",
+      "bannerTwo": "%{first} and %{second} are over by %{total}.",
+      "bannerMany": "%{count} forecasts are over by %{total}.",
+      "inviteOne": "Take it back from a forecast that still has room this month.",
+      "inviteMany": "Take it back from a forecast that still has room this month.",
+      "toTakeBack": "To take back",
+      "whichForecast": "From which forecast?",
+      "noChoice": "No forecast can take this overrun back this month.",
+      "coversAll": "%{remaining} left · goes to %{amount}",
+      "coversPart": "%{remaining} left · covers part of it",
+      "impactNote": "%{name} goes from %{from} to %{to} planned for %{month}.",
+      "submit": "Take back from %{name}",
+      "error": "The forecast could not be updated. Try again."
     }
   },
   "common": {
@@ -461,13 +542,41 @@
     "list": {
       "addAccessibility": "Add a goal",
       "create": "Create a goal",
-      "deadline": "Deadline %{date}",
       "emptyHint": "Track your long-term savings projects without recalculating by hand.",
       "emptyTitle": "Set your first goal",
       "loadErrorTitle": "We couldn't load your goals",
-      "since": "Since %{date}",
-      "title": "Savings goals",
-      "section": "Goals"
+      "title": "Goals",
+      "subtitle": "Your savings projects, month after month",
+      "total": "Set aside for your goals",
+      "count": {
+        "one": "Across %{count} goal.",
+        "other": "Across %{count} goals."
+      },
+      "sections": {
+        "ACTIVE": "In progress",
+        "PAUSED": "Paused",
+        "COMPLETED": "Reached"
+      },
+      "ofTarget": "of %{amount}",
+      "fact": {
+        "reached": "Target reached",
+        "toConfirm": "to confirm",
+        "overdue": "Deadline passed",
+        "toPlan": {
+          "one": "%{count} month to plan",
+          "other": "%{count} months to plan"
+        }
+      },
+      "starter": {
+        "title": "To get started",
+        "note": "I fill in the name, you choose the amount and the date.",
+        "cushion": "Safety cushion",
+        "cushionHint": "Three months of bills, no deadline",
+        "trip": "Trip",
+        "tripHint": "An amount and a departure date",
+        "purchase": "Big purchase",
+        "purchaseHint": "Car, sofa, computer"
+      }
     },
     "intro": {
       "create": "Create my goal",
@@ -522,33 +631,56 @@
       "loadErrorTitle": "We couldn't load this goal",
       "missingHint": "It may have been deleted from another device.",
       "missingTitle": "This goal no longer exists",
-      "statusError": "The status couldn't be changed. Try again."
+      "statusError": "The status couldn't be changed. Try again.",
+      "statusPaused": "Goal paused",
+      "statusReopened": "Goal reopened",
+      "since": "Since %{date}",
+      "thisMonth": "This month",
+      "upcoming": "Upcoming",
+      "nothingPlanned": "Nothing planned",
+      "history": "History",
+      "menu": {
+        "pause": "Pause",
+        "resume": "Resume"
+      },
+      "month": {
+        "planned": "%{month} · %{amount} planned",
+        "checkedOn": "Checked on %{date}",
+        "notChecked": "Not checked in your budget yet",
+        "partial": "%{amount} checked so far"
+      },
+      "plan": {
+        "adjust": "Adjust my plan",
+        "plan": "Plan %{range}",
+        "planCount": {
+          "one": "Plan %{count} month",
+          "other": "Plan %{count} months"
+        },
+        "explain": "You choose the amount. Nothing changes until you confirm."
+      },
+      "range": {
+        "to": "%{first} to %{last}",
+        "and": "%{first} and %{last}"
+      },
+      "run": {
+        "noBudget": "No budget yet",
+        "noLine": "No linked forecast",
+        "same": {
+          "one": "%{count} month at %{amount}",
+          "other": "%{count} months at %{amount}"
+        },
+        "planned": {
+          "one": "%{count} month planned",
+          "other": "%{count} months planned"
+        }
+      }
     },
     "progress": {
-      "achievementAccessibility": "%{percent}% of the target saved",
       "initial": "Starting amount",
-      "ofTarget": "of %{amount}",
-      "pace": {
-        "ahead": "Ahead",
-        "behind": "A little behind",
-        "on_track": "On track"
-      },
-      "paceAdvice": "Your planned pace: %{pace}/month · to meet your deadline, aim for %{required}/month",
-      "paceAdviceDate": "Your planned pace: %{pace}/month · to finish by %{date}, aim for %{required}/month",
-      "perMonth": "%{amount} / month",
-      "planReady": "Your plan is ready — put aside %{amount} this month.",
-      "planned": "Already planned",
       "projection": "Plan projection",
-      "required": "To meet your deadline",
       "saved": "Saved",
       "target": "Target %{amount}",
       "trajectory": "Your trajectory"
-    },
-    "contributions": {
-      "loadError": "Couldn't load this goal's contributions.",
-      "movements": "Actual movements",
-      "openBudget": "Open the budget for %{period}",
-      "title": "Your tracking"
     },
     "states": {
       "complete": "Mark as reached",
@@ -654,91 +786,65 @@
       "inPlan": "Planned in the plan",
       "loadError": "Couldn't load this goal's withdrawals.",
       "openBudget": "Open the budget for %{name}",
-      "planned": "Planned withdrawals",
-      "realized": "Realized withdrawals",
       "status": {
         "partially_realized": "Partially realized",
         "planned": "To do",
         "realized": "Realized"
-      },
-      "title": "Withdrawals"
+      }
     },
-    "plan": {
-      "adjust": "Adjust",
-      "adjustAccessibility": "Adjust plan",
-      "availability": {
-        "no-budget": "No budget",
-        "unfunded": "No saving planned"
+    "hero": {
+      "captionBoth": "of %{target} · including %{initial} to start",
+      "captionTarget": "of %{target}",
+      "captionInitial": "Including %{initial} you started with",
+      "left": "%{amount} to go",
+      "short": "%{amount} short",
+      "reachedOn": "target reached on %{date}",
+      "reached": "target reached",
+      "required": "Aim for %{amount} a month to finish in %{month}.",
+      "pace": "Since %{month}, you put aside %{amount} a month.",
+      "barAccessibility": "%{percent} of the target saved"
+    },
+    "history": {
+      "title": "History",
+      "start": "Start",
+      "paid": {
+        "one": "Paid in, %{count} month checked",
+        "other": "Paid in, %{count} months checked"
       },
-      "showAll": {
-        "one": "View the whole plan (%{count} month)",
-        "other": "View the whole plan (%{count} months)"
+      "withdrawn": "Withdrawn",
+      "saved": "Set aside",
+      "endOfMonth": "%{amount} at month end",
+      "initialHint": "Already set aside when created",
+      "contribution": "Contribution",
+      "contributionAccessibility": "Contribution %{amount}, %{percent} of the plan",
+      "startAmount": "%{amount} to start",
+      "pointed": {
+        "one": "%{count} month checked",
+        "other": "%{count} months checked"
       },
-      "showLess": "View less",
-      "state": {
-        "checked": "Checked",
-        "locked": "Locked"
-      },
-      "thisMonth": "This month",
-      "title": "Your plan, month by month",
-      "unlinked": {
-        "one": "%{count} remaining month has no forecast linked to this goal.",
-        "other": "%{count} remaining months have no forecast linked to this goal."
-      },
-      "withdrawal": "including %{amount} to withdraw"
+      "withdrawalCount": {
+        "one": "%{count} withdrawal",
+        "other": "%{count} withdrawals"
+      }
+    },
+    "chart": {
+      "accessibility": "%{saved} saved, plan projection %{projection}",
+      "accessibilityHidden": "Goal trajectory, amounts hidden"
     }
   },
   "home": {
     "accountAccessibility": "My account",
-    "activity": {
-      "added": "Entry added",
-      "empty": {
-        "month": "Nothing this month",
-        "week": "Nothing in the last 7 days"
-      },
-      "emptyHint": "Your entries will appear here",
-      "title": "Activity",
-      "viewAll": "View all",
-      "window": {
-        "month": "This month",
-        "week": "7 days"
-      },
-      "windowAccessibility": "Activity for %{window}"
-    },
     "add": "Add",
-    "addAccessibility": "Add an entry",
+    "addAccessibility": "Add a movement",
     "checking": {
-      "confirm": "It happened",
-      "confirmAccessibility": "Check off %{name}",
-      "later": "Later",
-      "laterAccessibility": "Check %{name} later",
       "pointFailure": "This could not be checked off. Try again.",
       "pointed": "%{name} checked off",
-      "title": "Entries to check off",
       "tooltipMessage": "When an entry appears on your account, check it off here to keep track.",
       "tooltipTitle": "Checking off",
       "undoFailure": "The check could not be undone. Try again from the budget."
     },
-    "drift": {
-      "hidden": {
-        "one": "+1 other forecast",
-        "other": "+%{count} other forecasts"
-      },
-      "overBy": "+%{amount} over",
-      "summary": "%{amount} over plan",
-      "summaryAbsorbed": "%{amount} over plan, covered elsewhere this month",
-      "title": "Off track",
-      "catchUp": "Catch up on these %{amount} over",
-      "catchUpHint": "Open the budget to adjust your envelopes"
-    },
     "hero": {
       "chartAccessibility": "Estimated balance over the month compared with the plan",
-      "detail": "See the budget",
-      "detailAccessibility": "View budget details",
-      "estimate": "Estimated at end of %{month}",
-      "metricsAccessibility": "%{count} to check off, %{variance} versus planned",
-      "metricsHint": "Open actual balance details",
-      "toCheck": "To check off",
       "verdict": {
         "gain": "You have more left than planned.",
         "gainDated": "Above your plan since %{date}.",
@@ -746,14 +852,18 @@
         "overrun": "You have less left than planned.",
         "overrunDated": "Below your plan since %{date}."
       },
-      "vsPlanned": "Versus plan",
       "chart": {
         "today": "today"
+      },
+      "eyebrow": "Available to spend",
+      "hideAmounts": "Hide amounts",
+      "showAmounts": "Show amounts",
+      "calculation": "The calculation",
+      "calculationHint": "Open the calculation details",
+      "fresh": {
+        "verdict": "Right on plan.",
+        "tail": "Add your expenses as the month goes: this figure updates right away."
       }
-    },
-    "periodRemaining": {
-      "one": "Last day of the period",
-      "other": "%{count} days until the next payday"
     },
     "prepareNextMonth": "Prepare next month",
     "realized": {
@@ -852,30 +962,101 @@
       "title": "Monthly savings transferred"
     },
     "states": {
-      "createBudget": "Create my budget",
-      "emptyHint": "Create it to see your dashboard.",
+      "createBudget": "Create the %{month} budget",
+      "emptyHint": "I start from your template: you adjust what changes, and it's ready.",
       "emptyTitle": "No budget for this month yet",
       "loadErrorHint": "Try again — if it continues, check your connection.",
       "loadErrorTitle": "We couldn't load your month"
+    },
+    "periodCaption": "Day %{day} of %{total} · until %{date}",
+    "todo": {
+      "title": "To do",
+      "toPoint": "%{count} to check",
+      "toPointMovements": {
+        "one": "%{count} movement to check",
+        "other": "%{count} movements to check"
+      },
+      "toPointHint": "Check off what already went through on your account.",
+      "driftOne": "%{name} is over",
+      "driftTwo": "%{first} and %{second} are over",
+      "driftMany": "%{name} and %{count} others are over",
+      "driftHint": "%{amount} over plan, to catch up"
+    },
+    "start": {
+      "title": "To get started",
+      "addTitle": "Add your first expense",
+      "addHint": "A coffee, a tank of fuel, groceries",
+      "pointTitle": "Check off what already went through",
+      "pair": "%{first} and %{second}",
+      "many": {
+        "one": "%{first}, %{second} and %{count} other forecast",
+        "other": "%{first}, %{second} and %{count} other forecasts"
+      }
+    },
+    "movements": {
+      "title": "Activity",
+      "latest": "Latest movements",
+      "viewAll": "See all",
+      "empty": "Your movements will show up here.\nThe + button adds them.",
+      "subtitle": {
+        "one": "%{month} · %{count} movement",
+        "other": "%{month} · %{count} movements"
+      },
+      "search": "Search a movement",
+      "filter": {
+        "all": "All",
+        "unpointed": "To check",
+        "unplanned": "Outside planned items"
+      },
+      "nothing": "Nothing to show here.",
+      "noMatch": "No movement matches.",
+      "unplanned": "Outside planned items",
+      "saving": "Savings",
+      "pointed": "checked",
+      "added": "Movement added"
+    },
+    "toPoint": {
+      "title": "To check",
+      "subtitle": "Check off what already went through on your account.",
+      "balance": "Your checked balance",
+      "compare": "Compare",
+      "balanceHint": "It moves with every check. Your available to spend doesn't change.",
+      "remaining": "%{count} to check",
+      "forecasts": "This month's forecasts",
+      "forecastsHint": "Check them once the payment has gone through",
+      "done": "Everything is checked.",
+      "over": "%{amount} over plan",
+      "left": "%{amount} left",
+      "saving": "Savings · %{rhythm}",
+      "pointedNow": "checked just now"
+    },
+    "noBudget": {
+      "period": "From %{start} to %{end}",
+      "default": "Default",
+      "income": "Income",
+      "expenses": "Planned expenses",
+      "savings": "Planned savings",
+      "available": "Available to spend",
+      "otherTemplate": "Start from another template"
     }
   },
   "main": {
     "handoff": {
       "future": {
-        "description": "Your next thirteen budgets have been created — you can adjust any of them in advance.",
-        "title": "The next months are already there"
+        "description": "Your next thirteen months already exist. Adjust them in advance whenever you like.",
+        "title": "The next months are ready"
       },
-      "intro": "There is one habit left to build, and it takes just one gesture.",
       "point": {
-        "description": "Rent paid, groceries bought: check it off and your available amount updates.",
-        "title": "Check off what happened"
+        "description": "When the expense shows up on your account, tap the circle. Your available amount stays right.",
+        "title": "Check off what's gone through"
       },
-      "review": {
-        "description": "Two minutes is enough. The rest of the time, Pulpe waits.",
-        "title": "Take a look once a week"
-      },
-      "start": "Get started",
-      "title": "Your budget is ready"
+      "start": "Open my month",
+      "title": "One last thing",
+      "subtitle": "Your budget is a forecast. Here's how to keep it accurate.",
+      "add": {
+        "title": "Add what you spend",
+        "description": "The green +, on every screen. Say which forecast it falls under, or that it's unexpected."
+      }
     },
     "tabs": {
       "budgets": {
@@ -890,10 +1071,97 @@
         "accessibility": "Home tab",
         "short": "Home"
       },
+      "netWorth": {
+        "accessibility": "Net worth tab",
+        "short": "Net worth"
+      },
       "templates": {
         "accessibility": "Templates tab",
         "short": "Templates"
       }
+    }
+  },
+  "netWorth": {
+    "title": "My assets",
+    "add": "Add",
+    "addAsset": "Add an asset",
+    "addAccessibility": "Add an asset",
+    "emptyTitle": "Your net worth starts here",
+    "emptyHint": "Add an account, a savings book or a debt to see today's net worth.",
+    "loadErrorTitle": "We couldn't load your net worth",
+    "saveError": "Saving failed. Try again.",
+    "net": "Net worth",
+    "have": "What I have",
+    "owe": "What I owe",
+    "negativeNote": "What I owe is more than what I have today. Every checked repayment brings this figure closer to zero.",
+    "foreignNote": "Foreign-currency values are converted at today's rate.",
+    "incompleteNote": "I don't have today's %{currencies} rate: the total leaves out %{names}. It will come back as soon as the rate is available.",
+    "overdrafts": "Overdrafts",
+    "renameType": "Rename type",
+    "typeName": "Type name",
+    "actionsFor": "Actions for %{name}",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "editAccessibility": "Edit %{name}",
+    "deleteTitle": "Delete %{name}?",
+    "deleteMessage": "Its whole history of values is deleted too. Archive it instead to take it out of the totals and keep the history.",
+    "hideArchived": "Hide archived",
+    "showArchived": "Show archived (%{count})",
+    "updated": "Updated %{when}",
+    "updatedIn": "%{category} · updated %{when}",
+    "today": "today",
+    "ageYesterday": "yesterday",
+    "ageDays": {
+      "one": "%{count} day ago",
+      "other": "%{count} days ago"
+    },
+    "ageMonths": {
+      "one": "%{count} month ago",
+      "other": "%{count} months ago"
+    },
+    "ageYears": {
+      "one": "%{count} year ago",
+      "other": "%{count} years ago"
+    },
+    "whenMatching": "%{line} · when matching",
+    "badgeOverdraft": "Overdrawn",
+    "badgeExcluded": "Not in total",
+    "suggestion": {
+      "propose": "I suggest %{amount}",
+      "dismiss": "Dismiss",
+      "apply": "Apply",
+      "saved": "%{amount} of checked savings since the last value",
+      "drawn": "%{amount} of income drawn since the last value",
+      "repaid": "%{amount} of checked repayment since the last value"
+    },
+    "form": {
+      "addTitle": "Add to my net worth",
+      "currency": "Currency",
+      "editTitle": "Edit %{name}",
+      "lastValue": "Last value: %{amount}, on %{date}",
+      "value": "Current value",
+      "overdraft": "Negative balance (overdraft)",
+      "namePlaceholder": "UBS account, Leasing…",
+      "name": "Name",
+      "nameError": "Give it a name",
+      "side": "Type",
+      "frozen": "The side and the currency stay as set at creation.",
+      "type": "Type",
+      "otherType": "Other type…",
+      "save": "Save",
+      "create": "Add"
+    },
+    "starter": {
+      "accounts": "Accounts",
+      "savings": "Savings",
+      "investments": "Investments",
+      "cash": "Cash",
+      "valuables": "Valuables",
+      "property": "Property",
+      "loan": "Loan",
+      "mortgage": "Mortgage",
+      "leasing": "Leasing",
+      "creditCard": "Credit card"
     }
   },
   "onboarding": {
@@ -903,29 +1171,31 @@
       "addExpense": "Add an expense",
       "healthInsurance": "Health insurance",
       "housing": "Housing",
-      "insurance": "Insurance & subscriptions",
+      "insurance": "Insurance and subscriptions",
       "leasingCredit": "Lease or loan payment",
-      "mobility": "Mobility & credit",
+      "mobility": "Mobility and credit",
       "phonePlan": "Phone plan",
       "plannedItems": "My planned items",
       "rent": "Monthly rent",
       "subtitle": "Enter what you know — the rest can wait",
-      "title": "Your expenses",
+      "title": "What are your fixed expenses?",
       "total": "Total expenses",
       "transport": "Transport (pass, fuel…)"
     },
     "exit": {
       "body": "Everything you entered will be deleted.",
       "leave": "Leave",
-      "stay": "Continue",
-      "title": "Leave budget setup?"
+      "stay": "Stay",
+      "title": "Leave sign-up?"
     },
     "firstName": {
       "accessibility": "First name, required",
       "label": "First name",
       "placeholder": "Your first name",
-      "subtitle": "Just your first name",
-      "title": "What's your name?"
+      "subtitle": "I only use it to greet you, nothing else.",
+      "title": "What's your name?",
+      "greeting": "Nice to meet you,",
+      "greetingFallback": "you"
     },
     "legal": {
       "possessive": "our",
@@ -940,27 +1210,36 @@
       "extraIncome": "Additional income",
       "monthlyIncome": "Net monthly income",
       "privacy": "No one else can see these amounts — not even the person building Pulpe.",
-      "subtitle": "What reaches your account each month",
-      "title": "Your income",
+      "subtitle": "Your net salary, what lands on your account.",
+      "title": "How much do you earn per month?",
       "total": "Total income"
     },
     "pin": {
       "back": "Back to preview"
     },
     "preview": {
-      "available": "Available to spend · %{currency}",
       "edit": "Edit the %{label} section",
-      "emotion": {
-        "comfortable": "You have room. This is what remains after everything else.",
-        "deficit": "Your expenses are higher than your income — we'll look at it together.",
-        "tight": "It works, but it's tight. You can adjust it at any time."
-      },
-      "expenses": "Expenses",
       "income": "Income",
-      "savings": "Savings",
       "start": "Let's go",
-      "subtitle": "Here is how it looks",
-      "title": "Your budget"
+      "headline": {
+        "comfortable": "Your budget has room to breathe",
+        "tight": "Your budget holds up",
+        "deficit": "Your month doesn't add up yet"
+      },
+      "sentence": {
+        "comfortable": "Nice margin for the month. You can fine-tune later.",
+        "tight": "It's balanced but tight. You can fine-tune later.",
+        "deficitCharges": "Your fixed costs exceed your income. Tap them to adjust.",
+        "deficitSavings": "Lower your savings by %{amount} and it all adds up."
+      },
+      "fixedCharges": "Fixed costs",
+      "plannedSavings": "Planned savings",
+      "salary": "Salary",
+      "summaryOne": "%{first} and 1 other",
+      "summaryMany": "%{first} and %{count} others",
+      "template": "These amounts become your month template: every new month starts from here, and you can change them whenever you like.",
+      "ringToSpend": "%{currency} · to spend",
+      "ringPerMonth": "%{currency} per month"
     },
     "registration": {
       "criteria": {
@@ -981,7 +1260,7 @@
       "add": "Add savings",
       "items": "My savings",
       "subtitle": "What you set aside each month",
-      "title": "Your savings",
+      "title": "How much do you set aside?",
       "total": "Total savings"
     },
     "skip": "Skip this step",
@@ -1025,18 +1304,23 @@
       }
     },
     "welcome": {
-      "benefits": {
-        "plan": "A clear plan for every month",
-        "privacy": "Your amounts stay private",
-        "tracking": "Check off expenses in one tap"
-      },
       "emailSignup": "Sign up with email",
       "google": "Continue with Google",
       "googleError": "Unable to sign in with Google — try again.",
       "legalPrefix": "By continuing, you accept",
       "signIn": "I already have an account",
       "subtitle": "Your budget is ready in 2 minutes",
-      "title": "See your finances clearly"
+      "title": "Your month, planned ahead.",
+      "stickers": {
+        "charges": "Charges",
+        "savings": "Savings",
+        "salary": "Salary"
+      }
+    },
+    "resumed": "Picking up where you left off.",
+    "ring": {
+      "available": "Available",
+      "missing": "Missing"
     }
   },
   "settings": {
@@ -1056,7 +1340,7 @@
           "title": "FAQ and support"
         },
         "preferences": {
-          "description": "Pay day and currency",
+          "description": "Currency, language, pay day, reminders",
           "title": "Preferences"
         },
         "privacy": {
@@ -1064,19 +1348,23 @@
           "title": "Privacy notice"
         },
         "security": {
-          "description": "PIN, password and biometrics",
+          "description": "PIN code, password, %{biometric}",
           "title": "Security"
         },
         "tags": {
           "description": "Your personal tags",
-          "title": "My tags"
+          "title": "My tags",
+          "count": {
+            "one": "%{count} tag",
+            "other": "%{count} tags"
+          }
         },
         "terms": {
           "description": "Pulpe's terms of use",
           "title": "Terms and conditions"
         },
         "whatsNew": {
-          "description": "Latest updates",
+          "description": "What changed in %{version}",
           "title": "What's new"
         }
       },
@@ -1089,7 +1377,8 @@
         "description": "You will need to sign in again with your email and password, then enter your PIN again.",
         "title": "Sign out"
       },
-      "title": "Account"
+      "title": "Account",
+      "footer": "Pulpe %{version} · Android %{os}"
     },
     "language": {
       "description": "Choose the app language",
@@ -1109,11 +1398,6 @@
     },
     "preferences": {
       "currencyDescription": "It is used to display all your amounts.",
-      "currencyDialogAction": "Change",
-      "currencyDialogDescription": "Your existing amounts are not converted — 100 remains 100, displayed in %{currency}. Only the display currency changes.",
-      "currencyDialogTitle": "Change the display currency?",
-      "currencyRate": "Indicative rate: 1 %{base} = %{rate} %{target}",
-      "currencySaveError": "The currency could not be saved.",
       "currencyTitle": "Currency",
       "dataPrivacySection": "Data and privacy",
       "diagnosticsDescription": "Links technical events and errors to your account so we can understand problems and help you more quickly. No amount or content you enter is collected.",
@@ -1221,6 +1505,28 @@
         "selectionLimit": "%{count} tags maximum",
         "tooLong": "%{count} characters maximum"
       }
+    },
+    "currency": {
+      "description": "All your amounts are shown in this currency.",
+      "confirmTitle": "Show your amounts in %{currency}?",
+      "confirmBody": "Nothing is converted: 100 stays 100, shown in %{symbol}. Only the symbol changes.",
+      "keep": "Keep %{currency}",
+      "show": "Show in %{currency}",
+      "saved": "Shown in %{symbol}. Your amounts keep their value.",
+      "saveError": "The currency could not be saved.",
+      "converter": {
+        "title": "Converter",
+        "hint": "“From” uses your account currency; “To” shows the calculated equivalent.",
+        "from": "From",
+        "to": "To",
+        "auto": "Calculated automatically",
+        "loading": "Fetching today’s rate…",
+        "failed": "Couldn't fetch today's rate. The amounts you already saved stay untouched.",
+        "retry": "Try again",
+        "rate": "1 %{base} = %{rate} %{target} (%{date})",
+        "input": "Amount in %{currency}",
+        "output": "Equivalent in %{currency}"
+      }
     }
   },
   "system": {
@@ -1258,15 +1564,13 @@
       "addAccessibility": "Add a template",
       "count": "%{count}/%{max} templates",
       "create": "Create a template",
-      "emptyHint": "A typical month: your income, expenses and savings, ready to be reused.",
-      "emptyTitle": "Create your first template",
+      "emptyHint": "Create one to prepare your next budgets faster.",
+      "emptyTitle": "No template yet",
       "limit": "You have reached the limit of %{count} templates. Delete one to create another.",
       "loadErrorTitle": "We couldn't load your templates",
-      "openWeb": "Open on the web",
       "title": "Templates",
-      "webBody": "Not every template action is available here yet. The web app has the complete experience if you need it.",
-      "webTitle": "Templates: Android is still streamlined",
-      "section": "Templates"
+      "subtitle": "The starting point of every new month",
+      "emptyExplainer": "A template lists your usual income, expenses and savings. Every new month starts from it, then you adjust."
     },
     "form": {
       "create": "Create template",
@@ -1288,7 +1592,7 @@
     "lines": {
       "add": "Add",
       "amount": "Planned amount",
-      "apply": "Apply",
+      "apply": "The template and your months already created",
       "createTitle": "New forecast",
       "deleteAccessibility": "Delete %{name}",
       "editAccessibility": "Edit %{name}",
@@ -1297,39 +1601,63 @@
       "linkGoal": "Link to a goal",
       "noGoal": "None",
       "propagationBody": {
-        "one": "This template is used by %{count} budget. “Apply” will update current and future budgets. Manually edited forecasts won't be changed.",
-        "other": "This template is used by %{count} budgets. “Apply” will update current and future budgets. Manually edited forecasts won't be changed."
+        "one": "This template is used by %{count} budget. Current and future budgets can follow your change. A forecast you changed by hand in a month never moves.",
+        "other": "This template is used by %{count} budgets. Current and future budgets can follow your change. A forecast you changed by hand in a month never moves."
       },
-      "propagationTitle": "Apply to following months?",
+      "propagationTitle": "And your months already created?",
       "save": "Save",
       "templateOnly": "Template only",
-      "longPressHint": "Long press to delete"
+      "longPressHint": "Long press to delete",
+      "when": "When?",
+      "whenFixed": "Every month created with %{name} gets this forecast.",
+      "whenOneOff": "This forecast is marked one-off in the months created with %{name}.",
+      "propagationTitleMonth": "And %{month}?",
+      "applyMonth": "The template and %{month}",
+      "updated": {
+        "one": "Planned item updated — %{count} budget updated",
+        "other": "Planned item updated — %{count} budgets updated"
+      },
+      "updatedTemplateOnly": "Planned item updated"
     },
     "detail": {
       "addLine": "Add a forecast",
-      "balance": "Remaining",
       "confirmDelete": "Delete",
       "delete": "Delete template",
       "deleteLineBody": "“%{name}” will leave the template. Existing budgets keep their copy.",
       "deleteLineError": "The forecast couldn't be deleted. Try again.",
       "deleteLineTitle": "Delete this forecast?",
-      "deleteTemplateBody": "Budgets already created from “%{name}” stay intact. Only the template disappears.",
+      "deleteTemplateBody": {
+        "one": "No budget uses it. %{count} line goes with it, with no way back.",
+        "other": "No budget uses it. Its %{count} lines go with it, with no way back."
+      },
       "deleteTemplateError": "The template couldn't be deleted. Try again.",
       "deleteTemplateTitle": "Delete this template?",
       "empty": "This template is still empty. Add your income, expenses and savings so it can serve as a typical month.",
-      "income": "Income",
       "loadErrorTitle": "We couldn't load this template",
       "missingHint": "It may have been deleted from another device.",
       "missingTitle": "This template no longer exists",
-      "outgoing": "Expenses and savings",
       "rename": "Rename",
       "usageCount": {
         "one": "%{count} budget created from this template",
         "other": "%{count} budgets created from this template"
       },
       "usageError": "Couldn't check the budgets linked to this template.",
-      "usageHint": "Deleting the template doesn't affect these budgets.",
-      "summary": "Summary"
+      "heroLabel": "Starting available",
+      "heroSentence": "What this template leaves to spend out of %{income} of income, before the previous month's carry-over.",
+      "defaultLabel": "Default",
+      "usedFor": {
+        "one": "used for %{count} budget",
+        "other": "used for %{count} budgets"
+      },
+      "neverUsed": "never used",
+      "deleteSection": "Template",
+      "deleteChecking": "Checking whether it is used",
+      "deleteFree": "No budget uses it",
+      "deleteBlocked": {
+        "one": "Not possible: it was used for %{count} budget",
+        "other": "Not possible: it was used for %{count} budgets"
+      },
+      "linkedToGoal": "linked to the goal"
     }
   },
   "vault": {
@@ -1347,7 +1675,8 @@
       "mintedBody": "Write this key down somewhere safe. It will let you regain access to your data if you forget your PIN.",
       "mintFailedBody": "Recovery succeeded, but a new recovery key could not be generated. You can create one in settings.",
       "understood": "I understand",
-      "warning": "Without this key and your PIN, your financial data will become permanently inaccessible."
+      "warning": "Without this key and your PIN, your financial data will become permanently inaccessible.",
+      "clipboardClears": "The copy is erased after 2 minutes."
     },
     "recovery": {
       "invalidCharacters": "Your key contains invalid characters",
@@ -1365,13 +1694,15 @@
       "subtitle": "It will protect your amounts.",
       "confirmHint": "Enter the %{count} digits you just chose again.",
       "mismatch": "This code is different from the first. Try again.",
-      "changeCode": "Change my code"
+      "changeCode": "Change my code",
+      "step": "Step %{current} of %{total}"
     },
     "unlock": {
       "biometric": "Unlock with biometrics",
       "forgot": "Forgot your code?",
       "subtitle": "It unlocks your amounts",
-      "title": "Your code"
+      "greeting": "Hello, %{name}",
+      "greetingAnonymous": "Hello"
     },
     "offline": "Connection error, try again",
     "tooManyAttempts": "Too many attempts, wait a moment",
