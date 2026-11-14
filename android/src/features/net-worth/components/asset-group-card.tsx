@@ -328,7 +328,8 @@ const styles = StyleSheet.create({
   content: { gap: SPACING.xs },
   line: { flexDirection: "row", alignItems: "flex-start", gap: SPACING.md },
   name: { flex: 1 },
-  values: { alignItems: "flex-end", flexShrink: 0, maxWidth: "45%" },
+  // The name wraps on two lines; a five-figure value must stay whole.
+  values: { alignItems: "flex-end", flexShrink: 0, maxWidth: "70%" },
   badges: { flexDirection: "row", gap: SPACING.xs },
   suggestion: {
     gap: SPACING.xs,
