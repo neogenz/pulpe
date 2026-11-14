@@ -862,6 +862,11 @@
         "estimated": "Estimated on %{date}",
         "estimatedWithPlan": "Estimated on %{date} · Planned %{amount}"
       },
+      "rhythm": {
+        "pace": "At this pace, you'll have %{amount} left on %{date} instead of the %{planned} planned.",
+        "lessHidden": "On %{date}, you'll have less left than planned.",
+        "moreHidden": "On %{date}, you'll have more left than planned."
+      },
       "eyebrow": "Available to spend",
       "hideAmounts": "Hide amounts",
       "showAmounts": "Show amounts",
@@ -953,6 +958,16 @@
     },
     "reconcile": {
       "accounts": {
+        "accountNumbered": "Account %{index}",
+        "addToNetWorth": "Add to My net worth",
+        "addToNetWorthHint": "I keep this account and update its balance each time you match your accounts.",
+        "balanceMissing": "Enter its balance to add it",
+        "lastBalance": "Last balance: %{amount}, %{when}",
+        "linkedFootnote": "I update the balance of your accounts in My net worth. The other rows are not saved.",
+        "nameMissing": "Name this account to add it",
+        "newAccountName": "Account name",
+        "otherAccount": "Other account…",
+        "stopFollowing": "Stop following this account",
         "accountName": "Account name (optional)",
         "addAccount": "Add an account",
         "amount": "Balance",
@@ -967,6 +982,7 @@
       },
       "back": "Back",
       "continue": "Continue",
+      "followFailed": "Matching done, but I couldn't save your balances in My net worth.",
       "realized": {
         "balance": "Checked balance",
         "checkedIncome": "Checked income",

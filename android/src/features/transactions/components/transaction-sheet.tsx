@@ -43,11 +43,16 @@ import {
   loadFirstMovementState,
   type FirstMovementSource,
 } from "../first-movement-tracker";
-import { convertMovementAmount, withConversion } from "../movement-conversion";
+import {
+  convertMovementAmount,
+  foreignLegOf,
+  withConversion,
+} from "../movement-conversion";
 import { MovementCurrencyField } from "./movement-currency-field";
 import { MovementLinePicker } from "./movement-line-picker";
 import { MovementLineQuestion } from "./movement-line-question";
 import { MovementOrigin } from "./movement-origin";
+import { MovementPostponeAction } from "./movement-postpone-action";
 
 import {
   initialForm,
@@ -146,8 +151,11 @@ export function TransactionSheet({
   // The budget is not part of the draft: it belongs to the screen, and holding
   // a copy in form state is how a sheet ends up posting to last month's budget
   // after a period rolls over while it is open.
+  // A movement booked from another currency is edited in that currency.
+  const foreign =
+    transaction === undefined ? null : foreignLegOf(transaction, currency);
   const [form, setForm] = useState<FormState>(() =>
-    initialForm(transaction, envelope, period, prefilledGoalId),
+    initialForm(transaction, envelope, period, prefilledGoalId, foreign),
   );
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   // Held apart from the chosen goal: "yes, from a goal" and "which one" are two
@@ -177,11 +185,13 @@ export function TransactionSheet({
   const draft: TransactionDraft = { ...form, budgetId };
   const settings = useUserSettings();
   // Entered in the other currency, converted on the way out: an edit keeps the
-  // currency the row was booked in.
+  // currency the row was typed in, and cannot change it.
   const canPickCurrency =
     !isEditing && settings.data?.showCurrencySelector === true;
   const [pickedCurrency, setPickedCurrency] = useState(currency);
-  const inputCurrency = canPickCurrency ? pickedCurrency : currency;
+  const inputCurrency = canPickCurrency
+    ? pickedCurrency
+    : (foreign?.currency ?? currency);
   const rate = useCurrencyRate(inputCurrency, currency);
   const conversion = convertMovementAmount(
     draft.amount,
@@ -193,6 +203,7 @@ export function TransactionSheet({
     inputCurrency !== currency &&
     draft.amount !== null &&
     draft.amount > 0 &&
+    draft.amount !== foreign?.amount &&
     conversion === null;
   // What the budget will hold, whichever currency it was typed in.
   const bookedAmount = conversion?.amount ?? draft.amount;
@@ -270,7 +281,7 @@ export function TransactionSheet({
       undefined);
   const isUnchangedEdit =
     transaction !== undefined &&
-    transaction.amount === draft.amount &&
+    (foreign?.amount ?? transaction.amount) === draft.amount &&
     transaction.kind === draft.kind;
   const impact =
     details.data === undefined ||
@@ -304,7 +315,9 @@ export function TransactionSheet({
   }
 
   function reset() {
-    setForm(initialForm(transaction, envelope, period, prefilledGoalId));
+    setForm(
+      initialForm(transaction, envelope, period, prefilledGoalId, foreign),
+    );
     setPickedCurrency(currency);
     setFromSavingsGoal(prefilledGoalId !== undefined);
     setPickedLineId(null);
@@ -373,7 +386,11 @@ export function TransactionSheet({
     update.mutate(
       {
         id: transaction.id,
-        changes: buildTransactionUpdate(draft, transaction),
+        changes: buildTransactionUpdate(
+          draft,
+          transaction,
+          foreign === null ? null : { leg: foreign, conversion },
+        ),
       },
       { onSuccess },
     );
@@ -448,6 +465,15 @@ export function TransactionSheet({
                 </Text>
               )}
 
+              {transaction !== undefined && details.data !== undefined && (
+                <MovementPostponeAction
+                  transaction={transaction}
+                  period={details.data.budget}
+                  currency={currency}
+                  onPostponed={dismiss}
+                />
+              )}
+
               {onDelete !== undefined && isEditing && (
                 <>
                   {hasDeleteFailed && (
@@ -518,8 +544,9 @@ export function TransactionSheet({
               />
             )}
 
-            {canPickCurrency && (
+            {(canPickCurrency || foreign !== null) && (
               <MovementCurrencyField
+                isReadOnly={isEditing}
                 inputCurrency={inputCurrency}
                 onChange={setPickedCurrency}
                 currency={currency}

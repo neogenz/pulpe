@@ -16,6 +16,8 @@ import type { MovementConversion } from "../movement-conversion";
 const RATE_DECIMALS = 4;
 
 interface MovementCurrencyFieldProps {
+  /** An edit shows the currency the movement was typed in, not a choice. */
+  isReadOnly?: boolean;
   inputCurrency: SupportedCurrency;
   onChange: (currency: SupportedCurrency) => void;
   /** The display currency the amount is booked in. */
@@ -26,6 +28,7 @@ interface MovementCurrencyFieldProps {
 
 /** The currency the amount is typed in, and what it comes to in the display one. */
 export function MovementCurrencyField({
+  isReadOnly = false,
   inputCurrency,
   onChange,
   currency,
@@ -45,6 +48,7 @@ export function MovementCurrencyField({
         buttons={SUPPORTED_CURRENCIES.map((code) => ({
           value: code,
           label: `${CURRENCY_METADATA[code].flag} ${code}`,
+          disabled: isReadOnly,
         }))}
       />
       {isForeign && rate.isError && (

@@ -1,4 +1,11 @@
-import { convertMovementAmount, withConversion } from "./movement-conversion";
+import type { Transaction } from "pulpe-shared";
+
+import {
+  conversionUpdate,
+  convertMovementAmount,
+  foreignLegOf,
+  withConversion,
+} from "./movement-conversion";
 
 describe("convertMovementAmount", () => {
   it("should book the converted amount rounded to cents and keep the rate as quoted", () => {
@@ -36,6 +43,43 @@ describe("withConversion", () => {
   it("should replace the amount and add the foreign leg", () => {
     const conversion = convertMovementAmount(10, "EUR", "CHF", 0.9);
     expect(withConversion(payload, conversion)).toMatchObject({
+      amount: 9,
+      originalAmount: 10,
+      originalCurrency: "EUR",
+      targetCurrency: "CHF",
+      exchangeRate: 0.9,
+    });
+  });
+});
+
+describe("foreignLegOf", () => {
+  const booked = (extra: Partial<Transaction>) =>
+    ({ amount: 450, ...extra }) as Transaction;
+
+  it("should return the typed figure of a movement booked from another currency", () => {
+    expect(
+      foreignLegOf(
+        booked({ originalAmount: 500, originalCurrency: "EUR" }),
+        "CHF",
+      ),
+    ).toEqual({ amount: 500, currency: "EUR" });
+  });
+
+  it.each([
+    ["no foreign leg", {}],
+    [
+      "a leg in the display currency",
+      { originalAmount: 450, originalCurrency: "CHF" as const },
+    ],
+  ])("should return null for %s", (_name, extra) => {
+    expect(foreignLegOf(booked(extra), "CHF")).toBeNull();
+  });
+});
+
+describe("conversionUpdate", () => {
+  it("should carry the booked amount with the whole foreign leg", () => {
+    const conversion = convertMovementAmount(10, "EUR", "CHF", 0.9);
+    expect(conversion && conversionUpdate(conversion)).toEqual({
       amount: 9,
       originalAmount: 10,
       originalCurrency: "EUR",

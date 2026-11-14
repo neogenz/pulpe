@@ -11,6 +11,7 @@ import {
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
+  ActivityIndicator,
   Button,
   IconButton,
   Text,
@@ -29,10 +30,23 @@ import { hapticSuccess } from "@/core/ui/haptics";
 import { Notice } from "@/core/ui/notice";
 import { FormModal } from "@/core/ui/sheet";
 import { RADIUS, SPACING } from "@/core/ui/theme";
+import { useFollowAccounts } from "@/features/net-worth/net-worth-queries";
 import { useCreateTransaction } from "@/features/transactions/transaction-mutations";
 
 import type { RealizedMetrics } from "../current-month-view-model";
+import {
+  accountChoices,
+  type AccountRow,
+  emptyRow,
+  isEmptyPlan,
+  missingForNewAccount,
+  planAccountLinks,
+  seedRows,
+  selectAccount,
+} from "../reconcile-account-links";
+import { useReconcileLinkedAccounts } from "../reconcile-linked-accounts";
 import { buildAdjustmentPayload } from "../reconciliation";
+import { ReconcileLinkedAccountRow } from "./reconcile-linked-account-row";
 
 const LABEL_MAX_LENGTH = 100;
 const ACCOUNT_NAME_MAX_LENGTH = 60;
@@ -41,13 +55,7 @@ const LEADING_MINUS = /^\s*[-−]/;
 
 type Step = 1 | 2 | 3;
 
-interface AccountRow {
-  id: number;
-  label: string;
-  amountText: string;
-}
-
-const FIRST_ROW: AccountRow = { id: 0, label: "", amountText: "" };
+const FIRST_ROW = emptyRow(0);
 
 /** What the loaded month has pointed, and the period it covers. */
 export interface ReconcileMonth {
@@ -95,6 +103,12 @@ export function ReconcileAccountsSheet({
   const theme = useTheme();
   const { locale, t } = useTranslation();
   const create = useCreateTransaction("reconciliation");
+  const follow = useFollowAccounts();
+  const linked = useReconcileLinkedAccounts(isVisible, currency);
+  // My accounts as this opening found them: its rows are seeded once, and a
+  // refetch never reshuffles them. `undefined` until they are read, `null`
+  // when « Mon patrimoine » is off: plain lines, nothing written there.
+  const [accounts, setAccounts] = useState<typeof linked>(undefined);
   const [step, setStep] = useState<Step>(1);
   const [rows, setRows] = useState<AccountRow[]>([FIRST_ROW]);
   // Flagged once the field is left, never mid-keystroke: "12." is on its way
@@ -110,7 +124,16 @@ export function ReconcileAccountsSheet({
   // may have committed, and `createOnce` reads it back instead of writing twice.
   const attempt = useRef<TransactionCreate | null>(null);
 
+  if (isVisible && accounts === undefined && linked !== undefined) {
+    setAccounts(linked);
+    setRows(seedRows(linked));
+  }
+
   const adjustmentLabel = label ?? t("home.reconcile.verdict.defaultLabel");
+  // A new account for Mon patrimoine still missing its name or its balance.
+  const hasIncompleteAccount = rows.some(
+    (row) => missingForNewAccount(row) !== null,
+  );
   const summary = summarizeAccounts(rows.map((row) => row.amountText));
   const verdict =
     summary.totalCents === null || month === null
@@ -125,6 +148,7 @@ export function ReconcileAccountsSheet({
 
   function reset() {
     setStep(1);
+    setAccounts(undefined);
     setRows([FIRST_ROW]);
     setLeftRowIds(new Set());
     setLabel(null);
@@ -166,7 +190,7 @@ export function ReconcileAccountsSheet({
   }
 
   function next() {
-    if (!summary.canContinue || step === 3) return;
+    if (!summary.canContinue || hasIncompleteAccount || step === 3) return;
     setStep((step + 1) as Step);
   }
 
@@ -187,9 +211,23 @@ export function ReconcileAccountsSheet({
   }
 
   function addAccount() {
-    const id = nextRowId.current;
-    nextRowId.current += 1;
-    setRows((current) => [...current, { id, label: "", amountText: "" }]);
+    // Seeded rows took ids of their own: a new one never reuses any.
+    const id = Math.max(nextRowId.current, ...rows.map((row) => row.id + 1));
+    nextRowId.current = id + 1;
+    setRows((current) => [...current, emptyRow(id)]);
+  }
+
+  // Completion, and only completion, writes the accounts I finished with to
+  // Mon patrimoine. A refusal only says so: the reconciliation stays done.
+  function followFinishedAccounts() {
+    if (accounts == null) return;
+    const plan = planAccountLinks(rows, accounts);
+    if (isEmptyPlan(plan)) return;
+    follow.mutate({
+      ...plan,
+      currency,
+      categoryName: t("netWorth.starter.accounts"),
+    });
   }
 
   function complete(adjustmentKind: "income" | "expense" | "none") {
@@ -225,6 +263,7 @@ export function ReconcileAccountsSheet({
     create.mutate(payload, {
       onSuccess: () => {
         complete(adjustment.kind);
+        followFinishedAccounts();
         hapticSuccess();
         reset();
         onRecorded();
@@ -241,6 +280,7 @@ export function ReconcileAccountsSheet({
   function finish() {
     if (isBusy || isSubmitting.current || verdict?.kind !== "upToDate") return;
     complete("none");
+    followFinishedAccounts();
     reset();
     onDismiss();
   }
@@ -273,7 +313,7 @@ export function ReconcileAccountsSheet({
           <Button
             mode="contained"
             onPress={next}
-            disabled={!summary.canContinue}
+            disabled={!summary.canContinue || hasIncompleteAccount}
             style={styles.action}
           >
             {t("home.reconcile.continue")}
@@ -307,223 +347,279 @@ export function ReconcileAccountsSheet({
   const muted = { color: theme.colors.onSurfaceVariant };
 
   return (
-    <FormModal
-      isVisible={isVisible}
-      onDismiss={dismiss}
-      onBack={back}
-      isBusy={isBusy}
-      title={t("home.reconcile.title")}
-      subtitle={t("home.reconcile.stepOf", { step })}
-      footer={footer}
-    >
-      {step === 1 && (
-        <>
-          <Text variant="titleMedium">
-            {t("home.reconcile.accounts.heading")}
-          </Text>
-          <Text variant="bodyMedium" style={muted}>
-            {t("home.reconcile.accounts.hint")}
-          </Text>
-          {rows.map((row, index) => {
-            const isNegative = LEADING_MINUS.test(row.amountText);
-            const isUnreadable =
-              leftRowIds.has(row.id) &&
-              parseAccountAmount(row.amountText).status === "invalid";
-            const name = row.label.trim();
-            return (
-              <View key={row.id} style={styles.account}>
-                {index > 0 && (
-                  <TextInput
-                    mode="outlined"
-                    label={t("home.reconcile.accounts.accountName")}
-                    value={row.label}
-                    onChangeText={(value) =>
-                      updateRow(row.id, { label: value })
+    <>
+      <FormModal
+        isVisible={isVisible}
+        onDismiss={dismiss}
+        onBack={back}
+        isBusy={isBusy}
+        title={t("home.reconcile.title")}
+        subtitle={t("home.reconcile.stepOf", { step })}
+        footer={footer}
+      >
+        {step === 1 && (
+          <>
+            <Text variant="titleMedium">
+              {t("home.reconcile.accounts.heading")}
+            </Text>
+            <Text variant="bodyMedium" style={muted}>
+              {t("home.reconcile.accounts.hint")}
+            </Text>
+            {accounts === undefined && <ActivityIndicator />}
+            {rows.map((row, index) => {
+              if (accounts === undefined) return null;
+              const isNegative = LEADING_MINUS.test(row.amountText);
+              const isUnreadable =
+                leftRowIds.has(row.id) &&
+                parseAccountAmount(row.amountText).status === "invalid";
+              const name = row.label.trim();
+              if (accounts !== null) {
+                const { account } = row;
+                return (
+                  <ReconcileLinkedAccountRow
+                    key={row.id}
+                    row={row}
+                    number={index + 1}
+                    asset={
+                      account.kind === "asset"
+                        ? (accounts.find((asset) => asset.id === account.id) ??
+                          null)
+                        : null
                     }
-                    maxLength={ACCOUNT_NAME_MAX_LENGTH}
-                  />
-                )}
-                <View style={styles.amountRow}>
-                  <TextInput
-                    mode="outlined"
-                    style={styles.amountInput}
-                    label={t(
-                      index === 0
-                        ? "home.reconcile.accounts.firstAmount"
-                        : "home.reconcile.accounts.amount",
-                    )}
-                    value={row.amountText}
-                    onChangeText={(value) =>
-                      updateRow(row.id, { amountText: value })
+                    choices={accountChoices(rows, row.id, accounts)}
+                    currency={currency}
+                    isNegative={isNegative}
+                    isUnreadable={isUnreadable}
+                    canRemove={rows.length > 1}
+                    onChange={(changes) => updateRow(row.id, changes)}
+                    onSelect={(asset) =>
+                      updateRow(row.id, selectAccount(row, asset))
                     }
-                    onBlur={() =>
+                    onToggleNegative={() => toggleNegative(row)}
+                    onLeaveAmount={() =>
                       setLeftRowIds((ids) => new Set(ids).add(row.id))
                     }
-                    // Signed on Android, so a keypad that has a minus key
-                    // offers it; the sign button covers the ones that do not.
-                    keyboardType="numeric"
-                    error={isUnreadable}
-                    right={
-                      <TextInput.Affix
-                        text={CURRENCY_METADATA[currency].symbol}
-                      />
+                    onRemove={() =>
+                      setRows((current) =>
+                        current.filter((other) => other.id !== row.id),
+                      )
                     }
                   />
-                  <IconButton
-                    icon="plus-minus-variant"
-                    selected={isNegative}
-                    onPress={() => toggleNegative(row)}
-                    accessibilityLabel={t("home.reconcile.accounts.negative")}
-                    accessibilityState={{ selected: isNegative }}
-                  />
+                );
+              }
+              return (
+                <View key={row.id} style={styles.account}>
                   {index > 0 && (
-                    <IconButton
-                      icon="trash-can-outline"
-                      onPress={() =>
-                        setRows((current) =>
-                          current.filter((other) => other.id !== row.id),
-                        )
+                    <TextInput
+                      mode="outlined"
+                      label={t("home.reconcile.accounts.accountName")}
+                      value={row.label}
+                      onChangeText={(value) =>
+                        updateRow(row.id, { label: value })
                       }
-                      accessibilityLabel={
-                        name === ""
-                          ? t("home.reconcile.accounts.removeNumbered", {
-                              index: index + 1,
-                            })
-                          : t("home.reconcile.accounts.removeNamed", { name })
-                      }
+                      maxLength={ACCOUNT_NAME_MAX_LENGTH}
                     />
                   )}
+                  <View style={styles.amountRow}>
+                    <TextInput
+                      mode="outlined"
+                      style={styles.amountInput}
+                      label={t(
+                        index === 0
+                          ? "home.reconcile.accounts.firstAmount"
+                          : "home.reconcile.accounts.amount",
+                      )}
+                      value={row.amountText}
+                      onChangeText={(value) =>
+                        updateRow(row.id, { amountText: value })
+                      }
+                      onBlur={() =>
+                        setLeftRowIds((ids) => new Set(ids).add(row.id))
+                      }
+                      // Signed on Android, so a keypad that has a minus key
+                      // offers it; the sign button covers the ones that do not.
+                      keyboardType="numeric"
+                      error={isUnreadable}
+                      right={
+                        <TextInput.Affix
+                          text={CURRENCY_METADATA[currency].symbol}
+                        />
+                      }
+                    />
+                    <IconButton
+                      icon="plus-minus-variant"
+                      selected={isNegative}
+                      onPress={() => toggleNegative(row)}
+                      accessibilityLabel={t("home.reconcile.accounts.negative")}
+                      accessibilityState={{ selected: isNegative }}
+                    />
+                    {index > 0 && (
+                      <IconButton
+                        icon="trash-can-outline"
+                        onPress={() =>
+                          setRows((current) =>
+                            current.filter((other) => other.id !== row.id),
+                          )
+                        }
+                        accessibilityLabel={
+                          name === ""
+                            ? t("home.reconcile.accounts.removeNumbered", {
+                                index: index + 1,
+                              })
+                            : t("home.reconcile.accounts.removeNamed", { name })
+                        }
+                      />
+                    )}
+                  </View>
+                  {isUnreadable && (
+                    <FieldError visible>
+                      {t("home.reconcile.accounts.invalidAmount")}
+                    </FieldError>
+                  )}
                 </View>
-                {isUnreadable && (
-                  <FieldError visible>
-                    {t("home.reconcile.accounts.invalidAmount")}
-                  </FieldError>
-                )}
-              </View>
-            );
-          })}
-          <Button
-            mode="text"
-            icon="plus"
-            onPress={addAccount}
-            style={styles.addAccount}
-          >
-            {t("home.reconcile.accounts.addAccount")}
-          </Button>
-          <View
-            testID="reconcile-total"
-            style={styles.totalRow}
-            accessibilityLiveRegion="polite"
-          >
-            <Text variant="titleSmall">
-              {t("home.reconcile.accounts.total")}
-            </Text>
-            <Amount size="row">
-              {summary.totalCents === null
-                ? "—"
-                : formatCurrency(summary.totalCents / CENTS_PER_UNIT, currency)}
-            </Amount>
-          </View>
-        </>
-      )}
-
-      {step === 2 && month !== null && (
-        <>
-          <Text variant="titleMedium">
-            {t("home.reconcile.realized.heading")}
-          </Text>
-          {/* A period on the calendar month is named by the month alone. */}
-          {month.period.startDate.getDate() !== 1 && (
-            <Text variant="bodyMedium" style={muted}>
-              {t("home.reconcile.realized.period", {
-                start: formatDayMonth(month.period.startDate, locale),
-                end: formatDayMonth(month.period.endDate, locale),
-              })}
-            </Text>
-          )}
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: theme.colors.surfaceVariant },
-            ]}
-          >
-            <BreakdownRow
-              label={t("home.reconcile.realized.checkedIncome")}
-              amount={formatCurrency(month.realized.realizedIncome, currency)}
-            />
-            <BreakdownRow
-              label={t("home.reconcile.realized.checkedOutflows")}
-              amount={formatCurrency(
-                0 - month.realized.realizedExpenses,
-                currency,
-              )}
-            />
-            <BreakdownRow
-              testID="reconcile-rollover"
-              label={t("home.reconcile.realized.rollover")}
-              amount={formatCurrency(month.rollover, currency)}
-            />
-            <BreakdownRow
-              testID="reconcile-realized-balance"
-              label={t("home.reconcile.realized.balance")}
-              amount={formatCurrency(month.realized.realizedBalance, currency)}
-              isTotal
-            />
-          </View>
-          <Text variant="bodyMedium" style={muted}>
-            {t("home.reconcile.realized.hint")}
-          </Text>
-          <Button mode="text" icon="arrow-right" onPress={viewItemsToCheck}>
-            {t("home.reconcile.realized.viewItemsToCheck")}
-          </Button>
-        </>
-      )}
-
-      {step === 3 &&
-        verdict !== null &&
-        (verdict.kind === "upToDate" ? (
-          <>
-            <Text variant="titleMedium">
-              {t("home.reconcile.verdict.upToDateTitle")}
-            </Text>
-            <Text variant="bodyMedium" style={muted}>
-              {t("home.reconcile.verdict.upToDateMessage")}
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text variant="titleMedium">
-              {t(
-                verdict.kind === "income"
-                  ? "home.reconcile.verdict.moreTitle"
-                  : "home.reconcile.verdict.lessTitle",
-                { amount: formatCurrency(verdict.amount, currency) },
-              )}
-            </Text>
-            <Text variant="bodyMedium" style={muted}>
-              {t(
-                verdict.kind === "income"
-                  ? "home.reconcile.verdict.moreMessage"
-                  : "home.reconcile.verdict.lessMessage",
-                { amount: formatCurrency(verdict.amount, currency) },
-              )}
-            </Text>
-            <TextInput
-              mode="outlined"
-              label={t("home.reconcile.verdict.label")}
-              value={adjustmentLabel}
-              onChangeText={setLabel}
-              maxLength={LABEL_MAX_LENGTH}
-              error={adjustmentLabel.trim() === ""}
-            />
-            {adjustmentLabel.trim() === "" && (
-              <FieldError visible>
-                {t("home.reconcile.verdict.labelRequired")}
-              </FieldError>
+              );
+            })}
+            <Button
+              mode="text"
+              icon="plus"
+              onPress={addAccount}
+              style={styles.addAccount}
+            >
+              {t("home.reconcile.accounts.addAccount")}
+            </Button>
+            {accounts != null && (
+              <Text variant="bodySmall" style={muted}>
+                {t("home.reconcile.accounts.linkedFootnote")}
+              </Text>
             )}
+            <View
+              testID="reconcile-total"
+              style={styles.totalRow}
+              accessibilityLiveRegion="polite"
+            >
+              <Text variant="titleSmall">
+                {t("home.reconcile.accounts.total")}
+              </Text>
+              <Amount size="row">
+                {summary.totalCents === null
+                  ? "—"
+                  : formatCurrency(
+                      summary.totalCents / CENTS_PER_UNIT,
+                      currency,
+                    )}
+              </Amount>
+            </View>
           </>
-        ))}
-    </FormModal>
+        )}
+
+        {step === 2 && month !== null && (
+          <>
+            <Text variant="titleMedium">
+              {t("home.reconcile.realized.heading")}
+            </Text>
+            {/* A period on the calendar month is named by the month alone. */}
+            {month.period.startDate.getDate() !== 1 && (
+              <Text variant="bodyMedium" style={muted}>
+                {t("home.reconcile.realized.period", {
+                  start: formatDayMonth(month.period.startDate, locale),
+                  end: formatDayMonth(month.period.endDate, locale),
+                })}
+              </Text>
+            )}
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.colors.surfaceVariant },
+              ]}
+            >
+              <BreakdownRow
+                label={t("home.reconcile.realized.checkedIncome")}
+                amount={formatCurrency(month.realized.realizedIncome, currency)}
+              />
+              <BreakdownRow
+                label={t("home.reconcile.realized.checkedOutflows")}
+                amount={formatCurrency(
+                  0 - month.realized.realizedExpenses,
+                  currency,
+                )}
+              />
+              <BreakdownRow
+                testID="reconcile-rollover"
+                label={t("home.reconcile.realized.rollover")}
+                amount={formatCurrency(month.rollover, currency)}
+              />
+              <BreakdownRow
+                testID="reconcile-realized-balance"
+                label={t("home.reconcile.realized.balance")}
+                amount={formatCurrency(
+                  month.realized.realizedBalance,
+                  currency,
+                )}
+                isTotal
+              />
+            </View>
+            <Text variant="bodyMedium" style={muted}>
+              {t("home.reconcile.realized.hint")}
+            </Text>
+            <Button mode="text" icon="arrow-right" onPress={viewItemsToCheck}>
+              {t("home.reconcile.realized.viewItemsToCheck")}
+            </Button>
+          </>
+        )}
+
+        {step === 3 &&
+          verdict !== null &&
+          (verdict.kind === "upToDate" ? (
+            <>
+              <Text variant="titleMedium">
+                {t("home.reconcile.verdict.upToDateTitle")}
+              </Text>
+              <Text variant="bodyMedium" style={muted}>
+                {t("home.reconcile.verdict.upToDateMessage")}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text variant="titleMedium">
+                {t(
+                  verdict.kind === "income"
+                    ? "home.reconcile.verdict.moreTitle"
+                    : "home.reconcile.verdict.lessTitle",
+                  { amount: formatCurrency(verdict.amount, currency) },
+                )}
+              </Text>
+              <Text variant="bodyMedium" style={muted}>
+                {t(
+                  verdict.kind === "income"
+                    ? "home.reconcile.verdict.moreMessage"
+                    : "home.reconcile.verdict.lessMessage",
+                  { amount: formatCurrency(verdict.amount, currency) },
+                )}
+              </Text>
+              <TextInput
+                mode="outlined"
+                label={t("home.reconcile.verdict.label")}
+                value={adjustmentLabel}
+                onChangeText={setLabel}
+                maxLength={LABEL_MAX_LENGTH}
+                error={adjustmentLabel.trim() === ""}
+              />
+              {adjustmentLabel.trim() === "" && (
+                <FieldError visible>
+                  {t("home.reconcile.verdict.labelRequired")}
+                </FieldError>
+              )}
+            </>
+          ))}
+      </FormModal>
+      <Notice
+        visible={follow.isError}
+        onDismiss={() => follow.reset()}
+        testID="reconcile-follow-error-notice"
+      >
+        {t("home.reconcile.followFailed")}
+      </Notice>
+    </>
   );
 }
 

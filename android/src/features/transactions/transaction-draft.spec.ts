@@ -4,6 +4,7 @@ import {
   type Transaction,
 } from "pulpe-shared";
 
+import { convertMovementAmount } from "./movement-conversion";
 import {
   buildTransactionPayload,
   buildTransactionRestore,
@@ -159,6 +160,48 @@ function transaction(overrides: Partial<Transaction> = {}): Transaction {
     ...overrides,
   };
 }
+
+describe("buildTransactionUpdate on a movement typed in another currency", () => {
+  const foreignRow = () =>
+    transaction({
+      amount: 450,
+      originalAmount: 500,
+      originalCurrency: "EUR",
+      targetCurrency: "CHF",
+      exchangeRate: 0.9,
+    });
+  const leg = { amount: 500, currency: "EUR" as const };
+  const conversion = convertMovementAmount(600, "EUR", "CHF", 0.95);
+
+  it("leaves the booked amount and its rate alone when only the name moved", () => {
+    const existing = foreignRow();
+    const payload = buildTransactionUpdate(
+      { ...transactionDraftFrom(existing), amount: 500, name: "Hôtel" },
+      existing,
+      { leg, conversion: null },
+    );
+
+    expect(payload).toEqual({ name: "Hôtel" });
+  });
+
+  it("sends the new booked amount with its foreign leg when the typed figure moved", () => {
+    const existing = foreignRow();
+    const payload = buildTransactionUpdate(
+      { ...transactionDraftFrom(existing), amount: 600 },
+      existing,
+      { leg, conversion },
+    );
+
+    expect(payload).toEqual({
+      amount: 570,
+      originalAmount: 600,
+      originalCurrency: "EUR",
+      targetCurrency: "CHF",
+      exchangeRate: 0.95,
+    });
+    expect(transactionUpdateSchema.safeParse(payload).success).toBe(true);
+  });
+});
 
 describe("buildTransactionUpdate", () => {
   it("carries only what changed", () => {

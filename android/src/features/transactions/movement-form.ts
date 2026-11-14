@@ -4,6 +4,7 @@ import type {
   TransactionKind,
 } from "pulpe-shared";
 
+import type { ForeignLeg } from "./movement-conversion";
 import {
   defaultOperationDay,
   transactionDraftFrom,
@@ -45,10 +46,12 @@ export function initialForm(
   envelope: EnvelopeTarget | undefined,
   period: BudgetPeriodDates | undefined,
   withdrawFromGoalId?: string,
+  /** The figure it was typed as, for a movement entered in another currency. */
+  foreign: ForeignLeg | null = null,
 ): FormState {
   if (transaction !== undefined) {
     const { budgetId: _budgetId, ...form } = transactionDraftFrom(transaction);
-    return form;
+    return foreign === null ? form : { ...form, amount: foreign.amount };
   }
 
   return {

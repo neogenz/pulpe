@@ -1,5 +1,5 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { getBudgetPeriodDates } from "pulpe-shared";
+import { type Asset, getBudgetPeriodDates } from "pulpe-shared";
 
 import { captureEvent } from "@/core/observability/analytics";
 
@@ -23,6 +23,33 @@ jest.mock("react-native-quick-crypto", () => ({
 jest.mock("@/features/transactions/transaction-mutations", () => ({
   useCreateTransaction: () => mockCreate,
 }));
+const mockFollow = { mutate: jest.fn(), reset: jest.fn(), isError: false };
+let mockLinked: Asset[] | null | undefined = null;
+jest.mock("@/features/net-worth/net-worth-queries", () => ({
+  useFollowAccounts: () => mockFollow,
+}));
+jest.mock("../reconcile-linked-accounts", () => ({
+  useReconcileLinkedAccounts: () => mockLinked,
+}));
+jest.mock("@/features/net-worth/net-worth-sections", () => ({
+  assetAgeLabel: () => "today",
+}));
+jest.mock("@/core/ui/filter-chip", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    FilterChip: ({
+      children,
+      onPress,
+    }: {
+      children: React.ReactNode;
+      onPress: () => void;
+    }) => (
+      <Pressable onPress={onPress}>
+        <Text>{children}</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock("@/core/observability/analytics", () => ({
   captureEvent: jest.fn(),
 }));
@@ -103,6 +130,21 @@ jest.mock("react-native-paper", () => {
         onPress={onPress}
         accessibilityLabel={accessibilityLabel}
         accessibilityState={accessibilityState}
+      />
+    ),
+    ActivityIndicator: () => <View testID="reconcile-loading" />,
+    Switch: ({
+      value,
+      onValueChange,
+      accessibilityLabel,
+    }: {
+      value: boolean;
+      onValueChange: (value: boolean) => void;
+      accessibilityLabel: string;
+    }) => (
+      <Pressable
+        accessibilityLabel={accessibilityLabel}
+        onPress={() => onValueChange(!value)}
       />
     ),
     Text,
@@ -222,6 +264,87 @@ const AMOUNT = "home.reconcile.accounts.firstAmount";
 beforeEach(() => {
   jest.clearAllMocks();
   Object.assign(mockCreate, { isPending: false, isError: false });
+  mockLinked = null;
+});
+
+function ownAccount(id: string, inPulpe: boolean): Asset {
+  return {
+    id,
+    categoryId: "type",
+    name: `Compte ${id}`,
+    currency: "CHF",
+    direction: "own",
+    inPulpe,
+    archivedAt: null,
+    latestValue: 100,
+    latestRecordedAt: "2026-11-01T10:00:00.000Z",
+    convertedValue: 100,
+    suggestion: null,
+  };
+}
+
+describe("with Mon patrimoine", () => {
+  const BALANCE = "home.reconcile.accounts.amount";
+
+  it("waits for my accounts before showing a row", async () => {
+    mockLinked = undefined;
+    const view = await renderSheet().view;
+    expect(view.getByTestId("reconcile-loading")).toBeTruthy();
+    expect(view.queryByLabelText(BALANCE)).toBeNull();
+    expect(mockFollow.mutate).not.toHaveBeenCalled();
+  });
+
+  it("opens on my followed accounts and writes the finished ones on completion", async () => {
+    mockLinked = [ownAccount("a", true), ownAccount("b", false)];
+    const view = await renderSheet(REALIZED_LEVEL).view;
+    expect(
+      view.getByText("home.reconcile.accounts.linkedFootnote"),
+    ).toBeTruthy();
+    expect(
+      view.getByText("home.reconcile.accounts.lastBalance:100.00 CHF|today"),
+    ).toBeTruthy();
+
+    // The followed account gives way to another of mine, and a new one is added.
+    await fireEvent.press(view.getByText("Compte b"));
+    await fireEvent.changeText(view.getByLabelText(BALANCE), "1000");
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    await fireEvent.press(
+      view.getByLabelText("home.reconcile.accounts.addToNetWorth"),
+    );
+    expect(view.getByText("home.reconcile.accounts.nameMissing")).toBeTruthy();
+    await fireEvent.changeText(
+      view.getByLabelText("home.reconcile.accounts.newAccountName"),
+      "Neon",
+    );
+    expect(
+      view.getByText("home.reconcile.accounts.balanceMissing"),
+    ).toBeTruthy();
+    await fireEvent.press(view.getByText("home.reconcile.continue"));
+    expect(view.queryByText("home.reconcile.realized.heading")).toBeNull();
+
+    await fireEvent.changeText(view.getAllByLabelText(BALANCE)[1], "500");
+    await fireEvent.press(view.getByText("home.reconcile.continue"));
+    await fireEvent.press(view.getByText("home.reconcile.continue"));
+    await fireEvent.press(view.getByText("home.reconcile.verdict.finish"));
+
+    expect(mockFollow.mutate).toHaveBeenCalledTimes(1);
+    expect(mockFollow.mutate).toHaveBeenCalledWith({
+      creates: [{ name: "Neon", value: 500 }],
+      links: ["b"],
+      unlinks: ["a"],
+      snapshots: [{ assetId: "b", value: 1000 }],
+      currency: "CHF",
+      categoryName: "netWorth.starter.accounts",
+    });
+  });
+
+  it("writes nothing there when the sheet is left before the end", async () => {
+    mockLinked = [ownAccount("a", true)];
+    const view = await renderSheet().view;
+    await fireEvent.changeText(view.getByLabelText(BALANCE), "1000");
+    await fireEvent.press(view.getByLabelText("scrim"));
+    expect(mockFollow.mutate).not.toHaveBeenCalled();
+  });
 });
 
 it("walks back one step at a time from the Android back action, then leaves", async () => {

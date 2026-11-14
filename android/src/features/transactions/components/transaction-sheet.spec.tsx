@@ -45,6 +45,9 @@ let mockRate: { data?: unknown; isError: boolean } = {
 jest.mock("@/features/account/currency-queries", () => ({
   useCurrencyRate: () => mockRate,
 }));
+jest.mock("./movement-postpone-action", () => ({
+  MovementPostponeAction: () => null,
+}));
 jest.mock("../first-movement-tracker", () => ({
   loadFirstMovementState: jest.fn(),
 }));
@@ -793,5 +796,70 @@ describe("amount typed in the other currency", () => {
     const view = await render(<TransactionSheet {...baseProps} />);
 
     expect(view.queryByText(/EUR/)).toBeNull();
+  });
+});
+
+describe("editing a movement typed in another currency", () => {
+  const booked = {
+    id: "tx-1",
+    budgetId: "budget-1",
+    budgetLineId: null,
+    name: "Hôtel",
+    amount: 108,
+    kind: "expense",
+    transactionDate: "2026-09-02T09:00:00.000Z",
+    tagIds: [],
+    createdAt: "2026-09-02T09:00:00.000Z",
+    updatedAt: "2026-09-02T09:00:00.000Z",
+    checkedAt: null,
+    originalAmount: 120,
+    originalCurrency: "EUR",
+    targetCurrency: "CHF",
+    exchangeRate: 0.9,
+  } as Transaction;
+
+  beforeEach(() => {
+    mockRate = {
+      data: { base: "EUR", target: "CHF", rate: 0.95, date: "2026-11-14" },
+      isError: false,
+    };
+  });
+
+  it("opens on the typed figure and keeps the stored rate when only the name moves", async () => {
+    const view = await render(
+      <TransactionSheet {...baseProps} transaction={booked} />,
+    );
+    await fireEvent.changeText(
+      view.getByLabelText("budgets.mutations.description"),
+      "Hôtel Lyon",
+    );
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+
+    expect(mockUpdate.mutate).toHaveBeenCalledWith(
+      { id: "tx-1", changes: { name: "Hôtel Lyon" } },
+      expect.any(Object),
+    );
+  });
+
+  it("books the new figure at the fresh rate with its foreign leg", async () => {
+    const view = await render(
+      <TransactionSheet {...baseProps} transaction={booked} />,
+    );
+    await fireEvent.press(view.getByLabelText("set-amount-500"));
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+
+    expect(mockUpdate.mutate).toHaveBeenCalledWith(
+      {
+        id: "tx-1",
+        changes: {
+          amount: 475,
+          originalAmount: 500,
+          originalCurrency: "EUR",
+          targetCurrency: "CHF",
+          exchangeRate: 0.95,
+        },
+      },
+      expect.any(Object),
+    );
   });
 });

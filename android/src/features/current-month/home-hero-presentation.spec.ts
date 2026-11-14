@@ -1,7 +1,13 @@
 import type { BalanceTrajectory } from "pulpe-shared";
 import { i18n, translate } from "@/core/i18n/i18n";
 
-import { heroPresentation, verdictSentence } from "./home-hero-presentation";
+import { useAmountVisibility } from "@/core/ui/amount-visibility";
+
+import {
+  heroPresentation,
+  rhythmSentence,
+  verdictSentence,
+} from "./home-hero-presentation";
 
 function trajectory(
   overrides: Partial<BalanceTrajectory> = {},
@@ -112,5 +118,50 @@ describe("verdictSentence", () => {
     );
 
     expect(sentence).toBe("Tu es pile sur ton plan.");
+  });
+});
+
+describe("rhythmSentence", () => {
+  // Day 10 of 31, 700 under plan: 1800 − 70 × 10/17 × 21 = 935.29.
+  const offPace = trajectory({
+    today: 10,
+    totalDays: 31,
+    estimatedBalance: 1800,
+    drift: -700,
+  });
+  const sentence = (
+    overrides: Partial<BalanceTrajectory> = {},
+    amountsHidden = false,
+  ) =>
+    rhythmSentence(translate, "fr", {
+      trajectory: { ...offPace, ...overrides },
+      periodEnd: new Date(2026, 7, 24),
+      currency: "CHF",
+      amountsHidden,
+    });
+
+  beforeEach(() => {
+    i18n.locale = "fr";
+    useAmountVisibility.setState({ areAmountsHidden: false });
+  });
+
+  it("sets the landing against what the plan kept", () => {
+    expect(sentence()).toMatch(
+      /^À ce rythme, il te restera 935 CHF le 24 août au lieu des 2.?500 CHF prévus\.$/,
+    );
+  });
+
+  it("keeps the direction and drops both figures when amounts are hidden", () => {
+    expect(sentence({}, true)).toBe(
+      "Le 24 août, il te restera moins que prévu.",
+    );
+    expect(sentence({ estimatedBalance: 3200, drift: 700 }, true)).toBe(
+      "Le 24 août, il te restera plus que prévu.",
+    );
+  });
+
+  it("says nothing on the last day or when the pace lands on the plan", () => {
+    expect(sentence({ today: 31 })).toBeNull();
+    expect(sentence({ estimatedBalance: 2500, drift: 0 })).toBeNull();
   });
 });

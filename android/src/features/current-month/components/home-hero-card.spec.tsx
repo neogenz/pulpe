@@ -73,7 +73,9 @@ it("shows the estimate, the verdict and the three chart captions", async () => {
   // Whole digits on the hero; the thousands separator is the locale's.
   expect(view.getByText(/1.?241/)).toBeTruthy();
   expect(view.getByText("home.hero.eyebrow")).toBeTruthy();
-  expect(view.getByText("home.hero.verdict.gain")).toBeTruthy();
+  expect(
+    view.getByText(/^home\.hero\.verdict\.gain home\.hero\.rhythm\.pace:/),
+  ).toBeTruthy();
   expect(view.getByText("25 juillet")).toBeTruthy();
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();
   expect(view.getByText("24 août")).toBeTruthy();
@@ -104,6 +106,11 @@ it("keeps the captions while the amounts are masked", async () => {
   const view = await renderHero({});
 
   expect(view.queryByText(/1.?241/)).toBeNull();
+  expect(
+    view.getByText(
+      /^home\.hero\.verdict\.gain home\.hero\.rhythm\.moreHidden:/,
+    ),
+  ).toBeTruthy();
   expect(view.getByText("25 juillet")).toBeTruthy();
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();
 });

@@ -862,6 +862,11 @@
         "estimated": "Estimé le %{date}",
         "estimatedWithPlan": "Estimé le %{date} · Prévu %{amount}"
       },
+      "rhythm": {
+        "pace": "À ce rythme, il te restera %{amount} le %{date} au lieu des %{planned} prévus.",
+        "lessHidden": "Le %{date}, il te restera moins que prévu.",
+        "moreHidden": "Le %{date}, il te restera plus que prévu."
+      },
       "eyebrow": "Disponible à dépenser",
       "hideAmounts": "Masquer les montants",
       "showAmounts": "Afficher les montants",
@@ -953,6 +958,16 @@
     },
     "reconcile": {
       "accounts": {
+        "accountNumbered": "Compte %{index}",
+        "addToNetWorth": "Ajouter à Mon patrimoine",
+        "addToNetWorthHint": "Je garde ce compte et je mets son solde à jour à chaque rapprochement.",
+        "balanceMissing": "Saisis son solde pour l'ajouter",
+        "lastBalance": "Dernier solde : %{amount}, %{when}",
+        "linkedFootnote": "Je mets à jour le solde de tes comptes de Mon patrimoine. Les autres lignes ne sont pas enregistrées.",
+        "nameMissing": "Donne un nom à ce compte pour l'ajouter",
+        "newAccountName": "Nom du compte",
+        "otherAccount": "Autre compte…",
+        "stopFollowing": "Ne plus suivre ce compte",
         "accountName": "Nom du compte (facultatif)",
         "addAccount": "Ajouter un compte",
         "amount": "Solde",
@@ -967,6 +982,7 @@
       },
       "back": "Retour",
       "continue": "Continuer",
+      "followFailed": "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine.",
       "realized": {
         "balance": "Solde pointé",
         "checkedIncome": "Revenus pointés",

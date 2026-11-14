@@ -33,6 +33,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 
 import { scrubReading } from "../balance-scrub";
 import {
+  rhythmSentence,
   verdictSentence,
   type HeroPresentation,
 } from "../home-hero-presentation";
@@ -170,7 +171,19 @@ export function HomeHeroCard({
         sentence={
           startsFresh
             ? `${t("home.hero.fresh.verdict")} ${t("home.hero.fresh.tail")}`
-            : verdictSentence(t, locale, presentation)
+            : [
+                verdictSentence(t, locale, presentation),
+                // Where the month lands if it keeps its pace, when it has one.
+                trajectory &&
+                  rhythmSentence(t, locale, {
+                    trajectory,
+                    periodEnd: period.endDate,
+                    currency,
+                    amountsHidden: areHidden,
+                  }),
+              ]
+                .filter(Boolean)
+                .join(" ")
         }
         tint={startsFresh ? theme.colors.primary : accent}
       />

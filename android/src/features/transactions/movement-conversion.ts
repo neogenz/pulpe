@@ -1,4 +1,9 @@
-import type { SupportedCurrency, TransactionCreate } from "pulpe-shared";
+import type {
+  SupportedCurrency,
+  Transaction,
+  TransactionCreate,
+  TransactionUpdate,
+} from "pulpe-shared";
 
 /** What an amount typed in the other currency becomes in the display currency. */
 export interface MovementConversion {
@@ -38,6 +43,52 @@ export function withConversion(
   if (conversion === null) return payload;
   return {
     ...payload,
+    amount: conversion.amount,
+    originalAmount: conversion.originalAmount,
+    originalCurrency: conversion.originalCurrency,
+    targetCurrency: conversion.targetCurrency,
+    exchangeRate: conversion.exchangeRate,
+  };
+}
+
+/** The figure and currency a booked movement was typed in. */
+export interface ForeignLeg {
+  amount: number;
+  currency: SupportedCurrency;
+}
+
+/**
+ * Port of `EditTransactionLogic.shouldShowAlternateCurrency` / `initialAmount`:
+ * a movement booked from another currency is edited in that currency, `null`
+ * for one typed in the display currency.
+ */
+export function foreignLegOf(
+  transaction: Transaction,
+  displayCurrency: SupportedCurrency,
+): ForeignLeg | null {
+  const { originalAmount, originalCurrency } = transaction;
+  if (
+    originalAmount == null ||
+    originalCurrency == null ||
+    originalCurrency === displayCurrency
+  ) {
+    return null;
+  }
+  return { amount: originalAmount, currency: originalCurrency };
+}
+
+/** The booked amount and the foreign leg that moved with it, as one update. */
+export function conversionUpdate(
+  conversion: MovementConversion,
+): Pick<
+  TransactionUpdate,
+  | "amount"
+  | "originalAmount"
+  | "originalCurrency"
+  | "targetCurrency"
+  | "exchangeRate"
+> {
+  return {
     amount: conversion.amount,
     originalAmount: conversion.originalAmount,
     originalCurrency: conversion.originalCurrency,

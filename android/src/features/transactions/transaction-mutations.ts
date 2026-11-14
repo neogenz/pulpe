@@ -26,6 +26,7 @@ import {
   createTransaction,
   deleteTransaction,
   fetchTransaction,
+  postponeTransaction,
   updateTransaction,
 } from "./transaction-api";
 
@@ -199,6 +200,10 @@ export function useCreateTransaction(
 
 export function useUpdateTransaction() {
   return useTransactionMutation(updateTransaction);
+}
+
+export function usePostponeTransaction() {
+  return useTransactionMutation(postponeTransaction);
 }
 
 /** Takes the whole row rather than its id, as the undo restores it whole. */

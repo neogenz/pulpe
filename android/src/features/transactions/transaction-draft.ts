@@ -6,6 +6,12 @@ import type {
   TransactionUpdate,
 } from "pulpe-shared";
 
+import {
+  conversionUpdate,
+  type ForeignLeg,
+  type MovementConversion,
+} from "./movement-conversion";
+
 export interface TransactionDraft {
   budgetId: string;
   name: string;
@@ -146,6 +152,15 @@ export function transactionDraftFrom(
 export function buildTransactionUpdate(
   draft: TransactionDraft,
   transaction: Transaction,
+  /**
+   * Set when the amount is edited in the currency it was typed in: the draft
+   * then holds that figure, not the booked one, and a moved amount travels as
+   * the fresh `conversion` with its foreign leg.
+   */
+  foreign: {
+    leg: ForeignLeg;
+    conversion: MovementConversion | null;
+  } | null = null,
 ): TransactionUpdate {
   if (draft.amount === null || draft.amount <= 0) {
     throw new Error("A positive amount is required.");
@@ -159,13 +174,26 @@ export function buildTransactionUpdate(
 
   return {
     ...(name !== transaction.name ? { name } : {}),
-    ...(draft.amount !== transaction.amount ? { amount: draft.amount } : {}),
+    ...amountChange(draft.amount, transaction, foreign),
     ...(draft.kind !== transaction.kind ? { kind: draft.kind } : {}),
     ...(day !== original.toISOString() ? { transactionDate: day } : {}),
     ...(haveSameTags(draft.tagIds, transaction.tagIds ?? [])
       ? {}
       : { tagIds: draft.tagIds }),
   };
+}
+
+function amountChange(
+  amount: number,
+  transaction: Transaction,
+  foreign: { leg: ForeignLeg; conversion: MovementConversion | null } | null,
+): TransactionUpdate {
+  if (foreign === null) {
+    return amount !== transaction.amount ? { amount } : {};
+  }
+  // Left alone, the stored rate stays: a rename must not re-price the row.
+  if (amount === foreign.leg.amount || foreign.conversion === null) return {};
+  return conversionUpdate(foreign.conversion);
 }
 
 /** Order carries no meaning in a tag list, so it must not count as a change. */

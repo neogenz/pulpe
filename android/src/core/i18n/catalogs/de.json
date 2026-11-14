@@ -862,6 +862,11 @@
         "estimated": "Geschätzt am %{date}",
         "estimatedWithPlan": "Geschätzt am %{date} · Geplant %{amount}"
       },
+      "rhythm": {
+        "pace": "In diesem Tempo bleiben dir am %{date} nur %{amount} statt der geplanten %{planned}.",
+        "lessHidden": "Am %{date} bleibt dir weniger als geplant.",
+        "moreHidden": "Am %{date} bleibt dir mehr als geplant."
+      },
       "eyebrow": "Verfügbar zum Ausgeben",
       "hideAmounts": "Beträge ausblenden",
       "showAmounts": "Beträge anzeigen",
@@ -953,6 +958,16 @@
     },
     "reconcile": {
       "accounts": {
+        "accountNumbered": "Konto %{index}",
+        "addToNetWorth": "Zu Mein Vermögen hinzufügen",
+        "addToNetWorthHint": "Ich behalte dieses Konto und aktualisiere seinen Saldo bei jedem Abgleich.",
+        "balanceMissing": "Gib den Saldo ein, um es hinzuzufügen",
+        "lastBalance": "Letzter Saldo: %{amount}, %{when}",
+        "linkedFootnote": "Ich aktualisiere den Saldo deiner Konten in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert.",
+        "nameMissing": "Gib dem Konto einen Namen, um es hinzuzufügen",
+        "newAccountName": "Kontoname",
+        "otherAccount": "Anderes Konto…",
+        "stopFollowing": "Diesem Konto nicht mehr folgen",
         "accountName": "Kontoname (optional)",
         "addAccount": "Konto hinzufügen",
         "amount": "Saldo",
@@ -967,6 +982,7 @@
       },
       "back": "Zurück",
       "continue": "Weiter",
+      "followFailed": "Abgleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern.",
       "realized": {
         "balance": "Abgehakter Saldo",
         "checkedIncome": "Abgehakte Einnahmen",

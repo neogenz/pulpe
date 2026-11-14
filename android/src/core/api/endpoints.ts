@@ -43,6 +43,8 @@ export const ENDPOINTS = {
   transactionsByBudget: (budgetId: string) =>
     `/transactions/budget/${budgetId}`,
   transactionToggle: (id: string) => `/transactions/${id}/toggle-check`,
+  transactionPostpone: (id: string) => `/transactions/${id}/postpone`,
+  transactionsExists: "/transactions/exists",
   transactionSpreadFromTransaction: (id: string) =>
     `/transactions/${id}/spread`,
 

@@ -862,6 +862,11 @@
         "estimated": "Stimato il %{date}",
         "estimatedWithPlan": "Stimato il %{date} · Previsto %{amount}"
       },
+      "rhythm": {
+        "pace": "Di questo passo ti resteranno %{amount} il %{date} invece dei %{planned} previsti.",
+        "lessHidden": "Il %{date} ti resterà meno del previsto.",
+        "moreHidden": "Il %{date} ti resterà più del previsto."
+      },
       "eyebrow": "Disponibile da spendere",
       "hideAmounts": "Nascondi gli importi",
       "showAmounts": "Mostra gli importi",
@@ -953,6 +958,16 @@
     },
     "reconcile": {
       "accounts": {
+        "accountNumbered": "Conto %{index}",
+        "addToNetWorth": "Aggiungi a Il mio patrimonio",
+        "addToNetWorthHint": "Conservo questo conto e ne aggiorno il saldo a ogni allineamento.",
+        "balanceMissing": "Inserisci il saldo per aggiungerlo",
+        "lastBalance": "Ultimo saldo: %{amount}, %{when}",
+        "linkedFootnote": "Aggiorno il saldo dei tuoi conti in Il mio patrimonio. Le altre righe non vengono salvate.",
+        "nameMissing": "Dai un nome a questo conto per aggiungerlo",
+        "newAccountName": "Nome del conto",
+        "otherAccount": "Altro conto…",
+        "stopFollowing": "Non seguire più questo conto",
         "accountName": "Nome del conto (facoltativo)",
         "addAccount": "Aggiungi un conto",
         "amount": "Saldo",
@@ -967,6 +982,7 @@
       },
       "back": "Indietro",
       "continue": "Continua",
+      "followFailed": "Allineamento fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio.",
       "realized": {
         "balance": "Saldo spuntato",
         "checkedIncome": "Entrate spuntate",
