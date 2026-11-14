@@ -62,15 +62,16 @@ jest.mock("@/core/i18n/language-writer", () => ({
 jest.mock("@/core/navigation/landing-preference", () => ({
   forgetLandingPreference: jest.fn(),
 }));
-// Sign-out cancels the monthly reminder; expo-notifications refuses to load
+// Sign-out cancels the reminders; expo-notifications refuses to load
 // outside a development build.
 jest.mock("@/core/notifications/scheduler", () => ({
-  cancelMonthlyReminder: jest.fn(async () => undefined),
+  cancelAllReminders: jest.fn(async () => undefined),
 }));
 // Purging the account also turns the reminder flag off; named here rather than
 // left to the global MMKV stand-in, as the other session specs do.
 jest.mock("@/core/notifications/reminder-flags", () => ({
   writeRemindersEnabled: jest.fn(),
+  writeWeeklyRecapEnabled: jest.fn(),
 }));
 
 const currentRoute = () =>

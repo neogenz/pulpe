@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { useReminderTapTracking } from "@/core/notifications/use-reminder-tap-tracking";
 import { readRemindersEnabled } from "@/core/notifications/reminder-flags";
 import { scheduleMonthlyReminder } from "@/core/notifications/scheduler";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
@@ -28,6 +29,7 @@ import { checkSystemGate } from "./system-store";
  * Query, whose provider is mounted below the root layout.
  */
 export function ForegroundRefresh(): null {
+  useReminderTapTracking();
   const settings = useUserSettings();
   const isSignedIn = useSessionStore(
     (state) => state.status === "authenticated",

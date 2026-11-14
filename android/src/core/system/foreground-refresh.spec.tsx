@@ -14,6 +14,9 @@ let mockSettings: { payDayOfMonth: number | null } | undefined = {
 jest.mock("@/core/notifications/scheduler", () => ({
   scheduleMonthlyReminder: (payDay: number | null) => mockSchedule(payDay),
 }));
+jest.mock("@/core/notifications/use-reminder-tap-tracking", () => ({
+  useReminderTapTracking: jest.fn(),
+}));
 jest.mock("@/core/notifications/reminder-flags", () => ({
   readRemindersEnabled: () => mockRemindersEnabled,
 }));
