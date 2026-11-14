@@ -18,12 +18,14 @@ import {
 
 import { kindOptions, recurrenceOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { formatCurrency } from "@/core/ui/amount-format";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { AmountField } from "@/core/ui/amount-field";
 import { SegmentedPicker } from "@/core/ui/segmented-picker";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import type { MonthLedger } from "@/features/budget-details/month-impact";
 import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
 
 import {
@@ -31,6 +33,7 @@ import {
   useCreateTemplateLine,
   useUpdateTemplateLine,
 } from "../template-queries";
+import { propagationAvailableImpact } from "../template-vm";
 
 const NAME_MAX_LENGTH = 100;
 
@@ -51,6 +54,8 @@ interface TemplateLineSheetProps {
   propagationCount: number;
   /** The current month's name when its budget was built from this model. */
   propagationMonth?: string | null;
+  /** That month as it stands, to show what the edit does to its disponible. */
+  monthLedger?: MonthLedger | null;
   /** Absent when adding; the line being corrected otherwise. */
   line?: TemplateLine;
   /** `updatedBudgets` is how many budgets the save reached, 0 for the model alone. */
@@ -74,6 +79,7 @@ export function TemplateLineSheet({
   templateName,
   propagationCount,
   propagationMonth = null,
+  monthLedger = null,
   line,
   onSaved,
 }: TemplateLineSheetProps) {
@@ -110,6 +116,10 @@ export function TemplateLineSheet({
     !mutation.isPending;
   // The backend guards the same way: only a saving carries a goal.
   const goalLink = kind === "saving" ? savingsGoalId : null;
+  const impact =
+    line === undefined || monthLedger === null || amount === null
+      ? null
+      : propagationAvailableImpact(monthLedger, line.id, { amount, kind });
 
   function dismiss() {
     setPropagationVisible(false);
@@ -327,6 +337,16 @@ export function TemplateLineSheet({
                 count: propagationCount,
               })}
             </Text>
+            {impact !== null && (
+              <Text variant="bodyMedium" style={styles.impact}>
+                {impact.delta === 0
+                  ? t("templates.lines.availableUnchanged")
+                  : t("templates.lines.availableImpact", {
+                      before: formatCurrency(impact.before, currency),
+                      after: formatCurrency(impact.after, currency),
+                    })}
+              </Text>
+            )}
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
             <Button
@@ -359,5 +379,6 @@ const styles = StyleSheet.create({
   goals: { gap: SPACING.xs },
   when: { gap: SPACING.xs },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.xs },
+  impact: { marginTop: SPACING.sm },
   dialogActions: { flexWrap: "wrap", gap: SPACING.xs },
 });

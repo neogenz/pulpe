@@ -274,6 +274,8 @@
         "allocatedIn": "In „%{name}“ berücksichtigt",
         "alreadyChecked": "Bereits abgehakt",
         "alreadyCheckedAccessibility": "Vorgang bereits abgehakt",
+        "currencyPicker": "Währungsauswahl",
+        "rateUnavailable": "Wechselkurs nicht verfügbar",
         "alreadyCheckedHint": "Der Betrag ist bereits über dein Konto gelaufen.",
         "date": "Datum des Vorgangs",
         "editTitles": {
@@ -641,7 +643,8 @@
       "history": "Verlauf",
       "menu": {
         "pause": "Pausieren",
-        "resume": "Fortsetzen"
+        "resume": "Fortsetzen",
+        "withdraw": "Etwas entnehmen"
       },
       "month": {
         "planned": "%{month} · %{amount} geplant",
@@ -855,6 +858,10 @@
       "chart": {
         "today": "heute"
       },
+      "scrub": {
+        "estimated": "Geschätzt am %{date}",
+        "estimatedWithPlan": "Geschätzt am %{date} · Geplant %{amount}"
+      },
       "eyebrow": "Verfügbar zum Ausgeben",
       "hideAmounts": "Beträge ausblenden",
       "showAmounts": "Beträge anzeigen",
@@ -863,6 +870,43 @@
       "fresh": {
         "verdict": "Genau nach Plan.",
         "tail": "Trag deine Ausgaben im Lauf des Monats ein: Diese Zahl aktualisiert sich sofort."
+      }
+    },
+    "recap": {
+      "rowTitle": "%{month} ist vorbei",
+      "subtitleCarried": "%{amount} auf %{month} übertragen",
+      "subtitleSaved": "Gut gemacht, du hast %{amount} zur Seite gelegt.",
+      "subtitleOverspent": "Kann passieren: %{amount} mehr als geplant.",
+      "subtitleBalanced": "Budget eingehalten.",
+      "title": "Bilanz %{month}",
+      "titleElided": "Bilanz %{month}",
+      "finished": "%{month} ist vorbei",
+      "carriedCaption": "auf %{month} übertragen, bereits in deinem verfügbaren Betrag enthalten",
+      "income": "Einnahmen",
+      "report": "Übertrag aus %{month}",
+      "reportElided": "Übertrag aus %{month}",
+      "expenses": "Ausgaben",
+      "savings": "Eingezahlte Ersparnisse",
+      "finalBalance": "Endsaldo",
+      "acknowledge": "Verstanden",
+      "showBudget": "Budget %{month} ansehen",
+      "showBudgetElided": "Budget %{month} ansehen",
+      "findings": {
+        "title": "Was gezählt hat",
+        "savingsFull": "Ersparnisse vollständig eingezahlt",
+        "savingsPartial": "Ersparnisse teilweise eingezahlt",
+        "notPaid": "Nicht eingezahlt: %{names}",
+        "overruns": {
+          "one": "%{count} Prognose überschritten",
+          "other": "%{count} Prognosen überschritten"
+        },
+        "allPointed": "Alles ist abgehakt",
+        "waiting": "%{count} noch abzuhaken",
+        "pointed": {
+          "one": "%{count} Bewegung im %{month} abgehakt",
+          "other": "%{count} Bewegungen im %{month} abgehakt"
+        },
+        "nothingPointed": "Im %{month} nichts abgehakt"
       }
     },
     "prepareNextMonth": "Nächsten Monat vorbereiten",
@@ -1094,6 +1138,10 @@
     "have": "Was ich habe",
     "owe": "Was ich schulde",
     "negativeNote": "Was ich schulde, übersteigt heute, was ich habe. Jede abgehakte Rückzahlung bringt diese Zahl näher an null.",
+    "allocation": {
+      "title": "Verteilung heute",
+      "subtitle": "Von dem, was ich habe, bis zu meinem Nettovermögen"
+    },
     "foreignNote": "Werte in Fremdwährung werden zum Tageskurs umgerechnet.",
     "incompleteNote": "Mir fehlt der heutige %{currencies}-Kurs: Die Summe enthält %{names} nicht. Das ändert sich, sobald der Kurs verfügbar ist.",
     "overdrafts": "Überziehungen",
@@ -1548,8 +1596,9 @@
       "title": "Deine Einstellungen sind nicht verfügbar"
     },
     "whatsNew": {
-      "acknowledge": "Verstanden",
-      "title": "Neuigkeiten"
+      "acknowledge": "Los geht's",
+      "title": "Neuigkeiten",
+      "version": "Version %{version}"
     }
   },
   "startup": {
@@ -1570,6 +1619,7 @@
       "loadErrorTitle": "Deine Vorlagen konnten nicht geladen werden",
       "title": "Vorlagen",
       "subtitle": "Der Ausgangspunkt jedes neuen Monats",
+      "available": "verfügbar",
       "emptyExplainer": "Eine Vorlage listet deine üblichen Einnahmen, Ausgaben und Ersparnisse auf. Jeder neue Monat startet damit, danach passt du an."
     },
     "form": {
@@ -1604,6 +1654,8 @@
         "one": "Diese Vorlage wird von %{count} Budget verwendet. Aktuelle und künftige Budgets können deiner Änderung folgen. Eine Planung, die du in einem Monat von Hand geändert hast, bewegt sich nie.",
         "other": "Diese Vorlage wird von %{count} Budgets verwendet. Aktuelle und künftige Budgets können deiner Änderung folgen. Eine Planung, die du in einem Monat von Hand geändert hast, bewegt sich nie."
       },
+      "availableImpact": "Verfügbar: %{before} → %{after}",
+      "availableUnchanged": "Verfügbar unverändert.",
       "propagationTitle": "Und deine bereits erstellten Monate?",
       "save": "Speichern",
       "templateOnly": "Nur Vorlage",

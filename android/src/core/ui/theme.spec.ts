@@ -27,7 +27,12 @@ describe("elevationLadder", () => {
  */
 describe("the themes", () => {
   it("carry an elevation ladder of their own", () => {
-    expect(pulpeLightTheme.colors.elevation.level3).toBe("#e3efe7");
-    expect(pulpeDarkTheme.colors.elevation.level3).toBe("#252d22");
+    expect(pulpeLightTheme.colors.elevation.level2).toBe("#ebf3ee");
+    expect(pulpeDarkTheme.colors.elevation.level2).toBe("#22281f");
+  });
+
+  it("give dialogs the plain card surface, not a tint", () => {
+    expect(pulpeLightTheme.colors.elevation.level3).toBe("#FFFFFF");
+    expect(pulpeDarkTheme.colors.elevation.level3).toBe("#1A1816");
   });
 });

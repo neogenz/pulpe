@@ -318,6 +318,9 @@ jest.mock(
   "@/features/current-month/components/notification-prime-sheet",
   () => ({ NotificationPrimeSheet: () => null }),
 );
+jest.mock("@/features/current-month/components/month-recap-sheet", () => ({
+  MonthRecapSheet: () => null,
+}));
 jest.mock("@/features/current-month/components/home-todo-card", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return {

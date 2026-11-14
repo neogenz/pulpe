@@ -37,13 +37,16 @@ interface HomeTodoCardProps {
   onPointItem: (item: CheckableItem) => void;
   onOpenItem: (item: CheckableItem) => void;
   onCatchUp: () => void;
+  /** The month that just closed, until its recap is acknowledged. */
+  recap?: { title: string; subtitle: string };
+  onOpenRecap?: () => void;
 }
 
 /**
  * « À faire »: what asks for a gesture — what is left to point, with the
  * likeliest few pointable in place, then the forecasts that ran past their
- * plan. Nothing when there is nothing to do. `HomeTodoCard` on iOS, minus its
- * month-recap row, which Android has no model for.
+ * plan. Nothing when there is nothing to do. `HomeTodoCard` on iOS, the month-recap
+ * row included.
  */
 export function HomeTodoCard({
   items,
@@ -57,11 +60,14 @@ export function HomeTodoCard({
   onPointItem,
   onOpenItem,
   onCatchUp,
+  recap,
+  onOpenRecap,
 }: HomeTodoCardProps) {
   const { locale, t } = useTranslation();
   const financial = useFinancialColors();
 
-  if (items.length === 0 && drifts.length === 0) return null;
+  if (items.length === 0 && drifts.length === 0 && recap === undefined)
+    return null;
 
   const now = new Date();
   const rows = [];
@@ -135,6 +141,21 @@ export function HomeTodoCard({
               })
         }
         onPress={onCatchUp}
+      />,
+    );
+  }
+
+  if (recap !== undefined) {
+    rows.push(
+      <LedgerRow
+        key="recap"
+        testID="home-todo-recap"
+        leading={
+          <IconDisc name="calendar-check-outline" tint={financial.income} />
+        }
+        title={recap.title}
+        subtitle={areAmountsHidden() ? undefined : recap.subtitle}
+        onPress={onOpenRecap}
       />,
     );
   }

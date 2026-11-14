@@ -1,5 +1,6 @@
 import { Children, Fragment, isValidElement, type ReactNode } from "react";
 import {
+  type AccessibilityState,
   Pressable,
   type StyleProp,
   StyleSheet,
@@ -86,6 +87,8 @@ interface LedgerRowProps {
   isPending?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  /** For a row that is a choice: selected, or disabled when locked. */
+  accessibilityState?: AccessibilityState;
   testID?: string;
 }
 
@@ -105,6 +108,7 @@ export function LedgerRow({
   isPending = false,
   accessibilityLabel,
   accessibilityHint,
+  accessibilityState,
   testID,
 }: LedgerRowProps) {
   const theme = useTheme();
@@ -151,8 +155,11 @@ export function LedgerRow({
       <View
         testID={testID}
         style={[styles.row, isPending && styles.pending]}
-        accessible={accessibilityLabel !== undefined}
+        accessible={
+          accessibilityLabel !== undefined || accessibilityState !== undefined
+        }
         accessibilityLabel={accessibilityLabel}
+        accessibilityState={accessibilityState}
       >
         {body}
       </View>
@@ -168,6 +175,7 @@ export function LedgerRow({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
+      accessibilityState={accessibilityState}
       style={[styles.row, isPending && styles.pending]}
     >
       {body}

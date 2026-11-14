@@ -13,6 +13,7 @@ import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
 import { dismissTip } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
+import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import {
@@ -38,6 +39,15 @@ import { TransactionSheet } from "@/features/transactions/components/transaction
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
 import { HomeHeroSkeleton } from "@/features/current-month/components/home-hero-skeleton";
 import { NotificationPrimeSheet } from "@/features/current-month/components/notification-prime-sheet";
+import { MonthRecapSheet } from "@/features/current-month/components/month-recap-sheet";
+import {
+  acknowledgeMonthRecap,
+  useMonthRecapStore,
+} from "@/features/current-month/month-recap-store";
+import {
+  monthRecap,
+  recapSubtitle,
+} from "@/features/current-month/month-recap";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { ReconcileAccountsSheet } from "@/features/current-month/components/reconcile-accounts-sheet";
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
@@ -69,6 +79,8 @@ export default function HomeScreen() {
     null,
   );
   const [isAddOpen, setAddOpen] = useState(false);
+  const [isRecapOpen, setRecapOpen] = useState(false);
+  const lastSeenRecap = useMonthRecapStore((state) => state.lastSeenKey);
   // `pulpe://add-expense` lands here rather than on a route of its own: the
   // sheet is the add-expense surface, and it belongs to this screen.
   const isAddRequested = useDeepLinkStore(
@@ -288,6 +300,16 @@ export default function HomeScreen() {
     fallbackPlannedBalance: viewModel.metrics.endingBalance,
     trajectory: viewModel.trajectory,
   });
+  const openedRecap =
+    budgets.data === undefined
+      ? null
+      : monthRecap({ month, year }, budgets.data, viewModel.metrics.rollover);
+  const recap =
+    openedRecap !== null && openedRecap.key !== lastSeenRecap
+      ? openedRecap
+      : null;
+  const recapMonth =
+    recap === null ? "" : formatMonthName(recap.month, recap.year, locale);
   // Closing has to answer both openers, or a deep-linked sheet reopens itself.
   function closeAdd() {
     setAddOpen(false);
@@ -417,6 +439,24 @@ export default function HomeScreen() {
                   onPointItem={(item) => pointItem(item)}
                   onOpenItem={openItem}
                   onCatchUp={() => openBudget?.()}
+                  recap={
+                    recap === null
+                      ? undefined
+                      : {
+                          title: t("home.recap.rowTitle", {
+                            month:
+                              recapMonth.charAt(0).toLocaleUpperCase(locale) +
+                              recapMonth.slice(1),
+                          }),
+                          subtitle: recapSubtitle(
+                            t,
+                            recap,
+                            formatMonthName(recap.openedMonth, year, locale),
+                            (value) => formatCurrency(value, currency),
+                          ),
+                        }
+                  }
+                  onOpenRecap={() => setRecapOpen(true)}
                 />
               </View>
             )}
@@ -473,6 +513,7 @@ export default function HomeScreen() {
           sit over the form it just opened. */}
         {!isAddVisible &&
           !isRealizedVisible &&
+          !isRecapOpen &&
           reconcileBudgetId === null &&
           !editor.isOpen &&
           !reminders.isVisible && (
@@ -504,6 +545,23 @@ export default function HomeScreen() {
           }
         />
 
+        {recap !== null && (
+          <MonthRecapSheet
+            isVisible={isRecapOpen}
+            onDismiss={() => setRecapOpen(false)}
+            recap={recap}
+            currency={currency}
+            onAcknowledge={() => {
+              setRecapOpen(false);
+              acknowledgeMonthRecap(recap.key);
+            }}
+            onShowBudget={() => {
+              setRecapOpen(false);
+              push(`/budget/${recap.budgetId}`);
+            }}
+          />
+        )}
+
         <NotificationPrimeSheet
           isVisible={reminders.isVisible}
           onDismiss={reminders.dismiss}
@@ -517,6 +575,7 @@ export default function HomeScreen() {
             budgetId={currentMonth.budgetId}
             currency={currency}
             period={period}
+            source="add_button"
             onSaved={() => {
               closeAdd();
               setNotice({ kind: "added" });

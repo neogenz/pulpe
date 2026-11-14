@@ -24,6 +24,9 @@ jest.mock("@/core/observability/product-events", () => ({
   captureTransactionCreated: jest.fn(),
 }));
 
+jest.mock("./first-movement-tracker", () => ({
+  recordMovementCreated: jest.fn(),
+}));
 jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => true }));
 jest.mock("@/features/budgets/budget-api", () => ({}));
 jest.mock("@/features/savings-goals/goals-api", () => ({}));

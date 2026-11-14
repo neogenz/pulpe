@@ -2,6 +2,7 @@ import {
   type Transaction,
   type TransactionCreate,
   transactionCreateSchema,
+  transactionExistsResponseSchema,
   transactionResponseSchema,
   type TransactionUpdate,
   transactionUpdateSchema,
@@ -47,4 +48,14 @@ export function updateTransaction(input: {
 
 export function deleteTransaction(transactionId: string): Promise<void> {
   return api.deleteVoid(ENDPOINTS.transaction(transactionId));
+}
+
+/** Not in `ENDPOINTS` yet: move it there when that file next changes. */
+const EXISTS_PATH = "/transactions/exists";
+
+/** Whether the account has recorded a movement in any budget (PUL-306). */
+export function fetchHasTransaction(): Promise<boolean> {
+  return api
+    .get(EXISTS_PATH, transactionExistsResponseSchema)
+    .then((response) => response.hasTransaction);
 }

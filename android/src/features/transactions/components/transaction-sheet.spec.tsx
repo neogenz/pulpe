@@ -34,6 +34,20 @@ jest.mock("../transaction-mutations", () => ({
   useRefreshAfterTransactionWrite: () => mockRefreshAfterWrite,
   isUnsavedCreate: (error: object) => mockUnsaved.has(error),
 }));
+let mockSettings: { data: { showCurrencySelector?: boolean } } = { data: {} };
+jest.mock("@/core/user-settings/user-settings-queries", () => ({
+  useUserSettings: () => mockSettings,
+}));
+let mockRate: { data?: unknown; isError: boolean } = {
+  data: undefined,
+  isError: false,
+};
+jest.mock("@/features/account/currency-queries", () => ({
+  useCurrencyRate: () => mockRate,
+}));
+jest.mock("../first-movement-tracker", () => ({
+  loadFirstMovementState: jest.fn(),
+}));
 jest.mock("@/features/savings-goals/goals-queries", () => ({
   useSavingsGoalWithdrawalOptions: () => mockWithdrawalOptions,
 }));
@@ -291,6 +305,8 @@ beforeEach(() => {
   Object.assign(mockCreate, { isPending: false, isError: false });
   Object.assign(mockUpdate, { isPending: false, isError: false });
   mockDetails = { data: undefined };
+  mockSettings = { data: {} };
+  mockRate = { data: undefined, isError: false };
   mockWithdrawalOptions.data = [
     { goalId: "goal-1", name: "Voyage", availableAmount: 300, currency: "CHF" },
   ];
@@ -711,5 +727,71 @@ describe("« C'était prévu dans ton budget ? »", () => {
       view.getByTestId("movement-unplanned").props.accessibilityState,
     ).toMatchObject({ disabled: true });
     expect(view.queryByTestId("movement-other-line")).toBeNull();
+  });
+});
+
+it("opens a new income already drawn from the chosen goal", async () => {
+  const view = await render(
+    <TransactionSheet {...baseProps} withdrawFromGoalId="goal-1" />,
+  );
+
+  await fill(view, 120, "Retrait");
+  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
+
+  expect(mockCreate.mutate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      kind: "income",
+      sourceSavingsGoalId: "goal-1",
+      amount: 120,
+    }),
+    expect.any(Object),
+  );
+});
+
+describe("amount typed in the other currency", () => {
+  beforeEach(() => {
+    mockSettings = { data: { showCurrencySelector: true } };
+  });
+
+  it("books the converted amount and keeps the foreign leg", async () => {
+    mockRate = {
+      data: { base: "EUR", target: "CHF", rate: 0.9, date: "2026-11-14" },
+      isError: false,
+    };
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fireEvent.press(view.getByText(/EUR/));
+    await fill(view, 500, "Hôtel");
+    await fireEvent.press(
+      view.getByText("budgets.mutations.activity.addAmount"),
+    );
+
+    expect(mockCreate.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 450,
+        originalAmount: 500,
+        originalCurrency: "EUR",
+        targetCurrency: "CHF",
+        exchangeRate: 0.9,
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it("waits for the rate instead of booking the typed figure as is", async () => {
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fireEvent.press(view.getByText(/EUR/));
+    await fill(view, 500, "Hôtel");
+    await fireEvent.press(
+      view.getByText("budgets.mutations.activity.addAmount"),
+    );
+
+    expect(mockCreate.mutate).not.toHaveBeenCalled();
+  });
+
+  it("offers no currency choice unless the setting is on", async () => {
+    mockSettings = { data: {} };
+    const view = await render(<TransactionSheet {...baseProps} />);
+
+    expect(view.queryByText(/EUR/)).toBeNull();
   });
 });

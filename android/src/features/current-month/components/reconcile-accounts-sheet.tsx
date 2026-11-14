@@ -94,7 +94,7 @@ export function ReconcileAccountsSheet({
 }: ReconcileAccountsSheetProps) {
   const theme = useTheme();
   const { locale, t } = useTranslation();
-  const create = useCreateTransaction();
+  const create = useCreateTransaction("reconciliation");
   const [step, setStep] = useState<Step>(1);
   const [rows, setRows] = useState<AccountRow[]>([FIRST_ROW]);
   // Flagged once the field is left, never mid-keystroke: "12." is on its way

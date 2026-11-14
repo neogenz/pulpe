@@ -7,7 +7,7 @@
 #   maestro test -e EMAIL=pulpe+$(date +%s)@example.test maestro/onboarding.yaml
 #
 # Deliberately shallow on the money steps — it answers the minimum each one
-# demands and moves on. What it proves is that the eight screens chain without
+# demands and moves on. What it proves is that the eight steps chain without
 # a dead end, not that the arithmetic is right; that is what the unit tests do.
 #
 # Step order follows `src/features/onboarding/onboarding-step.ts`: the account
@@ -27,6 +27,7 @@ env:
 - tapOn: "S'inscrire avec un e-mail"
 
 # 2. firstName
+- assertVisible: "Comment tu t'appelles ?"
 - tapOn: "Prénom"
 - inputText: "Maestro"
 - hideKeyboard
@@ -34,7 +35,7 @@ env:
 
 # 3. registration
 - assertVisible: "Crée ton compte"
-- tapOn: "E-mail"
+- tapOn: "Adresse e-mail"
 - inputText: ${EMAIL}
 - tapOn: "Mot de passe"
 - inputText: ${PASSWORD}
@@ -43,7 +44,7 @@ env:
 
 # 4. income — the only figure the flow cannot skip.
 - extendedWaitUntil:
-    visible: "Revenu mensuel net"
+    visible: "Combien gagnes-tu par mois ?"
     timeout: 30000
 - tapOn: "Revenu mensuel net"
 - inputText: "5000"
@@ -51,18 +52,19 @@ env:
 - tapOn: "Continuer"
 
 # 5. charges, 6. savings — both are optional and accept being left empty.
-- assertVisible: "Tes dépenses"
+- assertVisible: "Quelles sont tes charges fixes ?"
 - tapOn: "Continuer"
-- assertVisible: "Ton épargne"
+- assertVisible: "Combien mets-tu de côté ?"
 - tapOn: "Continuer"
 
-# 7. budgetPreview — the number the whole flow was for.
-- assertVisible: "Disponible à dépenser"
+# 7. budgetPreview — the number the whole flow was for. With income only, the
+# headline depends on the margin, so the always-present income row is asserted.
+- assertVisible: "Revenus"
 - tapOn: "C'est parti"
 
 # 8. pinSetup — chosen, then confirmed.
 - extendedWaitUntil:
-    visible: "Choisis ton code"
+    visible: "Crée ton code à 4 chiffres"
     timeout: 15000
 - tapOn: ${PIN.charAt(0)}
 - tapOn: ${PIN.charAt(1)}
@@ -76,11 +78,12 @@ env:
 - tapOn: ${PIN.charAt(2)}
 - tapOn: ${PIN.charAt(3)}
 
-# The handoff, then the month itself.
+# The recovery key is minted with the code and shown once; acknowledging it
+# lets the month appear.
 - extendedWaitUntil:
-    visible: "Commencer"
+    visible: "J'ai noté ma clé"
     timeout: 60000
-- tapOn: "Commencer"
+- tapOn: "J'ai noté ma clé"
 - extendedWaitUntil:
     visible:
       id: "home-add-entry"

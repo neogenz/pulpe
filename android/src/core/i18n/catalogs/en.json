@@ -274,6 +274,8 @@
         "allocatedIn": "Counted in “%{name}”",
         "alreadyChecked": "Already checked",
         "alreadyCheckedAccessibility": "Entry already checked off",
+        "currencyPicker": "Currency selection",
+        "rateUnavailable": "Exchange rate unavailable",
         "alreadyCheckedHint": "The amount has already gone through your account.",
         "date": "Entry date",
         "editTitles": {
@@ -641,7 +643,8 @@
       "history": "History",
       "menu": {
         "pause": "Pause",
-        "resume": "Resume"
+        "resume": "Resume",
+        "withdraw": "Make a withdrawal"
       },
       "month": {
         "planned": "%{month} · %{amount} planned",
@@ -855,6 +858,10 @@
       "chart": {
         "today": "today"
       },
+      "scrub": {
+        "estimated": "Estimated on %{date}",
+        "estimatedWithPlan": "Estimated on %{date} · Planned %{amount}"
+      },
       "eyebrow": "Available to spend",
       "hideAmounts": "Hide amounts",
       "showAmounts": "Show amounts",
@@ -863,6 +870,43 @@
       "fresh": {
         "verdict": "Right on plan.",
         "tail": "Add your expenses as the month goes: this figure updates right away."
+      }
+    },
+    "recap": {
+      "rowTitle": "%{month} is over",
+      "subtitleCarried": "%{amount} carried over to %{month}",
+      "subtitleSaved": "Nice work — you set %{amount} aside.",
+      "subtitleOverspent": "It happens: %{amount} more than planned.",
+      "subtitleBalanced": "Budget kept.",
+      "title": "%{month} summary",
+      "titleElided": "%{month} summary",
+      "finished": "%{month} is over",
+      "carriedCaption": "carried over to %{month}, already counted in your available amount",
+      "income": "Income",
+      "report": "Carry-over from %{month}",
+      "reportElided": "Carry-over from %{month}",
+      "expenses": "Expenses",
+      "savings": "Savings paid in",
+      "finalBalance": "Final balance",
+      "acknowledge": "Got it",
+      "showBudget": "View the %{month} budget",
+      "showBudgetElided": "View the %{month} budget",
+      "findings": {
+        "title": "What mattered",
+        "savingsFull": "Savings paid in full",
+        "savingsPartial": "Savings partly paid in",
+        "notPaid": "Not paid in: %{names}",
+        "overruns": {
+          "one": "%{count} forecast over plan",
+          "other": "%{count} forecasts over plan"
+        },
+        "allPointed": "Everything is checked",
+        "waiting": "%{count} still to check",
+        "pointed": {
+          "one": "%{count} movement checked in %{month}",
+          "other": "%{count} movements checked in %{month}"
+        },
+        "nothingPointed": "Nothing checked in %{month}"
       }
     },
     "prepareNextMonth": "Prepare next month",
@@ -1094,6 +1138,10 @@
     "have": "What I have",
     "owe": "What I owe",
     "negativeNote": "What I owe is more than what I have today. Every checked repayment brings this figure closer to zero.",
+    "allocation": {
+      "title": "Breakdown today",
+      "subtitle": "From what I have to my net worth"
+    },
     "foreignNote": "Foreign-currency values are converted at today's rate.",
     "incompleteNote": "I don't have today's %{currencies} rate: the total leaves out %{names}. It will come back as soon as the rate is available.",
     "overdrafts": "Overdrafts",
@@ -1548,8 +1596,9 @@
       "title": "Your preferences are unavailable"
     },
     "whatsNew": {
-      "acknowledge": "Got it",
-      "title": "What's new"
+      "acknowledge": "Let's go",
+      "title": "What's new",
+      "version": "Version %{version}"
     }
   },
   "startup": {
@@ -1570,6 +1619,7 @@
       "loadErrorTitle": "We couldn't load your templates",
       "title": "Templates",
       "subtitle": "The starting point of every new month",
+      "available": "available",
       "emptyExplainer": "A template lists your usual income, expenses and savings. Every new month starts from it, then you adjust."
     },
     "form": {
@@ -1604,6 +1654,8 @@
         "one": "This template is used by %{count} budget. Current and future budgets can follow your change. A forecast you changed by hand in a month never moves.",
         "other": "This template is used by %{count} budgets. Current and future budgets can follow your change. A forecast you changed by hand in a month never moves."
       },
+      "availableImpact": "Available: %{before} → %{after}",
+      "availableUnchanged": "Available unchanged.",
       "propagationTitle": "And your months already created?",
       "save": "Save",
       "templateOnly": "Template only",

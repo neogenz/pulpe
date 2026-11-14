@@ -9,6 +9,9 @@ import { Notice } from "@/core/ui/notice";
 
 import { useTransactionRemoval } from "./use-transaction-removal";
 
+jest.mock("./first-movement-tracker", () => ({
+  recordMovementCreated: jest.fn(),
+}));
 jest.mock("@/core/observability/product-events", () => ({
   captureTransactionCreated: jest.fn(),
 }));

@@ -193,3 +193,23 @@ export function assetAgeLabel(
   }
   return t("netWorth.ageDays", { count: days });
 }
+
+export interface AllocationShare {
+  id: string;
+  name: string;
+  total: number;
+  /** Fraction of gross, 0..1. */
+  share: number;
+}
+
+/** What I have by Type, largest first, as a share of the gross the API returns. */
+export function allocationShares(
+  categories: NetWorthGroup[],
+  gross: number,
+): AllocationShare[] {
+  if (gross <= 0) return [];
+  return categories
+    .filter((category) => category.total > 0)
+    .map(({ id, name, total }) => ({ id, name, total, share: total / gross }))
+    .sort((a, b) => b.total - a.total);
+}

@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import type { BudgetTemplate } from "pulpe-shared";
+import type { BudgetTemplate, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, FAB, Text, useTheme } from "react-native-paper";
@@ -9,6 +9,9 @@ import { usePushOnce } from "@/core/navigation/push-once";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { IconDisc } from "@/core/ui/icon-disc";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
+import { Amount } from "@/core/ui/amount";
+import { formatCurrency } from "@/core/ui/amount-format";
+import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { ActionButton } from "@/core/ui/action-button";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -16,7 +19,10 @@ import { TabHeader } from "@/core/ui/tab-header";
 import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
-import { useTemplates } from "@/features/templates/template-queries";
+import {
+  useTemplateAvailables,
+  useTemplates,
+} from "@/features/templates/template-queries";
 import {
   canCreateTemplate,
   MAX_TEMPLATES,
@@ -36,6 +42,11 @@ export default function TemplatesScreen() {
   const templates = useTemplates();
   const pull = usePullToRefresh(() => templates.refetch());
   const [isCreating, setCreating] = useState(false);
+  const settings = useUserSettings();
+  const availables = useTemplateAvailables(
+    (templates.data ?? []).map((template) => template.id),
+  );
+  const currency = settings.data?.currency ?? "CHF";
 
   if (templates.isPending) {
     return (
@@ -118,7 +129,12 @@ export default function TemplatesScreen() {
           <View style={styles.section}>
             <LedgerCard>
               {list.map((template) => (
-                <TemplateRow key={template.id} template={template} />
+                <TemplateRow
+                  key={template.id}
+                  template={template}
+                  available={availables.get(template.id)}
+                  currency={currency}
+                />
               ))}
             </LedgerCard>
             {/* The count is shown rather than the cap being discovered at the
@@ -166,7 +182,15 @@ export default function TemplatesScreen() {
   );
 }
 
-function TemplateRow({ template }: { template: BudgetTemplate }) {
+function TemplateRow({
+  template,
+  available,
+  currency,
+}: {
+  template: BudgetTemplate;
+  available: number | undefined;
+  currency: SupportedCurrency;
+}) {
   const theme = useTheme();
   const push = usePushOnce();
   const { t } = useTranslation();
@@ -185,6 +209,21 @@ function TemplateRow({ template }: { template: BudgetTemplate }) {
       }
       title={template.name}
       subtitle={description}
+      trailing={
+        available === undefined ? undefined : (
+          <View style={styles.available}>
+            <Amount size="row" tone={available < 0 ? "overBudget" : "neutral"}>
+              {formatCurrency(available, currency)}
+            </Amount>
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant }}
+            >
+              {t("templates.list.available")}
+            </Text>
+          </View>
+        )
+      }
       onPress={() => push(`/template/${template.id}`)}
     />
   );
@@ -199,6 +238,7 @@ const styles = StyleSheet.create({
     paddingBottom: FAB_CLEARANCE,
   },
   section: { gap: SPACING.sm },
+  available: { alignItems: "flex-end" },
   footer: { paddingHorizontal: SPACING.md },
   fab: { position: "absolute", right: SPACING.md, bottom: SPACING.md },
 });

@@ -19,6 +19,10 @@ import {
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import {
+  type FirstMovementSource,
+  recordMovementCreated,
+} from "./first-movement-tracker";
+import {
   createTransaction,
   deleteTransaction,
   fetchTransaction,
@@ -182,11 +186,14 @@ function addToBudgetDetails(queryClient: QueryClient, created: Transaction) {
   );
 }
 
-export function useCreateTransaction() {
+export function useCreateTransaction(
+  source: FirstMovementSource = "budget_details",
+) {
   return useTransactionMutation(createOnce, (queryClient, transaction) => {
     addToBudgetDetails(queryClient, transaction);
     // Here and not in `createOnce`: restoring a deleted row is not a new entry.
     captureTransactionCreated(transaction.kind);
+    recordMovementCreated(transaction.kind, source);
   });
 }
 

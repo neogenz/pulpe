@@ -5,10 +5,15 @@ import {
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from "pulpe-shared";
+import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
-import { formatCompactAmount } from "@/core/ui/amount-format";
+import {
+  formatCompactAmount,
+  formatCompactCurrency,
+} from "@/core/ui/amount-format";
+import { formatDayMonth } from "@/core/ui/date-format";
 import {
   toggleAmountVisibility,
   useAmountVisibility,
@@ -26,6 +31,7 @@ import {
 } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
 
+import { scrubReading } from "../balance-scrub";
 import {
   verdictSentence,
   type HeroPresentation,
@@ -74,30 +80,51 @@ export function HomeHeroCard({
   const { locale, t } = useTranslation();
   const ripple = useRipple({ radius: TOUCH_TARGET / 2 });
   const areHidden = useAmountVisibility((state) => state.areAmountsHidden);
+  const [scrubDay, setScrubDay] = useState<number | null>(null);
+  const reading =
+    scrubDay === null || trajectory === null
+      ? null
+      : scrubReading(scrubDay, trajectory, period.startDate);
+  const figure = reading?.estimate ?? presentation.estimatedBalance;
+  // While scrubbing the eyebrow hands itself to the finger: the day, and the
+  // plan's reading unless amounts are hidden.
+  const eyebrow =
+    reading === null
+      ? t("home.hero.eyebrow")
+      : areHidden
+        ? t("home.hero.scrub.estimated", {
+            date: formatDayMonth(reading.date, locale),
+          })
+        : t("home.hero.scrub.estimatedWithPlan", {
+            date: formatDayMonth(reading.date, locale),
+            plan: formatCompactCurrency(reading.plan, currency),
+          });
 
   return (
     <View style={styles.hero}>
       <View style={styles.figure}>
         <View style={styles.header}>
           <Text variant="labelLarge" style={{ color: hero.support }}>
-            {t("home.hero.eyebrow")}
+            {eyebrow}
           </Text>
-          <Pressable
-            testID="home-amounts-toggle"
-            onPress={toggleAmountVisibility}
-            android_ripple={ripple}
-            accessibilityRole="button"
-            accessibilityLabel={t(
-              areHidden ? "home.hero.showAmounts" : "home.hero.hideAmounts",
-            )}
-            style={styles.eye}
-          >
-            <MaterialCommunityIcons
-              name={areHidden ? "eye-outline" : "eye-off-outline"}
-              size={ICON_SIZE.md}
-              color={areHidden ? theme.colors.primary : hero.support}
-            />
-          </Pressable>
+          {reading === null && (
+            <Pressable
+              testID="home-amounts-toggle"
+              onPress={toggleAmountVisibility}
+              android_ripple={ripple}
+              accessibilityRole="button"
+              accessibilityLabel={t(
+                areHidden ? "home.hero.showAmounts" : "home.hero.hideAmounts",
+              )}
+              style={styles.eye}
+            >
+              <MaterialCommunityIcons
+                name={areHidden ? "eye-outline" : "eye-off-outline"}
+                size={ICON_SIZE.md}
+                color={areHidden ? theme.colors.primary : hero.support}
+              />
+            </Pressable>
+          )}
           <Button
             mode="text"
             compact
@@ -116,10 +143,10 @@ export function HomeHeroCard({
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.6}
-          accessibilityLabel={`${formatCompactAmount(presentation.estimatedBalance, currency)} ${CURRENCY_METADATA[currency].symbol}`}
+          accessibilityLabel={`${formatCompactAmount(figure, currency)} ${CURRENCY_METADATA[currency].symbol}`}
           style={[BRAND_TYPE.heroFigure, TABULAR_DIGITS, { color: hero.ink }]}
         >
-          {formatCompactAmount(presentation.estimatedBalance, currency)}
+          {formatCompactAmount(figure, currency)}
           <Text style={[BRAND_TYPE.heroCurrency, { color: hero.support }]}>
             {` ${CURRENCY_METADATA[currency].symbol}`}
           </Text>
@@ -132,6 +159,8 @@ export function HomeHeroCard({
           period={period}
           accent={accent}
           ruleColor={hero.support}
+          scrubDay={scrubDay}
+          onScrub={setScrubDay}
         />
       )}
 

@@ -17,6 +17,8 @@ import { cancelMonthlyReminder } from "@/core/notifications/scheduler";
 import { captureLogoutCompleted } from "@/core/observability/product-events";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
+import { resetMonthRecap } from "@/features/current-month/month-recap-store";
+import { resetFirstMovementTracker } from "@/features/transactions/first-movement-tracker";
 
 import { forgetGoogleAccount } from "./google-sign-in";
 import { clearRecoveryPending, isRecoveryPending } from "./password-recovery";
@@ -165,6 +167,8 @@ async function purgeLocalAccountData(): Promise<void> {
     () => clearAllKeys(),
     () => forgetGoogleAccount(),
     () => clearRecoveryPending(),
+    () => resetFirstMovementTracker(),
+    () => resetMonthRecap(),
   ];
 
   for (const cleanup of cleanupSteps) {
