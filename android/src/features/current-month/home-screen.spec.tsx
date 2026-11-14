@@ -18,7 +18,11 @@ const mockReminders = {
   enable: jest.fn(),
 };
 
-jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+const mockRefetchStaleList = jest.fn();
+jest.mock("expo-router", () => ({
+  router: { push: jest.fn() },
+  useFocusEffect: (effect: () => void) => effect(),
+}));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: jest.requireActual("react-native").View,
 }));
@@ -191,6 +195,7 @@ jest.mock("@/features/current-month/use-movement-editor", () => ({
 }));
 jest.mock("@/features/budgets/budget-queries", () => ({
   useBudgetList: () => mockBudgets,
+  refetchStaleBudgetList: () => mockRefetchStaleList(),
 }));
 jest.mock("@/features/budgets/toggle-check-mutation", () => ({
   useToggleCheck: () => mockToggle,
@@ -427,6 +432,8 @@ beforeEach(() => {
 it("renders loading, retryable failure and the no-budget view", async () => {
   const loading = await render(<HomeScreen />);
   expect(loading.getByTestId("home-hero-skeleton")).toBeTruthy();
+  // The Bilan reads the budget list: a stale one is asked again on focus.
+  expect(mockRefetchStaleList).toHaveBeenCalled();
   expect(loading.getByLabelText("common.loading")).toBeTruthy();
   // The mocked spinner prints its label as text; the skeleton only labels it.
   expect(loading.queryByText("common.loading")).toBeNull();

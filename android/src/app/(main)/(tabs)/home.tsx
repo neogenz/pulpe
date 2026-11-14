@@ -1,6 +1,6 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { getBudgetPeriodDates } from "pulpe-shared";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Button, FAB, Text, useTheme } from "react-native-paper";
 
@@ -28,7 +28,10 @@ import { FAB_CLEARANCE, SPACING } from "@/core/ui/theme";
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
-import { useBudgetList } from "@/features/budgets/budget-queries";
+import {
+  refetchStaleBudgetList,
+  useBudgetList,
+} from "@/features/budgets/budget-queries";
 import { hasAvailableMonth } from "@/features/budgets/available-months";
 import { latestMovements } from "@/features/current-month/activity-window";
 import { HomeNoBudgetView } from "@/features/current-month/components/home-no-budget-view";
@@ -47,6 +50,7 @@ import {
 import {
   monthRecap,
   recapSubtitle,
+  type MonthRecap,
 } from "@/features/current-month/month-recap";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { ReconcileAccountsSheet } from "@/features/current-month/components/reconcile-accounts-sheet";
@@ -80,6 +84,16 @@ export default function HomeScreen() {
   );
   const [isAddOpen, setAddOpen] = useState(false);
   const [isRecapOpen, setRecapOpen] = useState(false);
+  // The Bilan as it was opened: acknowledging it clears `recap` in the same
+  // commit, and a sheet unmounted there would vanish instead of sliding away.
+  const [shownRecap, setShownRecap] = useState<MonthRecap | null>(null);
+  // A write made from « Voir le budget » leaves the list stale; the Bilan reads
+  // its totals from it.
+  useFocusEffect(
+    useCallback(() => {
+      void refetchStaleBudgetList();
+    }, []),
+  );
   const lastSeenRecap = useMonthRecapStore((state) => state.lastSeenKey);
   // `pulpe://add-expense` lands here rather than on a route of its own: the
   // sheet is the add-expense surface, and it belongs to this screen.
@@ -456,7 +470,10 @@ export default function HomeScreen() {
                           ),
                         }
                   }
-                  onOpenRecap={() => setRecapOpen(true)}
+                  onOpenRecap={() => {
+                    setShownRecap(recap);
+                    setRecapOpen(true);
+                  }}
                 />
               </View>
             )}
@@ -545,19 +562,19 @@ export default function HomeScreen() {
           }
         />
 
-        {recap !== null && (
+        {shownRecap !== null && (
           <MonthRecapSheet
             isVisible={isRecapOpen}
             onDismiss={() => setRecapOpen(false)}
-            recap={recap}
+            recap={shownRecap}
             currency={currency}
             onAcknowledge={() => {
               setRecapOpen(false);
-              acknowledgeMonthRecap(recap.key);
+              acknowledgeMonthRecap(shownRecap.key);
             }}
             onShowBudget={() => {
               setRecapOpen(false);
-              push(`/budget/${recap.budgetId}`);
+              push(`/budget/${shownRecap.budgetId}`);
             }}
           />
         )}

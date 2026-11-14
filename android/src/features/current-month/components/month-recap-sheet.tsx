@@ -49,7 +49,12 @@ export function MonthRecapSheet({
   const details = useBudgetDetails(isVisible ? recap.budgetId : null).data;
   const amount = (value: number) => formatCurrency(value, currency);
   const closedName = formatMonthName(recap.month, recap.year, locale);
-  const openedName = formatMonthName(recap.openedMonth, recap.year, locale);
+  // December hands over to January of the next year.
+  const openedName = formatMonthName(
+    recap.openedMonth,
+    recap.month === 12 ? recap.year + 1 : recap.year,
+    locale,
+  );
   const previousName = formatMonthName(
     recap.month === 1 ? 12 : recap.month - 1,
     recap.month === 1 ? recap.year - 1 : recap.year,

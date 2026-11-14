@@ -31,6 +31,7 @@ import { Notice } from "@/core/ui/notice";
 import { FormModal } from "@/core/ui/sheet";
 import { RADIUS, SPACING } from "@/core/ui/theme";
 import { useFollowAccounts } from "@/features/net-worth/net-worth-queries";
+import { loadFirstMovementState } from "@/features/transactions/first-movement-tracker";
 import { useCreateTransaction } from "@/features/transactions/transaction-mutations";
 
 import type { RealizedMetrics } from "../current-month-view-model";
@@ -104,6 +105,10 @@ export function ReconcileAccountsSheet({
   const { locale, t } = useTranslation();
   const create = useCreateTransaction("reconciliation");
   const follow = useFollowAccounts();
+  // Asked before the adjustment is saved: afterwards the server always says yes.
+  useEffect(() => {
+    if (isVisible) void loadFirstMovementState();
+  }, [isVisible]);
   const linked = useReconcileLinkedAccounts(isVisible, currency);
   // My accounts as this opening found them: its rows are seeded once, and a
   // refetch never reshuffles them. `undefined` until they are read, `null`
