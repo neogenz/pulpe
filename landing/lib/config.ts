@@ -11,6 +11,9 @@ export const MOBILE_NAV_PANEL_ID = "mobile-nav-panel";
 export const DESKTOP_BREAKPOINT_PX = 1024;
 export const GITHUB_URL = "https://github.com/neogenz/pulpe";
 export const IOS_APP_URL = "https://apps.apple.com/app/pulpe/id6758464920";
+// The About page: the group home shows a permission error to a signed-out visitor.
+export const ANDROID_BETA_GROUP_URL =
+  "https://groups.google.com/g/pulpe-android-beta/about";
 // L'adresse du serveur MCP, celle qu'un assistant reçoit telle quelle. Le
 // tutoriel l'affiche et la commande du terminal la reprend : une seule source
 // évite qu'un des deux reste sur une ancienne adresse.
