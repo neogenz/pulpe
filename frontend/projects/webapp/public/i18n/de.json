@@ -1196,7 +1196,8 @@
         "unplanned": "Ungeplant",
         "sameAmount": "gleicher Betrag",
         "remaining": "es bleiben {{ amount }}",
-        "countedTwice": "Ein Ausgleich jetzt würde doppelt zählen, was du danach abhakst."
+        "countedTwice": "Ein Ausgleich jetzt würde doppelt zählen, was du danach abhakst.",
+        "pointNamed": "{{ name }} abhaken"
       },
       "cancel": "Abbrechen",
       "compare": "Differenz ansehen",

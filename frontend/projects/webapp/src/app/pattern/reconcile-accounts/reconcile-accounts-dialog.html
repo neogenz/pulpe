@@ -430,6 +430,10 @@
             [disabled]="pointingId() !== null || isRecording()"
             (click)="point(candidate.transaction.id)"
             data-testid="reconcile-candidate-point-button"
+            [attr.aria-label]="
+              'currentMonth.reconcile.verdict.pointNamed'
+                | transloco: { name: candidate.transaction.name }
+            "
           >
             {{ 'currentMonth.uncheckedForecasts.toggleVerb' | transloco }}
           </button>

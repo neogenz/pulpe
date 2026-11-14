@@ -1196,7 +1196,8 @@
         "unplanned": "Unplanned",
         "sameAmount": "same amount",
         "remaining": "{{ amount }} will remain",
-        "countedTwice": "An adjustment now would count twice what you check afterwards."
+        "countedTwice": "An adjustment now would count twice what you check afterwards.",
+        "pointNamed": "Check off {{ name }}"
       },
       "cancel": "Cancel",
       "compare": "See the difference",

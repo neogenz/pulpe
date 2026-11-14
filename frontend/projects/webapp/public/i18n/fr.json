@@ -1196,7 +1196,8 @@
         "unplanned": "Hors prévision",
         "sameAmount": "même montant",
         "remaining": "il restera {{ amount }}",
-        "countedTwice": "Un ajustement maintenant compterait deux fois ce que tu pointeras ensuite."
+        "countedTwice": "Un ajustement maintenant compterait deux fois ce que tu pointeras ensuite.",
+        "pointNamed": "Pointer {{ name }}"
       },
       "cancel": "Annuler",
       "compare": "Voir l'écart",

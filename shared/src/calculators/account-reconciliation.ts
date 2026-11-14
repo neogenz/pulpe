@@ -138,7 +138,9 @@ export function pointingCandidates<
     .filter((transaction) => transaction.checkedAt == null)
     .map((transaction) => {
       const pointed = transactions.map((t) =>
-        t.id === transaction.id ? { ...t, checkedAt: 'pointed' } : t,
+        t.id === transaction.id
+          ? { ...t, checkedAt: new Date(0).toISOString() }
+          : t,
       );
       const effect = moneyDifference(
         BudgetFormulas.calculateRealizedBalance(budgetLines, pointed),
