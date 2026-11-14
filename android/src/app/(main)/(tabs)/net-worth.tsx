@@ -1,5 +1,6 @@
 import type { Asset } from "pulpe-shared";
-import { useMemo, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -29,6 +30,7 @@ import {
 import { NetWorthHero } from "@/features/net-worth/components/net-worth-hero";
 import { RenameTypeSheet } from "@/features/net-worth/components/rename-type-sheet";
 import {
+  refetchStaleNetWorth,
   useDeleteAsset,
   useDismissAssetSuggestion,
   useNetWorth,
@@ -51,6 +53,13 @@ export default function NetWorthScreen() {
   const { t } = useTranslation();
   const netWorth = useNetWorth();
   const pull = usePullToRefresh(() => netWorth.refetch());
+  // A budget write only marks this read stale; coming back to the tab is when
+  // its suggestions are looked at, so it asks once here.
+  useFocusEffect(
+    useCallback(() => {
+      void refetchStaleNetWorth();
+    }, []),
+  );
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
   const recordSnapshots = useRecordAssetSnapshots();

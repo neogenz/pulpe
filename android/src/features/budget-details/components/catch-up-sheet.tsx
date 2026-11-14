@@ -68,6 +68,10 @@ export function CatchUpSheet({
   );
   const [hasFailed, setFailed] = useState(false);
   const [isBusy, setBusy] = useState(false);
+  // A failed save may have written part of its sequence. Replaying the same
+  // choice is safe (the amounts are absolute); another one would lower a second
+  // prévision for the same overrun.
+  const [isChoiceLocked, setChoiceLocked] = useState(false);
   const selected = plan.choices.find((choice) => choice.line.id === selectedId);
   const total = formatAmount(plan.total, currency);
 
@@ -82,6 +86,7 @@ export function CatchUpSheet({
       onDone();
     } catch {
       setFailed(true);
+      setChoiceLocked(true);
     } finally {
       setBusy(false);
     }
@@ -191,7 +196,11 @@ export function CatchUpSheet({
                         <View style={styles.checkSpace} />
                       )
                     }
-                    onPress={() => setSelectedId(choice.line.id)}
+                    onPress={
+                      isChoiceLocked
+                        ? undefined
+                        : () => setSelectedId(choice.line.id)
+                    }
                   />
                 ))}
               </LedgerCard>

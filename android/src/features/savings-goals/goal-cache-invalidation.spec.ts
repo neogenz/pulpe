@@ -3,6 +3,7 @@ import { budgetKeys } from "@/features/budgets/budget-queries";
 import { invalidateBudgetLines } from "@/features/budget-details/budget-line-mutations";
 
 import { goalKeys } from "./goals-queries";
+import { netWorthKeys } from "@/features/net-worth/net-worth-keys";
 
 jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => false }));
 jest.mock("@/features/budgets/budget-api", () => ({}));
@@ -23,7 +24,7 @@ describe("goal cache invalidation", () => {
     await invalidateBudgetLines(queryClient);
 
     expect(invalidate.mock.calls.map(([options]) => options?.queryKey)).toEqual(
-      [budgetKeys.details(), budgetKeys.list(), goalKeys.all],
+      [budgetKeys.details(), budgetKeys.list(), netWorthKeys.all, goalKeys.all],
     );
 
     invalidate.mockRestore();

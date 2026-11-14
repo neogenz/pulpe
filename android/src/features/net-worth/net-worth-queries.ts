@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { queryClient } from "@/core/query/query-client";
 import { useVaultStore } from "@/core/vault/vault-store";
 
 import {
@@ -12,10 +13,18 @@ import {
   renameAssetCategory,
   updateAsset,
 } from "./net-worth-api";
+import { netWorthKeys } from "./net-worth-keys";
 
-export const netWorthKeys = {
-  all: ["net-worth"] as const,
-};
+export { netWorthKeys };
+
+/** Silent when nothing went stale: a budget write only marks this read stale. */
+export function refetchStaleNetWorth(): Promise<void> {
+  return queryClient.refetchQueries({
+    queryKey: netWorthKeys.all,
+    stale: true,
+    type: "active",
+  });
+}
 
 /** Values are decrypted server-side: no read before the vault is open. */
 export function useNetWorth() {

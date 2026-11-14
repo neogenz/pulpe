@@ -13,6 +13,8 @@ import {
   fetchBudgetListPage,
   fetchBudgetPeriods,
 } from "./budget-api";
+import { netWorthKeys } from "@/features/net-worth/net-worth-keys";
+
 import { uniqueBudgets } from "./budget-list-selectors";
 
 export const budgetKeys = {
@@ -103,6 +105,12 @@ export function invalidateAfterBudgetWrite(
     queryClient.invalidateQueries({ queryKey: budgetKeys.details() }),
     queryClient.invalidateQueries({
       queryKey: budgetKeys.list(),
+      refetchType: "none",
+    }),
+    // Pointing a prévision linked to an asset changes the value Patrimoine
+    // suggests for it; that tab asks again on focus, like the list above.
+    queryClient.invalidateQueries({
+      queryKey: netWorthKeys.all,
       refetchType: "none",
     }),
   ]).then(() => undefined);

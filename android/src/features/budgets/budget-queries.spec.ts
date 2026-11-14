@@ -2,6 +2,8 @@ import { QueryClient } from "@tanstack/react-query";
 
 import { queryClient } from "@/core/query/query-client";
 
+import { netWorthKeys } from "@/features/net-worth/net-worth-keys";
+
 import { BUDGET_PAGE_SIZE } from "./budget-api";
 import {
   budgetKeys,
@@ -42,6 +44,7 @@ describe("invalidateAfterBudgetWrite", () => {
     expect(invalidate.mock.calls.map(([options]) => options)).toEqual([
       { queryKey: budgetKeys.details() },
       { queryKey: budgetKeys.list(), refetchType: "none" },
+      { queryKey: netWorthKeys.all, refetchType: "none" },
     ]);
     expect(invalidate).not.toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: budgetKeys.all }),

@@ -5,15 +5,8 @@ import {
   type SupportedCurrency,
 } from "pulpe-shared";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import {
-  Button,
-  Menu,
-  Switch,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Button, Switch, Text, TextInput, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { AmountField } from "@/core/ui/amount-field";
@@ -21,10 +14,10 @@ import { formatCurrency } from "@/core/ui/amount-format";
 import { FieldError } from "@/core/ui/field-error";
 import { formatInstantDay } from "@/core/ui/date-format";
 import { hapticSuccess } from "@/core/ui/haptics";
-import { useRipple } from "@/core/ui/ripple";
 import { SegmentedPicker } from "@/core/ui/segmented-picker";
+import { FilterChip } from "@/core/ui/filter-chip";
 import { FormModal } from "@/core/ui/sheet";
-import { SPACING, TOUCH_TARGET } from "@/core/ui/theme";
+import { SPACING } from "@/core/ui/theme";
 
 import {
   type AssetCategoryChoice,
@@ -73,7 +66,6 @@ export function AssetFormSheet({
   onDelete,
 }: AssetFormSheetProps) {
   const theme = useTheme();
-  const ripple = useRipple();
   const { locale, t } = useTranslation();
   const createAsset = useCreateAsset();
   const updateAsset = useUpdateAsset();
@@ -98,7 +90,6 @@ export function AssetFormSheet({
   });
   const [typedType, setTypedType] = useState("");
   const [isTypingType, setTypingType] = useState(false);
-  const [isTypeMenuVisible, setTypeMenuVisible] = useState(false);
   const [isSaving, setSaving] = useState(false);
   const [hasFailed, setFailed] = useState(false);
   const [hasTouchedName, setTouchedName] = useState(false);
@@ -126,7 +117,6 @@ export function AssetFormSheet({
     change({ category: choice });
     setTypingType(false);
     setTypedType("");
-    setTypeMenuVisible(false);
   }
 
   function typeLabel(): string {
@@ -318,50 +308,40 @@ export function AssetFormSheet({
         />
       )}
 
-      <Menu
-        visible={isTypeMenuVisible}
-        onDismiss={() => setTypeMenuVisible(false)}
-        anchor={
-          <Pressable
-            onPress={() => setTypeMenuVisible(true)}
-            android_ripple={ripple}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("netWorth.form.type")}, ${typeLabel()}`}
-            style={styles.typeRow}
-          >
-            <Text variant="bodyLarge">{t("netWorth.form.type")}</Text>
-            <Text
-              variant="bodyLarge"
-              style={{ color: theme.colors.onSurfaceVariant }}
+      {/* Chips rather than a menu: a Paper menu mounts in the app's portal
+          host, behind the native modal this sheet lives in. */}
+      <View style={styles.typeField}>
+        <Text variant="labelLarge">{t("netWorth.form.type")}</Text>
+        <View style={styles.typeChips}>
+          {options.used.map((category) => (
+            <FilterChip
+              key={category.id}
+              selected={!isTypingType && typeLabel() === category.name}
+              onPress={() => pick({ kind: "existing", id: category.id })}
             >
-              {typeLabel()}
-            </Text>
-          </Pressable>
-        }
-      >
-        {options.used.map((category) => (
-          <Menu.Item
-            key={category.id}
-            title={category.name}
-            onPress={() => pick({ kind: "existing", id: category.id })}
-          />
-        ))}
-        {options.suggestions.map((name) => (
-          <Menu.Item
-            key={name}
-            title={name}
-            onPress={() => pick({ kind: "starter", name })}
-          />
-        ))}
-        <Menu.Item
-          title={t("netWorth.form.otherType")}
-          onPress={() => {
-            setTypeMenuVisible(false);
-            setTypingType(true);
-            change({ category: choiceForName(typedType, categories) });
-          }}
-        />
-      </Menu>
+              {category.name}
+            </FilterChip>
+          ))}
+          {options.suggestions.map((name) => (
+            <FilterChip
+              key={name}
+              selected={!isTypingType && typeLabel() === name}
+              onPress={() => pick({ kind: "starter", name })}
+            >
+              {name}
+            </FilterChip>
+          ))}
+          <FilterChip
+            selected={isTypingType}
+            onPress={() => {
+              setTypingType(true);
+              change({ category: choiceForName(typedType, categories) });
+            }}
+          >
+            {t("netWorth.form.otherType")}
+          </FilterChip>
+        </View>
+      </View>
       {isTypingType && (
         <TextInput
           mode="outlined"
@@ -387,12 +367,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   toggleLabel: { flex: 1 },
-  typeRow: {
-    minHeight: TOUCH_TARGET,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.md,
-  },
+  typeField: { gap: SPACING.sm },
+  typeChips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   footerActions: { flexDirection: "row", justifyContent: "space-between" },
 });
