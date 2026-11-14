@@ -111,6 +111,12 @@ export function captureReminderToggled(
   captureEvent(ANALYTICS_EVENTS.REMINDER_TOGGLED, { enabled, reminder });
 }
 
+export function captureReminderOpened(
+  reminder: "monthly" | "weekly_recap",
+): void {
+  captureEvent(ANALYTICS_EVENTS.REMINDER_OPENED, { reminder });
+}
+
 /** For the tabs layout. `tab` is the route name, never a label. */
 export function captureTabSwitched(tab: string): void {
   captureEvent(ANALYTICS_EVENTS.TAB_SWITCHED, { tab });

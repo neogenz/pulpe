@@ -77,11 +77,12 @@ jest.mock("@/core/crypto/client-key-manager", () => ({
   retireLegacyBiometricCandidate: () => mockRetireLegacyBiometric(),
 }));
 jest.mock("@/core/notifications/scheduler", () => ({
-  cancelMonthlyReminder: () => mockCancelReminder(),
+  cancelAllReminders: () => mockCancelReminder(),
 }));
 jest.mock("@/core/notifications/reminder-flags", () => ({
   writeRemindersEnabled: (isEnabled: boolean) =>
     mockWriteRemindersEnabled(isEnabled),
+  writeWeeklyRecapEnabled: jest.fn(),
 }));
 
 const session = (id: string) => ({ user: { id } }) as Session;

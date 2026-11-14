@@ -1490,7 +1490,21 @@
       "reminderPermissionBlocked": "Le notifiche sono bloccate nelle impostazioni Android.",
       "remindersSection": "Promemoria",
       "reminderTitle": "Promemoria mensile",
-      "title": "Preferenze"
+      "title": "Preferenze",
+      "weeklyRecap": {
+        "title": "Riepilogo del lunedì",
+        "description": "La tua settimana e quanto ti resta",
+        "notificationTitle": "La tua settimana in breve",
+        "lastWeek": {
+          "one": "Settimana scorsa: %{count} movimento annotato.",
+          "other": "Settimana scorsa: %{count} movimenti annotati."
+        },
+        "newWeek": "Nuova settimana: un minuto per annotare i tuoi ultimi movimenti?",
+        "exhausted": "Il tuo disponibile è esaurito: un'occhiata per sistemare la settimana?",
+        "allowanceUsual": "Questa settimana: circa %{amount} da spendere (di solito ne spendi %{usual}).",
+        "allowance": "Questa settimana: circa %{amount} da spendere.",
+        "expected": "Previsto questa settimana: %{names}."
+      }
     },
     "security": {
       "accessSection": "Accesso",

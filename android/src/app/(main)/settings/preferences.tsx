@@ -11,12 +11,16 @@ import { useTranslation } from "@/core/i18n/locale-store";
 
 import {
   cancelMonthlyReminder,
+  cancelWeeklyRecaps,
   requestReminderPermission,
   scheduleMonthlyReminder,
+  scheduleWeeklyRecaps,
 } from "@/core/notifications/scheduler";
 import {
   readRemindersEnabled,
+  readWeeklyRecapEnabled,
   writeRemindersEnabled,
+  writeWeeklyRecapEnabled,
 } from "@/core/notifications/reminder-flags";
 import {
   setDiagnosticSharing,
@@ -29,6 +33,7 @@ import {
 import { SPACING } from "@/core/ui/theme";
 import { captureReminderToggled } from "@/core/observability/product-events";
 import { Notice } from "@/core/ui/notice";
+import { useCurrentMonth } from "@/features/current-month/current-month-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import {
@@ -51,6 +56,10 @@ export default function PreferencesScreen() {
   const { locale, t } = useTranslation();
   const [areRemindersEnabled, setRemindersEnabled] =
     useState(readRemindersEnabled);
+  const [isWeeklyRecapEnabled, setWeeklyRecapEnabled] = useState(
+    readWeeklyRecapEnabled,
+  );
+  const currentMonth = useCurrentMonth();
   const [notice, setNotice] = useState<string | null>(null);
   const areAmountsHidden = useAmountVisibility(
     (state) => state.areAmountsHidden,
@@ -84,6 +93,38 @@ export default function PreferencesScreen() {
     writeRemindersEnabled(true);
     captureReminderToggled("monthly", true);
     await scheduleMonthlyReminder(payDay);
+  }
+
+  /**
+   * Same contract as `applyReminders`. The recap needs the month's figures, so
+   * the month already on screen schedules it; without one yet, the home
+   * schedules it as soon as the month lands.
+   */
+  async function applyWeeklyRecap(isEnabled: boolean) {
+    setWeeklyRecapEnabled(isEnabled);
+
+    if (!isEnabled) {
+      writeWeeklyRecapEnabled(false);
+      captureReminderToggled("weekly_recap", false);
+      await cancelWeeklyRecaps();
+      return;
+    }
+
+    const isGranted = await requestReminderPermission();
+    if (!isGranted) {
+      setWeeklyRecapEnabled(false);
+      writeWeeklyRecapEnabled(false);
+      setNotice(t("settings.preferences.reminderPermissionBlocked"));
+      return;
+    }
+    writeWeeklyRecapEnabled(true);
+    captureReminderToggled("weekly_recap", true);
+    if (currentMonth.details === null) return;
+    await scheduleWeeklyRecaps({
+      details: currentMonth.details,
+      payDayOfMonth: payDay,
+      currency,
+    });
   }
 
   return (
@@ -186,6 +227,24 @@ export default function PreferencesScreen() {
                 value={areRemindersEnabled}
                 onValueChange={(next) => void applyReminders(next)}
                 accessibilityLabel={t("settings.preferences.reminderTitle")}
+              />
+            </Card.Content>
+            <Card.Content style={styles.switchRow}>
+              <View style={styles.switchLabels}>
+                <Text variant="bodyLarge">
+                  {t("settings.preferences.weeklyRecap.title")}
+                </Text>
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  {t("settings.preferences.weeklyRecap.description")}
+                </Text>
+              </View>
+              <Switch
+                value={isWeeklyRecapEnabled}
+                onValueChange={(next) => void applyWeeklyRecap(next)}
+                accessibilityLabel={t("settings.preferences.weeklyRecap.title")}
               />
             </Card.Content>
           </Card>

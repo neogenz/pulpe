@@ -1490,7 +1490,21 @@
       "reminderPermissionBlocked": "Notifications are blocked in Android settings.",
       "remindersSection": "Reminders",
       "reminderTitle": "Monthly reminder",
-      "title": "Preferences"
+      "title": "Preferences",
+      "weeklyRecap": {
+        "title": "Monday recap",
+        "description": "Your week and what's left",
+        "notificationTitle": "Your week at a glance",
+        "lastWeek": {
+          "one": "Last week: %{count} entry recorded.",
+          "other": "Last week: %{count} entries recorded."
+        },
+        "newWeek": "New week: a minute to log your latest activity?",
+        "exhausted": "Nothing left available: a quick look to adjust your week?",
+        "allowanceUsual": "This week: about %{amount} to spend (you usually spend %{usual}).",
+        "allowance": "This week: about %{amount} to spend.",
+        "expected": "Planned this week: %{names}."
+      }
     },
     "security": {
       "accessSection": "Access",

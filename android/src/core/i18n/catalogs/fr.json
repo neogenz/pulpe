@@ -1490,7 +1490,21 @@
       "reminderPermissionBlocked": "Les notifications sont bloquées dans les réglages Android.",
       "remindersSection": "Rappels",
       "reminderTitle": "Rappel mensuel",
-      "title": "Préférences"
+      "title": "Préférences",
+      "weeklyRecap": {
+        "title": "Récap du lundi",
+        "description": "Ta semaine et ce qu'il te reste",
+        "notificationTitle": "Ta semaine en bref",
+        "lastWeek": {
+          "one": "Semaine passée : %{count} mouvement noté.",
+          "other": "Semaine passée : %{count} mouvements notés."
+        },
+        "newWeek": "Nouvelle semaine : une minute pour noter tes derniers mouvements ?",
+        "exhausted": "Ton disponible est épuisé : un coup d'œil pour ajuster ta semaine ?",
+        "allowanceUsual": "Cette semaine : environ %{amount} à dépenser (d'habitude, tu en dépenses %{usual}).",
+        "allowance": "Cette semaine : environ %{amount} à dépenser.",
+        "expected": "Prévu cette semaine : %{names}."
+      }
     },
     "security": {
       "accessSection": "Accès",

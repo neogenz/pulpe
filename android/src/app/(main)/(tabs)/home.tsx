@@ -9,6 +9,7 @@ import {
   consumeAddExpenseRequest,
   useDeepLinkStore,
 } from "@/core/linking/deep-links";
+import { useWeeklyRecapSync } from "@/core/notifications/use-weekly-recap-sync";
 import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
 import { dismissTip } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
@@ -117,6 +118,7 @@ export default function HomeScreen() {
   const toggle = useToggleCheck(currentMonth.budgetId);
   const isPendingCheck = usePendingCheck(currentMonth.budgetId);
   const reminders = useReminderPriming();
+  useWeeklyRecapSync(currentMonth);
   const isFocused = useIsFocused();
   // Same cached query the current month resolves against, so this costs nothing
   // extra — it only asks a different question of it.

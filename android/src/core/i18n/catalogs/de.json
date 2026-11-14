@@ -1490,7 +1490,21 @@
       "reminderPermissionBlocked": "Benachrichtigungen sind in den Android-Einstellungen blockiert.",
       "remindersSection": "Erinnerungen",
       "reminderTitle": "Monatliche Erinnerung",
-      "title": "Einstellungen"
+      "title": "Einstellungen",
+      "weeklyRecap": {
+        "title": "Montags-Rückblick",
+        "description": "Deine Woche und was dir bleibt",
+        "notificationTitle": "Deine Woche im Überblick",
+        "lastWeek": {
+          "one": "Letzte Woche: %{count} Bewegung erfasst.",
+          "other": "Letzte Woche: %{count} Bewegungen erfasst."
+        },
+        "newWeek": "Neue Woche: eine Minute, um deine letzten Bewegungen zu erfassen?",
+        "exhausted": "Dein Verfügbares ist aufgebraucht: kurz reinschauen, um deine Woche anzupassen?",
+        "allowanceUsual": "Diese Woche: etwa %{amount} zum Ausgeben (normalerweise gibst du %{usual} aus).",
+        "allowance": "Diese Woche: etwa %{amount} zum Ausgeben.",
+        "expected": "Diese Woche geplant: %{names}."
+      }
     },
     "security": {
       "accessSection": "Zugriff",

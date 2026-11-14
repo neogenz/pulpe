@@ -14,6 +14,9 @@ const PRIMED_KEY = "pulpe-reminders-primed";
  */
 const ENABLED_KEY = "pulpe-reminders-enabled";
 
+/** Same contract as `ENABLED_KEY`, for the Monday recap. */
+const WEEKLY_RECAP_KEY = "pulpe-weekly-recap-enabled";
+
 const storage = createMMKV({ id: "pulpe-notifications" });
 
 export function readRemindersPrimed(): boolean {
@@ -30,4 +33,12 @@ export function readRemindersEnabled(): boolean {
 
 export function writeRemindersEnabled(isEnabled: boolean): void {
   storage.set(ENABLED_KEY, isEnabled);
+}
+
+export function readWeeklyRecapEnabled(): boolean {
+  return storage.getBoolean(WEEKLY_RECAP_KEY) === true;
+}
+
+export function writeWeeklyRecapEnabled(isEnabled: boolean): void {
+  storage.set(WEEKLY_RECAP_KEY, isEnabled);
 }

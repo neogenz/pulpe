@@ -22,6 +22,7 @@ const mockRefetchStaleList = jest.fn();
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   useFocusEffect: (effect: () => void) => effect(),
+  useIsFocused: () => true,
 }));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: jest.requireActual("react-native").View,
@@ -183,6 +184,18 @@ jest.mock("@/core/linking/deep-links", () => ({
 }));
 jest.mock("@/core/notifications/use-reminder-priming", () => ({
   useReminderPriming: () => mockReminders,
+}));
+jest.mock("@/core/notifications/use-weekly-recap-sync", () => ({
+  useWeeklyRecapSync: jest.fn(),
+}));
+jest.mock("@/features/feedback/use-automatic-feedback-prompt", () => ({
+  useAutomaticFeedbackPrompt: () => ({
+    promptNumber: null,
+    dismiss: jest.fn(),
+  }),
+}));
+jest.mock("@/features/feedback/components/feedback-sheet", () => ({
+  FeedbackSheet: () => null,
 }));
 jest.mock("@/core/tips/tips-store", () => ({ dismissTip: jest.fn() }));
 jest.mock("@/core/tips/tooltip", () => ({ Tooltip: () => null }));
