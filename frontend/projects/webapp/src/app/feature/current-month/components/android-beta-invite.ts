@@ -33,7 +33,7 @@ const PLAY_OPT_IN_URL =
       <section
         class="flex items-start gap-3 rounded-3xl bg-surface-container-low p-4"
         aria-labelledby="android-beta-invite-title"
-        data-testid="android-beta-invite"
+        data-testid="android-beta-invite-section"
       >
         <div
           class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0!"

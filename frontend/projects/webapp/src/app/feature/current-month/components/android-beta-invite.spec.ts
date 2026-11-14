@@ -54,25 +54,25 @@ describe('AndroidBetaInvite', () => {
   it('should invite an Android visitor when the flag is on', async () => {
     const { find } = await render();
 
-    expect(find('android-beta-invite')).not.toBeNull();
+    expect(find('android-beta-invite-section')).not.toBeNull();
   });
 
   it('should stay hidden when the flag is off', async () => {
     const { find } = await render({ isFlagOn: false });
 
-    expect(find('android-beta-invite')).toBeNull();
+    expect(find('android-beta-invite-section')).toBeNull();
   });
 
   it('should stay hidden on a device that is not Android', async () => {
     const { find } = await render({ userAgent: IPHONE_UA });
 
-    expect(find('android-beta-invite')).toBeNull();
+    expect(find('android-beta-invite-section')).toBeNull();
   });
 
   it('should stay hidden once dismissed on an earlier visit', async () => {
     const { find } = await render({ wasDismissed: true });
 
-    expect(find('android-beta-invite')).toBeNull();
+    expect(find('android-beta-invite-section')).toBeNull();
   });
 
   it('should hide, remember and report a dismissal', async () => {
@@ -81,7 +81,7 @@ describe('AndroidBetaInvite', () => {
     find('android-beta-invite-dismiss-button')?.click();
     await fixture.whenStable();
 
-    expect(find('android-beta-invite')).toBeNull();
+    expect(find('android-beta-invite-section')).toBeNull();
     expect(
       TestBed.inject(StorageService).get<boolean>(
         STORAGE_KEYS.ANDROID_BETA_INVITE_DISMISSED,
