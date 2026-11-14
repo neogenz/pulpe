@@ -97,7 +97,7 @@ export function HomeHeroCard({
           })
         : t("home.hero.scrub.estimatedWithPlan", {
             date: formatDayMonth(reading.date, locale),
-            plan: formatCompactCurrency(reading.plan, currency),
+            amount: formatCompactCurrency(reading.plan, currency),
           });
 
   return (
@@ -125,19 +125,21 @@ export function HomeHeroCard({
               />
             </Pressable>
           )}
-          <Button
-            mode="text"
-            compact
-            textColor={theme.colors.primary}
-            onPress={() => {
-              hapticCommit();
-              onPressCalculation();
-            }}
-            accessibilityHint={t("home.hero.calculationHint")}
-            style={styles.calculation}
-          >
-            {t("home.hero.calculation")}
-          </Button>
+          {reading === null && (
+            <Button
+              mode="text"
+              compact
+              textColor={theme.colors.primary}
+              onPress={() => {
+                hapticCommit();
+                onPressCalculation();
+              }}
+              accessibilityHint={t("home.hero.calculationHint")}
+              style={styles.calculation}
+            >
+              {t("home.hero.calculation")}
+            </Button>
+          )}
         </View>
         <Text
           numberOfLines={1}
