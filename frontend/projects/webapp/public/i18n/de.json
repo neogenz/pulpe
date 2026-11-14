@@ -2345,5 +2345,12 @@
     "submitting": "Wird gesendet…",
     "error": "Dein Feedback wurde nicht gesendet. Versuch es noch einmal.",
     "thanks": "Danke. Dein Feedback bringt Pulpe weiter."
+  },
+  "androidBetaInvite": {
+    "title": "Pulpe kommt auf Android",
+    "body": "Die App ist fertig. Ich suche ein paar Leute, die sie vor dem Start ausprobieren: Tritt der Testgruppe bei und installiere sie dann über Google Play.",
+    "joinGroup": "1. Beitreten",
+    "install": "2. Installieren",
+    "dismiss": "Einladung ausblenden"
   }
 }

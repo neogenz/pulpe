@@ -112,6 +112,14 @@ export const STORAGE_SCHEMAS = {
     scope: 'user',
   },
 
+  // Scope 'app': an invitation hidden on this phone stays hidden after a
+  // sign-out, it is about the device, not the account.
+  [STORAGE_KEYS.ANDROID_BETA_INVITE_DISMISSED]: {
+    version: 1,
+    schema: z.boolean(),
+    scope: 'app',
+  },
+
   // Currency snapshot for bootstrap locale selection (device-level, preserved across sessions)
   [STORAGE_KEYS.SETTINGS_CURRENCY]: {
     version: 1,

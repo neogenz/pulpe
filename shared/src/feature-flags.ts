@@ -40,6 +40,8 @@ export const FEATURE_FLAGS = {
   TRANSACTION_IMPORT: 'transaction_import',
   /** Shows « Mon patrimoine » in the main navigation (PUL-366). */
   NET_WORTH: 'net_worth',
+  /** Shows the Android closed-test invitation on the web dashboard. */
+  ANDROID_BETA_INVITE: 'android_beta_invite',
 } as const;
 
 /**
@@ -160,6 +162,10 @@ export const ANALYTICS_EVENTS = {
   CURRENCY_CHANGED: 'currency_changed',
   /** Fires after a successful "Saisir dans une autre devise" toggle in settings. Properties: `enabled`. */
   CURRENCY_SELECTOR_TOGGLED: 'currency_selector_toggled',
+  /** Fires when a link of the web Android closed-test invitation is followed. Properties: `step` (`group` | `install`). */
+  ANDROID_BETA_INVITE_CLICKED: 'android_beta_invite_clicked',
+  /** Fires when the web Android closed-test invitation is dismissed. Properties: none. */
+  ANDROID_BETA_INVITE_DISMISSED: 'android_beta_invite_dismissed',
   /** Fires after all onboarding currency persistence retries fail. Properties: `currency`, `attempts`. */
   CURRENCY_PERSIST_FAILED: 'currency_persist_failed',
   /**
