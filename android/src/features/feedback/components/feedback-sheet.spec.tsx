@@ -84,7 +84,7 @@ it("sends the ratings to the API and only their shape to analytics", async () =>
   expect(jest.mocked(submitFeedback).mock.calls[0][0]).toMatchObject({
     overallRating: 4,
     comment: "secret comment",
-    platform: "web",
+    platform: "android",
   });
   expect(captureEvent).toHaveBeenCalledWith("feedback_submitted", {
     source: "settings",
