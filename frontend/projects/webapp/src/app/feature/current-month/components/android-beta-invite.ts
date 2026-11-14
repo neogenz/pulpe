@@ -55,7 +55,7 @@ const PLAY_OPT_IN_URL =
               matButton="tonal"
               [href]="groupUrl"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               (click)="trackStep('group')"
               data-testid="android-beta-invite-group-link"
             >
@@ -65,7 +65,7 @@ const PLAY_OPT_IN_URL =
               matButton
               [href]="playUrl"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               (click)="trackStep('install')"
               data-testid="android-beta-invite-install-link"
             >
