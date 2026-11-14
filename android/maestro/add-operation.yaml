@@ -1,22 +1,25 @@
-# Journey 4 — note a movement, then take it back out.
+# Journey 4 — note an operation, then take it back out.
 #
 # Noting what was spent is the act the app is opened for, and the one write
-# no other flow makes: it crosses the home FAB, the form sheet with its quick
+# no other flow makes: it crosses the FAB menu, the form sheet with its quick
 # amounts, the save, the row it lands on and the delete. The flow removes what
 # it adds, so the shared preview account ends the run as it started.
 #
-# Runs where `check-operation.yaml` ends: home, whose last movements show the
-# new one whether or not it is pointed.
+# Runs where `check-operation.yaml` ends: the budget detail, on "Tout", so the
+# new operation shows whether or not it is pointed.
 appId: app.pulpe.android
 env:
   NAME: Maestro E2E
 ---
 - extendedWaitUntil:
     visible:
-      id: "home-add-entry"
+      id: "budget-add"
     timeout: 30000
 - tapOn:
-    id: "home-add-entry"
+    id: "budget-add"
+# The menu's actions are announced by their label: Paper hides each small FAB
+# from accessibility, and with it from Maestro.
+- tapOn: "Un mouvement"
 
 - extendedWaitUntil:
     visible:
