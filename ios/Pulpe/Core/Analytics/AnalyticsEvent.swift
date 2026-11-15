@@ -121,4 +121,9 @@ enum AnalyticsEvent: String, CaseIterable {
     case feedbackViewed = "feedback_viewed"
     case feedbackSubmitted = "feedback_submitted"
     case feedbackCancelled = "feedback_cancelled"
+
+    // MARK: - Store review
+    /// The app asked for the native rating prompt (`source` = `automatic`) or opened the App
+    /// Store review page (`settings`). Apple never says whether the prompt showed.
+    case storeReviewRequested = "store_review_requested"
 }

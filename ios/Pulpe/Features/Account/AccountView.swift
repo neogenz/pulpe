@@ -207,6 +207,20 @@ extension AccountView {
             .buttonStyle(.plain)
             .accessibilityIdentifier("openFeedback")
             FormRowDivider()
+            Button {
+                AnalyticsService.shared.capture(.storeReviewRequested, properties: ["source": "settings"])
+                openURL(AppURLs.appStoreReview)
+            } label: {
+                SettingsRow(
+                    systemImage: "star",
+                    title: AppLocale.string("Noter Pulpe"),
+                    subtitle: AppLocale.string("S'ouvre sur l'App Store"),
+                    isExternal: true
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("rateOnAppStore")
+            FormRowDivider()
             Button { Task { await openWhatsNew() } } label: {
                 SettingsRow(
                     systemImage: "sparkles",

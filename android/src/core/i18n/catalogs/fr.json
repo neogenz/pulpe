@@ -1441,6 +1441,10 @@
           "title": "Donner mon avis",
           "description": "Une impression en 30 secondes"
         },
+        "rateApp": {
+          "title": "Noter Pulpe",
+          "description": "S'ouvre sur le Play Store"
+        },
         "connections": {
           "title": "Connexions",
           "description": "Assistants IA autorisés",

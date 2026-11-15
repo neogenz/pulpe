@@ -22,6 +22,7 @@ import {
   type FirstMovementSource,
   recordMovementCreated,
 } from "./first-movement-tracker";
+import { recordMovementForStoreReview } from "./store-review-prompt";
 import {
   createTransaction,
   deleteTransaction,
@@ -195,6 +196,7 @@ export function useCreateTransaction(
     // Here and not in `createOnce`: restoring a deleted row is not a new entry.
     captureTransactionCreated(transaction.kind);
     recordMovementCreated(transaction.kind, source);
+    void recordMovementForStoreReview();
   });
 }
 

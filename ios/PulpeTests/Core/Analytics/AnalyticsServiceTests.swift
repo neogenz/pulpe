@@ -67,7 +67,8 @@ struct AnalyticsServiceTests {
             "savings_goals_intro_skipped",
             "feedback_viewed",
             "feedback_submitted",
-            "feedback_cancelled"
+            "feedback_cancelled",
+            "store_review_requested"
         ]
 
         #expect(Set(AnalyticsEvent.allCases.map(\.rawValue)) == expected)

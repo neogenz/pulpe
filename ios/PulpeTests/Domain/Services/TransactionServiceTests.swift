@@ -24,7 +24,7 @@ struct TransactionServiceTests {
             clientKeyProvider: { clientKey }
         )
         var captured: [TransactionKind] = []
-        let service = TransactionService(apiClient: api, captureCreated: { captured.append($0) })
+        let service = TransactionService(apiClient: api, onCreated: { captured.append($0) })
         let input = TransactionCreate(budgetId: "budget-1", name: "Private label", amount: 12, kind: .expense)
 
         if status == 201 {

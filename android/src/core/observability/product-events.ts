@@ -177,3 +177,10 @@ export function captureFeedbackSubmitted(
     has_details: summary.hasDetails,
   });
 }
+
+/** Where a store rating was asked for; mirrors the `source` values on iOS. */
+export function captureStoreReviewRequested(
+  source: "automatic" | "settings",
+): void {
+  captureEvent(ANALYTICS_EVENTS.STORE_REVIEW_REQUESTED, { source });
+}

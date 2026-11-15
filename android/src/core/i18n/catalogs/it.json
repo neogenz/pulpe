@@ -1441,6 +1441,10 @@
           "title": "Lascia un'opinione",
           "description": "Un'impressione in 30 secondi"
         },
+        "rateApp": {
+          "title": "Valuta Pulpe",
+          "description": "Si apre nel Play Store"
+        },
         "connections": {
           "title": "Connessioni",
           "description": "Assistenti IA autorizzati",

@@ -6,6 +6,7 @@ enum AppURLs {
     static let support = URL(string: "https://pulpe.app/support")!
     static let changelog = URL(string: "https://pulpe.app/changelog")!
     static let webappBudgetTemplates = URL(string: "https://app.pulpe.app/budget-templates")!
+    static let appStoreReview = URL(string: "https://apps.apple.com/app/id6758464920?action=write-review")!
 
     /// Where the disclosure is shown. The sentence differs by more than a word, so each
     /// one is its own catalog entry rather than a template assembled from fragments —

@@ -26,6 +26,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { useSessionStore } from "@/core/auth/session-store";
 import { describeBiometrics } from "@/core/crypto/biometrics";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { captureStoreReviewRequested } from "@/core/observability/product-events";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
@@ -176,6 +177,17 @@ export default function SettingsScreen() {
             title={t("settings.account.rows.feedback.title")}
             description={t("settings.account.rows.feedback.description")}
             onPress={() => setGivingFeedback(true)}
+          />
+          <SettingsRow
+            testID="settings-rate-app"
+            icon="star-outline"
+            title={t("settings.account.rows.rateApp.title")}
+            description={t("settings.account.rows.rateApp.description")}
+            isExternal
+            onPress={() => {
+              captureStoreReviewRequested("settings");
+              void Linking.openURL(APP_URLS.playStoreReview);
+            }}
           />
           <SettingsRow
             icon="star-four-points-outline"
