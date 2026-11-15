@@ -25,7 +25,7 @@ describe("localized release data", () => {
       assert.deepEqual(
         localized.map(({ version }) => version),
         [
-          "0.62.0",
+          "0.62.1",
           "0.61.0",
           "0.60.0",
           "0.59.0",

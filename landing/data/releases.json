@@ -1,15 +1,19 @@
 [
   {
-    "version": "0.62.0",
+    "version": "0.62.1",
     "iosVersion": "1.14.1",
     "date": "2026-11-15",
-    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.62.0",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.62.1",
     "platforms": ["web", "ios", "android"],
     "changes": {
       "features": [
         {
           "title": "Pulpe sur Android, en test",
           "description": "Sur pulpe.app, « Rejoindre le test » te permet d’essayer l’app Android avant sa sortie."
+        },
+        {
+          "title": "Noter Pulpe sur les stores",
+          "description": "Sur iPhone et Android, après quelques mouvements, Pulpe te propose de le noter sur l’App Store ou le Play Store, au plus une fois par version. Le lien « Noter Pulpe » est aussi disponible dans l’app."
         }
       ],
       "fixes": [
@@ -40,6 +44,10 @@
             {
               "title": "Pulpe on Android, in testing",
               "description": "On pulpe.app, “Join the test” lets you try the Android app before its release."
+            },
+            {
+              "title": "Rate Pulpe on the stores",
+              "description": "On iPhone and Android, after a few entries, Pulpe offers to let you rate it on the App Store or Play Store, at most once per version. The “Rate Pulpe” link is also available in the app."
             }
           ],
           "fixes": [
@@ -70,6 +78,10 @@
             {
               "title": "Pulpe für Android im Test",
               "description": "Auf pulpe.app kannst du mit «Am Test teilnehmen» die Android-App vor ihrem Start ausprobieren."
+            },
+            {
+              "title": "Pulpe in den Stores bewerten",
+              "description": "Auf iPhone und Android bietet dir Pulpe nach einigen Bewegungen an, die App im App Store oder Play Store zu bewerten, höchstens einmal pro Version. Der Link «Pulpe bewerten» ist auch in der App verfügbar."
             }
           ],
           "fixes": [
@@ -100,6 +112,10 @@
             {
               "title": "Pulpe su Android, in test",
               "description": "Su pulpe.app, «Partecipa al test» ti permette di provare l’app Android prima del lancio."
+            },
+            {
+              "title": "Valuta Pulpe sugli store",
+              "description": "Su iPhone e Android, dopo alcuni movimenti, Pulpe ti propone di valutarla sull’App Store o sul Play Store, al massimo una volta per versione. Il link «Valuta Pulpe» è disponibile anche nell’app."
             }
           ],
           "fixes": [
