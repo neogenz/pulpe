@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.60.0",
-  "marketingVersion": "1.14.0",
-  "buildNumber": "13",
+  "productVersion": "0.62.0",
+  "marketingVersion": "1.14.1",
+  "buildNumber": "1",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "Pulpe fait peau neuve !\n\nNouveautés :\n- Un nouveau design, plus clair, sur tous les écrans.\n- Dès l’accueil, tu vois ce qu’il te reste à pointer ce mois.\n- Objectifs : tu vois tout de suite où tu en es.\n- Le suivi du budget affiche le solde pointé à côté du reste à dépenser.\n\nCorrections :\n- Face ID n’est plus demandé une seconde fois après la connexion.\n- Meilleur affichage sur iPhone Duo."
+    "frFR": "Corrections :\n- Quand ta banque affiche un autre solde que Pulpe, « Comparer avec mes comptes » propose d’abord de pointer les mouvements déjà passés sur ton compte, au lieu d’un ajustement qui les compterait deux fois.\n- Les soldes saisis dans « Comparer avec mes comptes » t’attendent quand tu reviens de ton app bancaire, même si Pulpe s’est verrouillée entre-temps."
   },
-  "reviewNotes": "This update is a visual redesign of the whole app; features and data are unchanged. Sign in with the configured demo account. The home screen now lists this month's items still to check; the Budgets, Goals and Templates tabs keep the same flows with a new layout. New screenshots are included, with an iPhone Duo set: on iPhone Duo, opening the device shows lists next to their detail."
+  "reviewNotes": "This update fixes account matching; there is no new feature. Sign in with the configured demo account. On the home screen, tap \"Le calcul\", then \"Comparer avec mes comptes\". Enter a bank balance that differs from the checked balance: when unchecked past items explain the gap, the sheet now suggests checking them off before offering an adjustment. Entered balances are kept if the app locks while you switch to another app."
 }

@@ -11,12 +11,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.59.0',
+  version: '0.62.0',
   features: {
-    fr: ['Guide de connexion ChatGPT et Claude repensé'],
-    en: ['Improved ChatGPT and Claude connection guide'],
-    de: ['Überarbeitete Anleitung für ChatGPT und Claude'],
-    it: ['Guida di collegamento ChatGPT e Claude migliorata'],
+    fr: ['Le rapprochement propose de pointer avant d’ajuster'],
+    en: ['Matching suggests checking items before adjusting'],
+    de: ['Der Abgleich schlägt Abhaken vor dem Ausgleich vor'],
+    it: ['L’allineamento propone di spuntare prima di correggere'],
   },
 };
 
