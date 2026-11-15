@@ -32,8 +32,8 @@ function waitTwoSeconds(): Promise<void> {
 }
 
 async function requestPlayReview(): Promise<boolean> {
-  if (AppState.currentState !== "active") return false;
   try {
+    if (AppState.currentState !== "active") return false;
     // Loaded on demand: an over-the-air update can reach a binary built
     // before this native module existed, and a top-level import would crash it.
     const StoreReview = await import("expo-store-review");
