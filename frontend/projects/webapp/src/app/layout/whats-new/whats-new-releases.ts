@@ -11,7 +11,7 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.62.0',
+  version: '0.62.1',
   features: {
     fr: ['Le rapprochement propose de pointer avant d’ajuster'],
     en: ['Matching suggests checking items before adjusting'],

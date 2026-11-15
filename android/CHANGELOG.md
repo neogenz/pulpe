@@ -1,5 +1,11 @@
 # pulpe-android
 
+## 0.62.1
+
+### Patch Changes
+
+- pulpe-shared@0.62.1
+
 ## 0.62.0
 
 ### Patch Changes
