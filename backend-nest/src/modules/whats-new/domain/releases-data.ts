@@ -54,6 +54,123 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.62.0',
+    iosVersion: '1.14.1',
+    date: '2026-11-15',
+    platforms: ['ios'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Le rapprochement propose de pointer avant d’ajuster',
+          description:
+            'Quand ta banque affiche un autre solde que Pulpe, le rapprochement propose d’abord de pointer les mouvements déjà passés sur ton compte, au lieu d’un ajustement qui les compterait deux fois.',
+        },
+        {
+          title: 'Saisie gardée pendant le rapprochement',
+          description:
+            'Sur iPhone, les soldes saisis dans « Comparer avec mes comptes » t’attendent quand tu reviens de ton app bancaire, même si Pulpe s’est verrouillée entre-temps.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [],
+        fixes: [
+          {
+            title: 'Matching suggests checking items before adjusting',
+            description:
+              'When your bank shows a different balance than Pulpe, matching first suggests checking off items that already went through your account, instead of an adjustment that would count them twice.',
+          },
+          {
+            title: 'Entries kept while matching',
+            description:
+              'On iPhone, balances entered in “Compare with my accounts” are still there when you come back from your banking app, even if Pulpe locked in the meantime.',
+          },
+        ],
+      },
+      de: {
+        features: [],
+        fixes: [
+          {
+            title: 'Der Abgleich schlägt Abhaken vor dem Ausgleich vor',
+            description:
+              'Zeigt deine Bank einen anderen Saldo als Pulpe, schlägt der Abgleich zuerst vor, bereits gebuchte Bewegungen abzuhaken, statt eines Ausgleichs, der sie doppelt zählen würde.',
+          },
+          {
+            title: 'Eingaben bleiben beim Abgleich erhalten',
+            description:
+              'Auf dem iPhone bleiben die in «Mit meinen Konten vergleichen» eingegebenen Salden erhalten, wenn du aus deiner Banking-App zurückkommst, auch wenn Pulpe sich inzwischen gesperrt hat.',
+          },
+        ],
+      },
+      it: {
+        features: [],
+        fixes: [
+          {
+            title: 'L’allineamento propone di spuntare prima di correggere',
+            description:
+              'Quando la tua banca mostra un saldo diverso da Pulpe, l’allineamento propone prima di spuntare i movimenti già passati sul conto, invece di una correzione che li conterebbe due volte.',
+          },
+          {
+            title: 'Dati conservati durante l’allineamento',
+            description:
+              'Su iPhone, i saldi inseriti in «Confronta con i miei conti» restano lì quando torni dall’app della banca, anche se Pulpe si è bloccata nel frattempo.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    version: '0.62.0',
+    date: '2026-11-15',
+    platforms: ['android'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'Le rapprochement propose de pointer avant d’ajuster',
+          description:
+            'Quand ta banque affiche un autre solde que Pulpe, le rapprochement propose d’abord de pointer les mouvements déjà passés sur ton compte, au lieu d’un ajustement qui les compterait deux fois.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [],
+        fixes: [
+          {
+            title: 'Matching suggests checking items before adjusting',
+            description:
+              'When your bank shows a different balance than Pulpe, matching first suggests checking off items that already went through your account, instead of an adjustment that would count them twice.',
+          },
+        ],
+      },
+      de: {
+        features: [],
+        fixes: [
+          {
+            title: 'Der Abgleich schlägt Abhaken vor dem Ausgleich vor',
+            description:
+              'Zeigt deine Bank einen anderen Saldo als Pulpe, schlägt der Abgleich zuerst vor, bereits gebuchte Bewegungen abzuhaken, statt eines Ausgleichs, der sie doppelt zählen würde.',
+          },
+        ],
+      },
+      it: {
+        features: [],
+        fixes: [
+          {
+            title: 'L’allineamento propone di spuntare prima di correggere',
+            description:
+              'Quando la tua banca mostra un saldo diverso da Pulpe, l’allineamento propone prima di spuntare i movimenti già passati sul conto, invece di una correzione che li conterebbe due volte.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.61.0',
     date: '2026-11-14',
     platforms: ['android'],

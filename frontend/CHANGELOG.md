@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.62.0
+
+### Minor Changes
+
+- Rapprochement : pointer les mouvements déjà passés avant un ajustement ; invitation au test Android sur le site.
+
+### Patch Changes
+
+- pulpe-shared@0.62.0
+
 ## 0.61.0
 
 ### Minor Changes
