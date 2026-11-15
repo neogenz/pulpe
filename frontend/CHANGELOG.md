@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.62.1
+
+### Patch Changes
+
+- Release v0.62.1
+  - pulpe-shared@0.62.1
+
 ## 0.62.0
 
 ### Minor Changes

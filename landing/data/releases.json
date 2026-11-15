@@ -1,9 +1,9 @@
 [
   {
-    "version": "0.62.0",
+    "version": "0.62.1",
     "iosVersion": "1.14.1",
     "date": "2026-11-15",
-    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.62.0",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.62.1",
     "platforms": ["web", "ios", "android"],
     "changes": {
       "features": [

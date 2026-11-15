@@ -54,7 +54,7 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
-    version: '0.62.0',
+    version: '0.62.1',
     iosVersion: '1.14.1',
     date: '2026-11-15',
     platforms: ['ios'],
@@ -123,7 +123,7 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
     },
   },
   {
-    version: '0.62.0',
+    version: '0.62.1',
     date: '2026-11-15',
     platforms: ['android'],
     changes: {
