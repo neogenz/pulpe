@@ -240,8 +240,9 @@ const it: Dictionary = {
       },
       android: {
         title: "Android",
-        badge: "Presto",
-        text: "L’app nativa è in lavorazione. La versione Web funziona già sui cellulari Android.",
+        badge: "Beta",
+        text: "L’app nativa è pronta. Cerco qualche persona per provarla prima dell’uscita.",
+        cta: "Partecipa al test",
       },
     },
 

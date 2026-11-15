@@ -239,8 +239,9 @@ const en: Dictionary = {
       },
       android: {
         title: "Android",
-        badge: "Soon",
-        text: "The native app is on its way. The web version already works on Android phones.",
+        badge: "Beta",
+        text: "The native app is ready. I’m looking for a few people to try it before it launches.",
+        cta: "Join the test",
       },
     },
 

@@ -261,8 +261,9 @@ const fr = {
       },
       android: {
         title: "Android",
-        badge: "Bientôt",
-        text: "L’app native est en cours. La version Web fonctionne déjà sur mobile Android.",
+        badge: "Bêta",
+        text: "L’app native est prête. Je cherche quelques personnes pour l’essayer avant sa sortie.",
+        cta: "Rejoindre le test",
       },
     },
 
