@@ -1441,6 +1441,10 @@
           "title": "Give feedback",
           "description": "A quick impression in 30 seconds"
         },
+        "rateApp": {
+          "title": "Rate Pulpe",
+          "description": "Opens in the Play Store"
+        },
         "connections": {
           "title": "Connections",
           "description": "Authorized AI assistants",

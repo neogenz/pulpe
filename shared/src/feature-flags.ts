@@ -202,6 +202,15 @@ export const ANALYTICS_EVENTS = {
   FEEDBACK_VIEWED: 'feedback_viewed',
   FEEDBACK_SUBMITTED: 'feedback_submitted',
   FEEDBACK_CANCELLED: 'feedback_cancelled',
+  /**
+   * iOS and Android: the app asked the store for its native rating card, or
+   * opened the store's review page. Properties: `source` (`'automatic'` after
+   * the fifth movement recorded since the last request, at most once per app
+   * version; `'settings'` for the "Noter Pulpe" row). The stores never say
+   * whether the card showed or a rating was left: read the effect in App Store
+   * Connect and the Play Console.
+   */
+  STORE_REVIEW_REQUESTED: 'store_review_requested',
 } as const;
 
 export type AnalyticsEventName =

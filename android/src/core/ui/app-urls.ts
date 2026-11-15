@@ -4,4 +4,6 @@ export const APP_URLS = {
   privacy: "https://app.pulpe.app/legal/confidentialite",
   support: "https://pulpe.app/support",
   changelog: "https://pulpe.app/changelog",
+  playStoreReview:
+    "https://play.google.com/store/apps/details?id=app.pulpe.android&showAllReviews=true",
 } as const;

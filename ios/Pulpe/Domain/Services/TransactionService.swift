@@ -20,16 +20,17 @@ actor TransactionService: TransactionServicing {
     static let shared = TransactionService()
 
     private let apiClient: APIClient
-    private let captureCreated: @MainActor @Sendable (TransactionKind) -> Void
+    private let onCreated: @MainActor @Sendable (TransactionKind) -> Void
 
     init(
         apiClient: APIClient = .shared,
-        captureCreated: @escaping @MainActor @Sendable (TransactionKind) -> Void = { kind in
+        onCreated: @escaping @MainActor @Sendable (TransactionKind) -> Void = { kind in
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
+            Task { await StoreReviewPrompt.shared.recordMovementCreated() }
         }
     ) {
         self.apiClient = apiClient
-        self.captureCreated = captureCreated
+        self.onCreated = onCreated
     }
 
     // MARK: - CRUD Operations
@@ -53,7 +54,7 @@ actor TransactionService: TransactionServicing {
     /// Create a new transaction
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction {
         let transaction: Transaction = try await apiClient.request(.transactionsCreate, body: data, method: .post)
-        await captureCreated(transaction.kind)
+        await onCreated(transaction.kind)
         return transaction
     }
 
