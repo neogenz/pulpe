@@ -35,6 +35,10 @@ jest.mock("@/core/observability/product-events", () => ({
 jest.mock("./first-movement-tracker", () => ({
   recordMovementCreated: jest.fn(),
 }));
+// Its two-second wait outlives the test environment.
+jest.mock("./store-review-prompt", () => ({
+  recordMovementForStoreReview: jest.fn(),
+}));
 jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => true }));
 jest.mock("@/features/budgets/budget-api", () => ({}));
 jest.mock("@/features/savings-goals/goals-api", () => ({}));
