@@ -54,7 +54,7 @@ interface TagFilterDialogData {
     <h2 mat-dialog-title>{{ 'budget.tagFilterDialogTitle' | transloco }}</h2>
 
     <mat-dialog-content>
-      <mat-form-field appearance="outline" class="w-full pt-1">
+      <mat-form-field appearance="outline" class="w-full pt-4">
         <mat-label>{{ 'budget.tagFilterSearchLabel' | transloco }}</mat-label>
         <mat-icon matPrefix>search</mat-icon>
         <input

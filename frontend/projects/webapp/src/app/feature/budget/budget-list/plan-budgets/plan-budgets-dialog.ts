@@ -74,7 +74,7 @@ const PERIOD_VALIDATION_TEMPLATE_ID = '00000000-0000-4000-8000-000000000001';
     <h2 mat-dialog-title>{{ 'budget.planTitle' | transloco }}</h2>
 
     <mat-dialog-content>
-      <form [formGroup]="planForm" class="py-2 md:py-4 space-y-4">
+      <form [formGroup]="planForm" class="py-4 space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'budget.planFrom' | transloco }}</mat-label>

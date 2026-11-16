@@ -71,6 +71,7 @@ not a precedent: never copy a neighbouring `mat-button` into new code.
 Rules:
 - **Always** explicit `<mat-label>` — placeholder promotion removed
 - **Always** prefer `subscriptSizing="dynamic"` (project convention)
+- **Always** put `pt-4` (padding, never margin) above the first form field of a `mat-dialog-content`, at every breakpoint. Material zeroes the content's `padding-top` under a title and the content scrolls (`overflow: auto`), so it clips the outlined field's floating label, which sits ~9px above the field. `mt-2`, `pt-1`, `py-2` all clip.
 
 ## Imports Pattern
 
