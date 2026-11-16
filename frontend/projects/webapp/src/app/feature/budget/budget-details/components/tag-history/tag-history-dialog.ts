@@ -71,7 +71,7 @@ export interface TagHistoryDialogData {
     </div>
 
     <mat-dialog-content class="min-w-0 overflow-x-hidden!">
-      <div class="flex min-w-0 flex-col gap-5 py-1">
+      <div class="flex min-w-0 flex-col gap-5 pt-4 pb-1">
         <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>{{ 'tagHistory.tagLabel' | transloco }}</mat-label>

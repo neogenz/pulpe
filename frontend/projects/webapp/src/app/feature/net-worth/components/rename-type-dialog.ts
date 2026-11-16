@@ -42,7 +42,7 @@ export interface RenameTypeDialogData {
       <mat-form-field
         appearance="outline"
         subscriptSizing="dynamic"
-        class="mt-2 w-full"
+        class="w-full pt-4"
       >
         <mat-label>{{ 'netWorth.type.nameLabel' | transloco }}</mat-label>
         <input
