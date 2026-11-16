@@ -417,13 +417,16 @@ export default class NetWorthPage {
   protected async openIntro(source: IntroSource): Promise<void> {
     if (this.#isIntroOpen) return;
     this.#isIntroOpen = true;
-    const result = await this.#dialogs.openIntro({
-      source,
-      isEmpty: this.store.isEmpty(),
-    });
-    this.#isIntroOpen = false;
-    this.#storage.set(STORAGE_KEYS.NET_WORTH_INTRO_SEEN, true);
-    if (result === 'add') await this.onAdd();
+    try {
+      const result = await this.#dialogs.openIntro({
+        source,
+        isEmpty: this.store.isEmpty(),
+      });
+      this.#storage.set(STORAGE_KEYS.NET_WORTH_INTRO_SEEN, true);
+      if (result === 'add') await this.onAdd();
+    } finally {
+      this.#isIntroOpen = false;
+    }
   }
 
   protected readonly categoryNames = computed(
