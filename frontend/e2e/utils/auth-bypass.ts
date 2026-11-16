@@ -107,6 +107,16 @@ export async function setupAuthBypass(
         localStorage.setItem(`pulpe-tour-${tourId}`, JSON.stringify(entry));
       }
 
+      // The « Mon patrimoine » explainer opens by itself once and would cover the page
+      localStorage.setItem(
+        'pulpe-net-worth-intro-seen',
+        JSON.stringify({
+          version: 1,
+          data: true,
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+
       // Dismiss "What's New" toast to prevent it from blocking E2E interactions
       // Uses versioned storage format matching StorageService
       localStorage.setItem(
