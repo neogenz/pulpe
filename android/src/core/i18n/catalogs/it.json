@@ -1232,6 +1232,45 @@
       "mortgage": "Mutuo",
       "leasing": "Leasing",
       "creditCard": "Carta di credito"
+    },
+    "intro": {
+      "help": "Capire il mio patrimonio",
+      "later": "Più tardi",
+      "example": "Esempio",
+      "stepOf": "Passo %{current} di %{total}",
+      "actions": {
+        "next": "Avanti",
+        "done": "Capito",
+        "add": "Aggiungi il mio primo conto"
+      },
+      "steps": {
+        "overview": {
+          "title": "Tutti i tuoi soldi, in un unico posto",
+          "body": "Conti, risparmi, investimenti, ma anche la tua auto o il tuo appartamento: aggiungi tutto ciò che possiedi.",
+          "scene": "Esempio: conto corrente, risparmi, investimenti e auto insieme, %{gross} in tutto."
+        },
+        "netWorth": {
+          "title": "La tua situazione a colpo d'occhio",
+          "body": "Tolgo ciò che devi, prestito o leasing. Resta un numero: il tuo patrimonio netto, lo stato reale delle tue finanze.",
+          "scene": "Esempio: %{gross} meno un prestito di %{debt}, patrimonio netto %{net}."
+        },
+        "update": {
+          "title": "Tienilo aggiornato con un tocco",
+          "body": "Un valore cambia? Lo aggiorni. E quando metti da parte dei soldi nel tuo budget, ti propongo di aggiungerli qui.",
+          "scene": "Esempio: i risparmi passano da %{before} a %{after}, il patrimonio netto sale a %{netAfter}."
+        }
+      },
+      "sample": {
+        "everything": "Tutto ciò che ho",
+        "checking": "Conto corrente",
+        "savings": "Risparmi",
+        "investments": "Investimenti",
+        "car": "Auto",
+        "loan": "Prestito"
+      },
+      "updatedLongAgo": "Aggiornato 2 mesi fa",
+      "updatedToday": "Aggiornato oggi",
+      "budgetHint": "%{amount} messi da parte nel tuo budget → ti propongo +%{amount} qui."
     }
   },
   "onboarding": {

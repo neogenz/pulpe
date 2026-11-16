@@ -1232,6 +1232,45 @@
       "mortgage": "Hypothèque",
       "leasing": "Leasing",
       "creditCard": "Carte de crédit"
+    },
+    "intro": {
+      "help": "Comprendre mon patrimoine",
+      "later": "Plus tard",
+      "example": "Exemple",
+      "stepOf": "Étape %{current} sur %{total}",
+      "actions": {
+        "next": "Suivant",
+        "done": "Compris",
+        "add": "Ajouter mon premier compte"
+      },
+      "steps": {
+        "overview": {
+          "title": "Tout ton argent, au même endroit",
+          "body": "Comptes, épargne, placements, mais aussi ta voiture ou ton appart : ajoute tout ce que tu possèdes.",
+          "scene": "Exemple : compte courant, épargne, placements et voiture réunis, %{gross} en tout."
+        },
+        "netWorth": {
+          "title": "Ta situation en un coup d'œil",
+          "body": "J'enlève ce que tu dois, crédit ou leasing. Il reste un chiffre : ta fortune nette, l'état réel de tes finances.",
+          "scene": "Exemple : %{gross} moins un crédit de %{debt}, fortune nette %{net}."
+        },
+        "update": {
+          "title": "Garde-la à jour en un geste",
+          "body": "Une valeur change ? Tu la mets à jour. Et quand tu mets de l'argent de côté dans ton budget, je te propose de l'ajouter ici.",
+          "scene": "Exemple : l'épargne passe de %{before} à %{after}, la fortune nette monte à %{netAfter}."
+        }
+      },
+      "sample": {
+        "everything": "Tout ce que j'ai",
+        "checking": "Compte courant",
+        "savings": "Épargne",
+        "investments": "Placements",
+        "car": "Voiture",
+        "loan": "Crédit"
+      },
+      "updatedLongAgo": "Mis à jour il y a 2 mois",
+      "updatedToday": "Mis à jour aujourd'hui",
+      "budgetHint": "%{amount} mis de côté dans ton budget → je te propose +%{amount} ici."
     }
   },
   "onboarding": {
