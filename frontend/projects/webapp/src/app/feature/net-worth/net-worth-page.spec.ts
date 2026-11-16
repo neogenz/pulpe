@@ -147,6 +147,7 @@ describe('NetWorthPage', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    localStorage.clear();
     status.set('resolved');
     dialogs.openCreate.mockResolvedValue(undefined);
     store.setArchived.mockResolvedValue(undefined);
@@ -259,6 +260,28 @@ describe('NetWorthPage', () => {
 
     expect(sections()).toHaveLength(4);
     expect(rowNames(sections()[3])).toEqual(['Ancien compte']);
+  });
+
+  it('should fold a Type to its total and keep it folded on the next visit', () => {
+    render(populated);
+    const toggle = () =>
+      sections()[1].querySelector<HTMLButtonElement>(
+        '[data-testid="net-worth-section-toggle"]',
+      )!;
+    expect(toggle().getAttribute('aria-expanded')).toBe('true');
+
+    toggle().click();
+    fixture.detectChanges();
+
+    expect(toggle().getAttribute('aria-expanded')).toBe('false');
+    expect(rowNames(sections()[1])).toEqual([]);
+    expect(sections()[1].textContent).toContain('3’000');
+    expect(rowNames(sections()[0])).toEqual(['UBS']);
+
+    fixture.destroy();
+    fixture = TestBed.createComponent(NetWorthPage);
+    render(populated);
+    expect(rowNames(sections()[1])).toEqual([]);
   });
 
   it('turns the hero amber, never red, when the net is negative', () => {

@@ -15,6 +15,7 @@ import { firstValueFrom } from 'rxjs';
 import type { AssetCategory } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { TitleDisplay } from '@core/routing';
+import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { type AssetRowEvent } from './components/net-worth-asset-row';
@@ -217,6 +218,8 @@ import { injectWriteAttempt } from './services/write-attempt';
                     [baseCurrency]="totals.baseCurrency"
                     [busy]="store.isSaving()"
                     [renamable]="true"
+                    [collapsed]="collapsedTypeIds().has(group.category.id)"
+                    (toggleCollapsed)="toggleType(group.category.id)"
                     (action)="onAction($event)"
                     (rename)="onRenameType(group.category)"
                   />
@@ -246,6 +249,8 @@ import { injectWriteAttempt } from './services/write-attempt';
                       [busy]="store.isSaving()"
                       [isDebts]="true"
                       [renamable]="true"
+                      [collapsed]="collapsedTypeIds().has(category.id)"
+                      (toggleCollapsed)="toggleType(category.id)"
                       (action)="onAction($event)"
                       (rename)="onRenameType(category)"
                     />
@@ -259,6 +264,8 @@ import { injectWriteAttempt } from './services/write-attempt';
                       [isDebts]="true"
                       [showCategory]="true"
                       [categoryNames]="categoryNames()"
+                      [collapsed]="collapsedTypeIds().has(OVERDRAFTS_KEY)"
+                      (toggleCollapsed)="toggleType(OVERDRAFTS_KEY)"
                       (action)="onAction($event)"
                     />
                   }
@@ -354,6 +361,22 @@ export default class NetWorthPage {
 
   protected readonly today = new Date();
   protected readonly isArchivedShown = signal(false);
+
+  protected readonly OVERDRAFTS_KEY = 'overdrafts';
+  readonly #storage = inject(StorageService);
+  // Per device: a folded Type stays folded on the next visit.
+  protected readonly collapsedTypeIds = signal<ReadonlySet<string>>(
+    new Set(
+      this.#storage.get<string[]>(STORAGE_KEYS.NET_WORTH_COLLAPSED_TYPES) ?? [],
+    ),
+  );
+
+  protected toggleType(key: string): void {
+    const next = new Set(this.collapsedTypeIds());
+    if (!next.delete(key)) next.add(key);
+    this.collapsedTypeIds.set(next);
+    this.#storage.set(STORAGE_KEYS.NET_WORTH_COLLAPSED_TYPES, [...next]);
+  }
 
   protected readonly categoryNames = computed(
     () =>
