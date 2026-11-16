@@ -187,7 +187,7 @@ function useProgress(delayMs: number, spring = false) {
   return progress;
 }
 
-/** Fades in while sliding from an offset; transforms only, so the layout never moves. */
+/** Slides in from an offset; transforms only, so the layout never moves and no opacity dims the text. */
 function useSlideIn(
   delayMs: number,
   dx = 0,
@@ -198,7 +198,6 @@ function useSlideIn(
   return useAnimatedStyle(() => {
     const rest = 1 - progress.value;
     return {
-      opacity: progress.value,
       transform: [
         { translateX: dx * rest },
         { translateY: dy * rest },
@@ -296,7 +295,6 @@ function NetWorthScene({ currency }: { currency: SupportedCurrency }) {
   }));
   const pop = useProgress(BEAT_MS * 6, true);
   const popStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, pop.value * 2),
     transform: [{ scale: 0.85 + 0.15 * pop.value }],
   }));
   const net = useCountUp(TOTALS.gross, TOTALS.netBefore, BEAT_MS * 6);

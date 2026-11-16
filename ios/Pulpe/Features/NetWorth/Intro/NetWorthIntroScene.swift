@@ -29,18 +29,19 @@ struct NetWorthIntroScene: View {
         case .overview:
             return AppLocale.string("""
                 Exemple : compte courant, épargne, placements et voiture réunis, \
-                \(sample.gross.asCurrency(currency)) en tout.
+                \(sample.gross.asCompactCurrency(currency)) en tout.
                 """)
         case .netWorth:
             return AppLocale.string("""
-                Exemple : \(sample.gross.asCurrency(currency)) moins un crédit de \
-                \(sample.debt.asCurrency(currency)), fortune nette \(sample.netBefore.asCurrency(currency)).
+                Exemple : \(sample.gross.asCompactCurrency(currency)) moins un crédit de \
+                \(sample.debt.asCompactCurrency(currency)), fortune nette \
+                \(sample.netBefore.asCompactCurrency(currency)).
                 """)
         case .update:
             return AppLocale.string("""
-                Exemple : l'épargne passe de \(sample.savingsBefore.asCurrency(currency)) à \
-                \(sample.savingsAfter.asCurrency(currency)), la fortune nette monte à \
-                \(sample.netAfter.asCurrency(currency)).
+                Exemple : l'épargne passe de \(sample.savingsBefore.asCompactCurrency(currency)) à \
+                \(sample.savingsAfter.asCompactCurrency(currency)), la fortune nette monte à \
+                \(sample.netAfter.asCompactCurrency(currency)).
                 """)
         }
     }
@@ -94,7 +95,7 @@ private struct RollingAmount: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xs) {
-            Text(verbatim: (isSettled ? to : from).asAmount(for: currency))
+            Text(verbatim: (isSettled ? to : from).asCompactAmount(for: currency))
                 .font(PulpeTypography.bigAmount)
                 .contentTransition(.numericText(countsDown: to < from))
             Text(verbatim: currency.symbol)
@@ -148,7 +149,7 @@ private struct OverviewScene: View {
                     Text(line.name)
                         .font(PulpeTypography.bodyLarge)
                     Spacer(minLength: DesignTokens.Spacing.sm)
-                    Text(verbatim: line.value.asAmount(for: currency))
+                    Text(verbatim: line.value.asCompactAmount(for: currency))
                         .font(PulpeTypography.bodyLarge)
                         .monospacedDigit()
                 }
@@ -192,7 +193,7 @@ private struct NetWorthScene: View {
             ExampleHeader(title: nil)
             figureRow(
                 label: Text("Ce que j'ai"),
-                amount: NetWorthIntroSample.gross.asAmount(for: currency),
+                amount: NetWorthIntroSample.gross.asCompactAmount(for: currency),
                 dot: .pulpePrimary,
                 ink: .textPrimary
             )
@@ -202,7 +203,7 @@ private struct NetWorthScene: View {
             figureRow(
                 label: Text("Ce que je dois") + Text(verbatim: " · ").foregroundStyle(Color.textSecondary)
                     + Text("Crédit").foregroundStyle(Color.textSecondary),
-                amount: "−" + NetWorthIntroSample.debt.asAmount(for: currency),
+                amount: "−" + NetWorthIntroSample.debt.asCompactAmount(for: currency),
                 dot: .financialOverBudget,
                 ink: .financialOverBudget
             )
@@ -307,7 +308,7 @@ private struct UpdateScene: View {
             }
             Spacer(minLength: DesignTokens.Spacing.sm)
             Text(verbatim: (timeline.isSettled ? NetWorthIntroSample.savingsAfter : NetWorthIntroSample.savingsBefore)
-                .asAmount(for: currency))
+                .asCompactAmount(for: currency))
                 .font(PulpeTypography.rowAmount)
                 .foregroundStyle(Color.textPrimary)
                 .monospacedDigit()
@@ -334,7 +335,7 @@ private struct UpdateScene: View {
         HStack(spacing: DesignTokens.Spacing.compactGap) {
             Image(systemName: "arrow.up.arrow.down")
                 .foregroundStyle(Color.accentInk)
-            let amount = NetWorthIntroSample.budgetSuggestion.asAmount(for: currency)
+            let amount = NetWorthIntroSample.budgetSuggestion.asCompactAmount(for: currency)
             Text("\(amount) mis de côté dans ton budget → je te propose +\(amount) ici.")
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textPrimary)
