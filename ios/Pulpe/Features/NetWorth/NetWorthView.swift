@@ -6,6 +6,7 @@ struct NetWorthView: View {
     @Environment(AssetStore.self) private var store
     @Environment(ToastManager.self) private var toastManager
     @State private var showsArchived = false
+    @AppStorage(NetWorthSections.collapsedStorageKey) private var collapsedGroupIds = ""
     @State private var form: FormTarget?
     @State private var pendingDelete: Asset?
     @State private var renameTarget: NetWorthSections.Group?
@@ -133,29 +134,53 @@ struct NetWorthView: View {
     }
 
     private func card(_ group: NetWorthSections.Group, sections: NetWorthSections) -> some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            groupHeader(group, currency: sections.baseCurrency)
-            ForEach(group.assets, id: \.id) { asset in
-                Divider().overlay(Color.outlineVariant)
-                assetRow(asset, sections: sections, showsCategory: !group.isType)
+        let isCollapsed = NetWorthSections.isCollapsed(group.id, in: collapsedGroupIds)
+        return VStack(spacing: DesignTokens.Spacing.none) {
+            groupHeader(group, currency: sections.baseCurrency, isCollapsed: isCollapsed)
+            if !isCollapsed {
+                ForEach(group.assets, id: \.id) { asset in
+                    Divider().overlay(Color.outlineVariant)
+                    assetRow(asset, sections: sections, showsCategory: !group.isType)
+                }
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
         .pulpeSurfaceCard()
     }
 
-    private func groupHeader(_ group: NetWorthSections.Group, currency: SupportedCurrency) -> some View {
+    /// The chevron leads and the whole row folds the card; the menu keeps its own target.
+    private func groupHeader(
+        _ group: NetWorthSections.Group, currency: SupportedCurrency, isCollapsed: Bool
+    ) -> some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
-            Text(group.name)
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            Text(group.total.asCurrency(currency))
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textSecondary)
-                .monospacedDigit()
-                .sensitiveAmount()
+            Button {
+                withAnimation(DesignTokens.Animation.smoothEaseInOut) {
+                    collapsedGroupIds = NetWorthSections.toggled(group.id, in: collapsedGroupIds)
+                }
+            } label: {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.textSecondary)
+                        .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                        .accessibilityHidden(true)
+                    Text(group.name)
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.textPrimary)
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    Text(group.total.asCurrency(currency))
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.textSecondary)
+                        .monospacedDigit()
+                        .sensitiveAmount()
+                }
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Rectangle())
+            }
+            .plainPressedButtonStyle()
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityHint(isCollapsed ? "Appuie pour développer" : "Appuie pour réduire")
+            .accessibilityIdentifier("netWorthGroupToggle")
             if group.isType {
                 Menu {
                     Button(AppLocale.string("Renommer le type"), systemImage: "pencil") { renameTarget = group }

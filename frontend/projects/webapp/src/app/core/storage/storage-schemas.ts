@@ -94,6 +94,12 @@ export const STORAGE_SCHEMAS = {
     scope: 'user',
   },
 
+  [STORAGE_KEYS.NET_WORTH_COLLAPSED_TYPES]: {
+    version: 1,
+    schema: z.array(z.string()),
+    scope: 'user',
+  },
+
   [STORAGE_KEYS.DASHBOARD_POINTING_LEARNED]: {
     version: 1,
     schema: z.boolean(),

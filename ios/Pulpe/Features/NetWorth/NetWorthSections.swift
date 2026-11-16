@@ -15,6 +15,19 @@ struct NetWorthSections: Equatable {
 
     static let overdraftsId = "overdrafts"
 
+    /// The cards folded on this device, by `Group.id`, comma-joined for `@AppStorage`.
+    static let collapsedStorageKey = "netWorthCollapsedGroupIds"
+
+    static func isCollapsed(_ id: String, in raw: String) -> Bool {
+        raw.split(separator: ",").contains(Substring(id))
+    }
+
+    static func toggled(_ id: String, in raw: String) -> String {
+        var ids = raw.split(separator: ",").map(String.init)
+        if let index = ids.firstIndex(of: id) { ids.remove(at: index) } else { ids.append(id) }
+        return ids.joined(separator: ",")
+    }
+
     let baseCurrency: SupportedCurrency
     let net: Decimal
     let gross: Decimal

@@ -4,6 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -16,6 +17,7 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
 @Component({
   selector: 'pulpe-net-worth-section',
   imports: [
+    NgTemplateOutlet,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
@@ -30,23 +32,53 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
       [attr.aria-label]="title()"
       data-testid="net-worth-section"
     >
-      <header class="flex min-h-14 items-center gap-3 pl-5 pr-2">
-        <h3
-          class="ph-no-capture min-w-0 flex-1 truncate text-title-medium font-semibold"
-        >
-          {{ title() }}
-        </h3>
-        @if (total() !== null) {
-          <span
-            class="ph-no-capture whitespace-nowrap text-label-large font-semibold tabular-nums"
-            [class.amber]="isDebts()"
-            [class.text-on-surface-variant]="!isDebts()"
-            [class.mr-3]="!renamable()"
-            data-testid="net-worth-section-total"
-          >
-            {{ total() | appCurrency: baseCurrency() : '1.0-0' }}
-          </span>
+      <header
+        class="flex min-h-14 items-center gap-3 pr-2"
+        [class.pl-5]="collapsed() === null"
+      >
+        @if (collapsed() === null) {
+          <h3 class="min-w-0 flex-1">
+            <ng-container [ngTemplateOutlet]="heading" />
+          </h3>
+        } @else {
+          <h3 class="min-w-0 flex-1">
+            <button
+              type="button"
+              class="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl pl-3 text-left hover:bg-surface-container"
+              [attr.aria-expanded]="!collapsed()"
+              (click)="toggleCollapsed.emit()"
+              data-testid="net-worth-section-toggle"
+            >
+              <mat-icon
+                aria-hidden="true"
+                class="shrink-0 text-on-surface-variant transition-transform"
+                [class.-rotate-90]="collapsed()"
+                >expand_more</mat-icon
+              >
+              <ng-container [ngTemplateOutlet]="heading" />
+            </button>
+          </h3>
         }
+        <ng-template #heading>
+          <span class="flex min-w-0 flex-1 items-center gap-3">
+            <span
+              class="ph-no-capture min-w-0 flex-1 truncate text-title-medium font-semibold"
+            >
+              {{ title() }}
+            </span>
+            @if (total() !== null) {
+              <span
+                class="ph-no-capture whitespace-nowrap text-label-large font-semibold tabular-nums"
+                [class.amber]="isDebts()"
+                [class.text-on-surface-variant]="!isDebts()"
+                [class.mr-3]="!renamable()"
+                data-testid="net-worth-section-total"
+              >
+                {{ total() | appCurrency: baseCurrency() : '1.0-0' }}
+              </span>
+            }
+          </span>
+        </ng-template>
         @if (renamable()) {
           <button
             matIconButton
@@ -71,23 +103,25 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
           </mat-menu>
         }
       </header>
-      <ul class="m-0 list-none p-0">
-        @for (asset of assets(); track asset.id) {
-          <li>
-            <pulpe-net-worth-asset-row
-              [asset]="asset"
-              [baseCurrency]="baseCurrency()"
-              [busy]="busy()"
-              [categoryName]="
-                showCategory()
-                  ? (categoryNames().get(asset.categoryId) ?? null)
-                  : null
-              "
-              (action)="action.emit($event)"
-            />
-          </li>
-        }
-      </ul>
+      @if (!collapsed()) {
+        <ul class="m-0 list-none p-0">
+          @for (asset of assets(); track asset.id) {
+            <li>
+              <pulpe-net-worth-asset-row
+                [asset]="asset"
+                [baseCurrency]="baseCurrency()"
+                [busy]="busy()"
+                [categoryName]="
+                  showCategory()
+                    ? (categoryNames().get(asset.categoryId) ?? null)
+                    : null
+                "
+                (action)="action.emit($event)"
+              />
+            </li>
+          }
+        </ul>
+      }
     </section>
   `,
   styles: `
@@ -114,6 +148,9 @@ export class NetWorthSection {
   readonly categoryNames = input<ReadonlyMap<string, string>>(new Map());
   /** A write is in flight: the rows' quick actions wait for it. */
   readonly busy = input(false);
+  /** `null` keeps the card open for good (the archives already sit behind their own toggle). */
+  readonly collapsed = input<boolean | null>(null);
   readonly action = output<AssetRowEvent>();
+  readonly toggleCollapsed = output<void>();
   readonly rename = output<void>();
 }

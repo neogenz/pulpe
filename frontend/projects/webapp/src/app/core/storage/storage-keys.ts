@@ -33,6 +33,9 @@ export const STORAGE_KEYS = {
   // Dashboard: the Android closed-test invitation was dismissed
   ANDROID_BETA_INVITE_DISMISSED: 'pulpe-android-beta-invite-dismissed',
 
+  // Net worth: the Types folded on this device, by category id (or "overdrafts")
+  NET_WORTH_COLLAPSED_TYPES: 'pulpe-net-worth-collapsed-types',
+
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',
 

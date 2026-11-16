@@ -144,4 +144,15 @@ struct NetWorthSectionsTests {
 
         #expect(drawn.suggestionMagnitude == 200)
     }
+
+    @Test func togglingACardFoldsItThenUnfoldsIt_leavingTheOthers() {
+        let folded = NetWorthSections.toggled("loans", in: "cash")
+        #expect(NetWorthSections.isCollapsed("loans", in: folded))
+        #expect(NetWorthSections.isCollapsed("cash", in: folded))
+
+        let unfolded = NetWorthSections.toggled("loans", in: folded)
+        #expect(!NetWorthSections.isCollapsed("loans", in: unfolded))
+        #expect(unfolded == "cash")
+        #expect(!NetWorthSections.isCollapsed("cash", in: ""))
+    }
 }
