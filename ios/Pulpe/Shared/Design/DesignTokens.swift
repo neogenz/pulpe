@@ -433,6 +433,8 @@ enum DesignTokens {
         /// Fraction of the scroll offset the home hero follows, so the content card appears
         /// to rise over it. 0 = scrolls 1:1 with the card (what Reduce Motion gets).
         static let heroParallax: CGFloat = 0.35
+        /// Degrees a row of the net-worth explainer is tilted while it slides into its card.
+        static let introRowTilt: Double = 8
     }
 
     enum ProgressBar {
