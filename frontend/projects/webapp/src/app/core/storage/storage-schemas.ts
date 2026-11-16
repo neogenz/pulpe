@@ -99,6 +99,11 @@ export const STORAGE_SCHEMAS = {
     schema: z.array(z.string()),
     scope: 'user',
   },
+  [STORAGE_KEYS.NET_WORTH_INTRO_SEEN]: {
+    version: 1,
+    schema: z.boolean(),
+    scope: 'user',
+  },
 
   [STORAGE_KEYS.DASHBOARD_POINTING_LEARNED]: {
     version: 1,

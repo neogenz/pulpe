@@ -1557,6 +1557,45 @@
       "mortgage": "Mortgage",
       "leasing": "Leasing",
       "card": "Credit card"
+    },
+    "intro": {
+      "help": "Understand my assets",
+      "later": "Later",
+      "example": "Example",
+      "stepOf": "Step {{current}} of {{total}}",
+      "actions": {
+        "next": "Next",
+        "done": "Got it",
+        "add": "Add my first account"
+      },
+      "steps": {
+        "overview": {
+          "title": "All your money, in one place",
+          "body": "Accounts, savings, investments, and also your car or your flat: add everything you own.",
+          "scene": "Example: current account, savings, investments and car together, {{gross}} in all."
+        },
+        "netWorth": {
+          "title": "Your situation at a glance",
+          "body": "I take off what you owe, a loan or a lease. One figure is left: your net worth, the real state of your finances.",
+          "scene": "Example: {{gross}} minus a {{debt}} loan, net worth {{net}}."
+        },
+        "update": {
+          "title": "Keep it up to date in one tap",
+          "body": "A value changes? You update it. And when you set money aside in your budget, I suggest adding it here.",
+          "scene": "Example: savings go from {{before}} to {{after}}, net worth rises to {{netAfter}}."
+        }
+      },
+      "sample": {
+        "everything": "Everything I have",
+        "checking": "Current account",
+        "savings": "Savings",
+        "investments": "Investments",
+        "car": "Car",
+        "loan": "Loan"
+      },
+      "updatedLongAgo": "Updated 2 months ago",
+      "updatedToday": "Updated today",
+      "budgetHint": "{{amount}} set aside in your budget → I suggest +{{amount}} here."
     }
   },
   "completeProfile": {

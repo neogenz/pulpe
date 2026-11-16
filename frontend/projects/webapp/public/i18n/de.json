@@ -1557,6 +1557,45 @@
       "mortgage": "Hypothek",
       "leasing": "Leasing",
       "card": "Kreditkarte"
+    },
+    "intro": {
+      "help": "Mein Vermögen verstehen",
+      "later": "Später",
+      "example": "Beispiel",
+      "stepOf": "Schritt {{current}} von {{total}}",
+      "actions": {
+        "next": "Weiter",
+        "done": "Verstanden",
+        "add": "Mein erstes Konto hinzufügen"
+      },
+      "steps": {
+        "overview": {
+          "title": "Dein ganzes Geld an einem Ort",
+          "body": "Konten, Ersparnisse, Anlagen, aber auch dein Auto oder deine Wohnung: Füge alles hinzu, was du besitzt.",
+          "scene": "Beispiel: Bankkonto, Ersparnisse, Anlagen und Auto zusammen, insgesamt {{gross}}."
+        },
+        "netWorth": {
+          "title": "Deine Lage auf einen Blick",
+          "body": "Ich ziehe ab, was du schuldest, Kredit oder Leasing. Übrig bleibt eine Zahl: dein Nettovermögen, der echte Stand deiner Finanzen.",
+          "scene": "Beispiel: {{gross}} minus ein Kredit von {{debt}}, Nettovermögen {{net}}."
+        },
+        "update": {
+          "title": "Mit einem Tipp aktuell halten",
+          "body": "Ein Wert ändert sich? Du aktualisierst ihn. Und wenn du in deinem Budget Geld zur Seite legst, schlage ich dir vor, es hier hinzuzufügen.",
+          "scene": "Beispiel: Die Ersparnisse steigen von {{before}} auf {{after}}, das Nettovermögen auf {{netAfter}}."
+        }
+      },
+      "sample": {
+        "everything": "Alles, was ich habe",
+        "checking": "Bankkonto",
+        "savings": "Ersparnisse",
+        "investments": "Anlagen",
+        "car": "Auto",
+        "loan": "Kredit"
+      },
+      "updatedLongAgo": "Vor 2 Monaten aktualisiert",
+      "updatedToday": "Heute aktualisiert",
+      "budgetHint": "{{amount}} in deinem Budget zur Seite gelegt → ich schlage dir hier +{{amount}} vor."
     }
   },
   "completeProfile": {
