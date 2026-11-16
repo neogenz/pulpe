@@ -1562,7 +1562,6 @@
       "help": "Comprendre mon patrimoine",
       "later": "Plus tard",
       "example": "Exemple",
-      "stepOf": "Étape {{current}} sur {{total}}",
       "actions": {
         "next": "Suivant",
         "done": "Compris",

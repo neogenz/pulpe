@@ -1,3 +1,4 @@
+import { formatNumber } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -15,7 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { ANALYTICS_EVENTS } from 'pulpe-shared';
 import { AnalyticsService } from '@core/analytics';
-import { AppCurrencyPipe } from '@core/currency';
+import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   INTRO_SAMPLE,
@@ -46,7 +47,6 @@ export type NetWorthIntroResult = 'add' | 'close' | undefined;
     TranslocoPipe,
     AppCurrencyPipe,
   ],
-  providers: [AppCurrencyPipe],
   host: { 'data-testid': 'net-worth-intro-dialog' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -439,6 +439,10 @@ export type NetWorthIntroResult = 'add' | 'close' | undefined;
       .swap-in {
         animation: fade 0.2s ease both;
       }
+      .late,
+      .rise.late {
+        animation-delay: 0s;
+      }
       .swap-out {
         animation: fade-out 0.01s forwards;
       }
@@ -456,7 +460,6 @@ export class NetWorthIntroDialog {
   readonly #data = inject<NetWorthIntroDialogData>(MAT_DIALOG_DATA);
   readonly #analytics = inject(AnalyticsService);
   readonly #settings = inject(UserSettingsStore);
-  readonly #currencyPipe = inject(AppCurrencyPipe);
 
   protected readonly steps = INTRO_STEPS;
   protected readonly sample = INTRO_SAMPLE;
@@ -464,10 +467,12 @@ export class NetWorthIntroDialog {
   protected readonly debtShare = (INTRO_SAMPLE.debt / this.totals.gross) * 100;
   protected readonly currency = this.#settings.currency;
 
-  /** Screen readers get the step's example as one sentence, amounts in full. */
+  /** Screen readers get the step's example as one sentence, with the ISO code they pronounce best. */
   protected readonly sceneParams = computed(() => {
+    const currency = this.currency();
+    const { numberLocale } = CURRENCY_CONFIG[currency];
     const money = (value: number) =>
-      this.#currencyPipe.transform(value, this.currency(), '1.0-0');
+      `${formatNumber(value, numberLocale, '1.0-0')} ${currency}`;
     return {
       gross: money(this.totals.gross),
       debt: money(INTRO_SAMPLE.debt),

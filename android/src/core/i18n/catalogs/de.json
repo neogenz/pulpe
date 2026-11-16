@@ -1235,7 +1235,6 @@
     },
     "intro": {
       "help": "Mein Vermögen verstehen",
-      "later": "Später",
       "example": "Beispiel",
       "stepOf": "Schritt %{current} von %{total}",
       "actions": {

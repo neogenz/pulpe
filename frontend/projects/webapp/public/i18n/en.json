@@ -1562,7 +1562,6 @@
       "help": "Understand my assets",
       "later": "Later",
       "example": "Example",
-      "stepOf": "Step {{current}} of {{total}}",
       "actions": {
         "next": "Next",
         "done": "Got it",
