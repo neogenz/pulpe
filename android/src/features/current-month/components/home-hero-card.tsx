@@ -79,6 +79,7 @@ export function HomeHeroCard({
   const ripple = useRipple({ radius: TOUCH_TARGET / 2 });
   const areHidden = useAmountVisibility((state) => state.areAmountsHidden);
   const [scrubDay, setScrubDay] = useState<number | null>(null);
+  const [restingHeaderHeight, setRestingHeaderHeight] = useState(0);
   const reading =
     scrubDay === null || trajectory === null
       ? null
@@ -101,7 +102,18 @@ export function HomeHeroCard({
   return (
     <View style={styles.hero}>
       <View style={styles.figure}>
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            // The eye and the button step aside while scrubbing: without a floor
+            // the row shrinks to its text and the plot jumps under the finger.
+            reading !== null && { minHeight: restingHeaderHeight },
+          ]}
+          onLayout={(event) => {
+            if (reading === null)
+              setRestingHeaderHeight(event.nativeEvent.layout.height);
+          }}
+        >
           <Text variant="labelLarge" style={{ color: hero.support }}>
             {eyebrow}
           </Text>
@@ -195,7 +207,7 @@ export function HomeHeroCard({
 }
 
 /**
- * One ink for the gap, the sentence and the plotted line. A month sitting
+ * One accent for the verdict sentence and the projection. A month sitting
  * exactly on its plan takes the neutral ink: green is how this hero says
  * "better than planned", so spending it on "as planned" would leave nothing to
  * tell the two apart.
@@ -214,9 +226,6 @@ function useAccentColor(presentation: HeroPresentation): string {
   }
 }
 
-/** Paper's compact text button, the tallest thing in the header row. */
-const HEADER_HEIGHT = 40;
-
 const styles = StyleSheet.create({
   hero: { gap: SPACING.md },
   figure: { gap: SPACING.xs },
@@ -224,9 +233,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.xs,
-    // The eye and the button step aside while scrubbing: without a floor the
-    // row would shrink to its text and the plot would jump under the finger.
-    minHeight: HEADER_HEIGHT,
   },
   eye: {
     width: TOUCH_TARGET,

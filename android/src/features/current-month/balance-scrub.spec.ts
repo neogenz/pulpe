@@ -113,4 +113,9 @@ describe("scrubDayAt", () => {
     expect(scrubDayAt(50, 100, 30)).toBe(15);
     expect(scrubDayAt(10, 0, 30)).toBe(0);
   });
+
+  it("clamps a finger dragged past the plot", () => {
+    expect(scrubDayAt(130, 100, 30)).toBe(30);
+    expect(scrubDayAt(-20, 100, 30)).toBe(0);
+  });
 });

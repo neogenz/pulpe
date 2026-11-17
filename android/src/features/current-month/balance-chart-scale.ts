@@ -1,8 +1,6 @@
-import type { BalanceTrajectory } from "pulpe-shared";
+import type { BalanceTrajectoryPoint as Point } from "pulpe-shared";
 
 import type { TrendedTrajectory } from "./current-month-view-model";
-
-type Point = BalanceTrajectory["real"][number];
 
 export interface CaptionWidths {
   row: number;

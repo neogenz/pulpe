@@ -1,6 +1,7 @@
 import { fireEvent, render } from "@testing-library/react-native";
 
 import { useAmountVisibility } from "@/core/ui/amount-visibility";
+import { HERO_COLORS } from "@/core/ui/theme";
 
 import type { HeroPresentation } from "../home-hero-presentation";
 import { HomeHeroCard } from "./home-hero-card";
@@ -111,4 +112,16 @@ it("keeps the captions while the amounts are masked", async () => {
   expect(view.getByText(/^home\.hero\.rhythm\.moreHidden:/)).toBeTruthy();
   expect(view.getByText("25 juillet")).toBeTruthy();
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();
+});
+
+it("reads the verdict bold in the accent and the rhythm tail in the support ink", async () => {
+  const view = await renderHero({});
+
+  expect(view.getByText(/^home\.hero\.verdict\.gain/)).toHaveStyle({
+    color: HERO_COLORS.light.positive,
+    fontWeight: "700",
+  });
+  expect(view.getByText(/home\.hero\.rhythm\.pace:/)).toHaveStyle({
+    color: HERO_COLORS.light.support,
+  });
 });

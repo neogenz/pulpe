@@ -1,4 +1,7 @@
-import type { SupportedCurrency } from "pulpe-shared";
+import type {
+  BalanceTrajectoryPoint as Point,
+  SupportedCurrency,
+} from "pulpe-shared";
 import type { TranslateOptions } from "i18n-js";
 
 import { formatCompactCurrency } from "@/core/ui/amount-format";
@@ -8,7 +11,6 @@ import { chartPlan, chartProjection } from "./balance-chart-scale";
 import type { TrendedTrajectory } from "./current-month-view-model";
 
 type Translate = (key: string, options?: TranslateOptions) => string;
-type Point = TrendedTrajectory["real"][number];
 
 /**
  * What the plot knows about one day: what the plan expected, what was really
@@ -81,7 +83,8 @@ export function scrubDayAt(
   width: number,
   totalDays: number,
 ): number {
-  return width <= 0 ? 0 : Math.round((x / width) * totalDays);
+  if (width <= 0) return 0;
+  return Math.min(Math.max(Math.round((x / width) * totalDays), 0), totalDays);
 }
 
 function interpolate(points: Point[], day: number): number {

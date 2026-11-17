@@ -42,8 +42,8 @@ export function formatCurrency(
 }
 
 /**
- * `1’235 CHF` — rounded to the unit. What the hero and the cards print: the
- * centimes belong to the budget detail, where a line is being edited.
+ * `1’235 CHF` — rounded to the unit. What the scrub eyebrow, the rhythm sentence
+ * and the cards print: the hero figure and the budget detail keep the centimes.
  */
 export function formatCompactCurrency(
   value: number,
