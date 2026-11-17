@@ -847,18 +847,26 @@
       "undoFailure": "The check could not be undone. Try again from the budget."
     },
     "hero": {
-      "chartAccessibility": "Estimated balance over the month compared with the plan",
       "verdict": {
         "gain": "You have more left than planned.",
-        "gainDated": "Above your plan since %{date}.",
-        "onPlan": "You are right on plan.",
+        "gainDated": "You are spending less than planned since %{date}.",
+        "onPlan": "You're right on plan.",
         "overrun": "You have less left than planned.",
-        "overrunDated": "Below your plan since %{date}."
+        "overrunDated": "You are spending more than planned since %{date}."
       },
       "chart": {
-        "today": "today"
+        "today": "today",
+        "accessibility": {
+          "plannedAvailable": "Planned available %{amount}.",
+          "plannedEnd": "Planned at period end %{amount}.",
+          "realToday": "Actual today %{amount}.",
+          "trend": "If you keep going, %{amount}.",
+          "hidden": "Landing trajectory for the period, amounts hidden."
+        }
       },
       "scrub": {
+        "real": "Actual on %{date}",
+        "realWithPlan": "Actual on %{date} · Planned %{amount}",
         "estimated": "Estimated on %{date}",
         "estimatedWithPlan": "Estimated on %{date} · Planned %{amount}"
       },

@@ -1,7 +1,6 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   CURRENCY_METADATA,
-  type BalanceTrajectory,
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from "pulpe-shared";
@@ -9,16 +8,12 @@ import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
-import {
-  formatCompactAmount,
-  formatCompactCurrency,
-} from "@/core/ui/amount-format";
-import { formatDayMonth } from "@/core/ui/date-format";
+import { formatAdaptiveAmount } from "@/core/ui/amount-format";
 import {
   toggleAmountVisibility,
   useAmountVisibility,
 } from "@/core/ui/amount-visibility";
-import { hapticCommit } from "@/core/ui/haptics";
+import { hapticCommit, hapticSelection } from "@/core/ui/haptics";
 import { HeroVerdict } from "@/core/ui/hero";
 import { useRipple } from "@/core/ui/ripple";
 import { useHeroColors } from "@/core/ui/scheme-colors";
@@ -31,8 +26,10 @@ import {
 } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
 
-import { scrubReading } from "../balance-scrub";
+import { scrubEyebrow, scrubFigure, scrubReading } from "../balance-scrub";
+import type { TrendedTrajectory } from "../current-month-view-model";
 import {
+  chartAccessibilityLabel,
   rhythmSentence,
   verdictSentence,
   type HeroPresentation,
@@ -46,7 +43,7 @@ interface HomeHeroCardProps {
    * computing it apart is how they end up contradicting each other.
    */
   presentation: HeroPresentation;
-  trajectory: BalanceTrajectory | null;
+  trajectory: TrendedTrajectory | null;
   /** What the chart's captions date: the period the trajectory spans. */
   period: BudgetPeriodDates;
   currency: SupportedCurrency;
@@ -86,20 +83,19 @@ export function HomeHeroCard({
     scrubDay === null || trajectory === null
       ? null
       : scrubReading(scrubDay, trajectory, period.startDate);
-  const figure = reading?.estimate ?? presentation.estimatedBalance;
-  // While scrubbing the eyebrow hands itself to the finger: the day, and the
-  // plan's reading unless amounts are hidden.
+  const figure =
+    reading === null ? presentation.estimatedBalance : scrubFigure(reading);
+  // While scrubbing the eyebrow hands itself to the finger: the day, the stroke
+  // it reads, and the plan's reading unless amounts are hidden.
   const eyebrow =
     reading === null
       ? t("home.hero.eyebrow")
-      : areHidden
-        ? t("home.hero.scrub.estimated", {
-            date: formatDayMonth(reading.date, locale),
-          })
-        : t("home.hero.scrub.estimatedWithPlan", {
-            date: formatDayMonth(reading.date, locale),
-            amount: formatCompactCurrency(reading.plan, currency),
-          });
+      : scrubEyebrow(t, locale, reading, currency, areHidden);
+  // One tick per day crossed: a drag fires many times per day column.
+  const scrub = (day: number | null) => {
+    if (day !== null && day !== scrubDay) hapticSelection();
+    setScrubDay(day);
+  };
 
   return (
     <View style={styles.hero}>
@@ -146,10 +142,10 @@ export function HomeHeroCard({
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.6}
-          accessibilityLabel={`${formatCompactAmount(figure, currency)} ${CURRENCY_METADATA[currency].symbol}`}
+          accessibilityLabel={`${formatAdaptiveAmount(figure, currency)} ${CURRENCY_METADATA[currency].symbol}`}
           style={[BRAND_TYPE.heroFigure, TABULAR_DIGITS, { color: hero.ink }]}
         >
-          {formatCompactAmount(figure, currency)}
+          {formatAdaptiveAmount(figure, currency)}
           <Text style={[BRAND_TYPE.heroCurrency, { color: hero.support }]}>
             {` ${CURRENCY_METADATA[currency].symbol}`}
           </Text>
@@ -161,29 +157,35 @@ export function HomeHeroCard({
           trajectory={trajectory}
           period={period}
           accent={accent}
-          ruleColor={hero.support}
-          scrubDay={scrubDay}
-          onScrub={setScrubDay}
+          reading={reading}
+          accessibilityLabel={chartAccessibilityLabel(t, {
+            trajectory,
+            currency,
+            amountsHidden: areHidden,
+          })}
+          onScrub={scrub}
         />
       )}
 
       <HeroVerdict
+        strong
         sentence={
           startsFresh
-            ? `${t("home.hero.fresh.verdict")} ${t("home.hero.fresh.tail")}`
-            : [
-                verdictSentence(t, locale, presentation),
-                // Where the month lands if it keeps its pace, when it has one.
-                trajectory &&
-                  rhythmSentence(t, locale, {
-                    trajectory,
-                    periodEnd: period.endDate,
-                    currency,
-                    amountsHidden: areHidden,
-                  }),
-              ]
-                .filter(Boolean)
-                .join(" ")
+            ? t("home.hero.fresh.verdict")
+            : verdictSentence(t, locale, presentation)
+        }
+        // Where the month lands if it keeps its pace, when it has one.
+        tail={
+          startsFresh
+            ? t("home.hero.fresh.tail")
+            : (trajectory &&
+                rhythmSentence(t, locale, {
+                  trajectory,
+                  periodEnd: period.endDate,
+                  currency,
+                  amountsHidden: areHidden,
+                })) ||
+              undefined
         }
         tint={startsFresh ? theme.colors.primary : accent}
       />

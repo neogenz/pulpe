@@ -1,6 +1,8 @@
 import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 
 import {
+  formatAdaptiveAmount,
+  formatAdaptiveCurrency,
   formatAmount,
   formatCompactAmount,
   formatCompactCurrency,
@@ -31,6 +33,13 @@ describe("amount formatting", () => {
     expect(formatSignedAdaptiveCurrency(-0.05, "CHF")).toBe("-0.05 CHF");
   });
 
+  it("should print the centimes of an adaptive amount only when it has some", () => {
+    expect(formatAdaptiveAmount(4414.34, "CHF")).toBe("4’414.34");
+    expect(formatAdaptiveAmount(1960, "CHF")).toBe("1’960");
+    expect(formatAdaptiveAmount(1960.5, "CHF")).toBe("1’960.50");
+    expect(formatAdaptiveCurrency(1960.5, "CHF")).toBe("1’960.50 CHF");
+  });
+
   it("should sign only what went up", () => {
     expect(formatSignedCompactCurrency(120, "CHF")).toBe("+120 CHF");
     expect(formatSignedCompactCurrency(-120, "CHF")).toBe("-120 CHF");
@@ -49,7 +58,7 @@ describe("amount formatting", () => {
   });
 
   it("should mask every shape once amounts are hidden", () => {
-    // All four, because one that forgot would be the only figure on screen.
+    // Every one, because one that forgot would be the only figure on screen.
     toggleAmountVisibility();
 
     expect(formatCurrency(1234.5, "CHF")).toBe(MASK);
@@ -59,6 +68,8 @@ describe("amount formatting", () => {
     expect(formatAmount(1234.5, "CHF")).toBe(MASK);
     expect(formatSignedCurrency(1234.5, "CHF")).toBe(MASK);
     expect(formatSignedAdaptiveCurrency(1234.5, "CHF")).toBe(MASK);
+    expect(formatAdaptiveAmount(1234.5, "CHF")).toBe(MASK);
+    expect(formatAdaptiveCurrency(1234.5, "CHF")).toBe(MASK);
   });
 
   it("should come back unmasked", () => {

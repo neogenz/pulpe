@@ -1,15 +1,14 @@
-import {
-  trendBalance,
-  type BalanceTrajectory,
-  type SupportedCurrency,
-} from "pulpe-shared";
+import type { BalanceTrajectory, SupportedCurrency } from "pulpe-shared";
 import type { TranslateOptions } from "i18n-js";
 
-import { formatCompactCurrency } from "@/core/ui/amount-format";
+import {
+  formatAdaptiveCurrency,
+  formatCompactCurrency,
+} from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
 
-/** Mirror of `DesignTokens.Chart.trendPriorDays` on iOS. */
-const TREND_PRIOR_DAYS = 7;
+import { chartProjection, showsTrendLabel } from "./balance-chart-scale";
+import type { TrendedTrajectory } from "./current-month-view-model";
 
 /**
  * What the hero says about the month, kept apart from how it is drawn. Port of
@@ -96,7 +95,7 @@ function datedVerdict(
 }
 
 export interface RhythmSentenceInput {
-  trajectory: BalanceTrajectory;
+  trajectory: TrendedTrajectory;
   periodEnd: Date;
   currency: SupportedCurrency;
   amountsHidden: boolean;
@@ -114,9 +113,8 @@ export function rhythmSentence(
   locale: string,
   { trajectory, periodEnd, currency, amountsHidden }: RhythmSentenceInput,
 ): string | null {
-  if (trajectory.today >= trajectory.totalDays || trajectory.real.length === 0)
-    return null;
-  const landing = toCents(trendBalance(trajectory, TREND_PRIOR_DAYS));
+  if (chartProjection(trajectory).length === 0) return null;
+  const landing = toCents(trajectory.trend);
   const planned = toCents(trajectory.plannedBalance);
   if (landing === planned) return null;
 
@@ -134,6 +132,45 @@ export function rhythmSentence(
     date,
     planned: formatCompactCurrency(planned / 100, currency),
   });
+}
+
+export interface ChartAccessibilityInput {
+  trajectory: TrendedTrajectory;
+  currency: SupportedCurrency;
+  amountsHidden: boolean;
+}
+
+/**
+ * What a screen reader says about the plot, in the drawing's own order: what
+ * the period opened with, what the plan keeps, what is really left today, and
+ * where the month lands if it carries on. Self-contained sentences joined by a
+ * space, each translated whole. Port of `chartAccessibilityLabel` in Swift.
+ */
+export function chartAccessibilityLabel(
+  t: Translate,
+  { trajectory, currency, amountsHidden }: ChartAccessibilityInput,
+): string {
+  if (amountsHidden) return t("home.hero.chart.accessibility.hidden");
+  const real = trajectory.real[trajectory.real.length - 1]?.balance ?? 0;
+  const spoken = [
+    t("home.hero.chart.accessibility.plannedAvailable", {
+      amount: formatAdaptiveCurrency(trajectory.plannedAvailable, currency),
+    }),
+    t("home.hero.chart.accessibility.plannedEnd", {
+      amount: formatAdaptiveCurrency(trajectory.plannedBalance, currency),
+    }),
+    t("home.hero.chart.accessibility.realToday", {
+      amount: formatAdaptiveCurrency(real, currency),
+    }),
+  ];
+  if (showsTrendLabel(trajectory)) {
+    spoken.push(
+      t("home.hero.chart.accessibility.trend", {
+        amount: formatCompactCurrency(trajectory.trend, currency),
+      }),
+    );
+  }
+  return spoken.join(" ");
 }
 
 /** Compared in whole cents: two floats a rounding apart are the same landing. */

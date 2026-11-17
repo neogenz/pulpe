@@ -15,7 +15,10 @@ jest.mock("victory-native", () => ({
   CartesianChart: () => null,
   Line: () => null,
 }));
-jest.mock("@/core/ui/haptics", () => ({ hapticCommit: jest.fn() }));
+jest.mock("@/core/ui/haptics", () => ({
+  hapticCommit: jest.fn(),
+  hapticSelection: jest.fn(),
+}));
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({
     locale: "fr",
@@ -44,6 +47,7 @@ const trajectory = {
   plannedBalance: 1000,
   estimatedBalance: 1240.5,
   drift: 240.5,
+  trend: 1100,
 };
 
 const period = {
@@ -70,12 +74,11 @@ it("shows the estimate, the verdict and the three chart captions", async () => {
   const onPressCalculation = jest.fn();
   const view = await renderHero({ onPressCalculation });
 
-  // Whole digits on the hero; the thousands separator is the locale's.
-  expect(view.getByText(/1.?241/)).toBeTruthy();
+  // The figure keeps its centimes; the thousands separator is the locale's.
+  expect(view.getByText(/1.?240\.50/)).toBeTruthy();
   expect(view.getByText("home.hero.eyebrow")).toBeTruthy();
-  expect(
-    view.getByText(/^home\.hero\.verdict\.gain home\.hero\.rhythm\.pace:/),
-  ).toBeTruthy();
+  expect(view.getByText(/^home\.hero\.verdict\.gain/)).toBeTruthy();
+  expect(view.getByText(/^home\.hero\.rhythm\.pace:/)).toBeTruthy();
   expect(view.getByText("25 juillet")).toBeTruthy();
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();
   expect(view.getByText("24 août")).toBeTruthy();
@@ -95,9 +98,8 @@ it("hides and shows the amounts from the eye beside the eyebrow", async () => {
 it("invites instead of judging on the first month, with no plot", async () => {
   const view = await renderHero({ startsFresh: true });
 
-  expect(
-    view.getByText("home.hero.fresh.verdict home.hero.fresh.tail"),
-  ).toBeTruthy();
+  expect(view.getByText(/^home\.hero\.fresh\.verdict/)).toBeTruthy();
+  expect(view.getByText(/home\.hero\.fresh\.tail/)).toBeTruthy();
   expect(view.queryByText("home.hero.chart.today")).toBeNull();
 });
 
@@ -105,12 +107,8 @@ it("keeps the captions while the amounts are masked", async () => {
   useAmountVisibility.setState({ areAmountsHidden: true });
   const view = await renderHero({});
 
-  expect(view.queryByText(/1.?241/)).toBeNull();
-  expect(
-    view.getByText(
-      /^home\.hero\.verdict\.gain home\.hero\.rhythm\.moreHidden:/,
-    ),
-  ).toBeTruthy();
+  expect(view.queryByText(/1.?240/)).toBeNull();
+  expect(view.getByText(/^home\.hero\.rhythm\.moreHidden:/)).toBeTruthy();
   expect(view.getByText("25 juillet")).toBeTruthy();
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();
 });

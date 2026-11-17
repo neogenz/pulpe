@@ -847,18 +847,26 @@
       "undoFailure": "Non è stato possibile annullare il segno. Riprova dal budget."
     },
     "hero": {
-      "chartAccessibility": "Andamento del saldo stimato nel mese rispetto al piano",
       "verdict": {
         "gain": "Ti resta più del previsto.",
-        "gainDated": "Sopra il tuo piano dal %{date}.",
-        "onPlan": "Sei esattamente in linea con il piano.",
+        "gainDated": "Dal %{date} spendi meno del previsto.",
+        "onPlan": "Sei perfettamente in linea col piano.",
         "overrun": "Ti resta meno del previsto.",
-        "overrunDated": "Sotto il tuo piano dal %{date}."
+        "overrunDated": "Dal %{date} spendi più del previsto."
       },
       "chart": {
-        "today": "oggi"
+        "today": "oggi",
+        "accessibility": {
+          "plannedAvailable": "Disponibile previsto %{amount}.",
+          "plannedEnd": "Previsto a fine periodo %{amount}.",
+          "realToday": "Reale oggi %{amount}.",
+          "trend": "Se continui così, %{amount}.",
+          "hidden": "Andamento del periodo fino a fine mese, importi nascosti."
+        }
       },
       "scrub": {
+        "real": "Reale il %{date}",
+        "realWithPlan": "Reale il %{date} · Previsto %{amount}",
         "estimated": "Stimato il %{date}",
         "estimatedWithPlan": "Stimato il %{date} · Previsto %{amount}"
       },

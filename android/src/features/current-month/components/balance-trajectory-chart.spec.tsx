@@ -1,7 +1,6 @@
 import { fireEvent, render } from "@testing-library/react-native";
-import type { BalanceTrajectory } from "pulpe-shared";
-
 import { todayCaptionLeft } from "../balance-chart-scale";
+import type { TrendedTrajectory } from "../current-month-view-model";
 import { BalanceTrajectoryChart } from "./balance-trajectory-chart";
 
 jest.mock("@shopify/react-native-skia", () => ({
@@ -18,7 +17,7 @@ jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
 }));
 
-function trajectory(today: number): BalanceTrajectory {
+function trajectory(today: number): TrendedTrajectory {
   return {
     landing: [{ day: 0, balance: 500 }],
     real: [{ day: 0, balance: 500 }],
@@ -30,6 +29,7 @@ function trajectory(today: number): BalanceTrajectory {
     plannedBalance: 500,
     estimatedBalance: 500,
     drift: 0,
+    trend: 500,
   };
 }
 
@@ -48,7 +48,8 @@ async function renderMeasured(today: number) {
       trajectory={trajectory(today)}
       period={period}
       accent="green"
-      ruleColor="gray"
+      reading={null}
+      accessibilityLabel="spoken trajectory"
     />,
   );
   const todayCaption = view.getByTestId("chart-caption-today");
@@ -67,6 +68,15 @@ it("prints the period's first and last day and today under the plot", async () =
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();
   // Centred on the marker: half the row minus half the caption.
   expect(view.getByTestId("chart-caption-today")).toHaveStyle({ left: 115 });
+});
+
+it("exposes the label it is given on the image element", async () => {
+  const view = await renderMeasured(15);
+
+  expect(view.getByRole("image")).toHaveProp(
+    "accessibilityLabel",
+    "spoken trajectory",
+  );
 });
 
 it("keeps the today caption clear of the start date on the first day", async () => {

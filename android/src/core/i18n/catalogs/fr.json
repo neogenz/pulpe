@@ -847,18 +847,26 @@
       "undoFailure": "Le pointage n'a pas pu être annulé. Reprends-le depuis le budget."
     },
     "hero": {
-      "chartAccessibility": "Évolution du solde estimé par rapport au plan",
       "verdict": {
         "gain": "Il te reste plus que prévu.",
-        "gainDated": "Au-dessus de ton plan depuis le %{date}.",
+        "gainDated": "Tu dépenses moins que prévu depuis le %{date}.",
         "onPlan": "Tu es pile sur ton plan.",
         "overrun": "Il te reste moins que prévu.",
-        "overrunDated": "Sous ton plan depuis le %{date}."
+        "overrunDated": "Tu dépenses plus que prévu depuis le %{date}."
       },
       "chart": {
-        "today": "aujourd'hui"
+        "today": "aujourd'hui",
+        "accessibility": {
+          "plannedAvailable": "Disponible prévu %{amount}.",
+          "plannedEnd": "Prévu fin de période %{amount}.",
+          "realToday": "Réel aujourd'hui %{amount}.",
+          "trend": "Si tu continues, %{amount}.",
+          "hidden": "Trajectoire d'atterrissage de la période, montants masqués."
+        }
       },
       "scrub": {
+        "real": "Réel le %{date}",
+        "realWithPlan": "Réel le %{date} · Prévu %{amount}",
         "estimated": "Estimé le %{date}",
         "estimatedWithPlan": "Estimé le %{date} · Prévu %{amount}"
       },

@@ -263,6 +263,10 @@ export function HeroTileRow({ children }: { children: ReactNode }) {
 
 interface HeroVerdictProps {
   sentence: string;
+  /** Set semibold: the verdict, as against a plain sentence. */
+  strong?: boolean;
+  /** A quieter run after the sentence, in the support ink. */
+  tail?: string;
   /** The accent the sentence is read in; plain ink when on plan. */
   tint?: string;
   /** A named way into the detail — `Voir le budget`. */
@@ -274,13 +278,31 @@ interface HeroVerdictProps {
  * go, a Material text button in the hero's ink — its own target and ripple
  * rather than a link run into the sentence.
  */
-export function HeroVerdict({ sentence, tint, link }: HeroVerdictProps) {
+export function HeroVerdict({
+  sentence,
+  strong = false,
+  tail,
+  tint,
+  link,
+}: HeroVerdictProps) {
   const hero = useHeroColors();
 
   return (
     <View style={styles.verdict}>
-      <Text variant="bodyLarge" style={{ color: tint ?? hero.ink }}>
+      <Text
+        variant="bodyLarge"
+        style={{
+          color: tint ?? hero.ink,
+          ...(strong && { fontWeight: "600" }),
+        }}
+      >
         {sentence}
+        {tail !== undefined && (
+          <Text
+            variant="bodyLarge"
+            style={{ color: hero.support, fontWeight: "400" }}
+          >{` ${tail}`}</Text>
+        )}
       </Text>
       {link !== undefined && (
         <Button

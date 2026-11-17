@@ -78,6 +78,28 @@ export function formatCompactAmount(
 }
 
 /**
+ * `1’960` / `1’960.50` — no centimes on a whole amount, both once it carries
+ * some, never one. For a balance that carries a verdict, where rounding would
+ * hide the very centimes the verdict rests on; `asAdaptiveCurrency` on iOS.
+ */
+export function formatAdaptiveAmount(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  if (areAmountsHidden()) return MASK;
+  return format(value, currency, hasCents(value) ? FULL_DIGITS : WHOLE_DIGITS);
+}
+
+/** `formatAdaptiveAmount` with its symbol: `1’960.50 CHF`. */
+export function formatAdaptiveCurrency(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  if (areAmountsHidden()) return MASK;
+  return withSymbol(formatAdaptiveAmount(value, currency), currency);
+}
+
+/**
  * Carries a `+` only when the value is positive — a negative one already reads
  * as one, and a `+` on money you simply have would read as a variation.
  */
@@ -102,8 +124,7 @@ export function formatSignedAdaptiveCurrency(
 ): string {
   if (areAmountsHidden()) return MASK;
   const sign = value > 0 ? "+" : "";
-  const digits = hasCents(value) ? FULL_DIGITS : WHOLE_DIGITS;
-  return `${sign}${withSymbol(format(value, currency, digits), currency)}`;
+  return `${sign}${formatAdaptiveCurrency(value, currency)}`;
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   checkingPriority,
   type Consumption,
   getBudgetPeriodDates,
+  trendBalance,
   type Transaction,
   type TransactionKind,
 } from "pulpe-shared";
@@ -25,6 +26,9 @@ const MAX_UNCHECKED_ITEMS = 5;
 
 const MILLISECONDS_PER_DAY = 86_400_000;
 const PERCENT = 100;
+
+/** Mirror of `DesignTokens.Chart.trendPriorDays` on iOS. */
+const TREND_PRIOR_DAYS = 7;
 
 /** Order the "à pointer" card lists budget lines in, after the transactions. */
 const KIND_ORDER: TransactionKind[] = ["income", "expense", "saving"];
@@ -75,6 +79,11 @@ export interface RealizedMetrics {
   totalItemsCount: number;
 }
 
+/** The trajectory and where it lands if the month keeps its pace. */
+export interface TrendedTrajectory extends BalanceTrajectory {
+  trend: number;
+}
+
 export interface CurrentMonthViewModel {
   metrics: ReturnType<typeof BudgetFormulas.calculateAllMetrics>;
   driftLines: DriftLine[];
@@ -87,7 +96,7 @@ export interface CurrentMonthViewModel {
   realized: RealizedMetrics;
   periodProgress: PeriodProgress;
   /** Absent while the user is looking at a budget outside its own period. */
-  trajectory: BalanceTrajectory | null;
+  trajectory: TrendedTrajectory | null;
 }
 
 export interface CurrentMonthContext {
@@ -145,7 +154,7 @@ export function withRolloverLine(
 }
 
 export function buildCurrentMonthViewModel(
-  { budget, budgetLines, transactions, checkingDays }: BudgetDetails,
+  { budget, budgetLines, transactions, checkingDays, history }: BudgetDetails,
   { now, payDayOfMonth }: CurrentMonthContext,
 ): CurrentMonthViewModel {
   const metrics = BudgetFormulas.calculateAllMetrics(
@@ -155,6 +164,13 @@ export function buildCurrentMonthViewModel(
   );
   const driftLines = selectDriftLines(budgetLines, transactions);
   const periodProgress = measurePeriodProgress(budget, now, payDayOfMonth);
+  const trajectory = calculateBalanceTrajectory({
+    budgetLines,
+    transactions,
+    budget,
+    payDayOfMonth,
+    referenceDate: now,
+  });
 
   return {
     metrics,
@@ -178,13 +194,10 @@ export function buildCurrentMonthViewModel(
       budget.rollover ?? 0,
     ),
     periodProgress,
-    trajectory: calculateBalanceTrajectory({
-      budgetLines,
-      transactions,
-      budget,
-      payDayOfMonth,
-      referenceDate: now,
-    }),
+    trajectory: trajectory && {
+      ...trajectory,
+      trend: trendBalance(trajectory, TREND_PRIOR_DAYS, history),
+    },
   };
 }
 
