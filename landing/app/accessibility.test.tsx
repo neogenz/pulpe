@@ -474,8 +474,8 @@ describe("landing accessibility contracts", () => {
     assert.match(web, /href="[^"]*\/signup\?[^"]*lang=en"/);
     assert.match(web, /data-cta-destination="\/signup"/);
     assert.match(appStore, /class="[^"]*\bnot-ios:hidden\b/);
-    assert.match(appStore, new RegExp(`href="${IOS_APP_URL}"`));
-    assert.match(appStore, new RegExp(`data-cta-destination="${IOS_APP_URL}"`));
+    assert.ok(appStore.includes(`href="${IOS_APP_URL}"`));
+    assert.ok(appStore.includes(`data-cta-destination="${IOS_APP_URL}"`));
     assert.match(appStore, /data-cta-name="commencer"/);
     assert.match(appStore, />Download on the App Store</);
   });
