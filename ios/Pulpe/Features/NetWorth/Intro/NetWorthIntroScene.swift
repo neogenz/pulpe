@@ -17,7 +17,9 @@ struct NetWorthIntroScene: View {
         }
         .padding(DesignTokens.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .pulpeSurfaceCard()
+        // Flat: the sheet already floats, so the card sets itself apart by tone, not by a shadow
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.surface)
+        .pulpeCardBorder(cornerRadius: DesignTokens.CornerRadius.surface)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }

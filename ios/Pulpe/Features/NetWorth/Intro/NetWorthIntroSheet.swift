@@ -16,17 +16,30 @@ struct NetWorthIntroSheet: View {
     private var action: NetWorthIntroAction { .primaryAction(step: step, isEmpty: isEmpty) }
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            HStack {
-                Spacer()
-                if step.next != nil {
-                    Button("Plus tard") { finish(.skipped(step)) }
-                        .sheetDismissLinkStyle()
-                        .accessibilityHint("Ferme l'explication")
+        // In a navigation bar, « Plus tard » gets the system's place and margins, like every sheet's close button
+        NavigationStack {
+            content
+                .background(Color.sheetBackground)
+                .toolbar {
+                    if step.next != nil {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Plus tard") { finish(.skipped(step)) }
+                                .accessibilityHint("Ferme l'explication")
+                        }
+                    }
                 }
-            }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
+                // The last page has no « Plus tard »: the bar keeps its height so the card does not jump up
+                .toolbar(.visible, for: .navigationBar)
+        }
+        .standardSheetPresentation()
+        .trackScreen("NetWorth_Intro")
+        .onAppear { AnalyticsService.shared.capture(.netWorthIntroViewed, properties: ["source": source.rawValue]) }
+        // A swipe down, or any dismissal the buttons did not cause, ends the intro as skipped.
+        .onDisappear { finish(.skipped(step)) }
+    }
 
+    private var content: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                     NetWorthIntroScene(step: step, currency: currency)
@@ -41,7 +54,8 @@ struct NetWorthIntroSheet: View {
                     }
                     .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.vertical, DesignTokens.Spacing.xs)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xs)
             }
             .scrollBounceBehavior(.basedOnSize)
 
@@ -55,11 +69,6 @@ struct NetWorthIntroSheet: View {
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.bottom, DesignTokens.Spacing.lg)
         .animation(DesignTokens.Animation.stepTransition, value: step)
-        .standardSheetPresentation()
-        .trackScreen("NetWorth_Intro")
-        .onAppear { AnalyticsService.shared.capture(.netWorthIntroViewed, properties: ["source": source.rawValue]) }
-        // A swipe down, or any dismissal the buttons did not cause, ends the intro as skipped.
-        .onDisappear { finish(.skipped(step)) }
     }
 
     private var title: LocalizedStringKey {

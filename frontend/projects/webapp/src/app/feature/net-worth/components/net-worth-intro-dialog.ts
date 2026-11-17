@@ -235,10 +235,11 @@ export type NetWorthIntroResult = 'add' | 'close' | undefined;
     :host {
       display: block;
     }
+    /* Flat: the dialog already floats, so the card sets itself apart by tone, not by a shadow */
     .scene {
+      border: 1px solid var(--mat-sys-outline-variant);
       border-radius: var(--pulpe-surface-radius-card);
       background: var(--mat-sys-surface-container-lowest);
-      box-shadow: var(--mat-sys-level1);
       padding: 1.25rem;
     }
     .example {
