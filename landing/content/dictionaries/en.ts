@@ -3,6 +3,8 @@ import type { Dictionary } from "../dictionary";
 // English keeps the direct second person of the French source, with no added
 // politeness formula. No narrow no-break space before `?` — that is French
 // typography only. Product terms follow the arrested lexicon in `docs/I18N.md`.
+const appStoreCta = "Download on the App Store";
+
 const en: Dictionary = {
   site: {
     titleDefault:
@@ -27,6 +29,7 @@ const en: Dictionary = {
 
   common: {
     skipToContent: "Skip to content",
+    appStoreCta,
   },
 
   header: {
@@ -35,6 +38,7 @@ const en: Dictionary = {
     menuLabel: "Menu",
     homeAriaLabel: "Pulpe, home",
     cta: "Create my budget",
+    appStoreCta,
     nav: {
       painPoints: "Why Pulpe",
       howItWorks: "How it works",

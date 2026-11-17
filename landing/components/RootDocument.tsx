@@ -28,13 +28,17 @@ const poppins = Poppins({
 // several seconds after first paint on mobile. A `useEffect` would leave the
 // navbar transparent and the menu inert in the meantime. Menu disclosure is
 // native (`<details>`); this script only supplies missing browser behavior and
-// sets the scroll attribute on `<html>` before hydration. The expected mismatch
+// sets the scroll attribute on `<html>` before hydration. It also flags an
+// iPhone with `data-ios`, which points sign-up buttons at the App Store. iPads
+// stay on web sign-up: the app is iPhone-only, and iPadOS Safari reports itself
+// as a Mac anyway. The expected mismatch
 // is suppressed on the root element. Client navigation rebuilds the header, so
 // listeners are delegated to the document and look up elements per event.
 // `toggle` does not bubble and is therefore captured.
 const headerScript = `(function(){
 if(window.pulpeHeaderReady)return;
 window.pulpeHeaderReady=1;
+if(/iPhone|iPod/.test(navigator.userAgent))document.documentElement.setAttribute('data-ios','');
 function nav(){return document.getElementById('${MOBILE_NAV_ID}');}
 function close(){var n=nav();if(n&&n.open)n.open=false;}
 function syncPanel(){

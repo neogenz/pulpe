@@ -4,6 +4,8 @@ import type { Dictionary } from "../dictionary";
 // („…“), kein französisches schmales Leerzeichen vor `?`. Deutsch läuft 30 bis
 // 40 % länger als Französisch: Navigation, Buttons und Badges nehmen deshalb
 // die Kurzform. Produktbegriffe folgen dem Lexikon in `docs/I18N.md`.
+const appStoreCta = "Laden im App Store";
+
 const de: Dictionary = {
   site: {
     titleDefault: "Pulpe: Budget-App | Plane dein Jahr, sieh, was dir bleibt",
@@ -27,6 +29,7 @@ const de: Dictionary = {
 
   common: {
     skipToContent: "Zum Inhalt springen",
+    appStoreCta,
   },
 
   header: {
@@ -35,6 +38,7 @@ const de: Dictionary = {
     menuLabel: "Menü",
     homeAriaLabel: "Pulpe, Startseite",
     cta: "Budget erstellen",
+    appStoreCta,
     nav: {
       painPoints: "Warum Pulpe",
       howItWorks: "So funktioniert’s",

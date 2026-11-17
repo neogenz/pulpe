@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
-import { ANGULAR_APP_URL } from "../lib/config";
+import {
+  ANGULAR_APP_URL,
+  appStoreCampaignUrl,
+  IOS_APP_URL,
+} from "../lib/config";
 import { initPostHog, trackCTAClick } from "../lib/posthog";
 import type { Locale } from "../lib/i18n";
+
+const APP_STORE_ORIGIN = new URL(IOS_APP_URL).origin;
+// Read once, at first load: client navigation drops the arrival query string.
+const landingCampaign =
+  typeof window === "undefined"
+    ? null
+    : new URLSearchParams(window.location.search).get("utm_campaign");
 
 export function PostHogProvider({
   children,
@@ -28,13 +39,23 @@ export function PostHogProvider({
           cta.dataset.ctaDestination ?? "",
         );
       const anchor = cta.closest<HTMLAnchorElement>("a[href]");
-      const appOrigin = ANGULAR_APP_URL
-        ? new URL(ANGULAR_APP_URL, window.location.href).origin
-        : undefined;
+      // Set here, not in the markup: the page is prerendered, and the campaign
+      // comes from this visitor's arrival URL. The browser follows the href as
+      // it stands after this listener.
+      if (anchor && new URL(anchor.href).origin === APP_STORE_ORIGIN) {
+        anchor.href = appStoreCampaignUrl(landingCampaign);
+      }
+      // Leaving for either destination can unload the page before the event
+      // is sent, so the click waits for tracking (300 ms at most).
+      const trackedOrigins = [APP_STORE_ORIGIN];
+      if (ANGULAR_APP_URL) {
+        trackedOrigins.push(
+          new URL(ANGULAR_APP_URL, window.location.href).origin,
+        );
+      }
       const shouldWaitForTracking =
         anchor &&
-        appOrigin &&
-        new URL(anchor.href).origin === appOrigin &&
+        trackedOrigins.includes(new URL(anchor.href).origin) &&
         e.button === 0 &&
         !e.metaKey &&
         !e.ctrlKey &&

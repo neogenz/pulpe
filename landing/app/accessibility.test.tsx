@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it, mock } from "node:test";
 import { LOCALES } from "../lib/i18n";
-import { angularUrl } from "../lib/config";
+import { angularUrl, appStoreCampaignUrl, IOS_APP_URL } from "../lib/config";
 import { socialPreviewFile, socialPreviewImage } from "../lib/metadata";
 import {
   ASSISTANT_ROUTE,
@@ -26,6 +26,7 @@ import { Testimonials } from "../components/sections/Testimonials";
 import { Assistants } from "../components/sections/Assistants";
 import { TESTIMONIAL_SIGNATURES } from "../components/sections/testimonialSignatures";
 import { AccordionItem } from "../components/ui/AccordionItem";
+import { SignupCta } from "../components/ui/SignupCta";
 // Nommés `…Dict` : `it` importé nu masquerait le `it` de `node:test`, et la
 // suite entière se charge alors sans exécuter un seul bloc.
 import frDict from "../content/dictionaries/fr";
@@ -448,6 +449,56 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.header, /IntersectionObserver/);
   });
 
+  it("sends iPhone visitors to the App Store from the sign-up buttons", () => {
+    // Flagged before first paint, like `data-scrolled`, so no button swaps.
+    assert.match(globalsCss, /@custom-variant ios \(html\[data-ios\] &\);/);
+    assert.match(
+      componentSources.layout,
+      /if\(\/iPhone\|iPod\/\.test\(navigator\.userAgent\)\)document\.documentElement\.setAttribute\('data-ios',''\);/,
+    );
+
+    const html = renderToStaticMarkup(
+      <SignupCta
+        locale="en"
+        utmContent="hero_commencer"
+        ctaName="commencer"
+        ctaLocation="hero"
+        label="Create my budget for free"
+        appStoreLabel={enDict.common.appStoreCta}
+      />,
+    );
+    const [web, appStore] = [...html.matchAll(/<a [^>]*>[^<]*<\/a>/g)].map(
+      (match) => match[0],
+    );
+    assert.match(web, /class="[^"]*\bios:hidden\b/);
+    assert.match(web, /href="[^"]*\/signup\?[^"]*lang=en"/);
+    assert.match(web, /data-cta-destination="\/signup"/);
+    assert.match(appStore, /class="[^"]*\bnot-ios:hidden\b/);
+    assert.ok(appStore.includes(`href="${IOS_APP_URL}"`));
+    assert.ok(appStore.includes(`data-cta-destination="${IOS_APP_URL}"`));
+    assert.match(appStore, /data-cta-name="commencer"/);
+    assert.match(appStore, />Download on the App Store</);
+  });
+
+  it("tags App Store links with the arrival campaign", () => {
+    // The exact shape App Store Connect generates for this app.
+    assert.equal(
+      appStoreCampaignUrl("il-me-reste-combien"),
+      `${IOS_APP_URL}?pt=128500600&ct=il-me-reste-combien&mt=8`,
+    );
+    assert.equal(
+      new URL(appStoreCampaignUrl(null)).searchParams.get("ct"),
+      "landing",
+    );
+    // App Store Connect accepts 30 characters at most.
+    assert.equal(
+      new URL(
+        appStoreCampaignUrl("reel_<script>_" + "x".repeat(40)),
+      ).searchParams.get("ct"),
+      "reel_script_" + "x".repeat(18),
+    );
+  });
+
   it("extends the landing into the iOS safe area without hiding the header", () => {
     assert.match(
       componentSources.metadata,
@@ -768,7 +819,8 @@ describe("landing accessibility contracts", () => {
       componentSources.stickyCta,
     ]) {
       assert.doesNotMatch(source, /trackCTAClick/);
-      assert.match(source, /data-cta-name=/);
+      // `ctaName=` : la section passe par `SignupCta`, qui pose l'attribut.
+      assert.match(source, /data-cta-name=|ctaName=/);
     }
   });
 
@@ -1583,7 +1635,10 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.support, /hero-mesh/);
     assert.match(componentSources.support, /max-w-3xl/);
     assert.match(componentSources.support, /<AccordionItem/);
-    assert.match(componentSources.support, /<FinalCTA dict=\{[^}]+\}[^>]*\/>/);
+    assert.match(
+      componentSources.support,
+      /<FinalCTA\s+dict=\{[^}]+\}[^>]*\/>/,
+    );
     assert.doesNotMatch(componentSources.support, /<details|<summary/);
   });
 

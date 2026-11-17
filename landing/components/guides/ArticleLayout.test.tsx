@@ -117,7 +117,9 @@ describe("guide article layout contract", async () => {
   it("renders one single primary CTA inside the article", () => {
     const article = html.match(/<article[\s\S]*<\/article>/)?.[0];
     assert.ok(article, "the layout must wrap content in an <article>");
-    assert.equal(article.match(/data-cta-name=/g)?.length, 1);
+    // One CTA per platform: web sign-up, and its App Store twin on iPhone.
+    assert.equal(article.match(/data-cta-destination="\/signup"/g)?.length, 1);
+    assert.equal(article.match(/data-cta-name=/g)?.length, 2);
   });
 
   it("emits a valid Article schema fed by the registry entry", () => {
@@ -269,7 +271,9 @@ describe("guide article layout contract", async () => {
     assert.equal(pageHtml.match(/<h1[\s>]/g)?.length, 1);
     const article = pageHtml.match(/<article[\s\S]*<\/article>/)?.[0];
     assert.ok(article, "the page must render an <article>");
-    assert.equal(article.match(/data-cta-name=/g)?.length, 1);
+    // One CTA per platform: web sign-up, and its App Store twin on iPhone.
+    assert.equal(article.match(/data-cta-destination="\/signup"/g)?.length, 1);
+    assert.equal(article.match(/data-cta-name=/g)?.length, 2);
   });
 
   it("labels the budget table and keeps its borders on legacy Safari", () => {

@@ -9,6 +9,10 @@
    l'hydratation : la navbar réagit au scroll sans dépendre du bundle. */
 @custom-variant scrolled (html[data-scrolled] &);
 
+/* Posée par le même script sur un iPhone : les boutons d’inscription y mènent
+   à l’App Store. Avant le premier rendu, donc aucun bouton ne change à l’écran. */
+@custom-variant ios (html[data-ios] &);
+
 @theme {
   --font-family-sans: var(--font-poppins), "Poppins", system-ui, sans-serif;
 
