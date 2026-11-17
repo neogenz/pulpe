@@ -855,7 +855,7 @@
         "overrunDated": "Dal %{date} spendi più del previsto."
       },
       "chart": {
-        "today": "oggi",
+        "today": "Oggi",
         "accessibility": {
           "plannedAvailable": "Disponibile previsto %{amount}.",
           "plannedEnd": "Previsto a fine periodo %{amount}.",

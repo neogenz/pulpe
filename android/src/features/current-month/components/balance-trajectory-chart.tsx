@@ -27,10 +27,10 @@ import {
 import type { TrendedTrajectory } from "../current-month-view-model";
 
 const CHART_HEIGHT = 120;
-const LINE_WIDTH = 3;
+const LINE_WIDTH = 2;
 const RULE_WIDTH = 1;
-const DOT_RADIUS = 6;
-const DOT_HALO_RADIUS = 8;
+const DOT_RADIUS = 4;
+const DOT_HALO_RADIUS = 6;
 const RULE_DASH = 3;
 const PROJECTION_DASH = 5;
 const PROJECTION_GAP = 4;
