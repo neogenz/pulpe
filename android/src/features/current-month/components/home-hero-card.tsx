@@ -114,7 +114,15 @@ export function HomeHeroCard({
               setRestingHeaderHeight(event.nativeEvent.layout.height);
           }}
         >
-          <Text variant="labelLarge" style={{ color: hero.support }}>
+          <Text
+            variant="labelLarge"
+            // A scrub eyebrow that wrapped would push the plot down under the
+            // finger: alone in the row, it shrinks to stay on one line.
+            numberOfLines={reading === null ? undefined : 1}
+            adjustsFontSizeToFit={reading !== null}
+            minimumFontScale={0.6}
+            style={{ color: hero.support }}
+          >
             {eyebrow}
           </Text>
           {reading === null && (
