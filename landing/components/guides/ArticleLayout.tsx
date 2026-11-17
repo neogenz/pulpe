@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AccordionItem, Button, Container } from "@/components/ui";
+import { AccordionItem, Container, SignupCta } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
 import type { Dictionary } from "@/content/dictionary";
-import { angularUrl, ORGANIZATION_ID } from "@/lib/config";
+import { ORGANIZATION_ID } from "@/lib/config";
 import { socialPreviewImage } from "@/lib/metadata";
 import { ABOUT_ROUTE, localizedPath, SITE_URL } from "@/lib/routes";
 import { FR_GUIDE_CHROME, type GuideChrome } from "./chrome";
@@ -168,19 +168,15 @@ export function ArticleLayout({
               <p className="text-xl font-semibold leading-snug text-text">
                 {cta.lead}
               </p>
-              <Button
-                href={angularUrl(
-                  "/signup",
-                  `guide_${guide.slug}`,
-                  chrome.locale,
-                )}
+              <SignupCta
+                locale={chrome.locale}
+                utmContent={`guide_${guide.slug}`}
                 className="mt-6"
-                data-cta-name="commencer_gratuitement"
-                data-cta-location="guide_article"
-                data-cta-destination="/signup"
-              >
-                {cta.button}
-              </Button>
+                ctaName="commencer_gratuitement"
+                ctaLocation="guide_article"
+                label={cta.button}
+                appStoreLabel={dict.common.appStoreCta}
+              />
             </div>
           </article>
         </Container>

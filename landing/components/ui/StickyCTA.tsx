@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "./Button";
-import { angularUrl } from "@/lib/config";
+import { SignupCta } from "./SignupCta";
 import type { Locale } from "@/lib/i18n";
 
 /**
@@ -17,9 +16,11 @@ import type { Locale } from "@/lib/i18n";
  */
 export function StickyCTA({
   label,
+  appStoreLabel,
   locale,
 }: {
   label: string;
+  appStoreLabel: string;
   locale: Locale;
 }) {
   const [visible, setVisible] = useState(false);
@@ -63,17 +64,17 @@ export function StickyCTA({
       style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
       <div className="rounded-full bg-surface p-1.5 shadow-glass">
-        <Button
-          href={angularUrl("/signup", "sticky_cta_commencer", locale)}
+        <SignupCta
+          locale={locale}
+          utmContent="sticky_cta_commencer"
           glow
           className="w-full"
-          data-cta-name="commencer"
-          data-cta-location="sticky_cta"
-          data-cta-destination="/signup"
+          ctaName="commencer"
+          ctaLocation="sticky_cta"
+          label={label}
+          appStoreLabel={appStoreLabel}
           tabIndex={visible ? undefined : -1}
-        >
-          {label}
-        </Button>
+        />
       </div>
     </div>
   );

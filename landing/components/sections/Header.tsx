@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, SignupCta } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
 import { MOBILE_NAV_ID, MOBILE_NAV_PANEL_ID, angularUrl } from "@/lib/config";
 import type { Locale } from "@/lib/i18n";
@@ -144,16 +144,16 @@ export function Header({
                 {link.label}
               </Link>
             ))}
-            <Button
-              href={angularUrl("/signup", "mobile_menu_commencer", locale)}
+            <SignupCta
+              locale={locale}
+              utmContent="mobile_menu_commencer"
               tabIndex={-1}
               className="mt-auto w-full"
-              data-cta-name="commencer"
-              data-cta-location="mobile_menu"
-              data-cta-destination="/signup"
-            >
-              {dict.cta}
-            </Button>
+              ctaName="commencer"
+              ctaLocation="mobile_menu"
+              label={dict.cta}
+              appStoreLabel={dict.appStoreCta}
+            />
           </div>
         </nav>
       </header>

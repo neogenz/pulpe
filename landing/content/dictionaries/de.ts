@@ -27,6 +27,7 @@ const de: Dictionary = {
 
   common: {
     skipToContent: "Zum Inhalt springen",
+    appStoreCta: "Laden im App Store",
   },
 
   header: {
@@ -35,6 +36,7 @@ const de: Dictionary = {
     menuLabel: "Menü",
     homeAriaLabel: "Pulpe, Startseite",
     cta: "Budget erstellen",
+    appStoreCta: "Laden im App Store",
     nav: {
       painPoints: "Warum Pulpe",
       howItWorks: "So funktioniert’s",

@@ -235,7 +235,11 @@ export function Support({
           </div>
         </Section>
 
-        <FinalCTA dict={dict.home.finalCta} locale={locale} />
+        <FinalCTA
+          dict={dict.home.finalCta}
+          appStoreLabel={dict.common.appStoreCta}
+          locale={locale}
+        />
       </main>
 
       <Footer

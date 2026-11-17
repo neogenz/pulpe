@@ -65,6 +65,8 @@ const fr = {
 
   common: {
     skipToContent: "Aller au contenu",
+    // Remplace l’inscription web sur iPhone : le bouton dit où il mène.
+    appStoreCta: "Télécharger sur l’App Store",
   },
 
   header: {
@@ -73,6 +75,7 @@ const fr = {
     menuLabel: "Menu",
     homeAriaLabel: "Pulpe, accueil",
     cta: "Créer mon budget",
+    appStoreCta: "Télécharger sur l’App Store",
     nav: {
       painPoints: "Pourquoi Pulpe",
       howItWorks: "Comment ça marche",

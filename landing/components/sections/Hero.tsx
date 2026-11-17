@@ -1,15 +1,16 @@
-import { Button, HeroDashboard } from "@/components/ui";
+import { HeroDashboard, SignupCta } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
-import { angularUrl } from "@/lib/config";
 import type { Locale } from "@/lib/i18n";
 
 export function Hero({
   dict,
   dashboardDict,
+  appStoreLabel,
   locale,
 }: {
   dict: Dictionary["home"]["hero"];
   dashboardDict: Dictionary["home"]["dashboard"];
+  appStoreLabel: string;
   locale: Locale;
 }) {
   return (
@@ -33,15 +34,15 @@ export function Hero({
             {dict.subheadTail}
           </p>
           <div className="mt-9 flex justify-center">
-            <Button
-              href={angularUrl("/signup", "hero_commencer", locale)}
+            <SignupCta
+              locale={locale}
+              utmContent="hero_commencer"
               glow
-              data-cta-name="commencer"
-              data-cta-location="hero"
-              data-cta-destination="/signup"
-            >
-              {dict.cta}
-            </Button>
+              ctaName="commencer"
+              ctaLocation="hero"
+              label={dict.cta}
+              appStoreLabel={appStoreLabel}
+            />
           </div>
           <p className="mt-4 text-center text-sm text-text-secondary">
             {dict.reassurance}

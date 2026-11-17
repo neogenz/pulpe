@@ -40,7 +40,12 @@ export function Home({ dict, locale }: { dict: Dictionary; locale: Locale }) {
         tabIndex={-1}
         className="pb-[calc(3.75rem+max(0.75rem,env(safe-area-inset-bottom)))] lg:pb-0"
       >
-        <Hero dict={home.hero} dashboardDict={home.dashboard} locale={locale} />
+        <Hero
+          dict={home.hero}
+          dashboardDict={home.dashboard}
+          appStoreLabel={dict.common.appStoreCta}
+          locale={locale}
+        />
         <PainPoints dict={home.painPoints} />
         <Solution dict={home.solution} howItWorksDict={home.howItWorks} />
         <Testimonials dict={home.testimonials} />
@@ -49,7 +54,11 @@ export function Home({ dict, locale }: { dict: Dictionary; locale: Locale }) {
         <Platforms dict={home.platforms} locale={locale} />
         <WhyFree dict={home.whyFree} />
         <FAQ dict={home.faq} />
-        <FinalCTA dict={home.finalCta} locale={locale} />
+        <FinalCTA
+          dict={home.finalCta}
+          appStoreLabel={dict.common.appStoreCta}
+          locale={locale}
+        />
       </main>
 
       <Footer
@@ -59,7 +68,11 @@ export function Home({ dict, locale }: { dict: Dictionary; locale: Locale }) {
         route="/"
       />
       <MarkerDraw />
-      <StickyCTA label={home.stickyCta} locale={locale} />
+      <StickyCTA
+        label={home.stickyCta}
+        appStoreLabel={dict.common.appStoreCta}
+        locale={locale}
+      />
     </>
   );
 }
