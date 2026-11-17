@@ -7,7 +7,11 @@ import { useNetWorth } from "@/features/net-worth/net-worth-queries";
 
 let mockHasSeenIntro = false;
 
-jest.mock("expo-router", () => ({ useFocusEffect: () => undefined }));
+let mockIsFocused = true;
+jest.mock("expo-router", () => ({
+  useFocusEffect: () => undefined,
+  useIsFocused: () => mockIsFocused,
+}));
 jest.mock("react-native-safe-area-context", () => ({
   ...jest.requireActual("react-native-safe-area-context"),
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
@@ -125,6 +129,7 @@ const renderTab = () =>
 
 beforeEach(() => {
   mockHasSeenIntro = false;
+  mockIsFocused = true;
 });
 
 it("opens the explainer by itself once the net worth has loaded, then never again", async () => {
@@ -146,6 +151,21 @@ it("opens the explainer by itself once the net worth has loaded, then never agai
   await view.unmount();
   const again = await renderTab();
   expect(again.queryByText("intro:auto")).toBeNull();
+});
+
+it("waits for the tab to be back in front when the net worth lands after the user left", async () => {
+  mockIsFocused = false;
+  serve(netWorth([account]));
+  const view = await renderTab();
+  expect(view.queryByText("intro:auto")).toBeNull();
+
+  mockIsFocused = true;
+  await view.rerender(
+    <PaperProvider>
+      <NetWorthScreen />
+    </PaperProvider>,
+  );
+  expect(view.getByText("intro:auto")).toBeTruthy();
 });
 
 it("reopens from « ? » once already seen", async () => {

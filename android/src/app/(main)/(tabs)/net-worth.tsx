@@ -1,5 +1,5 @@
 import type { Asset } from "pulpe-shared";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useIsFocused } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -119,12 +119,15 @@ export default function NetWorthScreen() {
   };
 
   // The explainer opens by itself the first time the tab shows its content.
+  // Tabs stay mounted: a load that lands after the user left must not cover another tab.
+  const isFocused = useIsFocused();
   const [requestedIntro, setRequestedIntro] = useState<IntroSource | null>(
     null,
   );
   const [hasSeenIntro, setHasSeenIntro] = useState(hasSeenNetWorthIntro);
   const introSource =
-    requestedIntro ?? (sections !== null && !hasSeenIntro ? "auto" : null);
+    requestedIntro ??
+    (isFocused && sections !== null && !hasSeenIntro ? "auto" : null);
   // FormModal has no after-close callback: the intro unmounts and the creation
   // sheet mounts in the same render, never both at once.
   const finishIntro = (outcome: IntroOutcome) => {
