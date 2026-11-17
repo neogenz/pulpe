@@ -27,6 +27,7 @@ import { Assistants } from "../components/sections/Assistants";
 import { TESTIMONIAL_SIGNATURES } from "../components/sections/testimonialSignatures";
 import { AccordionItem } from "../components/ui/AccordionItem";
 import { SignupCta } from "../components/ui/SignupCta";
+import { AndroidBetaBanner } from "../components/android/AndroidBetaBanner";
 // Nommés `…Dict` : `it` importé nu masquerait le `it` de `node:test`, et la
 // suite entière se charge alors sans exécuter un seul bloc.
 import frDict from "../content/dictionaries/fr";
@@ -478,6 +479,40 @@ describe("landing accessibility contracts", () => {
     assert.ok(appStore.includes(`data-cta-destination="${IOS_APP_URL}"`));
     assert.match(appStore, /data-cta-name="commencer"/);
     assert.match(appStore, />Download on the App Store</);
+  });
+
+  it("invites Android visitors to the closed test without touching sign-up", () => {
+    // Flagged before first paint, with a past dismissal, so the banner never
+    // flashes for anyone else and never comes back once closed.
+    assert.match(
+      globalsCss,
+      /@custom-variant android-beta-invite \(html\[data-android\]:not\(\[data-android-beta-dismissed\]\) &\);/,
+    );
+    assert.match(
+      componentSources.layout,
+      /if\(\/Android\/\.test\(navigator\.userAgent\)\)\{/,
+    );
+    assert.match(
+      componentSources.layout,
+      /try\{if\(localStorage\.getItem\('\$\{ANDROID_BETA_DISMISSED_KEY\}'\)\)/,
+    );
+
+    const html = renderToStaticMarkup(
+      <AndroidBetaBanner dict={enDict.androidBeta.banner} locale="en" />,
+    );
+    // Hidden in the prerendered HTML: without JavaScript nobody sees it.
+    assert.match(
+      html,
+      /^<aside [^>]*class="[^"]*\bhidden\b[^"]*\bandroid-beta-invite:flex\b/,
+    );
+    assert.match(
+      html,
+      /data-cta-name="android_beta_banner"[^>]*href="\/en\/android"/,
+    );
+    assert.match(html, /data-cta-name="android_beta_banner_dismiss"/);
+    // The banner sits beside the sign-up button, it does not replace it.
+    assert.match(componentSources.hero, /<AndroidBetaBanner/);
+    assert.match(componentSources.hero, /<SignupCta/);
   });
 
   it("tags App Store links with the arrival campaign", () => {

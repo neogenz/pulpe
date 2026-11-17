@@ -621,6 +621,86 @@ const fr = {
     frenchArchive: "Voir l’archive complète en français",
   },
 
+  androidBeta: {
+    banner: {
+      ariaLabel: "Test de l’app Android",
+      title: "L’app Android arrive.",
+      text: "Aide-moi à la tester avant sa sortie.",
+      cta: "Je teste",
+      dismiss: "Fermer l’invitation",
+    },
+    metaTitle: "Tester Pulpe sur Android",
+    metaDescription:
+      "Rejoins le test de l’app Pulpe pour Android en deux étapes. Gratuit, deux minutes, et tu le quittes quand tu veux.",
+    heading: "Essaie Pulpe sur Android avant tout le monde.",
+    intro:
+      "L’app est prête. Avant de la publier, Google me demande de la faire tester. Deux étapes, deux minutes, et c’est fait.",
+    promises: [
+      "Gratuit, sans pub",
+      "Deux minutes",
+      "Tu quittes quand tu veux",
+      "Aucune donnée vendue",
+    ],
+    desktopNote:
+      "Ces deux étapes se font sur ton téléphone Android. Ouvre pulpe.app/android depuis celui-ci.",
+    inApp: {
+      title: "Ouvre cette page dans Chrome",
+      text: "Le navigateur d’Instagram ou de Facebook n’est pas connecté à ton compte Google, et le test en a besoin.",
+      openChrome: "Ouvrir dans Chrome",
+      copyLink: "Copier le lien",
+      copied: "Lien copié",
+      manual:
+        "Sinon, touche ⋮ en haut à droite, puis « Ouvrir dans Chrome » ou « Ouvrir dans le navigateur ».",
+    },
+    stepsHeading: "Deux étapes, deux boutons.",
+    join: {
+      title: "Rejoins le groupe des testeurs",
+      text: "Connecte-toi à ton compte Google si on te le demande, puis touche « Rejoindre le groupe ». C’est ce qui t’ouvre l’accès au test.",
+      cta: "Rejoindre le groupe",
+      mockAlt:
+        "Aperçu de la page du groupe sur Google Groups, avec le bouton « Rejoindre le groupe ».",
+      mockButton: "Rejoindre le groupe",
+    },
+    install: {
+      title: "Accepte le test et installe l’app",
+      text: "Touche « Devenir testeur », puis installe Pulpe depuis le Play Store, comme n’importe quelle app.",
+      cta: "Devenir testeur",
+      storeCta: "Installer depuis le Play Store",
+      mockAlt:
+        "Aperçu de la page du test sur Google Play, avec le bouton « Devenir testeur ».",
+      mockButton: "Devenir testeur",
+    },
+    sameAccount:
+      "Utilise le même compte Google aux deux étapes et sur le Play Store.",
+    whyHeading: "Pourquoi je te demande ça",
+    whyParagraphs: [
+      "Je m’appelle Maxime et je développe Pulpe seul, depuis la Suisse.",
+      "Pour publier une nouvelle app, Google exige qu’un groupe de testeurs l’utilise pendant deux semaines. Ton aide, c’est ce qui fera arriver Pulpe sur le Play Store pour tout le monde.",
+      "En échange, tu as l’app avant sa sortie et une ligne directe avec moi. Chaque retour que tu m’envoies, je le lis.",
+    ],
+    portraitAlt: "Maxime, créateur de Pulpe",
+    signature: "Maxime, créateur de Pulpe",
+    faqHeading: "Si ça coince",
+    faq: {
+      joinButton: {
+        question: "Je ne vois pas le bouton « Rejoindre le groupe »",
+        answer:
+          "Le bouton n’apparaît qu’une fois connecté à ton compte Google. Si tu es dans Instagram ou Facebook, ouvre d’abord la page dans Chrome. Et si la page te dit que tu fais déjà partie du groupe, passe directement à l’étape 2.",
+      },
+      install: {
+        question: "Ça ne s’installe pas",
+        answer:
+          "Après l’étape 1, Google peut mettre quelques minutes à t’ouvrir l’accès. Attends un peu, puis rouvre le lien de l’étape 2. Vérifie aussi que le Play Store utilise le même compte Google que le groupe.",
+      },
+      leave: {
+        question: "Comment quitter le test ?",
+        answer:
+          "Rouvre le lien de l’étape 2 et touche « Quitter le programme ». Tu peux ensuite désinstaller l’app et quitter le groupe depuis sa page. Rien d’autre à faire.",
+      },
+    },
+    contactText: "Toujours bloqué ? Écris-moi, je réponds moi-même :",
+  },
+
   notFound: {
     title: "Cette page n’existe pas",
     text: "Le chemin demandé est inconnu. Utilise les liens ci-dessous pour retrouver une page utile.",

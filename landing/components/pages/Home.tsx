@@ -43,6 +43,7 @@ export function Home({ dict, locale }: { dict: Dictionary; locale: Locale }) {
         <Hero
           dict={home.hero}
           dashboardDict={home.dashboard}
+          androidBetaDict={dict.androidBeta.banner}
           appStoreLabel={dict.common.appStoreCta}
           locale={locale}
         />
