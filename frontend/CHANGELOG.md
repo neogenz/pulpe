@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.63.0
+
+### Minor Changes
+
+- Inscription depuis iPhone vers l’App Store sur le site ; libellés de champ entiers dans les fenêtres ; Mon patrimoine pour les early adopters.
+
+### Patch Changes
+
+- pulpe-shared@0.63.0
+
 ## 0.62.1
 
 ### Patch Changes

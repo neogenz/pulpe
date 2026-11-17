@@ -1,5 +1,99 @@
 [
   {
+    "version": "0.63.0",
+    "date": "2026-11-17",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.63.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "L’App Store depuis ton iPhone",
+          "description": "Sur pulpe.app, les boutons d’inscription ouvrent l’App Store quand tu viens d’un iPhone."
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Libellés de champ entiers",
+          "description": "Dans « Filtrer par tags », « Évolution par tag » et « Planifier des budgets », le libellé du premier champ n’est plus coupé en haut."
+        }
+      ],
+      "technical": [
+        {
+          "title": "Mon patrimoine",
+          "description": "La page avance pour les early adopters : un type se replie sur son total, le diagramme défile sur téléphone."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "The App Store from your iPhone",
+              "description": "On pulpe.app, sign-up buttons open the App Store when you visit from an iPhone."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Field labels shown in full",
+              "description": "In “Filter by tags”, “Trend by tag” and “Plan budgets”, the first field’s label is no longer cut off at the top."
+            }
+          ],
+          "technical": [
+            {
+              "title": "My net worth",
+              "description": "The page moves forward for early adopters: a type folds down to its total, and the diagram scrolls on phones."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Der App Store vom iPhone aus",
+              "description": "Auf pulpe.app öffnen die Anmelde-Buttons den App Store, wenn du von einem iPhone kommst."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Feldbeschriftungen vollständig sichtbar",
+              "description": "In «Nach Tags filtern», «Entwicklung nach Tag» und «Budgets planen» wird die Beschriftung des ersten Felds oben nicht mehr abgeschnitten."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Mein Vermögen",
+              "description": "Die Seite entwickelt sich für Early Adopters weiter: Ein Typ lässt sich auf seine Summe zuklappen, das Diagramm scrollt auf dem Handy."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "L’App Store dal tuo iPhone",
+              "description": "Su pulpe.app, i pulsanti di iscrizione aprono l’App Store quando arrivi da un iPhone."
+            }
+          ],
+          "fixes": [
+            {
+              "title": "Etichette dei campi intere",
+              "description": "In «Filtra per tag», «Andamento per tag» e «Pianifica i budget», l’etichetta del primo campo non è più tagliata in alto."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Il mio patrimonio",
+              "description": "La pagina avanza per gli early adopter: un tipo si richiude sul suo totale e il diagramma scorre sul telefono."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.62.1",
     "iosVersion": "1.14.1",
     "date": "2026-11-15",
