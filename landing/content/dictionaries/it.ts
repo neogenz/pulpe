@@ -3,6 +3,8 @@ import type { Dictionary } from "../dictionary";
 // L’italiano dà del tu, mai del Lei. Nessuno spazio prima di `?`: quella è
 // tipografia francese. I termini di prodotto seguono il lessico fissato in
 // `docs/I18N.md`.
+const appStoreCta = "Scarica sull’App Store";
+
 const it: Dictionary = {
   site: {
     titleDefault:
@@ -27,7 +29,7 @@ const it: Dictionary = {
 
   common: {
     skipToContent: "Vai al contenuto",
-    appStoreCta: "Scarica sull’App Store",
+    appStoreCta,
   },
 
   header: {
@@ -36,7 +38,7 @@ const it: Dictionary = {
     menuLabel: "Menu",
     homeAriaLabel: "Pulpe, pagina iniziale",
     cta: "Crea il mio budget",
-    appStoreCta: "Scarica sull’App Store",
+    appStoreCta,
     nav: {
       painPoints: "Perché Pulpe",
       howItWorks: "Come funziona",

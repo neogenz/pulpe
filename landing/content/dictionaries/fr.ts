@@ -38,6 +38,11 @@ const testimonials: Testimonial[] = [
   },
 ];
 
+// Remplace l’inscription web sur iPhone : le bouton dit où il mène. Une
+// seule chaîne pour l’en-tête et les sections, qui la lisent chacun dans leur
+// tranche.
+const appStoreCta = "Télécharger sur l’App Store";
+
 const fr = {
   site: {
     titleDefault:
@@ -65,8 +70,7 @@ const fr = {
 
   common: {
     skipToContent: "Aller au contenu",
-    // Remplace l’inscription web sur iPhone : le bouton dit où il mène.
-    appStoreCta: "Télécharger sur l’App Store",
+    appStoreCta,
   },
 
   header: {
@@ -75,7 +79,7 @@ const fr = {
     menuLabel: "Menu",
     homeAriaLabel: "Pulpe, accueil",
     cta: "Créer mon budget",
-    appStoreCta: "Télécharger sur l’App Store",
+    appStoreCta,
     nav: {
       painPoints: "Pourquoi Pulpe",
       howItWorks: "Comment ça marche",
