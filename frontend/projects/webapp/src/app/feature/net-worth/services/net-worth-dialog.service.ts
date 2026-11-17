@@ -12,6 +12,11 @@ import {
   AssetFormDialog,
   type AssetFormDialogData,
 } from '../components/asset-form-dialog';
+import {
+  NetWorthIntroDialog,
+  type NetWorthIntroDialogData,
+  type NetWorthIntroResult,
+} from '../components/net-worth-intro-dialog';
 import type { AssetCreateRequest, AssetEditRequest } from './net-worth-store';
 
 @Service({ autoProvided: false })
@@ -36,6 +41,16 @@ export class NetWorthDialogService {
     return this.#openForm({ categories, assets, asset });
   }
 
+  /** Resolves with `'add'` when the explainer ends on « Ajouter mon premier compte ». */
+  async openIntro(data: NetWorthIntroDialogData): Promise<NetWorthIntroResult> {
+    const dialogRef = this.#dialog.open(NetWorthIntroDialog, {
+      data,
+      ariaLabelledBy: 'net-worth-intro-title',
+      ...this.#size(),
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
   // Full screen on a phone: the fields would not fit a centred card above a keyboard.
   #openForm<Result>(
     data: Omit<AssetFormDialogData, 'isFullScreen'>,
@@ -43,17 +58,21 @@ export class NetWorthDialogService {
     const isFullScreen = this.#breakpoints.isMatched(Breakpoints.Handset);
     const dialogRef = this.#dialog.open(AssetFormDialog, {
       data: { ...data, isFullScreen } satisfies AssetFormDialogData,
-      ...(isFullScreen
-        ? {
-            panelClass: 'full-screen-dialog',
-            width: '100dvw',
-            maxWidth: '100dvw',
-            height: '100dvh',
-            maxHeight: '100dvh',
-          }
-        : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
+      ...this.#size(),
     });
     return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  #size() {
+    return this.#breakpoints.isMatched(Breakpoints.Handset)
+      ? {
+          panelClass: 'full-screen-dialog',
+          width: '100dvw',
+          maxWidth: '100dvw',
+          height: '100dvh',
+          maxHeight: '100dvh',
+        }
+      : { width: '560px', maxWidth: 'calc(100vw - 48px)' };
   }
 
   async confirmDelete(asset: Asset): Promise<boolean> {

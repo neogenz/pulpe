@@ -13,6 +13,7 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TitleDisplay } from '@core/routing';
+import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
 import { RenameTypeDialog } from './components/rename-type-dialog';
 import { NetWorthSankey } from './components/net-worth-sankey';
@@ -119,7 +120,7 @@ describe('NetWorthPage', () => {
     renameCategory: vi.fn(),
     dismissSuggestion: vi.fn(),
   };
-  const dialogs = { openCreate: vi.fn() };
+  const dialogs = { openCreate: vi.fn(), openIntro: vi.fn() };
   const matDialog = { open: vi.fn() };
   const snackBar = { open: vi.fn() };
 
@@ -150,6 +151,7 @@ describe('NetWorthPage', () => {
     localStorage.clear();
     status.set('resolved');
     dialogs.openCreate.mockResolvedValue(undefined);
+    dialogs.openIntro.mockResolvedValue('close');
     store.setArchived.mockResolvedValue(undefined);
     store.saveAsset.mockResolvedValue(undefined);
     store.dismissSuggestion.mockResolvedValue(undefined);
@@ -380,6 +382,67 @@ describe('NetWorthPage', () => {
       await fixture.whenStable();
 
       expect(snackBar.open).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('explainer', () => {
+    it('should open by itself once the page settles, then never again on this device', async () => {
+      status.set('loading');
+      render(undefined);
+      expect(dialogs.openIntro).not.toHaveBeenCalled();
+
+      status.set('resolved');
+      render(populated);
+      await fixture.whenStable();
+
+      expect(dialogs.openIntro).toHaveBeenCalledExactlyOnceWith({
+        source: 'auto',
+        isEmpty: false,
+      });
+      expect(
+        TestBed.inject(StorageService).get<boolean>(
+          STORAGE_KEYS.NET_WORTH_INTRO_SEEN,
+        ),
+      ).toBe(true);
+
+      render({ ...populated });
+      await fixture.whenStable();
+      expect(dialogs.openIntro).toHaveBeenCalledOnce();
+    });
+
+    it('should not open by itself once seen, nor while loading failed', async () => {
+      TestBed.inject(StorageService).set(
+        STORAGE_KEYS.NET_WORTH_INTRO_SEEN,
+        true,
+      );
+      render(populated);
+      await fixture.whenStable();
+      expect(dialogs.openIntro).not.toHaveBeenCalled();
+
+      TestBed.inject(StorageService).remove(STORAGE_KEYS.NET_WORTH_INTRO_SEEN);
+      status.set('error');
+      render(undefined);
+      await fixture.whenStable();
+      expect(dialogs.openIntro).not.toHaveBeenCalled();
+      expect(byTestId('net-worth-help-button')).toBeNull();
+    });
+
+    it('should reopen from « ? » on an empty net worth and lead to the creation form', async () => {
+      TestBed.inject(StorageService).set(
+        STORAGE_KEYS.NET_WORTH_INTRO_SEEN,
+        true,
+      );
+      render({ ...populated, categories: [], assets: [] });
+      dialogs.openIntro.mockResolvedValue('add');
+
+      byTestId('net-worth-help-button')!.click();
+      await fixture.whenStable();
+
+      expect(dialogs.openIntro).toHaveBeenCalledWith({
+        source: 'help',
+        isEmpty: true,
+      });
+      expect(dialogs.openCreate).toHaveBeenCalledWith([], []);
     });
   });
 });

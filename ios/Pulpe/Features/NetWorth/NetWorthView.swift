@@ -10,6 +10,9 @@ struct NetWorthView: View {
     @State private var form: FormTarget?
     @State private var pendingDelete: Asset?
     @State private var renameTarget: NetWorthSections.Group?
+    @AppStorage(NetWorthIntroGate.storageKey) private var hasSeenIntro = false
+    @State private var introSource: NetWorthIntroSource?
+    @State private var opensFormAfterIntro = false
 
     private enum FormTarget: Identifiable {
         case create
@@ -56,6 +59,14 @@ struct NetWorthView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(removing: .title)
         .toolbar {
+            if store.netWorth != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(AppLocale.string("Comprendre mon patrimoine"), systemImage: "questionmark.circle") {
+                        introSource = .help
+                    }
+                    .accessibilityIdentifier("netWorthHelp")
+                }
+            }
             if case .loaded = content {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(AppLocale.string("Ajouter"), systemImage: "plus") { form = .create }
@@ -71,6 +82,21 @@ struct NetWorthView: View {
             }
         }
         .sheet(item: $renameTarget) { RenameAssetTypeSheet(type: $0) }
+        .sheet(item: $introSource, onDismiss: introDismissed) { source in
+            NetWorthIntroSheet(
+                source: source,
+                isEmpty: store.netWorth.map { NetWorthSections($0).isEmpty } ?? true,
+                currency: baseCurrency
+            ) { outcome in
+                opensFormAfterIntro = outcome == .completed(.add)
+                introSource = nil
+            }
+        }
+        .onChange(of: store.netWorth != nil, initial: true) { _, isLoaded in
+            if introSource == nil, NetWorthIntroGate.shouldPresentIntro(hasSeen: hasSeenIntro, isLoaded: isLoaded) {
+                introSource = .auto
+            }
+        }
         .confirmationDialog(
             pendingDelete.map { AppLocale.string("Supprimer \($0.name) ?") } ?? "",
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
@@ -87,6 +113,15 @@ struct NetWorthView: View {
         .task { await store.forceRefresh() }
         .trackScreen(AnalyticsScreen.netWorth)
         .accessibilityIdentifier("netWorthRoot")
+    }
+
+    /// The creation form waits for the explainer to be fully gone: two sheets cannot animate at once.
+    private func introDismissed() {
+        hasSeenIntro = true
+        if opensFormAfterIntro {
+            opensFormAfterIntro = false
+            form = .create
+        }
     }
 
     private var emptyScreen: some View {

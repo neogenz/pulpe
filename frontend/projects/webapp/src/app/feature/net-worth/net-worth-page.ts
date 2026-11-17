@@ -3,9 +3,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   LOCALE_ID,
   signal,
+  untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -25,6 +27,7 @@ import {
   type RenameTypeDialogData,
 } from './components/rename-type-dialog';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
+import { type IntroSource } from './components/net-worth-intro.model';
 import { NetWorthSankey } from './components/net-worth-sankey';
 import { NetWorthSection } from './components/net-worth-section';
 import { NetWorthDialogService } from './services/net-worth-dialog.service';
@@ -60,17 +63,27 @@ import { injectWriteAttempt } from './services/write-attempt';
             {{ title.currentTitle() }}
           </h1>
         </div>
-        <!-- The empty state carries its own action: one way in, not two. -->
-        @if (!store.isEmpty()) {
+        @if (isSettled()) {
           <div class="ml-auto flex shrink-0 items-center gap-2">
             <button
-              matButton="filled"
-              (click)="onAdd()"
-              data-testid="net-worth-add-button"
+              matIconButton
+              (click)="openIntro('help')"
+              [attr.aria-label]="'netWorth.intro.help' | transloco"
+              data-testid="net-worth-help-button"
             >
-              <mat-icon>add_circle</mat-icon>
-              {{ 'netWorth.addButton' | transloco }}
+              <mat-icon>help_outline</mat-icon>
             </button>
+            <!-- The empty state carries its own action: one way in, not two. -->
+            @if (!store.isEmpty()) {
+              <button
+                matButton="filled"
+                (click)="onAdd()"
+                data-testid="net-worth-add-button"
+              >
+                <mat-icon>add_circle</mat-icon>
+                {{ 'netWorth.addButton' | transloco }}
+              </button>
+            }
           </div>
         }
       </header>
@@ -376,6 +389,44 @@ export default class NetWorthPage {
     if (!next.delete(key)) next.add(key);
     this.collapsedTypeIds.set(next);
     this.#storage.set(STORAGE_KEYS.NET_WORTH_COLLAPSED_TYPES, [...next]);
+  }
+
+  /** The page shows its empty state or its figures: not loading, not failed. */
+  protected readonly isSettled = computed(() => {
+    const status = this.store.netWorth.status();
+    return (
+      status !== 'loading' &&
+      status !== 'error' &&
+      this.store.netWorth.value() !== undefined
+    );
+  });
+  #isIntroOpen = false;
+
+  constructor() {
+    // Opens the explainer by itself the first time the page settles on this device.
+    effect(() => {
+      if (!this.isSettled()) return;
+      untracked(() => {
+        if (this.#storage.get<boolean>(STORAGE_KEYS.NET_WORTH_INTRO_SEEN))
+          return;
+        void this.openIntro('auto');
+      });
+    });
+  }
+
+  protected async openIntro(source: IntroSource): Promise<void> {
+    if (this.#isIntroOpen) return;
+    this.#isIntroOpen = true;
+    try {
+      const result = await this.#dialogs.openIntro({
+        source,
+        isEmpty: this.store.isEmpty(),
+      });
+      this.#storage.set(STORAGE_KEYS.NET_WORTH_INTRO_SEEN, true);
+      if (result === 'add') await this.onAdd();
+    } finally {
+      this.#isIntroOpen = false;
+    }
   }
 
   protected readonly categoryNames = computed(

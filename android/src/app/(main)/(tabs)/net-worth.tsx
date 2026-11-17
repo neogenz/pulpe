@@ -1,5 +1,5 @@
 import type { Asset } from "pulpe-shared";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useIsFocused } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -22,6 +22,15 @@ import { SectionHeader } from "@/core/ui/section-header";
 import { TabHeader } from "@/core/ui/tab-header";
 import { SPACING } from "@/core/ui/theme";
 import { AssetFormSheet } from "@/features/net-worth/components/asset-form-sheet";
+import {
+  type IntroOutcome,
+  NetWorthIntroSheet,
+} from "@/features/net-worth/components/net-worth-intro-sheet";
+import {
+  hasSeenNetWorthIntro,
+  markNetWorthIntroSeen,
+} from "@/features/net-worth/net-worth-intro-gate";
+import type { IntroSource } from "@/features/net-worth/net-worth-intro";
 import {
   type AssetActions,
   AssetGroupCard,
@@ -109,12 +118,42 @@ export default function NetWorthScreen() {
       dismissSuggestion.mutate(asset.id, { onError }),
   };
 
-  const add = (
-    <Appbar.Action
-      icon="plus"
-      onPress={() => setForm({ kind: "create" })}
-      accessibilityLabel={t("netWorth.addAccessibility")}
-    />
+  // The explainer opens by itself the first time the tab shows its content.
+  // Tabs stay mounted: a load that lands after the user left must not cover another tab.
+  const isFocused = useIsFocused();
+  const [requestedIntro, setRequestedIntro] = useState<IntroSource | null>(
+    null,
+  );
+  const [hasSeenIntro, setHasSeenIntro] = useState(hasSeenNetWorthIntro);
+  const introSource =
+    requestedIntro ??
+    (isFocused && sections !== null && !hasSeenIntro ? "auto" : null);
+  // FormModal has no after-close callback: the intro unmounts and the creation
+  // sheet mounts in the same render, never both at once.
+  const finishIntro = (outcome: IntroOutcome) => {
+    markNetWorthIntroSeen();
+    setHasSeenIntro(true);
+    setRequestedIntro(null);
+    if (outcome.kind === "completed" && outcome.action === "add") {
+      setForm({ kind: "create" });
+    }
+  };
+
+  const trailing = (
+    <>
+      <Appbar.Action
+        icon="help-circle-outline"
+        onPress={() => setRequestedIntro("help")}
+        accessibilityLabel={t("netWorth.intro.help")}
+      />
+      {sections !== null && !sections.isEmpty && (
+        <Appbar.Action
+          icon="plus"
+          onPress={() => setForm({ kind: "create" })}
+          accessibilityLabel={t("netWorth.addAccessibility")}
+        />
+      )}
+    </>
   );
 
   let body;
@@ -212,11 +251,19 @@ export default function NetWorthScreen() {
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <TabHeader
         title={t("netWorth.title")}
-        trailing={sections !== null && !sections.isEmpty ? add : undefined}
+        trailing={sections !== null ? trailing : undefined}
       />
       {body}
 
-      {form !== null && (
+      {introSource !== null && sections !== null && (
+        <NetWorthIntroSheet
+          source={introSource}
+          isEmpty={sections.isEmpty}
+          currency={sections.baseCurrency}
+          onFinish={finishIntro}
+        />
+      )}
+      {introSource === null && form !== null && (
         <AssetFormSheet
           asset={form.kind === "edit" ? form.asset : undefined}
           netWorth={netWorth.data}

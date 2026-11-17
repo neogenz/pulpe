@@ -35,6 +35,8 @@ export const STORAGE_KEYS = {
 
   // Net worth: the Types folded on this device, by category id (or "overdrafts")
   NET_WORTH_COLLAPSED_TYPES: 'pulpe-net-worth-collapsed-types',
+  // Net worth: the explainer opened by itself once on this device
+  NET_WORTH_INTRO_SEEN: 'pulpe-net-worth-intro-seen',
 
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',

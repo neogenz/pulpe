@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { StorageService } from './storage.service';
+import { STORAGE_KEYS } from './storage-keys';
 import { Logger } from '../logging/logger';
 
 describe('StorageService', () => {
@@ -244,6 +245,16 @@ describe('StorageService', () => {
       expect(
         localStorage.getItem('pulpe-vault-client-key-local'),
       ).not.toBeNull();
+    });
+
+    it('should keep the net-worth explainer seen after a sign-out (one per device)', () => {
+      service.set(STORAGE_KEYS.NET_WORTH_INTRO_SEEN, true);
+
+      service.clearAllUserData();
+
+      expect(service.get<boolean>(STORAGE_KEYS.NET_WORTH_INTRO_SEEN)).toBe(
+        true,
+      );
     });
 
     it('should handle empty localStorage gracefully', () => {

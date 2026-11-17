@@ -96,6 +96,9 @@ custom_rules:
       - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\+Hero\\.swift"
       # Savings-goals intro page-dot indicator (filled capsule, not a chip).
       - ".*/Features/SavingsGoals/Intro/SavingsGoalsIntroCover\\.swift"
+      # Net-worth intro page dots and debt bar (filled capsules, not chips).
+      - ".*/Features/NetWorth/Intro/NetWorthIntroSheet\\.swift"
+      - ".*/Features/NetWorth/Intro/NetWorthIntroScene\\.swift"
       - ".*/Features/Onboarding/Steps/BudgetPreviewFlowBars\\.swift"
     message: "Use PulpeChip from Shared/Components instead of raw Capsule().fill(...). Capsule chip rendering is centralised."
     severity: warning

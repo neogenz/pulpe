@@ -191,6 +191,15 @@ export const ANALYTICS_EVENTS = {
   /** Fires when the savings-goals intro is skipped. Properties: none. */
   SAVINGS_GOALS_INTRO_SKIPPED: 'savings_goals_intro_skipped',
   /**
+   * Net-worth explainer, web, iOS and Android. `viewed` fires on open, then
+   * exactly one of `completed` (final button) or `skipped` (closed before the
+   * end). Properties: `source` (`auto` | `help`) on all three; `step` (0, 1, 2)
+   * on `skipped`; `action` (`add_asset` | `close`) on `completed`.
+   */
+  NET_WORTH_INTRO_VIEWED: 'net_worth_intro_viewed',
+  NET_WORTH_INTRO_COMPLETED: 'net_worth_intro_completed',
+  NET_WORTH_INTRO_SKIPPED: 'net_worth_intro_skipped',
+  /**
    * Feedback form, web and iOS. `viewed` fires on open, then exactly one of
    * `submitted` or `cancelled`. Properties on all three: `source`
    * (`'automatic' | 'settings'`; the web only offers `automatic`) and, for
