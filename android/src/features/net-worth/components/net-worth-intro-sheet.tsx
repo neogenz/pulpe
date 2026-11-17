@@ -98,6 +98,7 @@ export function NetWorthIntroSheet({
   return (
     <FormModal
       isVisible
+      holdsHeight
       title={t(`netWorth.intro.steps.${stepName}.title`)}
       onDismiss={() => finish({ kind: "skipped", step })}
       footer={
