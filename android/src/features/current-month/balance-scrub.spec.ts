@@ -44,6 +44,18 @@ describe("scrubReading", () => {
     expect(reading).toMatchObject({ real: null, estimate: 700, plan: 680 });
   });
 
+  it("rounds a negative half centime away from zero, like iOS", () => {
+    const overdrawn = {
+      ...trajectory,
+      real: [{ day: 2, balance: 0 }],
+      totalDays: 4,
+      trend: -0.25,
+    };
+
+    // Halfway between 0 and -0.25: -0.125, which `Math.round` alone sends to -0.12.
+    expect(scrubReading(3, overdrawn, start).estimate).toBe(-0.13);
+  });
+
   it("reads no estimate when there is nothing left to project", () => {
     const reading = scrubReading(30, { ...trajectory, today: 30 }, start);
 

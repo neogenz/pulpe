@@ -91,8 +91,10 @@ function interpolate(points: Point[], day: number): number {
   const ratio =
     (Math.min(Math.max(day, first.day), last.day) - first.day) /
     (last.day - first.day);
-  return (
-    Math.round((first.balance + (last.balance - first.balance) * ratio) * 100) /
-    100
-  );
+  return roundToCents(first.balance + (last.balance - first.balance) * ratio);
+}
+
+/** Half away from zero like Swift's `rounded(2)`: `Math.round` sends a negative half up. */
+function roundToCents(value: number): number {
+  return (Math.sign(value) * Math.round(Math.abs(value) * 100)) / 100;
 }

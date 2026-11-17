@@ -263,7 +263,10 @@ export function HeroTileRow({ children }: { children: ReactNode }) {
 
 interface HeroVerdictProps {
   sentence: string;
-  /** Set semibold: the verdict, as against a plain sentence. */
+  /**
+   * Set bold: the verdict, as against a plain sentence. 700 rather than the 600
+   * iOS uses: the system face has no semibold, and 600 draws as regular.
+   */
   strong?: boolean;
   /** A quieter run after the sentence, in the support ink. */
   tail?: string;
@@ -293,7 +296,7 @@ export function HeroVerdict({
         variant="bodyLarge"
         style={{
           color: tint ?? hero.ink,
-          ...(strong && { fontWeight: "600" }),
+          ...(strong && { fontWeight: "700" }),
         }}
       >
         {sentence}

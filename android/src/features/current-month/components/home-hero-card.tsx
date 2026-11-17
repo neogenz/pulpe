@@ -91,9 +91,10 @@ export function HomeHeroCard({
     reading === null
       ? t("home.hero.eyebrow")
       : scrubEyebrow(t, locale, reading, currency, areHidden);
-  // One tick per day crossed: a drag fires many times per day column.
+  // One tick per day crossed and one on release: a drag fires many times per
+  // day column, and a touch that never became a scrub ends on null twice.
   const scrub = (day: number | null) => {
-    if (day !== null && day !== scrubDay) hapticSelection();
+    if (day !== scrubDay) hapticSelection();
     setScrubDay(day);
   };
 
@@ -213,10 +214,20 @@ function useAccentColor(presentation: HeroPresentation): string {
   }
 }
 
+/** Paper's compact text button, the tallest thing in the header row. */
+const HEADER_HEIGHT = 40;
+
 const styles = StyleSheet.create({
   hero: { gap: SPACING.md },
   figure: { gap: SPACING.xs },
-  header: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+    // The eye and the button step aside while scrubbing: without a floor the
+    // row would shrink to its text and the plot would jump under the finger.
+    minHeight: HEADER_HEIGHT,
+  },
   eye: {
     width: TOUCH_TARGET,
     height: TOUCH_TARGET,

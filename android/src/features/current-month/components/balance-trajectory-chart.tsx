@@ -242,5 +242,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  today: { position: "absolute", top: 0, fontWeight: "600" },
+  today: { position: "absolute", top: 0, fontWeight: "700" },
 });
