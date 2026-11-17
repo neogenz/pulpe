@@ -207,7 +207,7 @@ export type NetWorthIntroResult = 'add' | 'close' | undefined;
     </mat-dialog-content>
 
     <mat-dialog-actions class="flex-wrap !px-6 !pb-6 gap-2">
-      <div class="mr-auto flex gap-1.5" aria-hidden="true">
+      <div class="step-dots mr-auto flex gap-1.5" aria-hidden="true">
         @for (name of steps; track name; let i = $index) {
           <span class="step-dot" [class.step-dot-current]="i === step()"></span>
         }
@@ -237,12 +237,30 @@ export type NetWorthIntroResult = 'add' | 'close' | undefined;
     }
     /* Full screen on a phone: the content takes the height, so the actions sit at the bottom */
     :host-context(.full-screen-dialog) {
+      position: relative;
       display: flex;
       flex-direction: column;
       height: 100%;
+      padding-top: 2.5rem;
+      box-sizing: border-box;
       mat-dialog-content {
         flex: 1;
         max-height: none;
+      }
+      /* Same layout as the phone apps: the dots centred above a full-width primary button,
+         « Plus tard » at the top so the bottom does not move when it goes away */
+      mat-dialog-actions {
+        position: static;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .step-dots {
+        margin: 0 auto 0.5rem;
+      }
+      [data-testid='net-worth-intro-later-button'] {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
       }
     }
     /* Flat: the dialog already floats, so the card sets itself apart by tone, not by a shadow */
