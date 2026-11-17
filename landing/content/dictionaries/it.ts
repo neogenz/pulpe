@@ -591,6 +591,86 @@ const it: Dictionary = {
     frenchArchive: "Consulta l’archivio completo in francese",
   },
 
+  androidBeta: {
+    banner: {
+      ariaLabel: "Test dell’app Android",
+      title: "L’app Android sta arrivando.",
+      text: "Aiutami a testarla prima dell’uscita.",
+      cta: "Ci sto",
+      dismiss: "Chiudi l’invito",
+    },
+    metaTitle: "Prova Pulpe su Android",
+    metaDescription:
+      "Partecipa al test dell’app Pulpe per Android in due passaggi. Gratis, due minuti, e puoi uscire quando vuoi.",
+    heading: "Prova Pulpe su Android prima di tutti.",
+    intro:
+      "L’app è pronta. Prima di pubblicarla, Google mi chiede di farla testare. Due passaggi, due minuti, ed è fatta.",
+    promises: [
+      "Gratis, senza pubblicità",
+      "Due minuti",
+      "Esci quando vuoi",
+      "Nessun dato venduto",
+    ],
+    desktopNote:
+      "Entrambi i passaggi si fanno sul tuo telefono Android. Apri pulpe.app/android da lì.",
+    inApp: {
+      title: "Apri questa pagina in Chrome",
+      text: "Il browser di Instagram o di Facebook non è collegato al tuo account Google, e il test ne ha bisogno.",
+      openChrome: "Apri in Chrome",
+      copyLink: "Copia il link",
+      copied: "Link copiato",
+      manual:
+        "Altrimenti tocca ⋮ in alto a destra, poi «Apri in Chrome» o «Apri nel browser».",
+    },
+    stepsHeading: "Due passaggi, due pulsanti.",
+    join: {
+      title: "Entra nel gruppo dei tester",
+      text: "Accedi al tuo account Google se richiesto, poi tocca «Iscriviti al gruppo». È questo che ti apre l’accesso al test.",
+      cta: "Entra nel gruppo",
+      mockAlt:
+        "Anteprima della pagina del gruppo su Google Groups, con il pulsante «Iscriviti al gruppo».",
+      mockButton: "Iscriviti al gruppo",
+    },
+    install: {
+      title: "Accetta il test e installa l’app",
+      text: "Tocca «Diventa un tester», poi installa Pulpe dal Play Store come qualsiasi altra app.",
+      cta: "Diventa un tester",
+      storeCta: "Installa dal Play Store",
+      mockAlt:
+        "Anteprima della pagina del test su Google Play, con il pulsante «Diventa un tester».",
+      mockButton: "Diventa un tester",
+    },
+    sameAccount:
+      "Usa lo stesso account Google in entrambi i passaggi e sul Play Store.",
+    whyHeading: "Perché te lo chiedo",
+    whyParagraphs: [
+      "Mi chiamo Maxime e sviluppo Pulpe da solo, in Svizzera.",
+      "Per pubblicare una nuova app, Google richiede che un gruppo di tester la usi per due settimane. Il tuo aiuto è ciò che porterà Pulpe sul Play Store per tutti.",
+      "In cambio hai l’app prima dell’uscita e una linea diretta con me. Leggo ogni riscontro che mi mandi.",
+    ],
+    portraitAlt: "Maxime, creatore di Pulpe",
+    signature: "Maxime, creatore di Pulpe",
+    faqHeading: "Se qualcosa non va",
+    faq: {
+      joinButton: {
+        question: "Non vedo il pulsante «Iscriviti al gruppo»",
+        answer:
+          "Il pulsante compare solo dopo l’accesso al tuo account Google. Se sei in Instagram o Facebook, apri prima la pagina in Chrome. E se la pagina dice che fai già parte del gruppo, passa direttamente al passaggio 2.",
+      },
+      install: {
+        question: "Non si installa",
+        answer:
+          "Dopo il passaggio 1, Google può metterci qualche minuto ad aprirti l’accesso. Aspetta un po’, poi riapri il link del passaggio 2. Controlla anche che il Play Store usi lo stesso account Google del gruppo.",
+      },
+      leave: {
+        question: "Come esco dal test?",
+        answer:
+          "Riapri il link del passaggio 2 e tocca «Abbandona il programma». Poi puoi disinstallare l’app e lasciare il gruppo dalla sua pagina. Nient’altro da fare.",
+      },
+    },
+    contactText: "Ancora bloccato? Scrivimi, rispondo io:",
+  },
+
   notFound: {
     title: "Questa pagina non esiste",
     text: "L’app Pulpe ha traslocato. Puoi raggiungerla direttamente sul suo nuovo dominio.",

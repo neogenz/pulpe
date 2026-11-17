@@ -19,6 +19,13 @@ const CAMPAIGN_TOKEN_MAX_LENGTH = 30;
 // The About page: the group home shows a permission error to a signed-out visitor.
 export const ANDROID_BETA_GROUP_URL =
   "https://groups.google.com/g/pulpe-android-beta/about";
+// Package name from `android/app.json`.
+export const ANDROID_BETA_OPT_IN_URL =
+  "https://play.google.com/apps/testing/app.pulpe.android";
+export const ANDROID_PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=app.pulpe.android";
+// Read by the head script before first paint, written by the banner's close button.
+export const ANDROID_BETA_DISMISSED_KEY = "pulpe-android-beta-dismissed";
 // L'adresse du serveur MCP, celle qu'un assistant reçoit telle quelle. Le
 // tutoriel l'affiche et la commande du terminal la reprend : une seule source
 // évite qu'un des deux reste sur une ancienne adresse.

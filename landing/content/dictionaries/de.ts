@@ -592,6 +592,86 @@ const de: Dictionary = {
     frenchArchive: "Vollständiges Archiv auf Französisch ansehen",
   },
 
+  androidBeta: {
+    banner: {
+      ariaLabel: "Test der Android-App",
+      title: "Die Android-App kommt.",
+      text: "Hilf mir, sie vor dem Start zu testen.",
+      cta: "Ich teste",
+      dismiss: "Einladung schliessen",
+    },
+    metaTitle: "Pulpe auf Android testen",
+    metaDescription:
+      "Mach in zwei Schritten beim Test der Pulpe-App für Android mit. Kostenlos, zwei Minuten, und du kannst jederzeit aussteigen.",
+    heading: "Probier Pulpe auf Android vor allen anderen.",
+    intro:
+      "Die App ist fertig. Bevor ich sie veröffentlichen kann, verlangt Google einen Test. Zwei Schritte, zwei Minuten, fertig.",
+    promises: [
+      "Kostenlos, ohne Werbung",
+      "Zwei Minuten",
+      "Jederzeit aussteigen",
+      "Keine Daten verkauft",
+    ],
+    desktopNote:
+      "Beide Schritte machst du auf deinem Android-Handy. Öffne dort pulpe.app/android.",
+    inApp: {
+      title: "Öffne diese Seite in Chrome",
+      text: "Der Browser von Instagram oder Facebook ist nicht mit deinem Google-Konto verbunden, und der Test braucht es.",
+      openChrome: "In Chrome öffnen",
+      copyLink: "Link kopieren",
+      copied: "Link kopiert",
+      manual:
+        "Sonst tippe oben rechts auf ⋮ und dann auf „In Chrome öffnen“ oder „Im Browser öffnen“.",
+    },
+    stepsHeading: "Zwei Schritte, zwei Knöpfe.",
+    join: {
+      title: "Tritt der Testgruppe bei",
+      text: "Melde dich bei deinem Google-Konto an, falls nötig, und tippe auf „Gruppe beitreten“. Damit bekommst du Zugang zum Test.",
+      cta: "Gruppe beitreten",
+      mockAlt:
+        "Vorschau der Gruppenseite auf Google Groups mit dem Knopf „Gruppe beitreten“.",
+      mockButton: "Gruppe beitreten",
+    },
+    install: {
+      title: "Nimm am Test teil und installiere die App",
+      text: "Tippe auf „Tester werden“ und installiere Pulpe dann wie jede andere App aus dem Play Store.",
+      cta: "Tester werden",
+      storeCta: "Aus dem Play Store installieren",
+      mockAlt:
+        "Vorschau der Testseite auf Google Play mit dem Knopf „Tester werden“.",
+      mockButton: "Tester werden",
+    },
+    sameAccount:
+      "Nutze bei beiden Schritten und im Play Store dasselbe Google-Konto.",
+    whyHeading: "Warum ich dich darum bitte",
+    whyParagraphs: [
+      "Ich bin Maxime und entwickle Pulpe allein, in der Schweiz.",
+      "Für eine neue App verlangt Google, dass eine Gruppe von Testern sie zwei Wochen lang nutzt. Deine Hilfe bringt Pulpe für alle in den Play Store.",
+      "Dafür bekommst du die App vor dem Start und einen direkten Draht zu mir. Jede Rückmeldung, die du mir schickst, lese ich.",
+    ],
+    portraitAlt: "Maxime, Entwickler von Pulpe",
+    signature: "Maxime, Entwickler von Pulpe",
+    faqHeading: "Falls es hakt",
+    faq: {
+      joinButton: {
+        question: "Ich sehe den Knopf „Gruppe beitreten“ nicht",
+        answer:
+          "Der Knopf erscheint erst, wenn du bei deinem Google-Konto angemeldet bist. Bist du in Instagram oder Facebook, öffne die Seite zuerst in Chrome. Und wenn die Seite sagt, dass du schon Mitglied bist, geh direkt zu Schritt 2.",
+      },
+      install: {
+        question: "Die App lässt sich nicht installieren",
+        answer:
+          "Nach Schritt 1 kann Google ein paar Minuten brauchen, um dir Zugang zu geben. Warte kurz und öffne dann den Link von Schritt 2 erneut. Prüfe auch, dass der Play Store dasselbe Google-Konto nutzt wie die Gruppe.",
+      },
+      leave: {
+        question: "Wie verlasse ich den Test?",
+        answer:
+          "Öffne den Link von Schritt 2 erneut und tippe auf „Programm verlassen“. Danach kannst du die App deinstallieren und die Gruppe auf ihrer Seite verlassen. Mehr ist nicht nötig.",
+      },
+    },
+    contactText: "Kommst du nicht weiter? Schreib mir, ich antworte selbst:",
+  },
+
   notFound: {
     title: "Diese Seite gibt es nicht",
     text: "Die Pulpe-App ist umgezogen. Du erreichst sie direkt unter ihrer neuen Adresse.",

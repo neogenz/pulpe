@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { getDictionary } from "@/content/dictionary";
 import type { Locale } from "@/lib/i18n";
 import { rootMetadata, socialMetadata } from "@/lib/metadata";
-import { alternatesFor, ASSISTANT_ROUTE, GUIDE_ROUTE } from "@/lib/routes";
+import {
+  alternatesFor,
+  ANDROID_ROUTE,
+  ASSISTANT_ROUTE,
+  GUIDE_ROUTE,
+} from "@/lib/routes";
 
 // Page metadata is defined once and shared by the French and prefixed shells.
 // Duplicating it would let the two variants drift silently in search results.
@@ -92,6 +97,25 @@ export async function supportAssistantMetadata(
       description: assistant.metaDescription,
       imageAlt: site.socialImageAlt,
       type: "article",
+    }),
+  };
+}
+
+export async function androidBetaMetadata(locale: Locale): Promise<Metadata> {
+  const { androidBeta, site } = await getDictionary(locale);
+  const alternates = alternatesFor(locale, ANDROID_ROUTE);
+
+  return {
+    title: androidBeta.metaTitle,
+    description: androidBeta.metaDescription,
+    alternates,
+    ...socialMetadata({
+      locale,
+      path: alternates.canonical,
+      title: `${androidBeta.metaTitle} | Pulpe`,
+      description: androidBeta.metaDescription,
+      imageAlt: site.socialImageAlt,
+      type: "website",
     }),
   };
 }

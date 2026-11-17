@@ -13,6 +13,13 @@
    à l’App Store. Avant le premier rendu, donc aucun bouton ne change à l’écran. */
 @custom-variant ios (html[data-ios] &);
 
+/* Posées par le même script : un téléphone Android, l'invitation au test
+   qu'il n'a pas encore fermée, et le navigateur intégré d'Instagram ou de
+   Facebook. Sans JavaScript, aucune n'existe et ces éléments restent cachés. */
+@custom-variant android (html[data-android] &);
+@custom-variant android-beta-invite (html[data-android]:not([data-android-beta-dismissed]) &);
+@custom-variant in-app (html[data-in-app] &);
+
 @theme {
   --font-family-sans: var(--font-poppins), "Poppins", system-ui, sans-serif;
 
@@ -780,4 +787,47 @@ h3,
 .guide-prose th {
   font-weight: 600;
   color: var(--color-text);
+}
+
+/* /android: the step mockups press their target button twice after load,
+   so the eye lands on what to touch. The resting state is the final state. */
+@keyframes tap-hint {
+  0%,
+  100% {
+    scale: 1;
+  }
+  12% {
+    scale: 0.94;
+  }
+  24% {
+    scale: 1;
+  }
+}
+
+@keyframes tap-hint-pointer {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  12% {
+    translate: -2px -4px;
+  }
+  24% {
+    translate: 0 0;
+  }
+}
+
+.tap-hint {
+  animation: tap-hint 1.6s var(--ease-smooth) 0.6s 2;
+}
+
+.tap-hint-pointer {
+  animation: tap-hint-pointer 1.6s var(--ease-smooth) 0.6s 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-hint,
+  .tap-hint-pointer {
+    animation: none;
+  }
 }

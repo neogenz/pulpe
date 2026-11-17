@@ -587,6 +587,86 @@ const en: Dictionary = {
     frenchArchive: "Browse the complete archive in French",
   },
 
+  androidBeta: {
+    banner: {
+      ariaLabel: "Android app test",
+      title: "The Android app is coming.",
+      text: "Help me test it before it launches.",
+      cta: "I’m in",
+      dismiss: "Close the invitation",
+    },
+    metaTitle: "Test Pulpe on Android",
+    metaDescription:
+      "Join the test of the Pulpe Android app in two steps. Free, two minutes, and you can leave whenever you like.",
+    heading: "Try Pulpe on Android before everyone else.",
+    intro:
+      "The app is ready. Before I can publish it, Google asks me to have it tested. Two steps, two minutes, and you’re done.",
+    promises: [
+      "Free, no ads",
+      "Two minutes",
+      "Leave whenever you like",
+      "No data sold",
+    ],
+    desktopNote:
+      "Both steps happen on your Android phone. Open pulpe.app/android on it.",
+    inApp: {
+      title: "Open this page in Chrome",
+      text: "The Instagram or Facebook browser isn’t signed in to your Google account, and the test needs it.",
+      openChrome: "Open in Chrome",
+      copyLink: "Copy the link",
+      copied: "Link copied",
+      manual:
+        "Otherwise, tap ⋮ at the top right, then “Open in Chrome” or “Open in browser”.",
+    },
+    stepsHeading: "Two steps, two buttons.",
+    join: {
+      title: "Join the testers group",
+      text: "Sign in to your Google account if asked, then tap “Join group”. That’s what gives you access to the test.",
+      cta: "Join the group",
+      mockAlt:
+        "Preview of the group page on Google Groups, with the “Join group” button.",
+      mockButton: "Join group",
+    },
+    install: {
+      title: "Accept the test and install the app",
+      text: "Tap “Become a tester”, then install Pulpe from the Play Store like any other app.",
+      cta: "Become a tester",
+      storeCta: "Install from the Play Store",
+      mockAlt:
+        "Preview of the test page on Google Play, with the “Become a tester” button.",
+      mockButton: "Become a tester",
+    },
+    sameAccount:
+      "Use the same Google account for both steps and on the Play Store.",
+    whyHeading: "Why I’m asking",
+    whyParagraphs: [
+      "I’m Maxime, and I build Pulpe on my own, from Switzerland.",
+      "To publish a new app, Google requires a group of testers to use it for two weeks. Your help is what will bring Pulpe to the Play Store for everyone.",
+      "In return, you get the app before it launches and a direct line to me. I read every piece of feedback you send.",
+    ],
+    portraitAlt: "Maxime, creator of Pulpe",
+    signature: "Maxime, creator of Pulpe",
+    faqHeading: "If you get stuck",
+    faq: {
+      joinButton: {
+        question: "I can’t see the “Join group” button",
+        answer:
+          "The button only appears once you’re signed in to your Google account. If you’re in Instagram or Facebook, open the page in Chrome first. And if the page says you’re already a member, go straight to step 2.",
+      },
+      install: {
+        question: "It won’t install",
+        answer:
+          "After step 1, Google can take a few minutes to give you access. Wait a little, then open the step 2 link again. Also check that the Play Store uses the same Google account as the group.",
+      },
+      leave: {
+        question: "How do I leave the test?",
+        answer:
+          "Open the step 2 link again and tap “Leave the program”. You can then uninstall the app and leave the group from its page. Nothing else to do.",
+      },
+    },
+    contactText: "Still stuck? Write to me, I answer myself:",
+  },
+
   notFound: {
     title: "This page doesn’t exist",
     text: "The Pulpe app has moved. You can reach it directly on its new domain.",
