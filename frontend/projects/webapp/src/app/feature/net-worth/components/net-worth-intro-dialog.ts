@@ -235,6 +235,16 @@ export type NetWorthIntroResult = 'add' | 'close' | undefined;
     :host {
       display: block;
     }
+    /* Full screen on a phone: the content takes the height, so the actions sit at the bottom */
+    :host-context(.full-screen-dialog) {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      mat-dialog-content {
+        flex: 1;
+        max-height: none;
+      }
+    }
     /* Flat: the dialog already floats, so the card sets itself apart by tone, not by a shadow */
     .scene {
       border: 1px solid var(--mat-sys-outline-variant);
