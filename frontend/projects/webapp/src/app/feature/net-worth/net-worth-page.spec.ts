@@ -2,6 +2,7 @@ import {
   Component,
   computed,
   input,
+  LOCALE_ID,
   provideZonelessChangeDetection,
   signal,
 } from '@angular/core';
@@ -13,6 +14,7 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TitleDisplay } from '@core/routing';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
 import { RenameTypeDialog } from './components/rename-type-dialog';
@@ -104,7 +106,14 @@ describe('NetWorthPage', () => {
   const store = {
     refresh: vi.fn(),
     isSaving: signal(false),
-    netWorth: { status, value },
+    netWorth: {
+      status,
+      value,
+      isInitialLoading: computed(
+        () => status() === 'loading' && value() === undefined,
+      ),
+      isStale: computed(() => status() === 'loading' && value() !== undefined),
+    },
     totals: computed(() => value()?.totals ?? null),
     categories: computed(() => value()?.categories ?? []),
     assets: computed(() => value()?.assets ?? []),
@@ -161,6 +170,7 @@ describe('NetWorthPage', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'fr-FR' },
         { provide: NetWorthStore, useValue: store },
         { provide: NetWorthDialogService, useValue: dialogs },
         { provide: MatDialog, useValue: matDialog },
@@ -214,6 +224,21 @@ describe('NetWorthPage', () => {
     expect(overdrafts.closest('[data-testid="net-worth-owe"]')).not.toBeNull();
   });
 
+  it('should keep the figures on screen while a write refetches them', () => {
+    render(populated);
+    status.set('loading');
+    fixture.detectChanges();
+
+    expect(byTestId('net-worth-loading')).toBeNull();
+    expect(byTestId('net-worth-add-button')).not.toBeNull();
+    expect(sections().length).toBeGreaterThan(0);
+    expect(TestBed.inject(LoadingIndicator).isLoading()).toBe(true);
+
+    status.set('resolved');
+    fixture.detectChanges();
+    expect(TestBed.inject(LoadingIndicator).isLoading()).toBe(false);
+  });
+
   it('shows no debts block and no second action when I owe nothing', () => {
     render({
       ...populated,
@@ -224,6 +249,74 @@ describe('NetWorthPage', () => {
     expect(byTestId('net-worth-owe')).toBeNull();
     expect(byTestId('net-worth-categories-button')).toBeNull();
     expect(sections()).toHaveLength(1);
+  });
+
+  // Comptes 10'000 + Épargne 2'000 = 12'000 of what I own: 83.3 % and 16.7 %.
+  const SAVINGS = '33333333-3333-4333-8333-333333333333';
+  const twoOwnTypes: NetWorth = {
+    ...populated,
+    totals: { ...populated.totals, gross: 12_000, net: 8700 },
+    categories: [
+      ...populated.categories,
+      { id: SAVINGS, name: 'Épargne', total: 2000 },
+    ],
+    assets: [
+      ...populated.assets,
+      makeAsset({
+        id: 'a5',
+        name: 'Livret',
+        categoryId: SAVINGS,
+        latestValue: 2000,
+        convertedValue: 2000,
+      }),
+    ],
+  };
+  const shares = () =>
+    [
+      ...fixture.nativeElement.querySelectorAll(
+        '[data-testid="net-worth-section-share"]',
+      ),
+    ] as HTMLElement[];
+
+  it('should show each owned Type as a rounded share of what I own, in the app locale', () => {
+    render(twoOwnTypes);
+
+    expect(
+      shares().map(
+        (share) => share.querySelector('[aria-hidden="true"]')?.textContent,
+      ),
+    ).toEqual(['· 83\u00a0%', '· 17\u00a0%']);
+    expect(shares()[0].querySelector('.sr-only')?.textContent?.trim()).toBe(
+      "83\u00a0% de ce que j'ai",
+    );
+  });
+
+  it('should keep the shares under 100 % even when debts sink the net worth below zero', () => {
+    render({
+      ...twoOwnTypes,
+      totals: { ...twoOwnTypes.totals, debts: 20_000, net: -8000 },
+    });
+
+    expect(shares()).toHaveLength(2);
+  });
+
+  it('should hide the share when a single Type holds everything I own', () => {
+    render(populated);
+
+    expect(byTestId('net-worth-section-total')).not.toBeNull();
+    expect(shares()).toHaveLength(0);
+  });
+
+  it('should show the share on owned Types only', () => {
+    render(twoOwnTypes);
+    byTestId('net-worth-archived-toggle')!.click();
+    fixture.detectChanges();
+
+    expect(sections()).toHaveLength(5);
+    expect(
+      shares().every((share) => share.closest('[data-testid="net-worth-own"]')),
+    ).toBe(true);
+    expect(shares()).toHaveLength(2);
   });
 
   it('renames a Type, own or debt, from its header menu', async () => {
