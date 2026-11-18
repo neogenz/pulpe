@@ -29,6 +29,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.64.0',
+    reason:
+      'Seul changement de la webapp : la présentation de Mon patrimoine, réservée aux early adopters ; le reste concerne le site et l’app Android',
+  },
+  {
     version: '0.63.0',
     reason:
       'Seule correction visible : un libellé de champ coupé dans trois fenêtres ; Mon patrimoine reste réservé aux early adopters et le reste concerne le site',

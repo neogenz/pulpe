@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.64.0
+
+### Minor Changes
+
+- L’app Android à tester : un bandeau sur pulpe.app invite les visiteurs Android au test fermé. Mon patrimoine : présentation en trois étapes pour les early adopters.
+
+### Patch Changes
+
+- pulpe-shared@0.64.0
+
 ## 0.63.0
 
 ### Minor Changes
