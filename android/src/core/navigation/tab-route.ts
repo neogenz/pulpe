@@ -1,3 +1,6 @@
+import { useNavigationContainerRef } from "expo-router";
+import { StackActions } from "expo-router/react-navigation";
+
 const TABS_SEGMENT = "(tabs)";
 const GROUP = /^\((.+)\)$/;
 
@@ -44,22 +47,70 @@ export function screenName(segments: readonly string[]): string {
 }
 
 interface NavigatorState {
+  key?: string;
   index?: number;
   routes: readonly { name: string; state?: NavigatorState }[];
 }
 
+type ContainerRef = ReturnType<typeof useNavigationContainerRef>;
+
+/** The stack that holds the tabs and the screens pushed over the bar. */
+function stackOverTabs(
+  state: NavigatorState | undefined,
+): NavigatorState | undefined {
+  if (state === undefined) return undefined;
+  if (state.routes.some((route) => route.name === TABS_SEGMENT)) return state;
+  for (const route of state.routes) {
+    const found = stackOverTabs(route.state);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+function tabsState(state: NavigatorState | undefined) {
+  return stackOverTabs(state)?.routes.find(
+    (route) => route.name === TABS_SEGMENT,
+  )?.state;
+}
+
 /**
- * The tab left focused under the screens pushed over the bar, read from the
- * stack that holds them both: `(budgets)` under a form opened from Budgets.
- * Only a tab holding a stack is one: a single-screen tab has nothing to push
- * a page onto.
+ * The tab left focused under the screens pushed over the bar: `(budgets)`
+ * under a form opened from Budgets. Only a tab holding a stack is one: a
+ * single-screen tab has nothing to push a page onto.
  */
 export function tabGroupUnder(
   state: NavigatorState | undefined,
 ): string | undefined {
-  const tabs = state?.routes.find(
-    (route) => route.name === TABS_SEGMENT,
-  )?.state;
+  const tabs = tabsState(state);
   const name = tabs?.routes[tabs.index ?? 0]?.name;
   return name !== undefined && GROUP.test(name) ? name : undefined;
+}
+
+/** Pops a stack to its first screen; a stack already there is left alone. */
+function popToRoot(
+  navigation: ContainerRef,
+  stack: NavigatorState | undefined,
+): void {
+  if (stack?.key === undefined || (stack.index ?? 0) === 0) return;
+  navigation.dispatch({ ...StackActions.popToTop(), target: stack.key });
+}
+
+/** Closes every screen pushed over the bar: a form, the post-onboarding step. */
+export function closeScreensOverBar(navigation: ContainerRef): void {
+  popToRoot(navigation, stackOverTabs(navigation.getRootState()));
+}
+
+/**
+ * Takes tabs back to their root, whether or not they are showing; every tab
+ * when none is named. A tab never opened has no stack and nothing to pop.
+ */
+export function popTabsToRoot(
+  navigation: ContainerRef,
+  groups?: readonly string[],
+): void {
+  for (const route of tabsState(navigation.getRootState())?.routes ?? []) {
+    if (groups === undefined || groups.includes(route.name)) {
+      popToRoot(navigation, route.state);
+    }
+  }
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { useVaultStore } from "@/core/vault/vault-store";
+import { useOpenLinkedMonth } from "@/features/budgets/month-navigation";
 
 import { type DeepLink, parseDeepLink, requestAddExpense } from "./deep-links";
 
@@ -17,6 +18,7 @@ import { type DeepLink, parseDeepLink, requestAddExpense } from "./deep-links";
  */
 export function DeepLinkRouter() {
   const url = useLinkingURL();
+  const openLinkedMonth = useOpenLinkedMonth();
   const sessionStatus = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
   const pendingRef = useRef<DeepLink | null>(null);
@@ -43,16 +45,12 @@ export function DeepLinkRouter() {
     // same link twice.
     pendingRef.current = null;
     if (pending.kind === "budget") {
-      // In Budgets, over its list, whichever tab is showing: a link names a
-      // month, not the tab it was shared from.
-      router.push(`/(budgets)/budget/${pending.budgetId}`, {
-        withAnchor: true,
-      });
+      openLinkedMonth(pending.budgetId);
       return;
     }
     requestAddExpense();
     router.push("/home");
-  }, [url, isReady]);
+  }, [url, isReady, openLinkedMonth]);
 
   return null;
 }

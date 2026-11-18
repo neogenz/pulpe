@@ -413,8 +413,6 @@ export default function BudgetLineDetailScreen() {
         icon="plus"
         testID="line-add-activity"
         label={t("budgets.actions.line.note")}
-        // An absolute child sits outside the safe area's padding: without the
-        // inset, the FAB lands on the gesture bar.
         style={styles.fab}
         onPress={() => overlays.current?.addTransaction()}
       />

@@ -9,7 +9,7 @@ import { HeroAppBarAction } from "@/core/ui/hero";
 import { fetchBudgetDeletionImpact } from "@/features/budgets/budget-api";
 import { budgetKeys } from "@/features/budgets/budget-queries";
 import { useDeleteBudget } from "@/features/budgets/delete-budget-mutation";
-import { leaveDeletedMonth } from "@/features/budgets/month-navigation";
+import { useLeaveDeletedMonth } from "@/features/budgets/month-navigation";
 
 import { elidesMonth } from "../month-period";
 import { ImpactConfirmSheet } from "./impact-confirm-sheet";
@@ -65,6 +65,7 @@ export function DeleteMonthAction({
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const remove = useDeleteBudget(budgetId);
+  const leaveDeletedMonth = useLeaveDeletedMonth();
   const impact = useQuery({
     queryKey: [...budgetKeys.detail(budgetId), "deletion-impact"],
     queryFn: () => fetchBudgetDeletionImpact(budgetId),

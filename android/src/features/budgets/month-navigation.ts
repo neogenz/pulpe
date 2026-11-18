@@ -1,6 +1,10 @@
-import { router, useNavigation } from "expo-router";
+import { router, useNavigation, useNavigationContainerRef } from "expo-router";
 
-import { tabGroupUnder } from "@/core/navigation/tab-route";
+import {
+  closeScreensOverBar,
+  popTabsToRoot,
+  tabGroupUnder,
+} from "@/core/navigation/tab-route";
 
 /**
  * Closes a form pushed over the bar and opens a month in the tab the form was
@@ -19,12 +23,31 @@ export function useOpenMonthInOpeningTab(): (budgetId: string) => void {
 }
 
 /**
- * Leaves a month that no longer exists. The tab showing it goes back to its
- * root, as iOS pops it, so no page of the month stays behind to come back to
- * (the stack can even hold it twice: a rollover push, then the pager's
- * replace). The Budgets list then says « Mois supprimé », as web and iOS do.
+ * Leaves a month that no longer exists. Every tab goes back to its root, as
+ * iOS pops the one showing it, so no page of the month stays behind to come
+ * back to: a month can be open in several tabs, and twice in one (a rollover
+ * push, then the pager's replace). The Budgets list then says « Mois
+ * supprimé », as web and iOS do.
  */
-export function leaveDeletedMonth(): void {
-  router.dismissAll();
-  router.navigate({ pathname: "/budgets", params: { deletedMonth: "1" } });
+export function useLeaveDeletedMonth(): () => void {
+  const navigation = useNavigationContainerRef();
+  return () => {
+    popTabsToRoot(navigation);
+    router.navigate({ pathname: "/budgets", params: { deletedMonth: "1" } });
+  };
+}
+
+/**
+ * Opens a month a link names, as iOS `openBudgetMonth` does: in Budgets,
+ * right over its list, whichever tab is showing, since a link names a month
+ * and not the tab it was shared from. A screen over the bar closes first, or
+ * the push would open a second tabs navigator on top of it.
+ */
+export function useOpenLinkedMonth(): (budgetId: string) => void {
+  const navigation = useNavigationContainerRef();
+  return (budgetId) => {
+    closeScreensOverBar(navigation);
+    popTabsToRoot(navigation, ["(budgets)"]);
+    router.push(`/(budgets)/budget/${budgetId}`, { withAnchor: true });
+  };
 }

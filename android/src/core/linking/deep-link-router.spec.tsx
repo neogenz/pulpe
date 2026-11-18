@@ -10,6 +10,12 @@ const mockVault = { status: "locked" };
 
 jest.mock("expo-linking", () => ({ useLinkingURL: () => mockLink.url }));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+// Where a linked month lands is the router's business, covered on the real
+// router in `core/navigation/tab-stacks.spec.tsx`.
+const mockOpenLinkedMonth = jest.fn();
+jest.mock("@/features/budgets/month-navigation", () => ({
+  useOpenLinkedMonth: () => mockOpenLinkedMonth,
+}));
 jest.mock("@/core/auth/session-store", () => ({
   useSessionStore: (selector: (state: typeof mockSession) => unknown) =>
     selector(mockSession),
@@ -32,19 +38,17 @@ beforeEach(() => {
 it("holds a protected link until unlock and delivers it once", async () => {
   mockLink.url = "pulpe://budget?id=budget-1";
   const view = await render(<DeepLinkRouter />);
-  expect(mockedPush).not.toHaveBeenCalled();
+  expect(mockOpenLinkedMonth).not.toHaveBeenCalled();
 
   mockSession.status = "authenticated";
   mockVault.status = "unlocked";
   await view.rerender(<DeepLinkRouter />);
   await waitFor(() =>
-    expect(mockedPush).toHaveBeenCalledWith("/(budgets)/budget/budget-1", {
-      withAnchor: true,
-    }),
+    expect(mockOpenLinkedMonth).toHaveBeenCalledWith("budget-1"),
   );
 
   await view.rerender(<DeepLinkRouter />);
-  expect(mockedPush).toHaveBeenCalledTimes(1);
+  expect(mockOpenLinkedMonth).toHaveBeenCalledTimes(1);
 });
 
 it("does not follow the same link again after the vault locks and unlocks", async () => {
@@ -52,14 +56,14 @@ it("does not follow the same link again after the vault locks and unlocks", asyn
   mockSession.status = "authenticated";
   mockVault.status = "unlocked";
   const view = await render(<DeepLinkRouter />);
-  await waitFor(() => expect(mockedPush).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(mockOpenLinkedMonth).toHaveBeenCalledTimes(1));
 
   mockVault.status = "locked";
   await view.rerender(<DeepLinkRouter />);
   mockVault.status = "unlocked";
   await view.rerender(<DeepLinkRouter />);
 
-  expect(mockedPush).toHaveBeenCalledTimes(1);
+  expect(mockOpenLinkedMonth).toHaveBeenCalledTimes(1);
 });
 
 it("does not let an unrelated URL erase a pending link", async () => {
@@ -73,9 +77,7 @@ it("does not let an unrelated URL erase a pending link", async () => {
   await view.rerender(<DeepLinkRouter />);
 
   await waitFor(() =>
-    expect(mockedPush).toHaveBeenCalledWith("/(budgets)/budget/budget-2", {
-      withAnchor: true,
-    }),
+    expect(mockOpenLinkedMonth).toHaveBeenCalledWith("budget-2"),
   );
 });
 

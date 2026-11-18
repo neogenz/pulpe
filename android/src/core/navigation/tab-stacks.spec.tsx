@@ -1,4 +1,4 @@
-import { router, Stack, Tabs } from "expo-router";
+import { router, Slot, Stack, Tabs } from "expo-router";
 import {
   act,
   fireEvent,
@@ -12,7 +12,8 @@ import TabStackLayout, {
 } from "@/app/(main)/(tabs)/(home,budgets,goals,templates)/_layout";
 import { NavigationBar } from "@/core/ui/navigation-bar";
 import {
-  leaveDeletedMonth,
+  useLeaveDeletedMonth,
+  useOpenLinkedMonth,
   useOpenMonthInOpeningTab,
 } from "@/features/budgets/month-navigation";
 
@@ -21,6 +22,20 @@ import {
  * tree: what is observed is which tab a detail screen lands in, which only
  * the router's shared-route matching decides.
  */
+// Stands for the deep-link router and the delete action, which can fire on
+// any screen.
+function RootLayout() {
+  const openLinkedMonth = useOpenLinkedMonth();
+  const leaveDeletedMonth = useLeaveDeletedMonth();
+  return (
+    <>
+      <Slot />
+      <Pressable testID="follow-link" onPress={() => openLinkedMonth("nov")} />
+      <Pressable testID="leave-deleted" onPress={leaveDeletedMonth} />
+    </>
+  );
+}
+
 function MainLayout() {
   return <Stack screenOptions={{ headerShown: false }} />;
 }
@@ -48,6 +63,7 @@ function CreateForm() {
 const SHARED = "(main)/(tabs)/(home,budgets,goals,templates)";
 
 const context = {
+  _layout: RootLayout,
   "(main)/_layout": MainLayout,
   "(main)/budget/create": CreateForm,
   "(main)/budget/plan": stub("budget-plan"),
@@ -69,6 +85,24 @@ const TABS = ["(main)", "(tabs)"];
 
 // RNTL 14 renders asynchronously: `renderRouter` hands back the pending render
 // with the router getters attached, so the promise is awaited and kept.
+
+interface RouteNode {
+  name: string;
+  state?: { routes: RouteNode[] };
+}
+
+/** The route names of the navigator under the route `name`, top-down. */
+function routesUnder(view: ReturnType<typeof renderRouter>, name: string) {
+  const find = (routes: RouteNode[]): RouteNode | undefined =>
+    routes.reduce<RouteNode | undefined>(
+      (found, route) =>
+        found ??
+        (route.name === name ? route : find(route.state?.routes ?? [])),
+      undefined,
+    );
+  const root = view.getRouterState() as { routes: RouteNode[] } | undefined;
+  return find(root?.routes ?? [])?.state?.routes.map((route) => route.name);
+}
 
 it.each([
   ["/budgets", "(budgets)"],
@@ -186,33 +220,57 @@ it.each([
   },
 );
 
-it("opens a link in Budgets from any tab", async () => {
+it("opens a link in Budgets over its list, from any tab", async () => {
   const view = renderRouter(context, { initialUrl: "/goals" });
   await view;
 
-  await act(() => router.push("/(budgets)/budget/nov", { withAnchor: true }));
+  await fireEvent.press(screen.getByTestId("follow-link"));
 
   expect(view.getSegments()).toEqual([...TABS, "(budgets)", "budget", "[id]"]);
   await act(() => router.back());
   expect(view.getPathname()).toBe("/budgets");
 });
 
+it("opens a link right over the Budgets list, whatever Budgets held", async () => {
+  const view = renderRouter(context, { initialUrl: "/budgets" });
+  await view;
+  await act(() => router.push("/budget/dec/line/rent"));
+  await act(() => router.navigate("/home"));
+
+  await fireEvent.press(screen.getByTestId("follow-link"));
+
+  expect(routesUnder(view, "(budgets)")).toEqual(["budgets", "budget/[id]"]);
+});
+
+it("closes a form over the bar before opening a link", async () => {
+  const view = renderRouter(context, { initialUrl: "/home" });
+  await view;
+  await act(() => router.push("/budget/create"));
+
+  await fireEvent.press(screen.getByTestId("follow-link"));
+
+  expect(view.getSegments()).toEqual([...TABS, "(budgets)", "budget", "[id]"]);
+  // One tabs navigator: the form is gone, not covered by a second one.
+  expect(routesUnder(view, "(main)")).toEqual(["(tabs)"]);
+});
+
 it.each([["/budgets"], ["/home"]])(
   "leaves a month deleted from %s for the Budgets list",
   async (tab) => {
-    const view = renderRouter(context, { initialUrl: tab });
+    const view = renderRouter(context, { initialUrl: "/home" });
     await view;
+    // The month is open in both tabs, Budgets with a page over it.
+    await act(() => router.navigate("/budgets"));
+    await act(() => router.push("/budget/nov/line/rent"));
+    await act(() => router.navigate(tab));
     await act(() => router.push("/budget/nov"));
 
-    await act(() => leaveDeletedMonth());
+    await fireEvent.press(screen.getByTestId("leave-deleted"));
 
     expect(view.getPathname()).toBe("/budgets");
     expect(view.getSearchParams()).toEqual({ deletedMonth: "1" });
-    expect(screen.queryByTestId("budget-detail")).toBeNull();
-
-    // The tab the month was deleted from no longer holds it either.
-    await pressTab("home");
-    expect(view.getPathname()).toBe("/home");
+    expect(routesUnder(view, "(budgets)")).toEqual(["budgets"]);
+    expect(routesUnder(view, "(home)")).toEqual(["home"]);
   },
 );
 
