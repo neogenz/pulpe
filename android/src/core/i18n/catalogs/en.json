@@ -1456,7 +1456,7 @@
           "title": "Privacy notice"
         },
         "security": {
-          "description": "PIN code, password, %{biometric}",
+          "description": "PIN code, password, biometrics",
           "title": "Security"
         },
         "tags": {
@@ -1561,10 +1561,10 @@
       "biometricDisableAction": "Disable",
       "biometricDisableDescription": "You will need to enter your PIN each time you unlock.",
       "biometricDisableError": "Biometric unlock could not be disabled. Try again.",
-      "biometricDisableTitle": "Disable %{label}?",
-      "biometricDisabled": "%{label} disabled",
+      "biometricDisableTitle": "Disable biometric unlock?",
+      "biometricDisabled": "Biometric unlock disabled",
       "biometricEnableError": "Biometric unlock could not be enabled. Try again.",
-      "biometricEnabled": "%{label} enabled",
+      "biometricEnabled": "Biometric unlock enabled",
       "biometricPrompt": "Unlock Pulpe",
       "biometricSection": "Biometrics",
       "confirmPasswordAction": "Confirm",

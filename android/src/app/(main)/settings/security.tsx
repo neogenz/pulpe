@@ -68,8 +68,8 @@ export default function SecuritySettingsScreen() {
   const [isBiometricBusy, setBiometricBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // A device capability, asked once: it cannot change while the screen is up
-  // without the user leaving the app to enrol a finger.
+  // shortcut: read once per visit, so a finger enrolled while this screen
+  // stays open shows up only on the next visit; re-check on AppState if needed.
   const [canUseBiometrics] = useState(canUseBiometricUnlock);
   const biometricLabel = t("settings.security.biometric");
   const email = profile.data?.email ?? sessionEmail ?? "";
@@ -80,7 +80,7 @@ export default function SecuritySettingsScreen() {
       const isEnabled = await enableVaultBiometrics();
       setNotice(
         isEnabled
-          ? t("settings.security.biometricEnabled", { label: biometricLabel })
+          ? t("settings.security.biometricEnabled")
           : t("settings.security.biometricEnableError"),
       );
     } catch {
@@ -94,9 +94,7 @@ export default function SecuritySettingsScreen() {
     setBiometricBusy(true);
     try {
       await disableVaultBiometrics();
-      setNotice(
-        t("settings.security.biometricDisabled", { label: biometricLabel }),
-      );
+      setNotice(t("settings.security.biometricDisabled"));
     } catch {
       setNotice(t("settings.security.biometricDisableError"));
     } finally {
@@ -263,9 +261,7 @@ export default function SecuritySettingsScreen() {
           }}
         >
           <Dialog.Title>
-            {t("settings.security.biometricDisableTitle", {
-              label: biometricLabel,
-            })}
+            {t("settings.security.biometricDisableTitle")}
           </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">

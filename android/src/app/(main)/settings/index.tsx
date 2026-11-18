@@ -116,9 +116,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="shield-lock-outline"
             title={t("settings.account.rows.security.title")}
-            description={t("settings.account.rows.security.description", {
-              biometric: t("settings.security.biometric"),
-            })}
+            description={t("settings.account.rows.security.description")}
             onPress={() => router.push("/settings/security")}
           />
           <SettingsRow
