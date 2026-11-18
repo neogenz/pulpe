@@ -23,6 +23,7 @@ jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   useFocusEffect: (effect: () => void) => effect(),
   useIsFocused: () => true,
+  useNavigationContainerRef: jest.fn(),
 }));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: jest.requireActual("react-native").View,

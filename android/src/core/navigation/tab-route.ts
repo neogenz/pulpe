@@ -1,4 +1,4 @@
-import { useNavigationContainerRef } from "expo-router";
+import { router, useNavigationContainerRef } from "expo-router";
 import { StackActions } from "expo-router/react-navigation";
 
 const TABS_SEGMENT = "(tabs)";
@@ -113,4 +113,19 @@ export function popTabsToRoot(
       popToRoot(navigation, route.state);
     }
   }
+}
+
+/**
+ * Shows a tab at its root from anywhere: a shortcut to Objectifs from Accueil,
+ * a link to the expense form on Accueil. The tab may still hold a page opened
+ * earlier; going there as is would show that page, and pushing its root would
+ * stack a second root over it for back to walk through.
+ */
+export function useShowTabRoot(): (tab: "home" | "goals") => void {
+  const navigation = useNavigationContainerRef();
+  return (tab) => {
+    closeScreensOverBar(navigation);
+    popTabsToRoot(navigation, [`(${tab})`]);
+    router.navigate(`/${tab}`);
+  };
 }

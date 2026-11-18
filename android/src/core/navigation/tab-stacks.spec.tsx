@@ -10,6 +10,7 @@ import { Pressable, View } from "react-native";
 import TabStackLayout, {
   unstable_settings,
 } from "@/app/(main)/(tabs)/(home,budgets,goals,templates)/_layout";
+import { useShowTabRoot } from "@/core/navigation/tab-route";
 import { NavigationBar } from "@/core/ui/navigation-bar";
 import {
   useLeaveDeletedMonth,
@@ -22,16 +23,19 @@ import {
  * tree: what is observed is which tab a detail screen lands in, which only
  * the router's shared-route matching decides.
  */
-// Stands for the deep-link router and the delete action, which can fire on
-// any screen.
+// Stands for the deep-link router, the delete action and the Accueil
+// shortcuts, which can fire on any screen.
 function RootLayout() {
   const openLinkedMonth = useOpenLinkedMonth();
   const leaveDeletedMonth = useLeaveDeletedMonth();
+  const showTabRoot = useShowTabRoot();
   return (
     <>
       <Slot />
       <Pressable testID="follow-link" onPress={() => openLinkedMonth("nov")} />
       <Pressable testID="leave-deleted" onPress={leaveDeletedMonth} />
+      <Pressable testID="show-goals" onPress={() => showTabRoot("goals")} />
+      <Pressable testID="show-home" onPress={() => showTabRoot("home")} />
     </>
   );
 }
@@ -273,6 +277,33 @@ it.each([["/budgets"], ["/home"]])(
     expect(routesUnder(view, "(home)")).toEqual(["home"]);
   },
 );
+
+it("shows the Objectifs list from Accueil, whatever Objectifs held", async () => {
+  const view = renderRouter(context, { initialUrl: "/goals" });
+  await view;
+  await act(() => router.push("/goal/g1"));
+  await act(() => router.navigate("/home"));
+
+  await fireEvent.press(screen.getByTestId("show-goals"));
+
+  expect(view.getSegments()).toEqual([...TABS, "(goals)", "goals"]);
+  expect(routesUnder(view, "(goals)")).toEqual(["goals"]);
+});
+
+it("shows Accueil at its root, a form over the bar closed", async () => {
+  const view = renderRouter(context, { initialUrl: "/home" });
+  await view;
+  await act(() => router.push("/settings"));
+  await act(() => router.push("/budget/create"));
+
+  await fireEvent.press(screen.getByTestId("show-home"));
+  // A second press, as a double tap would, stacks nothing.
+  await fireEvent.press(screen.getByTestId("show-home"));
+
+  expect(view.getSegments()).toEqual([...TABS, "(home)", "home"]);
+  expect(routesUnder(view, "(main)")).toEqual(["(tabs)"]);
+  expect(routesUnder(view, "(home)")).toEqual(["home"]);
+});
 
 it("closes the plan form onto the Budgets list with its counts", async () => {
   const view = renderRouter(context, { initialUrl: "/budgets" });
