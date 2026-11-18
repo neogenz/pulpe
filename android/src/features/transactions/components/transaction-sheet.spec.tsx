@@ -57,177 +57,23 @@ jest.mock("@/features/savings-goals/goals-queries", () => ({
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
 }));
-jest.mock("@/core/ui/haptics", () => ({ hapticSuccess: jest.fn() }));
-jest.mock("@/core/ui/theme", () => ({
-  SPACING: { lg: 24, md: 16, sm: 8, xs: 4, xxs: 2 },
-  RADIUS: { card: 18 },
-  EMPHASIS: { disabled: 0.38 },
-  TABULAR_DIGITS: {},
-  TOUCH_TARGET: 48,
+jest.mock("@/core/ui/haptics", () => ({
+  hapticSelection: jest.fn(),
+  hapticSuccess: jest.fn(),
+}));
+jest.mock("react-native-safe-area-context", () => ({
+  ...jest.requireActual("react-native-safe-area-context"),
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 jest.mock("@/core/ui/amount-visibility", () => ({
   useAmountMasking: () => undefined,
   areAmountsHidden: () => false,
-}));
-jest.mock("@/core/ui/scheme-colors", () => ({
-  useV2Colors: () => ({}),
-  useFinancialColors: () => ({}),
 }));
 jest.mock("@/core/ui/ripple", () => ({ useRipple: () => ({}) }));
 let mockDetails: { data: unknown } = { data: undefined };
 jest.mock("@/features/budgets/budget-queries", () => ({
   useBudgetDetails: () => mockDetails,
 }));
-jest.mock("@/core/ui/segmented-picker", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
-  return {
-    SegmentedPicker: ({
-      buttons,
-      onValueChange,
-    }: {
-      buttons: { label: string; value: string }[];
-      onValueChange: (value: string) => void;
-    }) => (
-      <View>
-        {buttons.map((button) => (
-          <Pressable
-            key={button.value}
-            onPress={() => onValueChange(button.value)}
-          >
-            <Text>{button.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-    ),
-  };
-});
-jest.mock("react-native-paper", () => {
-  const { Pressable, Text, TextInput } = jest.requireActual("react-native");
-  return {
-    ActivityIndicator: () => <Text>loading</Text>,
-    Button: ({
-      children,
-      onPress,
-      disabled,
-      accessibilityLabel,
-    }: {
-      children: React.ReactNode;
-      onPress?: () => void;
-      disabled?: boolean;
-      accessibilityLabel?: string;
-    }) => (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        accessibilityLabel={accessibilityLabel}
-      >
-        <Text>{children}</Text>
-      </Pressable>
-    ),
-    HelperText: ({ children }: { children: React.ReactNode }) => (
-      <Text>{children}</Text>
-    ),
-    Switch: ({
-      value,
-      onValueChange,
-      accessibilityLabel,
-    }: {
-      value: boolean;
-      onValueChange: (value: boolean) => void;
-      accessibilityLabel: string;
-    }) => (
-      <Pressable
-        accessibilityLabel={accessibilityLabel}
-        onPress={() => onValueChange(!value)}
-      >
-        <Text>{String(value)}</Text>
-      </Pressable>
-    ),
-    Text,
-    TextInput: ({
-      label,
-      value,
-      onChangeText,
-    }: {
-      label: string;
-      value: string;
-      onChangeText: (value: string) => void;
-    }) => (
-      <TextInput
-        accessibilityLabel={label}
-        value={value}
-        onChangeText={onChangeText}
-      />
-    ),
-    useTheme: () => ({
-      colors: { error: "red", onSurfaceVariant: "gray", surface: "white" },
-    }),
-  };
-});
-jest.mock("@/core/ui/quick-amount-chips", () => {
-  const { Pressable, Text } = jest.requireActual("react-native");
-  return {
-    QuickAmountChips: ({
-      onSelect,
-    }: {
-      onSelect: (amount: number) => void;
-    }) => (
-      <Pressable accessibilityLabel="quick-15" onPress={() => onSelect(15)}>
-        <Text>15</Text>
-      </Pressable>
-    ),
-  };
-});
-jest.mock("@/core/ui/amount-field", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
-  return {
-    AmountField: ({ onChange }: { onChange: (amount: number) => void }) => (
-      <View>
-        {[120, 500].map((amount) => (
-          <Pressable
-            key={amount}
-            accessibilityLabel={`set-amount-${amount}`}
-            onPress={() => onChange(amount)}
-          >
-            <Text>{amount}</Text>
-          </Pressable>
-        ))}
-      </View>
-    ),
-  };
-});
-jest.mock("@/core/ui/sheet", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
-  return {
-    FormModal: ({
-      title,
-      children,
-      footer,
-      onDismiss,
-      isBusy,
-    }: {
-      title: string;
-      children: React.ReactNode;
-      footer: React.ReactNode;
-      onDismiss: () => void;
-      isBusy: boolean;
-    }) => (
-      <View>
-        <Text>{title}</Text>
-        <Text>{`busy:${isBusy}`}</Text>
-        {children}
-        {footer}
-        <Pressable
-          accessibilityLabel="dismiss-form"
-          disabled={isBusy}
-          onPress={onDismiss}
-        >
-          <Text>dismiss</Text>
-        </Pressable>
-      </View>
-    ),
-  };
-});
 jest.mock("@/features/tags/tag-picker", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
   return {
@@ -302,6 +148,7 @@ const baseProps = {
   currency: "CHF" as const,
   onSaved: jest.fn(),
 };
+const AMOUNT_LABEL = "common.amountInCurrency";
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -317,10 +164,10 @@ beforeEach(() => {
 
 async function fill(
   view: Awaited<ReturnType<typeof render>>,
-  amount = 120,
+  amount: string | number = 120,
   name = "Courses",
 ) {
-  await fireEvent.press(view.getByLabelText(`set-amount-${amount}`));
+  await fireEvent.changeText(view.getByLabelText(AMOUNT_LABEL), String(amount));
   await fireEvent.changeText(
     view.getByLabelText("budgets.mutations.description"),
     name,
@@ -383,11 +230,16 @@ it("replays the same id on a retry, and a new one for the next operation", async
     onSuccess: () => void;
   };
   await act(() => callbacks.onSuccess());
-  await fill(view);
+  expect(view.getByLabelText(AMOUNT_LABEL)).toHaveDisplayValue("");
+  await fill(view, 15);
   await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
-  const next = mockCreate.mutate.mock.calls[2][0] as { id: string };
+  const next = mockCreate.mutate.mock.calls[2][0] as {
+    id: string;
+    amount: number;
+  };
   expect(next.id).not.toBe(ids[0]);
+  expect(next.amount).toBe(15);
 });
 
 it("locks every creation field at submission and explains the unchanged retry", async () => {
@@ -400,11 +252,9 @@ it("locks every creation field at submission and explains the unchanged retry", 
     );
     const firstPayload = mockCreate.mutate.mock.calls[0][0];
 
-    // Before the request settles, neither the active keyboard nor a chip,
-    // tag, kind or calendar can change the operation it is already writing.
+    // The form fields stay locked while the operation is being written.
     expect(view.queryByLabelText("budgets.mutations.description")).toBeNull();
-    expect(view.queryByLabelText("set-amount-500")).toBeNull();
-    expect(view.queryByLabelText("quick-15")).toBeNull();
+    expect(view.queryByLabelText(AMOUNT_LABEL)).toBeNull();
     expect(view.queryByLabelText("select-tag")).toBeNull();
     expect(view.queryByLabelText("budgets.mutations.activity.date")).toBeNull();
     expect(view.queryByText("vocabulary.kind.income")).toBeNull();
@@ -432,7 +282,7 @@ it("refreshes the budget when an unconfirmed operation is abandoned", async () =
 
   mockCreate.isError = true;
   await view.rerender(<TransactionSheet {...baseProps} />);
-  await fireEvent.press(view.getByLabelText("dismiss-form"));
+  await fireEvent.press(view.getByRole("button", { name: "common.close" }));
 
   expect(mockRefreshAfterWrite).toHaveBeenCalledTimes(1);
   expect(baseProps.onDismiss).toHaveBeenCalled();
@@ -442,10 +292,11 @@ it("leaves the budget alone when a form that sent nothing is dismissed", async (
   mockCreate.isError = true;
   const view = await render(<TransactionSheet {...baseProps} />);
   await fill(view, 120, "Never sent");
-  await fireEvent.press(view.getByLabelText("dismiss-form"));
+  await fireEvent.press(view.getByRole("button", { name: "common.close" }));
 
   expect(mockRefreshAfterWrite).not.toHaveBeenCalled();
   expect(baseProps.onDismiss).toHaveBeenCalled();
+  expect(view.getByLabelText(AMOUNT_LABEL)).toHaveDisplayValue("");
 });
 
 /** Answers attempt `index` the way `useMutation` would, through its callbacks. */
@@ -476,7 +327,7 @@ it("reopens the form, same id, when a refusal is known to have saved nothing", a
     "Too much",
   );
 
-  await fireEvent.press(view.getByLabelText("set-amount-500"));
+  await fireEvent.changeText(view.getByLabelText(AMOUNT_LABEL), "500");
   await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   expect(mockCreate.mutate.mock.calls[1][0]).toEqual(
@@ -510,8 +361,10 @@ it("retries submitted withdrawals even if refreshed options now show a smaller b
   const view = await render(<TransactionSheet {...baseProps} />);
   await fireEvent.press(view.getByText("vocabulary.kind.income"));
   await fill(view, 120, "Withdrawal");
-  await fireEvent.press(
+  await fireEvent(
     view.getByLabelText("budgets.mutations.activity.originAccessibility"),
+    "change",
+    { nativeEvent: { value: true } },
   );
   await fireEvent.press(view.getByText(/Voyage/));
   await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
@@ -560,27 +413,14 @@ it("dates a new operation inside its budget, and offers no other day", async () 
   }
 });
 
-it("takes a quick amount in one tap", async () => {
-  const view = await render(<TransactionSheet {...baseProps} />);
-  await fireEvent.press(view.getByLabelText("quick-15"));
-  await fireEvent.changeText(
-    view.getByLabelText("budgets.mutations.description"),
-    "Café",
-  );
-  await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
-
-  expect(mockCreate.mutate).toHaveBeenCalledWith(
-    expect.objectContaining({ name: "Café", amount: 15 }),
-    expect.any(Object),
-  );
-});
-
 it("requires a savings origin and refuses an excessive withdrawal", async () => {
   const view = await render(<TransactionSheet {...baseProps} />);
   await fireEvent.press(view.getByText("vocabulary.kind.income"));
   await fill(view, 500, "Retrait");
-  await fireEvent.press(
+  await fireEvent(
     view.getByLabelText("budgets.mutations.activity.originAccessibility"),
+    "change",
+    { nativeEvent: { value: true } },
   );
   expect(view.getByText("budgets.mutations.validation.goal")).toBeTruthy();
   await fireEvent.press(view.getByText(/Voyage/));
@@ -589,7 +429,7 @@ it("requires a savings origin and refuses an excessive withdrawal", async () => 
   ).toBeTruthy();
   expect(mockCreate.mutate).not.toHaveBeenCalled();
 
-  await fireEvent.press(view.getByLabelText("set-amount-120"));
+  await fireEvent.changeText(view.getByLabelText(AMOUNT_LABEL), "120");
   await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
   expect(mockCreate.mutate).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -633,18 +473,21 @@ it("updates only the fields changed on an existing operation", async () => {
 });
 
 it("blocks dismissal while pending and preserves input on error", async () => {
-  Object.assign(mockCreate, { isPending: true, isError: true });
+  mockCreate.isPending = true;
   const view = await render(<TransactionSheet {...baseProps} />);
   await fill(view, 120, "Retry me");
-  await fireEvent.press(view.getByLabelText("dismiss-form"));
-
-  expect(view.getByText("busy:true")).toBeTruthy();
-  expect(view.getByText("budgets.mutations.activity.error")).toBeTruthy();
-  expect(view.getByLabelText("budgets.mutations.description").props.value).toBe(
-    "Retry me",
-  );
+  const close = view.getByRole("button", { name: "common.close" });
+  expect(close).toBeDisabled();
+  await fireEvent.press(close);
   expect(baseProps.onDismiss).not.toHaveBeenCalled();
-  expect(mockCreate.mutate).not.toHaveBeenCalled();
+
+  Object.assign(mockCreate, { isPending: false, isError: true });
+  await view.rerender(<TransactionSheet {...baseProps} />);
+  expect(view.getByText("budgets.mutations.activity.error")).toBeOnTheScreen();
+  expect(close).toBeEnabled();
+  expect(
+    view.getByLabelText("budgets.mutations.description"),
+  ).toHaveDisplayValue("Retry me");
 });
 
 describe("« C'était prévu dans ton budget ? »", () => {
@@ -702,12 +545,37 @@ describe("« C'était prévu dans ton budget ? »", () => {
     const view = await render(<TransactionSheet {...baseProps} />);
     await fill(view);
     await fireEvent.press(view.getByTestId("movement-other-line"));
-    await fireEvent.press(view.getByText("Loyer"));
+    expect(view.getByRole("radio", { checked: true })).toHaveProp(
+      "testID",
+      "movement-picker-unplanned",
+    );
+    await fireEvent.press(
+      view.getByRole("radio", { name: /Loyer/, checked: false }),
+    );
     await fireEvent.press(
       view.getByText("budgets.mutations.activity.addAmount"),
     );
 
     expect(createdPayload().budgetLineId).toBe("line-1");
+  });
+
+  it("goes back from the picker with the description and decimal entry intact", async () => {
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view, "12,", "Café");
+    expect(view.queryByRole("button", { name: "common.back" })).toBeNull();
+    await fireEvent.press(view.getByTestId("movement-other-line"));
+    expect(view.queryByLabelText(AMOUNT_LABEL)).toBeNull();
+
+    await fireEvent.press(view.getByRole("button", { name: "common.back" }));
+    expect(view.queryByRole("button", { name: "common.back" })).toBeNull();
+    expect(view.getByLabelText(AMOUNT_LABEL)).toHaveDisplayValue("12,");
+    expect(
+      view.getByLabelText("budgets.mutations.description"),
+    ).toHaveDisplayValue("Café");
+    await fireEvent.press(
+      view.getByText("budgets.mutations.activity.addAmount"),
+    );
+    expect(createdPayload()).toMatchObject({ name: "Café", amount: 12 });
   });
 
   it("locks the answer when editing", async () => {
@@ -845,7 +713,7 @@ describe("editing a movement typed in another currency", () => {
     const view = await render(
       <TransactionSheet {...baseProps} transaction={booked} />,
     );
-    await fireEvent.press(view.getByLabelText("set-amount-500"));
+    await fireEvent.changeText(view.getByLabelText(AMOUNT_LABEL), "500");
     await fireEvent.press(view.getByText("budgets.mutations.save"));
 
     expect(mockUpdate.mutate).toHaveBeenCalledWith(

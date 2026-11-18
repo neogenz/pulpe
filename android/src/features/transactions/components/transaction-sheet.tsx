@@ -18,7 +18,6 @@ import { useBudgetDetails } from "@/features/budgets/budget-queries";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { kindOptions } from "@/core/ui/vocabulary";
 import { TagPicker } from "@/features/tags/tag-picker";
-import { QuickAmountChips } from "@/core/ui/quick-amount-chips";
 import { AmountField } from "@/core/ui/amount-field";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatRelativeDay } from "@/core/ui/date-format";
@@ -144,6 +143,7 @@ export function TransactionSheet({
   const prefilledGoalId =
     isEditing || envelope !== undefined ? undefined : withdrawFromGoalId;
   const { locale, t } = useTranslation();
+  const descriptionLabel = t("budgets.mutations.description");
   const details = useBudgetDetails(budgetId);
   const create = useCreateTransaction(source);
   const update = useUpdateTransaction();
@@ -405,6 +405,7 @@ export function TransactionSheet({
         isVisible={isVisible}
         onDismiss={dismiss}
         onBack={isPickingLine ? () => setPickingLine(false) : undefined}
+        showsBackButton={isPickingLine}
         isBusy={mutation.isPending || isDeleting}
         title={
           isPickingLine
@@ -500,7 +501,7 @@ export function TransactionSheet({
           )
         }
       >
-        {isPickingLine ? (
+        {isPickingLine && (
           <MovementLinePicker
             sections={lineSections(lines, transactions, draft.kind)}
             transactions={transactions}
@@ -512,7 +513,8 @@ export function TransactionSheet({
               setPickingLine(false);
             }}
           />
-        ) : submittedCreate !== null ? (
+        )}
+        {submittedCreate !== null ? (
           <View style={styles.submitted}>
             {create.isError && (
               <Text variant="bodyMedium">
@@ -535,7 +537,10 @@ export function TransactionSheet({
             </Text>
           </View>
         ) : (
-          <>
+          <View
+            // The amount field keeps its pending decimal separator in local state.
+            style={isPickingLine ? styles.hiddenForm : styles.form}
+          >
             {!isKindLocked && (
               <SegmentedPicker
                 value={draft.kind}
@@ -562,16 +567,6 @@ export function TransactionSheet({
               currency={inputCurrency}
               onChange={(amount) => change({ amount })}
             />
-            <QuickAmountChips
-              amount={draft.amount}
-              currency={inputCurrency}
-              onSelect={(amount) => {
-                change({ amount });
-                // The field holds its own text; only a remount shows the new one.
-                setGeneration((current) => current + 1);
-              }}
-            />
-
             {impact !== null && (
               <ImpactBlock
                 {...movementImpactContent(t, impact, selectedLine, currency)}
@@ -582,7 +577,8 @@ export function TransactionSheet({
             <TextInput
               testID="transaction-description"
               mode="outlined"
-              label={t("budgets.mutations.description")}
+              label={descriptionLabel}
+              accessibilityLabel={descriptionLabel}
               placeholder={t(
                 `budgets.mutations.activity.placeholders.${draft.kind}`,
               )}
@@ -601,7 +597,10 @@ export function TransactionSheet({
                 transactions={transactions}
                 currency={currency}
                 onPick={setPickedLineId}
-                onPickOther={() => setPickingLine(true)}
+                onPickOther={() => {
+                  Keyboard.dismiss();
+                  setPickingLine(true);
+                }}
               />
             )}
 
@@ -657,7 +656,7 @@ export function TransactionSheet({
               selectedIds={draft.tagIds}
               onChange={(tagIds) => change({ tagIds })}
             />
-          </>
+          </View>
         )}
       </FormModal>
 
@@ -681,6 +680,8 @@ export function TransactionSheet({
 }
 
 const styles = StyleSheet.create({
+  form: { gap: SPACING.md },
+  hiddenForm: { display: "none" },
   checkedRow: {
     flexDirection: "row",
     alignItems: "center",

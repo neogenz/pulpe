@@ -1,6 +1,8 @@
 import { fireEvent, render } from "@testing-library/react-native";
+import { PaperProvider } from "react-native-paper";
 
 import { hapticSelection } from "@/core/ui/haptics";
+import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
 
 import { PinPad } from "./pin-pad";
 
@@ -23,9 +25,10 @@ it("appends a digit and tells the finger it landed", async () => {
   expect(onChange).toHaveBeenCalledWith("123");
   expect(hapticSelection).toHaveBeenCalledTimes(1);
   expect(
-    view.getByLabelText('vault.pinProgress {"filled":2,"total":4}').props
-      .accessibilityRole,
-  ).toBe("progressbar");
+    view.getByRole("progressbar", {
+      name: 'vault.pinProgress {"filled":2,"total":4}',
+    }),
+  ).toBeOnTheScreen();
 });
 
 it("deletes the last digit and takes nothing past four", async () => {
@@ -39,13 +42,45 @@ it("deletes the last digit and takes nothing past four", async () => {
   expect(onChange).toHaveBeenCalledWith("123");
 });
 
-it("shows the message under the dots", async () => {
-  const view = await render(
-    <PinPad value="" onChange={jest.fn()} errorMessage="Code incorrect" />,
-  );
+it.each([pulpeLightTheme, pulpeDarkTheme])(
+  "keeps PIN progress and errors readable (dark: $dark)",
+  async (theme) => {
+    const onChange = jest.fn();
+    const view = await render(
+      <PaperProvider theme={theme}>
+        <PinPad value="1" onChange={onChange} />
+      </PaperProvider>,
+    );
+    const [filled, ...empty] =
+      view.getByLabelText(/vault\.pinProgress/).children;
 
-  expect(view.getByText("Code incorrect")).toBeTruthy();
-});
+    expect(filled).toHaveStyle({
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
+    });
+    expect(empty).toHaveLength(3);
+    for (const dot of empty) {
+      expect(dot).toHaveStyle({ borderColor: theme.colors.onSurface });
+    }
+
+    await view.rerender(
+      <PaperProvider theme={theme}>
+        <PinPad value="" onChange={onChange} errorMessage="Code incorrect" />
+      </PaperProvider>,
+    );
+
+    const reset = view.getByLabelText(
+      'vault.pinProgress {"filled":0,"total":4}',
+    );
+    expect(reset.children).toHaveLength(4);
+    for (const dot of reset.children) {
+      expect(dot).toHaveStyle({ borderColor: theme.colors.onSurface });
+    }
+    expect(view.getByText("Code incorrect")).toHaveStyle({
+      color: theme.colors.error,
+    });
+  },
+);
 
 it("ignores every key while disabled, and says so", async () => {
   const onChange = jest.fn();

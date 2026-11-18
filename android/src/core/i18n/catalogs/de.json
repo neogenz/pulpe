@@ -134,7 +134,7 @@
       "missingTitle": "Dieses Budget existiert nicht mehr",
       "monthSelector": "Monatsauswahl",
       "noResults": "Nichts entspricht diesem Filter.",
-      "openForecast": "Details der Planung öffnen",
+      "openForecast": "Tippe für die Details",
       "openGoal": "Sparziel öffnen",
       "protectedMessage": "Wenn du weniger als geplant ausgibst, behält Pulpe den geplanten Betrag bei, um dein Budget zu schützen.",
       "protectedTitle": "Geschütztes Budget",
@@ -377,7 +377,8 @@
       }
     },
     "list": {
-      "adjustment": "Anpassung",
+      "available": "verfügbar",
+      "availablePlanned": "geplant verfügbar",
       "create": "Budget erstellen",
       "createAccessibility": "Ein Budget erstellen",
       "emptyHint": "Erstelle deinen ersten Monat aus einer deiner Vorlagen.",
@@ -385,7 +386,6 @@
       "loadErrorHint": "Prüfe deine Verbindung und versuche es erneut.",
       "loadErrorTitle": "Deine Budgets konnten nicht geladen werden",
       "planAccessibility": "Mehrere Budgets planen",
-      "potential": "Potenzial",
       "title": "Budgets",
       "yearBalance": "Saldo zum Jahresende %{year}",
       "yearReview": "Bilanz %{year}",
@@ -529,7 +529,6 @@
     "password": "Passwort",
     "retry": "Erneut versuchen",
     "signOut": "Abmelden",
-    "quickAmountAccessibility": "Betrag auf %{amount} setzen",
     "screenError": {
       "title": "Dieser Bildschirm hatte ein Problem",
       "hint": "Deine Daten sind unverändert. Versuch es erneut; passiert es wieder, schliesse Pulpe und öffne es neu."
@@ -1923,7 +1922,7 @@
     "unlock": {
       "biometric": "Mit Biometrie entsperren",
       "forgot": "Code vergessen?",
-      "subtitle": "Er entsperrt deine Beträge",
+      "subtitle": "Gib deinen Code ein, um dein Budget zu öffnen.",
       "greeting": "Hallo, %{name}",
       "greetingAnonymous": "Hallo"
     },

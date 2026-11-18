@@ -36,8 +36,7 @@ interface PinDotsProps {
 }
 
 /**
- * The dots are the only feedback the user gets — the digits themselves are
- * never echoed — so they carry both the progress and the failure.
+ * The dots give progress feedback without echoing the digits themselves.
  */
 const PinDots = memo(function PinDots({ filled, hasError }: PinDotsProps) {
   const theme = useTheme();
@@ -47,6 +46,7 @@ const PinDots = memo(function PinDots({ filled, hasError }: PinDotsProps) {
   return (
     <View
       style={styles.dots}
+      accessible
       accessibilityRole="progressbar"
       accessibilityLabel={t("vault.pinProgress", {
         filled,
@@ -60,7 +60,7 @@ const PinDots = memo(function PinDots({ filled, hasError }: PinDotsProps) {
             styles.dot,
             index < filled
               ? { backgroundColor: activeColor, borderColor: activeColor }
-              : { borderColor: theme.colors.outlineVariant },
+              : { borderColor: theme.colors.onSurface },
           ]}
         />
       ))}
@@ -71,7 +71,7 @@ const PinDots = memo(function PinDots({ filled, hasError }: PinDotsProps) {
 interface PinPadProps {
   value: string;
   onChange: (next: string) => void;
-  /** Shown under the dots, which turn to the error colour with it. */
+  /** Shown under the dots. Any filled dots also use the error color. */
   errorMessage?: string | null;
   isDisabled?: boolean;
   /** Rendered in the blank slot next to the zero — the biometric affordance. */

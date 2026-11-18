@@ -637,16 +637,17 @@ function BudgetRow({
           >
             {formatSignedAdaptiveCurrency(remaining, currency)}
           </Text>
-          {/* « Potentiel » and « Ajustement » say what can still be done with
-              the money; a closed month only keeps its figure. */}
-          {!isPast && (
+          {/* A closed month is a record, so its amount stands alone. */}
+          {!isPast && budget.remaining != null && (
             <Text
               variant="bodySmall"
               style={{ color: theme.colors.onSurfaceVariant }}
             >
-              {isPositive
-                ? t("budgets.list.potential")
-                : t("budgets.list.adjustment")}
+              {t(
+                isCurrent
+                  ? "budgets.list.available"
+                  : "budgets.list.availablePlanned",
+              )}
             </Text>
           )}
         </View>

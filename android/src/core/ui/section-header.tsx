@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
-import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
+import { SPACING, TABULAR_DIGITS, TOUCH_TARGET } from "@/core/ui/theme";
 
 interface SectionHeaderProps {
   title: string;
@@ -24,9 +24,8 @@ interface SectionHeaderProps {
  * that carries its rows, so the card's edge marks where its content starts.
  *
  * The rule is Pulpe's; the pieces are Android's. The title is chrome, so it is
- * MD3's `titleLarge` on the system face rather than Manrope, and the link is a
- * Material text button — its own ripple, its own 48dp target, no chevron
- * borrowed from UIKit.
+ * MD3's `titleLarge` on the system face, and a Material text button keeps the
+ * link tappable when its label is short.
  */
 export function SectionHeader({
   title,
@@ -38,9 +37,10 @@ export function SectionHeader({
 
   return (
     <View style={styles.header}>
-      <View style={styles.titleBlock} accessibilityRole="header">
+      <View style={styles.titleBlock}>
         <Text
           variant="titleLarge"
+          accessibilityRole="header"
           style={[styles.title, { color: theme.colors.onBackground }]}
         >
           {title}
@@ -91,6 +91,6 @@ const styles = StyleSheet.create({
   titleBlock: { flexShrink: 1, gap: SPACING.xxs },
   title: { fontWeight: "500" },
   // The button's own padding would push its label off the content's right edge.
-  link: { marginRight: -SPACING.sm },
-  linkContent: { flexDirection: "row-reverse" },
+  link: { minWidth: TOUCH_TARGET, marginRight: -SPACING.sm },
+  linkContent: { flexDirection: "row-reverse", minHeight: TOUCH_TARGET },
 });

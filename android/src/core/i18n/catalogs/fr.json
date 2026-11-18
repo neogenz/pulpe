@@ -134,7 +134,7 @@
       "missingTitle": "Ce budget n'existe plus",
       "monthSelector": "Sélecteur de mois",
       "noResults": "Rien ne correspond à ce filtre.",
-      "openForecast": "Ouvre le détail de la prévision",
+      "openForecast": "Touche pour ouvrir le détail",
       "openGoal": "Ouvre l'objectif d'épargne",
       "protectedMessage": "Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget.",
       "protectedTitle": "Budget protégé",
@@ -377,7 +377,8 @@
       }
     },
     "list": {
-      "adjustment": "Ajustement",
+      "available": "disponible",
+      "availablePlanned": "disponible prévu",
       "create": "Créer mon budget",
       "createAccessibility": "Créer un budget",
       "emptyHint": "Crée ton premier mois depuis un de tes modèles.",
@@ -385,7 +386,6 @@
       "loadErrorHint": "Vérifie ta connexion, puis réessaie.",
       "loadErrorTitle": "On n'a pas pu charger tes budgets",
       "planAccessibility": "Planifier plusieurs budgets",
-      "potential": "Potentiel",
       "title": "Budgets",
       "yearBalance": "Solde fin d'année %{year}",
       "yearReview": "Bilan %{year}",
@@ -529,7 +529,6 @@
     "password": "Mot de passe",
     "retry": "Réessayer",
     "signOut": "Se déconnecter",
-    "quickAmountAccessibility": "Définir le montant à %{amount}",
     "screenError": {
       "title": "Cet écran a eu un problème",
       "hint": "Tes données ne sont pas touchées. Réessaie ; si ça recommence, ferme et rouvre Pulpe."
@@ -1923,7 +1922,7 @@
     "unlock": {
       "biometric": "Déverrouiller avec la biométrie",
       "forgot": "Code oublié ?",
-      "subtitle": "Il déverrouille tes montants",
+      "subtitle": "Saisis ton code pour ouvrir ton budget.",
       "greeting": "Bonjour, %{name}",
       "greetingAnonymous": "Bonjour"
     },

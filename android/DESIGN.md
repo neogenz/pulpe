@@ -164,9 +164,8 @@ close button. While a write is pending, that button, the scrim and the Android
 back action all refuse dismissal so partially applied changes cannot disappear.
 
 A form that adds an operation or a forecast leads with what it asks for: the amount, in the same
-outlined Material field with its figure set large in Manrope (`AmountField isProminent`), then
-four suggestion chips (`QuickAmountChips`, the same 10 / 15 / 20 / 30 iOS offers) through the
-chip atom. The order below it is the platform-neutral one — what it is, then the details.
+outlined Material field with its figure set large in Manrope (`AmountField isProminent`).
+The order below it is the platform-neutral one: what it is, then the details.
 
 It looks like a bottom sheet and is deliberately not one: no drag handle, no
 swipe dismissal, no `@gorhom/bottom-sheet`. A form with a pinned submit button

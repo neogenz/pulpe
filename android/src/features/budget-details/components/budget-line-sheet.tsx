@@ -11,7 +11,6 @@ import { Button, Text, TextInput, useTheme } from "react-native-paper";
 import { kindOptions } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { hapticSuccess } from "@/core/ui/haptics";
-import { QuickAmountChips } from "@/core/ui/quick-amount-chips";
 import { AmountField } from "@/core/ui/amount-field";
 import { SegmentedPicker } from "@/core/ui/segmented-picker";
 import { FormModal } from "@/core/ui/sheet";
@@ -192,6 +191,7 @@ export function BudgetLineSheet({
   }
 
   const problem = budgetLineDraftHint(draft);
+  const nameLabel = t("budgets.mutations.name");
 
   return (
     <FormModal
@@ -260,16 +260,6 @@ export function BudgetLineSheet({
         currency={currency}
         onChange={(amount) => change({ amount })}
       />
-      <QuickAmountChips
-        amount={draft.amount}
-        currency={currency}
-        onSelect={(amount) => {
-          change({ amount });
-          // The field holds its own text; only a remount shows the new one.
-          setGeneration((current) => current + 1);
-        }}
-      />
-
       {amountCaption !== null && (
         <Text
           variant="labelMedium"
@@ -281,7 +271,8 @@ export function BudgetLineSheet({
 
       <TextInput
         mode="outlined"
-        label={t("budgets.mutations.name")}
+        label={nameLabel}
+        accessibilityLabel={nameLabel}
         placeholder={t(`budgets.mutations.forecast.placeholders.${draft.kind}`)}
         value={draft.name}
         onChangeText={(name) => change({ name })}

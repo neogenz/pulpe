@@ -1,4 +1,9 @@
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  waitFor,
+  within,
+} from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { BudgetSparse } from "pulpe-shared";
 import { PaperProvider } from "react-native-paper";
@@ -234,6 +239,25 @@ it("reads the month in progress first, then the ones ahead, and opens a month", 
   expect(router.push).toHaveBeenCalledWith("/budget/budget-2026-10");
 });
 
+it.each([200, -200, 0, undefined])(
+  "labels the current remaining amount %s and the upcoming amount",
+  async (remaining) => {
+    mockBudgets.data = [{ ...budget(2026, 10), remaining }, budget(2026, 11)];
+    const view = await renderScreen();
+    const current = within(view.getByTestId("budget-row-budget-2026-10"));
+    const upcoming = within(view.getByTestId("budget-row-budget-2026-11"));
+
+    expect(
+      current
+        .queryAllByText(/^budgets\.list\.available/)
+        .map((node) => node.props.children),
+    ).toEqual(remaining === undefined ? [] : ["budgets.list.available"]);
+    expect(
+      upcoming.getByText("budgets.list.availablePlanned"),
+    ).toBeOnTheScreen();
+  },
+);
+
 it("folds the closed months of the year being lived in until asked", async () => {
   mockBudgets.data = [budget(2026, 1, 50), budget(2026, 10)];
   const view = await renderScreen();
@@ -245,6 +269,8 @@ it("folds the closed months of the year being lived in until asked", async () =>
     view.getByLabelText("budgets.list.showClosedAccessibility"),
   );
   expect(view.getByText("Janvier")).toBeTruthy();
+  const closed = within(view.getByTestId("budget-row-budget-2026-1"));
+  expect(closed.queryByText(/^budgets\.list\.available/)).toBeNull();
 
   await fireEvent.press(
     view.getByLabelText("budgets.list.hideClosedAccessibility"),
