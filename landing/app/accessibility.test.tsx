@@ -450,6 +450,13 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.header, /IntersectionObserver/);
   });
 
+  it("opens a new page at its top despite the CSS smooth scroll", () => {
+    // Without the attribute Next.js keeps the smooth scroll during navigation,
+    // and Samsung Internet lands on the footer of the new page.
+    assert.match(globalsCss, /scroll-behavior: smooth;/);
+    assert.match(componentSources.layout, /data-scroll-behavior="smooth"/);
+  });
+
   it("sends iPhone visitors to the App Store from the sign-up buttons", () => {
     // Flagged before first paint, like `data-scrolled`, so no button swaps.
     assert.match(globalsCss, /@custom-variant ios \(html\[data-ios\] &\);/);
