@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.63.0",
-  "githubReleaseNotes": "## v0.63.0\n\n### Nouveautés\n\n- **L’App Store depuis ton iPhone** — Sur pulpe.app, les boutons d’inscription ouvrent l’App Store quand tu viens d’un iPhone.\n\n### Corrections\n\n- **Libellés de champ entiers** — Dans « Filtrer par tags », « Évolution par tag » et « Planifier des budgets », le libellé du premier champ n’est plus coupé en haut.\n\n### Technique\n\n- **Mon patrimoine** — La page avance pour les early adopters : un type se replie sur son total, le diagramme défile sur téléphone.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.64.0",
+  "githubReleaseNotes": "## v0.64.0\n\n### Nouveautés\n\n- **L’app Android à tester** — Ouvre pulpe.app sur un téléphone Android et touche « Je teste » : deux étapes suffisent pour essayer l’app avant sa sortie.\n\n### Technique\n\n- **Mon patrimoine** — Pour les early adopters, trois étapes animées présentent la page à la première visite, et le bouton « Comprendre mon patrimoine » les rouvre.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }
