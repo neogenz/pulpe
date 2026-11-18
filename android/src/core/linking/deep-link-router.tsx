@@ -43,7 +43,11 @@ export function DeepLinkRouter() {
     // same link twice.
     pendingRef.current = null;
     if (pending.kind === "budget") {
-      router.push(`/budget/${pending.budgetId}`);
+      // In Budgets, over its list, whichever tab is showing: a link names a
+      // month, not the tab it was shared from.
+      router.push(`/(budgets)/budget/${pending.budgetId}`, {
+        withAnchor: true,
+      });
       return;
     }
     requestAddExpense();

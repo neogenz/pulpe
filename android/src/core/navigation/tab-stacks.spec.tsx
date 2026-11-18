@@ -5,12 +5,16 @@ import {
   renderRouter,
   screen,
 } from "expo-router/testing-library";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import TabStackLayout, {
   unstable_settings,
 } from "@/app/(main)/(tabs)/(home,budgets,goals,templates)/_layout";
 import { NavigationBar } from "@/core/ui/navigation-bar";
+import {
+  leaveDeletedMonth,
+  useOpenMonthInOpeningTab,
+} from "@/features/budgets/month-navigation";
 
 /**
  * The real per-tab stack layout on the real router, with the app's route
@@ -36,11 +40,16 @@ function stub(testID: string) {
   };
 }
 
+function CreateForm() {
+  const openMonth = useOpenMonthInOpeningTab();
+  return <Pressable testID="create" onPress={() => openMonth("new")} />;
+}
+
 const SHARED = "(main)/(tabs)/(home,budgets,goals,templates)";
 
 const context = {
   "(main)/_layout": MainLayout,
-  "(main)/budget/create": stub("budget-create"),
+  "(main)/budget/create": CreateForm,
   "(main)/budget/plan": stub("budget-plan"),
   "(main)/(tabs)/_layout": TabsLayout,
   "(main)/(tabs)/net-worth": stub("net-worth"),
@@ -124,7 +133,7 @@ it("still covers the bar with the create and plan forms", async () => {
   await view;
 
   await act(() => router.push("/budget/create"));
-  expect(screen.getByTestId("budget-create")).toBeTruthy();
+  expect(screen.getByTestId("create")).toBeTruthy();
   expect(view.getSegments()).toEqual(["(main)", "budget", "create"]);
 
   await act(() => router.back());
@@ -156,4 +165,77 @@ it("keeps a tab's screens across a switch, and pops them on a second tap", async
 
   await pressTab("budgets");
   expect(view.getSegments()).toEqual([...TABS, "(budgets)", "budgets"]);
+});
+
+it.each([
+  ["/budgets", "(budgets)"],
+  ["/home", "(home)"],
+])(
+  "opens a month created from %s in that tab, the form closed",
+  async (tab, group) => {
+    const view = renderRouter(context, { initialUrl: tab });
+    await view;
+    await act(() => router.push("/budget/create"));
+
+    await fireEvent.press(screen.getByTestId("create"));
+
+    expect(view.getSegments()).toEqual([...TABS, group, "budget", "[id]"]);
+    await act(() => router.back());
+    expect(view.getPathname()).toBe(tab);
+    expect(screen.queryByTestId("create")).toBeNull();
+  },
+);
+
+it("opens a link in Budgets from any tab", async () => {
+  const view = renderRouter(context, { initialUrl: "/goals" });
+  await view;
+
+  await act(() => router.push("/(budgets)/budget/nov", { withAnchor: true }));
+
+  expect(view.getSegments()).toEqual([...TABS, "(budgets)", "budget", "[id]"]);
+  await act(() => router.back());
+  expect(view.getPathname()).toBe("/budgets");
+});
+
+it.each([["/budgets"], ["/home"]])(
+  "leaves a month deleted from %s for the Budgets list",
+  async (tab) => {
+    const view = renderRouter(context, { initialUrl: tab });
+    await view;
+    await act(() => router.push("/budget/nov"));
+
+    await act(() => leaveDeletedMonth());
+
+    expect(view.getPathname()).toBe("/budgets");
+    expect(view.getSearchParams()).toEqual({ deletedMonth: "1" });
+    expect(screen.queryByTestId("budget-detail")).toBeNull();
+
+    // The tab the month was deleted from no longer holds it either.
+    await pressTab("home");
+    expect(view.getPathname()).toBe("/home");
+  },
+);
+
+it("closes the plan form onto the Budgets list with its counts", async () => {
+  const view = renderRouter(context, { initialUrl: "/budgets" });
+  await view;
+  await act(() => router.push("/budget/plan"));
+
+  await act(() =>
+    router.dismissTo({ pathname: "/budgets", params: { createdCount: "2" } }),
+  );
+
+  expect(view.getSegments()).toEqual([...TABS, "(budgets)", "budgets"]);
+  expect(view.getSearchParams()).toEqual({ createdCount: "2" });
+});
+
+it("closes the create form onto the Modèles tab", async () => {
+  const view = renderRouter(context, { initialUrl: "/home" });
+  await view;
+  await act(() => router.push("/budget/create"));
+
+  await act(() => router.dismissTo("/templates"));
+
+  expect(view.getSegments()).toEqual([...TABS, "(templates)", "templates"]);
+  expect(screen.queryByTestId("create")).toBeNull();
 });

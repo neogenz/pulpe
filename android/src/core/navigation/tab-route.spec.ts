@@ -1,4 +1,4 @@
-import { currentTab, screenName, tabKey } from "./tab-route";
+import { currentTab, screenName, tabGroupUnder, tabKey } from "./tab-route";
 
 describe("tabKey", () => {
   it("reads a stack tab and a single-screen tab the same way", () => {
@@ -47,5 +47,37 @@ describe("screenName", () => {
     [["(auth)", "sign-in"], "(auth)/sign-in"],
   ])("%j → %s", (segments, name) => {
     expect(screenName(segments)).toBe(name);
+  });
+});
+
+describe("tabGroupUnder", () => {
+  const under = (index: number) => ({
+    routes: [
+      {
+        name: "(tabs)",
+        state: {
+          index,
+          routes: [
+            { name: "(home)" },
+            { name: "(budgets)" },
+            { name: "net-worth" },
+          ],
+        },
+      },
+      { name: "budget/create" },
+    ],
+  });
+
+  it("is the tab group focused under a screen pushed over the bar", () => {
+    expect(tabGroupUnder(under(1))).toBe("(budgets)");
+    expect(tabGroupUnder(under(0))).toBe("(home)");
+  });
+
+  it("is undefined for a single-screen tab or no tabs at all", () => {
+    expect(tabGroupUnder(under(2))).toBeUndefined();
+    expect(
+      tabGroupUnder({ routes: [{ name: "budget/create" }] }),
+    ).toBeUndefined();
+    expect(tabGroupUnder(undefined)).toBeUndefined();
   });
 });

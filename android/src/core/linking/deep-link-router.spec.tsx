@@ -38,7 +38,9 @@ it("holds a protected link until unlock and delivers it once", async () => {
   mockVault.status = "unlocked";
   await view.rerender(<DeepLinkRouter />);
   await waitFor(() =>
-    expect(mockedPush).toHaveBeenCalledWith("/budget/budget-1"),
+    expect(mockedPush).toHaveBeenCalledWith("/(budgets)/budget/budget-1", {
+      withAnchor: true,
+    }),
   );
 
   await view.rerender(<DeepLinkRouter />);
@@ -71,7 +73,9 @@ it("does not let an unrelated URL erase a pending link", async () => {
   await view.rerender(<DeepLinkRouter />);
 
   await waitFor(() =>
-    expect(mockedPush).toHaveBeenCalledWith("/budget/budget-2"),
+    expect(mockedPush).toHaveBeenCalledWith("/(budgets)/budget/budget-2", {
+      withAnchor: true,
+    }),
   );
 });
 

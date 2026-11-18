@@ -25,8 +25,28 @@ let mockParams: { month?: string; year?: string } = {};
 const mockCreate = { mutate: jest.fn(), isPending: false, isError: false };
 
 jest.mock("expo-router", () => ({
-  router: { back: jest.fn(), dismissTo: jest.fn(), replace: jest.fn() },
+  router: {
+    back: jest.fn(),
+    dismissTo: jest.fn(),
+    push: jest.fn(),
+    replace: jest.fn(),
+  },
   useLocalSearchParams: () => mockParams,
+  // The form was opened from the Budgets tab, left focused under it.
+  useNavigation: () => ({
+    getState: () => ({
+      routes: [
+        {
+          name: "(tabs)",
+          state: {
+            index: 1,
+            routes: [{ name: "(home)" }, { name: "(budgets)" }],
+          },
+        },
+        { name: "budget/create" },
+      ],
+    }),
+  }),
 }));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: jest.requireActual("react-native").View,
@@ -235,7 +255,11 @@ it("excludes an existing month, chooses the default template and opens the resul
     onSuccess: (budget: { id: string }) => void;
   };
   await act(() => callbacks.onSuccess({ id: "budget-created" }));
-  expect(router.replace).toHaveBeenCalledWith("/budget/budget-created");
+  // Closed, then the month opened in the tab the form came from: `replace`
+  // would mint a second tabs navigator.
+  expect(router.back).toHaveBeenCalled();
+  expect(router.push).toHaveBeenCalledWith("/(budgets)/budget/budget-created");
+  expect(router.replace).not.toHaveBeenCalled();
 });
 
 it("uses the selected period and template while keeping mutation errors recoverable", async () => {

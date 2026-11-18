@@ -42,3 +42,24 @@ export function screenName(segments: readonly string[]): string {
     ...(isTabRoot ? [TABS_SEGMENT, ...rest] : rest),
   ].join("/");
 }
+
+interface NavigatorState {
+  index?: number;
+  routes: readonly { name: string; state?: NavigatorState }[];
+}
+
+/**
+ * The tab left focused under the screens pushed over the bar, read from the
+ * stack that holds them both: `(budgets)` under a form opened from Budgets.
+ * Only a tab holding a stack is one: a single-screen tab has nothing to push
+ * a page onto.
+ */
+export function tabGroupUnder(
+  state: NavigatorState | undefined,
+): string | undefined {
+  const tabs = state?.routes.find(
+    (route) => route.name === TABS_SEGMENT,
+  )?.state;
+  const name = tabs?.routes[tabs.index ?? 0]?.name;
+  return name !== undefined && GROUP.test(name) ? name : undefined;
+}
