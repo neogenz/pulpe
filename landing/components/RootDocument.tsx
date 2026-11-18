@@ -181,7 +181,15 @@ export function RootDocument({
   const jsonLd = buildJsonLd(locale, graphDescription, featureList);
 
   return (
-    <html lang={locale} className={poppins.variable} suppressHydrationWarning>
+    // `data-scroll-behavior` tells Next.js to drop the CSS smooth scroll while it
+    // resets the scroll on navigation. Otherwise some browsers (Samsung
+    // Internet) animate toward the footer and open the new page at its bottom.
+    <html
+      lang={locale}
+      className={poppins.variable}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       {/* This document is a root layout, so `<head>` is the correct element.
           The rule detects the App Router from the file path, while this shared
           component lives under `components/`. */}
