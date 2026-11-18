@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useRef,
+  useState,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -65,6 +66,11 @@ interface FormModalProps {
    */
   onBack?: () => void;
   showsBackButton?: boolean;
+  /**
+   * Never shrinks while open: a sheet of several steps of different lengths
+   * keeps its tallest height, so its footer does not jump at each step.
+   */
+  holdsHeight?: boolean;
   children?: ReactNode;
 }
 
@@ -89,6 +95,7 @@ export function FormModal({
   footer,
   onBack,
   showsBackButton = false,
+  holdsHeight = false,
   children,
 }: FormModalProps) {
   const { t } = useTranslation();
@@ -103,6 +110,7 @@ export function FormModal({
     keyboardHeight,
     safeBottom: bottom,
   });
+  const [heldHeight, setHeldHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const revealed = useRef<View | null>(null);
@@ -147,7 +155,19 @@ export function FormModal({
         <View
           testID="form-modal-sheet"
           accessibilityViewIsModal
-          style={[styles.sheet, { backgroundColor: sheet.background }, box]}
+          style={[
+            styles.sheet,
+            { backgroundColor: sheet.background, minHeight: heldHeight },
+            box,
+          ]}
+          onLayout={
+            holdsHeight
+              ? (event) => {
+                  const { height: sheetHeight } = event.nativeEvent.layout;
+                  setHeldHeight((held) => Math.max(held, sheetHeight));
+                }
+              : undefined
+          }
         >
           <View style={styles.header}>
             {showsBackButton && onBack !== undefined && (

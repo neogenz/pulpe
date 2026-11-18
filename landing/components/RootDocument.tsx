@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Poppins } from "next/font/google";
 import { PostHogProvider } from "./PostHogProvider";
 import {
+  ANDROID_BETA_DISMISSED_KEY,
   DESKTOP_BREAKPOINT_PX,
   CONTACT_EMAIL,
   GITHUB_URL,
@@ -31,7 +32,10 @@ const poppins = Poppins({
 // sets the scroll attribute on `<html>` before hydration. It also flags an
 // iPhone with `data-ios`, which points sign-up buttons at the App Store. iPads
 // stay on web sign-up: the app is iPhone-only, and iPadOS Safari reports itself
-// as a Mac anyway. The expected mismatch
+// as a Mac anyway. Android gets `data-android`, which shows the closed-test
+// invitation unless it was dismissed, and Instagram or Facebook's in-app
+// browser gets `data-in-app`, which asks to reopen `/android` in Chrome. The
+// expected mismatch
 // is suppressed on the root element. Client navigation rebuilds the header, so
 // listeners are delegated to the document and look up elements per event.
 // `toggle` does not bubble and is therefore captured.
@@ -39,6 +43,11 @@ const headerScript = `(function(){
 if(window.pulpeHeaderReady)return;
 window.pulpeHeaderReady=1;
 if(/iPhone|iPod/.test(navigator.userAgent))document.documentElement.setAttribute('data-ios','');
+if(/Android/.test(navigator.userAgent)){
+document.documentElement.setAttribute('data-android','');
+try{if(localStorage.getItem('${ANDROID_BETA_DISMISSED_KEY}'))document.documentElement.setAttribute('data-android-beta-dismissed','');}catch(e){}
+}
+if(/Instagram|FBAN|FBAV|FB_IAB/.test(navigator.userAgent))document.documentElement.setAttribute('data-in-app','');
 function nav(){return document.getElementById('${MOBILE_NAV_ID}');}
 function close(){var n=nav();if(n&&n.open)n.open=false;}
 function syncPanel(){

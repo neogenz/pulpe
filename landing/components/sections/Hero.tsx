@@ -1,3 +1,4 @@
+import { AndroidBetaBanner } from "@/components/android/AndroidBetaBanner";
 import { HeroDashboard, SignupCta } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
 import type { Locale } from "@/lib/i18n";
@@ -5,11 +6,13 @@ import type { Locale } from "@/lib/i18n";
 export function Hero({
   dict,
   dashboardDict,
+  androidBetaDict,
   appStoreLabel,
   locale,
 }: {
   dict: Dictionary["home"]["hero"];
   dashboardDict: Dictionary["home"]["dashboard"];
+  androidBetaDict: Dictionary["androidBeta"]["banner"];
   appStoreLabel: string;
   locale: Locale;
 }) {
@@ -20,6 +23,7 @@ export function Hero({
     >
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl text-center">
+          <AndroidBetaBanner dict={androidBetaDict} locale={locale} />
           <h1 className="mx-auto max-w-5xl text-[clamp(2.75rem,5.6vw,5rem)] font-extrabold leading-[0.98] tracking-[-0.04em] text-text">
             {dict.headlineLead}
             <mark className="marker-highlight marker-highlight-strong">

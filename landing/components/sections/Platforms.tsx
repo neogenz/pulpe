@@ -1,8 +1,10 @@
-import { ArrowUpRight, Globe, Smartphone } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Globe, Smartphone } from "lucide-react";
 import { Badge, Button, Section } from "@/components/ui";
 import type { Dictionary } from "@/content/dictionary";
-import { ANDROID_BETA_GROUP_URL, angularUrl, IOS_APP_URL } from "@/lib/config";
+import { angularUrl, IOS_APP_URL } from "@/lib/config";
 import type { Locale } from "@/lib/i18n";
+import { ANDROID_ROUTE, localizedPath } from "@/lib/routes";
 
 function AppleLogo({ className }: { className?: string }) {
   return (
@@ -118,22 +120,20 @@ export function Platforms({
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
               {dict.android.text}
             </p>
-            <a
-              href={ANDROID_BETA_GROUP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href={localizedPath(locale, ANDROID_ROUTE)}
               className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               data-cta-name="rejoindre_beta_android"
               data-cta-location="platforms"
-              data-cta-destination={ANDROID_BETA_GROUP_URL}
+              data-cta-destination={ANDROID_ROUTE}
             >
               {dict.android.cta}
-              <ArrowUpRight
+              <ArrowRight
                 className="size-4"
                 strokeWidth={2}
                 aria-hidden="true"
               />
-            </a>
+            </Link>
           </div>
         </div>
       </div>

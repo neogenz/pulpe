@@ -88,6 +88,32 @@ describe("sheets", () => {
     ).toHaveStyle({ justifyContent: "flex-end" });
   });
 
+  it("keeps its tallest height across steps when asked to, and follows its content otherwise", async () => {
+    const layout = (height: number) => ({
+      nativeEvent: { layout: { x: 0, y: 0, width: 400, height } },
+    });
+    const view = await render(
+      <PaperProvider>
+        <FormModal isVisible holdsHeight title="Steps" onDismiss={jest.fn()}>
+          <Text>Step</Text>
+        </FormModal>
+      </PaperProvider>,
+    );
+    const sheet = () =>
+      view.getByTestId("form-modal-sheet", { includeHiddenElements: true });
+
+    await act(() => fireEvent(sheet(), "layout", layout(500)));
+    await act(() => fireEvent(sheet(), "layout", layout(400)));
+    expect(sheet()).toHaveStyle({ minHeight: 500 });
+
+    const { view: plain } = await renderModal(false);
+    const plainSheet = plain.getByTestId("form-modal-sheet", {
+      includeHiddenElements: true,
+    });
+    await act(() => fireEvent(plainSheet, "layout", layout(500)));
+    expect(plainSheet).toHaveStyle({ minHeight: 0 });
+  });
+
   it("dismisses from its visible close, backdrop and Android back action", async () => {
     const { onDismiss, view } = await renderModal(false);
     const close = view.getByRole("button", { name: "common.close" });

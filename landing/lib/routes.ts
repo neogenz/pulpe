@@ -12,6 +12,7 @@ export const ROUTES = [
   "/support",
   "/support/modeles-et-budgets",
   "/support/connecter-un-assistant",
+  "/android",
 ] as const;
 
 export type Route = (typeof ROUTES)[number];
@@ -22,6 +23,7 @@ export type Route = (typeof ROUTES)[number];
 export const GUIDE_ROUTE = "/support/modeles-et-budgets" satisfies Route;
 export const ASSISTANT_ROUTE =
   "/support/connecter-un-assistant" satisfies Route;
+export const ANDROID_ROUTE = "/android" satisfies Route;
 
 /**
  * Budget advice index and label.
