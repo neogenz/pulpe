@@ -1,5 +1,59 @@
 [
   {
+    "version": "0.64.1",
+    "date": "2026-11-18",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.64.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Les pages s’ouvrent en haut",
+          "description": "Après « Je teste » ou un autre lien de pulpe.app, la page suivante s’affiche depuis son début, et non plus tout en bas."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Pages open at the top",
+              "description": "After “I’m in” or any other link on pulpe.app, the next page shows from its start, no longer at the very bottom."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Seiten öffnen sich oben",
+              "description": "Nach «Ich teste» oder einem anderen Link auf pulpe.app erscheint die nächste Seite von Anfang an und nicht mehr ganz unten."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Le pagine si aprono dall’inizio",
+              "description": "Dopo «Ci sto» o un altro link su pulpe.app, la pagina successiva si apre dall’inizio e non più in fondo."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
     "version": "0.64.0",
     "date": "2026-11-18",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.64.0",
