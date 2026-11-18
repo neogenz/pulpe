@@ -1,7 +1,7 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
 
-import HomeScreen from "@/app/(main)/(tabs)/home";
+import HomeScreen from "@/app/(main)/(tabs)/(home)/home";
 
 const mockRefresh = jest.fn(async () => undefined);
 const mockCurrentMonth = { status: "loading" } as Record<string, unknown>;

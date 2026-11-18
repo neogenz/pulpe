@@ -26,7 +26,10 @@ describe("phase 4 budget localization", () => {
   );
 
   it("keeps dates, errors, and accessibility at the presentation boundary", () => {
-    const list = readFileSync("src/app/(main)/(tabs)/budgets.tsx", "utf8");
+    const list = readFileSync(
+      "src/app/(main)/(tabs)/(budgets)/budgets.tsx",
+      "utf8",
+    );
     const create = readFileSync("src/app/(main)/budget/create.tsx", "utf8");
 
     expect(list).toContain("formatMonthName(month, year, locale)");

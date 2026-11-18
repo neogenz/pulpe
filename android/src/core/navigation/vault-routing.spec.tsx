@@ -120,7 +120,7 @@ const context = {
   "(vault)/vault-recover": stub("vault-recover"),
   "(main)/_layout": GroupLayout,
   "(main)/(tabs)/_layout": GroupLayout,
-  "(main)/(tabs)/home": stub("home"),
+  "(main)/(tabs)/(home)/home": stub("home"),
   "(main)/post-onboarding": stub("post-onboarding"),
   "(onboarding)/_layout": GroupLayout,
   "(onboarding)/index": stub("onboarding"),

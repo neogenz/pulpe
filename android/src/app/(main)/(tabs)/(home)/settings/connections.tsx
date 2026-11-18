@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { RefreshControl, ScrollView, StyleSheet } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
@@ -7,7 +7,6 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatInstantDay } from "@/core/ui/date-format";
@@ -31,10 +30,7 @@ export default function ConnectionsScreen() {
   const list = connections.data ?? [];
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
@@ -111,7 +107,7 @@ export default function ConnectionsScreen() {
           </Text>
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

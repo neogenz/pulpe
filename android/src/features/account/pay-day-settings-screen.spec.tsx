@@ -1,7 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { PaperProvider } from "react-native-paper";
 
-import PayDayScreen from "@/app/(main)/settings/pay-day";
+import PayDayScreen from "@/app/(main)/(tabs)/(home)/settings/pay-day";
 
 const mockSchedule = jest.fn();
 const mockUpdate = jest.fn();

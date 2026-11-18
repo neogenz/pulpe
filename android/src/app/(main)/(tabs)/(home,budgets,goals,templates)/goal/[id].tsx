@@ -8,7 +8,6 @@ import {
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Menu, useTheme } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import {
@@ -261,10 +260,7 @@ export default function GoalDetailScreen() {
       : goalHistory(progress.data, withdrawals.data?.data ?? [], payDayOfMonth);
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <HeroAppBar title={goal.data.name} onBack={() => router.back()}>
         <Menu
           visible={isMenuVisible}
@@ -508,7 +504,7 @@ export default function GoalDetailScreen() {
           router.back();
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

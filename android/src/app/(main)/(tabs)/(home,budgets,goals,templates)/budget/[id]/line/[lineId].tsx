@@ -14,10 +14,6 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 
 import { KIND_ICONS, recurrenceLabel } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -78,7 +74,6 @@ export default function BudgetLineDetailScreen() {
   useAmountMasking();
   const { id, lineId } = useLocalSearchParams<{ id: string; lineId: string }>();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { locale, t } = useTranslation();
   const financial = useFinancialColors();
   const settings = useUserSettings();
@@ -100,12 +95,11 @@ export default function BudgetLineDetailScreen() {
 
   if (details.isPending || settings.isPending) {
     return (
-      <SafeAreaView
-        edges={["bottom"]}
+      <View
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator accessibilityLabel={t("common.loading")} />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -114,8 +108,7 @@ export default function BudgetLineDetailScreen() {
     (settings.isError && settings.data === undefined)
   ) {
     return (
-      <SafeAreaView
-        edges={["bottom"]}
+      <View
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <InlineQueryError
@@ -124,7 +117,7 @@ export default function BudgetLineDetailScreen() {
             void Promise.all([details.refetch(), settings.refetch()])
           }
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -167,10 +160,7 @@ export default function BudgetLineDetailScreen() {
         ];
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
@@ -425,7 +415,7 @@ export default function BudgetLineDetailScreen() {
         label={t("budgets.actions.line.note")}
         // An absolute child sits outside the safe area's padding: without the
         // inset, the FAB lands on the gesture bar.
-        style={[styles.fab, { bottom: SPACING.md + insets.bottom }]}
+        style={styles.fab}
         onPress={() => overlays.current?.addTransaction()}
       />
 
@@ -444,7 +434,7 @@ export default function BudgetLineDetailScreen() {
         }}
         onLeave={() => router.back()}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -29,7 +29,7 @@ describe("phase 4 current-month activity localization", () => {
       "src/features/current-month/components/recent-movements-section.tsx",
       "utf8",
     );
-    const home = readFileSync("src/app/(main)/(tabs)/home.tsx", "utf8");
+    const home = readFileSync("src/app/(main)/(tabs)/(home)/home.tsx", "utf8");
 
     expect(section).toContain("formatRelativeDay(day.date, now, locale)");
     expect(home).toContain('step: "point" | "undo"');
