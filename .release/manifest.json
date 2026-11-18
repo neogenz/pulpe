@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.64.0",
-  "githubReleaseNotes": "## v0.64.0\n\n### Nouveautés\n\n- **L’app Android à tester** — Ouvre pulpe.app sur un téléphone Android et touche « Je teste » : deux étapes suffisent pour essayer l’app avant sa sortie.\n\n### Technique\n\n- **Mon patrimoine** — Pour les early adopters, trois étapes animées présentent la page à la première visite, et le bouton « Comprendre mon patrimoine » les rouvre.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.64.1",
+  "githubReleaseNotes": "## v0.64.1\n\n### Corrections\n\n- **Les pages s’ouvrent en haut** — Après « Je teste » ou un autre lien de pulpe.app, la page suivante s’affiche depuis son début, et non plus tout en bas.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }
