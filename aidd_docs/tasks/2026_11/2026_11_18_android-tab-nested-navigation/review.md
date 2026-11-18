@@ -41,3 +41,38 @@
 - The `(tabs)/_layout.tsx:42` flag redirect `router.replace("/home")` targets the tabs navigator with `REPLACE`; behaviour is the same before and after the rename, not re-verified here — an on-device run with `net_worth` turned off would settle it.
 - Re-tap pop-to-top and stack retention across switches rest on `tab-stacks.spec.tsx` with a stubbed layout event; only the device pass settles them on Paper's real bar.
 - Specs and `pnpm quality` were not run in this review (read-only); proofs are from the source and the installed `expo-router@57.0.31`.
+
+## Round 2
+
+- Diff: `origin/main...a57afaa01` (code identical to `d245e6eae`; the last commit only adds the task docs)
+- Uncommitted changes: no
+- Axes: code, functional, relevancy
+- Verdict: changes-requested, because one major finding (the Accueil « Objectifs » shortcut stacks a second goals list over a goal left open in Objectifs) and the phase-3 task-2 criterion is unchecked (Maestro not run, deletion and link not observed on the emulator)
+
+### Criteria
+
+- [x] Phase 1 / 1: `tab_switched` per tab, only on a change, testIDs unchanged — `android/src/core/navigation/tab-route.ts:22-26`, `android/src/app/(main)/(tabs)/_layout.tsx:38-53`, `android/src/core/ui/navigation-bar.tsx:64,79`, `tab-stacks.spec.tsx` presses `tab-home`/`tab-budgets` on `(home)`/`(budgets)`
+- [x] Phase 1 / 2: screen names unchanged — `tab-route.ts:34-47`, table at `tab-route.spec.ts:31-50`
+- [x] Phase 2 / 1: bar visible with its tab active, mask toggle keeps every stack — Run 1 on `d245e6eae` (observed on `pulpe_light`); the boundary wraps screens only, `(home,budgets,goals,templates)/_layout.tsx:35-41`, `(tabs)/_layout.tsx:67-73`, `(main)/_layout.tsx:32-38`
+- [x] Phase 2 / 2: every push/replace/dismissTo target resolves; tests and quality green — every call site traced (all `/budget/…` and `/goal/…` pushes come from screens inside the array group, `/settings*`, `/movements`, `/to-point` only from `(home)`, `/template/…` only from `(templates)`); Run 1: 205 suites / 1337 tests, `pnpm quality`
+- [x] Phase 2 / 3: no bottom inset under `(tabs)` — `screen-insets.spec.ts:75-84`, grep of `edges=`/`insets.bottom` (only `edges={["top"]}` left under `(tabs)`), Run 1 emulator
+- [x] Phase 3 / 1: link, creation, deletion and planning land in the right tab with a back path ending on a tab root — `android/src/features/budgets/month-navigation.ts:16-53`, `tab-stacks.spec.tsx:204-299`
+- [ ] Phase 3 / 2: every scenario observed on the emulator, Maestro green — Run 1: Maestro not run, deletion not exercised on device, the `pulpe://budget?id=` row shows « Unmatched Route »
+
+### Assumptions
+
+- A `popToTop` with `target` reaches a tab's stack that is not focused — holds, `node_modules/expo-router/build/react-navigation/core/useOnAction.js:67-71`, and `tab-stacks.spec.tsx:257-275` pops `(budgets)` from `(home)`
+- The bar's `navigation.navigate(route.name, route.params)` does not replay a consumed nested navigation — holds while no tab screen has `initialParams`: `TabRouter.js:228` then keeps the same params object, marked consumed at `useNavigationBuilder.js:215-216,457`
+- A cross-tab `push` to a tab root lands on that root — finding, `node_modules/expo-router/build/global-state/getNavigationAction.js:48-50,93-101` (PUSH turns into NAVIGATE on the tabs, no `pop` in the payload), `react-navigation/routers/StackRouter.js:188-197`
+- Run 1 evidence applies to this head — holds, `git diff d245e6eae a57afaa01` touches only the task folder
+
+### Findings
+
+- `android/src/app/(main)/(tabs)/(home)/home.tsx:505` : `push("/goals")` while Objectifs still holds a goal (`[goals, goal/[id]]`, kept across the switch on purpose) reaches the `(goals)` stack as a nested `navigate("goals")` with no `pop`; the current route is `goal/[id]`, so a second list is pushed: `[goals, goal/[id], goals]`. Repro: Objectifs → open a goal → Accueil → tap the savings-done card (`SavingsDoneCard`, shown once the month's savings are complete) → Objectifs list; Android back shows the goal again, then a list again. Before this diff the goal sat on the root stack and the tabs could not hold it. Proof `node_modules/expo-router/build/global-state/getNavigationAction.js:48-50`, `StackRouter.js:188-197` → pop `(goals)` to its root before the push (`popTabsToRoot(navigation, ["(goals)"])` from `tab-route.ts:107`), plus a `tab-stacks.spec.tsx` case: open `/goal/g1` in `/goals`, navigate `/home`, push `/goals`, expect `routesUnder(view, "(goals)")` to equal `["goals"]` — 🟡 major
+
+### Limits
+
+- `pulpe://budget?id=` opens « Unmatched Route » on the device (Run 1): expo-router resolves `/budget` before `DeepLinkRouter` acts. Same on `main`, and Android emits no such link yet; a `+native-intent` rewrite would settle it, out of this diff.
+- `pulpe://add-expense` still does `router.push("/home")` (`deep-link-router.tsx:52`): with Accueil holding a screen, the same mechanism as the finding pushes a second home over it. Unreachable today (no Android emitter).
+- Deleting a month pops every tab and switches to Budgets, where iOS pops only the current tab and stays (`ios/Pulpe/Features/Budgets/BudgetDetails/DeleteMonthMenu.swift:138`). Landing on Budgets predates this diff (`dismissTo("/budgets")` on `main`); resetting unrelated tabs (a goal or a setting left open) is new but matches what the single root stack did before.
+- `create.tsx:148` and `plan.tsx:157` `dismissTo("/templates")` would also stack a second list over an open template; only offered with no template, so not reached.

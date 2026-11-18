@@ -14,3 +14,10 @@
 | 2.3  | No bottom inset under `(tabs)`, line FAB without `insets.bottom` — `screen-insets.spec.ts`; emulator: À pointer, template detail, line detail FAB sit right above the bar, no band                                                                                                                                                                                | green; observed                    |
 | 3.1  | Link opens in Budgets right over its list, closing a form first; created month opens in the opening tab; deletion pops every tab and lands on « Mois supprimé »; plan and Modèles `dismissTo` land on their tab — `tab-stacks.spec.tsx`, each new case failing with its fix removed                                                                               | green                              |
 | 3.2  | Emulator pass (`pulpe_light`, dev client on this worktree's Metro, local backend and Supabase, demo account); Android back from a line walks line → month → Budgets list → Accueil — `cd android && npx jest` 205 suites / 1337 tests, `pnpm quality`, root `pnpm test:lexicon`                                                                                   | observed                           |
+
+## Run 2
+
+- Head: review Round 2 fix on top of `a57afaa01`
+- Fixed: a shortcut to another tab's root (the Accueil savings-done card to Objectifs, the `pulpe://add-expense` link to Accueil) pops that tab first, so it no longer stacks a second root over a page left open there (`useShowTabRoot` in `core/navigation/tab-route.ts`). Both new `tab-stacks.spec.tsx` cases fail with the old `push`.
+- Emulator (`pulpe_light`, demo account): month created from Budgets opens in Budgets with the bar; with a goal left open in Objectifs, deleting the month lands on the Budgets list with « Mois supprimé » and Objectifs shows its list. The savings-done card cannot be reached on the local seed, so the shortcut was checked on the router spec only. Maestro smoke green in CI.
+- `cd android && npx jest` 205 suites / 1339 tests, `pnpm quality` green.
