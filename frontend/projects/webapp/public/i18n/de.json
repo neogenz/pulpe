@@ -1504,6 +1504,7 @@
     },
     "type": {
       "menu": "Aktionen für den Typ {{name}}",
+      "shareOfOwned": "{{percent}} von dem, was ich habe",
       "rename": "Typ umbenennen",
       "nameLabel": "Name des Typs"
     },

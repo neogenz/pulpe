@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   LOCALE_ID,
@@ -16,6 +17,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import type { AssetCategory } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { TitleDisplay } from '@core/routing';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { BaseLoading } from '@ui/loading';
@@ -88,7 +90,7 @@ import { injectWriteAttempt } from './services/write-attempt';
         }
       </header>
 
-      @switch (store.netWorth.status()) {
+      @switch (loadState()) {
         @case ('loading') {
           <pulpe-base-loading
             [message]="'common.loading' | transloco"
@@ -227,6 +229,11 @@ import { injectWriteAttempt } from './services/write-attempt';
                   <pulpe-net-worth-section
                     [title]="group.category.name"
                     [total]="group.total"
+                    [ownedShare]="
+                      ownGroups().length > 1 && totals.gross > 0
+                        ? group.total / totals.gross
+                        : null
+                    "
                     [assets]="group.assets"
                     [baseCurrency]="totals.baseCurrency"
                     [busy]="store.isSaving()"
@@ -377,6 +384,7 @@ export default class NetWorthPage {
 
   protected readonly OVERDRAFTS_KEY = 'overdrafts';
   readonly #storage = inject(StorageService);
+  readonly #loadingIndicator = inject(LoadingIndicator);
   // Per device: a folded Type stays folded on the next visit.
   protected readonly collapsedTypeIds = signal<ReadonlySet<string>>(
     new Set(
@@ -391,18 +399,28 @@ export default class NetWorthPage {
     this.#storage.set(STORAGE_KEYS.NET_WORTH_COLLAPSED_TYPES, [...next]);
   }
 
-  /** The page shows its empty state or its figures: not loading, not failed. */
-  protected readonly isSettled = computed(() => {
-    const status = this.store.netWorth.status();
-    return (
-      status !== 'loading' &&
-      status !== 'error' &&
-      this.store.netWorth.value() !== undefined
-    );
+  /** A refetch after a write keeps the figures on screen: only a cold cache shows the spinner. */
+  protected readonly loadState = computed(() => {
+    if (this.store.netWorth.isInitialLoading()) return 'loading';
+    return this.store.netWorth.status() === 'error' ? 'error' : 'ready';
   });
+
+  /** The page shows its empty state or its figures: not loading, not failed. */
+  protected readonly isSettled = computed(
+    () =>
+      this.loadState() === 'ready' && this.store.netWorth.value() !== undefined,
+  );
   #isIntroOpen = false;
 
   constructor() {
+    // The figures stay on screen while a write refetches them: the app's top bar says so.
+    effect(() =>
+      this.#loadingIndicator.setLoading(this.store.netWorth.isStale()),
+    );
+    inject(DestroyRef).onDestroy(() =>
+      this.#loadingIndicator.setLoading(false),
+    );
+
     // Opens the explainer by itself the first time the page settles on this device.
     effect(() => {
       if (!this.isSettled()) return;
