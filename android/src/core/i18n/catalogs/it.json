@@ -1556,11 +1556,7 @@
     },
     "security": {
       "accessSection": "Accesso",
-      "biometric": {
-        "face": "Riconoscimento facciale",
-        "fingerprint": "Impronta digitale",
-        "generic": "Sblocco biometrico"
-      },
+      "biometric": "Sblocco biometrico",
       "biometricDescription": "Sblocca Pulpe senza inserire il codice PIN.",
       "biometricDisableAction": "Disattiva",
       "biometricDisableDescription": "Dovrai inserire il codice PIN a ogni sblocco.",

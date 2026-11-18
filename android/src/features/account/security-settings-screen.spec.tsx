@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import SecuritySettingsScreen from "@/app/(main)/settings/security";
 
 const mockInvalidCredentials = new Error("invalid credentials");
-const mockBiometricKind = { value: "fingerprint" as string | null };
+const mockBiometrics = { canUse: true };
 const mockProfile = { data: { email: "max@example.com" } };
 const mockSignOut = jest.fn(async () => undefined);
 const mockSession = {
@@ -22,8 +22,8 @@ const mockVerifyPassword = jest.fn(
 );
 const mockUpdatePassword = jest.fn(async (_password: string) => undefined);
 
-jest.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({ data: mockBiometricKind.value }),
+jest.mock("@/core/crypto/biometrics", () => ({
+  canUseBiometricUnlock: () => mockBiometrics.canUse,
 }));
 jest.mock("expo-router", () => ({
   router: { back: jest.fn(), push: jest.fn() },
@@ -58,9 +58,6 @@ jest.mock("@/core/vault/vault-store", () => ({
 jest.mock("@/features/account/account-queries", () => ({
   useDeleteAccount: () => mockDelete,
   useUserProfile: () => mockProfile,
-}));
-jest.mock("@/core/crypto/biometrics", () => ({
-  describeBiometrics: jest.fn(),
 }));
 jest.mock("@/core/ui/haptics", () => ({ hapticSuccess: jest.fn() }));
 // The real module reads `ENV`, which has no variables under Jest.
@@ -269,7 +266,7 @@ jest.mock("react-native-paper", () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockBiometricKind.value = "fingerprint";
+  mockBiometrics.canUse = true;
   mockProfile.data = { email: "max@example.com" };
   mockVault.isBiometricAvailable = false;
   mockDelete.isPending = false;
@@ -341,17 +338,13 @@ it("keeps password changes safe when current credentials are rejected", async ()
 
 it("enables biometrics and reports a recoverable authentication failure", async () => {
   const view = await render(<SecuritySettingsScreen />);
-  await fireEvent.press(
-    view.getByLabelText("settings.security.biometric.fingerprint"),
-  );
+  await fireEvent.press(view.getByLabelText("settings.security.biometric"));
   expect(
     await view.findByText("settings.security.biometricEnabled"),
   ).toBeTruthy();
 
   mockEnableBiometrics.mockRejectedValueOnce(new Error("cancelled"));
-  await fireEvent.press(
-    view.getByLabelText("settings.security.biometric.fingerprint"),
-  );
+  await fireEvent.press(view.getByLabelText("settings.security.biometric"));
   expect(
     await view.findByText("settings.security.biometricEnableError"),
   ).toBeTruthy();
@@ -360,15 +353,26 @@ it("enables biometrics and reports a recoverable authentication failure", async 
 it("disables biometrics only after an explicit confirmation", async () => {
   mockVault.isBiometricAvailable = true;
   const view = await render(<SecuritySettingsScreen />);
-  await fireEvent.press(
-    view.getByLabelText("settings.security.biometric.fingerprint"),
-  );
+  await fireEvent.press(view.getByLabelText("settings.security.biometric"));
   expect(mockDisableBiometrics).not.toHaveBeenCalled();
   await fireEvent.press(
     view.getByText("settings.security.biometricDisableAction"),
   );
   await waitFor(() => expect(mockDisableBiometrics).toHaveBeenCalledTimes(1));
   expect(view.getByText("settings.security.biometricDisabled")).toBeTruthy();
+});
+
+it("hides biometrics when Class 3 is not usable", async () => {
+  mockBiometrics.canUse = false;
+  const view = await render(<SecuritySettingsScreen />);
+  expect(view.queryByLabelText("settings.security.biometric")).toBeNull();
+});
+
+it("keeps an enabled biometric switch so it can be turned off", async () => {
+  mockBiometrics.canUse = false;
+  mockVault.isBiometricAvailable = true;
+  const view = await render(<SecuritySettingsScreen />);
+  expect(view.getByLabelText("settings.security.biometric")).toBeTruthy();
 });
 
 it("signs out exactly once after confirmed account deletion", async () => {

@@ -1556,11 +1556,7 @@
     },
     "security": {
       "accessSection": "Accès",
-      "biometric": {
-        "face": "Reconnaissance faciale",
-        "fingerprint": "Empreinte digitale",
-        "generic": "Déverrouillage biométrique"
-      },
+      "biometric": "Déverrouillage biométrique",
       "biometricDescription": "Déverrouille Pulpe sans saisir ton code PIN.",
       "biometricDisableAction": "Désactiver",
       "biometricDisableDescription": "Tu devras saisir ton code PIN à chaque déverrouillage.",

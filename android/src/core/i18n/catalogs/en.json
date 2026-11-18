@@ -1556,11 +1556,7 @@
     },
     "security": {
       "accessSection": "Access",
-      "biometric": {
-        "face": "Face recognition",
-        "fingerprint": "Fingerprint",
-        "generic": "Biometric unlock"
-      },
+      "biometric": "Biometric unlock",
       "biometricDescription": "Unlock Pulpe without entering your PIN.",
       "biometricDisableAction": "Disable",
       "biometricDisableDescription": "You will need to enter your PIN each time you unlock.",

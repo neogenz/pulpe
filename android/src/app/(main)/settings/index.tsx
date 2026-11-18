@@ -1,6 +1,5 @@
 import Constants from "expo-constants";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   Linking,
@@ -24,7 +23,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
-import { describeBiometrics } from "@/core/crypto/biometrics";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { captureStoreReviewRequested } from "@/core/observability/product-events";
 import { APP_URLS } from "@/core/ui/app-urls";
@@ -53,11 +51,6 @@ export default function SettingsScreen() {
   const profile = useUserProfile();
   const tags = useTags();
   const connections = useConnections();
-  const biometricKind = useQuery({
-    queryKey: ["biometrics", "kind"],
-    queryFn: describeBiometrics,
-    staleTime: Infinity,
-  }).data;
   const pull = usePullToRefresh(() => profile.refetch());
   const sessionEmail = useSessionStore((state) => state.user?.email);
   const signOut = useSessionStore((state) => state.signOut);
@@ -124,9 +117,7 @@ export default function SettingsScreen() {
             icon="shield-lock-outline"
             title={t("settings.account.rows.security.title")}
             description={t("settings.account.rows.security.description", {
-              biometric: t(
-                `settings.security.biometric.${biometricKind ?? "generic"}`,
-              ),
+              biometric: t("settings.security.biometric"),
             })}
             onPress={() => router.push("/settings/security")}
           />

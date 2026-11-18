@@ -1556,11 +1556,7 @@
     },
     "security": {
       "accessSection": "Zugriff",
-      "biometric": {
-        "face": "Gesichtserkennung",
-        "fingerprint": "Fingerabdruck",
-        "generic": "Biometrische Entsperrung"
-      },
+      "biometric": "Biometrische Entsperrung",
       "biometricDescription": "Entsperre Pulpe, ohne deinen PIN-Code einzugeben.",
       "biometricDisableAction": "Deaktivieren",
       "biometricDisableDescription": "Du musst deinen PIN-Code bei jeder Entsperrung eingeben.",
