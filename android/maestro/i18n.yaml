@@ -26,7 +26,7 @@ env:
     visible:
       id: "vault-unlock"
     timeout: 30000
-- assertVisible: "It unlocks your amounts"
+- assertVisible: "Enter your code to open your budget."
 - tapOn: ${PIN.charAt(0)}
 - tapOn: ${PIN.charAt(1)}
 - tapOn: ${PIN.charAt(2)}
