@@ -848,10 +848,10 @@
     "hero": {
       "verdict": {
         "gain": "Ti resta più del previsto.",
-        "gainDated": "Dal %{date} spendi meno del previsto.",
+        "gainDated": "Dal %{date} ti resta più del previsto.",
         "onPlan": "Sei perfettamente in linea col piano.",
         "overrun": "Ti resta meno del previsto.",
-        "overrunDated": "Dal %{date} spendi più del previsto."
+        "overrunDated": "Dal %{date} ti resta meno del previsto."
       },
       "chart": {
         "today": "Oggi",

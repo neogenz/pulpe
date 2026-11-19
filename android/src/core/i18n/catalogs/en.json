@@ -848,10 +848,10 @@
     "hero": {
       "verdict": {
         "gain": "You have more left than planned.",
-        "gainDated": "You are spending less than planned since %{date}.",
+        "gainDated": "Since %{date}, you have more left than planned.",
         "onPlan": "You're right on plan.",
         "overrun": "You have less left than planned.",
-        "overrunDated": "You are spending more than planned since %{date}."
+        "overrunDated": "Since %{date}, you have less left than planned."
       },
       "chart": {
         "today": "Today",

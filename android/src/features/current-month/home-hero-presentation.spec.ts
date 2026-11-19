@@ -73,10 +73,10 @@ describe("heroPresentation", () => {
 
 describe("verdictSentence", () => {
   it.each([
-    ["fr", "Tu dépenses plus que prévu depuis le 5 juillet."],
-    ["en", "You are spending more than planned since July 5."],
-    ["de", "Seit dem 5. Juli gibst du mehr aus als geplant."],
-    ["it", "Dal 5 luglio spendi più del previsto."],
+    ["fr", "Depuis le 5 juillet, il te reste moins que prévu."],
+    ["en", "Since July 5, you have less left than planned."],
+    ["de", "Seit dem 5. Juli bleibt dir weniger als geplant."],
+    ["it", "Dal 5 luglio ti resta meno del previsto."],
   ])("dates the drift in %s", (locale, expected) => {
     i18n.locale = locale;
     const sentence = verdictSentence(
