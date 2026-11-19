@@ -9,10 +9,7 @@ import {
 import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
 import { BackHandler, RefreshControl, StyleSheet, View } from "react-native";
 import { Button, Searchbar, Text, useTheme } from "react-native-paper";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { usePushOnce } from "@/core/navigation/push-once";
 import {
@@ -496,10 +493,7 @@ export default function BudgetDetailScreen() {
   }
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       {/* Searching takes over the app bar rather than adding a row under it:
           that is where Android has always put it, and the row version pushed
           the first line of data off the bottom of the screen. */}
@@ -784,7 +778,7 @@ export default function BudgetDetailScreen() {
         }}
         monthName={monthName}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

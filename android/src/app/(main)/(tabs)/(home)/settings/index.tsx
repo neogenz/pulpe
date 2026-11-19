@@ -18,7 +18,6 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
@@ -70,10 +69,7 @@ export default function SettingsScreen() {
     Platform.OS === "android" ? Platform.constants.Release : "";
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
@@ -261,7 +257,7 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </SafeAreaView>
+    </View>
   );
 }
 

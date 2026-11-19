@@ -1,3 +1,5 @@
+import { tabKey } from "@/core/navigation/tab-route";
+
 export const NET_WORTH_ROUTE = "net-worth";
 
 interface TabState {
@@ -12,7 +14,9 @@ interface TabState {
  */
 export function withoutNetWorthTab<S extends TabState>(state: S): S {
   const focused = state.routes[state.index]?.key;
-  const routes = state.routes.filter((route) => route.name !== NET_WORTH_ROUTE);
+  const routes = state.routes.filter(
+    (route) => tabKey(route.name) !== NET_WORTH_ROUTE,
+  );
   return {
     ...state,
     routes,
@@ -26,7 +30,7 @@ export function withoutNetWorthTab<S extends TabState>(state: S): S {
 /** The flag went off under a user standing on the tab: send them home. */
 export function shouldLeaveNetWorthTab(
   isEnabled: boolean,
-  segments: string[],
+  tab: string | undefined,
 ): boolean {
-  return !isEnabled && segments[segments.length - 1] === NET_WORTH_ROUTE;
+  return !isEnabled && tab === NET_WORTH_ROUTE;
 }

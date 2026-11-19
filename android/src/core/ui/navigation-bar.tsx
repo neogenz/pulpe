@@ -3,6 +3,8 @@ import type { Tabs } from "expo-router";
 import type { ComponentProps } from "react";
 import { BottomNavigation, useTheme } from "react-native-paper";
 
+import { tabKey } from "@/core/navigation/tab-route";
+
 import { ICON_SIZE } from "./theme";
 
 type TabBarProps = Parameters<
@@ -59,7 +61,7 @@ export function NavigationBar({
         navigation.navigate(route.name, route.params);
       }}
       renderIcon={({ route, focused, color }) => {
-        const pair = ICONS[route.name] ?? ICONS.home;
+        const pair = ICONS[tabKey(route.name)] ?? ICONS.home;
         return (
           <MaterialCommunityIcons
             name={focused ? pair.focused : pair.unfocused}
@@ -74,7 +76,7 @@ export function NavigationBar({
       getAccessibilityLabel={({ route }) =>
         descriptors[route.key]?.options.tabBarAccessibilityLabel
       }
-      getTestID={({ route }) => `tab-${route.name}`}
+      getTestID={({ route }) => `tab-${tabKey(route.name)}`}
     />
   );
 }

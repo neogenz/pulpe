@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { PaperProvider } from "react-native-paper";
 
-import PreferencesScreen from "@/app/(main)/settings/preferences";
+import PreferencesScreen from "@/app/(main)/(tabs)/(home)/settings/preferences";
 import { captureEvent } from "@/core/observability/analytics-client";
 
 const mockRequestPermission = jest.fn();

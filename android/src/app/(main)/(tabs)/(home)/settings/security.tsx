@@ -10,7 +10,6 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
@@ -104,10 +103,7 @@ export default function SecuritySettingsScreen() {
   }
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
@@ -332,7 +328,7 @@ export default function SecuritySettingsScreen() {
       <Notice visible={notice !== null} onDismiss={() => setNotice(null)}>
         {notice ?? ""}
       </Notice>
-    </SafeAreaView>
+    </View>
   );
 }
 

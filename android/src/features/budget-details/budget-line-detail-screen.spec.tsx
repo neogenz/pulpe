@@ -1,6 +1,6 @@
 import { fireEvent, render } from "@testing-library/react-native";
 
-import BudgetLineDetailScreen from "@/app/(main)/budget/[id]/line/[lineId]";
+import BudgetLineDetailScreen from "@/app/(main)/(tabs)/(home,budgets,goals,templates)/budget/[id]/line/[lineId]";
 
 const mockDetails = jest.fn();
 const mockSettings = jest.fn();

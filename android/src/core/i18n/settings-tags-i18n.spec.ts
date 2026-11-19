@@ -19,7 +19,10 @@ describe("settings tags localization", () => {
   });
 
   it("keeps query errors distinct and mutation targets locked while pending", () => {
-    const settings = readFileSync("src/app/(main)/settings/tags.tsx", "utf8");
+    const settings = readFileSync(
+      "src/app/(main)/(tabs)/(home)/settings/tags.tsx",
+      "utf8",
+    );
     const picker = readFileSync("src/features/tags/tag-picker.tsx", "utf8");
 
     expect(settings).toContain(

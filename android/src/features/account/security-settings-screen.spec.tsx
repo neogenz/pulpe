@@ -1,7 +1,7 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
 
-import SecuritySettingsScreen from "@/app/(main)/settings/security";
+import SecuritySettingsScreen from "@/app/(main)/(tabs)/(home)/settings/security";
 
 const mockInvalidCredentials = new Error("invalid credentials");
 const mockBiometrics = { canUse: true };

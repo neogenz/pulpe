@@ -40,7 +40,7 @@ informed opt-out, the same as iOS and the webapp: an opt-in default would
 silence the product funnels the retention work depends on for every user who
 never opens the preferences.
 
-Refusing in Préférences (`src/app/(main)/settings/preferences.tsx`,
+Refusing in Préférences (`src/app/(main)/(tabs)/(home)/settings/preferences.tsx`,
 "Partager les diagnostics") flips the toggle, and the toggle is the single
 source: `startAnalytics` subscribes to it and calls `reset()` then `optOut()`
 on the SDK, so the device identity is dropped and nothing further leaves the

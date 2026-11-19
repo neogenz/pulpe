@@ -4,7 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet, PercentPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -23,6 +23,7 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
     MatMenuModule,
     TranslocoPipe,
     AppCurrencyPipe,
+    PercentPipe,
     NetWorthAssetRow,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,7 +45,7 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
           <h3 class="min-w-0 flex-1">
             <button
               type="button"
-              class="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl pl-3 text-left hover:bg-surface-container"
+              class="section-toggle flex min-h-14 w-full cursor-pointer items-center gap-3 pl-3 text-left"
               [attr.aria-expanded]="!collapsed()"
               (click)="toggleCollapsed.emit()"
               data-testid="net-worth-section-toggle"
@@ -68,13 +69,29 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
             </span>
             @if (total() !== null) {
               <span
-                class="ph-no-capture whitespace-nowrap text-label-large font-semibold tabular-nums"
-                [class.amber]="isDebts()"
-                [class.text-on-surface-variant]="!isDebts()"
+                class="flex min-w-0 flex-wrap items-baseline justify-end gap-x-1"
                 [class.mr-3]="!renamable()"
-                data-testid="net-worth-section-total"
               >
-                {{ total() | appCurrency: baseCurrency() : '1.0-0' }}
+                <span
+                  class="ph-no-capture whitespace-nowrap text-label-large font-semibold tabular-nums"
+                  [class.amber]="isDebts()"
+                  [class.text-on-surface-variant]="!isDebts()"
+                  data-testid="net-worth-section-total"
+                >
+                  {{ total() | appCurrency: baseCurrency() : '1.0-0' }}
+                </span>
+                @if (ownedShare() | percent: '1.0-0'; as share) {
+                  <span
+                    class="ph-no-capture text-label-medium text-on-surface-variant tabular-nums"
+                    data-testid="net-worth-section-share"
+                  >
+                    <span aria-hidden="true">· {{ share }}</span>
+                    <span class="sr-only">{{
+                      'netWorth.type.shareOfOwned'
+                        | transloco: { percent: share }
+                    }}</span>
+                  </span>
+                }
               </span>
             }
           </span>
@@ -129,6 +146,22 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
       display: block;
       min-width: 0;
     }
+    @media (hover: hover) {
+      header:hover:has(.section-toggle) {
+        background: color-mix(
+          in srgb,
+          var(--mat-sys-on-surface) 8%,
+          transparent
+        );
+      }
+    }
+    header:has(.section-toggle:focus-visible) {
+      outline: 2px solid var(--mat-sys-primary);
+      outline-offset: -2px;
+    }
+    .section-toggle:focus-visible {
+      outline: none;
+    }
     .amber {
       color: var(--pulpe-amber);
     }
@@ -138,6 +171,8 @@ export class NetWorthSection {
   readonly title = input.required<string>();
   /** Base-currency subtotal; `null` hides it (archives are in no total). */
   readonly total = input<number | null>(null);
+  /** Share of « Ce que j'ai »; `null` hides it (debts, archives, a lone Type). */
+  readonly ownedShare = input<number | null>(null);
   readonly assets = input.required<readonly Asset[]>();
   readonly baseCurrency = input.required<SupportedCurrency>();
   readonly isDebts = input(false);

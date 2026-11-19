@@ -5,6 +5,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Button, FAB, Text, useTheme } from "react-native-paper";
 
 import { usePushOnce } from "@/core/navigation/push-once";
+import { useShowTabRoot } from "@/core/navigation/tab-route";
 import {
   consumeAddExpenseRequest,
   useDeepLinkStore,
@@ -112,6 +113,7 @@ export default function HomeScreen() {
   const [notice, setNotice] = useState<HomeNotice | null>(null);
   const hero = useHeroColors();
   const push = usePushOnce();
+  const showTabRoot = useShowTabRoot();
   // A rolled-back row reappearing is not an explanation, so the failure is said
   // out loud — and so is the success, because the row leaves the card either
   // way and the way back has to be offered while it is still obvious.
@@ -502,7 +504,7 @@ export default function HomeScreen() {
                 <SavingsDoneCard
                   amount={viewModel.savings.totalRealized}
                   currency={currency}
-                  onPress={() => push("/goals")}
+                  onPress={() => showTabRoot("goals")}
                 />
               )}
 

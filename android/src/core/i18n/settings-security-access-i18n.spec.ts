@@ -17,8 +17,14 @@ describe("settings security access localization", () => {
   });
 
   it("classifies failures by stable codes and locks pending dialogs", () => {
-    const pin = readFileSync("src/app/(main)/settings/change-pin.tsx", "utf8");
-    const screen = readFileSync("src/app/(main)/settings/security.tsx", "utf8");
+    const pin = readFileSync(
+      "src/app/(main)/(tabs)/(home)/settings/change-pin.tsx",
+      "utf8",
+    );
+    const screen = readFileSync(
+      "src/app/(main)/(tabs)/(home)/settings/security.tsx",
+      "utf8",
+    );
     const password = readFileSync(
       "src/features/account/components/change-password-sheet.tsx",
       "utf8",
