@@ -4,7 +4,7 @@ import {
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from "pulpe-shared";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
@@ -79,6 +79,9 @@ export function HomeHeroCard({
   const ripple = useRipple({ radius: TOUCH_TARGET / 2 });
   const areHidden = useAmountVisibility((state) => state.areAmountsHidden);
   const [scrubDay, setScrubDay] = useState<number | null>(null);
+  // Gesture events can land twice before a render, so the last day is read
+  // from a ref rather than from this render's closure.
+  const lastScrubDay = useRef<number | null>(null);
   const [restingHeaderHeight, setRestingHeaderHeight] = useState(0);
   const reading =
     scrubDay === null || trajectory === null
@@ -95,7 +98,8 @@ export function HomeHeroCard({
   // One tick per day crossed and one on release: a drag fires many times per
   // day column, and a touch that never became a scrub ends on null twice.
   const scrub = (day: number | null) => {
-    if (day !== scrubDay) hapticSelection();
+    if (day !== lastScrubDay.current) hapticSelection();
+    lastScrubDay.current = day;
     setScrubDay(day);
   };
 

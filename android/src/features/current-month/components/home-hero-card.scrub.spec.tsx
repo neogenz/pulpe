@@ -41,9 +41,8 @@ const trajectory = {
   trend: 1100,
 };
 
-it("swaps figure and eyebrow to the scrubbed day, ticking once per day crossed and on release", async () => {
-  useAmountVisibility.setState({ areAmountsHidden: false });
-  const view = await render(
+function renderHero() {
+  return render(
     <HomeHeroCard
       presentation={{
         plannedBalance: 1000,
@@ -62,6 +61,11 @@ it("swaps figure and eyebrow to the scrubbed day, ticking once per day crossed a
       onPressCalculation={jest.fn()}
     />,
   );
+}
+
+it("swaps figure and eyebrow to the scrubbed day, ticking once per day crossed and on release", async () => {
+  useAmountVisibility.setState({ areAmountsHidden: false });
+  const view = await renderHero();
   expect(view.getByText("home.hero.eyebrow")).toBeTruthy();
   expect(view.getByText(/1.?240\.50/)).toBeTruthy();
 
@@ -78,4 +82,24 @@ it("swaps figure and eyebrow to the scrubbed day, ticking once per day crossed a
   expect(view.getByText("home.hero.eyebrow")).toBeTruthy();
   expect(view.getByText(/1.?240\.50/)).toBeTruthy();
   expect(hapticSelection).toHaveBeenCalledTimes(2);
+});
+
+it("ticks on each change even when gesture events land before a render", async () => {
+  useAmountVisibility.setState({ areAmountsHidden: false });
+  jest.mocked(hapticSelection).mockClear();
+  await renderHero();
+
+  // A drag and its release inside one frame: the release still ticks.
+  await act(() => {
+    onScrub(10);
+    onScrub(null);
+  });
+  expect(hapticSelection).toHaveBeenCalledTimes(2);
+
+  // Two events for the same day inside one frame: one tick.
+  await act(() => {
+    onScrub(12);
+    onScrub(12);
+  });
+  expect(hapticSelection).toHaveBeenCalledTimes(3);
 });
