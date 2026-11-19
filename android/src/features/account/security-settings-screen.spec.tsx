@@ -22,8 +22,9 @@ const mockVerifyPassword = jest.fn(
 );
 const mockUpdatePassword = jest.fn(async (_password: string) => undefined);
 
-jest.mock("@/core/crypto/biometrics", () => ({
-  canUseBiometricUnlock: () => mockBiometrics.canUse,
+// Mocks the native check, not our helper, so a helper that ignores it fails here.
+jest.mock("expo-secure-store", () => ({
+  canUseBiometricAuthentication: () => mockBiometrics.canUse,
 }));
 jest.mock("expo-router", () => ({
   router: { back: jest.fn(), push: jest.fn() },
@@ -372,7 +373,11 @@ it("keeps an enabled biometric switch so it can be turned off", async () => {
   mockBiometrics.canUse = false;
   mockVault.isBiometricAvailable = true;
   const view = await render(<SecuritySettingsScreen />);
-  expect(view.getByLabelText("settings.security.biometric")).toBeTruthy();
+  await fireEvent.press(view.getByLabelText("settings.security.biometric"));
+  await fireEvent.press(
+    view.getByText("settings.security.biometricDisableAction"),
+  );
+  await waitFor(() => expect(mockDisableBiometrics).toHaveBeenCalledTimes(1));
 });
 
 it("signs out exactly once after confirmed account deletion", async () => {
