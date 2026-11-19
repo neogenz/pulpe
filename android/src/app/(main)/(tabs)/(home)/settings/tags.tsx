@@ -14,7 +14,6 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -74,10 +73,7 @@ export default function TagsSettingsScreen() {
   }
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
@@ -268,7 +264,7 @@ export default function TagsSettingsScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </SafeAreaView>
+    </View>
   );
 }
 

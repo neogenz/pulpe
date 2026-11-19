@@ -2,8 +2,8 @@ import { fireEvent, render } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { PaperProvider } from "react-native-paper";
 
-import ConnectionDetailScreen from "@/app/(main)/settings/connection/[id]";
-import ConnectionsScreen from "@/app/(main)/settings/connections";
+import ConnectionDetailScreen from "@/app/(main)/(tabs)/(home)/settings/connection/[id]";
+import ConnectionsScreen from "@/app/(main)/(tabs)/(home)/settings/connections";
 
 const mockRevoke = {
   mutate: jest.fn(),

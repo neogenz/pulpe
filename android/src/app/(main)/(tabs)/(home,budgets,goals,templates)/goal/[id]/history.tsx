@@ -3,7 +3,6 @@ import type { SupportedCurrency } from "pulpe-shared";
 import { useMemo } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Appbar, Divider, Text, useTheme } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -119,10 +118,7 @@ export default function GoalHistoryScreen() {
   }
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       {bar}
       <ScrollView
         contentContainerStyle={styles.content}
@@ -222,7 +218,7 @@ export default function GoalHistoryScreen() {
           </View>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

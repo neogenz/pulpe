@@ -17,7 +17,6 @@ import {
   Text,
   useTheme,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { ActionButton } from "@/core/ui/action-button";
@@ -124,12 +123,11 @@ export default function TemplateDetailScreen() {
 
   if (template.isPending || lines.isPending || settings.isPending) {
     return (
-      <SafeAreaView
-        edges={["bottom"]}
+      <View
         style={[styles.centered, { backgroundColor: theme.colors.background }]}
       >
         <ActivityIndicator accessibilityLabel={t("common.loading")} />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -218,10 +216,7 @@ export default function TemplateDetailScreen() {
   }
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
@@ -515,7 +510,7 @@ export default function TemplateDetailScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </SafeAreaView>
+    </View>
   );
 }
 

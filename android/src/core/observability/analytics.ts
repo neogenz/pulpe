@@ -9,6 +9,7 @@ import { AppState } from "react-native";
 import { useSessionStore } from "@/core/auth/session-store";
 import { ENV } from "@/core/config/env";
 import { useLocaleStore } from "@/core/i18n/locale-store";
+import { screenName } from "@/core/navigation/tab-route";
 
 import { captureEvent, setAnalyticsClient } from "./analytics-client";
 import {
@@ -182,7 +183,7 @@ export function captureException(
  * resolved path: `budget/[id]/line/[lineId]`, never the ids themselves.
  */
 export function useScreenTracking(): void {
-  const screen = useSegments().join("/");
+  const screen = screenName(useSegments());
 
   useEffect(() => {
     if (screen === "") return;

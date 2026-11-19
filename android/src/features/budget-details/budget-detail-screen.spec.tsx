@@ -13,7 +13,7 @@ import type {
   Transaction,
 } from "pulpe-shared";
 
-import BudgetDetailScreen from "@/app/(main)/budget/[id]";
+import BudgetDetailScreen from "@/app/(main)/(tabs)/(home,budgets,goals,templates)/budget/[id]";
 
 const mockDetailsRefetch = jest.fn(async () => undefined);
 const mockSettingsRefetch = jest.fn(async () => undefined);

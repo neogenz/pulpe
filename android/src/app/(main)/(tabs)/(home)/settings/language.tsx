@@ -6,9 +6,8 @@ import {
   supportedLocaleSchema,
 } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Appbar, RadioButton, useTheme } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   setLocale,
@@ -57,10 +56,7 @@ export default function LanguageScreen() {
   }
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
@@ -88,7 +84,7 @@ export default function LanguageScreen() {
       <Notice visible={hasError} onDismiss={() => setHasError(false)}>
         {t("settings.language.saveError")}
       </Notice>
-    </SafeAreaView>
+    </View>
   );
 }
 

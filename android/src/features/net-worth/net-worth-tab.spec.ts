@@ -24,14 +24,9 @@ describe("withoutNetWorthTab", () => {
 
 describe("shouldLeaveNetWorthTab", () => {
   it("only when the flag is off and the tab is the current screen", () => {
-    expect(
-      shouldLeaveNetWorthTab(false, ["(main)", "(tabs)", "net-worth"]),
-    ).toBe(true);
-    expect(
-      shouldLeaveNetWorthTab(true, ["(main)", "(tabs)", "net-worth"]),
-    ).toBe(false);
-    expect(shouldLeaveNetWorthTab(false, ["(main)", "(tabs)", "home"])).toBe(
-      false,
-    );
+    expect(shouldLeaveNetWorthTab(false, "net-worth")).toBe(true);
+    expect(shouldLeaveNetWorthTab(true, "net-worth")).toBe(false);
+    expect(shouldLeaveNetWorthTab(false, "home")).toBe(false);
+    expect(shouldLeaveNetWorthTab(false, undefined)).toBe(false);
   });
 });

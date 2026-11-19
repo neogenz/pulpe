@@ -5,9 +5,8 @@ import {
   type SupportedCurrency,
 } from "pulpe-shared";
 import { type ReactNode, useEffect } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { ActivityIndicator, Appbar, useTheme } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
@@ -68,8 +67,7 @@ export function MonthPage({ title, children }: MonthPageProps) {
     viewModel === null
   ) {
     return (
-      <SafeAreaView
-        edges={["bottom"]}
+      <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
         {bar}
@@ -89,15 +87,12 @@ export function MonthPage({ title, children }: MonthPageProps) {
             accessibilityLabel={t("common.loading")}
           />
         )}
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       {bar}
       {children({
         budgetId,
@@ -111,7 +106,7 @@ export function MonthPage({ title, children }: MonthPageProps) {
         ),
         refresh: month.refresh,
       })}
-    </SafeAreaView>
+    </View>
   );
 }
 

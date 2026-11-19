@@ -4,7 +4,7 @@ const { readFileSync } = jest.requireActual<{
 
 describe("phase 4 home hero presentation boundary", () => {
   it("resolves home states, dates, hero copy, and chart accessibility live", () => {
-    const home = readFileSync("src/app/(main)/(tabs)/home.tsx", "utf8");
+    const home = readFileSync("src/app/(main)/(tabs)/(home)/home.tsx", "utf8");
     const hero = readFileSync(
       "src/features/current-month/components/home-hero-card.tsx",
       "utf8",

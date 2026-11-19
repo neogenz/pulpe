@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import { router } from "expo-router";
 import type { BudgetDeletionImpact } from "pulpe-shared";
 
 import { api } from "@/core/api/api";
@@ -8,8 +7,11 @@ import { ENDPOINTS } from "@/core/api/endpoints";
 
 import { DeleteMonthAction } from "./delete-month-action";
 
-jest.mock("expo-router", () => ({
-  router: { back: jest.fn(), dismissTo: jest.fn() },
+// Where the app lands after a deletion is the router's business, covered on
+// the real router in `core/navigation/tab-stacks.spec.tsx`.
+const mockLeaveDeletedMonth = jest.fn();
+jest.mock("@/features/budgets/month-navigation", () => ({
+  useLeaveDeletedMonth: () => mockLeaveDeletedMonth,
 }));
 // Paper's Menu animates and measures through portals; the behaviour under
 // test is which content it shows and what its entries send.
@@ -145,11 +147,6 @@ const mockedGet = jest.mocked(api.get);
 const mockedDeleteVoid = jest.mocked(api.deleteVoid);
 
 const PREFIX = "budgets.detail.deleteMonth";
-const DELETED_MONTH_HREF = {
-  pathname: "/budgets",
-  params: { deletedMonth: "1" },
-};
-
 function impact(
   overrides: Partial<BudgetDeletionImpact["links"]> = {},
 ): BudgetDeletionImpact {
@@ -225,9 +222,7 @@ it("lists the counts, then deletes without confirming links and leaves the scree
 
   await fireEvent.press(confirmButton(view));
 
-  await waitFor(() =>
-    expect(router.dismissTo).toHaveBeenCalledWith(DELETED_MONTH_HREF),
-  );
+  await waitFor(() => expect(mockLeaveDeletedMonth).toHaveBeenCalled());
   expect(mockedDeleteVoid).toHaveBeenCalledWith(ENDPOINTS.budget("budget-1"), {
     confirmLinks: false,
   });
@@ -254,9 +249,7 @@ it("names the links that are present, adds forecasts to movements for a withdraw
 
   await fireEvent.press(confirmButton(view));
 
-  await waitFor(() =>
-    expect(router.dismissTo).toHaveBeenCalledWith(DELETED_MONTH_HREF),
-  );
+  await waitFor(() => expect(mockLeaveDeletedMonth).toHaveBeenCalled());
   expect(mockedDeleteVoid).toHaveBeenCalledWith(ENDPOINTS.budget("budget-1"), {
     confirmLinks: true,
   });
@@ -273,7 +266,7 @@ it("closes on cancel without deleting, and reads the impact again on the next op
     expect(view.queryByText(`${PREFIX}.title month=Novembre 2026`)).toBeNull(),
   );
   expect(mockedDeleteVoid).not.toHaveBeenCalled();
-  expect(router.dismissTo).not.toHaveBeenCalled();
+  expect(mockLeaveDeletedMonth).not.toHaveBeenCalled();
 
   await openDialog(view);
 
@@ -300,7 +293,7 @@ it("keeps the dialog open with an error line when the delete fails", async () =>
   await fireEvent.press(confirmButton(view));
 
   expect(await view.findByText(`${PREFIX}.failure`)).toBeTruthy();
-  expect(router.dismissTo).not.toHaveBeenCalled();
+  expect(mockLeaveDeletedMonth).not.toHaveBeenCalled();
   expect(view.getByText(`${PREFIX}.title month=Novembre 2026`)).toBeTruthy();
 });
 
@@ -325,9 +318,7 @@ it("reads the impact again after a failed delete, so the retry confirms the link
 
   await fireEvent.press(confirmButton(view));
 
-  await waitFor(() =>
-    expect(router.dismissTo).toHaveBeenCalledWith(DELETED_MONTH_HREF),
-  );
+  await waitFor(() => expect(mockLeaveDeletedMonth).toHaveBeenCalled());
   expect(mockedDeleteVoid).toHaveBeenLastCalledWith(
     ENDPOINTS.budget("budget-1"),
     { confirmLinks: true },

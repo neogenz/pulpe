@@ -6,10 +6,10 @@ import { RouteErrorBoundary } from "@/core/ui/route-error-boundary";
 import { RequiredSettingsGate } from "@/core/user-settings/required-settings-gate";
 
 /**
- * The tab bar and everything that covers it. A detail screen pushes over the
- * bar rather than living inside it: on Android a pushed destination owns the
- * whole screen and answers to the up arrow, which also gives these dense
- * screens back the height the bar was taking.
+ * The tab bar and the few screens that cover it: the full-screen forms that
+ * create or plan months (sheets on iOS) and the post-onboarding step. Every
+ * other screen is pushed inside its tab's own stack, under the bar
+ * (`(tabs)/(home,budgets,goals,templates)/_layout.tsx`).
  *
  * The screens are not enumerated here. expo-router discovers them from the
  * directory, and listing them by hand only re-stated the file tree — wrongly,
@@ -27,10 +27,10 @@ export default function MainLayout() {
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
         }}
-        // The tabs remount their own screens, and the settings print no amount —
-        // remounting them would throw away the very screen the toggle is on.
+        // The tabs remount their own screens; remounting the tabs navigator
+        // would throw away every tab's stack.
         screenLayout={({ route, children }) =>
-          route.name === "(tabs)" || route.name.startsWith("settings") ? (
+          route.name === "(tabs)" ? (
             children
           ) : (
             <AmountMaskBoundary>{children}</AmountMaskBoundary>

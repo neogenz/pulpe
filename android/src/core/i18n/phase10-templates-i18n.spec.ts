@@ -17,7 +17,10 @@ describe("phase 10 template localization", () => {
   });
 
   it("keeps destructive template dialogs locked while writing", () => {
-    const detail = readFileSync("src/app/(main)/template/[id].tsx", "utf8");
+    const detail = readFileSync(
+      "src/app/(main)/(tabs)/(templates)/template/[id].tsx",
+      "utf8",
+    );
     expect(detail).toContain("dismissable={!removeLine.isPending}");
     expect(detail).toContain("dismissable={!removeTemplate.isPending}");
   });

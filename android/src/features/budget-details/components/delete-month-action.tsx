@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
 import type { BudgetDeletionImpact, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { View } from "react-native";
@@ -10,6 +9,7 @@ import { HeroAppBarAction } from "@/core/ui/hero";
 import { fetchBudgetDeletionImpact } from "@/features/budgets/budget-api";
 import { budgetKeys } from "@/features/budgets/budget-queries";
 import { useDeleteBudget } from "@/features/budgets/delete-budget-mutation";
+import { useLeaveDeletedMonth } from "@/features/budgets/month-navigation";
 
 import { elidesMonth } from "../month-period";
 import { ImpactConfirmSheet } from "./impact-confirm-sheet";
@@ -65,6 +65,7 @@ export function DeleteMonthAction({
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const remove = useDeleteBudget(budgetId);
+  const leaveDeletedMonth = useLeaveDeletedMonth();
   const impact = useQuery({
     queryKey: [...budgetKeys.detail(budgetId), "deletion-impact"],
     queryFn: () => fetchBudgetDeletionImpact(budgetId),
@@ -159,13 +160,7 @@ export function DeleteMonthAction({
           remove.mutate(labels.length > 0, {
             onSuccess: () => {
               setDialogOpen(false);
-              // The stack can hold this month twice (rollover push, then
-              // the pager's replace): popping one would land on the other.
-              // The list says « Mois supprimé », as web and iOS do.
-              router.dismissTo({
-                pathname: "/budgets",
-                params: { deletedMonth: "1" },
-              });
+              leaveDeletedMonth();
             },
             // Links may have appeared since the read: confirm waits for
             // a fresh one, so the retry sends what the user is shown.

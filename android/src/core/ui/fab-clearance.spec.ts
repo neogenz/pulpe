@@ -35,8 +35,8 @@ describe("floating action buttons", () => {
     });
 
     expect(labelled.sort()).toEqual([
-      "src/app/(main)/(tabs)/home.tsx",
-      "src/app/(main)/budget/[id]/line/[lineId].tsx",
+      "src/app/(main)/(tabs)/(home)/home.tsx",
+      "src/app/(main)/(tabs)/(home,budgets,goals,templates)/budget/[id]/line/[lineId].tsx",
     ]);
   });
 });

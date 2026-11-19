@@ -53,10 +53,13 @@ describe("settings preferences localization", () => {
 
   it("keeps the existing language row and localizes both touched surfaces", () => {
     const preferences = readFileSync(
-      "src/app/(main)/settings/preferences.tsx",
+      "src/app/(main)/(tabs)/(home)/settings/preferences.tsx",
       "utf8",
     );
-    const payDay = readFileSync("src/app/(main)/settings/pay-day.tsx", "utf8");
+    const payDay = readFileSync(
+      "src/app/(main)/(tabs)/(home)/settings/pay-day.tsx",
+      "utf8",
+    );
 
     expect(preferences).toContain('t("settings.language.title")');
     expect(preferences).toContain('t("settings.preferences.currencyTitle")');
