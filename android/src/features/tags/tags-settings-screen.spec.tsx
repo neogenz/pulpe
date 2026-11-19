@@ -2,7 +2,7 @@ import { fireEvent, render } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 import { PaperProvider } from "react-native-paper";
 
-import TagsSettingsScreen from "@/app/(main)/settings/tags";
+import TagsSettingsScreen from "@/app/(main)/(tabs)/(home)/settings/tags";
 
 let mockKeyboardHeight = 0;
 const mockMutation = () => ({

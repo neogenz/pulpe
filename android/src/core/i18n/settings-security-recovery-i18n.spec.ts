@@ -28,7 +28,10 @@ describe("settings security recovery localization", () => {
       "src/features/account/components/confirm-password-sheet.tsx",
       "utf8",
     );
-    const screen = readFileSync("src/app/(main)/settings/security.tsx", "utf8");
+    const screen = readFileSync(
+      "src/app/(main)/(tabs)/(home)/settings/security.tsx",
+      "utf8",
+    );
 
     expect(verify).toContain("API_ERROR_CODES.RECOVERY_KEY_INVALID");
     expect(verify).toContain("API_ERROR_CODES.RECOVERY_KEY_NOT_CONFIGURED");

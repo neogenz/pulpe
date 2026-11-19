@@ -28,6 +28,7 @@ import {
   type BudgetPeriod,
 } from "@/features/budgets/available-months";
 import { useCreateBudget } from "@/features/budgets/create-budget-mutation";
+import { useOpenMonthInOpeningTab } from "@/features/budgets/month-navigation";
 import { useBudgetList } from "@/features/budgets/budget-queries";
 import { useTemplates } from "@/features/templates/template-queries";
 
@@ -48,6 +49,7 @@ export default function CreateBudgetScreen() {
   const templates = useTemplates();
   const settings = useUserSettings();
   const create = useCreateBudget();
+  const openMonth = useOpenMonthInOpeningTab();
   // The month a list row asked for — "Créer le budget" on a missing month — so
   // the form opens on it rather than on the soonest free one.
   const requested = useLocalSearchParams<{ month?: string; year?: string }>();
@@ -158,7 +160,7 @@ export default function CreateBudgetScreen() {
         description: formatMonthName(period.month, period.year, locale),
         templateId: selectedTemplateId,
       },
-      { onSuccess: (budget) => router.replace(`/budget/${budget.id}`) },
+      { onSuccess: (budget) => openMonth(budget.id) },
     );
   }
 

@@ -24,7 +24,10 @@ describe("settings account localization", () => {
   );
 
   it("keeps the touched presentation surfaces behind catalog keys", () => {
-    const account = readFileSync("src/app/(main)/settings/index.tsx", "utf8");
+    const account = readFileSync(
+      "src/app/(main)/(tabs)/(home)/settings/index.tsx",
+      "utf8",
+    );
     const profile = readFileSync(
       "src/features/account/components/profile-sheet.tsx",
       "utf8",

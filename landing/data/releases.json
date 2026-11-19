@@ -1,5 +1,133 @@
 [
   {
+    "version": "0.64.1",
+    "date": "2026-11-18",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.64.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Les pages s’ouvrent en haut",
+          "description": "Après « Je teste » ou un autre lien de pulpe.app, la page suivante s’affiche depuis son début, et non plus tout en bas."
+        }
+      ],
+      "technical": []
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Pages open at the top",
+              "description": "After “I’m in” or any other link on pulpe.app, the next page shows from its start, no longer at the very bottom."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Seiten öffnen sich oben",
+              "description": "Nach «Ich teste» oder einem anderen Link auf pulpe.app erscheint die nächste Seite von Anfang an und nicht mehr ganz unten."
+            }
+          ],
+          "technical": []
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Le pagine si aprono dall’inizio",
+              "description": "Dopo «Ci sto» o un altro link su pulpe.app, la pagina successiva si apre dall’inizio e non più in fondo."
+            }
+          ],
+          "technical": []
+        }
+      }
+    }
+  },
+  {
+    "version": "0.64.0",
+    "date": "2026-11-18",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.64.0",
+    "platforms": ["web", "ios", "android"],
+    "changes": {
+      "features": [
+        {
+          "title": "L’app Android à tester",
+          "description": "Ouvre pulpe.app sur un téléphone Android et touche « Je teste » : deux étapes suffisent pour essayer l’app avant sa sortie."
+        }
+      ],
+      "fixes": [],
+      "technical": [
+        {
+          "title": "Mon patrimoine",
+          "description": "Pour les early adopters, trois étapes animées présentent la page à la première visite, et le bouton « Comprendre mon patrimoine » les rouvre."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [
+            {
+              "title": "Try the Android app",
+              "description": "Open pulpe.app on an Android phone and tap “I’m in”: two steps are all it takes to try the app before it launches."
+            }
+          ],
+          "fixes": [],
+          "technical": [
+            {
+              "title": "My net worth",
+              "description": "For early adopters, three animated steps introduce the page on the first visit, and the “Understand my assets” button opens them again."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [
+            {
+              "title": "Die Android-App testen",
+              "description": "Öffne pulpe.app auf einem Android-Handy und tippe auf «Ich teste»: Zwei Schritte genügen, um die App vor dem Start auszuprobieren."
+            }
+          ],
+          "fixes": [],
+          "technical": [
+            {
+              "title": "Mein Vermögen",
+              "description": "Für Early Adopters stellen drei animierte Schritte die Seite beim ersten Besuch vor, und der Button «Mein Vermögen verstehen» öffnet sie erneut."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [
+            {
+              "title": "L’app Android da provare",
+              "description": "Apri pulpe.app su un telefono Android e tocca «Ci sto»: bastano due passaggi per provare l’app prima dell’uscita."
+            }
+          ],
+          "fixes": [],
+          "technical": [
+            {
+              "title": "Il mio patrimonio",
+              "description": "Per gli early adopter, tre passaggi animati presentano la pagina alla prima visita, e il pulsante «Capire il mio patrimonio» li riapre."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.63.0",
     "date": "2026-11-17",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.63.0",

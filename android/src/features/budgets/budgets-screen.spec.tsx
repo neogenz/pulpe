@@ -9,7 +9,7 @@ import type { BudgetSparse } from "pulpe-shared";
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import BudgetsScreen from "@/app/(main)/(tabs)/budgets";
+import BudgetsScreen from "@/app/(main)/(tabs)/(budgets)/budgets";
 import { useAmountVisibility } from "@/core/ui/amount-visibility";
 import { pulpeLightTheme } from "@/core/ui/theme";
 

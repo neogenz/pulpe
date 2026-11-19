@@ -1,7 +1,7 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
 
-import HomeScreen from "@/app/(main)/(tabs)/home";
+import HomeScreen from "@/app/(main)/(tabs)/(home)/home";
 
 const mockRefresh = jest.fn(async () => undefined);
 const mockCurrentMonth = { status: "loading" } as Record<string, unknown>;
@@ -23,6 +23,7 @@ jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   useFocusEffect: (effect: () => void) => effect(),
   useIsFocused: () => true,
+  useNavigationContainerRef: jest.fn(),
 }));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: jest.requireActual("react-native").View,

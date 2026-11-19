@@ -1,9 +1,10 @@
 import { useLinkingURL } from "expo-linking";
-import { router } from "expo-router";
 import { useEffect, useRef } from "react";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { useShowTabRoot } from "@/core/navigation/tab-route";
 import { useVaultStore } from "@/core/vault/vault-store";
+import { useOpenLinkedMonth } from "@/features/budgets/month-navigation";
 
 import { type DeepLink, parseDeepLink, requestAddExpense } from "./deep-links";
 
@@ -17,6 +18,8 @@ import { type DeepLink, parseDeepLink, requestAddExpense } from "./deep-links";
  */
 export function DeepLinkRouter() {
   const url = useLinkingURL();
+  const openLinkedMonth = useOpenLinkedMonth();
+  const showTabRoot = useShowTabRoot();
   const sessionStatus = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
   const pendingRef = useRef<DeepLink | null>(null);
@@ -43,12 +46,12 @@ export function DeepLinkRouter() {
     // same link twice.
     pendingRef.current = null;
     if (pending.kind === "budget") {
-      router.push(`/budget/${pending.budgetId}`);
+      openLinkedMonth(pending.budgetId);
       return;
     }
     requestAddExpense();
-    router.push("/home");
-  }, [url, isReady]);
+    showTabRoot("home");
+  }, [url, isReady, openLinkedMonth, showTabRoot]);
 
   return null;
 }

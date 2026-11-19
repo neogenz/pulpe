@@ -1,5 +1,13 @@
 # pulpe-landing
 
+## 0.64.1
+
+### Patch Changes
+
+- Les pages de pulpe.app s’ouvrent en haut après un lien, et non plus tout en bas.
+
+## 0.64.0
+
 ## 0.63.0
 
 ## 0.62.1

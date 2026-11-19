@@ -3,7 +3,6 @@ import { formatBudgetPeriod } from "pulpe-shared";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Appbar, Button, HelperText, Text, useTheme } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/core/ui/card";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
@@ -71,10 +70,7 @@ export default function PayDayScreen() {
   }
 
   return (
-    <SafeAreaView
-      edges={["bottom"]}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <ScreenAppBar>
         <Appbar.BackAction
           onPress={() => router.back()}
@@ -167,7 +163,7 @@ export default function PayDayScreen() {
           {t("settings.payDay.save")}
         </Button>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

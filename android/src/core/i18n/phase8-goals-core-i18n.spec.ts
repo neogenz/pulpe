@@ -21,7 +21,10 @@ describe("phase 8 savings goal localization", () => {
   });
 
   it("gates the goals intro on required settings", () => {
-    const screen = readFileSync("src/app/(main)/(tabs)/goals.tsx", "utf8");
+    const screen = readFileSync(
+      "src/app/(main)/(tabs)/(goals)/goals.tsx",
+      "utf8",
+    );
     expect(screen.indexOf("settings.isError")).toBeLessThan(
       screen.indexOf("if (isIntroVisible)"),
     );
