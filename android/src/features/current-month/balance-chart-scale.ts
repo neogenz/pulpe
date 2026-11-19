@@ -93,12 +93,15 @@ export function showsTrendLabel(trajectory: TrendedTrajectory): boolean {
   return gap > 0 && gap >= chartSpan(trajectory) * GAP_LABEL_MINIMUM_RATIO;
 }
 
-/** Every value the plot draws: both plan ends, the real stroke, the trend. */
+/**
+ * Every value the plot draws: both plan ends, the real stroke, the projection.
+ * The trend counts only while it is drawn, so the last day's undrawn landing
+ * cannot flatten the month.
+ */
 function plotted(trajectory: TrendedTrajectory): number[] {
   return [
-    ...[...chartPlan(trajectory), ...trajectory.real].map(
-      (point) => point.balance,
-    ),
-    trajectory.trend,
-  ];
+    ...chartPlan(trajectory),
+    ...trajectory.real,
+    ...chartProjection(trajectory),
+  ].map((point) => point.balance);
 }

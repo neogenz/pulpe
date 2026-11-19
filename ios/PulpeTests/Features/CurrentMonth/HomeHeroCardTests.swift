@@ -103,6 +103,15 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
+    @Test func chartDomain_leavesOutTheTrendOnTheLastDayWhereItIsNotDrawn() {
+        // Last day: the plan kept 1 000, an expense still to come takes the landing to -4 000.
+        // The real stroke ends at -3 100 and nothing draws the -4 000 landing.
+        let lastDay = trajectory(landing: [1_000, -4_000], plannedOutflows: 900, totalDays: 1)
+        #expect(HomeHeroCard.projection(for: lastDay).isEmpty)
+        #expect(!HomeHeroCard.chartYDomain(for: lastDay).contains(-4_000))
+    }
+
+    @MainActor
     @Test func plan_fallsFromTheOpeningAmountToWhatThePeriodKeeps() {
         let plan = HomeHeroCard.plan(for: trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000, totalDays: 31))
         #expect(plan.map(\.day) == [0, 31])

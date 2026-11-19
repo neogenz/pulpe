@@ -93,6 +93,12 @@ describe("chartYDomain", () => {
     expect(upper - 2500).toBeCloseTo(slack * 0.25 + padding, 6);
   });
 
+  it("ignores the trend on the last day, where it is not drawn", () => {
+    const [lower] = chartYDomain(trajectory({ today: 31, trend: -4000 }));
+
+    expect(lower).toBeGreaterThan(-4000);
+  });
+
   it("still leaves room around a flat month", () => {
     const [lower, upper] = chartYDomain(
       trajectory({
