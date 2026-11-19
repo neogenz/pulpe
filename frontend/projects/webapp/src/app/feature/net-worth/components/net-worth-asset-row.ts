@@ -246,12 +246,21 @@ const DAYS_PER_YEAR = 365;
       position: relative;
       cursor: pointer;
     }
-    .summary-action:hover:not(:disabled) {
-      background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+    @media (hover: hover) {
+      :host:hover:has(.summary-action:enabled) {
+        background: color-mix(
+          in srgb,
+          var(--mat-sys-on-surface) 8%,
+          transparent
+        );
+      }
     }
-    .summary-action:focus-visible {
+    :host:has(.summary-action:focus-visible) {
       outline: 2px solid var(--mat-sys-primary);
       outline-offset: -2px;
+    }
+    .summary-action:focus-visible {
+      outline: none;
     }
     .chip {
       border-radius: 9999px;
