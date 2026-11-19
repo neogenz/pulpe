@@ -1463,6 +1463,11 @@
           "title": "Datenschutzhinweis"
         },
         "security": {
+          "biometric": {
+            "face": "Gesichtserkennung",
+            "fingerprint": "Fingerabdruck",
+            "generic": "biometrische Entsperrung"
+          },
           "description": "PIN-Code, Passwort, %{biometric}",
           "title": "Sicherheit"
         },

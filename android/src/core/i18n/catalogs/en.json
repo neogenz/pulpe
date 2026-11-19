@@ -1463,6 +1463,11 @@
           "title": "Privacy notice"
         },
         "security": {
+          "biometric": {
+            "face": "face recognition",
+            "fingerprint": "fingerprint",
+            "generic": "biometric unlock"
+          },
           "description": "PIN code, password, %{biometric}",
           "title": "Security"
         },

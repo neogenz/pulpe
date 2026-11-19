@@ -1463,6 +1463,11 @@
           "title": "Informativa sulla privacy"
         },
         "security": {
+          "biometric": {
+            "face": "riconoscimento facciale",
+            "fingerprint": "impronta digitale",
+            "generic": "sblocco biometrico"
+          },
           "description": "Codice PIN, password, %{biometric}",
           "title": "Sicurezza"
         },

@@ -1463,6 +1463,11 @@
           "title": "Avis de confidentialité"
         },
         "security": {
+          "biometric": {
+            "face": "reconnaissance faciale",
+            "fingerprint": "empreinte digitale",
+            "generic": "déverrouillage biométrique"
+          },
           "description": "Code PIN, mot de passe, %{biometric}",
           "title": "Sécurité"
         },

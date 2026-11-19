@@ -125,7 +125,7 @@ export default function SettingsScreen() {
             title={t("settings.account.rows.security.title")}
             description={t("settings.account.rows.security.description", {
               biometric: t(
-                `settings.security.biometric.${biometricKind ?? "generic"}`,
+                `settings.account.rows.security.biometric.${biometricKind ?? "generic"}`,
               ),
             })}
             onPress={() => router.push("/settings/security")}
