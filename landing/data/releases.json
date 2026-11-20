@@ -1,5 +1,95 @@
 [
   {
+    "version": "0.65.0",
+    "date": "2026-11-20",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.65.0",
+    "platforms": ["web", "android"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "La barre d’onglets reste visible sur Android",
+          "description": "Un mois, un objectif ou un modèle s’ouvre dans l’onglet où tu l’as touché, sans cacher la barre du bas."
+        }
+      ],
+      "technical": [
+        {
+          "title": "Mon patrimoine",
+          "description": "Pour les early adopters, chaque type de « Ce que j’ai » affiche sa part en pourcentage. La page reste affichée pendant sa mise à jour."
+        },
+        {
+          "title": "Lien de téléchargement",
+          "description": "Le lien pulpe.app/telecharger ouvre l’App Store sur iPhone et le site pulpe.app sur les autres appareils."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "The tab bar stays visible on Android",
+              "description": "A month, a goal or a template opens in the tab you tapped it from, without hiding the bottom bar."
+            }
+          ],
+          "technical": [
+            {
+              "title": "My net worth",
+              "description": "For early adopters, each type under “What I have” shows its share as a percentage. The page stays on screen while it refreshes."
+            },
+            {
+              "title": "Download link",
+              "description": "The pulpe.app/telecharger link opens the App Store on iPhone and the pulpe.app website on other devices."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Die Tableiste bleibt auf Android sichtbar",
+              "description": "Monate, Ziele und Vorlagen öffnen sich im Tab, in dem du sie antippst, ohne die untere Leiste zu verdecken."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Mein Vermögen",
+              "description": "Für Early Adopters zeigt jeder Typ unter «Was ich habe» seinen Anteil in Prozent. Die Seite bleibt sichtbar, während sie sich aktualisiert."
+            },
+            {
+              "title": "Download-Link",
+              "description": "Der Link pulpe.app/telecharger öffnet auf dem iPhone den App Store und auf anderen Geräten die Website pulpe.app."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "La barra delle schede resta visibile su Android",
+              "description": "Un mese, un obiettivo o un modello si apre nella scheda in cui l’hai toccato, senza nascondere la barra in basso."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Il mio patrimonio",
+              "description": "Per gli early adopter, ogni tipo in «Ciò che ho» mostra la sua quota in percentuale. La pagina resta visibile mentre si aggiorna."
+            },
+            {
+              "title": "Link per il download",
+              "description": "Il link pulpe.app/telecharger apre l’App Store su iPhone e il sito pulpe.app sugli altri dispositivi."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.64.1",
     "date": "2026-11-18",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.64.1",
