@@ -56,6 +56,18 @@ describe("scrubReading", () => {
     expect(scrubReading(3, overdrawn, start).estimate).toBe(-0.13);
   });
 
+  it("rounds a half centime across zero like iOS, not like float francs", () => {
+    const crossing = {
+      ...trajectory,
+      real: [{ day: 2, balance: 2 }],
+      totalDays: 4,
+      trend: -1.99,
+    };
+
+    // Halfway between 2 and -1.99 is 0.005; float francs give 0.00499…
+    expect(scrubReading(3, crossing, start).estimate).toBe(0.01);
+  });
+
   it("reads no estimate when there is nothing left to project", () => {
     const reading = scrubReading(30, { ...trajectory, today: 30 }, start);
 

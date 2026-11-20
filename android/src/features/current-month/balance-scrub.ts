@@ -91,13 +91,19 @@ function interpolate(points: Point[], day: number): number {
   const [first, last] = [points[0], points[points.length - 1]];
   if (first === undefined || last === undefined) return 0;
   if (last.day <= first.day) return last.balance;
-  const ratio =
-    (Math.min(Math.max(day, first.day), last.day) - first.day) /
-    (last.day - first.day);
-  return roundToCents(first.balance + (last.balance - first.balance) * ratio);
+  const span = last.day - first.day;
+  const offset = Math.min(Math.max(day, first.day), last.day) - first.day;
+  // In whole centimes, divided once: iOS interpolates in `Decimal`, and float
+  // francs land a half centime on 0.00499… where iOS reads 0.005.
+  const [from, to] = [toCents(first.balance), toCents(last.balance)];
+  return roundHalfAway((from * span + (to - from) * offset) / span) / 100;
+}
+
+function toCents(balance: number): number {
+  return roundHalfAway(balance * 100);
 }
 
 /** Half away from zero like Swift's `rounded(2)`: `Math.round` sends a negative half up. */
-function roundToCents(value: number): number {
-  return (Math.sign(value) * Math.round(Math.abs(value) * 100)) / 100;
+function roundHalfAway(value: number): number {
+  return Math.sign(value) * Math.round(Math.abs(value));
 }
