@@ -46,6 +46,11 @@ test("path classes cover automation, iOS, packages, and fail closed elsewhere", 
     classifyPath("ios/Pulpe/Features/Home/HomeView.swift").kind,
     "ios",
   );
+  assert.equal(
+    classifyPath("aidd_docs/tasks/2026_11/2026_11_18_feature/plan.md").kind,
+    "aidd_docs",
+  );
+  assert.equal(classifyPath("aidd_docs/memory/testing.md").kind, "aidd_docs");
   for (const packagePath of [
     "frontend/projects/webapp/src/app/app.ts",
     "backend-nest/src/main.ts",
@@ -75,6 +80,31 @@ test("path classes cover automation, iOS, packages, and fail closed elsewhere", 
   ]) {
     assert.equal(classifyPath(fullPath).kind, "full", fullPath);
   }
+});
+
+test("task notes and project memory run only the automation gates", () => {
+  const decision = classifyChanges({
+    headRef: "feat/x",
+    files: [
+      "aidd_docs/tasks/2026_11/2026_11_18_feature/review.md",
+      "aidd_docs/memory/testing.md",
+    ],
+    affectedPackages: neverQueried,
+  });
+  assert.equal(decision.decision, "routed");
+  assert.deepEqual(activeUnits(decision), ["automation"]);
+});
+
+test("task notes beside package code add nothing to the package units", () => {
+  const decision = classifyChanges({
+    headRef: "feat/x",
+    files: [
+      "aidd_docs/tasks/2026_11/2026_11_18_feature/plan.md",
+      "android/src/app/index.tsx",
+    ],
+    affectedPackages: () => ["pulpe-android"],
+  });
+  assert.deepEqual(activeUnits(decision), ["workspace"]);
 });
 
 test("release branches force a full run before any path is inspected", () => {
