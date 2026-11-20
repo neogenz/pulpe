@@ -74,7 +74,7 @@ export function chartYDomain(trajectory: TrendedTrajectory): [number, number] {
   return [lower - slack * 0.75 - padding, upper + slack * 0.25 + padding];
 }
 
-export function chartSpan(trajectory: TrendedTrajectory): number {
+function chartSpan(trajectory: TrendedTrajectory): number {
   const values = plotted(trajectory);
   const amplitude = Math.max(...values) - Math.min(...values);
   return Math.max(

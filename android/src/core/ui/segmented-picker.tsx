@@ -60,7 +60,6 @@ export function SegmentedPicker<T extends string>({
               onValueChange(segment.value);
             }}
             accessibilityRole="radio"
-            accessibilityLabel={segment.label}
             accessibilityState={{ checked: isSelected, disabled: isDisabled }}
             android_ripple={{ color: v2.line2, borderless: false }}
             hitSlop={{ top: SPACING.xs, bottom: SPACING.xs }}

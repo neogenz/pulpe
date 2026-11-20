@@ -3,7 +3,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Fragment, type ReactNode } from "react";
 import {
   CURRENCY_METADATA,
-  hasCents,
   moneyDifference,
   type SupportedCurrency,
   type TransactionKind,
@@ -14,8 +13,8 @@ import { Button, Text, useTheme } from "react-native-paper";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import {
+  formatAdaptiveAmount,
   formatAmount,
-  formatCompactAmount,
   formatCompactCurrency,
 } from "@/core/ui/amount-format";
 import { HeroFigure, HeroProgress } from "@/core/ui/hero";
@@ -245,11 +244,7 @@ function CheckedBalanceCard({
         eyebrow={t("home.realized.checkedBalance")}
         // Centimes when the balance has some, as on iOS: the bridge below adds
         // up to the centime and the hero has to be one of its terms.
-        amount={
-          hasCents(realized.realizedBalance)
-            ? formatAmount(realized.realizedBalance, currency)
-            : formatCompactAmount(realized.realizedBalance, currency)
-        }
+        amount={formatAdaptiveAmount(realized.realizedBalance, currency)}
         currency={CURRENCY_METADATA[currency].symbol}
       />
       {/* The state lives in the sentence, never in the surface (The Two-Zone Rule). */}

@@ -1,7 +1,6 @@
 import {
   chartPlan,
   chartProjection,
-  chartSpan,
   chartYDomain,
   showsTrendLabel,
 } from "./balance-chart-scale";
@@ -85,12 +84,11 @@ describe("chartYDomain", () => {
   });
 
   it("puts three quarters of the slack below the readings", () => {
+    // Span floored at 5 % of 2500 = 125 over a 40 move: slack 85, padding 15.
     const [lower, upper] = chartYDomain(quiet);
-    const slack = chartSpan(quiet) - 40;
-    const padding = chartSpan(quiet) * 0.12;
 
-    expect(2460 - lower).toBeCloseTo(slack * 0.75 + padding, 6);
-    expect(upper - 2500).toBeCloseTo(slack * 0.25 + padding, 6);
+    expect(lower).toBeCloseTo(2460 - 63.75 - 15, 6);
+    expect(upper).toBeCloseTo(2500 + 21.25 + 15, 6);
   });
 
   it("ignores the trend on the last day, where it is not drawn", () => {
