@@ -27313,46 +27313,46 @@
         }
       }
     },
-    "Tu dépenses moins que prévu depuis le %@." : {
+    "Depuis le %@, il te reste plus que prévu." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seit dem %@ gibst du weniger aus als geplant."
+            "value" : "Seit dem %@ bleibt dir mehr als geplant."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You are spending less than planned since %@."
+            "value" : "Since %@, you have more left than planned."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dal %@ spendi meno del previsto."
+            "value" : "Dal %@ ti resta più del previsto."
           }
         }
       }
     },
-    "Tu dépenses plus que prévu depuis le %@." : {
+    "Depuis le %@, il te reste moins que prévu." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seit dem %@ gibst du mehr aus als geplant."
+            "value" : "Seit dem %@ bleibt dir weniger als geplant."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You are spending more than planned since %@."
+            "value" : "Since %@, you have less left than planned."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dal %@ spendi più del previsto."
+            "value" : "Dal %@ ti resta meno del previsto."
           }
         }
       }

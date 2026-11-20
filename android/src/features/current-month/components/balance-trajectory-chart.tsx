@@ -4,7 +4,7 @@ import {
   Line as SkiaLine,
   vec,
 } from "@shopify/react-native-skia";
-import type { BalanceTrajectory, BudgetPeriodDates } from "pulpe-shared";
+import type { BudgetPeriodDates } from "pulpe-shared";
 import { useState } from "react";
 import { type LayoutChangeEvent, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -12,22 +12,25 @@ import { Text } from "react-native-paper";
 import { CartesianChart, Line } from "victory-native";
 
 import { formatDayMonth } from "@/core/ui/date-format";
+import { useHeroColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
 import { useTranslation } from "@/core/i18n/locale-store";
 
-import { scrubDayAt } from "../balance-scrub";
+import { scrubDayAt, scrubFigure, type ScrubReading } from "../balance-scrub";
 import {
   type CaptionWidths,
-  chartSeries,
+  chartPlan,
+  chartProjection,
   chartYDomain,
   todayCaptionLeft,
 } from "../balance-chart-scale";
+import type { TrendedTrajectory } from "../current-month-view-model";
 
 const CHART_HEIGHT = 120;
-const LINE_WIDTH = 3;
+const LINE_WIDTH = 2;
 const RULE_WIDTH = 1;
-const TODAY_MARKER_RADIUS = 6;
-const PROJECTION_OPACITY = 0.5;
+const DOT_RADIUS = 4;
+const DOT_HALO_RADIUS = 6;
 const RULE_DASH = 3;
 const PROJECTION_DASH = 5;
 const PROJECTION_GAP = 4;
@@ -36,20 +39,24 @@ const CAPTION_GAP = SPACING.sm;
 const SCRUB_HOLD_MS = 150;
 
 interface BalanceTrajectoryChartProps {
-  trajectory: BalanceTrajectory;
+  trajectory: TrendedTrajectory;
   /** The dates the captions print at either end of the plot. */
   period: BudgetPeriodDates;
-  /** One ink for the line, the gap and the marker — the hero's own accent. */
+  /** The ink of the projection: the hero's own accent. */
   accent: string;
-  ruleColor: string;
-  /** The day under the finger while scrubbing, null at rest. */
-  scrubDay?: number | null;
+  /** What the finger reads while scrubbing, null at rest. */
+  reading: ScrubReading | null;
+  /** What a screen reader says about the whole trajectory. */
+  accessibilityLabel: string;
   onScrub?: (day: number | null) => void;
 }
 
 /**
- * The month's landing forecast: it opens on the plan, it arrives on the figure
- * above it, and it only leaves the horizontal when the month leaves its plan.
+ * The month as a burn-down of what it has: the plan falls in a straight dashed
+ * line from the opening amount to what it meant to keep, the real stroke falls
+ * by every outflow pointed so far, and from today a dashed stroke in the accent
+ * carries it to where the month lands if it keeps its pace. Port of
+ * `balanceChart` in `HomeHeroCard+Chart.swift`.
  *
  * Unlike the iOS twin the labels are not drawn inside the plot — printing text
  * on a Skia canvas means shipping and loading a font file. The scale is a row
@@ -60,13 +67,25 @@ export function BalanceTrajectoryChart({
   trajectory,
   period,
   accent,
-  ruleColor,
-  scrubDay = null,
+  reading,
+  accessibilityLabel,
   onScrub,
 }: BalanceTrajectoryChartProps) {
+  const hero = useHeroColors();
   const { locale, t } = useTranslation();
-  const data = chartSeries(trajectory);
+  const data = trajectory.real.map(({ day, balance }) => ({
+    day,
+    real: balance,
+  }));
+  const plan = chartPlan(trajectory);
+  const projection = chartProjection(trajectory);
   const domain = chartYDomain(trajectory);
+  const lastReal = trajectory.real[trajectory.real.length - 1];
+  // The dot sits on the stroke the finger reads, else on today's reading.
+  const dot =
+    reading === null
+      ? lastReal
+      : { day: reading.day, balance: scrubFigure(reading) };
   const [widths, setWidths] = useState<CaptionWidths>({
     row: 0,
     start: 0,
@@ -82,14 +101,18 @@ export function BalanceTrajectoryChart({
   const todayFraction =
     trajectory.totalDays > 0 ? trajectory.today / trajectory.totalDays : 0;
   const [plotWidth, setPlotWidth] = useState(0);
+  const read = (event: { x: number }) =>
+    onScrub?.(scrubDayAt(event.x, plotWidth, trajectory.totalDays));
+  // `onStart` too: a hold that activates on its timer sends no update until the
+  // finger moves, and iOS shows the reading as soon as the hold lands.
   const scrub = Gesture.Pan()
     .activateAfterLongPress(SCRUB_HOLD_MS)
     .runOnJS(true)
-    .onUpdate((event) =>
-      onScrub?.(scrubDayAt(event.x, plotWidth, trajectory.totalDays)),
-    )
+    .withTestId("balance-scrub")
+    .onStart(read)
+    .onUpdate(read)
     .onFinalize(() => onScrub?.(null));
-  const captionStyle = { color: ruleColor };
+  const captionStyle = { color: hero.muted };
 
   return (
     <View style={styles.chart}>
@@ -99,68 +122,81 @@ export function BalanceTrajectoryChart({
           onLayout={(event) => setPlotWidth(event.nativeEvent.layout.width)}
           accessible
           accessibilityRole="image"
-          accessibilityLabel={t("home.hero.chartAccessibility")}
+          accessibilityLabel={accessibilityLabel}
         >
           <CartesianChart
             data={data}
             xKey="day"
-            yKeys={["landed", "projected"]}
+            yKeys={["real"]}
             domain={{ x: [0, trajectory.totalDays], y: domain }}
-            // No axes and no grid. The only reference this plot needs is the
-            // plan, and that is the dashed rule below — a lattice of unlabelled
-            // lines behind it would only compete with the one line that means
+            // No axes and no grid. The plan is the only reference this plot
+            // needs, and it is drawn below: a lattice of unlabelled lines
+            // behind it would only compete with the one line that means
             // something.
             xAxis={{ lineWidth: 0 }}
             yAxis={[{ lineWidth: 0 }]}
           >
             {({ points, chartBounds, xScale, yScale }) => {
-              const planY = yScale(trajectory.plannedBalance);
+              const [planStart, planEnd] = plan;
+              const [from, to] = projection;
               return (
                 <>
-                  <SkiaLine
-                    p1={vec(chartBounds.left, planY)}
-                    p2={vec(chartBounds.right, planY)}
-                    color={ruleColor}
-                    strokeWidth={RULE_WIDTH}
-                  >
-                    <DashPathEffect intervals={[RULE_DASH, RULE_DASH]} />
-                  </SkiaLine>
+                  {planStart !== undefined && planEnd !== undefined && (
+                    <SkiaLine
+                      p1={vec(xScale(planStart.day), yScale(planStart.balance))}
+                      p2={vec(xScale(planEnd.day), yScale(planEnd.balance))}
+                      color={hero.muted}
+                      strokeWidth={RULE_WIDTH}
+                    >
+                      <DashPathEffect intervals={[RULE_DASH, RULE_DASH]} />
+                    </SkiaLine>
+                  )}
 
                   <Line
-                    points={points.landed}
-                    color={accent}
+                    points={points.real}
+                    color={hero.ink}
                     strokeWidth={LINE_WIDTH}
                     curveType="monotoneX"
-                    connectMissingData={false}
                   />
 
-                  <Line
-                    points={points.projected}
-                    color={accent}
-                    strokeWidth={LINE_WIDTH}
-                    opacity={PROJECTION_OPACITY}
-                    connectMissingData={false}
-                  >
-                    <DashPathEffect
-                      intervals={[PROJECTION_DASH, PROJECTION_GAP]}
-                    />
-                  </Line>
-
-                  {scrubDay !== null && (
+                  {from !== undefined && to !== undefined && (
                     <SkiaLine
-                      p1={vec(xScale(scrubDay), chartBounds.top)}
-                      p2={vec(xScale(scrubDay), chartBounds.bottom)}
-                      color={ruleColor}
+                      p1={vec(xScale(from.day), yScale(from.balance))}
+                      p2={vec(xScale(to.day), yScale(to.balance))}
+                      color={accent}
+                      strokeWidth={LINE_WIDTH}
+                    >
+                      <DashPathEffect
+                        intervals={[PROJECTION_DASH, PROJECTION_GAP]}
+                      />
+                    </SkiaLine>
+                  )}
+
+                  {reading !== null && (
+                    <SkiaLine
+                      p1={vec(xScale(reading.day), chartBounds.top)}
+                      p2={vec(xScale(reading.day), chartBounds.bottom)}
+                      color={hero.muted}
                       strokeWidth={RULE_WIDTH}
                     />
                   )}
 
-                  <Circle
-                    cx={xScale(trajectory.today)}
-                    cy={yScale(trajectory.estimatedBalance)}
-                    r={TODAY_MARKER_RADIUS}
-                    color={accent}
-                  />
+                  {dot !== undefined && (
+                    <>
+                      <Circle
+                        cx={xScale(dot.day)}
+                        cy={yScale(dot.balance)}
+                        r={DOT_HALO_RADIUS}
+                        color={hero.surface}
+                      />
+                      <Circle
+                        cx={xScale(dot.day)}
+                        cy={yScale(dot.balance)}
+                        r={DOT_RADIUS}
+                        color={hero.ink}
+                      />
+                    </>
+                  )}
                 </>
               );
             }}
@@ -186,7 +222,7 @@ export function BalanceTrajectoryChart({
             styles.today,
             {
               left: todayCaptionLeft(widths, todayFraction, CAPTION_GAP),
-              color: widths.row === 0 ? "transparent" : ruleColor,
+              color: widths.row === 0 ? "transparent" : hero.ink,
             },
           ]}
         >
@@ -210,5 +246,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  today: { position: "absolute", top: 0 },
+  today: { position: "absolute", top: 0, fontWeight: "700" },
 });

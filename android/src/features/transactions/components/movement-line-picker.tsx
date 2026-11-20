@@ -73,7 +73,7 @@ export function MovementLinePicker({
       <Pressable
         key={line.id}
         accessibilityRole="radio"
-        accessibilityState={{ selected: isSelected }}
+        accessibilityState={{ checked: isSelected }}
         android_ripple={ripple}
         onPress={() => onPick(line.id)}
         style={styles.row}
@@ -146,7 +146,7 @@ export function MovementLinePicker({
       <Pressable
         testID="movement-picker-unplanned"
         accessibilityRole="radio"
-        accessibilityState={{ selected: selectedLineId === null }}
+        accessibilityState={{ checked: selectedLineId === null }}
         android_ripple={ripple}
         onPress={() => onPick(null)}
         style={[styles.card, styles.row, { backgroundColor: v2.sunk }]}

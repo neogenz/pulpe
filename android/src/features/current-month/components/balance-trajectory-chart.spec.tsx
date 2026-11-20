@@ -1,7 +1,11 @@
 import { fireEvent, render } from "@testing-library/react-native";
-import type { BalanceTrajectory } from "pulpe-shared";
-
+import { State } from "react-native-gesture-handler";
+import {
+  fireGestureHandler,
+  getByGestureTestId,
+} from "react-native-gesture-handler/jest-utils";
 import { todayCaptionLeft } from "../balance-chart-scale";
+import type { TrendedTrajectory } from "../current-month-view-model";
 import { BalanceTrajectoryChart } from "./balance-trajectory-chart";
 
 jest.mock("@shopify/react-native-skia", () => ({
@@ -18,7 +22,7 @@ jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
 }));
 
-function trajectory(today: number): BalanceTrajectory {
+function trajectory(today: number): TrendedTrajectory {
   return {
     landing: [{ day: 0, balance: 500 }],
     real: [{ day: 0, balance: 500 }],
@@ -30,6 +34,7 @@ function trajectory(today: number): BalanceTrajectory {
     plannedBalance: 500,
     estimatedBalance: 500,
     drift: 0,
+    trend: 500,
   };
 }
 
@@ -48,7 +53,8 @@ async function renderMeasured(today: number) {
       trajectory={trajectory(today)}
       period={period}
       accent="green"
-      ruleColor="gray"
+      reading={null}
+      accessibilityLabel="spoken trajectory"
     />,
   );
   const todayCaption = view.getByTestId("chart-caption-today");
@@ -69,10 +75,43 @@ it("prints the period's first and last day and today under the plot", async () =
   expect(view.getByTestId("chart-caption-today")).toHaveStyle({ left: 115 });
 });
 
+it("exposes the label it is given on the image element", async () => {
+  const view = await renderMeasured(15);
+
+  expect(view.getByRole("image")).toHaveProp(
+    "accessibilityLabel",
+    "spoken trajectory",
+  );
+});
+
 it("keeps the today caption clear of the start date on the first day", async () => {
   const view = await renderMeasured(0);
 
   expect(view.getByTestId("chart-caption-today")).toHaveStyle({ left: 68 });
+});
+
+it("reads the day under a held finger before it moves", async () => {
+  const onScrub = jest.fn();
+  const view = await render(
+    <BalanceTrajectoryChart
+      trajectory={trajectory(15)}
+      period={period}
+      accent="green"
+      reading={null}
+      accessibilityLabel="spoken trajectory"
+      onScrub={onScrub}
+    />,
+  );
+  await fireEvent(view.getByRole("image"), "layout", layout(300));
+
+  // Activation alone, as when the hold timer fires with the finger still.
+  fireGestureHandler(getByGestureTestId("balance-scrub"), [
+    { state: State.BEGAN, x: 150 },
+    { state: State.ACTIVE, x: 150 },
+    { state: State.END, x: 150 },
+  ]);
+
+  expect(onScrub.mock.calls).toEqual([[15], [null]]);
 });
 
 describe("todayCaptionLeft", () => {

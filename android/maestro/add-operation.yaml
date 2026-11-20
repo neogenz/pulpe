@@ -1,9 +1,8 @@
 # Journey 4 — note an operation, then take it back out.
 #
 # Noting what was spent is the act the app is opened for, and the one write
-# no other flow makes: it crosses the FAB menu, the form sheet with its quick
-# amounts, the save, the row it lands on and the delete. The flow removes what
-# it adds, so the shared preview account ends the run as it started.
+# no other flow makes: it crosses the FAB menu, the form sheet, the save, the
+# row it lands on and the delete. It removes what it adds from the preview account.
 #
 # Runs where `check-operation.yaml` ends: the budget detail, on "Tout", so the
 # new operation shows whether or not it is pointed.
@@ -25,10 +24,10 @@ env:
     visible:
       id: "transaction-description"
     timeout: 15000
-# A quick amount, so the flow never depends on the keyboard's decimal key or
-# on the account's currency.
-- tapOn:
-    id: "quick-amount-15"
+# The field's accessibility label names the currency after « Montant, en ».
+- tapOn: "Montant, en .*"
+- inputText: "15"
+- hideKeyboard
 - tapOn:
     id: "transaction-description"
 - inputText: ${NAME}

@@ -1,9 +1,15 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
 import { hapticSelection } from "@/core/ui/haptics";
 import { useV2Colors } from "@/core/ui/scheme-colors";
-import { EMPHASIS, RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
+import {
+  ACCESSIBLE_FONT_SCALE,
+  EMPHASIS,
+  RADIUS,
+  SPACING,
+  TOUCH_TARGET,
+} from "@/core/ui/theme";
 
 interface Segment<T extends string> {
   value: T;
@@ -32,6 +38,7 @@ export function SegmentedPicker<T extends string>({
 }: SegmentedPickerProps<T>) {
   const theme = useTheme();
   const v2 = useV2Colors();
+  const wrapsLabels = useWindowDimensions().fontScale >= ACCESSIBLE_FONT_SCALE;
 
   return (
     <View
@@ -53,12 +60,14 @@ export function SegmentedPicker<T extends string>({
               onValueChange(segment.value);
             }}
             accessibilityRole="radio"
-            accessibilityState={{ selected: isSelected, disabled: isDisabled }}
+            accessibilityState={{ checked: isSelected, disabled: isDisabled }}
             android_ripple={{ color: v2.line2, borderless: false }}
+            hitSlop={{ top: SPACING.xs, bottom: SPACING.xs }}
             style={[
               styles.segment,
               isSelected && {
                 backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outline,
                 elevation: 1,
               },
               isDisabled && { opacity: EMPHASIS.disabled },
@@ -66,10 +75,11 @@ export function SegmentedPicker<T extends string>({
           >
             <Text
               variant="labelLarge"
-              numberOfLines={1}
-              adjustsFontSizeToFit
+              numberOfLines={wrapsLabels ? undefined : 1}
+              adjustsFontSizeToFit={!wrapsLabels}
               minimumFontScale={0.8}
               style={{
+                textAlign: "center",
                 color: isSelected
                   ? theme.colors.onSurface
                   : theme.colors.onSurfaceVariant,
@@ -96,6 +106,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "transparent",
     borderRadius: RADIUS.full,
     overflow: "hidden",
   },

@@ -1,10 +1,12 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { DeviceEventEmitter, Dimensions, Text } from "react-native";
 import { PaperProvider } from "react-native-paper";
 
 import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 
+import { SHEET_HEIGHT_RATIO } from "./keyboard-inset";
 import { FormModal } from "./sheet";
+import { TOUCH_TARGET } from "./theme";
 
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -78,6 +80,7 @@ describe("sheets", () => {
     ]) {
       expect(view.getByText(text)).toBeTruthy();
     }
+    expect(view.queryByLabelText("common.back")).toBeNull();
     expect(view.getByTestId("form-modal").props.animationType).toBe("slide");
     expect(
       view.getByTestId("form-modal-backdrop", { includeHiddenElements: true })
@@ -113,11 +116,21 @@ describe("sheets", () => {
 
   it("dismisses from its visible close, backdrop and Android back action", async () => {
     const { onDismiss, view } = await renderModal(false);
+    const close = view.getByRole("button", { name: "common.close" });
+    const backdrop = view.getByTestId("form-modal-backdrop", {
+      includeHiddenElements: true,
+    });
+    expect(
+      view.getAllByLabelText("common.close", { includeHiddenElements: true }),
+    ).toEqual([close]);
+    expect(backdrop).toHaveProp("importantForAccessibility", "no");
+    expect(view.getByTestId("form-modal-close-container")).toHaveStyle({
+      width: TOUCH_TARGET,
+      height: TOUCH_TARGET,
+    });
 
-    await fireEvent.press(view.getByLabelText("common.close"));
-    await fireEvent.press(
-      view.getByTestId("form-modal-backdrop", { includeHiddenElements: true }),
-    );
+    await fireEvent.press(close);
+    await fireEvent.press(backdrop);
     await act(() => fireEvent(view.getByTestId("form-modal"), "requestClose"));
 
     expect(onDismiss).toHaveBeenCalledTimes(3);
@@ -156,6 +169,7 @@ describe("sheets", () => {
       </PaperProvider>,
     );
 
+    expect(view.queryByLabelText("common.back")).toBeNull();
     await act(() => fireEvent(view.getByTestId("form-modal"), "requestClose"));
     expect(onBack).toHaveBeenCalledTimes(1);
     expect(onDismiss).not.toHaveBeenCalled();
@@ -165,6 +179,30 @@ describe("sheets", () => {
       view.getByTestId("form-modal-backdrop", { includeHiddenElements: true }),
     );
     expect(onDismiss).toHaveBeenCalledTimes(2);
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a 48dp header back button when asked", async () => {
+    const onBack = jest.fn();
+    const view = await render(
+      <PaperProvider>
+        <FormModal
+          isVisible
+          title="Steps"
+          onDismiss={jest.fn()}
+          onBack={onBack}
+          showsBackButton
+        />
+      </PaperProvider>,
+    );
+    const back = view.getByRole("button", { name: "common.back" });
+    expect(view.getByTestId("form-modal-back-container")).toHaveStyle({
+      width: TOUCH_TARGET,
+      height: TOUCH_TARGET,
+    });
+    expect(view.getByRole("header", { name: "Steps" })).toBeOnTheScreen();
+
+    await fireEvent.press(back);
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
@@ -178,12 +216,16 @@ describe("sheets", () => {
           title="Steps"
           onDismiss={jest.fn()}
           onBack={onBack}
+          showsBackButton
         >
           <Text>Step body</Text>
         </FormModal>
       </PaperProvider>,
     );
 
+    const back = view.getByRole("button", { name: "common.back" });
+    expect(back).toBeDisabled();
+    await fireEvent.press(back);
     await act(() => fireEvent(view.getByTestId("form-modal"), "requestClose"));
 
     expect(onBack).not.toHaveBeenCalled();
@@ -233,14 +275,36 @@ describe("sheets", () => {
   });
 
   it("never measures the window without also asking for the keyboard", () => {
+    // Reading only the font scale sizes nothing the keyboard covers.
     const blind = sourceFiles("src").filter((path) => {
       const source = readFileSync(path, "utf8");
       return (
-        source.includes("useWindowDimensions") &&
+        /useWindowDimensions\(\)(?!\.fontScale)/.test(source) &&
         !source.includes("useKeyboardHeight")
       );
     });
 
     expect(blind).toEqual([]);
+  });
+
+  it("makes room for the keyboard while keeping the footer available", async () => {
+    const { view } = await renderModal(false);
+    const sheet = view.getByTestId("form-modal-sheet");
+    const { height } = Dimensions.get("window");
+    const keyboardHeight = 240;
+
+    await act(() => {
+      DeviceEventEmitter.emit("keyboardDidShow", {
+        endCoordinates: { height: keyboardHeight },
+      });
+    });
+    expect(sheet).toHaveStyle({
+      marginBottom: keyboardHeight,
+      maxHeight: (height - keyboardHeight) * SHEET_HEIGHT_RATIO,
+    });
+    expect(view.getByText("Form footer")).toBeOnTheScreen();
+
+    await act(() => DeviceEventEmitter.emit("keyboardDidHide"));
+    expect(sheet).toHaveStyle({ marginBottom: 0 });
   });
 });

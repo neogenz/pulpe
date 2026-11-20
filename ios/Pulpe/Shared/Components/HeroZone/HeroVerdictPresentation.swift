@@ -66,13 +66,13 @@ struct HeroVerdictPresentation: Equatable {
             AppLocale.string("Tu es pile sur ton plan.")
         case .overrun:
             if let day = driftDay {
-                AppLocale.string("Tu dépenses plus que prévu depuis le \(day).")
+                AppLocale.string("Depuis le \(day), il te reste moins que prévu.")
             } else {
                 AppLocale.string("Il te reste moins que prévu.")
             }
         case .gain:
             if let day = driftDay {
-                AppLocale.string("Tu dépenses moins que prévu depuis le \(day).")
+                AppLocale.string("Depuis le \(day), il te reste plus que prévu.")
             } else {
                 AppLocale.string("Il te reste plus que prévu.")
             }

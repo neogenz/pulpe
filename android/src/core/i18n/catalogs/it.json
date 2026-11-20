@@ -134,7 +134,7 @@
       "missingTitle": "Questo budget non esiste più",
       "monthSelector": "Selettore del mese",
       "noResults": "Nessun risultato per questo filtro.",
-      "openForecast": "Apri i dettagli della previsione",
+      "openForecast": "Tocca per aprire il dettaglio",
       "openGoal": "Apri l'obiettivo di risparmio",
       "protectedMessage": "Quando spendi meno del previsto, Pulpe mantiene l'importo previsto per proteggere il tuo budget.",
       "protectedTitle": "Budget protetto",
@@ -377,7 +377,8 @@
       }
     },
     "list": {
-      "adjustment": "Aggiustamento",
+      "available": "disponibile",
+      "availablePlanned": "disponibile previsto",
       "create": "Crea il mio budget",
       "createAccessibility": "Crea un budget",
       "emptyHint": "Crea il tuo primo mese da uno dei tuoi modelli.",
@@ -385,7 +386,6 @@
       "loadErrorHint": "Controlla la connessione, poi riprova.",
       "loadErrorTitle": "Non è stato possibile caricare i tuoi budget",
       "planAccessibility": "Pianifica più budget",
-      "potential": "Potenziale",
       "title": "Budget",
       "yearBalance": "Saldo di fine anno %{year}",
       "yearReview": "Bilancio %{year}",
@@ -529,7 +529,6 @@
     "password": "Password",
     "retry": "Riprova",
     "signOut": "Esci",
-    "quickAmountAccessibility": "Imposta l'importo a %{amount}",
     "screenError": {
       "title": "Questa schermata ha avuto un problema",
       "hint": "I tuoi dati non sono stati toccati. Riprova; se succede di nuovo, chiudi e riapri Pulpe."
@@ -847,18 +846,26 @@
       "undoFailure": "Non è stato possibile annullare il segno. Riprova dal budget."
     },
     "hero": {
-      "chartAccessibility": "Andamento del saldo stimato nel mese rispetto al piano",
       "verdict": {
         "gain": "Ti resta più del previsto.",
-        "gainDated": "Sopra il tuo piano dal %{date}.",
-        "onPlan": "Sei esattamente in linea con il piano.",
+        "gainDated": "Dal %{date} ti resta più del previsto.",
+        "onPlan": "Sei perfettamente in linea col piano.",
         "overrun": "Ti resta meno del previsto.",
-        "overrunDated": "Sotto il tuo piano dal %{date}."
+        "overrunDated": "Dal %{date} ti resta meno del previsto."
       },
       "chart": {
-        "today": "oggi"
+        "today": "Oggi",
+        "accessibility": {
+          "plannedAvailable": "Disponibile previsto %{amount}.",
+          "plannedEnd": "Previsto a fine periodo %{amount}.",
+          "realToday": "Reale oggi %{amount}.",
+          "trend": "Se continui così, %{amount}.",
+          "hidden": "Andamento del periodo fino a fine mese, importi nascosti."
+        }
       },
       "scrub": {
+        "real": "Reale il %{date}",
+        "realWithPlan": "Reale il %{date} · Previsto %{amount}",
         "estimated": "Stimato il %{date}",
         "estimatedWithPlan": "Stimato il %{date} · Previsto %{amount}"
       },
@@ -1911,7 +1918,7 @@
     "unlock": {
       "biometric": "Sblocca con la biometria",
       "forgot": "Codice dimenticato?",
-      "subtitle": "Sblocca i tuoi importi",
+      "subtitle": "Inserisci il tuo codice per aprire il tuo budget.",
       "greeting": "Ciao, %{name}",
       "greetingAnonymous": "Ciao"
     },

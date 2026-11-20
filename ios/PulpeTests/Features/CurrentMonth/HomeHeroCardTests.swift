@@ -44,14 +44,14 @@ struct HomeHeroCardTests {
             estimatedBalance: 1_800,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
-        #expect(below.verdictText == "Tu dépenses plus que prévu depuis le 6 juillet.")
+        #expect(below.verdictText == "Depuis le 6 juillet, il te reste moins que prévu.")
 
         let above = HeroVerdictPresentation(
             plannedBalance: 2_500,
             estimatedBalance: 2_900,
             driftDate: try date(year: 2026, month: 7, day: 6)
         )
-        #expect(above.verdictText == "Tu dépenses moins que prévu depuis le 6 juillet.")
+        #expect(above.verdictText == "Depuis le 6 juillet, il te reste plus que prévu.")
 
         // "le 1 août" reads as a typo in a sentence; French declines this one day.
         let firstOfMonth = HeroVerdictPresentation(
@@ -59,7 +59,7 @@ struct HomeHeroCardTests {
             estimatedBalance: 1_800,
             driftDate: try date(year: 2026, month: 8, day: 1)
         )
-        #expect(firstOfMonth.verdictText == "Tu dépenses plus que prévu depuis le 1er août.")
+        #expect(firstOfMonth.verdictText == "Depuis le 1er août, il te reste moins que prévu.")
 
         // Where a new account lands right after onboarding: lines exist, nothing spent, so
         // the forecast still sits on the plan it opened on. That is a fact about the month,
@@ -100,6 +100,15 @@ struct HomeHeroCardTests {
         let loudDomain = HomeHeroCard.chartYDomain(for: loud)
         let loudShare = 1_767.0 / (loudDomain.upperBound - loudDomain.lowerBound)
         #expect(loudShare > 0.1 && loudShare < 0.3)
+    }
+
+    @MainActor
+    @Test func chartDomain_leavesOutTheTrendOnTheLastDayWhereItIsNotDrawn() {
+        // Last day: the plan kept 1 000, an expense still to come takes the landing to -4 000.
+        // The real stroke ends at -3 100 and nothing draws the -4 000 landing.
+        let lastDay = trajectory(landing: [1_000, -4_000], plannedOutflows: 900, totalDays: 1)
+        #expect(HomeHeroCard.projection(for: lastDay).isEmpty)
+        #expect(!HomeHeroCard.chartYDomain(for: lastDay).contains(-4_000))
     }
 
     @MainActor

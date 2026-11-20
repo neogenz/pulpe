@@ -242,6 +242,9 @@ export const SPACING = {
  */
 export const TOUCH_TARGET = 48;
 
+/** Android font scale for layouts that need more room for accessibility text. */
+export const ACCESSIBLE_FONT_SCALE = 1.5;
+
 /**
  * How much of an accent a surface takes when tinted by it, as a hex alpha
  * suffix. `surface` is M3's own pressed-state opacity, which is also what a

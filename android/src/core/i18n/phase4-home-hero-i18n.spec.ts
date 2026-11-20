@@ -23,7 +23,8 @@ describe("phase 4 home hero presentation boundary", () => {
     expect(home).toContain('t("home.states.loadErrorTitle")');
     expect(hero).toContain('t("home.hero.eyebrow")');
     expect(chart).toContain('accessibilityRole="image"');
-    expect(chart).toContain('t("home.hero.chartAccessibility")');
+    expect(chart).not.toContain("home.hero.chartAccessibility");
+    expect(presentation).toContain('t("home.hero.chart.accessibility.hidden")');
     expect(chart).toContain('t("home.hero.chart.today")');
     expect(chart).not.toMatch(/aujourd'hui/);
     expect(presentation).toContain("t(`home.hero.verdict.${verdict}Dated`");

@@ -1,4 +1,11 @@
-import type { Budget, BudgetLine, Transaction } from "pulpe-shared";
+import {
+  type Budget,
+  type BudgetLine,
+  type Transaction,
+  trendBalance,
+} from "pulpe-shared";
+
+import type { BudgetDetails } from "@/features/budgets/budget-api";
 
 import {
   buildCurrentMonthViewModel,
@@ -62,9 +69,10 @@ function viewModelOf(
   transactions: Transaction[] = [],
   overrides: Partial<Budget> = {},
   payDayOfMonth: number | null = null,
+  history: BudgetDetails["history"] = null,
 ) {
   return buildCurrentMonthViewModel(
-    { budget: budget(overrides), budgetLines, transactions, history: null },
+    { budget: budget(overrides), budgetLines, transactions, history },
     { now: AUGUST_11, payDayOfMonth },
   );
 }
@@ -327,6 +335,46 @@ describe("trajectory", () => {
     );
 
     expect(model.trajectory?.estimatedBalance).toBe(model.metrics.remaining);
+  });
+
+  describe("trend", () => {
+    // Day 11 with 800 spent against a 500 envelope: off the plan, so the
+    // history-less trend and the history one differ.
+    const lines = [
+      line({ id: "salary", kind: "income", amount: 5000 }),
+      line({ id: "food", amount: 500 }),
+    ];
+    const spent = [
+      transaction({
+        budgetLineId: "food",
+        amount: 800,
+        transactionDate: "2026-08-05T12:00:00.000Z",
+      }),
+    ];
+    const history: NonNullable<BudgetDetails["history"]> = {
+      usualOutflowDrift: 0.4,
+      closedMonths: 6,
+      priorStrength: 10,
+      driftMad: 400,
+      driftProfile: [0.25, 0.25, 0.25, 0.25],
+    };
+
+    it("reads the drift history the server sends", () => {
+      const model = viewModelOf(lines, spent, {}, null, history);
+      const { trend: _trend, ...trajectory } = model.trajectory!;
+
+      expect(model.trajectory?.trend).toBe(
+        trendBalance(trajectory, 7, history),
+      );
+      expect(model.trajectory?.trend).not.toBe(trendBalance(trajectory, 7));
+    });
+
+    it("falls back on the plan as prior without a history", () => {
+      const model = viewModelOf(lines, spent);
+      const { trend: _trend, ...trajectory } = model.trajectory!;
+
+      expect(model.trajectory?.trend).toBe(trendBalance(trajectory, 7));
+    });
   });
 });
 

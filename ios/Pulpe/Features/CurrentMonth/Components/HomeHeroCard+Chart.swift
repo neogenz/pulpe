@@ -273,10 +273,11 @@ extension HomeHeroCard {
         return (lower - slackBelow - padding) ... (upper + slackAbove + padding)
     }
 
-    /// Every value the plot draws: both plan ends, the real stroke, the trend's landing.
+    /// Every value the plot draws: both plan ends, the real stroke, the projection. The trend
+    /// counts only while it is drawn, so the last day's undrawn landing cannot flatten the month.
     private static func plotted(_ trajectory: BudgetFormulas.BalanceTrajectory) -> [Double] {
-        (plan(for: trajectory) + trajectory.real).map { decimalValue($0.balance) }
-            + [decimalValue(trend(for: trajectory))]
+        (plan(for: trajectory) + trajectory.real + projection(for: trajectory))
+            .map { decimalValue($0.balance) }
     }
 
     static func decimalValue(_ value: Decimal) -> Double {

@@ -91,7 +91,7 @@ state shows, optionally ending in a named link). The status bar follows the sche
 
 Every list is one `LedgerCard`: rows separated by hairlines that start under the text column, each
 row opening on a 36dp disc (`IconDisc`) in the colour of its nature. A virtualized list draws the
-same card in `LedgerSegment`s. A section names itself above its card with `SectionHeader` — Manrope
+same card in `LedgerSegment`s. A section names itself above its card with `SectionHeader` — MD3 `titleLarge`
 title, a quiet count, an optional summary amount and a _named_ link (`Tout voir`, `Ajuster`).
 
 On a budget, the disc is the pointing control (`PointCircle`): to point, the row's own disc ringed
@@ -164,9 +164,8 @@ close button. While a write is pending, that button, the scrim and the Android
 back action all refuse dismissal so partially applied changes cannot disappear.
 
 A form that adds an operation or a forecast leads with what it asks for: the amount, in the same
-outlined Material field with its figure set large in Manrope (`AmountField isProminent`), then
-four suggestion chips (`QuickAmountChips`, the same 10 / 15 / 20 / 30 iOS offers) through the
-chip atom. The order below it is the platform-neutral one — what it is, then the details.
+outlined Material field with its figure set large in Manrope (`AmountField isProminent`).
+The order below it is the platform-neutral one: what it is, then the details.
 
 It looks like a bottom sheet and is deliberately not one: no drag handle, no
 swipe dismissal, no `@gorhom/bottom-sheet`. A form with a pinned submit button

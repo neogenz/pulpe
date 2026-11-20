@@ -1,4 +1,6 @@
-import type { BalanceTrajectory } from "pulpe-shared";
+import type { BalanceTrajectoryPoint as Point } from "pulpe-shared";
+
+import type { TrendedTrajectory } from "./current-month-view-model";
 
 export interface CaptionWidths {
   row: number;
@@ -32,64 +34,74 @@ export function todayCaptionLeft(
 const LANDING_SCALE_FLOOR_RATIO = 0.05;
 const DOMAIN_PADDING_RATIO = 0.12;
 const MINIMUM_DOMAIN_PADDING = 1;
+/** Mirror of `DesignTokens.Chart.gapLabelMinimumRatio` on iOS. */
+const GAP_LABEL_MINIMUM_RATIO = 0.08;
+
+/** The plan's straight fall, opening amount to planned remaining. */
+export function chartPlan(trajectory: TrendedTrajectory): Point[] {
+  return [
+    { day: 0, balance: trajectory.plannedAvailable },
+    { day: trajectory.totalDays, balance: trajectory.plannedBalance },
+  ];
+}
 
 /**
- * A type rather than an interface, against the house rule: victory-native takes
- * `Record<string, unknown>[]`, and only a type alias is assignable to that.
+ * The days not yet lived, from what is left today to the trend's landing. Empty
+ * on the last day, where there is nothing left to project.
  */
-export type ChartPoint = {
-  day: number;
-  /** What is known: null past today, so the solid line stops there. */
-  landed: number | null;
-  /** The forecast held flat over the days not yet lived. */
-  projected: number | null;
-};
-
-/**
- * One row per day of the period, split into the two lines the chart draws. A
- * single row carries both at the joint, so the dashed line starts exactly where
- * the solid one ends instead of a pixel away from it.
- */
-export function chartSeries(trajectory: BalanceTrajectory): ChartPoint[] {
-  const landedByDay = new Map(
-    trajectory.landing.map((point) => [point.day, point.balance]),
-  );
-  const lastKnown = trajectory.landing[trajectory.landing.length - 1]?.balance;
-
-  return Array.from({ length: trajectory.totalDays + 1 }, (_, day) => ({
-    day,
-    landed: landedByDay.get(day) ?? null,
-    // Nothing is known about the days not yet lived, so the forecast holds its
-    // level across them. A slope here would be the plot inventing news.
-    projected:
-      day >= trajectory.today && lastKnown !== undefined ? lastKnown : null,
-  }));
+export function chartProjection(trajectory: TrendedTrajectory): Point[] {
+  const current = trajectory.real[trajectory.real.length - 1];
+  if (trajectory.today >= trajectory.totalDays || current === undefined)
+    return [];
+  return [current, { day: trajectory.totalDays, balance: trajectory.trend }];
 }
 
 /**
  * How much vertical room the drawing claims. The floor is spent as slack around
- * the readings rather than added below them, so a quiet month sits centred in
- * its frame instead of pinned to the top of it.
- *
- * Unlike the iOS twin, no band is reserved for in-chart labels: the plan and
- * the gap are printed beside the chart here, not inside it.
+ * the readings rather than added below them, so a quiet month is not pinned to
+ * the top of its frame. Three quarters of it go under the line: empty sky above
+ * a flat line reads as a missing plot. Port of `chartYDomain` in
+ * `HomeHeroCard+Chart.swift`.
  */
-export function chartYDomain(trajectory: BalanceTrajectory): [number, number] {
-  const values = trajectory.landing.map((point) => point.balance);
+export function chartYDomain(trajectory: TrendedTrajectory): [number, number] {
+  const values = plotted(trajectory);
   const lower = Math.min(...values);
   const upper = Math.max(...values);
   const span = chartSpan(trajectory);
-  const slack = Math.max(span - (upper - lower), 0) / 2;
+  const slack = Math.max(span - (upper - lower), 0);
   const padding = Math.max(span * DOMAIN_PADDING_RATIO, MINIMUM_DOMAIN_PADDING);
 
-  return [lower - slack - padding, upper + slack + padding];
+  return [lower - slack * 0.75 - padding, upper + slack * 0.25 + padding];
 }
 
-function chartSpan(trajectory: BalanceTrajectory): number {
-  const values = trajectory.landing.map((point) => point.balance);
+function chartSpan(trajectory: TrendedTrajectory): number {
+  const values = plotted(trajectory);
   const amplitude = Math.max(...values) - Math.min(...values);
   return Math.max(
     amplitude,
     trajectory.plannedOutflows * LANDING_SCALE_FLOOR_RATIO,
   );
+}
+
+/**
+ * The trend is spoken only once it is visibly apart from the plan's end; closer
+ * than that the two strokes land on one point.
+ */
+export function showsTrendLabel(trajectory: TrendedTrajectory): boolean {
+  if (chartProjection(trajectory).length === 0) return false;
+  const gap = Math.abs(trajectory.trend - trajectory.plannedBalance);
+  return gap > 0 && gap >= chartSpan(trajectory) * GAP_LABEL_MINIMUM_RATIO;
+}
+
+/**
+ * Every value the plot draws: both plan ends, the real stroke, the projection.
+ * The trend counts only while it is drawn, so the last day's undrawn landing
+ * cannot flatten the month.
+ */
+function plotted(trajectory: TrendedTrajectory): number[] {
+  return [
+    ...chartPlan(trajectory),
+    ...trajectory.real,
+    ...chartProjection(trajectory),
+  ].map((point) => point.balance);
 }

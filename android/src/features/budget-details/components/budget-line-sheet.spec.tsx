@@ -1,5 +1,5 @@
 import type { BudgetLine } from "pulpe-shared";
-import { fireEvent, render } from "@testing-library/react-native";
+import { act, fireEvent, render } from "@testing-library/react-native";
 
 import { BudgetLineSheet } from "./budget-line-sheet";
 
@@ -35,143 +35,14 @@ jest.mock("react-native-quick-crypto", () => ({
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
-jest.mock("@/core/ui/haptics", () => ({ hapticSuccess: jest.fn() }));
-jest.mock("@/core/ui/theme", () => ({
-  SPACING: { md: 16, sm: 8, xxs: 2 },
+jest.mock("@/core/ui/haptics", () => ({
+  hapticSelection: jest.fn(),
+  hapticSuccess: jest.fn(),
 }));
-jest.mock("react-native-paper", () => {
-  const { Pressable, Text, TextInput } = jest.requireActual("react-native");
-  return {
-    Button: ({
-      children,
-      onPress,
-      disabled,
-      accessibilityLabel,
-    }: {
-      children: React.ReactNode;
-      onPress?: () => void;
-      disabled?: boolean;
-      accessibilityLabel?: string;
-    }) => (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        accessibilityLabel={accessibilityLabel}
-      >
-        <Text>{children}</Text>
-      </Pressable>
-    ),
-    HelperText: ({ children }: { children: React.ReactNode }) => (
-      <Text>{children}</Text>
-    ),
-    Text,
-    TextInput: ({
-      label,
-      value,
-      onChangeText,
-    }: {
-      label: string;
-      value: string;
-      onChangeText: (value: string) => void;
-    }) => (
-      <TextInput
-        accessibilityLabel={label}
-        value={value}
-        onChangeText={onChangeText}
-      />
-    ),
-    useTheme: () => ({ colors: { onSurfaceVariant: "gray" } }),
-  };
-});
-jest.mock("@/core/ui/segmented-picker", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
-  return {
-    SegmentedPicker: ({
-      buttons,
-      onValueChange,
-    }: {
-      buttons: { label: string; value: string; disabled?: boolean }[];
-      onValueChange: (value: string) => void;
-    }) => (
-      <View>
-        {buttons.map((button) => (
-          <Pressable
-            key={button.value}
-            disabled={button.disabled}
-            accessibilityState={{ disabled: button.disabled === true }}
-            onPress={() => onValueChange(button.value)}
-          >
-            <Text>{button.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-    ),
-  };
-});
-jest.mock("@/core/ui/quick-amount-chips", () => {
-  const { Pressable, Text } = jest.requireActual("react-native");
-  return {
-    QuickAmountChips: ({
-      onSelect,
-    }: {
-      onSelect: (amount: number) => void;
-    }) => (
-      <Pressable accessibilityLabel="quick-15" onPress={() => onSelect(15)}>
-        <Text>15</Text>
-      </Pressable>
-    ),
-  };
-});
-jest.mock("@/core/ui/amount-field", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
-  return {
-    AmountField: ({ onChange }: { onChange: (amount: number) => void }) => (
-      <View>
-        {[120, 500].map((amount) => (
-          <Pressable
-            key={amount}
-            accessibilityLabel={`set-amount-${amount}`}
-            onPress={() => onChange(amount)}
-          >
-            <Text>{amount}</Text>
-          </Pressable>
-        ))}
-      </View>
-    ),
-  };
-});
-jest.mock("@/core/ui/sheet", () => {
-  const { Pressable, Text, View } = jest.requireActual("react-native");
-  return {
-    FormModal: ({
-      title,
-      children,
-      footer,
-      onDismiss,
-      isBusy,
-    }: {
-      title: string;
-      children: React.ReactNode;
-      footer: React.ReactNode;
-      onDismiss: () => void;
-      isBusy: boolean;
-    }) => (
-      <View>
-        <Text>{title}</Text>
-        <Text>{`busy:${isBusy}`}</Text>
-        {children}
-        {footer}
-        <Pressable
-          accessibilityLabel="dismiss-form"
-          disabled={isBusy}
-          onPress={onDismiss}
-        >
-          <Text>dismiss</Text>
-        </Pressable>
-      </View>
-    ),
-  };
-});
+jest.mock("react-native-safe-area-context", () => ({
+  ...jest.requireActual("react-native-safe-area-context"),
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
 jest.mock("../spread/components/spread-form-section", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
@@ -216,6 +87,7 @@ const baseProps = {
   currency: "CHF" as const,
   onSaved: jest.fn(),
 };
+const AMOUNT_LABEL = "common.amountInCurrency";
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -228,14 +100,14 @@ async function fill(
   amount = 120,
   name = "Loyer",
 ) {
-  await fireEvent.press(view.getByLabelText(`set-amount-${amount}`));
+  await fireEvent.changeText(view.getByLabelText(AMOUNT_LABEL), String(amount));
   await fireEvent.changeText(
     view.getByLabelText("budgets.mutations.name"),
     name,
   );
 }
 
-it("creates a forecast from the visible fields", async () => {
+it("creates a forecast and clears its amount for the next one", async () => {
   const view = await render(<BudgetLineSheet {...baseProps} />);
   await fill(view);
   await fireEvent.press(view.getByText("vocabulary.kind.saving"));
@@ -251,6 +123,15 @@ it("creates a forecast from the visible fields", async () => {
       recurrence: "one_off",
       isManuallyAdjusted: false,
     },
+    expect.any(Object),
+  );
+
+  await act(() => mockCreate.mutate.mock.calls[0][1].onSuccess());
+  expect(view.getByLabelText(AMOUNT_LABEL)).toHaveDisplayValue("");
+  await fill(view, 15);
+  await fireEvent.press(view.getByText("budgets.mutations.add"));
+  expect(mockCreate.mutate).toHaveBeenLastCalledWith(
+    expect.objectContaining({ amount: 15 }),
     expect.any(Object),
   );
 });
@@ -380,16 +261,19 @@ it("offers no spread to an income", async () => {
 });
 
 it("blocks dismissal while pending and keeps a rejected form editable", async () => {
-  Object.assign(mockCreate, { isPending: true, isError: true });
+  mockCreate.isPending = true;
   const view = await render(<BudgetLineSheet {...baseProps} />);
   await fill(view, 120, "Retry me");
-  await fireEvent.press(view.getByLabelText("dismiss-form"));
+  const close = view.getByRole("button", { name: "common.close" });
+  expect(close).toBeDisabled();
+  await fireEvent.press(close);
+  expect(baseProps.onDismiss).not.toHaveBeenCalled();
 
-  expect(view.getByText("busy:true")).toBeTruthy();
-  expect(view.getByText("budgets.mutations.forecast.error")).toBeTruthy();
-  expect(view.getByLabelText("budgets.mutations.name").props.value).toBe(
+  Object.assign(mockCreate, { isPending: false, isError: true });
+  await view.rerender(<BudgetLineSheet {...baseProps} />);
+  expect(view.getByText("budgets.mutations.forecast.error")).toBeOnTheScreen();
+  expect(close).toBeEnabled();
+  expect(view.getByLabelText("budgets.mutations.name")).toHaveDisplayValue(
     "Retry me",
   );
-  expect(baseProps.onDismiss).not.toHaveBeenCalled();
-  expect(mockCreate.mutate).not.toHaveBeenCalled();
 });

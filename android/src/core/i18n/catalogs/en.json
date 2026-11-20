@@ -134,7 +134,7 @@
       "missingTitle": "This budget no longer exists",
       "monthSelector": "Month selector",
       "noResults": "Nothing matches this filter.",
-      "openForecast": "Open forecast details",
+      "openForecast": "Tap to open details",
       "openGoal": "Open savings goal",
       "protectedMessage": "When you spend less than planned, Pulpe keeps the planned amount to protect your budget.",
       "protectedTitle": "Protected budget",
@@ -377,7 +377,8 @@
       }
     },
     "list": {
-      "adjustment": "Adjustment",
+      "available": "available",
+      "availablePlanned": "planned available",
       "create": "Create my budget",
       "createAccessibility": "Create a budget",
       "emptyHint": "Create your first month from one of your templates.",
@@ -385,7 +386,6 @@
       "loadErrorHint": "Check your connection, then try again.",
       "loadErrorTitle": "We couldn't load your budgets",
       "planAccessibility": "Plan multiple budgets",
-      "potential": "Potential",
       "title": "Budgets",
       "yearBalance": "Year-end balance %{year}",
       "yearReview": "Summary %{year}",
@@ -509,7 +509,7 @@
     "currencyNameCHF": "Swiss franc",
     "currencyNameEUR": "Euro",
     "and": "and",
-    "back": "Back",
+    "back": "Go back",
     "backToSignIn": "Back to sign in",
     "cancel": "Cancel",
     "choose": "Choose",
@@ -529,7 +529,6 @@
     "password": "Password",
     "retry": "Try again",
     "signOut": "Sign out",
-    "quickAmountAccessibility": "Set the amount to %{amount}",
     "screenError": {
       "title": "This screen ran into a problem",
       "hint": "Your data is untouched. Try again; if it happens again, close and reopen Pulpe."
@@ -847,18 +846,26 @@
       "undoFailure": "The check could not be undone. Try again from the budget."
     },
     "hero": {
-      "chartAccessibility": "Estimated balance over the month compared with the plan",
       "verdict": {
         "gain": "You have more left than planned.",
-        "gainDated": "Above your plan since %{date}.",
-        "onPlan": "You are right on plan.",
+        "gainDated": "Since %{date}, you have more left than planned.",
+        "onPlan": "You're right on plan.",
         "overrun": "You have less left than planned.",
-        "overrunDated": "Below your plan since %{date}."
+        "overrunDated": "Since %{date}, you have less left than planned."
       },
       "chart": {
-        "today": "today"
+        "today": "Today",
+        "accessibility": {
+          "plannedAvailable": "Planned available %{amount}.",
+          "plannedEnd": "Planned at period end %{amount}.",
+          "realToday": "Actual today %{amount}.",
+          "trend": "If you keep going, %{amount}.",
+          "hidden": "Landing trajectory for the period, amounts hidden."
+        }
       },
       "scrub": {
+        "real": "Actual on %{date}",
+        "realWithPlan": "Actual on %{date} · Planned %{amount}",
         "estimated": "Estimated on %{date}",
         "estimatedWithPlan": "Estimated on %{date} · Planned %{amount}"
       },
@@ -1911,7 +1918,7 @@
     "unlock": {
       "biometric": "Unlock with biometrics",
       "forgot": "Forgot your code?",
-      "subtitle": "It unlocks your amounts",
+      "subtitle": "Enter your code to open your budget.",
       "greeting": "Hello, %{name}",
       "greetingAnonymous": "Hello"
     },

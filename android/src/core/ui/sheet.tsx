@@ -28,7 +28,7 @@ import { useTranslation } from "@/core/i18n/locale-store";
 import { revealOffset, sheetBox, useKeyboardHeight } from "./keyboard-inset";
 import { useRipple } from "./ripple";
 import { useSheetColors } from "./scheme-colors";
-import { RADIUS, SPACING } from "./theme";
+import { RADIUS, SPACING, TOUCH_TARGET } from "./theme";
 
 const RevealContext = createContext<(target: View | null) => void>(
   () => undefined,
@@ -65,6 +65,7 @@ interface FormModalProps {
    * outside must never quietly change the step under the user's eyes.
    */
   onBack?: () => void;
+  showsBackButton?: boolean;
   /**
    * Never shrinks while open: a sheet of several steps of different lengths
    * keeps its tallest height, so its footer does not jump at each step.
@@ -93,6 +94,7 @@ export function FormModal({
   subtitle,
   footer,
   onBack,
+  showsBackButton = false,
   holdsHeight = false,
   children,
 }: FormModalProps) {
@@ -147,9 +149,8 @@ export function FormModal({
           style={StyleSheet.absoluteFill}
           onPress={isBusy ? undefined : onDismiss}
           android_ripple={ripple}
-          accessible={!isBusy}
-          accessibilityRole="button"
-          accessibilityLabel={t("common.close")}
+          accessible={false}
+          importantForAccessibility="no"
         />
         <View
           testID="form-modal-sheet"
@@ -169,8 +170,20 @@ export function FormModal({
           }
         >
           <View style={styles.header}>
+            {showsBackButton && onBack !== undefined && (
+              <IconButton
+                icon="arrow-left"
+                disabled={isBusy}
+                onPress={onBack}
+                accessibilityLabel={t("common.back")}
+                testID="form-modal-back"
+                style={styles.headerButton}
+              />
+            )}
             <View style={styles.heading}>
-              <Text variant="titleLarge">{title}</Text>
+              <Text variant="titleLarge" accessibilityRole="header">
+                {title}
+              </Text>
               {subtitle !== undefined && (
                 <Text
                   variant="labelMedium"
@@ -185,7 +198,8 @@ export function FormModal({
               disabled={isBusy}
               onPress={onDismiss}
               accessibilityLabel={t("common.close")}
-              style={styles.close}
+              testID="form-modal-close"
+              style={styles.headerButton}
             />
           </View>
 
@@ -249,7 +263,12 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   heading: { flex: 1, gap: SPACING.xxs },
-  close: { margin: 0 },
+  headerButton: {
+    width: TOUCH_TARGET,
+    height: TOUCH_TARGET,
+    margin: 0,
+    borderRadius: RADIUS.full,
+  },
   body: {
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.lg,
