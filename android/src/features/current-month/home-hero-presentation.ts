@@ -8,6 +8,7 @@ import {
 import { formatDayMonth } from "@/core/ui/date-format";
 
 import { chartProjection, showsTrendLabel } from "./balance-chart-scale";
+import { toCents } from "./balance-scrub";
 import type { TrendedTrajectory } from "./current-month-view-model";
 
 /**
@@ -114,6 +115,7 @@ export function rhythmSentence(
   { trajectory, periodEnd, currency, amountsHidden }: RhythmSentenceInput,
 ): string | null {
   if (chartProjection(trajectory).length === 0) return null;
+  // Compared in whole cents: two floats a rounding apart are the same landing.
   const landing = toCents(trajectory.trend);
   const planned = toCents(trajectory.plannedBalance);
   if (landing === planned) return null;
@@ -171,9 +173,4 @@ export function chartAccessibilityLabel(
     );
   }
   return spoken.join(" ");
-}
-
-/** Compared in whole cents: two floats a rounding apart are the same landing. */
-function toCents(value: number): number {
-  return Math.round(value * 100);
 }

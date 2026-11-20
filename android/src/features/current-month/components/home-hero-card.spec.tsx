@@ -109,6 +109,8 @@ it("keeps the captions while the amounts are masked", async () => {
   const view = await renderHero({});
 
   expect(view.queryByText(/1.?240/)).toBeNull();
+  // The mask alone, like every other masked amount: no currency read out.
+  expect(view.getByLabelText("•••")).toBeTruthy();
   expect(view.getByText(/^home\.hero\.rhythm\.moreHidden:/)).toBeTruthy();
   expect(view.getByText("25 juillet")).toBeTruthy();
   expect(view.getByText("home.hero.chart.today")).toBeTruthy();

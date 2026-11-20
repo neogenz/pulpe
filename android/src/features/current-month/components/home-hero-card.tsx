@@ -8,7 +8,10 @@ import { useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
-import { formatAdaptiveAmount } from "@/core/ui/amount-format";
+import {
+  formatAdaptiveAmount,
+  formatAdaptiveCurrency,
+} from "@/core/ui/amount-format";
 import {
   toggleAmountVisibility,
   useAmountVisibility,
@@ -167,7 +170,8 @@ export function HomeHeroCard({
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.6}
-          accessibilityLabel={`${formatAdaptiveAmount(figure, currency)} ${CURRENCY_METADATA[currency].symbol}`}
+          // Masked, the mask alone like every other amount: no symbol read out.
+          accessibilityLabel={formatAdaptiveCurrency(figure, currency)}
           style={[BRAND_TYPE.heroFigure, TABULAR_DIGITS, { color: hero.ink }]}
         >
           {formatAdaptiveAmount(figure, currency)}

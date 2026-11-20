@@ -99,7 +99,8 @@ function interpolate(points: Point[], day: number): number {
   return roundHalfAway((from * span + (to - from) * offset) / span) / 100;
 }
 
-function toCents(balance: number): number {
+/** Whole centimes, half away from zero like Swift's `rounded(2)`. */
+export function toCents(balance: number): number {
   return roundHalfAway(balance * 100);
 }
 

@@ -170,6 +170,13 @@ describe("rhythmSentence", () => {
     ).toBeNull();
   });
 
+  it("rounds a negative half centime away from zero like iOS", () => {
+    // iOS reads -1.125 as -1.13: the same landing as the plan, so no sentence.
+    expect(
+      sentence({ plannedBalance: -1.13, drift: -0.005, trend: -1.125 }),
+    ).toBeNull();
+  });
+
   it("quotes the trajectory's own trend, not one it recomputes", () => {
     expect(sentence({ trend: 1500 })).toMatch(/il te restera 1.?500 CHF/);
   });
