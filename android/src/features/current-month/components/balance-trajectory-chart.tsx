@@ -101,12 +101,16 @@ export function BalanceTrajectoryChart({
   const todayFraction =
     trajectory.totalDays > 0 ? trajectory.today / trajectory.totalDays : 0;
   const [plotWidth, setPlotWidth] = useState(0);
+  const read = (event: { x: number }) =>
+    onScrub?.(scrubDayAt(event.x, plotWidth, trajectory.totalDays));
+  // `onStart` too: a hold that activates on its timer sends no update until the
+  // finger moves, and iOS shows the reading as soon as the hold lands.
   const scrub = Gesture.Pan()
     .activateAfterLongPress(SCRUB_HOLD_MS)
     .runOnJS(true)
-    .onUpdate((event) =>
-      onScrub?.(scrubDayAt(event.x, plotWidth, trajectory.totalDays)),
-    )
+    .withTestId("balance-scrub")
+    .onStart(read)
+    .onUpdate(read)
     .onFinalize(() => onScrub?.(null));
   const captionStyle = { color: hero.muted };
 

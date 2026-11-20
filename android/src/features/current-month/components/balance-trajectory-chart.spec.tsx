@@ -1,4 +1,9 @@
 import { fireEvent, render } from "@testing-library/react-native";
+import { State } from "react-native-gesture-handler";
+import {
+  fireGestureHandler,
+  getByGestureTestId,
+} from "react-native-gesture-handler/jest-utils";
 import { todayCaptionLeft } from "../balance-chart-scale";
 import type { TrendedTrajectory } from "../current-month-view-model";
 import { BalanceTrajectoryChart } from "./balance-trajectory-chart";
@@ -83,6 +88,30 @@ it("keeps the today caption clear of the start date on the first day", async () 
   const view = await renderMeasured(0);
 
   expect(view.getByTestId("chart-caption-today")).toHaveStyle({ left: 68 });
+});
+
+it("reads the day under a held finger before it moves", async () => {
+  const onScrub = jest.fn();
+  const view = await render(
+    <BalanceTrajectoryChart
+      trajectory={trajectory(15)}
+      period={period}
+      accent="green"
+      reading={null}
+      accessibilityLabel="spoken trajectory"
+      onScrub={onScrub}
+    />,
+  );
+  await fireEvent(view.getByRole("image"), "layout", layout(300));
+
+  // Activation alone, as when the hold timer fires with the finger still.
+  fireGestureHandler(getByGestureTestId("balance-scrub"), [
+    { state: State.BEGAN, x: 150 },
+    { state: State.ACTIVE, x: 150 },
+    { state: State.END, x: 150 },
+  ]);
+
+  expect(onScrub.mock.calls).toEqual([[15], [null]]);
 });
 
 describe("todayCaptionLeft", () => {
