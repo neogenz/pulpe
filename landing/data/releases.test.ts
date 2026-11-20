@@ -8,9 +8,9 @@ const releases = JSON.parse(
 ) as Array<Record<string, unknown>>;
 
 const localeMarkers = {
-  en: "Pages open at the top",
-  de: "Seiten öffnen sich oben",
-  it: "Le pagine si aprono dall’inizio",
+  en: "The tab bar stays visible on Android",
+  de: "Die Tableiste bleibt auf Android sichtbar",
+  it: "La barra delle schede resta visibile su Android",
 } as const;
 
 describe("localized release data", () => {
@@ -25,6 +25,7 @@ describe("localized release data", () => {
       assert.deepEqual(
         localized.map(({ version }) => version),
         [
+          "0.65.0",
           "0.64.1",
           "0.64.0",
           "0.63.0",

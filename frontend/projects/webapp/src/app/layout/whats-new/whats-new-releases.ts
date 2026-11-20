@@ -29,6 +29,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.65.0',
+    reason:
+      'Seul changement de la webapp : la part de chaque type dans Mon patrimoine, réservé aux early adopters ; le reste concerne l’app Android et le site',
+  },
+  {
     version: '0.64.1',
     reason:
       'Seule correction : les pages du site pulpe.app s’ouvraient tout en bas ; rien ne change dans la webapp',

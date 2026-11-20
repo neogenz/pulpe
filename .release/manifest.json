@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.64.1",
-  "githubReleaseNotes": "## v0.64.1\n\n### Corrections\n\n- **Les pages s’ouvrent en haut** — Après « Je teste » ou un autre lien de pulpe.app, la page suivante s’affiche depuis son début, et non plus tout en bas.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.65.0",
+  "githubReleaseNotes": "## v0.65.0\n\n### Corrections\n\n- **La barre d’onglets reste visible sur Android** — Un mois, un objectif ou un modèle s’ouvre dans l’onglet où tu l’as touché, sans cacher la barre du bas.\n\n### Technique\n\n- **Mon patrimoine** — Pour les early adopters, chaque type de « Ce que j’ai » affiche sa part en pourcentage. La page reste affichée pendant sa mise à jour.\n- **Lien de téléchargement** — Le lien pulpe.app/telecharger ouvre l’App Store sur iPhone et le site pulpe.app sur les autres appareils.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }

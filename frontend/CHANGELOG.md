@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.65.0
+
+### Minor Changes
+
+- Android : les écrans de détail s’ouvrent dans leur onglet, sous la barre du bas. Mon patrimoine : la part de chaque type pour les early adopters. Site : le lien pulpe.app/telecharger mène à l’App Store sur iPhone.
+
+### Patch Changes
+
+- pulpe-shared@0.65.0
+
 ## 0.64.1
 
 ### Patch Changes
