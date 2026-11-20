@@ -54,6 +54,54 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.65.0',
+    date: '2026-11-20',
+    platforms: ['android'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: 'La barre d’onglets reste visible sur Android',
+          description:
+            'Un mois, un objectif ou un modèle s’ouvre dans l’onglet où tu l’as touché, sans cacher la barre du bas.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [],
+        fixes: [
+          {
+            title: 'The tab bar stays visible on Android',
+            description:
+              'A month, a goal or a template opens in the tab you tapped it from, without hiding the bottom bar.',
+          },
+        ],
+      },
+      de: {
+        features: [],
+        fixes: [
+          {
+            title: 'Die Tableiste bleibt auf Android sichtbar',
+            description:
+              'Monate, Ziele und Vorlagen öffnen sich im Tab, in dem du sie antippst, ohne die untere Leiste zu verdecken.',
+          },
+        ],
+      },
+      it: {
+        features: [],
+        fixes: [
+          {
+            title: 'La barra delle schede resta visibile su Android',
+            description:
+              'Un mese, un obiettivo o un modello si apre nella scheda in cui l’hai toccato, senza nascondere la barra in basso.',
+          },
+        ],
+      },
+    },
+  },
+  {
     version: '0.62.1',
     iosVersion: '1.14.1',
     date: '2026-11-15',

@@ -45,6 +45,7 @@ so the required check exists (and can never hang Pending) on every PR.
 | Change surface                                                                                           | Units that run                           |
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | `.github/**` (static automation)                                                                         | Automation gates                         |
+| `aidd_docs/**` (plans, reviews, project memory)                                                          | Automation gates                         |
 | `.github/actions/**`, `.github/scripts/start-supabase.sh` (executed inside runtime jobs)                 | Full run (all units)                     |
 | `ios/**`                                                                                                 | Automation gates, iOS tests              |
 | `frontend/**`                                                                                            | Workspace (affected), E2E                |
@@ -100,7 +101,9 @@ decision is routed, the workspace runs `build`, unit tests and `lint` with
 - `migration-contract` validates new migration metadata, additive SQL and immutable history.
 - `ci-success` is the single protected status and fails unless every required
   job succeeded — a unit may be skipped only when the routing decision
-  declares it not required.
+  declares it not required. It also fails when `main` moved while the PR was
+  tested (`main advanced from tested base …`): no code is at fault, merging
+  `main` into the PR branch and pushing reruns CI on the current base.
 
 There is no performance-test job: the former job selected a deleted test file, so Bun ran
 zero tests while reporting success.

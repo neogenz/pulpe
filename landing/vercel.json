@@ -13,6 +13,23 @@
       "source": "/app/:path*",
       "destination": "https://app.pulpe.app/:path*",
       "permanent": true
+    },
+    {
+      "source": "/telecharger",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(iPhone|iPod).*"
+        }
+      ],
+      "destination": "https://apps.apple.com/app/pulpe/id6758464920?pt=128500600&mt=8",
+      "permanent": false
+    },
+    {
+      "source": "/telecharger",
+      "destination": "/",
+      "permanent": false
     }
   ],
   "rewrites": [

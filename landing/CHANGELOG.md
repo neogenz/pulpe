@@ -1,5 +1,7 @@
 # pulpe-landing
 
+## 0.65.0
+
 ## 0.64.1
 
 ### Patch Changes
