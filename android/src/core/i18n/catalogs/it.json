@@ -1463,12 +1463,7 @@
           "title": "Informativa sulla privacy"
         },
         "security": {
-          "biometric": {
-            "face": "riconoscimento facciale",
-            "fingerprint": "impronta digitale",
-            "generic": "sblocco biometrico"
-          },
-          "description": "Codice PIN, password, %{biometric}",
+          "description": "Codice PIN, password, biometria",
           "title": "Sicurezza"
         },
         "tags": {
@@ -1568,19 +1563,15 @@
     },
     "security": {
       "accessSection": "Accesso",
-      "biometric": {
-        "face": "Riconoscimento facciale",
-        "fingerprint": "Impronta digitale",
-        "generic": "Sblocco biometrico"
-      },
+      "biometric": "Sblocco biometrico",
       "biometricDescription": "Sblocca Pulpe senza inserire il codice PIN.",
       "biometricDisableAction": "Disattiva",
       "biometricDisableDescription": "Dovrai inserire il codice PIN a ogni sblocco.",
       "biometricDisableError": "Non è stato possibile disattivare lo sblocco biometrico. Riprova.",
-      "biometricDisableTitle": "Disattivare %{label}?",
-      "biometricDisabled": "%{label} disattivato",
+      "biometricDisableTitle": "Disattivare lo sblocco biometrico?",
+      "biometricDisabled": "Sblocco biometrico disattivato",
       "biometricEnableError": "Non è stato possibile attivare lo sblocco biometrico. Riprova.",
-      "biometricEnabled": "%{label} attivato",
+      "biometricEnabled": "Sblocco biometrico attivato",
       "biometricPrompt": "Sblocca Pulpe",
       "biometricSection": "Biometria",
       "confirmPasswordAction": "Conferma",

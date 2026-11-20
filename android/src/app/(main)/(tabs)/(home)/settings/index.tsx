@@ -1,6 +1,5 @@
 import Constants from "expo-constants";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   Linking,
@@ -23,7 +22,6 @@ import {
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
-import { describeBiometrics } from "@/core/crypto/biometrics";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { captureStoreReviewRequested } from "@/core/observability/product-events";
 import { APP_URLS } from "@/core/ui/app-urls";
@@ -52,11 +50,6 @@ export default function SettingsScreen() {
   const profile = useUserProfile();
   const tags = useTags();
   const connections = useConnections();
-  const biometricKind = useQuery({
-    queryKey: ["biometrics", "kind"],
-    queryFn: describeBiometrics,
-    staleTime: Infinity,
-  }).data;
   const pull = usePullToRefresh(() => profile.refetch());
   const sessionEmail = useSessionStore((state) => state.user?.email);
   const signOut = useSessionStore((state) => state.signOut);
@@ -119,13 +112,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="shield-lock-outline"
             title={t("settings.account.rows.security.title")}
-            description={t("settings.account.rows.security.description", {
-              // Its own lower-case keys: the name sits mid-sentence here, while
-              // `settings.security.biometric.*` titles a row in security.tsx.
-              biometric: t(
-                `settings.account.rows.security.biometric.${biometricKind ?? "generic"}`,
-              ),
-            })}
+            description={t("settings.account.rows.security.description")}
             onPress={() => router.push("/settings/security")}
           />
           <SettingsRow

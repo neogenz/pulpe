@@ -92,7 +92,8 @@ export default function VaultUnlockScreen() {
               style={styles.biometric}
             >
               <MaterialCommunityIcons
-                name="fingerprint"
+                // Android picks the sensor, so the icon must not promise one.
+                name="account-lock-open-outline"
                 size={ICON_SIZE.xl}
                 color={theme.colors.primary}
               />

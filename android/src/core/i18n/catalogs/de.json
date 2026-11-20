@@ -1463,12 +1463,7 @@
           "title": "Datenschutzhinweis"
         },
         "security": {
-          "biometric": {
-            "face": "Gesichtserkennung",
-            "fingerprint": "Fingerabdruck",
-            "generic": "biometrische Entsperrung"
-          },
-          "description": "PIN-Code, Passwort, %{biometric}",
+          "description": "PIN-Code, Passwort, Biometrie",
           "title": "Sicherheit"
         },
         "tags": {
@@ -1568,19 +1563,15 @@
     },
     "security": {
       "accessSection": "Zugriff",
-      "biometric": {
-        "face": "Gesichtserkennung",
-        "fingerprint": "Fingerabdruck",
-        "generic": "Biometrische Entsperrung"
-      },
+      "biometric": "Biometrische Entsperrung",
       "biometricDescription": "Entsperre Pulpe, ohne deinen PIN-Code einzugeben.",
       "biometricDisableAction": "Deaktivieren",
       "biometricDisableDescription": "Du musst deinen PIN-Code bei jeder Entsperrung eingeben.",
       "biometricDisableError": "Die biometrische Entsperrung konnte nicht deaktiviert werden. Versuche es erneut.",
-      "biometricDisableTitle": "%{label} deaktivieren?",
-      "biometricDisabled": "%{label} deaktiviert",
+      "biometricDisableTitle": "Biometrische Entsperrung deaktivieren?",
+      "biometricDisabled": "Biometrische Entsperrung deaktiviert",
       "biometricEnableError": "Die biometrische Entsperrung konnte nicht aktiviert werden. Versuche es erneut.",
-      "biometricEnabled": "%{label} aktiviert",
+      "biometricEnabled": "Biometrische Entsperrung aktiviert",
       "biometricPrompt": "Pulpe entsperren",
       "biometricSection": "Biometrie",
       "confirmPasswordAction": "Bestätigen",

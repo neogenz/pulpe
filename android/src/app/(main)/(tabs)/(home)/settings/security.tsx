@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -16,7 +15,7 @@ import { Card } from "@/core/ui/card";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
-import { describeBiometrics } from "@/core/crypto/biometrics";
+import { canUseBiometricUnlock } from "@/core/crypto/biometrics";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { SPACING } from "@/core/ui/theme";
@@ -68,18 +67,10 @@ export default function SecuritySettingsScreen() {
   const [isBiometricBusy, setBiometricBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // A device capability, asked once and cached: it cannot change while the
-  // screen is up without the user leaving the app to enrol a finger.
-  const biometrics = useQuery({
-    queryKey: ["biometrics", "kind"],
-    queryFn: describeBiometrics,
-    staleTime: Infinity,
-  });
-  const biometricKind = biometrics.data ?? null;
-  const biometricLabel =
-    biometricKind === null
-      ? null
-      : t(`settings.security.biometric.${biometricKind}`);
+  // shortcut: read once per visit, so a finger enrolled while this screen
+  // stays open shows up only on the next visit; re-check on AppState if needed.
+  const [canUseBiometrics] = useState(canUseBiometricUnlock);
+  const biometricLabel = t("settings.security.biometric");
   const email = profile.data?.email ?? sessionEmail ?? "";
 
   async function enableBiometrics() {
@@ -88,9 +79,7 @@ export default function SecuritySettingsScreen() {
       const isEnabled = await enableVaultBiometrics();
       setNotice(
         isEnabled
-          ? t("settings.security.biometricEnabled", {
-              label: biometricLabel ?? t("settings.security.biometric.generic"),
-            })
+          ? t("settings.security.biometricEnabled")
           : t("settings.security.biometricEnableError"),
       );
     } catch {
@@ -104,11 +93,7 @@ export default function SecuritySettingsScreen() {
     setBiometricBusy(true);
     try {
       await disableVaultBiometrics();
-      setNotice(
-        t("settings.security.biometricDisabled", {
-          label: biometricLabel ?? t("settings.security.biometric.generic"),
-        }),
-      );
+      setNotice(t("settings.security.biometricDisabled"));
     } catch {
       setNotice(t("settings.security.biometricDisableError"));
     } finally {
@@ -171,7 +156,8 @@ export default function SecuritySettingsScreen() {
           />
         </SettingsSection>
 
-        {biometricLabel !== null && (
+        {/* Kept while enabled so it can still be turned off. */}
+        {(canUseBiometrics || isBiometricEnabled) && (
           <SettingsSection title={t("settings.security.biometricSection")}>
             <View style={styles.switchRow}>
               <View style={styles.switchLabels}>
@@ -271,9 +257,7 @@ export default function SecuritySettingsScreen() {
           }}
         >
           <Dialog.Title>
-            {t("settings.security.biometricDisableTitle", {
-              label: biometricLabel,
-            })}
+            {t("settings.security.biometricDisableTitle")}
           </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">

@@ -18,6 +18,7 @@ describe('CurrencyService', () => {
   let service: CurrencyService;
   let module: TestingModule;
   const mockFetch = jest.fn();
+  const realFetch = global.fetch;
   let dateNowSpy: ReturnType<typeof jest.spyOn> | undefined;
   let mockedTimeMs: number;
 
@@ -47,6 +48,8 @@ describe('CurrencyService', () => {
   afterEach(async () => {
     dateNowSpy?.mockRestore();
     mockFetch.mockReset();
+    // Later files spy on fetch: a leaked mock hands them its call history.
+    global.fetch = realFetch;
     await module?.close();
   });
 
