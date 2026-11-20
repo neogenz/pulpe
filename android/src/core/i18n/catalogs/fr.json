@@ -1456,7 +1456,7 @@
           "title": "Avis de confidentialité"
         },
         "security": {
-          "description": "Code PIN, mot de passe, %{biometric}",
+          "description": "Code PIN, mot de passe, biométrie",
           "title": "Sécurité"
         },
         "tags": {
@@ -1556,19 +1556,15 @@
     },
     "security": {
       "accessSection": "Accès",
-      "biometric": {
-        "face": "Reconnaissance faciale",
-        "fingerprint": "Empreinte digitale",
-        "generic": "Déverrouillage biométrique"
-      },
+      "biometric": "Déverrouillage biométrique",
       "biometricDescription": "Déverrouille Pulpe sans saisir ton code PIN.",
       "biometricDisableAction": "Désactiver",
       "biometricDisableDescription": "Tu devras saisir ton code PIN à chaque déverrouillage.",
       "biometricDisableError": "La désactivation a échoué. Réessaie.",
-      "biometricDisableTitle": "Désactiver %{label} ?",
-      "biometricDisabled": "%{label} désactivé",
+      "biometricDisableTitle": "Désactiver le déverrouillage biométrique ?",
+      "biometricDisabled": "Déverrouillage biométrique désactivé",
       "biometricEnableError": "L'activation a échoué. Réessaie.",
-      "biometricEnabled": "%{label} activé",
+      "biometricEnabled": "Déverrouillage biométrique activé",
       "biometricPrompt": "Déverrouille Pulpe",
       "biometricSection": "Biométrie",
       "confirmPasswordAction": "Confirmer",

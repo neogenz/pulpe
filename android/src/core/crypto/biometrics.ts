@@ -1,29 +1,12 @@
-import * as LocalAuthentication from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
 
 /**
- * What this device can actually offer, named the way its own settings name it —
- * mirrors `BiometricService.biometryDisplayName` on iOS. `null` means the
- * option must not be shown at all: either there is no sensor, or nothing is
- * enrolled on it, and offering a switch that can only fail is worse than
- * offering nothing.
+ * Whether biometric unlock can be turned on. The key it guards lives in
+ * `expo-secure-store`, which only opens for Class 3 biometrics, so this asks
+ * the same question it will. The device's hardware list is not enough: a face
+ * sensor declared there is usually Class 2, and Android then prompts for the
+ * fingerprint. Android picks the sensor, so the setting never names one.
  */
-export type BiometricKind = "face" | "fingerprint" | "generic";
-
-export async function describeBiometrics(): Promise<BiometricKind | null> {
-  const [hasHardware, isEnrolled, types] = await Promise.all([
-    LocalAuthentication.hasHardwareAsync(),
-    LocalAuthentication.isEnrolledAsync(),
-    LocalAuthentication.supportedAuthenticationTypesAsync(),
-  ]);
-  if (!hasHardware || !isEnrolled) return null;
-
-  if (
-    types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)
-  ) {
-    return "face";
-  }
-  if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-    return "fingerprint";
-  }
-  return "generic";
+export function canUseBiometricUnlock(): boolean {
+  return SecureStore.canUseBiometricAuthentication();
 }

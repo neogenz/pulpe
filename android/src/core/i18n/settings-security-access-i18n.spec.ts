@@ -6,16 +6,14 @@ const { readFileSync } = jest.requireActual<{
 
 describe("settings security access localization", () => {
   it.each([
-    ["fr", "Sécurité", "Empreinte digitale"],
-    ["en", "Security", "Fingerprint"],
-    ["de", "Sicherheit", "Fingerabdruck"],
-    ["it", "Sicurezza", "Impronta digitale"],
+    ["fr", "Sécurité", "Déverrouillage biométrique"],
+    ["en", "Security", "Biometric unlock"],
+    ["de", "Sicherheit", "Biometrische Entsperrung"],
+    ["it", "Sicurezza", "Sblocco biometrico"],
   ])("serves access and biometric copy in %s", (locale, title, biometric) => {
     i18n.locale = locale;
     expect(translate("settings.security.title")).toBe(title);
-    expect(translate("settings.security.biometric.fingerprint")).toBe(
-      biometric,
-    );
+    expect(translate("settings.security.biometric")).toBe(biometric);
   });
 
   it("classifies failures by stable codes and locks pending dialogs", () => {
