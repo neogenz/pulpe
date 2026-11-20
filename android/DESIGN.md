@@ -91,7 +91,7 @@ state shows, optionally ending in a named link). The status bar follows the sche
 
 Every list is one `LedgerCard`: rows separated by hairlines that start under the text column, each
 row opening on a 36dp disc (`IconDisc`) in the colour of its nature. A virtualized list draws the
-same card in `LedgerSegment`s. A section names itself above its card with `SectionHeader` — Manrope
+same card in `LedgerSegment`s. A section names itself above its card with `SectionHeader` — MD3 `titleLarge`
 title, a quiet count, an optional summary amount and a _named_ link (`Tout voir`, `Ajuster`).
 
 On a budget, the disc is the pointing control (`PointCircle`): to point, the row's own disc ringed

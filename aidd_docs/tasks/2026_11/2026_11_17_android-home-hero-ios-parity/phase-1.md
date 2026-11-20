@@ -54,14 +54,14 @@ status: done
 
 > The dated verdict says what the user does, as on iOS.
 
-1. In the four catalogs, `home.hero.verdict`: `gainDated` and `overrunDated` take the iOS strings (`Tu dépenses moins que prévu depuis le %{date}.`, `Tu dépenses plus que prévu depuis le %{date}.`, and the en, de, it values of the same keys in `ios/Pulpe/Resources/Localizable.xcstrings`); `onPlan` in en, de, it takes the iOS value of `Tu es pile sur ton plan.`.
+1. In the four catalogs, `home.hero.verdict`: `gainDated` and `overrunDated` take the iOS strings (`Depuis le %{date}, il te reste plus que prévu.`, `Depuis le %{date}, il te reste moins que prévu.`, reworded on both platforms in 03b291338 to date what is left rather than spending, and the en, de, it values of the same keys in `ios/Pulpe/Resources/Localizable.xcstrings`); `onPlan` in en, de, it takes the iOS value of `Tu es pile sur ton plan.`.
 2. Update the expected sentences in `home-hero-presentation.spec.ts` (the `dates the drift in %s` table).
 
 ### `3)` Verdict in the accent, pace in the support ink
 
 > Only the verdict carries the accent; the pace sentence after it is quieter.
 
-1. In `android/src/core/ui/hero.tsx`, give `HeroVerdict` two optional props: `strong?: boolean` renders the sentence semibold (weight 600), `tail?: string` follows it after a space as a nested `Text` in `hero.support` at regular weight. With neither, the output is unchanged (two other callers: `budgets.tsx`, `net-worth-hero.tsx`).
+1. In `android/src/core/ui/hero.tsx`, give `HeroVerdict` two optional props: `strong?: boolean` renders the sentence bold (weight 700: the system face draws 600 as regular, measured in 47e6e92cc; Android's reading of iOS semibold), `tail?: string` follows it after a space as a nested `Text` in `hero.support` at regular weight. With neither, the output is unchanged (two other callers: `budgets.tsx`, `net-worth-hero.tsx`).
 2. In `home-hero-card.tsx`, pass the verdict as `sentence` with `strong` always set (iOS keeps it semibold with or without a pace sentence), and the pace sentence (or the fresh-start tail) as `tail` instead of joining them.
 
 ### `4)` Adaptive hero figure

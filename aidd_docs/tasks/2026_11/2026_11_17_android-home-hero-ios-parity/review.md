@@ -64,3 +64,21 @@
 ### Limits
 
 - Round 1 minors and the device-only doubts stay open
+
+## Round 3
+
+- Diff: `4a8c02fa0...HEAD` (round 1 minors)
+- Uncommitted changes: no
+- Axes: code, functional
+- Verdict: approve, because the fixed minors carry tests and the rest are left on purpose
+
+### Criteria
+
+- [x] Scrub reads the day as soon as the hold activates — `.onStart` in `balance-trajectory-chart.tsx`; spec "reads the day under a held finger before it moves" fails without it
+- [x] Chart-domain test asserts literal bounds; `chartSpan` private again
+- [x] `realized-balance-sheet.tsx` uses `formatAdaptiveAmount`; redundant segment label dropped; DESIGN.md and plan phases match the code
+- [x] Checks: type-check 0, lint 0, prettier OK, Jest 208 suites / 1382 tests
+
+### Limits
+
+- Left on purpose: chart memoization (no jank measured), « Autre » header padding and segment border (need an emulator), Maestro `add-operation` (runs in the Android CI smoke), shared-atom list in the PR body, float vs `Decimal` in the shared calculators (separate task)

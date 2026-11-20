@@ -65,7 +65,7 @@ status: done
 1. In `balance-chart-scale.ts`, delete `chartSeries` and `ChartPoint`. Every helper below takes a `TrendedTrajectory` and reads `trajectory.trend`; none calls `trendBalance`.
 2. Add `chartPlan(trajectory)`: `[{ day: 0, balance: plannedAvailable }, { day: totalDays, balance: plannedBalance }]`.
 3. Add `chartProjection(trajectory)`: empty when `today >= totalDays` or `real` is empty, else `[lastReal, { day: totalDays, balance: trend }]`.
-4. Port `span` and `chartYDomain`: plotted values are both plan ends, every `real` balance and the trend; span floored at `plannedOutflows * 0.05`; slack split one quarter above, three quarters below; padding `max(span * 0.12, 1)`. Export `chartSpan`. Rewrite the doc comment above `chartYDomain`: the « Unlike the iOS twin » sentence no longer holds, the function is a port.
+4. Port `span` and `chartYDomain`: plotted values are both plan ends, every `real` balance and the projection while it is drawn (the trend counts only before the last day, 0778de7d2, mirrored on iOS); span floored at `plannedOutflows * 0.05`; slack split one quarter above, three quarters below; padding `max(span * 0.12, 1)`. Rewrite the doc comment above `chartYDomain`: the « Unlike the iOS twin » sentence no longer holds, the function is a port.
 5. Add `showsTrendLabel(trajectory)`: projection non-empty and `|trend - plannedBalance|` both `> 0` and `>= chartSpan * 0.08`.
 6. Rewrite `balance-chart-scale.spec.ts` for these helpers; `todayCaptionLeft` and its tests stay untouched.
 
