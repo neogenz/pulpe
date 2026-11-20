@@ -7375,7 +7375,6 @@ packages:
       react: '*'
       react-native: '*'
 
-
   expo-localization@57.0.2:
     resolution: {integrity: sha512-sIKYH3Ivddoge568WY6j+Kp2MAAZzWWqEnY2bokLkJFwX366tGL1mEnoY2WUi/qHatFFPop2yqDdurzbhnnimQ==}
     peerDependencies:
@@ -19787,7 +19786,6 @@ snapshots:
     transitivePeerDependencies:
       - expo
       - supports-color
-
 
   expo-localization@57.0.2(expo@57.0.33)(react@19.2.3):
     dependencies:
