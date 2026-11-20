@@ -120,6 +120,8 @@ export default function SettingsScreen() {
             icon="shield-lock-outline"
             title={t("settings.account.rows.security.title")}
             description={t("settings.account.rows.security.description", {
+              // Its own lower-case keys: the name sits mid-sentence here, while
+              // `settings.security.biometric.*` titles a row in security.tsx.
               biometric: t(
                 `settings.account.rows.security.biometric.${biometricKind ?? "generic"}`,
               ),
