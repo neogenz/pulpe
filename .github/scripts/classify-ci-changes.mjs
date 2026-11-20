@@ -72,6 +72,9 @@ export function classifyPath(path) {
   )
     return { kind: "full", reason: `runtime CI dependency: ${path}` };
   if (path.startsWith(".github/")) return { kind: "github" };
+  // Plans, reviews and project memory: no package builds or ships them. The
+  // automation unit's public-surface test is the only check that reads them.
+  if (path.startsWith("aidd_docs/")) return { kind: "aidd_docs" };
   if (path.startsWith("ios/")) return { kind: "ios" };
   if (PACKAGE_PREFIXES.some((prefix) => path.startsWith(prefix)))
     return { kind: "turbo" };
@@ -95,7 +98,7 @@ export function classifyChanges({ headRef, files, affectedPackages }) {
   }
 
   const units = emptyUnits();
-  if (kinds.has("github")) units.automation = true;
+  if (kinds.has("github") || kinds.has("aidd_docs")) units.automation = true;
   if (kinds.has("ios")) {
     units.automation = true;
     units.ios = true;
