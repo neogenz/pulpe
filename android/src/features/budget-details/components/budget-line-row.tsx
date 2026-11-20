@@ -133,9 +133,14 @@ export function BudgetLineRow({
             android_ripple={ripple}
             style={[styles.open, !isPointable && styles.discInset]}
             accessibilityRole="button"
-            accessibilityLabel={[line.name, metadata, formattedAmount].join(
-              " · ",
-            )}
+            // The nature in words and the amount unsigned, as iOS speaks the
+            // row: a `+` before masked digits would still be read out.
+            accessibilityLabel={[
+              t(`vocabulary.kind.${line.kind}`),
+              line.name,
+              metadata,
+              formatCurrency(item.shownAmount, currency),
+            ].join(" · ")}
             accessibilityHint={t("budgets.detail.openForecast")}
           >
             {/* Planned withdrawals are pointed from their goal. */}

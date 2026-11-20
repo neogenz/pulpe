@@ -1,6 +1,7 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import type { BudgetLine } from "pulpe-shared";
 
+import { useAmountVisibility } from "@/core/ui/amount-visibility";
 import { TOUCH_TARGET } from "@/core/ui/theme";
 
 import { DEFAULT_FILTERS, detailsSections } from "../budget-details-selectors";
@@ -111,3 +112,15 @@ it.each([1, 1.5, 2])(
     if (stacked) expect(title.parent?.children.at(-1)).toBe(amount);
   },
 );
+
+it("speaks an income's nature in words and never a sign before masked digits", async () => {
+  useAmountVisibility.setState({ areAmountsHidden: true });
+  try {
+    const { view } = await renderRow("goal-1");
+    const open = view.getByRole("button", { name: /^Income · Loyer/ });
+
+    expect(open.props.accessibilityLabel).toMatch(/ · •••$/);
+  } finally {
+    useAmountVisibility.setState({ areAmountsHidden: false });
+  }
+});
