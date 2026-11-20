@@ -274,6 +274,19 @@ describe("sheets", () => {
     expect(capped).toEqual([]);
   });
 
+  it("never measures the window without also asking for the keyboard", () => {
+    // Reading only the font scale sizes nothing the keyboard covers.
+    const blind = sourceFiles("src").filter((path) => {
+      const source = readFileSync(path, "utf8");
+      return (
+        /useWindowDimensions\(\)(?!\.fontScale)/.test(source) &&
+        !source.includes("useKeyboardHeight")
+      );
+    });
+
+    expect(blind).toEqual([]);
+  });
+
   it("makes room for the keyboard while keeping the footer available", async () => {
     const { view } = await renderModal(false);
     const sheet = view.getByTestId("form-modal-sheet");
