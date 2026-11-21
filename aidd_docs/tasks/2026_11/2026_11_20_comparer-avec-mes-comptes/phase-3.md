@@ -52,7 +52,7 @@ status: pending
 | Happy path | `PUT /v1/reconciliation/state` `{ "startingAmount": 3100, "completed": true }` then GET | `startingAmount: 3100`, `hasCompletedComparison: true`; the column holds a ciphertext, not `3100` | api |
 | Edge case | PUT `{}`, PUT an unknown key, PUT `startingAmount: "abc"` | 400 with the shared validation error | api |
 | Edge case | GET with another user's budget id | 404, nothing leaked | api |
-| Edge case | PUT without `X-Client-Key` | 401 like every other write | api |
+| Edge case | PUT without `X-Client-Key` | 403 `ERR_AUTH_CLIENT_KEY_MISSING` like every other route | api |
 
 ## Tasks to do
 

@@ -154,6 +154,14 @@ export {
   assetCategoryResponseSchema,
   assetCategoryDeleteResponseSchema,
 
+  // Account reconciliation
+  reconciliationPriorItemSchema,
+  reconciliationStateSchema,
+  reconciliationContextSchema,
+  reconciliationContextResponseSchema,
+  updateReconciliationStateSchema,
+  reconciliationStateResponseSchema,
+
   // Budget Line schemas
   budgetLineSchema,
   budgetLineCreateSchema,
@@ -572,6 +580,14 @@ export type {
   AssetSnapshotsResponse,
   AssetCategoryResponse,
   AssetCategoryDeleteResponse,
+
+  // Account reconciliation types
+  ReconciliationPriorItem,
+  ReconciliationState,
+  ReconciliationContext,
+  ReconciliationContextResponse,
+  UpdateReconciliationState,
+  ReconciliationStateResponse,
 
   // Budget Line types
   BudgetLine,
