@@ -225,12 +225,12 @@ it("offers no reconciliation without a loaded budget", async () => {
   expect(view.queryByText("Comparer avec mes comptes")).toBeNull();
 });
 
-it("drops the signs along with the figures while amounts are hidden", async () => {
+it("hides the signs and what was spent where while amounts are hidden", async () => {
   mockHidden = true;
   const view = await renderSheet();
 
   expect(view.queryByText(/^[+−]•••$/)).toBeNull();
-  expect(view.getByText("Courses +•••, Cadeau ••• et Resto •••.")).toBeTruthy();
+  expect(view.queryByText(/Courses/)).toBeNull();
 });
 
 it("names two causes then counts the rest", () => {

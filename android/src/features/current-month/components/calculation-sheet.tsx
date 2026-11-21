@@ -10,7 +10,7 @@ import { formatMonthName } from "@/core/ui/date-format";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
 import { SectionHeader } from "@/core/ui/section-header";
 import { FormModal } from "@/core/ui/sheet";
-import { SPACING } from "@/core/ui/theme";
+import { SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import { toCents } from "../balance-scrub";
 import { calculationRows, gapCauses } from "../calculation-presentation";
@@ -115,7 +115,13 @@ export function CalculationSheet({
         <View style={styles.footer}>
           <Text variant="bodySmall" style={[muted, styles.centered]}>
             {sentence.slice(0, at)}
-            <Text style={[styles.bold, { color: theme.colors.onSurface }]}>
+            <Text
+              style={[
+                TABULAR_DIGITS,
+                styles.bold,
+                { color: theme.colors.onSurface },
+              ]}
+            >
               {balance}
             </Text>
             {sentence.slice(at + balance.length)}
@@ -144,6 +150,7 @@ export function CalculationSheet({
           <LedgerRow
             key={index}
             title={row.title}
+            wrapsTitle
             subtitle={row.caption}
             trailing={<Amount size="row">{formula(row.amount)}</Amount>}
           />
@@ -177,7 +184,8 @@ export function CalculationSheet({
             }
           />
         </LedgerCard>
-        {explanation !== "" && (
+        {/* Names what was spent where: hidden with the amounts, as iOS blurs it. */}
+        {explanation !== "" && !areHidden && (
           <Text variant="bodyMedium" style={muted}>
             {explanation}
           </Text>
