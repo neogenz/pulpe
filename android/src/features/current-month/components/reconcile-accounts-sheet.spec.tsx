@@ -8,6 +8,7 @@ import {
 import { captureEvent } from "@/core/observability/analytics";
 
 import type { RealizedMetrics } from "../current-month-view-model";
+import { keepReconcileDraft, pendingReconcileResume } from "../reconcile-draft";
 import {
   type ReconcileMonth,
   ReconcileAccountsSheet,
@@ -34,6 +35,14 @@ jest.mock("@/features/net-worth/net-worth-queries", () => ({
 }));
 jest.mock("../reconcile-linked-accounts", () => ({
   useReconcileLinkedAccounts: () => mockLinked,
+}));
+let mockVaultStatus = "unlocked";
+let mockHasKey = true;
+jest.mock("@/core/vault/vault-store", () => ({
+  useVaultStore: { getState: () => ({ status: mockVaultStatus }) },
+}));
+jest.mock("@/core/crypto/client-key-manager", () => ({
+  hasClientKey: () => mockHasKey,
 }));
 jest.mock("@/features/net-worth/net-worth-sections", () => ({
   assetAgeLabel: () => "today",
@@ -281,6 +290,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   Object.assign(mockCreate, { isPending: false, isError: false });
   mockLinked = null;
+  mockVaultStatus = "unlocked";
+  mockHasKey = true;
+  keepReconcileDraft(null);
 });
 
 function ownAccount(id: string, inPulpe: boolean): Asset {
@@ -390,6 +402,39 @@ it("dismisses from the scrim without changing step, and forgets what was typed",
   expect(props.onDismiss).toHaveBeenCalledTimes(1);
   expect(view.getByLabelText(AMOUNT).props.value).toBe("");
   expect(mockCreate.mutate).not.toHaveBeenCalled();
+});
+
+it("keeps what was typed when the vault locks under it, and opens on it again", async () => {
+  const { props, view: pending } = renderSheet();
+  const view = await pending;
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
+
+  // The lock drops the key, then the month's data, then every screen.
+  mockHasKey = false;
+  await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
+  expect(props.onDismiss).not.toHaveBeenCalled();
+  mockVaultStatus = "locked";
+  await view.unmount();
+  expect(pendingReconcileResume()).toBe("budget-1");
+
+  mockHasKey = true;
+  mockVaultStatus = "unlocked";
+  const { view: reopening } = renderSheet();
+  const reopened = await reopening;
+  expect(reopened.getByLabelText(AMOUNT).props.value).toBe("1500");
+
+  await fireEvent.press(reopened.getByLabelText("scrim"));
+  expect(pendingReconcileResume()).toBeNull();
+});
+
+it("keeps nothing when the sheet goes away without a lock", async () => {
+  const { view: pending } = renderSheet();
+  const view = await pending;
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
+
+  await view.unmount();
+
+  expect(pendingReconcileResume()).toBeNull();
 });
 
 it("adds and removes named accounts, totals them live and takes an overdraft", async () => {
