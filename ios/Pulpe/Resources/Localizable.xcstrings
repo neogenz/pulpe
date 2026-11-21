@@ -1,6 +1,28 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    "%@ de différence" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Unterschied"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ difference"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ di differenza"
+          }
+        }
+      }
+    },
     "%@ · au rapprochement" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -162,6 +184,50 @@
         }
       }
     },
+    "Coche l'essence de 60 : Pulpe est à jour avec ta banque." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake das Benzin über 60 ab: Pulpe ist auf dem Stand deiner Bank."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the 60 fuel expense: Pulpe is up to date with your bank."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta la benzina da 60: Pulpe è allineata alla tua banca."
+          }
+        }
+      }
+    },
+    "Comparer maintenant" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare now"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confronta ora"
+          }
+        }
+      }
+    },
     "Compte %lld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -204,6 +270,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prestito"
+          }
+        }
+      }
+    },
+    "Dans Pulpe, déjà coché" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Pulpe, schon abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Pulpe, already checked"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Pulpe, già spuntato"
           }
         }
       }
@@ -254,6 +342,50 @@
         }
       }
     },
+    "Déjà coché" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schon abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already checked"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Già spuntato"
+          }
+        }
+      }
+    },
+    "Essence · hier" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benzin · gestern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fuel · yesterday"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benzina · ieri"
+          }
+        }
+      }
+    },
     "Hypothèque" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -273,6 +405,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mutuo"
+          }
+        }
+      }
+    },
+    "Ma banque" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Bank"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My bank"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La mia banca"
           }
         }
       }
@@ -302,6 +456,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Valuta Pulpe"
+          }
+        }
+      }
+    },
+    "Ouvre l'app de ta banque et recopie le montant de ton compte." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne die App deiner Bank und übernimm den Betrag deines Kontos."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open your bank's app and copy your account's amount."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri l'app della tua banca e copia l'importo del tuo conto."
+          }
+        }
+      }
+    },
+    "Pareil des deux côtés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf beiden Seiten gleich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same on both sides"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uguale da entrambe le parti"
+          }
+        }
+      }
+    },
+    "Pulpe te montre ce qui manque" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe zeigt dir, was fehlt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe shows you what's missing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe ti mostra cosa manca"
+          }
+        }
+      }
+    },
+    "Revoir le guide" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anleitung ansehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review the guide"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rivedi la guida"
           }
         }
       }
@@ -744,6 +986,72 @@
         }
       }
     },
+    "Tape ce que ta banque affiche" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe ein, was deine Bank anzeigt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type what your bank shows"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digita ciò che mostra la tua banca"
+          }
+        }
+      }
+    },
+    "Tu vois cette dépense dans l'app de ta banque ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siehst du diese Ausgabe in der App deiner Bank?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you see this expense in your bank's app?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi questa spesa nell'app della tua banca?"
+          }
+        }
+      }
+    },
+    "Tu évites les mauvaises surprises : si un montant manque, Pulpe te le montre." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So vermeidest du böse Überraschungen: Fehlt ein Betrag, zeigt Pulpe ihn dir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No bad surprises: if an amount is missing, Pulpe shows it to you."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eviti brutte sorprese: se manca un importo, Pulpe te lo mostra."
+          }
+        }
+      }
+    },
     "Type" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -808,6 +1116,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un tipo ha già questo nome"
+          }
+        }
+      }
+    },
+    "Vérifie que Pulpe et ta banque disent la même chose" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfe, ob Pulpe und deine Bank dasselbe sagen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check that Pulpe and your bank say the same thing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica che Pulpe e la tua banca dicano la stessa cosa"
           }
         }
       }

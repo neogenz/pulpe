@@ -39,6 +39,9 @@ struct ReconcileAccountsSheet: View {
     @State private var flow: ReconcileAccountsFlow
     @State private var submitSuccessTrigger = false
     @State private var isPointing = false
+    /// The guide page, shown instead of the form while set; `nil` shows the form.
+    @State private var guideSource: ReconcileGuideSource?
+    @AppStorage(ReconcileGuideGate.storageKey) private var hasSeenGuide = false
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable {
@@ -58,6 +61,8 @@ struct ReconcileAccountsSheet: View {
         self.month = month
         self.checking = checking
         self.onLeave = onLeave
+        let hasSeenGuide = UserDefaults.standard.bool(forKey: ReconcileGuideGate.storageKey)
+        _guideSource = State(initialValue: ReconcileGuideGate.shouldPresent(hasSeen: hasSeenGuide) ? .auto : nil)
         _flow = State(initialValue: ReconcileAccountsFlow(
             budgetId: month.budgetId,
             adjustmentLabel: AppLocale.string("Ajustement"),
@@ -93,41 +98,62 @@ struct ReconcileAccountsSheet: View {
         return settling.count == 1 ? settling.first?.transaction : nil
     }
 
+    private var form: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                Text("Saisis le solde de chaque compte, tel que ta banque l'affiche.")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                accountsCard
+                if flow.linksToNetWorth { LinkedAccountsFootnote() }
+                if let total = flow.total { totalsCard(total) }
+                if !pointingCandidates.isEmpty { candidatesSection(pointingCandidates) }
+                outcomeBlock
+            }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.top, DesignTokens.Spacing.sm)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+            .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: verdict)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollDismissesKeyboard(.interactively)
+        .background(Color.sheetBackground)
+        .dismissKeyboardOnTap()
+        .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) { footer }
+        .navigationTitle(AppLocale.string("Comparer avec mes comptes"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                SheetCloseButton().disabled(flow.isSubmitting)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { guideSource = .help } label: {
+                    Image(systemName: "questionmark.circle")
+                }
+                .disabled(flow.isSubmitting)
+                .accessibilityLabel(AppLocale.string("Revoir le guide"))
+                .accessibilityIdentifier("reconcileGuideHelp")
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    Text("Saisis le solde de chaque compte, tel que ta banque l'affiche.")
-                        .font(PulpeTypography.captionRegular)
-                        .foregroundStyle(Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    accountsCard
-                    if flow.linksToNetWorth { LinkedAccountsFootnote() }
-                    if let total = flow.total { totalsCard(total) }
-                    if !pointingCandidates.isEmpty { candidatesSection(pointingCandidates) }
-                    outcomeBlock
+            if let guideSource {
+                ReconcileGuideView(source: guideSource, currency: currency) { _ in
+                    hasSeenGuide = true
+                    self.guideSource = nil
                 }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.sm)
-                .padding(.bottom, DesignTokens.Spacing.xl)
-                .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: verdict)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
-            .background(Color.sheetBackground)
-            .dismissKeyboardOnTap()
-            .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) { footer }
-            .navigationTitle(AppLocale.string("Comparer avec mes comptes"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton().disabled(flow.isSubmitting)
-                }
+                // No bar title: the guide's own title says it, and « Passer » leaves no room for this long one
+                .navigationBarTitleDisplayMode(.inline)
+            } else {
+                form
             }
         }
         .standardSheetPresentation()
-        // Nothing leaves the sheet while the write is in flight.
-        .interactiveDismissDisabled(flow.isSubmitting)
+        // Nothing leaves the sheet while the write is in flight, nor while a replayed guide hides typed amounts.
+        .interactiveDismissDisabled(flow.isSubmitting || guideSource == .help)
         .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, shouldClose in
             if shouldClose { dismiss() }
         }
@@ -135,9 +161,9 @@ struct ReconcileAccountsSheet: View {
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .appliesAccountLinks(of: flow)
         .suppressesTips()
-        .task {
-            // Opening on an empty flow focuses its one amount, as the add sheets do.
-            guard let first = flow.accounts.first, first.amountText.isEmpty else { return }
+        .task(id: guideSource) {
+            // Opening on an empty flow focuses its one amount, as the add sheets do; the guide comes first.
+            guard guideSource == nil, let first = flow.accounts.first, first.amountText.isEmpty else { return }
             try? await Task.sleep(for: .milliseconds(DesignTokens.Animation.pushAutofocusDelayMs))
             guard !Task.isCancelled else { return }
             focusedField = .amount(first.id)
