@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -115,6 +116,12 @@ export function FormModal({
   const contentRef = useRef<View>(null);
   const revealed = useRef<View | null>(null);
   const viewport = useRef({ visible: 0, offset: 0 });
+
+  // A step pushed over the form opens at its top, like a pushed screen, not at
+  // the form's scroll offset, which would leave its first rows above the fold.
+  useEffect(() => {
+    if (showsBackButton) scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [showsBackButton]);
 
   function reveal() {
     const scroll = scrollRef.current;
