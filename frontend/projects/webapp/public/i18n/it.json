@@ -1255,7 +1255,27 @@
         "resetStartingAmount": "Riporta a 0",
         "toSpend": "Da spendere questo mese",
         "finish": "Fatto",
-        "entryName": "Scarto con i miei conti"
+        "entryName": "Scarto con i miei conti",
+        "seeOtherReasons": "Vedi le altre ragioni",
+        "somethingElse": "No, altro"
+      },
+      "reasons": {
+        "label": "Altre ragioni",
+        "title": "Da dove vengono questi {{ amount }}?",
+        "cardSample": "Vestiti",
+        "bank": "La tua banca",
+        "notYetThere": "Non ancora lì",
+        "partlySpentQuestion": "Una previsione spuntata non è tutta spesa?",
+        "spent": "{{ amount }} spesi",
+        "left": "{{ amount }} ancora lì",
+        "nothingToDo": "Normale, niente da fare",
+        "incomeQuestion": "Hai ricevuto dei soldi?",
+        "incomeSample": "Premio · {{ date }}",
+        "notInPulpe": "Non in Pulpe",
+        "savingsQuestion": "Il tuo conto risparmio è nella lista?",
+        "savingsSample": "Conto risparmio",
+        "toRemove": "Da togliere",
+        "reviewAccounts": "Rivedi i miei conti"
       }
     }
   },

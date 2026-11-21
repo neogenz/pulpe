@@ -1255,7 +1255,27 @@
         "resetStartingAmount": "Reset to 0",
         "toSpend": "To spend this month",
         "finish": "Done",
-        "entryName": "Gap with my accounts"
+        "entryName": "Gap with my accounts",
+        "seeOtherReasons": "See other reasons",
+        "somethingElse": "No, something else"
+      },
+      "reasons": {
+        "label": "Other reasons",
+        "title": "Where does this {{ amount }} come from?",
+        "cardSample": "Clothes",
+        "bank": "Your bank",
+        "notYetThere": "Not there yet",
+        "partlySpentQuestion": "A checked planned item isn't all spent?",
+        "spent": "{{ amount }} spent",
+        "left": "{{ amount }} still there",
+        "nothingToDo": "Normal, nothing to do",
+        "incomeQuestion": "Did you receive money?",
+        "incomeSample": "Bonus · {{ date }}",
+        "notInPulpe": "Not in Pulpe",
+        "savingsQuestion": "Is your savings account in the list?",
+        "savingsSample": "Savings account",
+        "toRemove": "To remove",
+        "reviewAccounts": "Review my accounts"
       }
     }
   },

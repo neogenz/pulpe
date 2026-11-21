@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   Injector,
   input,
@@ -258,6 +259,7 @@ export function summarizeRows(rows: readonly AccountRow[]) {
 })
 export class ReconcileAccountsStep {
   readonly #injector = inject(Injector);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #sheet = inject(ReconcileSheet);
   readonly #transloco = inject(TranslocoService);
 
@@ -349,7 +351,7 @@ export class ReconcileAccountsStep {
       ReconcileAddAccountSheet,
       AddAccountSheetData,
       AddAccountChoice
-    >(ReconcileAddAccountSheet, data, ariaLabel);
+    >(ReconcileAddAccountSheet, data, ariaLabel, this.#destroyRef);
     if (choice) this.addRow(choice);
   }
 }

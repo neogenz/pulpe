@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   LOCALE_ID,
   provideZonelessChangeDetection,
@@ -34,6 +34,7 @@ import {
   type ReconcileLedger,
 } from './reconcile-accounts-dialog';
 import { money } from './reconcile-compare-step';
+import { ReconcileReasonsSheet } from './reconcile-reasons-sheet';
 import { ReconcileSheet } from './reconcile-sheet';
 
 const REALIZED: RealizedPosition = { balance: 1499.99, available: 900 };
@@ -111,8 +112,9 @@ async function setup(
     showGuide?: boolean;
     /** Names and sides remembered on this device. */
     free?: { name: string; side: 'own' | 'owe' }[];
-    /** What the starting-amount editor answers. */
-    startingAmountAnswer?: number;
+    /** What the starting-amount editor or the reasons sheet answers. */
+    sheetAnswer?: number | string;
+    payDayOfMonth?: number;
   } = {},
 ) {
   localStorage.clear();
@@ -192,7 +194,7 @@ async function setup(
     ),
   };
   const sheet = {
-    open: vi.fn(() => Promise.resolve(options.startingAmountAnswer)),
+    open: vi.fn(() => Promise.resolve(options.sheetAnswer)),
   };
   const budgetApi = {
     cache: createMockDataCache(),
@@ -217,7 +219,10 @@ async function setup(
       { provide: ReconcileSheet, useValue: sheet },
       {
         provide: UserSettingsStore,
-        useValue: { payDayOfMonth: signal(null), currency: signal('CHF') },
+        useValue: {
+          payDayOfMonth: signal(options.payDayOfMonth ?? null),
+          currency: signal('CHF'),
+        },
       },
     ],
   });
@@ -1233,7 +1238,7 @@ describe('ReconcileAccountsDialog', () => {
       const view = await setup({
         context: { ...CONTEXT, startingAmount: 3100 },
         realized: REALIZED_900,
-        startingAmountAnswer: 3000,
+        sheetAnswer: 3000,
       });
       await compare(view, '4000');
       const heading = () =>
@@ -1247,6 +1252,7 @@ describe('ReconcileAccountsDialog', () => {
         expect.anything(),
         { amount: 3100, currency: 'CHF' },
         "Argent d'avant Pulpe",
+        expect.anything(),
       );
       expect(heading()).toBe(
         `Tes comptes ont ${money(100, 'CHF')} de plus que Pulpe`,
@@ -1304,7 +1310,7 @@ describe('ReconcileAccountsDialog', () => {
       const view = await setup({
         context: { ...CONTEXT, startingAmount: 3100 },
         realized: REALIZED_900,
-        startingAmountAnswer: 3200,
+        sheetAnswer: 3200,
       });
       await compare(view, '4100');
       expect(view.byTestId('reconcile-record-button')).not.toBeNull();
@@ -1479,6 +1485,238 @@ describe('ReconcileAccountsDialog', () => {
       expect(names).toHaveLength(2);
       expect(document.activeElement).toBe(names[1]);
       expect(view.byTestId('reconcile-card-help')).toBeNull();
+    });
+  });
+
+  describe('other reasons', () => {
+    const FIRST = { ...CONTEXT, hasCompletedComparison: false };
+    const REALIZED_900 = { balance: 900, available: 900 };
+    const heading = (view: Awaited<ReturnType<typeof setup>>) =>
+      view.byTestId('reconcile-step-heading');
+    // Courses 600.00 checked, 200.00 noted on it: the rest is still on the account.
+    const GROCERIES = createMockBudgetLine({
+      id: 'line-courses',
+      name: 'Courses',
+      amount: 600,
+      checkedAt: '2026-11-02T10:00:00+01:00',
+    });
+    const LEDGER = {
+      budgetLines: [GROCERIES],
+      transactions: [
+        createMockTransaction({
+          id: 'tx-migros',
+          amount: 200,
+          budgetLineId: GROCERIES.id,
+          checkedAt: '2026-11-03T10:00:00+01:00',
+        }),
+      ],
+    };
+
+    it('should open from « Non, autre chose » with the gap, the card question and the partly spent prévision', async () => {
+      const view = await setup({
+        context: FIRST,
+        realized: REALIZED_900,
+        ledger: LEDGER,
+      });
+      await compare(view, '4000');
+
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      expect(
+        view.byTestId('reconcile-reasons-button')?.textContent?.trim(),
+      ).toBe('Non, autre chose');
+      expect(view.sheet.open).toHaveBeenCalledExactlyOnceWith(
+        ReconcileReasonsSheet,
+        {
+          gap: 3100,
+          currency: 'CHF',
+          hasOwe: false,
+          partlySpent: {
+            id: GROCERIES.id,
+            name: 'Courses',
+            amount: 600,
+            spent: 200,
+            left: 400,
+          },
+          note: { before: 900, after: 4000 },
+        },
+        'Autres raisons',
+        expect.anything(),
+      );
+    });
+
+    describe('from salary early', () => {
+      beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date(2026, 10, 23, 12));
+      });
+      afterEach(() => vi.useRealTimers());
+
+      it('should offer them next to « Laisser comme ça »', async () => {
+        const view = await setup({ realized: REALIZED_900, payDayOfMonth: 25 });
+        await compare(view, '6900');
+        expect(view.byTestId('reconcile-salary-early')).not.toBeNull();
+        expect(view.byTestId('reconcile-leave-button')).not.toBeNull();
+
+        await view.click(view.byTestId('reconcile-reasons-button'));
+
+        expect(view.sheet.open).toHaveBeenCalledWith(
+          ReconcileReasonsSheet,
+          expect.objectContaining({ gap: 6000, partlySpent: null }),
+          'Autres raisons',
+          expect.anything(),
+        );
+      });
+    });
+
+    it('should note the gap as an income once, then complete once', async () => {
+      const view = await setup({
+        context: FIRST,
+        realized: REALIZED_900,
+        sheetAnswer: 'noteIncome',
+      });
+      await compare(view, '4000');
+
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      expect(view.data.recordAdjustment).toHaveBeenCalledExactlyOnceWith({
+        name: 'Écart avec mes comptes',
+        kind: 'income',
+        amount: 3100,
+      });
+      expect(view.postHog.captureEvent).toHaveBeenCalledExactlyOnceWith(
+        ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED,
+        { adjustment_kind: 'income' },
+      );
+      expect(view.reconciliationApi.updateState$.mock.calls).toEqual([
+        [{ completed: true }],
+      ]);
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should write nothing when the gap moved while the sheet was open', async () => {
+      const view = await setup({ context: FIRST, realized: REALIZED_900 });
+      await compare(view, '4000');
+      view.sheet.open.mockImplementationOnce(() => {
+        view.realized.set({ balance: 1000, available: 1000 });
+        return Promise.resolve('noteIncome');
+      });
+      view.byTestId('reconcile-reasons-button')?.focus();
+
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+      expect(heading(view)?.textContent).toContain(money(3000, 'CHF'));
+      expect(document.activeElement).toBe(heading(view));
+    });
+
+    it('should write nothing when an item now explains the same gap', async () => {
+      const view = await setup({ context: FIRST, realized: REALIZED_900 });
+      await compare(view, '4000');
+      view.sheet.open.mockImplementationOnce(() => {
+        view.ledger.set({
+          budgetLines: [],
+          transactions: [
+            createMockTransaction({
+              id: 'tx-prime',
+              name: 'Prime',
+              kind: 'income',
+              amount: 3100,
+            }),
+          ],
+        });
+        return Promise.resolve('noteIncome');
+      });
+      view.byTestId('reconcile-reasons-button')?.focus();
+
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+      expect(view.allByTestId('reconcile-suggestion')).toHaveLength(1);
+      expect(document.activeElement).toBe(heading(view));
+    });
+
+    it('should keep the screen, the focus on its heading, when the income is refused', async () => {
+      const view = await setup({
+        context: FIRST,
+        realized: REALIZED_900,
+        sheetAnswer: 'noteIncome',
+        recordAdjustment: vi.fn().mockResolvedValue(false),
+      });
+      await compare(view, '4000');
+
+      // The sheet hands the focus back to the button that opened it.
+      view.byTestId('reconcile-reasons-button')?.focus();
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      expect(view.byTestId('reconcile-first-comparison')).not.toBeNull();
+      expect(document.activeElement).toBe(heading(view));
+      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('should go back to step 1 on « Revoir mes comptes », the amounts kept', async () => {
+      const view = await setup({
+        context: FIRST,
+        realized: REALIZED_900,
+        sheetAnswer: 'reviewAccounts',
+      });
+      await compare(view, '4000');
+
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      expect(view.byTestId('reconcile-accounts-step')).not.toBeNull();
+      expect(
+        view.allByTestId<HTMLInputElement>('reconcile-amount-input')[0]?.value,
+      ).toBe('4000');
+      expect(document.activeElement).toBe(heading(view));
+    });
+
+    it('should add a « Je dois » row on step 1, its name focused', async () => {
+      const view = await setup({
+        context: FIRST,
+        realized: REALIZED_900,
+        sheetAnswer: 'addOwe',
+      });
+      await compare(view, '4000');
+
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      const names = view.allByTestId('reconcile-label-input');
+      expect(names).toHaveLength(2);
+      expect(document.activeElement).toBe(names[1]);
+    });
+
+    it('should complete with nothing noted on « Laisser comme ça »', async () => {
+      const view = await setup({
+        context: FIRST,
+        realized: REALIZED_900,
+        sheetAnswer: 'leave',
+      });
+      await compare(view, '4000');
+
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+      expect(view.postHog.captureEvent).toHaveBeenCalledExactlyOnceWith(
+        ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED,
+        { adjustment_kind: 'none' },
+      );
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should write nothing and hand the focus back to the heading when closed', async () => {
+      const view = await setup({ context: FIRST, realized: REALIZED_900 });
+      await compare(view, '4000');
+
+      // The sheet hands the focus back to the button that opened it.
+      view.byTestId('reconcile-reasons-button')?.focus();
+      await view.click(view.byTestId('reconcile-reasons-button'));
+
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+      expect(view.reconciliationApi.updateState$).not.toHaveBeenCalled();
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(heading(view));
     });
   });
 

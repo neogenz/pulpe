@@ -1255,7 +1255,27 @@
         "resetStartingAmount": "Remettre à 0",
         "toSpend": "À dépenser ce mois",
         "finish": "Terminer",
-        "entryName": "Écart avec mes comptes"
+        "entryName": "Écart avec mes comptes",
+        "seeOtherReasons": "Voir les autres raisons",
+        "somethingElse": "Non, autre chose"
+      },
+      "reasons": {
+        "label": "Autres raisons",
+        "title": "D'où viennent ces {{ amount }} ?",
+        "cardSample": "Habits",
+        "bank": "Ta banque",
+        "notYetThere": "Pas encore là",
+        "partlySpentQuestion": "Une prévision cochée n'est pas toute dépensée ?",
+        "spent": "{{ amount }} dépensés",
+        "left": "{{ amount }} encore là",
+        "nothingToDo": "Normal, rien à faire",
+        "incomeQuestion": "Tu as reçu de l'argent ?",
+        "incomeSample": "Prime · {{ date }}",
+        "notInPulpe": "Pas dans Pulpe",
+        "savingsQuestion": "Ton compte épargne est dans la liste ?",
+        "savingsSample": "Compte épargne",
+        "toRemove": "À retirer",
+        "reviewAccounts": "Revoir mes comptes"
       }
     }
   },

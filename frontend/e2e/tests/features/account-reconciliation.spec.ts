@@ -1005,3 +1005,123 @@ for (const viewport of VIEWPORTS) {
     expect(writes).toEqual([{ completed: true }]);
   });
 }
+
+// Pulpe holds 900.00 checked: the salary of 1 500.00, minus Courses 600.00
+// checked with 200.00 noted on it, so 400.00 of it is still on the account.
+async function mockMonthWithPartlySpentLine(page: Page): Promise<void> {
+  const now = new Date();
+  const id = TEST_UUIDS.BUDGET_1;
+  const groceriesId = 'a4444444-4444-4444-8444-444444444444';
+  await page.route('**/api/v1/budgets/*/details', (route) =>
+    route.fulfill({
+      json: createBudgetDetailsMock(id, {
+        budget: { month: now.getMonth() + 1, year: now.getFullYear() },
+        budgetLines: [
+          createBudgetLineMock(TEST_UUIDS.LINE_1, id, {
+            name: 'Salaire',
+            kind: 'income',
+            amount: 1500,
+            checkedAt: now.toISOString(),
+          }),
+          createBudgetLineMock(groceriesId, id, {
+            name: 'Courses',
+            amount: 600,
+            checkedAt: now.toISOString(),
+          }),
+        ],
+        transactions: [
+          createTransactionMock('b3333333-3333-4333-8333-333333333333', id, {
+            name: 'Migros',
+            amount: 200,
+            budgetLineId: groceriesId,
+            transactionDate: now.toISOString(),
+            checkedAt: now.toISOString(),
+          }),
+        ],
+      }),
+    }),
+  );
+}
+
+for (const viewport of VIEWPORTS) {
+  test(`lists the other reasons from salary early, then notes the income once (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    const now = new Date();
+    await page.clock.setFixedTime(
+      new Date(now.getFullYear(), now.getMonth(), 23, 12),
+    );
+    await markGuideSeen(page);
+    const writes = await mockReconciliation(page);
+    await mockMonthWithPartlySpentLine(page);
+    await page.route('**/api/v1/users/settings', (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            json: { success: true, data: { payDayOfMonth: 25 } },
+          })
+        : route.fallback(),
+    );
+    const entries: unknown[] = [];
+    await page.route('**/api/v1/transactions', (route) => {
+      const payload = route.request().postDataJSON();
+      entries.push(payload);
+      return route.fulfill({
+        json: {
+          success: true,
+          data: {
+            ...payload,
+            id: 'c2222222-2222-4222-8222-222222222222',
+            budgetLineId: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+    });
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '6900');
+
+    await expect(page.getByTestId('reconcile-salary-early')).toBeVisible();
+    await expect(page.getByTestId('reconcile-leave-button')).toBeVisible();
+    await page.getByTestId('reconcile-reasons-button').click();
+
+    const sheet = page.getByTestId('reconcile-reasons-sheet');
+    await expect(
+      page.locator(
+        viewport.name === 'phone'
+          ? 'mat-bottom-sheet-container'
+          : '.mat-mdc-dialog-container >> nth=1',
+      ),
+    ).toBeVisible();
+    await expect(sheet.locator('h2')).toHaveText(
+      "D'où viennent ces 6’000.00 CHF ?",
+    );
+    await expect(sheet.getByTestId('reconcile-reason')).toHaveCount(3);
+    await expect(sheet.getByTestId('reconcile-reason').nth(0)).toContainText(
+      'Tu as payé par carte de crédit, PayPal ou Klarna ?',
+    );
+    await expect(sheet.getByTestId('reconcile-reason-spent')).toHaveText(
+      '200.00 CHF dépensés',
+    );
+    await expect(sheet.getByTestId('reconcile-reason-left')).toHaveText(
+      '400.00 CHF encore là',
+    );
+    await expect(sheet.getByTestId('reconcile-reason').nth(2)).toContainText(
+      'Disponible : 900.00 CHF → 6’900.00 CHF',
+    );
+    const income = sheet.getByTestId('reconcile-reasons-income-button');
+    await expect(income).toHaveText('Noter un revenu de 6’000.00 CHF');
+    await income.click();
+
+    await expect(page.getByTestId('reconcile-compare-step')).toBeHidden();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      name: 'Écart avec mes comptes',
+      kind: 'income',
+      amount: 6000,
+    });
+    expect(writes).toEqual([{ completed: true }]);
+  });
+}

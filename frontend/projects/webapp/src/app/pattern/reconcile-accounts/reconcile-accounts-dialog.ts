@@ -28,6 +28,7 @@ import { cachedMutation } from 'ngx-ziflux';
 import {
   ANALYTICS_EVENTS,
   moneyDifference,
+  partlySpentBudgetLines,
   type Asset,
   type AssetCategory,
   type BudgetLine,
@@ -64,6 +65,11 @@ import {
   type SuggestionRow,
 } from './reconcile-compare-step';
 import { readFreeAccounts, saveFreeAccounts } from './reconcile-free-accounts';
+import {
+  ReconcileReasonsSheet,
+  type ReasonsSheetChoice,
+  type ReasonsSheetData,
+} from './reconcile-reasons-sheet';
 import { ReconcileSheet } from './reconcile-sheet';
 import {
   ReconcileStartingAmountSheet,
@@ -163,6 +169,7 @@ export class ReconcileAccountsDialog {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #sheet = inject(ReconcileSheet);
   readonly #injector = inject(Injector);
+  readonly #destroyRef = inject(DestroyRef);
   protected readonly data =
     inject<ReconcileAccountsDialogData>(MAT_DIALOG_DATA);
 
@@ -294,7 +301,7 @@ export class ReconcileAccountsDialog {
 
   constructor() {
     // The browser's back closes the dialog without close(): the balances still go.
-    inject(DestroyRef).onDestroy(() => this.#saveBalancesOnce());
+    this.#destroyRef.onDestroy(() => this.#saveBalancesOnce());
     merge(
       this.#dialogRef.backdropClick(),
       this.#dialogRef
@@ -507,6 +514,7 @@ export class ReconcileAccountsDialog {
       this.#transloco.translate(
         'currentMonth.reconcile.compare.startingAmountTitle',
       ),
+      this.#destroyRef,
     );
     if (amount === undefined || amount === view.startingAmount) return;
     await this.#writeState({ startingAmount: amount });
@@ -538,6 +546,62 @@ export class ReconcileAccountsDialog {
       return false;
     } finally {
       this.isSavingState.set(false);
+    }
+  }
+
+  // « Voir les autres raisons » and « Non, autre chose »: the sheet only
+  // answers, the step does what that answer does here.
+  protected async showReasons(): Promise<void> {
+    const view = this.comparison();
+    const ledger = this.data.ledger();
+    if (!view || !ledger || this.isBusy()) return;
+    const [partly] = partlySpentBudgetLines(
+      ledger.budgetLines,
+      ledger.transactions,
+    );
+    const line = ledger.budgetLines.find(({ id }) => id === partly?.id);
+    const choice = await this.#sheet.open<
+      ReconcileReasonsSheet,
+      ReasonsSheetData,
+      ReasonsSheetChoice
+    >(
+      ReconcileReasonsSheet,
+      {
+        gap: view.gap,
+        currency: this.data.currency(),
+        hasOwe: this.summary().hasOwe,
+        partlySpent:
+          partly && line
+            ? { ...partly, name: line.name, amount: line.amount }
+            : null,
+        note: view.note,
+      },
+      // An amount never goes into an attribute: the title keeps it, masked.
+      this.#transloco.translate('currentMonth.reconcile.reasons.label'),
+      this.#destroyRef,
+    );
+    switch (choice) {
+      case 'addOwe':
+        return this.addOwe();
+      case 'reviewAccounts':
+        return this.back();
+      case 'leave':
+        return this.leave();
+      case 'noteIncome':
+        // Kept by the heading while the entry is written, and after a refusal.
+        this.#isHeadingToFocus.set(true);
+        // The figures moved while the sheet was open: the amount it offered is
+        // no longer the gap, or an item now explains it, so the person sees
+        // the new comparison instead.
+        if (
+          this.comparison()?.gap !== view.gap ||
+          this.comparison()?.screen !== view.screen
+        ) {
+          return;
+        }
+        return this.record();
+      default:
+        this.#isHeadingToFocus.set(true);
     }
   }
 

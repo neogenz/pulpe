@@ -192,6 +192,7 @@
     >
       {{ 'currentMonth.reconcile.compare.leaveAsIs' | transloco }}
     </button>
+    <!-- « Non » under « Oui »: three buttons side by side do not fit the dialog. -->
     <div class="primary-action note-action">
       <pulpe-loading-button
         type="button"
@@ -206,8 +207,24 @@
       <span class="text-center text-xs text-on-surface-variant">
         {{ 'currentMonth.reconcile.compare.availableUnchanged' | transloco }}
       </span>
+      <button
+        matButton="outlined"
+        (click)="showReasons()"
+        [disabled]="isBusy()"
+        data-testid="reconcile-reasons-button"
+      >
+        {{ 'currentMonth.reconcile.compare.somethingElse' | transloco }}
+      </button>
     </div>
     } @case ('salaryEarly') {
+    <button
+      matButton="outlined"
+      (click)="showReasons()"
+      [disabled]="isBusy()"
+      data-testid="reconcile-reasons-button"
+    >
+      {{ 'currentMonth.reconcile.compare.seeOtherReasons' | transloco }}
+    </button>
     <button
       matButton="filled"
       class="primary-action"
