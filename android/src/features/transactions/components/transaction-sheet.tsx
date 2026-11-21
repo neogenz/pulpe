@@ -608,7 +608,8 @@ export function TransactionSheet({
               mode="outlined"
               icon="calendar"
               onPress={() => setDatePickerVisible(true)}
-              accessibilityLabel={t("budgets.mutations.activity.date")}
+              // The label replaces the button's text for TalkBack: it names the day too.
+              accessibilityLabel={`${t("budgets.mutations.activity.date")}, ${formatRelativeDay(draft.day, new Date(), locale)}`}
             >
               {formatRelativeDay(draft.day, new Date(), locale)}
             </Button>

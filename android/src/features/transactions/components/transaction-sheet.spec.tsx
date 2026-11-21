@@ -178,8 +178,14 @@ it("creates the visible operation with its date and tags", async () => {
   const view = await render(<TransactionSheet {...baseProps} />);
   await fill(view);
   await fireEvent.press(view.getByLabelText("select-tag"));
-  await fireEvent.press(view.getByLabelText("budgets.mutations.activity.date"));
+  await fireEvent.press(
+    view.getByLabelText(/^budgets\.mutations\.activity\.date, /),
+  );
   await fireEvent.press(view.getByText("select-date"));
+  // TalkBack hears the chosen day, not just « Date ».
+  expect(
+    view.getByLabelText(/^budgets\.mutations\.activity\.date, .*15/),
+  ).toBeTruthy();
   await fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   expect(mockCreate.mutate).toHaveBeenCalledWith(
@@ -256,7 +262,9 @@ it("locks every creation field at submission and explains the unchanged retry", 
     expect(view.queryByLabelText("budgets.mutations.description")).toBeNull();
     expect(view.queryByLabelText(AMOUNT_LABEL)).toBeNull();
     expect(view.queryByLabelText("select-tag")).toBeNull();
-    expect(view.queryByLabelText("budgets.mutations.activity.date")).toBeNull();
+    expect(
+      view.queryByLabelText(/^budgets\.mutations\.activity\.date, /),
+    ).toBeNull();
     expect(view.queryByText("vocabulary.kind.income")).toBeNull();
     expect(view.getByText("First values")).toBeTruthy();
 
@@ -394,7 +402,7 @@ it("dates a new operation inside its budget, and offers no other day", async () 
     );
     await fill(view);
     await fireEvent.press(
-      view.getByLabelText("budgets.mutations.activity.date"),
+      view.getByLabelText(/^budgets\.mutations\.activity\.date, /),
     );
     expect(view.getByText("bounds:25-24")).toBeTruthy();
     await fireEvent.press(
