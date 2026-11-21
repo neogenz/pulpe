@@ -277,3 +277,204 @@ struct AccountReconciliationTests {
         AccountReconciliation.Account(amountText: amountText, isNegative: isNegative)
     }
 }
+
+extension AccountReconciliationTests {
+    // MARK: - Comparison across months (same fixtures as account-reconciliation.spec.ts)
+
+    @Test("suggestions win over the first comparison and the early salary")
+    func comparisonScreen_suggestionsBeatFirstAndSalary() {
+        #expect(AccountReconciliation.comparisonScreen(
+            gap: 6_000, candidateCount: 1, dismissed: false, first: true, salaryMaybeEarly: true
+        ) == .suggestions)
+    }
+
+    @Test("budget lines, movements and prior items are ranked together by what remains")
+    func rankedPointingCandidates_ranksThreeSources() {
+        let assurance = TestDataFactory.createBudgetLine(id: "assurance", amount: 100)
+        let essence = TestDataFactory.createTransaction(id: "essence", amount: 60, kind: .expense)
+        let pharmacie = AccountReconciliation.PriorPointingItem(id: "pharmacie", effect: -40, monthsAgo: 1)
+
+        let candidates = AccountReconciliation.rankedPointingCandidates(
+            gap: -100, lines: [assurance], transactions: [essence], priorItems: [pharmacie]
+        )
+
+        #expect(candidates == [
+            .init(source: .budgetLine, id: "assurance", monthsAgo: 0, remainingGap: 0),
+            .init(source: .transaction, id: "essence", monthsAgo: 0, remainingGap: -40),
+            .init(source: .prior, id: "pharmacie", monthsAgo: 1, remainingGap: -60),
+        ])
+    }
+
+    @Test("an eligible prior item two months back is named")
+    func rankedPointingCandidates_namesPriorTwoMonthsAgo() {
+        let loyer = AccountReconciliation.PriorPointingItem(id: "loyer", effect: -100, monthsAgo: 2)
+
+        #expect(AccountReconciliation.rankedPointingCandidates(
+            gap: -100, lines: [], transactions: [], priorItems: [loyer]
+        ) == [.init(source: .prior, id: "loyer", monthsAgo: 2, remainingGap: 0)])
+    }
+
+    @Test("a planned savings withdrawal, which the API refuses to check, is left out")
+    func rankedPointingCandidates_leavesOutPlannedWithdrawal() {
+        var retrait = TestDataFactory.createBudgetLine(id: "retrait", amount: 100)
+        retrait.sourceSavingsGoalId = "goal"
+
+        #expect(AccountReconciliation.rankedPointingCandidates(gap: -100, lines: [retrait], transactions: []).isEmpty)
+    }
+
+    @Test("an effect near a cent boundary is measured from the two rounded balances")
+    func rankedPointingCandidates_centBoundary() throws {
+        let checked = TestDataFactory.createBudgetLine(
+            id: "a", amount: try #require(Decimal(string: "100.004")), kind: .income, isChecked: true
+        )
+        let open = TestDataFactory.createBudgetLine(
+            id: "b", amount: try #require(Decimal(string: "0.004")), kind: .income
+        )
+
+        #expect(AccountReconciliation.rankedPointingCandidates(
+            gap: try #require(Decimal(string: "0.01")), lines: [checked, open], transactions: []
+        ) == [.init(source: .budgetLine, id: "b", monthsAgo: 0, remainingGap: 0)])
+    }
+
+    @Test("a checked line, a prior item past the gap, and a zero gap name nothing")
+    func rankedPointingCandidates_leavesOut() {
+        let checked = TestDataFactory.createBudgetLine(id: "assurance", amount: 100, isChecked: true)
+        let loyer = AccountReconciliation.PriorPointingItem(id: "loyer", effect: -150, monthsAgo: 2)
+        let open = TestDataFactory.createBudgetLine(id: "assurance", amount: 100)
+
+        #expect(AccountReconciliation.rankedPointingCandidates(
+            gap: -100, lines: [checked], transactions: [], priorItems: [loyer]
+        ).isEmpty)
+        #expect(AccountReconciliation.rankedPointingCandidates(gap: 0, lines: [open], transactions: []).isEmpty)
+    }
+
+    private struct ScreenCase {
+        let gap: Decimal
+        var candidates = 0
+        var dismissed = false
+        var first = false
+        var salaryEarly = false
+        let expected: AccountReconciliation.Screen
+    }
+
+    @Test("the screen follows the first matching row of the table", arguments: [
+        ScreenCase(gap: 0, candidates: 2, expected: .matched),
+        ScreenCase(gap: -100, candidates: 1, expected: .suggestions),
+        ScreenCase(gap: 3_100, first: true, expected: .firstComparison),
+        ScreenCase(gap: 6_000, salaryEarly: true, expected: .salaryEarly),
+        ScreenCase(gap: Decimal(sign: .minus, exponent: -2, significand: 240), expected: .smallGap),
+        ScreenCase(gap: 3, expected: .smallGap),
+        ScreenCase(gap: -10, expected: .largeGap),
+        ScreenCase(gap: 6_000, expected: .moreOnAccounts),
+        ScreenCase(gap: -6_000, salaryEarly: true, expected: .largeGap),
+        ScreenCase(gap: -100, candidates: 1, dismissed: true, expected: .largeGap),
+        ScreenCase(gap: 6_000, first: true, salaryEarly: true, expected: .firstComparison),
+        ScreenCase(gap: 3, salaryEarly: true, expected: .salaryEarly),
+    ])
+    private func comparisonScreen_followsTheTable(_ row: ScreenCase) {
+        #expect(AccountReconciliation.comparisonScreen(
+            gap: row.gap, candidateCount: row.candidates, dismissed: row.dismissed, first: row.first,
+            salaryMaybeEarly: row.salaryEarly
+        ) == row.expected)
+    }
+
+    @Test("money that came in is maybe an early salary from five days before a pay day other than 1", arguments: [
+        (Decimal(6_000), 25 as Int?, 3, true),
+        (Decimal(6_000), 25, 5, true),
+        (Decimal(6_000), 25, 6, false),
+        (Decimal(6_000), 1, 3, false),
+        (Decimal(6_000), nil, 3, false),
+        (Decimal(-6_000), 25, 3, false),
+    ])
+    func isSalaryMaybeEarly_followsPayDay(gap: Decimal, payDay: Int?, days: Int, expected: Bool) {
+        #expect(AccountReconciliation.isSalaryMaybeEarly(
+            gap: gap, payDayOfMonth: payDay, daysUntilNextPeriod: days
+        ) == expected)
+    }
+
+    @Test("the gap closed by checks is how much nearer zero it came, never below zero", arguments: [
+        (Decimal(1_000), Decimal(950), Decimal(1_100), Decimal(0)),
+        (Decimal(1_000), Decimal(950), Decimal(980), Decimal(30)),
+        (Decimal(950), Decimal(1_050), Decimal(1_100), Decimal(0)),
+        (Decimal(950), Decimal(1_050), Decimal(1_000), Decimal(50)),
+        (Decimal(1_000), Decimal(950), Decimal(1_000), Decimal(50)),
+    ])
+    func gapClosedByChecks_isTheReductionOfTheAbsoluteGap(
+        onAccounts: Decimal, comparedBefore: Decimal, compared: Decimal, closed: Decimal
+    ) {
+        #expect(AccountReconciliation.gapClosedByChecks(
+            onAccounts: onAccounts, comparedBefore: comparedBefore, compared: compared
+        ) == closed)
+    }
+
+    @Test("the compared figure adds the prior correction and the starting amount")
+    func comparedFigure_addsCorrectionAndStart() throws {
+        #expect(AccountReconciliation.comparedFigure(
+            realizedBalance: 900, priorCorrection: 50, startingAmount: 3_100
+        ) == 4_050)
+        #expect(AccountReconciliation.comparedFigure(
+            realizedBalance: try #require(Decimal(string: "900.1")),
+            priorCorrection: try #require(Decimal(string: "-0.2")),
+            startingAmount: 0
+        ) == (try #require(Decimal(string: "899.9"))))
+        #expect(AccountReconciliation.comparedFigure(
+            realizedBalance: try #require(Decimal(string: "100.004")),
+            priorCorrection: try #require(Decimal(string: "0.004")),
+            startingAmount: 0
+        ) == (try #require(Decimal(string: "100.01"))))
+    }
+
+    @Test("the available amount before and after noting the gap")
+    func availableAfterNote_beforeAndAfter() throws {
+        #expect(AccountReconciliation.availableAfterNote(
+            available: try #require(Decimal(string: "1250.4")), gap: -100
+        ) == .init(before: try #require(Decimal(string: "1250.4")), after: try #require(Decimal(string: "1150.4"))))
+        #expect(AccountReconciliation.availableAfterNote(
+            available: try #require(Decimal(string: "100.004")), gap: try #require(Decimal(string: "0.004"))
+        ).after == (try #require(Decimal(string: "100.01"))))
+        #expect(AccountReconciliation.availableAfterNote(
+            available: try #require(Decimal(string: "10.1")), gap: try #require(Decimal(string: "0.2"))
+        ) == .init(before: try #require(Decimal(string: "10.1")), after: try #require(Decimal(string: "10.3"))))
+    }
+
+    @Test("every allocated movement, checked or not, counts as the line consumption does")
+    func partlySpentBudgetLines_keepsOnlyPartlySpent() {
+        let partly = TestDataFactory.createBudgetLine(id: "partly", amount: 600, isChecked: true)
+        let untouched = TestDataFactory.createBudgetLine(id: "untouched", amount: 1_200, isChecked: true)
+        let spentAll = TestDataFactory.createBudgetLine(id: "spentAll", amount: 300, isChecked: true)
+        let unchecked = TestDataFactory.createBudgetLine(id: "unchecked", amount: 600, isChecked: true)
+        let open = TestDataFactory.createBudgetLine(id: "open", amount: 600)
+        let transactions = [
+            TestDataFactory.createTransaction(id: "t5", budgetLineId: "unchecked", amount: 200),
+            TestDataFactory.createTransaction(id: "t1", budgetLineId: "partly", amount: 200, isChecked: true),
+            TestDataFactory.createTransaction(id: "t2", budgetLineId: "partly", amount: 50),
+            TestDataFactory.createTransaction(id: "t3", budgetLineId: "open", amount: 100, isChecked: true),
+            TestDataFactory.createTransaction(id: "t4", budgetLineId: "spentAll", amount: 300, isChecked: true),
+        ]
+
+        #expect(AccountReconciliation.partlySpentBudgetLines(
+            lines: [partly, untouched, spentAll, open, unchecked], transactions: transactions
+        ) == [
+            .init(id: "partly", spent: 250, left: 350),
+            .init(id: "unchecked", spent: 200, left: 400),
+        ])
+    }
+
+    @Test("the matched card splits what is planned, what came before Pulpe, and what is left")
+    func matchedBreakdown_splitsTheFigures() throws {
+        #expect(AccountReconciliation.matchedBreakdown(available: 900, compared: 4_050, startingAmount: 3_100)
+            == .init(stillPlanned: -50, beforePulpe: -3_100, remaining: 900))
+        #expect(AccountReconciliation.matchedBreakdown(
+            available: try #require(Decimal(string: "100.004")), compared: try #require(Decimal(string: "0.004")),
+            startingAmount: 0
+        ).stillPlanned == 100)
+        #expect(AccountReconciliation.matchedBreakdown(
+            available: try #require(Decimal(string: "0.004")), compared: 0,
+            startingAmount: try #require(Decimal(string: "0.006"))
+        ).stillPlanned == (try #require(Decimal(string: "0.01"))))
+        #expect(AccountReconciliation.matchedBreakdown(available: 900, compared: 900, startingAmount: 0)
+            == .init(stillPlanned: 0, beforePulpe: 0, remaining: 900))
+        #expect(AccountReconciliation.matchedBreakdown(available: 1_000, compared: 950, startingAmount: 0)
+            .stillPlanned == 50)
+    }
+}

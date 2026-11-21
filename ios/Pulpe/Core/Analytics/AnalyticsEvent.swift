@@ -71,6 +71,13 @@ enum AnalyticsEvent: String, CaseIterable {
     /// Property: `adjustment_kind` (`AccountReconciliation.Completion`). Never an
     /// amount, an account name or a label.
     case accountReconciliationCompleted = "account_reconciliation_completed"
+    /// Fires when the "Comparer avec mes comptes" guide opens. Property: `source`
+    /// (`auto` the first time, `help` when replayed). Never an amount or a label.
+    case accountReconciliationGuideViewed = "account_reconciliation_guide_viewed"
+    /// Fires on "Comparer maintenant", the guide's last action. Property: `source`.
+    case accountReconciliationGuideCompleted = "account_reconciliation_guide_completed"
+    /// Fires on any other exit of the guide. Property: `source`.
+    case accountReconciliationGuideSkipped = "account_reconciliation_guide_skipped"
 
     // MARK: - Navigation
     case tabSwitched = "tab_switched"

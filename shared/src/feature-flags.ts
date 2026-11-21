@@ -140,6 +140,17 @@ export const ANALYTICS_EVENTS = {
    * Never carries an amount, an account name or a label.
    */
   ACCOUNT_RECONCILIATION_COMPLETED: 'account_reconciliation_completed',
+  /**
+   * Fires when the "Comparer avec mes comptes" guide opens. Properties:
+   * `source` (`'auto' | 'help'`): first opening by itself, or replayed from
+   * the « ? » button. Never carries an amount or a label.
+   */
+  ACCOUNT_RECONCILIATION_GUIDE_VIEWED: 'account_reconciliation_guide_viewed',
+  /** Fires on « Comparer maintenant », the guide's last action. Properties: `source`. */
+  ACCOUNT_RECONCILIATION_GUIDE_COMPLETED:
+    'account_reconciliation_guide_completed',
+  /** Fires on any other exit of the guide (« Passer », close, back). Properties: `source`. */
+  ACCOUNT_RECONCILIATION_GUIDE_SKIPPED: 'account_reconciliation_guide_skipped',
   /** Fires when the active tab changes. Properties: `tab`. */
   TAB_SWITCHED: 'tab_switched',
   /** Fires when the notification pre-permission prompt appears. Properties: none. */

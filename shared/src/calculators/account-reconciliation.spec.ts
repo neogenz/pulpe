@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  availableAfterNote,
+  comparedFigure,
+  comparisonScreen,
+  gapClosedByChecks,
+  isSalaryMaybeEarly,
+  matchedBreakdown,
   parseAccountAmount,
+  partlySpentBudgetLines,
   pointingCandidates,
+  rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
 } from './account-reconciliation.js';
@@ -223,5 +231,310 @@ describe('pointingCandidates', () => {
     const four = ['a', 'b', 'c', 'd'].map((id) => movement(id, 'expense', 10));
 
     expect(ids(pointingCandidates(-100, [], four))).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('rankedPointingCandidates', () => {
+  const line = (
+    id: string,
+    amount: number,
+    checkedAt: string | null = null,
+  ) => ({
+    id,
+    kind: 'expense' as const,
+    amount,
+    checkedAt,
+  });
+  const essence = {
+    id: 'essence',
+    kind: 'expense' as const,
+    amount: 60,
+    budgetLineId: null,
+    checkedAt: null,
+  };
+
+  it('ranks budget lines, movements and prior items by what remains', () => {
+    expect(
+      rankedPointingCandidates(
+        -100,
+        [line('assurance', 100)],
+        [essence],
+        [{ id: 'pharmacie', effect: -40, monthsAgo: 1 }],
+      ),
+    ).toEqual([
+      { source: 'budgetLine', id: 'assurance', monthsAgo: 0, remainingGap: 0 },
+      { source: 'transaction', id: 'essence', monthsAgo: 0, remainingGap: -40 },
+      { source: 'prior', id: 'pharmacie', monthsAgo: 1, remainingGap: -60 },
+    ]);
+  });
+
+  it('names an eligible prior item two months back', () => {
+    expect(
+      rankedPointingCandidates(
+        -100,
+        [],
+        [],
+        [{ id: 'loyer', effect: -100, monthsAgo: 2 }],
+      ),
+    ).toEqual([
+      { source: 'prior', id: 'loyer', monthsAgo: 2, remainingGap: 0 },
+    ]);
+  });
+
+  it('leaves out a planned savings withdrawal, which the API refuses to check', () => {
+    expect(
+      rankedPointingCandidates(
+        -100,
+        [{ ...line('retrait', 100), sourceSavingsGoalId: 'goal' }],
+        [],
+      ),
+    ).toEqual([]);
+  });
+
+  it('measures an effect near a cent boundary from the two rounded balances', () => {
+    const income = (id: string, amount: number, checkedAt: string | null) => ({
+      id,
+      kind: 'income' as const,
+      amount,
+      checkedAt,
+    });
+    expect(
+      rankedPointingCandidates(
+        0.01,
+        [income('a', 100.004, '2026-11-01'), income('b', 0.004, null)],
+        [],
+      ),
+    ).toEqual([
+      { source: 'budgetLine', id: 'b', monthsAgo: 0, remainingGap: 0 },
+    ]);
+  });
+
+  it('leaves out a checked line, a prior item that goes past the gap, and a zero gap', () => {
+    expect(
+      rankedPointingCandidates(
+        -100,
+        [line('assurance', 100, '2026-11-01')],
+        [],
+        [{ id: 'loyer', effect: -150, monthsAgo: 2 }],
+      ),
+    ).toEqual([]);
+    expect(rankedPointingCandidates(0, [line('assurance', 100)], [])).toEqual(
+      [],
+    );
+  });
+});
+
+describe('comparisonScreen', () => {
+  const screen = (
+    gap: number,
+    options: {
+      candidateCount?: number;
+      dismissed?: boolean;
+      first?: boolean;
+      salaryMaybeEarly?: boolean;
+    } = {},
+  ) =>
+    comparisonScreen({
+      gap,
+      candidateCount: 0,
+      dismissed: false,
+      first: false,
+      salaryMaybeEarly: false,
+      ...options,
+    });
+
+  it.each([
+    ['matched', 0, { candidateCount: 2 }],
+    ['suggestions', -100, { candidateCount: 1 }],
+    ['firstComparison', 3_100, { first: true }],
+    ['salaryEarly', 6_000, { salaryMaybeEarly: true }],
+    ['smallGap', -2.4, {}],
+    ['smallGap', 3, {}],
+    ['largeGap', -10, {}],
+    ['moreOnAccounts', 6_000, {}],
+    ['largeGap', -6_000, { salaryMaybeEarly: true }],
+  ] as const)('shows %s at a gap of %d', (expected, gap, options) => {
+    expect(screen(gap, options)).toBe(expected);
+  });
+
+  it('keeps the suggestions over the first comparison and the early salary', () => {
+    expect(
+      screen(6_000, {
+        candidateCount: 1,
+        first: true,
+        salaryMaybeEarly: true,
+      }),
+    ).toBe('suggestions');
+  });
+
+  it('skips the suggestions once dismissed', () => {
+    expect(screen(-100, { candidateCount: 1, dismissed: true })).toBe(
+      'largeGap',
+    );
+  });
+
+  it('puts the first comparison before the salary, and the salary before a small gap', () => {
+    expect(screen(6_000, { first: true, salaryMaybeEarly: true })).toBe(
+      'firstComparison',
+    );
+    expect(screen(3, { salaryMaybeEarly: true })).toBe('salaryEarly');
+  });
+});
+
+describe('isSalaryMaybeEarly', () => {
+  it.each([
+    [6_000, 25, 3, true],
+    [6_000, 25, 5, true],
+    [6_000, 25, 6, false],
+    [6_000, 1, 3, false],
+    [6_000, null, 3, false],
+    [-6_000, 25, 3, false],
+  ])(
+    'gap %d, pay day %s, %d days left is %s',
+    (gap, payDay, days, expected) => {
+      expect(
+        isSalaryMaybeEarly({
+          gap,
+          payDayOfMonth: payDay,
+          daysUntilNextPeriod: days,
+        }),
+      ).toBe(expected);
+    },
+  );
+});
+
+describe('comparedFigure and availableAfterNote', () => {
+  it('adds the prior correction and the starting amount to the checked balance', () => {
+    expect(comparedFigure(900, 50, 3_100)).toBe(4_050);
+    expect(comparedFigure(900.1, -0.2, 0)).toBe(899.9);
+    expect(comparedFigure(100.004, 0.004, 0)).toBe(100.01);
+  });
+
+  it('shows the available amount before and after noting the gap', () => {
+    expect(availableAfterNote(1_250.4, -100)).toEqual({
+      before: 1_250.4,
+      after: 1_150.4,
+    });
+    expect(availableAfterNote(100.004, 0.004).after).toBe(100.01);
+    expect(availableAfterNote(10.1, 0.2)).toEqual({
+      before: 10.1,
+      after: 10.3,
+    });
+  });
+});
+
+describe('gapClosedByChecks', () => {
+  it.each([
+    { onAccounts: 1_000, comparedBefore: 950, compared: 1_100, expected: 0 },
+    { onAccounts: 1_000, comparedBefore: 950, compared: 980, expected: 30 },
+    { onAccounts: 950, comparedBefore: 1_050, compared: 1_100, expected: 0 },
+    { onAccounts: 950, comparedBefore: 1_050, compared: 1_000, expected: 50 },
+    { onAccounts: 1_000, comparedBefore: 950, compared: 1_000, expected: 50 },
+  ])(
+    'finds $expected with accounts $onAccounts, Pulpe $comparedBefore then $compared',
+    ({ expected, ...input }) => {
+      expect(gapClosedByChecks(input)).toBe(expected);
+    },
+  );
+});
+
+describe('partlySpentBudgetLines', () => {
+  it('counts every allocated movement, checked or not, as the line consumption does', () => {
+    const checked = '2026-11-01';
+    const partly = {
+      id: 'partly',
+      kind: 'expense' as const,
+      amount: 600,
+      checkedAt: checked,
+    };
+    const untouched = {
+      id: 'untouched',
+      kind: 'expense' as const,
+      amount: 1_200,
+      checkedAt: checked,
+    };
+    const spentAll = {
+      id: 'spentAll',
+      kind: 'expense' as const,
+      amount: 300,
+      checkedAt: checked,
+    };
+    const unchecked = {
+      id: 'unchecked',
+      kind: 'expense' as const,
+      amount: 600,
+      checkedAt: checked,
+    };
+    const open = {
+      id: 'open',
+      kind: 'expense' as const,
+      amount: 600,
+      checkedAt: null,
+    };
+    const spend = (
+      budgetLineId: string,
+      amount: number,
+      checkedAt: string | null,
+    ) => ({
+      kind: 'expense' as const,
+      amount,
+      budgetLineId,
+      checkedAt,
+    });
+
+    expect(
+      partlySpentBudgetLines(
+        [partly, untouched, spentAll, open, unchecked],
+        [
+          spend('partly', 200, checked),
+          spend('partly', 50, null),
+          spend('open', 100, checked),
+          spend('spentAll', 300, checked),
+          spend('unchecked', 200, null),
+        ],
+      ),
+    ).toEqual([
+      { id: 'partly', spent: 250, left: 350 },
+      { id: 'unchecked', spent: 200, left: 400 },
+    ]);
+  });
+});
+
+describe('matchedBreakdown', () => {
+  it('splits what is left to spend from what Pulpe still plans and what came before it', () => {
+    expect(
+      matchedBreakdown({
+        available: 900,
+        compared: 4_050,
+        startingAmount: 3_100,
+      }),
+    ).toEqual({ stillPlanned: -50, beforePulpe: -3_100, remaining: 900 });
+  });
+
+  it('rounds the planned remainder once, near a cent boundary', () => {
+    expect(
+      matchedBreakdown({
+        available: 100.004,
+        compared: 0.004,
+        startingAmount: 0,
+      }).stillPlanned,
+    ).toBe(100);
+    expect(
+      matchedBreakdown({ available: 0.004, compared: 0, startingAmount: 0.006 })
+        .stillPlanned,
+    ).toBe(0.01);
+  });
+
+  it('shows nothing extra when everything lines up', () => {
+    expect(
+      matchedBreakdown({ available: 900, compared: 900, startingAmount: 0 }),
+    ).toEqual({ stillPlanned: 0, beforePulpe: 0, remaining: 900 });
+  });
+
+  it('reads a positive remainder as still to receive', () => {
+    expect(
+      matchedBreakdown({ available: 1_000, compared: 950, startingAmount: 0 })
+        .stillPlanned,
+    ).toBe(50);
   });
 });

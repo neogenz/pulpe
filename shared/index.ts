@@ -298,13 +298,30 @@ export {
 } from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
+  SMALL_GAP_THRESHOLD,
+  availableAfterNote,
+  comparedFigure,
+  comparisonScreen,
+  gapClosedByChecks,
+  isSalaryMaybeEarly,
+  matchedBreakdown,
   parseAccountAmount,
+  partlySpentBudgetLines,
   pointingCandidates,
+  pointingEffect,
+  rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
   type AccountAmount,
   type AccountsSummary,
+  type ComparisonScreen,
+  type MatchedBreakdown,
+  type PartlySpentBudgetLine,
   type PointingCandidate,
+  type PointingSource,
+  type PointingTarget,
+  type PriorPointingItem,
+  type RankedPointingCandidate,
   type ReconciliationVerdict,
 } from './src/calculators/index.js';
 export {

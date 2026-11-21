@@ -2,8 +2,10 @@ import Foundation
 
 /// "Rapprocher mes comptes" (PUL-351): the user's bank balances held against the
 /// checked balance of the loaded month. Pure and Foundation-only — the flow model
-/// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)`,
-/// `verdict` and `pointingCandidates` are the Swift twin of `shared/src/calculators/account-reconciliation.ts`,
+/// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)`, `verdict`,
+/// `pointingCandidates`, `rankedPointingCandidates` and the screen rules (`comparisonScreen`,
+/// `isSalaryMaybeEarly`, `comparedFigure`, `availableAfterNote`, `partlySpentBudgetLines`,
+/// `matchedBreakdown`) are the Swift twin of `shared/src/calculators/account-reconciliation.ts`,
 /// fixtures included (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
 enum AccountReconciliation {
     /// A balance as typed. `blank` is a row nobody filled; `invalid` is never read as zero.
@@ -131,7 +133,7 @@ enum AccountReconciliation {
         let remainingGap: Decimal
     }
 
-    private static let maxPointingCandidates = 3
+    fileprivate static let maxPointingCandidates = 3
 
     /// The movements not pointed yet that most likely explain the gap: each one, pointed alone,
     /// moves the pointed balance toward the accounts total without going past it. An adjustment
@@ -143,18 +145,32 @@ enum AccountReconciliation {
     ) -> [PointingCandidate] {
         let gap = gap.rounded(maxCentDigits)
         guard gap != 0 else { return [] }
-        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: transactions)
-        let candidates = transactions.filter { !$0.isChecked }.compactMap { transaction -> PointingCandidate? in
-            let pointed = transactions.map { $0.id == transaction.id ? $0.toggled() : $0 }
-            let after = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: pointed)
-            let effect = (after - balance).rounded(maxCentDigits)
+        let balanceBefore = realizedBalance(lines: lines, transactions: transactions)
+        let entries = transactions.filter { !$0.isChecked }.map { transaction in
+            (
+                transaction,
+                effectAfterPointing(
+                    lines: lines, transactions: transactions, balanceBefore: balanceBefore,
+                    target: .transaction(transaction.id)
+                )
+            )
+        }
+        return rankByRemainingGap(gap: gap, entries: entries)
+            .map { PointingCandidate(transaction: $0.item, remainingGap: $0.remainingGap) }
+    }
+
+    /// Keeps the items whose effect moves the gap toward zero without crossing it, closest to
+    /// settling first, at most three. A stable sort keeps the entries' order between equally close ones.
+    fileprivate static func rankByRemainingGap<Item>(
+        gap: Decimal, entries: [(Item, Decimal)]
+    ) -> [(item: Item, remainingGap: Decimal)] {
+        let kept = entries.compactMap { item, effect -> (item: Item, remainingGap: Decimal)? in
             guard effect != 0, (effect > 0) == (gap > 0), effect.absoluteValue <= gap.absoluteValue else {
                 return nil
             }
-            return PointingCandidate(transaction: transaction, remainingGap: gap - effect)
+            return (item, gap - effect)
         }
-        // A stable sort keeps the month's order between equally close movements.
-        return candidates.enumerated()
+        return kept.enumerated()
             .sorted {
                 ($0.element.remainingGap.absoluteValue, $0.offset) < ($1.element.remainingGap.absoluteValue, $1.offset)
             }
@@ -163,7 +179,7 @@ enum AccountReconciliation {
     }
 
     private static let maxUnitDigits = 9
-    private static let maxCentDigits = 2
+    fileprivate static let maxCentDigits = 2
     private static let centsPerUnit = 100
 
     /// Integer cents, read from the digits so a sum of accounts never drifts: an optional
@@ -201,5 +217,179 @@ enum AccountReconciliation {
     /// ASCII digits only: `Character.isNumber` alone would accept "٣" or "½".
     private static func isDigits(_ text: Substring, count: ClosedRange<Int>) -> Bool {
         count.contains(text.count) && text.allSatisfy { $0.isASCII && $0.isNumber }
+    }
+}
+
+// MARK: - Comparison across the month and the two before it
+
+extension AccountReconciliation {
+    enum PointingTarget: Equatable, Sendable {
+        case transaction(String)
+        case budgetLine(String)
+    }
+
+    /// Rounded to the cent, as the TypeScript twin reads it.
+    private static func realizedBalance(lines: [BudgetLine], transactions: [Transaction]) -> Decimal {
+        BudgetFormulas.calculateRealizedBalance(budgetLines: lines, transactions: transactions).rounded(maxCentDigits)
+    }
+
+    /// What pointing one item moves in the pointed balance, measured rather than read from its
+    /// amount, against a balance before pointing computed once for a whole ranking.
+    fileprivate static func effectAfterPointing(
+        lines: [BudgetLine], transactions: [Transaction], balanceBefore: Decimal, target: PointingTarget
+    ) -> Decimal {
+        let after = realizedBalance(
+            lines: lines.map { target == .budgetLine($0.id) ? $0.toggled() : $0 },
+            transactions: transactions.map { target == .transaction($0.id) ? $0.toggled() : $0 }
+        )
+        return after - balanceBefore
+    }
+
+    /// An unchecked item of a previous month, with the effect the server measured.
+    struct PriorPointingItem: Equatable, Sendable {
+        let id: String
+        let effect: Decimal
+        /// 1 or 2.
+        let monthsAgo: Int
+    }
+
+    enum PointingSource: Equatable, Sendable {
+        case transaction
+        case budgetLine
+        case prior
+    }
+
+    struct RankedPointingCandidate: Equatable, Sendable {
+        let source: PointingSource
+        let id: String
+        /// 0 for the month itself, 1 or 2 for a previous budget.
+        let monthsAgo: Int
+        let remainingGap: Decimal
+    }
+
+    /// `pointingCandidates` over unchecked budget lines, unchecked movements of the month, then prior
+    /// items: same filter and ranking, ties keep that source order. Twin of `rankedPointingCandidates`.
+    static func rankedPointingCandidates(
+        gap: Decimal, lines: [BudgetLine], transactions: [Transaction], priorItems: [PriorPointingItem] = []
+    ) -> [RankedPointingCandidate] {
+        let gap = gap.rounded(maxCentDigits)
+        guard gap != 0 else { return [] }
+        let balanceBefore = realizedBalance(lines: lines, transactions: transactions)
+        // A planned savings withdrawal is realized by its real income: the API refuses to check it.
+        let entries: [(RankedPointingCandidate, Decimal)] =
+            lines.filter { !$0.isChecked && $0.sourceSavingsGoalId == nil }.map { line in
+                (
+                    RankedPointingCandidate(source: .budgetLine, id: line.id, monthsAgo: 0, remainingGap: 0),
+                    effectAfterPointing(
+                        lines: lines, transactions: transactions, balanceBefore: balanceBefore,
+                        target: .budgetLine(line.id)
+                    )
+                )
+            }
+            + transactions.filter { !$0.isChecked }.map { transaction in
+                (
+                    RankedPointingCandidate(source: .transaction, id: transaction.id, monthsAgo: 0, remainingGap: 0),
+                    effectAfterPointing(
+                        lines: lines, transactions: transactions, balanceBefore: balanceBefore,
+                        target: .transaction(transaction.id)
+                    )
+                )
+            }
+            + priorItems.map {
+                (
+                    RankedPointingCandidate(source: .prior, id: $0.id, monthsAgo: $0.monthsAgo, remainingGap: 0),
+                    $0.effect
+                )
+            }
+        return rankByRemainingGap(gap: gap, entries: entries).map {
+            RankedPointingCandidate(
+                source: $0.item.source, id: $0.item.id, monthsAgo: $0.item.monthsAgo, remainingGap: $0.remainingGap
+            )
+        }
+    }
+
+    /// In the budget currency.
+    static let smallGapThreshold: Decimal = 10
+    private static let salaryEarlyDays = 5
+
+    /// Money that came in while the next pay day is close. A pay day of 1 is the calendar month.
+    static func isSalaryMaybeEarly(gap: Decimal, payDayOfMonth: Int?, daysUntilNextPeriod: Int) -> Bool {
+        gap > 0 && (payDayOfMonth.map { $0 != 1 } ?? false) && daysUntilNextPeriod <= salaryEarlyDays
+    }
+
+    enum Screen: Equatable, Sendable {
+        case matched
+        case suggestions
+        case firstComparison
+        case salaryEarly
+        case smallGap
+        case largeGap
+        case moreOnAccounts
+    }
+
+    /// Which step-2 screen shows; first matching row wins (spec.md §4.3). Twin of `comparisonScreen`.
+    static func comparisonScreen(
+        gap: Decimal, candidateCount: Int, dismissed: Bool, first: Bool, salaryMaybeEarly: Bool
+    ) -> Screen {
+        if gap == 0 { return .matched }
+        if candidateCount > 0, !dismissed { return .suggestions }
+        if gap > 0, first { return .firstComparison }
+        if gap > 0, salaryMaybeEarly { return .salaryEarly }
+        if gap.absoluteValue < smallGapThreshold { return .smallGap }
+        return gap < 0 ? .largeGap : .moreOnAccounts
+    }
+
+    /// Checked balance, plus the prior correction, plus the starting amount.
+    static func comparedFigure(realizedBalance: Decimal, priorCorrection: Decimal, startingAmount: Decimal) -> Decimal {
+        (realizedBalance + priorCorrection + startingAmount).rounded(maxCentDigits)
+    }
+
+    /// « … trouvés »: how much nearer zero the gap came since the first check; a check that widens
+    /// it finds nothing. Twin of `gapClosedByChecks`.
+    static func gapClosedByChecks(onAccounts: Decimal, comparedBefore: Decimal, compared: Decimal) -> Decimal {
+        max(0, (onAccounts - comparedBefore).absoluteValue - (onAccounts - compared).absoluteValue)
+    }
+
+    /// « Disponible : avant → après ».
+    struct AvailableNote: Equatable, Sendable {
+        let before: Decimal
+        let after: Decimal
+    }
+
+    static func availableAfterNote(available: Decimal, gap: Decimal) -> AvailableNote {
+        AvailableNote(before: available, after: (available + gap).rounded(maxCentDigits))
+    }
+
+    struct PartlySpentBudgetLine: Equatable, Sendable {
+        let id: String
+        let spent: Decimal
+        let left: Decimal
+    }
+
+    /// Checked expense lines whose allocated movements (checked or not, as the line's consumption counts
+    /// them) are above 0 and below the line.
+    static func partlySpentBudgetLines(lines: [BudgetLine], transactions: [Transaction]) -> [PartlySpentBudgetLine] {
+        lines.filter { $0.kind == .expense && $0.isChecked }.compactMap { line in
+            let spent = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
+                .allocated.rounded(maxCentDigits)
+            guard spent > 0, spent < line.amount else { return nil }
+            return PartlySpentBudgetLine(id: line.id, spent: spent, left: (line.amount - spent).rounded(maxCentDigits))
+        }
+    }
+
+    struct MatchedBreakdown: Equatable, Sendable {
+        /// Below 0 is « Encore prévu », above 0 is « Encore à recevoir », 0 shows no line.
+        let stillPlanned: Decimal
+        /// « D'avant Pulpe »: minus the starting amount, 0 shows no line.
+        let beforePulpe: Decimal
+        let remaining: Decimal
+    }
+
+    static func matchedBreakdown(available: Decimal, compared: Decimal, startingAmount: Decimal) -> MatchedBreakdown {
+        MatchedBreakdown(
+            stillPlanned: (available - (compared - startingAmount)).rounded(maxCentDigits),
+            beforePulpe: (0 - startingAmount).rounded(maxCentDigits),
+            remaining: available
+        )
     }
 }
