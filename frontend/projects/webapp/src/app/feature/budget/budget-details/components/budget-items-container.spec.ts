@@ -273,6 +273,27 @@ describe('BudgetItemsContainer — contextual empty states', () => {
   });
 });
 
+// « Voir les autres à cocher » of the comparison announces items a search or a
+// tag could hide: the list shows them all, title in view and focused.
+describe('BudgetItemsContainer — revealing the items still to check', () => {
+  it('turns on « À pointer », clears the search and the tags, and focuses the title', () => {
+    const mockStore = createMockStore();
+    mockStore.searchText.set('Loyer');
+    const fixture = setupComponent(mockStore, createMockDialogService(), {
+      open: vi.fn(),
+    });
+    fixture.componentInstance.selectedTagIds.set(['tag-1']);
+    fixture.detectChanges();
+
+    fixture.componentInstance.revealItemsToCheck();
+
+    expect(mockStore.setIsShowingOnlyUnchecked).toHaveBeenCalledWith(true);
+    expect(mockStore.setSearchText).toHaveBeenCalledWith('');
+    expect(fixture.componentInstance.selectedTagIds()).toEqual([]);
+    expect(document.activeElement?.id).toBe('budget-items-title');
+  });
+});
+
 describe('BudgetItemsContainer — bank statement import flag (PUL-25)', () => {
   const importButton = (fixture: ComponentFixture<BudgetItemsContainer>) =>
     (fixture.nativeElement as HTMLElement).querySelector(

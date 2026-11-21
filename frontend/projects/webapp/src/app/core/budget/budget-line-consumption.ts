@@ -76,5 +76,18 @@ export function calculateAllConsumptions(
   return consumptionMap;
 }
 
+/**
+ * Whether a line has left the « À pointer » list: checked, or a goal
+ * withdrawal already realized by its real income.
+ */
+export function isLineEffectivelyChecked(
+  line: BudgetLine,
+  consumptions: ReadonlyMap<string, { consumed: number }>,
+): boolean {
+  if (line.checkedAt != null) return true;
+  if (!line.sourceSavingsGoalId) return false;
+  return (consumptions.get(line.id)?.consumed ?? 0) >= line.amount;
+}
+
 // Alias for backwards compatibility
 export const calculateAllEnrichedConsumptions = calculateAllConsumptions;

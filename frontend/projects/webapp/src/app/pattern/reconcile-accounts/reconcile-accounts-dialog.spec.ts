@@ -10,9 +10,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, Subject, throwError } from 'rxjs';
 import {
   ANALYTICS_EVENTS,
-  getBudgetPeriodDates,
   type Asset,
-  type BudgetPeriodDates,
+  type ReconciliationContext,
 } from 'pulpe-shared';
 
 import {
@@ -22,6 +21,8 @@ import {
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { ReconciliationApi } from '@core/reconciliation/reconciliation-api';
 import { STORAGE_KEYS } from '@core/storage';
 import { createMockDataCache } from '@core/testing';
 import {
@@ -30,13 +31,27 @@ import {
   type ReconcileAccountsDialogData,
   type ReconcileLedger,
 } from './reconcile-accounts-dialog';
+import { money } from './reconcile-compare-step';
 
-const REALIZED: RealizedPosition = {
-  balance: 1499.99,
-  checkedIncome: 5000,
-  checkedOutflows: 3380.01,
-  rollover: -120,
+const REALIZED: RealizedPosition = { balance: 1499.99, available: 900 };
+const BUDGET_ID = '66666666-6666-4666-8666-666666666666';
+const CONTEXT: ReconciliationContext = {
+  startingAmount: 0,
+  hasCompletedComparison: true,
+  priorCorrection: 0,
+  priorItems: [],
 };
+const ASSURANCE = createMockBudgetLine({
+  id: 'line-assurance',
+  name: 'Assurance',
+  amount: 100,
+});
+const ESSENCE = createMockTransaction({
+  id: 'tx-essence',
+  name: 'Essence',
+  amount: 60,
+  transactionDate: '2026-11-18T10:00:00+01:00',
+});
 const PRIVATE_ACCOUNT_NAME = 'Compte Zébulon';
 const UBS_ID = '11111111-1111-4111-8111-111111111111';
 const POSTFINANCE_ID = '22222222-2222-4222-8222-222222222222';
@@ -83,8 +98,9 @@ async function setup(
   options: {
     realized?: RealizedPosition;
     ledger?: ReconcileLedger;
-    pointTransaction?: ReconcileAccountsDialogData['pointTransaction'];
-    periodDates?: BudgetPeriodDates;
+    checkItem?: ReconcileAccountsDialogData['checkItem'];
+    /** What the server says about past comparisons; `'error'` refuses it. */
+    context?: ReconciliationContext | 'error';
     recordAdjustment?: ReconcileAccountsDialogData['recordAdjustment'];
     /** My accounts in « Mon patrimoine »; left out, the feature is off. */
     accounts?: Asset[];
@@ -120,12 +136,11 @@ async function setup(
     options.ledger ?? { budgetLines: [], transactions: [] },
   );
   const data: ReconcileAccountsDialogData = {
+    budgetId: BUDGET_ID,
     realized,
     ledger,
-    pointTransaction:
-      options.pointTransaction ?? vi.fn().mockResolvedValue(undefined),
+    checkItem: options.checkItem ?? vi.fn().mockResolvedValue(undefined),
     currency: signal('CHF'),
-    periodDates: signal(options.periodDates ?? getBudgetPeriodDates(6, 2025)),
     recordAdjustment:
       options.recordAdjustment ?? vi.fn().mockResolvedValue(true),
     viewItemsToCheck: vi.fn(),
@@ -151,6 +166,19 @@ async function setup(
           })),
     ),
   };
+  const reconciliationApi = {
+    getContext$: vi.fn(() =>
+      options.context === 'error'
+        ? throwError(() => new Error('offline'))
+        : of({ success: true as const, data: options.context ?? CONTEXT }),
+    ),
+    updateState$: vi.fn(() => of({ success: true as const })),
+  };
+  const budgetApi = {
+    cache: createMockDataCache(),
+    toggleTransactionCheck$: vi.fn(() => of({ success: true as const })),
+    toggleBudgetLineCheck$: vi.fn(() => of({ success: true as const })),
+  };
   const snackBar = { open: vi.fn() };
 
   TestBed.configureTestingModule({
@@ -163,6 +191,8 @@ async function setup(
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: PostHogService, useValue: postHog },
       { provide: AssetApi, useValue: assetApi },
+      { provide: ReconciliationApi, useValue: reconciliationApi },
+      { provide: BudgetApi, useValue: budgetApi },
       { provide: MatSnackBar, useValue: snackBar },
     ],
   });
@@ -204,6 +234,8 @@ async function setup(
     ledger,
     postHog,
     assetApi,
+    reconciliationApi,
+    budgetApi,
     snackBar,
     backdropClick,
     keydownEvents,
@@ -215,14 +247,13 @@ async function setup(
   };
 }
 
-async function reachVerdict(
+async function compare(
   view: Awaited<ReturnType<typeof setup>>,
   ...amounts: string[]
 ) {
   for (const [index, amount] of amounts.entries()) {
     await view.type(view.allByTestId('reconcile-amount-input')[index], amount);
   }
-  await view.click(view.byTestId('reconcile-next-button'));
   await view.click(view.byTestId('reconcile-next-button'));
 }
 
@@ -295,7 +326,7 @@ describe('ReconcileAccountsDialog', () => {
       const view = await setup();
       await view.type(view.byTestId('reconcile-amount-input'), '890');
       await view.click(view.byTestId('reconcile-next-button'));
-      expect(view.byTestId('reconcile-realized-step')).not.toBeNull();
+      expect(view.byTestId('reconcile-compare-step')).not.toBeNull();
 
       await view.click(view.byTestId('reconcile-guide-help-button'));
       expect(view.postHog.captureEvent).toHaveBeenCalledWith(
@@ -305,7 +336,7 @@ describe('ReconcileAccountsDialog', () => {
       await view.click(view.byTestId('reconcile-guide-skip'));
 
       expect(view.byTestId('reconcile-guide')).toBeNull();
-      expect(view.byTestId('reconcile-realized-step')).not.toBeNull();
+      expect(view.byTestId('reconcile-compare-step')).not.toBeNull();
       await view.click(view.byTestId('reconcile-back-button'));
       expect(
         view.byTestId<HTMLInputElement>('reconcile-amount-input')?.value,
@@ -404,6 +435,15 @@ describe('ReconcileAccountsDialog', () => {
           .byTestId('reconcile-total-breakdown')
           ?.textContent?.replace(/\s+/g, ' '),
       ).toContain('1’000.00 CHF − 800.00 CHF que tu dois');
+      // « Masquer les montants » blurs the two amounts, never « que tu dois ».
+      const breakdown = view.byTestId('reconcile-total-breakdown');
+      expect(breakdown?.closest('.ph-no-capture')).toBeNull();
+      expect(
+        Array.from(
+          breakdown?.querySelectorAll('.ph-no-capture') ?? [],
+          (element) => element.textContent,
+        ),
+      ).toEqual([money(1000, 'CHF'), money(800, 'CHF')]);
     });
 
     it('should count each « Je dois » row against the total as a magnitude', async () => {
@@ -557,56 +597,33 @@ describe('ReconcileAccountsDialog', () => {
     });
   });
 
-  describe('step 2 — the realized balance', () => {
-    async function reachStep2(view: Awaited<ReturnType<typeof setup>>) {
-      await view.type(view.byTestId('reconcile-amount-input'), '1500');
-      await view.click(view.byTestId('reconcile-next-button'));
-    }
+  describe('step 2 — the comparison', () => {
+    it('should read the context of the budget and title the gap', async () => {
+      const view = await setup({ realized: { ...REALIZED, balance: 1050 } });
+      await compare(view, '950');
 
-    it('should show the realized balance and what makes it, with the period bounds off the calendar month', async () => {
-      const view = await setup({
-        periodDates: getBudgetPeriodDates(6, 2025, 27),
-      });
-      await reachStep2(view);
-
-      const step = view.byTestId('reconcile-realized-step');
-      expect(step).not.toBeNull();
-      expect(view.byTestId('reconcile-period')?.textContent).toContain(
-        'Du 27 mai au 26 juin',
+      expect(view.reconciliationApi.getContext$).toHaveBeenCalledWith(
+        BUDGET_ID,
       );
-      expect(view.byTestId('reconcile-checked-income')?.textContent).toContain(
-        '5’000.00',
+      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
+        'Tes comptes ont 100.00 CHF de moins que Pulpe',
       );
-      expect(
-        view.byTestId('reconcile-checked-outflows')?.textContent,
-      ).toContain('3’380.01');
-      expect(view.byTestId('reconcile-rollover')?.textContent).toContain(
-        '-120.00',
-      );
-      expect(
-        view.byTestId('reconcile-realized-balance')?.textContent,
-      ).toContain('1’499.99');
+      expect(view.byTestId('reconcile-close-button')).toBeNull();
     });
 
-    it('should leave the period unnamed on a calendar month and open the items still to check', async () => {
+    it('should move focus to the heading of each step it reaches, scroll reset', async () => {
       const view = await setup();
-      await reachStep2(view);
+      const content = view.host.querySelector(
+        'mat-dialog-content',
+      ) as HTMLElement;
+      const scrollTo = vi.fn();
+      content.scrollTo = scrollTo;
+      await compare(view, '1500');
 
-      expect(view.byTestId('reconcile-period')).toBeNull();
-      await view.click(view.byTestId('reconcile-view-items-button'));
-      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
-      expect(view.data.viewItemsToCheck).toHaveBeenCalledTimes(1);
-      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
-    });
-
-    it('should move focus to the heading of each step it reaches', async () => {
-      const view = await setup();
-      await reachStep2(view);
-
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
       expect(document.activeElement).toBe(
         view.byTestId('reconcile-step-heading'),
       );
-      expect(document.activeElement?.textContent).toContain('Ton solde pointé');
 
       await view.click(view.byTestId('reconcile-back-button'));
 
@@ -615,25 +632,9 @@ describe('ReconcileAccountsDialog', () => {
       );
     });
 
-    it('should reset the content scroll when moving to another step', async () => {
-      const view = await setup();
-      const content = view.host.querySelector(
-        'mat-dialog-content',
-      ) as HTMLElement;
-      const scrollTo = vi.fn();
-      content.scrollTo = scrollTo;
-      await reachStep2(view);
-
-      expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
-      expect(document.activeElement).toBe(
-        view.byTestId('reconcile-step-heading'),
-      );
-    });
-
     it('should keep the typed accounts when going back to step 1', async () => {
       const view = await setup({ free: [{ name: 'Joint', side: 'own' }] });
-      await view.type(view.byTestId('reconcile-amount-input'), '1500');
-      await view.click(view.byTestId('reconcile-next-button'));
+      await compare(view, '1500');
 
       await view.click(view.byTestId('reconcile-back-button'));
 
@@ -645,315 +646,496 @@ describe('ReconcileAccountsDialog', () => {
       ).toBe('Joint');
       expect(view.dialogRef.close).not.toHaveBeenCalled();
     });
-  });
 
-  describe('step 3 — the verdict', () => {
-    it('should name what the accounts hold beyond the balance and offer a checked income', async () => {
-      const view = await setup({
-        free: [
-          { name: 'Compte A', side: 'own' },
-          { name: 'Compte B', side: 'own' },
-        ],
-      });
-      await reachVerdict(view, '1000', '500');
+    it('should show an error with « Réessayer » and nothing to write when the context fails', async () => {
+      const view = await setup({ context: 'error' });
+      await compare(view, '1500');
 
-      expect(view.byTestId('reconcile-verdict-title')?.textContent).toContain(
-        'En plus sur tes comptes +0.01 CHF',
-      );
-      expect(view.byTestId('reconcile-verdict-message')?.textContent).toContain(
-        "revenu d'ajustement de 0.01 CHF",
-      );
-      expect(
-        view.byTestId<HTMLInputElement>('reconcile-adjustment-label-input')
-          ?.value,
-      ).toBe('Ajustement');
-      expect(view.byTestId('reconcile-record-button')).not.toBeNull();
-      expect(view.byTestId('reconcile-finish-button')).toBeNull();
-    });
-
-    it('should name what the accounts are missing, overdraft included, and offer an expense', async () => {
-      const view = await setup({
-        realized: { ...REALIZED, balance: 120.3 },
-      });
-      await reachVerdict(view, '-50');
-
-      expect(view.byTestId('reconcile-verdict-title')?.textContent).toContain(
-        'Manque sur tes comptes −170.30 CHF',
-      );
-      expect(view.byTestId('reconcile-verdict-message')?.textContent).toContain(
-        "dépense d'ajustement de 170.30 CHF",
-      );
-    });
-
-    it('should call the accounts up to date at the exact cent and record nothing', async () => {
-      const view = await setup({
-        realized: { ...REALIZED, balance: 0.1 + 0.2 },
-      });
-      await reachVerdict(view, '0.30');
-
-      expect(view.byTestId('reconcile-verdict-title')?.textContent).toContain(
-        'Tout est à jour',
+      expect(view.byTestId('reconcile-context-error')?.textContent).toContain(
+        "Impossible de comparer pour l'instant.",
       );
       expect(view.byTestId('reconcile-record-button')).toBeNull();
-      expect(view.byTestId('reconcile-adjustment-label-input')).toBeNull();
+      expect(view.byTestId('reconcile-finish-button')).toBeNull();
+      expect(view.byTestId('reconcile-leave-button')).toBeNull();
 
+      const answer = new Subject<{ success: true; data: typeof CONTEXT }>();
+      view.reconciliationApi.getContext$.mockReturnValue(answer);
+      // Not `click()`: the read still out keeps the fixture unstable.
+      view.byTestId('reconcile-retry-button')?.click();
+      view.fixture.detectChanges();
+      expect(view.byTestId('reconcile-context-error')).toBeNull();
+
+      answer.next({ success: true, data: CONTEXT });
+      answer.complete();
+      await view.render();
+
+      expect(view.byTestId('reconcile-record-button')).not.toBeNull();
+      expect(document.activeElement).toBe(
+        view.byTestId('reconcile-step-heading'),
+      );
+      await view.click(view.byTestId('reconcile-back-button'));
+      expect(
+        view.byTestId<HTMLInputElement>('reconcile-amount-input')?.value,
+      ).toBe('1500');
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('suggestions', () => {
+    it('should check a movement of the month through the page, then strike the old figure', async () => {
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        ledger: { budgetLines: [ASSURANCE], transactions: [ESSENCE] },
+      });
+      await compare(view, '950');
+      expect(
+        view
+          .allByTestId('reconcile-suggestion')
+          .map((row) => row.textContent?.replace(/\s+/g, ' ').trim()),
+      ).toEqual([
+        expect.stringContaining('Assurance'),
+        expect.stringContaining('Essence'),
+      ]);
+
+      await view.click(view.allByTestId('reconcile-suggestion')[1]);
+      expect(view.data.checkItem).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'transaction', id: 'tx-essence' }),
+      );
+      // The page applies the check: its figures move.
+      view.realized.set({ ...REALIZED, balance: 990 });
+      view.ledger.set({
+        budgetLines: [ASSURANCE],
+        transactions: [{ ...ESSENCE, checkedAt: '2026-11-20T10:00:00Z' }],
+      });
+      await view.render();
+
+      expect(view.byTestId('reconcile-compared-before')?.textContent).toBe(
+        '1’050.00 CHF',
+      );
+      expect(view.byTestId('reconcile-found')?.textContent).toContain(
+        '60.00 CHF trouvés',
+      );
+      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
+        '40.00 CHF de moins',
+      );
+    });
+
+    it('should check a previous month item through the API and read the context again', async () => {
+      const prior: ReconciliationContext = {
+        ...CONTEXT,
+        priorItems: [
+          {
+            id: '12121212-1212-4121-8121-121212121212',
+            source: 'budgetLine',
+            budgetId: '13131313-1313-4131-8131-131313131313',
+            name: 'Pharmacie',
+            amount: 40,
+            kind: 'expense',
+            monthsAgo: 1,
+            effect: -40,
+          },
+        ],
+      };
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        context: prior,
+      });
+      await compare(view, '1010');
+      expect(view.byTestId('reconcile-suggestion-detail')?.textContent).toBe(
+        'Mois dernier',
+      );
+      view.reconciliationApi.getContext$.mockReturnValue(
+        of({
+          success: true as const,
+          data: { ...CONTEXT, priorCorrection: -40 },
+        }),
+      );
+
+      await view.click(view.byTestId('reconcile-suggestion'));
+
+      expect(view.budgetApi.toggleBudgetLineCheck$).toHaveBeenCalledWith(
+        prior.priorItems[0].id,
+      );
+      expect(view.data.checkItem).not.toHaveBeenCalled();
+      expect(view.reconciliationApi.getContext$).toHaveBeenCalledTimes(2);
+      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
+        'Pareil des deux côtés',
+      );
+    });
+
+    it('should hand the focus to the heading when reading the context again fails after a check', async () => {
+      const prior: ReconciliationContext = {
+        ...CONTEXT,
+        priorItems: [
+          {
+            id: '12121212-1212-4121-8121-121212121212',
+            source: 'transaction',
+            budgetId: '13131313-1313-4131-8131-131313131313',
+            name: 'Pharmacie',
+            amount: 40,
+            kind: 'expense',
+            monthsAgo: 1,
+            effect: -40,
+          },
+        ],
+      };
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        context: prior,
+      });
+      await compare(view, '1010');
+      view.reconciliationApi.getContext$
+        .mockReturnValueOnce(throwError(() => new Error('offline')))
+        .mockReturnValue(
+          of({
+            success: true as const,
+            data: { ...CONTEXT, priorCorrection: -40 },
+          }),
+        );
+
+      await view.click(view.byTestId('reconcile-suggestion'));
+
+      expect(view.reconciliationApi.getContext$).toHaveBeenCalledTimes(3);
+      expect(document.activeElement).toBe(
+        view.byTestId('reconcile-step-heading'),
+      );
+    });
+
+    it('should hand the focus to the error heading when the context stays unreadable after a check', async () => {
+      const prior: ReconciliationContext = {
+        ...CONTEXT,
+        priorItems: [
+          {
+            id: '12121212-1212-4121-8121-121212121212',
+            source: 'transaction',
+            budgetId: '13131313-1313-4131-8131-131313131313',
+            name: 'Pharmacie',
+            amount: 40,
+            kind: 'expense',
+            monthsAgo: 1,
+            effect: -40,
+          },
+        ],
+      };
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        context: prior,
+      });
+      await compare(view, '1010');
+      view.reconciliationApi.getContext$.mockReturnValue(
+        throwError(() => new Error('offline')),
+      );
+      view.byTestId('reconcile-suggestion')?.focus();
+
+      await view.click(view.byTestId('reconcile-suggestion'));
+
+      const error = view.byTestId('reconcile-context-error');
+      expect(error).not.toBeNull();
+      expect(document.activeElement).toBe(
+        error?.querySelector('.step-heading'),
+      );
+      expect(view.byTestId('reconcile-retry-button')).not.toBeNull();
+    });
+
+    it('should read the context again after a failed previous month check, so a check that landed is not offered again', async () => {
+      const prior: ReconciliationContext = {
+        ...CONTEXT,
+        priorItems: [
+          {
+            id: '12121212-1212-4121-8121-121212121212',
+            source: 'transaction',
+            budgetId: '13131313-1313-4131-8131-131313131313',
+            name: 'Pharmacie',
+            amount: 40,
+            kind: 'expense',
+            monthsAgo: 1,
+            effect: -40,
+          },
+        ],
+      };
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        context: prior,
+      });
+      await compare(view, '1010');
+      view.budgetApi.toggleTransactionCheck$.mockReturnValue(
+        throwError(() => new Error('response lost')),
+      );
+      view.reconciliationApi.getContext$.mockReturnValue(
+        of({
+          success: true as const,
+          data: { ...CONTEXT, priorCorrection: -40 },
+        }),
+      );
+
+      await view.click(view.byTestId('reconcile-suggestion'));
+
+      expect(view.snackBar.open).toHaveBeenCalledWith(
+        expect.any(String),
+        'Fermer',
+        expect.objectContaining({ verticalPosition: 'top' }),
+      );
+      expect(view.reconciliationApi.getContext$).toHaveBeenCalledTimes(2);
+      expect(view.byTestId('reconcile-suggestion')).toBeNull();
+      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
+        'Pareil des deux côtés',
+      );
+    });
+
+    it('should open the items still to check', async () => {
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        ledger: {
+          budgetLines: [ASSURANCE, { ...ASSURANCE, id: 'line-2', amount: 200 }],
+          transactions: [ESSENCE, { ...ESSENCE, id: 'tx-2', amount: 150 }],
+        },
+      });
+      await compare(view, '950');
+
+      const link = view.byTestId('reconcile-view-items-button');
+      expect(link?.textContent).toContain('Voir les 2 autres à cocher');
+      await view.click(link);
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+      expect(view.data.viewItemsToCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('should complete with nothing noted on « Laisser comme ça »', async () => {
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        ledger: { budgetLines: [], transactions: [ESSENCE] },
+      });
+      await compare(view, '950');
+
+      await view.click(view.byTestId('reconcile-leave-button'));
+
+      expect(view.postHog.captureEvent).toHaveBeenCalledWith(
+        'account_reconciliation_completed',
+        { adjustment_kind: 'none' },
+      );
+      expect(view.reconciliationApi.updateState$).toHaveBeenCalledWith({
+        completed: true,
+      });
+      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should speak of the card and remove the « Je dois » rows from the comparison', async () => {
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        ledger: { budgetLines: [], transactions: [ESSENCE] },
+        free: [
+          { name: 'UBS', side: 'own' },
+          { name: 'Visa', side: 'owe' },
+        ],
+      });
+      await compare(view, '1750', '800');
+
+      expect(view.byTestId('reconcile-compare-step')?.textContent).toContain(
+        'Coche les achats faits avec ta carte.',
+      );
+      // From the keyboard: the button holds the focus when it is pressed.
+      view.byTestId('reconcile-remove-owe-button')?.focus();
+      await view.click(view.byTestId('reconcile-remove-owe-button'));
+
+      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
+        'Tes comptes ont 700.00 CHF de plus que Pulpe',
+      );
+      // The button left with the focus: the heading takes it.
+      expect(document.activeElement).toBe(
+        view.byTestId('reconcile-step-heading'),
+      );
+      await view.click(view.byTestId('reconcile-back-button'));
+      expect(view.allByTestId('reconcile-amount-input')).toHaveLength(1);
+    });
+
+    // Owing 0 still offers it: the card row is what makes the lead speak of the card.
+    it.each(['200', '0'])(
+      'should offer to remove the card when it is the only account (owing %s), then go back to the balances',
+      async (owed) => {
+        const view = await setup({
+          realized: { ...REALIZED, balance: 1050 },
+          ledger: { budgetLines: [], transactions: [ESSENCE] },
+          free: [{ name: 'Visa', side: 'owe' }],
+        });
+        await compare(view, owed);
+
+        await view.click(view.byTestId('reconcile-remove-owe-button'));
+
+        expect(view.byTestId('reconcile-compare-step')).toBeNull();
+        expect(view.byTestId('reconcile-accounts-step')).not.toBeNull();
+      },
+    );
+
+    it('should drop what was found once removing « Je dois » moves the accounts total', async () => {
+      const pharmacie = { ...ESSENCE, id: 'tx-pharmacie', amount: 40 };
+      const view = await setup({
+        realized: { ...REALIZED, balance: 1050 },
+        ledger: { budgetLines: [], transactions: [ESSENCE, pharmacie] },
+        free: [
+          { name: 'UBS', side: 'own' },
+          { name: 'Visa', side: 'owe' },
+        ],
+      });
+      await compare(view, '1750', '800');
+      await view.click(
+        view
+          .allByTestId('reconcile-suggestion')
+          .find((row) => row.textContent?.includes('Essence')),
+      );
+      view.realized.set({ ...REALIZED, balance: 990 });
+      view.ledger.set({
+        budgetLines: [],
+        transactions: [
+          { ...ESSENCE, checkedAt: '2026-11-20T10:00:00Z' },
+          pharmacie,
+        ],
+      });
+      await view.render();
+      expect(view.byTestId('reconcile-found')).not.toBeNull();
+
+      await view.click(view.byTestId('reconcile-remove-owe-button'));
+
+      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
+        'Tes comptes ont 760.00\u00a0CHF de plus que Pulpe',
+      );
+      expect(view.byTestId('reconcile-found')).toBeNull();
+      expect(view.byTestId('reconcile-compared-before')).toBeNull();
+    });
+  });
+
+  describe('gaps below and the noted entry', () => {
+    it('should offer the small gap once the suggestions are dismissed', async () => {
+      const view = await setup({
+        realized: { ...REALIZED, balance: 900 },
+        ledger: {
+          budgetLines: [],
+          transactions: [{ ...ESSENCE, amount: 2 }],
+        },
+      });
+      await compare(view, '897.60');
+      expect(view.byTestId('reconcile-dismiss-button')?.textContent).toContain(
+        'Aucune dépense ne correspond',
+      );
+
+      view.byTestId('reconcile-dismiss-button')?.focus();
+      await view.click(view.byTestId('reconcile-dismiss-button'));
+      expect(document.activeElement).toBe(
+        view.byTestId('reconcile-step-heading'),
+      );
+
+      expect(view.byTestId('reconcile-small-gap')?.textContent).toContain(
+        'Café · payé 3.80 · noté 3.00',
+      );
+      const record = view.byTestId('reconcile-record-button');
+      expect(record?.textContent).toContain('Noter une dépense de 2.40 CHF');
+      // « Masquer les montants » blurs the amount, never the action.
+      expect(
+        Array.from(
+          record?.querySelectorAll('.ph-no-capture') ?? [],
+          (element) => element.textContent,
+        ),
+      ).toEqual([money(2.4, 'CHF')]);
+      expect(record?.closest('.ph-no-capture')).toBeNull();
+      // One inline run: the button's flex layout would drop the space before the amount.
+      expect(
+        record?.querySelector('.ph-no-capture')?.parentElement?.textContent,
+      ).toContain('Noter une dépense de');
+      // The note masks its two amounts, never « Disponible ».
+      const note = view.byTestId('reconcile-available-note');
+      expect(note?.closest('.ph-no-capture')).toBeNull();
+      expect(note?.querySelectorAll('.ph-no-capture')).toHaveLength(2);
+      expect(view.byTestId('reconcile-available-note')?.textContent).toBe(
+        'Disponible : 900.00 CHF → 897.60 CHF',
+      );
+    });
+
+    it('should note « Écart avec mes comptes » once on a double tap, and complete once', async () => {
+      const write = deferred<boolean>();
+      const recordAdjustment = vi.fn(() => write.promise);
+      const view = await setup({
+        recordAdjustment,
+        realized: { ...REALIZED, balance: 1020 },
+      });
+      await compare(view, '900');
+      expect(view.byTestId('reconcile-large-gap')?.textContent).toContain(
+        "Tu vois −120.00 CHF dans l'app de ta banque, mais pas dans Pulpe ?",
+      );
+      const button = view.byTestId<HTMLButtonElement>(
+        'reconcile-record-button',
+      );
+      expect(button?.textContent).toContain(
+        'Oui, noter une dépense de 120.00 CHF',
+      );
+
+      button?.click();
+      button?.click();
+      view.backdropClick.next(new MouseEvent('click'));
+      write.resolve(true);
+      await view.render();
+
+      expect(recordAdjustment).toHaveBeenCalledTimes(1);
+      expect(recordAdjustment).toHaveBeenCalledWith({
+        name: 'Écart avec mes comptes',
+        kind: 'expense',
+        amount: 120,
+      });
+      expect(view.postHog.captureEvent).toHaveBeenCalledTimes(1);
+      expect(view.postHog.captureEvent).toHaveBeenCalledWith(
+        'account_reconciliation_completed',
+        { adjustment_kind: 'expense' },
+      );
+      expect(view.reconciliationApi.updateState$).toHaveBeenCalledTimes(1);
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep the screen and complete nothing when the write is refused', async () => {
+      const view = await setup({
+        recordAdjustment: vi.fn().mockResolvedValue(false),
+      });
+      await compare(view, '1500');
+
+      await view.click(view.byTestId('reconcile-record-button'));
+
+      expect(
+        view.byTestId<HTMLButtonElement>('reconcile-record-button')?.disabled,
+      ).toBe(false);
+      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
+      expect(view.reconciliationApi.updateState$).not.toHaveBeenCalled();
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('should never write a « Je dois » or a balance into the event', async () => {
+      const view = await setup();
+      await compare(view, '1500');
+
+      await view.click(view.byTestId('reconcile-record-button'));
+
+      expect(view.postHog.captureEvent.mock.calls).toEqual([
+        ['account_reconciliation_completed', { adjustment_kind: 'income' }],
+      ]);
+    });
+  });
+
+  describe('matched', () => {
+    it('should title matched alone and complete once on [Terminer]', async () => {
+      const view = await setup({ realized: { balance: 1050, available: 900 } });
+      await compare(view, '1050');
+
+      expect(view.byTestId('reconcile-step-heading')?.textContent?.trim()).toBe(
+        'Pareil des deux côtés',
+      );
+      expect(view.byTestId('reconcile-matched')?.textContent).toContain(
+        'Encore prévu',
+      );
+      await view.click(view.byTestId('reconcile-finish-button'));
       await view.click(view.byTestId('reconcile-finish-button'));
 
-      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
       expect(view.postHog.captureEvent).toHaveBeenCalledTimes(1);
       expect(view.postHog.captureEvent).toHaveBeenCalledWith(
         'account_reconciliation_completed',
         { adjustment_kind: 'none' },
       );
-      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
-    });
-
-    it('should create nothing when closed on the verdict', async () => {
-      const view = await setup();
-      await reachVerdict(view, '1500');
-
-      await view.click(view.byTestId('reconcile-close-button'));
-      view.keydownEvents.next(new KeyboardEvent('keydown', { key: 'Escape' }));
-
-      expect(view.dialogRef.close).toHaveBeenCalled();
-      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
-      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('movements to point before adjusting', () => {
-    const SALARY_LINE = createMockBudgetLine({
-      id: 'line-salary',
-      name: 'Salaire',
-      kind: 'income',
-      amount: 814.93,
-    });
-    const BONUS = createMockTransaction({
-      id: 'tx-bonus',
-      name: 'Prime',
-      kind: 'income',
-      amount: 800,
-    });
-    const SALARY = createMockTransaction({
-      id: 'tx-salary',
-      budgetLineId: SALARY_LINE.id,
-      name: 'Salaire novembre',
-      kind: 'income',
-      amount: 814.93,
-    });
-
-    it('should offer an unpointed movement with what would remain, and point it through the page', async () => {
-      let settle = () => undefined as void;
-      const pointTransaction = vi.fn(
-        () => new Promise<void>((resolve) => (settle = resolve)),
-      );
-      const view = await setup({
-        ledger: { budgetLines: [], transactions: [BONUS] },
-        pointTransaction,
-      });
-      await reachVerdict(view, '2314.92');
-
-      const rows = view.allByTestId('reconcile-candidate');
-      expect(rows).toHaveLength(1);
-      expect(rows[0].textContent).toContain('Prime');
-      expect(
-        view
-          .byTestId('reconcile-candidate-detail')
-          ?.textContent?.replace(/\s+/g, ' '),
-      ).toContain('Hors prévision · il restera +14.93 CHF');
-      expect(view.byTestId('reconcile-verdict-message')?.textContent).toContain(
-        'compterait deux fois',
-      );
-
-      await view.click(view.byTestId('reconcile-candidate-point-button'));
-      expect(pointTransaction).toHaveBeenCalledWith('tx-bonus');
-      expect(
-        view.byTestId<HTMLButtonElement>('reconcile-candidate-point-button')
-          ?.disabled,
-      ).toBe(true);
-      expect(
-        view.byTestId<HTMLButtonElement>('reconcile-record-button')?.disabled,
-      ).toBe(true);
-
-      // The page points it: the live balance and movements move together.
-      view.realized.set({ ...REALIZED, balance: 2299.99 });
-      view.ledger.set({
-        budgetLines: [],
-        transactions: [{ ...BONUS, checkedAt: '2025-06-10T00:00:00Z' }],
-      });
-      settle();
-      await view.render();
-
-      expect(view.byTestId('reconcile-candidates')).toBeNull();
-      expect(view.byTestId('reconcile-verdict-title')?.textContent).toContain(
-        '+14.93 CHF',
-      );
-    });
-
-    it('should name the prévision of a movement that settles the gap exactly', async () => {
-      const view = await setup({
-        ledger: { budgetLines: [SALARY_LINE], transactions: [SALARY] },
-      });
-      await reachVerdict(view, '2314.92');
-
-      expect(
-        view
-          .byTestId('reconcile-candidate-detail')
-          ?.textContent?.replace(/\s+/g, ' '),
-      ).toContain('Salaire · même montant');
-    });
-
-    it('should show no movement to point when none moves the balance toward the accounts', async () => {
-      const view = await setup({
-        ledger: {
-          budgetLines: [],
-          transactions: [{ ...BONUS, kind: 'expense' }],
-        },
-      });
-      await reachVerdict(view, '2314.92');
-
-      expect(view.byTestId('reconcile-record-button')).not.toBeNull();
-      expect(view.byTestId('reconcile-candidates')).toBeNull();
-      expect(
-        view.byTestId('reconcile-verdict-message')?.textContent,
-      ).not.toContain('compterait deux fois');
-    });
-  });
-
-  describe('recording the adjustment', () => {
-    it('should record one adjustment with the edited label and report completion once', async () => {
-      const write = deferred<boolean>();
-      const recordAdjustment = vi.fn(() => write.promise);
-      const view = await setup({ recordAdjustment });
-      await reachVerdict(view, '1500');
-      await view.type(
-        view.byTestId('reconcile-adjustment-label-input'),
-        '  Écart banque  ',
-      );
-
-      await view.click(view.byTestId('reconcile-record-button'));
-      await view.click(view.byTestId('reconcile-record-button'));
-
-      expect(recordAdjustment).toHaveBeenCalledTimes(1);
-      expect(recordAdjustment).toHaveBeenCalledWith({
-        name: 'Écart banque',
-        kind: 'income',
-        amount: 0.01,
-      });
-
-      write.resolve(true);
-      await view.render();
-
-      expect(view.postHog.captureEvent).toHaveBeenCalledTimes(1);
-      expect(view.postHog.captureEvent).toHaveBeenCalledWith(
-        'account_reconciliation_completed',
-        { adjustment_kind: 'income' },
-      );
-      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
-    });
-
-    it('should hold every exit while recording and keep the step and input after a refusal', async () => {
-      const firstWrite = deferred<boolean>();
-      const recordAdjustment = vi
-        .fn<ReconcileAccountsDialogData['recordAdjustment']>()
-        .mockImplementationOnce(() => firstWrite.promise)
-        .mockResolvedValueOnce(true);
-      const view = await setup({
-        recordAdjustment,
-        realized: { ...REALIZED, balance: 1600 },
-      });
-      await reachVerdict(view, '1500');
-      const button = (id: string) => view.byTestId<HTMLButtonElement>(id);
-
-      await view.click(button('reconcile-record-button'));
-
-      expect(button('reconcile-record-button')?.disabled).toBe(true);
-      expect(button('reconcile-back-button')?.disabled).toBe(true);
-      expect(button('reconcile-close-button')?.disabled).toBe(true);
-      view.backdropClick.next(new MouseEvent('click'));
-      view.keydownEvents.next(new KeyboardEvent('keydown', { key: 'Escape' }));
-      expect(view.dialogRef.close).not.toHaveBeenCalled();
-
-      firstWrite.resolve(false);
-      await view.render();
-
-      expect(view.byTestId('reconcile-verdict-step')).not.toBeNull();
-      expect(
-        view.byTestId<HTMLInputElement>('reconcile-adjustment-label-input')
-          ?.value,
-      ).toBe('Ajustement');
-      expect(button('reconcile-record-button')?.disabled).toBe(false);
-      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
-      expect(view.dialogRef.close).not.toHaveBeenCalled();
-
-      await view.click(button('reconcile-record-button'));
-      await view.render();
-
-      expect(recordAdjustment).toHaveBeenCalledTimes(2);
-      expect(recordAdjustment).toHaveBeenLastCalledWith({
-        name: 'Ajustement',
-        kind: 'expense',
-        amount: 100,
-      });
-      expect(view.postHog.captureEvent).toHaveBeenCalledWith(
-        'account_reconciliation_completed',
-        { adjustment_kind: 'expense' },
-      );
-      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
-    });
-
-    it('should hold Finish while a write is out, even once the live balance matches, and keep a refusal retryable', async () => {
-      const firstWrite = deferred<boolean>();
-      const recordAdjustment = vi
-        .fn<ReconcileAccountsDialogData['recordAdjustment']>()
-        .mockImplementationOnce(() => firstWrite.promise)
-        .mockResolvedValueOnce(true);
-      const view = await setup({ recordAdjustment });
-      await reachVerdict(view, '1500');
-      await view.click(view.byTestId('reconcile-record-button'));
-
-      view.realized.set({ ...REALIZED, balance: 1500 });
-      await view.render();
-      const finish = view.byTestId<HTMLButtonElement>(
-        'reconcile-finish-button',
-      );
-      await view.click(finish);
-
-      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
-      expect(finish?.disabled).toBe(true);
-
-      firstWrite.resolve(false);
-      await view.render();
-      view.realized.set(REALIZED);
-      await view.render();
-      await view.click(view.byTestId('reconcile-record-button'));
-      await view.render();
-
-      expect(recordAdjustment).toHaveBeenCalledTimes(2);
-      expect(view.postHog.captureEvent).toHaveBeenCalledTimes(1);
-      expect(view.postHog.captureEvent).toHaveBeenCalledWith(
-        'account_reconciliation_completed',
-        { adjustment_kind: 'income' },
-      );
-      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not record an adjustment left without a label', async () => {
-      const view = await setup();
-      await reachVerdict(view, '1500');
-
-      const label = view.byTestId('reconcile-adjustment-label-input');
-      await view.type(label, '   ');
-      label?.dispatchEvent(new Event('blur'));
-      await view.render();
-
-      expect(view.host.textContent).toContain(
-        'Donne un libellé à cet ajustement',
-      );
-      expect(
-        view.byTestId<HTMLButtonElement>('reconcile-record-button')?.disabled,
-      ).toBe(true);
-      await view.click(view.byTestId('reconcile-record-button'));
+      expect(view.reconciliationApi.updateState$).toHaveBeenCalledTimes(1);
       expect(view.data.recordAdjustment).not.toHaveBeenCalled();
     });
 
@@ -964,14 +1146,14 @@ describe('ReconcileAccountsDialog', () => {
       view.backdropClick.next(new MouseEvent('click'));
 
       expect(view.dialogRef.close).toHaveBeenCalledTimes(2);
-      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
+      expect(view.reconciliationApi.updateState$).not.toHaveBeenCalled();
     });
   });
 
   describe('when the page no longer holds the month it opened on', () => {
     it('should close without writing or claiming anything', async () => {
       const view = await setup();
-      await reachVerdict(view, '1500');
+      await compare(view, '1500');
 
       view.realized.set(null);
       await view.render();
@@ -985,32 +1167,25 @@ describe('ReconcileAccountsDialog', () => {
       const write = deferred<boolean>();
       const recordAdjustment = vi.fn(() => write.promise);
       const view = await setup({ recordAdjustment });
-      await reachVerdict(view, '1500');
+      await compare(view, '1500');
       await view.click(view.byTestId('reconcile-record-button'));
 
       view.realized.set(null);
       await view.render();
-
       expect(view.dialogRef.close).not.toHaveBeenCalled();
-      expect(view.host.textContent).not.toContain('Tout est à jour');
-      const finish = view.byTestId<HTMLButtonElement>(
-        'reconcile-finish-button',
-      );
-      expect(finish?.disabled).toBe(true);
-      await view.click(finish);
-      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
 
       write.resolve(false);
       await view.render();
 
       expect(recordAdjustment).toHaveBeenCalledTimes(1);
+      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
       expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('accounts linked to « Mon patrimoine »', () => {
-    // Types into the amount inputs by position, then walks to the verdict.
-    async function reachVerdictOn(
+    // Types into the amount inputs by position, then compares.
+    async function compareOn(
       view: Awaited<ReturnType<typeof setup>>,
       amounts: Record<number, string>,
     ) {
@@ -1020,7 +1195,6 @@ describe('ReconcileAccountsDialog', () => {
           amount,
         );
       }
-      await view.click(view.byTestId('reconcile-next-button'));
       await view.click(view.byTestId('reconcile-next-button'));
     }
 
@@ -1072,7 +1246,7 @@ describe('ReconcileAccountsDialog', () => {
         accounts: [UBS, POSTFINANCE],
         free: [{ name: 'Cash', side: 'own' }],
       });
-      await reachVerdictOn(view, { 0: '12340', 2: '50' });
+      await compareOn(view, { 0: '12340', 2: '50' });
 
       await view.click(view.byTestId('reconcile-record-button'));
 
@@ -1088,7 +1262,7 @@ describe('ReconcileAccountsDialog', () => {
 
     it('should record the snapshots of an overdraft and of every filled linked row', async () => {
       const view = await setup({ accounts: [UBS, POSTFINANCE] });
-      await reachVerdictOn(view, { 0: '100', 1: '-20.5' });
+      await compareOn(view, { 0: '100', 1: '-20.5' });
 
       await view.click(view.byTestId('reconcile-record-button'));
 
@@ -1105,7 +1279,7 @@ describe('ReconcileAccountsDialog', () => {
         accounts: [UBS],
         realized: { ...REALIZED, balance: 12340 },
       });
-      await reachVerdictOn(view, { 0: '12340' });
+      await compareOn(view, { 0: '12340' });
 
       await view.click(view.byTestId('reconcile-finish-button'));
 
@@ -1125,7 +1299,7 @@ describe('ReconcileAccountsDialog', () => {
         view.byTestId('reconcile-remove-button')?.getAttribute('aria-label'),
       ).toBe('Retirer Compte UBS de la liste');
       await view.click(view.byTestId('reconcile-remove-button'));
-      await reachVerdictOn(view, { 0: '300' });
+      await compareOn(view, { 0: '300' });
 
       await view.click(view.byTestId('reconcile-finish-button'));
       await view.render();
@@ -1149,7 +1323,7 @@ describe('ReconcileAccountsDialog', () => {
         accounts: [UBS, card],
         realized: { ...REALIZED, balance: 200 },
       });
-      await reachVerdictOn(view, { 0: '1000', 1: '800' });
+      await compareOn(view, { 0: '1000', 1: '800' });
 
       await view.click(view.byTestId('reconcile-finish-button'));
       await view.render();
@@ -1167,7 +1341,7 @@ describe('ReconcileAccountsDialog', () => {
         free: [{ name: 'Neon', side: 'own' }],
         realized: { ...REALIZED, balance: 300 },
       });
-      await reachVerdictOn(view, { 0: '300' });
+      await compareOn(view, { 0: '300' });
 
       await view.click(view.byTestId('reconcile-finish-button'));
       await view.render();
@@ -1209,7 +1383,7 @@ describe('ReconcileAccountsDialog', () => {
         free: [{ name: 'Cash', side: 'own' }],
         realized: { ...REALIZED, balance: 50 },
       });
-      await reachVerdictOn(view, { 1: '50' });
+      await compareOn(view, { 1: '50' });
 
       await view.click(view.byTestId('reconcile-finish-button'));
 
@@ -1222,7 +1396,7 @@ describe('ReconcileAccountsDialog', () => {
         accounts: [UBS],
         recordSnapshots: () => throwError(() => new Error('offline')),
       });
-      await reachVerdictOn(view, { 0: '1500' });
+      await compareOn(view, { 0: '1500' });
 
       await view.click(view.byTestId('reconcile-record-button'));
 
@@ -1244,7 +1418,7 @@ describe('ReconcileAccountsDialog', () => {
         accounts: [UBS],
         recordAdjustment: vi.fn().mockResolvedValue(false),
       });
-      await reachVerdictOn(view, { 0: '1500' });
+      await compareOn(view, { 0: '1500' });
 
       await view.click(view.byTestId('reconcile-record-button'));
 
@@ -1262,11 +1436,11 @@ describe('ReconcileAccountsDialog', () => {
       expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();
     });
 
-    it('should write no snapshot when the dialog is closed on the verdict', async () => {
+    it('should write no snapshot when the dialog is closed on step 2', async () => {
       const view = await setup({ accounts: [UBS] });
-      await reachVerdictOn(view, { 0: '1500' });
+      await compareOn(view, { 0: '1500' });
 
-      await view.click(view.byTestId('reconcile-close-button'));
+      view.backdropClick.next(new MouseEvent('click'));
       view.keydownEvents.next(new KeyboardEvent('keydown', { key: 'Escape' }));
 
       expect(view.dialogRef.close).toHaveBeenCalled();

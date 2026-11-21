@@ -59,3 +59,9 @@ export const PAGE_TITLES = {
   DESIGN_SYSTEM: 'pageTitle.designSystem',
   MAINTENANCE: 'pageTitle.maintenance',
 } as const;
+
+/**
+ * Navigation `info` that opens a budget on its items still to check, the list
+ * in view and focused: « Voir les autres à cocher » of the account comparison.
+ */
+export const REVEAL_ITEMS_TO_CHECK = 'reveal-items-to-check';

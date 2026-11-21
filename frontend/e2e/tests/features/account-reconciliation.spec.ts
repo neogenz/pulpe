@@ -1,6 +1,10 @@
 import { createMockBudgetDetailsResponse } from '../../mocks/api-responses';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../fixtures/test-fixtures';
+import {
+  createBudgetLineMock,
+  createTransactionMock,
+} from '../../helpers/api-mocks';
 import { enableFeatureFlags } from '../../utils/feature-flags';
 
 const GUIDE_SEEN_KEY = 'pulpe-reconcile-guide-seen';
@@ -18,6 +22,43 @@ async function markGuideSeen(page: Page): Promise<void> {
       }),
     );
   }, GUIDE_SEEN_KEY);
+}
+
+// Step 2 reads what the server keeps about past comparisons. Registered after
+// the fixture's catch-all, so it wins. Returns each completion sent.
+async function mockReconciliation(
+  page: Page,
+  { failedReads = 0 } = {},
+): Promise<unknown[]> {
+  const completions: unknown[] = [];
+  let readsToFail = failedReads;
+  await page.route('**/api/v1/reconciliation/**', (route) => {
+    if (route.request().method() !== 'GET') {
+      completions.push(route.request().postDataJSON());
+      return route.fulfill({
+        json: {
+          success: true,
+          data: { startingAmount: 0, hasCompletedComparison: true },
+        },
+      });
+    }
+    if (readsToFail > 0) {
+      readsToFail -= 1;
+      return route.abort('internetdisconnected');
+    }
+    return route.fulfill({
+      json: {
+        success: true,
+        data: {
+          startingAmount: 0,
+          hasCompletedComparison: true,
+          priorCorrection: 0,
+          priorItems: [],
+        },
+      },
+    });
+  });
+  return completions;
 }
 
 const SAVING_TARGET_ID = '55555555-5555-4555-8555-555555555555';
@@ -240,6 +281,7 @@ test('keeps reconciliation navigation usable while an error toast is visible', a
   currentMonthPage,
 }) => {
   await markGuideSeen(page);
+  await mockReconciliation(page);
   await page.setViewportSize({ width: 390, height: 664 });
   await page.route('**/api/v1/transactions', (route) =>
     route.fulfill({
@@ -251,7 +293,6 @@ test('keeps reconciliation navigation usable while an error toast is visible', a
   await page.getByTestId('hero-reconcile-button').click();
   await page.getByTestId('reconcile-amount-input').fill('100.10');
   await page.getByTestId('reconcile-next-button').click();
-  await page.getByTestId('reconcile-next-button').click();
   await page.getByTestId('reconcile-record-button').click();
 
   const toast = page.locator('mat-snack-bar-container');
@@ -261,9 +302,12 @@ test('keeps reconciliation navigation usable while an error toast is visible', a
   expect(toastBox).not.toBeNull();
   expect(footerBox).not.toBeNull();
   expect(toastBox!.y + toastBox!.height).toBeLessThan(footerBox!.y);
+  // On a phone the toast sits over the header; the retry, in the footer, stays free.
+  await page
+    .getByTestId('reconcile-record-button')
+    .click({ trial: true, timeout: 2000 });
 
-  await page.getByTestId('reconcile-back-button').click({ timeout: 2000 });
-  await expect(page.getByTestId('reconcile-realized-step')).toBeVisible();
+  await toast.getByRole('button', { name: 'Fermer' }).click();
   await page.getByTestId('reconcile-back-button').click({ timeout: 2000 });
   await expect(page.getByTestId('reconcile-amount-input')).toHaveValue(
     '100.10',
@@ -277,6 +321,7 @@ for (const viewport of VIEWPORTS) {
   }) => {
     await markGuideSeen(page);
     await mockNetWorth(page);
+    await mockReconciliation(page);
     await page.setViewportSize(viewport);
     await currentMonthPage.goto();
     await page.getByTestId('hero-reconcile-button').click();
@@ -310,10 +355,11 @@ for (const viewport of VIEWPORTS) {
       '4’000.00 CHF − 800.00 CHF que tu dois',
     );
     await page.getByTestId('reconcile-next-button').click();
-    await expect(page.getByTestId('reconcile-realized-step')).toBeVisible();
+    await expect(page.getByTestId('reconcile-compare-step')).toBeVisible();
 
     await page.getByTestId('reconcile-back-button').click();
     await page.getByTestId('reconcile-close-button').click();
+    await expect(page.getByTestId('reconcile-accounts-step')).toBeHidden();
     await page.getByTestId('hero-reconcile-button').click();
     await expect(page.getByTestId('reconcile-label-input')).toHaveValue(
       'Revolut',
@@ -433,10 +479,12 @@ for (const [name, year, month, isCurrent] of [
       await expect(page.getByTestId('budget-reconcile-button')).toHaveCount(0);
       return;
     }
+    await mockReconciliation(page);
     await page.route('**/api/v1/transactions', async (route) => {
       const payload = route.request().postDataJSON();
       expect(payload).toMatchObject({
         budgetId: response.data.budget.id,
+        name: 'Écart avec mes comptes',
         amount: 50,
         kind: 'income',
       });
@@ -453,13 +501,361 @@ for (const [name, year, month, isCurrent] of [
     await page.getByTestId('budget-reconcile-button').click();
     await page.getByTestId('reconcile-amount-input').fill('30');
     await page.getByTestId('reconcile-next-button').click();
-    await page.getByTestId('reconcile-next-button').click();
     await page.getByTestId('reconcile-record-button').click();
     await expect(page.getByTestId('reconcile-record-button')).toBeHidden();
     await page.getByTestId('budget-reconcile-button').click();
     await page.getByTestId('reconcile-amount-input').fill('30');
     await page.getByTestId('reconcile-next-button').click();
-    await page.getByTestId('reconcile-next-button').click();
     await expect(page.getByTestId('reconcile-finish-button')).toBeVisible();
   });
 }
+
+// Pulpe holds 3 200.00 checked (salary in, rent out). Three items wait to be
+// checked: Assurance 100.00, Essence 60.00, Pharmacie 40.00. Each check answers
+// like the server and the details follow it.
+async function mockMonthToCheck(page: Page): Promise<void> {
+  const response = structuredClone(createMockBudgetDetailsResponse());
+  const budgetId = response.data.budget.id;
+  const today = new Date().toISOString();
+  const checked = new Set<string>();
+  const lines = [
+    createBudgetLineMock('a1111111-1111-4111-8111-111111111111', budgetId, {
+      name: 'Salaire',
+      amount: 5000,
+      kind: 'income',
+      checkedAt: today,
+    }),
+    createBudgetLineMock('a2222222-2222-4222-8222-222222222222', budgetId, {
+      name: 'Loyer',
+      amount: 1800,
+      checkedAt: today,
+    }),
+    createBudgetLineMock('a3333333-3333-4333-8333-333333333333', budgetId, {
+      name: 'Assurance',
+      amount: 100,
+    }),
+  ];
+  const transactions = [
+    createTransactionMock('b1111111-1111-4111-8111-111111111111', budgetId, {
+      name: 'Essence',
+      amount: 60,
+      transactionDate: today,
+    }),
+    createTransactionMock('b2222222-2222-4222-8222-222222222222', budgetId, {
+      name: 'Pharmacie',
+      amount: 40,
+      transactionDate: today,
+    }),
+  ];
+  const withChecks = <T extends { id: string; checkedAt: string | null }>(
+    item: T,
+  ) => (checked.has(item.id) ? { ...item, checkedAt: today } : item);
+  await page.route('**/api/v1/budgets/*/details', (route) =>
+    route.fulfill({
+      json: {
+        ...response,
+        data: {
+          ...response.data,
+          budgetLines: lines.map(withChecks),
+          transactions: transactions.map(withChecks),
+        },
+      },
+    }),
+  );
+  for (const item of [...lines, ...transactions]) {
+    const path = 'transactionDate' in item ? 'transactions' : 'budget-lines';
+    await page.route(`**/api/v1/${path}/${item.id}/toggle-check`, (route) => {
+      checked.add(item.id);
+      return route.fulfill({
+        json: { success: true, data: { ...item, checkedAt: today } },
+      });
+    });
+  }
+}
+
+async function compareWith(page: Page, ...amounts: string[]): Promise<void> {
+  await page.getByTestId('hero-reconcile-button').click();
+  for (const [index, amount] of amounts.entries()) {
+    await page.getByTestId('reconcile-amount-input').nth(index).fill(amount);
+  }
+  await page.getByTestId('reconcile-next-button').click();
+}
+
+for (const viewport of VIEWPORTS) {
+  test(`suggests the items that explain the gap, then ends matched once they are checked (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    await markGuideSeen(page);
+    const completions = await mockReconciliation(page);
+    await mockMonthToCheck(page);
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '3100');
+
+    const heading = page.getByTestId('reconcile-step-heading');
+    await expect(heading).toHaveText(
+      'Tes comptes ont 100.00 CHF de moins que Pulpe',
+    );
+    await expect(heading).toBeFocused();
+    const suggestions = page.getByTestId('reconcile-suggestion');
+    await expect(suggestions).toHaveCount(3);
+    await expect(suggestions.first()).toContainText('Assurance');
+    await expect(page.getByTestId('reconcile-dismiss-button')).toBeInViewport({
+      ratio: 1,
+    });
+
+    await suggestions.filter({ hasText: 'Essence' }).click();
+    await expect(page.getByTestId('reconcile-compared-before')).toHaveText(
+      '3’200.00 CHF',
+    );
+    await expect(page.getByTestId('reconcile-found')).toContainText(
+      '60.00 CHF trouvés',
+    );
+    await expect(heading).toHaveText(
+      'Tes comptes ont 40.00 CHF de moins que Pulpe',
+    );
+    await expect(page.getByTestId('reconcile-view-items-button')).toHaveText(
+      'Voir 1 autre à cocher',
+    );
+
+    await suggestions.filter({ hasText: 'Pharmacie' }).click();
+    await expect(heading).toHaveText('Pareil des deux côtés');
+    await expect(page.getByTestId('reconcile-finish-button')).toBeInViewport({
+      ratio: 1,
+    });
+    await page.getByTestId('reconcile-finish-button').click();
+    await expect(page.getByTestId('reconcile-compare-step')).toBeHidden();
+    expect(completions).toEqual([{ completed: true }]);
+  });
+
+  test(`checks a last-month item, then reads Pulpe's figure again (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    await markGuideSeen(page);
+    await mockReconciliation(page);
+    const pharmacie = createTransactionMock(
+      'c1111111-1111-4111-8111-111111111111',
+      'd1111111-1111-4111-8111-111111111111',
+      { name: 'Pharmacie', amount: 40 },
+    );
+    let isChecked = false;
+    // Wins over `mockReconciliation` for the reads; the completion falls through to it.
+    await page.route('**/api/v1/reconciliation/*', (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            json: {
+              success: true,
+              data: {
+                startingAmount: 0,
+                hasCompletedComparison: true,
+                priorCorrection: isChecked ? -40 : 0,
+                priorItems: isChecked
+                  ? []
+                  : [
+                      {
+                        id: pharmacie.id,
+                        source: 'transaction',
+                        budgetId: pharmacie.budgetId,
+                        name: 'Pharmacie',
+                        amount: 40,
+                        kind: 'expense',
+                        monthsAgo: 1,
+                        effect: -40,
+                      },
+                    ],
+              },
+            },
+          })
+        : route.fallback(),
+    );
+    let toggles = 0;
+    await page.route(
+      `**/api/v1/transactions/${pharmacie.id}/toggle-check`,
+      (route) => {
+        toggles += 1;
+        isChecked = true;
+        return route.fulfill({
+          json: {
+            success: true,
+            data: { ...pharmacie, checkedAt: new Date().toISOString() },
+          },
+        });
+      },
+    );
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '-40');
+
+    const heading = page.getByTestId('reconcile-step-heading');
+    await expect(heading).toHaveText(
+      'Tes comptes ont 40.00 CHF de moins que Pulpe',
+    );
+    await expect(page.getByTestId('reconcile-suggestion-detail')).toHaveText(
+      'Mois dernier',
+    );
+    await page.getByTestId('reconcile-suggestion').click();
+
+    await expect(heading).toHaveText('Pareil des deux côtés');
+    expect(toggles).toBe(1);
+  });
+
+  test(`notes a large gap once on a double tap, under the name « Écart avec mes comptes » (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    await markGuideSeen(page);
+    const completions = await mockReconciliation(page);
+    const entries: unknown[] = [];
+    await page.route('**/api/v1/transactions', (route) => {
+      const payload = route.request().postDataJSON();
+      entries.push(payload);
+      return route.fulfill({
+        json: {
+          success: true,
+          data: {
+            ...payload,
+            id: 'c1111111-1111-4111-8111-111111111111',
+            budgetLineId: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+    });
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '-120');
+
+    await expect(page.getByTestId('reconcile-large-gap')).toContainText(
+      "Tu vois −120.00 CHF dans l'app de ta banque, mais pas dans Pulpe ?",
+    );
+    const record = page.getByTestId('reconcile-record-button');
+    await expect(record).toContainText('Oui, noter une dépense de 120.00 CHF');
+    await expect(record).toBeInViewport({ ratio: 1 });
+    await record.dblclick();
+
+    await expect(page.getByTestId('reconcile-compare-step')).toBeHidden();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      name: 'Écart avec mes comptes',
+      kind: 'expense',
+      amount: 120,
+    });
+    expect(completions).toEqual([{ completed: true }]);
+  });
+
+  test(`offers a small gap as a rounding, and leaves it without writing (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    await markGuideSeen(page);
+    const completions = await mockReconciliation(page);
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '-2.40');
+
+    await expect(page.getByTestId('reconcile-small-gap')).toContainText(
+      'Café · payé 3.80 · noté 3.00',
+    );
+    await expect(page.getByTestId('reconcile-record-button')).toContainText(
+      'Noter une dépense de 2.40 CHF',
+    );
+    await page.getByTestId('reconcile-leave-button').click();
+
+    await expect(page.getByTestId('reconcile-compare-step')).toBeHidden();
+    expect(completions).toEqual([{ completed: true }]);
+  });
+
+  test(`speaks of the card with a « Je dois » row, and can take it out (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    await markGuideSeen(page);
+    await mockReconciliation(page);
+    await mockMonthToCheck(page);
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await page.getByTestId('hero-reconcile-button').click();
+    await page.getByTestId('reconcile-amount-input').fill('3900');
+    await page.getByTestId('reconcile-add-owe-help-button').click();
+    await page.getByTestId('reconcile-label-input').nth(1).fill('Visa');
+    await page.getByTestId('reconcile-amount-input').nth(1).fill('800');
+    await page.getByTestId('reconcile-next-button').click();
+
+    await expect(page.getByTestId('reconcile-compare-step')).toContainText(
+      'Coche les achats faits avec ta carte.',
+    );
+    await expect(page.getByTestId('reconcile-owe-box')).toContainText(
+      'Tu coches tes achats de carte à la facture ?',
+    );
+    await page.getByTestId('reconcile-remove-owe-button').click();
+
+    await expect(page.getByTestId('reconcile-step-heading')).toHaveText(
+      'Tes comptes ont 700.00 CHF de plus que Pulpe',
+    );
+  });
+
+  test(`says the comparison is unavailable, writes nothing, and recovers on « Réessayer » (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    await markGuideSeen(page);
+    // The API client retries a failed read twice before giving up.
+    await mockReconciliation(page, { failedReads: 3 });
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '100');
+
+    await expect(page.getByTestId('reconcile-context-error')).toContainText(
+      "Impossible de comparer pour l'instant.",
+    );
+    await expect(page.getByTestId('reconcile-record-button')).toHaveCount(0);
+    await page.getByTestId('reconcile-retry-button').click();
+
+    await expect(page.getByTestId('reconcile-step-heading')).toHaveText(
+      'Tes comptes ont 100.00 CHF de plus que Pulpe',
+    );
+    await expect(page.getByTestId('reconcile-step-heading')).toBeFocused();
+  });
+}
+
+// The page scrolls under a sticky toolbar on a phone: the title must land in
+// view and uncovered, not just somewhere in the document.
+test('lands on the items still to check from home, title in view and focused, on a phone', async ({
+  authenticatedPage: page,
+  currentMonthPage,
+}) => {
+  await markGuideSeen(page);
+  await mockReconciliation(page);
+  await mockMonthToCheck(page);
+  await page.setViewportSize({ width: 390, height: 664 });
+  await currentMonthPage.goto();
+  await compareWith(page, '3100');
+  await page
+    .getByTestId('reconcile-suggestion')
+    .filter({ hasText: 'Essence' })
+    .click();
+  await page.getByTestId('reconcile-view-items-button').click();
+  // Closing hands the home's scroll position back: judge the title after it.
+  await expect(page.locator('.cdk-overlay-pane')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/budget\//);
+
+  const title = page.locator('#budget-items-title');
+  await expect(title).toBeFocused();
+  await expect(title).toBeInViewport({ ratio: 1 });
+  // Polled: the route's view transition covers the page for a moment.
+  await expect
+    .poll(() =>
+      title.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.left + 4, box.top + 4);
+        return element.contains(hit);
+      }),
+    )
+    .toBe(true);
+  await expect(page.getByTestId('unchecked-filter-chip')).toHaveClass(
+    /mat-button-toggle-checked/,
+  );
+});

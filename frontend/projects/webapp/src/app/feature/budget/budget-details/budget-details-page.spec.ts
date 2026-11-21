@@ -5,6 +5,7 @@ import {
   Component,
   DestroyRef,
   effect,
+  forwardRef,
   input,
   output,
   signal,
@@ -31,6 +32,8 @@ import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { createMockBudget } from '../../../testing/mock-factories';
+import { REVEAL_ITEMS_TO_CHECK } from '@core/routing/routes-constants';
+import { By } from '@angular/platform-browser';
 
 /**
  * Tests the loading indicator ↔ isStale contract used by BudgetDetailsPage.
@@ -116,7 +119,13 @@ describe('BudgetDetailsPage — localized budget period', () => {
               payDayOfMonth: signal(5),
             },
           },
-          { provide: Router, useValue: { navigate: () => undefined } },
+          {
+            provide: Router,
+            useValue: {
+              navigate: () => undefined,
+              currentNavigation: () => null,
+            },
+          },
           {
             provide: BreadcrumbState,
             useValue: {
@@ -157,8 +166,17 @@ describe('BudgetDetailsPage — localized budget period', () => {
   selector: 'pulpe-budget-items',
   template: '',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Found by the page's `viewChild(BudgetItemsContainer)`.
+  providers: [
+    {
+      provide: BudgetItemsContainer,
+      useExisting: forwardRef(() => BudgetItemsStub),
+    },
+  ],
 })
-class BudgetItemsStub {}
+class BudgetItemsStub {
+  readonly revealItemsToCheck = vi.fn();
+}
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
@@ -209,9 +227,15 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
     deletionImpact: ReturnType<typeof vi.fn>;
     deleteMonth: ReturnType<typeof vi.fn>;
     createAllocatedTransaction: ReturnType<typeof vi.fn>;
+    toggleTransactionCheck: ReturnType<typeof vi.fn>;
+    toggleCheck: ReturnType<typeof vi.fn>;
+    setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
   };
   let dialogService: { confirmDelete: ReturnType<typeof vi.fn> };
-  let router: { navigate: ReturnType<typeof vi.fn> };
+  let router: {
+    navigate: ReturnType<typeof vi.fn>;
+    currentNavigation: () => unknown;
+  };
   let snackBar: { open: ReturnType<typeof vi.fn> };
 
   const settle = (): Promise<void> =>
@@ -220,11 +244,18 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
   const query = (testId: string): HTMLElement | null =>
     document.querySelector(`[data-testid="${testId}"]`);
 
-  const setup = async (month = 11, budgetId = 'budget-1'): Promise<void> => {
+  const setup = async (
+    month = 11,
+    budgetId = 'budget-1',
+    navigationInfo?: string,
+  ): Promise<void> => {
     isViewedMonthFuture = signal(true);
     isViewingCurrentPeriod = signal(true);
     store = {
       createAllocatedTransaction: vi.fn().mockResolvedValue(null),
+      toggleTransactionCheck: vi.fn().mockResolvedValue({ status: 'applied' }),
+      toggleCheck: vi.fn().mockResolvedValue({ status: 'applied' }),
+      setIsShowingOnlyUnchecked: vi.fn(),
       deletionImpact: vi.fn().mockResolvedValue(NO_LINKS_IMPACT),
       // The real store hands the page over to `leave` before it reports success.
       deleteMonth: vi.fn(
@@ -239,7 +270,11 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       ),
     };
     dialogService = { confirmDelete: vi.fn().mockResolvedValue(true) };
-    router = { navigate: vi.fn().mockResolvedValue(true) };
+    router = {
+      navigate: vi.fn().mockResolvedValue(true),
+      currentNavigation: () =>
+        navigationInfo ? { extras: { info: navigationInfo } } : null,
+    };
     snackBar = { open: vi.fn() };
 
     await TestBed.configureTestingModule({
@@ -288,9 +323,12 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
                   budgetLines: [],
                   transactions: [],
                 }),
-                financialTotals: signal(null),
-                realizedIncome: signal(100),
-                realizedExpenses: signal(40),
+                financialTotals: signal({
+                  income: 100,
+                  expenses: 40,
+                  savings: 0,
+                  remaining: 900,
+                }),
                 realizedBalance: signal(60),
                 previousMonthRollover: signal(-20),
                 shouldShowSavingsWithdrawalAction: signal(false),
@@ -353,12 +391,12 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
         },
       );
       query('budget-reconcile-button')!.click();
-      expect(data.realized()).toEqual({
-        balance: 40,
-        checkedIncome: 100,
-        checkedOutflows: 40,
-        rollover: -20,
-      });
+      expect(data.budgetId).toBe(budgetId);
+      expect(data.realized()).toEqual({ balance: 40, available: 900 });
+      await data.checkItem({ kind: 'transaction', id: 'tx-1' });
+      await data.checkItem({ kind: 'budgetLine', id: 'line-1' });
+      expect(store.toggleTransactionCheck).toHaveBeenCalledWith('tx-1');
+      expect(store.toggleCheck).toHaveBeenCalledWith('line-1');
       const adjustment = { name: 'Écart', amount: 10, kind: 'income' as const };
       store.createAllocatedTransaction.mockResolvedValueOnce('Réessaie');
       expect(await data.recordAdjustment(adjustment)).toBe(false);
@@ -379,6 +417,39 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       expect(store.createAllocatedTransaction).toHaveBeenCalledTimes(2);
     },
   );
+
+  const itemsList = (): BudgetItemsStub =>
+    fixture.debugElement.query(By.directive(BudgetItemsStub)).componentInstance;
+
+  it('reveals the items still to check once the comparison has closed', async () => {
+    TestBed.resetTestingModule();
+    await setup(11, '11111111-1111-4111-8111-111111111111');
+    let data!: ReconcileAccountsDialogData;
+    vi.spyOn(TestBed.inject(MatDialog), 'open').mockImplementation(
+      (_component, config) => {
+        data = config!.data as ReconcileAccountsDialogData;
+        return {} as never;
+      },
+    );
+    query('budget-reconcile-button')!.click();
+    expect(itemsList().revealItemsToCheck).not.toHaveBeenCalled();
+
+    // No dialog is left open here, so « all closed » is immediate.
+    data.viewItemsToCheck();
+
+    expect(itemsList().revealItemsToCheck).toHaveBeenCalledOnce();
+  });
+
+  it('reveals the items still to check when the home comparison opened the budget', async () => {
+    TestBed.resetTestingModule();
+    await setup(11, 'budget-1', REVEAL_ITEMS_TO_CHECK);
+
+    expect(itemsList().revealItemsToCheck).toHaveBeenCalledOnce();
+  });
+
+  it('leaves the list where it is on any other way in', () => {
+    expect(itemsList().revealItemsToCheck).not.toHaveBeenCalled();
+  });
 
   const openMenuAndDelete = async (): Promise<void> => {
     query('budget-month-menu')?.click();

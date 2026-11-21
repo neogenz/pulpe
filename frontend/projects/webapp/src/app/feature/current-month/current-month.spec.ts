@@ -29,6 +29,7 @@ import { DashboardStore } from './services/dashboard-store';
 import type { MonthRecap } from './services/dashboard-state';
 import { MonthRecapDialog } from './components/month-recap-dialog';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+import { REVEAL_ITEMS_TO_CHECK } from '@core/routing/routes-constants';
 import { FirstTransactionTracker } from '@core/transaction';
 
 // Test data factories
@@ -511,6 +512,7 @@ describe('Dashboard (TestBed)', () => {
       ]),
       checkBudgetLine: vi.fn().mockResolvedValue(null),
       uncheckBudgetLine: vi.fn().mockResolvedValue(null),
+      checkTransaction: vi.fn().mockResolvedValue(null),
       remaining: signal(3491),
       historyError: signal<unknown>(undefined),
       loadErrorMessage: signal('On n’arrive pas à charger ton tableau de bord'),
@@ -598,6 +600,7 @@ describe('Dashboard (TestBed)', () => {
     const undoAction = { next: () => latestAction.next() };
     const mockDialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of(undefined) }),
+      afterAllClosed: new Subject<void>(),
     };
     const mockBreakpoints = {
       isMatched: vi.fn().mockReturnValue(false),
@@ -821,16 +824,32 @@ describe('Dashboard (TestBed)', () => {
       expect(config.panelClass).toBeUndefined();
       expect(config.width).toBe('560px');
       expect(config.disableClose).toBe(true);
-      expect(data.realized()).toEqual({
-        balance: 1499.99,
-        checkedIncome: 5000,
-        checkedOutflows: 3380.01,
-        rollover: -120,
-      });
-      expect(data.periodDates()).toBe(mockStore.periodDates());
+      expect(data.budgetId).toBe(budgetId);
+      expect(data.realized()).toEqual({ balance: 1499.99, available: 3491 });
 
       mockStore.realizedBalance.set(1500);
       expect(data.realized()?.balance).toBe(1500);
+    });
+
+    it('should check a movement or a prévision of the month and toast a refusal', async () => {
+      const { component, mockDialog, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+      component['openReconcileAccounts']();
+      const { data } = openedWith(mockDialog);
+
+      await data.checkItem({ kind: 'transaction', id: 'tx-1' });
+      mockStore.checkBudgetLine.mockResolvedValueOnce('Refusé');
+      await data.checkItem({ kind: 'budgetLine', id: 'line-1' });
+
+      expect(mockStore.checkTransaction).toHaveBeenCalledWith('tx-1');
+      expect(mockStore.checkBudgetLine).toHaveBeenCalledWith('line-1');
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Refusé',
+        expect.any(String),
+        expect.objectContaining({ verticalPosition: 'top' }),
+      );
     });
 
     it('should open full-height on a phone', async () => {
@@ -951,7 +970,7 @@ describe('Dashboard (TestBed)', () => {
       expect(mockStore.addTransaction).not.toHaveBeenCalled();
     });
 
-    it('should open the active budget to show what is left to check', async () => {
+    it('should open the active budget to show what is left to check, once the dialog has closed', async () => {
       const { component, mockDialog, mockRouter } = await setup(
         budgetId,
         undefined,
@@ -960,8 +979,13 @@ describe('Dashboard (TestBed)', () => {
       const { data } = openedWith(mockDialog);
 
       data.viewItemsToCheck();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/budget', budgetId]);
+      mockDialog.afterAllClosed.next();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/budget', budgetId], {
+        info: REVEAL_ITEMS_TO_CHECK,
+        scroll: 'manual',
+      });
     });
   });
 

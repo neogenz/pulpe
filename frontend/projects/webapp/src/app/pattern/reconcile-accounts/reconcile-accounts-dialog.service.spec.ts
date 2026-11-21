@@ -4,7 +4,6 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogConfig } from '@angular/material/dialog';
 import { of, Subject, throwError } from 'rxjs';
 import {
-  getBudgetPeriodDates,
   type Asset,
   type NetWorth,
   type SupportedCurrency,
@@ -94,16 +93,14 @@ function setup(
 
   const realized = signal<RealizedPosition | null>({
     balance: 0,
-    checkedIncome: 0,
-    checkedOutflows: 0,
-    rollover: 0,
+    available: 0,
   });
   const data: Omit<ReconcileAccountsDialogData, 'netWorth' | 'showGuide'> = {
+    budgetId: '11111111-1111-4111-8111-111111111111',
     realized,
     ledger: signal(null),
-    pointTransaction: vi.fn(),
+    checkItem: vi.fn(),
     currency: signal(options.currency ?? 'CHF'),
-    periodDates: signal(getBudgetPeriodDates(11, 2026)),
     recordAdjustment: vi.fn(),
     viewItemsToCheck: vi.fn(),
   };
