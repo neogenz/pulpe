@@ -49,5 +49,7 @@ final class LiveSessionDataResetter: SessionDataResetting {
         featureFlagsStore.reset()
         // App-wide rather than injected: every create surface reports to it (PUL-306).
         FirstTransactionTracker.shared.reset()
+        ReconcileFreeAccountsStore.shared.clear()
+        ReconcileDraftStore.shared.keep(nil)
     }
 }

@@ -66,7 +66,7 @@ enum AnalyticsEvent: String, CaseIterable {
     /// (PUL-306), from whichever surface recorded it.
     /// Properties: `type`, `source` (`FirstTransactionTracker.Source`).
     case firstTransactionCreated = "first_transaction_created"
-    /// Fires once when "Rapprocher mes comptes" completes: after its adjustment is
+    /// Fires once when "Comparer avec mes comptes" completes: after its adjustment is
     /// recorded, or when the user confirms the accounts already match (PUL-351).
     /// Property: `adjustment_kind` (`AccountReconciliation.Completion`). Never an
     /// amount, an account name or a label.

@@ -1,6 +1,6 @@
 import Foundation
 
-/// "Rapprocher mes comptes" (PUL-351): the user's bank balances held against the
+/// "Comparer avec mes comptes" (PUL-351): the user's bank balances held against the
 /// checked balance of the loaded month. Pure and Foundation-only — the flow model
 /// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)`, `verdict`,
 /// `pointingCandidates`, `rankedPointingCandidates` and the screen rules (`comparisonScreen`,

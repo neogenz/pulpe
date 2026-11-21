@@ -91,7 +91,7 @@ struct NetWorthAssetRow: View {
         let line = categoryName.map { AppLocale.string("\($0) · mis à jour \(when)") }
             ?? AppLocale.string("Mis à jour \(when)")
         // A followed account says where its balance comes from, in the same breath.
-        return asset.inPulpe ? AppLocale.string("\(line) · au rapprochement") : line
+        return asset.inPulpe ? AppLocale.string("\(line) · à la comparaison") : line
     }
 
     private func label(of badge: NetWorthBadge) -> String {

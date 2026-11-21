@@ -23,75 +23,6 @@
         }
       }
     },
-    "%@ · au rapprochement" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · beim Abgleich"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · when matching"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · all'allineamento"
-          }
-        }
-      }
-    },
-    "Ajouter à Mon patrimoine" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zu Mein Vermögen hinzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to My net worth"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi a Il mio patrimonio"
-          }
-        }
-      }
-    },
-    "Autre compte…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anderes Konto…"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Other account…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Altro conto…"
-          }
-        }
-      }
-    },
     "Autre type…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -292,29 +223,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In Pulpe, già spuntato"
-          }
-        }
-      }
-    },
-    "Donne un nom à ce compte pour l'ajouter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib dem Konto einen Namen, um es hinzuzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name this account to add it"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dai un nome a questo conto per aggiungerlo"
           }
         }
       }
@@ -599,52 +507,6 @@
         }
       }
     },
-    "Je garde ce compte et je mets son solde à jour à chaque rapprochement." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ich behalte dieses Konto und aktualisiere seinen Saldo bei jedem Abgleich."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I keep this account and update its balance each time you match your accounts."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conservo questo conto e ne aggiorno il saldo a ogni allineamento."
-          }
-        }
-      }
-    },
-    "Je mets à jour le solde de tes comptes de Mon patrimoine. Les autres lignes ne sont pas enregistrées." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ich aktualisiere den Saldo deiner Konten in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I update the balance of your accounts in My net worth. The other rows are not saved."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiorno il saldo dei tuoi conti in Il mio patrimonio. Le altre righe non vengono salvate."
-          }
-        }
-      }
-    },
     "Je prépare ton budget…" : {
       "localizations" : {
         "de" : {
@@ -709,29 +571,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Leasing"
-          }
-        }
-      }
-    },
-    "Ne plus suivre ce compte" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diesem Konto nicht mehr folgen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop following this account"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non seguire più questo conto"
           }
         }
       }
@@ -936,29 +775,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spunta prima ciò che è passato"
-          }
-        }
-      }
-    },
-    "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abgleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Matching done, but I couldn't save your balances in My net worth."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allineamento fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio."
           }
         }
       }
@@ -9025,28 +8841,6 @@
         }
       }
     },
-    "Carte de crédit, découvert" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kreditkarte, Überziehung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Credit card, overdraft"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carta di credito, scoperto"
-          }
-        }
-      }
-    },
     "Ce code ne semble pas correct" : {
       "localizations" : {
         "de" : {
@@ -11007,28 +10801,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account non trovato — controlla la tua email"
-          }
-        }
-      }
-    },
-    "Compter en négatif" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Als negativ zählen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Count as negative"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conta come negativo"
           }
         }
       }
@@ -32505,50 +32277,6 @@
         }
       }
     },
-    "Rapprocher mes comptes" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Meine Konten abgleichen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reconcile my accounts"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riconcilia i miei conti"
-          }
-        }
-      }
-    },
-    "Retirer ce compte" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieses Konto entfernen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove this account"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rimuovi questo conto"
-          }
-        }
-      }
-    },
     "Saisis le solde actuel de chaque compte, tel que ta banque l'affiche." : {
       "localizations" : {
         "de" : {
@@ -33055,28 +32783,6 @@
         }
       }
     },
-    "Comptée en négatif" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Negativ gezählt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Counted as negative"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contato in negativo"
-          }
-        }
-      }
-    },
     "Disponible à dépenser en %@" : {
       "localizations" : {
         "de" : {
@@ -33322,51 +33028,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niente spuntato a %@"
-          }
-        }
-      }
-    },
-    "Saisis le solde de chaque compte, tel que ta banque l'affiche." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib den Saldo jedes Kontos ein, wie deine Bank ihn anzeigt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter each account's balance, as your bank shows it."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci il saldo di ogni conto, come lo mostra la tua banca."
-          }
-        }
-      }
-    },
-    "Saisis son solde pour l'ajouter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib den Saldo ein, um es hinzuzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter its balance to add it"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci il saldo per aggiungerlo"
           }
         }
       }
@@ -47527,29 +47188,6 @@
         }
       }
     },
-    "Dernier solde : %@, %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Letzter Saldo: %@, %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last balance: %@, %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ultimo saldo: %@, %@"
-          }
-        }
-      }
-    },
     "Aucun" : {
       "localizations" : {
         "de" : {
@@ -48211,6 +47849,468 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esempio: i risparmi passano da %1$@ a %2$@, il patrimonio netto sale a %3$@."
+          }
+        }
+      }
+    },
+    "J'ai" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich habe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I have"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ho"
+          }
+        }
+      }
+    },
+    "Je dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devo"
+          }
+        }
+      }
+    },
+    "Combien as-tu aujourd'hui ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie viel hast du heute?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How much do you have today?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quanto hai oggi?"
+          }
+        }
+      }
+    },
+    "Tape ce que ta banque affiche aujourd'hui, compte par compte." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib ein, was deine Bank heute anzeigt, Konto für Konto."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type what your bank shows today, account by account."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digita quello che mostra oggi la tua banca, conto per conto."
+          }
+        }
+      }
+    },
+    "Mis à jour dans Mon patrimoine." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Mein Vermögen aktualisiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated in My assets."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornato in Il mio patrimonio."
+          }
+        }
+      }
+    },
+    "Tout ce que tu dois, achats récents compris. Pas ta limite." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles, was du schuldest, inklusive neuer Käufe. Nicht dein Limit."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything you owe, recent purchases included. Not your limit."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto quello che devi, acquisti recenti compresi. Non il tuo limite."
+          }
+        }
+      }
+    },
+    "Retirer %@ de la liste" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ aus der Liste entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@ from the list"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi %@ dall'elenco"
+          }
+        }
+      }
+    },
+    "%@ : ce que j'ai ou ce que je dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: was ich habe oder was ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: what I have or what I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: quello che ho o quello che devo"
+          }
+        }
+      }
+    },
+    "Tu paies aussi par carte de crédit, PayPal ou Klarna ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahlst du auch per Kreditkarte, PayPal oder Klarna?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you also pay by credit card, PayPal or Klarna?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paghi anche con carta di credito, PayPal o Klarna?"
+          }
+        }
+      }
+    },
+    "Ajouter ce que je dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzufügen, was ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add what I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi quello che devo"
+          }
+        }
+      }
+    },
+    "En tout" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insgesamt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In total"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In tutto"
+          }
+        }
+      }
+    },
+    "%@ − %@ que tu dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ − %@, die du schuldest"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ − %@ that you owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ − %@ che devi"
+          }
+        }
+      }
+    },
+    "Seulement les comptes de tes dépenses. Pas l'épargne." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur die Konten für deine Ausgaben. Nicht das Sparkonto."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the accounts you spend from. Not savings."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo i conti delle tue spese. Non il risparmio."
+          }
+        }
+      }
+    },
+    "Nouveau compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neues Konto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovo conto"
+          }
+        }
+      }
+    },
+    "Juste pour comparer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur zum Vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just to compare"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo per confrontare"
+          }
+        }
+      }
+    },
+    "Une somme que je dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Betrag, den ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sum I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una somma che devo"
+          }
+        }
+      }
+    },
+    "PayPal, Klarna, facture programmée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PayPal, Klarna, geplante Rechnung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PayPal, Klarna, scheduled bill"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PayPal, Klarna, fattura programmata"
+          }
+        }
+      }
+    },
+    "Depuis Mon patrimoine" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus Mein Vermögen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From My assets"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da Il mio patrimonio"
+          }
+        }
+      }
+    },
+    "Mis à jour avec ce que tu tapes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisiert mit dem, was du eingibst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated with what you type"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornato con quello che digiti"
+          }
+        }
+      }
+    },
+    "%@ · à la comparaison" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · beim Vergleich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · at comparison"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · al confronto"
+          }
+        }
+      }
+    },
+    "Comparaison faite, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparison done, but I couldn't save your balances in My assets."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confronto fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio."
           }
         }
       }

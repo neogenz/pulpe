@@ -29,35 +29,31 @@ final class ReconcileAccountsFlow {
 
     let budgetId: String
 
-    /// One of my accounts of « Mon patrimoine », or a line typed for this time.
-    enum RowAccount: Equatable, Sendable {
-        case asset(id: String)
-        case other(addToNetWorth: Bool)
+    /// The two screens of the comparison: the balances typed, then what they say about the month.
+    enum Step: Equatable {
+        case accounts
+        case comparison
     }
+
+    private(set) var step = Step.accounts
 
     /// What finishing writes to « Mon patrimoine »: the accounts I finish with are the ones
     /// followed. The twin of the web `planAccountLinks`.
     struct LinkPlan: Equatable {
-        struct Create: Equatable {
-            let name: String
-            let value: Decimal
-        }
-
-        var creates: [Create] = []
         /// Accounts picked here that were not followed yet.
         var links: [String] = []
         /// Followed accounts that no row holds any more.
         var unlinks: [String] = []
         var snapshots: [AssetSnapshotItem] = []
 
-        var isEmpty: Bool { creates.isEmpty && links.isEmpty && unlinks.isEmpty && snapshots.isEmpty }
+        var isEmpty: Bool { links.isEmpty && unlinks.isEmpty && snapshots.isEmpty }
     }
 
-    /// My accounts of the user's currency, followed or not. `nil` when « Mon patrimoine » is
-    /// off or unread: rows are plain lines and finishing writes nothing there.
+    /// My accounts and what I owe in the user's currency, followed or not. `nil` when
+    /// « Mon patrimoine » is off or unread: every row is a free one and finishing writes nothing there.
     @ObservationIgnored private let ownAccounts: [Asset]?
-    /// A row missing here is a typed line that stays out of « Mon patrimoine ».
-    private(set) var rowAccounts: [AccountReconciliation.Account.ID: RowAccount]
+    /// The « Mon patrimoine » item behind a row; a row missing here is a free one.
+    private(set) var assetIds: [AccountReconciliation.Account.ID: String]
 
     @ObservationIgnored private let createTransaction: @Sendable (TransactionCreate) async throws -> Transaction
     @ObservationIgnored private let onAdjustmentCreated: @MainActor (Transaction) -> Void
@@ -71,21 +67,28 @@ final class ReconcileAccountsFlow {
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void,
         onCompleted: @escaping @MainActor (AccountReconciliation.Completion) -> Void,
         netWorthAccounts: [Asset]? = nil,
+        freeAccounts: [ReconcileFreeAccountsStore.Entry] = [],
         restoring draft: Draft? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.budgetId = budgetId
-        // The accounts followed so far open the sheet, one row each.
-        let seeded = (netWorthAccounts ?? []).filter(\.inPulpe)
-            .map { (account: AccountReconciliation.Account(label: $0.name), asset: $0) }
+        // The accounts followed so far open the sheet, one row each, then the free rows of last time.
+        let seeded = (netWorthAccounts ?? []).filter(\.inPulpe).map {
+            (account: AccountReconciliation.Account(label: $0.name, isNegative: $0.direction == .owe), asset: $0)
+        }
+        let remembered = freeAccounts.map { AccountReconciliation.Account(label: $0.name, isNegative: $0.isOwed) }
         self.ownAccounts = netWorthAccounts
         if let draft, draft.budgetId == budgetId {
             self.accounts = draft.accounts
-            self.rowAccounts = draft.rowAccounts
+            // An item deleted or archived during the lock comes back as a free row with its name,
+            // side and amount, so the save never names a gone item. Unread, nothing is known gone.
+            let offered = netWorthAccounts.map { Set($0.map(\.id)) }
+            self.assetIds = draft.assetIds.filter { offered?.contains($0.value) ?? true }
             self.adjustmentLabel = draft.adjustmentLabel
         } else {
-            self.accounts = seeded.isEmpty ? [AccountReconciliation.Account()] : seeded.map(\.account)
-            self.rowAccounts = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, .asset(id: $0.asset.id)) })
+            let rows = seeded.map(\.account) + remembered
+            self.accounts = rows.isEmpty ? [AccountReconciliation.Account()] : rows
+            self.assetIds = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, $0.asset.id) })
             self.adjustmentLabel = adjustmentLabel
         }
         self.createTransaction = createTransaction
@@ -100,14 +103,14 @@ final class ReconcileAccountsFlow {
     struct Draft: Equatable {
         let budgetId: String
         let accounts: [AccountReconciliation.Account]
-        let rowAccounts: [AccountReconciliation.Account.ID: RowAccount]
+        let assetIds: [AccountReconciliation.Account.ID: String]
         let adjustmentLabel: String
     }
 
     /// `nil` once finished: a completed reconciliation leaves nothing to reopen.
     var draft: Draft? {
         guard !isCompleted else { return nil }
-        return Draft(budgetId: budgetId, accounts: accounts, rowAccounts: rowAccounts, adjustmentLabel: adjustmentLabel)
+        return Draft(budgetId: budgetId, accounts: accounts, assetIds: assetIds, adjustmentLabel: adjustmentLabel)
     }
 
     // MARK: - Accounts
@@ -116,75 +119,64 @@ final class ReconcileAccountsFlow {
 
     var total: Decimal? { totalCents.map(AccountReconciliation.amount(cents:)) }
 
+    /// What I have and what I owe, each as a positive figure; the total is the first minus the second.
+    var haveCents: Int { cents(owed: false) }
+    var oweCents: Int { cents(owed: true) }
+    var hasOwedRow: Bool { accounts.contains(where: \.isNegative) }
+
+    private func cents(owed: Bool) -> Int {
+        accounts.filter { $0.isNegative == owed }.reduce(0) { sum, account in
+            guard case .valid(let cents) = account.amount else { return sum }
+            return owed ? sum - cents : sum + cents
+        }
+    }
+
+    // MARK: - Steps
+
+    /// Compare waits for a total: an unreadable amount or nothing typed keeps step 1.
+    func compare() {
+        if totalCents != nil { step = .comparison }
+    }
+
+    func editAccounts() {
+        step = .accounts
+    }
+
     // MARK: - Mon patrimoine
 
     var linksToNetWorth: Bool { ownAccounts != nil }
 
-    func rowAccount(id: AccountReconciliation.Account.ID) -> RowAccount {
-        rowAccounts[id] ?? .other(addToNetWorth: false)
-    }
-
-    /// The account behind a row, whose last value is shown as its hint.
+    /// The item behind a row, whose side is fixed and whose last value is shown as its hint.
     func asset(id: AccountReconciliation.Account.ID) -> Asset? {
-        guard case .asset(let assetId) = rowAccount(id: id) else { return nil }
+        guard let assetId = assetIds[id] else { return nil }
         return ownAccounts?.first { $0.id == assetId }
     }
 
-    /// My accounts no other row holds: an account is never counted twice.
-    func choices(for id: AccountReconciliation.Account.ID) -> [Asset] {
-        let taken = Set(rowAccounts.filter { $0.key != id }.values.compactMap { row -> String? in
-            if case .asset(let assetId) = row { return assetId }
-            return nil
-        })
+    /// What the add sheet offers: never one already in the list, nor one a saving prévision of
+    /// the month feeds (its balance follows from the month, not from what I type).
+    func addableAssets(excluding fedAssetIds: Set<String>) -> [Asset] {
+        let taken = Set(assetIds.values).union(fedAssetIds)
         return (ownAccounts ?? []).filter { !taken.contains($0.id) }
     }
 
-    /// `nil` turns the row into a typed line; the amount already typed stays.
-    func selectAccount(id: AccountReconciliation.Account.ID, _ asset: Asset?) {
-        guard let index = accounts.firstIndex(where: { $0.id == id }) else { return }
-        accounts[index].label = asset?.name ?? ""
-        rowAccounts[id] = asset.map { .asset(id: $0.id) }
-    }
-
-    func setAddToNetWorth(id: AccountReconciliation.Account.ID, _ isOn: Bool) {
-        guard asset(id: id) == nil else { return }
-        rowAccounts[id] = .other(addToNetWorth: isOn)
-    }
-
-    /// An account kept in « Mon patrimoine » needs a name to be found again.
-    func isNameMissing(id: AccountReconciliation.Account.ID) -> Bool {
-        guard rowAccount(id: id) == .other(addToNetWorth: true) else { return false }
-        return accounts.first { $0.id == id }?.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? false
-    }
-
-    /// ...and a balance to start from: the plan creates nothing without one. Only a blank one
-    /// needs this gate: an unreadable amount already leaves the total, hence the verdict, empty.
-    func isBalanceMissing(id: AccountReconciliation.Account.ID) -> Bool {
-        guard rowAccount(id: id) == .other(addToNetWorth: true) else { return false }
-        return accounts.first { $0.id == id }?.amount == .blank
-    }
-
-    private var hasIncompleteNewAccount: Bool {
-        accounts.contains { isNameMissing(id: $0.id) || isBalanceMissing(id: $0.id) }
+    /// The free rows to remember for next time: names and sides.
+    var freeAccountEntries: [ReconcileFreeAccountsStore.Entry] {
+        accounts.filter { assetIds[$0.id] == nil }.compactMap {
+            let name = String($0.label.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
+            return name.isEmpty ? nil : .init(name: name, isOwed: $0.isNegative)
+        }
     }
 
     var linkPlan: LinkPlan {
         guard let ownAccounts else { return LinkPlan() }
         var plan = LinkPlan()
-        var picked: [String] = []
+        let picked = accounts.compactMap { assetIds[$0.id] }
         for account in accounts {
-            var value: Decimal?
-            if case .valid(let cents) = account.amount { value = AccountReconciliation.amount(cents: cents) }
-            switch rowAccount(id: account.id) {
-            case .asset(let id):
-                guard !picked.contains(id) else { continue }
-                picked.append(id)
-                if let value { plan.snapshots.append(AssetSnapshotItem(assetId: id, value: value)) }
-            case .other(let addToNetWorth):
-                // The API refuses a longer name, and a refused create stops every write after it.
-                let name = String(account.label.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
-                if addToNetWorth, let value, !name.isEmpty { plan.creates.append(.init(name: name, value: value)) }
-            }
+            guard let id = assetIds[account.id], case .valid(let cents) = account.amount else { continue }
+            // Mon patrimoine values what I owe by the remaining balance: a positive figure.
+            let isOwed = ownAccounts.first { $0.id == id }?.direction == .owe
+            let value = AccountReconciliation.amount(cents: isOwed ? abs(cents) : cents)
+            plan.snapshots.append(AssetSnapshotItem(assetId: id, value: value))
         }
         let followed = ownAccounts.filter(\.inPulpe).map(\.id)
         plan.links = picked.filter { !followed.contains($0) }
@@ -192,23 +184,27 @@ final class ReconcileAccountsFlow {
         return plan
     }
 
-    /// Returns the new row's id so the sheet can focus its amount.
+    /// Both adds return the new row's id so the step can focus it.
     @discardableResult
-    func addAccount() -> AccountReconciliation.Account.ID {
-        let account = AccountReconciliation.Account()
+    func addAsset(_ asset: Asset) -> AccountReconciliation.Account.ID {
+        let account = AccountReconciliation.Account(label: asset.name, isNegative: asset.direction == .owe)
+        accounts.append(account)
+        assetIds[account.id] = asset.id
+        return account.id
+    }
+
+    @discardableResult
+    func addFreeAccount(isOwed: Bool) -> AccountReconciliation.Account.ID {
+        let account = AccountReconciliation.Account(isNegative: isOwed)
         accounts.append(account)
         return account.id
     }
 
-    /// Any row goes while another remains: a followed account I closed leaves like the others.
-    func canRemoveAccount(id: AccountReconciliation.Account.ID) -> Bool {
-        accounts.count > 1 && accounts.contains { $0.id == id }
-    }
-
+    /// Removing only takes the row out of this comparison; a followed item stops being followed
+    /// when I finish, as it always did, and is never archived or edited.
     func removeAccount(id: AccountReconciliation.Account.ID) {
-        guard canRemoveAccount(id: id) else { return }
         accounts.removeAll { $0.id == id }
-        rowAccounts[id] = nil
+        assetIds[id] = nil
     }
 
     func hasInvalidAmount(id: AccountReconciliation.Account.ID) -> Bool {
@@ -229,7 +225,7 @@ final class ReconcileAccountsFlow {
     /// The balance must be read from the month this flow opened on: a refresh can load
     /// another one under the sheet, and its balance never meets a draft aimed at this budget.
     func canSubmitAdjustment(realizedBalance: Decimal, of loadedBudgetId: String) -> Bool {
-        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted, !hasIncompleteNewAccount else { return false }
+        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted else { return false }
         return adjustmentPayload(realizedBalance: realizedBalance) != nil
     }
 
@@ -257,7 +253,7 @@ final class ReconcileAccountsFlow {
     /// A write already out ends the flow itself, even if a refresh brings the balance level
     /// meanwhile: "Terminer" waits for it rather than completing a second time.
     func canConfirmUpToDate(realizedBalance: Decimal, of loadedBudgetId: String) -> Bool {
-        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted, !hasIncompleteNewAccount else { return false }
+        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted else { return false }
         return verdict(realizedBalance: realizedBalance) == .upToDate
     }
 

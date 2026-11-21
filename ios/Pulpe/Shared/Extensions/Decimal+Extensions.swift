@@ -9,6 +9,12 @@ extension Decimal {
         "\(asAmount(for: currency)) \(currency.symbol)"
     }
 
+    /// `asCurrency` for an amount set inside a sentence: a non-breaking space keeps the symbol on the
+    /// number's line when the sentence wraps.
+    func asInlineCurrency(_ currency: SupportedCurrency) -> String {
+        "\(asAmount(for: currency))\u{00A0}\(currency.symbol)"
+    }
+
     /// Format as CHF currency using Swiss locale
     var asCHF: String { asCurrency(.chf) }
 

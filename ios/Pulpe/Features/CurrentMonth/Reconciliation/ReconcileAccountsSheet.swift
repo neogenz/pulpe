@@ -9,11 +9,17 @@ struct ReconciliationChecking {
     let syncingTransactionIds: Set<String>
     let syncingBudgetLineIds: Set<String>
     let toggle: @MainActor (CurrentMonthStore.CheckableItem) async -> Bool
+
+    /// Items a saving prévision of the month feeds: their balance follows from the month, so the
+    /// add sheet never offers them. An expense prévision linked to an item does not hide it.
+    var savingAssetIds: Set<String> {
+        Set(budgetLines.filter { $0.kind == .saving }.compactMap(\.assetId))
+    }
 }
 
-/// « Comparer avec mes comptes » (PUL-351, V2): one sheet. The balances typed by the user, the
-/// gap to the pointed balance, the movement that probably explains it, and the two ways to
-/// close it: point that movement, or write one adjustment. Every input lives in `flow`, owned
+/// « Comparer avec mes comptes » (PUL-351, V2): one sheet. Step 1 takes the balances typed by the
+/// user (`ReconcileAccountsStepView`); step 2 shows the gap to the pointed balance, the movement
+/// that probably explains it, and the two ways to close it: point that movement, or write one adjustment. Every input lives in `flow`, owned
 /// here, so closing discards it and writes nothing. Whatever is left unfinished goes to `onLeave`,
 /// whose owner decides whether it outlives the sheet.
 struct ReconcileAccountsSheet: View {
@@ -42,18 +48,13 @@ struct ReconcileAccountsSheet: View {
     /// The guide page, shown instead of the form while set; `nil` shows the form.
     @State private var guideSource: ReconcileGuideSource?
     @AppStorage(ReconcileGuideGate.storageKey) private var hasSeenGuide = false
-    @FocusState private var focusedField: Field?
-
-    enum Field: Hashable {
-        case label(UUID)
-        case amount(UUID)
-    }
 
     init(
         month: Month,
         checking: ReconciliationChecking,
         dependencies: AddTransactionDependencies = .live,
         netWorthAccounts: [Asset]? = nil,
+        freeAccounts: [ReconcileFreeAccountsStore.Entry] = ReconcileFreeAccountsStore.shared.entries,
         restoring draft: ReconcileAccountsFlow.Draft? = nil,
         onLeave: (@MainActor (ReconcileAccountsFlow.Draft?) -> Void)? = nil,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void
@@ -75,6 +76,7 @@ struct ReconcileAccountsSheet: View {
                 )
             },
             netWorthAccounts: netWorthAccounts,
+            freeAccounts: freeAccounts,
             restoring: draft
         ))
     }
@@ -101,12 +103,9 @@ struct ReconcileAccountsSheet: View {
     private var form: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                Text("Saisis le solde de chaque compte, tel que ta banque l'affiche.")
-                    .font(PulpeTypography.captionRegular)
+                Text("Étape 2 sur 2")
+                    .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                accountsCard
-                if flow.linksToNetWorth { LinkedAccountsFootnote() }
                 if let total = flow.total { totalsCard(total) }
                 if !pointingCandidates.isEmpty { candidatesSection(pointingCandidates) }
                 outcomeBlock
@@ -117,24 +116,18 @@ struct ReconcileAccountsSheet: View {
             .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: verdict)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .scrollDismissesKeyboard(.interactively)
         .background(Color.sheetBackground)
-        .dismissKeyboardOnTap()
         .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) { footer }
-        .navigationTitle(AppLocale.string("Comparer avec mes comptes"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                SheetCloseButton().disabled(flow.isSubmitting)
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { guideSource = .help } label: {
-                    Image(systemName: "questionmark.circle")
-                }
-                .disabled(flow.isSubmitting)
-                .accessibilityLabel(AppLocale.string("Revoir le guide"))
-                .accessibilityIdentifier("reconcileGuideHelp")
-            }
+    }
+
+    @ViewBuilder private var currentStep: some View {
+        switch flow.step {
+        case .accounts:
+            ReconcileAccountsStepView(
+                flow: flow, currency: currency, fedAssetIds: checking.savingAssetIds
+            )
+        case .comparison:
+            form
         }
     }
 
@@ -148,7 +141,28 @@ struct ReconcileAccountsSheet: View {
                 // No bar title: the guide's own title says it, and « Passer » leaves no room for this long one
                 .navigationBarTitleDisplayMode(.inline)
             } else {
-                form
+                currentStep
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .principal) {
+                            // Scaled, then wrapped: the long name never ends in an ellipsis.
+                            Text("Comparer avec mes comptes")
+                                .font(.headline)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(DesignTokens.TextScale.compact)
+                                .accessibilityAddTraits(.isHeader)
+                        }
+                        ToolbarItem(placement: .cancellationAction) { leadingButton.disabled(flow.isSubmitting) }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { guideSource = .help } label: {
+                                Image(systemName: "questionmark.circle")
+                            }
+                            .disabled(flow.isSubmitting)
+                            .accessibilityLabel(AppLocale.string("Revoir le guide"))
+                            .accessibilityIdentifier("reconcileGuideHelp")
+                        }
+                    }
             }
         }
         .standardSheetPresentation()
@@ -161,12 +175,16 @@ struct ReconcileAccountsSheet: View {
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .appliesAccountLinks(of: flow)
         .suppressesTips()
-        .task(id: guideSource) {
-            // Opening on an empty flow focuses its one amount, as the add sheets do; the guide comes first.
-            guard guideSource == nil, let first = flow.accounts.first, first.amountText.isEmpty else { return }
-            try? await Task.sleep(for: .milliseconds(DesignTokens.Animation.pushAutofocusDelayMs))
-            guard !Task.isCancelled else { return }
-            focusedField = .amount(first.id)
+    }
+
+    /// Step 1 closes the sheet; step 2 goes back to the balances.
+    @ViewBuilder private var leadingButton: some View {
+        if flow.step == .accounts {
+            SheetCloseButton()
+        } else {
+            Button { flow.editAccounts() } label: { Image(systemName: "chevron.left") }
+                .accessibilityLabel(AppLocale.string("Retour"))
+                .accessibilityIdentifier("reconcileBackToAccounts")
         }
     }
 }
@@ -174,24 +192,6 @@ struct ReconcileAccountsSheet: View {
 // MARK: - Sections
 
 extension ReconcileAccountsSheet {
-    // MARK: - Accounts
-
-    private var accountsCard: some View {
-        FormCard {
-            ForEach(Array(flow.accounts.enumerated()), id: \.element.id) { index, account in
-                ReconcileAccountRow(
-                    flow: flow, account: account, number: index + 1, currency: currency, focus: $focusedField
-                ) { removeAccount(account.id) }
-                FormRowDivider()
-            }
-            SectionAddRow(title: AppLocale.string("Ajouter un compte")) {
-                let id = withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) { flow.addAccount() }
-                focusedField = .amount(id)
-            }
-            .accessibilityIdentifier("reconcileAddAccountButton")
-        }
-    }
-
     // MARK: - Totals
 
     private func totalsCard(_ total: Decimal) -> some View {
@@ -423,11 +423,6 @@ extension ReconcileAccountsSheet {
         guard flow.confirmUpToDate(realizedBalance: realizedBalance, of: month.budgetId) else { return }
         submitSuccessTrigger.toggle()
         dismiss()
-    }
-
-    private func removeAccount(_ id: UUID) {
-        focusedField = nil
-        withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) { flow.removeAccount(id: id) }
     }
 }
 

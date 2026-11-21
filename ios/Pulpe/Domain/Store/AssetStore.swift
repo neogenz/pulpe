@@ -14,14 +14,6 @@ struct AssetEdit: Equatable {
     var value: Decimal?
 }
 
-/// The accounts a reconciliation adds to « Mon patrimoine »: mine, followed from the start,
-/// each with its balance as its first value.
-struct NewFollowedAccounts {
-    var accounts: [(name: String, value: Decimal)]
-    var currency: SupportedCurrency
-    var category: AssetCategoryChoice
-}
-
 /// Caches `GET /v1/assets` (PUL-366). Writes return records without amounts, so every write
 /// is followed by a refetch, also on failure. No amount is computed here: the server owns
 /// totals and conversions.
@@ -62,11 +54,6 @@ final class AssetStore: StoreProtocol {
 
     func activeAssets(direction: AssetDirection) -> [Asset] {
         activeAssets.filter { $0.direction == direction }
-    }
-
-    /// What the reconciliation can finish with: active, owned, in this currency.
-    func ownAccounts(currency: SupportedCurrency) -> [Asset] {
-        activeAssets.filter { $0.direction == .own && $0.currency == currency }
     }
 
     // MARK: - Smart Loading (StoreProtocol)
@@ -169,24 +156,14 @@ final class AssetStore: StoreProtocol {
         try await write { _ = try await self.service.recordSnapshots(data) }
     }
 
-    /// What a reconciliation leaves in « Mon patrimoine », as one write: the new accounts, the
-    /// ones now followed or no longer, then one batch of balances.
+    /// What a reconciliation leaves in « Mon patrimoine », as one write: the ones now
+    /// followed or no longer, then one batch of balances.
     func followAccounts(
-        creating new: NewFollowedAccounts?,
         links: [String],
         unlinks: [String],
         snapshots: [AssetSnapshotItem]
     ) async throws {
         try await write {
-            if let new, !new.accounts.isEmpty {
-                let categoryId = try await self.resolve(new.category)
-                for account in new.accounts {
-                    _ = try await self.service.create(AssetCreate(
-                        name: account.name, categoryId: categoryId, currency: new.currency,
-                        direction: .own, inPulpe: true, value: account.value
-                    ))
-                }
-            }
             for id in links { _ = try await self.service.update(id: id, AssetUpdate(inPulpe: true)) }
             for id in unlinks { _ = try await self.service.update(id: id, AssetUpdate(inPulpe: false)) }
             if !snapshots.isEmpty {

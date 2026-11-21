@@ -17,10 +17,12 @@ final class ReconcileDraftStore {
         draft?.budgetId == budgetId ? draft : nil
     }
 
-    /// A draft taken by the lock, reopened once unlocked; `nil` and the next sheet opens empty.
-    func keep(_ draft: ReconcileAccountsFlow.Draft?) {
+    /// A draft taken by the lock; `nil` and the next sheet opens empty. `resumes` asks the Accueil
+    /// to reopen the sheet once unlocked: only the Accueil's own sheet does. One opened from a
+    /// budget detail keeps the draft for its next opening and pops nothing on the Accueil.
+    func keep(_ draft: ReconcileAccountsFlow.Draft?, resumes: Bool = true) {
         self.draft = draft
-        isResumePending = draft != nil
+        isResumePending = draft != nil && resumes
     }
 
     /// True once per lock: the first screen that reopens the sheet takes it.

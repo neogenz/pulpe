@@ -17,27 +17,69 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.totalCents == nil)
     }
 
-    @Test("any account can be removed while another remains")
-    func removeAccount_keepsTheLastRow() throws {
+    @Test("any row can be removed, the last one too, and a removed one never comes back")
+    func removeAccount_removesAnyRow() throws {
         let flow = makeFlow()
         let first = try #require(flow.accounts.first?.id)
-        #expect(!flow.canRemoveAccount(id: first))
-
-        let added = flow.addAccount()
-        #expect(flow.canRemoveAccount(id: first))
+        let added = flow.addFreeAccount(isOwed: false)
 
         flow.removeAccount(id: first)
         #expect(flow.accounts.map(\.id) == [added])
 
         flow.removeAccount(id: added)
-        #expect(flow.accounts.map(\.id) == [added])
+        #expect(flow.accounts.isEmpty)
+        #expect(flow.totalCents == nil)
+    }
+
+    @Test("the total is what I have minus what I owe, each side shown as a positive figure")
+    func totals_haveMinusOwe() {
+        let flow = makeFlow()
+        flow.accounts[0].amountText = "3000"
+        flow.accounts[0].isNegative = false
+        flow.accounts[0].label = "Compte courant"
+        flow.accounts.append(.init(label: "Revolut", amountText: "1000.50"))
+        flow.accounts.append(.init(label: "Carte", amountText: "800", isNegative: true))
+
+        #expect(flow.haveCents == 400_050)
+        #expect(flow.oweCents == 80_000)
+        #expect(flow.totalCents == 320_050)
+        #expect(flow.hasOwedRow)
+    }
+
+    @Test("Comparer waits for a total, and the back arrow keeps what was typed")
+    func compare_needsATotal_andEditKeepsRows() {
+        let flow = makeFlow()
+        flow.compare()
+        #expect(flow.step == .accounts)
+
+        flow.accounts[0].amountText = "12."
+        flow.compare()
+        #expect(flow.step == .accounts)
+
+        flow.accounts[0].amountText = "12.5"
+        flow.compare()
+        #expect(flow.step == .comparison)
+
+        flow.editAccounts()
+        #expect(flow.step == .accounts)
+        #expect(flow.accounts[0].amountText == "12.5")
+    }
+
+    @Test("free rows come back by name and side, with no amount")
+    func freeAccounts_restoredWithoutAmounts() {
+        let flow = makeFlow(freeAccounts: [.init(name: "Revolut", isOwed: false), .init(name: "Klarna", isOwed: true)])
+
+        #expect(flow.accounts.map(\.label) == ["Revolut", "Klarna"])
+        #expect(flow.accounts.map(\.isNegative) == [false, true])
+        #expect(flow.accounts.allSatisfy { $0.amountText.isEmpty })
+        #expect(flow.freeAccountEntries == [.init(name: "Revolut", isOwed: false), .init(name: "Klarna", isOwed: true)])
     }
 
     @Test("the total follows every typed amount live, negative account included")
     func totalCents_followsTypedAmounts() {
         let flow = makeFlow()
         flow.accounts[0].amountText = "10.10"
-        _ = flow.addAccount()
+        _ = flow.addFreeAccount(isOwed: false)
         flow.accounts[1].amountText = "5"
         flow.accounts[1].isNegative = true
 
@@ -277,6 +319,32 @@ struct ReconcileAccountsFlowTests {
         #expect(!store.takeResume())
     }
 
+    @Test("a sheet opened from the budget detail keeps its draft but asks the Accueil to reopen nothing")
+    func draftStore_noResumeFromBudgetDetail() throws {
+        let store = ReconcileDraftStore()
+        let draft = try #require(makeFlow().draft)
+
+        store.keep(draft, resumes: false)
+
+        #expect(store.draft(for: "budget-current") == draft)
+        #expect(!store.takeResume())
+    }
+
+    @Test("a draft survives the lock with its rows and amounts, for the budget it was typed on")
+    func draft_restoresRowsAndAmounts() throws {
+        let flow = makeFlow()
+        flow.accounts[0].amountText = "1000"
+        flow.accounts[0].label = "Revolut"
+        flow.addFreeAccount(isOwed: true)
+        flow.accounts[1].amountText = "800"
+        let draft = try #require(flow.draft)
+
+        let restored = makeFlow(restoring: draft)
+        #expect(restored.accounts == flow.accounts)
+        #expect(restored.totalCents == 20_000)
+        #expect(makeFlow(id: "budget-other", restoring: draft).accounts.map(\.amountText) == [""])
+    }
+
     // MARK: - Helpers
 
     private static let now = Date(timeIntervalSince1970: 1_790_000_000)
@@ -284,6 +352,7 @@ struct ReconcileAccountsFlowTests {
     private func makeFlow(
         recorder: Recorder = Recorder(),
         id: String = "budget-current",
+        freeAccounts: [ReconcileFreeAccountsStore.Entry] = [],
         restoring draft: ReconcileAccountsFlow.Draft? = nil
     ) -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
@@ -292,6 +361,7 @@ struct ReconcileAccountsFlowTests {
             createTransaction: { payload in try await recorder.create(payload) },
             onAdjustmentCreated: { recorder.created.append($0) },
             onCompleted: { recorder.completions.append($0) },
+            freeAccounts: freeAccounts,
             restoring: draft,
             now: { Self.now }
         )
