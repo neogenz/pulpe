@@ -22,6 +22,7 @@ import {
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
+import { STORAGE_KEYS } from '@core/storage';
 import { createMockDataCache } from '@core/testing';
 import {
   ReconcileAccountsDialog,
@@ -89,8 +90,21 @@ async function setup(
     accounts?: Asset[];
     recordSnapshots?: AssetApi['recordSnapshots$'];
     showGuide?: boolean;
+    /** Names and sides remembered on this device. */
+    free?: { name: string; side: 'own' | 'owe' }[];
   } = {},
 ) {
+  localStorage.clear();
+  if (options.free) {
+    localStorage.setItem(
+      STORAGE_KEYS.RECONCILE_FREE_ACCOUNTS,
+      JSON.stringify({
+        version: 1,
+        data: options.free,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  }
   const backdropClick = new Subject<MouseEvent>();
   const keydownEvents = new Subject<KeyboardEvent>();
   const dialogRef = {
@@ -117,7 +131,7 @@ async function setup(
     viewItemsToCheck: vi.fn(),
     netWorth: options.accounts
       ? {
-          accounts: options.accounts,
+          items: options.accounts,
           categories: [{ id: CATEGORY_ID, name: 'Comptes', total: 0 }],
         }
       : null,
@@ -206,9 +220,6 @@ async function reachVerdict(
   ...amounts: string[]
 ) {
   for (const [index, amount] of amounts.entries()) {
-    if (index > 0) {
-      await view.click(view.byTestId('reconcile-add-account-button'));
-    }
     await view.type(view.allByTestId('reconcile-amount-input')[index], amount);
   }
   await view.click(view.byTestId('reconcile-next-button'));
@@ -265,6 +276,19 @@ describe('ReconcileAccountsDialog', () => {
       expect(view.byTestId('reconcile-guide')).toBeNull();
       expect(view.host.classList).not.toContain('guide-open');
       expect(view.byTestId('reconcile-accounts-step')).not.toBeNull();
+    });
+
+    it('should not leave the replayed guide on a repeated Escape keydown', async () => {
+      const view = await setup();
+      await view.click(view.byTestId('reconcile-guide-help-button'));
+
+      view.keydownEvents.next(
+        new KeyboardEvent('keydown', { key: 'Escape', repeat: true }),
+      );
+      await view.render();
+
+      expect(view.byTestId('reconcile-guide')).not.toBeNull();
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
     });
 
     it('should replay from « ? » on the step it came from, typed values kept', async () => {
@@ -333,130 +357,140 @@ describe('ReconcileAccountsDialog', () => {
   });
 
   describe('step 1 — the accounts', () => {
-    it('should name the first exit Cancel instead of implying a previous step', async () => {
+    it('should have no way back, only the close button, and ask « Étape 1 sur 2 »', async () => {
       const view = await setup();
 
-      expect(view.byTestId('reconcile-back-button')?.textContent?.trim()).toBe(
-        'Annuler',
+      expect(view.byTestId('reconcile-back-button')).toBeNull();
+      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
+        "Combien as-tu aujourd'hui ?",
       );
-      await view.click(view.byTestId('reconcile-back-button'));
+      expect(view.byTestId('reconcile-accounts-step')?.textContent).toContain(
+        'Étape 1 sur 2',
+      );
+      await view.click(view.byTestId('reconcile-close-button'));
       expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
       expect(view.data.recordAdjustment).not.toHaveBeenCalled();
     });
 
-    it('should start with a single empty amount and keep Continue disabled until it reads', async () => {
+    it('should start with a single empty amount and keep « Comparer » disabled until it reads', async () => {
       const view = await setup();
 
       expect(view.allByTestId('reconcile-amount-input')).toHaveLength(1);
-      expect(
-        view.byTestId<HTMLInputElement>('reconcile-amount-input')?.value,
-      ).toBe('');
-      expect(
-        view.byTestId<HTMLButtonElement>('reconcile-next-button')?.disabled,
-      ).toBe(true);
+      const next = view.byTestId<HTMLButtonElement>('reconcile-next-button');
+      expect(next?.textContent).toContain('Comparer');
+      expect(next?.disabled).toBe(true);
 
       await view.type(view.byTestId('reconcile-amount-input'), '12.');
-      expect(
-        view.byTestId<HTMLButtonElement>('reconcile-next-button')?.disabled,
-      ).toBe(true);
+      expect(next?.disabled).toBe(true);
 
       await view.type(view.byTestId('reconcile-amount-input'), '1250.40');
-      expect(
-        view.byTestId<HTMLButtonElement>('reconcile-next-button')?.disabled,
-      ).toBe(false);
+      expect(next?.disabled).toBe(false);
     });
 
-    it('should add labelled accounts by button or Enter and total them live', async () => {
-      const view = await setup();
-      await view.type(view.byTestId('reconcile-amount-input'), '1000');
-      expect(view.byTestId('reconcile-total')?.textContent).toContain(
-        '1’000.00',
-      );
+    it('should total what I have minus what I owe, and say so only with a « Je dois » row', async () => {
+      const view = await setup({
+        free: [
+          { name: 'Revolut', side: 'own' },
+          { name: 'Carte', side: 'owe' },
+        ],
+      });
+      expect(view.byTestId('reconcile-total-breakdown')).toBeNull();
+      await view.type(view.allByTestId('reconcile-amount-input')[0], '1000');
+      await view.type(view.allByTestId('reconcile-amount-input')[1], '800');
 
-      await view.click(view.byTestId('reconcile-add-account-button'));
-      await view.type(view.allByTestId('reconcile-label-input')[1], 'Épargne');
-      await view.type(view.allByTestId('reconcile-amount-input')[1], '-250.5');
-      expect(view.byTestId('reconcile-total')?.textContent).toContain('749.50');
-
-      const secondAmount = view.allByTestId('reconcile-amount-input')[1];
-      secondAmount.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
-      );
-      await view.render();
-
-      expect(view.allByTestId('reconcile-amount-input')).toHaveLength(3);
-      expect(document.activeElement).toBe(
-        view.allByTestId('reconcile-label-input')[2],
-      );
-      expect(view.byTestId('reconcile-accounts-step')).not.toBeNull();
-      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
-    });
-
-    it('should remove an added account through a button that numbers it', async () => {
-      const view = await setup();
-      await view.type(view.byTestId('reconcile-amount-input'), '1000');
-      await view.click(view.byTestId('reconcile-add-account-button'));
-      await view.type(view.allByTestId('reconcile-label-input')[1], 'Épargne');
-      await view.type(view.allByTestId('reconcile-amount-input')[1], '300');
-      await view.click(view.byTestId('reconcile-add-account-button'));
-
-      const removeLabels = view
-        .allByTestId('reconcile-remove-button')
-        .map((button) => button.getAttribute('aria-label'));
-      expect(removeLabels).toEqual([
-        'Retirer le compte 1',
-        'Retirer le compte 2',
-        'Retirer le compte 3',
-      ]);
-
-      await view.click(view.allByTestId('reconcile-remove-button')[1]);
-
-      expect(view.allByTestId('reconcile-amount-input')).toHaveLength(2);
-      expect(view.byTestId('reconcile-total')?.textContent).toContain(
-        '1’000.00',
-      );
-    });
-
-    it('should keep a typed account name out of everything session replay records', async () => {
-      const view = await setup();
-      await view.click(view.byTestId('reconcile-add-account-button'));
-      const label = view.allByTestId('reconcile-label-input')[1];
-      await view.type(label, PRIVATE_ACCOUNT_NAME);
-
-      expect(label?.closest('.ph-no-capture')).not.toBeNull();
-      const leaks = recordedValues(view.host).filter((value) =>
-        value.includes(PRIVATE_ACCOUNT_NAME),
-      );
-      expect(leaks).toEqual([]);
+      expect(view.byTestId('reconcile-total')?.textContent).toContain('200.00');
       expect(
         view
-          .allByTestId('reconcile-remove-button')[1]
-          ?.getAttribute('aria-label'),
-      ).toBe('Retirer le compte 2');
+          .byTestId('reconcile-total-breakdown')
+          ?.textContent?.replace(/\s+/g, ' '),
+      ).toContain('1’000.00 CHF − 800.00 CHF que tu dois');
     });
 
-    it('should take an overdraft through the overdraft checkbox and refuse an unreadable amount', async () => {
+    it('should count each « Je dois » row against the total as a magnitude', async () => {
+      const view = await setup({
+        free: [
+          { name: 'Revolut', side: 'own' },
+          { name: 'Carte', side: 'owe' },
+          { name: 'Klarna', side: 'owe' },
+        ],
+      });
+      await view.type(view.allByTestId('reconcile-amount-input')[0], '3000');
+      await view.type(view.allByTestId('reconcile-amount-input')[1], '800');
+      await view.type(view.allByTestId('reconcile-amount-input')[2], '-200');
+
+      expect(view.byTestId('reconcile-total')?.textContent).toContain(
+        '2’000.00',
+      );
+      expect(
+        view
+          .byTestId('reconcile-total-breakdown')
+          ?.textContent?.replace(/\s+/g, ' '),
+      ).toContain('3’000.00 CHF − 1’000.00 CHF que tu dois');
+    });
+
+    it('should show the card help until a « Je dois » row exists, and focus its name', async () => {
+      const view = await setup();
+      expect(view.byTestId('reconcile-card-help')).not.toBeNull();
+
+      await view.click(view.byTestId('reconcile-add-owe-help-button'));
+
+      expect(view.byTestId('reconcile-card-help')).toBeNull();
+      const names = view.allByTestId('reconcile-label-input');
+      expect(names).toHaveLength(2);
+      expect(document.activeElement).toBe(names[1]);
+      expect(view.allByTestId('reconcile-side-owe-radio')[1]).toHaveProperty(
+        'checked',
+        true,
+      );
+    });
+
+    it('should remove a row through a button that names it, leaving Mon patrimoine alone', async () => {
+      const view = await setup({
+        accounts: [UBS],
+        free: [{ name: 'Revolut', side: 'own' }],
+      });
+      expect(
+        view
+          .allByTestId('reconcile-remove-button')
+          .map((button) => button.getAttribute('aria-label')),
+      ).toEqual([
+        'Retirer Compte UBS de la liste',
+        'Retirer Revolut de la liste',
+      ]);
+
+      await view.click(view.allByTestId('reconcile-remove-button')[0]);
+
+      expect(view.allByTestId('reconcile-account-row')).toHaveLength(1);
+      expect(view.assetApi.update$).not.toHaveBeenCalled();
+      expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();
+    });
+
+    it('should keep account names out of everything session replay records', async () => {
+      const view = await setup({
+        accounts: [UBS],
+        free: [{ name: PRIVATE_ACCOUNT_NAME, side: 'own' }],
+      });
+
+      expect(
+        view.allByTestId('reconcile-label-input')[0].closest('.ph-no-capture'),
+      ).not.toBeNull();
+      expect(
+        recordedValues(view.host).filter(
+          (value) =>
+            value.includes(PRIVATE_ACCOUNT_NAME) ||
+            value.includes('Compte UBS'),
+        ),
+      ).toEqual([]);
+    });
+
+    it('should refuse an unreadable amount and keep the total back', async () => {
       const view = await setup();
       const amount = view.byTestId<HTMLInputElement>('reconcile-amount-input');
-      await view.type(amount, '80');
-
-      const checkbox = view
-        .byTestId('reconcile-overdraft-checkbox')
-        ?.querySelector<HTMLInputElement>('input[type="checkbox"]');
-      expect(checkbox?.checked).toBe(false);
-      await view.click(checkbox);
-
-      expect(amount?.value).toBe('-80');
-      expect(checkbox?.checked).toBe(true);
+      await view.type(amount, '-80');
       expect(view.byTestId('reconcile-total')?.textContent).toContain('-80.00');
 
-      await view.click(view.byTestId('reconcile-add-account-button'));
-      const unreadable = view.allByTestId('reconcile-amount-input')[1];
-      await view.type(unreadable, '12abc');
-      expect(
-        view.byTestId<HTMLButtonElement>('reconcile-next-button')?.disabled,
-      ).toBe(true);
-      unreadable.dispatchEvent(new Event('blur'));
+      await view.type(amount, '12abc');
+      amount?.dispatchEvent(new Event('blur'));
       await view.render();
 
       expect(view.host.textContent).toContain(
@@ -470,15 +504,56 @@ describe('ReconcileAccountsDialog', () => {
       ).toBe(true);
     });
 
-    it('should leave the flow from step 1 when going back, writing nothing', async () => {
-      const view = await setup();
-      await view.type(view.byTestId('reconcile-amount-input'), '1250.40');
+    it('should remember the names and sides of free rows on « Comparer », never their amounts', async () => {
+      const view = await setup({ free: [{ name: 'Revolut', side: 'own' }] });
+      await view.type(view.allByTestId('reconcile-amount-input')[0], '1000');
 
-      await view.click(view.byTestId('reconcile-back-button'));
+      await view.click(view.byTestId('reconcile-next-button'));
 
-      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
-      expect(view.data.recordAdjustment).not.toHaveBeenCalled();
-      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
+      const stored = localStorage.getItem(STORAGE_KEYS.RECONCILE_FREE_ACCOUNTS);
+      expect(stored).toContain('Revolut');
+      expect(stored).not.toContain('1000');
+    });
+
+    it('should forget a removed free row at the next « Comparer », and keep nothing when step 1 is abandoned', async () => {
+      const view = await setup({
+        free: [
+          { name: 'Revolut', side: 'own' },
+          { name: 'Klarna', side: 'owe' },
+        ],
+      });
+      await view.type(view.allByTestId('reconcile-amount-input')[0], '10');
+      await view.click(view.allByTestId('reconcile-remove-button')[1]);
+      await view.click(view.byTestId('reconcile-close-button'));
+      expect(
+        localStorage.getItem(STORAGE_KEYS.RECONCILE_FREE_ACCOUNTS),
+      ).toContain('Klarna');
+
+      await view.click(view.byTestId('reconcile-next-button'));
+
+      const stored = localStorage.getItem(STORAGE_KEYS.RECONCILE_FREE_ACCOUNTS);
+      expect(stored).toContain('Revolut');
+      expect(stored).not.toContain('Klarna');
+    });
+
+    it('should open on the remembered free rows with empty amounts', async () => {
+      const view = await setup({
+        free: [
+          { name: 'Revolut', side: 'own' },
+          { name: 'Klarna', side: 'owe' },
+        ],
+      });
+
+      expect(
+        view
+          .allByTestId<HTMLInputElement>('reconcile-label-input')
+          .map((input) => input.value),
+      ).toEqual(['Revolut', 'Klarna']);
+      expect(
+        view
+          .allByTestId<HTMLInputElement>('reconcile-amount-input')
+          .map((input) => input.value),
+      ).toEqual(['', '']);
     });
   });
 
@@ -536,7 +611,7 @@ describe('ReconcileAccountsDialog', () => {
       await view.click(view.byTestId('reconcile-back-button'));
 
       expect(document.activeElement?.textContent).toContain(
-        'Combien as-tu sur tes comptes ?',
+        "Combien as-tu aujourd'hui ?",
       );
     });
 
@@ -556,21 +631,17 @@ describe('ReconcileAccountsDialog', () => {
     });
 
     it('should keep the typed accounts when going back to step 1', async () => {
-      const view = await setup();
+      const view = await setup({ free: [{ name: 'Joint', side: 'own' }] });
       await view.type(view.byTestId('reconcile-amount-input'), '1500');
-      await view.click(view.byTestId('reconcile-add-account-button'));
-      await view.type(view.allByTestId('reconcile-label-input')[1], 'Joint');
-      await view.type(view.allByTestId('reconcile-amount-input')[1], '-20');
       await view.click(view.byTestId('reconcile-next-button'));
 
       await view.click(view.byTestId('reconcile-back-button'));
 
-      const amounts = view
-        .allByTestId<HTMLInputElement>('reconcile-amount-input')
-        .map((input) => input.value);
-      expect(amounts).toEqual(['1500', '-20']);
       expect(
-        view.allByTestId<HTMLInputElement>('reconcile-label-input')[1]?.value,
+        view.byTestId<HTMLInputElement>('reconcile-amount-input')?.value,
+      ).toBe('1500');
+      expect(
+        view.byTestId<HTMLInputElement>('reconcile-label-input')?.value,
       ).toBe('Joint');
       expect(view.dialogRef.close).not.toHaveBeenCalled();
     });
@@ -578,7 +649,12 @@ describe('ReconcileAccountsDialog', () => {
 
   describe('step 3 — the verdict', () => {
     it('should name what the accounts hold beyond the balance and offer a checked income', async () => {
-      const view = await setup();
+      const view = await setup({
+        free: [
+          { name: 'Compte A', side: 'own' },
+          { name: 'Compte B', side: 'own' },
+        ],
+      });
       await reachVerdict(view, '1000', '500');
 
       expect(view.byTestId('reconcile-verdict-title')?.textContent).toContain(
@@ -948,66 +1024,42 @@ describe('ReconcileAccountsDialog', () => {
       await view.click(view.byTestId('reconcile-next-button'));
     }
 
-    it('should open on one row per followed account, amount empty, last balance as hint', async () => {
-      const view = await setup({ accounts: [UBS, POSTFINANCE, REVOLUT] });
+    it('should open on one row per followed item, own or owe, amount empty', async () => {
+      const card = linkedAsset({
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'Carte Cembra',
+        direction: 'owe',
+      });
+      const view = await setup({ accounts: [UBS, POSTFINANCE, REVOLUT, card] });
 
-      expect(view.allByTestId('reconcile-account-select')).toHaveLength(2);
       expect(
-        view.fixture.componentInstance['accountViews']().map(
-          (account) => account.assetId,
-        ),
-      ).toEqual([UBS_ID, POSTFINANCE_ID]);
+        view
+          .allByTestId('reconcile-row-name')
+          .map((name) => name.textContent?.trim()),
+      ).toEqual(['Compte UBS', 'Compte PostFinance', 'Carte Cembra']);
+      expect(
+        view
+          .allByTestId('reconcile-row-side')
+          .map((side) => side.textContent?.trim()),
+      ).toEqual(["J'ai", "J'ai", 'Je dois']);
       expect(view.allByTestId('reconcile-label-input')).toHaveLength(0);
       expect(
         view
           .allByTestId<HTMLInputElement>('reconcile-amount-input')
           .map((input) => input.value),
-      ).toEqual(['', '']);
+      ).toEqual(['', '', '']);
       expect(view.host.textContent).toContain(
-        'Dernier solde : 12’000.00 CHF, il y a 3 jours',
+        'Mis à jour dans Mon patrimoine.',
       );
       expect(view.host.textContent).toContain(
-        'Dernier solde : 1’902.10 CHF, hier',
+        'Tout ce que tu dois, achats récents compris. Pas ta limite.',
       );
-      expect(view.allByTestId('reconcile-remove-button')).toHaveLength(2);
-      expect(view.host.textContent).toContain(
-        'Je mets à jour le solde de tes comptes de Mon patrimoine',
-      );
-      expect(view.host.textContent).not.toContain('Dans Pulpe');
-      expect(view.host.textContent).not.toContain(
-        'Les comptes saisis ne sont pas enregistrés.',
-      );
+      expect(view.byTestId('reconcile-card-help')).toBeNull();
     });
 
-    it('should move focus to the account list of an added row', async () => {
-      const view = await setup({ accounts: [UBS, POSTFINANCE, REVOLUT] });
-
-      await view.click(view.byTestId('reconcile-add-account-button'));
-
-      expect(document.activeElement).toBe(
-        view.allByTestId('reconcile-account-select')[2],
-      );
-    });
-
-    it('should keep one empty free row and the private note without linked accounts', async () => {
-      const view = await setup();
-
-      expect(
-        view
-          .allByTestId<HTMLInputElement>('reconcile-label-input')
-          .map((input) => input.value),
-      ).toEqual(['']);
-      expect(view.host.textContent).toContain(
-        'Les comptes saisis ne sont pas enregistrés.',
-      );
-      expect(view.host.textContent).not.toContain('Dernier solde');
-    });
-
-    it('should hide the last balance of a linked account from session replay', async () => {
+    it('should hide the names of linked items from session replay', async () => {
       const view = await setup({ accounts: [UBS] });
 
-      const hint = view.host.querySelector('mat-hint');
-      expect(hint?.closest('.ph-no-capture')).not.toBeNull();
       expect(
         recordedValues(view.host).filter((value) =>
           value.includes('Compte UBS'),
@@ -1016,9 +1068,10 @@ describe('ReconcileAccountsDialog', () => {
     });
 
     it('should record one snapshot batch of the filled linked rows when the adjustment is recorded', async () => {
-      const view = await setup({ accounts: [UBS, POSTFINANCE] });
-      await view.click(view.byTestId('reconcile-add-account-button'));
-      await view.type(view.byTestId('reconcile-label-input'), 'Cash');
+      const view = await setup({
+        accounts: [UBS, POSTFINANCE],
+        free: [{ name: 'Cash', side: 'own' }],
+      });
       await reachVerdictOn(view, { 0: '12340', 2: '50' });
 
       await view.click(view.byTestId('reconcile-record-button'));
@@ -1070,7 +1123,7 @@ describe('ReconcileAccountsDialog', () => {
       });
       expect(
         view.byTestId('reconcile-remove-button')?.getAttribute('aria-label'),
-      ).toBe('Ne plus suivre le compte 1');
+      ).toBe('Retirer Compte UBS de la liste');
       await view.click(view.byTestId('reconcile-remove-button'));
       await reachVerdictOn(view, { 0: '300' });
 
@@ -1086,122 +1139,76 @@ describe('ReconcileAccountsDialog', () => {
       });
     });
 
-    it('should follow and snapshot an account picked for the first time, and offer it to no other row', async () => {
-      const view = await setup({
-        accounts: [UBS, REVOLUT],
-        realized: { ...REALIZED, balance: 6889 },
+    it('should record a « Je dois » card as typed, from its own side of the total', async () => {
+      const card = linkedAsset({
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'Carte Cembra',
+        direction: 'owe',
       });
-      const component = view.fixture.componentInstance;
-      await view.click(view.byTestId('reconcile-add-account-button'));
-      expect(
-        component['accountViews']()[1].choices.map((choice) => choice.id),
-      ).toEqual([REVOLUT_ID]);
+      const view = await setup({
+        accounts: [UBS, card],
+        realized: { ...REALIZED, balance: 200 },
+      });
+      await reachVerdictOn(view, { 0: '1000', 1: '800' });
 
-      component['selectAccount'](1, REVOLUT_ID);
-      await view.render();
-      expect(component['accountViews']()[0].choices).toEqual([UBS]);
-      await reachVerdictOn(view, { 0: '100', 1: '6789' });
       await view.click(view.byTestId('reconcile-finish-button'));
       await view.render();
 
-      expect(view.assetApi.update$).toHaveBeenCalledTimes(1);
-      expect(view.assetApi.update$).toHaveBeenCalledWith(REVOLUT_ID, {
-        inPulpe: true,
-      });
       expect(view.assetApi.recordSnapshots$).toHaveBeenCalledWith({
         items: [
-          { assetId: UBS_ID, value: 100 },
-          { assetId: REVOLUT_ID, value: 6789 },
+          { assetId: UBS_ID, value: 1000 },
+          { assetId: card.id, value: 800 },
         ],
       });
     });
 
-    it('should create a ticked free row in « Comptes », followed, with its balance as first value', async () => {
+    it('should create nothing in Mon patrimoine for a free row, whatever it holds', async () => {
       const view = await setup({
-        accounts: [],
+        free: [{ name: 'Neon', side: 'own' }],
         realized: { ...REALIZED, balance: 300 },
       });
-      expect(view.byTestId('reconcile-account-select')).toBeNull();
-      await view.type(view.byTestId('reconcile-label-input'), 'Neon');
-      await view.click(
-        view
-          .byTestId('reconcile-add-to-net-worth-toggle')
-          ?.querySelector('button'),
-      );
       await reachVerdictOn(view, { 0: '300' });
 
       await view.click(view.byTestId('reconcile-finish-button'));
       await view.render();
 
-      expect(view.assetApi.create$).toHaveBeenCalledTimes(1);
-      expect(view.assetApi.create$).toHaveBeenCalledWith({
-        name: 'Neon',
-        value: 300,
-        categoryId: CATEGORY_ID,
-        currency: 'CHF',
-        direction: 'own',
-        inPulpe: true,
-      });
-      expect(view.assetApi.createCategory$).not.toHaveBeenCalled();
+      expect(view.assetApi.create$).not.toHaveBeenCalled();
+      expect(view.assetApi.update$).not.toHaveBeenCalled();
       expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();
     });
 
-    it('should require a name before going on once « Ajouter à Mon patrimoine » is ticked', async () => {
-      const view = await setup({ accounts: [] });
-      await view.type(view.byTestId('reconcile-amount-input'), '300');
-      const next = view.byTestId<HTMLButtonElement>('reconcile-next-button');
-      expect(next?.disabled).toBe(false);
-
-      await view.click(
-        view
-          .byTestId('reconcile-add-to-net-worth-toggle')
-          ?.querySelector('button'),
-      );
-
-      expect(next?.disabled).toBe(true);
-      expect(document.activeElement).toBe(
-        view.byTestId('reconcile-label-input'),
-      );
-      await view.type(view.byTestId('reconcile-label-input'), 'Neon');
-      expect(next?.disabled).toBe(false);
-    });
-
-    it('should require a readable balance before going on once « Ajouter à Mon patrimoine » is ticked', async () => {
-      // A first row with a balance: the total alone no longer holds the button.
-      const view = await setup({ accounts: [] });
-      await view.type(view.byTestId('reconcile-amount-input'), '100');
-      await view.click(view.byTestId('reconcile-add-account-button'));
-      const [, label] = view.allByTestId('reconcile-label-input');
-      const [, amount] = view.allByTestId('reconcile-amount-input');
-      await view.type(label, 'Neon');
-      await view.click(
-        view
-          .allByTestId('reconcile-add-to-net-worth-toggle')[1]
-          ?.querySelector('button'),
-      );
-      const next = view.byTestId<HTMLButtonElement>('reconcile-next-button');
-      expect(next?.disabled).toBe(true);
-      expect(view.host.textContent).toContain(
-        "Saisis son solde pour l'ajouter",
-      );
-
-      await view.type(amount, '300');
-      expect(next?.disabled).toBe(false);
-    });
-
-    it('should offer neither select nor checkbox when the feature is off', async () => {
+    it('should offer no select, no switch and no Mon patrimoine row when the feature is off', async () => {
       const view = await setup();
 
-      expect(view.byTestId('reconcile-account-select')).toBeNull();
+      expect(view.byTestId('reconcile-row-name')).toBeNull();
       expect(view.byTestId('reconcile-add-to-net-worth-toggle')).toBeNull();
+    });
+
+    it('should not offer an item that a saving prévision of the month points to', async () => {
+      const view = await setup({
+        accounts: [UBS, POSTFINANCE],
+        ledger: {
+          budgetLines: [
+            createMockBudgetLine({
+              kind: 'saving',
+              assetId: POSTFINANCE_ID,
+            }),
+          ],
+          transactions: [],
+        },
+      });
+
+      expect(
+        view.fixture.componentInstance['offers']().map((asset) => asset.id),
+      ).toEqual([UBS_ID]);
     });
 
     it('should write no snapshot when only free rows are filled', async () => {
       const view = await setup({
         accounts: [UBS],
+        free: [{ name: 'Cash', side: 'own' }],
         realized: { ...REALIZED, balance: 50 },
       });
-      await view.click(view.byTestId('reconcile-add-account-button'));
       await reachVerdictOn(view, { 1: '50' });
 
       await view.click(view.byTestId('reconcile-finish-button'));
@@ -1221,7 +1228,7 @@ describe('ReconcileAccountsDialog', () => {
 
       expect(view.snackBar.open).toHaveBeenCalledTimes(1);
       expect(view.snackBar.open).toHaveBeenCalledWith(
-        "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine.",
+        "Comparaison faite, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine.",
         'Fermer',
         expect.objectContaining({ duration: 5000 }),
       );
@@ -1245,11 +1252,11 @@ describe('ReconcileAccountsDialog', () => {
       expect(view.dialogRef.close).not.toHaveBeenCalled();
     });
 
-    it('should write no snapshot when Cancel leaves the first step', async () => {
+    it('should write no snapshot when the close button leaves the first step', async () => {
       const view = await setup({ accounts: [UBS] });
       await view.type(view.byTestId('reconcile-amount-input'), '1500');
 
-      await view.click(view.byTestId('reconcile-back-button'));
+      await view.click(view.byTestId('reconcile-close-button'));
 
       expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
       expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();

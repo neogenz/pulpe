@@ -126,6 +126,7 @@
     data-tour="financial-overview"
   />
 
+  @if (store.isViewingCurrentPeriod()) {
   <button
     matButton
     (click)="openReconcileAccounts()"
@@ -134,6 +135,7 @@
     <mat-icon aria-hidden="true">account_balance</mat-icon>
     {{ 'currentMonth.reconcile.title' | transloco }}
   </button>
+  }
 
   <!-- Budget Items -->
   <pulpe-budget-items data-tour="budget-table" />

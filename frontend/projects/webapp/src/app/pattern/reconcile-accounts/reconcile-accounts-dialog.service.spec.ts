@@ -184,13 +184,14 @@ describe('ReconcileAccountsDialogService', () => {
     expect(view.assetApi.getNetWorth$).not.toHaveBeenCalled();
   });
 
-  it('should offer every active own account of the budget currency, followed or not', async () => {
+  it('should offer every active own and owe item of the budget currency, followed or not', async () => {
     const view = setup();
     const livret = makeAsset({
       id: 'a-livret',
       name: 'Livret',
       inPulpe: false,
     });
+    const debt = makeAsset({ id: 'a-debt', name: 'Prêt', direction: 'owe' });
     view.seed([
       UBS,
       livret,
@@ -200,12 +201,12 @@ describe('ReconcileAccountsDialogService', () => {
         name: 'Ancien',
         archivedAt: '2026-10-01T00:00:00.000Z',
       }),
-      makeAsset({ id: 'a-debt', name: 'Prêt', direction: 'owe' }),
+      debt,
     ]);
 
     await view.service.open(view.data, false);
 
-    expect(view.openedData()?.netWorth?.accounts).toEqual([UBS, livret]);
+    expect(view.openedData()?.netWorth?.items).toEqual([UBS, livret, debt]);
   });
 
   it('should follow the currency of the budget', async () => {
@@ -215,7 +216,7 @@ describe('ReconcileAccountsDialogService', () => {
 
     await view.service.open(view.data, false);
 
-    expect(view.openedData()?.netWorth?.accounts).toEqual([eur]);
+    expect(view.openedData()?.netWorth?.items).toEqual([eur]);
   });
 
   it('should read through the shared cache and skip the request when it is fresh', async () => {
@@ -259,7 +260,7 @@ describe('ReconcileAccountsDialogService', () => {
     await opening;
 
     expect(view.dialog.open).toHaveBeenCalledTimes(1);
-    expect(view.openedData()?.netWorth?.accounts).toEqual([UBS]);
+    expect(view.openedData()?.netWorth?.items).toEqual([UBS]);
   });
 
   it('should frame the dialog full-height on a phone and centred elsewhere', async () => {

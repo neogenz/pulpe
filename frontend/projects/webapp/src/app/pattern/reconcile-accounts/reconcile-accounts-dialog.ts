@@ -9,17 +9,12 @@ import {
   LOCALE_ID,
   signal,
   viewChild,
-  viewChildren,
   type ElementRef,
   type Signal,
 } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { MatSelect, MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import type { ErrorStateMatcher } from '@angular/material/core';
 import {
@@ -31,17 +26,12 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { differenceInCalendarDays } from 'date-fns';
 import { cachedMutation } from 'ngx-ziflux';
 import {
   ANALYTICS_EVENTS,
-  CURRENCY_METADATA,
-  parseAccountAmount,
   pointingCandidates,
   reconciliationVerdict,
-  summarizeAccounts,
   type Asset,
   type AssetCategory,
   type BudgetLine,
@@ -53,8 +43,8 @@ import { filter, firstValueFrom, merge } from 'rxjs';
 
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
-import { resolveAssetCategory } from '@core/asset/asset-category';
 import { AppCurrencyPipe } from '@core/currency';
+import { StorageService } from '@core/storage';
 import { LoadingButton } from '@ui/loading-button';
 import { StepProgress } from '@ui/step-progress';
 import type { GuideSource } from './reconcile-guide.model';
@@ -64,8 +54,13 @@ import {
   isEmptyPlan,
   planAccountLinks,
   type AccountLinkPlan,
-  type RowAccount,
 } from './reconcile-account-links';
+import {
+  ReconcileAccountsStep,
+  summarizeRows,
+  type AccountRow,
+} from './reconcile-accounts-step';
+import { readFreeAccounts, saveFreeAccounts } from './reconcile-free-accounts';
 
 /** The pointed side of the viewed month, as the page already computes it. */
 export interface RealizedPosition {
@@ -90,8 +85,8 @@ export interface ReconcileLedger {
 
 /** What the reconciliation reads from « Mon patrimoine ». */
 export interface ReconcileNetWorth {
-  /** My active accounts in the budget's currency, followed or not. */
-  readonly accounts: readonly Asset[];
+  /** My active items, own and owe, in the budget's currency, followed or not. */
+  readonly items: readonly Asset[];
   readonly categories: readonly AssetCategory[];
 }
 
@@ -121,38 +116,24 @@ export interface ReconcileAccountsDialogData {
   readonly showGuide: boolean;
 }
 
-interface AccountRow {
-  readonly id: number;
-  readonly label: string;
-  readonly amountText: string;
-  readonly account: RowAccount;
-}
-
-const OTHER_ACCOUNT = 'other';
-const FREE_ROW: RowAccount = { kind: 'other', addToNetWorth: false };
+const FREE_ROW = { kind: 'free' } as const;
 
 type Step = 1 | 2 | 3;
-
-const LEADING_MINUS = /^\s*[-−]/;
 
 @Component({
   selector: 'pulpe-reconcile-accounts-dialog',
   imports: [
-    NgTemplateOutlet,
     FormsModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatSelectModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
     TranslocoPipe,
     AppCurrencyPipe,
     LoadingButton,
+    ReconcileAccountsStep,
     ReconcileGuide,
     StepProgress,
   ],
@@ -169,24 +150,17 @@ export class ReconcileAccountsDialog {
   readonly #injector = inject(Injector);
   readonly #postHog = inject(PostHogService);
   readonly #assetApi = inject(AssetApi);
+  readonly #storage = inject(StorageService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
   readonly #dayMonthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
     day: 'numeric',
     month: 'short',
   });
-  readonly #relativeTime = new Intl.RelativeTimeFormat(inject(LOCALE_ID), {
-    numeric: 'auto',
-  });
   protected readonly data =
     inject<ReconcileAccountsDialogData>(MAT_DIALOG_DATA);
   protected readonly centsPerUnit = CENTS_PER_UNIT;
 
-  private readonly accountSelects = viewChildren(MatSelect);
-  private readonly labelInputs =
-    viewChildren<ElementRef<HTMLInputElement>>('labelInput');
-  private readonly amountInputs =
-    viewChildren<ElementRef<HTMLInputElement>>('amountInput');
   private readonly stepHeading =
     viewChild<ElementRef<HTMLElement>>('stepHeading');
 
@@ -204,62 +178,26 @@ export class ReconcileAccountsDialog {
   protected readonly guideSource = signal<GuideSource | null>(
     this.data.showGuide ? 'auto' : null,
   );
-  protected readonly otherAccount = OTHER_ACCOUNT;
-  protected readonly hasOwnAccounts =
-    (this.data.netWorth?.accounts.length ?? 0) > 0;
-  readonly #ownAccounts = this.data.netWorth?.accounts ?? [];
-  readonly #followed = this.#ownAccounts.filter((asset) => asset.inPulpe);
+  readonly #items = this.data.netWorth?.items ?? [];
+  readonly #followed = this.#items.filter((asset) => asset.inPulpe);
+  // Mon patrimoine's followed items, then the free names remembered on this
+  // device (amounts empty), else one blank row to type in.
   protected readonly accounts = signal<AccountRow[]>(
-    this.#followed.length === 0
-      ? [{ id: 0, label: '', amountText: '', account: FREE_ROW }]
-      : this.#followed.map((asset, id) => ({
-          id,
-          label: asset.name,
-          amountText: '',
-          account: { kind: 'asset', id: asset.id },
-        })),
+    this.#initialRows().map((row, id) => ({ ...row, id })),
   );
-  #nextAccountId = this.accounts().length;
-  protected readonly lastBalances = new Map(
-    this.#ownAccounts.map((asset) => [
-      asset.id,
-      {
-        amount: asset.latestValue,
-        when: this.#relativeTime.format(
-          -differenceInCalendarDays(
-            new Date(),
-            new Date(asset.latestRecordedAt),
-          ),
-          'day',
-        ),
-      },
-    ]),
-  );
-  readonly #writeLinks = cachedMutation<
-    { plan: AccountLinkPlan; currency: SupportedCurrency },
-    true
-  >({
+  // Saving targets of this month never offer themselves: a comparison is about spending.
+  protected readonly offers = computed(() => {
+    const saving = new Set(
+      (this.data.ledger()?.budgetLines ?? []).flatMap((line) =>
+        line.kind === 'saving' && line.assetId ? [line.assetId] : [],
+      ),
+    );
+    return this.#items.filter((asset) => !saving.has(asset.id));
+  });
+  readonly #writeLinks = cachedMutation<AccountLinkPlan, true>({
     cache: this.#assetApi.cache,
     invalidateKeys: () => [['assets']],
-    mutationFn: async ({ plan, currency }) => {
-      if (plan.creates.length > 0) {
-        const categoryId = await resolveAssetCategory(
-          this.#assetApi,
-          this.data.netWorth?.categories ?? [],
-          { name: this.#transloco.translate('netWorth.starter.accounts') },
-        );
-        for (const account of plan.creates) {
-          await firstValueFrom(
-            this.#assetApi.create$({
-              ...account,
-              categoryId,
-              currency,
-              direction: 'own',
-              inPulpe: true,
-            }),
-          );
-        }
-      }
+    mutationFn: async (plan) => {
       for (const [ids, inPulpe] of [
         [plan.links, true],
         [plan.unlinks, false],
@@ -279,23 +217,7 @@ export class ReconcileAccountsDialog {
     onError: () => this.#assetApi.cache.invalidate(['assets']),
   });
 
-  // Flagged once the field is left, never mid-keystroke: "12." is on its way
-  // to "12.50". It never counts in the total either way.
-  protected readonly unreadableAmount: ErrorStateMatcher = {
-    isErrorState: (control) =>
-      !!control?.touched &&
-      parseAccountAmount(String(control.value ?? '')).status === 'invalid',
-  };
-
-  // Ticking « Ajouter à Mon patrimoine » asks for a name in plain ink; red is
-  // kept for a name typed then emptied.
-  protected readonly clearedName: ErrorStateMatcher = {
-    isErrorState: (control) => !!control?.invalid && !!control.dirty,
-  };
-
-  protected readonly summary = computed(() =>
-    summarizeAccounts(this.accounts().map((account) => account.amountText)),
-  );
+  protected readonly summary = computed(() => summarizeRows(this.accounts()));
 
   // Against the live balance: what step 3 shows is what gets recorded.
   protected readonly verdict = computed(() => {
@@ -386,10 +308,6 @@ export class ReconcileAccountsDialog {
     });
   }
 
-  protected readonly currencySymbol = computed(
-    () => CURRENCY_METADATA[this.data.currency()].symbol,
-  );
-
   // Same rule as the hero: a period on the calendar month is named by the
   // month alone, and only a payday off the 1st needs its bounds spelled out.
   protected readonly periodRange = computed(() => {
@@ -401,139 +319,11 @@ export class ReconcileAccountsDialog {
     };
   });
 
-  // An account sits on one row at most: a select never offers what another
-  // row already holds.
-  protected readonly accountViews = computed(() => {
-    const accounts = this.accounts();
-    const picked = new Set(
-      accounts.flatMap(({ account }) =>
-        account.kind === 'asset' ? [account.id] : [],
-      ),
-    );
-    return accounts.map((row) => {
-      const assetId = row.account.kind === 'asset' ? row.account.id : null;
-      const addToNetWorth =
-        row.account.kind === 'other' && row.account.addToNetWorth;
-      return {
-        ...row,
-        assetId,
-        addToNetWorth,
-        // Taking a followed account off the list stops following it: the button says so.
-        removeLabelKey: this.#followed.some((asset) => asset.id === assetId)
-          ? 'currentMonth.reconcile.accounts.stopFollowingNumbered'
-          : 'currentMonth.reconcile.accounts.removeNumbered',
-        isNameMissing: addToNetWorth && row.label.trim() === '',
-        // The plan creates nothing for a ticked row without a readable balance.
-        isAmountMissing:
-          addToNetWorth &&
-          parseAccountAmount(row.amountText).status !== 'valid',
-        choices: this.#ownAccounts.filter(
-          (asset) => asset.id === assetId || !picked.has(asset.id),
-        ),
-        isNegative: LEADING_MINUS.test(row.amountText),
-      };
-    });
-  });
+  protected readonly canContinue = computed(() => this.summary().canContinue);
 
-  protected readonly canContinue = computed(
-    () =>
-      this.summary().canContinue &&
-      !this.accountViews().some(
-        (account) => account.isNameMissing || account.isAmountMissing,
-      ),
-  );
-
-  protected selectAccount(id: number, choice: string): void {
-    const asset = this.#ownAccounts.find((account) => account.id === choice);
-    this.updateAccount(
-      id,
-      asset
-        ? { label: asset.name, account: { kind: 'asset', id: asset.id } }
-        : { label: '', account: FREE_ROW },
-    );
-  }
-
-  // The name becomes mandatory with the tick, so the cursor goes to it.
-  protected setAddToNetWorth(id: number, addToNetWorth: boolean): void {
-    this.updateAccount(id, { account: { kind: 'other', addToNetWorth } });
-    const isNameMissing = this.accountViews().some(
-      (account) => account.id === id && account.isNameMissing,
-    );
-    if (!isNameMissing) return;
-    afterNextRender(() => this.#labelInputOf(id)?.focus(), {
-      injector: this.#injector,
-    });
-  }
-
-  #labelInputOf(id: number): HTMLInputElement | undefined {
-    return this.labelInputs().find(
-      (input) => input.nativeElement.dataset['row'] === String(id),
-    )?.nativeElement;
-  }
-
-  protected updateAccount(
-    id: number,
-    changes: Partial<Omit<AccountRow, 'id'>>,
-  ): void {
-    this.accounts.update((accounts) =>
-      accounts.map((account) =>
-        account.id === id ? { ...account, ...changes } : account,
-      ),
-    );
-  }
-
-  // The keypad has no minus key on most phones, so the sign is a checkbox. It
-  // edits the typed text rather than a separate flag: what the field shows is
-  // what gets summed.
-  protected toggleNegative(id: number): void {
-    const account = this.accounts().find((row) => row.id === id);
-    if (!account) return;
-    const amountText = LEADING_MINUS.test(account.amountText)
-      ? account.amountText.replace(LEADING_MINUS, '')
-      : `-${account.amountText.trim()}`;
-    this.updateAccount(id, { amountText });
-  }
-
-  protected addAccount(): void {
-    this.accounts.update((accounts) => [
-      ...accounts,
-      {
-        id: this.#nextAccountId++,
-        label: '',
-        amountText: '',
-        account: FREE_ROW,
-      },
-    ]);
-    // The cursor lands on the first control of the new row: the account list
-    // when there are accounts to pick from, the name otherwise.
-    afterNextRender(
-      () =>
-        (
-          this.accountSelects().at(-1) ??
-          this.labelInputs().at(-1)?.nativeElement
-        )?.focus(),
-      { injector: this.#injector },
-    );
-  }
-
-  // Enter adds the next account rather than submitting anything: the step has
-  // no form to submit, and a reflex Enter must never move money.
-  protected addAccountFromKeyboard(event: Event): void {
-    event.preventDefault();
-    this.addAccount();
-  }
-
-  protected removeAccount(id: number): void {
-    const index = this.accounts().findIndex((account) => account.id === id);
-    if (index === -1 || this.accounts().length === 1) return;
-    this.accounts.update((accounts) =>
-      accounts.filter((account) => account.id !== id),
-    );
-    // Focus lands on the account above, rather than on the page body.
-    afterNextRender(
-      () => this.amountInputs()[Math.max(index - 1, 0)]?.nativeElement.focus(),
-      { injector: this.#injector },
-    );
+  // An amount and its currency never part across two lines.
+  protected keepTogether(amount: string | null): string {
+    return (amount ?? '').replace(/\s/g, '\u00a0');
   }
 
   protected openGuide(): void {
@@ -548,7 +338,37 @@ export class ReconcileAccountsDialog {
   protected next(): void {
     const step = this.step();
     if (!this.canContinue() || step === 3) return;
+    if (step === 1) {
+      saveFreeAccounts(
+        this.#storage,
+        this.accounts().flatMap((row) =>
+          row.account.kind === 'free'
+            ? [{ name: row.label, side: row.side }]
+            : [],
+        ),
+      );
+    }
     this.#goTo((step + 1) as Step);
+  }
+
+  #initialRows(): Omit<AccountRow, 'id'>[] {
+    const rows: Omit<AccountRow, 'id'>[] = [
+      ...this.#followed.map((asset) => ({
+        label: asset.name,
+        amountText: '',
+        side: asset.direction,
+        account: { kind: 'asset' as const, id: asset.id },
+      })),
+      ...readFreeAccounts(this.#storage).map(({ name, side }) => ({
+        label: name,
+        amountText: '',
+        side,
+        account: FREE_ROW,
+      })),
+    ];
+    return rows.length > 0
+      ? rows
+      : [{ label: '', amountText: '', side: 'own', account: FREE_ROW }];
   }
 
   protected back(): void {
@@ -633,12 +453,7 @@ export class ReconcileAccountsDialog {
       this.accounts(),
       this.#followed.map((asset) => asset.id),
     );
-    const currency = this.data.currency();
-    if (
-      isEmptyPlan(plan) ||
-      (await this.#writeLinks.mutate({ plan, currency }))
-    )
-      return;
+    if (isEmptyPlan(plan) || (await this.#writeLinks.mutate(plan))) return;
     this.#snackBar.open(
       this.#transloco.translate('currentMonth.reconcile.balancesNotSaved'),
       this.#transloco.translate('common.close'),

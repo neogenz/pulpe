@@ -40,6 +40,8 @@ export const STORAGE_KEYS = {
 
   // Comparer avec mes comptes: the guide opened by itself once on this device
   RECONCILE_GUIDE_SEEN: 'pulpe-reconcile-guide-seen',
+  // Comparer avec mes comptes: names and sides of the free rows, never amounts
+  RECONCILE_FREE_ACCOUNTS: 'pulpe-reconcile-free-accounts',
 
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',

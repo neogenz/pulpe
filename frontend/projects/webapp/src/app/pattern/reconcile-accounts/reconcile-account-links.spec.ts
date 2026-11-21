@@ -10,23 +10,18 @@ const REVOLUT = 'revolut';
 
 const asset = (id: string, amountText = ''): AccountLinkRow => ({
   account: { kind: 'asset', id },
-  label: id,
   amountText,
+  side: 'own',
 });
-const other = (
-  label: string,
-  amountText: string,
-  addToNetWorth = false,
-): AccountLinkRow => ({
-  account: { kind: 'other', addToNetWorth },
-  label,
+const free = (amountText: string): AccountLinkRow => ({
+  account: { kind: 'free' },
   amountText,
+  side: 'own',
 });
 
 describe('planAccountLinks', () => {
   it('should only snapshot a followed account that got a balance', () => {
     expect(planAccountLinks([asset(BCGE, '229016')], [BCGE])).toEqual({
-      creates: [],
       links: [],
       unlinks: [],
       snapshots: [{ assetId: BCGE, value: 229016 }],
@@ -48,7 +43,7 @@ describe('planAccountLinks', () => {
   });
 
   it('should unlink exactly once a followed account whose row is gone', () => {
-    const plan = planAccountLinks([other('', '50')], [BCGE]);
+    const plan = planAccountLinks([free('50')], [BCGE]);
 
     expect(plan.unlinks).toEqual([BCGE]);
     expect(plan.snapshots).toEqual([]);
@@ -58,24 +53,23 @@ describe('planAccountLinks', () => {
     expect(isEmptyPlan(planAccountLinks([asset(BCGE)], [BCGE]))).toBe(true);
   });
 
-  it('should create a ticked free row and never snapshot it', () => {
-    const plan = planAccountLinks([other(' Neon ', '300', true)], []);
+  it('should snapshot a debt as the magnitude owed, whatever sign was typed', () => {
+    const debt = (amountText: string): AccountLinkRow => ({
+      account: { kind: 'asset', id: BCGE },
+      amountText,
+      side: 'owe',
+    });
 
-    expect(plan.creates).toEqual([{ name: 'Neon', value: 300 }]);
-    expect(plan.snapshots).toEqual([]);
+    expect(planAccountLinks([debt('-800')], [BCGE]).snapshots).toEqual([
+      { assetId: BCGE, value: 800 },
+    ]);
+    expect(planAccountLinks([debt('800')], [BCGE]).snapshots).toEqual([
+      { assetId: BCGE, value: 800 },
+    ]);
   });
 
-  it('should write nothing for a free row left private', () => {
-    expect(isEmptyPlan(planAccountLinks([other('Cash', '50')], []))).toBe(true);
-  });
-
-  it('should skip a ticked row with no name or no readable balance', () => {
-    const plan = planAccountLinks(
-      [other('', '300', true), other('Neon', '', true)],
-      [],
-    );
-
-    expect(plan.creates).toEqual([]);
+  it('should write nothing for a free row, whatever it holds', () => {
+    expect(isEmptyPlan(planAccountLinks([free('50')], []))).toBe(true);
   });
 
   it('should never emit two snapshots for one account', () => {

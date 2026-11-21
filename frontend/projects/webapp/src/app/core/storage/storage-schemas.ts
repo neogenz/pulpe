@@ -41,6 +41,11 @@ export const completeProfileDraftSchema = z.object({
 
 export type CompleteProfileDraft = z.infer<typeof completeProfileDraftSchema>;
 
+export const freeAccountsSchema = z.array(
+  z.object({ name: z.string().min(1).max(60), side: z.enum(['own', 'owe']) }),
+);
+export type FreeAccount = z.infer<typeof freeAccountsSchema>[number];
+
 const feedbackPromptStateSchema = z.object({
   activeDayCount: z.number().int().nonnegative(),
   lastActiveDay: z.string().nullable(),
@@ -111,6 +116,13 @@ export const STORAGE_SCHEMAS = {
     version: 1,
     schema: z.boolean(),
     scope: 'app',
+  },
+
+  // Scope 'user': account names belong to the person, a sign-out clears them.
+  [STORAGE_KEYS.RECONCILE_FREE_ACCOUNTS]: {
+    version: 1,
+    schema: freeAccountsSchema,
+    scope: 'user',
   },
 
   [STORAGE_KEYS.DASHBOARD_POINTING_LEARNED]: {

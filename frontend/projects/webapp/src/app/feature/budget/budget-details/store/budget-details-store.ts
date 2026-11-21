@@ -362,7 +362,8 @@ export class BudgetDetailsStore {
     buildSpreadTracker(this.spreadOccurrenceViewModels()),
   );
 
-  readonly isViewingSpreadCurrentPeriod = computed<boolean>(() => {
+  // Pay-day aware: the viewed budget is the one today falls in.
+  readonly isViewingCurrentPeriod = computed<boolean>(() => {
     const reference = this.#spreadReferencePeriod();
     if (!reference) return false;
     return compareBudgetPeriods(reference, this.#spreadLivePeriod()) === 0;

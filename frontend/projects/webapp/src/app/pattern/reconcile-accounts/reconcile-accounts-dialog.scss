@@ -55,11 +55,6 @@
   }
 }
 
-.account-amount-input {
-  font:
-    600 24px / 1.2 "Manrope",
-    sans-serif;
-}
 .position-amount {
   margin: 8px 0;
   font:
@@ -133,6 +128,7 @@
 }
 .primary-action {
   min-width: 190px;
+  margin-left: auto;
 }
 
 :host-context(.full-screen-dialog) {
@@ -165,9 +161,6 @@
   }
   .verdict-amount {
     font-size: 38px;
-  }
-  .account-row {
-    padding: 12px;
   }
   .verdict-hero {
     padding: 0 0 16px;

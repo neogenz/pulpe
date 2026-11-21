@@ -204,6 +204,7 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
 
   let fixture: ComponentFixture<BudgetDetailsPage>;
   let isViewedMonthFuture: ReturnType<typeof signal<boolean>>;
+  let isViewingCurrentPeriod: ReturnType<typeof signal<boolean>>;
   let store: {
     deletionImpact: ReturnType<typeof vi.fn>;
     deleteMonth: ReturnType<typeof vi.fn>;
@@ -221,6 +222,7 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
 
   const setup = async (month = 11, budgetId = 'budget-1'): Promise<void> => {
     isViewedMonthFuture = signal(true);
+    isViewingCurrentPeriod = signal(true);
     store = {
       createAllocatedTransaction: vi.fn().mockResolvedValue(null),
       deletionImpact: vi.fn().mockResolvedValue(NO_LINKS_IMPACT),
@@ -297,6 +299,7 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
                 previousBudgetId: signal(null),
                 nextBudgetId: signal(null),
                 isViewedMonthFuture,
+                isViewingCurrentPeriod,
                 setBudgetId: () => undefined,
               },
             },
@@ -323,8 +326,21 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
     await fixture.whenStable();
   };
 
+  it.each([true, false])(
+    'offers the comparison only on the current period (current: %s)',
+    async (isCurrent) => {
+      TestBed.resetTestingModule();
+      await setup(3, '11111111-1111-4111-8111-111111111111');
+      isViewingCurrentPeriod.set(isCurrent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(query('budget-reconcile-button') !== null).toBe(isCurrent);
+    },
+  );
+
   it.each([1, 10, 12])(
-    'reconciles month %s and refuses writes after navigation',
+    'reconciles the current period of month %s and refuses writes after navigation',
     async (month) => {
       TestBed.resetTestingModule();
       const budgetId = '11111111-1111-4111-8111-111111111111';

@@ -797,7 +797,7 @@ describe('DashboardHero', () => {
       const button = fixture.nativeElement.querySelector(
         '[data-testid="hero-reconcile-button"]',
       ) as HTMLButtonElement;
-      expect(button.textContent).toContain('Rapprocher mes comptes');
+      expect(button.textContent).toContain('Comparer avec mes comptes');
       button.click();
 
       expect(reconcile).toHaveBeenCalledTimes(1);

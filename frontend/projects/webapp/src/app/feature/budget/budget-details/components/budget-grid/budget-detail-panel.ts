@@ -706,7 +706,7 @@ export class BudgetDetailPanel {
   // template can read them while #store stays private.
   protected readonly spreadOccurrences = this.#store.spreadOccurrenceViewModels;
   protected readonly spreadTracker = this.#store.spreadTracker;
-  protected readonly isCurrentPeriod = this.#store.isViewingSpreadCurrentPeriod;
+  protected readonly isCurrentPeriod = this.#store.isViewingCurrentPeriod;
   protected readonly isSpreadLoading = this.#store.isSpreadOccurrencesLoading;
   protected readonly spreadError = this.#store.spreadOccurrencesError;
 

@@ -90,11 +90,8 @@ export class ReconcileAccountsDialogService {
       if (!netWorth) return null;
       return {
         categories: netWorth.categories,
-        accounts: netWorth.assets.filter(
-          (asset) =>
-            asset.direction === 'own' &&
-            asset.archivedAt === null &&
-            asset.currency === currency,
+        items: netWorth.assets.filter(
+          (asset) => asset.archivedAt === null && asset.currency === currency,
         ),
       };
     } catch {
