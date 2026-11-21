@@ -132,6 +132,10 @@ export function FormModal({
       requestAnimationFrame(() => scroll?.scrollTo({ y, animated: false }));
     }
   }, [showsBackButton]);
+  // A sheet closed from a step must not hand its offset to the next opening.
+  useEffect(() => {
+    if (!isVisible) formOffset.current = 0;
+  }, [isVisible]);
 
   function reveal() {
     const scroll = scrollRef.current;

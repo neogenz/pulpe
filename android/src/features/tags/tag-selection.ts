@@ -47,13 +47,13 @@ export function tagsMatching(query: string, tags: Tag[]): Tag[] {
 
 /**
  * Case- and accent-insensitive, like iOS's localized search: « epicerie »
- * finds « Épicerie », « strasse » « Straße ». Only combining marks go, so a
- * query of « ^ » or « 2 » still has to be in the name.
+ * finds « Épicerie », « strasse » « Straße ». Only the Latin accents go:
+ * « ^ », « 2 » or a Devanagari vowel sign still has to be in the name.
  */
 export function foldedForSearch(text: string): string {
   return text
     .normalize("NFD")
-    .replace(/\p{M}/gu, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase()
     .replace(/ß/g, "ss");
 }

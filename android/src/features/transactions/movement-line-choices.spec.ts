@@ -136,5 +136,12 @@ describe("matchingSections", () => {
     expect(ids("strasse")).toEqual(["tram"]);
     expect(ids("^")).toEqual([]);
     expect(ids("2")).toEqual([]);
+    // A vowel sign is part of a Devanagari word, not an accent to drop.
+    expect(
+      matchingSections(
+        lineSections([line("devi", { name: "देवी" })], [], "expense"),
+        "दवा",
+      ).margin,
+    ).toEqual([]);
   });
 });
