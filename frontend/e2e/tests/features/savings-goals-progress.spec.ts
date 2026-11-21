@@ -941,6 +941,8 @@ test.describe('Savings goal optional interval (PUL-314)', () => {
       targetAmount: 2400,
       initialAmount: 600,
       monthlyContribution: 600,
+      // Without the deadline the server would plan a recurring saving instead.
+      targetDate: expect.stringMatching(/^\d{4}-\d{2}-15$/),
     });
   });
 });
