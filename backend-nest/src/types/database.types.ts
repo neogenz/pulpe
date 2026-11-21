@@ -1025,6 +1025,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reconciliation: {
+        Row: {
+          last_completed_at: string | null
+          starting_amount: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_completed_at?: string | null
+          starting_amount?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_completed_at?: string | null
+          starting_amount?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       asset_latest_snapshot: {
@@ -1468,6 +1489,21 @@ export type Database = {
           p_monthly_budgets?: Json
           p_plan_withdrawals?: Json
           p_savings_goals?: Json
+          p_template_lines?: Json
+          p_transactions?: Json
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      rekey_user_encrypted_data_with_starting_amount: {
+        Args: {
+          p_asset_snapshots?: Json
+          p_budget_lines?: Json
+          p_key_check?: string
+          p_monthly_budgets?: Json
+          p_plan_withdrawals?: Json
+          p_savings_goals?: Json
+          p_starting_amount?: string
           p_template_lines?: Json
           p_transactions?: Json
           p_user_id: string

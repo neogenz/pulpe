@@ -2043,6 +2043,40 @@ describe('AesGcmCryptoService', () => {
       expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
     });
 
+    it('should refuse bootstrap when only a starting amount holds encrypted data', async () => {
+      const initializeVaultIfEmpty = mock(() => Promise.resolve(true));
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository({
+          findByUserId: mock(() =>
+            Promise.resolve({
+              salt: randomBytes(16).toString('hex'),
+              kdf_iterations: 600000,
+              wrapped_dek: null,
+              key_check: null,
+            }),
+          ),
+          initializeVaultIfEmpty,
+        }) as any,
+      );
+
+      await expect(
+        service.createRecoveryKey(
+          TEST_USER_ID,
+          TEST_CLIENT_KEY,
+          createEncryptedDataClient({
+            user_reconciliation: [
+              { user_id: TEST_USER_ID, starting_amount: 'existing-ciphertext' },
+            ],
+          }) as any,
+        ),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
+      expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
+    });
+
     it('should refuse bootstrap when encrypted data exists after the first 1,000 rows', async () => {
       const findByUserId = mock(() =>
         Promise.resolve({
@@ -2235,6 +2269,91 @@ describe('AesGcmCryptoService', () => {
                 id: testUuid(9_002),
                 user_id: TEST_USER_ID,
                 value: foreignCiphertext,
+              },
+            ],
+          }) as any,
+        ),
+      ).rejects.toThrow();
+      expect(rekeyUserData).not.toHaveBeenCalled();
+    });
+
+    it('should re-encrypt the starting amount so the new key reads the same number', async () => {
+      const oldDek = randomBytes(32);
+      const newDek = randomBytes(32);
+      const rekeyUserData = mock(() => Promise.resolve());
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository({ rekeyUserData }) as any,
+      );
+      const ciphertext = service.encryptAmount(3_100.25, oldDek);
+
+      await service.reEncryptAllUserData(
+        TEST_USER_ID,
+        oldDek,
+        newDek,
+        createEncryptedDataClient({
+          user_reconciliation: [
+            { user_id: 'another-user', starting_amount: 'foreign-ciphertext' },
+            { user_id: TEST_USER_ID, starting_amount: ciphertext },
+          ],
+        }) as any,
+      );
+
+      const [, payloads] = rekeyUserData.mock.calls[0] as unknown as [
+        string,
+        { startingAmount: string },
+      ];
+      expect(payloads.startingAmount).not.toBe(ciphertext);
+      expect(service.decryptAmount(payloads.startingAmount, newDek)).toBe(
+        3_100.25,
+      );
+    });
+
+    it('should send no starting amount when the person has none', async () => {
+      const rekeyUserData = mock(() => Promise.resolve());
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository({ rekeyUserData }) as any,
+      );
+
+      await service.reEncryptAllUserData(
+        TEST_USER_ID,
+        randomBytes(32),
+        randomBytes(32),
+        createEncryptedDataClient({
+          user_reconciliation: [
+            { user_id: TEST_USER_ID, starting_amount: null },
+          ],
+        }) as any,
+      );
+
+      const [, payloads] = rekeyUserData.mock.calls[0] as unknown as [
+        string,
+        { startingAmount: string | null },
+      ];
+      expect(payloads.startingAmount).toBeNull();
+    });
+
+    it('should abort the rekey before any write when the starting amount does not decrypt with the old key', async () => {
+      const rekeyUserData = mock(() => Promise.resolve());
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository({ rekeyUserData }) as any,
+      );
+
+      await expect(
+        service.reEncryptAllUserData(
+          TEST_USER_ID,
+          randomBytes(32),
+          randomBytes(32),
+          createEncryptedDataClient({
+            user_reconciliation: [
+              {
+                user_id: TEST_USER_ID,
+                starting_amount: service.encryptAmount(100, randomBytes(32)),
               },
             ],
           }) as any,

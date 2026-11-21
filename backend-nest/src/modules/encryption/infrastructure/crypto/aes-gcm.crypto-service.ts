@@ -588,13 +588,21 @@ export class AesGcmCryptoService {
           .eq('user_id', userId)
           .limit(1),
       ),
+      this.#queryHasRows(
+        supabase
+          .from('user_reconciliation')
+          .select('user_id')
+          .eq('user_id', userId)
+          .not('starting_amount', 'is', null)
+          .limit(1),
+      ),
     ]);
     return results.some(Boolean);
   }
 
   async #queryHasRows(
     query: PromiseLike<{
-      data: Array<{ id: string }> | null;
+      data: unknown[] | null;
       error: unknown;
     }>,
   ): Promise<boolean> {
@@ -1017,6 +1025,7 @@ export class AesGcmCryptoService {
       savingsGoals,
       planWithdrawals,
       assetSnapshots,
+      startingAmount,
     ] = await Promise.all([
       this.#fetchBudgetLines(budgetIds, supabase),
       this.#fetchTransactions(budgetIds, supabase),
@@ -1024,6 +1033,7 @@ export class AesGcmCryptoService {
       this.#fetchSavingsGoals(userId, supabase),
       this.#fetchPlanWithdrawals(userId, supabase),
       this.#fetchAssetSnapshots(userId, supabase),
+      this.#fetchStartingAmount(userId, supabase),
     ]);
 
     const payloads = this.#buildRekeyPayloads(
@@ -1035,6 +1045,7 @@ export class AesGcmCryptoService {
         monthlyBudgets,
         planWithdrawals,
         assetSnapshots,
+        startingAmount,
       },
       oldDek,
       newDek,
@@ -1044,7 +1055,11 @@ export class AesGcmCryptoService {
 
     const validated = this.#validateRekeyPayloads(payloads, userId);
 
-    await this.#repository.rekeyUserData(userId, validated, keyCheck);
+    await this.#repository.rekeyUserData(
+      userId,
+      { ...validated, startingAmount: payloads.startingAmount },
+      keyCheck,
+    );
 
     this.logger.info(
       {
@@ -1058,6 +1073,7 @@ export class AesGcmCryptoService {
           monthly_budget: payloads.monthlyBudgets.length,
           savings_goal_plan_withdrawal: payloads.planWithdrawals.length,
           asset_snapshot: payloads.assetSnapshots.length,
+          user_reconciliation: Number(payloads.startingAmount !== null),
         },
       },
       'All user data re-encrypted',
@@ -1146,6 +1162,7 @@ export class AesGcmCryptoService {
       }>;
       planWithdrawals: Array<{ id: string; amount: string }>;
       assetSnapshots: Array<{ id: string; value: string }>;
+      startingAmount: string | null;
     },
     oldDek: Buffer,
     newDek: Buffer,
@@ -1189,6 +1206,7 @@ export class AesGcmCryptoService {
         id: r.id,
         value: this.#reEncryptAmountStrict(r.value, oldDek, newDek),
       })),
+      startingAmount: rekey(rows.startingAmount),
     };
   }
 
@@ -1318,6 +1336,21 @@ export class AesGcmCryptoService {
         .order('id', { ascending: true })
         .range(from, to),
     );
+  }
+
+  async #fetchStartingAmount(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string | null> {
+    const [row] = await fetchAllPages((from, to) =>
+      supabase
+        .from('user_reconciliation')
+        .select('starting_amount')
+        .eq('user_id', userId)
+        .order('user_id', { ascending: true })
+        .range(from, to),
+    );
+    return row?.starting_amount ?? null;
   }
 
   #invalidateUserDEKCache(userId: string): void {
