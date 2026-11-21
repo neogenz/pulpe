@@ -318,8 +318,7 @@ function ToPoint({ month }: { month: LoadedMonth }) {
           reconcileBudgetId === budget.id
             ? {
                 realized: viewModel.realized,
-                rollover: budget.rollover ?? 0,
-                period: month.period,
+                available: viewModel.metrics.remaining,
                 budgetLines,
                 transactions,
               }

@@ -79,6 +79,9 @@ export const ENDPOINTS = {
   assetCategories: "/asset-categories",
   assetCategory: (id: string) => `/asset-categories/${id}`,
 
+  reconciliationContext: (budgetId: string) => `/reconciliation/${budgetId}`,
+  reconciliationState: "/reconciliation/state",
+
   currencyRate: "/currency/rate",
 
   feedback: "/feedback",

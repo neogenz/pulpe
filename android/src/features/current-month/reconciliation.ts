@@ -1,4 +1,23 @@
-import type { ReconciliationVerdict, TransactionCreate } from "pulpe-shared";
+import {
+  availableAfterNote,
+  type BudgetLine,
+  comparedFigure,
+  type ComparisonScreen,
+  comparisonScreen,
+  CURRENCY_METADATA,
+  gapClosedByChecks,
+  type MatchedBreakdown,
+  matchedBreakdown,
+  moneyDifference,
+  rankedPointingCandidates,
+  type ReconciliationContext,
+  type ReconciliationVerdict,
+  type SupportedCurrency,
+  type Transaction,
+  type TransactionCreate,
+} from "pulpe-shared";
+
+import { isPointableLine } from "./current-month-view-model";
 
 /** Never a saving: the gap came in or went out, it was not set aside. */
 export type ReconciliationAdjustment = Exclude<
@@ -24,5 +43,138 @@ export function buildAdjustmentPayload(input: {
     kind: input.adjustment.kind,
     transactionDate: stamp,
     checkedAt: stamp,
+  };
+}
+
+/**
+ * The sample figures are the story, not the user's data: « Masquer les
+ * montants » leaves them be, so they skip the masking formatter and keep its
+ * digits and separators (`890.00` in CHF, `890,00` in EUR).
+ */
+export function plain(value: number, currency: SupportedCurrency): string {
+  return new Intl.NumberFormat(CURRENCY_METADATA[currency].numberLocale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+/** An item whose check moves the compared figure: of this month or one of the two before. */
+export interface SuggestionRow {
+  source: "transaction" | "budgetLine";
+  id: string;
+  name: string;
+  amount: number;
+  monthsAgo: 0 | 1 | 2;
+  /** The movement's date, for a movement of this month. */
+  date: string | null;
+  /** Checking it alone leaves no gap, and its amount is the gap itself (spec §4.2). */
+  settles: boolean;
+}
+
+export interface Comparison {
+  onAccounts: number;
+  compared: number;
+  /** The figure before the first check of this comparison, once a check moved it. */
+  comparedBefore: number | null;
+  /** How much nearer zero the checks brought the gap: one that widens it finds nothing. */
+  found: number;
+  gap: number;
+  screen: ComparisonScreen;
+  suggestions: SuggestionRow[];
+  /** Left on the « À pointer » page beyond the suggestions. */
+  othersCount: number;
+  note: { before: number; after: number };
+  matched: MatchedBreakdown;
+}
+
+/** Step 2's numbers and screen, from the shared rules (spec.md §4). `ReconcileCompareStep` on the web. */
+export function buildComparison(input: {
+  onAccountsCents: number;
+  realizedBalance: number;
+  /** « Disponible à dépenser » of the month. */
+  available: number;
+  budgetLines: BudgetLine[];
+  transactions: Transaction[];
+  context: ReconciliationContext;
+  comparedBefore: number | null;
+  isDismissed: boolean;
+}): Comparison {
+  const { budgetLines, transactions, context } = input;
+  const onAccounts = input.onAccountsCents / 100;
+  const compared = comparedFigure(
+    input.realizedBalance,
+    context.priorCorrection,
+    context.startingAmount,
+  );
+  const gap = moneyDifference(onAccounts, compared);
+  const comparedBefore =
+    input.comparedBefore === compared ? null : input.comparedBefore;
+  const suggestions = rankedPointingCandidates(
+    gap,
+    budgetLines,
+    transactions,
+    context.priorItems,
+  ).flatMap(({ source, id, monthsAgo, remainingGap }): SuggestionRow[] => {
+    const item =
+      source === "prior"
+        ? context.priorItems.find((prior) => prior.id === id)
+        : source === "budgetLine"
+          ? budgetLines.find((line) => line.id === id)
+          : transactions.find((transaction) => transaction.id === id);
+    if (item === undefined) return [];
+    return [
+      {
+        source:
+          "source" in item
+            ? item.source
+            : "transactionDate" in item
+              ? "transaction"
+              : "budgetLine",
+        id,
+        name: item.name,
+        amount: item.amount,
+        monthsAgo,
+        date: "transactionDate" in item ? item.transactionDate : null,
+        // A 120 movement under a checked 100 prévision closes a 20 gap: ranked first, never highlighted.
+        settles:
+          remainingGap === 0 &&
+          moneyDifference(item.amount, Math.abs(gap)) === 0,
+      },
+    ];
+  });
+  // What the « À pointer » page lists: unchecked movements and prévisions, savings withdrawals aside.
+  const toCheckCount =
+    transactions.filter((transaction) => transaction.checkedAt === null)
+      .length +
+    budgetLines.filter(
+      (line) => line.checkedAt === null && isPointableLine(line),
+    ).length;
+
+  return {
+    onAccounts,
+    compared,
+    comparedBefore,
+    found:
+      comparedBefore === null
+        ? 0
+        : gapClosedByChecks({ onAccounts, comparedBefore, compared }),
+    gap,
+    screen: comparisonScreen({
+      gap,
+      candidateCount: suggestions.length,
+      dismissed: input.isDismissed,
+      first: !context.hasCompletedComparison && context.startingAmount === 0,
+      // shortcut: the pay-day rule is not wired yet; its screen comes with « Salaire en avance » (phase 16).
+      salaryMaybeEarly: false,
+    }),
+    suggestions,
+    othersCount:
+      toCheckCount - suggestions.filter((row) => row.monthsAgo === 0).length,
+    note: availableAfterNote(input.available, gap),
+    matched: matchedBreakdown({
+      available: input.available,
+      compared,
+      startingAmount: context.startingAmount,
+    }),
   };
 }

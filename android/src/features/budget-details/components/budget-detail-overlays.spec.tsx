@@ -85,9 +85,9 @@ jest.mock(
       }: {
         isVisible: boolean;
         budgetId: string;
-        month: { rollover: number } | null;
+        month: { available: number } | null;
       }) =>
-        isVisible ? <Text>{`${budgetId}:${month?.rollover}`}</Text> : null,
+        isVisible ? <Text>{`${budgetId}:${month?.available}`}</Text> : null,
     };
   },
 );
@@ -190,7 +190,7 @@ it("folds the open speed dial on Back instead of leaving the budget", async () =
 });
 
 it.each([1, 10, 12])(
-  "reconciles the viewed month %s with its own rollover",
+  "reconciles the viewed month %s with its own available",
   async (month) => {
     mockCurrentMonth.budgetId = `budget-${month}`;
     const { ref, view } = await renderOverlays(month);

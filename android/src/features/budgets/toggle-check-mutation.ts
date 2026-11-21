@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 
 import type { BudgetDetails } from "./budget-api";
+import { reconciliationKeys } from "@/features/current-month/reconciliation-queries";
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import { budgetKeys, invalidateAfterBudgetWrite } from "./budget-queries";
@@ -105,7 +106,37 @@ function reconcileChecks(queryClient: QueryClient, budgetId: string | null) {
       ? queryClient.invalidateQueries({ queryKey: budgetKeys.all })
       : invalidateAfterBudgetWrite(queryClient),
     queryClient.invalidateQueries({ queryKey: goalKeys.all }),
+    // A comparison open on step 2 reads its figure again, a refused check included.
+    queryClient.invalidateQueries({ queryKey: reconciliationKeys.all }),
   ]);
+}
+
+/**
+ * Resolves once no check is out and the budgets and comparisons they re-read
+ * have landed, a failed read included. A check settling behind another one
+ * leaves its re-read to the last, so its own `mutateAsync` resolves before it.
+ */
+export function useChecksSettled(): () => Promise<void> {
+  const queryClient = useQueryClient();
+  const isSettled = () =>
+    queryClient.isMutating({ mutationKey: toggleCheckKeys }) === 0 &&
+    queryClient.isFetching({ queryKey: budgetKeys.all }) === 0 &&
+    queryClient.isFetching({ queryKey: reconciliationKeys.all }) === 0;
+
+  return () =>
+    new Promise((resolve) => {
+      const unsubscribes: (() => void)[] = [];
+      const settle = () => {
+        if (!isSettled()) return;
+        unsubscribes.forEach((unsubscribe) => unsubscribe());
+        resolve();
+      };
+      unsubscribes.push(
+        queryClient.getMutationCache().subscribe(settle),
+        queryClient.getQueryCache().subscribe(settle),
+      );
+      settle();
+    });
 }
 
 /**

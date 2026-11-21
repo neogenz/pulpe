@@ -1,35 +1,25 @@
 import {
   ANALYTICS_EVENTS,
   type BudgetLine,
-  type BudgetPeriodDates,
-  pointingCandidates,
-  reconciliationVerdict,
   type SupportedCurrency,
   type Transaction,
   type TransactionCreate,
 } from "pulpe-shared";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  IconButton,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { StyleSheet } from "react-native";
+import { Button, IconButton } from "react-native-paper";
 import { randomUUID } from "react-native-quick-crypto";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { captureEvent } from "@/core/observability/analytics";
-import { Amount } from "@/core/ui/amount";
-import { formatCurrency, formatSignedCurrency } from "@/core/ui/amount-format";
-import { formatDayMonth } from "@/core/ui/date-format";
-import { FieldError } from "@/core/ui/field-error";
 import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import { Notice } from "@/core/ui/notice";
 import { FormModal } from "@/core/ui/sheet";
-import { RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
-import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
+import { SPACING, TOUCH_TARGET } from "@/core/ui/theme";
+import {
+  useChecksSettled,
+  useToggleCheck,
+} from "@/features/budgets/toggle-check-mutation";
 import { useFollowAccounts } from "@/features/net-worth/net-worth-queries";
 import { loadFirstMovementState } from "@/features/transactions/first-movement-tracker";
 import { useCreateTransaction } from "@/features/transactions/transaction-mutations";
@@ -55,7 +45,16 @@ import {
 } from "../reconcile-draft-store";
 import { readFreeAccounts, saveFreeAccounts } from "../reconcile-free-accounts";
 import { useReconcileLinkedAccounts } from "../reconcile-linked-accounts";
-import { buildAdjustmentPayload } from "../reconciliation";
+import {
+  buildAdjustmentPayload,
+  buildComparison,
+  type SuggestionRow,
+} from "../reconciliation";
+import { completeReconciliation } from "../reconciliation-api";
+import {
+  forgetReconciliationContext,
+  useReconciliationContext,
+} from "../reconciliation-queries";
 import {
   markReconcileGuideSeen,
   useHasSeenReconcileGuide,
@@ -65,19 +64,21 @@ import {
   ReconcileAddAccountSheet,
 } from "./reconcile-add-account-sheet";
 import { ReconcileAccountsStep } from "./reconcile-accounts-step";
+import {
+  ReconcileCompareActions,
+  ReconcileCompareStep,
+} from "./reconcile-compare-step";
 import { useReconcileGuidePage } from "./reconcile-guide-page";
 
-const LABEL_MAX_LENGTH = 100;
-
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
 
 const FIRST_ROW = freeRow(0, "own");
 
-/** What the loaded month has pointed, and the period it covers. */
+/** What the loaded month has pointed, and what it leaves to spend. */
 export interface ReconcileMonth {
   realized: RealizedMetrics;
-  rollover: number;
-  period: BudgetPeriodDates;
+  /** « Disponible à dépenser ». */
+  available: number;
   /** Its live rows: pointing one from here moves the gap. */
   budgetLines: BudgetLine[];
   transactions: Transaction[];
@@ -102,9 +103,10 @@ interface ReconcileAccountsSheetProps {
 }
 
 /**
- * The bank's balances against the pointed balance of the month, in three
- * steps: what the accounts hold, what the month has pointed, and the gap. The
- * gap becomes one checked entry — never a saving, never more than one per flow.
+ * The bank's balances against what Pulpe holds as checked, in two steps: what
+ * the accounts hold, then the comparison and what explains the gap. The gap
+ * becomes one checked entry at most — never a saving, never more than one per
+ * comparison.
  *
  * Nothing typed here outlives the sheet: every way out resets it, so the next
  * opening starts from one empty amount.
@@ -119,18 +121,17 @@ export function ReconcileAccountsSheet({
   month,
   currency,
 }: ReconcileAccountsSheetProps) {
-  const theme = useTheme();
-  const { locale, t } = useTranslation();
+  const { t } = useTranslation();
   const create = useCreateTransaction("reconciliation");
   const follow = useFollowAccounts();
   const toggle = useToggleCheck(budgetId);
-  // Pointed from here and not settled yet: the gap has already moved, so
-  // nothing is written against it before the server keeps the pointing.
-  const [pointingIds, setPointingIds] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
+  // A previous month's item lives in another budget: no row here to flip before the server.
+  const togglePrior = useToggleCheck(null);
+  const checksSettled = useChecksSettled();
+  // One check at a time, from the tap to the context read after it: the gap
+  // moves with each one, so nothing is written or ended meanwhile.
+  const [checkingId, setCheckingId] = useState<string | null>(null);
   const [hasPointFailed, setPointFailed] = useState(false);
-  const isPointing = pointingIds.size > 0;
   // Asked before the adjustment is saved: afterwards the server always says yes.
   useEffect(() => {
     if (isVisible) void loadFirstMovementState();
@@ -141,6 +142,11 @@ export function ReconcileAccountsSheet({
   // when « Mon patrimoine » is off: plain lines, nothing written there.
   const [accounts, setAccounts] = useState<typeof linked>(undefined);
   const [step, setStep] = useState<Step>(1);
+  const context = useReconciliationContext(budgetId, isVisible && step === 2);
+  // The compared figure before the first check of this comparison: struck through after it.
+  const [comparedBefore, setComparedBefore] = useState<number | null>(null);
+  // « Aucune … ne correspond » was tapped in this comparison.
+  const [isDismissed, setDismissed] = useState(false);
   // The guide opens by itself until it has been seen; « ? » replays it, over
   // whatever step the person is on, typed rows untouched.
   const hasSeenGuide = useHasSeenReconcileGuide();
@@ -170,14 +176,17 @@ export function ReconcileAccountsSheet({
   // Flagged once the field is left, never mid-keystroke: "12." is on its way
   // to "12.50". It never counts in the total either way.
   const [leftRowIds, setLeftRowIds] = useState<ReadonlySet<number>>(new Set());
-  // `null` follows the language's own default label until the user edits it.
-  const [label, setLabel] = useState<string | null>(null);
   // `isPending` arrives with the next render; a second tap before it must not
   // write a second adjustment.
   const isSubmitting = useRef(false);
   // One id per adjustment, replayed on a retry: a request whose answer was lost
   // may have committed, and `createOnce` reads it back instead of writing twice.
   const attempt = useRef<TransactionCreate | null>(null);
+  // Completion is sent once per comparison; only « Comparer » starts a new one,
+  // so a second « Terminer » in the same render finds it already sent.
+  const isCompleted = useRef(false);
+  // A comparison of this sheet was completed: its balances are saved on close.
+  const hasCompleted = useRef(false);
 
   if (isVisible && accounts === undefined && linked !== undefined) {
     setAccounts(linked);
@@ -194,33 +203,45 @@ export function ReconcileAccountsSheet({
     if (isVisible && accounts !== undefined) keepReconcileDraft(budgetId, rows);
   }, [isVisible, accounts, budgetId, rows]);
 
-  const adjustmentLabel = label ?? t("home.reconcile.verdict.defaultLabel");
   const summary = summarizeRows(rows);
-  const verdict =
-    summary.totalCents === null || month === null
+  // A refresh keeps the figures on screen; a failed one stops the comparison.
+  const contextData = context.isError ? undefined : context.data;
+  const comparison =
+    step !== 2 ||
+    summary.totalCents === null ||
+    month === null ||
+    contextData === undefined
       ? null
-      : reconciliationVerdict(
-          summary.totalCents,
-          month.realized.realizedBalance,
-        );
-  const adjustment =
-    verdict === null || verdict.kind === "upToDate" ? null : verdict;
-  const isBusy = create.isPending;
-  // Movements the bank may already hold: pointing them, not an adjustment,
-  // closes that part of the gap without counting it twice later.
-  const candidates =
-    adjustment === null || month === null
-      ? []
-      : pointingCandidates(
-          adjustment.kind === "income" ? adjustment.amount : -adjustment.amount,
-          month.budgetLines,
-          month.transactions,
-        );
-  const lineNames = new Map(
-    month?.budgetLines.map((line) => [line.id, line.name]),
-  );
+      : buildComparison({
+          onAccountsCents: summary.totalCents,
+          realizedBalance: month.realized.realizedBalance,
+          available: month.available,
+          budgetLines: month.budgetLines,
+          transactions: month.transactions,
+          context: contextData,
+          comparedBefore,
+          isDismissed,
+        });
+  // Offered even when the card is the only account: removing it then goes back to step 1.
+  const oweTotal =
+    summary.hasOwe && comparison !== null && comparison.gap < 0
+      ? summary.oweCents / 100
+      : null;
+  const isBusy = create.isPending || checkingId !== null;
 
+  // The accounts I finished with, written to Mon patrimoine. A refusal only
+  // says so: the reconciliation stays done.
+  function followFinishedAccounts() {
+    if (accounts == null) return;
+    const plan = planAccountLinks(rows, accounts.assets);
+    if (!isEmptyPlan(plan)) follow.mutate(plan);
+  }
+
+  // Every way out ends here. Mon patrimoine gets the balances once per sheet, as
+  // the rows stand when it closes, and only after a completed comparison.
   function reset() {
+    if (hasCompleted.current) followFinishedAccounts();
+    hasCompleted.current = false;
     setGuideRequested(false);
     setStep(1);
     setAccounts(undefined);
@@ -229,7 +250,6 @@ export function ReconcileAccountsSheet({
     setFocusRowId(null);
     clearReconcileDraft();
     setLeftRowIds(new Set());
-    setLabel(null);
     setPointFailed(false);
     isSubmitting.current = false;
     attempt.current = null;
@@ -265,14 +285,19 @@ export function ReconcileAccountsSheet({
       dismiss();
       return;
     }
-    setStep((step - 1) as Step);
+    setStep(1);
   }
 
+  // Each « Comparer » starts a comparison of its own, read fresh from the server.
   function next() {
-    if (summary.totalCents === null || step === 3) return;
+    if (summary.totalCents === null || step === 2) return;
     // Names and sides stay for next time; « Retirer » forgets a row here.
-    if (step === 1) saveFreeAccounts(freeAccountsToRemember(rows));
-    setStep((step + 1) as Step);
+    saveFreeAccounts(freeAccountsToRemember(rows));
+    forgetReconciliationContext(budgetId);
+    setComparedBefore(null);
+    setDismissed(false);
+    isCompleted.current = false;
+    setStep(2);
   }
 
   function updateRow(
@@ -301,58 +326,61 @@ export function ReconcileAccountsSheet({
     );
   }
 
-  // Completion, and only completion, writes the accounts I finished with to
-  // Mon patrimoine. A refusal only says so: the reconciliation stays done.
-  function followFinishedAccounts() {
-    if (accounts == null) return;
-    const plan = planAccountLinks(rows, accounts.assets);
-    if (!isEmptyPlan(plan)) follow.mutate(plan);
-  }
-
-  function complete(adjustmentKind: "income" | "expense" | "none") {
+  // Once per comparison: the server learns it happened. `false` when it already was.
+  function complete(adjustmentKind: "income" | "expense" | "none"): boolean {
+    if (isCompleted.current) return false;
+    isCompleted.current = true;
+    hasCompleted.current = true;
     captureEvent(ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED, {
       adjustment_kind: adjustmentKind,
     });
+    // A lost completion only asks the « first comparison » question once more.
+    completeReconciliation().catch(() => undefined);
+    return true;
   }
 
-  async function point(transaction: Transaction) {
+  // The stored item, by id: the server flips it, and it was unchecked when ranked.
+  async function check(row: SuggestionRow) {
+    if (comparison === null || isBusy || isSubmitting.current) return;
     setPointFailed(false);
-    setPointingIds((ids) => new Set(ids).add(transaction.id));
+    setCheckingId(row.id);
+    setComparedBefore((before) => before ?? comparison.compared);
     try {
-      await toggle.mutateAsync({
-        source: "transaction",
-        sourceId: transaction.id,
+      // A refused check re-reads too: the rows come back as the server holds them.
+      await (row.monthsAgo === 0 ? toggle : togglePrior).mutateAsync({
+        source: row.source,
+        sourceId: row.id,
       });
       hapticSuccess();
     } catch {
       hapticFailure();
       setPointFailed(true);
     } finally {
-      setPointingIds((ids) => {
-        const next = new Set(ids);
-        next.delete(transaction.id);
-        return next;
-      });
+      // Its re-read may wait behind another check: the rows stay put until it lands.
+      await checksSettled();
+      setCheckingId(null);
     }
   }
 
   function record() {
-    const name = adjustmentLabel.trim();
-    if (adjustment === null || name === "" || isBusy || isPointing) return;
-    if (isSubmitting.current) return;
+    if (comparison === null || comparison.gap === 0) return;
+    if (isBusy || isSubmitting.current || isCompleted.current) return;
     isSubmitting.current = true;
 
+    const adjustment = {
+      kind: comparison.gap > 0 ? "income" : "expense",
+      amount: Math.abs(comparison.gap),
+    } as const;
     const previous = attempt.current;
     const payload =
       previous !== null &&
-      previous.name === name &&
       previous.amount === adjustment.amount &&
       previous.kind === adjustment.kind
         ? previous
         : {
             ...buildAdjustmentPayload({
               budgetId,
-              name,
+              name: t("home.reconcile.compare.entryName"),
               adjustment,
               now: new Date(),
             }),
@@ -363,30 +391,37 @@ export function ReconcileAccountsSheet({
     create.mutate(payload, {
       onSuccess: () => {
         complete(adjustment.kind);
-        followFinishedAccounts();
         hapticSuccess();
         reset();
         onRecorded();
       },
-      // A refusal keeps the step and the label: retrying is one press.
+      // A refusal keeps the screen: retrying is one press.
       onSettled: () => {
         isSubmitting.current = false;
       },
     });
   }
 
-  // A write already out ends the flow itself, even once a refresh brings the
-  // balance level: Finish waits rather than completing a second time.
-  function finish() {
-    if (isBusy || isPointing || isSubmitting.current) return;
-    if (verdict?.kind !== "upToDate") return;
-    complete("none");
-    followFinishedAccounts();
+  // [Terminer], « Laisser comme ça » and « Non, laisser comme ça ».
+  function leave() {
+    if (comparison === null || isBusy || isSubmitting.current) return;
+    if (!complete("none")) return;
     reset();
     onDismiss();
   }
 
+  function removeOwe() {
+    if (isBusy) return;
+    const kept = rows.filter((row) => row.side !== "owe");
+    setRows(kept);
+    // Another total: the figure struck through belonged to the old one.
+    setComparedBefore(null);
+    // Nothing typed is left to compare: back to the balances.
+    if (summarizeRows(kept).totalCents === null) setStep(1);
+  }
+
   function viewItemsToCheck() {
+    if (isBusy || isSubmitting.current) return;
     reset();
     onViewItemsToCheck();
   }
@@ -409,60 +444,29 @@ export function ReconcileAccountsSheet({
       >
         {t("home.checking.pointFailure")}
       </Notice>
-      <View style={styles.actions}>
-        {step > 1 && (
-          <Button
-            mode="outlined"
-            onPress={back}
-            disabled={isBusy}
-            style={styles.action}
-          >
-            {t("home.reconcile.back")}
-          </Button>
-        )}
-        {step < 3 ? (
-          <Button
-            mode="contained"
-            onPress={next}
-            disabled={summary.totalCents === null}
-            style={styles.action}
-          >
-            {t(
-              step === 1
-                ? "home.reconcile.accounts.compare"
-                : "home.reconcile.continue",
-            )}
-          </Button>
-        ) : verdict?.kind === "upToDate" ? (
-          <Button
-            mode="contained"
-            onPress={finish}
-            disabled={isBusy || isPointing}
-            style={styles.action}
-          >
-            {t("home.reconcile.verdict.finish")}
-          </Button>
-        ) : (
-          <Button
-            mode="contained"
-            onPress={record}
-            disabled={
-              adjustment === null ||
-              isBusy ||
-              isPointing ||
-              adjustmentLabel.trim() === ""
-            }
-            loading={isBusy}
-            style={styles.action}
-          >
-            {t("home.reconcile.verdict.record")}
-          </Button>
-        )}
-      </View>
+      {step === 1 ? (
+        <Button
+          mode="contained"
+          onPress={next}
+          disabled={summary.totalCents === null}
+        >
+          {t("home.reconcile.accounts.compare")}
+        </Button>
+      ) : (
+        comparison !== null && (
+          <ReconcileCompareActions
+            comparison={comparison}
+            currency={currency}
+            isBusy={isBusy}
+            isRecording={create.isPending}
+            onLeave={leave}
+            onDismiss={() => setDismissed(true)}
+            onRecord={record}
+          />
+        )
+      )}
     </>
   );
-
-  const muted = { color: theme.colors.onSurfaceVariant };
 
   return (
     <>
@@ -475,14 +479,11 @@ export function ReconcileAccountsSheet({
         // The guide has its own title; each step its own question below this name.
         title={guide === null ? t("home.reconcile.title") : undefined}
         hasBodyHeading
-        subtitle={
-          guide === null && step > 1
-            ? t("home.reconcile.stepOf", { step })
-            : undefined
-        }
         footer={guide === null ? footer : guide.footer}
         fillsHeight
-        showsCloseButton={guide === null}
+        // Step 2 goes back to step 1 by its arrow; the scrim still leaves.
+        showsBackButton={guide === null && step === 2}
+        showsCloseButton={guide === null && step === 1}
         headerAction={
           guide !== null ? (
             guide.skipAction
@@ -519,159 +520,21 @@ export function ReconcileAccountsSheet({
           />
         )}
 
-        {guide === null && step === 2 && month !== null && (
-          <>
-            <Text variant="titleMedium">
-              {t("home.reconcile.realized.heading")}
-            </Text>
-            {/* A period on the calendar month is named by the month alone. */}
-            {month.period.startDate.getDate() !== 1 && (
-              <Text variant="bodyMedium" style={muted}>
-                {t("home.reconcile.realized.period", {
-                  start: formatDayMonth(month.period.startDate, locale),
-                  end: formatDayMonth(month.period.endDate, locale),
-                })}
-              </Text>
-            )}
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: theme.colors.surfaceVariant },
-              ]}
-            >
-              <BreakdownRow
-                label={t("home.reconcile.realized.checkedIncome")}
-                amount={formatCurrency(month.realized.realizedIncome, currency)}
-              />
-              <BreakdownRow
-                label={t("home.reconcile.realized.checkedOutflows")}
-                amount={formatCurrency(
-                  0 - month.realized.realizedExpenses,
-                  currency,
-                )}
-              />
-              <BreakdownRow
-                testID="reconcile-rollover"
-                label={t("home.reconcile.realized.rollover")}
-                amount={formatCurrency(month.rollover, currency)}
-              />
-              <BreakdownRow
-                testID="reconcile-realized-balance"
-                label={t("home.reconcile.realized.balance")}
-                amount={formatCurrency(
-                  month.realized.realizedBalance,
-                  currency,
-                )}
-                isTotal
-              />
-            </View>
-            <Text variant="bodyMedium" style={muted}>
-              {t("home.reconcile.realized.hint")}
-            </Text>
-            <Button mode="text" icon="arrow-right" onPress={viewItemsToCheck}>
-              {t("home.reconcile.realized.viewItemsToCheck")}
-            </Button>
-          </>
+        {guide === null && step === 2 && (
+          <ReconcileCompareStep
+            comparison={comparison}
+            isUnavailable={context.isError && !context.isFetching}
+            onRetry={() => void context.refetch()}
+            currency={currency}
+            hasOwe={summary.hasOwe}
+            oweTotal={oweTotal}
+            checkingId={checkingId}
+            isBusy={isBusy}
+            onCheck={(row) => void check(row)}
+            onRemoveOwe={removeOwe}
+            onViewOthers={viewItemsToCheck}
+          />
         )}
-
-        {guide === null &&
-          step === 3 &&
-          verdict !== null &&
-          (verdict.kind === "upToDate" ? (
-            <>
-              <Text variant="titleMedium">
-                {t("home.reconcile.verdict.upToDateTitle")}
-              </Text>
-              <Text variant="bodyMedium" style={muted}>
-                {t("home.reconcile.verdict.upToDateMessage")}
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text variant="titleMedium">
-                {t(
-                  verdict.kind === "income"
-                    ? "home.reconcile.verdict.moreTitle"
-                    : "home.reconcile.verdict.lessTitle",
-                  { amount: formatCurrency(verdict.amount, currency) },
-                )}
-              </Text>
-              {candidates.length > 0 && (
-                <View
-                  style={[
-                    styles.card,
-                    { backgroundColor: theme.colors.surfaceVariant },
-                  ]}
-                >
-                  <Text variant="titleSmall">
-                    {t("home.reconcile.verdict.candidatesTitle")}
-                  </Text>
-                  {candidates.map(({ transaction, remainingGap }) => (
-                    <View key={transaction.id} style={styles.breakdownRow}>
-                      <View style={styles.candidateText}>
-                        <Text variant="bodyMedium">{transaction.name}</Text>
-                        <Text variant="bodySmall" style={muted}>
-                          {`${
-                            (transaction.budgetLineId === null
-                              ? undefined
-                              : lineNames.get(transaction.budgetLineId)) ??
-                            t("home.movements.unplanned")
-                          } · ${
-                            remainingGap === 0
-                              ? t("home.reconcile.verdict.candidateSameAmount")
-                              : t("home.reconcile.verdict.candidateRemaining", {
-                                  amount: formatSignedCurrency(
-                                    remainingGap,
-                                    currency,
-                                  ),
-                                })
-                          }`}
-                        </Text>
-                      </View>
-                      <Amount size="meta">
-                        {formatCurrency(transaction.amount, currency)}
-                      </Amount>
-                      <Button
-                        mode="text"
-                        compact
-                        onPress={() => void point(transaction)}
-                        disabled={isPointing || isBusy}
-                        accessibilityLabel={t(
-                          "home.reconcile.verdict.pointNamed",
-                          { name: transaction.name },
-                        )}
-                      >
-                        {t("home.reconcile.verdict.point")}
-                      </Button>
-                    </View>
-                  ))}
-                </View>
-              )}
-              <Text variant="bodyMedium" style={muted}>
-                {t(
-                  verdict.kind === "income"
-                    ? "home.reconcile.verdict.moreMessage"
-                    : "home.reconcile.verdict.lessMessage",
-                  { amount: formatCurrency(verdict.amount, currency) },
-                )}
-                {candidates.length > 0 &&
-                  ` ${t("home.reconcile.verdict.countsTwice")}`}
-              </Text>
-              <TextInput
-                mode="outlined"
-                label={t("home.reconcile.verdict.label")}
-                value={adjustmentLabel}
-                onChangeText={setLabel}
-                maxLength={LABEL_MAX_LENGTH}
-                error={adjustmentLabel.trim() === ""}
-              />
-              {adjustmentLabel.trim() === "" && (
-                <FieldError visible>
-                  {t("home.reconcile.verdict.labelRequired")}
-                </FieldError>
-              )}
-            </>
-          ))}
       </FormModal>
       <ReconcileAddAccountSheet
         isVisible={isAddOpen && isVisible}
@@ -690,36 +553,7 @@ export function ReconcileAccountsSheet({
   );
 }
 
-function BreakdownRow({
-  label,
-  amount,
-  isTotal = false,
-  testID,
-}: {
-  label: string;
-  amount: string;
-  isTotal?: boolean;
-  testID?: string;
-}) {
-  return (
-    <View testID={testID} style={styles.breakdownRow}>
-      <Text variant={isTotal ? "titleSmall" : "bodyMedium"}>{label}</Text>
-      <Amount size={isTotal ? "row" : "meta"}>{amount}</Amount>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   // The same 48dp as the sheet's own close button beside it.
   headerButton: { width: TOUCH_TARGET, height: TOUCH_TARGET, margin: 0 },
-  card: { borderRadius: RADIUS.card, padding: SPACING.md, gap: SPACING.sm },
-  breakdownRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.sm,
-  },
-  candidateText: { flex: 1 },
-  actions: { flexDirection: "row", gap: SPACING.sm },
-  action: { flex: 1 },
 });

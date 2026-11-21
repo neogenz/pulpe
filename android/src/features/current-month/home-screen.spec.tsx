@@ -297,7 +297,7 @@ jest.mock(
       }: {
         isVisible: boolean;
         budgetId: string;
-        month: { rollover: number } | null;
+        month: { available: number } | null;
         onDismiss: () => void;
         onRecorded: () => void;
         onRecordFailed?: () => void;
@@ -311,7 +311,7 @@ jest.mock(
         }, []);
         return isVisible ? (
           <View>
-            <Text>{`reconcile-sheet:${budgetId}:${month?.rollover ?? "none"}`}</Text>
+            <Text>{`reconcile-sheet:${budgetId}:${month?.available ?? "none"}`}</Text>
             <Pressable onPress={onDismiss}>
               <Text>close-reconcile</Text>
             </Pressable>
@@ -536,12 +536,12 @@ it("hands « Le calcul » over to the reconciliation of the loaded budget", asyn
   await fireEvent.press(view.getByText("reconcile-from-calculation"));
 
   expect(view.queryByText("reconcile-from-calculation")).toBeNull();
-  expect(view.getByText("reconcile-sheet:budget-1:-120")).toBeTruthy();
+  expect(view.getByText("reconcile-sheet:budget-1:100")).toBeTruthy();
   expect(view.queryByTestId("home-add-entry")).toBeNull();
 
   await fireEvent.press(view.getByText("record-adjustment"));
 
-  expect(view.queryByText("reconcile-sheet:budget-1:-120")).toBeNull();
+  expect(view.queryByText("reconcile-sheet:budget-1:100")).toBeNull();
   expect(view.getByText("home.reconcile.recorded")).toBeTruthy();
 });
 
@@ -568,7 +568,7 @@ it("locks each opening to the budget loaded when it opened", async () => {
   const view = await render(<HomeScreen />);
   await fireEvent.press(view.getByText("open-calculation"));
   await fireEvent.press(view.getByText("reconcile-from-calculation"));
-  expect(view.getByText("reconcile-sheet:budget-1:-120")).toBeTruthy();
+  expect(view.getByText("reconcile-sheet:budget-1:100")).toBeTruthy();
 
   // The screen loads another budget under the open sheet: its identity and
   // its figures stay out of the flow aimed at the first one.
@@ -581,7 +581,7 @@ it("locks each opening to the budget loaded when it opened", async () => {
   await fireEvent.press(view.getByText("close-reconcile"));
   await fireEvent.press(view.getByText("open-calculation"));
   await fireEvent.press(view.getByText("reconcile-from-calculation"));
-  expect(view.getByText("reconcile-sheet:budget-2:300")).toBeTruthy();
+  expect(view.getByText("reconcile-sheet:budget-2:100")).toBeTruthy();
 });
 
 it("says so on the screen when a write refused after the budget changed closes the sheet", async () => {
@@ -616,7 +616,7 @@ it.each([
     const view = await render(<HomeScreen />);
     await fireEvent.press(view.getByText("open-calculation"));
     await fireEvent.press(view.getByText("reconcile-from-calculation"));
-    expect(view.getByText("reconcile-sheet:budget-1:0")).toBeTruthy();
+    expect(view.getByText("reconcile-sheet:budget-1:100")).toBeTruthy();
 
     Object.assign(mockCurrentMonth, next);
     await view.rerender(<HomeScreen />);
@@ -633,7 +633,7 @@ it.each([
   },
 );
 
-it("opens the loaded budget from the reconciliation to show what is left to check", async () => {
+it("opens « À pointer » from the reconciliation to show what is left to check", async () => {
   Object.assign(mockCurrentMonth, readyMonth());
   const view = await render(<HomeScreen />);
   await fireEvent.press(view.getByText("open-calculation"));
@@ -641,8 +641,8 @@ it("opens the loaded budget from the reconciliation to show what is left to chec
 
   await fireEvent.press(view.getByText("view-items"));
 
-  expect(router.push).toHaveBeenCalledWith("/budget/budget-1");
-  expect(view.queryByText("reconcile-sheet:budget-1:0")).toBeNull();
+  expect(router.push).toHaveBeenCalledWith("/to-point");
+  expect(view.queryByText(/reconcile-sheet/)).toBeNull();
 });
 
 it("surfaces pointing and undo failures without hiding the recovery action", async () => {

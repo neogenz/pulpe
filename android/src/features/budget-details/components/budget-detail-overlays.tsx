@@ -6,6 +6,7 @@ import {
   type Transaction,
 } from "pulpe-shared";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { router } from "expo-router";
 import { BackHandler, StyleSheet } from "react-native";
 import { FAB, Menu, useTheme } from "react-native-paper";
 
@@ -340,14 +341,17 @@ export const BudgetDetailOverlays = forwardRef<
         onRecordFailed={() =>
           setReconcileNotice("budgets.mutations.activity.error")
         }
-        onViewItemsToCheck={() => setReconcileBudgetId(null)}
+        onViewItemsToCheck={() => {
+          setReconcileBudgetId(null);
+          // Only offered on the current month, which is the one « À pointer » lists.
+          router.push("/to-point");
+        }}
         budgetId={reconcileBudgetId ?? ""}
         month={
           viewModel !== null && isCurrentMonth && budgetId === reconcileBudgetId
             ? {
                 realized: viewModel.realized,
-                rollover: viewModel.metrics.rollover,
-                period: periodDates,
+                available: viewModel.metrics.remaining,
                 budgetLines: ledger.lines,
                 transactions: ledger.transactions,
               }

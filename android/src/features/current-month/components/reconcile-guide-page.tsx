@@ -1,8 +1,4 @@
-import {
-  ANALYTICS_EVENTS,
-  CURRENCY_METADATA,
-  type SupportedCurrency,
-} from "pulpe-shared";
+import { ANALYTICS_EVENTS, type SupportedCurrency } from "pulpe-shared";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { Button, Icon, Text, useTheme } from "react-native-paper";
@@ -26,6 +22,7 @@ import { ICON_SIZE, RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 import { countAt } from "@/features/net-worth/net-worth-intro";
 
 import { markReconcileGuideSeen } from "../reconcile-guide-gate";
+import { plain } from "../reconciliation";
 import {
   GUIDE_SAMPLE,
   GUIDE_SCENES,
@@ -41,18 +38,6 @@ const BEAT_MS = 150;
 const MOVE_MS = 450;
 const COUNT_MS = 600;
 const EASE_OUT = Easing.out(Easing.cubic);
-
-/**
- * The sample figures are the story, not the user's data: « Masquer les
- * montants » leaves them be, so they skip the masking formatter and keep its
- * digits and separators (`890.00` in CHF, `890,00` in EUR).
- */
-function plain(value: number, currency: SupportedCurrency): string {
-  return new Intl.NumberFormat(CURRENCY_METADATA[currency].numberLocale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
 
 interface ReconcileGuideOptions {
   /** `null` while the guide is not showing. */
