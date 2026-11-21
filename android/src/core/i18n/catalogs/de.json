@@ -994,6 +994,40 @@
       "back": "Zurück",
       "continue": "Weiter",
       "followFailed": "Abgleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern.",
+      "guide": {
+        "help": "Anleitung nochmals ansehen",
+        "next": "Weiter",
+        "sample": {
+          "bank": "Meine Bank",
+          "checking": "Girokonto",
+          "pulpe": "Pulpe",
+          "checked": "Schon abgehakt",
+          "onAccounts": "Auf deinen Konten",
+          "compare": "Vergleichen",
+          "difference": "%{amount} Unterschied",
+          "question": "Siehst du diese Ausgabe in der App deiner Bank?",
+          "expense": "Benzin · gestern",
+          "matched": "Auf beiden Seiten gleich",
+          "pulpeChecked": "In Pulpe, schon abgehakt"
+        },
+        "scenes": {
+          "compare": {
+            "title": "Prüfe, ob Pulpe und deine Bank dasselbe sagen",
+            "body": "So vermeidest du unangenehme Überraschungen: Fehlt ein Betrag, zeigt Pulpe ihn dir."
+          },
+          "type": {
+            "title": "Gib ein, was deine Bank anzeigt",
+            "body": "Öffne die App deiner Bank und tippe den Betrag deines Kontos ab."
+          },
+          "check": {
+            "title": "Pulpe zeigt dir, was fehlt",
+            "body": "Hake das Benzin über 60 ab: Pulpe ist wieder auf dem Stand deiner Bank."
+          }
+        },
+        "skip": "Überspringen",
+        "start": "Jetzt vergleichen",
+        "stepOf": "Schritt %{current} von %{total}"
+      },
       "realized": {
         "balance": "Abgehakter Saldo",
         "checkedIncome": "Abgehakte Einnahmen",

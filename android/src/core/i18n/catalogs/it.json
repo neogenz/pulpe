@@ -994,6 +994,40 @@
       "back": "Indietro",
       "continue": "Continua",
       "followFailed": "Allineamento fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio.",
+      "guide": {
+        "help": "Rivedi la guida",
+        "next": "Avanti",
+        "sample": {
+          "bank": "La mia banca",
+          "checking": "Conto corrente",
+          "pulpe": "Pulpe",
+          "checked": "Già spuntato",
+          "onAccounts": "Sui tuoi conti",
+          "compare": "Confronta",
+          "difference": "%{amount} di differenza",
+          "question": "Vedi questa spesa nell'app della tua banca?",
+          "expense": "Benzina · ieri",
+          "matched": "Uguale da entrambe le parti",
+          "pulpeChecked": "In Pulpe, già spuntato"
+        },
+        "scenes": {
+          "compare": {
+            "title": "Verifica che Pulpe e la tua banca dicano la stessa cosa",
+            "body": "Eviti brutte sorprese: se manca un importo, Pulpe te lo mostra."
+          },
+          "type": {
+            "title": "Digita ciò che mostra la tua banca",
+            "body": "Apri l'app della tua banca e copia l'importo del tuo conto."
+          },
+          "check": {
+            "title": "Pulpe ti mostra cosa manca",
+            "body": "Spunta la benzina da 60: Pulpe è allineata alla tua banca."
+          }
+        },
+        "skip": "Salta",
+        "start": "Confronta ora",
+        "stepOf": "Passo %{current} di %{total}"
+      },
       "realized": {
         "balance": "Saldo spuntato",
         "checkedIncome": "Entrate spuntate",

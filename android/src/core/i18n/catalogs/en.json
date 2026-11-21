@@ -994,6 +994,40 @@
       "back": "Back",
       "continue": "Continue",
       "followFailed": "Matching done, but I couldn't save your balances in My net worth.",
+      "guide": {
+        "help": "Show the guide again",
+        "next": "Next",
+        "sample": {
+          "bank": "My bank",
+          "checking": "Checking account",
+          "pulpe": "Pulpe",
+          "checked": "Already checked",
+          "onAccounts": "On your accounts",
+          "compare": "Compare",
+          "difference": "%{amount} difference",
+          "question": "Do you see this expense in your bank's app?",
+          "expense": "Gas · yesterday",
+          "matched": "Same on both sides",
+          "pulpeChecked": "In Pulpe, already checked"
+        },
+        "scenes": {
+          "compare": {
+            "title": "Check that Pulpe and your bank say the same thing",
+            "body": "You avoid bad surprises: if an amount is missing, Pulpe shows it to you."
+          },
+          "type": {
+            "title": "Type what your bank shows",
+            "body": "Open your bank's app and copy the amount of your account."
+          },
+          "check": {
+            "title": "Pulpe shows you what's missing",
+            "body": "Check the 60 for gas: Pulpe is up to date with your bank."
+          }
+        },
+        "skip": "Skip",
+        "start": "Compare now",
+        "stepOf": "Step %{current} of %{total}"
+      },
       "realized": {
         "balance": "Checked balance",
         "checkedIncome": "Checked income",

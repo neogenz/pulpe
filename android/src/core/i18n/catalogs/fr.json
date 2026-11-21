@@ -994,6 +994,40 @@
       "back": "Retour",
       "continue": "Continuer",
       "followFailed": "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine.",
+      "guide": {
+        "help": "Revoir le guide",
+        "next": "Suivant",
+        "sample": {
+          "bank": "Ma banque",
+          "checking": "Compte courant",
+          "pulpe": "Pulpe",
+          "checked": "Déjà coché",
+          "onAccounts": "Sur tes comptes",
+          "compare": "Comparer",
+          "difference": "%{amount} de différence",
+          "question": "Tu vois cette dépense dans l'app de ta banque ?",
+          "expense": "Essence · hier",
+          "matched": "Pareil des deux côtés",
+          "pulpeChecked": "Dans Pulpe, déjà coché"
+        },
+        "scenes": {
+          "compare": {
+            "title": "Vérifie que Pulpe et ta banque disent la même chose",
+            "body": "Tu évites les mauvaises surprises : si un montant manque, Pulpe te le montre."
+          },
+          "type": {
+            "title": "Tape ce que ta banque affiche",
+            "body": "Ouvre l'app de ta banque et recopie le montant de ton compte."
+          },
+          "check": {
+            "title": "Pulpe te montre ce qui manque",
+            "body": "Coche l'essence de 60 : Pulpe est à jour avec ta banque."
+          }
+        },
+        "skip": "Passer",
+        "start": "Comparer maintenant",
+        "stepOf": "Étape %{current} sur %{total}"
+      },
       "realized": {
         "balance": "Solde pointé",
         "checkedIncome": "Revenus pointés",

@@ -189,6 +189,57 @@ jest.mock("react-native-paper", () => {
     Divider: () => <View />,
   };
 });
+let mockSeenGuide = true;
+const mockSeenListeners = new Set<() => void>();
+const mockMarkSeen = jest.fn();
+jest.mock("../reconcile-guide-gate", () => {
+  const { useSyncExternalStore } = jest.requireActual("react");
+  return {
+    useHasSeenReconcileGuide: () =>
+      useSyncExternalStore(
+        (listener: () => void) => {
+          mockSeenListeners.add(listener);
+          return () => mockSeenListeners.delete(listener);
+        },
+        () => mockSeenGuide,
+      ),
+    markReconcileGuideSeen: () => {
+      mockMarkSeen();
+      mockSeenGuide = true;
+      mockSeenListeners.forEach((listener) => listener());
+    },
+  };
+});
+// The guide's own behavior is its page's spec; here it only has to be a page.
+const mockGuideSkip = jest.fn();
+jest.mock("./reconcile-guide-page", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    useReconcileGuidePage: ({
+      source,
+      onFinish,
+    }: {
+      source: string | null;
+      onFinish: (outcome: string) => void;
+    }) =>
+      source === null
+        ? null
+        : {
+            skip: () => {
+              mockGuideSkip(source);
+              onFinish("skipped");
+            },
+            skipAction: <Text>skip-action</Text>,
+            body: <Text>{`guide:${source}`}</Text>,
+            footer: (
+              <Pressable
+                accessibilityLabel="guide-start"
+                onPress={() => onFinish("completed")}
+              />
+            ),
+          },
+  };
+});
 jest.mock("@/core/ui/sheet", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
@@ -201,6 +252,7 @@ jest.mock("@/core/ui/sheet", () => {
       onBack,
       isBusy,
       isVisible,
+      headerAction,
     }: {
       title: string;
       subtitle?: string;
@@ -210,12 +262,14 @@ jest.mock("@/core/ui/sheet", () => {
       onBack?: () => void;
       isBusy: boolean;
       isVisible: boolean;
+      headerAction?: React.ReactNode;
     }) =>
       isVisible ? (
         <View>
           <Text>{title}</Text>
           <Text>{subtitle}</Text>
           <Text>{`busy:${isBusy}`}</Text>
+          {headerAction}
           {children}
           {footer}
           <Pressable
@@ -279,6 +333,7 @@ const AMOUNT = "home.reconcile.accounts.firstAmount";
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSeenGuide = true;
   Object.assign(mockCreate, { isPending: false, isError: false });
   mockLinked = null;
 });
@@ -298,6 +353,113 @@ function ownAccount(id: string, inPulpe: boolean): Asset {
     suggestion: null,
   };
 }
+
+describe("guide", () => {
+  const HELP = "home.reconcile.guide.help";
+  const BARE_PROPS = {
+    isVisible: true,
+    onDismiss: jest.fn(),
+    onRecorded: jest.fn(),
+    onViewItemsToCheck: jest.fn(),
+    onRecordFailed: jest.fn(),
+    budgetId: "budget-1",
+    currency: "CHF" as const,
+  };
+  const MONTH: ReconcileMonth = {
+    realized: REALIZED,
+    rollover: 0,
+    period: getBudgetPeriodDates(6, 2025, 27),
+    budgetLines: [],
+    transactions: [],
+  };
+  async function open() {
+    const { props, view } = renderSheet();
+    return { props, view: await view };
+  }
+
+  it("opens on the guide the first time, then on step 1 once it is left", async () => {
+    mockSeenGuide = false;
+    const { view } = await open();
+    expect(await view.getByText("guide:auto")).toBeTruthy();
+    expect(view.queryByLabelText(AMOUNT)).toBeNull();
+    expect(view.queryByLabelText(HELP)).toBeNull();
+
+    await fireEvent.press(view.getByLabelText("guide-start"));
+
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+    expect(view.getByLabelText(AMOUNT)).toBeTruthy();
+  });
+
+  it("counts the back action as skipped and goes on to step 1", async () => {
+    mockSeenGuide = false;
+    const { view } = await open();
+
+    await fireEvent.press(view.getByLabelText("android-back"));
+
+    expect(mockGuideSkip).toHaveBeenCalledWith("auto");
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+    expect(view.getByLabelText(AMOUNT)).toBeTruthy();
+  });
+
+  it("counts the scrim as skipped and closes the sheet", async () => {
+    mockSeenGuide = false;
+    const { view, props } = await open();
+
+    await fireEvent.press(await view.getByLabelText("scrim"));
+
+    expect(mockGuideSkip).toHaveBeenCalledWith("auto");
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+    expect(props.onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the typed values when ✕ or the scrim leaves a replay", async () => {
+    const { view, props } = await open();
+    await fireEvent.changeText(view.getByLabelText(AMOUNT), "890");
+    await fireEvent.press(view.getByLabelText(HELP));
+    expect(view.getByText("guide:help")).toBeTruthy();
+
+    await fireEvent.press(view.getByLabelText("scrim"));
+
+    expect(mockGuideSkip).toHaveBeenCalledWith("help");
+    expect(props.onDismiss).not.toHaveBeenCalled();
+    expect(view.getByLabelText(AMOUNT).props.value).toBe("890");
+  });
+
+  it("shows the guide in one sheet only once the other has been through it", async () => {
+    mockSeenGuide = false;
+    const view = await render(
+      <>
+        <ReconcileAccountsSheet {...BARE_PROPS} month={MONTH} />
+        <ReconcileAccountsSheet {...BARE_PROPS} month={MONTH} />
+      </>,
+    );
+    expect(view.getAllByText("guide:auto")).toHaveLength(2);
+
+    await fireEvent.press(view.getAllByLabelText("guide-start")[0]);
+
+    expect(view.queryByText("guide:auto")).toBeNull();
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts the guide as skipped when the month leaves under it", async () => {
+    mockSeenGuide = false;
+    await render(<ReconcileAccountsSheet {...BARE_PROPS} month={null} />);
+    expect(mockGuideSkip).toHaveBeenCalledWith("auto");
+    expect(mockMarkSeen).toHaveBeenCalled();
+  });
+
+  it("replays from « ? » over the typed values and gives them back", async () => {
+    const { view } = await open();
+    expect(view.queryByText(/^guide:/)).toBeNull();
+    await fireEvent.changeText(view.getByLabelText(AMOUNT), "890");
+
+    await fireEvent.press(view.getByLabelText(HELP));
+    expect(await view.getByText("guide:help")).toBeTruthy();
+    await fireEvent.press(view.getByLabelText("guide-start"));
+
+    expect(view.getByLabelText(AMOUNT).props.value).toBe("890");
+  });
+});
 
 describe("with Mon patrimoine", () => {
   const BALANCE = "home.reconcile.accounts.amount";

@@ -72,6 +72,8 @@ interface FormModalProps {
    * keeps its tallest height, so its footer does not jump at each step.
    */
   holdsHeight?: boolean;
+  /** A 48dp button, such as « ? », between the title and the close button. */
+  headerAction?: ReactNode;
   children?: ReactNode;
 }
 
@@ -97,6 +99,7 @@ export function FormModal({
   onBack,
   showsBackButton = false,
   holdsHeight = false,
+  headerAction,
   children,
 }: FormModalProps) {
   const { t } = useTranslation();
@@ -182,7 +185,11 @@ export function FormModal({
           accessibilityViewIsModal
           style={[
             styles.sheet,
-            { backgroundColor: sheet.background, minHeight: heldHeight },
+            {
+              backgroundColor: sheet.background,
+              // Only while holding, and never past what the keyboard leaves.
+              minHeight: holdsHeight ? Math.min(heldHeight, box.maxHeight) : 0,
+            },
             box,
           ]}
           onLayout={
@@ -220,6 +227,7 @@ export function FormModal({
                 </Text>
               )}
             </View>
+            {headerAction}
             <IconButton
               icon="close"
               disabled={isBusy}

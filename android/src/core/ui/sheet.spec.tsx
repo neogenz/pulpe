@@ -114,6 +114,33 @@ describe("sheets", () => {
     expect(plainSheet).toHaveStyle({ minHeight: 0 });
   });
 
+  it("forgets the held height once it stops holding", async () => {
+    const layout = {
+      nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 500 } },
+    };
+    const modal = (holds: boolean) => (
+      <PaperProvider>
+        <FormModal
+          isVisible
+          holdsHeight={holds}
+          title="S"
+          onDismiss={jest.fn()}
+        >
+          <Text>Step</Text>
+        </FormModal>
+      </PaperProvider>
+    );
+    const view = await render(modal(true));
+    const sheet = () =>
+      view.getByTestId("form-modal-sheet", { includeHiddenElements: true });
+    await act(() => fireEvent(sheet(), "layout", layout));
+    expect(sheet()).toHaveStyle({ minHeight: 500 });
+
+    await view.rerender(modal(false));
+
+    expect(sheet()).toHaveStyle({ minHeight: 0 });
+  });
+
   it("dismisses from its visible close, backdrop and Android back action", async () => {
     const { onDismiss, view } = await renderModal(false);
     const close = view.getByRole("button", { name: "common.close" });

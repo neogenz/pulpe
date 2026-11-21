@@ -51,6 +51,11 @@ import {
 } from "../reconcile-account-links";
 import { useReconcileLinkedAccounts } from "../reconcile-linked-accounts";
 import { buildAdjustmentPayload } from "../reconciliation";
+import {
+  markReconcileGuideSeen,
+  useHasSeenReconcileGuide,
+} from "../reconcile-guide-gate";
+import { useReconcileGuidePage } from "./reconcile-guide-page";
 import { ReconcileLinkedAccountRow } from "./reconcile-linked-account-row";
 
 const LABEL_MAX_LENGTH = 100;
@@ -130,6 +135,23 @@ export function ReconcileAccountsSheet({
   // when « Mon patrimoine » is off: plain lines, nothing written there.
   const [accounts, setAccounts] = useState<typeof linked>(undefined);
   const [step, setStep] = useState<Step>(1);
+  // The guide opens by itself until it has been seen; « ? » replays it, over
+  // whatever step the person is on, typed rows untouched.
+  const hasSeenGuide = useHasSeenReconcileGuide();
+  const [isGuideRequested, setGuideRequested] = useState(false);
+  const guide = useReconcileGuidePage({
+    source: !isVisible
+      ? null
+      : isGuideRequested
+        ? "help"
+        : hasSeenGuide
+          ? null
+          : "auto",
+    onFinish: () => {
+      markReconcileGuideSeen();
+      setGuideRequested(false);
+    },
+  });
   const [rows, setRows] = useState<AccountRow[]>([FIRST_ROW]);
   // Flagged once the field is left, never mid-keystroke: "12." is on its way
   // to "12.50". It never counts in the total either way.
@@ -180,6 +202,7 @@ export function ReconcileAccountsSheet({
   );
 
   function reset() {
+    setGuideRequested(false);
     setStep(1);
     setAccounts(undefined);
     setRows([FIRST_ROW]);
@@ -196,6 +219,7 @@ export function ReconcileAccountsSheet({
   // write is out, so every exit asks both.
   function dismiss(): boolean {
     if (isBusy || isSubmitting.current) return false;
+    guide?.skip();
     reset();
     onDismiss();
     return true;
@@ -417,14 +441,34 @@ export function ReconcileAccountsSheet({
     <>
       <FormModal
         isVisible={isVisible}
-        onDismiss={dismiss}
-        onBack={back}
+        // Out of a replay, the scrim and ✕ go back to the step, typed values kept.
+        onDismiss={isGuideRequested && guide !== null ? guide.skip : dismiss}
+        onBack={guide === null ? back : guide.skip}
         isBusy={isBusy}
         title={t("home.reconcile.title")}
-        subtitle={t("home.reconcile.stepOf", { step })}
-        footer={footer}
+        subtitle={
+          guide === null ? t("home.reconcile.stepOf", { step }) : undefined
+        }
+        footer={guide === null ? footer : guide.footer}
+        holdsHeight={guide !== null}
+        headerAction={
+          guide !== null ? (
+            guide.skipAction
+          ) : (
+            <IconButton
+              icon="help-circle-outline"
+              disabled={isBusy}
+              onPress={() => {
+                if (!isSubmitting.current) setGuideRequested(true);
+              }}
+              accessibilityLabel={t("home.reconcile.guide.help")}
+              testID="reconcile-guide-help"
+            />
+          )
+        }
       >
-        {step === 1 && (
+        {guide !== null && guide.body}
+        {guide === null && step === 1 && (
           <>
             <Text variant="titleMedium">
               {t("home.reconcile.accounts.heading")}
@@ -579,7 +623,7 @@ export function ReconcileAccountsSheet({
           </>
         )}
 
-        {step === 2 && month !== null && (
+        {guide === null && step === 2 && month !== null && (
           <>
             <Text variant="titleMedium">
               {t("home.reconcile.realized.heading")}
@@ -634,7 +678,8 @@ export function ReconcileAccountsSheet({
           </>
         )}
 
-        {step === 3 &&
+        {guide === null &&
+          step === 3 &&
           verdict !== null &&
           (verdict.kind === "upToDate" ? (
             <>
