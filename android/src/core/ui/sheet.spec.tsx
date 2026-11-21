@@ -1,5 +1,5 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { DeviceEventEmitter, Dimensions, Text } from "react-native";
+import { DeviceEventEmitter, Dimensions, ScrollView, Text } from "react-native";
 import { PaperProvider } from "react-native-paper";
 
 import { readFileSync, sourceFiles } from "@/core/testing/source-files";
@@ -204,6 +204,44 @@ describe("sheets", () => {
 
     await fireEvent.press(back);
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("puts the form back where it was, its top included, after a step", async () => {
+    const scrollTo = jest.spyOn(ScrollView.prototype, "scrollTo");
+    jest
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+    const sheet = (showsBackButton: boolean) => (
+      <PaperProvider>
+        <FormModal
+          isVisible
+          title="Steps"
+          onDismiss={jest.fn()}
+          onBack={jest.fn()}
+          showsBackButton={showsBackButton}
+        >
+          <Text>Body</Text>
+        </FormModal>
+      </PaperProvider>
+    );
+    const scrollBy = (y: number) =>
+      fireEvent.scroll(view.getByTestId("form-modal-body"), {
+        nativeEvent: { contentOffset: { x: 0, y } },
+      });
+    const view = await render(sheet(false));
+
+    await scrollBy(0);
+    await view.rerender(sheet(true));
+    await scrollBy(40);
+    scrollTo.mockClear();
+    await view.rerender(sheet(false));
+
+    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: false });
+    scrollTo.mockRestore();
+    jest.restoreAllMocks();
   });
 
   it("refuses the form's own back too while a write is pending", async () => {

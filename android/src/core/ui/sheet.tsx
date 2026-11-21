@@ -119,23 +119,24 @@ export function FormModal({
 
   // A step pushed over the form opens at its top, like a pushed screen, and
   // the form comes back where it was left: they share one scroll view.
-  const formOffset = useRef(0);
+  // `null` when the form's place is not held: 0 is a place, its top.
+  const formOffset = useRef<number | null>(null);
   useEffect(() => {
     const scroll = scrollRef.current;
     if (showsBackButton) {
       formOffset.current = viewport.current.offset;
       scroll?.scrollTo({ y: 0, animated: false });
-    } else if (formOffset.current > 0) {
+    } else if (formOffset.current !== null) {
       // The form lays out again first: scrolling now would clamp to the step's height.
       const y = formOffset.current;
-      formOffset.current = 0;
+      formOffset.current = null;
       requestAnimationFrame(() => scroll?.scrollTo({ y, animated: false }));
     }
   }, [showsBackButton]);
   // A sheet closed from a step must not hand its offset to the next opening.
   useEffect(() => {
     if (isVisible) return;
-    formOffset.current = 0;
+    formOffset.current = null;
     viewport.current.offset = 0;
   }, [isVisible]);
 
@@ -236,6 +237,7 @@ export function FormModal({
             }}
           >
             <ScrollView
+              testID="form-modal-body"
               ref={scrollRef}
               // The typings want a ref that is never null; the runtime sets null on unmount.
               innerViewRef={contentRef as RefObject<View>}
