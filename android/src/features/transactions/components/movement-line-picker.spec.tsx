@@ -27,13 +27,16 @@ const transactions = [
   { id: "t2", kind: "expense", amount: 40, budgetLineId: "phone" },
 ] as Transaction[];
 
-async function renderPicker(onPick = jest.fn()) {
+async function renderPicker(
+  onPick = jest.fn(),
+  selectedLineId: string | null = null,
+) {
   return render(
     <MovementLinePicker
       sections={lineSections(lines, transactions, "expense")}
       kind="expense"
       currency="CHF"
-      selectedLineId={null}
+      selectedLineId={selectedLineId}
       onPick={onPick}
     />,
   );
@@ -82,5 +85,25 @@ describe("MovementLinePicker search", () => {
     expect(
       view.queryByText("budgets.mutations.activity.picker.noMatch"),
     ).toBeNull();
+  });
+});
+
+describe("MovementLinePicker selection", () => {
+  it("shows the check on the picked row only, not by colour alone", async () => {
+    const view = await renderPicker(jest.fn(), "rent");
+    // The icon is hidden from screen readers: the radio's checked state speaks.
+    const checkOf = (id: string) =>
+      view.getByTestId(`movement-picker-check-${id}`, {
+        includeHiddenElements: true,
+      });
+
+    expect(checkOf("rent")).not.toHaveStyle({
+      color: "transparent",
+    });
+    for (const id of ["food", "phone", "unplanned"]) {
+      expect(checkOf(id)).toHaveStyle({
+        color: "transparent",
+      });
+    }
   });
 });

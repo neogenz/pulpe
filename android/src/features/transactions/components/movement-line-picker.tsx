@@ -3,15 +3,22 @@ import type {
   SupportedCurrency,
   TransactionKind,
 } from "pulpe-shared";
-import { useState } from "react";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Fragment, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Searchbar, Text, useTheme } from "react-native-paper";
+import { Divider, Searchbar, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
 import { useFinancialColors, useV2Colors } from "@/core/ui/scheme-colors";
-import { RADIUS, SPACING, TABULAR_DIGITS, TOUCH_TARGET } from "@/core/ui/theme";
+import {
+  ICON_SIZE,
+  RADIUS,
+  SPACING,
+  TABULAR_DIGITS,
+  TOUCH_TARGET,
+} from "@/core/ui/theme";
 import { recurrenceLabel } from "@/core/ui/vocabulary";
 
 import { type LineSections, matchingSections } from "../movement-line-choices";
@@ -48,6 +55,20 @@ export function MovementLinePicker({
   const hasMatch =
     shown.margin.length + shown.over.length + shown.others.length > 0;
 
+  // Always laid out, only shown when picked, so a row never shifts on selection.
+  function check(isSelected: boolean, testID: string) {
+    return (
+      <MaterialCommunityIcons
+        testID={testID}
+        name="check"
+        size={ICON_SIZE.md}
+        color={isSelected ? v2.accentInk : "transparent"}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
+    );
+  }
+
   function row(line: BudgetLine, section: "margin" | "over" | "others") {
     const isSelected = line.id === selectedLineId;
     const isOver = section === "over";
@@ -70,7 +91,6 @@ export function MovementLinePicker({
 
     return (
       <Pressable
-        key={line.id}
         accessibilityRole="radio"
         accessibilityState={{ checked: isSelected }}
         android_ripple={ripple}
@@ -115,6 +135,7 @@ export function MovementLinePicker({
             {caption}
           </Text>
         </View>
+        {check(isSelected, `movement-picker-check-${line.id}`)}
       </Pressable>
     );
   }
@@ -134,7 +155,12 @@ export function MovementLinePicker({
           {title}
         </Text>
         <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-          {lines.map((line) => row(line, key))}
+          {lines.map((line, index) => (
+            <Fragment key={line.id}>
+              {index > 0 && <Divider style={styles.divider} />}
+              {row(line, key)}
+            </Fragment>
+          ))}
         </View>
       </View>
     );
@@ -167,6 +193,7 @@ export function MovementLinePicker({
             {t("budgets.mutations.activity.picker.unplannedHint")}
           </Text>
         </View>
+        {check(selectedLineId === null, "movement-picker-check-unplanned")}
       </Pressable>
       {section(
         "margin",
@@ -211,5 +238,6 @@ const styles = StyleSheet.create({
   },
   grow: { flex: 1 },
   trailing: { alignItems: "flex-end" },
+  divider: { marginHorizontal: SPACING.md },
   noMatch: { textAlign: "center", paddingVertical: SPACING.lg },
 });
