@@ -23,6 +23,8 @@ final class MockTransactionService: TransactionServicing {
     /// Transaction ids whose `toggleCheck` should throw — drives partial
     /// bulk-check failures deterministically (PUL-259).
     var failingToggleIds: Set<String> = []
+    /// Ids the server toggled, in order: a refused toggle is not one.
+    private(set) var toggledIds: [String] = []
     // Spread-from-existing (PUL-17 v1.1) — stubbed response + recorded inputs.
     var stubbedSpreadResponse: BudgetLineSpreadResponse?
     var spreadError: Error?
@@ -36,6 +38,7 @@ final class MockTransactionService: TransactionServicing {
 
     func toggleCheck(id: String) async throws -> Transaction {
         if failingToggleIds.contains(id) { throw URLError(.badServerResponse) }
+        toggledIds.append(id)
         return stubbedToggle ?? TestDataFactory.createTransaction(id: id)
     }
 

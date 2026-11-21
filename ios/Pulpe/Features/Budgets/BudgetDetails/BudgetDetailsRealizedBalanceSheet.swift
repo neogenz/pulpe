@@ -48,7 +48,7 @@ struct BudgetDetailsRealizedBalanceSheet: View {
         return ReconcileAccountsSheet.Month(
             budgetId: budget.id,
             realizedMetrics: coordinator.dataStore.realizedMetrics,
-            rollover: coordinator.dataStore.metrics.rollover,
+            available: coordinator.dataStore.metrics.remaining,
             hasPointingInFlight: !coordinator.syncStore.syncingBudgetLineIds.isEmpty
                 || !coordinator.syncStore.syncingTransactionIds.isEmpty
         )

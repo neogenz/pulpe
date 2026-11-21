@@ -56,7 +56,7 @@ struct ReconcileLinkedAccountsTests {
                 makeLine(id: "l2", kind: .expense, assetId: "revolut"),
                 makeLine(id: "l3", kind: .saving, assetId: nil),
             ],
-            syncingTransactionIds: [], syncingBudgetLineIds: [], toggle: { _ in false }
+            syncingTransactionIds: [], syncingBudgetLineIds: [], toggle: { _ in false }, checkPrior: { _ in false }
         )
 
         #expect(checking.savingAssetIds == ["bcge"])
@@ -138,7 +138,8 @@ struct ReconcileLinkedAccountsTests {
         flow.addAsset(revolut)
         flow.removeAccount(id: flow.accounts[0].id)
         flow.accounts[0].amountText = "100"
-        _ = flow.confirmUpToDate(realizedBalance: 100, of: "b")
+        await flow.loadContext()
+        _ = flow.finishWithoutEntry(of: "b")
 
         await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: ToastManager())
 
@@ -156,7 +157,8 @@ struct ReconcileLinkedAccountsTests {
         flow.accounts[0].amountText = "40"
         flow.addAsset(revolut)
         flow.accounts[1].amountText = "60"
-        _ = flow.confirmUpToDate(realizedBalance: 100, of: "b")
+        await flow.loadContext()
+        _ = flow.finishWithoutEntry(of: "b")
 
         await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: toast)
 
@@ -182,7 +184,8 @@ struct ReconcileLinkedAccountsTests {
         let toast = ToastManager()
         let flow = makeFlow([bcge])
         flow.accounts[0].amountText = "100"
-        _ = flow.confirmUpToDate(realizedBalance: 100, of: "b")
+        await flow.loadContext()
+        _ = flow.finishWithoutEntry(of: "b")
 
         await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: toast)
 
@@ -204,8 +207,9 @@ struct ReconcileLinkedAccountsTests {
     ) -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
             budgetId: "b",
-            adjustmentLabel: "Ajustement",
+            entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
+            fetchContext: { _ in TestDataFactory.createReconciliationContext() },
             onAdjustmentCreated: { _ in },
             onCompleted: { _ in },
             netWorthAccounts: accounts,

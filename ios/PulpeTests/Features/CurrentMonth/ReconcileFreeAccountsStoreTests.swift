@@ -23,8 +23,9 @@ struct ReconcileFreeAccountsStoreTests {
     @Test @MainActor func comparing_keepsNamesOnly_andClearingForgetsThem() {
         let store = ReconcileFreeAccountsStore(defaults: defaults)
         let flow = ReconcileAccountsFlow(
-            budgetId: "b", adjustmentLabel: "Écart",
+            budgetId: "b", entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
+            fetchContext: { _ in TestDataFactory.createReconciliationContext() },
             onAdjustmentCreated: { _ in }, onCompleted: { _ in }
         )
         flow.accounts[0].label = " Revolut "

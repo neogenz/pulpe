@@ -231,6 +231,8 @@ enum DesignTokens {
         static let minHeight: CGFloat = 60
         /// Form-card line (V2 `frow`) and the "add a prévision" row.
         static let formRowHeight: CGFloat = 52
+        /// A row « Comparer avec mes comptes » suggests to check: name, origin and amount.
+        static let suggestionMinHeight: CGFloat = 64
         /// Leading inset of the hairline between two ledger rows: past the disc and its gap,
         /// so the rule starts where the text does.
         static let dividerInset: CGFloat = TapTarget.minimum + Spacing.sm

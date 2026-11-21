@@ -2,8 +2,8 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-/// The state of one "Rapprocher mes comptes" presentation (PUL-351): rows, the gap, and
-/// the single write at the end. The create call is the only I/O, faked at its seam.
+/// The state of one « Comparer avec mes comptes » presentation (PUL-351): rows, the comparison, and
+/// the single write at the end. The context read and the create call are faked at their seams.
 @MainActor
 struct ReconcileAccountsFlowTests {
     // MARK: - Accounts step
@@ -98,26 +98,24 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.totalCents == 1250)
     }
 
-    // MARK: - Adjustment
+    // MARK: - Writing the gap
 
-    @Test("a gap is written once, as the edited label, and completes once")
+    @Test("the gap is noted once as « Écart avec mes comptes », checked, and completes once")
     func submitAdjustment_success_createsOnceAndCompletesOnce() async throws {
         let recorder = Recorder()
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "1300.50"
-        flow.adjustmentLabel = "  Écart banque  "
+        let flow = await makeComparingFlow("1300.50", recorder: recorder)
         let realized = try #require(Decimal(string: "1250.40"))
 
-        #expect(flow.adjustmentLabel == "  Écart banque  ")
         #expect(await flow.submitAdjustment(realizedBalance: realized, of: "budget-current") == .created)
         #expect(await flow.submitAdjustment(realizedBalance: realized, of: "budget-current") == .ignored)
+        #expect(!flow.finishWithoutEntry(of: "budget-current"))
 
         let payloads = await recorder.payloads
         let payload = try #require(payloads.first)
         #expect(payloads.count == 1)
         #expect(payload.budgetId == "budget-current")
         #expect(payload.budgetLineId == nil)
-        #expect(payload.name == "Écart banque")
+        #expect(payload.name == "Écart avec mes comptes")
         #expect(payload.kind == .income)
         #expect(payload.amount == Decimal(string: "50.10"))
         #expect(payload.checkedAt == Self.now)
@@ -126,17 +124,26 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.isCompleted)
     }
 
+    @Test("the gap counts the previous months' correction and the starting amount")
+    func submitAdjustment_writesTheComparedGap() async throws {
+        let context = TestDataFactory.createReconciliationContext(startingAmount: 3100, priorCorrection: -40)
+        let recorder = Recorder(context: context)
+        let flow = await makeComparingFlow("4000", recorder: recorder)
+
+        #expect(await flow.submitAdjustment(realizedBalance: 1000, of: "budget-current") == .created)
+        let payload = try #require(await recorder.payloads.first)
+        #expect(payload.kind == .expense)
+        #expect(payload.amount == 60)
+    }
+
     @Test("a refused write keeps every input, then can be retried")
     func submitAdjustment_failure_keepsInputsAndAllowsRetry() async throws {
         let recorder = Recorder(failuresBeforeSuccess: 1)
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "200"
-        flow.adjustmentLabel = "Écart"
+        let flow = await makeComparingFlow("200", recorder: recorder)
         let accountsBefore = flow.accounts
 
         #expect(await flow.submitAdjustment(realizedBalance: 250, of: "budget-current") == .failed)
         #expect(flow.accounts == accountsBefore)
-        #expect(flow.adjustmentLabel == "Écart")
         #expect(!flow.isSubmitting)
         #expect(!flow.isCompleted)
         #expect(recorder.created.isEmpty)
@@ -152,8 +159,7 @@ struct ReconcileAccountsFlowTests {
     func submitAdjustment_whilePending_isIgnored() async {
         let gate = Gate()
         let recorder = Recorder(gate: gate)
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "10"
+        let flow = await makeComparingFlow("10", recorder: recorder)
 
         let first = Task { await flow.submitAdjustment(realizedBalance: 0, of: "budget-current") }
         await waitForCondition("the first write never started") { flow.isSubmitting }
@@ -165,78 +171,63 @@ struct ReconcileAccountsFlowTests {
         #expect(!flow.isSubmitting)
     }
 
-    @Test("a blank label cannot be written")
-    func submitAdjustment_blankLabel_isIgnored() async {
+    // MARK: - Leaving without an entry
+
+    @Test("accounts matching to the cent write nothing and complete once on « Terminer »")
+    func finishWithoutEntry_matched_completesOnce() async throws {
         let recorder = Recorder()
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "10"
-        flow.adjustmentLabel = "   "
-
-        #expect(!flow.canSubmitAdjustment(realizedBalance: 0, of: "budget-current"))
-        #expect(await flow.submitAdjustment(realizedBalance: 0, of: "budget-current") == .ignored)
-        #expect(await recorder.payloads.isEmpty)
-    }
-
-    // MARK: - Up to date
-
-    @Test("accounts matching to the cent write nothing and complete once on confirmation")
-    func confirmUpToDate_writesNothingAndCompletesOnce() async throws {
-        let recorder = Recorder()
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "1250,40"
+        let flow = await makeComparingFlow("1250,40", recorder: recorder)
         let realized = try #require(Decimal(string: "1250.40"))
 
         #expect(flow.verdict(realizedBalance: realized) == .upToDate)
         #expect(!flow.canSubmitAdjustment(realizedBalance: realized, of: "budget-current"))
         #expect(await flow.submitAdjustment(realizedBalance: realized, of: "budget-current") == .ignored)
-        #expect(flow.confirmUpToDate(realizedBalance: realized, of: "budget-current"))
-        #expect(!flow.confirmUpToDate(realizedBalance: realized, of: "budget-current"))
+        #expect(flow.finishWithoutEntry(of: "budget-current"))
+        #expect(!flow.finishWithoutEntry(of: "budget-current"))
 
         #expect(await recorder.payloads.isEmpty)
         #expect(recorder.completions == [.upToDate])
     }
 
-    @Test("a gap is never confirmed as up to date")
-    func confirmUpToDate_withGap_isRefused() {
+    @Test("« Laisser comme ça » on a gap writes nothing and completes once, with no entry")
+    func finishWithoutEntry_withGap_completesWithoutEntry() async {
         let recorder = Recorder()
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "10"
+        let flow = await makeComparingFlow("10", recorder: recorder)
 
-        #expect(!flow.confirmUpToDate(realizedBalance: Decimal(string: "9.99") ?? 0, of: "budget-current"))
-        #expect(recorder.completions.isEmpty)
+        #expect(flow.finishWithoutEntry(of: "budget-current"))
+        #expect(await recorder.payloads.isEmpty)
+        #expect(recorder.completions == [.upToDate])
     }
 
-    @Test("a balance coming level while the write is out confirms nothing")
-    func confirmUpToDate_whilePending_isRefused() async {
+    @Test("leaving while the write is out finishes nothing")
+    func finishWithoutEntry_whilePending_isRefused() async {
         let gate = Gate()
         let recorder = Recorder(gate: gate)
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "10"
+        let flow = await makeComparingFlow("10", recorder: recorder)
 
         let write = Task { await flow.submitAdjustment(realizedBalance: 0, of: "budget-current") }
         await waitForCondition("the write never started") { flow.isSubmitting }
-        #expect(!flow.canConfirmUpToDate(realizedBalance: 10, of: "budget-current"))
-        #expect(!flow.confirmUpToDate(realizedBalance: 10, of: "budget-current"))
+        #expect(!flow.canFinish(of: "budget-current"))
+        #expect(!flow.finishWithoutEntry(of: "budget-current"))
 
         await gate.open()
         #expect(await write.value == .created)
-        #expect(!flow.canConfirmUpToDate(realizedBalance: 10, of: "budget-current"))
+        #expect(!flow.canFinish(of: "budget-current"))
         #expect(recorder.completions == [.income])
     }
 
     // MARK: - Loaded month
 
-    @Test("another month loaded under the flow gets no write and no confirmation, and closes it")
-    func loadedMonthChange_refusesWriteAndConfirmation() async {
+    @Test("another month loaded under the flow gets no write and no finish, and closes it")
+    func loadedMonthChange_refusesWriteAndFinish() async {
         let recorder = Recorder()
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "10"
+        let flow = await makeComparingFlow("10", recorder: recorder)
 
         #expect(flow.canSubmitAdjustment(realizedBalance: 0, of: "budget-current"))
         #expect(!flow.canSubmitAdjustment(realizedBalance: 0, of: "budget-next"))
         #expect(await flow.submitAdjustment(realizedBalance: 0, of: "budget-next") == .ignored)
-        #expect(!flow.canConfirmUpToDate(realizedBalance: 10, of: "budget-next"))
-        #expect(!flow.confirmUpToDate(realizedBalance: 10, of: "budget-next"))
+        #expect(!flow.canFinish(of: "budget-next"))
+        #expect(!flow.finishWithoutEntry(of: "budget-next"))
         #expect(flow.shouldClose(loadedBudgetId: "budget-next"))
         #expect(!flow.shouldClose(loadedBudgetId: "budget-current"))
 
@@ -248,8 +239,7 @@ struct ReconcileAccountsFlowTests {
     func loadedMonthChange_whilePending_keepsTargetUntilSettled() async {
         let gate = Gate()
         let recorder = Recorder(gate: gate)
-        let flow = makeFlow(recorder: recorder)
-        flow.accounts[0].amountText = "10"
+        let flow = await makeComparingFlow("10", recorder: recorder)
 
         let write = Task { await flow.submitAdjustment(realizedBalance: 0, of: "budget-current") }
         await waitForCondition("the write never started") { flow.isSubmitting }
@@ -266,37 +256,33 @@ struct ReconcileAccountsFlowTests {
     @Test("reconciliation writes to the viewed month", arguments: ["budget-past", "budget-future"])
     func submitAdjustment_targetsViewedMonth(budgetId: String) async throws {
         let recorder = Recorder()
-        let flow = makeFlow(recorder: recorder, id: budgetId)
-        flow.accounts[0].amountText = "50"
+        let flow = await makeComparingFlow("50", recorder: recorder, id: budgetId)
         #expect(await flow.submitAdjustment(realizedBalance: 20, of: budgetId) == .created)
         let payload = try #require(await recorder.payloads.first)
         #expect(payload.budgetId == budgetId)
         #expect(payload.amount == 30)
         #expect(payload.checkedAt != nil)
+        #expect(await recorder.server.contextReads == [budgetId])
     }
 
     // MARK: - Draft
 
-    @Test("a draft reopens on the same month's typed rows and label, never on another month's")
+    @Test("a draft reopens on the same month's typed rows, never on another month's")
     func restoringDraft_onlyForTheSameBudget() throws {
         let typed = makeFlow()
         typed.accounts[0].amountText = "4600"
-        typed.adjustmentLabel = "Écart banque"
         let draft = try #require(typed.draft)
 
         let reopened = makeFlow(restoring: draft)
         #expect(reopened.accounts == typed.accounts)
-        #expect(reopened.adjustmentLabel == "Écart banque")
 
         let otherMonth = makeFlow(id: "budget-other", restoring: draft)
         #expect(otherMonth.accounts.first?.amountText.isEmpty == true)
-        #expect(otherMonth.adjustmentLabel == "Ajustement")
     }
 
     @Test("a finished reconciliation leaves no draft behind")
     func draft_isNilOnceCompleted() async {
-        let flow = makeFlow()
-        flow.accounts[0].amountText = "100"
+        let flow = await makeComparingFlow("100")
         #expect(flow.draft != nil)
 
         #expect(await flow.submitAdjustment(realizedBalance: 50, of: "budget-current") == .created)
@@ -357,14 +343,26 @@ struct ReconcileAccountsFlowTests {
     ) -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
             budgetId: id,
-            adjustmentLabel: "Ajustement",
+            entryName: "Écart avec mes comptes",
             createTransaction: { payload in try await recorder.create(payload) },
+            fetchContext: { budgetId in try await recorder.fetchContext(budgetId) },
             onAdjustmentCreated: { recorder.created.append($0) },
             onCompleted: { recorder.completions.append($0) },
             freeAccounts: freeAccounts,
             restoring: draft,
             now: { Self.now }
         )
+    }
+
+    /// Step 2 with one account typed and the server context read, as the sheet opens it.
+    private func makeComparingFlow(
+        _ amount: String, recorder: Recorder = Recorder(), id: String = "budget-current"
+    ) async -> ReconcileAccountsFlow {
+        let flow = makeFlow(recorder: recorder, id: id)
+        flow.accounts[0].amountText = amount
+        flow.compare()
+        await flow.loadContext()
+        return flow
     }
 }
 
@@ -375,8 +373,12 @@ private final class Recorder {
     var completions: [AccountReconciliation.Completion] = []
     let server: FakeServer
 
-    init(failuresBeforeSuccess: Int = 0, gate: Gate? = nil) {
-        server = FakeServer(failuresBeforeSuccess: failuresBeforeSuccess, gate: gate)
+    init(
+        failuresBeforeSuccess: Int = 0,
+        gate: Gate? = nil,
+        context: ReconciliationContext? = TestDataFactory.createReconciliationContext()
+    ) {
+        server = FakeServer(failuresBeforeSuccess: failuresBeforeSuccess, gate: gate, context: context)
     }
 
     var payloads: [TransactionCreate] {
@@ -386,16 +388,34 @@ private final class Recorder {
     nonisolated func create(_ payload: TransactionCreate) async throws -> Transaction {
         try await server.create(payload)
     }
+
+    nonisolated func fetchContext(_ budgetId: String) async throws -> ReconciliationContext {
+        try await server.fetchContext(budgetId)
+    }
 }
 
 private actor FakeServer {
     private(set) var payloads: [TransactionCreate] = []
+    private(set) var contextReads: [String] = []
     private var failuresLeft: Int
     private let gate: Gate?
+    /// `nil` refuses every read, as an unreachable server would.
+    private var context: ReconciliationContext?
 
-    init(failuresBeforeSuccess: Int, gate: Gate?) {
+    init(failuresBeforeSuccess: Int, gate: Gate?, context: ReconciliationContext?) {
         failuresLeft = failuresBeforeSuccess
         self.gate = gate
+        self.context = context
+    }
+
+    func setContext(_ context: ReconciliationContext?) {
+        self.context = context
+    }
+
+    func fetchContext(_ budgetId: String) throws -> ReconciliationContext {
+        contextReads.append(budgetId)
+        guard let context else { throw URLError(.notConnectedToInternet) }
+        return context
     }
 
     func create(_ payload: TransactionCreate) async throws -> Transaction {

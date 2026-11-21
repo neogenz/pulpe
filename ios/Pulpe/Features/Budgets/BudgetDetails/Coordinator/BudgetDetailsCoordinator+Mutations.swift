@@ -48,25 +48,41 @@ extension BudgetDetailsCoordinator {
         dataStore.invalidateAdjacentCache()
     }
 
+    /// The viewed month's items toggle through the coordinator, refused once another month is loaded;
+    /// an item of the two months before goes through the services, then every cached month is dropped
+    /// and `syncCache()` tells the sibling stores. The suggestions rank the movements the balance reads:
+    /// one whose prévision is pending deletion counts as Hors prévision, while the stored row keeps its link.
     func reconciliationChecking(_ context: ToastContext, amountsHidden: Bool) -> ReconciliationChecking {
         let budgetId = dataStore.budgetId
         return ReconciliationChecking(
             items: dataStore.reconciliationItems,
-            transactions: dataStore.transactions, budgetLines: dataStore.budgetLines,
-            syncingTransactionIds: syncStore.syncingTransactionIds, syncingBudgetLineIds: syncStore.syncingBudgetLineIds
-        ) { [self] item in
-            guard dataStore.budgetId == budgetId else { return false }
-            switch item {
-            case .transaction(let tx, _):
-                guard dataStore.transactions.contains(where: { $0.id == tx.id }) else { return false }
-                await dispatch(.toggleTransaction(tx))
-                return dataStore.transactions.first { $0.id == tx.id }?.isChecked == !tx.isChecked
-            case .budgetLine(let line, _):
-                guard dataStore.budgetLines.contains(where: { $0.id == line.id }) else { return false }
-                await dispatch(.confirmCheckAll(line: line, checkAll: false, context, amountsHidden: amountsHidden))
-                return dataStore.budgetLines.first { $0.id == line.id }?.isChecked == !line.isChecked
+            transactions: dataStore.ledgerTransactions, budgetLines: dataStore.budgetLines,
+            syncingTransactionIds: syncStore.syncingTransactionIds,
+            syncingBudgetLineIds: syncStore.syncingBudgetLineIds,
+            toggle: { [self] item in
+                guard dataStore.budgetId == budgetId else { return false }
+                switch item {
+                case .transaction(let tx, _):
+                    guard let stored = dataStore.transactions.first(where: { $0.id == tx.id }) else { return false }
+                    await dispatch(.toggleTransaction(stored))
+                    return dataStore.transactions.first { $0.id == tx.id }?.isChecked == !stored.isChecked
+                case .budgetLine(let line, _):
+                    guard dataStore.budgetLines.contains(where: { $0.id == line.id }) else { return false }
+                    await dispatch(.confirmCheckAll(line: line, checkAll: false, context, amountsHidden: amountsHidden))
+                    return dataStore.budgetLines.first { $0.id == line.id }?.isChecked == !line.isChecked
+                }
+            },
+            checkPrior: { [self] item in
+                guard dataStore.budgetId == budgetId,
+                      await ReconciliationChecking.checkPrior(
+                          item, transactionService: transactionService, budgetLineService: budgetLineService
+                      )
+                else { return false }
+                dataStore.invalidateAllCache()
+                dataStore.syncCache()
+                return true
             }
-        }
+        )
     }
 
     func addReconciliationAdjustment(_ tx: Transaction) async {

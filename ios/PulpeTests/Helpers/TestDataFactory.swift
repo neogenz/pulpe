@@ -153,6 +153,22 @@ enum TestDataFactory {
         )
     }
 
+    // MARK: - Reconciliation Factory
+
+    /// What the server says about a comparison: by default someone who compared before, nothing
+    /// from before Pulpe and nothing left unchecked in the previous months.
+    static func createReconciliationContext(
+        startingAmount: Decimal = 0,
+        hasCompletedComparison: Bool = true,
+        priorCorrection: Decimal = 0,
+        priorItems: [ReconciliationContext.PriorItem] = []
+    ) -> ReconciliationContext {
+        ReconciliationContext(
+            startingAmount: startingAmount, hasCompletedComparison: hasCompletedComparison,
+            priorCorrection: priorCorrection, priorItems: priorItems
+        )
+    }
+
     // MARK: - Savings Goal Deletion Factory
 
     /// The deletion preview, with everything at zero. Three suites build one to
