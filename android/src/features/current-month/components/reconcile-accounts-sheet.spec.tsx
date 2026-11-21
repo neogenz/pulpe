@@ -1,6 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
 import {
   type Asset,
+  type NetWorth,
   getBudgetPeriodDates,
   type Transaction,
 } from "pulpe-shared";
@@ -8,6 +9,15 @@ import {
 import { captureEvent } from "@/core/observability/analytics";
 
 import type { RealizedMetrics } from "../current-month-view-model";
+import {
+  clearReconcileDraft,
+  keepReconcileDraft,
+} from "../reconcile-draft-store";
+import {
+  clearFreeAccounts,
+  readFreeAccounts,
+} from "../reconcile-free-accounts";
+import type { LinkedAccounts } from "../reconcile-linked-accounts";
 import {
   type ReconcileMonth,
   ReconcileAccountsSheet,
@@ -28,29 +38,53 @@ jest.mock("@/features/transactions/transaction-mutations", () => ({
   useCreateTransaction: () => mockCreate,
 }));
 const mockFollow = { mutate: jest.fn(), reset: jest.fn(), isError: false };
-let mockLinked: Asset[] | null | undefined = null;
+// The real linked-accounts hook runs on top of these two: its filter is under test.
+const mockNetWorth: {
+  isOn: boolean;
+  isFetching: boolean;
+  data: NetWorth | undefined;
+} = { isOn: false, isFetching: false, data: undefined };
+/** `null`: flag off. `undefined`: still loading. Else the flag is on with this data. */
+function offer(linked: LinkedAccounts | null | undefined) {
+  mockNetWorth.isOn = linked !== null;
+  mockNetWorth.isFetching = linked === undefined;
+  mockNetWorth.data = linked
+    ? ({ categories: linked.categories, assets: linked.assets } as NetWorth)
+    : undefined;
+}
 jest.mock("@/features/net-worth/net-worth-queries", () => ({
   useFollowAccounts: () => mockFollow,
+  useNetWorth: () => mockNetWorth,
 }));
-jest.mock("../reconcile-linked-accounts", () => ({
-  useReconcileLinkedAccounts: () => mockLinked,
+jest.mock("@/core/observability/feature-flags", () => ({
+  useFeatureFlag: () => mockNetWorth.isOn,
 }));
-jest.mock("@/features/net-worth/net-worth-sections", () => ({
-  assetAgeLabel: () => "today",
-}));
-jest.mock("@/core/ui/filter-chip", () => {
-  const { Pressable, Text } = jest.requireActual("react-native");
+jest.mock("@/core/ui/ripple", () => ({ useRipple: () => ({ color: "gray" }) }));
+jest.mock("@/core/ui/segmented-picker", () => {
+  const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
-    FilterChip: ({
-      children,
-      onPress,
+    SegmentedPicker: ({
+      value,
+      onValueChange,
+      buttons,
+      accessibilityLabel,
     }: {
-      children: React.ReactNode;
-      onPress: () => void;
+      value: string;
+      onValueChange: (value: string) => void;
+      buttons: { value: string; label: string }[];
+      accessibilityLabel: string;
     }) => (
-      <Pressable onPress={onPress}>
-        <Text>{children}</Text>
-      </Pressable>
+      <View accessibilityLabel={accessibilityLabel}>
+        <Text>{`side:${value}`}</Text>
+        {buttons.map((button) => (
+          <Pressable
+            key={button.value}
+            onPress={() => onValueChange(button.value)}
+          >
+            <Text>{button.label}</Text>
+          </Pressable>
+        ))}
+      </View>
     ),
   };
 });
@@ -78,6 +112,16 @@ jest.mock("@/core/i18n/locale-store", () => ({
 jest.mock("@/core/ui/theme", () => ({
   RADIUS: { card: 18 },
   SPACING: { lg: 24, md: 16, sm: 8, xs: 4, xxs: 2 },
+  TOUCH_TARGET: 48,
+  TABULAR_DIGITS: {},
+}));
+jest.mock("@/core/ui/scheme-colors", () => ({
+  useV2Colors: () => ({
+    accentWash: "mint",
+    accentInk: "green",
+    overWash: "sand",
+  }),
+  useFinancialColors: () => ({ overBudget: "ochre" }),
 }));
 jest.mock("@/core/ui/amount", () => {
   const { Text } = jest.requireActual("react-native");
@@ -144,41 +188,34 @@ jest.mock("react-native-paper", () => {
       />
     ),
     ActivityIndicator: () => <View testID="reconcile-loading" />,
-    Switch: ({
-      value,
-      onValueChange,
-      accessibilityLabel,
-    }: {
-      value: boolean;
-      onValueChange: (value: boolean) => void;
-      accessibilityLabel: string;
-    }) => (
-      <Pressable
-        accessibilityLabel={accessibilityLabel}
-        onPress={() => onValueChange(!value)}
-      />
-    ),
+    Icon: () => null,
     Text,
     TextInput: Object.assign(
       ({
         label,
         value,
         onChangeText,
+        onFocus,
         onBlur,
         onSubmitEditing,
+        autoFocus,
       }: {
         label: string;
         value: string;
         onChangeText: (value: string) => void;
+        onFocus?: () => void;
         onBlur?: () => void;
         onSubmitEditing?: () => void;
+        autoFocus?: boolean;
       }) => (
         <TextInput
           accessibilityLabel={label}
           value={value}
           onChangeText={onChangeText}
+          onFocus={onFocus}
           onBlur={onBlur}
           onSubmitEditing={onSubmitEditing}
+          autoFocus={autoFocus}
         />
       ),
       { Affix: () => null },
@@ -240,9 +277,11 @@ jest.mock("./reconcile-guide-page", () => {
           },
   };
 });
+const mockReveal = jest.fn();
 jest.mock("@/core/ui/sheet", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
+    useRevealInSheet: () => mockReveal,
     FormModal: ({
       title,
       subtitle,
@@ -325,26 +364,32 @@ async function reachVerdict(
   amount: string,
 ) {
   await fireEvent.changeText(view.getByLabelText(AMOUNT), amount);
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
   await fireEvent.press(view.getByText("home.reconcile.continue"));
 }
 
-const AMOUNT = "home.reconcile.accounts.firstAmount";
+const AMOUNT = "home.reconcile.accounts.amount";
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockSeenGuide = true;
   Object.assign(mockCreate, { isPending: false, isError: false });
-  mockLinked = null;
+  offer(null);
+  clearReconcileDraft();
+  clearFreeAccounts();
 });
 
-function ownAccount(id: string, inPulpe: boolean): Asset {
+function account(
+  id: string,
+  inPulpe: boolean,
+  direction: "own" | "owe" = "own",
+): Asset {
   return {
     id,
     categoryId: "type",
     name: `Compte ${id}`,
     currency: "CHF",
-    direction: "own",
+    direction,
     inPulpe,
     archivedAt: null,
     latestValue: 100,
@@ -459,13 +504,45 @@ describe("guide", () => {
 
     expect(view.getByLabelText(AMOUNT).props.value).toBe("890");
   });
+
+  it("gives a new row the keyboard once, never again when the guide gives step 1 back", async () => {
+    const { view } = await open();
+    const NAME = "home.reconcile.accounts.accountName";
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addOwe"));
+    const added = view.getAllByLabelText(NAME)[1];
+    expect(added.props.autoFocus).toBe(true);
+    await fireEvent(added, "focus");
+
+    await fireEvent.press(view.getByLabelText(HELP));
+    await fireEvent.press(view.getByLabelText("guide-start"));
+
+    for (const field of view.getAllByLabelText(NAME)) {
+      expect(field.props.autoFocus).toBeFalsy();
+    }
+  });
+});
+
+it("brings a focused row above the footer and the keyboard, and lets go on blur", async () => {
+  const view = await renderSheet().view;
+  const amount = view.getByLabelText(AMOUNT);
+
+  await fireEvent(amount, "focus");
+  expect(mockReveal).toHaveBeenLastCalledWith(expect.anything());
+  expect(mockReveal.mock.lastCall?.[0]).not.toBeNull();
+
+  await fireEvent(amount, "blur");
+  expect(mockReveal).toHaveBeenLastCalledWith(null);
 });
 
 describe("with Mon patrimoine", () => {
   const BALANCE = "home.reconcile.accounts.amount";
+  const linked = (...assets: Asset[]): LinkedAccounts => ({
+    categories: [{ id: "type", name: "Comptes", total: 0 }],
+    assets,
+  });
 
   it("waits for my accounts before showing a row", async () => {
-    mockLinked = undefined;
+    offer(undefined);
     const view = await renderSheet().view;
     expect(view.getByTestId("reconcile-loading")).toBeTruthy();
     expect(view.queryByLabelText(BALANCE)).toBeNull();
@@ -473,51 +550,133 @@ describe("with Mon patrimoine", () => {
   });
 
   it("opens on my followed accounts and writes the finished ones on completion", async () => {
-    mockLinked = [ownAccount("a", true), ownAccount("b", false)];
+    offer(
+      linked(
+        account("a", true),
+        account("b", false),
+        account("card", true, "owe"),
+      ),
+    );
     const view = await renderSheet(REALIZED_LEVEL).view;
+    expect(view.getByText("Compte a")).toBeTruthy();
     expect(
-      view.getByText("home.reconcile.accounts.linkedFootnote"),
-    ).toBeTruthy();
+      view.getAllByText("home.reconcile.accounts.linkedCaption"),
+    ).toHaveLength(2);
     expect(
-      view.getByText("home.reconcile.accounts.lastBalance:100.00 CHF|today"),
-    ).toBeTruthy();
+      view.getAllByText("home.reconcile.accounts.cardCaption"),
+    ).toHaveLength(1);
 
-    // The followed account gives way to another of mine, and a new one is added.
-    await fireEvent.press(view.getByText("Compte b"));
-    await fireEvent.changeText(view.getByLabelText(BALANCE), "1000");
-    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    // « Compte a » leaves the comparison, « Compte b » joins it from the add sheet.
     await fireEvent.press(
-      view.getByLabelText("home.reconcile.accounts.addToNetWorth"),
+      view.getByLabelText("home.reconcile.accounts.remove:Compte a"),
     );
-    expect(view.getByText("home.reconcile.accounts.nameMissing")).toBeTruthy();
-    await fireEvent.changeText(
-      view.getByLabelText("home.reconcile.accounts.newAccountName"),
-      "Neon",
-    );
-    expect(
-      view.getByText("home.reconcile.accounts.balanceMissing"),
-    ).toBeTruthy();
-    await fireEvent.press(view.getByText("home.reconcile.continue"));
-    expect(view.queryByText("home.reconcile.realized.heading")).toBeNull();
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    await fireEvent.press(view.getByTestId("reconcile-add-asset-b"));
+    const [card, added] = view.getAllByLabelText(BALANCE);
+    await fireEvent.changeText(card, "500");
+    await fireEvent.changeText(added, "2000");
 
-    await fireEvent.changeText(view.getAllByLabelText(BALANCE)[1], "500");
-    await fireEvent.press(view.getByText("home.reconcile.continue"));
+    expect(view.getByTestId("reconcile-total")).toHaveTextContent(/1’500\.00/);
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
     await fireEvent.press(view.getByText("home.reconcile.continue"));
     await fireEvent.press(view.getByText("home.reconcile.verdict.finish"));
 
     expect(mockFollow.mutate).toHaveBeenCalledTimes(1);
     expect(mockFollow.mutate).toHaveBeenCalledWith({
-      creates: [{ name: "Neon", value: 500 }],
       links: ["b"],
       unlinks: ["a"],
-      snapshots: [{ assetId: "b", value: 1000 }],
-      currency: "CHF",
-      categoryName: "netWorth.starter.accounts",
+      snapshots: [
+        { assetId: "card", value: 500 },
+        { assetId: "b", value: 2000 },
+      ],
     });
   });
 
+  async function openAddSheet(assets: Asset[], isOn: boolean) {
+    // The same cached data in both cases: only the flag differs.
+    offer(linked(...assets));
+    mockNetWorth.isOn = isOn;
+    const view = await renderSheet().view;
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    return view;
+  }
+  const ELIGIBLE = account("b", false);
+  const ARCHIVED = { ...account("old", false), archivedAt: "2026-01-01" };
+
+  it("offers the eligible accounts with the flag on, never an archived one", async () => {
+    const view = await openAddSheet([ELIGIBLE, ARCHIVED], true);
+    expect(view.getByTestId("reconcile-add-asset-b")).toBeTruthy();
+    expect(view.queryByTestId("reconcile-add-asset-old")).toBeNull();
+  });
+
+  it("offers none of them with the flag off, whatever is cached", async () => {
+    const view = await openAddSheet([ELIGIBLE], false);
+    expect(view.getByTestId("reconcile-add-own")).toBeTruthy();
+    expect(view.queryByTestId("reconcile-add-asset-b")).toBeNull();
+  });
+
+  it("brings an account deleted while locked back as a free row, and writes nothing to it", async () => {
+    offer(linked(account("a", true)));
+    keepReconcileDraft("budget-1", [
+      {
+        id: 0,
+        label: "Compte a",
+        amountText: "1500",
+        side: "own",
+        account: { kind: "asset", id: "a" },
+      },
+      {
+        id: 1,
+        label: "Compte gone",
+        amountText: "20",
+        side: "own",
+        account: { kind: "asset", id: "gone" },
+      },
+    ]);
+    const view = await renderSheet(REALIZED).view;
+    expect(
+      view.getByLabelText("home.reconcile.accounts.accountName").props.value,
+    ).toBe("Compte gone");
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    await fireEvent.press(view.getByText("home.reconcile.continue"));
+    await fireEvent.changeText(
+      view.getByLabelText("home.reconcile.verdict.label"),
+      "x",
+    );
+    await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
+    mockCreate.mutate.mock.calls[0][1].onSuccess();
+    expect(mockFollow.mutate).toHaveBeenCalledWith({
+      links: [],
+      unlinks: [],
+      snapshots: [{ assetId: "a", value: 1500 }],
+    });
+  });
+
+  it("gives a new row its own id: nothing is inherited from a removed one", async () => {
+    const view = await renderSheet().view;
+    const first = view.getByLabelText(AMOUNT);
+    await fireEvent.changeText(first, "12.");
+    await fireEvent(first, "blur");
+    expect(
+      view.getByText("home.reconcile.accounts.invalidAmount"),
+    ).toBeTruthy();
+
+    await fireEvent.press(
+      view.getByLabelText(
+        "home.reconcile.accounts.remove:home.reconcile.accounts.accountNumbered:1",
+      ),
+    );
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    await fireEvent.press(view.getByTestId("reconcile-add-own"));
+    await fireEvent.changeText(view.getByLabelText(AMOUNT), "12.");
+
+    expect(
+      view.queryByText("home.reconcile.accounts.invalidAmount"),
+    ).toBeNull();
+  });
+
   it("writes nothing there when the sheet is left before the end", async () => {
-    mockLinked = [ownAccount("a", true)];
+    offer(linked(account("a", true)));
     const view = await renderSheet().view;
     await fireEvent.changeText(view.getByLabelText(BALANCE), "1000");
     await fireEvent.press(view.getByLabelText("scrim"));
@@ -529,7 +688,7 @@ it("walks back one step at a time from the Android back action, then leaves", as
   const { props, view: pending } = renderSheet();
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
   expect(view.getByText("home.reconcile.realized.heading")).toBeTruthy();
 
   await fireEvent.press(view.getByLabelText("android-back"));
@@ -545,7 +704,7 @@ it("dismisses from the scrim without changing step, and forgets what was typed",
   const { props, view: pending } = renderSheet();
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
 
   await fireEvent.press(view.getByLabelText("scrim"));
 
@@ -554,35 +713,108 @@ it("dismisses from the scrim without changing step, and forgets what was typed",
   expect(mockCreate.mutate).not.toHaveBeenCalled();
 });
 
-it("adds and removes named accounts, totals them live and takes an overdraft", async () => {
+it("adds free rows, totals « J'ai » minus « Je dois » live and keeps an overdraft", async () => {
   const { view: pending } = renderSheet();
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
-  await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
-  await fireEvent.changeText(
-    view.getByLabelText("home.reconcile.accounts.accountName"),
-    "Épargne",
-  );
-  await fireEvent.changeText(
-    view.getByLabelText("home.reconcile.accounts.amount"),
-    "300",
-  );
-  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/1’300\.00/);
+  expect(view.getByText("home.reconcile.accounts.cardHelp")).toBeTruthy();
 
-  const signs = view.getAllByLabelText("home.reconcile.accounts.negative");
-  await fireEvent.press(signs[0]);
-  expect(view.getByLabelText(AMOUNT).props.value).toBe("-1000");
+  // The card help adds a « Je dois » row.
+  await fireEvent.press(view.getByText("home.reconcile.accounts.addOwe"));
+  expect(view.queryByText("home.reconcile.accounts.cardHelp")).toBeNull();
+  await fireEvent.changeText(
+    view.getAllByLabelText("home.reconcile.accounts.accountName")[1],
+    "Carte",
+  );
+  await fireEvent.changeText(view.getAllByLabelText(AMOUNT)[1], "300");
+  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/700\.00/);
   expect(
-    view.getAllByLabelText("home.reconcile.accounts.negative")[0].props
-      .accessibilityState,
-  ).toEqual(expect.objectContaining({ selected: true }));
-  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/-700\.00/);
+    view.getByText(/accounts\.breakdown:1’000\.00 CHF\|300\.00 CHF/),
+  ).toBeTruthy();
+
+  // The side control moves a row from one side to the other.
+  await fireEvent.press(view.getAllByText("home.reconcile.accounts.owe")[0]);
+  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/-1’300\.00/);
 
   await fireEvent.press(
-    view.getByLabelText("home.reconcile.accounts.removeNamed:Épargne"),
+    view.getByLabelText("home.reconcile.accounts.remove:Carte"),
   );
-  expect(view.queryByLabelText("home.reconcile.accounts.amount")).toBeNull();
-  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/-1’000\.00/);
+  expect(view.getAllByLabelText(AMOUNT)).toHaveLength(1);
+});
+
+it("remembers the free rows by name and side when Comparer is pressed, never their amounts", async () => {
+  const { view: pending } = renderSheet();
+  const view = await pending;
+  await fireEvent.changeText(
+    view.getByLabelText("home.reconcile.accounts.accountName"),
+    "Revolut",
+  );
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
+  expect(readFreeAccounts()).toEqual([]);
+
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+
+  expect(readFreeAccounts()).toEqual([{ name: "Revolut", side: "own" }]);
+});
+
+it("brings what was typed back after the sheet is lost to the auto-lock", async () => {
+  const first = await renderSheet().view;
+  await fireEvent.changeText(
+    first.getByLabelText("home.reconcile.accounts.accountName"),
+    "Revolut",
+  );
+  await fireEvent.changeText(first.getByLabelText(AMOUNT), "1000");
+  // The lock drops the screen tree: the sheet unmounts without dismissing.
+  await first.unmount();
+
+  const view = await renderSheet().view;
+  expect(view.getByLabelText(AMOUNT).props.value).toBe("1000");
+  expect(
+    view.getByLabelText("home.reconcile.accounts.accountName").props.value,
+  ).toBe("Revolut");
+});
+
+describe("a drafted Mon patrimoine row while the read is unavailable", () => {
+  const drafted = [
+    {
+      id: 0,
+      label: "Compte a",
+      amountText: "1500",
+      side: "own" as const,
+      account: { kind: "asset" as const, id: "a" },
+    },
+  ];
+
+  it("waits while the read is pending", async () => {
+    keepReconcileDraft("budget-1", drafted);
+    offer(undefined);
+    const view = await renderSheet().view;
+    expect(view.getByTestId("reconcile-loading")).toBeTruthy();
+  });
+
+  it("stays linked, and its name is never remembered, when the read fails with the flag on", async () => {
+    keepReconcileDraft("budget-1", drafted);
+    // Flag on, nothing came back: a network error.
+    offer(undefined);
+    mockNetWorth.isFetching = false;
+    const view = await renderSheet().view;
+
+    expect(view.getByText("Compte a")).toBeTruthy();
+    expect(
+      view.queryByLabelText("home.reconcile.accounts.accountName"),
+    ).toBeNull();
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    // The press went through: an inactive « Comparer » would leave the memory empty too.
+    expect(view.getByText("home.reconcile.realized.heading")).toBeTruthy();
+    expect(readFreeAccounts()).toEqual([]);
+  });
+
+  it("stays linked with the flag off", async () => {
+    keepReconcileDraft("budget-1", drafted);
+    offer(null);
+    const view = await renderSheet().view;
+    expect(view.getByText("Compte a")).toBeTruthy();
+  });
 });
 
 it("refuses an unreadable amount even beside a valid one", async () => {
@@ -590,12 +822,13 @@ it("refuses an unreadable amount even beside a valid one", async () => {
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
   await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
-  const second = view.getByLabelText("home.reconcile.accounts.amount");
+  await fireEvent.press(view.getByTestId("reconcile-add-own"));
+  const second = view.getAllByLabelText(AMOUNT)[1];
   await fireEvent.changeText(second, "12abc");
   await fireEvent(second, "blur");
 
   expect(view.getByText("home.reconcile.accounts.invalidAmount")).toBeTruthy();
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
   expect(view.queryByText("home.reconcile.realized.heading")).toBeNull();
 });
 
@@ -603,7 +836,7 @@ it("shows the realized balance, the period bounds and the way to what is left to
   const { props, view: pending } = renderSheet();
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
 
   expect(
     view.getByText("home.reconcile.realized.period:27 mai|26 juin"),
@@ -623,7 +856,7 @@ it("records one checked adjustment with the edited label and reports completion 
   const { props, view: pending } = renderSheet();
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
   await fireEvent.press(view.getByText("home.reconcile.continue"));
 
   expect(
@@ -664,7 +897,7 @@ it("holds every exit while the write is pending and keeps the step after a failu
   const { props, view: pending } = renderSheet({ realizedBalance: 1600 });
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
   await fireEvent.press(view.getByText("home.reconcile.continue"));
 
   await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
@@ -727,7 +960,7 @@ it("calls the accounts up to date at the exact cent and records nothing", async 
   const { props, view: pending } = renderSheet({ realizedBalance: 0.1 + 0.2 });
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "0.30");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
   await fireEvent.press(view.getByText("home.reconcile.continue"));
 
   expect(view.getByText("home.reconcile.verdict.upToDateTitle")).toBeTruthy();

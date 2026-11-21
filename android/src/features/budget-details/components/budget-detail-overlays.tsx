@@ -12,6 +12,7 @@ import { FAB, Menu, useTheme } from "react-native-paper";
 import { budgetTiming } from "@/features/budgets/budget-list-selectors";
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { useCurrentMonth } from "@/features/current-month/current-month-queries";
 import type { CurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
 import { ReconcileAccountsSheet } from "@/features/current-month/components/reconcile-accounts-sheet";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
@@ -69,6 +70,8 @@ export const BudgetDetailOverlays = forwardRef<
 ) {
   const theme = useTheme();
   const { t } = useTranslation();
+  // Held against the bank today: a past or a future month offers no comparison.
+  const isCurrentMonth = useCurrentMonth().budgetId === budgetId;
   const [isLineSheetVisible, setLineSheetVisible] = useState(false);
   const [isTransactionSheetVisible, setTransactionSheetVisible] =
     useState(false);
@@ -340,7 +343,7 @@ export const BudgetDetailOverlays = forwardRef<
         onViewItemsToCheck={() => setReconcileBudgetId(null)}
         budgetId={reconcileBudgetId ?? ""}
         month={
-          viewModel !== null && budgetId === reconcileBudgetId
+          viewModel !== null && isCurrentMonth && budgetId === reconcileBudgetId
             ? {
                 realized: viewModel.realized,
                 rollover: viewModel.metrics.rollover,
@@ -356,10 +359,14 @@ export const BudgetDetailOverlays = forwardRef<
         <RealizedBalanceSheet
           isVisible={isRealizedVisible}
           onDismiss={() => setRealizedVisible(false)}
-          onReconcile={() => {
-            setRealizedVisible(false);
-            setReconcileBudgetId(budgetId);
-          }}
+          onReconcile={
+            isCurrentMonth
+              ? () => {
+                  setRealizedVisible(false);
+                  setReconcileBudgetId(budgetId);
+                }
+              : undefined
+          }
           metrics={viewModel.metrics}
           realized={viewModel.realized}
           currency={currency}

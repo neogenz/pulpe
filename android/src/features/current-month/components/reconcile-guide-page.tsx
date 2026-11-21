@@ -4,15 +4,8 @@ import {
   type SupportedCurrency,
 } from "pulpe-shared";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import {
-  StyleSheet,
-  useWindowDimensions,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { Button, Icon, Text, useTheme } from "react-native-paper";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -29,7 +22,6 @@ import { captureEvent } from "@/core/observability/analytics";
 import { Amount } from "@/core/ui/amount";
 import { useFinancialColors, useV2Colors } from "@/core/ui/scheme-colors";
 import { StepDots } from "@/core/ui/step-dots";
-import { sheetBox, useKeyboardHeight } from "@/core/ui/keyboard-inset";
 import { ICON_SIZE, RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 import { countAt } from "@/features/net-worth/net-worth-intro";
 
@@ -49,11 +41,6 @@ const BEAT_MS = 150;
 const MOVE_MS = 450;
 const COUNT_MS = 600;
 const EASE_OUT = Easing.out(Easing.cubic);
-// The tallest scene (the typing one) sets the height, so no scene makes the
-// footer jump; a short window gives some back so the text stays above the fold.
-const SCENE_MAX_HEIGHT = 288;
-const SCENE_MIN_HEIGHT = 232;
-const SCENE_SHEET_SHARE = 0.4;
 
 /**
  * The sample figures are the story, not the user's data: « Masquer les
@@ -70,11 +57,8 @@ function plain(value: number, currency: SupportedCurrency): string {
 interface ReconcileGuideOptions {
   /** `null` while the guide is not showing. */
   source: GuideSource | null;
-  /**
-   * The budget's currency for the sample figures. The sheet has it: it must
-   * pass it, or the figures read as CHF.
-   */
-  currency?: SupportedCurrency;
+  /** The budget's currency, for the sample figures. */
+  currency: SupportedCurrency;
   /** Fires once per opening, whatever the exit; the parent then leaves the page. */
   onFinish: (outcome: GuideOutcome) => void;
 }
@@ -86,7 +70,7 @@ interface ReconcileGuideOptions {
  */
 export function useReconcileGuidePage({
   source,
-  currency = "CHF",
+  currency,
   onFinish,
 }: ReconcileGuideOptions) {
   const { t } = useTranslation();
@@ -94,16 +78,6 @@ export function useReconcileGuidePage({
   const ground = useV2Colors().sunk;
   const [index, setIndex] = useState(0);
   const isFinished = useRef(false);
-  // What the sheet can really take, as `FormModal` works it out.
-  const { maxHeight: sheetHeight } = sheetBox({
-    windowHeight: useWindowDimensions().height,
-    keyboardHeight: useKeyboardHeight(),
-    safeBottom: useSafeAreaInsets().bottom,
-  });
-  const sceneHeight = Math.min(
-    SCENE_MAX_HEIGHT,
-    Math.max(SCENE_MIN_HEIGHT, sheetHeight * SCENE_SHEET_SHARE),
-  );
 
   useEffect(() => {
     if (source === null) return;
@@ -158,14 +132,12 @@ export function useReconcileGuidePage({
     ),
     body: (
       <>
-        {/* Keyed by scene: a new scene mounts fresh and plays again. */}
+        {/* Keyed by scene: a new scene mounts fresh and plays again. Sized to
+            its drawing; the sheet, not the scene, keeps the footer still. */}
         <View
           key={scene}
           testID="reconcile-guide-scene"
-          style={[
-            styles.scene,
-            { backgroundColor: ground, minHeight: sceneHeight },
-          ]}
+          style={[styles.scene, { backgroundColor: ground }]}
           importantForAccessibility="no-hide-descendants"
           accessibilityElementsHidden
         >
@@ -173,12 +145,17 @@ export function useReconcileGuidePage({
         </View>
         {/* Live: TalkBack keeps its focus on « Suivant », so it reads the new scene out. */}
         <View accessibilityLiveRegion="polite" style={styles.text}>
-          <Text variant="headlineSmall" accessibilityRole="header">
+          <Text
+            variant="headlineSmall"
+            accessibilityRole="header"
+            textBreakStrategy="balanced"
+          >
             {t(`${base}.scenes.${scene}.title`)}
           </Text>
           <Text
             variant="bodyLarge"
             style={{ color: theme.colors.onSurfaceVariant }}
+            textBreakStrategy="balanced"
           >
             {t(`${base}.scenes.${scene}.body`)}
           </Text>
@@ -255,6 +232,42 @@ function Beat({
     };
   });
   return <Animated.View style={[style, animated]}>{children}</Animated.View>;
+}
+
+/**
+ * Something answered on its beat: it folds away, height and all, so the end
+ * state keeps no hole where it was. Reduce Motion never shows it.
+ */
+function Fold({ at, children }: { at: number; children: ReactNode }) {
+  const isReduced = useReducedMotion();
+  const height = useSharedValue<number | null>(null);
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    if (isReduced) return;
+    progress.value = withDelay(
+      at * BEAT_MS,
+      withTiming(1, { duration: MOVE_MS, easing: EASE_OUT }),
+    );
+  }, [at, isReduced, progress]);
+  const folding = useAnimatedStyle(() =>
+    height.value === null
+      ? {}
+      : { height: height.value * (1 - progress.value) },
+  );
+  if (isReduced) return null;
+  return (
+    <Animated.View style={[styles.fold, folding]}>
+      <View
+        onLayout={(event) => {
+          height.value ??= event.nativeEvent.layout.height;
+        }}
+      >
+        <Beat at={at} kind="out">
+          {children}
+        </Beat>
+      </View>
+    </Animated.View>
+  );
 }
 
 /** A number rolling from `from` to `to`, starting at beat `at`. */
@@ -419,7 +432,11 @@ function TypeScene({ currency }: { currency: SupportedCurrency }) {
   );
 }
 
-/** The petrol is checked, Pulpe goes from 950 to 890: both sides agree. */
+/**
+ * The bank's expense is found and checked, Pulpe goes from 950 to 890, both
+ * sides agree: the question, the row it asks about, then the verdict it leads
+ * to, in the order of web and iOS.
+ */
 function CheckScene({ currency }: { currency: SupportedCurrency }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -429,71 +446,65 @@ function CheckScene({ currency }: { currency: SupportedCurrency }) {
   const pulpeFigure = useCountUp(pulpe, bank, 6);
   return (
     <PulpeCard>
-      <View style={styles.figures}>
-        <Text variant="bodyMedium" style={styles.grow}>
-          {t("home.reconcile.guide.sample.onAccounts")}
-        </Text>
-        <Amount size="meta">{plain(bank, currency)}</Amount>
-      </View>
-      <View style={styles.figures} testID="reconcile-guide-pulpe-row">
-        <Text variant="bodyMedium" style={styles.grow}>
-          {t("home.reconcile.guide.sample.pulpeChecked")}
-        </Text>
-        <Amount size="meta">{plain(pulpeFigure, currency)}</Amount>
-      </View>
-      <View style={styles.slot}>
-        <Beat at={9} kind="out" style={styles.stacked}>
+      <View style={styles.checkList}>
+        <View style={styles.figures}>
+          <Text variant="bodyMedium" style={styles.grow}>
+            {t("home.reconcile.guide.sample.onAccounts")}
+          </Text>
+          <Amount size="meta">{plain(bank, currency)}</Amount>
+        </View>
+        <View style={styles.figures} testID="reconcile-guide-pulpe-row">
+          <Text variant="bodyMedium" style={styles.grow}>
+            {t("home.reconcile.guide.sample.pulpeChecked")}
+          </Text>
+          <Amount size="meta">{plain(pulpeFigure, currency)}</Amount>
+        </View>
+        <Fold at={5}>
           <Text
             variant="bodyMedium"
             style={{ color: theme.colors.onSurfaceVariant }}
+            textBreakStrategy="balanced"
           >
             {t("home.reconcile.guide.sample.question")}
           </Text>
-        </Beat>
+        </Fold>
+        {/* Same edges as the figures above: the ring hangs outside the row. */}
+        <View style={styles.figures}>
+          <View style={[styles.circle, { borderColor: v2.pointRing }]}>
+            <Beat at={4} kind="pop" style={styles.circleFill}>
+              <View
+                style={[
+                  styles.circleFill,
+                  { backgroundColor: theme.colors.primary },
+                ]}
+              >
+                <Icon
+                  source="check"
+                  size={ICON_SIZE.sm}
+                  color={theme.colors.onPrimary}
+                />
+              </View>
+            </Beat>
+          </View>
+          <Text variant="bodyMedium" style={styles.grow}>
+            {t("home.reconcile.guide.sample.expense")}
+          </Text>
+          <Amount size="meta">{plain(expense, currency)}</Amount>
+          <Beat
+            at={6}
+            kind="out"
+            style={[styles.ring, { borderColor: financial.overBudget }]}
+          />
+        </View>
         <Beat
           at={11}
-          style={[
-            styles.stacked,
-            styles.matched,
-            { backgroundColor: v2.accentWash },
-          ]}
+          style={[styles.matched, { backgroundColor: v2.accentWash }]}
         >
           <Icon source="check" size={ICON_SIZE.sm} color={v2.accentInk} />
           <Text variant="labelLarge" style={{ color: v2.accentInk }}>
             {t("home.reconcile.guide.sample.matched")}
           </Text>
         </Beat>
-      </View>
-      <View style={styles.expense}>
-        <View style={[styles.circle, { borderColor: v2.pointRing }]}>
-          <Beat at={4} kind="pop" style={styles.circleFill}>
-            <View
-              style={[
-                styles.circleFill,
-                { backgroundColor: theme.colors.primary },
-              ]}
-            >
-              <Icon
-                source="check"
-                size={ICON_SIZE.sm}
-                color={theme.colors.onPrimary}
-              />
-            </View>
-          </Beat>
-        </View>
-        <Text variant="bodyMedium" style={styles.grow}>
-          {t("home.reconcile.guide.sample.expense")}
-        </Text>
-        <Amount size="meta">{plain(expense, currency)}</Amount>
-        <Beat
-          at={6}
-          kind="out"
-          style={[
-            StyleSheet.absoluteFill,
-            styles.ring,
-            { borderColor: financial.overBudget },
-          ]}
-        />
       </View>
     </PulpeCard>
   );
@@ -580,7 +591,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   text: { gap: SPACING.md },
-  circled: { alignSelf: "flex-start", paddingHorizontal: SPACING.sm },
+  // Room above and below for the ring, clear of the account's name.
+  circled: {
+    alignSelf: "flex-start",
+    paddingHorizontal: SPACING.sm,
+    marginVertical: SPACING.xs,
+  },
   balanceRing: {
     position: "absolute",
     top: -SPACING.xs,
@@ -598,9 +614,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
   },
+  checkList: { gap: SPACING.sm },
   figures: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
-  slot: { height: 36, justifyContent: "center" },
-  stacked: { position: "absolute", left: 0, right: 0 },
+  fold: { overflow: "hidden" },
   matched: {
     flexDirection: "row",
     alignItems: "center",
@@ -609,13 +625,15 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
     paddingVertical: SPACING.xs,
   },
-  expense: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    padding: SPACING.xs,
+  ring: {
+    position: "absolute",
+    top: -SPACING.xs,
+    bottom: -SPACING.xs,
+    left: -SPACING.xs,
+    right: -SPACING.xs,
+    borderWidth: 2,
+    borderRadius: RADIUS.sm,
   },
-  ring: { borderWidth: 2, borderRadius: RADIUS.sm },
   circle: {
     width: 24,
     height: 24,

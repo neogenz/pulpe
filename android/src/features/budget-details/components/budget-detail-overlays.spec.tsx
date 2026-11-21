@@ -11,6 +11,10 @@ import {
   type BudgetDetailOverlaysHandle,
 } from "./budget-detail-overlays";
 
+const mockCurrentMonth = { budgetId: "budget-10" as string | null };
+jest.mock("@/features/current-month/current-month-queries", () => ({
+  useCurrentMonth: () => mockCurrentMonth,
+}));
 jest.mock("./catch-up-sheet", () => ({ CatchUpSheet: () => null }));
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({ locale: "fr", t: (key: string) => key }),
@@ -60,8 +64,13 @@ jest.mock("@/features/current-month/components/realized-balance-sheet", () => {
       onReconcile,
     }: {
       isVisible: boolean;
-      onReconcile: () => void;
-    }) => (isVisible ? <Text onPress={onReconcile}>reconcile</Text> : null),
+      onReconcile?: () => void;
+    }) =>
+      isVisible ? (
+        <Text onPress={onReconcile}>
+          {onReconcile ? "reconcile" : "no-reconcile"}
+        </Text>
+      ) : null,
   };
 });
 jest.mock(
@@ -183,6 +192,7 @@ it("folds the open speed dial on Back instead of leaving the budget", async () =
 it.each([1, 10, 12])(
   "reconciles the viewed month %s with its own rollover",
   async (month) => {
+    mockCurrentMonth.budgetId = `budget-${month}`;
     const { ref, view } = await renderOverlays(month);
     await act(() => ref.current?.showRealizedBalance());
     await fireEvent.press(view.getByText("reconcile"));
@@ -190,3 +200,23 @@ it.each([1, 10, 12])(
     expect(view.queryByText("reconcile")).toBeNull();
   },
 );
+
+it("offers no comparison on a month other than the current one", async () => {
+  mockCurrentMonth.budgetId = "budget-11";
+  const { ref, view } = await renderOverlays(10);
+  await act(() => ref.current?.showRealizedBalance());
+  expect(view.getByText("no-reconcile")).toBeTruthy();
+});
+
+it("stops holding the gap against a month that is no longer the current one", async () => {
+  mockCurrentMonth.budgetId = "budget-10";
+  const { ref, view } = await renderOverlays(10);
+  await act(() => ref.current?.showRealizedBalance());
+  await fireEvent.press(view.getByText("reconcile"));
+  expect(view.getByText("budget-10:-120")).toBeTruthy();
+
+  mockCurrentMonth.budgetId = "budget-11";
+  // Any state change re-renders the overlays on the new period.
+  await act(() => ref.current?.showRealizedBalance());
+  expect(view.getByText("budget-10:undefined")).toBeTruthy();
+});

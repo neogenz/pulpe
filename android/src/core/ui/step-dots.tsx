@@ -23,10 +23,10 @@ export function StepDots({ count, current, label }: StepDotsProps) {
             styles.dot,
             index === current && styles.dotCurrent,
             {
+              // `outlineVariant` all but vanishes on the dark sheet; a dot that
+              // says « not yet » still has to read at 3:1.
               backgroundColor:
-                index === current
-                  ? theme.colors.primary
-                  : theme.colors.outlineVariant,
+                index === current ? theme.colors.primary : theme.colors.outline,
             },
           ]}
         />

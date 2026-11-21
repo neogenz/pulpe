@@ -81,3 +81,34 @@ it.each(
     });
   },
 );
+
+it.each([pulpeLightTheme, pulpeDarkTheme])(
+  "on a card, outlines the track, fills the chosen segment and gives each a full target (dark: $dark)",
+  async (theme) => {
+    mockFontScale = 1;
+    const view = await render(
+      <PaperProvider theme={theme}>
+        <SegmentedPicker
+          isOnCard
+          value="own"
+          onValueChange={jest.fn()}
+          accessibilityLabel="side"
+          buttons={[
+            { value: "own", label: "J'ai" },
+            { value: "owe", label: "Je dois" },
+          ]}
+        />
+      </PaperProvider>,
+    );
+
+    expect(view.getByLabelText("side")).toHaveStyle({
+      borderColor: theme.colors.outline,
+    });
+    expect(
+      view.getByRole("radio", { name: "J'ai", checked: true }),
+    ).toHaveStyle({ backgroundColor: theme.colors.secondaryContainer });
+    for (const segment of view.getAllByRole("radio")) {
+      expect(segment).toHaveStyle({ minHeight: TOUCH_TARGET });
+    }
+  },
+);

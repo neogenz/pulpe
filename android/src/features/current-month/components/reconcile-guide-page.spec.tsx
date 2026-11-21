@@ -36,19 +36,6 @@ jest.mock("@/core/ui/amount-visibility", () => ({
   areAmountsHidden: () => mockAmountsHidden,
 }));
 
-let mockWindowHeight = 844;
-jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
-  __esModule: true,
-  default: () => ({
-    width: 390,
-    height: mockWindowHeight,
-    scale: 1,
-    fontScale: 1,
-  }),
-}));
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
 const mockMarkSeen = jest.fn();
 jest.mock("../reconcile-guide-gate", () => ({
   markReconcileGuideSeen: () => mockMarkSeen(),
@@ -82,7 +69,6 @@ beforeEach(() => {
   capture.mockClear();
   mockMarkSeen.mockClear();
   mockAmountsHidden = false;
-  mockWindowHeight = 844;
 });
 
 it("walks the three scenes, title and sentence each, the drawing hidden from TalkBack", async () => {
@@ -195,13 +181,23 @@ it("does not count a second end when a finished guide unmounts", async () => {
   expect(mockMarkSeen).not.toHaveBeenCalled();
 });
 
-it.each([
-  [844, 288],
-  [600, 232],
-])("sizes the scene for a %i dp window to %i dp", async (height, expected) => {
-  mockWindowHeight = height;
+it("ends the last scene on the checked expense, then the verdict, its question answered", async () => {
   const { view } = await open();
+  for (let press = 0; press < 2; press += 1) {
+    await fireEvent.press(view.getByTestId("reconcile-guide-primary"));
+  }
+  const hidden = { includeHiddenElements: true };
+  const scene = view.getByTestId("reconcile-guide-scene", hidden);
+
   expect(
-    view.getByTestId("reconcile-guide-scene", { includeHiddenElements: true }),
-  ).toHaveStyle({ minHeight: expected });
+    within(scene).queryByText("home.reconcile.guide.sample.question", hidden),
+  ).toBeNull();
+  expect(
+    within(scene)
+      .getAllByText(/sample\.(expense|matched)$/, hidden)
+      .map((node) => node.props.children),
+  ).toEqual([
+    "home.reconcile.guide.sample.expense",
+    "home.reconcile.guide.sample.matched",
+  ]);
 });
