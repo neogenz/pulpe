@@ -21,7 +21,7 @@ extension ReconcileCompareStepView {
                     Text(remove).monospacedDigit()
                 }
                 .secondaryButtonStyle(size: .small)
-                .disabled(flow.isChecking || flow.isSubmitting)
+                .disabled(flow.isChecking || flow.isWriting)
                 .accessibilityIdentifier("reconcileRemoveOwedButton")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -65,9 +65,16 @@ extension ReconcileCompareStepView {
                 FormRowDivider()
             }
             if breakdown.beforePulpe != 0 {
-                figureRow(AppLocale.string("D'avant Pulpe")) {
-                    Text(verbatim: signedCurrency(breakdown.beforePulpe))
+                // The row is the edit button; its amount keeps the card's ink, the pencil says it opens.
+                Button { editsStartingAmount = true } label: {
+                    figureRow(AppLocale.string("D'avant Pulpe"), isEditable: true) {
+                        Text(verbatim: signedCurrency(breakdown.beforePulpe))
+                    }
                 }
+                .plainPressedButtonStyle()
+                .contentShape(Rectangle())
+                .disabled(flow.isWriting || flow.isChecking)
+                .accessibilityIdentifier("reconcileStartingAmountButton")
                 FormRowDivider()
             }
             // Green says money is left; a month already past its plan stays in ink.
@@ -78,7 +85,38 @@ extension ReconcileCompareStepView {
                 Text(verbatim: breakdown.remaining.asCurrency(currency))
             }
         }
+        // A bare id on a container would replace the ids of every row in it, the edit button's too.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("reconcileMatchedBreakdown")
+    }
+
+    /// What the checks of this comparison found; what is left is already in the title.
+    func foundBar(found: Decimal, gap: Decimal) -> some View {
+        let total = found + gap.absoluteValue
+        let progress = total > 0 ? NSDecimalNumber(decimal: found / total).doubleValue : 0
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            ZStack(alignment: .leading) {
+                ProgressBarShape(progress: 1).fill(Color.sunk)
+                ProgressBarShape(progress: CGFloat(progress)).fill(Color.pulpePrimary)
+            }
+            .frame(height: DesignTokens.ProgressBar.thickHeight)
+            .accessibilityHidden(true)
+            Text(AppLocale.string("\(found.asInlineCurrency(currency)) trouvés"))
+                .font(PulpeTypography.captionRegular)
+                .monospacedDigit()
+                .foregroundStyle(Color.textSecondary)
+                .sensitiveAmount()
+        }
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .accessibilityIdentifier("reconcileFound")
+    }
+
+    /// Says a figure opens its editor; never blurred with the amount.
+    var editPencil: some View {
+        Image(systemName: "pencil")
+            .font(PulpeTypography.captionRegular.weight(.semibold))
+            .foregroundStyle(Color.pulpePrimary)
+            .accessibilityHidden(true)
     }
 
     /// "+60.00 CHF" / "−60.00 CHF": signed by its own value with a true minus, like the web's `signed()`.

@@ -298,6 +298,7 @@ struct ReconcileComparisonTests {
             entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
             fetchContext: fetchContext,
+            updateState: { _ in throw CancellationError() },
             onAdjustmentCreated: { _ in },
             onCompleted: { _ in }
         )

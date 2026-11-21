@@ -14,7 +14,7 @@ actor ReconciliationService {
         try await apiClient.request(.reconciliationContext(budgetId: budgetId), method: .get)
     }
 
-    func updateState(_ update: ReconciliationStateUpdate) async throws {
-        try await apiClient.requestVoid(.reconciliationState, body: update, method: .put)
+    func updateState(_ update: ReconciliationStateUpdate) async throws -> ReconciliationState {
+        try await apiClient.request(.reconciliationState, body: update, method: .put)
     }
 }

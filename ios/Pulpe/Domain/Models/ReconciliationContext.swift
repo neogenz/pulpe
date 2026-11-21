@@ -30,8 +30,14 @@ struct ReconciliationContext: Codable, Equatable, Sendable {
     }
 }
 
+/// What `PUT /reconciliation/state` answers (`reconciliationStateSchema`).
+struct ReconciliationState: Decodable, Equatable, Sendable {
+    let startingAmount: Decimal
+    let hasCompletedComparison: Bool
+}
+
 /// `PUT /reconciliation/state`: a field left `nil` is omitted and stays unchanged.
-struct ReconciliationStateUpdate: Encodable, Sendable {
+struct ReconciliationStateUpdate: Encodable, Equatable, Sendable {
     var startingAmount: Decimal?
     var completed: Bool?
 }

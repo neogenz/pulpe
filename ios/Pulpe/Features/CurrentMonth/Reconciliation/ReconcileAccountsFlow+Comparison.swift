@@ -70,9 +70,14 @@ extension ReconcileAccountsFlow {
         let screen: AccountReconciliation.Screen
         /// What the checks of this comparison closed, once there is one.
         let found: Decimal?
+        /// The day of the month the next period starts: « Reviens comparer le 25 ».
+        let nextPayDay: Int
     }
 
-    func comparison(realizedBalance: Decimal, lines: [BudgetLine], transactions: [Transaction]) -> Comparison? {
+    /// `payDayOfMonth` `nil` is the calendar month, which never says the salary may be early.
+    func comparison(
+        realizedBalance: Decimal, lines: [BudgetLine], transactions: [Transaction], payDayOfMonth: Int? = nil
+    ) -> Comparison? {
         guard let context, let totalCents, let compared = comparedFigure(realizedBalance: realizedBalance) else {
             return nil
         }
@@ -82,6 +87,7 @@ extension ReconcileAccountsFlow {
             priorItems: context.priorItems.map { .init(id: $0.id, effect: $0.effect, monthsAgo: $0.monthsAgo) }
         )
         let target = gap.absoluteValue.rounded(2)
+        let salary = salaryTiming(gap: gap, payDayOfMonth: payDayOfMonth)
         let suggestions = candidates.compactMap { candidate -> Suggestion? in
             // A line already partly consumed can settle the gap with an amount that is not the gap.
             let settles = candidate.remainingGap == 0
@@ -118,10 +124,32 @@ extension ReconcileAccountsFlow {
             screen: AccountReconciliation.comparisonScreen(
                 gap: gap, candidateCount: candidates.count, dismissed: isDismissed,
                 first: !context.hasCompletedComparison && context.startingAmount == 0,
-                salaryMaybeEarly: false
+                salaryMaybeEarly: salary.isEarly
             ),
-            found: found(compared: compared, totalCents: totalCents)
+            found: found(compared: compared, totalCents: totalCents),
+            nextPayDay: salary.nextPayDay
         )
+    }
+
+    /// Whether the salary may be early, and the day the next budget month starts as the period rules date
+    /// it. Not « end + 1 »: with a pay day of 31, February ends on the 28th and March starts on the 28th too.
+    /// A start already reached (that 28th) is today's pay day: the one to come is the month after.
+    private func salaryTiming(gap: Decimal, payDayOfMonth: Int?) -> (isEarly: Bool, nextPayDay: Int) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: now())
+        let periods = BudgetPeriodCalculator.self
+        let current = periods.periodIndex(periods.periodForDate(today, payDayOfMonth: payDayOfMonth))
+        let startOf = { (index: Int) -> Date in
+            let period = periods.periodFromIndex(index)
+            return periods.periodDates(month: period.month, year: period.year, payDayOfMonth: payDayOfMonth).startDate
+        }
+        let next = startOf(current + 1)
+        let start = next > today ? next : startOf(current + 2)
+        let daysAway = calendar.dateComponents([.day], from: today, to: start).day ?? 0
+        let isEarly = AccountReconciliation.isSalaryMaybeEarly(
+            gap: gap, payDayOfMonth: payDayOfMonth, daysUntilNextPeriod: daysAway
+        )
+        return (isEarly, calendar.component(.day, from: start))
     }
 
     private func found(compared: Decimal, totalCents: Int) -> Decimal? {

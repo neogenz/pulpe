@@ -15,6 +15,7 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.accounts.count == 1)
         #expect(flow.accounts.first?.amountText.isEmpty == true)
         #expect(flow.totalCents == nil)
+        #expect(!flow.hasTypedBalance)
     }
 
     @Test("any row can be removed, the last one too, and a removed one never comes back")
@@ -93,6 +94,8 @@ struct ReconcileAccountsFlowTests {
         flow.accounts[0].amountText = "12."
         #expect(flow.totalCents == nil)
         #expect(flow.hasInvalidAmount(id: flow.accounts[0].id))
+        // Still typed: a swipe must not close the sheet on it.
+        #expect(flow.hasTypedBalance)
 
         flow.accounts[0].amountText = "12.5"
         #expect(flow.totalCents == 1250)
@@ -106,7 +109,7 @@ struct ReconcileAccountsFlowTests {
         let flow = await makeComparingFlow("1300.50", recorder: recorder)
         let realized = try #require(Decimal(string: "1250.40"))
 
-        #expect(await flow.submitAdjustment(realizedBalance: realized, of: "budget-current") == .created)
+        #expect(await flow.submitAdjustment(realizedBalance: realized, of: "budget-current") == .written)
         #expect(await flow.submitAdjustment(realizedBalance: realized, of: "budget-current") == .ignored)
         #expect(!flow.finishWithoutEntry(of: "budget-current"))
 
@@ -130,7 +133,7 @@ struct ReconcileAccountsFlowTests {
         let recorder = Recorder(context: context)
         let flow = await makeComparingFlow("4000", recorder: recorder)
 
-        #expect(await flow.submitAdjustment(realizedBalance: 1000, of: "budget-current") == .created)
+        #expect(await flow.submitAdjustment(realizedBalance: 1000, of: "budget-current") == .written)
         let payload = try #require(await recorder.payloads.first)
         #expect(payload.kind == .expense)
         #expect(payload.amount == 60)
@@ -149,7 +152,7 @@ struct ReconcileAccountsFlowTests {
         #expect(recorder.created.isEmpty)
         #expect(recorder.completions.isEmpty)
 
-        #expect(await flow.submitAdjustment(realizedBalance: 250, of: "budget-current") == .created)
+        #expect(await flow.submitAdjustment(realizedBalance: 250, of: "budget-current") == .written)
         #expect(await recorder.payloads.count == 2)
         #expect(recorder.created.count == 1)
         #expect(recorder.completions == [.expense])
@@ -166,7 +169,7 @@ struct ReconcileAccountsFlowTests {
         #expect(await flow.submitAdjustment(realizedBalance: 0, of: "budget-current") == .ignored)
 
         await gate.open()
-        #expect(await first.value == .created)
+        #expect(await first.value == .written)
         #expect(await recorder.payloads.count == 1)
         #expect(!flow.isSubmitting)
     }
@@ -211,7 +214,7 @@ struct ReconcileAccountsFlowTests {
         #expect(!flow.finishWithoutEntry(of: "budget-current"))
 
         await gate.open()
-        #expect(await write.value == .created)
+        #expect(await write.value == .written)
         #expect(!flow.canFinish(of: "budget-current"))
         #expect(recorder.completions == [.income])
     }
@@ -247,7 +250,7 @@ struct ReconcileAccountsFlowTests {
         #expect(await flow.submitAdjustment(realizedBalance: 0, of: "budget-next") == .ignored)
 
         await gate.open()
-        #expect(await write.value == .created)
+        #expect(await write.value == .written)
         #expect(flow.shouldClose(loadedBudgetId: "budget-next"))
         let payloads = await recorder.payloads
         #expect(payloads.map(\.budgetId) == ["budget-current"])
@@ -257,7 +260,7 @@ struct ReconcileAccountsFlowTests {
     func submitAdjustment_targetsViewedMonth(budgetId: String) async throws {
         let recorder = Recorder()
         let flow = await makeComparingFlow("50", recorder: recorder, id: budgetId)
-        #expect(await flow.submitAdjustment(realizedBalance: 20, of: budgetId) == .created)
+        #expect(await flow.submitAdjustment(realizedBalance: 20, of: budgetId) == .written)
         let payload = try #require(await recorder.payloads.first)
         #expect(payload.budgetId == budgetId)
         #expect(payload.amount == 30)
@@ -285,7 +288,7 @@ struct ReconcileAccountsFlowTests {
         let flow = await makeComparingFlow("100")
         #expect(flow.draft != nil)
 
-        #expect(await flow.submitAdjustment(realizedBalance: 50, of: "budget-current") == .created)
+        #expect(await flow.submitAdjustment(realizedBalance: 50, of: "budget-current") == .written)
         #expect(flow.draft == nil)
     }
 
@@ -346,6 +349,7 @@ struct ReconcileAccountsFlowTests {
             entryName: "Écart avec mes comptes",
             createTransaction: { payload in try await recorder.create(payload) },
             fetchContext: { budgetId in try await recorder.fetchContext(budgetId) },
+            updateState: { _ in throw CancellationError() },
             onAdjustmentCreated: { recorder.created.append($0) },
             onCompleted: { recorder.completions.append($0) },
             freeAccounts: freeAccounts,

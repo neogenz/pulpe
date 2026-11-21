@@ -36,11 +36,15 @@ struct ReconcileAccountsStepView: View {
             ReconcileAddAccountSheet(flow: flow, fedAssetIds: fedAssetIds) { pendingFocus = $0 }
         })
         .task {
-            // Opening on an empty row focuses it, as the add sheets do.
-            guard let first = flow.accounts.first, first.amountText.isEmpty else { return }
+            // « Ajouter ce que je dois » on step 2 hands over the row to name; otherwise opening on an empty
+            // row focuses it, as the add sheets do.
+            let handed = flow.takeRowToFocus().map(ReconcileAccountField.label)
+            let empty = flow.accounts.first.flatMap { $0.amountText.isEmpty ? $0 : nil }
+            guard let target = handed ?? empty.map({ $0.label.isEmpty ? .label($0.id) : .amount($0.id) })
+            else { return }
             try? await Task.sleep(for: .milliseconds(DesignTokens.Animation.pushAutofocusDelayMs))
             guard !Task.isCancelled else { return }
-            focus = first.label.isEmpty ? .label(first.id) : .amount(first.id)
+            focus = target
         }
     }
 

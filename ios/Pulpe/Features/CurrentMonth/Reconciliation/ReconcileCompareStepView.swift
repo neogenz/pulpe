@@ -15,14 +15,18 @@ struct ReconcileCompareStepView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.amountsHidden) var amountsHidden
-    @Environment(ToastManager.self) private var toastManager
-    @State private var submitSuccessTrigger = false
+    @Environment(ToastManager.self) var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+    @State var submitSuccessTrigger = false
+    @State var editsStartingAmount = false
+    /// Back on the title after a write that moved the figures.
+    @AccessibilityFocusState var isTitleFocused: Bool
     /// The month's items as « Voir les … autres » opened them: a row I check there stays checked until I go back.
     @State private var toCheck: [Suggestion] = []
     @State private var showsToCheck = false
 
-    private var realizedBalance: Decimal { month.realizedMetrics.realizedBalance }
-    private var isStacked: Bool { dynamicTypeSize.isAccessibilitySize }
+    var realizedBalance: Decimal { month.realizedMetrics.realizedBalance }
+    var isStacked: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         Group {
@@ -33,7 +37,8 @@ struct ReconcileCompareStepView: View {
                 failure
             case .loaded:
                 if let comparison = flow.comparison(
-                    realizedBalance: realizedBalance, lines: checking.budgetLines, transactions: checking.transactions
+                    realizedBalance: realizedBalance, lines: checking.budgetLines, transactions: checking.transactions,
+                    payDayOfMonth: userSettingsStore.payDayOfMonth
                 ) {
                     content(comparison)
                 }
@@ -42,6 +47,11 @@ struct ReconcileCompareStepView: View {
         .background(Color.sheetBackground)
         .task { if flow.context == nil { await flow.loadContext() } }
         .navigationDestination(isPresented: $showsToCheck) { toCheckList }
+        .sheet(isPresented: $editsStartingAmount) {
+            ReconcileStartingAmountSheet(amount: flow.context?.startingAmount ?? 0, currency: currency) { amount in
+                Task { await saveStartingAmount(amount) }
+            }
+        }
         .onChange(of: flow.closesToCheckList(realizedBalance: realizedBalance)) { _, closes in
             if closes { showsToCheck = false }
         }
@@ -58,6 +68,9 @@ struct ReconcileCompareStepView: View {
                 case .matched: matchedCard(comparison)
                 case .suggestions: suggestions(comparison)
                 case .smallGap: smallGapCard(gap: comparison.gap)
+                case .firstComparison: firstComparisonCard(gap: comparison.gap)
+                case .salaryEarly: salaryEarlyCard(nextPayDay: comparison.nextPayDay)
+                case .moreOnAccounts where !flow.hasOwedRow: cardQuestion
                 default: EmptyView()
                 }
             }
@@ -103,9 +116,12 @@ struct ReconcileCompareStepView: View {
 
     private func header(_ gap: Decimal) -> some View {
         let amount = gap.absoluteValue.asInlineCurrency(currency)
-        let title = gap < 0 ? AppLocale.string("Tes comptes ont \(amount) de moins que Pulpe")
-            : gap > 0 ? AppLocale.string("Tes comptes ont \(amount) de plus que Pulpe")
-            : AppLocale.string("Pareil des deux côtés")
+        // Hidden amounts keep the verdict in words: a blurred title says nothing at all.
+        let title = gap == 0 ? AppLocale.string("Pareil des deux côtés")
+            : amountsHidden ? (gap < 0 ? AppLocale.string("Tes comptes ont moins d'argent que Pulpe")
+                : AppLocale.string("Tes comptes ont plus d'argent que Pulpe"))
+            : gap < 0 ? AppLocale.string("Tes comptes ont \(amount) de moins que Pulpe")
+            : AppLocale.string("Tes comptes ont \(amount) de plus que Pulpe")
         return VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             stepLabel
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
@@ -119,8 +135,8 @@ struct ReconcileCompareStepView: View {
                     .monospacedDigit()
                     .foregroundStyle(Color.textPrimary)
                     .accessibilityAddTraits(.isHeader)
+                    .accessibilityFocused($isTitleFocused)
                     .accessibilityIdentifier("reconcileVerdict")
-                    .sensitiveAmount(gap != 0)
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -133,9 +149,11 @@ struct ReconcileCompareStepView: View {
             }
             FormRowDivider()
             figureRow(AppLocale.string("Dans Pulpe, déjà coché")) {
-                let now = comparison.compared.asCurrency(currency)
+                // The money from before Pulpe shows apart, on the line below: « 900.00 », « +3 100.00 d'avant Pulpe ».
+                let start = comparison.startingAmount
+                let now = (comparison.compared - start).asCurrency(currency)
                 let before = flow.comparedBeforeChecks
-                    .flatMap { $0 != comparison.compared ? $0.asCurrency(currency) : nil }
+                    .flatMap { $0 != comparison.compared ? ($0 - start).asCurrency(currency) : nil }
                 VStack(alignment: isStacked ? .leading : .trailing, spacing: DesignTokens.Spacing.xxs) {
                     if let before {
                         Text(verbatim: before)
@@ -149,6 +167,7 @@ struct ReconcileCompareStepView: View {
                 .accessibilityLabel(before.map { AppLocale.string("\(now), avant \($0)") } ?? now)
             }
             .accessibilityIdentifier("reconcileComparedFigure")
+            if comparison.startingAmount != 0 { startingAmountLink(comparison.startingAmount) }
             if let found = comparison.found, found > 0 {
                 FormRowDivider()
                 foundBar(found: found, gap: comparison.gap)
@@ -158,7 +177,7 @@ struct ReconcileCompareStepView: View {
 
     /// Stacked at accessibility sizes, so a label never pushes its amount onto two lines.
     func figureRow<Amount: View>(
-        _ title: String, tint: Color = .textPrimary, @ViewBuilder amount: () -> Amount
+        _ title: String, tint: Color = .textPrimary, isEditable: Bool = false, @ViewBuilder amount: () -> Amount
     ) -> some View {
         let layout = isStacked
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
@@ -168,39 +187,22 @@ struct ReconcileCompareStepView: View {
                 .font(PulpeTypography.rowTitleRegular)
                 .foregroundStyle(Color.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            amount()
-                .font(PulpeTypography.rowAmount)
-                .monospacedDigit()
-                .foregroundStyle(tint)
-                .lineLimit(1)
-                .minimumScaleFactor(DesignTokens.TextScale.compact)
-                .layoutPriority(1)
-                .sensitiveAmount()
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                amount()
+                    .font(PulpeTypography.rowAmount)
+                    .monospacedDigit()
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(DesignTokens.TextScale.compact)
+                    .sensitiveAmount()
+                // Outside the blur: with amounts hidden, the row still says it opens.
+                if isEditable { editPencil }
+            }
+            .layoutPriority(1)
         }
         .padding(.vertical, DesignTokens.Spacing.md)
         .frame(minHeight: DesignTokens.ListRow.formRowHeight)
         .accessibilityElement(children: .combine)
-    }
-
-    /// What the checks of this comparison found; what is left is already in the title.
-    private func foundBar(found: Decimal, gap: Decimal) -> some View {
-        let total = found + gap.absoluteValue
-        let progress = total > 0 ? NSDecimalNumber(decimal: found / total).doubleValue : 0
-        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            ZStack(alignment: .leading) {
-                ProgressBarShape(progress: 1).fill(Color.sunk)
-                ProgressBarShape(progress: CGFloat(progress)).fill(Color.pulpePrimary)
-            }
-            .frame(height: DesignTokens.ProgressBar.thickHeight)
-            .accessibilityHidden(true)
-            Text(AppLocale.string("\(found.asInlineCurrency(currency)) trouvés"))
-                .font(PulpeTypography.captionRegular)
-                .monospacedDigit()
-                .foregroundStyle(Color.textSecondary)
-                .sensitiveAmount()
-        }
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .accessibilityIdentifier("reconcileFound")
     }
 }
 
@@ -346,6 +348,13 @@ extension ReconcileCompareStepView {
                 .secondaryButtonStyle()
                 .accessibilityIdentifier("reconcileDismissSuggestions")
                 leaveButton(AppLocale.string("Laisser comme ça"), isEnabled: canFinish)
+            case .firstComparison:
+                firstComparisonActions(canFinish: canFinish)
+            case .salaryEarly:
+                Button(AppLocale.string("Laisser comme ça"), action: finish)
+                    .disabled(!canFinish)
+                    .primaryButtonStyle(isEnabled: canFinish)
+                    .accessibilityIdentifier("reconcileLeaveButton")
             case .smallGap:
                 entryButton(gap: gap, answersYes: false)
                 availableNote(gap: gap)
@@ -382,7 +391,7 @@ extension ReconcileCompareStepView {
         return AppLocale.string("Tu vois \(signed) dans l'app de ta banque, mais pas dans Pulpe ?")
     }
 
-    private func leaveButton(_ title: String, isEnabled: Bool) -> some View {
+    func leaveButton(_ title: String, isEnabled: Bool) -> some View {
         Button(title, action: finish)
             .disabled(!isEnabled)
             .tertiaryButtonStyle()
@@ -449,7 +458,7 @@ extension ReconcileCompareStepView {
     /// A refusal keeps everything: one toast, then the same button retries.
     private func submitEntry() async {
         switch await flow.submitAdjustment(realizedBalance: realizedBalance, of: month.budgetId) {
-        case .created:
+        case .written:
             submitSuccessTrigger.toggle()
             toastManager.show(AppLocale.string("« Écart avec mes comptes » noté"))
             dismiss()

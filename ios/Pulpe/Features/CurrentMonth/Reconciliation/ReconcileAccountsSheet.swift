@@ -95,14 +95,13 @@ struct ReconcileAccountsSheet: View {
             entryName: AppLocale.string("Écart avec mes comptes"),
             createTransaction: dependencies.createTransaction,
             fetchContext: { try await ReconciliationService.shared.getContext(budgetId: $0) },
+            updateState: { try await ReconciliationService.shared.updateState($0) },
             onAdjustmentCreated: onAdjustmentCreated,
             onCompleted: { completion in
                 AnalyticsService.shared.capture(
                     .accountReconciliationCompleted,
                     properties: completion.analyticsProperties
                 )
-                // Only « first comparison » reads it: a refusal costs that screen once more, nothing else.
-                Task { try? await ReconciliationService.shared.updateState(.init(completed: true)) }
             },
             netWorthAccounts: netWorthAccounts,
             freeAccounts: freeAccounts,
@@ -146,13 +145,13 @@ struct ReconcileAccountsSheet: View {
                                 .accessibilityAddTraits(.isHeader)
                         }
                         ToolbarItem(placement: .cancellationAction) {
-                            leadingButton.disabled(flow.isSubmitting || flow.isChecking)
+                            leadingButton.disabled(flow.isWriting || flow.isChecking)
                         }
                         ToolbarItem(placement: .topBarTrailing) {
                             Button { guideSource = .help } label: {
                                 Image(systemName: "questionmark.circle")
                             }
-                            .disabled(flow.isSubmitting || flow.isChecking)
+                            .disabled(flow.isWriting || flow.isChecking)
                             .accessibilityLabel(AppLocale.string("Revoir le guide"))
                             .accessibilityIdentifier("reconcileGuideHelp")
                         }
@@ -160,9 +159,9 @@ struct ReconcileAccountsSheet: View {
             }
         }
         .standardSheetPresentation()
-        // Nothing leaves the sheet while a write or a check is in flight, nor while a replayed guide hides
-        // typed amounts.
-        .interactiveDismissDisabled(flow.isSubmitting || flow.isChecking || guideSource == .help)
+        // Nothing leaves the sheet while a write or a check is in flight, nor by a swipe once a balance is
+        // typed: a swipe meant to lower the keyboard would throw them away. The close button still leaves.
+        .interactiveDismissDisabled(flow.isWriting || flow.isChecking || flow.hasTypedBalance || guideSource == .help)
         .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, shouldClose in
             if shouldClose { dismiss() }
         }
@@ -209,5 +208,6 @@ struct ReconcileAccountsSheet: View {
             .environment(ToastManager())
             .environment(UserSettingsStore())
             .environment(AssetStore())
+            .environment(AppState())
         }
 }
