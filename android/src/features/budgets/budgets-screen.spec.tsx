@@ -223,7 +223,9 @@ it("reads the month in progress first, then the ones ahead, and opens a month", 
   expect(view.getByText(/^budgets\.list\.upcoming/)).toBeTruthy();
   // The year closes on its last month's remaining.
   expect(
-    view.getByLabelText(/budgets\.list\.yearBalance:\{"year":2026\} \+300/),
+    view.getByLabelText(
+      /budgets\.list\.yearBalance:\{"year":2026\} 300\.00 CHF$/,
+    ),
   ).toBeTruthy();
   // The count is the verdict's to say; the only bar left is the current month's.
   expect(

@@ -22,12 +22,9 @@ import {
   invalidateUserSettings,
   useUserSettings,
 } from "@/core/user-settings/user-settings-queries";
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import {
-  areAmountsHidden,
-  useAmountMasking,
-} from "@/core/ui/amount-visibility";
-import {
-  formatCompactAmount,
+  formatAmount,
   formatSignedAdaptiveCurrency,
 } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
@@ -94,6 +91,7 @@ export default function BudgetsScreen() {
   // itself lives in the formatters.
   useAmountMasking();
   const theme = useTheme();
+  const financial = useFinancialColors();
   const { locale, t } = useTranslation();
   const navigationResult = useLocalSearchParams<{
     createdCount?: string;
@@ -306,8 +304,15 @@ export default function BudgetsScreen() {
                   : "budgets.list.yearBalance",
                 { year },
               )}
-              amount={signedCompact(recap.closingBalance, currency)}
+              // The full amount, unsigned and red below zero, as on iOS: it is
+              // money the year leaves, not a variation.
+              amount={formatAmount(recap.closingBalance, currency)}
               currency={CURRENCY_METADATA[currency].symbol}
+              tint={
+                Math.round(recap.closingBalance * 100) < 0
+                  ? financial.overBudget
+                  : undefined
+              }
             />
             {/* No progress bar for the month count: the current month's row
                 carries the screen's only bar, the money spent, and two bars
@@ -535,12 +540,6 @@ function navigationCount(value: unknown): number | null {
   if (typeof value !== "string") return null;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
-}
-
-function signedCompact(value: number, currency: SupportedCurrency): string {
-  if (areAmountsHidden()) return formatCompactAmount(value, currency);
-  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-  return `${sign}${formatCompactAmount(Math.abs(value), currency)}`;
 }
 
 function capitalized(value: string, locale: string): string {
