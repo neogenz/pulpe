@@ -36,6 +36,7 @@ import {
 } from "@/features/budgets/budget-queries";
 import { hasAvailableMonth } from "@/features/budgets/available-months";
 import { latestMovements } from "@/features/current-month/activity-window";
+import { CalculationSheet } from "@/features/current-month/components/calculation-sheet";
 import { HomeNoBudgetView } from "@/features/current-month/components/home-no-budget-view";
 import { HomeStartCard } from "@/features/current-month/components/home-start-card";
 import { HomeTodoCard } from "@/features/current-month/components/home-todo-card";
@@ -56,7 +57,6 @@ import {
   recapSubtitle,
   type MonthRecap,
 } from "@/features/current-month/month-recap";
-import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { ReconcileAccountsSheet } from "@/features/current-month/components/reconcile-accounts-sheet";
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
 import {
@@ -80,7 +80,7 @@ export default function HomeScreen() {
   const { locale, t } = useTranslation();
   const currentMonth = useCurrentMonth();
   const pull = usePullToRefresh(() => currentMonth.refresh());
-  const [isRealizedVisible, setRealizedVisible] = useState(false);
+  const [isCalculationVisible, setCalculationVisible] = useState(false);
   // Captured when the reconciliation opens, so each opening holds the budget
   // loaded at that moment — never one loaded later under the open sheet.
   const [reconcileBudgetId, setReconcileBudgetId] = useState<string | null>(
@@ -153,7 +153,7 @@ export default function HomeScreen() {
     isBlocked:
       !isFocused ||
       isAddVisible ||
-      isRealizedVisible ||
+      isCalculationVisible ||
       isRecapOpen ||
       reconcileBudgetId !== null ||
       editor.isOpen ||
@@ -438,7 +438,7 @@ export default function HomeScreen() {
               period={period}
               currency={currency}
               startsFresh={isFirstMonthStart}
-              onPressCalculation={() => setRealizedVisible(true)}
+              onPressCalculation={() => setCalculationVisible(true)}
             />
           </HeroZone>
 
@@ -550,7 +550,7 @@ export default function HomeScreen() {
           one FAB that names itself. Hidden while a sheet is up, where it would
           sit over the form it just opened. */}
         {!isAddVisible &&
-          !isRealizedVisible &&
+          !isCalculationVisible &&
           !isRecapOpen &&
           reconcileBudgetId === null &&
           !editor.isOpen &&
@@ -566,19 +566,24 @@ export default function HomeScreen() {
             />
           )}
 
-        {/* The realized balance hands over to the reconciliation rather than
+        {/* The calculation hands over to the reconciliation rather than
           stacking a second modal on itself: one sheet at a time. */}
-        <RealizedBalanceSheet
-          isVisible={isRealizedVisible}
-          onDismiss={() => setRealizedVisible(false)}
-          metrics={viewModel.metrics}
-          realized={viewModel.realized}
+        <CalculationSheet
+          isVisible={isCalculationVisible}
+          onDismiss={() => setCalculationVisible(false)}
+          viewModel={viewModel}
+          presentation={presentation}
+          budgetLines={currentMonth.details?.budgetLines ?? []}
+          transactions={transactions}
           currency={currency}
+          month={month}
+          year={year}
+          periodEnd={period.endDate}
           onReconcile={
             loadedMonth === null
               ? undefined
               : () => {
-                  setRealizedVisible(false);
+                  setCalculationVisible(false);
                   setReconcileBudgetId(loadedMonth.details.budget.id);
                 }
           }

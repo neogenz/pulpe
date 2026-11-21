@@ -1111,6 +1111,28 @@
       "savings": "Épargne prévue",
       "available": "Disponible à dépenser",
       "otherTemplate": "Partir d'un autre modèle"
+    },
+    "calculation": {
+      "available": "Disponible à dépenser en %{month}",
+      "total": "Disponible à dépenser",
+      "incomeUnplanned": "Revenus sans prévision",
+      "expenses": "Dépenses prévues",
+      "expensesCaption": "Le plus haut entre prévu et dépensé",
+      "expenseUnplanned": "Sans prévision",
+      "savings": "Épargne prévue",
+      "plan": "Par rapport à ton plan",
+      "gap": "Écart au plan",
+      "plannedAtStart": "Prévu au départ : %{amount}",
+      "checkedBalance": "Ton solde pointé : %{amount}, ce que donnent tes mouvements pointés.",
+      "compare": "Comparer avec mes comptes",
+      "list": {
+        "two": "%{first} et %{second}",
+        "three": "%{first}, %{second} et %{third}",
+        "more": {
+          "one": "%{first}, %{second} et %{count} autre",
+          "other": "%{first}, %{second} et %{count} autres"
+        }
+      }
     }
   },
   "main": {
