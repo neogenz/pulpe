@@ -46,17 +46,28 @@ private struct CapsuleButtonBody: View {
     let fill: Color
     let foreground: Color
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
+        // Accessibility sizes: the label wraps and the button grows with it instead of cutting it
+        // off; a capsule that tall would eat the corners of the text, so it rounds like a card.
+        let grows = dynamicTypeSize.isAccessibilitySize
+        let shape = grows
+            ? AnyShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card))
+            : AnyShape(Capsule())
         configuration.label
             .font(size.font)
-            .padding(.horizontal, size.horizontalPadding)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, grows ? DesignTokens.Spacing.lg : size.horizontalPadding)
+            .padding(.vertical, grows ? DesignTokens.Spacing.sm : DesignTokens.Spacing.none)
             .frame(maxWidth: size == .regular ? .infinity : nil)
-            .frame(height: size.height)
+            .frame(minHeight: grows ? size.height : nil)
+            .frame(height: grows ? nil : size.height)
             .foregroundStyle(foreground)
-            .background(fill, in: Capsule())
+            .background(fill, in: shape)
             // The visual stays 40pt for the small variant; the hit area never drops below 44.
             .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Capsule())
+            .contentShape(shape)
             .modifier(PulpePressFeedback(isPressed: configuration.isPressed))
     }
 }
@@ -101,6 +112,7 @@ struct TertiaryButtonStyle: ButtonStyle {
         configuration.label
             .font(PulpeTypography.buttonPrimary)
             .foregroundStyle(Color.pulpePrimary)
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .frame(minHeight: DesignTokens.TapTarget.minimum)
             .contentShape(Rectangle())
