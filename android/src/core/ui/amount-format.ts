@@ -30,6 +30,8 @@ const FOREIGN_GROUPING_SEPARATORS = /['\u0020\u00A0\u202F\u2009]/g;
 const FULL_DIGITS = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 const WHOLE_DIGITS = { minimumFractionDigits: 0, maximumFractionDigits: 0 };
 
+const HALF_CENTIME = 0.005;
+
 const formatters = new Map<string, Intl.NumberFormat>();
 
 /** `1’234.56 CHF` — the full amount, decimals included. */
@@ -143,10 +145,10 @@ function format(
   currency: SupportedCurrency,
   digits: Intl.NumberFormatOptions,
 ): string {
-  // Float sums leave residues such as 0.3 - 0.1 - 0.2 = -2.8e-17, and Intl
-  // prints any negative that rounds to nothing as "-0"; iOS's Decimal reads 0.
-  const unit = 10 ** -(digits.maximumFractionDigits ?? 0);
-  const shown = Math.abs(value) < unit / 2 ? 0 : value;
+  // Float sums leave residues such as 0.3 - 0.1 - 0.2 = -2.8e-17, which Intl
+  // prints "-0"; iOS's Decimal reads 0. Only what is zero to the centime: a
+  // real -0.40 deficit keeps its sign, even rounded to the unit.
+  const shown = Math.abs(value) < HALF_CENTIME ? 0 : value;
   const formatted = formatterFor(currency, digits).format(shown);
   return currency === "CHF"
     ? formatted.replace(FOREIGN_GROUPING_SEPARATORS, SWISS_GROUPING_SEPARATOR)
