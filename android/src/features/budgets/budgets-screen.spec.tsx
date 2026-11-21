@@ -233,7 +233,9 @@ it("reads the month in progress first, then the ones ahead, and opens a month", 
   ).toBeTruthy();
   expect(view.queryByText("3 / 12")).toBeNull();
   // The month in progress carries the budget page's consumption: 500 of 1000.
-  expect(view.getByText("50 %")).toBeTruthy();
+  expect(
+    view.getByText(`budgets.list.usage:${JSON.stringify({ percent: 50 })}`),
+  ).toBeTruthy();
 
   await fireEvent.press(view.getByTestId("budget-row-budget-2026-10"));
   expect(router.push).toHaveBeenCalledWith("/budget/budget-2026-10");

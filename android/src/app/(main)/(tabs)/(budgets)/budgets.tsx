@@ -53,6 +53,7 @@ import {
   TABULAR_DIGITS,
   TOUCH_TARGET,
 } from "@/core/ui/theme";
+import type { translate } from "@/core/i18n/i18n";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import {
@@ -569,7 +570,7 @@ function BudgetRow({
   payDayOfMonth: number | null;
   timing: BudgetTiming;
   locale: string;
-  t: (key: string) => string;
+  t: typeof translate;
 }) {
   const theme = useTheme();
   const financial = useFinancialColors();
@@ -675,7 +676,9 @@ function BudgetRow({
             variant="labelMedium"
             style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
           >
-            {`${Math.round(usagePercentage)} %`}
+            {t("budgets.list.usage", {
+              percent: Math.round(Math.max(usagePercentage, 0)),
+            })}
           </Text>
         </View>
       )}

@@ -387,6 +387,7 @@
       "loadErrorTitle": "Non è stato possibile caricare i tuoi budget",
       "planAccessibility": "Pianifica più budget",
       "title": "Budget",
+      "usage": "%{percent}% impegnato",
       "yearBalance": "Saldo di fine anno %{year}",
       "yearReview": "Bilancio %{year}",
       "verdict": {

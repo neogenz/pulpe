@@ -387,6 +387,7 @@
       "loadErrorTitle": "Deine Budgets konnten nicht geladen werden",
       "planAccessibility": "Mehrere Budgets planen",
       "title": "Budgets",
+      "usage": "%{percent} % verplant",
       "yearBalance": "Saldo zum Jahresende %{year}",
       "yearReview": "Bilanz %{year}",
       "verdict": {

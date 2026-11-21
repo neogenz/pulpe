@@ -387,6 +387,7 @@
       "loadErrorTitle": "We couldn't load your budgets",
       "planAccessibility": "Plan multiple budgets",
       "title": "Budgets",
+      "usage": "%{percent}% committed",
       "yearBalance": "Year-end balance %{year}",
       "yearReview": "Summary %{year}",
       "verdict": {
