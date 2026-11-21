@@ -582,6 +582,7 @@ export default function HomeScreen() {
           currency={currency}
           month={month}
           year={year}
+          budgets={budgets.data ?? []}
           periodEnd={period.endDate}
           onReconcile={
             loadedMonth === null
@@ -599,6 +600,7 @@ export default function HomeScreen() {
             onDismiss={() => setRecapOpen(false)}
             recap={shownRecap}
             currency={currency}
+            budgets={budgets.data ?? []}
             onAcknowledge={() => {
               setRecapOpen(false);
               acknowledgeMonthRecap(shownRecap.key);

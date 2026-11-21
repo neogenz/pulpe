@@ -1,4 +1,9 @@
-import type { BudgetLine, SupportedCurrency, Transaction } from "pulpe-shared";
+import type {
+  BudgetLine,
+  BudgetSparse,
+  SupportedCurrency,
+  Transaction,
+} from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
@@ -19,7 +24,7 @@ import {
   type HeroPresentation,
   rhythmSentence,
 } from "../home-hero-presentation";
-import { elidedKey } from "../month-recap";
+import { reportTitle } from "../month-recap";
 
 interface CalculationSheetProps {
   isVisible: boolean;
@@ -32,6 +37,8 @@ interface CalculationSheetProps {
   currency: SupportedCurrency;
   month: number;
   year: number;
+  /** Names the report after the budget it comes from. */
+  budgets: BudgetSparse[];
   periodEnd: Date;
   /** « Comparer avec mes comptes », offered once the month's budget is loaded. */
   onReconcile?: () => void;
@@ -53,6 +60,7 @@ export function CalculationSheet({
   currency,
   month,
   year,
+  budgets,
   periodEnd,
   onReconcile,
 }: CalculationSheetProps) {
@@ -63,33 +71,18 @@ export function CalculationSheet({
   const { metrics, realized, trajectory } = viewModel;
   const formula = (value: number) => formulaAmount(value, currency, areHidden);
 
-  const previousName = formatMonthName(
-    month === 1 ? 12 : month - 1,
-    month === 1 ? year - 1 : year,
-    locale,
-  );
   const rows = calculationRows(t, {
     budgetLines,
     transactions,
     rollover: metrics.rollover,
-    reportTitle: t(elidedKey("home.recap.report", previousName), {
-      month: previousName,
-    }),
+    reportTitle: reportTitle(t, locale, { month, year }, budgets),
   });
 
   const gap = toCents(presentation.variance) / 100;
   const causes =
     gap < 0
-      ? gapCauses(
-          t,
-          viewModel.driftLines.map(({ line, consumption }) => ({
-            name: line.name,
-            overrun: -consumption.available,
-          })),
-          transactions.filter(
-            (tx) => tx.budgetLineId == null && tx.kind === "expense",
-          ),
-          (value) => formatAmount(value, currency),
+      ? gapCauses(t, budgetLines, transactions, (value) =>
+          formatAmount(value, currency),
         )
       : null;
   const rhythm =
