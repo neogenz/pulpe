@@ -143,12 +143,5 @@ describe("matchingSections", () => {
         "दवा",
       ).margin,
     ).toEqual([]);
-    // Optional marks over a letter go, as they did in the movements search.
-    expect(
-      matchingSections(
-        lineSections([line("mecca", { name: "مكّة" })], [], "expense"),
-        "مكة",
-      ).margin.map((l) => l.id),
-    ).toEqual(["mecca"]);
   });
 });

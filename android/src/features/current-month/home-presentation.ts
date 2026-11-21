@@ -10,7 +10,6 @@ import type {
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth, formatRelativeDay } from "@/core/ui/date-format";
 import { recurrenceLabel } from "@/core/ui/vocabulary";
-import { foldedForSearch } from "@/features/tags/tag-selection";
 
 import type { PeriodProgress } from "./current-month-view-model";
 
@@ -199,6 +198,13 @@ export function countMovements(
     .length;
 }
 
+function fold(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
 /**
  * What survives the chip and the search. The search reads the movement's own
  * name and the name of its forecast, ignoring case and accents.
@@ -209,7 +215,7 @@ export function filterMovements(
   transactions: Transaction[],
   lineNames: ReadonlyMap<string, string>,
 ): Transaction[] {
-  const needle = foldedForSearch(query.trim());
+  const needle = fold(query.trim());
   return transactions.filter((transaction) => {
     if (!keeps(filter, transaction)) return false;
     if (needle === "") return true;
@@ -217,6 +223,6 @@ export function filterMovements(
       transaction.budgetLineId === null
         ? ""
         : (lineNames.get(transaction.budgetLineId) ?? "");
-    return foldedForSearch(`${transaction.name}\n${lineName}`).includes(needle);
+    return fold(`${transaction.name}\n${lineName}`).includes(needle);
   });
 }
