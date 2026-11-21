@@ -16,9 +16,12 @@ struct ReconcileCompareStepView: View {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.amountsHidden) var amountsHidden
     @Environment(ToastManager.self) var toastManager
-    @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(UserSettingsStore.self) var userSettingsStore
     @State var submitSuccessTrigger = false
     @State var editsStartingAmount = false
+    /// What « Voir les autres raisons » opened on, and what that sheet answered once closed.
+    @State var reasons: ReasonsRequest?
+    @State var reasonAnswer: (choice: ReconcileReasonsSheet.Choice, request: ReasonsRequest)?
     /// Back on the title after a write that moved the figures.
     @AccessibilityFocusState var isTitleFocused: Bool
     /// The month's items as « Voir les … autres » opened them: a row I check there stays checked until I go back.
@@ -47,6 +50,7 @@ struct ReconcileCompareStepView: View {
         .background(Color.sheetBackground)
         .task { if flow.context == nil { await flow.loadContext() } }
         .navigationDestination(isPresented: $showsToCheck) { toCheckList }
+        .sheet(item: $reasons, onDismiss: actOnReason) { reasonsSheet($0) }
         .sheet(isPresented: $editsStartingAmount) {
             ReconcileStartingAmountSheet(amount: flow.context?.startingAmount ?? 0, currency: currency) { amount in
                 Task { await saveStartingAmount(amount) }
@@ -54,6 +58,10 @@ struct ReconcileCompareStepView: View {
         }
         .onChange(of: flow.closesToCheckList(realizedBalance: realizedBalance)) { _, closes in
             if closes { showsToCheck = false }
+        }
+        // The comparison closes under the sheets it opened: they go with it.
+        .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, closes in
+            if closes { reasons = nil; editsStartingAmount = false }
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
@@ -349,12 +357,9 @@ extension ReconcileCompareStepView {
                 .accessibilityIdentifier("reconcileDismissSuggestions")
                 leaveButton(AppLocale.string("Laisser comme ça"), isEnabled: canFinish)
             case .firstComparison:
-                firstComparisonActions(canFinish: canFinish)
+                firstComparisonActions(gap: gap, canFinish: canFinish)
             case .salaryEarly:
-                Button(AppLocale.string("Laisser comme ça"), action: finish)
-                    .disabled(!canFinish)
-                    .primaryButtonStyle(isEnabled: canFinish)
-                    .accessibilityIdentifier("reconcileLeaveButton")
+                salaryEarlyActions(gap: gap, canFinish: canFinish)
             case .smallGap:
                 entryButton(gap: gap, answersYes: false)
                 availableNote(gap: gap)
@@ -438,6 +443,7 @@ extension ReconcileCompareStepView {
         let before = note.before.asInlineCurrency(currency), after = note.after.asInlineCurrency(currency)
         return Text(AppLocale.string("Disponible : \(before) → \(after)"))
             .font(PulpeTypography.captionRegular)
+            .multilineTextAlignment(.center)
             .monospacedDigit()
             .foregroundStyle(Color.textSecondary)
             .sensitiveAmount()
@@ -457,7 +463,11 @@ extension ReconcileCompareStepView {
 
     /// A refusal keeps everything: one toast, then the same button retries.
     private func submitEntry() async {
-        switch await flow.submitAdjustment(realizedBalance: realizedBalance, of: month.budgetId) {
+        report(entry: await flow.submitAdjustment(realizedBalance: realizedBalance, of: month.budgetId))
+    }
+
+    func report(entry outcome: ReconcileAccountsFlow.SubmitOutcome) {
+        switch outcome {
         case .written:
             submitSuccessTrigger.toggle()
             toastManager.show(AppLocale.string("« Écart avec mes comptes » noté"))
@@ -469,7 +479,7 @@ extension ReconcileCompareStepView {
         }
     }
 
-    private func finish() {
+    func finish() {
         guard flow.finishWithoutEntry(of: month.budgetId) else { return }
         submitSuccessTrigger.toggle()
         dismiss()

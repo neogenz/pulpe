@@ -176,6 +176,44 @@ struct ReconcilePositiveGapTests {
         #expect(server.updates.count == 1)
     }
 
+    // MARK: - Other reasons
+
+    @Test("other reasons keep their order, drop what cannot be the cause, and stop at three")
+    func reasons_orderConditionsAndCap() {
+        typealias Sheet = ReconcileReasonsSheet
+        #expect(Sheet.reasons(hasOwedRow: false, hasPartlySpent: true) == [.card, .partlySpent, .income])
+        #expect(Sheet.reasons(hasOwedRow: false, hasPartlySpent: false) == [.card, .income, .savings])
+        #expect(Sheet.reasons(hasOwedRow: true, hasPartlySpent: true) == [.partlySpent, .income, .savings])
+        #expect(Sheet.reasons(hasOwedRow: true, hasPartlySpent: false) == [.income, .savings])
+    }
+
+    @Test("« Noter un revenu » from the reasons writes nothing once a synced item turned the same gap into suggestions")
+    func reasonIncome_screenMoved_writesNothing() async throws {
+        let server = StateServer()
+        let flow = await makeComparingFlow(server: server, today: try day(2026, 11, 23))
+        let opened = try #require(
+            flow.comparison(realizedBalance: 1050, lines: [], transactions: [], payDayOfMonth: 25)
+        )
+        #expect(opened.screen == .salaryEarly)
+
+        // A 6 000.00 income, unchecked, synced while the sheet was open: same gap, suggestions again.
+        let prime = TestDataFactory.createTransaction(id: "prime", name: "Prime", amount: 6000, kind: .income)
+        let moved = flow.comparison(realizedBalance: 1050, lines: [], transactions: [prime], payDayOfMonth: 25)
+        #expect(moved?.gap == opened.gap)
+        #expect(moved?.screen == .suggestions)
+        let outcome = await flow.submitReasonIncome(
+            gap: opened.gap, screen: .salaryEarly, current: moved, realizedBalance: 1050, of: "budget-current"
+        )
+        #expect(outcome == .ignored)
+        #expect(server.creates == 0)
+
+        let same = await flow.submitReasonIncome(
+            gap: opened.gap, screen: .salaryEarly, current: opened, realizedBalance: 1050, of: "budget-current"
+        )
+        #expect(same == .failed)
+        #expect(server.creates == 1)
+    }
+
     // MARK: - Helpers
 
     /// 7 050.00 typed against a realized 1 050.00: accounts 6 000.00 above Pulpe, no suggestion.
@@ -192,7 +230,7 @@ struct ReconcilePositiveGapTests {
         let flow = ReconcileAccountsFlow(
             budgetId: "budget-current",
             entryName: "Écart avec mes comptes",
-            createTransaction: { _ in throw CancellationError() },
+            createTransaction: { _ in try await server.create() },
             fetchContext: { _ in try await server.read() },
             updateState: { try await server.write($0) },
             onAdjustmentCreated: { _ in },
@@ -223,6 +261,14 @@ private final class StateServer {
 
     init(_ context: ReconciliationContext = TestDataFactory.createReconciliationContext()) {
         self.context = context
+    }
+
+    /// Counts the entries asked for, then refuses them: what matters is whether one was asked.
+    private(set) var creates = 0
+
+    func create() throws -> Transaction {
+        creates += 1
+        throw URLError(.notConnectedToInternet)
     }
 
     func read() throws -> ReconciliationContext {

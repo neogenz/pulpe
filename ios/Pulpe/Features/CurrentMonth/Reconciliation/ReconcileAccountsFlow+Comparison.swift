@@ -152,6 +152,17 @@ extension ReconcileAccountsFlow {
         return (isEarly, calendar.component(.day, from: start))
     }
 
+    /// « Noter un revenu » from the reasons sheet answers what the sheet was opened on: the same gap on the same
+    /// screen. A matching item synced meanwhile keeps the gap but brings the suggestions back; then nothing is
+    /// written and the updated step shows.
+    func submitReasonIncome(
+        gap: Decimal, screen: AccountReconciliation.Screen, current: Comparison?,
+        realizedBalance: Decimal, of loadedBudgetId: String
+    ) async -> SubmitOutcome {
+        guard gap > 0, let current, current.gap == gap, current.screen == screen else { return .ignored }
+        return await submitAdjustment(realizedBalance: realizedBalance, of: loadedBudgetId)
+    }
+
     private func found(compared: Decimal, totalCents: Int) -> Decimal? {
         comparedBeforeChecks.map {
             AccountReconciliation.gapClosedByChecks(
