@@ -882,6 +882,67 @@ test.describe('Savings goal optional interval (PUL-314)', () => {
     await dialog.getByTestId('savings-goal-save').click();
     await expect.poll(() => writeCount).toBe(1);
   });
+
+  test('suggests the monthly amount left to save once the deadline is picked', async ({
+    authenticatedPage: page,
+  }) => {
+    let createPayload: Record<string, unknown> | null = null;
+    await page.route(/\/api\/v1\/savings-goals(?:\?.*)?$/, (route) => {
+      if (route.request().method() !== 'POST') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [] }),
+        });
+      }
+      createPayload = route.request().postDataJSON() as Record<string, unknown>;
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: '00000000-0000-4000-a000-000000000315',
+            userId: USER_ID,
+            name: createPayload['name'],
+            startDate: null,
+            targetAmount: createPayload['targetAmount'],
+            targetDate: createPayload['targetDate'],
+            status: 'ACTIVE',
+            initialAmount: createPayload['initialAmount'],
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        }),
+      });
+    });
+
+    await page.goto('/savings-goals');
+    await page.getByTestId('create-savings-goal-button').click();
+    const dialog = page.getByTestId('savings-goal-form-dialog');
+    await dialog.getByTestId('savings-goal-name').fill('Voyage');
+    await dialog.getByTestId('savings-goal-target-amount').fill('2400');
+    await dialog.getByTestId('savings-goal-initial-amount').fill('600');
+    // The deadline field is read-only: only the calendar sets it. Three
+    // months including this one (pay day unset): (2'400 − 600) ÷ 3 = 600.
+    await pickFutureDate(page, dialog, 'savings-goal-target-date', 2);
+
+    await expect(
+      dialog.getByTestId('savings-goal-decompose-toggle').getByRole('switch'),
+    ).toBeChecked();
+    await expect(
+      dialog.getByTestId('savings-goal-monthly-contribution'),
+    ).toHaveValue('600');
+    await expect(dialog.getByTestId('savings-goal-save')).toBeEnabled();
+
+    await dialog.getByTestId('savings-goal-save').click();
+    await expect.poll(() => createPayload).not.toBeNull();
+    expect(createPayload).toMatchObject({
+      targetAmount: 2400,
+      initialAmount: 600,
+      monthlyContribution: 600,
+    });
+  });
 });
 
 test.describe('Savings goal deadline reconciliation (PUL-313)', () => {
