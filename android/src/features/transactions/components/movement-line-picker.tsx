@@ -55,14 +55,16 @@ export function MovementLinePicker({
   const hasMatch =
     shown.margin.length + shown.over.length + shown.others.length > 0;
 
-  // Always laid out, only shown when picked, so a row never shifts on selection.
+  // A blank of the icon's size when not picked, so a row never shifts on
+  // selection. Not a "transparent" glyph: Android still draws one.
   function check(isSelected: boolean, testID: string) {
+    if (!isSelected) return <View style={styles.checkSlot} />;
     return (
       <MaterialCommunityIcons
         testID={testID}
         name="check"
         size={ICON_SIZE.md}
-        color={isSelected ? v2.accentInk : "transparent"}
+        color={v2.accentInk}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       />
@@ -173,6 +175,8 @@ export function MovementLinePicker({
         value={query}
         onChangeText={setQuery}
         placeholder={t("budgets.mutations.activity.picker.search")}
+        searchAccessibilityLabel={t("budgets.mutations.activity.picker.search")}
+        clearAccessibilityLabel={t("common.clear")}
       />
       <Pressable
         testID="movement-picker-unplanned"
@@ -225,6 +229,7 @@ export function MovementLinePicker({
 }
 
 const styles = StyleSheet.create({
+  checkSlot: { width: ICON_SIZE.md, height: ICON_SIZE.md },
   page: { gap: SPACING.md },
   section: { gap: SPACING.sm },
   card: { borderRadius: RADIUS.card, overflow: "hidden" },

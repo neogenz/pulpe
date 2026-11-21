@@ -45,11 +45,16 @@ export function tagsMatching(query: string, tags: Tag[]): Tag[] {
   return tags.filter((tag) => foldedForSearch(tag.name).includes(needle));
 }
 
+/**
+ * Case-, accent- and compatibility-insensitive, like iOS's localized search:
+ * « epicerie » finds « Épicerie », « strasse » « Straße », « fleurs » « ﬂeurs ».
+ */
 export function foldedForSearch(text: string): string {
   return text
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase();
+    .normalize("NFKD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase()
+    .replace(/ß/g, "ss");
 }
 
 /** Case-insensitive, because the backend treats "Courses" and "courses" alike. */

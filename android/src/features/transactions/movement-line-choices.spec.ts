@@ -123,4 +123,22 @@ describe("matchingSections", () => {
       "rent",
     ]);
   });
+
+  it("folds ß and ligatures like iOS's search", () => {
+    const folded = lineSections(
+      [
+        line("tram", { name: "Straßenbahn" }),
+        line("flowers", { name: "ﬂeurs" }),
+      ],
+      [],
+      "expense",
+    );
+
+    expect(matchingSections(folded, "strasse").margin.map((l) => l.id)).toEqual(
+      ["tram"],
+    );
+    expect(matchingSections(folded, "fleurs").margin.map((l) => l.id)).toEqual([
+      "flowers",
+    ]);
+  });
 });

@@ -93,17 +93,13 @@ describe("MovementLinePicker selection", () => {
     const view = await renderPicker(jest.fn(), "rent");
     // The icon is hidden from screen readers: the radio's checked state speaks.
     const checkOf = (id: string) =>
-      view.getByTestId(`movement-picker-check-${id}`, {
+      view.queryByTestId(`movement-picker-check-${id}`, {
         includeHiddenElements: true,
       });
 
-    expect(checkOf("rent")).not.toHaveStyle({
-      color: "transparent",
-    });
+    expect(checkOf("rent")).not.toBeNull();
     for (const id of ["food", "phone", "unplanned"]) {
-      expect(checkOf(id)).toHaveStyle({
-        color: "transparent",
-      });
+      expect(checkOf(id)).toBeNull();
     }
   });
 });
