@@ -22,12 +22,10 @@ import {
   invalidateUserSettings,
   useUserSettings,
 } from "@/core/user-settings/user-settings-queries";
+import { useFabOnScroll } from "@/core/ui/fab-on-scroll";
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import {
-  areAmountsHidden,
-  useAmountMasking,
-} from "@/core/ui/amount-visibility";
-import {
-  formatCompactAmount,
+  formatAmount,
   formatSignedAdaptiveCurrency,
 } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
@@ -53,6 +51,7 @@ import {
   TABULAR_DIGITS,
   TOUCH_TARGET,
 } from "@/core/ui/theme";
+import type { translate } from "@/core/i18n/i18n";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import {
@@ -93,7 +92,9 @@ export default function BudgetsScreen() {
   // itself lives in the formatters.
   useAmountMasking();
   const theme = useTheme();
+  const financial = useFinancialColors();
   const { locale, t } = useTranslation();
+  const fab = useFabOnScroll();
   const navigationResult = useLocalSearchParams<{
     createdCount?: string;
     skippedCount?: string;
@@ -288,6 +289,7 @@ export default function BudgetsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}
+          {...fab.scrollProps}
           refreshControl={<RefreshControl {...pull} />}
         >
           <HeroZone>
@@ -305,8 +307,15 @@ export default function BudgetsScreen() {
                   : "budgets.list.yearBalance",
                 { year },
               )}
-              amount={signedCompact(recap.closingBalance, currency)}
+              // The full amount, unsigned and red below zero, as on iOS: it is
+              // money the year leaves, not a variation.
+              amount={formatAmount(recap.closingBalance, currency)}
               currency={CURRENCY_METADATA[currency].symbol}
+              tint={
+                Math.round(recap.closingBalance * 100) < 0
+                  ? financial.overBudget
+                  : undefined
+              }
             />
             {/* No progress bar for the month count: the current month's row
                 carries the screen's only bar, the money spent, and two bars
@@ -386,6 +395,7 @@ export default function BudgetsScreen() {
           newcomer actually is. */}
       <FAB
         testID="budgets-create"
+        visible={fab.isFabVisible}
         icon="plus"
         style={styles.fab}
         onPress={() => router.push("/budget/create")}
@@ -536,12 +546,6 @@ function navigationCount(value: unknown): number | null {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
-function signedCompact(value: number, currency: SupportedCurrency): string {
-  if (areAmountsHidden()) return formatCompactAmount(value, currency);
-  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-  return `${sign}${formatCompactAmount(Math.abs(value), currency)}`;
-}
-
 function capitalized(value: string, locale: string): string {
   return value.charAt(0).toLocaleUpperCase(locale) + value.slice(1);
 }
@@ -569,7 +573,7 @@ function BudgetRow({
   payDayOfMonth: number | null;
   timing: BudgetTiming;
   locale: string;
-  t: (key: string) => string;
+  t: typeof translate;
 }) {
   const theme = useTheme();
   const financial = useFinancialColors();
@@ -675,7 +679,9 @@ function BudgetRow({
             variant="labelMedium"
             style={[TABULAR_DIGITS, { color: theme.colors.onSurfaceVariant }]}
           >
-            {`${Math.round(usagePercentage)} %`}
+            {t("budgets.list.usage", {
+              percent: Math.round(Math.max(usagePercentage, 0)),
+            })}
           </Text>
         </View>
       )}

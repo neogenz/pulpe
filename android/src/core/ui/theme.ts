@@ -337,7 +337,17 @@ export const ROW = {
   minHeight: 56,
 } as const;
 
-const DISPLAY_FAMILY = "Manrope";
+/**
+ * Manrope as one static file per weight, each its own family. Android matches a
+ * custom family by name and weight, and a style asking the single variable file
+ * for 800 fell back to Roboto: every figure was drawn in the system face.
+ * Regenerate from the variable source with
+ * `fonttools varLib.instancer Manrope.ttf wght=800 --update-name-table`.
+ */
+export const DISPLAY_FAMILY = {
+  extraBold: "Manrope-ExtraBold",
+  bold: "Manrope-Bold",
+} as const;
 
 /**
  * The few brand roles MD3's scale has no slot for — `Typography.swift` on iOS.
@@ -348,23 +358,20 @@ const DISPLAY_FAMILY = "Manrope";
 export const BRAND_TYPE = {
   /** The one number a hero exists to show. */
   heroFigure: {
-    fontFamily: DISPLAY_FAMILY,
-    fontWeight: "800",
+    fontFamily: DISPLAY_FAMILY.extraBold,
     fontSize: 44,
     lineHeight: 52,
     letterSpacing: -1,
   },
   /** The currency set beside a hero figure, on the same baseline. */
   heroCurrency: {
-    fontFamily: DISPLAY_FAMILY,
-    fontWeight: "700",
+    fontFamily: DISPLAY_FAMILY.bold,
     fontSize: 22,
     lineHeight: 28,
   },
   /** A ledger row's amount, the one figure the row exists for. */
   rowAmount: {
-    fontFamily: DISPLAY_FAMILY,
-    fontWeight: "800",
+    fontFamily: DISPLAY_FAMILY.extraBold,
     fontSize: 17,
     lineHeight: 22,
   },
@@ -389,8 +396,8 @@ function pulpeFonts(base: MD3Theme["fonts"]): MD3Theme["fonts"] {
   for (const variant of brandVariants) {
     fonts[variant] = {
       ...base[variant],
-      fontFamily: DISPLAY_FAMILY,
-      fontWeight: "800",
+      fontFamily: DISPLAY_FAMILY.extraBold,
+      fontWeight: "normal",
     };
   }
   return fonts;

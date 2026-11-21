@@ -10,8 +10,8 @@ import { Text, useTheme } from "react-native-paper";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import {
+  formatAdaptiveCurrency,
   formatCompactAmount,
-  formatCompactCurrency,
 } from "@/core/ui/amount-format";
 import { hapticSelection } from "@/core/ui/haptics";
 import { useRipple } from "@/core/ui/ripple";
@@ -111,7 +111,7 @@ export function ForecastSection({
           <Text variant="bodyMedium" style={muted}>
             {t("home.realized.forecast.tightest", {
               month: monthName(lowest),
-              amount: formatCompactCurrency(lowest.balance, currency),
+              amount: formatAdaptiveCurrency(lowest.balance, currency),
             })}
           </Text>
 
@@ -120,7 +120,7 @@ export function ForecastSection({
               size="hero"
               tone={selected.balance < 0 ? "overBudget" : "savings"}
             >
-              {formatCompactCurrency(selected.balance, currency)}
+              {formatAdaptiveCurrency(selected.balance, currency)}
             </Amount>
             <Text variant="bodySmall" style={muted}>
               {selected === lowest
@@ -142,7 +142,7 @@ export function ForecastSection({
               formatCompactAmount(forecast.balance, currency)
             }
             accessibilityLabel={(forecast) =>
-              `${monthName(forecast)}, ${formatCompactCurrency(forecast.balance, currency)}`
+              `${monthName(forecast)}, ${formatAdaptiveCurrency(forecast.balance, currency)}`
             }
             shortMonthName={shortMonthName}
             tint={tint}

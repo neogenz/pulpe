@@ -12,7 +12,7 @@ import {
   parseAmount,
   seedAmountText,
 } from "./money";
-import { TABULAR_DIGITS } from "./theme";
+import { DISPLAY_FAMILY, TABULAR_DIGITS } from "./theme";
 
 export function amountFieldAccessibilityLabel(
   t: typeof translate,
@@ -82,8 +82,7 @@ export function AmountField({
 const styles = StyleSheet.create({
   prominent: { fontSize: 28 },
   prominentFigure: {
-    fontFamily: "Manrope",
-    fontWeight: "800",
+    fontFamily: DISPLAY_FAMILY.extraBold,
     ...TABULAR_DIGITS,
   },
 });

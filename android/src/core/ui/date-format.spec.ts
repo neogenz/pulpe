@@ -50,6 +50,12 @@ describe("localized day labels", () => {
     expect(formatDayMonth(new Date(2026, 7, 1), "en")).toBe("August 1");
   });
 
+  it("writes the Italian first day as an ordinal too, like iOS", () => {
+    expect(formatDayMonth(new Date(2026, 7, 1), "it")).toBe("1º agosto");
+    expect(formatDayMonth(new Date(2026, 7, 2), "it")).toBe("2 agosto");
+    expect(formatDayMonth(new Date(2026, 7, 1), "de")).toBe("1. August");
+  });
+
   it("keeps the same ordinal on a full date", () => {
     expect(formatIsoDate("2027-05-01")).toBe("1er mai 2027");
     expect(formatIsoDate("2027-05-02")).toBe("2 mai 2027");

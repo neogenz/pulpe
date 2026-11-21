@@ -14,6 +14,7 @@ import { useWeeklyRecapSync } from "@/core/notifications/use-weekly-recap-sync";
 import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
 import { dismissTip } from "@/core/tips/tips-store";
 import { Tooltip } from "@/core/tips/tooltip";
+import { useFabOnScroll } from "@/core/ui/fab-on-scroll";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
@@ -78,6 +79,7 @@ export default function HomeScreen() {
   useAmountMasking();
   const theme = useTheme();
   const { locale, t } = useTranslation();
+  const fab = useFabOnScroll();
   const currentMonth = useCurrentMonth();
   const pull = usePullToRefresh(() => currentMonth.refresh());
   const [isRealizedVisible, setRealizedVisible] = useState(false);
@@ -413,6 +415,7 @@ export default function HomeScreen() {
         {header}
         <ScrollView
           contentContainerStyle={styles.scroll}
+          {...fab.scrollProps}
           refreshControl={
             <RefreshControl
               {...pull}
@@ -558,6 +561,7 @@ export default function HomeScreen() {
           feedback.promptNumber === null && (
             <FAB
               testID="home-add-entry"
+              visible={fab.isFabVisible}
               icon="plus"
               label={t("home.add")}
               style={styles.fab}

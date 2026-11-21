@@ -33,6 +33,20 @@ describe("amount formatting", () => {
     expect(formatSignedAdaptiveCurrency(-0.05, "CHF")).toBe("-0.05 CHF");
   });
 
+  it("should never print a sign before a zero", () => {
+    expect(formatAdaptiveCurrency(0.3 - 0.1 - 0.2, "CHF")).toBe("0 CHF");
+    expect(formatAdaptiveCurrency(-0.004, "CHF")).toBe("0 CHF");
+    expect(formatCurrency(-0.004, "CHF")).toBe("0.00 CHF");
+    expect(formatAdaptiveCurrency(-0.4, "CHF")).toBe("-0.40 CHF");
+    expect(formatCurrency(-0.005, "CHF")).toBe("-0.01 CHF");
+    expect(formatSignedAdaptiveCurrency(0.3 - 0.2 - 0.1 + 1e-16, "CHF")).toBe(
+      "0 CHF",
+    );
+    expect(formatSignedCurrency(0.001, "CHF")).toBe("0.00 CHF");
+    expect(formatSignedCompactCurrency(0.4, "CHF")).toBe("0 CHF");
+    expect(formatSignedCompactCurrency(1e-17, "CHF")).toBe("0 CHF");
+  });
+
   it("should print the centimes of an adaptive amount only when it has some", () => {
     expect(formatAdaptiveAmount(4414.34, "CHF")).toBe("4’414.34");
     expect(formatAdaptiveAmount(1960, "CHF")).toBe("1’960");

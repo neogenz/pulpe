@@ -80,7 +80,10 @@ export function formatMonthYearShort(
   return formatter.format(new Date(year, month - 1, 1));
 }
 
-/** `5 juillet`, and `1er juillet` on the one day French does not say "1". */
+/**
+ * `5 juillet`, and `1er juillet` / `1º luglio` on the one day French and
+ * Italian do not say "1": grammar, not locale data (`dayMonthLabel` on iOS).
+ */
 export function formatDayMonth(
   date: Date,
   locale: string = DATE_LOCALE,
@@ -89,15 +92,21 @@ export function formatDayMonth(
     locale === DATE_LOCALE
       ? dayMonthFormatter
       : new Intl.DateTimeFormat(locale, { day: "numeric", month: "long" });
-  if (date.getDate() !== 1 || !locale.toLowerCase().startsWith("fr")) {
+  const ordinal = FIRST_DAY_ORDINALS[locale.slice(0, 2).toLowerCase()];
+  if (date.getDate() !== 1 || ordinal === undefined) {
     return formatter.format(date);
   }
   const month =
     locale === DATE_LOCALE
       ? monthFormatter.format(date)
       : new Intl.DateTimeFormat(locale, { month: "long" }).format(date);
-  return `1er ${month}`;
+  return `${ordinal} ${month}`;
 }
+
+const FIRST_DAY_ORDINALS: Partial<Record<string, string>> = {
+  fr: "1er",
+  it: "1º",
+};
 
 /**
  * `aujourd'hui` and `hier` where they apply, the date otherwise. Reference day

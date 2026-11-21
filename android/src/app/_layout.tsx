@@ -27,7 +27,11 @@ import { armPrivacyShield } from "@/core/system/privacy-shield";
 import { SystemGateScreen } from "@/core/system/system-gate-screen";
 import { WhatsNewSheet } from "@/core/system/whats-new-sheet";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
-import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
+import {
+  DISPLAY_FAMILY,
+  pulpeDarkTheme,
+  pulpeLightTheme,
+} from "@/core/ui/theme";
 import { armAutoLock } from "@/core/vault/auto-lock";
 import { observeVaultKeyRejection } from "@/core/vault/key-invalidation";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
@@ -57,7 +61,8 @@ function RootLayout() {
   const hasSeenHandoff = useOnboardingStore((state) => state.hasSeenHandoff);
   const prefersSignIn = useLandingPreference((state) => state.prefersSignIn);
   const [areFontsLoaded, fontError] = useFonts({
-    Manrope: require("../../assets/fonts/Manrope.ttf"),
+    [DISPLAY_FAMILY.extraBold]: require("../../assets/fonts/Manrope-ExtraBold.ttf"),
+    [DISPLAY_FAMILY.bold]: require("../../assets/fonts/Manrope-Bold.ttf"),
   });
   const groups = openGroups({
     status,

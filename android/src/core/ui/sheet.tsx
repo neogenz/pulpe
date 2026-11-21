@@ -105,6 +105,7 @@ export function FormModal({
   const ripple = useRipple();
   const sheet = useSheetColors();
   const { bottom } = useSafeAreaInsets();
+  const hasBackButton = showsBackButton && onBack !== undefined;
   const box = sheetBox({
     windowHeight: height,
     keyboardHeight,
@@ -169,8 +170,8 @@ export function FormModal({
               : undefined
           }
         >
-          <View style={styles.header}>
-            {showsBackButton && onBack !== undefined && (
+          <View style={[styles.header, hasBackButton && styles.headerWithBack]}>
+            {hasBackButton && (
               <IconButton
                 icon="arrow-left"
                 disabled={isBusy}
@@ -181,9 +182,11 @@ export function FormModal({
               />
             )}
             <View style={styles.heading}>
-              <Text variant="titleLarge" accessibilityRole="header">
-                {title}
-              </Text>
+              <View style={styles.titleLine}>
+                <Text variant="titleLarge" accessibilityRole="header">
+                  {title}
+                </Text>
+              </View>
               {subtitle !== undefined && (
                 <Text
                   variant="labelMedium"
@@ -262,7 +265,12 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.sm,
     gap: SPACING.sm,
   },
+  // The arrow's icon sits as far from its edge as the close icon from the other.
+  headerWithBack: { paddingLeft: SPACING.sm },
   heading: { flex: 1, gap: SPACING.xxs },
+  // A one-line title sits on the axis of the 48dp buttons beside it, at any
+  // font scale; a longer one starts level with their top.
+  titleLine: { minHeight: TOUCH_TARGET, justifyContent: "center" },
   headerButton: {
     width: TOUCH_TARGET,
     height: TOUCH_TARGET,

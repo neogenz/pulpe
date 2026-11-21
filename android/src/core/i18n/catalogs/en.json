@@ -134,7 +134,7 @@
       "missingTitle": "This budget no longer exists",
       "monthSelector": "Month selector",
       "noResults": "Nothing matches this filter.",
-      "openForecast": "Tap to open details",
+      "openForecast": "Open forecast details",
       "openGoal": "Open savings goal",
       "protectedMessage": "When you spend less than planned, Pulpe keeps the planned amount to protect your budget.",
       "protectedTitle": "Protected budget",
@@ -387,6 +387,7 @@
       "loadErrorTitle": "We couldn't load your budgets",
       "planAccessibility": "Plan multiple budgets",
       "title": "Budgets",
+      "usage": "%{percent}% committed",
       "yearBalance": "Year-end balance %{year}",
       "yearReview": "Summary %{year}",
       "verdict": {

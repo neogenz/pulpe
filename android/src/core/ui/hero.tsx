@@ -118,6 +118,8 @@ interface HeroFigureProps {
   currency?: string;
   /** What the figure is measured against — `sur 10’000 CHF`. */
   suffix?: string;
+  /** The figure's ink — the over-budget accent when the figure is a deficit. */
+  tint?: string;
   accessibilityLabel?: string;
 }
 
@@ -130,6 +132,7 @@ export function HeroFigure({
   amount,
   currency,
   suffix,
+  tint,
   accessibilityLabel,
 }: HeroFigureProps) {
   const hero = useHeroColors();
@@ -150,7 +153,11 @@ export function HeroFigure({
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.6}
-        style={[BRAND_TYPE.heroFigure, TABULAR_DIGITS, { color: hero.ink }]}
+        style={[
+          BRAND_TYPE.heroFigure,
+          TABULAR_DIGITS,
+          { color: tint ?? hero.ink },
+        ]}
       >
         {amount}
         {currency !== undefined && (

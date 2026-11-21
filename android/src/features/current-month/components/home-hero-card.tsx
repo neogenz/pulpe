@@ -128,7 +128,8 @@ export function HomeHeroCard({
             numberOfLines={reading === null ? undefined : 1}
             adjustsFontSizeToFit={reading !== null}
             minimumFontScale={0.6}
-            style={{ color: hero.support }}
+            // Its figure changes under the finger: equal-width digits keep it still.
+            style={[TABULAR_DIGITS, { color: hero.support }]}
           >
             {eyebrow}
           </Text>

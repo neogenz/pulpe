@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { usePushOnce } from "@/core/navigation/push-once";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { useFabOnScroll } from "@/core/ui/fab-on-scroll";
 import { Amount } from "@/core/ui/amount";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
 import { SectionHeader } from "@/core/ui/section-header";
@@ -57,6 +58,7 @@ export default function GoalsScreen() {
   useAmountMasking();
   const theme = useTheme();
   const { t } = useTranslation();
+  const fab = useFabOnScroll();
   const settings = useUserSettings();
   const goals = useSavingsGoals();
   const progressById = useSavingsGoalsProgress(goals.data ?? []);
@@ -160,6 +162,7 @@ export default function GoalsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
+          {...fab.scrollProps}
           refreshControl={<RefreshControl {...pull} />}
         >
           <Text
@@ -194,6 +197,7 @@ export default function GoalsScreen() {
       {list.length > 0 && (
         <FAB
           testID="goals-create"
+          visible={fab.isFabVisible}
           icon="plus"
           style={styles.fab}
           onPress={() => create()}
