@@ -75,6 +75,8 @@ interface LedgerRowProps {
   /** A 36dp disc: what the row is, before the eye reaches the words. */
   leading?: ReactNode;
   title: string;
+  /** The whole title on as many lines as it needs, where a cut name misleads. */
+  wrapsTitle?: boolean;
   /** One quiet line under the title. */
   subtitle?: ReactNode;
   /** The amount column. */
@@ -100,6 +102,7 @@ interface LedgerRowProps {
 export function LedgerRow({
   leading,
   title,
+  wrapsTitle = false,
   subtitle,
   trailing,
   onPress,
@@ -120,7 +123,7 @@ export function LedgerRow({
       <View style={styles.text}>
         <Text
           variant="titleMedium"
-          numberOfLines={1}
+          numberOfLines={wrapsTitle ? undefined : 1}
           style={[
             {
               color: isStruck

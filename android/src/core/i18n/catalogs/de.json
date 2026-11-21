@@ -1112,6 +1112,28 @@
       "savings": "Geplantes Sparen",
       "available": "Verfügbar zum Ausgeben",
       "otherTemplate": "Mit einer anderen Vorlage starten"
+    },
+    "calculation": {
+      "available": "Verfügbar im %{month}",
+      "total": "Verfügbar zum Ausgeben",
+      "incomeUnplanned": "Einnahmen ohne Prognose",
+      "expenses": "Geplante Ausgaben",
+      "expensesCaption": "Der höhere Wert aus geplant und ausgegeben",
+      "expenseUnplanned": "Ohne Prognose",
+      "savings": "Geplantes Sparen",
+      "plan": "Im Vergleich zu deinem Plan",
+      "gap": "Abweichung vom Plan",
+      "plannedAtStart": "Zu Beginn geplant: %{amount}",
+      "checkedBalance": "Dein abgehakter Saldo: %{amount}, das Ergebnis deiner abgehakten Bewegungen.",
+      "compare": "Mit meinen Konten vergleichen",
+      "list": {
+        "two": "%{first} und %{second}",
+        "three": "%{first}, %{second} und %{third}",
+        "more": {
+          "one": "%{first}, %{second} und %{count} weitere",
+          "other": "%{first}, %{second} und %{count} weitere"
+        }
+      }
     }
   },
   "main": {

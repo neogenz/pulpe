@@ -1112,6 +1112,28 @@
       "savings": "Planned savings",
       "available": "Available to spend",
       "otherTemplate": "Start from another template"
+    },
+    "calculation": {
+      "available": "Available to spend in %{month}",
+      "total": "Available to spend",
+      "incomeUnplanned": "Income not in a forecast",
+      "expenses": "Planned expenses",
+      "expensesCaption": "The higher of planned and spent",
+      "expenseUnplanned": "Not in a forecast",
+      "savings": "Planned savings",
+      "plan": "Compared with your plan",
+      "gap": "Gap to plan",
+      "plannedAtStart": "Planned at the start: %{amount}",
+      "checkedBalance": "Your checked balance: %{amount}, what your checked movements add up to.",
+      "compare": "Compare with my accounts",
+      "list": {
+        "two": "%{first} and %{second}",
+        "three": "%{first}, %{second} and %{third}",
+        "more": {
+          "one": "%{first}, %{second} and %{count} other",
+          "other": "%{first}, %{second} and %{count} others"
+        }
+      }
     }
   },
   "main": {
