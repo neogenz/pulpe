@@ -1,5 +1,6 @@
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { moneyDifference, type SupportedCurrency } from "pulpe-shared";
-import { useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -517,11 +518,8 @@ interface ReconcileCompareActionsProps {
   onRecord: () => void;
   /** « Oui, c'était déjà là ». */
   onKeep: () => void;
-  /**
-   * « Voir les autres raisons » and « Non, autre chose ».
-   * shortcut: absent until the reasons sheet exists (phase 16 task 3), and both buttons hide with it.
-   */
-  onShowReasons?: () => void;
+  /** « Voir les autres raisons » and « Non, autre chose ». */
+  onShowReasons: () => void;
 }
 
 /** Step 2's footer: one main action per screen, then the way to leave it as is. */
@@ -538,7 +536,6 @@ export function ReconcileCompareActions({
   onShowReasons,
 }: ReconcileCompareActionsProps) {
   const theme = useTheme();
-  const ripple = useRipple();
   const { t } = useTranslation();
   const { gap, screen, note } = comparison;
 
@@ -558,7 +555,7 @@ export function ReconcileCompareActions({
       )}
     </Button>
   );
-  const reasons = onShowReasons !== undefined && (
+  const reasons = (
     <Button
       mode="outlined"
       onPress={onShowReasons}
@@ -630,51 +627,107 @@ export function ReconcileCompareActions({
     );
   }
   const kind = gap < 0 ? "Expense" : "Income";
-  const ink = isBusy ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary;
+  const availableNote = t("home.reconcile.compare.availableNote", {
+    before: money(note.before, currency),
+    after: money(note.after, currency),
+  });
   return (
     <View style={styles.actions}>
-      {/* Not Paper's Button: its label is one line, and the amount comes last. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled: isBusy, busy: isRecording }}
-        disabled={isBusy}
+      <AmountButton
+        label={t(
+          screen === "smallGap"
+            ? `home.reconcile.compare.note${kind}`
+            : `home.reconcile.compare.yesNote${kind}`,
+          { amount: money(Math.abs(gap), currency) },
+        )}
         onPress={onRecord}
-        android_ripple={ripple}
-        style={[
-          styles.record,
-          {
-            backgroundColor: isBusy
-              ? theme.colors.surfaceDisabled
-              : theme.colors.primary,
-          },
-        ]}
-      >
-        {isRecording && <ActivityIndicator size={18} color={ink} />}
-        <Text
-          variant="labelLarge"
-          textBreakStrategy="balanced"
-          style={[styles.recordLabel, TABULAR_DIGITS, { color: ink }]}
-        >
-          {t(
-            screen === "smallGap"
-              ? `home.reconcile.compare.note${kind}`
-              : `home.reconcile.compare.yesNote${kind}`,
-            { amount: money(Math.abs(gap), currency) },
-          )}
-        </Text>
-      </Pressable>
+        isDisabled={isBusy}
+        isLoading={isRecording}
+      />
       <Text
         variant="bodySmall"
         style={[styles.note, { color: theme.colors.onSurfaceVariant }]}
+        accessibilityLabel={availableNote}
         testID="reconcile-available-note"
       >
-        {t("home.reconcile.compare.availableNote", {
-          before: money(note.before, currency),
-          after: money(note.after, currency),
-        })}
+        {arrowed(availableNote, theme.fonts.bodySmall.fontSize)}
       </Text>
       {leave}
     </View>
+  );
+}
+
+const ARROW = "→";
+
+/**
+ * « avant → après » in a note. Roboto has no arrow: the fallback font draws it
+ * small and on the baseline, where the icon font's sits on the digits' middle.
+ * The note keeps the text itself as its TalkBack label.
+ */
+export function arrowed(text: string, fontSize: number): ReactNode {
+  const [before, ...after] = text.split(ARROW);
+  if (after.length === 0) return text;
+  return (
+    <>
+      {before}
+      <MaterialCommunityIcons
+        name="arrow-right"
+        size={fontSize}
+        allowFontScaling
+      />
+      {after.join(ARROW)}
+    </>
+  );
+}
+
+/** Not Paper's Button: its label is one line, and an amount comes last in it. */
+export function AmountButton({
+  label,
+  onPress,
+  isDisabled,
+  isLoading = false,
+  isOutlined = false,
+}: {
+  label: string;
+  onPress: () => void;
+  isDisabled: boolean;
+  isLoading?: boolean;
+  isOutlined?: boolean;
+}) {
+  const theme = useTheme();
+  const ripple = useRipple();
+  const ink = isDisabled
+    ? theme.colors.onSurfaceDisabled
+    : isOutlined
+      ? theme.colors.primary
+      : theme.colors.onPrimary;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: isLoading }}
+      disabled={isDisabled}
+      onPress={onPress}
+      android_ripple={ripple}
+      style={[
+        styles.record,
+        isOutlined
+          ? { borderWidth: 1, borderColor: theme.colors.outline }
+          : {
+              backgroundColor: isDisabled
+                ? theme.colors.surfaceDisabled
+                : theme.colors.primary,
+            },
+      ]}
+    >
+      {isLoading && <ActivityIndicator size={18} color={ink} />}
+      <Text
+        variant="labelLarge"
+        textBreakStrategy="balanced"
+        style={[styles.recordLabel, TABULAR_DIGITS, { color: ink }]}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -717,7 +770,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xxs,
   },
   actions: { gap: SPACING.xs },
-  // Paper's contained button, with room for a second line.
+  // Paper's button, with room for a second line.
   record: {
     flexDirection: "row",
     alignItems: "center",

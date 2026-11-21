@@ -261,6 +261,7 @@ jest.mock("react-native-paper", () => {
     ),
     useTheme: () => ({
       colors: { onSurfaceVariant: "gray", surfaceVariant: "beige" },
+      fonts: { bodySmall: { fontSize: 12 } },
     }),
     Divider: () => <View />,
   };
@@ -1258,6 +1259,85 @@ describe("step 2", () => {
       expect(view.getByText("home.reconcile.stateFailed")).toBeTruthy();
       expect(view.getByTestId("reconcile-first-comparison")).toBeTruthy();
       expect(captureEvent).not.toHaveBeenCalled();
+    });
+
+    it("notes the income from the reasons only while the gap is the one it showed", async () => {
+      const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+      const view = await pending;
+      await reachVerdict(view, "4000");
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.somethingElse"),
+      );
+      expect(
+        view.getByText("home.reconcile.reasons.title:3’100.00\u00a0CHF"),
+      ).toBeTruthy();
+
+      // A check elsewhere moves the figure while the sheet is open.
+      await view.rerender(
+        <ReconcileAccountsSheet
+          {...props}
+          month={{
+            ...props.month,
+            realized: { ...props.month.realized, realizedBalance: 1000 },
+          }}
+        />,
+      );
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.noteIncome:3’100.00\u00a0CHF"),
+      );
+      expect(mockCreate.mutate).not.toHaveBeenCalled();
+      expect(view.queryByText(/home\.reconcile\.reasons\.title/)).toBeNull();
+      expect(view.getByTestId("reconcile-first-comparison")).toHaveTextContent(
+        /3’000\.00/,
+      );
+
+      // Unmoved, the same answer writes the entry once.
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.somethingElse"),
+      );
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.noteIncome:3’000.00\u00a0CHF"),
+      );
+      expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
+      expect(mockCreate.mutate.mock.calls[0][0]).toMatchObject({
+        kind: "income",
+        amount: 3000,
+      });
+    });
+
+    it("notes nothing from the reasons once the step turned to suggestions, the gap unchanged", async () => {
+      const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+      const view = await pending;
+      await reachVerdict(view, "4000");
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.somethingElse"),
+      );
+
+      // A 3 100 salary, still unchecked, comes in while the sheet is open.
+      const salary: Transaction = {
+        id: "t-salary",
+        budgetId: "budget-1",
+        budgetLineId: null,
+        name: "Salaire",
+        amount: 3100,
+        kind: "income",
+        transactionDate: "2026-11-18T10:00:00.000Z",
+        checkedAt: null,
+        createdAt: "2026-11-18T10:00:00.000Z",
+        updatedAt: "2026-11-18T10:00:00.000Z",
+      };
+      await view.rerender(
+        <ReconcileAccountsSheet
+          {...props}
+          month={{ ...props.month, transactions: [salary] }}
+        />,
+      );
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.noteIncome:3’100.00\u00a0CHF"),
+      );
+
+      expect(mockCreate.mutate).not.toHaveBeenCalled();
+      expect(view.getAllByTestId("reconcile-suggestion")).toHaveLength(1);
     });
 
     it("writes a corrected amount once, from its sheet", async () => {

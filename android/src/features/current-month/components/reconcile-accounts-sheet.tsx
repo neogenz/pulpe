@@ -1,7 +1,9 @@
 import {
   ANALYTICS_EVENTS,
   type BudgetLine,
+  type ComparisonScreen,
   moneyDifference,
+  partlySpentBudgetLines,
   type SupportedCurrency,
   type Transaction,
   type TransactionCreate,
@@ -72,6 +74,11 @@ import {
   ReconcileCompareStep,
 } from "./reconcile-compare-step";
 import { useReconcileGuidePage } from "./reconcile-guide-page";
+import {
+  type ReasonChoice,
+  type ReasonsSnapshot,
+  ReconcileReasonsSheet,
+} from "./reconcile-reasons-sheet";
 import { ReconcileStartingAmountSheet } from "./reconcile-starting-amount-sheet";
 
 type Step = 1 | 2;
@@ -135,6 +142,10 @@ export function ReconcileAccountsSheet({
   const writeState = useWriteReconciliationState(budgetId);
   const payDayOfMonth = useUserSettings().data?.payDayOfMonth ?? null;
   const [isStartingOpen, setStartingOpen] = useState(false);
+  // What the reasons sheet shows, as step 2 was when it opened it, and from which screen.
+  const [reasons, setReasons] = useState<
+    (ReasonsSnapshot & { screen: ComparisonScreen }) | null
+  >(null);
   // One check at a time, from the tap to the context read after it: the gap
   // moves with each one, so nothing is written or ended meanwhile.
   const [checkingId, setCheckingId] = useState<string | null>(null);
@@ -264,6 +275,7 @@ export function ReconcileAccountsSheet({
     if (hasCompleted.current) followFinishedAccounts();
     hasCompleted.current = false;
     setStartingOpen(false);
+    setReasons(null);
     writeState.reset();
     setGuideRequested(false);
     setStep(1);
@@ -319,6 +331,7 @@ export function ReconcileAccountsSheet({
     forgetReconciliationContext(budgetId);
     setComparedBefore(null);
     setDismissed(false);
+    setReasons(null);
     isCompleted.current = false;
     isCompletionSent.current = false;
     setStep(2);
@@ -419,6 +432,44 @@ export function ReconcileAccountsSheet({
     setStartingOpen(false);
     if (comparison === null || amount === comparison.startingAmount) return;
     writeStartingState({ startingAmount: amount });
+  }
+
+  // « Voir les autres raisons » and « Non, autre chose ».
+  function showReasons() {
+    if (comparison === null || month === null || isBusy) return;
+    const [partly] = partlySpentBudgetLines(
+      month.budgetLines,
+      month.transactions,
+    );
+    const line = month.budgetLines.find(({ id }) => id === partly?.id);
+    setReasons({
+      screen: comparison.screen,
+      gap: comparison.gap,
+      hasOwe: summary.hasOwe,
+      partlySpent:
+        partly && line
+          ? { ...partly, name: line.name, amount: line.amount }
+          : null,
+      note: comparison.note,
+    });
+  }
+
+  // The sheet only answers; the step does what that answer does here.
+  function answerReasons(choice: ReasonChoice) {
+    const shown = reasons;
+    setReasons(null);
+    if (choice === "addOwe") addOwe();
+    if (choice === "reviewAccounts") back();
+    if (choice === "leave") leave();
+    // The figures or the screen moved while it was open (an item to check came
+    // in, say): the person sees the new comparison instead.
+    if (
+      choice === "noteIncome" &&
+      comparison?.gap === shown?.gap &&
+      comparison?.screen === shown?.screen
+    ) {
+      record();
+    }
   }
 
   // [Ajouter ce que je dois]: back to the balances with a new « Je dois » row, focused.
@@ -561,6 +612,7 @@ export function ReconcileAccountsSheet({
             onDismiss={() => setDismissed(true)}
             onRecord={record}
             onKeep={keepAsStartingAmount}
+            onShowReasons={showReasons}
           />
         )
       )}
@@ -637,6 +689,16 @@ export function ReconcileAccountsSheet({
           />
         )}
       </FormModal>
+      {reasons !== null && (
+        <ReconcileReasonsSheet
+          // Closes with the comparison: a write refused or a context lost takes it too.
+          isVisible={isVisible && step === 2 && comparison !== null}
+          reasons={reasons}
+          currency={currency}
+          onDismiss={() => setReasons(null)}
+          onChoose={answerReasons}
+        />
+      )}
       {comparison !== null && (
         <ReconcileStartingAmountSheet
           isVisible={isVisible && step === 2 && isStartingOpen}

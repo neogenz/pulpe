@@ -1088,7 +1088,25 @@
       },
       "recorded": "Abweichung notiert",
       "title": "Mit meinen Konten vergleichen",
-      "stateFailed": "Ich konnte das Geld von vor Pulpe nicht speichern. Versuch es nochmal."
+      "stateFailed": "Ich konnte das Geld von vor Pulpe nicht speichern. Versuch es nochmal.",
+      "reasons": {
+        "label": "Andere Gründe",
+        "title": "Woher kommen diese %{amount}?",
+        "cardSample": "Kleider",
+        "bank": "Deine Bank",
+        "notYetThere": "Noch nicht da",
+        "partlySpentQuestion": "Ein abgehakter Planposten ist nicht ganz ausgegeben?",
+        "spent": "%{amount} ausgegeben",
+        "left": "%{amount} noch da",
+        "nothingToDo": "Normal, nichts zu tun",
+        "incomeQuestion": "Hast du Geld bekommen?",
+        "incomeSample": "Prämie · %{date}",
+        "notInPulpe": "Nicht in Pulpe",
+        "savingsQuestion": "Ist dein Sparkonto in der Liste?",
+        "savingsSample": "Sparkonto",
+        "toRemove": "Entfernen",
+        "reviewAccounts": "Meine Konten prüfen"
+      }
     },
     "reminderPrime": {
       "body": "Eine Erinnerung pro Monat, um deine Ausgaben abzugleichen und deinen verfügbaren Betrag zu sehen. Mehr nicht — kein Spam, und du kannst sie jederzeit ausschalten.",

@@ -4,10 +4,10 @@ import type {
   ReconciliationContext,
   Transaction,
 } from "pulpe-shared";
-import { AccessibilityInfo } from "react-native";
+import { AccessibilityInfo, Text } from "react-native";
 
 import { buildComparison } from "../reconciliation";
-import { money, ReconcileCompareStep } from "./reconcile-compare-step";
+import { arrowed, money, ReconcileCompareStep } from "./reconcile-compare-step";
 
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({
@@ -196,6 +196,16 @@ it("masks the amounts alone, the words and the screen reader's « instead of » 
 
 it("writes an amount below zero with a true minus, as on web and iOS", () => {
   expect(money(-1234.56, "CHF")).toBe("−1’234.56 CHF");
+});
+
+it("draws the note's arrow in the icon font, which Roboto lacks", async () => {
+  const note = await render(
+    <Text testID="note">{arrowed("Disponible : 9.00 → 5.00", 12)}</Text>,
+  );
+  expect(note.getByTestId("note")).toHaveTextContent(
+    "Disponible : 9.00 \u{F0054} 5.00",
+  );
+  expect(arrowed("Pas de flèche", 12)).toBe("Pas de flèche");
 });
 
 it("shows the error with [Réessayer] when the context cannot be read", async () => {

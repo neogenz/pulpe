@@ -1088,7 +1088,25 @@
       },
       "recorded": "Écart noté",
       "title": "Comparer avec mes comptes",
-      "stateFailed": "Je n'ai pas pu enregistrer l'argent d'avant Pulpe. Réessaie."
+      "stateFailed": "Je n'ai pas pu enregistrer l'argent d'avant Pulpe. Réessaie.",
+      "reasons": {
+        "label": "Autres raisons",
+        "title": "D'où viennent ces %{amount} ?",
+        "cardSample": "Habits",
+        "bank": "Ta banque",
+        "notYetThere": "Pas encore là",
+        "partlySpentQuestion": "Une prévision cochée n'est pas toute dépensée ?",
+        "spent": "%{amount} dépensés",
+        "left": "%{amount} encore là",
+        "nothingToDo": "Normal, rien à faire",
+        "incomeQuestion": "Tu as reçu de l'argent ?",
+        "incomeSample": "Prime · %{date}",
+        "notInPulpe": "Pas dans Pulpe",
+        "savingsQuestion": "Ton compte épargne est dans la liste ?",
+        "savingsSample": "Compte épargne",
+        "toRemove": "À retirer",
+        "reviewAccounts": "Revoir mes comptes"
+      }
     },
     "reminderPrime": {
       "body": "Un rappel par mois pour pointer tes dépenses et voir ton disponible. C'est tout — jamais de spam, et tu coupes quand tu veux.",
