@@ -79,7 +79,7 @@ function Movements({ month }: { month: LoadedMonth }) {
           onChangeText={setQuery}
           placeholder={t("home.movements.search")}
           searchAccessibilityLabel={t("home.movements.search")}
-          clearAccessibilityLabel={t("common.clear")}
+          clearAccessibilityLabel={t("common.clearText")}
         />
 
         <View style={styles.chips}>

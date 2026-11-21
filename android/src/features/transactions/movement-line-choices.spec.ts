@@ -124,21 +124,17 @@ describe("matchingSections", () => {
     ]);
   });
 
-  it("folds ß and ligatures like iOS's search", () => {
+  it("folds ß like iOS's search, and never matches everything", () => {
     const folded = lineSections(
-      [
-        line("tram", { name: "Straßenbahn" }),
-        line("flowers", { name: "ﬂeurs" }),
-      ],
+      [line("tram", { name: "Straßenbahn" }), line("rent", { name: "Bail ½" })],
       [],
       "expense",
     );
+    const ids = (query: string) =>
+      matchingSections(folded, query).margin.map((l) => l.id);
 
-    expect(matchingSections(folded, "strasse").margin.map((l) => l.id)).toEqual(
-      ["tram"],
-    );
-    expect(matchingSections(folded, "fleurs").margin.map((l) => l.id)).toEqual([
-      "flowers",
-    ]);
+    expect(ids("strasse")).toEqual(["tram"]);
+    expect(ids("^")).toEqual([]);
+    expect(ids("2")).toEqual([]);
   });
 });

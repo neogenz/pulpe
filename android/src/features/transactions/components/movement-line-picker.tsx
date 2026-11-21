@@ -176,7 +176,7 @@ export function MovementLinePicker({
         onChangeText={setQuery}
         placeholder={t("budgets.mutations.activity.picker.search")}
         searchAccessibilityLabel={t("budgets.mutations.activity.picker.search")}
-        clearAccessibilityLabel={t("common.clear")}
+        clearAccessibilityLabel={t("common.clearText")}
       />
       <Pressable
         testID="movement-picker-unplanned"

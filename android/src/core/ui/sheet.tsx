@@ -117,10 +117,20 @@ export function FormModal({
   const revealed = useRef<View | null>(null);
   const viewport = useRef({ visible: 0, offset: 0 });
 
-  // A step pushed over the form opens at its top, like a pushed screen, not at
-  // the form's scroll offset, which would leave its first rows above the fold.
+  // A step pushed over the form opens at its top, like a pushed screen, and
+  // the form comes back where it was left: they share one scroll view.
+  const formOffset = useRef(0);
   useEffect(() => {
-    if (showsBackButton) scrollRef.current?.scrollTo({ y: 0, animated: false });
+    const scroll = scrollRef.current;
+    if (showsBackButton) {
+      formOffset.current = viewport.current.offset;
+      scroll?.scrollTo({ y: 0, animated: false });
+    } else if (formOffset.current > 0) {
+      // The form lays out again first: scrolling now would clamp to the step's height.
+      const y = formOffset.current;
+      formOffset.current = 0;
+      requestAnimationFrame(() => scroll?.scrollTo({ y, animated: false }));
+    }
   }, [showsBackButton]);
 
   function reveal() {

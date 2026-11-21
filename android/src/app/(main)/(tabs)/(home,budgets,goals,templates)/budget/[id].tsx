@@ -508,7 +508,7 @@ export default function BudgetDetailScreen() {
             icon="arrow-left"
             onIconPress={closeSearch}
             searchAccessibilityLabel={t("common.back")}
-            clearAccessibilityLabel={t("common.clear")}
+            clearAccessibilityLabel={t("common.clearText")}
             // Clearing the field is not leaving the search — only the arrow is,
             // and it is the one that puts the full list back.
             onClearIconPress={() => setFilters({ ...filters, search: "" })}
