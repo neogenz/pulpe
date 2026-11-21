@@ -17,6 +17,7 @@ import {
 import {
   Divider,
   IconButton,
+  MD3LightTheme,
   Text,
   ThemeProvider,
   useTheme,
@@ -105,6 +106,7 @@ export function FormModal({
   const ripple = useRipple();
   const sheet = useSheetColors();
   const { bottom } = useSafeAreaInsets();
+  const hasBackButton = showsBackButton && onBack !== undefined;
   const box = sheetBox({
     windowHeight: height,
     keyboardHeight,
@@ -169,8 +171,8 @@ export function FormModal({
               : undefined
           }
         >
-          <View style={styles.header}>
-            {showsBackButton && onBack !== undefined && (
+          <View style={[styles.header, hasBackButton && styles.headerWithBack]}>
+            {hasBackButton && (
               <IconButton
                 icon="arrow-left"
                 disabled={isBusy}
@@ -262,7 +264,14 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.sm,
     gap: SPACING.sm,
   },
-  heading: { flex: 1, gap: SPACING.xxs },
+  // The arrow's icon sits as far from its edge as the close icon from the other.
+  headerWithBack: { paddingLeft: SPACING.sm },
+  // A one-line title sits on the axis of the 48dp buttons beside it.
+  heading: {
+    flex: 1,
+    gap: SPACING.xxs,
+    paddingTop: (TOUCH_TARGET - MD3LightTheme.fonts.titleLarge.lineHeight) / 2,
+  },
   headerButton: {
     width: TOUCH_TARGET,
     height: TOUCH_TARGET,
