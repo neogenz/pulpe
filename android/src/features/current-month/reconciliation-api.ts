@@ -1,5 +1,6 @@
 import {
   type ReconciliationContext,
+  type ReconciliationState,
   reconciliationContextResponseSchema,
   reconciliationStateResponseSchema,
   type UpdateReconciliationState,
@@ -21,12 +22,21 @@ export function fetchReconciliationContext(
     .then((response) => response.data);
 }
 
+/** The money from before Pulpe, or the end of a comparison: what the server now holds. */
+export function writeReconciliationState(
+  patch: UpdateReconciliationState,
+): Promise<ReconciliationState> {
+  return api
+    .put(
+      ENDPOINTS.reconciliationState,
+      patch,
+      reconciliationStateResponseSchema,
+      updateReconciliationStateSchema,
+    )
+    .then((response) => response.data);
+}
+
 /** A comparison went to its end: the next one is no longer the first. */
 export function completeReconciliation(): Promise<unknown> {
-  return api.put<unknown, UpdateReconciliationState>(
-    ENDPOINTS.reconciliationState,
-    { completed: true },
-    reconciliationStateResponseSchema,
-    updateReconciliationStateSchema,
-  );
+  return writeReconciliationState({ completed: true });
 }

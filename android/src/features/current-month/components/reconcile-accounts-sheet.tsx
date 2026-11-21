@@ -1,6 +1,7 @@
 import {
   ANALYTICS_EVENTS,
   type BudgetLine,
+  moneyDifference,
   type SupportedCurrency,
   type Transaction,
   type TransactionCreate,
@@ -16,6 +17,7 @@ import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import { Notice } from "@/core/ui/notice";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING, TOUCH_TARGET } from "@/core/ui/theme";
+import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import {
   useChecksSettled,
   useToggleCheck,
@@ -54,6 +56,7 @@ import { completeReconciliation } from "../reconciliation-api";
 import {
   forgetReconciliationContext,
   useReconciliationContext,
+  useWriteReconciliationState,
 } from "../reconciliation-queries";
 import {
   markReconcileGuideSeen,
@@ -69,6 +72,7 @@ import {
   ReconcileCompareStep,
 } from "./reconcile-compare-step";
 import { useReconcileGuidePage } from "./reconcile-guide-page";
+import { ReconcileStartingAmountSheet } from "./reconcile-starting-amount-sheet";
 
 type Step = 1 | 2;
 
@@ -128,6 +132,9 @@ export function ReconcileAccountsSheet({
   // A previous month's item lives in another budget: no row here to flip before the server.
   const togglePrior = useToggleCheck(null);
   const checksSettled = useChecksSettled();
+  const writeState = useWriteReconciliationState(budgetId);
+  const payDayOfMonth = useUserSettings().data?.payDayOfMonth ?? null;
+  const [isStartingOpen, setStartingOpen] = useState(false);
   // One check at a time, from the tap to the context read after it: the gap
   // moves with each one, so nothing is written or ended meanwhile.
   const [checkingId, setCheckingId] = useState<string | null>(null);
@@ -177,14 +184,16 @@ export function ReconcileAccountsSheet({
   // to "12.50". It never counts in the total either way.
   const [leftRowIds, setLeftRowIds] = useState<ReadonlySet<number>>(new Set());
   // `isPending` arrives with the next render; a second tap before it must not
-  // write a second adjustment.
+  // write a second adjustment, nor a second starting amount.
   const isSubmitting = useRef(false);
   // One id per adjustment, replayed on a retry: a request whose answer was lost
   // may have committed, and `createOnce` reads it back instead of writing twice.
   const attempt = useRef<TransactionCreate | null>(null);
-  // Completion is sent once per comparison; only « Comparer » starts a new one,
-  // so a second « Terminer » in the same render finds it already sent.
+  // The comparison is over; only « Comparer » starts a new one, so a second
+  // « Terminer » in the same render finds it over.
   const isCompleted = useRef(false);
+  // Its completion, sent once, maybe before it ends (« Oui, c'était déjà là »).
+  const isCompletionSent = useRef(false);
   // A comparison of this sheet was completed: its balances are saved on close.
   const hasCompleted = useRef(false);
 
@@ -195,12 +204,21 @@ export function ReconcileAccountsSheet({
     const seeded =
       draft === null
         ? seedRows(linked?.assets ?? null, readFreeAccounts())
-        : restoreRows(draft, linked);
+        : restoreRows(draft.rows, linked);
     setNextId(nextRowId(seeded));
     setRows(seeded);
   }
+  // A sheet rebuilt after the lock: the lock saved nothing, its real close does.
   useEffect(() => {
-    if (isVisible && accounts !== undefined) keepReconcileDraft(budgetId, rows);
+    if (isVisible) {
+      hasCompleted.current =
+        readReconcileDraft(budgetId)?.hasCompleted ?? false;
+    }
+  }, [isVisible, budgetId]);
+  useEffect(() => {
+    if (isVisible && accounts !== undefined) {
+      keepReconcileDraft(budgetId, rows, hasCompleted.current);
+    }
   }, [isVisible, accounts, budgetId, rows]);
 
   const summary = summarizeRows(rows);
@@ -221,13 +239,16 @@ export function ReconcileAccountsSheet({
           context: contextData,
           comparedBefore,
           isDismissed,
+          payDayOfMonth,
+          today: new Date(),
         });
   // Offered even when the card is the only account: removing it then goes back to step 1.
   const oweTotal =
     summary.hasOwe && comparison !== null && comparison.gap < 0
       ? summary.oweCents / 100
       : null;
-  const isBusy = create.isPending || checkingId !== null;
+  const isBusy =
+    create.isPending || writeState.isPending || checkingId !== null;
 
   // The accounts I finished with, written to Mon patrimoine. A refusal only
   // says so: the reconciliation stays done.
@@ -242,6 +263,8 @@ export function ReconcileAccountsSheet({
   function reset() {
     if (hasCompleted.current) followFinishedAccounts();
     hasCompleted.current = false;
+    setStartingOpen(false);
+    writeState.reset();
     setGuideRequested(false);
     setStep(1);
     setAccounts(undefined);
@@ -297,6 +320,7 @@ export function ReconcileAccountsSheet({
     setComparedBefore(null);
     setDismissed(false);
     isCompleted.current = false;
+    isCompletionSent.current = false;
     setStep(2);
   }
 
@@ -313,7 +337,12 @@ export function ReconcileAccountsSheet({
   function addRow(row: AccountRow) {
     const id = nextId;
     setNextId(id + 1);
-    setRows((current) => [...current, { ...row, id }]);
+    // A second tap in the same render carries the same id: it adds nothing.
+    setRows((current) =>
+      current.some((existing) => existing.id === id)
+        ? current
+        : [...current, { ...row, id }],
+    );
     setFocusRowId(id);
   }
 
@@ -326,17 +355,77 @@ export function ReconcileAccountsSheet({
     );
   }
 
-  // Once per comparison: the server learns it happened. `false` when it already was.
-  function complete(adjustmentKind: "income" | "expense" | "none"): boolean {
-    if (isCompleted.current) return false;
-    isCompleted.current = true;
+  // Once per comparison: the event, and the server unless a state write told it.
+  function markCompleted(
+    adjustmentKind: "income" | "expense" | "none",
+    isServerTold: boolean,
+  ) {
+    if (isCompletionSent.current) return;
+    isCompletionSent.current = true;
     hasCompleted.current = true;
+    // The sheet may stay open after it (« Oui, c'était déjà là »): a lock must not lose it.
+    keepReconcileDraft(budgetId, rows, true);
     captureEvent(ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED, {
       adjustment_kind: adjustmentKind,
     });
     // A lost completion only asks the « first comparison » question once more.
-    completeReconciliation().catch(() => undefined);
+    if (!isServerTold) completeReconciliation().catch(() => undefined);
+  }
+
+  // Ends the comparison. `false` when it already was.
+  function complete(adjustmentKind: "income" | "expense" | "none"): boolean {
+    if (isCompleted.current) return false;
+    isCompleted.current = true;
+    markCompleted(adjustmentKind, false);
     return true;
+  }
+
+  // One write per answer; the figure moves without a check, so nothing found is measured against it.
+  function writeStartingState(
+    patch: { startingAmount: number; completed?: true },
+    onWritten?: () => void,
+  ) {
+    if (isBusy || isSubmitting.current) return;
+    isSubmitting.current = true;
+    writeState.mutate(patch, {
+      onSuccess: () => {
+        setComparedBefore(null);
+        onWritten?.();
+      },
+      onSettled: () => {
+        isSubmitting.current = false;
+      },
+    });
+  }
+
+  // « Oui, c'était déjà là »: the gap becomes money from before Pulpe, and the
+  // comparison completes in the same write. Pulpe now matches.
+  function keepAsStartingAmount() {
+    if (comparison?.screen !== "firstComparison") return;
+    writeStartingState(
+      {
+        startingAmount: moneyDifference(
+          comparison.startingAmount,
+          -comparison.gap,
+        ),
+        completed: true,
+      },
+      () => markCompleted("none", true),
+    );
+  }
+
+  // Corrected or reset from its sheet; nothing is sent when it is unchanged.
+  function saveStartingAmount(amount: number) {
+    setStartingOpen(false);
+    if (comparison === null || amount === comparison.startingAmount) return;
+    writeStartingState({ startingAmount: amount });
+  }
+
+  // [Ajouter ce que je dois]: back to the balances with a new « Je dois » row, focused.
+  function addOwe() {
+    if (isBusy || isSubmitting.current) return;
+    setStep(1);
+    addRow(freeRow(0, "owe"));
   }
 
   // The stored item, by id: the server flips it, and it was unchecked when ranked.
@@ -437,6 +526,14 @@ export function ReconcileAccountsSheet({
         {t("budgets.mutations.activity.error")}
       </Notice>
       <Notice
+        visible={writeState.isError}
+        onDismiss={() => writeState.reset()}
+        wrapperStyle={{ bottom: SPACING.md + 48 }}
+        testID="reconcile-state-error-notice"
+      >
+        {t("home.reconcile.stateFailed")}
+      </Notice>
+      <Notice
         visible={hasPointFailed}
         onDismiss={() => setPointFailed(false)}
         wrapperStyle={{ bottom: SPACING.md + 48 }}
@@ -459,9 +556,11 @@ export function ReconcileAccountsSheet({
             currency={currency}
             isBusy={isBusy}
             isRecording={create.isPending}
+            isSavingState={writeState.isPending}
             onLeave={leave}
             onDismiss={() => setDismissed(true)}
             onRecord={record}
+            onKeep={keepAsStartingAmount}
           />
         )
       )}
@@ -533,9 +632,20 @@ export function ReconcileAccountsSheet({
             onCheck={(row) => void check(row)}
             onRemoveOwe={removeOwe}
             onViewOthers={viewItemsToCheck}
+            onAddOwe={addOwe}
+            onEditStartingAmount={() => setStartingOpen(true)}
           />
         )}
       </FormModal>
+      {comparison !== null && (
+        <ReconcileStartingAmountSheet
+          isVisible={isVisible && step === 2 && isStartingOpen}
+          amount={comparison.startingAmount}
+          currency={currency}
+          onDismiss={() => setStartingOpen(false)}
+          onSave={saveStartingAmount}
+        />
+      )}
       <ReconcileAddAccountSheet
         isVisible={isAddOpen && isVisible}
         onDismiss={() => setAddOpen(false)}

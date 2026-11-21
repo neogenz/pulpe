@@ -1036,7 +1036,20 @@
         "beforePulpe": "Von vor Pulpe",
         "toSpend": "Diesen Monat auszugeben",
         "finish": "Fertig",
-        "entryName": "Abweichung zu meinen Konten"
+        "entryName": "Abweichung zu meinen Konten",
+        "firstQuestion": "Waren diese %{amount} schon vor Pulpe da?",
+        "alreadyThere": "Ja, das war schon da",
+        "availableUnchanged": "Dein Verfügbares ändert sich nicht.",
+        "somethingElse": "Nein, etwas anderes",
+        "salaryQuestion": "Ist dein Lohn früher gekommen?",
+        "salaryComeBack": "Vergleich am %{day}. nochmal, an deinem Zahltag.",
+        "seeOtherReasons": "Andere Gründe ansehen",
+        "cardQuestion": "Hast du mit Kreditkarte, PayPal oder Klarna bezahlt?",
+        "startingAmountPart": "%{amount} von vor Pulpe",
+        "startingAmountTitle": "Geld von vor Pulpe",
+        "startingAmountLabel": "Betrag",
+        "saveStartingAmount": "Speichern",
+        "resetStartingAmount": "Auf 0 setzen"
       },
       "followFailed": "Vergleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern.",
       "guide": {
@@ -1074,7 +1087,8 @@
         "stepOf": "Schritt %{current} von %{total}"
       },
       "recorded": "Abweichung notiert",
-      "title": "Mit meinen Konten vergleichen"
+      "title": "Mit meinen Konten vergleichen",
+      "stateFailed": "Ich konnte das Geld von vor Pulpe nicht speichern. Versuch es nochmal."
     },
     "reminderPrime": {
       "body": "Eine Erinnerung pro Monat, um deine Ausgaben abzugleichen und deinen verfügbaren Betrag zu sehen. Mehr nicht — kein Spam, und du kannst sie jederzeit ausschalten.",

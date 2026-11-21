@@ -6,6 +6,9 @@ import {
   comparisonScreen,
   CURRENCY_METADATA,
   gapClosedByChecks,
+  getBudgetPeriodDates,
+  getBudgetPeriodForDate,
+  isSalaryMaybeEarly,
   type MatchedBreakdown,
   matchedBreakdown,
   moneyDifference,
@@ -17,7 +20,7 @@ import {
   type TransactionCreate,
 } from "pulpe-shared";
 
-import { isPointableLine } from "./current-month-view-model";
+import { countDaysBetween, isPointableLine } from "./current-month-view-model";
 
 /** Never a saving: the gap came in or went out, it was not set aside. */
 export type ReconciliationAdjustment = Exclude<
@@ -85,6 +88,10 @@ export interface Comparison {
   othersCount: number;
   note: { before: number; after: number };
   matched: MatchedBreakdown;
+  /** Money from before Pulpe, part of `compared`; shown apart when not 0. */
+  startingAmount: number;
+  /** The day of the month the next period starts: « Reviens comparer le 25 ». */
+  nextPayDay: number;
 }
 
 /** Step 2's numbers and screen, from the shared rules (spec.md §4). `ReconcileCompareStep` on the web. */
@@ -98,6 +105,8 @@ export function buildComparison(input: {
   context: ReconciliationContext;
   comparedBefore: number | null;
   isDismissed: boolean;
+  payDayOfMonth: number | null;
+  today: Date;
 }): Comparison {
   const { budgetLines, transactions, context } = input;
   const onAccounts = input.onAccountsCents / 100;
@@ -150,6 +159,23 @@ export function buildComparison(input: {
       (line) => line.checkedAt === null && isPointableLine(line),
     ).length;
 
+  // The next period's own start, not the day after this one's end: with a pay
+  // day of 31, February ends on the 28th in one helper and March starts on it.
+  const { payDayOfMonth, today } = input;
+  const current = getBudgetPeriodForDate(today, payDayOfMonth);
+  const startOf = (offset: number) => {
+    const index = current.year * 12 + current.month - 1 + offset;
+    return getBudgetPeriodDates(
+      (index % 12) + 1,
+      Math.floor(index / 12),
+      payDayOfMonth,
+    ).startDate;
+  };
+  // On pay day itself the next period starts today: wait for the one after.
+  const following = startOf(1);
+  const nextStart =
+    countDaysBetween(today, following) > 0 ? following : startOf(2);
+
   return {
     onAccounts,
     compared,
@@ -164,8 +190,12 @@ export function buildComparison(input: {
       candidateCount: suggestions.length,
       dismissed: input.isDismissed,
       first: !context.hasCompletedComparison && context.startingAmount === 0,
-      // shortcut: the pay-day rule is not wired yet; its screen comes with « Salaire en avance » (phase 16).
-      salaryMaybeEarly: false,
+      salaryMaybeEarly: isSalaryMaybeEarly({
+        gap,
+        payDayOfMonth,
+        // Today counted: the 23rd with the next period on the 25th leaves 2 days.
+        daysUntilNextPeriod: countDaysBetween(today, nextStart),
+      }),
     }),
     suggestions,
     othersCount:
@@ -176,5 +206,7 @@ export function buildComparison(input: {
       compared,
       startingAmount: context.startingAmount,
     }),
+    startingAmount: context.startingAmount,
+    nextPayDay: nextStart.getDate(),
   };
 }

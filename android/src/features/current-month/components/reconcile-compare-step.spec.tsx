@@ -76,6 +76,8 @@ const happyPath = {
   context,
   comparedBefore: null,
   isDismissed: false,
+  payDayOfMonth: null,
+  today: new Date(2026, 10, 18),
 };
 
 function renderStep(
@@ -94,6 +96,8 @@ function renderStep(
     onCheck: jest.fn(),
     onRemoveOwe: jest.fn(),
     onViewOthers: jest.fn(),
+    onAddOwe: jest.fn(),
+    onEditStartingAmount: jest.fn(),
     ...overrides,
   };
   return { props, view: render(<ReconcileCompareStep {...props} />) };
@@ -204,4 +208,97 @@ it("shows the error with [Réessayer] when the context cannot be read", async ()
   await fireEvent.press(view.getByText("common.retry"));
   expect(props.onRetry).toHaveBeenCalledTimes(1);
   expect(view.queryByTestId("reconcile-figures")).toBeNull();
+});
+
+describe("more on the accounts", () => {
+  // 6 000 more on the accounts than the 1 050 checked, nothing to check.
+  const more = {
+    ...happyPath,
+    onAccountsCents: 705_000,
+    budgetLines: [],
+    transactions: [],
+    context: { ...context, priorItems: [] },
+  };
+
+  it("asks about the salary only with a pay day five days away or less", async () => {
+    const early = await renderStep(
+      buildComparison({
+        ...more,
+        payDayOfMonth: 25,
+        today: new Date(2026, 10, 23),
+      }),
+    ).view;
+    expect(early.getByTestId("reconcile-salary-early")).toHaveTextContent(
+      /home\.reconcile\.compare\.salaryComeBack:25/,
+    );
+
+    const later = await renderStep(
+      buildComparison({
+        ...more,
+        payDayOfMonth: 25,
+        today: new Date(2026, 10, 10),
+      }),
+    ).view;
+    expect(later.queryByTestId("reconcile-salary-early")).toBeNull();
+    expect(later.getByTestId("reconcile-large-gap")).toBeTruthy();
+  });
+
+  it("asks about a card only when no « Je dois » row was typed", async () => {
+    const { props, view: pending } = renderStep(buildComparison(more));
+    const view = await pending;
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addOwe"));
+    expect(props.onAddOwe).toHaveBeenCalledTimes(1);
+
+    const withOwe = await renderStep(buildComparison(more), { hasOwe: true })
+      .view;
+    expect(withOwe.queryByTestId("reconcile-card-question")).toBeNull();
+    expect(withOwe.getByTestId("reconcile-large-gap")).toBeTruthy();
+  });
+
+  it("shows the money from before Pulpe apart from the figure, and opens it", async () => {
+    const { props, view: pending } = renderStep(
+      buildComparison({
+        ...more,
+        onAccountsCents: 400_000,
+        realizedBalance: 900,
+        context: { ...more.context, startingAmount: 3100 },
+      }),
+    );
+    const view = await pending;
+
+    expect(view.getByText("home.reconcile.compare.matched")).toBeTruthy();
+    await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
+    expect(props.onEditStartingAmount).toHaveBeenCalledTimes(1);
+
+    const partly = await renderStep(
+      buildComparison({
+        ...more,
+        onAccountsCents: 410_000,
+        realizedBalance: 900,
+        context: { ...more.context, startingAmount: 3100 },
+      }),
+    ).view;
+    expect(partly.getByTestId("reconcile-in-pulpe")).toHaveTextContent(
+      /900\.00/,
+    );
+    expect(partly.getByTestId("reconcile-starting-amount")).toHaveTextContent(
+      /home\.reconcile\.compare\.startingAmountPart:\+3’100\.00/,
+    );
+  });
+});
+
+it("asks about less on the accounts with a true minus, as on web and iOS", async () => {
+  const view = await renderStep(
+    buildComparison({
+      ...happyPath,
+      onAccountsCents: 50_000,
+      budgetLines: [],
+      transactions: [],
+      context: { ...context, priorItems: [] },
+    }),
+  ).view;
+
+  expect(view.getByTestId("reconcile-large-gap")).toHaveTextContent(
+    "home.reconcile.compare.largeGapQuestion:−550.00 CHF",
+  );
 });

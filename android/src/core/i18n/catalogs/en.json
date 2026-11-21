@@ -1036,7 +1036,20 @@
         "beforePulpe": "From before Pulpe",
         "toSpend": "To spend this month",
         "finish": "Done",
-        "entryName": "Gap with my accounts"
+        "entryName": "Gap with my accounts",
+        "firstQuestion": "Was this %{amount} there before Pulpe?",
+        "alreadyThere": "Yes, it was already there",
+        "availableUnchanged": "Your available amount doesn't change.",
+        "somethingElse": "No, something else",
+        "salaryQuestion": "Did your salary come in early?",
+        "salaryComeBack": "Compare again on the %{day}, your pay day.",
+        "seeOtherReasons": "See other reasons",
+        "cardQuestion": "Did you pay by credit card, PayPal or Klarna?",
+        "startingAmountPart": "%{amount} from before Pulpe",
+        "startingAmountTitle": "Money from before Pulpe",
+        "startingAmountLabel": "Amount",
+        "saveStartingAmount": "Save",
+        "resetStartingAmount": "Reset to 0"
       },
       "followFailed": "Comparison done, but I couldn't save your balances in My net worth.",
       "guide": {
@@ -1074,7 +1087,8 @@
         "stepOf": "Step %{current} of %{total}"
       },
       "recorded": "Gap noted",
-      "title": "Compare with my accounts"
+      "title": "Compare with my accounts",
+      "stateFailed": "I couldn't save the money from before Pulpe. Try again."
     },
     "reminderPrime": {
       "body": "One reminder a month to check off your expenses and see what is available. That's all — no spam, and you can turn it off whenever you like.",

@@ -401,7 +401,7 @@ function measurePeriodProgress(
  * Rounded rather than truncated: a period that crosses a daylight-saving change
  * spans 23 or 25 hours on one of its days, and flooring would lose it.
  */
-function countDaysBetween(from: Date, to: Date): number {
+export function countDaysBetween(from: Date, to: Date): number {
   return Math.round(
     (startOfDay(to).getTime() - startOfDay(from).getTime()) /
       MILLISECONDS_PER_DAY,

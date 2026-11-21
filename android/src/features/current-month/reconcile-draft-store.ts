@@ -7,14 +7,24 @@ import type { AccountRow } from "./reconcile-account-links";
  * die with the sheet. In memory only, so a cold start opens on an empty sheet.
  * Read back only when the person opens the sheet again, never reopened for them.
  */
-let draft: { budgetId: string; rows: AccountRow[] } | null = null;
-
-export function keepReconcileDraft(budgetId: string, rows: AccountRow[]): void {
-  draft = { budgetId, rows };
+interface ReconcileDraft {
+  rows: AccountRow[];
+  /** A comparison was completed before the lock: the real close still saves the balances. */
+  hasCompleted: boolean;
 }
 
-export function readReconcileDraft(budgetId: string): AccountRow[] | null {
-  return draft?.budgetId === budgetId ? draft.rows : null;
+let draft: (ReconcileDraft & { budgetId: string }) | null = null;
+
+export function keepReconcileDraft(
+  budgetId: string,
+  rows: AccountRow[],
+  hasCompleted = false,
+): void {
+  draft = { budgetId, rows, hasCompleted };
+}
+
+export function readReconcileDraft(budgetId: string): ReconcileDraft | null {
+  return draft?.budgetId === budgetId ? draft : null;
 }
 
 /** Closing by hand, finishing and signing out all leave nothing to come back to. */

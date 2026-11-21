@@ -1036,7 +1036,20 @@
         "beforePulpe": "D'avant Pulpe",
         "toSpend": "À dépenser ce mois",
         "finish": "Terminer",
-        "entryName": "Écart avec mes comptes"
+        "entryName": "Écart avec mes comptes",
+        "firstQuestion": "Ces %{amount} étaient là avant Pulpe ?",
+        "alreadyThere": "Oui, c'était déjà là",
+        "availableUnchanged": "Ton disponible ne change pas.",
+        "somethingElse": "Non, autre chose",
+        "salaryQuestion": "Ton salaire est arrivé en avance ?",
+        "salaryComeBack": "Reviens comparer le %{day}, jour de ta paie.",
+        "seeOtherReasons": "Voir les autres raisons",
+        "cardQuestion": "Tu as payé par carte de crédit, PayPal ou Klarna ?",
+        "startingAmountPart": "%{amount} d'avant Pulpe",
+        "startingAmountTitle": "Argent d'avant Pulpe",
+        "startingAmountLabel": "Montant",
+        "saveStartingAmount": "Enregistrer",
+        "resetStartingAmount": "Remettre à 0"
       },
       "followFailed": "Comparaison faite, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine.",
       "guide": {
@@ -1074,7 +1087,8 @@
         "stepOf": "Étape %{current} sur %{total}"
       },
       "recorded": "Écart noté",
-      "title": "Comparer avec mes comptes"
+      "title": "Comparer avec mes comptes",
+      "stateFailed": "Je n'ai pas pu enregistrer l'argent d'avant Pulpe. Réessaie."
     },
     "reminderPrime": {
       "body": "Un rappel par mois pour pointer tes dépenses et voir ton disponible. C'est tout — jamais de spam, et tu coupes quand tu veux.",

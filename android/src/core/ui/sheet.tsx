@@ -87,6 +87,11 @@ interface FormModalProps {
   headerAction?: ReactNode;
   /** Off for a page whose header action is already its way out (« Passer »). */
   showsCloseButton?: boolean;
+  /**
+   * Once the sheet is on screen. A field's `autoFocus` runs before the sheet's
+   * window can take the keyboard: a sheet that opens on typing focuses it here.
+   */
+  onShow?: () => void;
   children?: ReactNode;
 }
 
@@ -116,6 +121,7 @@ export function FormModal({
   fillsHeight = false,
   headerAction,
   showsCloseButton = true,
+  onShow,
   children,
 }: FormModalProps) {
   const { t } = useTranslation();
@@ -184,6 +190,7 @@ export function FormModal({
       presentationStyle="overFullScreen"
       statusBarTranslucent
       onRequestClose={isBusy ? () => undefined : (onBack ?? onDismiss)}
+      onShow={onShow}
     >
       <View
         style={[styles.backdrop, { backgroundColor: theme.colors.backdrop }]}

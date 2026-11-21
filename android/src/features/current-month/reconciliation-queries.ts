@@ -1,9 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import type { ReconciliationContext } from "pulpe-shared";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryClient } from "@/core/query/query-client";
 import { useVaultStore } from "@/core/vault/vault-store";
 
-import { fetchReconciliationContext } from "./reconciliation-api";
+import {
+  fetchReconciliationContext,
+  writeReconciliationState,
+} from "./reconciliation-api";
 
 /** A check anywhere moves the previous months' correction: `useToggleCheck` invalidates `all`. */
 export const reconciliationKeys = {
@@ -31,5 +35,24 @@ export function forgetReconciliationContext(budgetId: string): void {
   queryClient.removeQueries({
     queryKey: reconciliationKeys.context(budgetId),
     exact: true,
+  });
+}
+
+/**
+ * One write per answer. Accepted, the comparison reads the stored state at
+ * once; refused, it reads the context again, since the write may have landed.
+ */
+export function useWriteReconciliationState(budgetId: string) {
+  const key = reconciliationKeys.context(budgetId);
+  return useMutation({
+    mutationFn: writeReconciliationState,
+    onSuccess: async (state) => {
+      // A read already out holds the state from before this write: it must not land after it.
+      await queryClient.cancelQueries({ queryKey: key });
+      queryClient.setQueryData<ReconciliationContext>(key, (context) =>
+        context === undefined ? context : { ...context, ...state },
+      );
+    },
+    onError: () => queryClient.invalidateQueries({ queryKey: key }),
   });
 }

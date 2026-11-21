@@ -1036,7 +1036,20 @@
         "beforePulpe": "Da prima di Pulpe",
         "toSpend": "Da spendere questo mese",
         "finish": "Fatto",
-        "entryName": "Scarto con i miei conti"
+        "entryName": "Scarto con i miei conti",
+        "firstQuestion": "Questi %{amount} c'erano già prima di Pulpe?",
+        "alreadyThere": "Sì, c'erano già",
+        "availableUnchanged": "Il tuo disponibile non cambia.",
+        "somethingElse": "No, altro",
+        "salaryQuestion": "Il tuo stipendio è arrivato in anticipo?",
+        "salaryComeBack": "Torna a confrontare il %{day}, giorno di paga.",
+        "seeOtherReasons": "Vedi le altre ragioni",
+        "cardQuestion": "Hai pagato con carta di credito, PayPal o Klarna?",
+        "startingAmountPart": "%{amount} da prima di Pulpe",
+        "startingAmountTitle": "Soldi da prima di Pulpe",
+        "startingAmountLabel": "Importo",
+        "saveStartingAmount": "Salva",
+        "resetStartingAmount": "Riporta a 0"
       },
       "followFailed": "Confronto fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio.",
       "guide": {
@@ -1074,7 +1087,8 @@
         "stepOf": "Passo %{current} di %{total}"
       },
       "recorded": "Scarto annotato",
-      "title": "Confronta con i miei conti"
+      "title": "Confronta con i miei conti",
+      "stateFailed": "Non sono riuscito a salvare i soldi da prima di Pulpe. Riprova."
     },
     "reminderPrime": {
       "body": "Un promemoria al mese per spuntare le spese e vedere quanto hai a disposizione. Nient'altro — niente spam e puoi disattivarlo quando vuoi.",

@@ -102,9 +102,19 @@ const mockContext = {
   isFetching: false,
   refetch: jest.fn(),
 };
+const mockWriteState = {
+  mutate: jest.fn(),
+  reset: jest.fn(),
+  isPending: false,
+  isError: false,
+};
 jest.mock("../reconciliation-queries", () => ({
   useReconciliationContext: () => mockContext,
   forgetReconciliationContext: jest.fn(),
+  useWriteReconciliationState: () => mockWriteState,
+}));
+jest.mock("@/core/user-settings/user-settings-queries", () => ({
+  useUserSettings: () => ({ data: { payDayOfMonth: null } }),
 }));
 const mockCompleteReconciliation = jest.fn(() => Promise.resolve());
 jest.mock("../reconciliation-api", () => ({
@@ -141,6 +151,7 @@ jest.mock("@/core/ui/theme", () => ({
   SPACING: { lg: 24, md: 16, sm: 8, xs: 4, xxs: 2 },
   TOUCH_TARGET: 48,
   TABULAR_DIGITS: {},
+  DISPLAY_FAMILY: {},
 }));
 jest.mock("@/core/ui/scheme-colors", () => ({
   useV2Colors: () => ({
@@ -404,6 +415,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockSeenGuide = true;
   Object.assign(mockCreate, { isPending: false, isError: false });
+  Object.assign(mockWriteState, { isPending: false, isError: false });
   Object.assign(mockContext, {
     data: CONTEXT,
     isError: false,
@@ -725,6 +737,37 @@ describe("with Mon patrimoine", () => {
     await view.rerender(<ReconcileAccountsSheet {...props} />);
     await fireEvent.press(view.getByLabelText("scrim"));
     expect(mockFollow.mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves nothing at the lock after « Oui, c'était déjà là », then once on the rebuilt sheet's real close", async () => {
+    offer(linked(account("a", true)));
+    mockContext.data = { ...CONTEXT, hasCompletedComparison: false };
+    const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+    const view = await pending;
+    await reachVerdict(view, "4000");
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.alreadyThere"),
+    );
+    const [, write] = mockWriteState.mutate.mock.calls[0] as [
+      unknown,
+      { onSuccess: () => void; onSettled: () => void },
+    ];
+    await act(() => {
+      write.onSuccess();
+      write.onSettled();
+    });
+
+    // The lock drops the whole tree: no close, nothing saved.
+    await view.unmount();
+    expect(mockFollow.mutate).not.toHaveBeenCalled();
+
+    const rebuilt = await render(<ReconcileAccountsSheet {...props} />);
+    await fireEvent.changeText(rebuilt.getByLabelText(BALANCE), "4100");
+    await fireEvent.press(rebuilt.getByLabelText("scrim"));
+    expect(mockFollow.mutate).toHaveBeenCalledTimes(1);
+    expect(mockFollow.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ snapshots: [{ assetId: "a", value: 4100 }] }),
+    );
   });
 
   it("writes nothing there when the sheet is left before the end", async () => {
@@ -1152,6 +1195,124 @@ describe("step 2", () => {
     expect(view.getByText(STEP_2)).toBeTruthy();
     expect(view.queryByTestId("reconcile-owe-box")).toBeNull();
     expect(view.queryByText("home.reconcile.compare.leadCard")).toBeNull();
+  });
+
+  describe("money from before Pulpe", () => {
+    // Never compared, nothing stored: 4 000 on the accounts against 900 checked.
+    beforeEach(() => {
+      mockContext.data = { ...CONTEXT, hasCompletedComparison: false };
+    });
+    type WriteCall = [
+      unknown,
+      { onSuccess: () => void; onSettled: () => void },
+    ];
+
+    it("stores the gap once, completes once, then finishes as matched", async () => {
+      const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+      const view = await pending;
+      await reachVerdict(view, "4000");
+      expect(
+        view.getByText(
+          "home.reconcile.compare.firstQuestion:3’100.00\u00a0CHF",
+        ),
+      ).toBeTruthy();
+
+      const keep = view.getByText("home.reconcile.compare.alreadyThere");
+      await act(async () => {
+        await Promise.all([fireEvent.press(keep), fireEvent.press(keep)]);
+      });
+      expect(mockWriteState.mutate).toHaveBeenCalledTimes(1);
+      const [patch, write] = mockWriteState.mutate.mock.calls[0] as WriteCall;
+      expect(patch).toEqual({ startingAmount: 3100, completed: true });
+      await act(() => {
+        write.onSuccess();
+        write.onSettled();
+      });
+      expect(captureEvent).toHaveBeenCalledTimes(1);
+      expect(captureEvent).toHaveBeenCalledWith(
+        "account_reconciliation_completed",
+        { adjustment_kind: "none" },
+      );
+
+      // The stored state comes back with the context: Pulpe now matches.
+      mockContext.data = { ...CONTEXT, startingAmount: 3100 };
+      await view.rerender(<ReconcileAccountsSheet {...props} />);
+      await fireEvent.press(view.getByText("home.reconcile.compare.finish"));
+      expect(captureEvent).toHaveBeenCalledTimes(1);
+      expect(mockCompleteReconciliation).not.toHaveBeenCalled();
+      expect(props.onDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the question and says so when the write is refused", async () => {
+      const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+      const view = await pending;
+      await reachVerdict(view, "4000");
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.alreadyThere"),
+      );
+      const [, write] = mockWriteState.mutate.mock.calls[0] as WriteCall;
+      Object.assign(mockWriteState, { isError: true });
+      await act(() => write.onSettled());
+      await view.rerender(<ReconcileAccountsSheet {...props} />);
+
+      expect(view.getByText("home.reconcile.stateFailed")).toBeTruthy();
+      expect(view.getByTestId("reconcile-first-comparison")).toBeTruthy();
+      expect(captureEvent).not.toHaveBeenCalled();
+    });
+
+    it("writes a corrected amount once, from its sheet", async () => {
+      mockContext.data = { ...CONTEXT, startingAmount: 3100 };
+      const view = await renderSheet({ realizedBalance: 900 }).view;
+      await reachVerdict(view, "4000");
+      await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
+      const field = view.getByLabelText(
+        "home.reconcile.compare.startingAmountLabel",
+      );
+      await fireEvent.changeText(field, "3000");
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.saveStartingAmount"),
+      );
+
+      expect(mockWriteState.mutate).toHaveBeenCalledTimes(1);
+      expect(mockWriteState.mutate.mock.calls[0][0]).toEqual({
+        startingAmount: 3000,
+      });
+      expect(
+        view.queryByText("home.reconcile.compare.saveStartingAmount"),
+      ).toBeNull();
+    });
+  });
+
+  it("resets the money from before Pulpe in one write, and the figure follows", async () => {
+    mockContext.data = { ...CONTEXT, startingAmount: 3100 };
+    const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+    const view = await pending;
+    await reachVerdict(view, "4000");
+    await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.resetStartingAmount"),
+    );
+    expect(mockWriteState.mutate).toHaveBeenCalledTimes(1);
+    expect(mockWriteState.mutate.mock.calls[0][0]).toEqual({
+      startingAmount: 0,
+    });
+
+    mockContext.data = { ...CONTEXT, startingAmount: 0 };
+    await view.rerender(<ReconcileAccountsSheet {...props} />);
+    expect(view.queryByTestId("reconcile-starting-amount")).toBeNull();
+    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(/900\.00/);
+  });
+
+  it("goes back to step 1 with one new « Je dois » row from the card question", async () => {
+    const view = await renderSheet(PULPE).view;
+    await reachVerdict(view, "1200");
+    const addOwe = view.getByText("home.reconcile.accounts.addOwe");
+    await act(async () => {
+      await Promise.all([fireEvent.press(addOwe), fireEvent.press(addOwe)]);
+    });
+
+    expect(view.queryByText(STEP_2)).toBeNull();
+    expect(view.getAllByLabelText(AMOUNT)).toHaveLength(2);
   });
 
   it("opens « À pointer » from « Voir les autres »", async () => {

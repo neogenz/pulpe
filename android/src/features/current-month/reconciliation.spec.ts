@@ -94,6 +94,8 @@ describe("buildComparison", () => {
     context,
     comparedBefore: null,
     isDismissed: false,
+    payDayOfMonth: null,
+    today: new Date(2026, 10, 18),
   };
 
   it("ranks the happy path's items from every source, the exact one highlighted", () => {
@@ -184,7 +186,6 @@ describe("buildComparison", () => {
         isDismissed: true,
       }).screen,
     ).toBe("smallGap");
-    // Its own screen comes with phase 16; until then step 2 asks the large-gap question.
     expect(
       buildComparison({
         ...base,
@@ -192,5 +193,65 @@ describe("buildComparison", () => {
         context: { ...context, hasCompletedComparison: false },
       }).screen,
     ).toBe("firstComparison");
+  });
+
+  describe("salary early", () => {
+    // 6 000 more on the accounts, nothing to check that could explain it.
+    const more = {
+      ...base,
+      onAccountsCents: 705_000,
+      budgetLines: [],
+      transactions: [],
+      context: { ...context, priorItems: [] },
+    };
+
+    it("asks within five days of pay day, and names the day", () => {
+      expect(
+        buildComparison({
+          ...more,
+          payDayOfMonth: 25,
+          today: new Date(2026, 10, 23),
+        }),
+      ).toMatchObject({ screen: "salaryEarly", nextPayDay: 25 });
+      expect(
+        buildComparison({
+          ...more,
+          payDayOfMonth: 25,
+          today: new Date(2026, 10, 10),
+        }).screen,
+      ).toBe("moreOnAccounts");
+      expect(
+        buildComparison({ ...more, today: new Date(2026, 10, 23) }).screen,
+      ).toBe("moreOnAccounts");
+    });
+
+    it("takes the next period's own start, and on pay day itself the one after", () => {
+      // Pay day 31: March's period starts on February 28th.
+      expect(
+        buildComparison({
+          ...more,
+          payDayOfMonth: 31,
+          today: new Date(2027, 1, 26),
+        }),
+      ).toMatchObject({ screen: "salaryEarly", nextPayDay: 28 });
+      expect(
+        buildComparison({
+          ...more,
+          payDayOfMonth: 31,
+          today: new Date(2027, 1, 28),
+        }).screen,
+      ).toBe("moreOnAccounts");
+    });
+
+    it("leaves the first comparison its own question", () => {
+      expect(
+        buildComparison({
+          ...more,
+          context: { ...more.context, hasCompletedComparison: false },
+          payDayOfMonth: 25,
+          today: new Date(2026, 10, 23),
+        }).screen,
+      ).toBe("firstComparison");
+    });
   });
 });
