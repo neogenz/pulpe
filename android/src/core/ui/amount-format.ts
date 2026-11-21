@@ -109,8 +109,7 @@ export function formatSignedCompactCurrency(
 ): string {
   // No sign while masked: `+•••` still says the month went up.
   if (areAmountsHidden()) return MASK;
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${formatCompactCurrency(value, currency)}`;
+  return withSign(value, formatCompactCurrency(value, currency));
 }
 
 /**
@@ -123,8 +122,7 @@ export function formatSignedAdaptiveCurrency(
   currency: SupportedCurrency,
 ): string {
   if (areAmountsHidden()) return MASK;
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${formatAdaptiveCurrency(value, currency)}`;
+  return withSign(value, formatAdaptiveCurrency(value, currency));
 }
 
 /**
@@ -137,8 +135,7 @@ export function formatSignedCurrency(
   currency: SupportedCurrency,
 ): string {
   if (areAmountsHidden()) return MASK;
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${formatCurrency(value, currency)}`;
+  return withSign(value, formatCurrency(value, currency));
 }
 
 function format(
@@ -146,10 +143,19 @@ function format(
   currency: SupportedCurrency,
   digits: Intl.NumberFormatOptions,
 ): string {
-  const formatted = formatterFor(currency, digits).format(value);
+  // Float sums leave residues such as 0.3 - 0.1 - 0.2 = -2.8e-17, and Intl
+  // prints any negative that rounds to nothing as "-0"; iOS's Decimal reads 0.
+  const unit = 10 ** -(digits.maximumFractionDigits ?? 0);
+  const shown = Math.abs(value) < unit / 2 ? 0 : value;
+  const formatted = formatterFor(currency, digits).format(shown);
   return currency === "CHF"
     ? formatted.replace(FOREIGN_GROUPING_SEPARATORS, SWISS_GROUPING_SEPARATOR)
     : formatted;
+}
+
+/** A `+` before what grew, never before an amount that prints as zero. */
+function withSign(value: number, formatted: string): string {
+  return value > 0 && /[1-9]/.test(formatted) ? `+${formatted}` : formatted;
 }
 
 function withSymbol(amount: string, currency: SupportedCurrency): string {
