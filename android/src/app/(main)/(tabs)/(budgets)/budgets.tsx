@@ -22,6 +22,7 @@ import {
   invalidateUserSettings,
   useUserSettings,
 } from "@/core/user-settings/user-settings-queries";
+import { useFabOnScroll } from "@/core/ui/fab-on-scroll";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
 import {
   formatAmount,
@@ -93,6 +94,7 @@ export default function BudgetsScreen() {
   const theme = useTheme();
   const financial = useFinancialColors();
   const { locale, t } = useTranslation();
+  const fab = useFabOnScroll();
   const navigationResult = useLocalSearchParams<{
     createdCount?: string;
     skippedCount?: string;
@@ -287,6 +289,7 @@ export default function BudgetsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}
+          {...fab.scrollProps}
           refreshControl={<RefreshControl {...pull} />}
         >
           <HeroZone>
@@ -392,6 +395,7 @@ export default function BudgetsScreen() {
           newcomer actually is. */}
       <FAB
         testID="budgets-create"
+        visible={fab.isFabVisible}
         icon="plus"
         style={styles.fab}
         onPress={() => router.push("/budget/create")}

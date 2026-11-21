@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { usePushOnce } from "@/core/navigation/push-once";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { useFabOnScroll } from "@/core/ui/fab-on-scroll";
 import { IconDisc } from "@/core/ui/icon-disc";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
 import { Amount } from "@/core/ui/amount";
@@ -39,6 +40,7 @@ export default function TemplatesScreen() {
   useAmountMasking();
   const theme = useTheme();
   const { t } = useTranslation();
+  const fab = useFabOnScroll();
   const templates = useTemplates();
   const pull = usePullToRefresh(() => templates.refetch());
   const [isCreating, setCreating] = useState(false);
@@ -117,6 +119,7 @@ export default function TemplatesScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
+          {...fab.scrollProps}
           refreshControl={<RefreshControl {...pull} />}
         >
           <Text
@@ -159,6 +162,7 @@ export default function TemplatesScreen() {
       {canAdd && list.length > 0 && (
         <FAB
           testID="templates-create"
+          visible={fab.isFabVisible}
           icon="plus"
           style={styles.fab}
           onPress={() => setCreating(true)}

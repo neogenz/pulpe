@@ -114,7 +114,9 @@ extended form — icon and label — is spent only where the act is what the scr
 model happens rarely and each empty state already names it, so those lists carry a plain
 plus. A budget's two ways to grow — a forecast or a loose operation — sit behind one
 `FAB.Group`. `fab-clearance.spec.ts` holds both rules: a screen with a FAB leaves
-`FAB_CLEARANCE` under its content, and only those two screens label theirs.
+`FAB_CLEARANCE` under its content, and only those two screens label theirs. On the four
+tabs the FAB steps aside while the list goes down and returns as soon as it goes up
+(`useFabOnScroll`), so it never sits on a section's link.
 
 One notice slot per screen: the most pressing news wins, so a failure never hides under an undo.
 On a screen with a FAB the notice rises above it (`clearsFab`), where M3 puts a snackbar.
