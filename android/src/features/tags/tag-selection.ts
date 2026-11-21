@@ -47,13 +47,14 @@ export function tagsMatching(query: string, tags: Tag[]): Tag[] {
 
 /**
  * Case- and accent-insensitive, like iOS's localized search: « epicerie »
- * finds « Épicerie », « strasse » « Straße ». Only the Latin accents go:
- * « ^ », « 2 » or a Devanagari vowel sign still has to be in the name.
+ * finds « Épicerie », « strasse » « Straße ». Only accents written over a
+ * letter go (Latin, Arabic, Hebrew): « ^ », « 2 » or a Devanagari vowel sign
+ * still has to be in the name.
  */
 export function foldedForSearch(text: string): string {
   return text
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/(?=\p{Mn})\p{Diacritic}/gu, "")
     .toLocaleLowerCase()
     .replace(/ß/g, "ss");
 }

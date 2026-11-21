@@ -134,7 +134,9 @@ export function FormModal({
   }, [showsBackButton]);
   // A sheet closed from a step must not hand its offset to the next opening.
   useEffect(() => {
-    if (!isVisible) formOffset.current = 0;
+    if (isVisible) return;
+    formOffset.current = 0;
+    viewport.current.offset = 0;
   }, [isVisible]);
 
   function reveal() {
