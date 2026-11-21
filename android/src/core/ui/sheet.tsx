@@ -17,7 +17,6 @@ import {
 import {
   Divider,
   IconButton,
-  MD3LightTheme,
   Text,
   ThemeProvider,
   useTheme,
@@ -183,9 +182,11 @@ export function FormModal({
               />
             )}
             <View style={styles.heading}>
-              <Text variant="titleLarge" accessibilityRole="header">
-                {title}
-              </Text>
+              <View style={styles.titleLine}>
+                <Text variant="titleLarge" accessibilityRole="header">
+                  {title}
+                </Text>
+              </View>
               {subtitle !== undefined && (
                 <Text
                   variant="labelMedium"
@@ -266,12 +267,10 @@ const styles = StyleSheet.create({
   },
   // The arrow's icon sits as far from its edge as the close icon from the other.
   headerWithBack: { paddingLeft: SPACING.sm },
-  // A one-line title sits on the axis of the 48dp buttons beside it.
-  heading: {
-    flex: 1,
-    gap: SPACING.xxs,
-    paddingTop: (TOUCH_TARGET - MD3LightTheme.fonts.titleLarge.lineHeight) / 2,
-  },
+  heading: { flex: 1, gap: SPACING.xxs },
+  // A one-line title sits on the axis of the 48dp buttons beside it, at any
+  // font scale; a longer one starts level with their top.
+  titleLine: { minHeight: TOUCH_TARGET, justifyContent: "center" },
   headerButton: {
     width: TOUCH_TARGET,
     height: TOUCH_TARGET,
