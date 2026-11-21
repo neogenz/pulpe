@@ -155,6 +155,7 @@ jest.mock("@/core/ui/theme", () => ({
   pulpeDarkTheme: {},
   pulpeLightTheme: {},
   SPACING: { lg: 24, md: 16 },
+  DISPLAY_FAMILY: { extraBold: "Manrope-ExtraBold", bold: "Manrope-Bold" },
 }));
 jest.mock("@/core/vault/auto-lock", () => ({ armAutoLock: jest.fn() }));
 jest.mock("@/core/vault/key-invalidation", () => ({
