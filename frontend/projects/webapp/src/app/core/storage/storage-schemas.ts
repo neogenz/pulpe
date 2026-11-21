@@ -106,6 +106,12 @@ export const STORAGE_SCHEMAS = {
     schema: z.boolean(),
     scope: 'app',
   },
+  // Same reasoning as the « Mon patrimoine » explainer: once per device.
+  [STORAGE_KEYS.RECONCILE_GUIDE_SEEN]: {
+    version: 1,
+    schema: z.boolean(),
+    scope: 'app',
+  },
 
   [STORAGE_KEYS.DASHBOARD_POINTING_LEARNED]: {
     version: 1,

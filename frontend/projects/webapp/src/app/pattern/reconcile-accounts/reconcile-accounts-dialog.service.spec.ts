@@ -13,10 +13,12 @@ import {
 import { createMockPostHogService } from '@app/testing/mock-posthog';
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
+import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { createMockDataCache } from '@core/testing';
 import {
   ReconcileAccountsDialog,
   type ReconcileAccountsDialogData,
+  type RealizedPosition,
 } from './reconcile-accounts-dialog';
 import { ReconcileAccountsDialogService } from './reconcile-accounts-dialog.service';
 
@@ -54,7 +56,11 @@ function makeNetWorth(assets: Asset[]): NetWorth {
 const UBS = makeAsset();
 
 function setup(
-  options: { isFlagOn?: boolean; currency?: SupportedCurrency } = {},
+  options: {
+    isFlagOn?: boolean;
+    isGuideSeen?: boolean;
+    currency?: SupportedCurrency;
+  } = {},
 ) {
   const cache = createMockDataCache();
   let stored: { data: NetWorth; fresh: boolean } | null = null;
@@ -68,6 +74,13 @@ function setup(
   const dialog = { open: vi.fn() };
   const postHog = createMockPostHogService();
   postHog.isFeatureEnabled.mockReturnValue(options.isFlagOn ?? true);
+  let isGuideSeen = options.isGuideSeen ?? false;
+  const storage = {
+    get: vi.fn(() => (isGuideSeen ? true : null)),
+    set: vi.fn(() => {
+      isGuideSeen = true;
+    }),
+  };
 
   TestBed.configureTestingModule({
     providers: [
@@ -75,11 +88,18 @@ function setup(
       { provide: MatDialog, useValue: dialog },
       { provide: AssetApi, useValue: assetApi },
       { provide: PostHogService, useValue: postHog },
+      { provide: StorageService, useValue: storage },
     ],
   });
 
-  const data: Omit<ReconcileAccountsDialogData, 'netWorth'> = {
-    realized: signal(null),
+  const realized = signal<RealizedPosition | null>({
+    balance: 0,
+    checkedIncome: 0,
+    checkedOutflows: 0,
+    rollover: 0,
+  });
+  const data: Omit<ReconcileAccountsDialogData, 'netWorth' | 'showGuide'> = {
+    realized,
     ledger: signal(null),
     pointTransaction: vi.fn(),
     currency: signal(options.currency ?? 'CHF'),
@@ -101,6 +121,8 @@ function setup(
     assetApi,
     dialog,
     postHog,
+    storage,
+    realized,
     data,
     openedData,
     seed(assets: Asset[]) {
@@ -114,6 +136,37 @@ function setup(
 describe('ReconcileAccountsDialogService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
+  });
+
+  it('should open on the guide the first time only, remembering it at once', async () => {
+    const view = setup({ isFlagOn: false });
+
+    await view.service.open(view.data, false);
+    await view.service.open(view.data, false);
+
+    const shown = view.dialog.open.mock.calls.map(
+      ([, config]) => config.data.showGuide,
+    );
+    expect(shown).toEqual([true, false]);
+    expect(view.storage.set).toHaveBeenCalledExactlyOnceWith(
+      STORAGE_KEYS.RECONCILE_GUIDE_SEEN,
+      true,
+    );
+  });
+
+  it('should neither open nor use up the first visit when the month changed while the accounts loaded', async () => {
+    const view = setup();
+    const response = new Subject<{ success: true; data: NetWorth }>();
+    view.assetApi.getNetWorth$.mockReturnValue(response);
+
+    const opening = view.service.open(view.data, false);
+    view.realized.set(null);
+    response.next({ success: true, data: makeNetWorth([UBS]) });
+    response.complete();
+    await opening;
+
+    expect(view.dialog.open).not.toHaveBeenCalled();
+    expect(view.storage.set).not.toHaveBeenCalled();
   });
 
   it('should open at once without « Mon patrimoine » when the flag is off', () => {

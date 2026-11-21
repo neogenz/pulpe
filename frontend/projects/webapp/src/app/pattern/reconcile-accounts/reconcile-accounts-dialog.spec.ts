@@ -9,6 +9,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, Subject, throwError } from 'rxjs';
 import {
+  ANALYTICS_EVENTS,
   getBudgetPeriodDates,
   type Asset,
   type BudgetPeriodDates,
@@ -87,6 +88,7 @@ async function setup(
     /** My accounts in « Mon patrimoine »; left out, the feature is off. */
     accounts?: Asset[];
     recordSnapshots?: AssetApi['recordSnapshots$'];
+    showGuide?: boolean;
   } = {},
 ) {
   const backdropClick = new Subject<MouseEvent>();
@@ -119,6 +121,7 @@ async function setup(
           categories: [{ id: CATEGORY_ID, name: 'Comptes', total: 0 }],
         }
       : null,
+    showGuide: options.showGuide ?? false,
   };
   const assetApi = {
     cache: createMockDataCache(),
@@ -234,6 +237,99 @@ function recordedValues(host: HTMLElement): string[] {
 describe('ReconcileAccountsDialog', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
+  });
+
+  describe('the guide', () => {
+    it('should start on step 1 when the guide was already seen', async () => {
+      const view = await setup();
+
+      expect(view.byTestId('reconcile-guide')).toBeNull();
+      expect(view.byTestId('reconcile-accounts-step')).not.toBeNull();
+      expect(view.host.classList).not.toContain('guide-open');
+    });
+
+    it('should start on the guide the first time, then land on step 1 from « Comparer maintenant »', async () => {
+      const view = await setup({ showGuide: true });
+
+      expect(view.byTestId('reconcile-guide')).not.toBeNull();
+      expect(view.host.classList).toContain('guide-open');
+      expect(view.postHog.captureEvent).toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_GUIDE_VIEWED,
+        { source: 'auto' },
+      );
+
+      await view.click(view.byTestId('reconcile-guide-primary'));
+      await view.click(view.byTestId('reconcile-guide-primary'));
+      await view.click(view.byTestId('reconcile-guide-primary'));
+
+      expect(view.byTestId('reconcile-guide')).toBeNull();
+      expect(view.host.classList).not.toContain('guide-open');
+      expect(view.byTestId('reconcile-accounts-step')).not.toBeNull();
+    });
+
+    it('should replay from « ? » on the step it came from, typed values kept', async () => {
+      const view = await setup();
+      await view.type(view.byTestId('reconcile-amount-input'), '890');
+      await view.click(view.byTestId('reconcile-next-button'));
+      expect(view.byTestId('reconcile-realized-step')).not.toBeNull();
+
+      await view.click(view.byTestId('reconcile-guide-help-button'));
+      expect(view.postHog.captureEvent).toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_GUIDE_VIEWED,
+        { source: 'help' },
+      );
+      await view.click(view.byTestId('reconcile-guide-skip'));
+
+      expect(view.byTestId('reconcile-guide')).toBeNull();
+      expect(view.byTestId('reconcile-realized-step')).not.toBeNull();
+      await view.click(view.byTestId('reconcile-back-button'));
+      expect(
+        view.byTestId<HTMLInputElement>('reconcile-amount-input')?.value,
+      ).toBe('890');
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('should go back to the step, values kept, on Escape or backdrop when replayed from « ? »', async () => {
+      const view = await setup();
+      await view.type(view.byTestId('reconcile-amount-input'), '890');
+      await view.click(view.byTestId('reconcile-guide-help-button'));
+
+      view.keydownEvents.next(new KeyboardEvent('keydown', { key: 'Escape' }));
+      await view.render();
+      expect(view.byTestId('reconcile-guide')).toBeNull();
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+
+      await view.click(view.byTestId('reconcile-guide-help-button'));
+      view.backdropClick.next(new MouseEvent('click'));
+      await view.render();
+      expect(view.byTestId('reconcile-guide')).toBeNull();
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+      expect(
+        view.byTestId<HTMLInputElement>('reconcile-amount-input')?.value,
+      ).toBe('890');
+    });
+
+    it('should close the whole dialog on Escape when the guide opened by itself', async () => {
+      const view = await setup({ showGuide: true });
+
+      view.keydownEvents.next(new KeyboardEvent('keydown', { key: 'Escape' }));
+      await view.render();
+
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('should name the dialog « Comparer avec mes comptes » and the help button for screen readers', async () => {
+      const view = await setup();
+
+      expect(view.host.querySelector('h2')?.textContent?.trim()).toBe(
+        'Comparer avec mes comptes',
+      );
+      expect(
+        view
+          .byTestId('reconcile-guide-help-button')
+          ?.getAttribute('aria-label'),
+      ).toBe('Revoir le guide');
+    });
   });
 
   describe('step 1 — the accounts', () => {

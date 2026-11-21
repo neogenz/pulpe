@@ -57,6 +57,8 @@ import { resolveAssetCategory } from '@core/asset/asset-category';
 import { AppCurrencyPipe } from '@core/currency';
 import { LoadingButton } from '@ui/loading-button';
 import { StepProgress } from '@ui/step-progress';
+import type { GuideSource } from './reconcile-guide.model';
+import { ReconcileGuide } from './reconcile-guide';
 import {
   CENTS_PER_UNIT,
   isEmptyPlan,
@@ -115,6 +117,8 @@ export interface ReconcileAccountsDialogData {
    * followed accounts, never re-read. `null` when the feature is off.
    */
   readonly netWorth: ReconcileNetWorth | null;
+  /** First open on this device: the guide comes before step 1. */
+  readonly showGuide: boolean;
 }
 
 interface AccountRow {
@@ -149,11 +153,15 @@ const LEADING_MINUS = /^\s*[-−]/;
     TranslocoPipe,
     AppCurrencyPipe,
     LoadingButton,
+    ReconcileGuide,
     StepProgress,
   ],
   templateUrl: './reconcile-accounts-dialog.html',
   styleUrl: './reconcile-accounts-dialog.scss',
-  host: { class: 'pulpe-reconcile-dialog' },
+  host: {
+    class: 'pulpe-reconcile-dialog',
+    '[class.guide-open]': 'guideSource() !== null',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReconcileAccountsDialog {
@@ -191,6 +199,11 @@ export class ReconcileAccountsDialog {
     { labelKey: 'currentMonth.reconcile.steps.verdict' },
   ] as const;
   protected readonly step = signal<Step>(1);
+  // The guide is a view of this dialog, not another one: the steps below keep
+  // their rows and amounts while it shows, and « ? » can replay it from any step.
+  protected readonly guideSource = signal<GuideSource | null>(
+    this.data.showGuide ? 'auto' : null,
+  );
   protected readonly otherAccount = OTHER_ACCOUNT;
   protected readonly hasOwnAccounts =
     (this.data.netWorth?.accounts.length ?? 0) > 0;
@@ -356,10 +369,14 @@ export class ReconcileAccountsDialog {
       this.#dialogRef.backdropClick(),
       this.#dialogRef
         .keydownEvents()
-        .pipe(filter((event) => event.key === 'Escape')),
+        // A held key repeats: only the first press leaves the replayed guide.
+        .pipe(filter((event) => event.key === 'Escape' && !event.repeat)),
     )
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.close());
+      // Replayed from « ? »: leaving is going back to the step, not abandoning the comparison.
+      .subscribe(() =>
+        this.guideSource() === 'help' ? this.leaveGuide() : this.close(),
+      );
 
     // The page no longer holds the month this dialog opened on: nothing is left
     // to hold the accounts against, so it closes — once a write already out
@@ -517,6 +534,15 @@ export class ReconcileAccountsDialog {
       () => this.amountInputs()[Math.max(index - 1, 0)]?.nativeElement.focus(),
       { injector: this.#injector },
     );
+  }
+
+  protected openGuide(): void {
+    this.guideSource.set('help');
+  }
+
+  protected leaveGuide(): void {
+    this.guideSource.set(null);
+    this.#goTo(this.step());
   }
 
   protected next(): void {

@@ -1,7 +1,21 @@
+@if (guideSource(); as source) {
+<pulpe-reconcile-guide [source]="source" (finished)="leaveGuide()" />
+}
+
 <header class="reconcile-header">
   <h2 mat-dialog-title class="reconcile-title">
     {{ 'currentMonth.reconcile.title' | transloco }}
   </h2>
+  <button
+    matIconButton
+    class="help-button"
+    (click)="openGuide()"
+    [disabled]="isRecording()"
+    [attr.aria-label]="'currentMonth.reconcile.guide.help' | transloco"
+    data-testid="reconcile-guide-help-button"
+  >
+    <mat-icon aria-hidden="true">help_outline</mat-icon>
+  </button>
   <button
     matIconButton
     (click)="close()"

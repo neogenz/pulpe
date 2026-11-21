@@ -1137,7 +1137,41 @@
     "addTransactionDiscardCancel": "Continua a scrivere",
     "addTransactionNoBudget": "Quello che hai scritto non è stato salvato: il budget del mese è appena stato ricaricato. Riprova tra un attimo.",
     "reconcile": {
-      "title": "Allinea i miei conti",
+      "title": "Confronta con i miei conti",
+      "guide": {
+        "help": "Rivedi la guida",
+        "skip": "Salta",
+        "next": "Avanti",
+        "start": "Confronta ora",
+        "stepOf": "Passo {{ step }} di 3",
+        "scenes": {
+          "compare": {
+            "title": "Verifica che Pulpe e la tua banca dicano la stessa cosa",
+            "body": "Eviti brutte sorprese: se manca un importo, Pulpe te lo mostra."
+          },
+          "type": {
+            "title": "Digita quello che mostra la tua banca",
+            "body": "Apri l'app della tua banca e ricopia l'importo del tuo conto."
+          },
+          "check": {
+            "title": "Pulpe ti mostra cosa manca",
+            "body": "Spunta la benzina da 60: Pulpe è allineata con la tua banca."
+          }
+        },
+        "sample": {
+          "bank": "La mia banca",
+          "checking": "Conto corrente",
+          "pulpe": "Pulpe",
+          "checked": "Già spuntata",
+          "gap": "{{ amount }} di differenza",
+          "onAccounts": "Sui tuoi conti",
+          "compareButton": "Confronta",
+          "question": "Vedi questa spesa nell'app della tua banca?",
+          "expense": "Benzina · ieri",
+          "pulpeChecked": "In Pulpe, già spuntata",
+          "matched": "Uguale da entrambe le parti"
+        }
+      },
       "stepOf": "Passo {{ step }} di 3",
       "close": "Chiudi l'allineamento dei conti",
       "back": "Indietro",

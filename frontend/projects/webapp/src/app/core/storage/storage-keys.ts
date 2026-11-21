@@ -38,6 +38,9 @@ export const STORAGE_KEYS = {
   // Net worth: the explainer opened by itself once on this device
   NET_WORTH_INTRO_SEEN: 'pulpe-net-worth-intro-seen',
 
+  // Comparer avec mes comptes: the guide opened by itself once on this device
+  RECONCILE_GUIDE_SEEN: 'pulpe-reconcile-guide-seen',
+
   // Currency snapshot — read at bootstrap to pick the formatting locale (fr-CH / fr-FR)
   SETTINGS_CURRENCY: 'pulpe-settings-currency',
 

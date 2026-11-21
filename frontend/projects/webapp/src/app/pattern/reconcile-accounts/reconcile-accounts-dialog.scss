@@ -7,6 +7,11 @@
   background: var(--mat-sys-surface);
 }
 
+// The guide takes the whole dialog; what is behind it keeps its state, not its place.
+:host(.guide-open) > :not(pulpe-reconcile-guide) {
+  display: none;
+}
+
 .reconcile-header {
   display: flex;
   align-items: center;
@@ -18,6 +23,7 @@
 
 // mat-dialog-title carries its own font, so the title token is set here rather than as a utility.
 .reconcile-title {
+  flex: 1;
   margin: 0;
   padding: 0;
   font: var(--mat-sys-title-large);
@@ -133,7 +139,13 @@
   height: 100%;
   max-height: 100dvh;
   .reconcile-header {
+    gap: 0;
     padding: max(12px, env(safe-area-inset-top)) 12px 0 20px;
+  }
+  // Two icon buttons leave a phone about 250px: the long name must stay on one line.
+  .reconcile-title {
+    font: var(--mat-sys-title-medium);
+    font-weight: 600;
   }
   .step-progress {
     padding: 12px 20px 16px;

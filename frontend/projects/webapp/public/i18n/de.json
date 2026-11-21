@@ -1137,7 +1137,41 @@
     "addTransactionDiscardCancel": "Weiter eingeben",
     "addTransactionNoBudget": "Deine Eingabe konnte nicht gespeichert werden: das Monatsbudget wurde gerade neu geladen. Versuch es gleich nochmal.",
     "reconcile": {
-      "title": "Konten abgleichen",
+      "title": "Mit meinen Konten vergleichen",
+      "guide": {
+        "help": "Anleitung ansehen",
+        "skip": "Überspringen",
+        "next": "Weiter",
+        "start": "Jetzt vergleichen",
+        "stepOf": "Schritt {{ step }} von 3",
+        "scenes": {
+          "compare": {
+            "title": "Prüfe, ob Pulpe und deine Bank dasselbe sagen",
+            "body": "So vermeidest du böse Überraschungen: Fehlt ein Betrag, zeigt Pulpe ihn dir."
+          },
+          "type": {
+            "title": "Gib ein, was deine Bank anzeigt",
+            "body": "Öffne die App deiner Bank und übernimm den Betrag deines Kontos."
+          },
+          "check": {
+            "title": "Pulpe zeigt dir, was fehlt",
+            "body": "Hake die Benzinausgabe von 60 ab: Pulpe ist wieder auf dem Stand deiner Bank."
+          }
+        },
+        "sample": {
+          "bank": "Meine Bank",
+          "checking": "Kontokorrent",
+          "pulpe": "Pulpe",
+          "checked": "Schon abgehakt",
+          "gap": "{{ amount }} Unterschied",
+          "onAccounts": "Auf deinen Konten",
+          "compareButton": "Vergleichen",
+          "question": "Siehst du diese Ausgabe in der App deiner Bank?",
+          "expense": "Benzin · gestern",
+          "pulpeChecked": "In Pulpe, schon abgehakt",
+          "matched": "Auf beiden Seiten gleich"
+        }
+      },
       "stepOf": "Schritt {{ step }} von 3",
       "close": "Kontenabgleich schliessen",
       "back": "Zurück",

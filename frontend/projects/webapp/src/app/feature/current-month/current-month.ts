@@ -1061,6 +1061,7 @@ export default class Dashboard {
     void this.#reconcileAccountsDialog.open(
       {
         realized: computed(() =>
+          !this.#destroyRef.destroyed &&
           this.store.dashboardData()?.budget?.id === budgetId
             ? {
                 balance: this.store.realizedBalance(),

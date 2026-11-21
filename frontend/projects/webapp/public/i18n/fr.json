@@ -1137,7 +1137,41 @@
     "addTransactionDiscardCancel": "Continuer la saisie",
     "addTransactionNoBudget": "Ta saisie n'a pas pu être enregistrée : le budget du mois vient d'être rechargé. Réessaie dans un instant.",
     "reconcile": {
-      "title": "Rapprocher mes comptes",
+      "title": "Comparer avec mes comptes",
+      "guide": {
+        "help": "Revoir le guide",
+        "skip": "Passer",
+        "next": "Suivant",
+        "start": "Comparer maintenant",
+        "stepOf": "Étape {{ step }} sur 3",
+        "scenes": {
+          "compare": {
+            "title": "Vérifie que Pulpe et ta banque disent la même chose",
+            "body": "Tu évites les mauvaises surprises : si un montant manque, Pulpe te le montre."
+          },
+          "type": {
+            "title": "Tape ce que ta banque affiche",
+            "body": "Ouvre l'app de ta banque et recopie le montant de ton compte."
+          },
+          "check": {
+            "title": "Pulpe te montre ce qui manque",
+            "body": "Coche l'essence de 60 : Pulpe est à jour avec ta banque."
+          }
+        },
+        "sample": {
+          "bank": "Ma banque",
+          "checking": "Compte courant",
+          "pulpe": "Pulpe",
+          "checked": "Déjà coché",
+          "gap": "{{ amount }} de différence",
+          "onAccounts": "Sur tes comptes",
+          "compareButton": "Comparer",
+          "question": "Tu vois cette dépense dans l'app de ta banque ?",
+          "expense": "Essence · hier",
+          "pulpeChecked": "Dans Pulpe, déjà coché",
+          "matched": "Pareil des deux côtés"
+        }
+      },
       "stepOf": "Étape {{ step }} sur 3",
       "close": "Fermer le rapprochement",
       "back": "Retour",

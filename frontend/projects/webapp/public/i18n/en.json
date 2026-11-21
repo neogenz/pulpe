@@ -1137,7 +1137,41 @@
     "addTransactionDiscardCancel": "Keep typing",
     "addTransactionNoBudget": "What you typed couldn't be saved: the month's budget was just reloaded. Try again in a second.",
     "reconcile": {
-      "title": "Match my accounts",
+      "title": "Compare with my accounts",
+      "guide": {
+        "help": "Review the guide",
+        "skip": "Skip",
+        "next": "Next",
+        "start": "Compare now",
+        "stepOf": "Step {{ step }} of 3",
+        "scenes": {
+          "compare": {
+            "title": "Check that Pulpe and your bank say the same thing",
+            "body": "No bad surprises: if an amount is missing, Pulpe shows it to you."
+          },
+          "type": {
+            "title": "Type what your bank shows",
+            "body": "Open your bank's app and copy the amount of your account."
+          },
+          "check": {
+            "title": "Pulpe shows you what is missing",
+            "body": "Check off the 60 gas expense: Pulpe is up to date with your bank."
+          }
+        },
+        "sample": {
+          "bank": "My bank",
+          "checking": "Checking account",
+          "pulpe": "Pulpe",
+          "checked": "Already checked",
+          "gap": "{{ amount }} difference",
+          "onAccounts": "On your accounts",
+          "compareButton": "Compare",
+          "question": "Do you see this expense in your bank's app?",
+          "expense": "Gas · yesterday",
+          "pulpeChecked": "In Pulpe, already checked",
+          "matched": "Same on both sides"
+        }
+      },
       "stepOf": "Step {{ step }} of 3",
       "close": "Close account matching",
       "back": "Back",
