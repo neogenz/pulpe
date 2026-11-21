@@ -317,6 +317,7 @@ export {
   partlySpentBudgetLines,
   pointingCandidates,
   pointingEffect,
+  pointingEffects,
   rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,

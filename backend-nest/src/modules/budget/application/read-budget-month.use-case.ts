@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BudgetFormulas } from 'pulpe-shared';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
   BUDGET_REPOSITORY,
@@ -38,6 +40,21 @@ export class ReadBudgetMonthUseCase implements BudgetMonthReadPort {
     const budgetId = await this.repo.fetchBudgetIdByPeriod(month, year);
     if (!budgetId) return null;
     return this.findWithDetails.execute(budgetId, this.session.user);
+  }
+
+  async readBudget(id: string): Promise<BudgetWithDetails | null> {
+    try {
+      return await this.findWithDetails.execute(id, this.session.user, {
+        fresh: true,
+      });
+    } catch (error) {
+      if (
+        error instanceof BusinessException &&
+        error.code === ERROR_DEFINITIONS.BUDGET_NOT_FOUND.code
+      )
+        return null;
+      throw error;
+    }
   }
 
   async listMonths(limit: number): Promise<BudgetMonthSummary[]> {

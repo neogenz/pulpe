@@ -133,11 +133,23 @@ export function pointingEffect(
   transactions: readonly (FormulaTransaction & { readonly id: string })[],
   target: PointingTarget,
 ): number {
-  return effectAfterPointing(
-    budgetLines,
-    transactions,
-    BudgetFormulas.calculateRealizedBalance(budgetLines, [...transactions]),
-    target,
+  return pointingEffects(budgetLines, transactions, [target])[0]!;
+}
+
+/**
+ * `pointingEffect` for several targets, in order, against one balance before
+ * pointing. Server only (previous months' items): no Swift twin.
+ */
+export function pointingEffects(
+  budgetLines: FormulaLines,
+  transactions: readonly (FormulaTransaction & { readonly id: string })[],
+  targets: readonly PointingTarget[],
+): number[] {
+  const balanceBefore = BudgetFormulas.calculateRealizedBalance(budgetLines, [
+    ...transactions,
+  ]);
+  return targets.map((target) =>
+    effectAfterPointing(budgetLines, transactions, balanceBefore, target),
   );
 }
 
