@@ -2,8 +2,10 @@ import { createMockBudgetDetailsResponse } from '../../mocks/api-responses';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../fixtures/test-fixtures';
 import {
+  createBudgetDetailsMock,
   createBudgetLineMock,
   createTransactionMock,
+  TEST_UUIDS,
 } from '../../helpers/api-mocks';
 import { enableFeatureFlags } from '../../utils/feature-flags';
 
@@ -24,23 +26,23 @@ async function markGuideSeen(page: Page): Promise<void> {
   }, GUIDE_SEEN_KEY);
 }
 
-// Step 2 reads what the server keeps about past comparisons. Registered after
-// the fixture's catch-all, so it wins. Returns each completion sent.
+// Step 2 reads what the server keeps about past comparisons, and each write
+// changes it. Registered after the fixture's catch-all, so it wins. Returns
+// each write sent.
 async function mockReconciliation(
   page: Page,
-  { failedReads = 0 } = {},
+  { failedReads = 0, hasCompletedComparison = true } = {},
 ): Promise<unknown[]> {
   const completions: unknown[] = [];
+  const state = { startingAmount: 0, hasCompletedComparison };
   let readsToFail = failedReads;
   await page.route('**/api/v1/reconciliation/**', (route) => {
     if (route.request().method() !== 'GET') {
-      completions.push(route.request().postDataJSON());
-      return route.fulfill({
-        json: {
-          success: true,
-          data: { startingAmount: 0, hasCompletedComparison: true },
-        },
-      });
+      const patch = route.request().postDataJSON();
+      completions.push(patch);
+      state.startingAmount = patch.startingAmount ?? state.startingAmount;
+      state.hasCompletedComparison ||= patch.completed === true;
+      return route.fulfill({ json: { success: true, data: state } });
     }
     if (readsToFail > 0) {
       readsToFail -= 1;
@@ -49,12 +51,7 @@ async function mockReconciliation(
     return route.fulfill({
       json: {
         success: true,
-        data: {
-          startingAmount: 0,
-          hasCompletedComparison: true,
-          priorCorrection: 0,
-          priorItems: [],
-        },
+        data: { ...state, priorCorrection: 0, priorItems: [] },
       },
     });
   });
@@ -859,3 +856,152 @@ test('lands on the items still to check from home, title in view and focused, on
     /mat-button-toggle-checked/,
   );
 });
+
+// Pulpe holds 900.00 checked: the salary, nothing else. « Disponible » is 900.00 too.
+async function mockMonthOf900(page: Page): Promise<void> {
+  const now = new Date();
+  const id = TEST_UUIDS.BUDGET_1;
+  await page.route('**/api/v1/budgets/*/details', (route) =>
+    route.fulfill({
+      json: createBudgetDetailsMock(id, {
+        budget: { month: now.getMonth() + 1, year: now.getFullYear() },
+        budgetLines: [
+          createBudgetLineMock(TEST_UUIDS.LINE_1, id, {
+            name: 'Salaire',
+            kind: 'income',
+            amount: 900,
+            checkedAt: now.toISOString(),
+          }),
+        ],
+      }),
+    }),
+  );
+}
+
+for (const viewport of VIEWPORTS) {
+  test(`keeps money from before Pulpe on a first comparison, then lets it be reset (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    await markGuideSeen(page);
+    const writes = await mockReconciliation(page, {
+      hasCompletedComparison: false,
+    });
+    await mockMonthOf900(page);
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '4000');
+
+    const heading = page.getByTestId('reconcile-step-heading');
+    await expect(page.getByTestId('reconcile-first-comparison')).toHaveText(
+      'Ces 3’100.00 CHF étaient là avant Pulpe ?',
+    );
+    await expect(
+      page.getByTestId('reconcile-keep-start-button'),
+    ).toBeInViewport({
+      ratio: 1,
+    });
+    await page.getByTestId('reconcile-keep-start-button').click();
+
+    await expect(heading).toHaveText('Pareil des deux côtés');
+    await expect(page.getByTestId('reconcile-matched')).toContainText(
+      "D'avant Pulpe",
+    );
+    await expect(
+      page.getByTestId('reconcile-starting-amount-button'),
+    ).toContainText('−3’100.00 CHF');
+    expect(writes).toEqual([{ startingAmount: 3100, completed: true }]);
+
+    await page.getByTestId('reconcile-starting-amount-button').click();
+    await expect(
+      page.locator(
+        viewport.name === 'phone'
+          ? 'mat-bottom-sheet-container'
+          : '.mat-mdc-dialog-container >> nth=1',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('reconcile-starting-amount-input'),
+    ).toHaveValue('3100.00');
+    await page.getByTestId('reconcile-starting-reset-button').click();
+
+    await expect(heading).toHaveText(
+      'Tes comptes ont 3’100.00 CHF de plus que Pulpe',
+    );
+    await expect(page.getByTestId('reconcile-compared')).toHaveText(
+      '900.00 CHF',
+    );
+    await expect(
+      page.getByTestId('reconcile-starting-amount-button'),
+    ).toHaveCount(0);
+    expect(writes).toEqual([
+      { startingAmount: 3100, completed: true },
+      { startingAmount: 0 },
+    ]);
+  });
+
+  test(`asks about a card when the accounts hold more, and adds what I owe (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    await markGuideSeen(page);
+    await mockReconciliation(page);
+    await mockMonthOf900(page);
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '1700');
+
+    await expect(page.getByTestId('reconcile-card-question')).toContainText(
+      'Tu as payé par carte de crédit, PayPal ou Klarna ?',
+    );
+    await expect(page.getByTestId('reconcile-large-gap')).toContainText(
+      "Tu vois +800.00 CHF dans l'app de ta banque, mais pas dans Pulpe ?",
+    );
+    await expect(page.getByTestId('reconcile-record-button')).toContainText(
+      'Oui, noter un revenu de 800.00 CHF',
+    );
+    await page.getByTestId('reconcile-card-owe-button').click();
+
+    await expect(page.getByTestId('reconcile-accounts-step')).toBeVisible();
+    await expect(
+      page.getByTestId('reconcile-amount-input').first(),
+    ).toHaveValue('1700');
+    await expect(
+      page.getByTestId('reconcile-label-input').nth(1),
+    ).toBeFocused();
+  });
+
+  test(`says the salary may be early two days before pay day (${viewport.name})`, async ({
+    authenticatedPage: page,
+    currentMonthPage,
+  }) => {
+    const now = new Date();
+    await page.clock.setFixedTime(
+      new Date(now.getFullYear(), now.getMonth(), 23, 12),
+    );
+    await markGuideSeen(page);
+    const writes = await mockReconciliation(page);
+    await mockMonthOf900(page);
+    await page.route('**/api/v1/users/settings', (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            json: { success: true, data: { payDayOfMonth: 25 } },
+          })
+        : route.fallback(),
+    );
+    await page.setViewportSize(viewport);
+    await currentMonthPage.goto();
+    await compareWith(page, '6900');
+
+    await expect(page.getByTestId('reconcile-step-heading')).toHaveText(
+      'Tes comptes ont 6’000.00 CHF de plus que Pulpe',
+    );
+    await expect(page.getByTestId('reconcile-salary-early')).toHaveText(
+      'Ton salaire est arrivé en avance ? Reviens comparer le 25, jour de ta paie.',
+    );
+    await page.getByTestId('reconcile-leave-button').click();
+
+    await expect(page.getByTestId('reconcile-compare-step')).toBeHidden();
+    expect(writes).toEqual([{ completed: true }]);
+  });
+}

@@ -1,10 +1,13 @@
 import {
+  afterNextRender,
   afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
+  Injector,
   signal,
   viewChild,
   type ElementRef,
@@ -24,11 +27,13 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { cachedMutation } from 'ngx-ziflux';
 import {
   ANALYTICS_EVENTS,
+  moneyDifference,
   type Asset,
   type AssetCategory,
   type BudgetLine,
   type SupportedCurrency,
   type Transaction,
+  type UpdateReconciliationState,
 } from 'pulpe-shared';
 import { filter, firstValueFrom, map, merge } from 'rxjs';
 
@@ -37,6 +42,7 @@ import { AssetApi } from '@core/asset/asset-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { ReconciliationApi } from '@core/reconciliation/reconciliation-api';
 import { StorageService } from '@core/storage';
+import { UserSettingsStore } from '@core/user-settings';
 import { LoadingButton } from '@ui/loading-button';
 import type { GuideSource } from './reconcile-guide.model';
 import { ReconcileGuide } from './reconcile-guide';
@@ -58,6 +64,11 @@ import {
   type SuggestionRow,
 } from './reconcile-compare-step';
 import { readFreeAccounts, saveFreeAccounts } from './reconcile-free-accounts';
+import { ReconcileSheet } from './reconcile-sheet';
+import {
+  ReconcileStartingAmountSheet,
+  type StartingAmountSheetData,
+} from './reconcile-starting-amount-sheet';
 
 /** The viewed month, as the page already computes it. */
 export interface RealizedPosition {
@@ -149,11 +160,15 @@ export class ReconcileAccountsDialog {
   readonly #storage = inject(StorageService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #userSettings = inject(UserSettingsStore);
+  readonly #sheet = inject(ReconcileSheet);
+  readonly #injector = inject(Injector);
   protected readonly data =
     inject<ReconcileAccountsDialogData>(MAT_DIALOG_DATA);
 
   private readonly scrollContent =
     viewChild<ElementRef<HTMLElement>>('scrollContent');
+  private readonly accountsStep = viewChild(ReconcileAccountsStep);
 
   protected readonly step = signal<Step>(1);
   // The guide is a view of this dialog, not another one: the steps below keep
@@ -227,6 +242,8 @@ export class ReconcileAccountsDialog {
       context: this.context.value(),
       comparedBefore: this.#comparedBefore(),
       isDismissed: this.#isDismissed(),
+      payDayOfMonth: this.#userSettings.payDayOfMonth(),
+      today: new Date(),
     });
   });
 
@@ -241,9 +258,16 @@ export class ReconcileAccountsDialog {
   // The write is out: every exit waits for it, so nothing the user typed can
   // disappear behind a write that lands anyway.
   protected readonly isRecording = signal(false);
+  // The money from before Pulpe is on its way: the figure and the screen wait for it.
+  protected readonly isSavingState = signal(false);
+  // Either write: leaving now would hide what it did, so every exit waits for it.
+  protected readonly isWriting = computed(
+    () => this.isRecording() || this.isSavingState(),
+  );
   protected readonly isBusy = computed(
     () =>
       this.isRecording() ||
+      this.isSavingState() ||
       this.checkingId() !== null ||
       this.context.isLoading(),
   );
@@ -258,10 +282,19 @@ export class ReconcileAccountsDialog {
         ? firstValueFrom(this.#budgetApi.toggleTransactionCheck$(id))
         : firstValueFrom(this.#budgetApi.toggleBudgetLineCheck$(id)),
   });
-  #isCompleted = false;
+  // Once per comparison, maybe before the dialog ends (« Oui, c'était déjà là »);
+  // each « Comparer » starts a new one.
+  #isCompletionSent = false;
+  // A comparison was completed in this dialog: its balances reach « Mon patrimoine »
+  // once, when the dialog ends, with the rows as they are then.
+  #hasCompleted = false;
+  #isBalancesSaved = false;
+  #isDone = false;
   readonly #isHeadingToFocus = signal(false);
 
   constructor() {
+    // The browser's back closes the dialog without close(): the balances still go.
+    inject(DestroyRef).onDestroy(() => this.#saveBalancesOnce());
     merge(
       this.#dialogRef.backdropClick(),
       this.#dialogRef
@@ -279,7 +312,7 @@ export class ReconcileAccountsDialog {
     // to hold the accounts against, so it closes — once a write already out
     // has settled, on the month it was aimed at.
     effect(() => {
-      if (this.data.realized() === null && !this.#isCompleted) this.close();
+      if (this.data.realized() === null && !this.#isDone) this.close();
     });
 
     // The content is swapped under a button that stays put, so without this a
@@ -331,6 +364,7 @@ export class ReconcileAccountsDialog {
     );
     this.#comparedBefore.set(null);
     this.#isDismissed.set(false);
+    this.#isCompletionSent = false;
     this.#goTo(2);
   }
 
@@ -355,7 +389,7 @@ export class ReconcileAccountsDialog {
   }
 
   protected back(): void {
-    if (this.isRecording()) return;
+    if (this.isWriting()) return;
     this.#goTo(1);
   }
 
@@ -373,7 +407,7 @@ export class ReconcileAccountsDialog {
   // has already said why), so retrying is one press.
   protected async record(): Promise<void> {
     const view = this.comparison();
-    if (!view || view.gap === 0 || this.isBusy() || this.#isCompleted) return;
+    if (!view || view.gap === 0 || this.isBusy() || this.#isDone) return;
     const kind = view.gap > 0 ? 'income' : 'expense';
     this.isRecording.set(true);
     try {
@@ -448,20 +482,108 @@ export class ReconcileAccountsDialog {
     if (this.comparison() && !this.isBusy()) this.#complete('none');
   }
 
-  // Once per comparison: the server learns it happened, then the dialog ends.
-  #complete(kind: 'income' | 'expense' | 'none'): void {
-    if (this.#isCompleted) return;
-    this.#isCompleted = true;
+  // « Oui, c'était déjà là »: the gap becomes money from before Pulpe, and the
+  // comparison is complete in the same write. Pulpe now matches.
+  protected async keepAsStartingAmount(): Promise<void> {
+    const view = this.comparison();
+    if (view?.screen !== 'firstComparison' || this.isBusy()) return;
+    const startingAmount = moneyDifference(view.startingAmount, -view.gap);
+    if (await this.#writeState({ startingAmount, completed: true })) {
+      this.#markCompleted('none');
+    }
+  }
+
+  // The amount from before Pulpe, corrected or reset; nothing is sent when it is unchanged.
+  protected async editStartingAmount(): Promise<void> {
+    const view = this.comparison();
+    if (!view || this.isBusy()) return;
+    const amount = await this.#sheet.open<
+      ReconcileStartingAmountSheet,
+      StartingAmountSheetData,
+      number
+    >(
+      ReconcileStartingAmountSheet,
+      { amount: view.startingAmount, currency: this.data.currency() },
+      this.#transloco.translate(
+        'currentMonth.reconcile.compare.startingAmountTitle',
+      ),
+    );
+    if (amount === undefined || amount === view.startingAmount) return;
+    await this.#writeState({ startingAmount: amount });
+  }
+
+  // One write per answer. Refused, the screen stays as it was and the toast says why.
+  async #writeState(patch: UpdateReconciliationState): Promise<boolean> {
+    this.isSavingState.set(true);
+    try {
+      const { data } = await firstValueFrom(
+        this.#reconciliationApi.updateState$(patch),
+      );
+      const context = this.context.value();
+      if (context) this.context.set({ ...context, ...data });
+      // The figure moved without a check: what was found no longer measures against it.
+      this.#comparedBefore.set(null);
+      this.#isHeadingToFocus.set(true);
+      return true;
+    } catch {
+      this.#snackBar.open(
+        this.#transloco.translate('currentMonth.updateError'),
+        this.#transloco.translate('common.close'),
+        { duration: 5000, verticalPosition: 'top' },
+      );
+      // Read again: a write whose answer was lost may have landed, and the
+      // screen would then offer to note a gap the server already settled.
+      this.context.reload();
+      this.#isHeadingToFocus.set(true);
+      return false;
+    } finally {
+      this.isSavingState.set(false);
+    }
+  }
+
+  // [Ajouter ce que je dois]: back to the balances, where step 1 adds the row and focuses its name.
+  protected addOwe(): void {
+    // A second press before step 1 renders would add a second row.
+    if (this.step() !== 2 || this.isBusy()) return;
+    this.step.set(1);
+    afterNextRender(
+      () => this.accountsStep()?.addRow({ kind: 'free', side: 'owe' }),
+      { injector: this.#injector },
+    );
+  }
+
+  // Once per comparison: the event. The balances wait for the dialog to end.
+  #markCompleted(kind: 'income' | 'expense' | 'none'): boolean {
+    if (this.#isCompletionSent) return false;
+    this.#isCompletionSent = true;
     this.#postHog.captureEvent(
       ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED,
       { adjustment_kind: kind },
     );
-    // A lost completion only asks the starting-amount question once more.
-    firstValueFrom(
-      this.#reconciliationApi.updateState$({ completed: true }),
-    ).catch(() => undefined);
-    void this.#saveBalances();
+    this.#hasCompleted = true;
+    return true;
+  }
+
+  // The server learns the comparison happened, unless it already did, then the dialog ends.
+  #complete(kind: 'income' | 'expense' | 'none'): void {
+    if (this.#isDone) return;
+    this.#isDone = true;
+    if (this.#markCompleted(kind)) {
+      // A lost completion only asks the starting-amount question once more.
+      firstValueFrom(
+        this.#reconciliationApi.updateState$({ completed: true }),
+      ).catch(() => undefined);
+    }
+    this.#saveBalancesOnce();
     this.#dialogRef.close();
+  }
+
+  // One save per dialog: two would race, and the second plan would read links
+  // the first one already changed.
+  #saveBalancesOnce(): void {
+    if (!this.#hasCompleted || this.#isBalancesSaved) return;
+    this.#isBalancesSaved = true;
+    void this.#saveBalances();
   }
 
   // The reconciliation is done by the time this runs, so a failure changes
@@ -487,7 +609,8 @@ export class ReconcileAccountsDialog {
   }
 
   protected close(): void {
-    if (this.isRecording()) return;
+    if (this.isWriting()) return;
+    this.#saveBalancesOnce();
     this.#dialogRef.close();
   }
 }

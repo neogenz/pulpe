@@ -16,11 +16,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { differenceInCalendarDays } from 'date-fns';
 import {
   availableAfterNote,
   comparedFigure,
   comparisonScreen,
   gapClosedByChecks,
+  getBudgetPeriodDates,
+  getBudgetPeriodForDate,
+  periodFromIndex,
+  periodIndex,
+  isSalaryMaybeEarly,
   matchedBreakdown,
   moneyDifference,
   rankedPointingCandidates,
@@ -75,6 +81,10 @@ export interface Comparison {
   readonly othersCount: number;
   readonly note: { readonly before: number; readonly after: number };
   readonly matched: MatchedBreakdown;
+  /** Money from before Pulpe, part of `compared`; shown apart when not 0. */
+  readonly startingAmount: number;
+  /** The day of the month the next period starts: « Reviens comparer le 25 ». */
+  readonly nextPayDay: number;
 }
 
 export interface ComparisonInput {
@@ -87,6 +97,8 @@ export interface ComparisonInput {
   readonly context: ReconciliationContext;
   readonly comparedBefore: number | null;
   readonly isDismissed: boolean;
+  readonly payDayOfMonth: number | null;
+  readonly today: Date;
 }
 
 /** Step 2's numbers and screen, from the shared rules (spec.md §4). */
@@ -165,6 +177,21 @@ export function buildComparison(input: ComparisonInput): Comparison {
       )
       .map((transaction) => transaction.id),
   ]);
+  // The next period's own start, not the day after this one's end: with a pay
+  // day of 31, February ends on the 28th in one helper and March starts on it.
+  const current = periodIndex(
+    getBudgetPeriodForDate(input.today, input.payDayOfMonth),
+  );
+  const startOf = (index: number) => {
+    const { month, year } = periodFromIndex(index);
+    return getBudgetPeriodDates(month, year, input.payDayOfMonth).startDate;
+  };
+  // On that 28th, pay day itself, the next period starts today: wait for the one after.
+  const following = startOf(current + 1);
+  const nextStart =
+    differenceInCalendarDays(following, input.today) > 0
+      ? following
+      : startOf(current + 2);
   return {
     onAccounts,
     compared,
@@ -179,8 +206,12 @@ export function buildComparison(input: ComparisonInput): Comparison {
       candidateCount: suggestions.length,
       dismissed: input.isDismissed,
       first: !context.hasCompletedComparison && context.startingAmount === 0,
-      // shortcut: the pay-day rule is not wired yet; its screen and inputs come with « Salaire en avance ».
-      salaryMaybeEarly: false,
+      salaryMaybeEarly: isSalaryMaybeEarly({
+        gap,
+        payDayOfMonth: input.payDayOfMonth,
+        // Today counted: the 23rd with the next period on the 25th leaves 2 days.
+        daysUntilNextPeriod: differenceInCalendarDays(nextStart, input.today),
+      }),
     }),
     suggestions,
     othersCount:
@@ -192,6 +223,8 @@ export function buildComparison(input: ComparisonInput): Comparison {
       compared,
       startingAmount: context.startingAmount,
     }),
+    startingAmount: context.startingAmount,
+    nextPayDay: nextStart.getDate(),
   };
 }
 
@@ -264,12 +297,29 @@ export function buildComparison(input: ComparisonInput): Comparison {
             </div>
           }
           @if (view.matched.beforePulpe !== 0) {
-            <div class="flex items-baseline justify-between gap-4">
-              <dt class="text-on-surface-variant">
+            <div class="-my-2 flex items-center justify-between gap-4">
+              <dt id="reconcile-before-pulpe" class="text-on-surface-variant">
                 {{ 'currentMonth.reconcile.compare.beforePulpe' | transloco }}
               </dt>
-              <dd class="ph-no-capture m-0 whitespace-nowrap">
-                {{ signed(view.matched.beforePulpe) }}
+              <dd class="m-0">
+                <!-- Named by the row: an amount never goes into an attribute. -->
+                <button
+                  matButton
+                  type="button"
+                  class="-mr-3"
+                  [disabled]="isBusy()"
+                  (click)="editStartingAmount.emit()"
+                  aria-labelledby="reconcile-before-pulpe reconcile-before-pulpe-amount"
+                  data-testid="reconcile-starting-amount-button"
+                >
+                  <!-- The pencil says it opens; the amount keeps the card's ink, not « À dépenser »'s green. -->
+                  <span
+                    id="reconcile-before-pulpe-amount"
+                    class="ph-no-capture whitespace-nowrap text-on-surface"
+                    >{{ signed(view.matched.beforePulpe) }}</span
+                  >
+                  <mat-icon iconPositionEnd aria-hidden="true">edit</mat-icon>
+                </button>
               </dd>
             </div>
           }
@@ -302,7 +352,8 @@ export function buildComparison(input: ComparisonInput): Comparison {
             {{ money(view.onAccounts) }}
           </dd>
         </div>
-        <div class="flex items-baseline justify-between gap-4">
+        <!-- A grid: the part from before Pulpe takes a line of its own under the figure. -->
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4">
           <dt class="text-on-surface-variant">
             {{ 'currentMonth.reconcile.compare.inPulpe' | transloco }}
           </dt>
@@ -311,13 +362,41 @@ export function buildComparison(input: ComparisonInput): Comparison {
               <s
                 class="ph-no-capture whitespace-nowrap text-on-surface-variant"
                 data-testid="reconcile-compared-before"
-                >{{ money(view.comparedBefore) }}</s
+                >{{ money(withoutStart(view.comparedBefore)) }}</s
               >
             }
-            <span class="ph-no-capture font-semibold whitespace-nowrap">{{
-              money(view.compared)
-            }}</span>
+            <span
+              class="ph-no-capture font-semibold whitespace-nowrap"
+              data-testid="reconcile-compared"
+              >{{ money(withoutStart(view.compared)) }}</span
+            >
           </dd>
+          @if (view.startingAmount !== 0) {
+            <dd class="col-span-2 m-0 -mb-2 justify-self-end">
+              @let part =
+                (
+                  'currentMonth.reconcile.compare.startingAmountPart'
+                  | transloco: { amount: AMOUNT_SLOT }
+                ).split(AMOUNT_SLOT);
+              <button
+                matButton
+                type="button"
+                class="-mr-3 whitespace-nowrap"
+                [disabled]="isBusy()"
+                (click)="editStartingAmount.emit()"
+                data-testid="reconcile-starting-amount-button"
+              >
+                <span
+                  >{{ part[0]
+                  }}<span class="ph-no-capture">{{
+                    signed(view.startingAmount)
+                  }}</span
+                  >{{ part[1] }}</span
+                >
+                <mat-icon iconPositionEnd aria-hidden="true">edit</mat-icon>
+              </button>
+            </dd>
+          }
         </div>
         <!-- As on iOS: nothing found, no line. -->
         @if (view.found > 0) {
@@ -479,7 +558,66 @@ export function buildComparison(input: ComparisonInput): Comparison {
             </p>
           </div>
         }
+        @case ('firstComparison') {
+          @let first =
+            (
+              'currentMonth.reconcile.compare.firstQuestion'
+              | transloco: { amount: AMOUNT_SLOT }
+            ).split(AMOUNT_SLOT);
+          <p
+            class="m-0 rounded-(--pulpe-surface-radius-panel) bg-surface-container-low p-4 text-body-large font-medium text-pretty"
+            data-testid="reconcile-first-comparison"
+          >
+            {{ first[0]
+            }}<span class="ph-no-capture whitespace-nowrap">{{
+              money(view.gap)
+            }}</span
+            >{{ first[1] }}
+          </p>
+        }
+        @case ('salaryEarly') {
+          <div
+            class="flex flex-col gap-1 rounded-(--pulpe-surface-radius-panel) bg-surface-container-low p-4"
+            data-testid="reconcile-salary-early"
+          >
+            <p class="m-0 text-body-large font-medium">
+              {{ 'currentMonth.reconcile.compare.salaryQuestion' | transloco }}
+            </p>
+            <p class="m-0 text-body-medium text-on-surface-variant">
+              {{
+                'currentMonth.reconcile.compare.salaryComeBack'
+                  | transloco: { day: view.nextPayDay }
+              }}
+            </p>
+          </div>
+        }
         @default {
+          @if (view.screen === 'moreOnAccounts' && !hasOwe()) {
+            <div
+              class="mb-3 flex gap-3 rounded-(--pulpe-surface-radius-panel) bg-tertiary-container p-4 text-on-tertiary-container"
+              data-testid="reconcile-card-question"
+            >
+              <mat-icon class="shrink-0" aria-hidden="true"
+                >credit_card</mat-icon
+              >
+              <div class="flex flex-col items-start gap-2">
+                <p class="m-0 text-body-medium">
+                  {{
+                    'currentMonth.reconcile.compare.cardQuestion' | transloco
+                  }}
+                </p>
+                <button
+                  matButton="outlined"
+                  type="button"
+                  [disabled]="isBusy()"
+                  (click)="addOwe.emit()"
+                  data-testid="reconcile-card-owe-button"
+                >
+                  {{ 'currentMonth.reconcile.accounts.addOwe' | transloco }}
+                </button>
+              </div>
+            </div>
+          }
           @let question =
             (
               'currentMonth.reconcile.compare.largeGapQuestion'
@@ -521,6 +659,9 @@ export class ReconcileCompareStep {
   readonly check = output<SuggestionRow>();
   readonly removeOwe = output<void>();
   readonly viewOthers = output<void>();
+  /** Back to step 1 with a new « Je dois » row. */
+  readonly addOwe = output<void>();
+  readonly editStartingAmount = output<void>();
 
   private readonly heading =
     viewChild.required<ElementRef<HTMLElement>>('heading');
@@ -560,6 +701,11 @@ export class ReconcileCompareStep {
 
   protected money(value: number): string {
     return money(value, this.currency());
+  }
+
+  // « 900.00 + 3 100.00 d'avant Pulpe »: the money from before Pulpe is shown apart.
+  protected withoutStart(value: number): number {
+    return moneyDifference(value, this.comparison().startingAmount);
   }
 
   protected signed(value: number): string {

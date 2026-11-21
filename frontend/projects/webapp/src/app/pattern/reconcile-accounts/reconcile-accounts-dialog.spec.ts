@@ -12,6 +12,7 @@ import {
   ANALYTICS_EVENTS,
   type Asset,
   type ReconciliationContext,
+  type UpdateReconciliationState,
 } from 'pulpe-shared';
 
 import {
@@ -25,6 +26,7 @@ import { BudgetApi } from '@core/budget/budget-api';
 import { ReconciliationApi } from '@core/reconciliation/reconciliation-api';
 import { STORAGE_KEYS } from '@core/storage';
 import { createMockDataCache } from '@core/testing';
+import { UserSettingsStore } from '@core/user-settings';
 import {
   ReconcileAccountsDialog,
   type RealizedPosition,
@@ -32,6 +34,7 @@ import {
   type ReconcileLedger,
 } from './reconcile-accounts-dialog';
 import { money } from './reconcile-compare-step';
+import { ReconcileSheet } from './reconcile-sheet';
 
 const REALIZED: RealizedPosition = { balance: 1499.99, available: 900 };
 const BUDGET_ID = '66666666-6666-4666-8666-666666666666';
@@ -108,6 +111,8 @@ async function setup(
     showGuide?: boolean;
     /** Names and sides remembered on this device. */
     free?: { name: string; side: 'own' | 'owe' }[];
+    /** What the starting-amount editor answers. */
+    startingAmountAnswer?: number;
   } = {},
 ) {
   localStorage.clear();
@@ -172,7 +177,22 @@ async function setup(
         ? throwError(() => new Error('offline'))
         : of({ success: true as const, data: options.context ?? CONTEXT }),
     ),
-    updateState$: vi.fn(() => of({ success: true as const })),
+    // Answers like the server: the stored state once the patch applies.
+    updateState$: vi.fn((patch: UpdateReconciliationState) =>
+      of({
+        success: true as const,
+        data: {
+          startingAmount:
+            patch.startingAmount ??
+            (typeof options.context === 'object' ? options.context : CONTEXT)
+              .startingAmount,
+          hasCompletedComparison: true,
+        },
+      }),
+    ),
+  };
+  const sheet = {
+    open: vi.fn(() => Promise.resolve(options.startingAmountAnswer)),
   };
   const budgetApi = {
     cache: createMockDataCache(),
@@ -194,6 +214,11 @@ async function setup(
       { provide: ReconciliationApi, useValue: reconciliationApi },
       { provide: BudgetApi, useValue: budgetApi },
       { provide: MatSnackBar, useValue: snackBar },
+      { provide: ReconcileSheet, useValue: sheet },
+      {
+        provide: UserSettingsStore,
+        useValue: { payDayOfMonth: signal(null), currency: signal('CHF') },
+      },
     ],
   });
   const fixture = TestBed.createComponent(ReconcileAccountsDialog);
@@ -237,6 +262,7 @@ async function setup(
     reconciliationApi,
     budgetApi,
     snackBar,
+    sheet,
     backdropClick,
     keydownEvents,
     render,
@@ -1147,6 +1173,312 @@ describe('ReconcileAccountsDialog', () => {
 
       expect(view.dialogRef.close).toHaveBeenCalledTimes(2);
       expect(view.reconciliationApi.updateState$).not.toHaveBeenCalled();
+    });
+  });
+
+  // Pulpe holds 900.00 checked, the accounts 4 000.00: 3 100.00 more.
+  describe('money from before Pulpe', () => {
+    const FIRST = { ...CONTEXT, hasCompletedComparison: false };
+    const REALIZED_900 = { balance: 900, available: 900 };
+
+    it("should store the gap on « Oui, c'était déjà là », complete once, then show matched", async () => {
+      const view = await setup({ context: FIRST, realized: REALIZED_900 });
+      await compare(view, '4000');
+      expect(
+        view.byTestId('reconcile-first-comparison')?.textContent,
+      ).toContain('étaient là avant Pulpe ?');
+      expect(view.host.textContent).toContain('Ton disponible ne change pas.');
+
+      await view.click(view.byTestId('reconcile-keep-start-button'));
+
+      expect(view.reconciliationApi.updateState$.mock.calls).toEqual([
+        [{ startingAmount: 3100, completed: true }],
+      ]);
+      expect(view.byTestId('reconcile-step-heading')?.textContent?.trim()).toBe(
+        'Pareil des deux côtés',
+      );
+      expect(document.activeElement).toBe(
+        view.byTestId('reconcile-step-heading'),
+      );
+      expect(view.byTestId('reconcile-matched')?.textContent).toContain(
+        "D'avant Pulpe",
+      );
+      expect(view.postHog.captureEvent).toHaveBeenCalledExactlyOnceWith(
+        'account_reconciliation_completed',
+        { adjustment_kind: 'none' },
+      );
+
+      // The completion is already in: [Terminer] only ends the dialog.
+      await view.click(view.byTestId('reconcile-finish-button'));
+      expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+      expect(view.reconciliationApi.updateState$).toHaveBeenCalledTimes(1);
+      expect(view.postHog.captureEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep the question and complete nothing when the write is refused', async () => {
+      const view = await setup({ context: FIRST, realized: REALIZED_900 });
+      view.reconciliationApi.updateState$.mockReturnValueOnce(
+        throwError(() => new Error('offline')),
+      );
+      await compare(view, '4000');
+
+      await view.click(view.byTestId('reconcile-keep-start-button'));
+
+      expect(view.snackBar.open).toHaveBeenCalledTimes(1);
+      expect(view.byTestId('reconcile-first-comparison')).not.toBeNull();
+      expect(view.postHog.captureEvent).not.toHaveBeenCalled();
+    });
+
+    it('should correct the amount from the figure, then reset it, one write per answer', async () => {
+      const view = await setup({
+        context: { ...CONTEXT, startingAmount: 3100 },
+        realized: REALIZED_900,
+        startingAmountAnswer: 3000,
+      });
+      await compare(view, '4000');
+      const heading = () =>
+        view.byTestId('reconcile-step-heading')?.textContent?.trim();
+      expect(heading()).toBe('Pareil des deux côtés');
+
+      await view.click(view.byTestId('reconcile-starting-amount-button'));
+      await view.render();
+
+      expect(view.sheet.open).toHaveBeenCalledWith(
+        expect.anything(),
+        { amount: 3100, currency: 'CHF' },
+        "Argent d'avant Pulpe",
+      );
+      expect(heading()).toBe(
+        `Tes comptes ont ${money(100, 'CHF')} de plus que Pulpe`,
+      );
+      expect(view.byTestId('reconcile-compared')?.textContent).toBe(
+        money(900, 'CHF'),
+      );
+      // The pencil is an icon ligature: only the words count.
+      expect(
+        view
+          .byTestId('reconcile-starting-amount-button')
+          ?.querySelector('.mdc-button__label')
+          ?.textContent?.trim(),
+      ).toBe(`+${money(3000, 'CHF')} d'avant Pulpe`);
+
+      view.sheet.open.mockResolvedValueOnce(0);
+      await view.click(view.byTestId('reconcile-starting-amount-button'));
+      await view.render();
+
+      expect(heading()).toBe(
+        `Tes comptes ont ${money(3100, 'CHF')} de plus que Pulpe`,
+      );
+      expect(view.byTestId('reconcile-starting-amount-button')).toBeNull();
+      expect(view.reconciliationApi.updateState$.mock.calls).toEqual([
+        [{ startingAmount: 3000 }],
+        [{ startingAmount: 0 }],
+      ]);
+    });
+
+    it('should write nothing when the editor is left or the amount is unchanged', async () => {
+      const view = await setup({
+        context: { ...CONTEXT, startingAmount: 3100 },
+        realized: REALIZED_900,
+      });
+      await compare(view, '4000');
+
+      await view.click(view.byTestId('reconcile-starting-amount-button'));
+      view.sheet.open.mockResolvedValueOnce(3100);
+      await view.click(view.byTestId('reconcile-starting-amount-button'));
+      await view.render();
+
+      expect(view.sheet.open).toHaveBeenCalledTimes(2);
+      expect(view.reconciliationApi.updateState$).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('writes and completion around money from before Pulpe', () => {
+    const FIRST = { ...CONTEXT, hasCompletedComparison: false };
+    const REALIZED_900 = { balance: 900, available: 900 };
+    const heading = (view: Awaited<ReturnType<typeof setup>>) =>
+      view.byTestId('reconcile-step-heading')?.textContent?.trim();
+
+    // Accounts 4 100.00, Pulpe 900.00 + 3 100.00: the server stores 3 200.00, the answer is lost.
+    it('should read the state again when the answer is lost, so a settled gap is not offered', async () => {
+      const view = await setup({
+        context: { ...CONTEXT, startingAmount: 3100 },
+        realized: REALIZED_900,
+        startingAmountAnswer: 3200,
+      });
+      await compare(view, '4100');
+      expect(view.byTestId('reconcile-record-button')).not.toBeNull();
+      view.reconciliationApi.updateState$.mockReturnValueOnce(
+        throwError(() => new Error('answer lost')),
+      );
+      view.reconciliationApi.getContext$.mockReturnValue(
+        of({
+          success: true as const,
+          data: { ...CONTEXT, startingAmount: 3200 },
+        }),
+      );
+
+      await view.click(view.byTestId('reconcile-starting-amount-button'));
+      await view.render();
+
+      expect(view.snackBar.open).toHaveBeenCalledTimes(1);
+      expect(heading(view)).toBe('Pareil des deux côtés');
+      expect(view.byTestId('reconcile-record-button')).toBeNull();
+    });
+
+    it('should hold every exit while the money from before Pulpe is saved', async () => {
+      const view = await setup({ context: FIRST, realized: REALIZED_900 });
+      const answer = new Subject<{
+        success: true;
+        data: { startingAmount: number; hasCompletedComparison: boolean };
+      }>();
+      view.reconciliationApi.updateState$.mockReturnValueOnce(answer);
+      await compare(view, '4000');
+
+      await view.click(view.byTestId('reconcile-keep-start-button'));
+      const back = view.byTestId<HTMLButtonElement>('reconcile-back-button');
+      expect(back?.disabled).toBe(true);
+      expect(
+        view.byTestId<HTMLButtonElement>('reconcile-guide-help-button')
+          ?.disabled,
+      ).toBe(true);
+      view.keydownEvents.next(new KeyboardEvent('keydown', { key: 'Escape' }));
+      view.backdropClick.next(new MouseEvent('click'));
+      expect(view.dialogRef.close).not.toHaveBeenCalled();
+
+      answer.next({
+        success: true,
+        data: { startingAmount: 3100, hasCompletedComparison: true },
+      });
+      answer.complete();
+      await view.render();
+
+      expect(heading(view)).toBe('Pareil des deux côtés');
+      expect(back?.disabled).toBe(false);
+    });
+
+    for (const exit of ['finish', 'escape'] as const) {
+      it(`should save the balances once after « Oui », when leaving by ${exit}`, async () => {
+        const view = await setup({
+          context: FIRST,
+          realized: REALIZED_900,
+          accounts: [UBS],
+        });
+        await compare(view, '4000');
+
+        await view.click(view.byTestId('reconcile-keep-start-button'));
+        await view.render();
+        expect(view.assetApi.recordSnapshots$).not.toHaveBeenCalled();
+
+        if (exit === 'finish') {
+          await view.click(view.byTestId('reconcile-finish-button'));
+        } else {
+          view.keydownEvents.next(
+            new KeyboardEvent('keydown', { key: 'Escape' }),
+          );
+        }
+        await view.render();
+
+        expect(view.dialogRef.close).toHaveBeenCalledTimes(1);
+        expect(view.assetApi.recordSnapshots$).toHaveBeenCalledExactlyOnceWith({
+          items: [{ assetId: UBS_ID, value: 4000 }],
+        });
+      });
+    }
+
+    it('should save the balances once when the dialog goes without close(), as on browser back', async () => {
+      const view = await setup({
+        context: FIRST,
+        realized: REALIZED_900,
+        accounts: [UBS],
+      });
+      await compare(view, '4000');
+      await view.click(view.byTestId('reconcile-keep-start-button'));
+
+      view.fixture.destroy();
+
+      expect(view.assetApi.recordSnapshots$).toHaveBeenCalledExactlyOnceWith({
+        items: [{ assetId: UBS_ID, value: 4000 }],
+      });
+    });
+
+    it('should save the balances once, as typed last, after two completed comparisons', async () => {
+      const view = await setup({
+        context: FIRST,
+        realized: REALIZED_900,
+        accounts: [UBS],
+      });
+      await compare(view, '4000');
+      await view.click(view.byTestId('reconcile-keep-start-button'));
+      view.reconciliationApi.getContext$.mockReturnValue(
+        of({
+          success: true as const,
+          data: { ...CONTEXT, startingAmount: 3100 },
+        }),
+      );
+
+      await view.click(view.byTestId('reconcile-back-button'));
+      await compare(view, '4200');
+      await view.click(view.byTestId('reconcile-leave-button'));
+
+      expect(view.assetApi.recordSnapshots$).toHaveBeenCalledExactlyOnceWith({
+        items: [{ assetId: UBS_ID, value: 4200 }],
+      });
+    });
+
+    it('should complete a second comparison started from the back arrow on its own', async () => {
+      const view = await setup({ context: FIRST, realized: REALIZED_900 });
+      await compare(view, '4000');
+      await view.click(view.byTestId('reconcile-keep-start-button'));
+      view.reconciliationApi.getContext$.mockReturnValue(
+        of({
+          success: true as const,
+          data: { ...CONTEXT, startingAmount: 3100 },
+        }),
+      );
+
+      await view.click(view.byTestId('reconcile-back-button'));
+      await compare(view, '4200');
+      await view.click(view.byTestId('reconcile-leave-button'));
+
+      expect(view.postHog.captureEvent).toHaveBeenCalledTimes(2);
+      expect(view.reconciliationApi.updateState$.mock.calls).toEqual([
+        [{ startingAmount: 3100, completed: true }],
+        [{ completed: true }],
+      ]);
+    });
+  });
+
+  describe('more on the accounts', () => {
+    it('should add one « Je dois » row on two presses before step 1 shows', async () => {
+      const view = await setup({ realized: { balance: 900, available: 900 } });
+      await compare(view, '1700');
+
+      const button = view.byTestId('reconcile-card-owe-button');
+      button?.click();
+      button?.click();
+      await view.render();
+
+      expect(view.allByTestId('reconcile-label-input')).toHaveLength(2);
+    });
+
+    it('should go back to step 1 on a new « Je dois » row, its name focused', async () => {
+      const view = await setup({ realized: { balance: 900, available: 900 } });
+      await compare(view, '1700');
+      expect(view.byTestId('reconcile-large-gap')?.textContent).toContain(
+        'Tu vois +800.00',
+      );
+
+      await view.click(view.byTestId('reconcile-card-owe-button'));
+
+      expect(view.byTestId('reconcile-accounts-step')).not.toBeNull();
+      expect(
+        view.allByTestId<HTMLInputElement>('reconcile-amount-input')[0]?.value,
+      ).toBe('1700');
+      const names = view.allByTestId('reconcile-label-input');
+      expect(names).toHaveLength(2);
+      expect(document.activeElement).toBe(names[1]);
+      expect(view.byTestId('reconcile-card-help')).toBeNull();
     });
   });
 

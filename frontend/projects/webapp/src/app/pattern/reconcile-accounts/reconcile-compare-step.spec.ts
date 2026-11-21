@@ -55,9 +55,14 @@ function input(overrides: Partial<ComparisonInput> = {}): ComparisonInput {
     context: CONTEXT,
     comparedBefore: null,
     isDismissed: false,
+    payDayOfMonth: null,
+    today: new Date(2026, 10, 23),
     ...overrides,
   };
 }
+
+// Accounts 6 000.00 above Pulpe: no expense of the month can explain money that came in.
+const SIX_THOUSAND_MORE = { onAccountsCents: 705_000 };
 
 describe('buildComparison', () => {
   it('should rank the month and last month items that close a gap of 100.00', () => {
@@ -213,6 +218,61 @@ describe('buildComparison', () => {
       beforePulpe: 0,
       remaining: 900,
     });
+  });
+
+  // Pay day 25: the period ends on the 24th, so the 23rd leaves 2 days and the 19th leaves 6.
+  it('should say the salary may be early only within 5 days of a pay day other than 1', () => {
+    const screen = (overrides: Partial<ComparisonInput>) =>
+      buildComparison(input({ ...SIX_THOUSAND_MORE, ...overrides }));
+
+    const early = screen({ payDayOfMonth: 25 });
+    expect(early.screen).toBe('salaryEarly');
+    expect(early.nextPayDay).toBe(25);
+    expect(
+      screen({ payDayOfMonth: 25, today: new Date(2026, 10, 19) }).screen,
+    ).toBe('moreOnAccounts');
+    expect(screen({ payDayOfMonth: null }).screen).toBe('moreOnAccounts');
+    expect(
+      screen({ payDayOfMonth: 1, today: new Date(2026, 10, 28) }).screen,
+    ).toBe('moreOnAccounts');
+  });
+
+  // Pay day 31: March starts on 28 February, which is also where February ends.
+  it('should count to the next period start in February with a pay day of 31', () => {
+    const february = (day: number) =>
+      buildComparison(
+        input({
+          ...SIX_THOUSAND_MORE,
+          payDayOfMonth: 31,
+          today: new Date(2026, 1, day),
+        }),
+      );
+
+    for (const day of [23, 26]) {
+      expect(february(day)).toMatchObject({
+        screen: 'salaryEarly',
+        nextPayDay: 28,
+      });
+    }
+    expect(february(22).screen).toBe('moreOnAccounts');
+    // The 28th is pay day itself: nothing to wait for.
+    expect(february(28).screen).toBe('moreOnAccounts');
+  });
+
+  it('should ask about money from before Pulpe on a first comparison only', () => {
+    const first = { ...CONTEXT, hasCompletedComparison: false };
+
+    expect(
+      buildComparison(input({ ...SIX_THOUSAND_MORE, context: first })).screen,
+    ).toBe('firstComparison');
+    expect(
+      buildComparison(
+        input({
+          ...SIX_THOUSAND_MORE,
+          context: { ...first, startingAmount: 3100 },
+        }),
+      ).screen,
+    ).toBe('moreOnAccounts');
   });
 
   it('should pick the small or the large gap once the suggestions are dismissed', () => {
@@ -453,5 +513,116 @@ describe('ReconcileCompareStep', () => {
       );
     }
     expect(host.textContent).not.toMatch(/\d CHF/);
+  });
+  it('should ask whether the gap was there before Pulpe, its amount masked alone', async () => {
+    const { host, text } = await render(
+      input({
+        ...SIX_THOUSAND_MORE,
+        context: { ...CONTEXT, hasCompletedComparison: false },
+      }),
+    );
+
+    expect(text('reconcile-first-comparison')).toEqual([
+      `Ces ${money(6000, 'CHF')} étaient là avant Pulpe ?`,
+    ]);
+    expect(
+      Array.from(
+        host.querySelectorAll(
+          '[data-testid="reconcile-first-comparison"] .ph-no-capture',
+        ),
+        (element) => element.textContent,
+      ),
+    ).toEqual([money(6000, 'CHF')]);
+  });
+
+  it('should tell when to come back on pay day', async () => {
+    const { text } = await render(
+      input({ ...SIX_THOUSAND_MORE, payDayOfMonth: 25 }),
+    );
+
+    expect(text('reconcile-salary-early')).toEqual([
+      'Ton salaire est arrivé en avance ? Reviens comparer le 25, jour de ta paie.',
+    ]);
+  });
+
+  it('should ask about a card only while no « Je dois » row is listed, and send back to step 1', async () => {
+    const fixture = TestBed.createComponent(ReconcileCompareStep);
+    fixture.componentRef.setInput(
+      'comparison',
+      buildComparison(input({ onAccountsCents: 185_000 })),
+    );
+    fixture.componentRef.setInput('currency', 'CHF');
+    fixture.componentRef.setInput('hasOwe', false);
+    let addOwe = 0;
+    fixture.componentInstance.addOwe.subscribe(() => (addOwe += 1));
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const card = () =>
+      host.querySelector('[data-testid="reconcile-card-question"]');
+
+    expect(card()?.textContent).toContain(
+      'Tu as payé par carte de crédit, PayPal ou Klarna ?',
+    );
+    expect(
+      host.querySelector('[data-testid="reconcile-large-gap"]')?.textContent,
+    ).toContain('Tu vois +800.00');
+    host
+      .querySelector<HTMLElement>('[data-testid="reconcile-card-owe-button"]')
+      ?.click();
+    expect(addOwe).toBe(1);
+
+    fixture.componentRef.setInput('hasOwe', true);
+    await fixture.whenStable();
+    expect(card()).toBeNull();
+  });
+
+  it('should show the money from before Pulpe apart from the figure, and open its editor', async () => {
+    const withStart = input({
+      onAccountsCents: 410_000,
+      realizedBalance: 900,
+      context: { ...CONTEXT, startingAmount: 3100 },
+    });
+    const fixture = TestBed.createComponent(ReconcileCompareStep);
+    fixture.componentRef.setInput('comparison', buildComparison(withStart));
+    fixture.componentRef.setInput('currency', 'CHF');
+    fixture.componentRef.setInput('hasOwe', false);
+    let edits = 0;
+    fixture.componentInstance.editStartingAmount.subscribe(() => (edits += 1));
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const button = () =>
+      host.querySelector<HTMLElement>(
+        '[data-testid="reconcile-starting-amount-button"]',
+      );
+
+    expect(
+      host.querySelector('[data-testid="reconcile-compared"]')?.textContent,
+    ).toBe(money(900, 'CHF'));
+    // The pencil is an icon ligature: only the words count.
+    expect(
+      button()?.querySelector('.mdc-button__label')?.textContent?.trim(),
+    ).toBe(`+${money(3100, 'CHF')} d'avant Pulpe`);
+    // Only the amount is masked: the button stays clickable with amounts hidden.
+    expect(button()?.classList).not.toContain('ph-no-capture');
+    expect(button()?.querySelector('.ph-no-capture')?.textContent).toBe(
+      `+${money(3100, 'CHF')}`,
+    );
+    button()?.click();
+    expect(edits).toBe(1);
+
+    // Matched: the « D'avant Pulpe » row opens it, named by the row's words and amount.
+    fixture.componentRef.setInput(
+      'comparison',
+      buildComparison({ ...withStart, onAccountsCents: 400_000 }),
+    );
+    await fixture.whenStable();
+    expect(button()?.getAttribute('aria-labelledby')).toBe(
+      'reconcile-before-pulpe reconcile-before-pulpe-amount',
+    );
+    expect(
+      host.querySelector('#reconcile-before-pulpe-amount')?.textContent,
+    ).toBe(`−${money(3100, 'CHF')}`);
+    button()?.click();
+    expect(edits).toBe(2);
   });
 });

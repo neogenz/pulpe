@@ -7,7 +7,7 @@
   <button
     matIconButton
     (click)="back()"
-    [disabled]="isRecording()"
+    [disabled]="isWriting()"
     [attr.aria-label]="'currentMonth.reconcile.back' | transloco"
     data-testid="reconcile-back-button"
   >
@@ -21,7 +21,7 @@
     matIconButton
     class="help-button"
     (click)="openGuide()"
-    [disabled]="isRecording()"
+    [disabled]="isWriting()"
     [attr.aria-label]="'currentMonth.reconcile.guide.help' | transloco"
     data-testid="reconcile-guide-help-button"
   >
@@ -75,6 +75,8 @@
     (check)="check($event)"
     (removeOwe)="removeOwe()"
     (viewOthers)="viewItemsToCheck()"
+    (addOwe)="addOwe()"
+    (editStartingAmount)="editStartingAmount()"
     data-testid="reconcile-compare-step"
   />
   } @else if (context.error() && !context.isLoading()) {
@@ -180,6 +182,40 @@
     >
       {{ (view.gap < 0 ? 'currentMonth.reconcile.compare.noExpenseMatches' :
       'currentMonth.reconcile.compare.noIncomeMatches') | transloco }}
+    </button>
+    } @case ('firstComparison') {
+    <button
+      matButton
+      (click)="leave()"
+      [disabled]="isBusy()"
+      data-testid="reconcile-leave-button"
+    >
+      {{ 'currentMonth.reconcile.compare.leaveAsIs' | transloco }}
+    </button>
+    <div class="primary-action note-action">
+      <pulpe-loading-button
+        type="button"
+        testId="reconcile-keep-start-button"
+        [loading]="isSavingState()"
+        [disabled]="isBusy()"
+        [loadingText]="'currentMonth.reconcile.compare.recording' | transloco"
+        (click)="keepAsStartingAmount()"
+      >
+        {{ 'currentMonth.reconcile.compare.alreadyThere' | transloco }}
+      </pulpe-loading-button>
+      <span class="text-center text-xs text-on-surface-variant">
+        {{ 'currentMonth.reconcile.compare.availableUnchanged' | transloco }}
+      </span>
+    </div>
+    } @case ('salaryEarly') {
+    <button
+      matButton="filled"
+      class="primary-action"
+      (click)="leave()"
+      [disabled]="isBusy()"
+      data-testid="reconcile-leave-button"
+    >
+      {{ 'currentMonth.reconcile.compare.leaveAsIs' | transloco }}
     </button>
     } @default { @let isSmall = view.screen === 'smallGap';
     <button

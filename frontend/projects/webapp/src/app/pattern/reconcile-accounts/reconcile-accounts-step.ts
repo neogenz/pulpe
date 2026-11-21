@@ -1,4 +1,3 @@
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -12,10 +11,8 @@ import {
   type ElementRef,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import type { ErrorStateMatcher } from '@angular/material/core';
-import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -28,7 +25,6 @@ import {
   type AssetCategory,
   type SupportedCurrency,
 } from 'pulpe-shared';
-import { firstValueFrom } from 'rxjs';
 
 import type { RowAccount } from './reconcile-account-links';
 import {
@@ -36,6 +32,7 @@ import {
   type AddAccountChoice,
   type AddAccountSheetData,
 } from './reconcile-add-account-sheet';
+import { ReconcileSheet } from './reconcile-sheet';
 
 export type AccountSide = 'own' | 'owe';
 
@@ -48,6 +45,14 @@ export interface AccountRow {
 }
 
 const SIDES: readonly AccountSide[] = ['own', 'owe'];
+
+// Flagged once the field is left, never mid-keystroke: "12." is on its way
+// to "12.50". It never counts in the total either way.
+export const UNREADABLE_AMOUNT: ErrorStateMatcher = {
+  isErrorState: (control) =>
+    !!control?.touched &&
+    parseAccountAmount(String(control.value ?? '')).status === 'invalid',
+};
 
 /** What I have minus what I owe, in cents; `null` until every amount reads. */
 export function summarizeRows(rows: readonly AccountRow[]) {
@@ -253,9 +258,7 @@ export function summarizeRows(rows: readonly AccountRow[]) {
 })
 export class ReconcileAccountsStep {
   readonly #injector = inject(Injector);
-  readonly #dialog = inject(MatDialog);
-  readonly #bottomSheet = inject(MatBottomSheet);
-  readonly #breakpoints = inject(BreakpointObserver);
+  readonly #sheet = inject(ReconcileSheet);
   readonly #transloco = inject(TranslocoService);
 
   readonly accounts = model.required<AccountRow[]>();
@@ -274,13 +277,7 @@ export class ReconcileAccountsStep {
     this.accounts().some((row) => row.side === 'owe'),
   );
 
-  // Flagged once the field is left, never mid-keystroke: "12." is on its way
-  // to "12.50". It never counts in the total either way.
-  protected readonly unreadableAmount: ErrorStateMatcher = {
-    isErrorState: (control) =>
-      !!control?.touched &&
-      parseAccountAmount(String(control.value ?? '')).status === 'invalid',
-  };
+  protected readonly unreadableAmount = UNREADABLE_AMOUNT;
 
   protected pillClass(side: AccountSide): string {
     return side === 'own'
@@ -305,7 +302,7 @@ export class ReconcileAccountsStep {
     this.accounts.update((rows) => rows.filter((row) => row.id !== id));
   }
 
-  protected addRow(choice: AddAccountChoice): void {
+  addRow(choice: AddAccountChoice): void {
     const id = Math.max(-1, ...this.accounts().map((row) => row.id)) + 1;
     const row: AccountRow =
       choice.kind === 'asset'
@@ -348,32 +345,11 @@ export class ReconcileAccountsStep {
     const ariaLabel = this.#transloco.translate(
       'currentMonth.reconcile.accounts.add.title',
     );
-    const choice: AddAccountChoice | undefined = this.#breakpoints.isMatched(
-      Breakpoints.Handset,
-    )
-      ? await firstValueFrom(
-          this.#bottomSheet
-            .open<
-              ReconcileAddAccountSheet,
-              AddAccountSheetData,
-              AddAccountChoice
-            >(ReconcileAddAccountSheet, { data, ariaLabel })
-            .afterDismissed(),
-        )
-      : await firstValueFrom(
-          this.#dialog
-            .open<
-              ReconcileAddAccountSheet,
-              AddAccountSheetData,
-              AddAccountChoice
-            >(ReconcileAddAccountSheet, {
-              data,
-              ariaLabel,
-              width: '480px',
-              maxWidth: 'calc(100vw - 48px)',
-            })
-            .afterClosed(),
-        );
+    const choice = await this.#sheet.open<
+      ReconcileAddAccountSheet,
+      AddAccountSheetData,
+      AddAccountChoice
+    >(ReconcileAddAccountSheet, data, ariaLabel);
     if (choice) this.addRow(choice);
   }
 }
