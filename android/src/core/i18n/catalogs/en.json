@@ -301,6 +301,7 @@
         "picker": {
           "left": "left",
           "margin": "With room left",
+          "noMatch": "No planned item found",
           "otherExpense": "Other expenses",
           "otherIncome": "Other income",
           "over": "over",
@@ -308,6 +309,7 @@
           "planned": "%{amount} planned",
           "plannedCaption": "planned",
           "pointedRecurrence": "%{recurrence} · checked off",
+          "search": "Search forecasts",
           "title": "Which forecast?",
           "unplannedHint": "No forecast: your available amount drops"
         },

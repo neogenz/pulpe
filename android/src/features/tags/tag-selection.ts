@@ -45,7 +45,7 @@ export function tagsMatching(query: string, tags: Tag[]): Tag[] {
   return tags.filter((tag) => foldedForSearch(tag.name).includes(needle));
 }
 
-function foldedForSearch(text: string): string {
+export function foldedForSearch(text: string): string {
   return text
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

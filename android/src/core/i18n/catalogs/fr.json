@@ -301,6 +301,7 @@
         "picker": {
           "left": "reste",
           "margin": "Avec de la marge",
+          "noMatch": "Aucune prévision trouvée",
           "otherExpense": "Autres dépenses",
           "otherIncome": "Autres revenus",
           "over": "au-delà",
@@ -308,6 +309,7 @@
           "planned": "%{amount} prévus",
           "plannedCaption": "prévus",
           "pointedRecurrence": "%{recurrence} · pointé",
+          "search": "Rechercher une prévision",
           "title": "Dans quelle prévision ?",
           "unplannedHint": "Aucune prévision : ton disponible baisse"
         },

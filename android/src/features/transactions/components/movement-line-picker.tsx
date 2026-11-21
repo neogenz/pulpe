@@ -1,12 +1,11 @@
-import {
-  BudgetFormulas,
-  type BudgetLine,
-  type SupportedCurrency,
-  type Transaction,
-  type TransactionKind,
+import type {
+  BudgetLine,
+  SupportedCurrency,
+  TransactionKind,
 } from "pulpe-shared";
+import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text, useTheme } from "react-native-paper";
+import { Searchbar, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCurrency } from "@/core/ui/amount-format";
@@ -15,11 +14,10 @@ import { useFinancialColors, useV2Colors } from "@/core/ui/scheme-colors";
 import { RADIUS, SPACING, TABULAR_DIGITS, TOUCH_TARGET } from "@/core/ui/theme";
 import { recurrenceLabel } from "@/core/ui/vocabulary";
 
-import type { LineSections } from "../movement-line-choices";
+import { type LineSections, matchingSections } from "../movement-line-choices";
 
 interface MovementLinePickerProps {
   sections: LineSections;
-  transactions: readonly Transaction[];
   kind: TransactionKind;
   currency: SupportedCurrency;
   selectedLineId: string | null;
@@ -29,12 +27,12 @@ interface MovementLinePickerProps {
 
 /**
  * « Dans quelle prévision ? »: the prévisions of the movement's kind in three
- * sections, under the card that says what leaving it unplanned costs. The step
- * the sheet shows in place of its form, as the pushed list does on iOS.
+ * sections, under a search by name and the card that says what leaving it
+ * unplanned costs. The step the sheet shows in place of its form, as the
+ * pushed list does on iOS.
  */
 export function MovementLinePicker({
   sections,
-  transactions,
   kind,
   currency,
   selectedLineId,
@@ -45,15 +43,16 @@ export function MovementLinePicker({
   const v2 = useV2Colors();
   const ripple = useRipple();
   const financial = useFinancialColors();
+  const [query, setQuery] = useState("");
+  const shown = matchingSections(sections, query);
+  const hasMatch =
+    shown.margin.length + shown.over.length + shown.others.length > 0;
 
   function row(line: BudgetLine, section: "margin" | "over" | "others") {
     const isSelected = line.id === selectedLineId;
     const isOver = section === "over";
     const isPlanned = section === "others";
-    const { available } = BudgetFormulas.calculateConsumption(
-      line,
-      transactions as Transaction[],
-    );
+    const available = sections.available.get(line.id) ?? 0;
     const subtitle = isPlanned
       ? line.checkedAt === null
         ? recurrenceLabel(t, line.recurrence)
@@ -143,6 +142,12 @@ export function MovementLinePicker({
 
   return (
     <View style={styles.page}>
+      <Searchbar
+        testID="movement-picker-search"
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t("budgets.mutations.activity.picker.search")}
+      />
       <Pressable
         testID="movement-picker-unplanned"
         accessibilityRole="radio"
@@ -166,19 +171,27 @@ export function MovementLinePicker({
       {section(
         "margin",
         t("budgets.mutations.activity.picker.margin"),
-        sections.margin,
+        shown.margin,
       )}
       {section(
         "over",
         t("budgets.mutations.activity.picker.overSection"),
-        sections.over,
+        shown.over,
       )}
       {section(
         "others",
         t(
           `budgets.mutations.activity.picker.${kind === "income" ? "otherIncome" : "otherExpense"}`,
         ),
-        sections.others,
+        shown.others,
+      )}
+      {!hasMatch && query.trim() !== "" && (
+        <Text
+          variant="bodyLarge"
+          style={[styles.noMatch, { color: theme.colors.onSurfaceVariant }]}
+        >
+          {t("budgets.mutations.activity.picker.noMatch")}
+        </Text>
       )}
     </View>
   );
@@ -198,4 +211,5 @@ const styles = StyleSheet.create({
   },
   grow: { flex: 1 },
   trailing: { alignItems: "flex-end" },
+  noMatch: { textAlign: "center", paddingVertical: SPACING.lg },
 });

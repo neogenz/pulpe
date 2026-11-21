@@ -5,11 +5,29 @@ import {
   type TransactionKind,
 } from "pulpe-shared";
 
+import { foldedForSearch } from "@/features/tags/tag-selection";
+
 /** The picker's sections: room left, already past the forecast, everything else. */
 export interface LineSections {
   margin: BudgetLine[];
   over: BudgetLine[];
   others: BudgetLine[];
+  /** What each sorted line has left, keyed by line id. */
+  available: ReadonlyMap<string, number>;
+}
+
+/** One pass over the month's movements, so each line only reads its own. */
+function movementsByLine(
+  transactions: readonly Transaction[],
+): Map<string, Transaction[]> {
+  const byLine = new Map<string, Transaction[]>();
+  for (const tx of transactions) {
+    if (tx.budgetLineId === null) continue;
+    const own = byLine.get(tx.budgetLineId);
+    if (own === undefined) byLine.set(tx.budgetLineId, [tx]);
+    else own.push(tx);
+  }
+  return byLine;
 }
 
 /**
@@ -53,13 +71,14 @@ export function suggestedLine(input: {
     if (match !== undefined) return match;
   }
 
+  const byLine = movementsByLine(transactions);
   let best: BudgetLine | null = null;
   let bestLeft = 0;
   for (const line of candidates) {
     if (line.checkedAt !== null) continue;
     const { available } = BudgetFormulas.calculateConsumption(
       line,
-      transactions as Transaction[],
+      byLine.get(line.id) ?? [],
     );
     if (available > bestLeft) {
       best = line;
@@ -74,16 +93,43 @@ export function lineSections(
   transactions: readonly Transaction[],
   kind: TransactionKind,
 ): LineSections {
-  const sections: LineSections = { margin: [], over: [], others: [] };
+  const byLine = movementsByLine(transactions);
+  const available = new Map<string, number>();
+  const sections: LineSections = {
+    margin: [],
+    over: [],
+    others: [],
+    available,
+  };
   for (const line of eligibleLines(lines, kind)) {
-    const { available } = BudgetFormulas.calculateConsumption(
+    const left = BudgetFormulas.calculateConsumption(
       line,
-      transactions as Transaction[],
-    );
-    if (available < 0) sections.over.push(line);
-    else if (line.checkedAt === null && available > 0)
-      sections.margin.push(line);
+      byLine.get(line.id) ?? [],
+    ).available;
+    available.set(line.id, left);
+    if (left < 0) sections.over.push(line);
+    else if (line.checkedAt === null && left > 0) sections.margin.push(line);
     else sections.others.push(line);
   }
   return sections;
+}
+
+/**
+ * The search above the picker: keeps the lines whose name holds the query,
+ * ignoring case and accents, like `localizedStandardContains` on iOS.
+ */
+export function matchingSections(
+  sections: LineSections,
+  query: string,
+): LineSections {
+  const needle = foldedForSearch(query.trim());
+  if (needle === "") return sections;
+  const keep = (lines: BudgetLine[]) =>
+    lines.filter((line) => foldedForSearch(line.name).includes(needle));
+  return {
+    margin: keep(sections.margin),
+    over: keep(sections.over),
+    others: keep(sections.others),
+    available: sections.available,
+  };
 }
