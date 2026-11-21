@@ -45,11 +45,17 @@ export function tagsMatching(query: string, tags: Tag[]): Tag[] {
   return tags.filter((tag) => foldedForSearch(tag.name).includes(needle));
 }
 
-function foldedForSearch(text: string): string {
+/**
+ * Case- and accent-insensitive: « epicerie » finds « Épicerie », « strasse »
+ * « Straße ». Only the Latin combining accents go, so « ^ », a Devanagari
+ * vowel sign or a Japanese voicing mark still has to be in the name.
+ */
+export function foldedForSearch(text: string): string {
   return text
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase();
+    .toLocaleLowerCase()
+    .replace(/ß/g, "ss");
 }
 
 /** Case-insensitive, because the backend treats "Courses" and "courses" alike. */

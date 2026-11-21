@@ -3,6 +3,7 @@ import type { BudgetLine, Transaction } from "pulpe-shared";
 import {
   eligibleLines,
   lineSections,
+  matchingSections,
   suggestedLine,
 } from "./movement-line-choices";
 
@@ -94,5 +95,53 @@ describe("lineSections", () => {
     expect(sections.margin.map((l) => l.id)).toEqual(["margin"]);
     expect(sections.over.map((l) => l.id)).toEqual(["over"]);
     expect(sections.others.map((l) => l.id)).toEqual(["pointed", "empty"]);
+    expect(sections.available.get("over")).toBe(-15);
+    expect(sections.available.get("margin")).toBe(100);
+  });
+});
+
+describe("matchingSections", () => {
+  const sections = lineSections(
+    [
+      line("food", { name: "Épicerie" }),
+      line("rent", { name: "Loyer", amount: 10 }),
+    ],
+    [spend("rent", 25)],
+    "expense",
+  );
+
+  it("keeps every line on an empty or blank query", () => {
+    expect(matchingSections(sections, "  ")).toBe(sections);
+  });
+
+  it("matches inside names, ignoring case and accents, in every section", () => {
+    const shown = matchingSections(sections, " EPIC ");
+
+    expect(shown.margin.map((l) => l.id)).toEqual(["food"]);
+    expect(shown.over).toEqual([]);
+    expect(matchingSections(sections, "oy").over.map((l) => l.id)).toEqual([
+      "rent",
+    ]);
+  });
+
+  it("folds ß like iOS's search, and never matches everything", () => {
+    const folded = lineSections(
+      [line("tram", { name: "Straßenbahn" }), line("rent", { name: "Bail ½" })],
+      [],
+      "expense",
+    );
+    const ids = (query: string) =>
+      matchingSections(folded, query).margin.map((l) => l.id);
+
+    expect(ids("strasse")).toEqual(["tram"]);
+    expect(ids("^")).toEqual([]);
+    expect(ids("2")).toEqual([]);
+    // A vowel sign is part of a Devanagari word, not an accent to drop.
+    expect(
+      matchingSections(
+        lineSections([line("devi", { name: "देवी" })], [], "expense"),
+        "दवा",
+      ).margin,
+    ).toEqual([]);
   });
 });

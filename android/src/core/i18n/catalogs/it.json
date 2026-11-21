@@ -301,6 +301,7 @@
         "picker": {
           "left": "rimanenti",
           "margin": "Con margine",
+          "noMatch": "Nessuna previsione trovata",
           "otherExpense": "Altre spese",
           "otherIncome": "Altre entrate",
           "over": "oltre",
@@ -308,6 +309,7 @@
           "planned": "%{amount} previsti",
           "plannedCaption": "previsti",
           "pointedRecurrence": "%{recurrence} · spuntato",
+          "search": "Cerca una previsione",
           "title": "In quale previsione?",
           "unplannedHint": "Nessuna previsione: il tuo disponibile scende"
         },
@@ -515,6 +517,7 @@
     "cancel": "Annulla",
     "choose": "Scegli",
     "clear": "Cancella",
+    "clearText": "Cancella testo",
     "close": "Chiudi",
     "contactSupport": "Contatta l'assistenza",
     "continue": "Continua",

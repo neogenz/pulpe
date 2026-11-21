@@ -504,7 +504,6 @@ export function TransactionSheet({
         {isPickingLine && (
           <MovementLinePicker
             sections={lineSections(lines, transactions, draft.kind)}
-            transactions={transactions}
             kind={draft.kind}
             currency={currency}
             selectedLineId={selectedLineId}

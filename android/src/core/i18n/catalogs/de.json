@@ -301,6 +301,7 @@
         "picker": {
           "left": "übrig",
           "margin": "Mit Spielraum",
+          "noMatch": "Kein Planposten gefunden",
           "otherExpense": "Andere Ausgaben",
           "otherIncome": "Andere Einnahmen",
           "over": "darüber",
@@ -308,6 +309,7 @@
           "planned": "%{amount} geplant",
           "plannedCaption": "geplant",
           "pointedRecurrence": "%{recurrence} · abgehakt",
+          "search": "Planung suchen",
           "title": "In welcher Planung?",
           "unplannedHint": "Keine Planung: dein Verfügbares sinkt"
         },
@@ -515,6 +517,7 @@
     "cancel": "Abbrechen",
     "choose": "Auswählen",
     "clear": "Löschen",
+    "clearText": "Text löschen",
     "close": "Schliessen",
     "contactSupport": "Support kontaktieren",
     "continue": "Weiter",

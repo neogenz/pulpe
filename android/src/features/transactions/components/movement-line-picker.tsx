@@ -1,25 +1,30 @@
-import {
-  BudgetFormulas,
-  type BudgetLine,
-  type SupportedCurrency,
-  type Transaction,
-  type TransactionKind,
+import type {
+  BudgetLine,
+  SupportedCurrency,
+  TransactionKind,
 } from "pulpe-shared";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Fragment, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text, useTheme } from "react-native-paper";
+import { Divider, Searchbar, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { useRipple } from "@/core/ui/ripple";
 import { useFinancialColors, useV2Colors } from "@/core/ui/scheme-colors";
-import { RADIUS, SPACING, TABULAR_DIGITS, TOUCH_TARGET } from "@/core/ui/theme";
+import {
+  ICON_SIZE,
+  RADIUS,
+  SPACING,
+  TABULAR_DIGITS,
+  TOUCH_TARGET,
+} from "@/core/ui/theme";
 import { recurrenceLabel } from "@/core/ui/vocabulary";
 
-import type { LineSections } from "../movement-line-choices";
+import { type LineSections, matchingSections } from "../movement-line-choices";
 
 interface MovementLinePickerProps {
   sections: LineSections;
-  transactions: readonly Transaction[];
   kind: TransactionKind;
   currency: SupportedCurrency;
   selectedLineId: string | null;
@@ -29,12 +34,12 @@ interface MovementLinePickerProps {
 
 /**
  * « Dans quelle prévision ? »: the prévisions of the movement's kind in three
- * sections, under the card that says what leaving it unplanned costs. The step
- * the sheet shows in place of its form, as the pushed list does on iOS.
+ * sections, under a search by name and the card that says what leaving it
+ * unplanned costs. The step the sheet shows in place of its form, as the
+ * pushed list does on iOS.
  */
 export function MovementLinePicker({
   sections,
-  transactions,
   kind,
   currency,
   selectedLineId,
@@ -45,15 +50,32 @@ export function MovementLinePicker({
   const v2 = useV2Colors();
   const ripple = useRipple();
   const financial = useFinancialColors();
+  const [query, setQuery] = useState("");
+  const shown = matchingSections(sections, query);
+  const hasMatch =
+    shown.margin.length + shown.over.length + shown.others.length > 0;
+
+  // A blank of the icon's size when not picked, so a row never shifts on
+  // selection. Not a "transparent" glyph: Android still draws one.
+  function check(isSelected: boolean, testID: string) {
+    if (!isSelected) return <View style={styles.checkSlot} />;
+    return (
+      <MaterialCommunityIcons
+        testID={testID}
+        name="check"
+        size={ICON_SIZE.md}
+        color={v2.accentInk}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
+    );
+  }
 
   function row(line: BudgetLine, section: "margin" | "over" | "others") {
     const isSelected = line.id === selectedLineId;
     const isOver = section === "over";
     const isPlanned = section === "others";
-    const { available } = BudgetFormulas.calculateConsumption(
-      line,
-      transactions as Transaction[],
-    );
+    const available = sections.available.get(line.id) ?? 0;
     const subtitle = isPlanned
       ? line.checkedAt === null
         ? recurrenceLabel(t, line.recurrence)
@@ -71,7 +93,6 @@ export function MovementLinePicker({
 
     return (
       <Pressable
-        key={line.id}
         accessibilityRole="radio"
         accessibilityState={{ checked: isSelected }}
         android_ripple={ripple}
@@ -116,6 +137,7 @@ export function MovementLinePicker({
             {caption}
           </Text>
         </View>
+        {check(isSelected, `movement-picker-check-${line.id}`)}
       </Pressable>
     );
   }
@@ -135,7 +157,12 @@ export function MovementLinePicker({
           {title}
         </Text>
         <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-          {lines.map((line) => row(line, key))}
+          {lines.map((line, index) => (
+            <Fragment key={line.id}>
+              {index > 0 && <Divider style={styles.divider} />}
+              {row(line, key)}
+            </Fragment>
+          ))}
         </View>
       </View>
     );
@@ -143,6 +170,14 @@ export function MovementLinePicker({
 
   return (
     <View style={styles.page}>
+      <Searchbar
+        testID="movement-picker-search"
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t("budgets.mutations.activity.picker.search")}
+        searchAccessibilityLabel={t("budgets.mutations.activity.picker.search")}
+        clearAccessibilityLabel={t("common.clearText")}
+      />
       <Pressable
         testID="movement-picker-unplanned"
         accessibilityRole="radio"
@@ -162,29 +197,39 @@ export function MovementLinePicker({
             {t("budgets.mutations.activity.picker.unplannedHint")}
           </Text>
         </View>
+        {check(selectedLineId === null, "movement-picker-check-unplanned")}
       </Pressable>
       {section(
         "margin",
         t("budgets.mutations.activity.picker.margin"),
-        sections.margin,
+        shown.margin,
       )}
       {section(
         "over",
         t("budgets.mutations.activity.picker.overSection"),
-        sections.over,
+        shown.over,
       )}
       {section(
         "others",
         t(
           `budgets.mutations.activity.picker.${kind === "income" ? "otherIncome" : "otherExpense"}`,
         ),
-        sections.others,
+        shown.others,
+      )}
+      {!hasMatch && query.trim() !== "" && (
+        <Text
+          variant="bodyLarge"
+          style={[styles.noMatch, { color: theme.colors.onSurfaceVariant }]}
+        >
+          {t("budgets.mutations.activity.picker.noMatch")}
+        </Text>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  checkSlot: { width: ICON_SIZE.md, height: ICON_SIZE.md },
   page: { gap: SPACING.md },
   section: { gap: SPACING.sm },
   card: { borderRadius: RADIUS.card, overflow: "hidden" },
@@ -198,4 +243,6 @@ const styles = StyleSheet.create({
   },
   grow: { flex: 1 },
   trailing: { alignItems: "flex-end" },
+  divider: { marginHorizontal: SPACING.md },
+  noMatch: { textAlign: "center", paddingVertical: SPACING.lg },
 });
