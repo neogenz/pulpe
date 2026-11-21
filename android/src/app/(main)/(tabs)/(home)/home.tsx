@@ -332,7 +332,7 @@ export default function HomeScreen() {
   const { viewModel, currency } = currentMonth;
   const presentation = heroPresentation({
     estimatedBalance: viewModel.metrics.remaining,
-    fallbackPlannedBalance: viewModel.metrics.endingBalance,
+    fallbackPlannedBalance: viewModel.plannedRemaining,
     trajectory: viewModel.trajectory,
   });
   const openedRecap =

@@ -129,6 +129,8 @@ describe("metrics", () => {
     expect(model.metrics.available).toBe(5200);
     expect(model.metrics.totalExpenses).toBe(1500);
     expect(model.metrics.remaining).toBe(3700);
+    // The plan alone: the 300 spent leaves it where it was set.
+    expect(model.plannedRemaining).toBe(4000);
   });
 });
 

@@ -97,6 +97,11 @@ export interface CurrentMonthViewModel {
   periodProgress: PeriodProgress;
   /** Absent while the user is looking at a budget outside its own period. */
   trajectory: TrendedTrajectory | null;
+  /**
+   * The plan alone, before any movement: what the month set out to keep, read
+   * when there is no trajectory to take it from. iOS `plannedRemaining`.
+   */
+  plannedRemaining: number;
 }
 
 export interface CurrentMonthContext {
@@ -194,6 +199,11 @@ export function buildCurrentMonthViewModel(
       budget.rollover ?? 0,
     ),
     periodProgress,
+    plannedRemaining: BudgetFormulas.calculateAllMetrics(
+      budgetLines,
+      [],
+      budget.rollover ?? 0,
+    ).remaining,
     trajectory: trajectory && {
       ...trajectory,
       trend: trendBalance(trajectory, TREND_PRIOR_DAYS, history),

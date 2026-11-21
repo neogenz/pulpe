@@ -215,8 +215,12 @@ jest.mock("@/features/budgets/toggle-check-mutation", () => ({
   useToggleCheck: () => mockToggle,
   usePendingCheck: () => () => false,
 }));
+const mockHeroInput = jest.fn();
 jest.mock("@/features/current-month/home-hero-presentation", () => ({
-  heroPresentation: () => ({ absorbsEnvelopeOverrun: false }),
+  heroPresentation: (input: unknown) => {
+    mockHeroInput(input);
+    return { absorbsEnvelopeOverrun: false };
+  },
 }));
 jest.mock("@/features/current-month/components/home-hero-card", () => {
   const { Pressable, Text } = jest.requireActual("react-native");
@@ -423,6 +427,7 @@ function readyMonth() {
       periodProgress: { day: 3, totalDays: 30 },
       uncheckedMovementCount: 1,
       metrics: { remaining: 100, endingBalance: 100 },
+      plannedRemaining: 150,
       trajectory: [],
       driftLines: [],
       driftTotal: 0,
@@ -506,6 +511,16 @@ it("opens addition from its action and a pending deep link", async () => {
   mockDeepLink.isAddExpenseRequested = true;
   await view.rerender(<HomeScreen />);
   expect(view.getByText("add-sheet")).toBeTruthy();
+});
+
+it("reads the plan alone when the month has no trajectory, like iOS", async () => {
+  Object.assign(mockCurrentMonth, readyMonth());
+  await render(<HomeScreen />);
+
+  // 150 planned, 100 left after the movements: the gap must not read zero.
+  expect(mockHeroInput).toHaveBeenLastCalledWith(
+    expect.objectContaining({ fallbackPlannedBalance: 150 }),
+  );
 });
 
 it("hands « Le calcul » over to the reconciliation of the loaded budget", async () => {
