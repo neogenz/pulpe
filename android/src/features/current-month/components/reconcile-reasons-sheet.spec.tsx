@@ -156,10 +156,12 @@ it("puts each amount under its name and wraps the buttons at a large font", asyn
   }
 });
 
+// A failing test must not leave its fake clock to the next ones.
+afterEach(() => jest.useRealTimers());
+
 it("dates the income sample short, as iOS and the web: « 21 nov. »", async () => {
   jest.useFakeTimers({ now: new Date(2026, 10, 21) });
   const view = await renderSheet().view;
-  jest.useRealTimers();
 
   expect(view.getByTestId("reconcile-reason-income")).toHaveTextContent(
     /incomeSample:21 nov\..*\+6’000\.00 CHF/,

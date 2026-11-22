@@ -93,6 +93,7 @@ describe("buildComparison", () => {
     transactions: [essence],
     context,
     comparedBefore: null,
+    realizedBefore: null,
     isDismissed: false,
     payDayOfMonth: null,
     today: new Date(2026, 10, 18),
@@ -136,17 +137,49 @@ describe("buildComparison", () => {
     expect(comparison.note).toEqual({ before: 900, after: 800 });
   });
 
+  it("counts in « Voir les autres » what « À pointer » lists: a movement under a checked prévision included", () => {
+    // Android's own list: the web leaves this movement out, its prévision being checked.
+    const courses: BudgetLine = {
+      ...assurance,
+      id: "l-courses",
+      name: "Courses",
+      amount: 400,
+      checkedAt: STAMP,
+    };
+    const migros: Transaction = {
+      ...essence,
+      id: "t-migros",
+      name: "Migros",
+      amount: 250,
+      budgetLineId: courses.id,
+    };
+    const comparison = buildComparison({
+      ...base,
+      budgetLines: [...base.budgetLines, courses],
+      transactions: [...base.transactions, migros],
+    });
+
+    expect(comparison.suggestions.map((row) => row.name)).not.toContain(
+      "Migros",
+    );
+    // « À pointer » lists Assurance, Essence and Migros; the first two are suggested.
+    expect(comparison.othersCount).toBe(1);
+  });
+
   it("counts what the checks found, then matches once the previous month moves", () => {
     const afterEssence = buildComparison({
       ...base,
       realizedBalance: 990,
       transactions: [{ ...essence, checkedAt: STAMP }],
       comparedBefore: 1050,
+      realizedBefore: 1050,
     });
     expect(afterEssence).toMatchObject({
       gap: -40,
       compared: 990,
       comparedBefore: 1050,
+      realized: 990,
+      realizedBefore: 1050,
       found: 60,
     });
     expect(afterEssence.suggestions.map((row) => row.name)).toEqual([
@@ -171,8 +204,36 @@ describe("buildComparison", () => {
 
   it("strikes nothing through when the checks left the figure where it was", () => {
     expect(
-      buildComparison({ ...base, comparedBefore: 1050 }).comparedBefore,
+      buildComparison({ ...base, comparedBefore: 1050, realizedBefore: 1050 }),
+    ).toMatchObject({ comparedBefore: null, realizedBefore: null });
+  });
+
+  it("compares the struck figure to the cent, not as floats", () => {
+    expect(
+      buildComparison({
+        ...base,
+        realizedBalance: 0.3,
+        comparedBefore: 0.3,
+        realizedBefore: 0.1 + 0.2,
+      }).realizedBefore,
     ).toBeNull();
+  });
+
+  it("strikes nothing through when only a previous month's check moved the figure", () => {
+    // Pharmacie checked: the prior correction moves, this month's realized balance does not.
+    expect(
+      buildComparison({
+        ...base,
+        context: { ...context, priorCorrection: -40, priorItems: [] },
+        comparedBefore: 1050,
+        realizedBefore: 1050,
+      }),
+    ).toMatchObject({
+      realized: 1050,
+      realizedBefore: null,
+      priorCorrection: -40,
+      found: 40,
+    });
   });
 
   it("falls back on the gap screens once the suggestions are dismissed", () => {
@@ -241,6 +302,16 @@ describe("buildComparison", () => {
           today: new Date(2027, 1, 28),
         }).screen,
       ).toBe("moreOnAccounts");
+    });
+
+    it("finds the next pay day across the new year", () => {
+      expect(
+        buildComparison({
+          ...more,
+          payDayOfMonth: 25,
+          today: new Date(2026, 11, 23),
+        }),
+      ).toMatchObject({ screen: "salaryEarly", nextPayDay: 25 });
     });
 
     it("leaves the first comparison its own question", () => {

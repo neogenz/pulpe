@@ -12,12 +12,15 @@ import {
   type MatchedBreakdown,
   matchedBreakdown,
   moneyDifference,
+  periodFromIndex,
+  periodIndex,
   rankedPointingCandidates,
   type ReconciliationContext,
   type ReconciliationVerdict,
   type SupportedCurrency,
   type Transaction,
   type TransactionCreate,
+  type TransactionKind,
 } from "pulpe-shared";
 
 import { countDaysBetween, isPointableLine } from "./current-month-view-model";
@@ -67,6 +70,8 @@ export interface SuggestionRow {
   id: string;
   name: string;
   amount: number;
+  /** Its money kind, whatever the source: a saving asks for its own words (spec §4.2). */
+  kind: TransactionKind;
   monthsAgo: 0 | 1 | 2;
   /** The movement's date, for a movement of this month. */
   date: string | null;
@@ -79,6 +84,10 @@ export interface Comparison {
   compared: number;
   /** The figure before the first check of this comparison, once a check moved it. */
   comparedBefore: number | null;
+  /** The month's realized balance, the Accueil's « Solde pointé », shown as Pulpe's figure. */
+  realized: number;
+  /** The realized balance at the first check, once a check of this month moved it: struck through. */
+  realizedBefore: number | null;
   /** How much nearer zero the checks brought the gap: one that widens it finds nothing. */
   found: number;
   gap: number;
@@ -88,6 +97,8 @@ export interface Comparison {
   othersCount: number;
   note: { before: number; after: number };
   matched: MatchedBreakdown;
+  /** What the previous months left unchecked, part of `compared`; shown apart when not 0. */
+  priorCorrection: number;
   /** Money from before Pulpe, part of `compared`; shown apart when not 0. */
   startingAmount: number;
   /** The day of the month the next period starts: « Reviens comparer le 25 ». */
@@ -104,6 +115,7 @@ export function buildComparison(input: {
   transactions: Transaction[];
   context: ReconciliationContext;
   comparedBefore: number | null;
+  realizedBefore: number | null;
   isDismissed: boolean;
   payDayOfMonth: number | null;
   today: Date;
@@ -142,6 +154,7 @@ export function buildComparison(input: {
         id,
         name: item.name,
         amount: item.amount,
+        kind: item.kind,
         monthsAgo,
         date: "transactionDate" in item ? item.transactionDate : null,
         // A 120 movement under a checked 100 prévision closes a 20 gap: ranked first, never highlighted.
@@ -164,12 +177,8 @@ export function buildComparison(input: {
   const { payDayOfMonth, today } = input;
   const current = getBudgetPeriodForDate(today, payDayOfMonth);
   const startOf = (offset: number) => {
-    const index = current.year * 12 + current.month - 1 + offset;
-    return getBudgetPeriodDates(
-      (index % 12) + 1,
-      Math.floor(index / 12),
-      payDayOfMonth,
-    ).startDate;
+    const { month, year } = periodFromIndex(periodIndex(current) + offset);
+    return getBudgetPeriodDates(month, year, payDayOfMonth).startDate;
   };
   // On pay day itself the next period starts today: wait for the one after.
   const following = startOf(1);
@@ -180,6 +189,13 @@ export function buildComparison(input: {
     onAccounts,
     compared,
     comparedBefore,
+    realized: input.realizedBalance,
+    // Checking a previous month's item moves only the prior correction: nothing struck through.
+    realizedBefore:
+      input.realizedBefore === null ||
+      moneyDifference(input.realizedBefore, input.realizedBalance) === 0
+        ? null
+        : input.realizedBefore,
     found:
       comparedBefore === null
         ? 0
@@ -206,6 +222,7 @@ export function buildComparison(input: {
       compared,
       startingAmount: context.startingAmount,
     }),
+    priorCorrection: context.priorCorrection,
     startingAmount: context.startingAmount,
     nextPayDay: nextStart.getDate(),
   };

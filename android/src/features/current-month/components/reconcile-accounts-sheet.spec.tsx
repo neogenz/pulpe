@@ -152,6 +152,8 @@ jest.mock("@/core/i18n/locale-store", () => ({
   }),
 }));
 jest.mock("@/core/ui/theme", () => ({
+  ACCESSIBLE_FONT_SCALE: 1.5,
+  ICON_SIZE: { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 },
   RADIUS: { card: 18 },
   SPACING: { lg: 24, md: 16, sm: 8, xs: 4, xxs: 2 },
   TOUCH_TARGET: 48,
@@ -237,6 +239,7 @@ jest.mock("react-native-paper", () => {
     TextInput: Object.assign(
       ({
         label,
+        accessibilityLabel,
         value,
         onChangeText,
         onFocus,
@@ -245,6 +248,7 @@ jest.mock("react-native-paper", () => {
         autoFocus,
       }: {
         label: string;
+        accessibilityLabel?: string;
         value: string;
         onChangeText: (value: string) => void;
         onFocus?: () => void;
@@ -253,7 +257,7 @@ jest.mock("react-native-paper", () => {
         autoFocus?: boolean;
       }) => (
         <TextInput
-          accessibilityLabel={label}
+          accessibilityLabel={accessibilityLabel ?? label}
           value={value}
           onChangeText={onChangeText}
           onFocus={onFocus}
@@ -412,7 +416,24 @@ async function reachVerdict(
   await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
 }
 
-const AMOUNT = "home.reconcile.accounts.amount";
+/**
+ * Two taps landing in one frame, before React renders the first one's state.
+ * `fireEvent.press` awaits an act per tap: two at once overlap. This clicks the
+ * button around the label twice, as an accessibility service does.
+ */
+async function tapTwiceInOneFrame(label: { parent: unknown }) {
+  const button = label.parent as {
+    props: { onClick: (event: object) => void };
+  };
+  const click = { nativeEvent: {}, target: 1, currentTarget: 1 };
+  await act(() => {
+    button.props.onClick(click);
+    button.props.onClick(click);
+  });
+}
+
+// Read out with the account it belongs to.
+const AMOUNT = /^home\.reconcile\.accounts\.amountOf:/;
 const STEP_2 = "home.reconcile.compare.stepLabel";
 const NOTE_INCOME = /home\.reconcile\.compare\.yesNoteIncome/;
 const NOTE_EXPENSE = /home\.reconcile\.compare\.yesNoteExpense/;
@@ -589,7 +610,7 @@ it("brings a focused row above the footer and the keyboard, and lets go on blur"
 });
 
 describe("with Mon patrimoine", () => {
-  const BALANCE = "home.reconcile.accounts.amount";
+  const BALANCE = AMOUNT;
   const linked = (...assets: Asset[]): LinkedAccounts => ({
     categories: [{ id: "type", name: "Comptes", total: 0 }],
     assets,
@@ -835,7 +856,16 @@ it("adds free rows, totals « J'ai » minus « Je dois » live and keeps an over
     view.getAllByLabelText("home.reconcile.accounts.accountName")[1],
     "Carte",
   );
-  await fireEvent.changeText(view.getAllByLabelText(AMOUNT)[1], "300");
+  // Each balance is read out with its account, the unnamed one by its number.
+  expect(
+    view.getByLabelText(
+      "home.reconcile.accounts.amountOf:home.reconcile.accounts.accountNumbered:1",
+    ),
+  ).toBeTruthy();
+  await fireEvent.changeText(
+    view.getByLabelText("home.reconcile.accounts.amountOf:Carte"),
+    "300",
+  );
   expect(view.getByTestId("reconcile-total")).toHaveTextContent(/700\.00/);
   expect(
     view.getByText(/accounts\.breakdown:1’000\.00 CHF\|300\.00 CHF/),
@@ -1088,12 +1118,14 @@ describe("step 2", () => {
     expect(
       view.getByText("home.reconcile.compare.found:60.00 CHF"),
     ).toBeTruthy();
+    // This month's item leaves the context alone: no read to wait for.
+    expect(mockContext.refetch).not.toHaveBeenCalled();
     expect(view.getByText("busy:false")).toBeTruthy();
 
     // Pharmacie is last month's: answered by the server, then read back with the context.
     const settlePrior = deferredCheck(mockTogglePrior);
     let landReread: () => void = () => undefined;
-    mockChecksSettled.mockImplementationOnce(
+    mockContext.refetch.mockImplementationOnce(
       () => new Promise<void>((resolve) => (landReread = resolve)),
     );
     await fireEvent.press(view.getByText("Pharmacie"));
@@ -1124,6 +1156,184 @@ describe("step 2", () => {
     );
     expect(mockCompleteReconciliation).toHaveBeenCalledTimes(1);
     expect(props.onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("strikes nothing through when the check was last month's: only the « pas coché » line goes", async () => {
+    // Pharmacie left unchecked last month: the rollover counted it, the checks did not.
+    mockContext.data = {
+      ...CONTEXT,
+      priorCorrection: 40,
+      priorItems: [pharmacie],
+    };
+    const { props, view: pending } = renderSheet(PULPE);
+    const view = await pending;
+    await reachVerdict(view, "950");
+    expect(view.getByTestId("reconcile-prior-correction")).toHaveTextContent(
+      "home.reconcile.compare.priorCorrectionPart:+40.00 CHF",
+    );
+
+    await fireEvent.press(view.getByText("Pharmacie"));
+    mockContext.data = CONTEXT;
+    await view.rerender(<ReconcileAccountsSheet {...props} />);
+
+    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(
+      /1’050\.00/,
+    );
+    expect(view.queryByTestId("reconcile-compared-before")).toBeNull();
+    expect(view.queryByTestId("reconcile-prior-correction")).toBeNull();
+    expect(
+      view.getByText("home.reconcile.compare.found:40.00 CHF"),
+    ).toBeTruthy();
+  });
+
+  it("keeps the figure from before the first check through a second one", async () => {
+    const cafe: Transaction = {
+      ...essence,
+      id: "t-cafe",
+      name: "Café",
+      amount: 20,
+    };
+    const { props, view: pending } = renderSheet(PULPE, [essence, cafe]);
+    const view = await pending;
+    await reachVerdict(view, "950");
+
+    await fireEvent.press(view.getByText("Essence"));
+    const afterEssence = {
+      ...props.month,
+      realized: { ...props.month.realized, realizedBalance: 990 },
+      transactions: [{ ...essence, checkedAt: STAMP }, cafe],
+    };
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} month={afterEssence} />,
+    );
+    await fireEvent.press(view.getByText("Café"));
+    await view.rerender(
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...afterEssence,
+          realized: { ...afterEssence.realized, realizedBalance: 970 },
+          transactions: [
+            { ...essence, checkedAt: STAMP },
+            { ...cafe, checkedAt: STAMP },
+          ],
+        }}
+      />,
+    );
+
+    expect(view.getByTestId("reconcile-compared-before")).toHaveTextContent(
+      /1’050\.00/,
+    );
+    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(/970\.00/);
+  });
+
+  it("keeps the struck figure through a new starting amount; what was found waits for the next check", async () => {
+    mockContext.data = { ...CONTEXT, startingAmount: 3100 };
+    const cafe: Transaction = {
+      ...essence,
+      id: "t-cafe",
+      name: "Café",
+      amount: 20,
+    };
+    const pain: Transaction = {
+      ...essence,
+      id: "t-pain",
+      name: "Pain",
+      amount: 10,
+    };
+    const { props, view: pending } = renderSheet({ realizedBalance: 900 }, [
+      cafe,
+      pain,
+    ]);
+    const view = await pending;
+    await reachVerdict(view, "3950");
+
+    // A check moves the realized balance 900 → 880.
+    await fireEvent.press(view.getByText("Café"));
+    const afterCafe = {
+      ...props.month,
+      realized: { ...props.month.realized, realizedBalance: 880 },
+      transactions: [{ ...cafe, checkedAt: STAMP }, pain],
+    };
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} month={afterCafe} />,
+    );
+    expect(view.getByTestId("reconcile-found")).toBeTruthy();
+
+    await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
+    await fireEvent.changeText(
+      view.getByLabelText(/home\.reconcile\.compare\.startingAmountLabel/),
+      "3090",
+    );
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.saveStartingAmount"),
+    );
+    const [, write] = mockWriteState.mutate.mock.calls[0] as [
+      unknown,
+      { onSuccess: () => void; onSettled: () => void },
+    ];
+    mockContext.data = { ...CONTEXT, startingAmount: 3090 };
+    await act(() => {
+      write.onSuccess();
+      write.onSettled();
+    });
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} month={afterCafe} />,
+    );
+
+    expect(view.getByTestId("reconcile-compared-before")).toHaveTextContent(
+      /900\.00/,
+    );
+    expect(view.queryByTestId("reconcile-found")).toBeNull();
+
+    // The next check measures from the figure it starts on.
+    await fireEvent.press(view.getByText("Pain"));
+    await view.rerender(
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...afterCafe,
+          realized: { ...afterCafe.realized, realizedBalance: 870 },
+          transactions: [
+            { ...cafe, checkedAt: STAMP },
+            { ...pain, checkedAt: STAMP },
+          ],
+        }}
+      />,
+    );
+    expect(view.getByTestId("reconcile-compared-before")).toHaveTextContent(
+      /900\.00/,
+    );
+    expect(view.getByTestId("reconcile-found")).toHaveTextContent(/10\.00/);
+  });
+
+  it("reads the context again when a previous month's check is refused, and lets go only then", async () => {
+    mockContext.data = {
+      ...CONTEXT,
+      priorCorrection: 40,
+      priorItems: [pharmacie],
+    };
+    const { props, view: pending } = renderSheet(PULPE);
+    const view = await pending;
+    await reachVerdict(view, "950");
+
+    const settlePrior = deferredCheck(mockTogglePrior);
+    let landReread: () => void = () => undefined;
+    mockContext.refetch.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (landReread = resolve)),
+    );
+    await fireEvent.press(view.getByText("Pharmacie"));
+    // Refused, but the server had applied it: only the re-read can tell.
+    await settlePrior(false);
+    expect(mockContext.refetch).toHaveBeenCalledTimes(1);
+    expect(view.getByText("busy:true")).toBeTruthy();
+
+    mockContext.data = { ...CONTEXT, priorCorrection: 0, priorItems: [] };
+    await view.rerender(<ReconcileAccountsSheet {...props} />);
+    await act(() => landReread());
+
+    expect(view.queryByText("Pharmacie")).toBeNull();
+    expect(view.getByText("busy:false")).toBeTruthy();
   });
 
   it("says so when a check is refused, and strikes nothing through", async () => {
@@ -1215,9 +1425,7 @@ describe("step 2", () => {
 
     // A double tap: both presses land on the same render.
     const finish = view.getByText("home.reconcile.compare.finish");
-    await act(async () => {
-      await Promise.all([fireEvent.press(finish), fireEvent.press(finish)]);
-    });
+    await tapTwiceInOneFrame(finish);
 
     expect(mockCreate.mutate).not.toHaveBeenCalled();
     expect(captureEvent).toHaveBeenCalledTimes(1);
@@ -1247,6 +1455,67 @@ describe("step 2", () => {
     expect(view.queryByText("home.reconcile.compare.leadCard")).toBeNull();
   });
 
+  it("keeps the struck figure when « Je dois » goes; what was found waits for the next check", async () => {
+    const cafe: Transaction = {
+      ...essence,
+      id: "t-cafe",
+      name: "Café",
+      amount: 20,
+    };
+    const { props, view: pending } = renderSheet(PULPE, [essence, cafe]);
+    const view = await pending;
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addOwe"));
+    const [own, owe] = view.getAllByLabelText(AMOUNT);
+    await fireEvent.changeText(own, "1000");
+    await fireEvent.changeText(owe, "100");
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    await fireEvent.press(view.getByText("Essence"));
+    await view.rerender(
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...props.month,
+          realized: { ...props.month.realized, realizedBalance: 990 },
+          transactions: [{ ...essence, checkedAt: STAMP }, cafe],
+        }}
+      />,
+    );
+    expect(view.getByTestId("reconcile-found")).toBeTruthy();
+
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.removeOwe:100.00 CHF"),
+    );
+
+    expect(view.getByTestId("reconcile-compared-before")).toHaveTextContent(
+      /1’050\.00/,
+    );
+    expect(view.queryByTestId("reconcile-found")).toBeNull();
+  });
+
+  it("starts a new comparison from step 1 with nothing struck through", async () => {
+    const { props, view: pending } = renderSheet(PULPE, [essence]);
+    const view = await pending;
+    await reachVerdict(view, "950");
+    await fireEvent.press(view.getByText("Essence"));
+    await view.rerender(
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...props.month,
+          realized: { ...props.month.realized, realizedBalance: 990 },
+          transactions: [{ ...essence, checkedAt: STAMP }],
+        }}
+      />,
+    );
+    expect(view.getByTestId("reconcile-compared-before")).toBeTruthy();
+
+    await fireEvent.press(view.getByLabelText("android-back"));
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+
+    expect(view.queryByTestId("reconcile-compared-before")).toBeNull();
+    expect(view.queryByTestId("reconcile-found")).toBeNull();
+  });
+
   describe("money from before Pulpe", () => {
     // Never compared, nothing stored: 4 000 on the accounts against 900 checked.
     beforeEach(() => {
@@ -1268,9 +1537,7 @@ describe("step 2", () => {
       ).toBeTruthy();
 
       const keep = view.getByText("home.reconcile.compare.alreadyThere");
-      await act(async () => {
-        await Promise.all([fireEvent.press(keep), fireEvent.press(keep)]);
-      });
+      await tapTwiceInOneFrame(keep);
       expect(mockWriteState.mutate).toHaveBeenCalledTimes(1);
       const [patch, write] = mockWriteState.mutate.mock.calls[0] as WriteCall;
       expect(patch).toEqual({ startingAmount: 3100, completed: true });
@@ -1395,7 +1662,7 @@ describe("step 2", () => {
       await reachVerdict(view, "4000");
       await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
       const field = view.getByLabelText(
-        "home.reconcile.compare.startingAmountLabel",
+        /home\.reconcile\.compare\.startingAmountLabel/,
       );
       await fireEvent.changeText(field, "3000");
       await fireEvent.press(
@@ -1436,9 +1703,7 @@ describe("step 2", () => {
     const view = await renderSheet(PULPE).view;
     await reachVerdict(view, "1200");
     const addOwe = view.getByText("home.reconcile.accounts.addOwe");
-    await act(async () => {
-      await Promise.all([fireEvent.press(addOwe), fireEvent.press(addOwe)]);
-    });
+    await tapTwiceInOneFrame(addOwe);
 
     expect(view.queryByText(STEP_2)).toBeNull();
     expect(view.getAllByLabelText(AMOUNT)).toHaveLength(2);

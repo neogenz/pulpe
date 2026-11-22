@@ -9,7 +9,6 @@ import {
   writeReconciliationState,
 } from "./reconciliation-api";
 
-/** A check anywhere moves the previous months' correction: `useToggleCheck` invalidates `all`. */
 export const reconciliationKeys = {
   all: ["reconciliation"] as const,
   context: (budgetId: string) =>

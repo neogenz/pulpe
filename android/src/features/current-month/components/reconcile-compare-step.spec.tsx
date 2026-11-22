@@ -7,7 +7,12 @@ import type {
 import { AccessibilityInfo, Text } from "react-native";
 
 import { buildComparison } from "../reconciliation";
-import { arrowed, money, ReconcileCompareStep } from "./reconcile-compare-step";
+import {
+  arrowed,
+  money,
+  ReconcileCompareActions,
+  ReconcileCompareStep,
+} from "./reconcile-compare-step";
 
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({
@@ -15,6 +20,11 @@ jest.mock("@/core/i18n/locale-store", () => ({
     t: (key: string, params?: Record<string, unknown>) =>
       params === undefined ? key : `${key}:${Object.values(params).join("|")}`,
   }),
+}));
+let mockFontScale = 1;
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  __esModule: true,
+  default: () => ({ fontScale: mockFontScale, width: 393, height: 852 }),
 }));
 let mockAmountsHidden = false;
 jest.mock("@/core/ui/amount-visibility", () => ({
@@ -75,6 +85,7 @@ const happyPath = {
   transactions: [essence],
   context,
   comparedBefore: null,
+  realizedBefore: null,
   isDismissed: false,
   payDayOfMonth: null,
   today: new Date(2026, 10, 18),
@@ -105,6 +116,7 @@ function renderStep(
 
 beforeEach(() => {
   mockAmountsHidden = false;
+  mockFontScale = 1;
 });
 
 it("lists the happy path's suggestions in order, each with where it comes from", async () => {
@@ -131,6 +143,41 @@ it("lists the happy path's suggestions in order, each with where it comes from",
   );
 });
 
+it("puts each amount under its words at a large font, and lets « Voir les autres » wrap", async () => {
+  // A refund cannot explain money missing: it stays for « Voir les autres ».
+  const refund = {
+    ...essence,
+    id: "t-refund",
+    name: "Remboursement",
+    kind: "income" as const,
+  };
+  const comparison = buildComparison({
+    ...happyPath,
+    transactions: [essence, refund],
+  });
+  const atNormalSize = await renderStep(comparison).view;
+  expect(
+    atNormalSize.getByText("home.reconcile.compare.onAccounts").parent,
+  ).toHaveStyle({ flexDirection: "row" });
+  expect(atNormalSize.getByText("Essence").props.numberOfLines).toBe(2);
+
+  mockFontScale = 2;
+  const larger = await renderStep(comparison).view;
+  expect(
+    larger.getByText("home.reconcile.compare.onAccounts").parent,
+  ).not.toHaveStyle({ flexDirection: "row" });
+  // The name wraps instead of « Épa… », its amount on a line of its own.
+  expect(larger.getByText("Essence").props.numberOfLines).toBeUndefined();
+  // Assurance, Essence, Pharmacie: the amount stays in Essence's row.
+  expect(larger.getAllByTestId("reconcile-suggestion")[1]).toHaveTextContent(
+    /Essence.*60\.00\sCHF/,
+  );
+  // Not Paper's one-line button label: « Voir les 11 autres à poi… ».
+  expect(
+    larger.getByText("home.reconcile.compare.othersOne:1").props.numberOfLines,
+  ).toBeUndefined();
+});
+
 it("strikes the old figure through and shows what was found after a partial check", async () => {
   const view = await renderStep(
     buildComparison({
@@ -138,6 +185,7 @@ it("strikes the old figure through and shows what was found after a partial chec
       realizedBalance: 990,
       transactions: [{ ...essence, checkedAt: STAMP }],
       comparedBefore: 1050,
+      realizedBefore: 1050,
     }),
   ).view;
 
@@ -180,7 +228,9 @@ it("masks the amounts alone, the words and the screen reader's « instead of » 
     buildComparison({
       ...happyPath,
       realizedBalance: 990,
+      context: { ...context, priorCorrection: 20 },
       comparedBefore: 1050,
+      realizedBefore: 1050,
     }),
   ).view;
 
@@ -191,6 +241,9 @@ it("masks the amounts alone, the words and the screen reader's « instead of » 
     accessibilityLabel:
       "home.reconcile.compare.inPulpe, •••, home.reconcile.compare.instead:•••",
   });
+  expect(view.getByTestId("reconcile-prior-correction")).toHaveTextContent(
+    "home.reconcile.compare.priorCorrectionPart:•••",
+  );
   expect(view.queryByText(/\d\.\d\d/)).toBeNull();
 });
 
@@ -294,6 +347,106 @@ describe("more on the accounts", () => {
     expect(partly.getByTestId("reconcile-starting-amount")).toHaveTextContent(
       /home\.reconcile\.compare\.startingAmountPart:\+3’100\.00/,
     );
+    expect(partly.queryByTestId("reconcile-prior-correction")).toBeNull();
+  });
+
+  it("starts the matched card from the accounts figure, so the sum adds up", async () => {
+    const view = await renderStep(
+      buildComparison({
+        ...more,
+        onAccountsCents: 412_000,
+        realizedBalance: 1020,
+        available: 700,
+        context: { ...more.context, startingAmount: 3100 },
+      }),
+    ).view;
+
+    expect(view.getByTestId("reconcile-matched")).toHaveTextContent(
+      /^home\.reconcile\.compare\.onAccounts4’120\.00 CHF.*stillPlanned−320\.00 CHF.*beforePulpe−3’100\.00 CHF.*toSpend700\.00 CHF$/,
+    );
+  });
+
+  it("shows the Accueil's figure, then what earlier months left unchecked and the money from before Pulpe", async () => {
+    // 900 checked this month, an Assurance of 120 left unchecked last month.
+    const view = await renderStep(
+      buildComparison({
+        ...more,
+        realizedBalance: 900,
+        context: {
+          ...more.context,
+          priorCorrection: 120,
+          startingAmount: 3100,
+        },
+      }),
+    ).view;
+
+    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(
+      "home.reconcile.compare.inPulpe900.00 CHF",
+    );
+    expect(view.getByTestId("reconcile-figures")).toHaveTextContent(
+      /priorCorrectionPart:\+120\.00 CHF.*startingAmountPart:\+3’100\.00 CHF/,
+    );
+  });
+});
+
+describe("a saving among the suggestions", () => {
+  // Last month's, as the server sends it: a prévision whose money is a saving.
+  const vacances = {
+    ...context.priorItems[0],
+    id: "l-vacances",
+    source: "budgetLine" as const,
+    name: "Vacances",
+    kind: "saving" as const,
+  };
+  const withSaving = buildComparison({
+    ...happyPath,
+    context: { ...context, priorItems: [vacances] },
+  });
+
+  function renderActions(comparison: ReturnType<typeof buildComparison>) {
+    return render(
+      <ReconcileCompareActions
+        comparison={comparison}
+        currency="CHF"
+        isBusy={false}
+        isRecording={false}
+        isSavingState={false}
+        onLeave={jest.fn()}
+        onDismiss={jest.fn()}
+        onRecord={jest.fn()}
+        onKeep={jest.fn()}
+        onShowReasons={jest.fn()}
+      />,
+    );
+  }
+
+  it("names the savings in the lead and lets nothing match", async () => {
+    const view = await renderStep(withSaving).view;
+    expect(view.getAllByTestId("reconcile-suggestion")[2]).toHaveTextContent(
+      /Vacances/,
+    );
+    expect(
+      view.getByText("home.reconcile.compare.leadExpenseSaving"),
+    ).toBeTruthy();
+    const actions = await renderActions(withSaving);
+    expect(
+      actions.getByText("home.reconcile.compare.nothingMatches"),
+    ).toBeTruthy();
+  });
+
+  it("keeps the card's lead with a « Je dois » row", async () => {
+    const view = await renderStep(withSaving, { hasOwe: true }).view;
+    expect(view.getByText("home.reconcile.compare.leadCard")).toBeTruthy();
+  });
+
+  it("keeps the expense texts without a saving", async () => {
+    const comparison = buildComparison(happyPath);
+    const view = await renderStep(comparison).view;
+    expect(view.getByText("home.reconcile.compare.leadExpense")).toBeTruthy();
+    const actions = await renderActions(comparison);
+    expect(
+      actions.getByText("home.reconcile.compare.noExpenseMatches"),
+    ).toBeTruthy();
   });
 });
 

@@ -134,6 +134,8 @@ export function ReconcileAccountRow({
         <TextInput
           mode="outlined"
           label={t("home.reconcile.accounts.amount")}
+          // « Solde » alone, read out, says not whose: the name goes with it.
+          accessibilityLabel={t("home.reconcile.accounts.amountOf", { name })}
           value={row.amountText}
           onChangeText={(amountText) => onChange({ amountText })}
           onFocus={focus}

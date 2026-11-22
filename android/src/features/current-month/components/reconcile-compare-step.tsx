@@ -1,7 +1,13 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { moneyDifference, type SupportedCurrency } from "pulpe-shared";
+import type { SupportedCurrency } from "pulpe-shared";
 import { type ReactNode, useEffect, useRef } from "react";
-import { AccessibilityInfo, Pressable, StyleSheet, View } from "react-native";
+import {
+  AccessibilityInfo,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -17,12 +23,21 @@ import { formatCurrency, formatSignedCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth } from "@/core/ui/date-format";
 import { useRipple } from "@/core/ui/ripple";
 import { useV2Colors } from "@/core/ui/scheme-colors";
-import { RADIUS, SPACING, TABULAR_DIGITS, TOUCH_TARGET } from "@/core/ui/theme";
+import {
+  ACCESSIBLE_FONT_SCALE,
+  ICON_SIZE,
+  RADIUS,
+  SPACING,
+  TABULAR_DIGITS,
+  TOUCH_TARGET,
+} from "@/core/ui/theme";
 
 import { type Comparison, plain, type SuggestionRow } from "../reconciliation";
 
 /** Above the app's 56dp rows: a suggestion carries a second line (spec.md §4.2). */
 const SUGGESTION_MIN_HEIGHT = 64;
+/** The round mark over « Pareil des deux côtés », twice its check. */
+const MARK_SIZE = 2 * ICON_SIZE.xl;
 
 const DETAIL_KEYS = [
   "home.reconcile.compare.plannedThisMonth",
@@ -85,11 +100,13 @@ export function ReconcileCompareStep({
   const v2 = useV2Colors();
   const ripple = useRipple();
   const { locale, t } = useTranslation();
+  const stacks = useStacksAmounts();
   const heading = useRef<View>(null);
   const rows = useRef<(View | null)[]>([]);
   // Where the checked row stood (-1: the title). It leaves, taking TalkBack's focus with it.
   const refocusAt = useRef<number | null>(null);
   const muted = { color: theme.colors.onSurfaceVariant };
+  const link = isBusy ? theme.colors.onSurfaceDisabled : theme.colors.primary;
   const card = [styles.card, { backgroundColor: theme.colors.surfaceVariant }];
   const screen =
     comparison?.screen ?? (isUnavailable ? "unavailable" : "loading");
@@ -144,9 +161,6 @@ export function ReconcileCompareStep({
             : "home.reconcile.compare.more",
           { amount: money(Math.abs(gap), currency) },
         );
-  // « 900.00 + 3 100.00 d'avant Pulpe »: the money from before Pulpe is shown apart.
-  const withoutStart = (value: number) =>
-    money(moneyDifference(value, comparison.startingAmount), currency);
   const progress =
     comparison.comparedBefore === null
       ? 0
@@ -183,9 +197,18 @@ export function ReconcileCompareStep({
             style={[styles.mark, { backgroundColor: v2.accentWash }]}
             importantForAccessibility="no-hide-descendants"
           >
-            <Icon source="check" size={32} color={theme.colors.primary} />
+            <Icon
+              source="check"
+              size={ICON_SIZE.xl}
+              color={theme.colors.primary}
+            />
           </View>
           <View style={card} testID="reconcile-matched">
+            {/* The figure the lines below start from, to redo the sum by eye. */}
+            <Figure
+              label={t("home.reconcile.compare.onAccounts")}
+              amount={money(comparison.onAccounts, currency)}
+            />
             {matched.stillPlanned !== 0 && (
               <Figure
                 label={t(
@@ -211,11 +234,15 @@ export function ReconcileCompareStep({
                     amount={signed(matched.beforePulpe, currency)}
                   />
                 </View>
-                <Icon source="pencil-outline" size={18} color={muted.color} />
+                <Icon
+                  source="pencil-outline"
+                  size={ICON_SIZE.sm}
+                  color={muted.color}
+                />
               </Pressable>
             )}
-            <View style={styles.figure}>
-              <Text variant="titleSmall" style={styles.grow}>
+            <View style={stacks ? styles.stacked : styles.figure}>
+              <Text variant="titleSmall" style={!stacks && styles.grow}>
                 {t("home.reconcile.compare.toSpend")}
               </Text>
               {/* Green only when something is left: an overspent month is no good news. */}
@@ -239,48 +266,64 @@ export function ReconcileCompareStep({
           />
           {/* One stop for TalkBack, the new figure before the one it replaces. */}
           <View
-            style={styles.figure}
+            style={stacks ? styles.stacked : styles.figure}
             accessible
             accessibilityLabel={[
               t("home.reconcile.compare.inPulpe"),
-              withoutStart(comparison.compared),
-              ...(comparison.comparedBefore === null
+              money(comparison.realized, currency),
+              ...(comparison.realizedBefore === null
                 ? []
                 : [
                     t("home.reconcile.compare.instead", {
-                      amount: withoutStart(comparison.comparedBefore),
+                      amount: money(comparison.realizedBefore, currency),
                     }),
                   ]),
             ].join(", ")}
             testID="reconcile-in-pulpe"
           >
-            <Text variant="bodyMedium" style={[muted, styles.grow]}>
+            <Text variant="bodyMedium" style={[muted, !stacks && styles.grow]}>
               {t("home.reconcile.compare.inPulpe")}
             </Text>
-            <View style={styles.figures}>
-              {comparison.comparedBefore !== null && (
+            <View style={!stacks && styles.figures}>
+              {comparison.realizedBefore !== null && (
                 <View testID="reconcile-compared-before">
                   <Amount
                     size="meta"
                     numberOfLines={1}
                     style={[styles.struck, { color: v2.ink3 }]}
                   >
-                    {withoutStart(comparison.comparedBefore)}
+                    {money(comparison.realizedBefore, currency)}
                   </Amount>
                 </View>
               )}
               <Amount size="row" numberOfLines={1}>
-                {withoutStart(comparison.compared)}
+                {money(comparison.realized, currency)}
               </Amount>
             </View>
           </View>
+          {comparison.priorCorrection !== 0 && (
+            // Plain text, quieter than the figure and the button under it, as on web and iOS.
+            <Text
+              variant="bodyMedium"
+              style={[
+                muted,
+                stacks ? styles.start : styles.trailing,
+                TABULAR_DIGITS,
+              ]}
+              testID="reconcile-prior-correction"
+            >
+              {t("home.reconcile.compare.priorCorrectionPart", {
+                amount: signed(comparison.priorCorrection, currency),
+              })}
+            </Text>
+          )}
           {comparison.startingAmount !== 0 && (
             <Pressable
               accessibilityRole="button"
               onPress={onEditStartingAmount}
               disabled={isBusy}
               android_ripple={ripple}
-              style={[styles.tappable, styles.end]}
+              style={[styles.tappable, stacks ? styles.start : styles.end]}
               testID="reconcile-starting-amount"
             >
               <Text
@@ -291,7 +334,11 @@ export function ReconcileCompareStep({
                   amount: signed(comparison.startingAmount, currency),
                 })}
               </Text>
-              <Icon source="pencil-outline" size={18} color={muted.color} />
+              <Icon
+                source="pencil-outline"
+                size={ICON_SIZE.sm}
+                color={muted.color}
+              />
             </Pressable>
           )}
           {/* As on web and iOS: nothing found, no line. */}
@@ -321,12 +368,29 @@ export function ReconcileCompareStep({
                 ? "home.reconcile.compare.leadIncome"
                 : hasOwe
                   ? "home.reconcile.compare.leadCard"
-                  : "home.reconcile.compare.leadExpense",
+                  : offersSaving(comparison)
+                    ? "home.reconcile.compare.leadExpenseSaving"
+                    : "home.reconcile.compare.leadExpense",
             )}
           </Text>
           <View style={[card, styles.list]}>
             {comparison.suggestions.map((row, index) => {
               const isChecking = checkingId === row.id;
+              const amount = (
+                <View
+                  style={[
+                    row.settles && [
+                      styles.settles,
+                      { backgroundColor: v2.accentWash },
+                    ],
+                    stacks && styles.start,
+                  ]}
+                >
+                  <Amount size="row" numberOfLines={1}>
+                    {money(row.amount, currency)}
+                  </Amount>
+                </View>
+              );
               return (
                 <Pressable
                   key={row.id}
@@ -346,11 +410,14 @@ export function ReconcileCompareStep({
                 >
                   <Icon
                     source={isChecking ? "check-circle" : "circle-outline"}
-                    size={24}
+                    size={ICON_SIZE.lg}
                     color={isChecking ? theme.colors.primary : v2.pointRing}
                   />
                   <View style={styles.grow}>
-                    <Text variant="bodyLarge" numberOfLines={1}>
+                    <Text
+                      variant="bodyLarge"
+                      numberOfLines={stacks ? undefined : 2}
+                    >
                       {row.name}
                     </Text>
                     <Text variant="bodySmall" style={muted}>
@@ -358,39 +425,36 @@ export function ReconcileCompareStep({
                         ? formatDayMonth(new Date(row.date), locale)
                         : t(DETAIL_KEYS[row.monthsAgo])}
                     </Text>
+                    {stacks && amount}
                   </View>
-                  <View
-                    style={
-                      row.settles && [
-                        styles.settles,
-                        { backgroundColor: v2.accentWash },
-                      ]
-                    }
-                  >
-                    <Amount size="row" numberOfLines={1}>
-                      {money(row.amount, currency)}
-                    </Amount>
-                  </View>
+                  {!stacks && amount}
                 </Pressable>
               );
             })}
           </View>
           {comparison.othersCount > 0 && (
-            <Button
-              mode="text"
-              icon="arrow-right"
+            // Not Paper's text button: its label is one line, cut at a large font.
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isBusy }}
               onPress={onViewOthers}
               disabled={isBusy}
-              style={styles.start}
-              contentStyle={styles.link}
+              android_ripple={ripple}
+              style={[styles.tappable, styles.start, styles.link]}
             >
-              {t(
-                comparison.othersCount === 1
-                  ? "home.reconcile.compare.othersOne"
-                  : "home.reconcile.compare.othersMany",
-                { count: comparison.othersCount },
-              )}
-            </Button>
+              <Icon source="arrow-right" size={ICON_SIZE.md} color={link} />
+              <Text
+                variant="labelLarge"
+                style={[styles.shrink, { color: link }]}
+              >
+                {t(
+                  comparison.othersCount === 1
+                    ? "home.reconcile.compare.othersOne"
+                    : "home.reconcile.compare.othersMany",
+                  { count: comparison.othersCount },
+                )}
+              </Text>
+            </Pressable>
           )}
           {oweTotal !== null && (
             <View style={card} testID="reconcile-owe-box">
@@ -488,13 +552,27 @@ export function ReconcileCompareStep({
   );
 }
 
+/** A saving among the rows: « dépenses » alone would leave it out (spec.md §4.2). */
+function offersSaving(comparison: Comparison): boolean {
+  return comparison.suggestions.some((row) => row.kind === "saving");
+}
+
+/** A large font puts an amount under its label, as iOS does at accessibility sizes. */
+function useStacksAmounts(): boolean {
+  return useWindowDimensions().fontScale >= ACCESSIBLE_FONT_SCALE;
+}
+
 function Figure({ label, amount }: { label: string; amount: string }) {
   const theme = useTheme();
+  const stacks = useStacksAmounts();
   return (
-    <View style={styles.figure}>
+    <View style={stacks ? styles.stacked : styles.figure}>
       <Text
         variant="bodyMedium"
-        style={[{ color: theme.colors.onSurfaceVariant }, styles.grow]}
+        style={[
+          { color: theme.colors.onSurfaceVariant },
+          !stacks && styles.grow,
+        ]}
       >
         {label}
       </Text>
@@ -513,7 +591,7 @@ interface ReconcileCompareActionsProps {
   isSavingState: boolean;
   /** [Terminer], « Laisser comme ça » and « Non, laisser comme ça »: completed, nothing written. */
   onLeave: () => void;
-  /** « Aucune … ne correspond ». */
+  /** « Aucune … ne correspond », or « Rien ne correspond » with a saving among the rows. */
   onDismiss: () => void;
   onRecord: () => void;
   /** « Oui, c'était déjà là ». */
@@ -617,9 +695,11 @@ export function ReconcileCompareActions({
       <View style={styles.actions}>
         <Button mode="outlined" onPress={onDismiss} disabled={isBusy}>
           {t(
-            gap < 0
-              ? "home.reconcile.compare.noExpenseMatches"
-              : "home.reconcile.compare.noIncomeMatches",
+            gap > 0
+              ? "home.reconcile.compare.noIncomeMatches"
+              : offersSaving(comparison)
+                ? "home.reconcile.compare.nothingMatches"
+                : "home.reconcile.compare.noExpenseMatches",
           )}
         </Button>
         {leave}
@@ -719,7 +799,7 @@ export function AmountButton({
             },
       ]}
     >
-      {isLoading && <ActivityIndicator size={18} color={ink} />}
+      {isLoading && <ActivityIndicator size={ICON_SIZE.sm} color={ink} />}
       <Text
         variant="labelLarge"
         textBreakStrategy="balanced"
@@ -736,7 +816,8 @@ const styles = StyleSheet.create({
   loading: { paddingVertical: SPACING.xl },
   // Paper insets a text button's label by 12: pulled back by as much, it starts on the text's edge.
   start: { alignSelf: "flex-start" },
-  link: { minHeight: TOUCH_TARGET },
+  link: { paddingHorizontal: SPACING.md },
+  shrink: { flexShrink: 1 },
   card: { borderRadius: RADIUS.card, padding: SPACING.md, gap: SPACING.sm },
   list: { paddingVertical: 0, paddingHorizontal: 0, overflow: "hidden" },
   figure: {
@@ -745,13 +826,14 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   figures: { alignItems: "flex-end" },
+  stacked: { alignItems: "flex-start" },
   grow: { flex: 1 },
   struck: { textDecorationLine: "line-through" },
   found: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
   mark: {
     alignSelf: "center",
-    width: 64,
-    height: 64,
+    width: MARK_SIZE,
+    height: MARK_SIZE,
     borderRadius: RADIUS.full,
     alignItems: "center",
     justifyContent: "center",
@@ -790,6 +872,8 @@ const styles = StyleSheet.create({
     minHeight: TOUCH_TARGET,
   },
   end: { alignSelf: "flex-end" },
+  // A line under a figure that wraps keeps to the figure's edge.
+  trailing: { alignSelf: "flex-end", textAlign: "right" },
   target: { minHeight: TOUCH_TARGET },
   note: { textAlign: "center" },
   // Close to the button it explains, clear of the framed one under it.

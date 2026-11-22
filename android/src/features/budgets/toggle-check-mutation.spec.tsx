@@ -6,7 +6,6 @@ import {
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type React from "react";
 
-import { reconciliationKeys } from "@/features/current-month/reconciliation-queries";
 import { goalKeys } from "@/features/savings-goals/goals-queries";
 
 import type { BudgetDetails } from "./budget-api";
@@ -16,7 +15,6 @@ import { useToggleCheck } from "./toggle-check-mutation";
 
 jest.mock("@/core/vault/vault-store", () => ({ useVaultStore: () => true }));
 jest.mock("./budget-api", () => ({}));
-jest.mock("@/features/current-month/reconciliation-api", () => ({}));
 jest.mock("@/features/savings-goals/goals-api", () => ({}));
 jest.mock("./toggle-check-api", () => ({
   toggleCheck: jest.fn(async () => undefined),
@@ -52,7 +50,6 @@ it("settles on the budget details and the goals, not on the whole prefix", async
     { queryKey: budgetKeys.list(), refetchType: "none" },
     { queryKey: ["net-worth"], refetchType: "none" },
     { queryKey: goalKeys.all },
-    { queryKey: reconciliationKeys.all },
   ]);
   await hook.unmount();
   client.clear();
