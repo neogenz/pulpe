@@ -38,6 +38,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.66.1',
+    reason:
+      'Corrections de « Comparer avec mes comptes », sorti dans la version précédente : pas de nouveauté à annoncer',
+  },
+  {
     version: '0.65.0',
     reason:
       'Seul changement de la webapp : la part de chaque type dans Mon patrimoine, réservé aux early adopters ; le reste concerne l’app Android et le site',
