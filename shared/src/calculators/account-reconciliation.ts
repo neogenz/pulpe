@@ -112,31 +112,17 @@ type FormulaTransaction = NonNullable<
 
 const MAX_POINTING_CANDIDATES = 3;
 
-export interface PointingTarget {
+interface PointingTarget {
   readonly kind: 'transaction' | 'budgetLine';
   readonly id: string;
 }
 
 /**
- * What pointing each target moves in the pointed balance, in order, against
- * one balance before pointing. Measured rather than read from the amount:
- * under a pointée prévision a dépense moves the balance by less, or not at
- * all. Server only (previous months' items): no Swift twin.
+ * What pointing one target moves in the pointed balance, against a balance
+ * before pointing computed once for a whole ranking. Measured rather than read
+ * from the amount: under a pointée prévision a dépense moves it by less, or not
+ * at all.
  */
-export function pointingEffects(
-  budgetLines: FormulaLines,
-  transactions: readonly (FormulaTransaction & { readonly id: string })[],
-  targets: readonly PointingTarget[],
-): number[] {
-  const balanceBefore = BudgetFormulas.calculateRealizedBalance(budgetLines, [
-    ...transactions,
-  ]);
-  return targets.map((target) =>
-    effectAfterPointing(budgetLines, transactions, balanceBefore, target),
-  );
-}
-
-/** One target's effect against a balance before pointing computed once for a whole ranking. */
 function effectAfterPointing(
   budgetLines: readonly FormulaLines[number][],
   transactions: readonly (FormulaTransaction & { readonly id: string })[],
@@ -165,8 +151,8 @@ interface Effect {
 }
 
 /**
- * Keeps the items that leave the gap nearer zero, even past it: last month's
- * 4 600.00 for a 4 570.48 gap leaves 29.52. Closest to settling first (stable
+ * Keeps the items that leave the gap nearer zero, even past it: 4 600.00 for a
+ * 4 570.48 gap leaves 29.52. Closest to settling first (stable
  * on ties), at most three.
  */
 function rankByRemainingGap<T extends Effect>(
@@ -193,8 +179,8 @@ export interface RankedPointingCandidate {
 
 /**
  * The items not pointed yet that most likely explain the gap: each one,
- * pointed alone, brings the pointed balance nearer the accounts total. An adjustment written instead would count them twice once
- * they are pointed. Two sources of the month only: unchecked budget lines, then
+ * pointed alone, brings the pointed balance nearer the accounts total. An
+ * adjustment written instead would count them twice once they are pointed. Two sources of the month only: unchecked budget lines, then
  * unchecked movements; closest to settling first (ties keep that source
  * order), at most three. Previous months are closed by the month-end recap,
  * never here.

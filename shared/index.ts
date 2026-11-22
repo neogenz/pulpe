@@ -312,7 +312,6 @@ export {
   matchedBreakdown,
   parseAccountAmount,
   partlySpentBudgetLines,
-  pointingEffects,
   rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
@@ -322,7 +321,6 @@ export {
   type MatchedBreakdown,
   type PartlySpentBudgetLine,
   type PointingSource,
-  type PointingTarget,
   type RankedPointingCandidate,
   type ReconciliationVerdict,
 } from './src/calculators/index.js';

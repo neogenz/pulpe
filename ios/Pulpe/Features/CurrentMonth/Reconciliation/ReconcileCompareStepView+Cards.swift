@@ -21,7 +21,7 @@ extension ReconcileCompareStepView {
                     Text(remove).monospacedDigit()
                 }
                 .secondaryButtonStyle(size: .small)
-                .disabled(flow.isChecking || flow.isWriting)
+                .disabled(flow.isChecking || flow.isSubmitting)
                 .accessibilityIdentifier("reconcileRemoveOwedButton")
             }
             .frame(maxWidth: .infinity, alignment: .leading)

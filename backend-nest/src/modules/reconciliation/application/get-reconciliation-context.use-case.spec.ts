@@ -1,6 +1,5 @@
 import { describe, expect, it, jest } from 'bun:test';
 import { BusinessException } from '@common/exceptions/business.exception';
-import type { ReconciliationStateRepositoryPort } from '../domain/ports/reconciliation-state-repository.port';
 import type { BudgetWithDetails } from '@modules/budget/domain/budget.entity';
 import type { BudgetMonthReadPort } from '@modules/budget/domain/ports/budget-month-read.port';
 import { GetReconciliationContextUseCase } from './get-reconciliation-context.use-case';
@@ -18,32 +17,22 @@ const details = (
     ...over,
   }) as unknown as BudgetWithDetails;
 
-function build(
-  months: Record<string, BudgetWithDetails> = {},
-  lastCompletedAt: string | null = null,
-) {
-  const repo = {
-    get: jest.fn().mockResolvedValue({ lastCompletedAt }),
-  } as unknown as ReconciliationStateRepositoryPort;
+function build(months: Record<string, BudgetWithDetails> = {}) {
   const budgets = {
     readBudget: jest.fn(async (id: string) => months[id] ?? null),
   };
   return {
-    repo,
     budgets,
     useCase: new GetReconciliationContextUseCase(
-      repo,
       budgets as unknown as BudgetMonthReadPort,
     ),
   };
 }
 
 describe('GetReconciliationContextUseCase', () => {
-  it('should return the completion with every deprecated key at its empty value', async () => {
-    const { useCase } = build(
-      { b1: details('b1', null) },
-      '2026-11-01T10:00:00.000Z',
-    );
+  // iOS 1.14.2 asks « were these there before Pulpe? » when nothing is completed.
+  it('should always report a completed comparison, with every deprecated key at its empty value', async () => {
+    const { useCase } = build({ b1: details('b1', null) });
 
     expect(await useCase.execute('b1')).toEqual({
       startingAmount: 0,
@@ -66,19 +55,12 @@ describe('GetReconciliationContextUseCase', () => {
     expect(budgets.readBudget).toHaveBeenCalledTimes(1);
   });
 
-  it('should report no completed comparison without a completion time', async () => {
-    const { useCase } = build({ b1: details('b1', null) });
-
-    expect((await useCase.execute('b1')).hasCompletedComparison).toBe(false);
-  });
-
   it('should refuse a budget that is not the person’s and read nothing else', async () => {
-    const { repo, budgets, useCase } = build();
+    const { budgets, useCase } = build();
 
     await expect(useCase.execute('other')).rejects.toBeInstanceOf(
       BusinessException,
     );
-    expect(repo.get).not.toHaveBeenCalled();
     expect(budgets.readBudget).toHaveBeenCalledTimes(1);
   });
 });

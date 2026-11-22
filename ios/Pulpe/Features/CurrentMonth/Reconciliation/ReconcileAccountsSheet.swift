@@ -122,13 +122,13 @@ struct ReconcileAccountsSheet: View {
                                 .accessibilityAddTraits(.isHeader)
                         }
                         ToolbarItem(placement: .cancellationAction) {
-                            leadingButton.disabled(flow.isWriting || flow.isChecking)
+                            leadingButton.disabled(flow.isSubmitting || flow.isChecking)
                         }
                         ToolbarItem(placement: .topBarTrailing) {
                             Button { guideSource = .help } label: {
                                 Image(systemName: "questionmark.circle")
                             }
-                            .disabled(flow.isWriting || flow.isChecking)
+                            .disabled(flow.isSubmitting || flow.isChecking)
                             .accessibilityLabel(AppLocale.string("Revoir le guide"))
                             .accessibilityIdentifier("reconcileGuideHelp")
                         }
@@ -138,7 +138,9 @@ struct ReconcileAccountsSheet: View {
         .standardSheetPresentation()
         // Nothing leaves the sheet while a write or a check is in flight, nor by a swipe once a balance is
         // typed: a swipe meant to lower the keyboard would throw them away. The close button still leaves.
-        .interactiveDismissDisabled(flow.isWriting || flow.isChecking || flow.hasTypedBalance || guideSource == .help)
+        .interactiveDismissDisabled(
+            flow.isSubmitting || flow.isChecking || flow.hasTypedBalance || guideSource == .help
+        )
         .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, shouldClose in
             if shouldClose { dismiss() }
         }

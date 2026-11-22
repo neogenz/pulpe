@@ -193,7 +193,12 @@ describe('Reconciliation E2E (local Supabase)', () => {
     expect(budgetError).toBeNull();
 
     try {
-      await put({ startingAmount: 3100.126 }).expect(200);
+      const ignored = await put({ startingAmount: 3100.126 }).expect(200);
+      // Completed already: iOS 1.14.2 asks nothing more about before Pulpe.
+      expect(ignored.body.data).toEqual({
+        startingAmount: 0,
+        hasCompletedComparison: true,
+      });
 
       const { data: row } = await adminClient
         .from('user_reconciliation')

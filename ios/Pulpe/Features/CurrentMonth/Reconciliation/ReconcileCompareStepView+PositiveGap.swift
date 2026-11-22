@@ -24,7 +24,7 @@ extension ReconcileCompareStepView {
                 .foregroundStyle(Color.textPrimary)
             Button(AppLocale.string("Ajouter ce que je dois")) { flow.addOwedRowFromComparison() }
                 .secondaryButtonStyle(size: .small)
-                .disabled(flow.isWriting || flow.isChecking)
+                .disabled(flow.isSubmitting || flow.isChecking)
                 .accessibilityIdentifier("reconcileCardOwedButton")
         }
         .accessibilityIdentifier("reconcileCardQuestion")

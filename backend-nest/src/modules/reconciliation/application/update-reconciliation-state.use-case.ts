@@ -30,7 +30,7 @@ export class UpdateReconciliationStateUseCase {
       patch.lastCompletedAt = new Date().toISOString();
     }
 
-    const state = await this.repo.upsert(patch);
+    await this.repo.upsert(patch);
 
     this.logger.info(
       {
@@ -40,9 +40,7 @@ export class UpdateReconciliationStateUseCase {
       },
       'Reconciliation state updated',
     );
-    return {
-      startingAmount: 0,
-      hasCompletedComparison: state.lastCompletedAt !== null,
-    };
+    // Always completed, like the GET: iOS 1.14.2 asks nothing more then.
+    return { startingAmount: 0, hasCompletedComparison: true };
   }
 }

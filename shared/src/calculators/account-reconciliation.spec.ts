@@ -8,7 +8,6 @@ import {
   matchedBreakdown,
   parseAccountAmount,
   partlySpentBudgetLines,
-  pointingEffects,
   rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
@@ -242,46 +241,6 @@ describe('rankedPointingCandidates over the movements of the month', () => {
       'b',
       'c',
     ]);
-  });
-});
-
-describe('pointingEffects', () => {
-  it('gives the effect of pointing each target, in order', () => {
-    const lines = [
-      {
-        id: 'l1',
-        kind: 'expense' as const,
-        amount: 100,
-        checkedAt: null,
-        recurrence: 'fixed' as const,
-      },
-    ];
-    const transactions = [
-      {
-        id: 't1',
-        kind: 'expense' as const,
-        amount: 30,
-        budgetLineId: 'l1',
-        checkedAt: null,
-      },
-      {
-        id: 't2',
-        kind: 'income' as const,
-        amount: 50,
-        budgetLineId: null,
-        checkedAt: null,
-      },
-    ];
-    const targets = [
-      { kind: 'transaction' as const, id: 't2' },
-      { kind: 'budgetLine' as const, id: 'l1' },
-      { kind: 'transaction' as const, id: 't1' },
-    ];
-
-    expect(pointingEffects(lines, transactions, targets)).toEqual([
-      50, -100, -30,
-    ]);
-    expect(pointingEffects(lines, transactions, [])).toEqual([]);
   });
 });
 

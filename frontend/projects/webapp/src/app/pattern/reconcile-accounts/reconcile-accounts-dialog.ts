@@ -255,15 +255,12 @@ export class ReconcileAccountsDialog {
   protected readonly isBusy = computed(
     () => this.isRecording() || this.checkingId() !== null,
   );
-  #isBalancesSaved = false;
   // A comparison was completed in this dialog: its balances reach « Mon patrimoine »
-  // once, when the dialog ends, with the rows as they are then.
+  // once, as it ends, with the rows as they are then.
   #isDone = false;
   readonly #isHeadingToFocus = signal(false);
 
   constructor() {
-    // The browser's back closes the dialog without close(): the balances still go.
-    this.#destroyRef.onDestroy(() => this.#saveBalancesOnce());
     merge(
       this.#dialogRef.backdropClick(),
       this.#dialogRef
@@ -502,16 +499,9 @@ export class ReconcileAccountsDialog {
       ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED,
       { adjustment_kind: kind },
     );
-    this.#saveBalancesOnce();
-    this.#dialogRef.close();
-  }
-
-  // One save per dialog: two would race, and the second plan would read links
-  // the first one already changed.
-  #saveBalancesOnce(): void {
-    if (!this.#isDone || this.#isBalancesSaved) return;
-    this.#isBalancesSaved = true;
+    // Once, behind #isDone: a second plan would read links the first one already changed.
     void this.#saveBalances();
+    this.#dialogRef.close();
   }
 
   // The reconciliation is done by the time this runs, so a failure changes
@@ -538,7 +528,6 @@ export class ReconcileAccountsDialog {
 
   protected close(): void {
     if (this.isRecording()) return;
-    this.#saveBalancesOnce();
     this.#dialogRef.close();
   }
 }

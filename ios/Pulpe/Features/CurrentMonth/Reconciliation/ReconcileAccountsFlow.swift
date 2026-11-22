@@ -12,10 +12,9 @@ final class ReconcileAccountsFlow {
     /// « Écart avec mes comptes », in the interface language: the name of the one entry I can note.
     private let entryName: String
 
-    /// The create call is in flight: the sheet blocks dismiss, back and a second tap.
+    /// The create call is in flight: nothing ends the comparison, goes back or leaves the sheet
+    /// before it lands, and a second tap does nothing.
     private(set) var isSubmitting = false
-    /// A write is out: nothing ends the comparison or leaves the sheet before it lands.
-    var isWriting: Bool { isSubmitting }
     /// The flow reached its end once. Nothing is written or tracked after it, even if the
     /// sheet still shows for a frame while it dismisses.
     private(set) var isCompleted = false
@@ -139,7 +138,7 @@ final class ReconcileAccountsFlow {
     /// « Ajouter ce que je dois » on step 2: back to the balances with a new « Je dois » row whose
     /// name step 1 focuses. Once: a second tap finds step 1 and adds nothing.
     func addOwedRowFromComparison() {
-        guard step == .comparison, !isWriting, !isChecking else { return }
+        guard step == .comparison, !isSubmitting, !isChecking else { return }
         rowToFocus = addFreeAccount(isOwed: true)
         step = .accounts
     }
@@ -242,7 +241,7 @@ final class ReconcileAccountsFlow {
     /// The tap: the circle fills before the request leaves, so from here nothing may end the
     /// comparison. `false` while another check, a write or the completion is out.
     func beginCheck() -> Bool {
-        guard !isChecking, !isWriting, !isCompleted else { return false }
+        guard !isChecking, !isSubmitting, !isCompleted else { return false }
         isChecking = true
         return true
     }
@@ -298,7 +297,7 @@ final class ReconcileAccountsFlow {
             let transaction = try await createTransaction(payload)
             isCompleted = true
             onAdjustmentCreated(transaction)
-            markCompleted(payload.kind == .income ? .income : .expense)
+            onCompleted(payload.kind == .income ? .income : .expense)
             return .written
         } catch {
             return .failed
@@ -307,26 +306,21 @@ final class ReconcileAccountsFlow {
 
     /// A write or a check already out ends nothing a second time.
     func canFinish(of loadedBudgetId: String) -> Bool {
-        loadedBudgetId == budgetId && !isWriting && !isChecking && !isCompleted
+        loadedBudgetId == budgetId && !isSubmitting && !isChecking && !isCompleted
     }
 
     /// « Terminer » and « Laisser comme ça »: nothing written, one completion.
     func finishWithoutEntry(of loadedBudgetId: String) -> Bool {
         guard canFinish(of: loadedBudgetId) else { return false }
         isCompleted = true
-        markCompleted(.upToDate)
+        onCompleted(.upToDate)
         return true
-    }
-
-    /// Once: `isCompleted`, set just before, keeps a second exit from tracking again.
-    private func markCompleted(_ completion: AccountReconciliation.Completion) {
-        onCompleted(completion)
     }
 
     /// Another loaded month leaves the draft nothing to write against, so the sheet closes —
     /// once no write is in flight: one already out keeps its month and stays the only request.
     func shouldClose(loadedBudgetId: String) -> Bool {
-        loadedBudgetId != budgetId && !isWriting
+        loadedBudgetId != budgetId && !isSubmitting
     }
 
     private func adjustmentPayload(realizedBalance: Decimal) -> TransactionCreate? {
