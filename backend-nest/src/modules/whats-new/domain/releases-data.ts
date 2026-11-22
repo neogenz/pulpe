@@ -54,6 +54,224 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.66.0',
+    iosVersion: '1.14.2',
+    date: '2026-11-22',
+    platforms: ['ios'],
+    changes: {
+      features: [
+        {
+          title: '« Comparer avec mes comptes » refait',
+          description:
+            'Un guide en trois écrans explique la comparaison, puis tu indiques pour chaque compte ce que tu as et ce que tu dois.',
+        },
+        {
+          title: 'Écart expliqué',
+          description:
+            'Quand tes comptes et Pulpe ne tombent pas juste, Pulpe te propose les mouvements qui l’expliquent, même ceux du mois dernier.',
+        },
+      ],
+      fixes: [
+        {
+          title: '« Le calcul » plus clair',
+          description:
+            'L’épargne apparaît par son nom, et le report indique le mois d’où il vient.',
+        },
+        {
+          title: 'Phrase de l’Accueil',
+          description:
+            'Elle se base maintenant sur ce qu’il te reste à dépenser.',
+        },
+      ],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: '“Compare with my accounts” redesigned',
+            description:
+              'A three-screen guide explains the comparison, then you enter what you have and what you owe on each account.',
+          },
+          {
+            title: 'Gap explained',
+            description:
+              'When your accounts and Pulpe don’t match, Pulpe suggests the movements that explain it, including last month’s.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Clearer “The calculation”',
+            description:
+              'Savings now appear by name, and the carry-over shows the month it comes from.',
+          },
+          {
+            title: 'Home sentence',
+            description: 'It is now based on what you have left to spend.',
+          },
+        ],
+      },
+      de: {
+        features: [
+          {
+            title: '«Mit meinen Konten vergleichen» neu gestaltet',
+            description:
+              'Eine Anleitung in drei Bildschirmen erklärt den Vergleich, dann gibst du für jedes Konto an, was du hast und was du schuldest.',
+          },
+          {
+            title: 'Differenz erklärt',
+            description:
+              'Stimmen deine Konten und Pulpe nicht überein, schlägt Pulpe die Bewegungen vor, die das erklären, auch die vom Vormonat.',
+          },
+        ],
+        fixes: [
+          {
+            title: 'Klarere «Rechnung»',
+            description:
+              'Das Sparen erscheint mit seinem Namen, und der Übertrag zeigt den Monat, aus dem er stammt.',
+          },
+          {
+            title: 'Satz auf der Startseite',
+            description:
+              'Er basiert jetzt auf dem, was dir zum Ausgeben bleibt.',
+          },
+        ],
+      },
+      it: {
+        features: [
+          {
+            title: '«Confronta con i miei conti» rifatto',
+            description:
+              'Una guida in tre schermate spiega il confronto, poi indichi per ogni conto quanto hai e quanto devi.',
+          },
+          {
+            title: 'Differenza spiegata',
+            description:
+              'Quando i tuoi conti e Pulpe non coincidono, Pulpe ti propone i movimenti che la spiegano, anche quelli del mese scorso.',
+          },
+        ],
+        fixes: [
+          {
+            title: '«Il calcolo» più chiaro',
+            description:
+              'Il risparmio compare con il suo nome e il riporto indica il mese da cui proviene.',
+          },
+          {
+            title: 'Frase della Home',
+            description: 'Ora si basa su quanto ti resta da spendere.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    version: '0.66.0',
+    date: '2026-11-22',
+    platforms: ['android'],
+    changes: {
+      features: [
+        {
+          title: '« Comparer avec mes comptes » refait',
+          description:
+            'Un guide en trois écrans explique la comparaison, puis tu indiques pour chaque compte ce que tu as et ce que tu dois.',
+        },
+        {
+          title: 'Écart expliqué',
+          description:
+            'Quand tes comptes et Pulpe ne tombent pas juste, Pulpe te propose les mouvements qui l’expliquent, même ceux du mois dernier.',
+        },
+        {
+          title: '« Le calcul » depuis l’Accueil',
+          description:
+            'Touche le montant de l’Accueil pour voir comment Pulpe l’obtient.',
+        },
+        {
+          title: 'Recherche de prévision',
+          description:
+            'En notant une dépense, tape quelques lettres pour retrouver la bonne prévision.',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+    translations: {
+      en: {
+        features: [
+          {
+            title: '“Compare with my accounts” redesigned',
+            description:
+              'A three-screen guide explains the comparison, then you enter what you have and what you owe on each account.',
+          },
+          {
+            title: 'Gap explained',
+            description:
+              'When your accounts and Pulpe don’t match, Pulpe suggests the movements that explain it, including last month’s.',
+          },
+          {
+            title: '“The calculation” from Home',
+            description: 'Tap the Home amount to see how Pulpe gets it.',
+          },
+          {
+            title: 'Forecast search',
+            description:
+              'When noting an expense, type a few letters to find the right forecast.',
+          },
+        ],
+        fixes: [],
+      },
+      de: {
+        features: [
+          {
+            title: '«Mit meinen Konten vergleichen» neu gestaltet',
+            description:
+              'Eine Anleitung in drei Bildschirmen erklärt den Vergleich, dann gibst du für jedes Konto an, was du hast und was du schuldest.',
+          },
+          {
+            title: 'Differenz erklärt',
+            description:
+              'Stimmen deine Konten und Pulpe nicht überein, schlägt Pulpe die Bewegungen vor, die das erklären, auch die vom Vormonat.',
+          },
+          {
+            title: '«Die Rechnung» von der Startseite',
+            description:
+              'Tippe auf den Betrag der Startseite, um zu sehen, wie Pulpe ihn berechnet.',
+          },
+          {
+            title: 'Planungssuche',
+            description:
+              'Beim Erfassen einer Ausgabe tippst du ein paar Buchstaben, um die richtige Planung zu finden.',
+          },
+        ],
+        fixes: [],
+      },
+      it: {
+        features: [
+          {
+            title: '«Confronta con i miei conti» rifatto',
+            description:
+              'Una guida in tre schermate spiega il confronto, poi indichi per ogni conto quanto hai e quanto devi.',
+          },
+          {
+            title: 'Differenza spiegata',
+            description:
+              'Quando i tuoi conti e Pulpe non coincidono, Pulpe ti propone i movimenti che la spiegano, anche quelli del mese scorso.',
+          },
+          {
+            title: '«Il calcolo» dalla Home',
+            description:
+              'Tocca l’importo della Home per vedere come Pulpe lo ottiene.',
+          },
+          {
+            title: 'Ricerca della previsione',
+            description:
+              'Quando registri una spesa, digita qualche lettera per trovare la previsione giusta.',
+          },
+        ],
+        fixes: [],
+      },
+    },
+  },
+  {
     version: '0.65.0',
     date: '2026-11-20',
     platforms: ['android'],

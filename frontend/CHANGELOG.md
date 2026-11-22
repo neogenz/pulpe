@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.66.0
+
+### Minor Changes
+
+- « Comparer avec mes comptes » refait sur le web, iOS et Android : guide en trois écrans, soldes J’ai / Je dois et mouvements proposés pour expliquer un écart.
+
+### Patch Changes
+
+- pulpe-shared@0.66.0
+
 ## 0.65.0
 
 ### Minor Changes
