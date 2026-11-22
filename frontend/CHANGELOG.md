@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.66.1
+
+### Patch Changes
+
+- « Comparer avec mes comptes » ne regarde plus que le « Solde pointé » du mois et ne pose plus la question « avant Pulpe » ; sur Android, une ligne à pointer montre un cercle vide.
+  - pulpe-shared@0.66.1
+
 ## 0.66.0
 
 ### Minor Changes
