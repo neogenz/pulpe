@@ -1,9 +1,5 @@
 import { fireEvent, render } from "@testing-library/react-native";
-import type {
-  BudgetLine,
-  ReconciliationContext,
-  Transaction,
-} from "pulpe-shared";
+import type { BudgetLine, Transaction } from "pulpe-shared";
 import { AccessibilityInfo, Text } from "react-native";
 
 import { buildComparison } from "../reconciliation";
@@ -59,23 +55,6 @@ const essence: Transaction = {
   createdAt: STAMP,
   updatedAt: STAMP,
 };
-const context: ReconciliationContext = {
-  startingAmount: 0,
-  hasCompletedComparison: true,
-  priorCorrection: 0,
-  priorItems: [
-    {
-      id: "t-pharmacie",
-      source: "transaction",
-      budgetId: "budget-0",
-      name: "Pharmacie",
-      amount: 40,
-      kind: "expense",
-      monthsAgo: 1,
-      effect: -40,
-    },
-  ],
-};
 // Type 950 against 1 050 checked in Pulpe (spec phase 15, happy path).
 const happyPath = {
   onAccountsCents: 95_000,
@@ -83,7 +62,6 @@ const happyPath = {
   available: 900,
   budgetLines: [assurance],
   transactions: [essence],
-  context,
   comparedBefore: null,
   realizedBefore: null,
   isDismissed: false,
@@ -92,13 +70,11 @@ const happyPath = {
 };
 
 function renderStep(
-  comparison: ReturnType<typeof buildComparison> | null,
+  comparison: ReturnType<typeof buildComparison>,
   overrides: Partial<Parameters<typeof ReconcileCompareStep>[0]> = {},
 ) {
   const props = {
     comparison,
-    isUnavailable: false,
-    onRetry: jest.fn(),
     currency: "CHF" as const,
     hasOwe: false,
     oweTotal: null,
@@ -108,7 +84,6 @@ function renderStep(
     onRemoveOwe: jest.fn(),
     onViewOthers: jest.fn(),
     onAddOwe: jest.fn(),
-    onEditStartingAmount: jest.fn(),
     ...overrides,
   };
   return { props, view: render(<ReconcileCompareStep {...props} />) };
@@ -127,14 +102,11 @@ it("lists the happy path's suggestions in order, each with where it comes from",
     "home.reconcile.compare.less:100.00 CHF",
   );
   const rows = view.getAllByTestId("reconcile-suggestion");
-  expect(rows).toHaveLength(3);
+  expect(rows).toHaveLength(2);
   expect(rows[0]).toHaveTextContent(
     /Assurance.*home\.reconcile\.compare\.plannedThisMonth.*100\.00/,
   );
   expect(rows[1]).toHaveTextContent(/Essence.*18 novembre.*60\.00/);
-  expect(rows[2]).toHaveTextContent(
-    /Pharmacie.*home\.reconcile\.compare\.lastMonth.*40\.00/,
-  );
   expect(view.queryByTestId("reconcile-found")).toBeNull();
 
   await fireEvent.press(rows[1]);
@@ -168,7 +140,7 @@ it("puts each amount under its words at a large font, and lets « Voir les autre
   ).not.toHaveStyle({ flexDirection: "row" });
   // The name wraps instead of « Épa… », its amount on a line of its own.
   expect(larger.getByText("Essence").props.numberOfLines).toBeUndefined();
-  // Assurance, Essence, Pharmacie: the amount stays in Essence's row.
+  // Assurance, Essence: the amount stays in Essence's row.
   expect(larger.getAllByTestId("reconcile-suggestion")[1]).toHaveTextContent(
     /Essence.*60\.00\sCHF/,
   );
@@ -198,7 +170,6 @@ it("strikes the old figure through and shows what was found after a partial chec
   expect(view.getByTestId("reconcile-found")).toHaveTextContent(
     "home.reconcile.compare.found:60.00 CHF",
   );
-  expect(view.getAllByTestId("reconcile-suggestion")).toHaveLength(1);
 });
 
 it("hands the focus to the next suggestion once a check settles", async () => {
@@ -228,7 +199,6 @@ it("masks the amounts alone, the words and the screen reader's « instead of » 
     buildComparison({
       ...happyPath,
       realizedBalance: 990,
-      context: { ...context, priorCorrection: 20 },
       comparedBefore: 1050,
       realizedBefore: 1050,
     }),
@@ -241,9 +211,6 @@ it("masks the amounts alone, the words and the screen reader's « instead of » 
     accessibilityLabel:
       "home.reconcile.compare.inPulpe, •••, home.reconcile.compare.instead:•••",
   });
-  expect(view.getByTestId("reconcile-prior-correction")).toHaveTextContent(
-    "home.reconcile.compare.priorCorrectionPart:•••",
-  );
   expect(view.queryByText(/\d\.\d\d/)).toBeNull();
 });
 
@@ -261,18 +228,6 @@ it("draws the note's arrow in the icon font, which Roboto lacks", async () => {
   expect(arrowed("Pas de flèche", 12)).toBe("Pas de flèche");
 });
 
-it("shows the error with [Réessayer] when the context cannot be read", async () => {
-  const { props, view: pending } = renderStep(null, { isUnavailable: true });
-  const view = await pending;
-
-  expect(view.getByTestId("reconcile-context-error")).toHaveTextContent(
-    /home\.reconcile\.compare\.loadError/,
-  );
-  await fireEvent.press(view.getByText("common.retry"));
-  expect(props.onRetry).toHaveBeenCalledTimes(1);
-  expect(view.queryByTestId("reconcile-figures")).toBeNull();
-});
-
 describe("more on the accounts", () => {
   // 6 000 more on the accounts than the 1 050 checked, nothing to check.
   const more = {
@@ -280,7 +235,6 @@ describe("more on the accounts", () => {
     onAccountsCents: 705_000,
     budgetLines: [],
     transactions: [],
-    context: { ...context, priorItems: [] },
   };
 
   it("asks about the salary only with a pay day five days away or less", async () => {
@@ -318,89 +272,34 @@ describe("more on the accounts", () => {
     expect(withOwe.getByTestId("reconcile-large-gap")).toBeTruthy();
   });
 
-  it("shows the money from before Pulpe apart from the figure, and opens it", async () => {
-    const { props, view: pending } = renderStep(
-      buildComparison({
-        ...more,
-        onAccountsCents: 400_000,
-        realizedBalance: 900,
-        context: { ...more.context, startingAmount: 3100 },
-      }),
-    );
-    const view = await pending;
-
-    expect(view.getByText("home.reconcile.compare.matched")).toBeTruthy();
-    await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
-    expect(props.onEditStartingAmount).toHaveBeenCalledTimes(1);
-
-    const partly = await renderStep(
-      buildComparison({
-        ...more,
-        onAccountsCents: 410_000,
-        realizedBalance: 900,
-        context: { ...more.context, startingAmount: 3100 },
-      }),
-    ).view;
-    expect(partly.getByTestId("reconcile-in-pulpe")).toHaveTextContent(
-      /900\.00/,
-    );
-    expect(partly.getByTestId("reconcile-starting-amount")).toHaveTextContent(
-      /home\.reconcile\.compare\.startingAmountPart:\+3’100\.00/,
-    );
-    expect(partly.queryByTestId("reconcile-prior-correction")).toBeNull();
-  });
-
   it("starts the matched card from the accounts figure, so the sum adds up", async () => {
     const view = await renderStep(
       buildComparison({
         ...more,
-        onAccountsCents: 412_000,
+        onAccountsCents: 102_000,
         realizedBalance: 1020,
         available: 700,
-        context: { ...more.context, startingAmount: 3100 },
       }),
     ).view;
 
     expect(view.getByTestId("reconcile-matched")).toHaveTextContent(
-      /^home\.reconcile\.compare\.onAccounts4’120\.00 CHF.*stillPlanned−320\.00 CHF.*beforePulpe−3’100\.00 CHF.*toSpend700\.00 CHF$/,
-    );
-  });
-
-  it("shows the Accueil's figure, then what earlier months left unchecked and the money from before Pulpe", async () => {
-    // 900 checked this month, an Assurance of 120 left unchecked last month.
-    const view = await renderStep(
-      buildComparison({
-        ...more,
-        realizedBalance: 900,
-        context: {
-          ...more.context,
-          priorCorrection: 120,
-          startingAmount: 3100,
-        },
-      }),
-    ).view;
-
-    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(
-      "home.reconcile.compare.inPulpe900.00 CHF",
-    );
-    expect(view.getByTestId("reconcile-figures")).toHaveTextContent(
-      /priorCorrectionPart:\+120\.00 CHF.*startingAmountPart:\+3’100\.00 CHF/,
+      /^home\.reconcile\.compare\.onAccounts1’020\.00 CHF.*stillPlanned−320\.00 CHF.*toSpend700\.00 CHF$/,
     );
   });
 });
 
 describe("a saving among the suggestions", () => {
-  // Last month's, as the server sends it: a prévision whose money is a saving.
-  const vacances = {
-    ...context.priorItems[0],
+  // A prévision whose money is a saving.
+  const vacances: BudgetLine = {
+    ...assurance,
     id: "l-vacances",
-    source: "budgetLine" as const,
     name: "Vacances",
-    kind: "saving" as const,
+    amount: 40,
+    kind: "saving",
   };
   const withSaving = buildComparison({
     ...happyPath,
-    context: { ...context, priorItems: [vacances] },
+    budgetLines: [assurance, vacances],
   });
 
   function renderActions(comparison: ReturnType<typeof buildComparison>) {
@@ -410,11 +309,9 @@ describe("a saving among the suggestions", () => {
         currency="CHF"
         isBusy={false}
         isRecording={false}
-        isSavingState={false}
         onLeave={jest.fn()}
         onDismiss={jest.fn()}
         onRecord={jest.fn()}
-        onKeep={jest.fn()}
         onShowReasons={jest.fn()}
       />,
     );
@@ -457,7 +354,6 @@ it("asks about less on the accounts with a true minus, as on web and iOS", async
       onAccountsCents: 50_000,
       budgetLines: [],
       transactions: [],
-      context: { ...context, priorItems: [] },
     }),
   ).view;
 

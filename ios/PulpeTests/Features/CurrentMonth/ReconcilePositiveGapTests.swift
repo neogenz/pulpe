@@ -3,8 +3,7 @@ import Foundation
 import Testing
 
 /// Step 2 when my accounts hold more than Pulpe (spec.md §4.3-4.5): the salary that may be early, the
-/// « Je dois » row to add, and the money from before Pulpe, one write per answer. The context read and
-/// the state write are faked at their seams, on one server whose context follows what it stored.
+/// « Je dois » row to add, and the other reasons. The entry is faked at its seam.
 @MainActor
 struct ReconcilePositiveGapTests {
     // MARK: - Salary early
@@ -41,13 +40,6 @@ struct ReconcilePositiveGapTests {
         #expect(payDay.nextPayDay == 31)
     }
 
-    @Test("a first comparison asks about money from before Pulpe, even close to pay day")
-    func firstComparison_winsOverSalaryEarly() async throws {
-        let server = StateServer(TestDataFactory.createReconciliationContext(hasCompletedComparison: false))
-        let first = try await comparison(on: day(2026, 11, 23), payDay: 25, server: server)
-        #expect(first.screen == .firstComparison)
-    }
-
     // MARK: - « Je dois »
 
     @Test("« Ajouter ce que je dois » goes back to step 1 once, with a « Je dois » row to name and the amounts kept")
@@ -65,115 +57,6 @@ struct ReconcilePositiveGapTests {
         #expect(flow.hasOwedRow)
         #expect(flow.takeRowToFocus() == flow.accounts.last?.id)
         #expect(flow.takeRowToFocus() == nil)
-    }
-
-    // MARK: - « Oui, c'était déjà là »
-
-    @Test("« Oui » is one write that stores the gap and completes; Terminer then writes and tracks nothing")
-    func keepGap_oneWrite_oneEvent() async throws {
-        let server = StateServer(TestDataFactory.createReconciliationContext(hasCompletedComparison: false))
-        let flow = await makeComparingFlow(server: server)
-
-        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 1050, of: "budget-current") == .written)
-
-        #expect(server.updates == [ReconciliationStateUpdate(startingAmount: 6000, completed: true)])
-        #expect(server.events == [.upToDate])
-        #expect(flow.context?.startingAmount == 6000)
-        let matched = try #require(flow.comparison(realizedBalance: 1050, lines: [], transactions: []))
-        #expect(matched.screen == .matched)
-        #expect(flow.isMarkedComplete)
-        #expect(!flow.isCompleted)
-
-        #expect(flow.finishWithoutEntry(of: "budget-current"))
-        await Task.yield()
-        #expect(server.updates.count == 1)
-        #expect(server.events == [.upToDate])
-    }
-
-    @Test("a refused « Oui » keeps the screen, tracks nothing, and reads the context again")
-    func keepGap_refused_tracksNothing() async throws {
-        let server = StateServer(TestDataFactory.createReconciliationContext(hasCompletedComparison: false))
-        server.refusesWrites = true
-        let flow = await makeComparingFlow(server: server)
-        let readsBefore = server.reads
-
-        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 1050, of: "budget-current") == .failed)
-
-        #expect(server.events.isEmpty)
-        #expect(!flow.isMarkedComplete)
-        #expect(server.reads == readsBefore + 1)
-        #expect(flow.comparison(realizedBalance: 1050, lines: [], transactions: [])?.screen == .firstComparison)
-    }
-
-    @Test("a new « Comparer » is a new comparison: leaving it tracks and writes the completion again")
-    func compare_resetsTheCompletion() async {
-        let server = StateServer(TestDataFactory.createReconciliationContext(hasCompletedComparison: false))
-        let flow = await makeComparingFlow(server: server)
-        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 1050, of: "budget-current") == .written)
-
-        flow.editAccounts()
-        flow.compare()
-        #expect(!flow.isMarkedComplete)
-        await flow.loadContext()
-        #expect(flow.finishWithoutEntry(of: "budget-current"))
-
-        #expect(server.events == [.upToDate, .upToDate])
-        await waitForCondition("the completion was never sent") { server.updates.count == 2 }
-        #expect(server.updates.last == ReconciliationStateUpdate(completed: true))
-    }
-
-    // MARK: - Money from before Pulpe
-
-    @Test("saving or resetting the starting amount is one write each, none when unchanged, and no event")
-    func startingAmount_oneWritePerChange() async throws {
-        let server = StateServer(TestDataFactory.createReconciliationContext(startingAmount: 3100))
-        let flow = await makeComparingFlow(server: server)
-        let line = TestDataFactory.createBudgetLine(id: "assurance", name: "Assurance", amount: 100)
-        let assurance = ReconcileAccountsFlow.Suggestion(
-            target: .budgetLine(line), name: "Assurance", amount: 100, origin: .plannedThisMonth, isExact: false
-        )
-        #expect(flow.beginCheck())
-        #expect(await flow.check(assurance, realizedBalance: 1050) { true })
-        #expect(flow.beforeChecks != nil)
-
-        #expect(await flow.saveStartingAmount(3100) == .ignored)
-        #expect(server.updates.isEmpty)
-
-        #expect(await flow.saveStartingAmount(Decimal(string: "2999.50") ?? 0) == .written)
-        #expect(flow.context?.startingAmount == Decimal(string: "2999.50"))
-        #expect(flow.beforeChecks == .init(compared: nil, realized: 1050))
-
-        #expect(await flow.saveStartingAmount(0) == .written)
-        #expect(flow.context?.startingAmount == 0)
-        #expect(server.updates == [
-            ReconciliationStateUpdate(startingAmount: Decimal(string: "2999.50")),
-            ReconciliationStateUpdate(startingAmount: 0),
-        ])
-        #expect(server.events.isEmpty)
-    }
-
-    @Test("while the starting amount is out nothing ends or leaves; refused, the context is read again")
-    func startingAmount_pending_blocksTheExits() async {
-        let (released, release) = AsyncStream<Void>.makeStream()
-        let server = StateServer(TestDataFactory.createReconciliationContext(startingAmount: 3100))
-        server.refusesWrites = true
-        server.held = released
-        let flow = await makeComparingFlow(server: server)
-        let readsBefore = server.reads
-
-        let write = Task { await flow.saveStartingAmount(0) }
-        await waitForCondition("the write never left") { !server.updates.isEmpty }
-        #expect(flow.isWriting)
-        #expect(!flow.canFinish(of: "budget-current"))
-        #expect(!flow.beginCheck())
-        #expect(!flow.shouldClose(loadedBudgetId: "budget-other"))
-        #expect(await flow.saveStartingAmount(1) == .ignored)
-
-        release.yield()
-        #expect(await write.value == .failed)
-        #expect(server.reads == readsBefore + 1)
-        #expect(!flow.isWriting)
-        #expect(server.updates.count == 1)
     }
 
     // MARK: - Other reasons
@@ -231,15 +114,12 @@ struct ReconcilePositiveGapTests {
             budgetId: "budget-current",
             entryName: "Écart avec mes comptes",
             createTransaction: { _ in try await server.create() },
-            fetchContext: { _ in try await server.read() },
-            updateState: { try await server.write($0) },
             onAdjustmentCreated: { _ in },
-            onCompleted: { server.events.append($0) },
+            onCompleted: { _ in },
             now: { today }
         )
         flow.accounts[0].amountText = "7050"
         flow.compare()
-        await flow.loadContext()
         return flow
     }
 
@@ -248,45 +128,14 @@ struct ReconcilePositiveGapTests {
     }
 }
 
-/// The reconciliation endpoints, faked: the context read and the state write share what the server holds,
-/// so a read after a write sees it. `held` keeps a write open until the test releases it.
+/// The create endpoint, faked: an entry asked for, then refused.
 @MainActor
 private final class StateServer {
-    private var context: ReconciliationContext
-    private(set) var updates: [ReconciliationStateUpdate] = []
-    private(set) var reads = 0
-    var events: [AccountReconciliation.Completion] = []
-    var refusesWrites = false
-    var held: AsyncStream<Void>?
-
-    init(_ context: ReconciliationContext = TestDataFactory.createReconciliationContext()) {
-        self.context = context
-    }
-
     /// Counts the entries asked for, then refuses them: what matters is whether one was asked.
     private(set) var creates = 0
 
     func create() throws -> Transaction {
         creates += 1
         throw URLError(.notConnectedToInternet)
-    }
-
-    func read() throws -> ReconciliationContext {
-        reads += 1
-        return context
-    }
-
-    func write(_ update: ReconciliationStateUpdate) async throws -> ReconciliationState {
-        updates.append(update)
-        if let held { for await _ in held { break } }
-        if refusesWrites { throw URLError(.notConnectedToInternet) }
-        context = ReconciliationContext(
-            startingAmount: update.startingAmount ?? context.startingAmount,
-            hasCompletedComparison: update.completed ?? context.hasCompletedComparison,
-            priorCorrection: context.priorCorrection, priorItems: context.priorItems
-        )
-        return ReconciliationState(
-            startingAmount: context.startingAmount, hasCompletedComparison: context.hasCompletedComparison
-        )
     }
 }

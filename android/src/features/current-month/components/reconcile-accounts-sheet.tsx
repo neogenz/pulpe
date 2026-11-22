@@ -2,7 +2,6 @@ import {
   ANALYTICS_EVENTS,
   type BudgetLine,
   type ComparisonScreen,
-  moneyDifference,
   partlySpentBudgetLines,
   type SupportedCurrency,
   type Transaction,
@@ -52,12 +51,6 @@ import {
   buildComparison,
   type SuggestionRow,
 } from "../reconciliation";
-import { completeReconciliation } from "../reconciliation-api";
-import {
-  forgetReconciliationContext,
-  useReconciliationContext,
-  useWriteReconciliationState,
-} from "../reconciliation-queries";
 import {
   markReconcileGuideSeen,
   useHasSeenReconcileGuide,
@@ -77,7 +70,6 @@ import {
   type ReasonsSnapshot,
   ReconcileReasonsSheet,
 } from "./reconcile-reasons-sheet";
-import { ReconcileStartingAmountSheet } from "./reconcile-starting-amount-sheet";
 
 type Step = 1 | 2;
 
@@ -135,17 +127,13 @@ export function ReconcileAccountsSheet({
   const create = useCreateTransaction("reconciliation");
   const follow = useFollowAccounts();
   const toggle = useToggleCheck(budgetId);
-  // A previous month's item lives in another budget: no row here to flip before the server.
-  const togglePrior = useToggleCheck(null);
   const checksSettled = useChecksSettled();
-  const writeState = useWriteReconciliationState(budgetId);
   const payDayOfMonth = useUserSettings().data?.payDayOfMonth ?? null;
-  const [isStartingOpen, setStartingOpen] = useState(false);
   // What the reasons sheet shows, as step 2 was when it opened it, and from which screen.
   const [reasons, setReasons] = useState<
     (ReasonsSnapshot & { screen: ComparisonScreen }) | null
   >(null);
-  // One check at a time, from the tap to the context read after it: the gap
+  // One check at a time, from the tap to the month read after it: the gap
   // moves with each one, so nothing is written or ended meanwhile.
   const [checkingId, setCheckingId] = useState<string | null>(null);
   const [hasPointFailed, setPointFailed] = useState(false);
@@ -159,7 +147,6 @@ export function ReconcileAccountsSheet({
   // when « Mon patrimoine » is off: plain lines, nothing written there.
   const [accounts, setAccounts] = useState<typeof linked>(undefined);
   const [step, setStep] = useState<Step>(1);
-  const context = useReconciliationContext(budgetId, isVisible && step === 2);
   const [before, setBefore] = useState<FiguresBeforeChecks | null>(null);
   // « Aucune … ne correspond » was tapped in this comparison.
   const [isDismissed, setDismissed] = useState(false);
@@ -193,7 +180,7 @@ export function ReconcileAccountsSheet({
   // to "12.50". It never counts in the total either way.
   const [leftRowIds, setLeftRowIds] = useState<ReadonlySet<number>>(new Set());
   // `isPending` arrives with the next render; a second tap before it must not
-  // write a second adjustment, nor a second starting amount.
+  // write a second adjustment.
   const isSubmitting = useRef(false);
   // One id per adjustment, replayed on a retry: a request whose answer was lost
   // may have committed, and `createOnce` reads it back instead of writing twice.
@@ -201,10 +188,6 @@ export function ReconcileAccountsSheet({
   // The comparison is over; only « Comparer » starts a new one, so a second
   // « Terminer » in the same render finds it over.
   const isCompleted = useRef(false);
-  // Its completion, sent once, maybe before it ends (« Oui, c'était déjà là »).
-  const isCompletionSent = useRef(false);
-  // A comparison of this sheet was completed: its balances are saved on close.
-  const hasCompleted = useRef(false);
 
   if (isVisible && accounts === undefined && linked !== undefined) {
     setAccounts(linked);
@@ -217,21 +200,10 @@ export function ReconcileAccountsSheet({
     setNextId(nextRowId(seeded));
     setRows(seeded);
   }
-  // A sheet rebuilt after the lock: the lock saved nothing, its real close does.
-  useEffect(() => {
-    if (isVisible) {
-      hasCompleted.current = reconcileDraft(budgetId)?.hasCompleted ?? false;
-    }
-  }, [isVisible, budgetId]);
 
   const summary = summarizeRows(rows);
-  // A refresh keeps the figures on screen; a failed one stops the comparison.
-  const contextData = context.isError ? undefined : context.data;
   const comparison =
-    step !== 2 ||
-    summary.totalCents === null ||
-    month === null ||
-    contextData === undefined
+    step !== 2 || summary.totalCents === null || month === null
       ? null
       : buildComparison({
           onAccountsCents: summary.totalCents,
@@ -239,7 +211,6 @@ export function ReconcileAccountsSheet({
           available: month.available,
           budgetLines: month.budgetLines,
           transactions: month.transactions,
-          context: contextData,
           comparedBefore: before?.compared ?? null,
           realizedBefore: before?.realized ?? null,
           isDismissed,
@@ -251,8 +222,7 @@ export function ReconcileAccountsSheet({
     summary.hasOwe && comparison !== null && comparison.gap < 0
       ? summary.oweCents / 100
       : null;
-  const isBusy =
-    create.isPending || writeState.isPending || checkingId !== null;
+  const isBusy = create.isPending || checkingId !== null;
 
   // The accounts I finished with, written to Mon patrimoine. A refusal only
   // says so: the reconciliation stays done.
@@ -262,15 +232,10 @@ export function ReconcileAccountsSheet({
     if (!isEmptyPlan(plan)) follow.mutate(plan);
   }
 
-  // Every way out ends here. Mon patrimoine gets the balances once per sheet, as
-  // the rows stand when it closes, and only after a completed comparison.
+  // Every way out ends here, so nothing typed outlives the sheet.
   function reset() {
-    if (hasCompleted.current) followFinishedAccounts();
-    hasCompleted.current = false;
     keepReconcileDraft(null);
-    setStartingOpen(false);
     setReasons(null);
-    writeState.reset();
     setGuideRequested(false);
     setStep(1);
     setAccounts(undefined);
@@ -313,11 +278,7 @@ export function ReconcileAccountsSheet({
   const keepUnderLock = useEffectEvent(() => {
     const isLocked = useVaultStore.getState().status === "locked";
     if (!isLocked || !isVisible || accounts === undefined) return;
-    keepReconcileDraft({
-      budgetId,
-      rows,
-      hasCompleted: hasCompleted.current,
-    });
+    keepReconcileDraft({ budgetId, rows });
   });
   useEffect(() => () => keepUnderLock(), []);
 
@@ -330,17 +291,15 @@ export function ReconcileAccountsSheet({
     setStep(1);
   }
 
-  // Each « Comparer » starts a comparison of its own, read fresh from the server.
+  // Each « Comparer » starts a comparison of its own.
   function next() {
     if (summary.totalCents === null || step === 2) return;
     // Names and sides stay for next time; « Retirer » forgets a row here.
     saveFreeAccounts(freeAccountsToRemember(rows));
-    forgetReconciliationContext(budgetId);
     setBefore(null);
     setDismissed(false);
     setReasons(null);
     isCompleted.current = false;
-    isCompletionSent.current = false;
     setStep(2);
   }
 
@@ -375,70 +334,19 @@ export function ReconcileAccountsSheet({
     );
   }
 
-  // Once per comparison: the event, and the server unless a state write told it.
-  function markCompleted(
-    adjustmentKind: "income" | "expense" | "none",
-    isServerTold: boolean,
-  ) {
-    if (isCompletionSent.current) return;
-    isCompletionSent.current = true;
-    hasCompleted.current = true;
-    captureEvent(ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED, {
-      adjustment_kind: adjustmentKind,
-    });
-    // A lost completion only asks the « first comparison » question once more.
-    if (!isServerTold) completeReconciliation().catch(() => undefined);
-  }
-
-  // Ends the comparison. `false` when it already was.
+  // Ends the comparison, counted once; Mon patrimoine gets the balances as the
+  // rows stand. `false` when it already was.
   function complete(adjustmentKind: "income" | "expense" | "none"): boolean {
     if (isCompleted.current) return false;
     isCompleted.current = true;
-    markCompleted(adjustmentKind, false);
+    followFinishedAccounts();
+    captureEvent(ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED, {
+      adjustment_kind: adjustmentKind,
+    });
     return true;
   }
 
-  // One write per answer; the figure moves without a check, so nothing found is measured against it.
-  function writeStartingState(
-    patch: { startingAmount: number; completed?: true },
-    onWritten?: () => void,
-  ) {
-    if (isBusy || isSubmitting.current) return;
-    isSubmitting.current = true;
-    writeState.mutate(patch, {
-      onSuccess: () => {
-        setBefore(forgetComparedBefore);
-        onWritten?.();
-      },
-      onSettled: () => {
-        isSubmitting.current = false;
-      },
-    });
-  }
-
-  // « Oui, c'était déjà là »: the gap becomes money from before Pulpe, and the
-  // comparison completes in the same write. Pulpe now matches.
-  function keepAsStartingAmount() {
-    if (comparison?.screen !== "firstComparison") return;
-    writeStartingState(
-      {
-        startingAmount: moneyDifference(
-          comparison.startingAmount,
-          -comparison.gap,
-        ),
-        completed: true,
-      },
-      () => markCompleted("none", true),
-    );
-  }
-
-  // Corrected or reset from its sheet, which only answers with a changed amount.
-  function saveStartingAmount(amount: number) {
-    setStartingOpen(false);
-    writeStartingState({ startingAmount: amount });
-  }
-
-  // « Voir les autres raisons » and « Non, autre chose ».
+  // « Voir les autres raisons ».
   function showReasons() {
     if (comparison === null || month === null || isBusy) return;
     const [partly] = partlySpentBudgetLines(
@@ -494,7 +402,7 @@ export function ReconcileAccountsSheet({
     }));
     try {
       // A refused check re-reads too: the rows come back as the server holds them.
-      await (row.monthsAgo === 0 ? toggle : togglePrior).mutateAsync({
+      await toggle.mutateAsync({
         source: row.source,
         sourceId: row.id,
       });
@@ -503,13 +411,8 @@ export function ReconcileAccountsSheet({
       hapticFailure();
       setPointFailed(true);
     } finally {
-      // The rows stay put until the month's re-read lands, which may wait behind
-      // another check. Only a previous month's item moves the context: it is read
-      // again, a refused check included, since that answer may be lost after it landed.
-      await Promise.all([
-        checksSettled(),
-        row.monthsAgo === 0 ? null : context.refetch(),
-      ]);
+      // The rows stay put until the month's re-read lands, which may wait behind another check.
+      await checksSettled();
       setCheckingId(null);
     }
   }
@@ -589,14 +492,6 @@ export function ReconcileAccountsSheet({
         {t("budgets.mutations.activity.error")}
       </Notice>
       <Notice
-        visible={writeState.isError}
-        onDismiss={() => writeState.reset()}
-        wrapperStyle={styles.aboveFooterButton}
-        testID="reconcile-state-error-notice"
-      >
-        {t("home.reconcile.stateFailed")}
-      </Notice>
-      <Notice
         visible={hasPointFailed}
         onDismiss={() => setPointFailed(false)}
         wrapperStyle={styles.aboveFooterButton}
@@ -619,11 +514,9 @@ export function ReconcileAccountsSheet({
             currency={currency}
             isBusy={isBusy}
             isRecording={create.isPending}
-            isSavingState={writeState.isPending}
             onLeave={leave}
             onDismiss={() => setDismissed(true)}
             onRecord={record}
-            onKeep={keepAsStartingAmount}
             onShowReasons={showReasons}
           />
         )
@@ -683,11 +576,9 @@ export function ReconcileAccountsSheet({
           />
         )}
 
-        {guide === null && step === 2 && (
+        {guide === null && comparison !== null && (
           <ReconcileCompareStep
             comparison={comparison}
-            isUnavailable={context.isError && !context.isFetching}
-            onRetry={() => void context.refetch()}
             currency={currency}
             hasOwe={summary.hasOwe}
             oweTotal={oweTotal}
@@ -697,27 +588,17 @@ export function ReconcileAccountsSheet({
             onRemoveOwe={removeOwe}
             onViewOthers={viewItemsToCheck}
             onAddOwe={addOwe}
-            onEditStartingAmount={() => setStartingOpen(true)}
           />
         )}
       </FormModal>
       {reasons !== null && (
         <ReconcileReasonsSheet
-          // Closes with the comparison: a write refused or a context lost takes it too.
+          // Closes with the comparison, when the month goes or the total is cleared.
           isVisible={isVisible && step === 2 && comparison !== null}
           reasons={reasons}
           currency={currency}
           onDismiss={() => setReasons(null)}
           onChoose={answerReasons}
-        />
-      )}
-      {comparison !== null && (
-        <ReconcileStartingAmountSheet
-          isVisible={isVisible && step === 2 && isStartingOpen}
-          amount={comparison.startingAmount}
-          currency={currency}
-          onDismiss={() => setStartingOpen(false)}
-          onSave={saveStartingAmount}
         />
       )}
       <ReconcileAddAccountSheet
@@ -753,7 +634,7 @@ interface FiguresBeforeChecks {
   realized: number;
 }
 
-// A new starting amount or total keeps the struck figure; what was found
+// A new total keeps the struck figure; what was found
 // waits for the next check (spec.md §4.2).
 function forgetComparedBefore(
   before: FiguresBeforeChecks | null,

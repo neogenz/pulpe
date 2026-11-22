@@ -1,7 +1,6 @@
 import {
   availableAfterNote,
   type BudgetLine,
-  comparedFigure,
   type ComparisonScreen,
   comparisonScreen,
   CURRENCY_METADATA,
@@ -15,7 +14,6 @@ import {
   periodFromIndex,
   periodIndex,
   rankedPointingCandidates,
-  type ReconciliationContext,
   type ReconciliationVerdict,
   type SupportedCurrency,
   type Transaction,
@@ -64,7 +62,7 @@ export function plain(value: number, currency: SupportedCurrency): string {
   }).format(value);
 }
 
-/** An item whose check moves the compared figure: of this month or one of the two before. */
+/** An unchecked item of this month whose check moves the compared figure. */
 export interface SuggestionRow {
   source: "transaction" | "budgetLine";
   id: string;
@@ -72,8 +70,7 @@ export interface SuggestionRow {
   amount: number;
   /** Its money kind, whatever the source: a saving asks for its own words (spec §4.2). */
   kind: TransactionKind;
-  monthsAgo: 0 | 1 | 2;
-  /** The movement's date, for a movement of this month. */
+  /** The movement's date, for a movement. */
   date: string | null;
   /** Checking it alone leaves no gap, and its amount is the gap itself (spec §4.2). */
   settles: boolean;
@@ -97,10 +94,6 @@ export interface Comparison {
   othersCount: number;
   note: { before: number; after: number };
   matched: MatchedBreakdown;
-  /** What the previous months left unchecked, part of `compared`; shown apart when not 0. */
-  priorCorrection: number;
-  /** Money from before Pulpe, part of `compared`; shown apart when not 0. */
-  startingAmount: number;
   /** The day of the month the next period starts: « Reviens comparer le 25 ». */
   nextPayDay: number;
 }
@@ -113,20 +106,16 @@ export function buildComparison(input: {
   available: number;
   budgetLines: BudgetLine[];
   transactions: Transaction[];
-  context: ReconciliationContext;
   comparedBefore: number | null;
   realizedBefore: number | null;
   isDismissed: boolean;
   payDayOfMonth: number | null;
   today: Date;
 }): Comparison {
-  const { budgetLines, transactions, context } = input;
+  const { budgetLines, transactions } = input;
   const onAccounts = input.onAccountsCents / 100;
-  const compared = comparedFigure(
-    input.realizedBalance,
-    context.priorCorrection,
-    context.startingAmount,
-  );
+  // Pulpe's side is the « Solde pointé » alone (spec.md §4).
+  const compared = input.realizedBalance;
   const gap = moneyDifference(onAccounts, compared);
   const comparedBefore =
     input.comparedBefore === compared ? null : input.comparedBefore;
@@ -134,28 +123,19 @@ export function buildComparison(input: {
     gap,
     budgetLines,
     transactions,
-    context.priorItems,
-  ).flatMap(({ source, id, monthsAgo, remainingGap }): SuggestionRow[] => {
+  ).flatMap(({ source, id, remainingGap }): SuggestionRow[] => {
     const item =
-      source === "prior"
-        ? context.priorItems.find((prior) => prior.id === id)
-        : source === "budgetLine"
-          ? budgetLines.find((line) => line.id === id)
-          : transactions.find((transaction) => transaction.id === id);
+      source === "budgetLine"
+        ? budgetLines.find((line) => line.id === id)
+        : transactions.find((transaction) => transaction.id === id);
     if (item === undefined) return [];
     return [
       {
-        source:
-          "source" in item
-            ? item.source
-            : "transactionDate" in item
-              ? "transaction"
-              : "budgetLine",
+        source,
         id,
         name: item.name,
         amount: item.amount,
         kind: item.kind,
-        monthsAgo,
         date: "transactionDate" in item ? item.transactionDate : null,
         // A 120 movement under a checked 100 prévision closes a 20 gap: ranked first, never highlighted.
         settles:
@@ -190,7 +170,7 @@ export function buildComparison(input: {
     compared,
     comparedBefore,
     realized: input.realizedBalance,
-    // Checking a previous month's item moves only the prior correction: nothing struck through.
+    // Checked then unchecked back to the start: nothing struck through.
     realizedBefore:
       input.realizedBefore === null ||
       moneyDifference(input.realizedBefore, input.realizedBalance) === 0
@@ -205,7 +185,6 @@ export function buildComparison(input: {
       gap,
       candidateCount: suggestions.length,
       dismissed: input.isDismissed,
-      first: !context.hasCompletedComparison && context.startingAmount === 0,
       salaryMaybeEarly: isSalaryMaybeEarly({
         gap,
         payDayOfMonth,
@@ -214,16 +193,12 @@ export function buildComparison(input: {
       }),
     }),
     suggestions,
-    othersCount:
-      toCheckCount - suggestions.filter((row) => row.monthsAgo === 0).length,
+    othersCount: toCheckCount - suggestions.length,
     note: availableAfterNote(input.available, gap),
     matched: matchedBreakdown({
       available: input.available,
       compared,
-      startingAmount: context.startingAmount,
     }),
-    priorCorrection: context.priorCorrection,
-    startingAmount: context.startingAmount,
     nextPayDay: nextStart.getDate(),
   };
 }

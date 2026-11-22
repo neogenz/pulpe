@@ -34,14 +34,12 @@ export {
 export { splitTotalPreserving } from './spread-split.js';
 export {
   availableAfterNote,
-  comparedFigure,
   comparisonScreen,
   gapClosedByChecks,
   isSalaryMaybeEarly,
   matchedBreakdown,
   parseAccountAmount,
   partlySpentBudgetLines,
-  pointingEffects,
   rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
@@ -51,8 +49,6 @@ export {
   type MatchedBreakdown,
   type PartlySpentBudgetLine,
   type PointingSource,
-  type PointingTarget,
-  type PriorPointingItem,
   type RankedPointingCandidate,
   type ReconciliationVerdict,
 } from './account-reconciliation.js';

@@ -39,12 +39,6 @@ const SUGGESTION_MIN_HEIGHT = 64;
 /** The round mark over « Pareil des deux côtés », twice its check. */
 const MARK_SIZE = 2 * ICON_SIZE.xl;
 
-const DETAIL_KEYS = [
-  "home.reconcile.compare.plannedThisMonth",
-  "home.reconcile.compare.lastMonth",
-  "home.reconcile.compare.twoMonthsAgo",
-] as const;
-
 /** An amount and its currency never part across two lines; a true minus, as on web and iOS. */
 export function money(value: number, currency: SupportedCurrency): string {
   return formatCurrency(value, currency).replace(/ /g, " ").replace("-", "−");
@@ -57,11 +51,7 @@ export function signed(value: number, currency: SupportedCurrency): string {
 }
 
 interface ReconcileCompareStepProps {
-  /** `null` until the server context is read: the figure would be wrong without it. */
-  comparison: Comparison | null;
-  /** The context read failed: nothing to compare, nothing to write. */
-  isUnavailable: boolean;
-  onRetry: () => void;
+  comparison: Comparison;
   currency: SupportedCurrency;
   hasOwe: boolean;
   /** What the « Je dois » rows total, when removing them is offered. */
@@ -73,7 +63,6 @@ interface ReconcileCompareStepProps {
   onViewOthers: () => void;
   /** [Ajouter ce que je dois]: back to step 1 with a new « Je dois » row. */
   onAddOwe: () => void;
-  onEditStartingAmount: () => void;
 }
 
 /**
@@ -83,8 +72,6 @@ interface ReconcileCompareStepProps {
  */
 export function ReconcileCompareStep({
   comparison,
-  isUnavailable,
-  onRetry,
   currency,
   hasOwe,
   oweTotal,
@@ -94,7 +81,6 @@ export function ReconcileCompareStep({
   onRemoveOwe,
   onViewOthers,
   onAddOwe,
-  onEditStartingAmount,
 }: ReconcileCompareStepProps) {
   const theme = useTheme();
   const v2 = useV2Colors();
@@ -108,8 +94,7 @@ export function ReconcileCompareStep({
   const muted = { color: theme.colors.onSurfaceVariant };
   const link = isBusy ? theme.colors.onSurfaceDisabled : theme.colors.primary;
   const card = [styles.card, { backgroundColor: theme.colors.surfaceVariant }];
-  const screen =
-    comparison?.screen ?? (isUnavailable ? "unavailable" : "loading");
+  const { gap, matched, screen } = comparison;
 
   // A new screen swaps the content under a button that stays put: the title takes the focus.
   useEffect(() => {
@@ -120,38 +105,13 @@ export function ReconcileCompareStep({
   // Once a check has settled: the row now at its place, else the title.
   useEffect(() => {
     if (checkingId !== null || refocusAt.current === null) return;
-    const count = comparison?.suggestions.length ?? 0;
+    const count = comparison.suggestions.length;
     const target =
       rows.current[Math.min(refocusAt.current, count - 1)] ?? heading.current;
     refocusAt.current = null;
     if (target) AccessibilityInfo.sendAccessibilityEvent(target, "focus");
   });
 
-  const stepLabel = (
-    <Text variant="labelMedium" style={muted}>
-      {t("home.reconcile.compare.stepLabel")}
-    </Text>
-  );
-
-  if (comparison === null) {
-    return isUnavailable ? (
-      <View style={styles.header} testID="reconcile-context-error">
-        {stepLabel}
-        <View ref={heading} accessible accessibilityRole="header">
-          <Text variant="titleLarge">
-            {t("home.reconcile.compare.loadError")}
-          </Text>
-        </View>
-        <Button mode="contained-tonal" onPress={onRetry} style={styles.start}>
-          {t("common.retry")}
-        </Button>
-      </View>
-    ) : (
-      <ActivityIndicator style={styles.loading} />
-    );
-  }
-
-  const { gap, matched } = comparison;
   const title =
     gap === 0
       ? t("home.reconcile.compare.matched")
@@ -173,7 +133,9 @@ export function ReconcileCompareStep({
   return (
     <>
       <View style={styles.header}>
-        {stepLabel}
+        <Text variant="labelMedium" style={muted}>
+          {t("home.reconcile.compare.stepLabel")}
+        </Text>
         {/* Live: a check moves the verdict while the focus stays on the list. */}
         <View
           ref={heading}
@@ -218,28 +180,6 @@ export function ReconcileCompareStep({
                 )}
                 amount={signed(matched.stillPlanned, currency)}
               />
-            )}
-            {matched.beforePulpe !== 0 && (
-              <Pressable
-                accessibilityRole="button"
-                onPress={onEditStartingAmount}
-                disabled={isBusy}
-                android_ripple={ripple}
-                style={styles.tappable}
-                testID="reconcile-starting-amount"
-              >
-                <View style={styles.grow}>
-                  <Figure
-                    label={t("home.reconcile.compare.beforePulpe")}
-                    amount={signed(matched.beforePulpe, currency)}
-                  />
-                </View>
-                <Icon
-                  source="pencil-outline"
-                  size={ICON_SIZE.sm}
-                  color={muted.color}
-                />
-              </Pressable>
             )}
             <View style={stacks ? styles.stacked : styles.figure}>
               <Text variant="titleSmall" style={!stacks && styles.grow}>
@@ -301,46 +241,6 @@ export function ReconcileCompareStep({
               </Amount>
             </View>
           </View>
-          {comparison.priorCorrection !== 0 && (
-            // Plain text, quieter than the figure and the button under it, as on web and iOS.
-            <Text
-              variant="bodyMedium"
-              style={[
-                muted,
-                stacks ? styles.start : styles.trailing,
-                TABULAR_DIGITS,
-              ]}
-              testID="reconcile-prior-correction"
-            >
-              {t("home.reconcile.compare.priorCorrectionPart", {
-                amount: signed(comparison.priorCorrection, currency),
-              })}
-            </Text>
-          )}
-          {comparison.startingAmount !== 0 && (
-            <Pressable
-              accessibilityRole="button"
-              onPress={onEditStartingAmount}
-              disabled={isBusy}
-              android_ripple={ripple}
-              style={[styles.tappable, stacks ? styles.start : styles.end]}
-              testID="reconcile-starting-amount"
-            >
-              <Text
-                variant="labelLarge"
-                style={[styles.recordLabel, TABULAR_DIGITS]}
-              >
-                {t("home.reconcile.compare.startingAmountPart", {
-                  amount: signed(comparison.startingAmount, currency),
-                })}
-              </Text>
-              <Icon
-                source="pencil-outline"
-                size={ICON_SIZE.sm}
-                color={muted.color}
-              />
-            </Pressable>
-          )}
           {/* As on web and iOS: nothing found, no line. */}
           {comparison.found > 0 && (
             <View style={styles.found} testID="reconcile-found">
@@ -421,9 +321,9 @@ export function ReconcileCompareStep({
                       {row.name}
                     </Text>
                     <Text variant="bodySmall" style={muted}>
-                      {row.monthsAgo === 0 && row.date !== null
+                      {row.date !== null
                         ? formatDayMonth(new Date(row.date), locale)
-                        : t(DETAIL_KEYS[row.monthsAgo])}
+                        : t("home.reconcile.compare.plannedThisMonth")}
                     </Text>
                     {stacks && amount}
                   </View>
@@ -489,20 +389,6 @@ export function ReconcileCompareStep({
             {t("home.reconcile.compare.smallGapSample", {
               paid: plain(gap < 0 ? 3.8 : 3, currency),
               noted: plain(gap < 0 ? 3 : 3.8, currency),
-            })}
-          </Text>
-        </View>
-      )}
-
-      {screen === "firstComparison" && (
-        <View style={card} testID="reconcile-first-comparison">
-          <Text
-            variant="titleMedium"
-            textBreakStrategy="balanced"
-            style={TABULAR_DIGITS}
-          >
-            {t("home.reconcile.compare.firstQuestion", {
-              amount: money(gap, currency),
             })}
           </Text>
         </View>
@@ -588,15 +474,12 @@ interface ReconcileCompareActionsProps {
   currency: SupportedCurrency;
   isBusy: boolean;
   isRecording: boolean;
-  isSavingState: boolean;
   /** [Terminer], « Laisser comme ça » and « Non, laisser comme ça »: completed, nothing written. */
   onLeave: () => void;
   /** « Aucune … ne correspond », or « Rien ne correspond » with a saving among the rows. */
   onDismiss: () => void;
   onRecord: () => void;
-  /** « Oui, c'était déjà là ». */
-  onKeep: () => void;
-  /** « Voir les autres raisons » and « Non, autre chose ». */
+  /** « Voir les autres raisons ». */
   onShowReasons: () => void;
 }
 
@@ -606,11 +489,9 @@ export function ReconcileCompareActions({
   currency,
   isBusy,
   isRecording,
-  isSavingState,
   onLeave,
   onDismiss,
   onRecord,
-  onKeep,
   onShowReasons,
 }: ReconcileCompareActionsProps) {
   const theme = useTheme();
@@ -633,20 +514,6 @@ export function ReconcileCompareActions({
       )}
     </Button>
   );
-  const reasons = (
-    <Button
-      mode="outlined"
-      onPress={onShowReasons}
-      disabled={isBusy}
-      contentStyle={styles.target}
-    >
-      {t(
-        screen === "salaryEarly"
-          ? "home.reconcile.compare.seeOtherReasons"
-          : "home.reconcile.compare.somethingElse",
-      )}
-    </Button>
-  );
   if (screen === "salaryEarly") {
     // Coming back on pay day is the answer: leaving is the main action, as on web and iOS.
     return (
@@ -659,34 +526,14 @@ export function ReconcileCompareActions({
         >
           {t("home.reconcile.compare.leaveAsIs")}
         </Button>
-        {reasons}
-      </View>
-    );
-  }
-  if (screen === "firstComparison") {
-    return (
-      <View style={styles.actions}>
         <Button
-          mode="contained"
-          onPress={onKeep}
+          mode="outlined"
+          onPress={onShowReasons}
           disabled={isBusy}
-          loading={isSavingState}
           contentStyle={styles.target}
         >
-          {t("home.reconcile.compare.alreadyThere")}
+          {t("home.reconcile.compare.seeOtherReasons")}
         </Button>
-        <Text
-          variant="bodySmall"
-          style={[
-            styles.note,
-            styles.noteOverButton,
-            { color: theme.colors.onSurfaceVariant },
-          ]}
-        >
-          {t("home.reconcile.compare.availableUnchanged")}
-        </Text>
-        {reasons}
-        {leave}
       </View>
     );
   }
@@ -813,7 +660,6 @@ export function AmountButton({
 
 const styles = StyleSheet.create({
   header: { gap: SPACING.sm },
-  loading: { paddingVertical: SPACING.xl },
   // Paper insets a text button's label by 12: pulled back by as much, it starts on the text's edge.
   start: { alignSelf: "flex-start" },
   link: { paddingHorizontal: SPACING.md },
@@ -871,11 +717,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     minHeight: TOUCH_TARGET,
   },
-  end: { alignSelf: "flex-end" },
-  // A line under a figure that wraps keeps to the figure's edge.
-  trailing: { alignSelf: "flex-end", textAlign: "right" },
   target: { minHeight: TOUCH_TARGET },
   note: { textAlign: "center" },
-  // Close to the button it explains, clear of the framed one under it.
-  noteOverButton: { marginBottom: SPACING.sm },
 });

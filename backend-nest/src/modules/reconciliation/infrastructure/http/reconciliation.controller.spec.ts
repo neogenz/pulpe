@@ -1,17 +1,21 @@
 import { describe, expect, it, jest } from 'bun:test';
 import { createMockAuthenticatedUser } from '@/test/test-mocks';
+import type { ReconciliationContext, ReconciliationState } from 'pulpe-shared';
 import type { GetReconciliationContextUseCase } from '../../application/get-reconciliation-context.use-case';
 import type { UpdateReconciliationStateUseCase } from '../../application/update-reconciliation-state.use-case';
 import { ReconciliationController } from './reconciliation.controller';
 
 describe('ReconciliationController', () => {
-  const context = {
+  const context: ReconciliationContext = {
     startingAmount: 0,
     hasCompletedComparison: false,
     priorCorrection: 0,
     priorItems: [],
   };
-  const state = { startingAmount: 3100, hasCompletedComparison: true };
+  const state: ReconciliationState = {
+    startingAmount: 0,
+    hasCompletedComparison: true,
+  };
   const getContext = { execute: jest.fn().mockResolvedValue(context) };
   const update = { execute: jest.fn().mockResolvedValue(state) };
   const controller = new ReconciliationController(

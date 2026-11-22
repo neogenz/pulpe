@@ -155,7 +155,6 @@ export {
   assetCategoryDeleteResponseSchema,
 
   // Account reconciliation
-  reconciliationPriorItemSchema,
   reconciliationStateSchema,
   reconciliationContextSchema,
   reconciliationContextResponseSchema,
@@ -307,14 +306,12 @@ export {
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   availableAfterNote,
-  comparedFigure,
   comparisonScreen,
   gapClosedByChecks,
   isSalaryMaybeEarly,
   matchedBreakdown,
   parseAccountAmount,
   partlySpentBudgetLines,
-  pointingEffects,
   rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
@@ -324,8 +321,6 @@ export {
   type MatchedBreakdown,
   type PartlySpentBudgetLine,
   type PointingSource,
-  type PointingTarget,
-  type PriorPointingItem,
   type RankedPointingCandidate,
   type ReconciliationVerdict,
 } from './src/calculators/index.js';
@@ -579,7 +574,6 @@ export type {
   AssetCategoryDeleteResponse,
 
   // Account reconciliation types
-  ReconciliationPriorItem,
   ReconciliationState,
   ReconciliationContext,
   ReconciliationContextResponse,

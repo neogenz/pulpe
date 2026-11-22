@@ -6,7 +6,7 @@
  *
  * SWIFT TWIN: `parseAmount`, `totalCents(of:)`, `verdict`,
  * `rankedPointingCandidates` and the screen rules
- * (`comparisonScreen`, `isSalaryMaybeEarly`, `comparedFigure`,
+ * (`comparisonScreen`, `isSalaryMaybeEarly`,
  * `availableAfterNote`, `gapClosedByChecks`, `partlySpentBudgetLines`,
  * `matchedBreakdown`) in
  * `ios/Pulpe/Features/CurrentMonth/Reconciliation/AccountReconciliation.swift`.
@@ -112,31 +112,17 @@ type FormulaTransaction = NonNullable<
 
 const MAX_POINTING_CANDIDATES = 3;
 
-export interface PointingTarget {
+interface PointingTarget {
   readonly kind: 'transaction' | 'budgetLine';
   readonly id: string;
 }
 
 /**
- * What pointing each target moves in the pointed balance, in order, against
- * one balance before pointing. Measured rather than read from the amount:
- * under a pointée prévision a dépense moves the balance by less, or not at
- * all. Server only (previous months' items): no Swift twin.
+ * What pointing one target moves in the pointed balance, against a balance
+ * before pointing computed once for a whole ranking. Measured rather than read
+ * from the amount: under a pointée prévision a dépense moves it by less, or not
+ * at all.
  */
-export function pointingEffects(
-  budgetLines: FormulaLines,
-  transactions: readonly (FormulaTransaction & { readonly id: string })[],
-  targets: readonly PointingTarget[],
-): number[] {
-  const balanceBefore = BudgetFormulas.calculateRealizedBalance(budgetLines, [
-    ...transactions,
-  ]);
-  return targets.map((target) =>
-    effectAfterPointing(budgetLines, transactions, balanceBefore, target),
-  );
-}
-
-/** One target's effect against a balance before pointing computed once for a whole ranking. */
 function effectAfterPointing(
   budgetLines: readonly FormulaLines[number][],
   transactions: readonly (FormulaTransaction & { readonly id: string })[],
@@ -165,52 +151,39 @@ interface Effect {
 }
 
 /**
- * Keeps the items whose effect moves the gap toward zero without crossing it,
- * closest to settling first (stable on ties), at most three.
+ * Keeps the items that leave the gap nearer zero, even past it: 4 600.00 for a
+ * 4 570.48 gap leaves 29.52. Closest to settling first (stable
+ * on ties), at most three.
  */
 function rankByRemainingGap<T extends Effect>(
   gap: number,
   entries: readonly T[],
 ): (T & { readonly remainingGap: number })[] {
   return entries
-    .filter(
-      ({ effect }) =>
-        effect !== 0 &&
-        Math.sign(effect) === Math.sign(gap) &&
-        Math.abs(effect) <= Math.abs(gap),
-    )
     .map((entry) => ({
       ...entry,
       remainingGap: moneyDifference(gap, entry.effect),
     }))
+    .filter(({ remainingGap }) => Math.abs(remainingGap) < Math.abs(gap))
     .sort((a, b) => Math.abs(a.remainingGap) - Math.abs(b.remainingGap))
     .slice(0, MAX_POINTING_CANDIDATES);
 }
 
-/** An unchecked item of a previous month, with the effect the server measured. */
-export interface PriorPointingItem {
-  readonly id: string;
-  readonly effect: number;
-  readonly monthsAgo: 1 | 2;
-}
-
-export type PointingSource = 'transaction' | 'budgetLine' | 'prior';
+export type PointingSource = 'transaction' | 'budgetLine';
 
 export interface RankedPointingCandidate {
   readonly source: PointingSource;
   readonly id: string;
-  /** `0` for the month itself, `1` or `2` for a previous budget. */
-  readonly monthsAgo: 0 | 1 | 2;
   readonly remainingGap: number;
 }
 
 /**
  * The items not pointed yet that most likely explain the gap: each one,
- * pointed alone, moves the pointed balance toward the accounts total without
- * going past it. An adjustment written instead would count them twice once
- * they are pointed. Three sources: unchecked budget lines, unchecked movements
- * of the month, then prior items; closest to settling first (ties keep that
- * source order), at most three.
+ * pointed alone, brings the pointed balance nearer the accounts total. An
+ * adjustment written instead would count them twice once they are pointed. Two sources of the month only: unchecked budget lines, then
+ * unchecked movements; closest to settling first (ties keep that source
+ * order), at most three. Previous months are closed by the month-end recap,
+ * never here.
  */
 export function rankedPointingCandidates(
   gap: number,
@@ -218,7 +191,6 @@ export function rankedPointingCandidates(
     readonly sourceSavingsGoalId?: string | null;
   })[],
   transactions: readonly (FormulaTransaction & { readonly id: string })[],
-  priorItems: readonly PriorPointingItem[] = [],
 ): RankedPointingCandidate[] {
   if (gap === 0) return [];
   const balanceBefore = BudgetFormulas.calculateRealizedBalance(
@@ -232,7 +204,6 @@ export function rankedPointingCandidates(
       .map((line) => ({
         source: 'budgetLine' as const,
         id: line.id,
-        monthsAgo: 0 as const,
         effect: effectAfterPointing(budgetLines, transactions, balanceBefore, {
           kind: 'budgetLine',
           id: line.id,
@@ -243,26 +214,14 @@ export function rankedPointingCandidates(
       .map((transaction) => ({
         source: 'transaction' as const,
         id: transaction.id,
-        monthsAgo: 0 as const,
         effect: effectAfterPointing(budgetLines, transactions, balanceBefore, {
           kind: 'transaction',
           id: transaction.id,
         }),
       })),
-    ...priorItems.map(({ id, effect, monthsAgo }) => ({
-      source: 'prior' as const,
-      id,
-      monthsAgo,
-      effect,
-    })),
   ];
   return rankByRemainingGap(gap, entries).map(
-    ({ source, id, monthsAgo, remainingGap }) => ({
-      source,
-      id,
-      monthsAgo,
-      remainingGap,
-    }),
+    ({ source, id, remainingGap }) => ({ source, id, remainingGap }),
   );
 }
 
@@ -291,7 +250,6 @@ export function isSalaryMaybeEarly(input: {
 export type ComparisonScreen =
   | 'matched'
   | 'suggestions'
-  | 'firstComparison'
   | 'salaryEarly'
   | 'smallGap'
   | 'largeGap'
@@ -302,26 +260,14 @@ export function comparisonScreen(input: {
   readonly gap: number;
   readonly candidateCount: number;
   readonly dismissed: boolean;
-  readonly first: boolean;
   readonly salaryMaybeEarly: boolean;
 }): ComparisonScreen {
   const { gap } = input;
   if (gap === 0) return 'matched';
   if (input.candidateCount > 0 && !input.dismissed) return 'suggestions';
-  if (gap > 0 && input.first) return 'firstComparison';
   if (gap > 0 && input.salaryMaybeEarly) return 'salaryEarly';
   if (Math.abs(gap) < SMALL_GAP_THRESHOLD) return 'smallGap';
   return gap < 0 ? 'largeGap' : 'moreOnAccounts';
-}
-
-/** What Pulpe holds to be compared with the accounts: checked balance, prior correction, starting amount. */
-export function comparedFigure(
-  realizedBalance: number,
-  priorCorrection: number,
-  startingAmount: number,
-): number {
-  // Rounded once after the sum, like the Swift twin.
-  return moneyDifference(realizedBalance + priorCorrection + startingAmount, 0);
 }
 
 /** « Disponible : avant → après »: the available amount before and after noting the gap. */
@@ -380,8 +326,6 @@ export function partlySpentBudgetLines(
 export interface MatchedBreakdown {
   /** Signed: below 0 is « Encore prévu », above 0 is « Encore à recevoir », 0 shows no line. */
   readonly stillPlanned: number;
-  /** « D'avant Pulpe »: minus the starting amount, 0 shows no line. */
-  readonly beforePulpe: number;
   readonly remaining: number;
 }
 
@@ -389,14 +333,10 @@ export interface MatchedBreakdown {
 export function matchedBreakdown(input: {
   readonly available: number;
   readonly compared: number;
-  readonly startingAmount: number;
 }): MatchedBreakdown {
   return {
-    stillPlanned: moneyDifference(
-      input.available - input.compared + input.startingAmount,
-      0,
-    ),
-    beforePulpe: moneyDifference(0, input.startingAmount),
+    // Rounded once, after the subtraction, like the Swift twin.
+    stillPlanned: moneyDifference(input.available - input.compared, 0),
     remaining: input.available,
   };
 }

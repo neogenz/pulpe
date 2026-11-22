@@ -33,7 +33,6 @@ export function MovementRow({
       subtitle={movementSubtitle(t, transaction, lineName)}
       // An income keeps its `+`: nothing else tells it apart from an outflow.
       amount={transaction.kind === "income" ? `+${amount}` : amount}
-      kind={transaction.kind}
       isPointed={transaction.checkedAt !== null}
       isSyncing={isSyncing}
       onToggle={onToggle}

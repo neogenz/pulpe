@@ -3,23 +3,16 @@ import Foundation
 /// Step 2 read from the numbers as they stand: the compared figure, the gap, the suggestions and
 /// the screen, recomputed on every render from the month the sheet was opened on.
 extension ReconcileAccountsFlow {
-    var context: ReconciliationContext? {
-        if case .loaded(let context) = contextState { return context }
-        return nil
-    }
-
-    /// One row of the suggestions: an unchecked item of this month or of the two before it.
+    /// One row of the suggestions: an unchecked item of this month.
     struct Suggestion: Identifiable, Equatable {
         enum Target: Equatable {
             case transaction(Transaction)
             case budgetLine(BudgetLine)
-            case prior(ReconciliationContext.PriorItem)
         }
 
-        /// The second line: « Prévue ce mois », « Mois dernier », « Il y a 2 mois », or the date.
+        /// The second line: « Prévue ce mois » or the date.
         enum Origin: Equatable {
             case plannedThisMonth
-            case monthsAgo(Int)
             case date(Date)
         }
 
@@ -34,7 +27,6 @@ extension ReconcileAccountsFlow {
             switch target {
             case .transaction(let transaction): "tx-\(transaction.id)"
             case .budgetLine(let line): "bl-\(line.id)"
-            case .prior(let item): "prior-\(item.id)"
             }
         }
 
@@ -43,7 +35,6 @@ extension ReconcileAccountsFlow {
             switch target {
             case .transaction(let transaction): transaction.kind
             case .budgetLine(let line): line.kind
-            case .prior(let item): item.kind
             }
         }
     }
@@ -73,15 +64,12 @@ extension ReconcileAccountsFlow {
         let accounts: Decimal
         /// The figure « Dans Pulpe, déjà coché » shows: the Accueil's « Solde pointé ».
         let realized: Decimal
-        /// What the previous months left unchecked, said under it when not 0.
-        let priorCorrection: Decimal
         /// The checked balance before this comparison's first check, once a check moved it: struck through.
         let realizedBefore: Decimal?
-        /// The realized balance, the previous months' correction and the starting amount: what the gap reads.
+        /// What the gap reads: the realized balance alone.
         let compared: Decimal
         /// Accounts minus compared: below 0, my accounts have less than Pulpe.
         let gap: Decimal
-        let startingAmount: Decimal
         let suggestions: [Suggestion]
         let screen: AccountReconciliation.Screen
         /// What the checks of this comparison closed, once there is one.
@@ -94,13 +82,11 @@ extension ReconcileAccountsFlow {
     func comparison(
         realizedBalance: Decimal, lines: [BudgetLine], transactions: [Transaction], payDayOfMonth: Int? = nil
     ) -> Comparison? {
-        guard let context, let totalCents, let compared = comparedFigure(realizedBalance: realizedBalance) else {
-            return nil
-        }
+        guard let totalCents else { return nil }
+        let compared = realizedBalance
         let gap = AccountReconciliation.difference(totalCents: totalCents, realizedBalance: compared)
         let candidates = AccountReconciliation.rankedPointingCandidates(
-            gap: gap, lines: lines, transactions: transactions,
-            priorItems: context.priorItems.map { .init(id: $0.id, effect: $0.effect, monthsAgo: $0.monthsAgo) }
+            gap: gap, lines: lines, transactions: transactions
         )
         let target = gap.absoluteValue.rounded(2)
         let salary = salaryTiming(gap: gap, payDayOfMonth: payDayOfMonth)
@@ -122,25 +108,15 @@ extension ReconcileAccountsFlow {
                         origin: .date($0.transactionDate), isExact: settles && $0.amount.rounded(2) == target
                     )
                 }
-            case .prior:
-                return context.priorItems.first { $0.id == candidate.id }.map {
-                    Suggestion(
-                        target: .prior($0), name: $0.name, amount: $0.amount,
-                        origin: .monthsAgo($0.monthsAgo), isExact: settles && $0.amount.rounded(2) == target
-                    )
-                }
             }
         }
         return Comparison(
             accounts: AccountReconciliation.amount(cents: totalCents), realized: realizedBalance,
-            priorCorrection: context.priorCorrection,
             realizedBefore: realizedBefore(realizedBalance),
-            compared: compared, gap: gap, startingAmount: context.startingAmount,
+            compared: compared, gap: gap,
             suggestions: suggestions,
             screen: AccountReconciliation.comparisonScreen(
-                gap: gap, candidateCount: candidates.count, dismissed: isDismissed,
-                first: !context.hasCompletedComparison && context.startingAmount == 0,
-                salaryMaybeEarly: salary.isEarly
+                gap: gap, candidateCount: candidates.count, dismissed: isDismissed, salaryMaybeEarly: salary.isEarly
             ),
             found: found(compared: compared, totalCents: totalCents),
             nextPayDay: salary.nextPayDay
@@ -193,29 +169,17 @@ extension ReconcileAccountsFlow {
         }
     }
 
-    /// The « Voir les autres » list hands back to step 2 once nothing is left to do there: the figures
-    /// match, or the context read failed and « Réessayer » lives on step 2. Never while a check is out:
+    /// The « Voir les autres » list hands back to step 2 once the figures match. Never while a check is out:
     /// the store shows it checked before the server confirms, and a refusal brings the gap back.
     /// Read on every render, so it compares the two figures instead of ranking the suggestions.
     func closesToCheckList(realizedBalance: Decimal) -> Bool {
         guard !isChecking else { return false }
-        if contextState == .failed { return true }
-        guard let totalCents, let compared = comparedFigure(realizedBalance: realizedBalance) else { return false }
-        return AccountReconciliation.difference(totalCents: totalCents, realizedBalance: compared) == 0
+        guard let totalCents else { return false }
+        return AccountReconciliation.difference(totalCents: totalCents, realizedBalance: realizedBalance) == 0
     }
 
-    /// What the gap reads: the checked balance, the previous months' correction and the starting amount.
-    /// `nil` until the context is read.
-    func comparedFigure(realizedBalance: Decimal) -> Decimal? {
-        context.map {
-            AccountReconciliation.comparedFigure(
-                realizedBalance: realizedBalance, priorCorrection: $0.priorCorrection, startingAmount: $0.startingAmount
-            )
-        }
-    }
-
+    /// The gap reads the month's « Solde pointé » alone.
     func verdict(realizedBalance: Decimal) -> AccountReconciliation.Verdict? {
-        guard let totalCents, let compared = comparedFigure(realizedBalance: realizedBalance) else { return nil }
-        return AccountReconciliation.verdict(totalCents: totalCents, realizedBalance: compared)
+        totalCents.map { AccountReconciliation.verdict(totalCents: $0, realizedBalance: realizedBalance) }
     }
 }

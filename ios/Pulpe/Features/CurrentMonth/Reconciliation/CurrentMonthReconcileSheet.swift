@@ -29,16 +29,6 @@ struct CurrentMonthReconcileSheet: View {
                             case .transaction(let tx, _): await store.toggleTransaction(tx)
                             case .budgetLine(let line, _): await store.toggleBudgetLine(line)
                             }
-                        },
-                        checkPrior: { item in
-                            let didCheck = await ReconciliationChecking.checkPrior(
-                                item,
-                                transactionService: TransactionService.shared,
-                                budgetLineService: BudgetLineService.shared
-                            )
-                            // The Accueil holds only this month: what is cached of the earlier one is now stale.
-                            if didCheck { BudgetDetailCache.shared.invalidate(budgetId: item.budgetId) }
-                            return didCheck
                         }
                     ),
                     netWorthAccounts: netWorthAccounts,

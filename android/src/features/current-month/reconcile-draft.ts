@@ -10,8 +10,6 @@ import type { AccountRow } from "./reconcile-account-links";
 export interface ReconcileDraft {
   budgetId: string;
   rows: AccountRow[];
-  /** A comparison was completed before the lock: the real close still saves the balances. */
-  hasCompleted: boolean;
 }
 
 let kept: ReconcileDraft | null = null;

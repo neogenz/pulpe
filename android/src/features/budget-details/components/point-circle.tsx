@@ -1,21 +1,17 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { type ComponentProps, useRef } from "react";
+import { useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 
 import { hapticSelection } from "@/core/ui/haptics";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useRipple } from "@/core/ui/ripple";
-import {
-  EMPHASIS,
-  ICON_SIZE,
-  RADIUS,
-  ROW,
-  TINT_ALPHA,
-  TOUCH_TARGET,
-} from "@/core/ui/theme";
+import { useV2Colors } from "@/core/ui/scheme-colors";
+import { EMPHASIS, ICON_SIZE, RADIUS, TOUCH_TARGET } from "@/core/ui/theme";
 
-const RING_WIDTH = 1.5;
+/** `DesignTokens.Checkbox` on iOS: the same circle on every row. */
+const CIRCLE_SIZE = 28;
+const RING_WIDTH = 2;
 
 /**
  * Two taps closer than this are one finger bouncing, not two decisions: the
@@ -25,34 +21,28 @@ const DOUBLE_TAP_MS = 300;
 
 interface PointCircleProps {
   isChecked: boolean;
-  /** The kind's own ink, so the disc says what it is as well as whether it is done. */
-  color: string;
-  /** The kind's glyph, worn while there is still something to point. */
-  icon: ComponentProps<typeof MaterialCommunityIcons>["name"];
   isSyncing: boolean;
   label: string;
   onToggle: () => void;
 }
 
 /**
- * The whole gesture of the app in one control, and the row's leading disc at
- * the same time — `PointCircle.swift`. To point, it is the row's own disc ringed
- * in dashes of its colour: unfinished, waiting. Pointed, the disc fills with the
- * colour and carries a check.
+ * The whole gesture of the app in one control — `PointCircle.swift`. To point,
+ * an empty circle: a box still to tick, never tinted by the row's nature.
+ * Pointed, a filled disc with a check.
  *
  * Its own pressable rather than part of the row, so pointing never opens the
  * detail by accident and the screen reader announces two separate actions. The
- * disc is 36, the target Material's 48.
+ * circle is 28, the target Material's 48.
  */
 export function PointCircle({
   isChecked,
-  color,
-  icon,
   isSyncing,
   label,
   onToggle,
 }: PointCircleProps) {
   const theme = useTheme();
+  const v2 = useV2Colors();
   const { t } = useTranslation();
   const ripple = useRipple({ radius: TOUCH_TARGET / 2 });
   const lastTapAt = useRef(0);
@@ -80,21 +70,22 @@ export function PointCircle({
     >
       <View
         style={[
-          styles.disc,
+          styles.circle,
           isChecked
-            ? { backgroundColor: color, borderColor: color }
-            : {
-                backgroundColor: `${color}${TINT_ALPHA.icon}`,
-                borderColor: color,
-                borderStyle: "dashed",
-              },
+            ? {
+                backgroundColor: theme.colors.primary,
+                borderColor: theme.colors.primary,
+              }
+            : { borderColor: v2.pointRing },
         ]}
       >
-        <MaterialCommunityIcons
-          name={isChecked ? "check" : icon}
-          size={ICON_SIZE.md}
-          color={isChecked ? theme.colors.onPrimary : color}
-        />
+        {isChecked && (
+          <MaterialCommunityIcons
+            name="check-bold"
+            size={ICON_SIZE.sm}
+            color={theme.colors.onPrimary}
+          />
+        )}
       </View>
     </Pressable>
   );
@@ -108,9 +99,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   syncing: { opacity: EMPHASIS.pending },
-  disc: {
-    width: ROW.disc,
-    height: ROW.disc,
+  circle: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
     borderRadius: RADIUS.full,
     borderWidth: RING_WIDTH,
     alignItems: "center",

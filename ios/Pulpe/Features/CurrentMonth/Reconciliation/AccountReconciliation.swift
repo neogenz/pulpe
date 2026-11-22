@@ -4,7 +4,7 @@ import Foundation
 /// checked balance of the loaded month. Pure and Foundation-only — the flow model
 /// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)`, `verdict`,
 /// `rankedPointingCandidates`, `gapClosedByChecks` and the screen rules (`comparisonScreen`,
-/// `isSalaryMaybeEarly`, `comparedFigure`, `availableAfterNote`, `partlySpentBudgetLines`,
+/// `isSalaryMaybeEarly`, `availableAfterNote`, `partlySpentBudgetLines`,
 /// `matchedBreakdown`) are the Swift twin of `shared/src/calculators/account-reconciliation.ts`,
 /// fixtures included (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
 enum AccountReconciliation {
@@ -128,16 +128,15 @@ enum AccountReconciliation {
 
     fileprivate static let maxPointingCandidates = 3
 
-    /// Keeps the items whose effect moves the gap toward zero without crossing it, closest to
-    /// settling first, at most three. A stable sort keeps the entries' order between equally close ones.
+    /// Keeps the items that leave the gap nearer zero, even past it (4 600.00 for a 4 570.48 gap
+    /// leaves 29.52), closest to settling first, at most three. A stable sort keeps the entries' order between equally close ones.
     fileprivate static func rankByRemainingGap<Item>(
         gap: Decimal, entries: [(Item, Decimal)]
     ) -> [(item: Item, remainingGap: Decimal)] {
         let kept = entries.compactMap { item, effect -> (item: Item, remainingGap: Decimal)? in
-            guard effect != 0, (effect > 0) == (gap > 0), effect.absoluteValue <= gap.absoluteValue else {
-                return nil
-            }
-            return (item, gap - effect)
+            let remainingGap = gap - effect
+            guard remainingGap.absoluteValue < gap.absoluteValue else { return nil }
+            return (item, remainingGap)
         }
         return kept.enumerated()
             .sorted {
@@ -214,35 +213,25 @@ extension AccountReconciliation {
         return after - balanceBefore
     }
 
-    /// An unchecked item of a previous month, with the effect the server measured.
-    struct PriorPointingItem: Equatable, Sendable {
-        let id: String
-        let effect: Decimal
-        /// 1 or 2.
-        let monthsAgo: Int
-    }
-
     enum PointingSource: Equatable, Sendable {
         case transaction
         case budgetLine
-        case prior
     }
 
     struct RankedPointingCandidate: Equatable, Sendable {
         let source: PointingSource
         let id: String
-        /// 0 for the month itself, 1 or 2 for a previous budget.
-        let monthsAgo: Int
         let remainingGap: Decimal
     }
 
-    /// The items not checked yet that most likely explain the gap: each one, checked alone, moves the
-    /// checked balance toward the accounts total without going past it. The effect is measured, not read
+    /// The items not checked yet that most likely explain the gap: each one, checked alone, brings the
+    /// checked balance nearer the accounts total. The effect is measured, not read
     /// from the amount: under a checked prévision an expense moves the balance by less, or not at all.
-    /// Unchecked budget lines, unchecked movements of the month, then prior items; closest to settling
-    /// first, ties keep that source order, at most three. Twin of `rankedPointingCandidates`.
+    /// Two sources of the month only: unchecked budget lines, then unchecked movements; closest to settling
+    /// first, ties keep that source order, at most three. Previous months are closed by the month-end
+    /// recap, never here. Twin of `rankedPointingCandidates`.
     static func rankedPointingCandidates(
-        gap: Decimal, lines: [BudgetLine], transactions: [Transaction], priorItems: [PriorPointingItem] = []
+        gap: Decimal, lines: [BudgetLine], transactions: [Transaction]
     ) -> [RankedPointingCandidate] {
         let gap = gap.rounded(maxCentDigits)
         guard gap != 0 else { return [] }
@@ -251,7 +240,7 @@ extension AccountReconciliation {
         let entries: [(RankedPointingCandidate, Decimal)] =
             lines.filter { !$0.isChecked && $0.sourceSavingsGoalId == nil }.map { line in
                 (
-                    RankedPointingCandidate(source: .budgetLine, id: line.id, monthsAgo: 0, remainingGap: 0),
+                    RankedPointingCandidate(source: .budgetLine, id: line.id, remainingGap: 0),
                     effectAfterPointing(
                         lines: lines, transactions: transactions, balanceBefore: balanceBefore,
                         target: .budgetLine(line.id)
@@ -260,23 +249,15 @@ extension AccountReconciliation {
             }
             + transactions.filter { !$0.isChecked }.map { transaction in
                 (
-                    RankedPointingCandidate(source: .transaction, id: transaction.id, monthsAgo: 0, remainingGap: 0),
+                    RankedPointingCandidate(source: .transaction, id: transaction.id, remainingGap: 0),
                     effectAfterPointing(
                         lines: lines, transactions: transactions, balanceBefore: balanceBefore,
                         target: .transaction(transaction.id)
                     )
                 )
             }
-            + priorItems.map {
-                (
-                    RankedPointingCandidate(source: .prior, id: $0.id, monthsAgo: $0.monthsAgo, remainingGap: 0),
-                    $0.effect
-                )
-            }
         return rankByRemainingGap(gap: gap, entries: entries).map {
-            RankedPointingCandidate(
-                source: $0.item.source, id: $0.item.id, monthsAgo: $0.item.monthsAgo, remainingGap: $0.remainingGap
-            )
+            RankedPointingCandidate(source: $0.item.source, id: $0.item.id, remainingGap: $0.remainingGap)
         }
     }
 
@@ -292,7 +273,6 @@ extension AccountReconciliation {
     enum Screen: Equatable, Sendable {
         case matched
         case suggestions
-        case firstComparison
         case salaryEarly
         case smallGap
         case largeGap
@@ -301,19 +281,13 @@ extension AccountReconciliation {
 
     /// Which step-2 screen shows; first matching row wins (spec.md §4.3). Twin of `comparisonScreen`.
     static func comparisonScreen(
-        gap: Decimal, candidateCount: Int, dismissed: Bool, first: Bool, salaryMaybeEarly: Bool
+        gap: Decimal, candidateCount: Int, dismissed: Bool, salaryMaybeEarly: Bool
     ) -> Screen {
         if gap == 0 { return .matched }
         if candidateCount > 0, !dismissed { return .suggestions }
-        if gap > 0, first { return .firstComparison }
         if gap > 0, salaryMaybeEarly { return .salaryEarly }
         if gap.absoluteValue < smallGapThreshold { return .smallGap }
         return gap < 0 ? .largeGap : .moreOnAccounts
-    }
-
-    /// Checked balance, plus the prior correction, plus the starting amount.
-    static func comparedFigure(realizedBalance: Decimal, priorCorrection: Decimal, startingAmount: Decimal) -> Decimal {
-        (realizedBalance + priorCorrection + startingAmount).rounded(maxCentDigits)
     }
 
     /// « … trouvés »: how much nearer zero the gap came since the first check; a check that widens
@@ -352,16 +326,10 @@ extension AccountReconciliation {
     struct MatchedBreakdown: Equatable, Sendable {
         /// Below 0 is « Encore prévu », above 0 is « Encore à recevoir », 0 shows no line.
         let stillPlanned: Decimal
-        /// « D'avant Pulpe »: minus the starting amount, 0 shows no line.
-        let beforePulpe: Decimal
         let remaining: Decimal
     }
 
-    static func matchedBreakdown(available: Decimal, compared: Decimal, startingAmount: Decimal) -> MatchedBreakdown {
-        MatchedBreakdown(
-            stillPlanned: (available - (compared - startingAmount)).rounded(maxCentDigits),
-            beforePulpe: (0 - startingAmount).rounded(maxCentDigits),
-            remaining: available
-        )
+    static func matchedBreakdown(available: Decimal, compared: Decimal) -> MatchedBreakdown {
+        MatchedBreakdown(stillPlanned: (available - compared).rounded(maxCentDigits), remaining: available)
     }
 }

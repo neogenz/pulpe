@@ -335,7 +335,7 @@ describe("session lifecycle", () => {
 
   it("leaves the next account none of the comparison's free account names or typed draft", async () => {
     saveFreeAccounts([{ name: "Revolut", side: "own" }]);
-    keepReconcileDraft({ budgetId: "budget-1", rows: [], hasCompleted: false });
+    keepReconcileDraft({ budgetId: "budget-1", rows: [] });
 
     await useSessionStore.getState().signOut();
 

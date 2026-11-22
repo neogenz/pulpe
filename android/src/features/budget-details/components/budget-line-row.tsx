@@ -121,8 +121,6 @@ export function BudgetLineRow({
           {isPointable && (
             <PointCircle
               isChecked={item.isChecked}
-              color={discColor}
-              icon={KIND_ICONS[line.kind]}
               isSyncing={isSyncing}
               label={line.name}
               onToggle={guard(onToggle) ?? onToggle}
@@ -179,7 +177,10 @@ export function BudgetLineRow({
   );
 }
 
-/** Lines the disc up with the 16dp rail a `LedgerRow` keeps: (48 − 36) / 2. */
+/**
+ * Centres the point circle on the 36dp disc column a `LedgerRow` keeps, so the
+ * text and the dividers stay on its rail: (48 − 36) / 2, whatever the circle's size.
+ */
 const TARGET_INSET = (TOUCH_TARGET - ROW.disc) / 2;
 const DISC_GAP = SPACING.sm + SPACING.xs - TARGET_INSET;
 

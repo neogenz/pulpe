@@ -43,11 +43,11 @@ describe('reconciliationContextSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject a prior item older than two months', () => {
+  it('should reject a context that still carries a previous month', () => {
     const result = reconciliationContextSchema.safeParse({
       startingAmount: 0,
       hasCompletedComparison: false,
-      priorCorrection: 0,
+      priorCorrection: -20,
       priorItems: [
         {
           id: '550e8400-e29b-41d4-a716-446655440001',
@@ -56,7 +56,7 @@ describe('reconciliationContextSchema', () => {
           name: 'Pharmacie',
           amount: 20,
           kind: 'expense',
-          monthsAgo: 3,
+          monthsAgo: 1,
           effect: -20,
         },
       ],

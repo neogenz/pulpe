@@ -6,17 +6,10 @@ import {
   BUDGET_MONTH_READ_PORT,
   type BudgetMonthReadPort,
 } from '@modules/budget/domain/ports/budget-month-read.port';
-import { priorCorrection, type PriorMonth } from '../domain/prior-correction';
-import {
-  RECONCILIATION_STATE_REPOSITORY,
-  type ReconciliationStateRepositoryPort,
-} from '../domain/ports/reconciliation-state-repository.port';
 
 @Injectable()
 export class GetReconciliationContextUseCase {
   constructor(
-    @Inject(RECONCILIATION_STATE_REPOSITORY)
-    private readonly repo: ReconciliationStateRepositoryPort,
     @Inject(BUDGET_MONTH_READ_PORT)
     private readonly budgets: BudgetMonthReadPort,
   ) {}
@@ -30,29 +23,14 @@ export class GetReconciliationContextUseCase {
         { id: budgetId },
       );
     }
-    const [state, prior] = await Promise.all([
-      this.repo.get(),
-      this.#previousMonths(current.previousBudgetId),
-    ]);
     return {
-      startingAmount: state.startingAmount,
-      hasCompletedComparison: state.lastCompletedAt !== null,
-      ...priorCorrection(prior),
+      // Neither money from before Pulpe nor previous months count (spec.md §4.1);
+      // these keys stay for iOS 1.14.2, which requires them. Always completed:
+      // otherwise that build still asks whether the gap was there before Pulpe.
+      startingAmount: 0,
+      hasCompletedComparison: true,
+      priorCorrection: 0,
+      priorItems: [],
     };
-  }
-
-  /** The two existing budgets before this one, following `previousBudgetId`. */
-  async #previousMonths(
-    previousBudgetId: string | null,
-  ): Promise<PriorMonth[]> {
-    const months: PriorMonth[] = [];
-    let id = previousBudgetId;
-    for (const monthsAgo of [1, 2] as const) {
-      const details = id ? await this.budgets.readBudget(id) : null;
-      if (!details) break;
-      months.push({ details, monthsAgo });
-      id = details.previousBudgetId;
-    }
-    return months;
   }
 }

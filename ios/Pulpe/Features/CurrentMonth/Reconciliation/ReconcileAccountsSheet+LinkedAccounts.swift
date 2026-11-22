@@ -20,10 +20,10 @@ extension ReconcileAccountsFlow {
     /// rows as they are then: balances of the followed items, and which ones are followed. One save per
     /// sheet, so two never race and a row removed between two comparisons is unfollowed. A failure only
     /// toasts, in words of its own: the reconciliation itself stays done.
-    /// The lock taking the sheet is no close: the draft carries the flag on to the rebuilt sheet.
+    /// The lock taking the sheet is no close.
     func applyAccountLinks(into assetStore: AssetStore, toastManager: ToastManager, isLocked: Bool = false) async {
         let plan = linkPlan
-        guard !isLocked, didCompleteComparison, !hasAppliedAccountLinks, !plan.isEmpty else { return }
+        guard !isLocked, isCompleted, !hasAppliedAccountLinks, !plan.isEmpty else { return }
         hasAppliedAccountLinks = true
         do {
             try await assetStore.followAccounts(links: plan.links, unlinks: plan.unlinks, snapshots: plan.snapshots)

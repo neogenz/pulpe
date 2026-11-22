@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// What the sheet reads to check an item: the month's movements and prévisions, the caller's own
-/// toggle, and how it checks an item of the two previous months. Each reports whether the server took it.
+/// What the sheet reads to check an item: the month's movements and prévisions and the caller's own
+/// toggle, which reports whether the server took it.
 struct ReconciliationChecking {
     let items: [CurrentMonthStore.CheckableItem]
     let transactions: [Transaction]
@@ -9,33 +9,12 @@ struct ReconciliationChecking {
     let syncingTransactionIds: Set<String>
     let syncingBudgetLineIds: Set<String>
     let toggle: @MainActor (CurrentMonthStore.CheckableItem) async -> Bool
-    /// No loaded store holds these: the caller drops what it cached of their month.
-    let checkPrior: @MainActor (ReconciliationContext.PriorItem) async -> Bool
 
     @MainActor
     func check(_ target: ReconcileAccountsFlow.Suggestion.Target) async -> Bool {
         switch target {
         case .transaction(let transaction): await toggle(.transaction(transaction))
         case .budgetLine(let line): await toggle(.budgetLine(line))
-        case .prior(let item): await checkPrior(item)
-        }
-    }
-
-    /// Checks an item of a previous month on the server, through the same services as the month's own.
-    @MainActor
-    static func checkPrior(
-        _ item: ReconciliationContext.PriorItem,
-        transactionService: any TransactionServicing,
-        budgetLineService: any BudgetLineServicing
-    ) async -> Bool {
-        do {
-            switch item.source {
-            case .transaction: _ = try await transactionService.toggleCheck(id: item.id)
-            case .budgetLine: _ = try await budgetLineService.toggleCheck(id: item.id)
-            }
-            return true
-        } catch {
-            return false
         }
     }
 
@@ -94,8 +73,6 @@ struct ReconcileAccountsSheet: View {
             budgetId: month.budgetId,
             entryName: AppLocale.string("Écart avec mes comptes"),
             createTransaction: dependencies.createTransaction,
-            fetchContext: { try await ReconciliationService.shared.getContext(budgetId: $0) },
-            updateState: { try await ReconciliationService.shared.updateState($0) },
             onAdjustmentCreated: onAdjustmentCreated,
             onCompleted: { completion in
                 AnalyticsService.shared.capture(
@@ -145,13 +122,13 @@ struct ReconcileAccountsSheet: View {
                                 .accessibilityAddTraits(.isHeader)
                         }
                         ToolbarItem(placement: .cancellationAction) {
-                            leadingButton.disabled(flow.isWriting || flow.isChecking)
+                            leadingButton.disabled(flow.isSubmitting || flow.isChecking)
                         }
                         ToolbarItem(placement: .topBarTrailing) {
                             Button { guideSource = .help } label: {
                                 Image(systemName: "questionmark.circle")
                             }
-                            .disabled(flow.isWriting || flow.isChecking)
+                            .disabled(flow.isSubmitting || flow.isChecking)
                             .accessibilityLabel(AppLocale.string("Revoir le guide"))
                             .accessibilityIdentifier("reconcileGuideHelp")
                         }
@@ -161,7 +138,9 @@ struct ReconcileAccountsSheet: View {
         .standardSheetPresentation()
         // Nothing leaves the sheet while a write or a check is in flight, nor by a swipe once a balance is
         // typed: a swipe meant to lower the keyboard would throw them away. The close button still leaves.
-        .interactiveDismissDisabled(flow.isWriting || flow.isChecking || flow.hasTypedBalance || guideSource == .help)
+        .interactiveDismissDisabled(
+            flow.isSubmitting || flow.isChecking || flow.hasTypedBalance || guideSource == .help
+        )
         .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, shouldClose in
             if shouldClose { dismiss() }
         }
@@ -201,7 +180,7 @@ struct ReconcileAccountsSheet: View {
                 checking: .init(
                     items: [], transactions: [], budgetLines: [],
                     syncingTransactionIds: [], syncingBudgetLineIds: [],
-                    toggle: { _ in false }, checkPrior: { _ in false }
+                    toggle: { _ in false }
                 ),
                 onAdjustmentCreated: { _ in }
             )

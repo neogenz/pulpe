@@ -19,7 +19,6 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { differenceInCalendarDays } from 'date-fns';
 import {
   availableAfterNote,
-  comparedFigure,
   comparisonScreen,
   gapClosedByChecks,
   getBudgetPeriodDates,
@@ -33,7 +32,6 @@ import {
   type BudgetLine,
   type ComparisonScreen,
   type MatchedBreakdown,
-  type ReconciliationContext,
   type SupportedCurrency,
   type Transaction,
   type TransactionKind,
@@ -55,15 +53,14 @@ export function money(value: number, currency: SupportedCurrency): string {
   ).replaceAll(' ', ' ');
 }
 
-/** An item that checking moves the compared figure: a movement or a prévision, of this month or a previous one. */
+/** An item of the month that checking moves the compared figure: a movement or a prévision. */
 export interface SuggestionRow {
   readonly source: 'transaction' | 'budgetLine';
   readonly kind: TransactionKind;
   readonly id: string;
   readonly name: string;
   readonly amount: number;
-  readonly monthsAgo: 0 | 1 | 2;
-  /** The movement's date, for a movement of this month. */
+  /** The movement's date; `null` for a prévision. */
   readonly date: string | null;
   /** Checking it leaves no gap, and its amount is the gap itself (spec §4.2). */
   readonly settles: boolean;
@@ -78,8 +75,6 @@ export interface Comparison {
   readonly realized: number;
   /** The realized balance at the first check of this comparison, once a check moved it. */
   readonly realizedBefore: number | null;
-  /** What the previous months left unchecked, part of `compared`; shown apart when not 0. */
-  readonly priorCorrection: number;
   /** A shown suggestion is a saving: « Coche les dépenses et l'épargne ». */
   readonly hasSaving: boolean;
   /** How much nearer zero the gap came since the first check: a check that widens it finds nothing. */
@@ -91,8 +86,6 @@ export interface Comparison {
   readonly othersCount: number;
   readonly note: { readonly before: number; readonly after: number };
   readonly matched: MatchedBreakdown;
-  /** Money from before Pulpe, part of `compared`; shown apart when not 0. */
-  readonly startingAmount: number;
   /** The day of the month the next period starts: « Reviens comparer le 25 ». */
   readonly nextPayDay: number;
 }
@@ -104,7 +97,6 @@ export interface ComparisonInput {
   readonly available: number;
   readonly budgetLines: readonly BudgetLine[];
   readonly transactions: readonly Transaction[];
-  readonly context: ReconciliationContext;
   readonly comparedBefore: number | null;
   readonly realizedBefore: number | null;
   readonly isDismissed: boolean;
@@ -114,13 +106,9 @@ export interface ComparisonInput {
 
 /** Step 2's numbers and screen, from the shared rules (spec.md §4). */
 export function buildComparison(input: ComparisonInput): Comparison {
-  const { budgetLines, transactions, context } = input;
+  const { budgetLines, transactions } = input;
   const onAccounts = input.onAccountsCents / 100;
-  const compared = comparedFigure(
-    input.realizedBalance,
-    context.priorCorrection,
-    context.startingAmount,
-  );
+  const compared = input.realizedBalance;
   const gap = moneyDifference(onAccounts, compared);
   const comparedBefore =
     input.comparedBefore === compared ? null : input.comparedBefore;
@@ -128,27 +116,7 @@ export function buildComparison(input: ComparisonInput): Comparison {
     gap,
     budgetLines,
     transactions,
-    context.priorItems,
-  ).flatMap(({ source, id, monthsAgo, remainingGap }): SuggestionRow[] => {
-    // A 120 movement on a checked 100 prévision closes a 20 gap: ranked first,
-    // but not shown as the exact amount.
-    const settles = (amount: number) =>
-      remainingGap === 0 && moneyDifference(amount, Math.abs(gap)) === 0;
-    const row = { id, monthsAgo };
-    if (source === 'prior') {
-      const prior = context.priorItems.find((item) => item.id === id);
-      return prior
-        ? [
-            {
-              ...row,
-              ...prior,
-              monthsAgo,
-              date: null,
-              settles: settles(prior.amount),
-            },
-          ]
-        : [];
-    }
+  ).flatMap(({ source, id, remainingGap }): SuggestionRow[] => {
     const item =
       source === 'budgetLine'
         ? budgetLines.find((line) => line.id === id)
@@ -157,13 +125,17 @@ export function buildComparison(input: ComparisonInput): Comparison {
     const date = 'transactionDate' in item ? item.transactionDate : null;
     return [
       {
-        ...row,
+        id,
         source,
         kind: item.kind,
         name: item.name,
         amount: item.amount,
         date,
-        settles: settles(item.amount),
+        // A 120 movement on a checked 100 prévision closes a 20 gap: ranked
+        // first, but not shown as the exact amount.
+        settles:
+          remainingGap === 0 &&
+          moneyDifference(item.amount, Math.abs(gap)) === 0,
       },
     ];
   });
@@ -203,7 +175,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
     differenceInCalendarDays(following, input.today) > 0
       ? following
       : startOf(current + 2);
-  // A check of a previous month moves only the « pas coché » line: nothing to strike.
   const { realizedBefore } = input;
   const hasRealizedMoved =
     realizedBefore !== null &&
@@ -214,7 +185,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
     comparedBefore,
     realized: input.realizedBalance,
     realizedBefore: hasRealizedMoved ? realizedBefore : null,
-    priorCorrection: context.priorCorrection,
     hasSaving: suggestions.some((row) => row.kind === 'saving'),
     found:
       comparedBefore === null
@@ -225,7 +195,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
       gap,
       candidateCount: suggestions.length,
       dismissed: input.isDismissed,
-      first: !context.hasCompletedComparison && context.startingAmount === 0,
       salaryMaybeEarly: isSalaryMaybeEarly({
         gap,
         payDayOfMonth: input.payDayOfMonth,
@@ -241,9 +210,7 @@ export function buildComparison(input: ComparisonInput): Comparison {
     matched: matchedBreakdown({
       available: input.available,
       compared,
-      startingAmount: context.startingAmount,
     }),
-    startingAmount: context.startingAmount,
     nextPayDay: nextStart.getDate(),
   };
 }
@@ -325,33 +292,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
               </dd>
             </div>
           }
-          @if (view.matched.beforePulpe !== 0) {
-            <div class="-my-2 flex items-center justify-between gap-4">
-              <dt id="reconcile-before-pulpe" class="text-on-surface-variant">
-                {{ 'currentMonth.reconcile.compare.beforePulpe' | transloco }}
-              </dt>
-              <dd class="m-0">
-                <!-- Named by the row: an amount never goes into an attribute. -->
-                <button
-                  matButton
-                  type="button"
-                  class="-mr-3"
-                  [disabled]="isBusy()"
-                  (click)="editStartingAmount.emit()"
-                  aria-labelledby="reconcile-before-pulpe reconcile-before-pulpe-amount"
-                  data-testid="reconcile-starting-amount-button"
-                >
-                  <!-- The pencil says it opens; the amount keeps the card's ink, not « À dépenser »'s green. -->
-                  <span
-                    id="reconcile-before-pulpe-amount"
-                    class="ph-no-capture whitespace-nowrap text-on-surface"
-                    >{{ signed(view.matched.beforePulpe) }}</span
-                  >
-                  <mat-icon iconPositionEnd aria-hidden="true">edit</mat-icon>
-                </button>
-              </dd>
-            </div>
-          }
           <div
             class="flex items-baseline justify-between gap-4 border-t border-outline-variant pt-3 font-semibold"
           >
@@ -381,7 +321,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
             {{ money(view.onAccounts) }}
           </dd>
         </div>
-        <!-- A grid: each part of the compared figure beyond the month's own takes a line under it. -->
         <div class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4">
           <dt class="text-on-surface-variant">
             {{ 'currentMonth.reconcile.compare.inPulpe' | transloco }}
@@ -416,49 +355,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
               >
             }
           </dd>
-          @if (view.priorCorrection !== 0) {
-            @let unchecked =
-              (
-                'currentMonth.reconcile.compare.priorCorrectionPart'
-                | transloco: { amount: AMOUNT_SLOT }
-              ).split(AMOUNT_SLOT);
-            <dd
-              class="col-span-2 m-0 justify-self-end text-right text-sm text-on-surface-variant"
-              data-testid="reconcile-prior-correction"
-            >
-              {{ unchecked[0]
-              }}<span class="ph-no-capture whitespace-nowrap">{{
-                signed(view.priorCorrection)
-              }}</span
-              >{{ unchecked[1] }}
-            </dd>
-          }
-          @if (view.startingAmount !== 0) {
-            <dd class="col-span-2 m-0 -mb-2 justify-self-end">
-              @let part =
-                (
-                  'currentMonth.reconcile.compare.startingAmountPart'
-                  | transloco: { amount: AMOUNT_SLOT }
-                ).split(AMOUNT_SLOT);
-              <button
-                matButton
-                type="button"
-                class="-mr-3 whitespace-nowrap"
-                [disabled]="isBusy()"
-                (click)="editStartingAmount.emit()"
-                data-testid="reconcile-starting-amount-button"
-              >
-                <span
-                  >{{ part[0]
-                  }}<span class="ph-no-capture">{{
-                    signed(view.startingAmount)
-                  }}</span
-                  >{{ part[1] }}</span
-                >
-                <mat-icon iconPositionEnd aria-hidden="true">edit</mat-icon>
-              </button>
-            </dd>
-          }
         </div>
         <!-- As on iOS: nothing found, no line. -->
         @if (view.found > 0) {
@@ -535,9 +431,10 @@ export function buildComparison(input: ComparisonInput): Comparison {
                       class="text-body-small text-on-surface-variant"
                       data-testid="reconcile-suggestion-detail"
                       >{{
-                        row.monthsAgo === 0 && row.date !== null
+                        row.date !== null
                           ? dayMonth(row.date)
-                          : (detailKey(row.monthsAgo) | transloco)
+                          : ('currentMonth.reconcile.compare.plannedThisMonth'
+                            | transloco)
                       }}</span
                     >
                   </span>
@@ -622,23 +519,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
               }}
             </p>
           </div>
-        }
-        @case ('firstComparison') {
-          @let first =
-            (
-              'currentMonth.reconcile.compare.firstQuestion'
-              | transloco: { amount: AMOUNT_SLOT }
-            ).split(AMOUNT_SLOT);
-          <p
-            class="m-0 rounded-(--pulpe-surface-radius-panel) bg-surface-container-low p-4 text-body-large font-medium text-pretty"
-            data-testid="reconcile-first-comparison"
-          >
-            {{ first[0]
-            }}<span class="ph-no-capture whitespace-nowrap">{{
-              money(view.gap)
-            }}</span
-            >{{ first[1] }}
-          </p>
         }
         @case ('salaryEarly') {
           <div
@@ -726,7 +606,6 @@ export class ReconcileCompareStep {
   readonly viewOthers = output<void>();
   /** Back to step 1 with a new « Je dois » row. */
   readonly addOwe = output<void>();
-  readonly editStartingAmount = output<void>();
 
   private readonly heading =
     viewChild.required<ElementRef<HTMLElement>>('heading');
@@ -770,10 +649,6 @@ export class ReconcileCompareStep {
 
   protected signed(value: number): string {
     return `${value < 0 ? '−' : '+'}${this.money(Math.abs(value))}`;
-  }
-
-  protected detailKey(monthsAgo: 0 | 1 | 2): string {
-    return `currentMonth.reconcile.compare.${['plannedThisMonth', 'lastMonth', 'twoMonthsAgo'][monthsAgo]}`;
   }
 
   protected dayMonth(date: string): string {

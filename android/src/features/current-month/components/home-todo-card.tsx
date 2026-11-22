@@ -112,7 +112,6 @@ export function HomeTodoCard({
             }
             isOverrun={fact.isOverrun}
             amount={formatCurrency(item.amount, currency)}
-            kind={item.kind}
             isPointed={false}
             isSyncing={isPending(item)}
             onToggle={() => onPointItem(item)}

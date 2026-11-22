@@ -238,7 +238,6 @@ export default class BudgetDetailsPage {
       this.store.budgetDetails()?.id === budget.id;
     void this.#reconcileAccountsDialog.open(
       {
-        budgetId: budget.id,
         realized: computed(() =>
           matches()
             ? {

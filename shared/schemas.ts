@@ -3223,30 +3223,27 @@ export type AssetCategoryDeleteResponse = z.infer<
 
 // « Comparer avec mes comptes »
 
-/** An unchecked item of one of the two previous months. `effect` is what pointing it moves in the compared figure. */
-export const reconciliationPriorItemSchema = z.object({
-  id: z.uuid(),
-  source: z.enum(['transaction', 'budgetLine']),
-  budgetId: z.uuid(),
-  name: z.string(),
-  amount: z.number(),
-  kind: transactionKindSchema,
-  monthsAgo: z.union([z.literal(1), z.literal(2)]),
-  effect: z.number(),
-});
-export type ReconciliationPriorItem = z.infer<
-  typeof reconciliationPriorItemSchema
->;
-
 export const reconciliationStateSchema = z.object({
-  startingAmount: z.number(),
+  /**
+   * @deprecated Always `0`: money from before Pulpe is no longer asked nor
+   * counted; a gap is noted like any other. Still sent because iOS 1.14.2
+   * requires the key; drop it once no build older than 1.14.3 is in use.
+   */
+  startingAmount: z.literal(0),
+  /** @deprecated Read by no current client; kept for iOS 1.14.2. */
   hasCompletedComparison: z.boolean(),
 });
 export type ReconciliationState = z.infer<typeof reconciliationStateSchema>;
 
 export const reconciliationContextSchema = reconciliationStateSchema.extend({
-  priorCorrection: z.number(),
-  priorItems: z.array(reconciliationPriorItemSchema),
+  /**
+   * @deprecated Always `0` and `[]`: what a previous month left unchecked no
+   * longer counts in the comparison. Still sent because iOS 1.14.2 requires
+   * both keys; drop them once no build older than 1.14.3 is in use.
+   */
+  priorCorrection: z.literal(0),
+  /** @deprecated See `priorCorrection`. */
+  priorItems: z.tuple([]),
 });
 export type ReconciliationContext = z.infer<typeof reconciliationContextSchema>;
 
@@ -3261,7 +3258,7 @@ const MAX_RECONCILIATION_AMOUNT = 999_999_999.99;
 
 export const updateReconciliationStateSchema = z
   .strictObject({
-    // The range the clients can type: nine digits of units, two of cents.
+    /** @deprecated Accepted from iOS 1.14.2 and ignored. */
     startingAmount: z
       .number()
       .min(-MAX_RECONCILIATION_AMOUNT)

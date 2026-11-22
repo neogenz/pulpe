@@ -14,8 +14,6 @@ async function renderCircle(isSyncing: boolean) {
     <PaperProvider>
       <PointCircle
         isChecked
-        color="#B35800"
-        icon="arrow-up"
         isSyncing={isSyncing}
         label="Loyer"
         onToggle={onToggle}

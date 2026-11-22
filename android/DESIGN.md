@@ -94,8 +94,9 @@ row opening on a 36dp disc (`IconDisc`) in the colour of its nature. A virtualiz
 same card in `LedgerSegment`s. A section names itself above its card with `SectionHeader` — MD3 `titleLarge`
 title, a quiet count, an optional summary amount and a _named_ link (`Tout voir`, `Ajuster`).
 
-On a budget, the disc is the pointing control (`PointCircle`): to point, the row's own disc ringed
-in dashes of its colour; pointed, filled with a check, and the name struck through. The disc is 36,
+On a budget, the pointing control (`PointCircle`) takes the disc's place, the same circle as iOS:
+to point, an empty `pointRing` circle, never tinted by the row's nature, so it reads as a box to
+tick; pointed, a filled primary disc with a check, and the name struck through. The circle is 28,
 the target Material's 48.
 
 Dragging a row to the right is the second path to the same toggle (`SwipeToPoint`): past its

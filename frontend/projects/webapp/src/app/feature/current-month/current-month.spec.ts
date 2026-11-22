@@ -825,7 +825,6 @@ describe('Dashboard (TestBed)', () => {
 
       const { data, isHandset } = openedWith(mockReconcileDialog);
       expect(isHandset).toBe(false);
-      expect(data.budgetId).toBe(budgetId);
       expect(data.realized()).toEqual({ balance: 1499.99, available: 3491 });
 
       mockStore.realizedBalance.set(1500);
