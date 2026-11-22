@@ -5,6 +5,9 @@ import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom, type Observable } from 'rxjs';
 
+/** Lets the global styles reach the sheets' buttons (`_reconcile-dialog.scss`). */
+const SHEET_CLASS = 'pulpe-reconcile-sheet';
+
 /** The comparison's small sheets: a bottom sheet on a phone, a dialog on desktop, one body for both. */
 @Service()
 export class ReconcileSheet {
@@ -24,7 +27,7 @@ export class ReconcileSheet {
     if (this.#breakpoints.isMatched(Breakpoints.Handset)) {
       const ref = this.#bottomSheet.open<TComponent, TData, TResult>(
         component,
-        { data, ariaLabel },
+        { data, ariaLabel, panelClass: SHEET_CLASS },
       );
       closed = ref.afterDismissed();
       close = () => ref.dismiss();
@@ -34,6 +37,9 @@ export class ReconcileSheet {
         ariaLabel,
         width: '480px',
         maxWidth: 'calc(100vw - 48px)',
+        // Large text or a short window: the sheet scrolls instead of leaving the screen.
+        maxHeight: 'calc(100dvh - 48px)',
+        panelClass: SHEET_CLASS,
       });
       closed = ref.afterClosed();
       close = () => ref.close();

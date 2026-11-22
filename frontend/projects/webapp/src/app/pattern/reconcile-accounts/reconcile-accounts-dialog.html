@@ -47,7 +47,7 @@
     </p>
     <h3
       tabindex="-1"
-      class="step-heading text-headline-small font-bold"
+      class="step-heading text-headline-small font-bold text-on-surface"
       data-testid="reconcile-step-heading"
     >
       {{ 'currentMonth.reconcile.accounts.heading' | transloco }}
@@ -87,17 +87,24 @@
     <p class="m-0 text-sm text-on-surface-variant">
       {{ 'currentMonth.reconcile.compare.stepLabel' | transloco }}
     </p>
-    <h3 tabindex="-1" class="step-heading m-0 text-title-large font-semibold">
-      {{ 'currentMonth.reconcile.compare.loadError' | transloco }}
-    </h3>
-    <button
-      matButton="tonal"
-      type="button"
-      (click)="retry()"
-      data-testid="reconcile-retry-button"
+    <!-- The card itself takes the focus: a screen reader hears the error and its action. -->
+    <pulpe-state-card
+      variant="error"
+      [compact]="true"
+      tabindex="-1"
+      class="step-heading w-full"
+      [title]="'currentMonth.reconcile.compare.loadError' | transloco"
     >
-      {{ 'common.retry' | transloco }}
-    </button>
+      <button
+        matButton="tonal"
+        type="button"
+        class="mt-6"
+        (click)="retry()"
+        data-testid="reconcile-retry-button"
+      >
+        {{ 'common.retry' | transloco }}
+      </button>
+    </pulpe-state-card>
   </section>
   } @else {
   <div class="flex justify-center py-12">
@@ -180,8 +187,9 @@
       [disabled]="isBusy()"
       data-testid="reconcile-dismiss-button"
     >
-      {{ (view.gap < 0 ? 'currentMonth.reconcile.compare.noExpenseMatches' :
-      'currentMonth.reconcile.compare.noIncomeMatches') | transloco }}
+      {{ (view.gap > 0 ? 'currentMonth.reconcile.compare.noIncomeMatches' :
+      view.hasSaving ? 'currentMonth.reconcile.compare.nothingMatches' :
+      'currentMonth.reconcile.compare.noExpenseMatches') | transloco }}
     </button>
     } @case ('firstComparison') {
     <button

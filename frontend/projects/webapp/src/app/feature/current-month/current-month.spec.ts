@@ -7,7 +7,7 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { MatDialog, type MatDialogConfig } from '@angular/material/dialog';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -20,10 +20,8 @@ import {
 import { of, Subject } from 'rxjs';
 import Dashboard, { UNDO_WINDOW_MS } from './current-month';
 import { type TransactionFormData } from './components/add-transaction-form.schema';
-import {
-  ReconcileAccountsDialog,
-  type ReconcileAccountsDialogData,
-} from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
+import type { ReconcileAccountsDialogData } from '@pattern/reconcile-accounts/reconcile-accounts-dialog';
+import { ReconcileAccountsDialogService } from '@pattern/reconcile-accounts/reconcile-accounts-dialog.service';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 import type { MonthRecap } from './services/dashboard-state';
@@ -607,6 +605,8 @@ describe('Dashboard (TestBed)', () => {
       observe: vi.fn().mockReturnValue(of({ matches: false, breakpoints: {} })),
     };
     const mockFirstTransactionTracker = { recordCreated: vi.fn() };
+    // Its frame and lazy loading are the service's own spec.
+    const mockReconcileDialog = { open: vi.fn().mockResolvedValue(undefined) };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -628,6 +628,10 @@ describe('Dashboard (TestBed)', () => {
             provide: FirstTransactionTracker,
             useValue: mockFirstTransactionTracker,
           },
+          {
+            provide: ReconcileAccountsDialogService,
+            useValue: mockReconcileDialog,
+          },
         ],
       })
       .compileComponents();
@@ -643,6 +647,7 @@ describe('Dashboard (TestBed)', () => {
       mockBreakpoints,
       mockRouter,
       mockFirstTransactionTracker,
+      mockReconcileDialog,
       undoAction,
       readPersistRefusal: () => persistRefusal,
     };
@@ -802,28 +807,24 @@ describe('Dashboard (TestBed)', () => {
   });
 
   describe('reconciling the accounts', () => {
-    function openedWith(mockDialog: { open: Mock }) {
-      const [component, config] = mockDialog.open.mock.calls[0] as [
-        unknown,
-        MatDialogConfig<ReconcileAccountsDialogData>,
+    function openedWith(mockReconcileDialog: { open: Mock }) {
+      const [data, isHandset] = mockReconcileDialog.open.mock.calls[0] as [
+        ReconcileAccountsDialogData,
+        boolean,
       ];
-      if (!config.data) throw new Error('dialog opened without data');
-      return { component, config, data: config.data };
+      return { data, isHandset };
     }
 
-    it('should open a centred dialog on desktop that reads the realized position live', async () => {
-      const { component, mockDialog, mockStore } = await setup(
+    it('should open the dialog framed for desktop, reading the realized position live', async () => {
+      const { component, mockReconcileDialog, mockStore } = await setup(
         budgetId,
         undefined,
       );
 
       component['openReconcileAccounts']();
 
-      const { component: opened, config, data } = openedWith(mockDialog);
-      expect(opened).toBe(ReconcileAccountsDialog);
-      expect(config.panelClass).toBeUndefined();
-      expect(config.width).toBe('560px');
-      expect(config.disableClose).toBe(true);
+      const { data, isHandset } = openedWith(mockReconcileDialog);
+      expect(isHandset).toBe(false);
       expect(data.budgetId).toBe(budgetId);
       expect(data.realized()).toEqual({ balance: 1499.99, available: 3491 });
 
@@ -832,16 +833,14 @@ describe('Dashboard (TestBed)', () => {
     });
 
     it('should check a movement or a prévision of the month and toast a refusal', async () => {
-      const { component, mockDialog, mockStore, mockSnackBar } = await setup(
-        budgetId,
-        undefined,
-      );
+      const { component, mockReconcileDialog, mockStore, mockSnackBar } =
+        await setup(budgetId, undefined);
       component['openReconcileAccounts']();
-      const { data } = openedWith(mockDialog);
+      const { data } = openedWith(mockReconcileDialog);
 
-      await data.checkItem({ kind: 'transaction', id: 'tx-1' });
+      await data.checkItem({ source: 'transaction', id: 'tx-1' });
       mockStore.checkBudgetLine.mockResolvedValueOnce('Refusé');
-      await data.checkItem({ kind: 'budgetLine', id: 'line-1' });
+      await data.checkItem({ source: 'budgetLine', id: 'line-1' });
 
       expect(mockStore.checkTransaction).toHaveBeenCalledWith('tx-1');
       expect(mockStore.checkBudgetLine).toHaveBeenCalledWith('line-1');
@@ -852,8 +851,8 @@ describe('Dashboard (TestBed)', () => {
       );
     });
 
-    it('should open full-height on a phone', async () => {
-      const { component, mockDialog, mockBreakpoints } = await setup(
+    it('should open the dialog framed for a phone', async () => {
+      const { component, mockReconcileDialog, mockBreakpoints } = await setup(
         budgetId,
         undefined,
       );
@@ -861,19 +860,14 @@ describe('Dashboard (TestBed)', () => {
 
       component['openReconcileAccounts']();
 
-      const { config } = openedWith(mockDialog);
-      expect(config.panelClass).toBe('full-screen-dialog');
-      expect(config.height).toBe('100dvh');
-      expect(config.maxWidth).toBe('100dvw');
+      expect(openedWith(mockReconcileDialog).isHandset).toBe(true);
     });
 
     it('should record the adjustment as one checked entry of the active budget', async () => {
-      const { component, mockDialog, mockStore, mockSnackBar } = await setup(
-        budgetId,
-        undefined,
-      );
+      const { component, mockReconcileDialog, mockStore, mockSnackBar } =
+        await setup(budgetId, undefined);
       component['openReconcileAccounts']();
-      const { data } = openedWith(mockDialog);
+      const { data } = openedWith(mockReconcileDialog);
 
       const isRecorded = await data.recordAdjustment({
         name: 'Ajustement',
@@ -904,15 +898,13 @@ describe('Dashboard (TestBed)', () => {
     });
 
     it('should toast a refusal and report it to the dialog, which keeps the entry', async () => {
-      const { component, mockDialog, mockStore, mockSnackBar } = await setup(
-        budgetId,
-        undefined,
-      );
+      const { component, mockReconcileDialog, mockStore, mockSnackBar } =
+        await setup(budgetId, undefined);
       mockStore.addTransaction.mockResolvedValue({
         reason: 'Le serveur a refusé',
       });
       component['openReconcileAccounts']();
-      const { data } = openedWith(mockDialog);
+      const { data } = openedWith(mockReconcileDialog);
 
       const isRecorded = await data.recordAdjustment({
         name: 'Ajustement',
@@ -930,12 +922,10 @@ describe('Dashboard (TestBed)', () => {
     });
 
     it('should hold the dialog to the month it opened on, and never write to another', async () => {
-      const { component, mockDialog, mockStore, mockSnackBar } = await setup(
-        budgetId,
-        undefined,
-      );
+      const { component, mockReconcileDialog, mockStore, mockSnackBar } =
+        await setup(budgetId, undefined);
       component['openReconcileAccounts']();
-      const { data } = openedWith(mockDialog);
+      const { data } = openedWith(mockReconcileDialog);
 
       // A refresh of the same month only moves the figures.
       mockStore.realizedBalance.set(1500);
@@ -971,12 +961,10 @@ describe('Dashboard (TestBed)', () => {
     });
 
     it('should open the active budget to show what is left to check, once the dialog has closed', async () => {
-      const { component, mockDialog, mockRouter } = await setup(
-        budgetId,
-        undefined,
-      );
+      const { component, mockDialog, mockReconcileDialog, mockRouter } =
+        await setup(budgetId, undefined);
       component['openReconcileAccounts']();
-      const { data } = openedWith(mockDialog);
+      const { data } = openedWith(mockReconcileDialog);
 
       data.viewItemsToCheck();
       expect(mockRouter.navigate).not.toHaveBeenCalled();

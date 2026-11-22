@@ -14,3 +14,43 @@
     )
   );
 }
+
+// Large text wraps a label over two lines or more: the button grows with it
+// instead of letting the words spill over its border. At normal size the
+// label fits the minimum, so nothing moves.
+.pulpe-reconcile-dialog,
+.pulpe-reconcile-sheet {
+  @each $class,
+    $variant
+      in (
+        mat-mdc-button: text,
+        mat-mdc-unelevated-button: filled,
+        mat-mdc-outlined-button: outlined,
+        mat-tonal-button: tonal
+      )
+  {
+    .#{$class} {
+      height: auto;
+      min-height: var(--mat-button-#{$variant}-container-height, 40px);
+      padding-block: 8px;
+    }
+  }
+}
+
+// On a phone the bottom sheet itself scrolled, carrying the title and the
+// close button of « Autres raisons » away with large text. Its own body
+// scrolls instead, under a header that stays put. Only that sheet has a
+// scrolling body: the others keep the container's own scroll.
+// panelClass lands on the overlay pane, around the container.
+.pulpe-reconcile-sheet
+  > .mat-bottom-sheet-container:has(> pulpe-reconcile-reasons-sheet) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  > * {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}

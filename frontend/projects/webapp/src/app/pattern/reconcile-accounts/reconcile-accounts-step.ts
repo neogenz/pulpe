@@ -158,14 +158,14 @@ export function summarizeRows(rows: readonly AccountRow[]) {
           @if (row.account.kind === 'free') {
             <div
               role="radiogroup"
-              class="ph-no-capture amounts-visible flex gap-1 rounded-xl border border-solid border-outline-variant p-1"
+              class="ph-no-capture amounts-visible flex gap-1 rounded-corner-medium border border-solid border-outline-variant p-1"
               [attr.aria-label]="
                 'currentMonth.reconcile.accounts.side' | transloco: { name }
               "
             >
               @for (side of sides; track side) {
                 <label
-                  class="flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg text-sm font-medium text-on-surface-variant has-focus-visible:outline-2 has-focus-visible:outline-primary"
+                  class="flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-corner-small text-sm font-medium text-on-surface-variant has-focus-visible:outline-2 has-focus-visible:outline-primary"
                   [class]="segmentClass(side)"
                 >
                   <input
@@ -189,9 +189,6 @@ export function summarizeRows(rows: readonly AccountRow[]) {
             <mat-label>{{
               'currentMonth.reconcile.accounts.amount' | transloco
             }}</mat-label>
-            <span matTextPrefix class="pr-2 text-sm text-on-surface-variant">{{
-              currencySymbol()
-            }}</span>
             <input
               matInput
               inputmode="decimal"
@@ -201,8 +198,14 @@ export function summarizeRows(rows: readonly AccountRow[]) {
               [ngModel]="row.amountText"
               (ngModelChange)="update(row.id, { amountText: $event })"
               [errorStateMatcher]="unreadableAmount"
+              [attr.aria-label]="
+                'currentMonth.reconcile.accounts.amountOf' | transloco: { name }
+              "
               data-testid="reconcile-amount-input"
             />
+            <span matTextSuffix class="text-on-surface-variant">{{
+              currencySymbol()
+            }}</span>
             <mat-error>{{
               'currentMonth.reconcile.accounts.invalidAmount' | transloco
             }}</mat-error>

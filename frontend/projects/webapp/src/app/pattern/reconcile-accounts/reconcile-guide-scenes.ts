@@ -68,19 +68,19 @@ export const SCENE_BASE_STYLES = `
     }
     .figure {
       font-family: var(--mat-sys-headline-small-font);
-      font-size: 1.375rem;
+      font-size: var(--mat-sys-title-large-size);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
     .figure.small {
-      font-size: 1.0625rem;
+      font-size: var(--mat-sys-title-medium-size);
     }
     .rise {
-      animation: rise 0.5s var(--ease) calc(var(--i, 0) * var(--beat)) both;
+      animation: rise var(--pulpe-motion-slow) var(--pulpe-ease-emphasized) calc(var(--i, 0) * var(--beat)) both;
     }
     .pop {
-      animation: pop 0.5s var(--ease) calc(var(--i, 0) * var(--beat)) both;
+      animation: pop var(--pulpe-motion-slow) var(--pulpe-ease-emphasized) calc(var(--i, 0) * var(--beat)) both;
     }
     @keyframes rise {
       from {

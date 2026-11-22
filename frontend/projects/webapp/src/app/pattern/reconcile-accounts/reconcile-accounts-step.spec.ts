@@ -222,6 +222,17 @@ describe('ReconcileAccountsStep', () => {
     }
   });
 
+  // Every field shows « Solde »: a screen reader names the account it belongs to.
+  it('should name each balance field after its account, unnamed ones by number', async () => {
+    const view = await setup([row(0, { label: 'UBS' }), row(1, { label: '' })]);
+
+    expect(
+      [
+        ...view.host.querySelectorAll('[data-testid="reconcile-amount-input"]'),
+      ].map((input) => input.getAttribute('aria-label')),
+    ).toEqual(['Solde de UBS', 'Solde de Compte 2']);
+  });
+
   it('should keep a segment of the side control at least 44px high', async () => {
     const view = await setup([row(0)]);
 

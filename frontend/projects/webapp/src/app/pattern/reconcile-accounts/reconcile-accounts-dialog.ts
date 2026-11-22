@@ -45,6 +45,7 @@ import { ReconciliationApi } from '@core/reconciliation/reconciliation-api';
 import { StorageService } from '@core/storage';
 import { UserSettingsStore } from '@core/user-settings';
 import { LoadingButton } from '@ui/loading-button';
+import { StateCard } from '@ui/state-card/state-card';
 import type { GuideSource } from './reconcile-guide.model';
 import { ReconcileGuide } from './reconcile-guide';
 import {
@@ -97,7 +98,7 @@ export interface ReconcileLedger {
 }
 
 /** A movement or a prévision of the month the dialog opened on. */
-export type CheckTarget = Pick<SuggestionRow, 'kind' | 'id'>;
+export type CheckTarget = Pick<SuggestionRow, 'source' | 'id'>;
 
 /** What the reconciliation reads from « Mon patrimoine ». */
 export interface ReconcileNetWorth {
@@ -148,6 +149,7 @@ type Step = 1 | 2;
     ReconcileAccountsStep,
     ReconcileCompareStep,
     ReconcileGuide,
+    StateCard,
   ],
   templateUrl: './reconcile-accounts-dialog.html',
   styleUrl: './reconcile-accounts-dialog.scss',
@@ -230,7 +232,13 @@ export class ReconcileAccountsDialog {
     stream: ({ params }) =>
       this.#reconciliationApi.getContext$(params).pipe(map(({ data }) => data)),
   });
-  readonly #comparedBefore = signal<number | null>(null);
+  // Taken at this comparison's first check: « trouvés » measures from
+  // `compared`, and `realized` is struck once a check moves it. A figure that
+  // moves without a check drops `compared` only: the next check restarts it.
+  readonly #beforeChecks = signal<{
+    readonly compared: number | null;
+    readonly realized: number;
+  } | null>(null);
   readonly #isDismissed = signal(false);
 
   // Without the context, the figure and the screen would both be wrong: step 2 waits.
@@ -247,7 +255,8 @@ export class ReconcileAccountsDialog {
       budgetLines: ledger.budgetLines,
       transactions: ledger.transactions,
       context: this.context.value(),
-      comparedBefore: this.#comparedBefore(),
+      comparedBefore: this.#beforeChecks()?.compared ?? null,
+      realizedBefore: this.#beforeChecks()?.realized ?? null,
       isDismissed: this.#isDismissed(),
       payDayOfMonth: this.#userSettings.payDayOfMonth(),
       today: new Date(),
@@ -284,8 +293,8 @@ export class ReconcileAccountsDialog {
       ['budget', 'details'],
       ['budget', 'history'],
     ],
-    mutationFn: ({ kind, id }) =>
-      kind === 'transaction'
+    mutationFn: ({ source, id }) =>
+      source === 'transaction'
         ? firstValueFrom(this.#budgetApi.toggleTransactionCheck$(id))
         : firstValueFrom(this.#budgetApi.toggleBudgetLineCheck$(id)),
   });
@@ -369,7 +378,7 @@ export class ReconcileAccountsDialog {
           : [],
       ),
     );
-    this.#comparedBefore.set(null);
+    this.#beforeChecks.set(null);
     this.#isDismissed.set(false);
     this.#isCompletionSent = false;
     this.#goTo(2);
@@ -435,7 +444,10 @@ export class ReconcileAccountsDialog {
     const view = this.comparison();
     if (!view || this.isBusy()) return;
     this.checkingId.set(row.id);
-    this.#comparedBefore.update((before) => before ?? view.compared);
+    this.#beforeChecks.update((before) => ({
+      compared: before?.compared ?? view.compared,
+      realized: before?.realized ?? view.realized,
+    }));
     try {
       if (row.monthsAgo === 0) {
         await this.data.checkItem(row);
@@ -475,10 +487,16 @@ export class ReconcileAccountsDialog {
     this.#isHeadingToFocus.set(true);
   }
 
+  #forgetFound(): void {
+    this.#beforeChecks.update(
+      (before) => before && { compared: null, realized: before.realized },
+    );
+  }
+
   protected removeOwe(): void {
     this.accounts.update((rows) => rows.filter((row) => row.side !== 'owe'));
     // The accounts total moved: what was found no longer measures against it.
-    this.#comparedBefore.set(null);
+    this.#forgetFound();
     // Nothing typed is left to compare: back to the balances, as on iOS.
     if (this.summary().totalCents === null) this.#goTo(1);
     else this.#isHeadingToFocus.set(true);
@@ -530,7 +548,7 @@ export class ReconcileAccountsDialog {
       const context = this.context.value();
       if (context) this.context.set({ ...context, ...data });
       // The figure moved without a check: what was found no longer measures against it.
-      this.#comparedBefore.set(null);
+      this.#forgetFound();
       this.#isHeadingToFocus.set(true);
       return true;
     } catch {

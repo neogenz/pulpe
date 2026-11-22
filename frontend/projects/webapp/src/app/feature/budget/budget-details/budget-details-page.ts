@@ -258,9 +258,9 @@ export default class BudgetDetailsPage {
               }
             : null;
         }),
-        checkItem: async ({ kind, id }) => {
+        checkItem: async ({ source, id }) => {
           // A suggestion is never checked: the toggle only checks it.
-          const outcome = await (kind === 'transaction'
+          const outcome = await (source === 'transaction'
             ? this.store.toggleTransactionCheck(id)
             : this.store.toggleCheck(id));
           if (outcome.status === 'failed') {

@@ -459,6 +459,8 @@ for (const [name, year, month, isCurrent] of [
     authenticatedPage: page,
     budgetDetailsPage,
   }) => {
+    // The month above comes from the Node clock: the browser reads the same instant.
+    await page.clock.setFixedTime(now);
     await markGuideSeen(page);
     const response = structuredClone(createMockBudgetDetailsResponse());
     response.data.budget.year = year;
@@ -887,6 +889,8 @@ for (const viewport of VIEWPORTS) {
     const writes = await mockReconciliation(page, {
       hasCompletedComparison: false,
     });
+    // The month comes from the Node clock: the browser reads the same instant.
+    await page.clock.setFixedTime(new Date());
     await mockMonthOf900(page);
     await page.setViewportSize(viewport);
     await currentMonthPage.goto();
@@ -946,6 +950,8 @@ for (const viewport of VIEWPORTS) {
   }) => {
     await markGuideSeen(page);
     await mockReconciliation(page);
+    // The month comes from the Node clock: the browser reads the same instant.
+    await page.clock.setFixedTime(new Date());
     await mockMonthOf900(page);
     await page.setViewportSize(viewport);
     await currentMonthPage.goto();

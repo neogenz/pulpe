@@ -70,9 +70,6 @@ export interface StartingAmountSheetData {
         <mat-label>{{
           'currentMonth.reconcile.compare.startingAmountLabel' | transloco
         }}</mat-label>
-        <span matTextPrefix class="pr-2 text-sm text-on-surface-variant">{{
-          currencySymbol
-        }}</span>
         <input
           matInput
           cdkFocusInitial
@@ -85,6 +82,9 @@ export interface StartingAmountSheetData {
           [errorStateMatcher]="unreadableAmount"
           data-testid="reconcile-starting-amount-input"
         />
+        <span matTextSuffix class="text-on-surface-variant">{{
+          currencySymbol
+        }}</span>
         <mat-error>{{
           'currentMonth.reconcile.accounts.invalidAmount' | transloco
         }}</mat-error>

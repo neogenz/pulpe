@@ -120,9 +120,8 @@ import {
       display: flex;
       flex-direction: column;
       padding: 0.5rem 1.75rem 1.5rem;
-      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
       /* One step of the choreography: delays are written as --i multiples of it. */
-      --beat: 0.3s;
+      --beat: var(--pulpe-motion-slow);
     }
     :host-context(.full-screen-dialog) {
       height: 100%;
@@ -199,7 +198,7 @@ import {
       height: 0.5rem;
       border-radius: var(--mat-sys-corner-full);
       background: var(--mat-sys-outline-variant);
-      transition: width 0.3s var(--ease);
+      transition: width var(--pulpe-motion-slow) var(--pulpe-ease-emphasized);
     }
     .step-dot-current {
       width: 1.375rem;

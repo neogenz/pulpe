@@ -1078,8 +1078,8 @@ export default class Dashboard {
               }
             : null,
         ),
-        checkItem: async ({ kind, id }) => {
-          const refusal = await (kind === 'transaction'
+        checkItem: async ({ source, id }) => {
+          const refusal = await (source === 'transaction'
             ? this.store.checkTransaction(id)
             : this.store.checkBudgetLine(id));
           // Top, so the toast stays clear of the full-height dialog's actions.

@@ -54,6 +54,7 @@ function input(overrides: Partial<ComparisonInput> = {}): ComparisonInput {
     transactions: [ESSENCE],
     context: CONTEXT,
     comparedBefore: null,
+    realizedBefore: null,
     isDismissed: false,
     payDayOfMonth: null,
     today: new Date(2026, 10, 23),
@@ -82,7 +83,8 @@ describe('buildComparison', () => {
       { name: 'Pharmacie', monthsAgo: 1, settles: false },
     ]);
     expect(view.suggestions[2]).toMatchObject({
-      kind: 'transaction',
+      source: 'transaction',
+      kind: 'expense',
       id: 'tx-pharmacie',
     });
     expect(view.othersCount).toBe(0);
@@ -206,7 +208,65 @@ describe('buildComparison', () => {
       }),
     );
 
-    expect(view.compared).toBe(1100);
+    expect(view).toMatchObject({
+      compared: 1100,
+      realized: 1050,
+      priorCorrection: 40,
+    });
+  });
+
+  // Checking a « Mois dernier » item moves the prior correction, not the month's balance.
+  it('should strike the realized balance only once a check moved it', () => {
+    expect(
+      buildComparison(input({ realizedBalance: 990, realizedBefore: 1050 }))
+        .realizedBefore,
+    ).toBe(1050);
+    expect(
+      buildComparison(
+        input({
+          realizedBefore: 1050,
+          comparedBefore: 1050,
+          context: { ...CONTEXT, priorCorrection: -40 },
+        }),
+      ).realizedBefore,
+    ).toBeNull();
+  });
+
+  it('should tell a saving among the shown suggestions, whatever its source', () => {
+    const epargne = createMockBudgetLine({
+      id: 'line-epargne',
+      name: 'Épargne',
+      amount: 100,
+      kind: 'saving',
+    });
+    const pilier = {
+      ...CONTEXT.priorItems[0],
+      id: 'tx-pilier',
+      name: 'Pilier 3a',
+      kind: 'saving' as const,
+    };
+    const prior = buildComparison(
+      input({
+        budgetLines: [],
+        transactions: [],
+        context: { ...CONTEXT, priorItems: [pilier] },
+      }),
+    );
+
+    expect(buildComparison(input()).hasSaving).toBe(false);
+    expect(buildComparison(input({ budgetLines: [epargne] })).hasSaving).toBe(
+      true,
+    );
+    // 300.00 would cross the 100.00 gap: not shown, so not spoken of.
+    expect(
+      buildComparison(input({ budgetLines: [{ ...epargne, amount: 300 }] }))
+        .hasSaving,
+    ).toBe(false);
+    expect(prior.hasSaving).toBe(true);
+    expect(prior.suggestions[0]).toMatchObject({
+      source: 'transaction',
+      kind: 'saving',
+    });
   });
 
   it('should end on matched with what is still planned and the month to spend', () => {
@@ -346,6 +406,41 @@ describe('ReconcileCompareStep', () => {
     );
   });
 
+  it('should say « Il y a 2 mois » for an item of two months ago', async () => {
+    const { text } = await render(
+      input({
+        context: {
+          ...CONTEXT,
+          priorItems: [{ ...CONTEXT.priorItems[0], monthsAgo: 2 }],
+        },
+      }),
+    );
+
+    expect(text('reconcile-suggestion-detail')).toContain('Il y a 2 mois');
+  });
+
+  it('should ask for incomes when the accounts hold more, and turn the small gap example around', async () => {
+    const salaire = createMockBudgetLine({
+      id: 'line-salaire',
+      name: 'Salaire',
+      amount: 100,
+      kind: 'income',
+    });
+    const more = await render(
+      input({ onAccountsCents: 115_000, budgetLines: [salaire] }),
+    );
+    expect(more.host.textContent).toContain(
+      "Coche les revenus que tu vois dans l'app de ta banque.",
+    );
+
+    const small = await render(
+      input({ onAccountsCents: 105_240, isDismissed: true }),
+    );
+    expect(small.text('reconcile-small-gap')[0]).toContain(
+      'Café · payé 3.00 · noté 3.80',
+    );
+  });
+
   // « Masquer les montants » blurs every `.ph-no-capture`: the words must stay readable.
   it('should mask the amount of the heading, never its words', async () => {
     const gap = await render(input());
@@ -422,10 +517,16 @@ describe('ReconcileCompareStep', () => {
       );
 
     const figures = await render(
-      input({ realizedBalance: 990, transactions: [], comparedBefore: 1050 }),
+      input({
+        realizedBalance: 990,
+        transactions: [],
+        comparedBefore: 1050,
+        realizedBefore: 1050,
+      }),
     );
+    // The old figure twice: struck on screen, then read out after the new one.
     expect(masked(figures.host, 'reconcile-figures')).toEqual(
-      [950, 1050, 990, 60].map((amount) => money(amount, 'CHF')),
+      [950, 1050, 990, 1050, 60].map((amount) => money(amount, 'CHF')),
     );
     expect(unmasked(figures.host, '[data-testid="reconcile-figures"] dt')).toBe(
       true,
@@ -435,7 +536,7 @@ describe('ReconcileCompareStep', () => {
     );
 
     const matched = await render(input({ onAccountsCents: 105_000 }));
-    expect(masked(matched.host, 'reconcile-matched')).toHaveLength(2);
+    expect(masked(matched.host, 'reconcile-matched')).toHaveLength(3);
     expect(unmasked(matched.host, '[data-testid="reconcile-matched"] dt')).toBe(
       true,
     );
@@ -452,12 +553,107 @@ describe('ReconcileCompareStep', () => {
 
   it('should strike the figure before the checks and show what they found', async () => {
     const { text } = await render(
-      input({ realizedBalance: 990, transactions: [], comparedBefore: 1050 }),
+      input({
+        realizedBalance: 990,
+        transactions: [],
+        comparedBefore: 1050,
+        realizedBefore: 1050,
+      }),
     );
 
     expect(text('reconcile-compared-before')).toEqual(['1’050.00 CHF']);
     expect(text('reconcile-found')).toEqual(['60.00 CHF trouvés']);
     expect(text('reconcile-step-heading')[0]).toContain('40.00');
+  });
+
+  // A screen reader hears « 990.00 CHF au lieu de 1 050.00 CHF », never two bare amounts.
+  it('should read the old figure after the new one, as « au lieu de »', async () => {
+    const { host, text } = await render(
+      input({
+        realizedBalance: 990,
+        transactions: [],
+        comparedBefore: 1050,
+        realizedBefore: 1050,
+      }),
+    );
+    const instead = host.querySelector(
+      '[data-testid="reconcile-compared-instead"]',
+    );
+
+    expect(
+      host
+        .querySelector('[data-testid="reconcile-compared-before"]')
+        ?.getAttribute('aria-hidden'),
+    ).toBe('true');
+    expect(instead?.classList).toContain('sr-only');
+    expect(text('reconcile-compared-instead')).toEqual([
+      `au lieu de ${money(1050, 'CHF')}`,
+    ]);
+    expect(instead?.querySelector('.ph-no-capture')?.textContent).toBe(
+      money(1050, 'CHF'),
+    );
+    expect(
+      host
+        .querySelector('[data-testid="reconcile-compared"]')
+        ?.compareDocumentPosition(instead as Node),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect((await render(input())).text('reconcile-compared-instead')).toEqual(
+      [],
+    );
+  });
+
+  it('should show the Accueil figure, then what earlier months left unchecked, then the money from before Pulpe', async () => {
+    const { host, text } = await render(
+      input({
+        onAccountsCents: 410_000,
+        realizedBalance: 900,
+        context: { ...CONTEXT, priorCorrection: 120, startingAmount: 3100 },
+      }),
+    );
+    const prior = host.querySelector(
+      '[data-testid="reconcile-prior-correction"]',
+    );
+    const start = host.querySelector(
+      '[data-testid="reconcile-starting-amount-button"]',
+    );
+
+    expect(text('reconcile-compared')).toEqual([money(900, 'CHF')]);
+    expect(text('reconcile-prior-correction')).toEqual([
+      `+${money(120, 'CHF')} pas coché les mois d'avant`,
+    ]);
+    // A plain line, its amount masked alone.
+    expect(prior?.tagName).toBe('DD');
+    expect(prior?.querySelector('.ph-no-capture')?.textContent).toBe(
+      `+${money(120, 'CHF')}`,
+    );
+    expect(start && prior?.compareDocumentPosition(start)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+
+    const owed = await render(
+      input({ context: { ...CONTEXT, priorCorrection: -4000 } }),
+    );
+    expect(owed.text('reconcile-prior-correction')).toEqual([
+      `−${money(4000, 'CHF')} pas coché les mois d'avant`,
+    ]);
+    const none = await render(input());
+    expect(none.text('reconcile-prior-correction')).toEqual([]);
+    expect(none.text('reconcile-compared')).toEqual([money(1050, 'CHF')]);
+  });
+
+  // A check of a previous month moved only the « pas coché » line.
+  it('should not strike the figure when the realized balance did not move, and still show what was found', async () => {
+    const { text } = await render(
+      input({
+        comparedBefore: 1050,
+        realizedBefore: 1050,
+        context: { ...CONTEXT, priorCorrection: -40 },
+      }),
+    );
+
+    expect(text('reconcile-compared-before')).toEqual([]);
+    expect(text('reconcile-compared')).toEqual([money(1050, 'CHF')]);
+    expect(text('reconcile-found')).toEqual([`${money(40, 'CHF')} trouvés`]);
   });
 
   it('should speak of card purchases and offer to remove « Je dois » when one is listed', async () => {
@@ -488,6 +684,57 @@ describe('ReconcileCompareStep', () => {
     expect(text('reconcile-matched')[0]).toContain('Encore prévu −150.00');
     expect(text('reconcile-matched')[0]).toContain('À dépenser ce mois 900.00');
     expect(text('reconcile-matched')[0]).not.toContain("D'avant Pulpe");
+  });
+
+  // Accounts 4 120.00 = 1 020.00 checked + 3 100.00 from before Pulpe; 700.00 left to spend.
+  it('should start the matched card from the accounts figure, unsigned', async () => {
+    const { host } = await render(
+      input({
+        onAccountsCents: 412_000,
+        realizedBalance: 1020,
+        available: 700,
+        context: { ...CONTEXT, startingAmount: 3100 },
+      }),
+    );
+
+    expect(
+      Array.from(
+        host.querySelectorAll('[data-testid="reconcile-matched"] > div'),
+        (row) => [
+          row.querySelector('dt')?.textContent?.trim(),
+          row
+            .querySelector('dd.ph-no-capture, dd .ph-no-capture')
+            ?.textContent?.trim(),
+        ],
+      ),
+    ).toEqual([
+      ['Sur tes comptes', money(4120, 'CHF')],
+      ['Encore prévu', `−${money(320, 'CHF')}`],
+      ["D'avant Pulpe", `−${money(3100, 'CHF')}`],
+      ['À dépenser ce mois', money(700, 'CHF')],
+    ]);
+  });
+
+  it('should speak of savings in the lead when one is suggested, unless a « Je dois » row is listed', async () => {
+    const withSaving = input({
+      budgetLines: [
+        createMockBudgetLine({
+          id: 'line-epargne',
+          name: 'Épargne',
+          amount: 100,
+          kind: 'saving',
+        }),
+      ],
+    });
+
+    expect((await render(withSaving)).host.textContent).toContain(
+      "Coche les dépenses et l'épargne que tu vois dans l'app de ta banque.",
+    );
+    const card = await render(withSaving, { hasOwe: true });
+    expect(card.host.textContent).toContain(
+      'Coche les achats faits avec ta carte.',
+    );
+    expect(card.host.textContent).not.toContain("l'épargne");
   });
 
   it('should show what is left to spend in green only when it is not negative', async () => {

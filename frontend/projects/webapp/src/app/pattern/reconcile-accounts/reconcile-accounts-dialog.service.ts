@@ -66,7 +66,13 @@ export class ReconcileAccountsDialogService {
                 height: '100dvh',
                 maxHeight: '100dvh',
               }
-            : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
+            : {
+                width: '560px',
+                maxWidth: 'calc(100vw - 48px)',
+                // Pinned to the top: centred, it jumped with each step's height.
+                position: { top: '64px' },
+                maxHeight: 'calc(100dvh - 128px)',
+              }),
         },
       );
     } finally {

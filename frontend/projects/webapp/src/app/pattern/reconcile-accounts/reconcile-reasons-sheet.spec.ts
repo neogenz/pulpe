@@ -69,7 +69,8 @@ describe('ReconcileReasonsSheet', () => {
         .q('reconcile-reasons-sheet')
         ?.querySelector('h2')
         ?.textContent?.trim(),
-    ).toBe(`D'où viennent ces ${money(6000, 'CHF')} ?`);
+      // Only the currency may go to the next line: the figure stays whole.
+    ).toBe(`D'où viennent ces ${money(6000, 'CHF').replace('\u00a0', ' ')} ?`);
     expect(view.reasons()).toEqual(['card', 'partlySpent', 'income']);
   });
 
@@ -148,7 +149,7 @@ describe('ReconcileReasonsSheet', () => {
     );
 
     expect(masked).toEqual([
-      money(6000, 'CHF'),
+      money(6000, 'CHF').replace('\u00a0', ' '),
       'Courses',
       money(600, 'CHF'),
       // The bar: its width is the share spent.

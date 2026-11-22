@@ -166,11 +166,11 @@ describe('ReconcileAccountsDialogService', () => {
     expect(view.storage.set).not.toHaveBeenCalled();
   });
 
-  it('should open at once without « Mon patrimoine » when the flag is off', () => {
+  it('should open without « Mon patrimoine » nor any request when the flag is off', async () => {
     const view = setup({ isFlagOn: false });
     view.seed([UBS]);
 
-    void view.service.open(view.data, false);
+    await view.service.open(view.data, false);
 
     expect(view.dialog.open).toHaveBeenCalledTimes(1);
     expect(view.dialog.open).toHaveBeenCalledWith(
@@ -271,7 +271,10 @@ describe('ReconcileAccountsDialogService', () => {
     );
     expect(phone.panelClass).toBe('full-screen-dialog');
     expect(phone.height).toBe('100dvh');
+    // Material keeps 80vw as its default otherwise: margins on a phone.
+    expect(phone.maxWidth).toBe('100dvw');
     expect(desktop.panelClass).toBeUndefined();
     expect(desktop.width).toBe('560px');
+    expect(desktop.position).toEqual({ top: '64px' });
   });
 });

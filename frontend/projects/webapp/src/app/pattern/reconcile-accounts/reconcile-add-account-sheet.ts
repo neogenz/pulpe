@@ -87,13 +87,14 @@ export interface AddAccountSheetData {
             @for (asset of group.items; track asset.id) {
               <button
                 type="button"
-                class="flex min-h-13 w-full cursor-pointer items-center gap-3 border-0 border-t border-solid border-outline-variant bg-transparent p-0 text-left text-on-surface"
+                class="flex min-h-13 w-full cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 border-0 border-t border-solid border-outline-variant bg-transparent px-0 py-2 text-left text-on-surface"
                 (click)="choose({ kind: 'asset', asset })"
                 data-testid="reconcile-add-asset-button"
               >
-                <span class="ph-no-capture min-w-0 flex-1 truncate">{{
-                  asset.name
-                }}</span>
+                <span
+                  class="ph-no-capture min-w-0 flex-[1_1_8rem] break-words"
+                  >{{ asset.name }}</span
+                >
                 <span
                   class="shrink-0 rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap"
                   [class]="
@@ -106,7 +107,9 @@ export interface AddAccountSheetData {
                       | transloco
                   }}</span
                 >
-                <mat-icon class="shrink-0 text-primary" aria-hidden="true"
+                <mat-icon
+                  class="ml-auto shrink-0 text-primary"
+                  aria-hidden="true"
                   >add</mat-icon
                 >
               </button>
