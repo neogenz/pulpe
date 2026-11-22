@@ -547,6 +547,14 @@ Ce que ça autorise et comment je le mène :
 - Captures `20d-*` (police 2.0) et `20e-*` (police 1.0, clair et sombre) : aucun mot coupé, aucun montant scindé, aucun libellé tronqué ; à taille normale, le bouton garde son aspect compact aligné à gauche.
 - Non vérifié à l'écran : la ligne d'une prévision entamée, absente des données du compte démo (couverte par les tests).
 
+### 2026-11-22 : PR #935, CI rouge et fusion de main
+
+- La CI échouait sur `pulpe-android#type-check` : `expo-env.d.ts` est ignoré par git, donc en CI `process.env` est `any` et les rappels de `split` des drapeaux de dev tombaient sous `noImplicitAny`. La valeur est typée là où elle est lue. Reproduit en local en écartant le fichier, puis vert avec et sans lui.
+- Pendant ce temps, main a ajouté son propre brouillon Android (`reconcile-draft.ts`, PR #934) pour le même besoin que notre `reconcile-draft-store.ts` : garder la saisie quand le verrouillage ferme la feuille. Différence : main rouvre la feuille tout seul depuis l'Accueil après déverrouillage, comme iOS ; la nôtre attendait que la personne la rouvre.
+- Décision : un seul module, celui de main, pour s'aligner sur iOS et sur ce qui est déjà en production. Il porte maintenant nos lignes (avec leur côté « J'ai » / « Je dois ») et `hasCompleted`, pour que la vraie fermeture après un verrouillage enregistre toujours les soldes une fois. Notre module et son test sont supprimés, la déconnexion vide celui de main.
+- La garde de main (`hasClientKey`) corrige aussi un défaut de notre version : le verrouillage retire la clé, puis les données du mois, et la feuille se fermait en effaçant le brouillon avant que l'écran ne disparaisse.
+- Mise à jour par un commit de merge plutôt qu'un rebase : la branche était déjà poussée, et un rebase aurait demandé un force push. Tests de la feuille vérifiés par mutation (sans la sauvegarde au verrouillage, deux tests échouent ; sans `hasCompleted`, un test échoue).
+
 ## Étapes suivantes
 
 1. Board et post-its à jour avec Q11 à Q15 (version 21), le passage à « payé » (version 22), la phrase « disponible » retirée (version 23) et le guide animé (version 24).
