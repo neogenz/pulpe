@@ -3242,8 +3242,11 @@ export const reconciliationContextSchema = reconciliationStateSchema.extend({
    * both keys; drop them once no build older than 1.14.3 is in use.
    */
   priorCorrection: z.literal(0),
-  /** @deprecated See `priorCorrection`. */
-  priorItems: z.tuple([]),
+  /**
+   * @deprecated See `priorCorrection`. Always `[]`; an array capped at zero
+   * rather than an empty tuple, which OpenAPI 3.0 cannot describe.
+   */
+  priorItems: z.array(z.unknown()).max(0),
 });
 export type ReconciliationContext = z.infer<typeof reconciliationContextSchema>;
 
