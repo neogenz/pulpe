@@ -116,8 +116,11 @@ function autoLockDelayMs(environment: AppEnvironment): number {
  * production ignore the variable, so a forced flag can never ship.
  */
 function devFeatureFlags(environment: AppEnvironment): readonly string[] {
-  if (environment !== "local" || !RAW_ENV.DEV_FEATURE_FLAGS) return [];
-  return RAW_ENV.DEV_FEATURE_FLAGS.split(",")
+  // Typed here: CI has no expo-env.d.ts, so `process.env` reads as `any` there.
+  const flags: string | undefined = RAW_ENV.DEV_FEATURE_FLAGS;
+  if (environment !== "local" || !flags) return [];
+  return flags
+    .split(",")
     .map((key) => key.trim())
     .filter((key) => key !== "");
 }
