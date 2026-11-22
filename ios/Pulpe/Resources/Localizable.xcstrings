@@ -47919,28 +47919,6 @@
         }
       }
     },
-    "Impossible de comparer pour l'instant." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vergleichen geht gerade nicht."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Can't compare right now."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossibile confrontare per ora."
-          }
-        }
-      }
-    },
     "Tes comptes ont %@ de moins que Pulpe" : {
       "localizations" : {
         "de" : {
@@ -48289,28 +48267,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ancora da ricevere"
-          }
-        }
-      }
-    },
-    "D'avant Pulpe" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Von vor Pulpe"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "From before Pulpe"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Da prima di Pulpe"
           }
         }
       }
@@ -48853,94 +48809,6 @@
         }
       }
     },
-    "Ces %@ étaient là avant Pulpe ?" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waren diese %@ schon vor Pulpe da?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Was this %@ there before Pulpe?"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questi %@ c'erano già prima di Pulpe?"
-          }
-        }
-      }
-    },
-    "Cet argent était là avant Pulpe ?" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "War dieses Geld schon vor Pulpe da?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Was this money there before Pulpe?"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questi soldi c'erano già prima di Pulpe?"
-          }
-        }
-      }
-    },
-    "Oui, c'était déjà là" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ja, das war schon da"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yes, it was already there"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sì, c'erano già"
-          }
-        }
-      }
-    },
-    "Ton disponible ne change pas." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dein Verfügbares ändert sich nicht."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your available amount doesn't change."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo disponibile non cambia."
-          }
-        }
-      }
-    },
     "Ton salaire est arrivé en avance ?" : {
       "localizations" : {
         "de" : {
@@ -48959,28 +48827,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo stipendio è arrivato in anticipo?"
-          }
-        }
-      }
-    },
-    "Pulpe ne sait pas combien tu avais sur tes comptes quand tu as commencé." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pulpe weiss nicht, wie viel du auf deinen Konten hattest, als du angefangen hast."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pulpe doesn't know how much you had on your accounts when you started."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pulpe non sa quanto avevi sui tuoi conti quando hai iniziato."
           }
         }
       }
@@ -49029,28 +48875,6 @@
         }
       }
     },
-    "%@ d'avant Pulpe" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ von vor Pulpe"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ from before Pulpe"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ da prima di Pulpe"
-          }
-        }
-      }
-    },
     "Coche les dépenses et l'épargne que tu vois dans l'app de ta banque." : {
       "localizations" : {
         "de" : {
@@ -49091,50 +48915,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niente corrisponde"
-          }
-        }
-      }
-    },
-    "Argent d'avant Pulpe" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geld von vor Pulpe"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Money from before Pulpe"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Soldi da prima di Pulpe"
-          }
-        }
-      }
-    },
-    "Remettre à 0" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auf 0 setzen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset to 0"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riporta a 0"
           }
         }
       }
@@ -49531,28 +49311,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vedi le altre ragioni"
-          }
-        }
-      }
-    },
-    "Non, autre chose" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nein, etwas anderes"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No, something else"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No, altro"
           }
         }
       }

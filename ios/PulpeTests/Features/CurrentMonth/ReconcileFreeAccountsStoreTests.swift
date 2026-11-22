@@ -25,8 +25,6 @@ struct ReconcileFreeAccountsStoreTests {
         let flow = ReconcileAccountsFlow(
             budgetId: "b", entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
-            fetchContext: { _ in TestDataFactory.createReconciliationContext() },
-            updateState: { _ in throw CancellationError() },
             onAdjustmentCreated: { _ in }, onCompleted: { _ in }
         )
         flow.accounts[0].label = " Revolut "

@@ -1060,7 +1060,6 @@ export default class Dashboard {
     const isHandset = this.#breakpointObserver.isMatched(Breakpoints.Handset);
     void this.#reconcileAccountsDialog.open(
       {
-        budgetId,
         realized: computed(() =>
           !this.#destroyRef.destroyed &&
           this.store.dashboardData()?.budget?.id === budgetId

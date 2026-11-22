@@ -7,7 +7,7 @@
   <button
     matIconButton
     (click)="back()"
-    [disabled]="isWriting()"
+    [disabled]="isRecording()"
     [attr.aria-label]="'currentMonth.reconcile.back' | transloco"
     data-testid="reconcile-back-button"
   >
@@ -21,7 +21,7 @@
     matIconButton
     class="help-button"
     (click)="openGuide()"
-    [disabled]="isWriting()"
+    [disabled]="isRecording()"
     [attr.aria-label]="'currentMonth.reconcile.guide.help' | transloco"
     data-testid="reconcile-guide-help-button"
   >
@@ -76,36 +76,8 @@
     (removeOwe)="removeOwe()"
     (viewOthers)="viewItemsToCheck()"
     (addOwe)="addOwe()"
-    (editStartingAmount)="editStartingAmount()"
     data-testid="reconcile-compare-step"
   />
-  } @else if (context.error() && !context.isLoading()) {
-  <section
-    class="flex flex-col items-start gap-3 pt-3"
-    data-testid="reconcile-context-error"
-  >
-    <p class="m-0 text-sm text-on-surface-variant">
-      {{ 'currentMonth.reconcile.compare.stepLabel' | transloco }}
-    </p>
-    <!-- The card itself takes the focus: a screen reader hears the error and its action. -->
-    <pulpe-state-card
-      variant="error"
-      [compact]="true"
-      tabindex="-1"
-      class="step-heading w-full"
-      [title]="'currentMonth.reconcile.compare.loadError' | transloco"
-    >
-      <button
-        matButton="tonal"
-        type="button"
-        class="mt-6"
-        (click)="retry()"
-        data-testid="reconcile-retry-button"
-      >
-        {{ 'common.retry' | transloco }}
-      </button>
-    </pulpe-state-card>
-  </section>
   } @else {
   <div class="flex justify-center py-12">
     <mat-spinner
@@ -191,39 +163,6 @@
       view.hasSaving ? 'currentMonth.reconcile.compare.nothingMatches' :
       'currentMonth.reconcile.compare.noExpenseMatches') | transloco }}
     </button>
-    } @case ('firstComparison') {
-    <button
-      matButton
-      (click)="leave()"
-      [disabled]="isBusy()"
-      data-testid="reconcile-leave-button"
-    >
-      {{ 'currentMonth.reconcile.compare.leaveAsIs' | transloco }}
-    </button>
-    <!-- « Non » under « Oui »: three buttons side by side do not fit the dialog. -->
-    <div class="primary-action note-action">
-      <pulpe-loading-button
-        type="button"
-        testId="reconcile-keep-start-button"
-        [loading]="isSavingState()"
-        [disabled]="isBusy()"
-        [loadingText]="'currentMonth.reconcile.compare.recording' | transloco"
-        (click)="keepAsStartingAmount()"
-      >
-        {{ 'currentMonth.reconcile.compare.alreadyThere' | transloco }}
-      </pulpe-loading-button>
-      <span class="text-center text-xs text-on-surface-variant">
-        {{ 'currentMonth.reconcile.compare.availableUnchanged' | transloco }}
-      </span>
-      <button
-        matButton="outlined"
-        (click)="showReasons()"
-        [disabled]="isBusy()"
-        data-testid="reconcile-reasons-button"
-      >
-        {{ 'currentMonth.reconcile.compare.somethingElse' | transloco }}
-      </button>
-    </div>
     } @case ('salaryEarly') {
     <button
       matButton="outlined"

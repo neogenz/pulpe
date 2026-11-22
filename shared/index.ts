@@ -306,7 +306,6 @@ export {
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   availableAfterNote,
-  comparedFigure,
   comparisonScreen,
   gapClosedByChecks,
   isSalaryMaybeEarly,

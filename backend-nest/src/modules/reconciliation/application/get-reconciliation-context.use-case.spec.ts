@@ -23,7 +23,7 @@ function build(
   lastCompletedAt: string | null = null,
 ) {
   const repo = {
-    get: jest.fn().mockResolvedValue({ startingAmount: 3100, lastCompletedAt }),
+    get: jest.fn().mockResolvedValue({ lastCompletedAt }),
   } as unknown as ReconciliationStateRepositoryPort;
   const budgets = {
     readBudget: jest.fn(async (id: string) => months[id] ?? null),
@@ -39,14 +39,14 @@ function build(
 }
 
 describe('GetReconciliationContextUseCase', () => {
-  it('should return the stored state with the deprecated prior keys empty', async () => {
+  it('should return the completion with every deprecated key at its empty value', async () => {
     const { useCase } = build(
       { b1: details('b1', null) },
       '2026-11-01T10:00:00.000Z',
     );
 
     expect(await useCase.execute('b1')).toEqual({
-      startingAmount: 3100,
+      startingAmount: 0,
       hasCompletedComparison: true,
       priorCorrection: 0,
       priorItems: [],

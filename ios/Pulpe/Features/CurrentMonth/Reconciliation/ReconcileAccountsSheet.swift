@@ -73,8 +73,6 @@ struct ReconcileAccountsSheet: View {
             budgetId: month.budgetId,
             entryName: AppLocale.string("Écart avec mes comptes"),
             createTransaction: dependencies.createTransaction,
-            fetchContext: { try await ReconciliationService.shared.getContext(budgetId: $0) },
-            updateState: { try await ReconciliationService.shared.updateState($0) },
             onAdjustmentCreated: onAdjustmentCreated,
             onCompleted: { completion in
                 AnalyticsService.shared.capture(

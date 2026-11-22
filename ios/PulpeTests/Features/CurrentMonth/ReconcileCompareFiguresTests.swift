@@ -3,47 +3,38 @@ import Foundation
 import Testing
 
 /// What step 2 shows from its numbers (spec.md §4.1, §4.2, §4.4): the matched card read from the accounts,
-/// the Pulpe figure as the Accueil's « Solde pointé » with its parts apart, and the savings wording.
+/// the Pulpe figure as the Accueil's « Solde pointé » alone, and the savings wording.
 @MainActor
 struct ReconcileCompareFiguresTests {
     // MARK: - Matched card
 
-    @Test("the matched card starts from the accounts: 4 120.00, −320.00, −3 100.00, 700.00 left to spend")
+    @Test("the matched card starts from the accounts: 1 020.00, −320.00, 700.00 left to spend")
     func matchedCard_startsFromTheAccounts() async throws {
-        let flow = await makeComparingFlow(
-            "4120", context: TestDataFactory.createReconciliationContext(startingAmount: 3100)
-        )
+        let flow = await makeComparingFlow("1020")
         let matched = try #require(flow.comparison(realizedBalance: 1020, lines: [], transactions: []))
-        let card = AccountReconciliation.matchedBreakdown(
-            available: 700, compared: matched.compared, startingAmount: matched.startingAmount
-        )
+        let card = AccountReconciliation.matchedBreakdown(available: 700, compared: matched.compared)
 
         #expect(matched.screen == .matched)
-        #expect(matched.accounts == 4120)
-        #expect([card.stillPlanned, card.beforePulpe, card.remaining] == [-320, -3100, 700])
-        #expect(matched.accounts + card.stillPlanned + card.beforePulpe == card.remaining)
+        #expect(matched.accounts == 1020)
+        #expect([card.stillPlanned, card.remaining] == [-320, 700])
+        #expect(matched.accounts + card.stillPlanned == card.remaining)
     }
 
     // MARK: - « Dans Pulpe, déjà coché »
 
-    @Test("the Pulpe figure is the Accueil's 900.00; +3 100.00 from before shows apart")
-    func pulpeFigure_isTheCheckedBalance_withItsPartsApart() async throws {
-        let context = TestDataFactory.createReconciliationContext(startingAmount: 3100)
-        let flow = await makeComparingFlow("3940", context: context)
+    @Test("the Pulpe figure is the Accueil's 900.00, and the gap reads it alone")
+    func pulpeFigure_isTheCheckedBalance() async throws {
+        let flow = await makeComparingFlow("840")
         let comparison = try #require(flow.comparison(realizedBalance: 900, lines: [], transactions: []))
 
         #expect(comparison.realized == 900)
-        #expect(comparison.startingAmount == 3100)
-        // The gap still reads the whole figure.
-        #expect(comparison.compared == 4000)
+        #expect(comparison.compared == 900)
         #expect(comparison.gap == -60)
     }
 
     @Test("checking Courses strikes 900.00 through")
     func struckFigure_onceTheCheckedBalanceMoved() async throws {
-        let flow = await makeComparingFlow(
-            "3940", context: TestDataFactory.createReconciliationContext(startingAmount: 3100)
-        )
+        let flow = await makeComparingFlow("840")
         let courses = TestDataFactory.createBudgetLine(id: "courses", name: "Courses", amount: 60)
         let opened = try #require(flow.comparison(realizedBalance: 900, lines: [courses], transactions: []))
         #expect(opened.realizedBefore == nil)
@@ -60,44 +51,37 @@ struct ReconcileCompareFiguresTests {
         // New balances start another comparison: nothing struck through.
         flow.editAccounts()
         flow.compare()
-        await flow.loadContext()
         #expect(flow.beforeChecks == nil)
         #expect(flow.comparison(realizedBalance: 840, lines: [checked], transactions: [])?.realizedBefore == nil)
     }
 
-    @Test("a new starting amount or « Je dois » removed keeps 900.00 struck; « trouvés » restarts at next check")
-    func struckFigure_survivesStateWriteAndOwedRemoval_foundRestarts() async throws {
-        let flow = await makeComparingFlow("900")
+    @Test("« Je dois » removed keeps 900.00 struck; « trouvés » restarts at the next check")
+    func struckFigure_survivesOwedRemoval_foundRestarts() async throws {
+        let flow = await makeComparingFlow("800")
         flow.editAccounts()
         let owed = flow.addFreeAccount(isOwed: true)
         flow.accounts[flow.accounts.firstIndex { $0.id == owed } ?? 0].amountText = "50"
         flow.compare()
-        await flow.loadContext()
         let courses = TestDataFactory.createBudgetLine(id: "courses", name: "Courses", amount: 20)
         let essence = TestDataFactory.createBudgetLine(id: "essence", name: "Essence", amount: 30)
 
-        // 850.00 on the accounts, 900.00 in Pulpe: checking Courses moves the checked balance to 880.00.
+        // 750.00 on the accounts, 900.00 in Pulpe: checking Courses moves the checked balance to 880.00.
         #expect(flow.beginCheck())
         #expect(await flow.check(suggestion(courses), realizedBalance: 900) { true })
         #expect(flow.comparison(realizedBalance: 880, lines: [], transactions: [])?.found == 20)
 
-        #expect(await flow.saveStartingAmount(50) == .written)
-        let afterSave = try #require(flow.comparison(realizedBalance: 880, lines: [], transactions: []))
-        #expect(afterSave.realizedBefore == 900)
-        #expect(afterSave.found == nil)
-
         flow.removeOwedRows()
         let afterRemoval = try #require(flow.comparison(realizedBalance: 880, lines: [], transactions: []))
-        #expect(afterRemoval.accounts == 900)
+        #expect(afterRemoval.accounts == 800)
         #expect(afterRemoval.realizedBefore == 900)
         #expect(afterRemoval.found == nil)
 
-        // 900.00 against 930.00: Essence counts from the figure at its own check.
+        // 800.00 against 880.00: Essence counts from the figure at its own check, not from 900.00.
         #expect(flow.beginCheck())
         #expect(await flow.check(suggestion(essence), realizedBalance: 880) { true })
-        let matched = try #require(flow.comparison(realizedBalance: 850, lines: [], transactions: []))
-        #expect(matched.realizedBefore == 900)
-        #expect(matched.found == 30)
+        let afterEssence = try #require(flow.comparison(realizedBalance: 850, lines: [], transactions: []))
+        #expect(afterEssence.realizedBefore == 900)
+        #expect(afterEssence.found == 30)
     }
 
     @Test("a checked balance moved by less than a cent, 900.004 to 900.001, strikes nothing")
@@ -169,22 +153,17 @@ struct ReconcileCompareFiguresTests {
         )
     }
 
-    /// Step 2 with one account typed and the server context read, as the sheet opens it.
-    private func makeComparingFlow(
-        _ amount: String, context: ReconciliationContext = TestDataFactory.createReconciliationContext()
-    ) async -> ReconcileAccountsFlow {
+    /// Step 2 with one account typed, as the sheet opens it.
+    private func makeComparingFlow(_ amount: String) async -> ReconcileAccountsFlow {
         let flow = ReconcileAccountsFlow(
             budgetId: "budget-current",
             entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
-            fetchContext: { _ in context },
-            updateState: { ReconciliationState(startingAmount: $0.startingAmount ?? 0, hasCompletedComparison: false) },
             onAdjustmentCreated: { _ in },
             onCompleted: { _ in }
         )
         flow.accounts[0].amountText = amount
         flow.compare()
-        await flow.loadContext()
         return flow
     }
 }

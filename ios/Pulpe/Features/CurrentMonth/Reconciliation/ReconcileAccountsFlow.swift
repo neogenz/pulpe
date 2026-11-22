@@ -14,18 +14,11 @@ final class ReconcileAccountsFlow {
 
     /// The create call is in flight: the sheet blocks dismiss, back and a second tap.
     private(set) var isSubmitting = false
-    /// The money from before Pulpe is on its way, or read again after a refusal: same blocks.
-    private(set) var isSavingState = false
     /// A write is out: nothing ends the comparison or leaves the sheet before it lands.
-    var isWriting: Bool { isSubmitting || isSavingState }
+    var isWriting: Bool { isSubmitting }
     /// The flow reached its end once. Nothing is written or tracked after it, even if the
     /// sheet still shows for a frame while it dismisses.
     private(set) var isCompleted = false
-    /// This comparison is done for the server and the event, maybe before the sheet ends
-    /// (« Oui, c'était déjà là »). Each « Comparer » starts another comparison.
-    private(set) var isMarkedComplete = false
-    /// A comparison of this sheet was completed, whatever came after: closing saves the balances. Never reset.
-    private(set) var didCompleteComparison = false
     /// The balances went to Mon patrimoine: once per sheet.
     @ObservationIgnored var hasAppliedAccountLinks = false
 
@@ -66,9 +59,6 @@ final class ReconcileAccountsFlow {
     private(set) var assetIds: [AccountReconciliation.Account.ID: String]
 
     @ObservationIgnored private let createTransaction: @Sendable (TransactionCreate) async throws -> Transaction
-    @ObservationIgnored private let fetchContext: @Sendable (String) async throws -> ReconciliationContext
-    @ObservationIgnored
-    private let updateState: @Sendable (ReconciliationStateUpdate) async throws -> ReconciliationState
     @ObservationIgnored private let onAdjustmentCreated: @MainActor (Transaction) -> Void
     @ObservationIgnored private let onCompleted: @MainActor (AccountReconciliation.Completion) -> Void
     @ObservationIgnored let now: () -> Date
@@ -77,8 +67,6 @@ final class ReconcileAccountsFlow {
         budgetId: String,
         entryName: String,
         createTransaction: @escaping @Sendable (TransactionCreate) async throws -> Transaction,
-        fetchContext: @escaping @Sendable (String) async throws -> ReconciliationContext,
-        updateState: @escaping @Sendable (ReconciliationStateUpdate) async throws -> ReconciliationState,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void,
         onCompleted: @escaping @MainActor (AccountReconciliation.Completion) -> Void,
         netWorthAccounts: [Asset]? = nil,
@@ -99,7 +87,6 @@ final class ReconcileAccountsFlow {
             // side and amount, so the save never names a gone item. Unread, nothing is known gone.
             let offered = netWorthAccounts.map { Set($0.map(\.id)) }
             self.assetIds = draft.assetIds.filter { offered?.contains($0.value) ?? true }
-            self.didCompleteComparison = draft.didCompleteComparison
         } else {
             let rows = seeded.map(\.account) + remembered
             self.accounts = rows.isEmpty ? [AccountReconciliation.Account()] : rows
@@ -107,8 +94,6 @@ final class ReconcileAccountsFlow {
         }
         self.entryName = entryName
         self.createTransaction = createTransaction
-        self.fetchContext = fetchContext
-        self.updateState = updateState
         self.onAdjustmentCreated = onAdjustmentCreated
         self.onCompleted = onCompleted
         self.now = now
@@ -138,17 +123,13 @@ final class ReconcileAccountsFlow {
     // MARK: - Steps
 
     /// Compare waits for a total: an unreadable amount or nothing typed keeps step 1. New balances start
-    /// a new comparison: the suggestions show again, unchecked, nothing is struck through, and step 2
-    /// reads the server's side again (an item checked or unchecked on the web meanwhile moves the correction).
+    /// a new comparison: the suggestions show again, unchecked, and nothing is struck through.
     func compare() {
         guard totalCents != nil else { return }
         step = .comparison
         isDismissed = false
-        isMarkedComplete = false
         beforeChecks = nil
         checkedSuggestions = []
-        contextRead += 1
-        contextState = .loading
     }
 
     func editAccounts() {
@@ -242,22 +223,13 @@ final class ReconcileAccountsFlow {
 
     // MARK: - Comparison
 
-    /// The server's side of step 2. Without it the figure and the screen would be wrong, so step 2
-    /// waits for it and offers nothing to write.
-    enum ContextState: Equatable {
-        case loading
-        case loaded(ReconciliationContext)
-        case failed
-    }
-
-    private(set) var contextState = ContextState.loading
-    /// One check at a time, from the tap that fills its circle to the context read after it.
+    /// One check at a time, from the tap that fills its circle to the store's answer.
     private(set) var isChecking = false
     /// « Aucune … ne correspond » was tapped in this comparison.
     private(set) var isDismissed = false
     /// The figures at this comparison's first check: « trouvés » counts from the compared one, and the
-    /// checked balance is struck through once a check of this month moves it. Another total or starting
-    /// amount clears only `compared`: the next check counts « trouvés » again from the figure it sees.
+    /// checked balance is struck through once a check of this month moves it. Another total clears
+    /// only `compared`: the next check counts « trouvés » again from the figure it sees.
     struct BeforeChecks: Equatable {
         let compared: Decimal?
         let realized: Decimal
@@ -266,24 +238,6 @@ final class ReconcileAccountsFlow {
     private(set) var beforeChecks: BeforeChecks?
     /// Checked in this comparison: the « Voir les autres » list keeps their check.
     private(set) var checkedSuggestions: [Suggestion] = []
-
-    /// Counts the context reads, so only the latest one lands; `compare()` counts one too, dropping any read out.
-    private var contextRead = 0
-
-    /// A refresh keeps the figures on screen; only a failure replaces them. When reads overlap
-    /// (« Réessayer », back, « Comparer »), an older one answering late is dropped.
-    func loadContext() async {
-        contextRead += 1
-        let read = contextRead
-        if contextState == .failed { contextState = .loading }
-        let state: ContextState
-        do {
-            state = .loaded(try await fetchContext(budgetId))
-        } catch {
-            state = .failed
-        }
-        if read == contextRead { contextState = state }
-    }
 
     /// The tap: the circle fills before the request leaves, so from here nothing may end the
     /// comparison. `false` while another check, a write or the completion is out.
@@ -298,10 +252,9 @@ final class ReconcileAccountsFlow {
     func check(_ suggestion: Suggestion, realizedBalance: Decimal, using toggle: () async -> Bool) async -> Bool {
         guard isChecking else { return false }
         defer { isChecking = false }
-        guard let before = comparedFigure(realizedBalance: realizedBalance) else { return false }
         guard await toggle() else { return false }
         if beforeChecks?.compared == nil {
-            beforeChecks = BeforeChecks(compared: before, realized: beforeChecks?.realized ?? realizedBalance)
+            beforeChecks = BeforeChecks(compared: realizedBalance, realized: beforeChecks?.realized ?? realizedBalance)
         }
         checkedSuggestions.append(suggestion)
         return true
@@ -352,10 +305,9 @@ final class ReconcileAccountsFlow {
         }
     }
 
-    /// A write or a check already out ends nothing a second time; a context never read offers no exit
-    /// that counts as a comparison.
+    /// A write or a check already out ends nothing a second time.
     func canFinish(of loadedBudgetId: String) -> Bool {
-        loadedBudgetId == budgetId && !isWriting && !isChecking && !isCompleted && context != nil
+        loadedBudgetId == budgetId && !isWriting && !isChecking && !isCompleted
     }
 
     /// « Terminer » and « Laisser comme ça »: nothing written, one completion.
@@ -366,56 +318,9 @@ final class ReconcileAccountsFlow {
         return true
     }
 
-    /// « Oui, c'était déjà là »: the gap becomes money from before Pulpe and the comparison completes in
-    /// the same write, so Pulpe matches. Refused, the screen stays and no event leaves.
-    func keepGapAsStartingAmount(realizedBalance: Decimal, of loadedBudgetId: String) async -> SubmitOutcome {
-        guard canFinish(of: loadedBudgetId), !isMarkedComplete, let context, let totalCents,
-              let compared = comparedFigure(realizedBalance: realizedBalance)
-        else { return .ignored }
-        let gap = AccountReconciliation.difference(totalCents: totalCents, realizedBalance: compared)
-        guard gap > 0 else { return .ignored }
-        let outcome = await writeState(.init(startingAmount: context.startingAmount + gap, completed: true))
-        if outcome == .written { markCompleted(.upToDate, isSent: true) }
-        return outcome
-    }
-
-    /// The money from before Pulpe corrected, or reset to 0: one write, none when unchanged.
-    func saveStartingAmount(_ amount: Decimal) async -> SubmitOutcome {
-        guard let context, amount != context.startingAmount else { return .ignored }
-        return await writeState(.init(startingAmount: amount))
-    }
-
-    /// One write per answer; its answer replaces the state in the context. The figure moved without a
-    /// check, so « trouvés » counts again from the next check. Refused, the server may still have stored
-    /// it: read again.
-    private func writeState(_ update: ReconciliationStateUpdate) async -> SubmitOutcome {
-        guard !isWriting, !isChecking, !isCompleted else { return .ignored }
-        isSavingState = true
-        defer { isSavingState = false }
-        do {
-            let state = try await updateState(update)
-            if context != nil {
-                contextState = .loaded(ReconciliationContext(
-                    startingAmount: state.startingAmount, hasCompletedComparison: state.hasCompletedComparison
-                ))
-            }
-            forgetComparedBeforeChecks()
-            return .written
-        } catch {
-            await loadContext()
-            return .failed
-        }
-    }
-
-    /// Once per comparison: the event, then the server hears of it unless the write that marked it did.
-    private func markCompleted(_ completion: AccountReconciliation.Completion, isSent: Bool = false) {
-        guard !isMarkedComplete else { return }
-        isMarkedComplete = true
-        didCompleteComparison = true
+    /// Once: `isCompleted`, set just before, keeps a second exit from tracking again.
+    private func markCompleted(_ completion: AccountReconciliation.Completion) {
         onCompleted(completion)
-        guard !isSent else { return }
-        // Only « first comparison » reads it: a refusal costs that screen once more, nothing else.
-        Task { [updateState] in _ = try? await updateState(.init(completed: true)) }
     }
 
     /// Another loaded month leaves the draft nothing to write against, so the sheet closes —
@@ -443,16 +348,12 @@ extension ReconcileAccountsFlow {
         let budgetId: String
         let accounts: [AccountReconciliation.Account]
         let assetIds: [AccountReconciliation.Account.ID: String]
-        /// A comparison was completed before the lock: the real close still saves the balances.
-        let didCompleteComparison: Bool
     }
 
     /// `nil` once finished: a completed reconciliation leaves nothing to reopen.
     var draft: Draft? {
         guard !isCompleted else { return nil }
-        return Draft(
-            budgetId: budgetId, accounts: accounts, assetIds: assetIds, didCompleteComparison: didCompleteComparison
-        )
+        return Draft(budgetId: budgetId, accounts: accounts, assetIds: assetIds)
     }
 }
 

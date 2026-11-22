@@ -53,10 +53,10 @@ extension ReconcileCompareStepView {
     /// Why « Disponible à dépenser » and the compared figure differ once they match.
     func matchedCard(_ comparison: ReconcileAccountsFlow.Comparison) -> some View {
         let breakdown = AccountReconciliation.matchedBreakdown(
-            available: month.available, compared: comparison.compared, startingAmount: comparison.startingAmount
+            available: month.available, compared: comparison.compared
         )
         return FormCard {
-            // The figure the lines below start from, so the card adds up: 4 120.00, −320.00, −3 100.00, 700.00.
+            // The figure the lines below start from, so the card adds up: 4 120.00, −320.00, 3 800.00.
             figureRow(AppLocale.string("Sur tes comptes")) {
                 Text(verbatim: comparison.accounts.asCurrency(currency))
             }
@@ -69,19 +69,6 @@ extension ReconcileCompareStepView {
                 }
                 FormRowDivider()
             }
-            if breakdown.beforePulpe != 0 {
-                // The row is the edit button; its amount keeps the card's ink, the pencil says it opens.
-                Button { editsStartingAmount = true } label: {
-                    figureRow(AppLocale.string("D'avant Pulpe"), isEditable: true) {
-                        Text(verbatim: signedCurrency(breakdown.beforePulpe))
-                    }
-                }
-                .plainPressedButtonStyle()
-                .contentShape(Rectangle())
-                .disabled(flow.isWriting || flow.isChecking)
-                .accessibilityIdentifier("reconcileStartingAmountButton")
-                FormRowDivider()
-            }
             // Green says money is left; a month already past its plan stays in ink.
             figureRow(
                 AppLocale.string("À dépenser ce mois"),
@@ -90,18 +77,9 @@ extension ReconcileCompareStepView {
                 Text(verbatim: breakdown.remaining.asCurrency(currency))
             }
         }
-        // A bare id on a container would replace the ids of every row in it, the edit button's too.
+        // A bare id on a container would replace the ids of every row in it.
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("reconcileMatchedBreakdown")
-    }
-
-    /// What Pulpe counts besides « Solde pointé », under it when not 0: « +3 100.00 CHF d'avant Pulpe ».
-    @ViewBuilder
-    func figureParts(_ comparison: ReconcileAccountsFlow.Comparison) -> some View {
-        if comparison.startingAmount != 0 {
-            startingAmountLink(comparison.startingAmount)
-                .padding(.bottom, DesignTokens.Spacing.md)
-        }
     }
 
     /// The sentence over the rows and the button that leaves them (spec.md §4.2). Below Pulpe, a saving among
@@ -143,14 +121,6 @@ extension ReconcileCompareStepView {
         }
         .padding(.vertical, DesignTokens.Spacing.md)
         .accessibilityIdentifier("reconcileFound")
-    }
-
-    /// Says a figure opens its editor; never blurred with the amount.
-    var editPencil: some View {
-        Image(systemName: "pencil")
-            .font(PulpeTypography.captionRegular.weight(.semibold))
-            .foregroundStyle(Color.pulpePrimary)
-            .accessibilityHidden(true)
     }
 
     /// "+60.00 CHF" / "−60.00 CHF": signed by its own value with a true minus, like the web's `signed()`.

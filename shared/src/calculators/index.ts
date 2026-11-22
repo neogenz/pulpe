@@ -34,7 +34,6 @@ export {
 export { splitTotalPreserving } from './spread-split.js';
 export {
   availableAfterNote,
-  comparedFigure,
   comparisonScreen,
   gapClosedByChecks,
   isSalaryMaybeEarly,

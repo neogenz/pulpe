@@ -127,11 +127,10 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.isCompleted)
     }
 
-    @Test("the gap counts the starting amount")
+    @Test("the gap reads the « Solde pointé » alone")
     func submitAdjustment_writesTheComparedGap() async throws {
-        let context = TestDataFactory.createReconciliationContext(startingAmount: 3100)
-        let recorder = Recorder(context: context)
-        let flow = await makeComparingFlow("4000", recorder: recorder)
+        let recorder = Recorder()
+        let flow = await makeComparingFlow("900", recorder: recorder)
 
         #expect(await flow.submitAdjustment(realizedBalance: 1000, of: "budget-current") == .written)
         let payload = try #require(await recorder.payloads.first)
@@ -265,7 +264,6 @@ struct ReconcileAccountsFlowTests {
         #expect(payload.budgetId == budgetId)
         #expect(payload.amount == 30)
         #expect(payload.checkedAt != nil)
-        #expect(await recorder.server.contextReads == [budgetId])
     }
 
     // MARK: - Draft
@@ -348,8 +346,6 @@ struct ReconcileAccountsFlowTests {
             budgetId: id,
             entryName: "Écart avec mes comptes",
             createTransaction: { payload in try await recorder.create(payload) },
-            fetchContext: { budgetId in try await recorder.fetchContext(budgetId) },
-            updateState: { _ in throw CancellationError() },
             onAdjustmentCreated: { recorder.created.append($0) },
             onCompleted: { recorder.completions.append($0) },
             freeAccounts: freeAccounts,
@@ -358,14 +354,13 @@ struct ReconcileAccountsFlowTests {
         )
     }
 
-    /// Step 2 with one account typed and the server context read, as the sheet opens it.
+    /// Step 2 with one account typed, as the sheet opens it.
     private func makeComparingFlow(
         _ amount: String, recorder: Recorder = Recorder(), id: String = "budget-current"
     ) async -> ReconcileAccountsFlow {
         let flow = makeFlow(recorder: recorder, id: id)
         flow.accounts[0].amountText = amount
         flow.compare()
-        await flow.loadContext()
         return flow
     }
 }
@@ -379,10 +374,9 @@ private final class Recorder {
 
     init(
         failuresBeforeSuccess: Int = 0,
-        gate: Gate? = nil,
-        context: ReconciliationContext? = TestDataFactory.createReconciliationContext()
+        gate: Gate? = nil
     ) {
-        server = FakeServer(failuresBeforeSuccess: failuresBeforeSuccess, gate: gate, context: context)
+        server = FakeServer(failuresBeforeSuccess: failuresBeforeSuccess, gate: gate)
     }
 
     var payloads: [TransactionCreate] {
@@ -392,34 +386,16 @@ private final class Recorder {
     nonisolated func create(_ payload: TransactionCreate) async throws -> Transaction {
         try await server.create(payload)
     }
-
-    nonisolated func fetchContext(_ budgetId: String) async throws -> ReconciliationContext {
-        try await server.fetchContext(budgetId)
-    }
 }
 
 private actor FakeServer {
     private(set) var payloads: [TransactionCreate] = []
-    private(set) var contextReads: [String] = []
     private var failuresLeft: Int
     private let gate: Gate?
-    /// `nil` refuses every read, as an unreachable server would.
-    private var context: ReconciliationContext?
 
-    init(failuresBeforeSuccess: Int, gate: Gate?, context: ReconciliationContext?) {
+    init(failuresBeforeSuccess: Int, gate: Gate?) {
         failuresLeft = failuresBeforeSuccess
         self.gate = gate
-        self.context = context
-    }
-
-    func setContext(_ context: ReconciliationContext?) {
-        self.context = context
-    }
-
-    func fetchContext(_ budgetId: String) throws -> ReconciliationContext {
-        contextReads.append(budgetId)
-        guard let context else { throw URLError(.notConnectedToInternet) }
-        return context
     }
 
     func create(_ payload: TransactionCreate) async throws -> Transaction {

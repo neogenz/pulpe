@@ -138,7 +138,6 @@ struct ReconcileLinkedAccountsTests {
         flow.addAsset(revolut)
         flow.removeAccount(id: flow.accounts[0].id)
         flow.accounts[0].amountText = "100"
-        await flow.loadContext()
         _ = flow.finishWithoutEntry(of: "b")
 
         await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: ToastManager())
@@ -157,7 +156,6 @@ struct ReconcileLinkedAccountsTests {
         flow.accounts[0].amountText = "40"
         flow.addAsset(revolut)
         flow.accounts[1].amountText = "60"
-        await flow.loadContext()
         _ = flow.finishWithoutEntry(of: "b")
 
         await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: toast)
@@ -184,75 +182,12 @@ struct ReconcileLinkedAccountsTests {
         let toast = ToastManager()
         let flow = makeFlow([bcge])
         flow.accounts[0].amountText = "100"
-        await flow.loadContext()
         _ = flow.finishWithoutEntry(of: "b")
 
         await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: toast)
 
         #expect(toast.currentToast?.type == .error)
         #expect(flow.isCompleted)
-    }
-
-    @Test("« Oui, c'était déjà là » then any exit records the balances once, without Terminer")
-    func keptAsStartingAmount_recordsTheBalancesOnce() async {
-        let service = MockAssetService()
-        let store = AssetStore(service: service)
-        let flow = makeFlow([bcge])
-        flow.accounts[0].amountText = "100"
-        flow.compare()
-        await flow.loadContext()
-
-        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 0, of: "b") == .written)
-        await flow.applyAccountLinks(into: store, toastManager: ToastManager())
-        await flow.applyAccountLinks(into: store, toastManager: ToastManager())
-
-        #expect(!flow.isCompleted)
-        #expect(service.calls == ["snapshots", "get"])
-    }
-
-    @Test("the lock taking the sheet after « Oui » saves nothing; the restored sheet saves once on its real close")
-    func lockAfterKeptAmount_savesOnlyOnTheRealClose() async throws {
-        let service = MockAssetService()
-        let store = AssetStore(service: service)
-        let flow = makeFlow([bcge])
-        flow.accounts[0].amountText = "100"
-        flow.compare()
-        await flow.loadContext()
-        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 0, of: "b") == .written)
-        flow.editAccounts()
-
-        await flow.applyAccountLinks(into: store, toastManager: ToastManager(), isLocked: true)
-        #expect(service.calls.isEmpty)
-
-        let draft = try #require(flow.draft)
-        #expect(draft.didCompleteComparison)
-        let restored = makeFlow([bcge], restoring: draft)
-        restored.accounts[0].amountText = "150"
-        await restored.applyAccountLinks(into: store, toastManager: ToastManager())
-        await restored.applyAccountLinks(into: store, toastManager: ToastManager())
-
-        #expect(service.calls == ["snapshots", "get"])
-        #expect(service.snapshotItems == [AssetSnapshotItem(assetId: "bcge", value: 150)])
-    }
-
-    @Test("two comparisons completed in one sheet record the balances once, as the rows stand at the close")
-    func twoComparisons_recordTheLastBalancesOnce() async {
-        let service = MockAssetService()
-        let flow = makeFlow([bcge])
-        flow.accounts[0].amountText = "4000"
-        flow.compare()
-        await flow.loadContext()
-        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 0, of: "b") == .written)
-
-        flow.editAccounts()
-        flow.accounts[0].amountText = "4200"
-        flow.compare()
-        await flow.loadContext()
-        #expect(flow.finishWithoutEntry(of: "b"))
-        await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: ToastManager())
-
-        #expect(service.calls == ["snapshots", "get"])
-        #expect(service.snapshotItems == [AssetSnapshotItem(assetId: "bcge", value: 4200)])
     }
 
     private func makeLine(id: String, kind: TransactionKind, assetId: String?) -> BudgetLine {
@@ -271,9 +206,6 @@ struct ReconcileLinkedAccountsTests {
             budgetId: "b",
             entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
-            fetchContext: { _ in TestDataFactory.createReconciliationContext() },
-            // The server takes every answer: « Oui, c'était déjà là » completes the comparison.
-            updateState: { ReconciliationState(startingAmount: $0.startingAmount ?? 0, hasCompletedComparison: true) },
             onAdjustmentCreated: { _ in },
             onCompleted: { _ in },
             netWorthAccounts: accounts,

@@ -18,7 +18,6 @@ struct ReconcileCompareStepView: View {
     @Environment(ToastManager.self) var toastManager
     @Environment(UserSettingsStore.self) var userSettingsStore
     @State var submitSuccessTrigger = false
-    @State var editsStartingAmount = false
     /// What « Voir les autres raisons » opened on, and what that sheet answered once closed.
     @State var reasons: ReasonsRequest?
     @State var reasonAnswer: (choice: ReconcileReasonsSheet.Choice, request: ReasonsRequest)?
@@ -33,35 +32,22 @@ struct ReconcileCompareStepView: View {
 
     var body: some View {
         Group {
-            switch flow.contextState {
-            case .loading:
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .failed:
-                failure
-            case .loaded:
-                if let comparison = flow.comparison(
-                    realizedBalance: realizedBalance, lines: checking.budgetLines, transactions: checking.transactions,
-                    payDayOfMonth: userSettingsStore.payDayOfMonth
-                ) {
-                    content(comparison)
-                }
+            if let comparison = flow.comparison(
+                realizedBalance: realizedBalance, lines: checking.budgetLines, transactions: checking.transactions,
+                payDayOfMonth: userSettingsStore.payDayOfMonth
+            ) {
+                content(comparison)
             }
         }
         .background(Color.sheetBackground)
-        .task { if flow.context == nil { await flow.loadContext() } }
         .navigationDestination(isPresented: $showsToCheck) { toCheckList }
         .sheet(item: $reasons, onDismiss: actOnReason) { reasonsSheet($0) }
-        .sheet(isPresented: $editsStartingAmount) {
-            ReconcileStartingAmountSheet(amount: flow.context?.startingAmount ?? 0, currency: currency) { amount in
-                Task { await saveStartingAmount(amount) }
-            }
-        }
         .onChange(of: flow.closesToCheckList(realizedBalance: realizedBalance)) { _, closes in
             if closes { showsToCheck = false }
         }
         // The comparison closes under the sheets it opened: they go with it.
         .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, closes in
-            if closes { reasons = nil; editsStartingAmount = false }
+            if closes { reasons = nil }
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
@@ -76,7 +62,6 @@ struct ReconcileCompareStepView: View {
                 case .matched: matchedCard(comparison)
                 case .suggestions: suggestions(comparison)
                 case .smallGap: smallGapCard(gap: comparison.gap)
-                case .firstComparison: firstComparisonCard(gap: comparison.gap)
                 case .salaryEarly: salaryEarlyCard(nextPayDay: comparison.nextPayDay)
                 case .moreOnAccounts where !flow.hasOwedRow: cardQuestion
                 default: EmptyView()
@@ -91,27 +76,6 @@ struct ReconcileCompareStepView: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) { if !isStacked { footer(comparison) } }
-    }
-
-    /// The context could not be read: no figure, nothing to write, and the back arrow keeps step 1.
-    private var failure: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            stepLabel
-            InfoBanner(
-                .err, systemImage: "exclamationmark.circle",
-                text: AppLocale.string("Impossible de comparer pour l'instant.")
-            )
-        }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.top, DesignTokens.Spacing.sm)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) {
-            Button(AppLocale.string("Réessayer")) { Task { await flow.loadContext() } }
-                .primaryButtonStyle()
-                .accessibilityIdentifier("reconcileRetryButton")
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.vertical, DesignTokens.Spacing.md)
-        }
     }
 
     // MARK: - Header and figures
@@ -157,7 +121,7 @@ struct ReconcileCompareStepView: View {
             }
             FormRowDivider()
             figureRow(AppLocale.string("Dans Pulpe, déjà coché")) {
-                // The Accueil's « Solde pointé »; what else Pulpe counts shows apart, on the lines below.
+                // The Accueil's « Solde pointé »: the gap reads it alone.
                 let now = comparison.realized.asCurrency(currency)
                 let before = comparison.realizedBefore?.asCurrency(currency)
                 VStack(alignment: isStacked ? .leading : .trailing, spacing: DesignTokens.Spacing.xxs) {
@@ -173,7 +137,6 @@ struct ReconcileCompareStepView: View {
                 .accessibilityLabel(before.map { AppLocale.string("\(now), avant \($0)") } ?? now)
             }
             .accessibilityIdentifier("reconcileComparedFigure")
-            figureParts(comparison)
             if let found = comparison.found, found > 0 {
                 FormRowDivider()
                 foundBar(found: found, gap: comparison.gap)
@@ -183,7 +146,7 @@ struct ReconcileCompareStepView: View {
 
     /// Stacked at accessibility sizes, so a label never pushes its amount onto two lines.
     func figureRow<Amount: View>(
-        _ title: String, tint: Color = .textPrimary, isEditable: Bool = false, @ViewBuilder amount: () -> Amount
+        _ title: String, tint: Color = .textPrimary, @ViewBuilder amount: () -> Amount
     ) -> some View {
         let layout = isStacked
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
@@ -201,8 +164,6 @@ struct ReconcileCompareStepView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(DesignTokens.TextScale.compact)
                     .sensitiveAmount()
-                // Outside the blur: with amounts hidden, the row still says it opens.
-                if isEditable { editPencil }
             }
             .layoutPriority(1)
         }
@@ -348,8 +309,6 @@ extension ReconcileCompareStepView {
                 .secondaryButtonStyle()
                 .accessibilityIdentifier("reconcileDismissSuggestions")
                 leaveButton(AppLocale.string("Laisser comme ça"), isEnabled: canFinish)
-            case .firstComparison:
-                firstComparisonActions(gap: gap, canFinish: canFinish)
             case .salaryEarly:
                 salaryEarlyActions(gap: gap, canFinish: canFinish)
             case .smallGap:

@@ -286,10 +286,10 @@ struct AccountReconciliationTests {
 extension AccountReconciliationTests {
     // MARK: - Comparison (same fixtures as account-reconciliation.spec.ts)
 
-    @Test("suggestions win over the first comparison and the early salary")
-    func comparisonScreen_suggestionsBeatFirstAndSalary() {
+    @Test("suggestions win over the early salary")
+    func comparisonScreen_suggestionsBeatSalary() {
         #expect(AccountReconciliation.comparisonScreen(
-            gap: 6_000, candidateCount: 1, dismissed: false, first: true, salaryMaybeEarly: true
+            gap: 6_000, candidateCount: 1, dismissed: false, salaryMaybeEarly: true
         ) == .suggestions)
     }
 
@@ -354,7 +354,6 @@ extension AccountReconciliationTests {
         let gap: Decimal
         var candidates = 0
         var dismissed = false
-        var first = false
         var salaryEarly = false
         let expected: AccountReconciliation.Screen
     }
@@ -362,7 +361,6 @@ extension AccountReconciliationTests {
     @Test("the screen follows the first matching row of the table", arguments: [
         ScreenCase(gap: 0, candidates: 2, expected: .matched),
         ScreenCase(gap: -100, candidates: 1, expected: .suggestions),
-        ScreenCase(gap: 3_100, first: true, expected: .firstComparison),
         ScreenCase(gap: 6_000, salaryEarly: true, expected: .salaryEarly),
         ScreenCase(gap: Decimal(sign: .minus, exponent: -2, significand: 240), expected: .smallGap),
         ScreenCase(gap: 3, expected: .smallGap),
@@ -370,12 +368,11 @@ extension AccountReconciliationTests {
         ScreenCase(gap: 6_000, expected: .moreOnAccounts),
         ScreenCase(gap: -6_000, salaryEarly: true, expected: .largeGap),
         ScreenCase(gap: -100, candidates: 1, dismissed: true, expected: .largeGap),
-        ScreenCase(gap: 6_000, first: true, salaryEarly: true, expected: .firstComparison),
         ScreenCase(gap: 3, salaryEarly: true, expected: .salaryEarly),
     ])
     private func comparisonScreen_followsTheTable(_ row: ScreenCase) {
         #expect(AccountReconciliation.comparisonScreen(
-            gap: row.gap, candidateCount: row.candidates, dismissed: row.dismissed, first: row.first,
+            gap: row.gap, candidateCount: row.candidates, dismissed: row.dismissed,
             salaryMaybeEarly: row.salaryEarly
         ) == row.expected)
     }
@@ -409,29 +406,15 @@ extension AccountReconciliationTests {
         ) == closed)
     }
 
-    @Test("the compared figure adds only the starting amount to the checked balance")
-    func comparedFigure_addsOnlyStart() throws {
-        #expect(AccountReconciliation.comparedFigure(realizedBalance: 900, startingAmount: 3_100) == 4_000)
-        #expect(AccountReconciliation.comparedFigure(
-            realizedBalance: try #require(Decimal(string: "900.1")),
-            startingAmount: try #require(Decimal(string: "-0.2"))
-        ) == (try #require(Decimal(string: "899.9"))))
-        #expect(AccountReconciliation.comparedFigure(
-            realizedBalance: try #require(Decimal(string: "100.004")),
-            startingAmount: try #require(Decimal(string: "0.004"))
-        ) == (try #require(Decimal(string: "100.01"))))
-    }
+    @Test("the « Solde pointé » alone is compared: -1 832.48 against -1 862 on the accounts")
+    func comparisonScreen_comparesTheRealizedBalanceAlone() throws {
+        let gap = AccountReconciliation.difference(
+            totalCents: -186_200, realizedBalance: try #require(Decimal(string: "-1832.48"))
+        )
 
-    @Test("only the month is compared: a « Solde pointé » of -1 832.48 against -1 862 on the accounts")
-    func comparedFigure_comparesOnlyTheMonth() throws {
-        let realized = try #require(Decimal(string: "-1832.48"))
-        let compared = AccountReconciliation.comparedFigure(realizedBalance: realized, startingAmount: 0)
-        let gap = AccountReconciliation.difference(totalCents: -186_200, realizedBalance: compared)
-
-        #expect(compared == realized)
         #expect(gap == (try #require(Decimal(string: "-29.52"))))
         #expect(AccountReconciliation.comparisonScreen(
-            gap: gap, candidateCount: 0, dismissed: false, first: false, salaryMaybeEarly: false
+            gap: gap, candidateCount: 0, dismissed: false, salaryMaybeEarly: false
         ) == .largeGap)
     }
 
@@ -471,21 +454,15 @@ extension AccountReconciliationTests {
         ])
     }
 
-    @Test("the matched card splits what is planned, what came before Pulpe, and what is left")
+    @Test("the matched card splits what Pulpe still plans from what is left to spend")
     func matchedBreakdown_splitsTheFigures() throws {
-        #expect(AccountReconciliation.matchedBreakdown(available: 900, compared: 4_050, startingAmount: 3_100)
-            == .init(stillPlanned: -50, beforePulpe: -3_100, remaining: 900))
+        #expect(AccountReconciliation.matchedBreakdown(available: 900, compared: 950)
+            == .init(stillPlanned: -50, remaining: 900))
         #expect(AccountReconciliation.matchedBreakdown(
-            available: try #require(Decimal(string: "100.004")), compared: try #require(Decimal(string: "0.004")),
-            startingAmount: 0
+            available: try #require(Decimal(string: "100.004")), compared: try #require(Decimal(string: "0.004"))
         ).stillPlanned == 100)
-        #expect(AccountReconciliation.matchedBreakdown(
-            available: try #require(Decimal(string: "0.004")), compared: 0,
-            startingAmount: try #require(Decimal(string: "0.006"))
-        ).stillPlanned == (try #require(Decimal(string: "0.01"))))
-        #expect(AccountReconciliation.matchedBreakdown(available: 900, compared: 900, startingAmount: 0)
-            == .init(stillPlanned: 0, beforePulpe: 0, remaining: 900))
-        #expect(AccountReconciliation.matchedBreakdown(available: 1_000, compared: 950, startingAmount: 0)
-            .stillPlanned == 50)
+        #expect(AccountReconciliation.matchedBreakdown(available: 900, compared: 900)
+            == .init(stillPlanned: 0, remaining: 900))
+        #expect(AccountReconciliation.matchedBreakdown(available: 1_000, compared: 950).stillPlanned == 50)
     }
 }

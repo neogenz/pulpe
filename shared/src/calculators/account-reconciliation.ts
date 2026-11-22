@@ -6,7 +6,7 @@
  *
  * SWIFT TWIN: `parseAmount`, `totalCents(of:)`, `verdict`,
  * `rankedPointingCandidates` and the screen rules
- * (`comparisonScreen`, `isSalaryMaybeEarly`, `comparedFigure`,
+ * (`comparisonScreen`, `isSalaryMaybeEarly`,
  * `availableAfterNote`, `gapClosedByChecks`, `partlySpentBudgetLines`,
  * `matchedBreakdown`) in
  * `ios/Pulpe/Features/CurrentMonth/Reconciliation/AccountReconciliation.swift`.
@@ -264,7 +264,6 @@ export function isSalaryMaybeEarly(input: {
 export type ComparisonScreen =
   | 'matched'
   | 'suggestions'
-  | 'firstComparison'
   | 'salaryEarly'
   | 'smallGap'
   | 'largeGap'
@@ -275,29 +274,14 @@ export function comparisonScreen(input: {
   readonly gap: number;
   readonly candidateCount: number;
   readonly dismissed: boolean;
-  readonly first: boolean;
   readonly salaryMaybeEarly: boolean;
 }): ComparisonScreen {
   const { gap } = input;
   if (gap === 0) return 'matched';
   if (input.candidateCount > 0 && !input.dismissed) return 'suggestions';
-  if (gap > 0 && input.first) return 'firstComparison';
   if (gap > 0 && input.salaryMaybeEarly) return 'salaryEarly';
   if (Math.abs(gap) < SMALL_GAP_THRESHOLD) return 'smallGap';
   return gap < 0 ? 'largeGap' : 'moreOnAccounts';
-}
-
-/**
- * What Pulpe holds to be compared with the accounts: the month's checked
- * balance plus the money from before Pulpe. What a previous month left
- * unchecked never counts here (spec.md §4.1).
- */
-export function comparedFigure(
-  realizedBalance: number,
-  startingAmount: number,
-): number {
-  // Rounded once after the sum, like the Swift twin.
-  return moneyDifference(realizedBalance + startingAmount, 0);
 }
 
 /** « Disponible : avant → après »: the available amount before and after noting the gap. */
@@ -356,8 +340,6 @@ export function partlySpentBudgetLines(
 export interface MatchedBreakdown {
   /** Signed: below 0 is « Encore prévu », above 0 is « Encore à recevoir », 0 shows no line. */
   readonly stillPlanned: number;
-  /** « D'avant Pulpe »: minus the starting amount, 0 shows no line. */
-  readonly beforePulpe: number;
   readonly remaining: number;
 }
 
@@ -365,14 +347,9 @@ export interface MatchedBreakdown {
 export function matchedBreakdown(input: {
   readonly available: number;
   readonly compared: number;
-  readonly startingAmount: number;
 }): MatchedBreakdown {
   return {
-    stillPlanned: moneyDifference(
-      input.available - input.compared + input.startingAmount,
-      0,
-    ),
-    beforePulpe: moneyDifference(0, input.startingAmount),
+    stillPlanned: moneyDifference(input.available, input.compared),
     remaining: input.available,
   };
 }

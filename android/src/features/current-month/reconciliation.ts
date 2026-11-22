@@ -1,7 +1,6 @@
 import {
   availableAfterNote,
   type BudgetLine,
-  comparedFigure,
   type ComparisonScreen,
   comparisonScreen,
   CURRENCY_METADATA,
@@ -15,7 +14,6 @@ import {
   periodFromIndex,
   periodIndex,
   rankedPointingCandidates,
-  type ReconciliationContext,
   type ReconciliationVerdict,
   type SupportedCurrency,
   type Transaction,
@@ -96,8 +94,6 @@ export interface Comparison {
   othersCount: number;
   note: { before: number; after: number };
   matched: MatchedBreakdown;
-  /** Money from before Pulpe, part of `compared`; shown apart when not 0. */
-  startingAmount: number;
   /** The day of the month the next period starts: « Reviens comparer le 25 ». */
   nextPayDay: number;
 }
@@ -110,19 +106,16 @@ export function buildComparison(input: {
   available: number;
   budgetLines: BudgetLine[];
   transactions: Transaction[];
-  context: ReconciliationContext;
   comparedBefore: number | null;
   realizedBefore: number | null;
   isDismissed: boolean;
   payDayOfMonth: number | null;
   today: Date;
 }): Comparison {
-  const { budgetLines, transactions, context } = input;
+  const { budgetLines, transactions } = input;
   const onAccounts = input.onAccountsCents / 100;
-  const compared = comparedFigure(
-    input.realizedBalance,
-    context.startingAmount,
-  );
+  // Pulpe's side is the « Solde pointé » alone (spec.md §4).
+  const compared = input.realizedBalance;
   const gap = moneyDifference(onAccounts, compared);
   const comparedBefore =
     input.comparedBefore === compared ? null : input.comparedBefore;
@@ -192,7 +185,6 @@ export function buildComparison(input: {
       gap,
       candidateCount: suggestions.length,
       dismissed: input.isDismissed,
-      first: !context.hasCompletedComparison && context.startingAmount === 0,
       salaryMaybeEarly: isSalaryMaybeEarly({
         gap,
         payDayOfMonth,
@@ -206,9 +198,7 @@ export function buildComparison(input: {
     matched: matchedBreakdown({
       available: input.available,
       compared,
-      startingAmount: context.startingAmount,
     }),
-    startingAmount: context.startingAmount,
     nextPayDay: nextStart.getDate(),
   };
 }

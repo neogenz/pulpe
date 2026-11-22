@@ -1,8 +1,4 @@
-import type {
-  BudgetLine,
-  ReconciliationContext,
-  Transaction,
-} from "pulpe-shared";
+import type { BudgetLine, Transaction } from "pulpe-shared";
 
 import { buildAdjustmentPayload, buildComparison } from "./reconciliation";
 
@@ -68,19 +64,12 @@ describe("buildComparison", () => {
     createdAt: STAMP,
     updatedAt: STAMP,
   };
-  const context: ReconciliationContext = {
-    startingAmount: 0,
-    hasCompletedComparison: true,
-    priorCorrection: 0,
-    priorItems: [],
-  };
   const base = {
     onAccountsCents: 95_000,
     realizedBalance: 1050,
     available: 900,
     budgetLines: [assurance, withdrawal],
     transactions: [essence],
-    context,
     comparedBefore: null,
     realizedBefore: null,
     isDismissed: false,
@@ -168,7 +157,7 @@ describe("buildComparison", () => {
       gap: 0,
       screen: "matched",
       found: 60,
-      matched: { stillPlanned: -90, beforePulpe: 0, remaining: 900 },
+      matched: { stillPlanned: -90, remaining: 900 },
     });
   });
 
@@ -200,13 +189,6 @@ describe("buildComparison", () => {
         isDismissed: true,
       }).screen,
     ).toBe("smallGap");
-    expect(
-      buildComparison({
-        ...base,
-        onAccountsCents: 120_000,
-        context: { ...context, hasCompletedComparison: false },
-      }).screen,
-    ).toBe("firstComparison");
   });
 
   describe("salary early", () => {
@@ -264,17 +246,6 @@ describe("buildComparison", () => {
           today: new Date(2026, 11, 23),
         }),
       ).toMatchObject({ screen: "salaryEarly", nextPayDay: 25 });
-    });
-
-    it("leaves the first comparison its own question", () => {
-      expect(
-        buildComparison({
-          ...more,
-          context: { ...more.context, hasCompletedComparison: false },
-          payDayOfMonth: 25,
-          today: new Date(2026, 10, 23),
-        }).screen,
-      ).toBe("firstComparison");
     });
   });
 });

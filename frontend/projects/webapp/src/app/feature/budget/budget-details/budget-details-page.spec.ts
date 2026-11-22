@@ -392,7 +392,6 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       );
       query('budget-reconcile-button')!.click();
       await vi.waitFor(() => expect(data).toBeDefined());
-      expect(data.budgetId).toBe(budgetId);
       expect(data.realized()).toEqual({ balance: 40, available: 900 });
       await data.checkItem({ source: 'transaction', id: 'tx-1' });
       await data.checkItem({ source: 'budgetLine', id: 'line-1' });

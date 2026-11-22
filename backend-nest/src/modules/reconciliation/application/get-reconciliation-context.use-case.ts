@@ -31,9 +31,10 @@ export class GetReconciliationContextUseCase {
     }
     const state = await this.repo.get();
     return {
-      startingAmount: state.startingAmount,
+      // Neither money from before Pulpe nor previous months count (spec.md §4.1);
+      // these keys stay for iOS 1.14.2, which requires them.
+      startingAmount: 0,
       hasCompletedComparison: state.lastCompletedAt !== null,
-      // Previous months never count (spec.md §4.1); both keys stay for iOS 1.14.2.
       priorCorrection: 0,
       priorItems: [],
     };

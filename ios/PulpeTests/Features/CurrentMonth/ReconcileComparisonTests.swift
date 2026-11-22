@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// Step 2 of « Comparer avec mes comptes » read from the numbers as they stand: the compared
-/// figure, the suggestions, the checks and the screen. The context read is faked at its seam.
+/// figure, the suggestions, the checks and the screen.
 @MainActor
 struct ReconcileComparisonTests {
     @Test("the phase-7 month opens on Assurance, Essence and Pharmacie, Assurance alone settling the gap")
@@ -57,14 +57,11 @@ struct ReconcileComparisonTests {
         #expect(matched.screen == .matched)
         #expect(matched.found == Decimal(100))
         #expect(flow.checkedSuggestions.map(\.id) == ["tx-essence", "tx-pharmacie"])
-        // The month's checks move the balance the screen reads: the context is never read again.
-        #expect(await month.server.reads == 1)
     }
 
     @Test("a refused check moves nothing, and a second tap while one is out checks nothing")
     func check_refusedOrPending_changesNothing() async throws {
-        let server = ContextServer()
-        let flow = await makeComparingFlow("950", server: server)
+        let flow = await makeComparingFlow("950")
         let line = TestDataFactory.createBudgetLine(id: "assurance", amount: 100)
         let comparison = flow.comparison(realizedBalance: 1050, lines: [line], transactions: [])
         let row = try #require(comparison?.suggestions.first)
@@ -87,8 +84,6 @@ struct ReconcileComparisonTests {
         release.yield()
         #expect(await first.value)
         #expect(flow.checkedSuggestions.map(\.id) == ["bl-assurance"])
-        // Checks of this month, refused or not, read nothing more: only a previous month's item moves the correction.
-        #expect(await server.reads == 1)
     }
 
     @Test("from the tap that fills the circle, no exit completes until the check is back")
@@ -140,19 +135,13 @@ struct ReconcileComparisonTests {
         #expect(comparison.suggestions.map(\.isExact) == [false, true])
     }
 
-    @Test("the « Voir les autres » list hands back to step 2 once the figures match, or the read fails")
-    func closesToCheckList_onceMatchedOrFailed() async {
-        let server = ContextServer()
-        let flow = await makeComparingFlow("950", server: server)
-        let expenses = (1...5).map { TestDataFactory.createTransaction(id: "achat-\($0)", amount: 100) }
+    @Test("the « Voir les autres » list hands back to step 2 once the figures match")
+    func closesToCheckList_onceMatched() async {
+        let flow = await makeComparingFlow("950")
 
         #expect(!flow.closesToCheckList(realizedBalance: 1050))
         // One of the five checked there: Pulpe now has 950 too.
         #expect(flow.closesToCheckList(realizedBalance: 950))
-
-        await server.set(nil)
-        await flow.loadContext()
-        #expect(flow.closesToCheckList(realizedBalance: 1050))
     }
 
     @Test("the list stays open on the optimistic match, and after the server refuses the check")
@@ -190,7 +179,6 @@ struct ReconcileComparisonTests {
         flow.editAccounts()
         flow.accounts[0].amountText = "870"
         flow.compare()
-        await flow.loadContext()
 
         #expect(!flow.isDismissed)
         #expect(flow.beforeChecks == nil)
@@ -204,12 +192,11 @@ struct ReconcileComparisonTests {
 
     @Test("« Retirer « Je dois … » » changes the total: « trouvés » restarts, the struck figure stays")
     func removeOwedRows_restartsFound() async throws {
-        let flow = makeFlow(server: ContextServer())
+        let flow = makeFlow()
         flow.accounts[0].amountText = "1250"
         flow.addFreeAccount(isOwed: true)
         flow.accounts[1].amountText = "200"
         flow.compare()
-        await flow.loadContext()
         let line = TestDataFactory.createBudgetLine(id: "assurance", amount: 100)
         let opened = flow.comparison(realizedBalance: 1150, lines: [line], transactions: [])
         let row = try #require(opened?.suggestions.first)
@@ -234,7 +221,7 @@ struct ReconcileComparisonTests {
 
     @Test("« Retirer « Je dois … » » takes what I owe out, and goes back to the balances when nothing is left")
     func removeOwedRows_recomputesOrGoesBack() {
-        let flow = makeFlow(server: ContextServer())
+        let flow = makeFlow()
         flow.accounts[0].amountText = "1000"
         flow.addFreeAccount(isOwed: true)
         flow.accounts[1].amountText = "200"
@@ -245,7 +232,7 @@ struct ReconcileComparisonTests {
         #expect(flow.totalCents == 100_000)
         #expect(flow.step == .comparison)
 
-        let owedOnly = makeFlow(server: ContextServer())
+        let owedOnly = makeFlow()
         owedOnly.accounts[0].isOwed = true
         owedOnly.accounts[0].amountText = "200"
         owedOnly.compare()
@@ -253,70 +240,39 @@ struct ReconcileComparisonTests {
         #expect(owedOnly.step == .accounts)
     }
 
-    @Test("without the server context nothing is written and nothing finishes, until a retry reads it")
-    func failedContext_offersNoWriteAndNoFinish() async {
-        let server = ContextServer(nil)
-        let flow = await makeComparingFlow("10", server: server)
-
-        #expect(flow.contextState == .failed)
-        #expect(flow.comparison(realizedBalance: 0, lines: [], transactions: []) == nil)
-        #expect(!flow.canSubmitAdjustment(realizedBalance: 0, of: "budget-current"))
-        #expect(await flow.submitAdjustment(realizedBalance: 0, of: "budget-current") == .ignored)
-        #expect(!flow.finishWithoutEntry(of: "budget-current"))
-
-        await server.set(TestDataFactory.createReconciliationContext())
-        await flow.loadContext()
-        #expect(flow.contextState == .loaded(TestDataFactory.createReconciliationContext()))
-        #expect(flow.canSubmitAdjustment(realizedBalance: 0, of: "budget-current"))
-        #expect(flow.finishWithoutEntry(of: "budget-current"))
-    }
-
     // MARK: - Helpers
 
     /// Phase 7's month: realized 1 050.00, Assurance 100, Essence 60 and Pharmacie 40 unchecked, and
     /// 950.00 typed.
     private func makePhase7Month() async -> Phase7Month {
-        let server = ContextServer()
-        let flow = await makeComparingFlow("950", server: server)
+        let flow = await makeComparingFlow("950")
         let assurance = TestDataFactory.createBudgetLine(id: "assurance", name: "Assurance", amount: 100)
         let essence = TestDataFactory.createTransaction(id: "essence", name: "Essence", amount: 60)
         let pharmacie = TestDataFactory.createTransaction(id: "pharmacie", name: "Pharmacie", amount: 40)
-        return Phase7Month(flow: flow, server: server, lines: [assurance], transactions: [essence, pharmacie])
+        return Phase7Month(flow: flow, lines: [assurance], transactions: [essence, pharmacie])
     }
 
     private struct Phase7Month {
         let flow: ReconcileAccountsFlow
-        let server: ContextServer
         let lines: [BudgetLine]
         let transactions: [Transaction]
     }
 
-    private func makeFlow(server: ContextServer) -> ReconcileAccountsFlow {
-        makeFlow { _ in try await server.read() }
-    }
-
-    private func makeFlow(
-        fetchContext: @escaping @Sendable (String) async throws -> ReconciliationContext
-    ) -> ReconcileAccountsFlow {
+    private func makeFlow() -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
             budgetId: "budget-current",
             entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
-            fetchContext: fetchContext,
-            updateState: { _ in throw CancellationError() },
             onAdjustmentCreated: { _ in },
             onCompleted: { _ in }
         )
     }
 
-    /// Step 2 with one account typed and the server context read, as the sheet opens it.
-    private func makeComparingFlow(
-        _ amount: String, server: ContextServer = ContextServer()
-    ) async -> ReconcileAccountsFlow {
-        let flow = makeFlow(server: server)
+    /// Step 2 with one account typed, as the sheet opens it.
+    private func makeComparingFlow(_ amount: String) async -> ReconcileAccountsFlow {
+        let flow = makeFlow()
         flow.accounts[0].amountText = amount
         flow.compare()
-        await flow.loadContext()
         return flow
     }
 }
@@ -355,91 +311,5 @@ extension ReconcileComparisonTests {
         #expect(stored?.isChecked == true)
         // Undoing the deletion regroups it under Courses.
         #expect(stored?.budgetLineId == "courses")
-    }
-
-    @Test("each « Comparer » reads the context again and drops a read still out")
-    func compare_readsTheContextAgain() async throws {
-        let server = ContextServer()
-        let flow = await makeComparingFlow("950", server: server)
-        #expect(flow.comparedFigure(realizedBalance: 1050) == Decimal(1050))
-
-        // Back to the balances while the starting amount is changed on the web.
-        await server.set(TestDataFactory.createReconciliationContext(startingAmount: -40))
-        flow.editAccounts()
-        flow.compare()
-        #expect(flow.contextState == .loading)
-        await flow.loadContext()
-        #expect(flow.comparedFigure(realizedBalance: 1050) == Decimal(1010))
-
-        let (released, release) = AsyncStream<Void>.makeStream()
-        let slow = SlowFirstRead(released: released)
-        let restarted = makeFlow { _ in try await slow.read() }
-        restarted.accounts[0].amountText = "950"
-        restarted.compare()
-        let older = Task { await restarted.loadContext() }
-        await waitForCondition("the first context read never started") { slow.reads > 0 }
-        try #require(slow.reads > 0)
-        restarted.editAccounts()
-        restarted.compare()
-        release.yield()
-        await older.value
-        // The read out before the second « Comparer » failed late: it lands nowhere.
-        #expect(restarted.contextState == .loading)
-    }
-
-    @Test("an older context read answering late never replaces the newer one")
-    func loadContext_latestReadWins() async throws {
-        let (released, release) = AsyncStream<Void>.makeStream()
-        let server = SlowFirstRead(released: released)
-        let flow = makeFlow { _ in try await server.read() }
-
-        let older = Task { await flow.loadContext() }
-        await waitForCondition("the first context read never started") { server.reads > 0 }
-        try #require(server.reads > 0)
-        await flow.loadContext()
-        #expect(flow.contextState == .loaded(TestDataFactory.createReconciliationContext()))
-
-        release.yield()
-        await older.value
-        #expect(flow.contextState == .loaded(TestDataFactory.createReconciliationContext()))
-    }
-}
-
-/// A context endpoint whose first read hangs until released, then fails: an older read answering late.
-/// On the main actor, so a test polls `reads` with `waitForCondition` and a time limit.
-@MainActor
-private final class SlowFirstRead {
-    private let released: AsyncStream<Void>
-    private(set) var reads = 0
-
-    init(released: AsyncStream<Void>) {
-        self.released = released
-    }
-
-    func read() async throws -> ReconciliationContext {
-        reads += 1
-        guard reads == 1 else { return TestDataFactory.createReconciliationContext() }
-        for await _ in released { break }
-        throw URLError(.timedOut)
-    }
-}
-
-/// The context endpoint, faked: hands out what the test set, `nil` refusing as an unreachable server.
-private actor ContextServer {
-    private var context: ReconciliationContext?
-    private(set) var reads = 0
-
-    init(_ context: ReconciliationContext? = TestDataFactory.createReconciliationContext()) {
-        self.context = context
-    }
-
-    func set(_ context: ReconciliationContext?) {
-        self.context = context
-    }
-
-    func read() throws -> ReconciliationContext {
-        reads += 1
-        guard let context else { throw URLError(.notConnectedToInternet) }
-        return context
     }
 }

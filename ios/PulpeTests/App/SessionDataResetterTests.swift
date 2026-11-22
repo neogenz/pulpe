@@ -89,7 +89,7 @@ struct SessionDataResetterTests {
         ReconcileFreeAccountsStore.shared.save([.init(name: "Revolut", isOwed: false)])
         ReconcileDraftStore.shared.keep(ReconcileAccountsFlow.Draft(
             budgetId: "budget-current", accounts: [.init(label: "Revolut", amountText: "120")],
-            assetIds: [:], didCompleteComparison: false
+            assetIds: [:]
         ))
 
         let sut = LiveSessionDataResetter(

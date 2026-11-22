@@ -1,9 +1,5 @@
 import { fireEvent, render } from "@testing-library/react-native";
-import type {
-  BudgetLine,
-  ReconciliationContext,
-  Transaction,
-} from "pulpe-shared";
+import type { BudgetLine, Transaction } from "pulpe-shared";
 import { AccessibilityInfo, Text } from "react-native";
 
 import { buildComparison } from "../reconciliation";
@@ -59,12 +55,6 @@ const essence: Transaction = {
   createdAt: STAMP,
   updatedAt: STAMP,
 };
-const context: ReconciliationContext = {
-  startingAmount: 0,
-  hasCompletedComparison: true,
-  priorCorrection: 0,
-  priorItems: [],
-};
 // Type 950 against 1 050 checked in Pulpe (spec phase 15, happy path).
 const happyPath = {
   onAccountsCents: 95_000,
@@ -72,7 +62,6 @@ const happyPath = {
   available: 900,
   budgetLines: [assurance],
   transactions: [essence],
-  context,
   comparedBefore: null,
   realizedBefore: null,
   isDismissed: false,
@@ -81,13 +70,11 @@ const happyPath = {
 };
 
 function renderStep(
-  comparison: ReturnType<typeof buildComparison> | null,
+  comparison: ReturnType<typeof buildComparison>,
   overrides: Partial<Parameters<typeof ReconcileCompareStep>[0]> = {},
 ) {
   const props = {
     comparison,
-    isUnavailable: false,
-    onRetry: jest.fn(),
     currency: "CHF" as const,
     hasOwe: false,
     oweTotal: null,
@@ -97,7 +84,6 @@ function renderStep(
     onRemoveOwe: jest.fn(),
     onViewOthers: jest.fn(),
     onAddOwe: jest.fn(),
-    onEditStartingAmount: jest.fn(),
     ...overrides,
   };
   return { props, view: render(<ReconcileCompareStep {...props} />) };
@@ -242,18 +228,6 @@ it("draws the note's arrow in the icon font, which Roboto lacks", async () => {
   expect(arrowed("Pas de flèche", 12)).toBe("Pas de flèche");
 });
 
-it("shows the error with [Réessayer] when the context cannot be read", async () => {
-  const { props, view: pending } = renderStep(null, { isUnavailable: true });
-  const view = await pending;
-
-  expect(view.getByTestId("reconcile-context-error")).toHaveTextContent(
-    /home\.reconcile\.compare\.loadError/,
-  );
-  await fireEvent.press(view.getByText("common.retry"));
-  expect(props.onRetry).toHaveBeenCalledTimes(1);
-  expect(view.queryByTestId("reconcile-figures")).toBeNull();
-});
-
 describe("more on the accounts", () => {
   // 6 000 more on the accounts than the 1 050 checked, nothing to check.
   const more = {
@@ -298,50 +272,18 @@ describe("more on the accounts", () => {
     expect(withOwe.getByTestId("reconcile-large-gap")).toBeTruthy();
   });
 
-  it("shows the money from before Pulpe apart from the figure, and opens it", async () => {
-    const { props, view: pending } = renderStep(
-      buildComparison({
-        ...more,
-        onAccountsCents: 400_000,
-        realizedBalance: 900,
-        context: { ...more.context, startingAmount: 3100 },
-      }),
-    );
-    const view = await pending;
-
-    expect(view.getByText("home.reconcile.compare.matched")).toBeTruthy();
-    await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
-    expect(props.onEditStartingAmount).toHaveBeenCalledTimes(1);
-
-    const partly = await renderStep(
-      buildComparison({
-        ...more,
-        onAccountsCents: 410_000,
-        realizedBalance: 900,
-        context: { ...more.context, startingAmount: 3100 },
-      }),
-    ).view;
-    expect(partly.getByTestId("reconcile-in-pulpe")).toHaveTextContent(
-      /900\.00/,
-    );
-    expect(partly.getByTestId("reconcile-starting-amount")).toHaveTextContent(
-      /home\.reconcile\.compare\.startingAmountPart:\+3’100\.00/,
-    );
-  });
-
   it("starts the matched card from the accounts figure, so the sum adds up", async () => {
     const view = await renderStep(
       buildComparison({
         ...more,
-        onAccountsCents: 412_000,
+        onAccountsCents: 102_000,
         realizedBalance: 1020,
         available: 700,
-        context: { ...more.context, startingAmount: 3100 },
       }),
     ).view;
 
     expect(view.getByTestId("reconcile-matched")).toHaveTextContent(
-      /^home\.reconcile\.compare\.onAccounts4’120\.00 CHF.*stillPlanned−320\.00 CHF.*beforePulpe−3’100\.00 CHF.*toSpend700\.00 CHF$/,
+      /^home\.reconcile\.compare\.onAccounts1’020\.00 CHF.*stillPlanned−320\.00 CHF.*toSpend700\.00 CHF$/,
     );
   });
 });
@@ -367,11 +309,9 @@ describe("a saving among the suggestions", () => {
         currency="CHF"
         isBusy={false}
         isRecording={false}
-        isSavingState={false}
         onLeave={jest.fn()}
         onDismiss={jest.fn()}
         onRecord={jest.fn()}
-        onKeep={jest.fn()}
         onShowReasons={jest.fn()}
       />,
     );

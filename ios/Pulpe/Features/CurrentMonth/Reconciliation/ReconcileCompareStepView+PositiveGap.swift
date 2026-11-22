@@ -2,27 +2,8 @@ import SwiftUI
 
 // MARK: - More on my accounts than in Pulpe
 
-/// The screens that ask why my accounts hold more before any income is noted (spec.md §4.4), and the
-/// money from before Pulpe, shown apart from the figure and corrected in its own sheet.
+/// The screens that ask why my accounts hold more before any income is noted (spec.md §4.4).
 extension ReconcileCompareStepView {
-    /// « Ces 3 100.00 CHF étaient là avant Pulpe ? » and why Pulpe asks; hidden amounts keep the question without its
-    /// amount.
-    func firstComparisonCard(gap: Decimal) -> some View {
-        let question = amountsHidden
-            ? AppLocale.string("Cet argent était là avant Pulpe ?")
-            : AppLocale.string("Ces \(gap.asInlineCurrency(currency)) étaient là avant Pulpe ?")
-        return questionCard {
-            Text(verbatim: question)
-                .font(PulpeTypography.rowTitle)
-                .monospacedDigit()
-                .foregroundStyle(Color.textPrimary)
-            Text("Pulpe ne sait pas combien tu avais sur tes comptes quand tu as commencé.")
-                .font(PulpeTypography.rowTitleRegular)
-                .foregroundStyle(Color.textSecondary)
-        }
-        .accessibilityIdentifier("reconcileFirstComparison")
-    }
-
     func salaryEarlyCard(nextPayDay: Int) -> some View {
         questionCard {
             Text("Ton salaire est arrivé en avance ?")
@@ -57,48 +38,6 @@ extension ReconcileCompareStepView {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, DesignTokens.Spacing.lg)
         }
-    }
-
-    /// The one write of a first comparison: the gap becomes money from before Pulpe, and « Disponible à
-    /// dépenser » stays as it is.
-    @ViewBuilder
-    func firstComparisonActions(gap: Decimal, canFinish canKeep: Bool) -> some View {
-        Button {
-            Task { await keepGap() }
-        } label: {
-            if flow.isSavingState { ProgressView() } else { Text("Oui, c'était déjà là") }
-        }
-        .disabled(!canKeep)
-        .primaryButtonStyle(isEnabled: canKeep)
-        .accessibilityIdentifier("reconcileKeepStartButton")
-        Text("Ton disponible ne change pas.")
-            .font(PulpeTypography.captionRegular)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(Color.textSecondary)
-        reasonsButton(AppLocale.string("Non, autre chose"), gap: gap, from: .firstComparison, isEnabled: canKeep)
-        leaveButton(AppLocale.string("Laisser comme ça"), isEnabled: canKeep)
-    }
-
-    /// « +3 100.00 CHF d'avant Pulpe » under the Pulpe figure: in ink like every amount, the pencil says it
-    /// opens. Hidden amounts keep the words.
-    func startingAmountLink(_ amount: Decimal) -> some View {
-        let title = amountsHidden
-            ? AppLocale.string("D'avant Pulpe")
-            : AppLocale.string("\(signedCurrency(amount)) d'avant Pulpe")
-        return Button { editsStartingAmount = true } label: {
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                Text(verbatim: title)
-                    .font(PulpeTypography.captionRegular)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.textSecondary)
-                editPencil
-            }
-            .expandedTapArea()
-        }
-        .textLinkButtonStyle()
-        .disabled(flow.isWriting || flow.isChecking)
-        .frame(maxWidth: .infinity, alignment: isStacked ? .leading : .trailing)
-        .accessibilityIdentifier("reconcileStartingAmountButton")
     }
 
     /// Coming back on pay day is the answer, so leaving is the main action; the other causes stay one tap away.
@@ -164,30 +103,6 @@ extension ReconcileCompareStepView {
                     realizedBalance: realizedBalance, of: month.budgetId
                 ))
             }
-        }
-    }
-
-    // MARK: - Writes
-
-    /// Refused, the screen stays as it was and one toast says so; written, VoiceOver starts again from
-    /// the title, which now says what the figures do.
-    func keepGap() async {
-        report(await flow.keepGapAsStartingAmount(realizedBalance: realizedBalance, of: month.budgetId))
-    }
-
-    func saveStartingAmount(_ amount: Decimal) async {
-        report(await flow.saveStartingAmount(amount))
-    }
-
-    private func report(_ outcome: ReconcileAccountsFlow.SubmitOutcome) {
-        switch outcome {
-        case .written:
-            submitSuccessTrigger.toggle()
-            isTitleFocused = true
-        case .failed:
-            toastManager.show(AppLocale.string("La modification a échoué — réessaie"), type: .error)
-        case .ignored:
-            break
         }
     }
 }

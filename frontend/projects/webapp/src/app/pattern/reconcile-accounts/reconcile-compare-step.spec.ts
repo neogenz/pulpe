@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { ReconciliationContext } from 'pulpe-shared';
 
 import {
   createMockBudgetLine,
@@ -33,12 +32,6 @@ const PHARMACIE = createMockTransaction({
   amount: 40,
   transactionDate: '2026-11-19T10:00:00+01:00',
 });
-const CONTEXT: ReconciliationContext = {
-  startingAmount: 0,
-  hasCompletedComparison: true,
-  priorCorrection: 0,
-  priorItems: [],
-};
 
 // Pulpe holds 1 050.00 checked, the accounts 950.00: 100.00 to find.
 function input(overrides: Partial<ComparisonInput> = {}): ComparisonInput {
@@ -48,7 +41,6 @@ function input(overrides: Partial<ComparisonInput> = {}): ComparisonInput {
     available: 900,
     budgetLines: [ASSURANCE],
     transactions: [ESSENCE],
-    context: CONTEXT,
     comparedBefore: null,
     realizedBefore: null,
     isDismissed: false,
@@ -193,27 +185,13 @@ describe('buildComparison', () => {
     ).toEqual([['Migros', false]]);
   });
 
-  it('should add only the starting amount to the month figure', () => {
-    const view = buildComparison(
-      input({ context: { ...CONTEXT, startingAmount: 10 } }),
-    );
-
-    expect(view).toMatchObject({ compared: 1060, realized: 1050 });
-  });
-
-  // Editing the money from before Pulpe moves the figure, not the month's balance.
   it('should strike the realized balance only once a check moved it', () => {
     expect(
       buildComparison(input({ realizedBalance: 990, realizedBefore: 1050 }))
         .realizedBefore,
     ).toBe(1050);
     expect(
-      buildComparison(
-        input({
-          realizedBefore: 1050,
-          context: { ...CONTEXT, startingAmount: -40 },
-        }),
-      ).realizedBefore,
+      buildComparison(input({ realizedBefore: 1050 })).realizedBefore,
     ).toBeNull();
   });
 
@@ -256,7 +234,6 @@ describe('buildComparison', () => {
     expect(view.screen).toBe('matched');
     expect(view.matched).toEqual({
       stillPlanned: -150,
-      beforePulpe: 0,
       remaining: 900,
     });
   });
@@ -298,22 +275,6 @@ describe('buildComparison', () => {
     expect(february(22).screen).toBe('moreOnAccounts');
     // The 28th is pay day itself: nothing to wait for.
     expect(february(28).screen).toBe('moreOnAccounts');
-  });
-
-  it('should ask about money from before Pulpe on a first comparison only', () => {
-    const first = { ...CONTEXT, hasCompletedComparison: false };
-
-    expect(
-      buildComparison(input({ ...SIX_THOUSAND_MORE, context: first })).screen,
-    ).toBe('firstComparison');
-    expect(
-      buildComparison(
-        input({
-          ...SIX_THOUSAND_MORE,
-          context: { ...first, startingAmount: 3100 },
-        }),
-      ).screen,
-    ).toBe('moreOnAccounts');
   });
 
   it('should pick the small or the large gap once the suggestions are dismissed', () => {
@@ -599,17 +560,15 @@ describe('ReconcileCompareStep', () => {
     expect(host.querySelector('[data-testid="reconcile-figures"]')).toBeNull();
     expect(text('reconcile-matched')[0]).toContain('Encore prévu −150.00');
     expect(text('reconcile-matched')[0]).toContain('À dépenser ce mois 900.00');
-    expect(text('reconcile-matched')[0]).not.toContain("D'avant Pulpe");
   });
 
-  // Accounts 4 120.00 = 1 020.00 checked + 3 100.00 from before Pulpe; 700.00 left to spend.
+  // Accounts 1 020.00 = 1 020.00 checked; 700.00 left to spend.
   it('should start the matched card from the accounts figure, unsigned', async () => {
     const { host } = await render(
       input({
-        onAccountsCents: 412_000,
+        onAccountsCents: 102_000,
         realizedBalance: 1020,
         available: 700,
-        context: { ...CONTEXT, startingAmount: 3100 },
       }),
     );
 
@@ -624,9 +583,8 @@ describe('ReconcileCompareStep', () => {
         ],
       ),
     ).toEqual([
-      ['Sur tes comptes', money(4120, 'CHF')],
+      ['Sur tes comptes', money(1020, 'CHF')],
       ['Encore prévu', `−${money(320, 'CHF')}`],
-      ["D'avant Pulpe", `−${money(3100, 'CHF')}`],
       ['À dépenser ce mois', money(700, 'CHF')],
     ]);
   });
@@ -677,30 +635,6 @@ describe('ReconcileCompareStep', () => {
     }
     expect(host.textContent).not.toMatch(/\d CHF/);
   });
-  it('should ask whether the gap was there before Pulpe, its amount masked alone', async () => {
-    const { host, text } = await render(
-      input({
-        ...SIX_THOUSAND_MORE,
-        context: { ...CONTEXT, hasCompletedComparison: false },
-      }),
-    );
-
-    expect(text('reconcile-first-comparison')[0]).toContain(
-      `Ces ${money(6000, 'CHF')} étaient là avant Pulpe ?`,
-    );
-    expect(text('reconcile-first-comparison')[0]).toContain(
-      'Pulpe ne sait pas combien tu avais sur tes comptes quand tu as commencé.',
-    );
-    expect(
-      Array.from(
-        host.querySelectorAll(
-          '[data-testid="reconcile-first-comparison"] .ph-no-capture',
-        ),
-        (element) => element.textContent,
-      ),
-    ).toEqual([money(6000, 'CHF')]);
-  });
-
   it('should tell when to come back on pay day', async () => {
     const { text } = await render(
       input({ ...SIX_THOUSAND_MORE, payDayOfMonth: 25 }),
@@ -740,55 +674,5 @@ describe('ReconcileCompareStep', () => {
     fixture.componentRef.setInput('hasOwe', true);
     await fixture.whenStable();
     expect(card()).toBeNull();
-  });
-
-  it('should show the money from before Pulpe apart from the figure, and open its editor', async () => {
-    const withStart = input({
-      onAccountsCents: 410_000,
-      realizedBalance: 900,
-      context: { ...CONTEXT, startingAmount: 3100 },
-    });
-    const fixture = TestBed.createComponent(ReconcileCompareStep);
-    fixture.componentRef.setInput('comparison', buildComparison(withStart));
-    fixture.componentRef.setInput('currency', 'CHF');
-    fixture.componentRef.setInput('hasOwe', false);
-    let edits = 0;
-    fixture.componentInstance.editStartingAmount.subscribe(() => (edits += 1));
-    await fixture.whenStable();
-    const host = fixture.nativeElement as HTMLElement;
-    const button = () =>
-      host.querySelector<HTMLElement>(
-        '[data-testid="reconcile-starting-amount-button"]',
-      );
-
-    expect(
-      host.querySelector('[data-testid="reconcile-compared"]')?.textContent,
-    ).toBe(money(900, 'CHF'));
-    // The pencil is an icon ligature: only the words count.
-    expect(
-      button()?.querySelector('.mdc-button__label')?.textContent?.trim(),
-    ).toBe(`+${money(3100, 'CHF')} d'avant Pulpe`);
-    // Only the amount is masked: the button stays clickable with amounts hidden.
-    expect(button()?.classList).not.toContain('ph-no-capture');
-    expect(button()?.querySelector('.ph-no-capture')?.textContent).toBe(
-      `+${money(3100, 'CHF')}`,
-    );
-    button()?.click();
-    expect(edits).toBe(1);
-
-    // Matched: the « D'avant Pulpe » row opens it, named by the row's words and amount.
-    fixture.componentRef.setInput(
-      'comparison',
-      buildComparison({ ...withStart, onAccountsCents: 400_000 }),
-    );
-    await fixture.whenStable();
-    expect(button()?.getAttribute('aria-labelledby')).toBe(
-      'reconcile-before-pulpe reconcile-before-pulpe-amount',
-    );
-    expect(
-      host.querySelector('#reconcile-before-pulpe-amount')?.textContent,
-    ).toBe(`−${money(3100, 'CHF')}`);
-    button()?.click();
-    expect(edits).toBe(2);
   });
 });

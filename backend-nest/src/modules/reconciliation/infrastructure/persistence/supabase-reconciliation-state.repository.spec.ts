@@ -3,7 +3,6 @@ import { Buffer } from 'node:buffer';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
-import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
 import { SupabaseReconciliationStateRepository } from './supabase-reconciliation-state.repository';
 
 const user: AuthenticatedUser = {
@@ -41,62 +40,33 @@ function build(result: Result) {
     client: { from: jest.fn(() => query.proxy) },
     user,
   } as unknown as AuthenticatedSupabaseProvider;
-  const encryption = {
-    getDekFor: jest.fn().mockResolvedValue(Buffer.alloc(32)),
-    encryptAmount: jest.fn((amount: number) => `enc:${amount}`),
-    decryptAmount: jest.fn((cipher: string) => Number(cipher.slice(4))),
-  } as unknown as EncryptionPort;
-  return {
-    query,
-    encryption,
-    repo: new SupabaseReconciliationStateRepository(provider, encryption),
-  };
+  return { query, repo: new SupabaseReconciliationStateRepository(provider) };
 }
 
 describe('SupabaseReconciliationStateRepository', () => {
-  it('should default to 0 and null when the person has no row', async () => {
-    const { repo, encryption } = build({ data: null, error: null });
+  it('should default to null when the person has no row', async () => {
+    const { repo } = build({ data: null, error: null });
 
-    expect(await repo.get()).toEqual({
-      startingAmount: 0,
-      lastCompletedAt: null,
-    });
-    expect(encryption.getDekFor).not.toHaveBeenCalled();
+    expect(await repo.get()).toEqual({ lastCompletedAt: null });
   });
 
-  it('should decrypt the stored amount', async () => {
-    const { repo } = build({
-      data: {
-        starting_amount: 'enc:3100',
-        last_completed_at: '2026-11-01T10:00:00.000Z',
-      },
+  it('should read the completion time and never the starting amount', async () => {
+    const { repo, query } = build({
+      data: { last_completed_at: '2026-11-01T10:00:00.000Z' },
       error: null,
     });
 
     expect(await repo.get()).toEqual({
-      startingAmount: 3100,
       lastCompletedAt: '2026-11-01T10:00:00.000Z',
     });
+    expect(query.calls.find(([m]) => m === 'select')?.[1]).toEqual([
+      'last_completed_at',
+    ]);
   });
 
-  it('should write a ciphertext, never the plain amount', async () => {
+  it('should write the completion time and never starting_amount', async () => {
     const { repo, query } = build({
-      data: { starting_amount: 'enc:3100', last_completed_at: null },
-      error: null,
-    });
-
-    const state = await repo.upsert({ startingAmount: 3100 });
-
-    expect(query.calls.find(([m]) => m === 'upsert')?.[1][0]).toEqual({
-      user_id: 'user-1',
-      starting_amount: 'enc:3100',
-    });
-    expect(state.startingAmount).toBe(3100);
-  });
-
-  it('should not touch starting_amount when the patch has no amount', async () => {
-    const { repo, query, encryption } = build({
-      data: { starting_amount: 'enc:3100', last_completed_at: 'x' },
+      data: { last_completed_at: '2026-11-21T10:00:00.000Z' },
       error: null,
     });
 
@@ -106,7 +76,6 @@ describe('SupabaseReconciliationStateRepository', () => {
       user_id: 'user-1',
       last_completed_at: '2026-11-21T10:00:00.000Z',
     });
-    expect(encryption.encryptAmount).not.toHaveBeenCalled();
   });
 
   it('should wrap a database failure', async () => {

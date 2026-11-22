@@ -52,12 +52,11 @@ Header: « Étape 2 sur 2 », back arrow to step 1, « ? ».
 ### 4.1 The figures
 
 - « Sur tes comptes » = J'ai total − Je dois total.
-- Compared figure = realized balance of the month + starting amount. The « Dans Pulpe, déjà coché » row shows its parts apart (see Display).
-  - What a previous month left unchecked never counts: the rollover already carries it as done. The context API still sends `priorCorrection: 0` and `priorItems: []` for iOS 1.14.2 builds, which require both keys.
-  - Starting amount (server, per person): 0 until the person answers « Oui, c'était déjà là ». When it is not 0, tapping « {starting amount} d'avant Pulpe » opens a small editor with an amount field, [Enregistrer] and [Remettre à 0].
-  - Display: the figure on the « Dans Pulpe, déjà coché » row is the realized balance alone, the same number as « Solde pointé » on the Accueil. Under it, in this order, a line « {±starting amount} d'avant Pulpe » (the editor button) when it is not 0. The gap still uses the whole compared figure.
-  - After a check moves the realized balance, the old realized balance is shown struck through next to the new one. Editing the starting amount or removing « Je dois » keeps the struck figure.
-- Step 2 waits for the server context. If it fails, step 2 shows « Impossible de comparer pour l'instant. » with [Réessayer], writes nothing, and the back arrow keeps step 1's amounts.
+- Compared figure = realized balance of the month, the same number as « Solde pointé » on the Accueil, shown on the « Dans Pulpe, déjà coché » row.
+  - What a previous month left unchecked never counts: the rollover already carries it as done.
+  - Money that was on the accounts before the person started Pulpe has no special treatment: it shows as a gap like any other and is noted once as « Écart avec mes comptes »; the rollover carries it to the next months.
+  - Step 2 reads nothing from the server. The context endpoints stay for iOS 1.14.2 only: GET sends `startingAmount: 0`, `hasCompletedComparison`, `priorCorrection: 0` and `priorItems: []`; PUT ignores a `startingAmount`.
+  - After a check moves the realized balance, the old realized balance is shown struck through next to the new one. Removing « Je dois » keeps the struck figure.
 - Gap = Sur tes comptes − Dans Pulpe, in cents, no tolerance.
 - Title = verdict: « Tes comptes ont {|gap|} de moins que Pulpe » (gap < 0), « Tes comptes ont {gap} de plus que Pulpe » (gap > 0), « Pareil des deux côtés » (gap = 0).
 
@@ -67,19 +66,18 @@ Header: « Étape 2 sur 2 », back arrow to step 1, « ? ».
 - Each row: name, then a second line « Prévue ce mois » (budget line), else the date (« Essence · mardi »). The amount is highlighted green when it equals the remaining gap exactly. Rows are at least 64pt high.
 - Lead sentence: « Coche les dépenses que tu vois dans l'app de ta banque. » (gap < 0, no « Je dois » row), or « Coche les dépenses et l'épargne que tu vois dans l'app de ta banque. » when a shown row is a saving, « Coche les achats faits avec ta carte. » (gap < 0 and a « Je dois » row), « Coche les revenus que tu vois dans l'app de ta banque. » (gap > 0).
 - « Voir les {n} autres à cocher » opens the existing list of items to check.
-- Checking a row checks the real item and recomputes. The struck figure follows §4.1. Once a check has closed part of the gap, a bar reads « {found} trouvés » (what is left is already in the title, never repeated); editing the starting amount or removing « Je dois » hides it until the next check.
+- Checking a row checks the real item and recomputes. The struck figure follows §4.1. Once a check has closed part of the gap, a bar reads « {found} trouvés » (what is left is already in the title, never repeated); removing « Je dois » hides it until the next check.
 - With a « Je dois » row and gap < 0: « Tu coches tes achats de carte à la facture ? » [Retirer « Je dois {montant} »] (removes the « Je dois » rows and recomputes).
 - Footer: [Aucune dépense ne correspond] (« Rien ne correspond » when a shown row is a saving, « Aucun revenu ne correspond » when gap > 0), then « Laisser comme ça ».
 
 ### 4.3 Which screen shows
 
-Computed from the current numbers, recomputed after every check, row change or answer. `dismissed` = the person tapped « Aucune … ne correspond » in this comparison. `first` = the server has no completed comparison for this person and the starting amount is 0.
+Computed from the current numbers, recomputed after every check, row change or answer. `dismissed` = the person tapped « Aucune … ne correspond » in this comparison.
 
 | Condition, first match wins | Screen |
 | --- | --- |
 | gap = 0 | Matched |
 | candidates and not dismissed | Suggestions |
-| gap > 0 and first | First comparison |
 | gap > 0 and salary maybe early | Salary early |
 | abs(gap) < 10.00 | Small gap |
 | gap < 0 | Large gap |
@@ -93,16 +91,14 @@ Salary maybe early = gap > 0, a pay day other than 1 is set, and the next period
 - **Large gap**: « Tu vois −{|gap|} dans l'app de ta banque, mais pas dans Pulpe ? » [Oui, noter une dépense de {|gap|}], « Disponible : {avant} → {après} », [Non, laisser comme ça].
 - **More on accounts**: if no « Je dois » row, a card « Tu as payé par carte de crédit, PayPal ou Klarna ? » [Ajouter ce que je dois] (back to step 1 with a new « Je dois » row). Then « Tu vois +{gap} dans l'app de ta banque, mais pas dans Pulpe ? » [Oui, noter un revenu de {gap}], « Disponible : {avant} → {après} », [Non, laisser comme ça].
 - **Salary early**: « Ton salaire est arrivé en avance ? » / « Reviens comparer le {jour}, jour de ta paie. » [Voir les autres raisons], « Laisser comme ça ».
-- **First comparison**: no label above the question (it would be false for people who compared before this release). « Ces {gap} étaient là avant Pulpe ? » [Oui, c'était déjà là], « Ton disponible ne change pas. », [Non, autre chose] (opens Other reasons), « Laisser comme ça ». « Oui » stores starting amount += gap, then shows Matched.
-- **Other reasons** (sheet, from Salary early and First comparison): title « D'où viennent ces {gap} ? », close button, at most 3 reasons in this order, each kept only when its condition holds, then « Laisser comme ça »:
+- **Other reasons** (sheet, from Salary early): title « D'où viennent ces {gap} ? », close button, at most 3 reasons in this order, each kept only when its condition holds, then « Laisser comme ça »:
   1. No « Je dois » row: « Tu as payé par carte de crédit, PayPal ou Klarna ? », mini visual Pulpe « Habits 350.00 » checked vs « Ta banque · Pas encore là », [Ajouter ce que je dois].
   2. A checked expense budget line of the month has allocated movements above 0 and below its amount: « Une prévision cochée n'est pas toute dépensée ? », mini visual of that line (« {spent} dépensés » / « {left} encore là »), round green mark « Normal, rien à faire ».
   3. Always: « Tu as reçu de l'argent ? », mini visual « Prime · 20 nov. » « Pas dans Pulpe » « +{gap} », [Noter un revenu de {gap}], « Disponible : {avant} → {après} ».
   4. Always: « Ton compte épargne est dans la liste ? », mini visual « Compte épargne {gap} » « À retirer », [Revoir mes comptes] (back to step 1).
 - **Matched**: the title « Pareil des deux côtés » alone (no sentence repeating it), success mark, then a card:
   - « Sur tes comptes {on accounts} », the figure the lines below start from.
-  - « Encore prévu −{x} » when À dépenser < (compared − starting amount), or « Encore à recevoir +{x} » when it is above; no line when equal.
-  - « D'avant Pulpe −{starting} » when the starting amount is not 0.
+  - « Encore prévu −{x} » when À dépenser < compared, or « Encore à recevoir +{x} » when it is above; no line when equal.
   - « À dépenser ce mois {remaining} » (green).
   - [Terminer].
 - « Disponible : {avant} → {après} »: avant = « Disponible à dépenser » now, après = avant + gap.
@@ -110,7 +106,7 @@ Salary maybe early = gap > 0, a pay day other than 1 is set, and the next period
 ### 4.5 Writing an entry
 
 - The noted movement: name « Écart avec mes comptes » (translated), kind expense or income by the gap sign, amount |gap|, free (no budget line), checked now, dated today. The name is not shown before the tap.
-- A comparison is completed when the person leaves step 2 by [Terminer], « Laisser comme ça », « Non, laisser comme ça », a noted entry or « Oui, c'était déjà là ». Completion is sent to the server once per comparison and emits `account_reconciliation_completed` with `adjustment_kind` income, expense or none, as today.
+- A comparison is completed when the person leaves step 2 by [Terminer], « Laisser comme ça », « Non, laisser comme ça » or a noted entry. Completion emits, once per comparison, `account_reconciliation_completed` with `adjustment_kind` income, expense or none, as today.
 - Pulpe never unchecks anything.
 
 ## 5. Words

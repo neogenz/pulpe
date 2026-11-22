@@ -3224,7 +3224,13 @@ export type AssetCategoryDeleteResponse = z.infer<
 // « Comparer avec mes comptes »
 
 export const reconciliationStateSchema = z.object({
-  startingAmount: z.number(),
+  /**
+   * @deprecated Always `0`: money from before Pulpe is no longer asked nor
+   * counted; a gap is noted like any other. Still sent because iOS 1.14.2
+   * requires the key; drop it once no build older than 1.14.3 is in use.
+   */
+  startingAmount: z.literal(0),
+  /** @deprecated Read by no current client; kept for iOS 1.14.2. */
   hasCompletedComparison: z.boolean(),
 });
 export type ReconciliationState = z.infer<typeof reconciliationStateSchema>;
@@ -3252,7 +3258,7 @@ const MAX_RECONCILIATION_AMOUNT = 999_999_999.99;
 
 export const updateReconciliationStateSchema = z
   .strictObject({
-    // The range the clients can type: nine digits of units, two of cents.
+    /** @deprecated Accepted from iOS 1.14.2 and ignored. */
     startingAmount: z
       .number()
       .min(-MAX_RECONCILIATION_AMOUNT)

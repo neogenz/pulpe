@@ -4,7 +4,7 @@ import Foundation
 /// checked balance of the loaded month. Pure and Foundation-only — the flow model
 /// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)`, `verdict`,
 /// `rankedPointingCandidates`, `gapClosedByChecks` and the screen rules (`comparisonScreen`,
-/// `isSalaryMaybeEarly`, `comparedFigure`, `availableAfterNote`, `partlySpentBudgetLines`,
+/// `isSalaryMaybeEarly`, `availableAfterNote`, `partlySpentBudgetLines`,
 /// `matchedBreakdown`) are the Swift twin of `shared/src/calculators/account-reconciliation.ts`,
 /// fixtures included (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
 enum AccountReconciliation {
@@ -273,7 +273,6 @@ extension AccountReconciliation {
     enum Screen: Equatable, Sendable {
         case matched
         case suggestions
-        case firstComparison
         case salaryEarly
         case smallGap
         case largeGap
@@ -282,20 +281,13 @@ extension AccountReconciliation {
 
     /// Which step-2 screen shows; first matching row wins (spec.md §4.3). Twin of `comparisonScreen`.
     static func comparisonScreen(
-        gap: Decimal, candidateCount: Int, dismissed: Bool, first: Bool, salaryMaybeEarly: Bool
+        gap: Decimal, candidateCount: Int, dismissed: Bool, salaryMaybeEarly: Bool
     ) -> Screen {
         if gap == 0 { return .matched }
         if candidateCount > 0, !dismissed { return .suggestions }
-        if gap > 0, first { return .firstComparison }
         if gap > 0, salaryMaybeEarly { return .salaryEarly }
         if gap.absoluteValue < smallGapThreshold { return .smallGap }
         return gap < 0 ? .largeGap : .moreOnAccounts
-    }
-
-    /// The month's checked balance plus the money from before Pulpe. What a previous month left unchecked
-    /// never counts here (spec.md §4.1). Twin of `comparedFigure`.
-    static func comparedFigure(realizedBalance: Decimal, startingAmount: Decimal) -> Decimal {
-        (realizedBalance + startingAmount).rounded(maxCentDigits)
     }
 
     /// « … trouvés »: how much nearer zero the gap came since the first check; a check that widens
@@ -334,16 +326,10 @@ extension AccountReconciliation {
     struct MatchedBreakdown: Equatable, Sendable {
         /// Below 0 is « Encore prévu », above 0 is « Encore à recevoir », 0 shows no line.
         let stillPlanned: Decimal
-        /// « D'avant Pulpe »: minus the starting amount, 0 shows no line.
-        let beforePulpe: Decimal
         let remaining: Decimal
     }
 
-    static func matchedBreakdown(available: Decimal, compared: Decimal, startingAmount: Decimal) -> MatchedBreakdown {
-        MatchedBreakdown(
-            stillPlanned: (available - (compared - startingAmount)).rounded(maxCentDigits),
-            beforePulpe: (0 - startingAmount).rounded(maxCentDigits),
-            remaining: available
-        )
+    static func matchedBreakdown(available: Decimal, compared: Decimal) -> MatchedBreakdown {
+        MatchedBreakdown(stillPlanned: (available - compared).rounded(maxCentDigits), remaining: available)
     }
 }

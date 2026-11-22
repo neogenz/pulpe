@@ -92,11 +92,6 @@ enum Endpoint {
     case assetCategories
     case assetCategory(id: String)
 
-    // MARK: - Reconciliation
-
-    case reconciliationContext(budgetId: String)
-    case reconciliationState
-
     // MARK: - Currency
 
     case currencyRate(base: SupportedCurrency, target: SupportedCurrency)
@@ -209,10 +204,6 @@ enum Endpoint {
         case .assetCategories: return "/asset-categories"
         case .assetCategory(let id): return "/asset-categories/\(id)"
 
-        // Reconciliation
-        case .reconciliationContext(let budgetId): return "/reconciliation/\(budgetId)"
-        case .reconciliationState: return "/reconciliation/state"
-
         // Currency
         case .currencyRate: return "/currency/rate"
 
@@ -264,12 +255,12 @@ enum Endpoint {
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,
              .encryptionVaultStatus, .encryptionSalt,
-             .assets, .asset, .assetCategory, .reconciliationContext,
+             .assets, .asset, .assetCategory,
              .userSettings, .tags, .currencyRate, .whatsNewIos,
              .mcpConnections, .mcpConnectionActivity:
             return .get
 
-        case .updateUserSettings, .reconciliationState:
+        case .updateUserSettings:
             return .put
 
         case .updateProfile:

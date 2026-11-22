@@ -24,11 +24,8 @@ export class UpdateReconciliationStateUseCase {
     input: UpdateReconciliationState,
     user: AuthenticatedUser,
   ): Promise<ReconciliationState> {
+    // A starting amount from iOS 1.14.2 is accepted and ignored.
     const patch: ReconciliationStatePatch = {};
-    if (input.startingAmount !== undefined) {
-      // Cents only: TypeScript and Swift round a third decimal differently.
-      patch.startingAmount = Math.round(input.startingAmount * 100) / 100;
-    }
     if (input.completed) {
       patch.lastCompletedAt = new Date().toISOString();
     }
@@ -44,7 +41,7 @@ export class UpdateReconciliationStateUseCase {
       'Reconciliation state updated',
     );
     return {
-      startingAmount: state.startingAmount,
+      startingAmount: 0,
       hasCompletedComparison: state.lastCompletedAt !== null,
     };
   }

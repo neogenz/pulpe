@@ -171,7 +171,7 @@ describe('Reconciliation E2E (local Supabase)', () => {
     expect(res.body.code).toBe('ERR_RECONCILIATION_BUDGET_NOT_FOUND');
   });
 
-  it('keeps the encrypted starting amount through a completion-only PUT', async () => {
+  it('ignores a starting amount sent by an old client and keeps the completion', async () => {
     if (!hasSupabase) return;
 
     const budgetId = randomUUID();
@@ -200,12 +200,11 @@ describe('Reconciliation E2E (local Supabase)', () => {
         .select('starting_amount')
         .eq('user_id', userId)
         .single();
-      expect(row?.starting_amount).toBeTruthy();
-      expect(row?.starting_amount).not.toContain('3100');
+      expect(row?.starting_amount ?? null).toBeNull();
 
       const completed = await put({ completed: true }).expect(200);
       expect(completed.body.data).toEqual({
-        startingAmount: 3100.13,
+        startingAmount: 0,
         hasCompletedComparison: true,
       });
 
@@ -214,7 +213,7 @@ describe('Reconciliation E2E (local Supabase)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .set('X-Client-Key', CLIENT_KEY_HEX)
         .expect(200);
-      expect(res.body.data.startingAmount).toBe(3100.13);
+      expect(res.body.data.startingAmount).toBe(0);
       expect(res.body.data.hasCompletedComparison).toBe(true);
     } finally {
       await adminClient.from('monthly_budget').delete().eq('id', budgetId);

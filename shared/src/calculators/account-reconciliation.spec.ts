@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { moneyDifference } from '../money.js';
 import {
   availableAfterNote,
-  comparedFigure,
   comparisonScreen,
   gapClosedByChecks,
   isSalaryMaybeEarly,
@@ -373,7 +372,6 @@ describe('comparisonScreen', () => {
     options: {
       candidateCount?: number;
       dismissed?: boolean;
-      first?: boolean;
       salaryMaybeEarly?: boolean;
     } = {},
   ) =>
@@ -381,7 +379,6 @@ describe('comparisonScreen', () => {
       gap,
       candidateCount: 0,
       dismissed: false,
-      first: false,
       salaryMaybeEarly: false,
       ...options,
     });
@@ -389,7 +386,6 @@ describe('comparisonScreen', () => {
   it.each([
     ['matched', 0, { candidateCount: 2 }],
     ['suggestions', -100, { candidateCount: 1 }],
-    ['firstComparison', 3_100, { first: true }],
     ['salaryEarly', 6_000, { salaryMaybeEarly: true }],
     ['smallGap', -2.4, {}],
     ['smallGap', 3, {}],
@@ -400,14 +396,10 @@ describe('comparisonScreen', () => {
     expect(screen(gap, options)).toBe(expected);
   });
 
-  it('keeps the suggestions over the first comparison and the early salary', () => {
-    expect(
-      screen(6_000, {
-        candidateCount: 1,
-        first: true,
-        salaryMaybeEarly: true,
-      }),
-    ).toBe('suggestions');
+  it('keeps the suggestions over the early salary', () => {
+    expect(screen(6_000, { candidateCount: 1, salaryMaybeEarly: true })).toBe(
+      'suggestions',
+    );
   });
 
   it('skips the suggestions once dismissed', () => {
@@ -416,11 +408,21 @@ describe('comparisonScreen', () => {
     );
   });
 
-  it('puts the first comparison before the salary, and the salary before a small gap', () => {
-    expect(screen(6_000, { first: true, salaryMaybeEarly: true })).toBe(
-      'firstComparison',
-    );
+  it('puts the early salary before a small gap', () => {
     expect(screen(3, { salaryMaybeEarly: true })).toBe('salaryEarly');
+  });
+  it('compares the « Solde pointé » alone: -1 832.48 against -1 862 on the accounts', () => {
+    const gap = moneyDifference(-1_862, -1_832.48);
+
+    expect(gap).toBe(-29.52);
+    expect(
+      comparisonScreen({
+        gap,
+        candidateCount: 0,
+        dismissed: false,
+        salaryMaybeEarly: false,
+      }),
+    ).toBe('largeGap');
   });
 });
 
@@ -446,30 +448,7 @@ describe('isSalaryMaybeEarly', () => {
   );
 });
 
-describe('comparedFigure and availableAfterNote', () => {
-  it('adds only the starting amount to the checked balance', () => {
-    expect(comparedFigure(900, 3_100)).toBe(4_000);
-    expect(comparedFigure(900.1, -0.2)).toBe(899.9);
-    expect(comparedFigure(100.004, 0.004)).toBe(100.01);
-  });
-
-  it('compares only the month: a « Solde pointé » of -1 832.48 against -1 862 on the accounts', () => {
-    const compared = comparedFigure(-1_832.48, 0);
-    const gap = moneyDifference(-1_862, compared);
-
-    expect(compared).toBe(-1_832.48);
-    expect(gap).toBe(-29.52);
-    expect(
-      comparisonScreen({
-        gap,
-        candidateCount: 0,
-        dismissed: false,
-        first: false,
-        salaryMaybeEarly: false,
-      }),
-    ).toBe('largeGap');
-  });
-
+describe('availableAfterNote', () => {
   it('shows the available amount before and after noting the gap', () => {
     expect(availableAfterNote(1_250.4, -100)).toEqual({
       before: 1_250.4,
@@ -561,40 +540,29 @@ describe('partlySpentBudgetLines', () => {
 });
 
 describe('matchedBreakdown', () => {
-  it('splits what is left to spend from what Pulpe still plans and what came before it', () => {
-    expect(
-      matchedBreakdown({
-        available: 900,
-        compared: 4_050,
-        startingAmount: 3_100,
-      }),
-    ).toEqual({ stillPlanned: -50, beforePulpe: -3_100, remaining: 900 });
+  it('splits what is left to spend from what Pulpe still plans', () => {
+    expect(matchedBreakdown({ available: 900, compared: 950 })).toEqual({
+      stillPlanned: -50,
+      remaining: 900,
+    });
   });
 
   it('rounds the planned remainder once, near a cent boundary', () => {
     expect(
-      matchedBreakdown({
-        available: 100.004,
-        compared: 0.004,
-        startingAmount: 0,
-      }).stillPlanned,
+      matchedBreakdown({ available: 100.004, compared: 0.004 }).stillPlanned,
     ).toBe(100);
-    expect(
-      matchedBreakdown({ available: 0.004, compared: 0, startingAmount: 0.006 })
-        .stillPlanned,
-    ).toBe(0.01);
   });
 
   it('shows nothing extra when everything lines up', () => {
-    expect(
-      matchedBreakdown({ available: 900, compared: 900, startingAmount: 0 }),
-    ).toEqual({ stillPlanned: 0, beforePulpe: 0, remaining: 900 });
+    expect(matchedBreakdown({ available: 900, compared: 900 })).toEqual({
+      stillPlanned: 0,
+      remaining: 900,
+    });
   });
 
   it('reads a positive remainder as still to receive', () => {
     expect(
-      matchedBreakdown({ available: 1_000, compared: 950, startingAmount: 0 })
-        .stillPlanned,
+      matchedBreakdown({ available: 1_000, compared: 950 }).stillPlanned,
     ).toBe(50);
   });
 });
