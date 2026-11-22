@@ -157,11 +157,9 @@ struct ReconcileCompareStepView: View {
             }
             FormRowDivider()
             figureRow(AppLocale.string("Dans Pulpe, déjà coché")) {
-                // The money from before Pulpe shows apart, on the line below: « 900.00 », « +3 100.00 d'avant Pulpe ».
-                let start = comparison.startingAmount
-                let now = (comparison.compared - start).asCurrency(currency)
-                let before = flow.comparedBeforeChecks
-                    .flatMap { $0 != comparison.compared ? ($0 - start).asCurrency(currency) : nil }
+                // The Accueil's « Solde pointé »; what else Pulpe counts shows apart, on the lines below.
+                let now = comparison.realized.asCurrency(currency)
+                let before = comparison.realizedBefore?.asCurrency(currency)
                 VStack(alignment: isStacked ? .leading : .trailing, spacing: DesignTokens.Spacing.xxs) {
                     if let before {
                         Text(verbatim: before)
@@ -175,7 +173,7 @@ struct ReconcileCompareStepView: View {
                 .accessibilityLabel(before.map { AppLocale.string("\(now), avant \($0)") } ?? now)
             }
             .accessibilityIdentifier("reconcileComparedFigure")
-            if comparison.startingAmount != 0 { startingAmountLink(comparison.startingAmount) }
+            figureParts(comparison)
             if let found = comparison.found, found > 0 {
                 FormRowDivider()
                 foundBar(found: found, gap: comparison.gap)
@@ -226,9 +224,7 @@ extension ReconcileCompareStepView {
             if case .budgetLine(let line, _) = item, line.isPlannedSavingsWithdrawal { return false }
             return !shown.contains(item.id)
         }
-        let lead = comparison.gap > 0 ? AppLocale.string("Coche les revenus que tu vois dans l'app de ta banque.")
-            : flow.hasOwedRow ? AppLocale.string("Coche les achats faits avec ta carte.")
-            : AppLocale.string("Coche les dépenses que tu vois dans l'app de ta banque.")
+        let lead = Self.suggestionsWording(comparison, hasOwedRow: flow.hasOwedRow).lead
         return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text(verbatim: lead)
                 .font(PulpeTypography.rowTitleRegular)
@@ -285,7 +281,7 @@ extension ReconcileCompareStepView {
                     Text(suggestion.name)
                         .font(PulpeTypography.rowTitle)
                         .foregroundStyle(Color.textPrimary)
-                        .lineLimit(isStacked ? nil : 1)
+                        .lineLimit(isStacked ? nil : 2)
                     Text(verbatim: origin(of: suggestion))
                         .font(PulpeTypography.captionRegular)
                         .foregroundStyle(Color.textSecondary)
@@ -345,9 +341,7 @@ extension ReconcileCompareStepView {
                     .primaryButtonStyle(isEnabled: canFinish)
                     .accessibilityIdentifier("reconcileFinishButton")
             case .suggestions:
-                let none = gap < 0
-                    ? AppLocale.string("Aucune dépense ne correspond") : AppLocale.string("Aucun revenu ne correspond")
-                Button(none) {
+                Button(Self.suggestionsWording(comparison, hasOwedRow: flow.hasOwedRow).dismiss) {
                     withAnimation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut) {
                         flow.dismissSuggestions()
                     }
@@ -430,7 +424,9 @@ extension ReconcileCompareStepView {
             if flow.isSubmitting {
                 ProgressView()
             } else {
-                Text(verbatim: title).monospacedDigit().lineLimit(1).minimumScaleFactor(DesignTokens.TextScale.compact)
+                // At accessibility sizes the label wraps: shrunk to one line, the amount is what gets cut.
+                Text(verbatim: title).monospacedDigit().lineLimit(isStacked ? nil : 1)
+                    .minimumScaleFactor(DesignTokens.TextScale.compact)
             }
         }
         .disabled(!canWrite)

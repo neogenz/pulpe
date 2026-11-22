@@ -37,6 +37,15 @@ extension ReconcileAccountsFlow {
             case .prior(let item): "prior-\(item.id)"
             }
         }
+
+        /// What it is as money, whatever list it comes from: a saving shown widens the wording to savings.
+        var kind: TransactionKind {
+            switch target {
+            case .transaction(let transaction): transaction.kind
+            case .budgetLine(let line): line.kind
+            case .prior(let item): item.kind
+            }
+        }
     }
 }
 
@@ -62,6 +71,13 @@ extension ReconcileAccountsFlow {
     /// Step 2 as the numbers stand, read again on every render.
     struct Comparison: Equatable {
         let accounts: Decimal
+        /// The figure « Dans Pulpe, déjà coché » shows: the Accueil's « Solde pointé ».
+        let realized: Decimal
+        /// What the previous months left unchecked, said under it when not 0.
+        let priorCorrection: Decimal
+        /// The checked balance before this comparison's first check, once a check moved it: struck through.
+        let realizedBefore: Decimal?
+        /// The realized balance, the previous months' correction and the starting amount: what the gap reads.
         let compared: Decimal
         /// Accounts minus compared: below 0, my accounts have less than Pulpe.
         let gap: Decimal
@@ -116,10 +132,10 @@ extension ReconcileAccountsFlow {
             }
         }
         return Comparison(
-            accounts: AccountReconciliation.amount(cents: totalCents),
-            compared: compared,
-            gap: gap,
-            startingAmount: context.startingAmount,
+            accounts: AccountReconciliation.amount(cents: totalCents), realized: realizedBalance,
+            priorCorrection: context.priorCorrection,
+            realizedBefore: realizedBefore(realizedBalance),
+            compared: compared, gap: gap, startingAmount: context.startingAmount,
             suggestions: suggestions,
             screen: AccountReconciliation.comparisonScreen(
                 gap: gap, candidateCount: candidates.count, dismissed: isDismissed,
@@ -163,10 +179,16 @@ extension ReconcileAccountsFlow {
         return await submitAdjustment(realizedBalance: realizedBalance, of: loadedBudgetId)
     }
 
+    /// Struck through only when it moved by a cent or more, as web and Android compare.
+    private func realizedBefore(_ realizedBalance: Decimal) -> Decimal? {
+        beforeChecks.flatMap { $0.realized.rounded(2) != realizedBalance.rounded(2) ? $0.realized : nil }
+    }
+
     private func found(compared: Decimal, totalCents: Int) -> Decimal? {
-        comparedBeforeChecks.map {
+        beforeChecks?.compared.map {
             AccountReconciliation.gapClosedByChecks(
-                onAccounts: AccountReconciliation.amount(cents: totalCents), comparedBefore: $0, compared: compared
+                onAccounts: AccountReconciliation.amount(cents: totalCents),
+                comparedBefore: $0, compared: compared
             )
         }
     }
@@ -182,8 +204,8 @@ extension ReconcileAccountsFlow {
         return AccountReconciliation.difference(totalCents: totalCents, realizedBalance: compared) == 0
     }
 
-    /// « Dans Pulpe, déjà coché »: the checked balance, the previous months' correction and the
-    /// starting amount. `nil` until the context is read.
+    /// What the gap reads: the checked balance, the previous months' correction and the starting amount.
+    /// `nil` until the context is read.
     func comparedFigure(realizedBalance: Decimal) -> Decimal? {
         context.map {
             AccountReconciliation.comparedFigure(

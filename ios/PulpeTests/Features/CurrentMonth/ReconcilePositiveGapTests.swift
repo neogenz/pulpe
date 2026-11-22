@@ -60,7 +60,7 @@ struct ReconcilePositiveGapTests {
 
         #expect(flow.step == .accounts)
         #expect(flow.accounts.map(\.amountText) == ["7050", ""])
-        #expect(flow.accounts.map(\.isNegative) == [false, true])
+        #expect(flow.accounts.map(\.isOwed) == [false, true])
         // The card question of step 2 asks only while no « Je dois » row exists.
         #expect(flow.hasOwedRow)
         #expect(flow.takeRowToFocus() == flow.accounts.last?.id)
@@ -134,14 +134,14 @@ struct ReconcilePositiveGapTests {
         )
         #expect(flow.beginCheck())
         #expect(await flow.check(assurance, realizedBalance: 1050) { true })
-        #expect(flow.comparedBeforeChecks != nil)
+        #expect(flow.beforeChecks != nil)
 
         #expect(await flow.saveStartingAmount(3100) == .ignored)
         #expect(server.updates.isEmpty)
 
         #expect(await flow.saveStartingAmount(Decimal(string: "2999.50") ?? 0) == .written)
         #expect(flow.context?.startingAmount == Decimal(string: "2999.50"))
-        #expect(flow.comparedBeforeChecks == nil)
+        #expect(flow.beforeChecks == .init(compared: nil, realized: 1050))
 
         #expect(await flow.saveStartingAmount(0) == .written)
         #expect(flow.context?.startingAmount == 0)

@@ -5,9 +5,23 @@ import Testing
 struct ReconcileGuideTests {
     // MARK: Gate
 
-    @Test func presentsOnlyWhenUnseen() {
-        #expect(ReconcileGuideGate.shouldPresent(hasSeen: false))
-        #expect(!ReconcileGuideGate.shouldPresent(hasSeen: true))
+    /// The sheet marks the guide seen on the one `onFinish` of an opening: every exit must produce it, first.
+    @Test("every exit ends the opening once, so the guide is marked seen whatever the exit", arguments: [
+        // « Comparer maintenant », then the view disappears.
+        [ReconcileGuideOutcome.completed, .skipped],
+        // « Passer » or the close button, then the view disappears.
+        [.skipped, .skipped],
+        // A swipe down: only the disappearance reports.
+        [.skipped],
+    ])
+    func everyExitEndsTheOpeningOnce(exits: [ReconcileGuideOutcome]) {
+        var session = ReconcileGuideSession(source: .auto) { _, _ in }
+        session.open()
+        let finishes = exits.map { session.finish($0) }
+        let first = finishes.first ?? nil
+        let ended = finishes.compactMap { $0 }
+        #expect(first == exits.first)
+        #expect(ended.count == 1)
     }
 
     // MARK: Content

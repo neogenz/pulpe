@@ -24,11 +24,21 @@ struct ReconcileStartingAmountSheet: View {
         return AccountReconciliation.amount(cents: cents)
     }
 
+    private var isInvalid: Bool { !text.isEmpty && amount == nil }
+
     var body: some View {
         SheetFormContainer(
             title: AppLocale.string("Argent d'avant Pulpe"), isLoading: false, focus: $focus, focusOrder: [.amount]
         ) {
-            amountField
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                amountField
+                // The step-1 row's words: a red border alone does not say what to fix.
+                if isInvalid {
+                    Text("Chiffres et 2 décimales au plus")
+                        .font(PulpeTypography.captionRegular)
+                        .foregroundStyle(Color.errorPrimary)
+                }
+            }
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Button(AppLocale.string("Enregistrer")) { if let amount { answer(amount) } }
                     .disabled(amount == nil)
@@ -44,7 +54,6 @@ struct ReconcileStartingAmountSheet: View {
     /// A plain field, not `HeroAmountField`: that one drops a minus, and a −500 typed on the web must
     /// never come back as +500.
     private var amountField: some View {
-        let isInvalid = !text.isEmpty && amount == nil
         let isFocused = focus == .amount
         return HStack(spacing: DesignTokens.Spacing.sm) {
             Text(verbatim: currency.symbol)

@@ -94,7 +94,6 @@ extension ReconcileCompareStepView {
         .textLinkButtonStyle()
         .disabled(flow.isWriting || flow.isChecking)
         .frame(maxWidth: .infinity, alignment: isStacked ? .leading : .trailing)
-        .padding(.bottom, DesignTokens.Spacing.md)
         .accessibilityIdentifier("reconcileStartingAmountButton")
     }
 

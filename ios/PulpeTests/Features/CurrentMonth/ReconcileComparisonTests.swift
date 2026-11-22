@@ -33,7 +33,7 @@ struct ReconcileComparisonTests {
         #expect(await flow.check(opened.suggestions[1], realizedBalance: 1050) { true })
         let checked = TestDataFactory.createTransaction(id: "essence", name: "Essence", amount: 60, isChecked: true)
         let partial = try #require(flow.comparison(realizedBalance: 990, lines: month.lines, transactions: [checked]))
-        #expect(flow.comparedBeforeChecks == Decimal(1050))
+        #expect(flow.beforeChecks?.compared == Decimal(1050))
         #expect(partial.compared == Decimal(990))
         #expect(partial.found == Decimal(60))
         #expect(partial.screen == .suggestions)
@@ -49,7 +49,8 @@ struct ReconcileComparisonTests {
         #expect(matched.screen == .matched)
         #expect(matched.found == Decimal(100))
         #expect(flow.checkedSuggestions.map(\.id) == ["tx-essence", "prior-pharmacie"])
-        #expect(await month.server.reads == 3)
+        // Essence, this month, reads nothing more; Pharmacie, last month, reads the context again.
+        #expect(await month.server.reads == 2)
     }
 
     @Test("a refused check moves nothing, and a second tap while one is out checks nothing")
@@ -62,7 +63,7 @@ struct ReconcileComparisonTests {
 
         #expect(flow.beginCheck())
         #expect(await flow.check(row, realizedBalance: 1050) { false } == false)
-        #expect(flow.comparedBeforeChecks == nil)
+        #expect(flow.beforeChecks == nil)
         #expect(flow.checkedSuggestions.isEmpty)
 
         #expect(flow.beginCheck())
@@ -78,8 +79,8 @@ struct ReconcileComparisonTests {
         release.yield()
         #expect(await first.value)
         #expect(flow.checkedSuggestions.map(\.id) == ["bl-assurance"])
-        // The refused check read the context again too.
-        #expect(await server.reads == 3)
+        // Checks of this month, refused or not, read nothing more: only a previous month's item moves the correction.
+        #expect(await server.reads == 1)
     }
 
     @Test("from the tap that fills the circle, no exit completes until the check is back")
@@ -184,7 +185,7 @@ struct ReconcileComparisonTests {
         await flow.loadContext()
 
         #expect(!flow.isDismissed)
-        #expect(flow.comparedBeforeChecks == nil)
+        #expect(flow.beforeChecks == nil)
         // Unchecked on the web meanwhile, a row the server lists again must not keep its filled circle.
         #expect(flow.checkedSuggestions.isEmpty)
         let loyer = TestDataFactory.createBudgetLine(id: "loyer", amount: 150)
@@ -193,8 +194,8 @@ struct ReconcileComparisonTests {
         #expect(restarted.suggestions.first?.isExact == true)
     }
 
-    @Test("« Retirer « Je dois … » » changes the total, so the figure struck through goes")
-    func removeOwedRows_clearsTheStruckFigure() async throws {
+    @Test("« Retirer « Je dois … » » changes the total: « trouvés » restarts, the struck figure stays")
+    func removeOwedRows_restartsFound() async throws {
         let flow = makeFlow(server: ContextServer())
         flow.accounts[0].amountText = "1250"
         flow.addFreeAccount(isOwed: true)
@@ -206,10 +207,10 @@ struct ReconcileComparisonTests {
         let row = try #require(opened?.suggestions.first)
         #expect(flow.beginCheck())
         #expect(await flow.check(row, realizedBalance: 1150) { true })
-        #expect(flow.comparedBeforeChecks == Decimal(1150))
+        #expect(flow.beforeChecks?.compared == Decimal(1150))
 
         flow.removeOwedRows()
-        #expect(flow.comparedBeforeChecks == nil)
+        #expect(flow.beforeChecks == .init(compared: nil, realized: 1150))
     }
 
     @Test("« Aucune dépense ne correspond » leaves the suggestions for the gap's own screen")
@@ -237,7 +238,7 @@ struct ReconcileComparisonTests {
         #expect(flow.step == .comparison)
 
         let owedOnly = makeFlow(server: ContextServer())
-        owedOnly.accounts[0].isNegative = true
+        owedOnly.accounts[0].isOwed = true
         owedOnly.accounts[0].amountText = "200"
         owedOnly.compare()
         owedOnly.removeOwedRows()
@@ -433,7 +434,7 @@ extension ReconcileComparisonTests {
 
         let after = try #require(flow.comparison(realizedBalance: 990, lines: month.lines, transactions: [essence]))
         #expect(after.suggestions.map(\.id) == [String]())
-        #expect(flow.comparedBeforeChecks == Decimal(1050))
+        #expect(flow.beforeChecks?.compared == Decimal(1050))
         #expect(after.found == Decimal(60))
     }
 

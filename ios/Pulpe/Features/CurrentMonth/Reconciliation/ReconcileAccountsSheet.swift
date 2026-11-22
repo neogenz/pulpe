@@ -138,7 +138,7 @@ struct ReconcileAccountsSheet: View {
                         ToolbarItem(placement: .principal) {
                             // Scaled, then wrapped: the long name never ends in an ellipsis.
                             Text("Comparer avec mes comptes")
-                                .font(.headline)
+                                .font(PulpeTypography.headline)
                                 .multilineTextAlignment(.center)
                                 .lineLimit(2)
                                 .minimumScaleFactor(DesignTokens.TextScale.compact)

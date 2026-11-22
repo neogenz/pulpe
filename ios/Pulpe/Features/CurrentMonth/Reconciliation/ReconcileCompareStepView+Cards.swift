@@ -56,6 +56,11 @@ extension ReconcileCompareStepView {
             available: month.available, compared: comparison.compared, startingAmount: comparison.startingAmount
         )
         return FormCard {
+            // The figure the lines below start from, so the card adds up: 4 120.00, −320.00, −3 100.00, 700.00.
+            figureRow(AppLocale.string("Sur tes comptes")) {
+                Text(verbatim: comparison.accounts.asCurrency(currency))
+            }
+            FormRowDivider()
             if breakdown.stillPlanned != 0 {
                 let title = breakdown.stillPlanned < 0
                     ? AppLocale.string("Encore prévu") : AppLocale.string("Encore à recevoir")
@@ -88,6 +93,50 @@ extension ReconcileCompareStepView {
         // A bare id on a container would replace the ids of every row in it, the edit button's too.
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("reconcileMatchedBreakdown")
+    }
+
+    /// What Pulpe counts besides « Solde pointé », under it, one line per part that is not 0:
+    /// « +120.00 CHF pas coché les mois d'avant », then « +3 100.00 CHF d'avant Pulpe ».
+    @ViewBuilder
+    func figureParts(_ comparison: ReconcileAccountsFlow.Comparison) -> some View {
+        if comparison.priorCorrection != 0 || comparison.startingAmount != 0 {
+            VStack(alignment: isStacked ? .leading : .trailing, spacing: DesignTokens.Spacing.xs) {
+                if comparison.priorCorrection != 0 {
+                    // Hidden amounts keep the words, as « D'avant Pulpe » below: a blurred line says nothing.
+                    let amount = signedCurrency(comparison.priorCorrection)
+                    Text(verbatim: amountsHidden ? AppLocale.string("Pas coché les mois d'avant")
+                        : AppLocale.string("\(amount) pas coché les mois d'avant"))
+                        .font(PulpeTypography.captionRegular)
+                        .monospacedDigit()
+                        .multilineTextAlignment(isStacked ? .leading : .trailing)
+                        .foregroundStyle(Color.textSecondary)
+                        .accessibilityIdentifier("reconcilePriorCorrection")
+                }
+                if comparison.startingAmount != 0 { startingAmountLink(comparison.startingAmount) }
+            }
+            .frame(maxWidth: .infinity, alignment: isStacked ? .leading : .trailing)
+            .padding(.bottom, DesignTokens.Spacing.md)
+        }
+    }
+
+    /// The sentence over the rows and the button that leaves them (spec.md §4.2). Below Pulpe, a saving among
+    /// the rows shown widens both to savings; a « Je dois » row keeps the card's sentence, not its button.
+    static func suggestionsWording(
+        _ comparison: ReconcileAccountsFlow.Comparison, hasOwedRow: Bool
+    ) -> (lead: String, dismiss: String) {
+        guard comparison.gap < 0 else {
+            return (
+                AppLocale.string("Coche les revenus que tu vois dans l'app de ta banque."),
+                AppLocale.string("Aucun revenu ne correspond")
+            )
+        }
+        let namesSavings = comparison.suggestions.contains { $0.kind == .saving }
+        let lead = hasOwedRow ? AppLocale.string("Coche les achats faits avec ta carte.")
+            : namesSavings ? AppLocale.string("Coche les dépenses et l'épargne que tu vois dans l'app de ta banque.")
+            : AppLocale.string("Coche les dépenses que tu vois dans l'app de ta banque.")
+        let dismiss = namesSavings
+            ? AppLocale.string("Rien ne correspond") : AppLocale.string("Aucune dépense ne correspond")
+        return (lead, dismiss)
     }
 
     /// What the checks of this comparison found; what is left is already in the title.

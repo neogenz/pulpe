@@ -15,6 +15,8 @@ struct ReconcileGuideView: View {
     @State private var pageHeight: CGFloat = 0
     @State private var session: ReconcileGuideSession
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// « Suivant » hands VoiceOver to the new page's title, not back to the button.
+    @AccessibilityFocusState private var isTitleFocused: Bool
 
     init(
         source: ReconcileGuideSource,
@@ -39,6 +41,7 @@ struct ReconcileGuideView: View {
                             .font(PulpeTypography.stepTitle)
                             .foregroundStyle(Color.textPrimary)
                             .accessibilityAddTraits(.isHeader)
+                            .accessibilityFocused($isTitleFocused)
                         Text(message)
                             .font(PulpeTypography.bodyLarge)
                             .foregroundStyle(Color.textSecondary)
@@ -105,6 +108,7 @@ struct ReconcileGuideView: View {
     private func primaryTapped() {
         if let next = step.next {
             step = next
+            isTitleFocused = true
         } else {
             finish(.completed)
         }

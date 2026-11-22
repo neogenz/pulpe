@@ -89,7 +89,7 @@ struct ReconcileAccountRow: View {
 
     /// The fixed side of a Mon patrimoine item: a small tag, not a control.
     private var sideTag: some View {
-        let isOwed = account.isNegative
+        let isOwed = account.isOwed
         let color = isOwed ? Color.financialOverBudget : Color.pulpePrimary
         return (isOwed ? Text("Je dois") : Text("J'ai"))
             .font(PulpeTypography.captionRegular.weight(.semibold))
@@ -131,7 +131,7 @@ struct ReconcileAccountRow: View {
     }
 
     private var sidePicker: some View {
-        SegmentedPicker(selection: row.isNegative, title: nil, options: [false, true]) { isOwed in
+        SegmentedPicker(selection: row.isOwed, title: nil, options: [false, true]) { isOwed in
             isOwed ? Text("Je dois") : Text("J'ai")
         }
         .accessibilityLabel(AppLocale.string("\(displayName) : ce que j'ai ou ce que je dois"))
@@ -148,7 +148,7 @@ struct ReconcileAccountRow: View {
                 .foregroundStyle(Color.textSecondary)
             // A pasted « -800 » already carries its sign: no second one in front.
             let typed = account.amountText.trimmingCharacters(in: .whitespacesAndNewlines)
-            if account.isNegative, !typed.hasPrefix("-"), !typed.hasPrefix("\u{2212}") {
+            if account.isOwed, !typed.hasPrefix("-"), !typed.hasPrefix("\u{2212}") {
                 Text(verbatim: "\u{2212}")
             }
             TextField(Decimal.zero.asAmount(for: currency), text: row.amountText)

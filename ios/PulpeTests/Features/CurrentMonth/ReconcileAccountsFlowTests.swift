@@ -36,10 +36,10 @@ struct ReconcileAccountsFlowTests {
     func totals_haveMinusOwe() {
         let flow = makeFlow()
         flow.accounts[0].amountText = "3000"
-        flow.accounts[0].isNegative = false
+        flow.accounts[0].isOwed = false
         flow.accounts[0].label = "Compte courant"
         flow.accounts.append(.init(label: "Revolut", amountText: "1000.50"))
-        flow.accounts.append(.init(label: "Carte", amountText: "800", isNegative: true))
+        flow.accounts.append(.init(label: "Carte", amountText: "800", isOwed: true))
 
         #expect(flow.haveCents == 400_050)
         #expect(flow.oweCents == 80_000)
@@ -71,7 +71,7 @@ struct ReconcileAccountsFlowTests {
         let flow = makeFlow(freeAccounts: [.init(name: "Revolut", isOwed: false), .init(name: "Klarna", isOwed: true)])
 
         #expect(flow.accounts.map(\.label) == ["Revolut", "Klarna"])
-        #expect(flow.accounts.map(\.isNegative) == [false, true])
+        #expect(flow.accounts.map(\.isOwed) == [false, true])
         #expect(flow.accounts.allSatisfy { $0.amountText.isEmpty })
         #expect(flow.freeAccountEntries == [.init(name: "Revolut", isOwed: false), .init(name: "Klarna", isOwed: true)])
     }
@@ -82,7 +82,7 @@ struct ReconcileAccountsFlowTests {
         flow.accounts[0].amountText = "10.10"
         _ = flow.addFreeAccount(isOwed: false)
         flow.accounts[1].amountText = "5"
-        flow.accounts[1].isNegative = true
+        flow.accounts[1].isOwed = true
 
         #expect(flow.totalCents == 510)
         #expect(flow.total == Decimal(string: "5.10"))

@@ -36,7 +36,7 @@ struct AccountReconciliationTests {
 
     @Test("a partial, malformed or out-of-range amount is refused, never read as zero", arguments: [
         "12.", ".5", "12,345", "1,234.5", "1'234", "1 234", "abc", "1e3", "12.3.4",
-        "--5", "+5", "-", "1234567890", "NaN", "inf", "\u{0661}\u{0662}",
+        "--5", "+5", "-", "1234567890", "NaN", "inf", "Infinity", "\u{0661}\u{0662}",
     ])
     func parseAmount_invalid_isRefused(text: String) {
         #expect(AccountReconciliation.parseAmount(text) == .invalid)
@@ -46,16 +46,16 @@ struct AccountReconciliationTests {
 
     @Test("the negative switch makes a typed balance negative, and keeps a pasted minus negative")
     func account_negative_isAlwaysNegative() {
-        #expect(account("40", isNegative: true).amount == .valid(cents: -4_000))
-        #expect(account("-40", isNegative: true).amount == .valid(cents: -4_000))
+        #expect(account("40", isOwed: true).amount == .valid(cents: -4_000))
+        #expect(account("-40", isOwed: true).amount == .valid(cents: -4_000))
         #expect(account("-40").amount == .valid(cents: -4_000))
         #expect(account("40").amount == .valid(cents: 4_000))
     }
 
     @Test("the negative switch never turns a blank or refused amount into a number")
     func account_negative_keepsBlankAndInvalid() {
-        #expect(account("", isNegative: true).amount == .blank)
-        #expect(account("12.", isNegative: true).amount == .invalid)
+        #expect(account("", isOwed: true).amount == .blank)
+        #expect(account("12.", isOwed: true).amount == .invalid)
     }
 
     // MARK: - Total
@@ -67,7 +67,7 @@ struct AccountReconciliationTests {
 
     @Test("a negative account is subtracted from the total")
     func totalCents_subtractsNegativeAccount() {
-        let accounts = [account("1500.25"), account("200,50", isNegative: true), account("0.01")]
+        let accounts = [account("1500.25"), account("200,50", isOwed: true), account("0.01")]
         #expect(AccountReconciliation.totalCents(of: accounts) == 129_976)
     }
 
@@ -210,71 +210,74 @@ struct AccountReconciliationTests {
 
     private static let now = Date(timeIntervalSince1970: 1_790_000_000)
 
-    // MARK: - Pointing candidates (same fixtures as account-reconciliation.spec.ts)
+    // MARK: - Ranked candidates over the movements of the month (same fixtures as account-reconciliation.spec.ts)
 
-    @Test("an income not pointed yet that explains most of the gap is named, with what would remain")
-    func pointingCandidates_partialIncome() throws {
+    private func candidate(_ id: String, _ remainingGap: Decimal) -> AccountReconciliation.RankedPointingCandidate {
+        .init(source: .transaction, id: id, monthsAgo: 0, remainingGap: remainingGap)
+    }
+
+    @Test("an income not checked yet that explains most of the gap is named, with what would remain")
+    func rankedPointingCandidates_partialIncome() throws {
         let gap = try #require(Decimal(string: "814.93"))
         let bonus = TestDataFactory.createTransaction(id: "bonus", amount: 800, kind: .income)
         let dinner = TestDataFactory.createTransaction(id: "dinner", amount: 50, kind: .expense)
 
-        let candidates = AccountReconciliation.pointingCandidates(gap: gap, lines: [], transactions: [bonus, dinner])
+        let candidates = AccountReconciliation.rankedPointingCandidates(
+            gap: gap, lines: [], transactions: [bonus, dinner]
+        )
 
-        #expect(candidates == [.init(transaction: bonus, remainingGap: try #require(Decimal(string: "14.93")))])
+        #expect(candidates == [candidate("bonus", try #require(Decimal(string: "14.93")))])
     }
 
-    @Test("a movement that would go past the gap, or already pointed, is left out")
-    func pointingCandidates_overshootAndPointed_areLeftOut() throws {
+    @Test("a movement that would go past the gap, or already checked, is left out")
+    func rankedPointingCandidates_overshootAndChecked_areLeftOut() throws {
         let gap = try #require(Decimal(string: "814.93"))
         let big = TestDataFactory.createTransaction(id: "big", amount: 900, kind: .income)
         let pointed = TestDataFactory.createTransaction(id: "pointed", amount: 100, kind: .income, isChecked: true)
         let any = TestDataFactory.createTransaction(id: "any", amount: 1, kind: .income)
 
-        #expect(AccountReconciliation.pointingCandidates(gap: gap, lines: [], transactions: [big, pointed]).isEmpty)
-        #expect(AccountReconciliation.pointingCandidates(gap: 0, lines: [], transactions: [any]).isEmpty)
+        #expect(AccountReconciliation.rankedPointingCandidates(gap: gap, lines: [], transactions: [big, pointed])
+            .isEmpty)
+        #expect(AccountReconciliation.rankedPointingCandidates(gap: 0, lines: [], transactions: [any]).isEmpty)
     }
 
     @Test("the movement that settles the gap comes first")
-    func pointingCandidates_settlingFirst() throws {
+    func rankedPointingCandidates_settlingFirst() throws {
         let size = try #require(Decimal(string: "84.30"))
         let coffee = TestDataFactory.createTransaction(id: "coffee", amount: 20, kind: .expense)
         let migros = TestDataFactory.createTransaction(id: "migros", amount: size, kind: .expense)
 
-        let candidates = AccountReconciliation.pointingCandidates(
+        let candidates = AccountReconciliation.rankedPointingCandidates(
             gap: -size, lines: [], transactions: [coffee, migros]
         )
 
-        #expect(candidates == [
-            .init(transaction: migros, remainingGap: 0),
-            .init(transaction: coffee, remainingGap: try #require(Decimal(string: "-64.30"))),
-        ])
+        #expect(candidates == [candidate("migros", 0), candidate("coffee", try #require(Decimal(string: "-64.30")))])
     }
 
-    @Test("under a pointée prévision, what pointing moves counts, not the amount")
-    func pointingCandidates_underPointedPrevision() {
+    @Test("under a checked prévision, what checking moves counts, not the amount")
+    func rankedPointingCandidates_underCheckedPrevision() {
         let groceries = TestDataFactory.createBudgetLine(id: "groceries", amount: 100, isChecked: true)
         let small = TestDataFactory.createTransaction(id: "small", budgetLineId: "groceries", amount: 50)
         let big = TestDataFactory.createTransaction(id: "big", budgetLineId: "groceries", amount: 150)
 
-        let candidates = AccountReconciliation.pointingCandidates(
+        let candidates = AccountReconciliation.rankedPointingCandidates(
             gap: -150, lines: [groceries], transactions: [small, big]
         )
 
-        #expect(candidates == [.init(transaction: big, remainingGap: -100)])
+        #expect(candidates == [candidate("big", -100)])
     }
 
     @Test("three candidates at most")
-    func pointingCandidates_keepsThree() {
+    func rankedPointingCandidates_keepsThree() {
         let four = ["a", "b", "c", "d"].map { TestDataFactory.createTransaction(id: $0, amount: 10, kind: .expense) }
 
-        let ids = AccountReconciliation.pointingCandidates(gap: -100, lines: [], transactions: four)
-            .map(\.transaction.id)
+        let ids = AccountReconciliation.rankedPointingCandidates(gap: -100, lines: [], transactions: four).map(\.id)
 
         #expect(ids == ["a", "b", "c"])
     }
 
-    private func account(_ amountText: String, isNegative: Bool = false) -> AccountReconciliation.Account {
-        AccountReconciliation.Account(amountText: amountText, isNegative: isNegative)
+    private func account(_ amountText: String, isOwed: Bool = false) -> AccountReconciliation.Account {
+        AccountReconciliation.Account(amountText: amountText, isOwed: isOwed)
     }
 }
 

@@ -89,9 +89,9 @@ final class ReconcileAccountsFlow {
         self.budgetId = budgetId
         // The accounts followed so far open the sheet, one row each, then the free rows of last time.
         let seeded = (netWorthAccounts ?? []).filter(\.inPulpe).map {
-            (account: AccountReconciliation.Account(label: $0.name, isNegative: $0.direction == .owe), asset: $0)
+            (account: AccountReconciliation.Account(label: $0.name, isOwed: $0.direction == .owe), asset: $0)
         }
-        let remembered = freeAccounts.map { AccountReconciliation.Account(label: $0.name, isNegative: $0.isOwed) }
+        let remembered = freeAccounts.map { AccountReconciliation.Account(label: $0.name, isOwed: $0.isOwed) }
         self.ownAccounts = netWorthAccounts
         if let draft, draft.budgetId == budgetId {
             self.accounts = draft.accounts
@@ -126,10 +126,10 @@ final class ReconcileAccountsFlow {
     /// What I have and what I owe, each as a positive figure; the total is the first minus the second.
     var haveCents: Int { cents(owed: false) }
     var oweCents: Int { cents(owed: true) }
-    var hasOwedRow: Bool { accounts.contains(where: \.isNegative) }
+    var hasOwedRow: Bool { accounts.contains(where: \.isOwed) }
 
     private func cents(owed: Bool) -> Int {
-        accounts.filter { $0.isNegative == owed }.reduce(0) { sum, account in
+        accounts.filter { $0.isOwed == owed }.reduce(0) { sum, account in
             guard case .valid(let cents) = account.amount else { return sum }
             return owed ? sum - cents : sum + cents
         }
@@ -145,7 +145,7 @@ final class ReconcileAccountsFlow {
         step = .comparison
         isDismissed = false
         isMarkedComplete = false
-        comparedBeforeChecks = nil
+        beforeChecks = nil
         checkedSuggestions = []
         contextRead += 1
         contextState = .loading
@@ -192,7 +192,7 @@ final class ReconcileAccountsFlow {
     var freeAccountEntries: [ReconcileFreeAccountsStore.Entry] {
         accounts.filter { assetIds[$0.id] == nil }.compactMap {
             let name = String($0.label.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
-            return name.isEmpty ? nil : .init(name: name, isOwed: $0.isNegative)
+            return name.isEmpty ? nil : .init(name: name, isOwed: $0.isOwed)
         }
     }
 
@@ -216,7 +216,7 @@ final class ReconcileAccountsFlow {
     /// Both adds return the new row's id so the step can focus it.
     @discardableResult
     func addAsset(_ asset: Asset) -> AccountReconciliation.Account.ID {
-        let account = AccountReconciliation.Account(label: asset.name, isNegative: asset.direction == .owe)
+        let account = AccountReconciliation.Account(label: asset.name, isOwed: asset.direction == .owe)
         accounts.append(account)
         assetIds[account.id] = asset.id
         return account.id
@@ -224,7 +224,7 @@ final class ReconcileAccountsFlow {
 
     @discardableResult
     func addFreeAccount(isOwed: Bool) -> AccountReconciliation.Account.ID {
-        let account = AccountReconciliation.Account(isNegative: isOwed)
+        let account = AccountReconciliation.Account(isOwed: isOwed)
         accounts.append(account)
         return account.id
     }
@@ -255,8 +255,15 @@ final class ReconcileAccountsFlow {
     private(set) var isChecking = false
     /// « Aucune … ne correspond » was tapped in this comparison.
     private(set) var isDismissed = false
-    /// The compared figure before the first check of this comparison: struck through after it.
-    private(set) var comparedBeforeChecks: Decimal?
+    /// The figures at this comparison's first check: « trouvés » counts from the compared one, and the
+    /// checked balance is struck through once a check of this month moves it. Another total or starting
+    /// amount clears only `compared`: the next check counts « trouvés » again from the figure it sees.
+    struct BeforeChecks: Equatable {
+        let compared: Decimal?
+        let realized: Decimal
+    }
+
+    private(set) var beforeChecks: BeforeChecks?
     /// Checked in this comparison: the « Voir les autres » list keeps their check.
     private(set) var checkedSuggestions: [Suggestion] = []
 
@@ -286,20 +293,24 @@ final class ReconcileAccountsFlow {
         return true
     }
 
-    /// Sends the check `beginCheck()` started through the screen that opened me, then reads the
-    /// context again: an item of a previous month moves the correction. `false` when refused.
+    /// Sends the check `beginCheck()` started through the screen that opened me. Only an item of a
+    /// previous month moves the server's correction, so only that one reads the context again; this
+    /// month's items move the balance the screen already reads. `false` when refused.
     func check(_ suggestion: Suggestion, realizedBalance: Decimal, using toggle: () async -> Bool) async -> Bool {
         guard isChecking else { return false }
         defer { isChecking = false }
         guard let before = comparedFigure(realizedBalance: realizedBalance) else { return false }
+        let isPrior = if case .prior = suggestion.target { true } else { false }
         guard await toggle() else {
-            // The item may be gone elsewhere (a previous month's expense deleted on the web): read again.
-            await loadContext()
+            // Gone elsewhere (deleted on the web), or a lost answer that landed: read again.
+            if isPrior { await loadContext() }
             return false
         }
-        if comparedBeforeChecks == nil { comparedBeforeChecks = before }
+        if beforeChecks?.compared == nil {
+            beforeChecks = BeforeChecks(compared: before, realized: beforeChecks?.realized ?? realizedBalance)
+        }
         checkedSuggestions.append(suggestion)
-        await loadContext()
+        if isPrior { await loadContext() }
         return true
     }
 
@@ -311,11 +322,11 @@ final class ReconcileAccountsFlow {
     /// the comparison, as « Retirer » does on each row.
     func removeOwedRows() {
         let totalBefore = totalCents
-        for account in accounts where account.isNegative {
+        for account in accounts where account.isOwed {
             removeAccount(id: account.id)
         }
-        // Another total: the figure struck through belonged to the old one.
-        if totalCents != totalBefore { comparedBeforeChecks = nil }
+        // Another total: « trouvés » counted from the old one.
+        if totalCents != totalBefore { forgetComparedBeforeChecks() }
         // Nothing typed is left to compare: back to the balances.
         if totalCents == nil { step = .accounts }
     }
@@ -382,7 +393,8 @@ final class ReconcileAccountsFlow {
     }
 
     /// One write per answer; its answer replaces the state in the context. The figure moved without a
-    /// check, so nothing stays struck through. Refused, the server may still have stored it: read again.
+    /// check, so « trouvés » counts again from the next check. Refused, the server may still have stored
+    /// it: read again.
     private func writeState(_ update: ReconciliationStateUpdate) async -> SubmitOutcome {
         guard !isWriting, !isChecking, !isCompleted else { return .ignored }
         isSavingState = true
@@ -395,7 +407,7 @@ final class ReconcileAccountsFlow {
                     priorCorrection: context.priorCorrection, priorItems: context.priorItems
                 ))
             }
-            comparedBeforeChecks = nil
+            forgetComparedBeforeChecks()
             return .written
         } catch {
             await loadContext()
@@ -449,5 +461,12 @@ extension ReconcileAccountsFlow {
         return Draft(
             budgetId: budgetId, accounts: accounts, assetIds: assetIds, didCompleteComparison: didCompleteComparison
         )
+    }
+}
+
+private extension ReconcileAccountsFlow {
+    /// The checked balance before the first check still stands; only the « trouvés » reference goes.
+    func forgetComparedBeforeChecks() {
+        beforeChecks = beforeChecks.map { BeforeChecks(compared: nil, realized: $0.realized) }
     }
 }

@@ -3,7 +3,7 @@ import Foundation
 /// "Comparer avec mes comptes" (PUL-351): the user's bank balances held against the
 /// checked balance of the loaded month. Pure and Foundation-only — the flow model
 /// and the sheet read every rule from here. `parseAmount`, `totalCents(of:)`, `verdict`,
-/// `pointingCandidates`, `rankedPointingCandidates` and the screen rules (`comparisonScreen`,
+/// `rankedPointingCandidates`, `gapClosedByChecks` and the screen rules (`comparisonScreen`,
 /// `isSalaryMaybeEarly`, `comparedFigure`, `availableAfterNote`, `partlySpentBudgetLines`,
 /// `matchedBreakdown`) are the Swift twin of `shared/src/calculators/account-reconciliation.ts`,
 /// fixtures included (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
@@ -21,21 +21,21 @@ enum AccountReconciliation {
         let id: UUID
         var label: String
         var amountText: String
-        /// The decimal pad has no minus key: a balance that counts against the user (an
-        /// overdraft, but also a credit card's spending to come) is said explicitly.
-        var isNegative: Bool
+        /// The « Je dois » side: the decimal pad has no minus key, so a balance that counts against the
+        /// user (an overdraft, but also a credit card's spending to come) is said explicitly.
+        var isOwed: Bool
 
-        init(id: UUID = UUID(), label: String = "", amountText: String = "", isNegative: Bool = false) {
+        init(id: UUID = UUID(), label: String = "", amountText: String = "", isOwed: Bool = false) {
             self.id = id
             self.label = label
             self.amountText = amountText
-            self.isNegative = isNegative
+            self.isOwed = isOwed
         }
 
         /// The switch only ever makes a balance negative: a pasted minus stays one.
         var amount: Amount {
             let parsed = AccountReconciliation.parseAmount(amountText)
-            guard isNegative, case .valid(let cents) = parsed else { return parsed }
+            guard isOwed, case .valid(let cents) = parsed else { return parsed }
             return .valid(cents: -abs(cents))
         }
     }
@@ -126,38 +126,7 @@ enum AccountReconciliation {
         }
     }
 
-    /// An unpointed movement that most likely explains part of the gap.
-    struct PointingCandidate: Equatable, Sendable {
-        let transaction: Transaction
-        /// The gap once this one is pointed: `0` settles it.
-        let remainingGap: Decimal
-    }
-
     fileprivate static let maxPointingCandidates = 3
-
-    /// The movements not pointed yet that most likely explain the gap: each one, pointed alone,
-    /// moves the pointed balance toward the accounts total without going past it. An adjustment
-    /// written instead would count them twice once they are pointed. The effect is measured, not
-    /// read from the amount: under a pointée prévision a dépense moves the balance by less, or not
-    /// at all. Closest to settling first, at most three. Twin of `pointingCandidates`.
-    static func pointingCandidates(
-        gap: Decimal, lines: [BudgetLine], transactions: [Transaction]
-    ) -> [PointingCandidate] {
-        let gap = gap.rounded(maxCentDigits)
-        guard gap != 0 else { return [] }
-        let balanceBefore = realizedBalance(lines: lines, transactions: transactions)
-        let entries = transactions.filter { !$0.isChecked }.map { transaction in
-            (
-                transaction,
-                effectAfterPointing(
-                    lines: lines, transactions: transactions, balanceBefore: balanceBefore,
-                    target: .transaction(transaction.id)
-                )
-            )
-        }
-        return rankByRemainingGap(gap: gap, entries: entries)
-            .map { PointingCandidate(transaction: $0.item, remainingGap: $0.remainingGap) }
-    }
 
     /// Keeps the items whose effect moves the gap toward zero without crossing it, closest to
     /// settling first, at most three. A stable sort keeps the entries' order between equally close ones.
@@ -267,8 +236,11 @@ extension AccountReconciliation {
         let remainingGap: Decimal
     }
 
-    /// `pointingCandidates` over unchecked budget lines, unchecked movements of the month, then prior
-    /// items: same filter and ranking, ties keep that source order. Twin of `rankedPointingCandidates`.
+    /// The items not checked yet that most likely explain the gap: each one, checked alone, moves the
+    /// checked balance toward the accounts total without going past it. The effect is measured, not read
+    /// from the amount: under a checked prévision an expense moves the balance by less, or not at all.
+    /// Unchecked budget lines, unchecked movements of the month, then prior items; closest to settling
+    /// first, ties keep that source order, at most three. Twin of `rankedPointingCandidates`.
     static func rankedPointingCandidates(
         gap: Decimal, lines: [BudgetLine], transactions: [Transaction], priorItems: [PriorPointingItem] = []
     ) -> [RankedPointingCandidate] {

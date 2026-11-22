@@ -25,7 +25,7 @@ struct ReconcileLinkedAccountsTests {
     @Test func aFollowedDebtOpensOnTheOwingSide() {
         let flow = makeFlow([card.followed])
 
-        #expect(flow.accounts.map(\.isNegative) == [true])
+        #expect(flow.accounts.map(\.isOwed) == [true])
         #expect(flow.hasOwedRow)
     }
 
