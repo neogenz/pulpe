@@ -335,7 +335,8 @@ export function matchedBreakdown(input: {
   readonly compared: number;
 }): MatchedBreakdown {
   return {
-    stillPlanned: moneyDifference(input.available, input.compared),
+    // Rounded once, after the subtraction, like the Swift twin.
+    stillPlanned: moneyDifference(input.available - input.compared, 0),
     remaining: input.available,
   };
 }

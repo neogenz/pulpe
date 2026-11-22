@@ -510,6 +510,10 @@ describe('matchedBreakdown', () => {
     expect(
       matchedBreakdown({ available: 100.004, compared: 0.004 }).stillPlanned,
     ).toBe(100);
+    // Rounding each side first would show « +0.01 » here; iOS shows nothing.
+    expect(
+      matchedBreakdown({ available: 100.006, compared: 100.004 }).stillPlanned,
+    ).toBe(0);
   });
 
   it('shows nothing extra when everything lines up', () => {

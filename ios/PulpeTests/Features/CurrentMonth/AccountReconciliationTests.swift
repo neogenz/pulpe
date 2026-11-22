@@ -461,6 +461,9 @@ extension AccountReconciliationTests {
         #expect(AccountReconciliation.matchedBreakdown(
             available: try #require(Decimal(string: "100.004")), compared: try #require(Decimal(string: "0.004"))
         ).stillPlanned == 100)
+        #expect(AccountReconciliation.matchedBreakdown(
+            available: try #require(Decimal(string: "100.006")), compared: try #require(Decimal(string: "100.004"))
+        ).stillPlanned == 0)
         #expect(AccountReconciliation.matchedBreakdown(available: 900, compared: 900)
             == .init(stillPlanned: 0, remaining: 900))
         #expect(AccountReconciliation.matchedBreakdown(available: 1_000, compared: 950).stillPlanned == 50)
