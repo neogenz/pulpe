@@ -90,7 +90,10 @@ export function PointRow({
   );
 }
 
-/** Lines the disc up with the 16dp rail a `LedgerRow` keeps: (48 − 36) / 2. */
+/**
+ * Centres the point circle on the 36dp disc column a `LedgerRow` keeps, so the
+ * text and the dividers stay on its rail: (48 − 36) / 2, whatever the circle's size.
+ */
 const TARGET_INSET = (TOUCH_TARGET - ROW.disc) / 2;
 
 const styles = StyleSheet.create({

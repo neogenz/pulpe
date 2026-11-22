@@ -30,7 +30,7 @@ describe('UpdateReconciliationStateUseCase', () => {
 
     const state = await useCase.execute({ startingAmount: 3100 }, user);
 
-    expect(upsert).toHaveBeenCalledWith({});
+    expect(upsert).not.toHaveBeenCalled();
     expect(state).toEqual({ startingAmount: 0, hasCompletedComparison: true });
     expect(JSON.stringify((logger.info as jest.Mock).mock.calls)).not.toContain(
       '3100',

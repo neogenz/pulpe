@@ -9,7 +9,6 @@ import {
   RECONCILIATION_STATE_REPOSITORY,
   type ReconciliationStateRepositoryPort,
 } from '../domain/ports/reconciliation-state-repository.port';
-import type { ReconciliationStatePatch } from '../domain/reconciliation-state.entity';
 
 @Injectable()
 export class UpdateReconciliationStateUseCase {
@@ -24,22 +23,15 @@ export class UpdateReconciliationStateUseCase {
     input: UpdateReconciliationState,
     user: AuthenticatedUser,
   ): Promise<ReconciliationState> {
-    // A starting amount from iOS 1.14.2 is accepted and ignored.
-    const patch: ReconciliationStatePatch = {};
+    // A starting amount from iOS 1.14.2 is accepted and ignored: only a
+    // completion is still worth a write.
     if (input.completed) {
-      patch.lastCompletedAt = new Date().toISOString();
+      await this.repo.upsert({ lastCompletedAt: new Date().toISOString() });
+      this.logger.info(
+        { userId: user.id, operation: 'reconciliation.updateState' },
+        'Reconciliation completed',
+      );
     }
-
-    await this.repo.upsert(patch);
-
-    this.logger.info(
-      {
-        userId: user.id,
-        operation: 'reconciliation.updateState',
-        fields: Object.keys(patch),
-      },
-      'Reconciliation state updated',
-    );
     // Always completed, like the GET: iOS 1.14.2 asks nothing more then.
     return { startingAmount: 0, hasCompletedComparison: true };
   }
