@@ -139,6 +139,7 @@ struct ToPointPage: View {
                         )
                     ),
                     amount: transaction.amount.asAmount(for: currency),
+                    isIncome: transaction.kind == .income,
                     isPointed: transaction.isChecked,
                     isSyncing: store.syncingTransactionIds.contains(transaction.id),
                     onToggle: {
@@ -173,6 +174,7 @@ struct ToPointPage: View {
                     isOverrun: fact.isOverrun,
                     subtitleHasAmount: fact.hasAmount,
                     amount: line.amount.asAmount(for: currency),
+                    isIncome: line.kind == .income,
                     isPointed: line.isChecked,
                     isSyncing: store.syncingBudgetLineIds.contains(line.id),
                     onToggle: { toggle(.budgetLine(line), id: line.id, wasPointed: line.isChecked) },

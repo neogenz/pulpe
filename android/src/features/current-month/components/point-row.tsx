@@ -14,6 +14,8 @@ interface PointRowProps {
   isOverrun?: boolean;
   /** Already formatted. */
   amount: string;
+  /** An income keeps its `+`: the empty circle no longer tells it from an outflow. */
+  isIncome?: boolean;
   isPointed: boolean;
   isSyncing: boolean;
   onToggle: () => void;
@@ -30,6 +32,7 @@ export function PointRow({
   subtitle,
   isOverrun = false,
   amount,
+  isIncome = false,
   isPointed,
   isSyncing,
   onToggle,
@@ -83,7 +86,7 @@ export function PointRow({
           )}
         </View>
         <Amount size="row" numberOfLines={1}>
-          {amount}
+          {isIncome ? `+${amount}` : amount}
         </Amount>
       </Pressable>
     </View>

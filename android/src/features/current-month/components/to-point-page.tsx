@@ -212,6 +212,7 @@ function ToPoint({ month }: { month: LoadedMonth }) {
                       now,
                     )}
                     amount={formatCurrency(transaction.amount, currency)}
+                    isIncome={transaction.kind === "income"}
                     isPointed={isChecked}
                     isSyncing={pointing.isPending({
                       source: "transaction",
@@ -262,6 +263,7 @@ function ToPoint({ month }: { month: LoadedMonth }) {
                     }
                     isOverrun={fact.isOverrun}
                     amount={formatCurrency(line.amount, currency)}
+                    isIncome={line.kind === "income"}
                     isPointed={isChecked}
                     isSyncing={pointing.isPending({
                       source: "budgetLine",

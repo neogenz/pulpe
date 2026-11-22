@@ -10,6 +10,8 @@ struct PointRow: View {
     /// The subtitle prints an amount: it leaves the row while amounts are hidden.
     var subtitleHasAmount = false
     let amount: String
+    /// An income keeps its `+`: the empty circle no longer tells it from an outflow.
+    var isIncome = false
     let isPointed: Bool
     let isSyncing: Bool
     /// Where the circle's 44pt column starts and how far the text sits from it, so a card can
@@ -29,7 +31,7 @@ struct PointRow: View {
                     title: title,
                     subtitle: amountsHidden && subtitleHasAmount ? nil : subtitle,
                     subtitleTint: isOverrun ? .financialOverBudget : .textSecondary,
-                    trailing: { Text(amount).sensitiveAmount() }
+                    trailing: { Text(Self.amountText(amount, isIncome: isIncome)).sensitiveAmount() }
                 )
             }
             .plainPressedButtonStyle()
@@ -38,5 +40,12 @@ struct PointRow: View {
         }
         .padding(.leading, leadingInset)
         .padding(.trailing, DesignTokens.Spacing.lg)
+    }
+}
+
+extension PointRow {
+    /// The circle is the same for both natures: only the `+` tells a refund from the purchase.
+    static func amountText(_ amount: String, isIncome: Bool) -> String {
+        isIncome ? "+\(amount)" : amount
     }
 }
