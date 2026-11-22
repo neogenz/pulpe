@@ -555,6 +555,62 @@ Ce que ça autorise et comment je le mène :
 - La garde de main (`hasClientKey`) corrige aussi un défaut de notre version : le verrouillage retire la clé, puis les données du mois, et la feuille se fermait en effaçant le brouillon avant que l'écran ne disparaisse.
 - Mise à jour par un commit de merge plutôt qu'un rebase : la branche était déjà poussée, et un rebase aurait demandé un force push. Tests de la feuille vérifiés par mutation (sans la sauvegarde au verrouillage, deux tests échouent ; sans `hasCompleted`, un test échoue).
 
+### 2026-11-22 : avant le merge, les quatre incohérences tranchées par Maxime
+
+CI verte sur la PR #935. Maxime : « Corrige d'abord ». Les trois choix recommandés sont validés.
+
+- **Carte « Pareil des deux côtés »** : elle commence par « Sur tes comptes {chiffre} », pour qu'on puisse refaire le calcul de tête. Exemple : 4'120.00, « Encore prévu −320.00 », « D'avant Pulpe −3'100.00 », « À dépenser ce mois 700.00 ».
+- **Signes de l'argent d'avant Pulpe** : inchangés. Avec la ligne de départ, le « − » de la carte se lit comme une soustraction ; le « + » sous le chiffre Pulpe s'ajoute ; le champ n'a pas de signe.
+- **Chiffre Pulpe de l'étape 2** : c'est maintenant le chiffre de l'Accueil (« Solde pointé »). Ce que les mois d'avant ont laissé sans coche est dit sur une ligne en dessous, comme l'argent d'avant Pulpe.
+  - Exemple : l'Accueil montre 900.00 ; le mois dernier, l'« Assurance 120 » n'a pas été cochée. L'étape 2 montre « Dans Pulpe, déjà coché 900.00 », puis « +120.00 pas coché les mois d'avant », puis « +3'100.00 d'avant Pulpe ».
+  - Cocher l'Assurance (proposée « Mois dernier ») fait disparaître la ligne. Le chiffre barré n'apparaît que si le chiffre du mois a bougé.
+  - Écart avec l'aperçu validé : le libellé « Dans Pulpe, déjà coché » est gardé. Il dit maintenant la même chose que « Solde pointé » sur l'Accueil, et la scène 3 du guide l'utilise.
+- **Épargne dans les suggestions** : quand une épargne est proposée et que tes comptes ont moins que Pulpe, la phrase devient « Coche les dépenses et l'épargne que tu vois dans l'app de ta banque. » et le bouton « Rien ne correspond ». Sinon, rien ne change. Avec une ligne « Je dois », la phrase des achats de carte reste ; seul le bouton change.
+- La différence de 2'451.65 vue sur le compte démo vient en partie du seed : septembre 2026 n'a pas de `ending_balance` stocké, compté 0, alors qu'un vrai compte le recalcule à chaque changement. Octobre a 15 prévisions non cochées, ce qui est un cas réel.
+
+### 2026-11-22 : audit aidd et dernier tour de review avant le merge
+
+Audit des 7 piliers (`aidd_docs/tasks/2026_11/2026_11_22_audit/report.md`) : 0 critique, 10 majeurs, 37 mineurs.
+
+- **Corrigé**, sur les trois plateformes :
+  - le montant d'avant Pulpe négatif sur Android ;
+  - « Oui, noter … » coupé sur iOS en grande taille de texte ;
+  - le chiffre barré lu comme un second montant par le lecteur d'écran du web, désormais précédé de « au lieu de » ;
+  - le libellé « Solde de {nom} » ;
+  - le focus VoiceOver du guide ;
+  - la lecture du budget courant faite une seule fois au backend ;
+  - le formulaire web chargé seulement à l'ouverture ;
+  - le code mort `pointingCandidates`, et des tests manquants.
+- **Reporté**, sans effet visible aujourd'hui :
+  - déplacer le calcul de l'étape 2 dans `shared` ;
+  - mesurer la lecture du contexte avant de la réécrire ;
+  - unifier les styles du bloc d'aide, des chips et du bouton « Réessayer ».
+- **Feuille web sur téléphone** : en grande taille de texte, le titre et la croix partaient avec le défilement. Seul le corps de la feuille défile maintenant.
+- **Noms des suggestions** : sur un petit écran (iPhone SE), un nom long était coupé sur une ligne. Il passe maintenant sur deux lignes au plus, sur les trois plateformes.
+- **Chiffre barré** (review GPT iOS, même défaut sur web et Android) : modifier l'argent d'avant Pulpe ou retirer « Je dois » effaçait le solde barré, alors que seul le « trouvés » ne se mesure plus.
+  - Exemple : un pointage fait passer le solde de 900 à 880, puis je corrige l'argent d'avant Pulpe. Le 900 barré reste, la barre « trouvés » disparaît, et le prochain pointage la fait repartir.
+- **Non retenu** :
+  - préciser la limite de 9 chiffres avant la virgule dans le message d'erreur : un solde de départ d'un milliard n'est pas un cas réel, et le message reste court ;
+  - le test rendu de la carte iOS : l'app n'a pas d'outil de test de vue ; les captures la couvrent.
+- **Review GPT web, deuxième tour** :
+  - La règle qui fixe le titre de la feuille s'appliquait à toutes les petites feuilles : sur téléphone, la liste « Ajouter un compte » ne défilait plus et ses derniers comptes étaient coupés. Elle vise maintenant « Autres raisons » seule.
+  - Le formulaire chargé à l'ouverture pouvait échouer sans rien dire après un déploiement, quand l'onglet est resté ouvert. Retour à l'import direct : le gain de poids était mineur, cette panne ne l'est pas.
+  - Le test du plein écran sur téléphone vérifie de nouveau la largeur maximale.
+  - Écartés : le focus sur la carte d'erreur (le lecteur d'écran en lit le contenu) ; la devise qui peut passer à la ligne dans le titre d'« Autres raisons » (choix fait pour le texte à 200 %, comme sur Android, le nombre lui-même ne se coupe jamais).
+- **Vu à l'écran en vérifiant ces corrections** :
+  - à 200 %, les noms des comptes de « Mon patrimoine » se coupaient à quatre lettres (« Watc… »). Le badge passe maintenant sous le nom quand la place manque ;
+  - la devise des champs de montant était devant le nombre et collée au libellé (« CHFSolde »). Elle passe après, comme partout ailleurs dans l'app web.
+- **Review GPT Android, deuxième tour** :
+  - Le champ de l'argent d'avant Pulpe explique maintenant une saisie illisible, comme à l'étape 1.
+  - Deux tests passaient à tort ; ils vérifient maintenant le montant d'une suggestion en grand texte, et la relecture après un pointage refusé.
+  - Écarté : une course entre un pointage fait sur la page d'un autre budget et l'ouverture de la comparaison dans le même aller-retour réseau.
+- **Relecture design finale (impeccable, make-interfaces-feel-better)** :
+  - Sur le web, les suggestions avaient une case carrée. Elles ont maintenant le cercle de pointage du tableau de bord, d'iOS et d'Android.
+  - Sur ordinateur, la fenêtre restait centrée et sautait d'environ 80 px quand l'étape changeait de hauteur. Elle est maintenant fixée à 64 px du haut.
+  - Laissé pour plus tard : l'écran « Pareil des deux côtés » sur iOS met la coche devant le titre et tous les montants en gras, alors que le web et Android centrent un rond et ne mettent en gras que le total.
+- **Revue aidd du diff complet** : prête. La spec disait encore que le chiffre « Dans Pulpe » est le chiffre comparé : corrigée. Sur Android, l'éditeur de l'argent d'avant Pulpe affiche le montant même quand les montants sont masqués, comme tous les champs de montant de l'app Android.
+- **Divergence connue, antérieure à la PR** : Android compte dans « À pointer » les mouvements sous une prévision déjà cochée, le web non.
+
 ## Étapes suivantes
 
 1. Board et post-its à jour avec Q11 à Q15 (version 21), le passage à « payé » (version 22), la phrase « disponible » retirée (version 23) et le guide animé (version 24).
