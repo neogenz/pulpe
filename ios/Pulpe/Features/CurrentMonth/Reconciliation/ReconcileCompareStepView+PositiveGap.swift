@@ -5,7 +5,8 @@ import SwiftUI
 /// The screens that ask why my accounts hold more before any income is noted (spec.md §4.4), and the
 /// money from before Pulpe, shown apart from the figure and corrected in its own sheet.
 extension ReconcileCompareStepView {
-    /// « Ces 3 100.00 CHF étaient là avant Pulpe ? »; hidden amounts keep the question without its amount.
+    /// « Ces 3 100.00 CHF étaient là avant Pulpe ? » and why Pulpe asks; hidden amounts keep the question without its
+    /// amount.
     func firstComparisonCard(gap: Decimal) -> some View {
         let question = amountsHidden
             ? AppLocale.string("Cet argent était là avant Pulpe ?")
@@ -15,6 +16,9 @@ extension ReconcileCompareStepView {
                 .font(PulpeTypography.rowTitle)
                 .monospacedDigit()
                 .foregroundStyle(Color.textPrimary)
+            Text("Pulpe ne sait pas combien tu avais sur tes comptes quand tu as commencé.")
+                .font(PulpeTypography.rowTitleRegular)
+                .foregroundStyle(Color.textSecondary)
         }
         .accessibilityIdentifier("reconcileFirstComparison")
     }

@@ -769,9 +769,12 @@ describe('ReconcileCompareStep', () => {
       }),
     );
 
-    expect(text('reconcile-first-comparison')).toEqual([
+    expect(text('reconcile-first-comparison')[0]).toContain(
       `Ces ${money(6000, 'CHF')} étaient là avant Pulpe ?`,
-    ]);
+    );
+    expect(text('reconcile-first-comparison')[0]).toContain(
+      'Pulpe ne sait pas combien tu avais sur tes comptes quand tu as commencé.',
+    );
     expect(
       Array.from(
         host.querySelectorAll(

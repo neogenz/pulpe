@@ -63,7 +63,7 @@ Header: « Étape 2 sur 2 », back arrow to step 1, « ? ».
 
 ### 4.2 Suggestions
 
-- Candidates: unchecked movements and unchecked budget lines of the month, plus the server's unchecked items of the two previous budgets. Same rule as today: the check moves the compared figure towards zero without crossing it; ranked by what remains; 3 at most.
+- Candidates: unchecked movements and unchecked budget lines of the month, plus the server's unchecked items of the two previous budgets. The check leaves the gap nearer zero, even past it (4 600.00 for a 4 570.48 gap leaves 29.52); ranked by what remains; 3 at most.
 - Each row: name, then a second line « Prévue ce mois » (budget line), « Mois dernier » (1 budget back) or « Il y a 2 mois » (2 back), else the date (« Essence · mardi »). The amount is highlighted green when it equals the remaining gap exactly. Rows are at least 64pt high.
 - Lead sentence: « Coche les dépenses que tu vois dans l'app de ta banque. » (gap < 0, no « Je dois » row), or « Coche les dépenses et l'épargne que tu vois dans l'app de ta banque. » when a shown row is a saving, « Coche les achats faits avec ta carte. » (gap < 0 and a « Je dois » row), « Coche les revenus que tu vois dans l'app de ta banque. » (gap > 0).
 - « Voir les {n} autres à cocher » opens the existing list of items to check.

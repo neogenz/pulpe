@@ -1067,7 +1067,7 @@ describe('ReconcileAccountsDialog', () => {
         realized: { ...REALIZED, balance: 1050 },
         ledger: {
           budgetLines: [ASSURANCE, { ...ASSURANCE, id: 'line-2', amount: 200 }],
-          transactions: [ESSENCE, { ...ESSENCE, id: 'tx-2', amount: 150 }],
+          transactions: [ESSENCE, { ...ESSENCE, id: 'tx-2', amount: 250 }],
         },
       });
       await compare(view, '950');

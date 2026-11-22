@@ -193,13 +193,16 @@ describe('rankedPointingCandidates over the movements of the month', () => {
     ]);
   });
 
-  it('leaves out a movement that would go past the gap, or that is already pointed', () => {
+  it('keeps a movement past the gap that leaves it nearer zero, not one that leaves it farther or is pointed', () => {
     const big = movement('big', 'income', 900);
+    const huge = movement('huge', 'income', 1_700);
     const pointed = movement('pointed', 'income', 100, {
       checkedAt: '2026-11-01',
     });
 
-    expect(rankedPointingCandidates(814.93, [], [big, pointed])).toEqual([]);
+    expect(rankedPointingCandidates(814.93, [], [big, huge, pointed])).toEqual([
+      candidate('big', -85.07),
+    ]);
     expect(
       rankedPointingCandidates(0, [], [movement('any', 'income', 1)]),
     ).toEqual([]);
@@ -358,13 +361,26 @@ describe('rankedPointingCandidates', () => {
     ]);
   });
 
-  it('leaves out a checked line, a prior item that goes past the gap, and a zero gap', () => {
+  it("offers last month's item that explains most of the gap, even past it", () => {
+    expect(
+      rankedPointingCandidates(
+        4_570.48,
+        [],
+        [],
+        [{ id: 'salaire', effect: 4_600, monthsAgo: 1 }],
+      ),
+    ).toEqual([
+      { source: 'prior', id: 'salaire', monthsAgo: 1, remainingGap: -29.52 },
+    ]);
+  });
+
+  it('leaves out a checked line, a prior item that leaves the gap farther, and a zero gap', () => {
     expect(
       rankedPointingCandidates(
         -100,
         [line('assurance', 100, '2026-11-01')],
         [],
-        [{ id: 'loyer', effect: -150, monthsAgo: 2 }],
+        [{ id: 'loyer', effect: -250, monthsAgo: 2 }],
       ),
     ).toEqual([]);
     expect(rankedPointingCandidates(0, [line('assurance', 100)], [])).toEqual(

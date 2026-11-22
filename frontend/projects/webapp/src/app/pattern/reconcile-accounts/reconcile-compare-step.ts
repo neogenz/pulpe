@@ -629,16 +629,23 @@ export function buildComparison(input: ComparisonInput): Comparison {
               'currentMonth.reconcile.compare.firstQuestion'
               | transloco: { amount: AMOUNT_SLOT }
             ).split(AMOUNT_SLOT);
-          <p
-            class="m-0 rounded-(--pulpe-surface-radius-panel) bg-surface-container-low p-4 text-body-large font-medium text-pretty"
+          <div
+            class="flex flex-col gap-1 rounded-(--pulpe-surface-radius-panel) bg-surface-container-low p-4"
             data-testid="reconcile-first-comparison"
           >
-            {{ first[0]
-            }}<span class="ph-no-capture whitespace-nowrap">{{
-              money(view.gap)
-            }}</span
-            >{{ first[1] }}
-          </p>
+            <p class="m-0 text-body-large font-medium text-pretty">
+              {{ first[0]
+              }}<span class="ph-no-capture whitespace-nowrap">{{
+                money(view.gap)
+              }}</span
+              >{{ first[1] }}
+            </p>
+            <p class="m-0 text-body-medium text-on-surface-variant text-pretty">
+              {{
+                'currentMonth.reconcile.compare.firstExplanation' | transloco
+              }}
+            </p>
+          </div>
         }
         @case ('salaryEarly') {
           <div

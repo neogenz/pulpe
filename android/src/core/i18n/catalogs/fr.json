@@ -1042,6 +1042,7 @@
         "finish": "Terminer",
         "entryName": "Écart avec mes comptes",
         "firstQuestion": "Ces %{amount} étaient là avant Pulpe ?",
+        "firstExplanation": "Pulpe ne sait pas combien tu avais sur tes comptes quand tu as commencé.",
         "alreadyThere": "Oui, c'était déjà là",
         "availableUnchanged": "Ton disponible ne change pas.",
         "somethingElse": "Non, autre chose",

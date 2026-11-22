@@ -897,8 +897,12 @@ for (const viewport of VIEWPORTS) {
     await compareWith(page, '4000');
 
     const heading = page.getByTestId('reconcile-step-heading');
-    await expect(page.getByTestId('reconcile-first-comparison')).toHaveText(
+    const first = page.getByTestId('reconcile-first-comparison');
+    await expect(first.locator('p').first()).toHaveText(
       'Ces 3’100.00 CHF étaient là avant Pulpe ?',
+    );
+    await expect(first).toContainText(
+      'Pulpe ne sait pas combien tu avais sur tes comptes quand tu as commencé.',
     );
     await expect(
       page.getByTestId('reconcile-keep-start-button'),

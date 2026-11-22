@@ -49007,6 +49007,28 @@
         }
       }
     },
+    "Pulpe ne sait pas combien tu avais sur tes comptes quand tu as commencé." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe weiss nicht, wie viel du auf deinen Konten hattest, als du angefangen hast."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe doesn't know how much you had on your accounts when you started."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe non sa quanto avevi sui tuoi conti quando hai iniziato."
+          }
+        }
+      }
+    },
     "Reviens comparer le %lld, jour de ta paie." : {
       "localizations" : {
         "de" : {

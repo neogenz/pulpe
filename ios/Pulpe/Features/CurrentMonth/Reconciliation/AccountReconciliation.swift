@@ -128,16 +128,15 @@ enum AccountReconciliation {
 
     fileprivate static let maxPointingCandidates = 3
 
-    /// Keeps the items whose effect moves the gap toward zero without crossing it, closest to
-    /// settling first, at most three. A stable sort keeps the entries' order between equally close ones.
+    /// Keeps the items that leave the gap nearer zero, even past it (4 600.00 for a 4 570.48 gap
+    /// leaves 29.52), closest to settling first, at most three. A stable sort keeps the entries' order between equally close ones.
     fileprivate static func rankByRemainingGap<Item>(
         gap: Decimal, entries: [(Item, Decimal)]
     ) -> [(item: Item, remainingGap: Decimal)] {
         let kept = entries.compactMap { item, effect -> (item: Item, remainingGap: Decimal)? in
-            guard effect != 0, (effect > 0) == (gap > 0), effect.absoluteValue <= gap.absoluteValue else {
-                return nil
-            }
-            return (item, gap - effect)
+            let remainingGap = gap - effect
+            guard remainingGap.absoluteValue < gap.absoluteValue else { return nil }
+            return (item, remainingGap)
         }
         return kept.enumerated()
             .sorted {
@@ -236,8 +235,8 @@ extension AccountReconciliation {
         let remainingGap: Decimal
     }
 
-    /// The items not checked yet that most likely explain the gap: each one, checked alone, moves the
-    /// checked balance toward the accounts total without going past it. The effect is measured, not read
+    /// The items not checked yet that most likely explain the gap: each one, checked alone, brings the
+    /// checked balance nearer the accounts total. The effect is measured, not read
     /// from the amount: under a checked prévision an expense moves the balance by less, or not at all.
     /// Unchecked budget lines, unchecked movements of the month, then prior items; closest to settling
     /// first, ties keep that source order, at most three. Twin of `rankedPointingCandidates`.

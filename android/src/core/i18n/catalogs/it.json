@@ -1042,6 +1042,7 @@
         "finish": "Fatto",
         "entryName": "Scarto con i miei conti",
         "firstQuestion": "Questi %{amount} c'erano già prima di Pulpe?",
+        "firstExplanation": "Pulpe non sa quanto avevi sui tuoi conti quando hai iniziato.",
         "alreadyThere": "Sì, c'erano già",
         "availableUnchanged": "Il tuo disponibile non cambia.",
         "somethingElse": "No, altro",

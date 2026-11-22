@@ -165,24 +165,20 @@ interface Effect {
 }
 
 /**
- * Keeps the items whose effect moves the gap toward zero without crossing it,
- * closest to settling first (stable on ties), at most three.
+ * Keeps the items that leave the gap nearer zero, even past it: last month's
+ * 4 600.00 for a 4 570.48 gap leaves 29.52. Closest to settling first (stable
+ * on ties), at most three.
  */
 function rankByRemainingGap<T extends Effect>(
   gap: number,
   entries: readonly T[],
 ): (T & { readonly remainingGap: number })[] {
   return entries
-    .filter(
-      ({ effect }) =>
-        effect !== 0 &&
-        Math.sign(effect) === Math.sign(gap) &&
-        Math.abs(effect) <= Math.abs(gap),
-    )
     .map((entry) => ({
       ...entry,
       remainingGap: moneyDifference(gap, entry.effect),
     }))
+    .filter(({ remainingGap }) => Math.abs(remainingGap) < Math.abs(gap))
     .sort((a, b) => Math.abs(a.remainingGap) - Math.abs(b.remainingGap))
     .slice(0, MAX_POINTING_CANDIDATES);
 }
@@ -206,8 +202,7 @@ export interface RankedPointingCandidate {
 
 /**
  * The items not pointed yet that most likely explain the gap: each one,
- * pointed alone, moves the pointed balance toward the accounts total without
- * going past it. An adjustment written instead would count them twice once
+ * pointed alone, brings the pointed balance nearer the accounts total. An adjustment written instead would count them twice once
  * they are pointed. Three sources: unchecked budget lines, unchecked movements
  * of the month, then prior items; closest to settling first (ties keep that
  * source order), at most three.

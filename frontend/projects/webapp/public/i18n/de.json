@@ -1248,6 +1248,7 @@
         "stillToReceive": "Noch zu erhalten",
         "beforePulpe": "Von vor Pulpe",
         "firstQuestion": "Waren diese {{ amount }} schon vor Pulpe da?",
+        "firstExplanation": "Pulpe weiss nicht, wie viel du auf deinen Konten hattest, als du angefangen hast.",
         "alreadyThere": "Ja, das war schon da",
         "availableUnchanged": "Dein Verfügbares ändert sich nicht.",
         "salaryQuestion": "Ist dein Lohn früher gekommen?",

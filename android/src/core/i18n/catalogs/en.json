@@ -1042,6 +1042,7 @@
         "finish": "Done",
         "entryName": "Gap with my accounts",
         "firstQuestion": "Was this %{amount} there before Pulpe?",
+        "firstExplanation": "Pulpe doesn't know how much you had on your accounts when you started.",
         "alreadyThere": "Yes, it was already there",
         "availableUnchanged": "Your available amount doesn't change.",
         "somethingElse": "No, something else",

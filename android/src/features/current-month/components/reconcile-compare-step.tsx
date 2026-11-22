@@ -505,6 +505,9 @@ export function ReconcileCompareStep({
               amount: money(gap, currency),
             })}
           </Text>
+          <Text variant="bodyMedium" style={muted}>
+            {t("home.reconcile.compare.firstExplanation")}
+          </Text>
         </View>
       )}
 

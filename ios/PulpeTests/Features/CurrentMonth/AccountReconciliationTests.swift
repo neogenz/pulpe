@@ -229,15 +229,17 @@ struct AccountReconciliationTests {
         #expect(candidates == [candidate("bonus", try #require(Decimal(string: "14.93")))])
     }
 
-    @Test("a movement that would go past the gap, or already checked, is left out")
-    func rankedPointingCandidates_overshootAndChecked_areLeftOut() throws {
+    @Test("a movement past the gap that leaves it nearer zero is kept; one leaving it farther, or checked, is not")
+    func rankedPointingCandidates_overshootAndChecked() throws {
         let gap = try #require(Decimal(string: "814.93"))
         let big = TestDataFactory.createTransaction(id: "big", amount: 900, kind: .income)
+        let huge = TestDataFactory.createTransaction(id: "huge", amount: 1_700, kind: .income)
         let pointed = TestDataFactory.createTransaction(id: "pointed", amount: 100, kind: .income, isChecked: true)
         let any = TestDataFactory.createTransaction(id: "any", amount: 1, kind: .income)
 
-        #expect(AccountReconciliation.rankedPointingCandidates(gap: gap, lines: [], transactions: [big, pointed])
-            .isEmpty)
+        #expect(AccountReconciliation.rankedPointingCandidates(
+            gap: gap, lines: [], transactions: [big, huge, pointed]
+        ) == [candidate("big", try #require(Decimal(string: "-85.07")))])
         #expect(AccountReconciliation.rankedPointingCandidates(gap: 0, lines: [], transactions: [any]).isEmpty)
     }
 
@@ -339,10 +341,20 @@ extension AccountReconciliationTests {
         ) == [.init(source: .budgetLine, id: "b", monthsAgo: 0, remainingGap: 0)])
     }
 
-    @Test("a checked line, a prior item past the gap, and a zero gap name nothing")
+    @Test("last month's item that explains most of the gap is offered, even past it")
+    func rankedPointingCandidates_priorPastTheGap() throws {
+        let salaire = AccountReconciliation.PriorPointingItem(id: "salaire", effect: 4_600, monthsAgo: 1)
+        let remaining = try #require(Decimal(string: "-29.52"))
+
+        #expect(AccountReconciliation.rankedPointingCandidates(
+            gap: try #require(Decimal(string: "4570.48")), lines: [], transactions: [], priorItems: [salaire]
+        ) == [.init(source: .prior, id: "salaire", monthsAgo: 1, remainingGap: remaining)])
+    }
+
+    @Test("a checked line, a prior item leaving the gap farther, and a zero gap name nothing")
     func rankedPointingCandidates_leavesOut() {
         let checked = TestDataFactory.createBudgetLine(id: "assurance", amount: 100, isChecked: true)
-        let loyer = AccountReconciliation.PriorPointingItem(id: "loyer", effect: -150, monthsAgo: 2)
+        let loyer = AccountReconciliation.PriorPointingItem(id: "loyer", effect: -250, monthsAgo: 2)
         let open = TestDataFactory.createBudgetLine(id: "assurance", amount: 100)
 
         #expect(AccountReconciliation.rankedPointingCandidates(
