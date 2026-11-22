@@ -11,12 +11,21 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.62.1',
+  version: '0.66.0',
   features: {
-    fr: ['Le rapprochement propose de pointer avant d’ajuster'],
-    en: ['Matching suggests checking items before adjusting'],
-    de: ['Der Abgleich schlägt Abhaken vor dem Ausgleich vor'],
-    it: ['L’allineamento propone di spuntare prima di correggere'],
+    fr: [
+      '« Comparer avec mes comptes » refait',
+      'Les mouvements qui expliquent un écart',
+    ],
+    en: ['“Compare with my accounts” redesigned', 'The movements behind a gap'],
+    de: [
+      '«Mit meinen Konten vergleichen» neu gestaltet',
+      'Die Bewegungen hinter einer Differenz',
+    ],
+    it: [
+      '«Confronta con i miei conti» rifatto',
+      'I movimenti dietro una differenza',
+    ],
   },
 };
 
