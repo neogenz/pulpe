@@ -1,71 +1,24 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
-    "%@ · au rapprochement" : {
-      "extractionState" : "manual",
+    "%@ de différence" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ · beim Abgleich"
+            "value" : "%@ Unterschied"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ · when matching"
+            "value" : "%@ difference"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ · all'allineamento"
-          }
-        }
-      }
-    },
-    "Ajouter à Mon patrimoine" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zu Mein Vermögen hinzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to My net worth"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi a Il mio patrimonio"
-          }
-        }
-      }
-    },
-    "Autre compte…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anderes Konto…"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Other account…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Altro conto…"
+            "value" : "%@ di differenza"
           }
         }
       }
@@ -162,6 +115,50 @@
         }
       }
     },
+    "Coche l'essence de 60 : Pulpe est à jour avec ta banque." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake das Benzin über 60 ab: Pulpe ist auf dem Stand deiner Bank."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the 60 fuel expense: Pulpe is up to date with your bank."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta la benzina da 60: Pulpe è allineata alla tua banca."
+          }
+        }
+      }
+    },
+    "Comparer maintenant" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare now"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confronta ora"
+          }
+        }
+      }
+    },
     "Compte %lld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -208,25 +205,24 @@
         }
       }
     },
-    "Donne un nom à ce compte pour l'ajouter" : {
-      "extractionState" : "manual",
+    "Dans Pulpe, déjà coché" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gib dem Konto einen Namen, um es hinzuzufügen"
+            "value" : "In Pulpe, schon abgehakt"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Name this account to add it"
+            "value" : "In Pulpe, already checked"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dai un nome a questo conto per aggiungerlo"
+            "value" : "In Pulpe, già spuntata"
           }
         }
       }
@@ -254,6 +250,50 @@
         }
       }
     },
+    "Déjà coché" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schon abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already checked"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Già spuntato"
+          }
+        }
+      }
+    },
+    "Essence · hier" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benzin · gestern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fuel · yesterday"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benzina · ieri"
+          }
+        }
+      }
+    },
     "Hypothèque" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -273,6 +313,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mutuo"
+          }
+        }
+      }
+    },
+    "Ma banque" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Bank"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My bank"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La mia banca"
           }
         }
       }
@@ -306,6 +368,94 @@
         }
       }
     },
+    "Ouvre l'app de ta banque et recopie le montant de ton compte." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne die App deiner Bank und übernimm den Betrag deines Kontos."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open your bank's app and copy your account's amount."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri l'app della tua banca e copia l'importo del tuo conto."
+          }
+        }
+      }
+    },
+    "Pareil des deux côtés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf beiden Seiten gleich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same on both sides"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uguale da entrambe le parti"
+          }
+        }
+      }
+    },
+    "Pulpe te montre ce qui manque" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe zeigt dir, was fehlt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe shows you what's missing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulpe ti mostra cosa manca"
+          }
+        }
+      }
+    },
+    "Revoir le guide" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anleitung ansehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review the guide"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rivedi la guida"
+          }
+        }
+      }
+    },
     "S'ouvre sur l'App Store" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -331,74 +481,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Si apre nell'App Store"
-          }
-        }
-      }
-    },
-    "il restera %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "es bleiben %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ will remain"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "resteranno %@"
-          }
-        }
-      }
-    },
-    "Je garde ce compte et je mets son solde à jour à chaque rapprochement." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ich behalte dieses Konto und aktualisiere seinen Saldo bei jedem Abgleich."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I keep this account and update its balance each time you match your accounts."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conservo questo conto e ne aggiorno il saldo a ogni allineamento."
-          }
-        }
-      }
-    },
-    "Je mets à jour le solde de tes comptes de Mon patrimoine. Les autres lignes ne sont pas enregistrées." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ich aktualisiere den Saldo deiner Konten in Mein Vermögen. Die übrigen Zeilen werden nicht gespeichert."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I update the balance of your accounts in My net worth. The other rows are not saved."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiorno il saldo dei tuoi conti in Il mio patrimonio. Le altre righe non vengono salvate."
           }
         }
       }
@@ -467,29 +549,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Leasing"
-          }
-        }
-      }
-    },
-    "Ne plus suivre ce compte" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diesem Konto nicht mehr folgen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop following this account"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non seguire più questo conto"
           }
         }
       }
@@ -676,51 +735,6 @@
         }
       }
     },
-    "Pointe d'abord ce qui est passé" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hake zuerst ab, was erfolgt ist"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check off what went through first"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spunta prima ciò che è passato"
-          }
-        }
-      }
-    },
-    "Rapprochement fait, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abgleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Matching done, but I couldn't save your balances in My net worth."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allineamento fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio."
-          }
-        }
-      }
-    },
     "Renommer le type" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -740,6 +754,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rinomina il tipo"
+          }
+        }
+      }
+    },
+    "Tape ce que ta banque affiche" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe ein, was deine Bank anzeigt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type what your bank shows"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digita ciò che mostra la tua banca"
+          }
+        }
+      }
+    },
+    "Tu vois cette dépense dans l'app de ta banque ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siehst du diese Ausgabe in der App deiner Bank?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you see this expense in your bank's app?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi questa spesa nell'app della tua banca?"
+          }
+        }
+      }
+    },
+    "Tu évites les mauvaises surprises : si un montant manque, Pulpe te le montre." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So vermeidest du böse Überraschungen: Fehlt ein Betrag, zeigt Pulpe ihn dir."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No bad surprises: if an amount is missing, Pulpe shows it to you."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eviti brutte sorprese: se manca un importo, Pulpe te lo mostra."
           }
         }
       }
@@ -767,28 +847,6 @@
         }
       }
     },
-    "Un ajustement maintenant compterait deux fois ce que tu pointeras ensuite." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eine Anpassung jetzt würde doppelt zählen, was du danach abhakst."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "An adjustment now would count twice what you check off later."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una rettifica ora conterebbe due volte ciò che spunterai dopo."
-          }
-        }
-      }
-    },
     "Un type porte déjà ce nom" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -808,6 +866,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un tipo ha già questo nome"
+          }
+        }
+      }
+    },
+    "Vérifie que Pulpe et ta banque disent la même chose" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfe, ob Pulpe und deine Bank dasselbe sagen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check that Pulpe and your bank say the same thing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica che Pulpe e la tua banca dicano la stessa cosa"
           }
         }
       }
@@ -1460,50 +1540,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "spuntato ora"
-          }
-        }
-      }
-    },
-    "À pointer d'abord, s'il est passé sur ton compte" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuerst abhaken, falls die Buchung über dein Konto gelaufen ist"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check this first if it went through your account"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Da spuntare prima, se è passato sul tuo conto"
-          }
-        }
-      }
-    },
-    "À pointer d'abord, s'ils sont passés sur ton compte" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuerst abhaken, falls sie über dein Konto gelaufen sind"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check these first if they went through your account"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Da spuntare prima, se sono passati sul tuo conto"
           }
         }
       }
@@ -6789,28 +6825,6 @@
         }
       }
     },
-    "Ajustement" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anpassung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adjustment"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiustamento"
-          }
-        }
-      }
-    },
     "Ajuster" : {
       "localizations" : {
         "de" : {
@@ -8691,28 +8705,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scheda %lld di %lld"
-          }
-        }
-      }
-    },
-    "Carte de crédit, découvert" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kreditkarte, Überziehung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Credit card, overdraft"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carta di credito, scoperto"
           }
         }
       }
@@ -10677,28 +10669,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account non trovato — controlla la tua email"
-          }
-        }
-      }
-    },
-    "Compter en négatif" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Als negativ zählen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Count as negative"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conta come negativo"
           }
         }
       }
@@ -20795,28 +20765,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spunta"
-          }
-        }
-      }
-    },
-    "Pointer %@" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ abhaken"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spunta %@"
           }
         }
       }
@@ -31977,28 +31925,6 @@
         }
       }
     },
-    "Ajustement enregistré" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anpassung gespeichert"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adjustment saved"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiustamento salvato"
-          }
-        }
-      }
-    },
     "Comparer avec mes comptes" : {
       "localizations" : {
         "de" : {
@@ -32043,28 +31969,6 @@
         }
       }
     },
-    "Écart" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Differenz"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Difference"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Differenza"
-          }
-        }
-      }
-    },
     "Enregistrer l'ajustement" : {
       "localizations" : {
         "de" : {
@@ -32083,28 +31987,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Salva l'aggiustamento"
-          }
-        }
-      }
-    },
-    "L'ajustement n'a pas pu être enregistré — réessaie" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Anpassung liess sich nicht speichern — versuch es noch einmal"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The adjustment could not be saved — try again"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'aggiustamento non è stato salvato — riprova"
           }
         }
       }
@@ -32171,50 +32053,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nome del conto %lld"
-          }
-        }
-      }
-    },
-    "Rapprocher mes comptes" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Meine Konten abgleichen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reconcile my accounts"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riconcilia i miei conti"
-          }
-        }
-      }
-    },
-    "Retirer ce compte" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieses Konto entfernen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove this account"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rimuovi questo conto"
           }
         }
       }
@@ -32347,28 +32185,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "I tuoi conti"
-          }
-        }
-      }
-    },
-    "Tes comptes et ton solde pointé sont identiques, au centime près." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Konten und dein abgehakter Saldo stimmen auf den Cent genau überein."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your accounts and your checked balance match to the cent."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I tuoi conti e il tuo saldo spuntato coincidono al centesimo."
           }
         }
       }
@@ -32725,28 +32541,6 @@
         }
       }
     },
-    "Comptée en négatif" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Negativ gezählt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Counted as negative"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contato in negativo"
-          }
-        }
-      }
-    },
     "Disponible à dépenser en %@" : {
       "localizations" : {
         "de" : {
@@ -32765,28 +32559,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disponibile da spendere a %@"
-          }
-        }
-      }
-    },
-    "Enregistrer un ajustement" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anpassung speichern"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Record an adjustment"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registra una rettifica"
           }
         }
       }
@@ -32853,28 +32625,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Non versato: %@"
-          }
-        }
-      }
-    },
-    "Pointer %@ règle l'écart" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ abhaken gleicht die Abweichung aus"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking %@ settles the gap"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spuntare %@ chiude lo scarto"
           }
         }
       }
@@ -32996,73 +32746,6 @@
         }
       }
     },
-    "Saisis le solde de chaque compte, tel que ta banque l'affiche." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib den Saldo jedes Kontos ein, wie deine Bank ihn anzeigt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter each account's balance, as your bank shows it."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci il saldo di ogni conto, come lo mostra la tua banca."
-          }
-        }
-      }
-    },
-    "Saisis son solde pour l'ajouter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib den Saldo ein, um es hinzuzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter its balance to add it"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci il saldo per aggiungerlo"
-          }
-        }
-      }
-    },
-    "Sans doute passé sans être pointé" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wahrscheinlich erfolgt, aber nicht abgehakt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Probably went through without being checked"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Probabilmente passato senza essere spuntato"
-          }
-        }
-      }
-    },
     "Sans prévision" : {
       "localizations" : {
         "de" : {
@@ -33107,28 +32790,6 @@
         }
       }
     },
-    "Ton disponible ne bouge pas. Un ajustement de %@, lui, le ferait passer de %@ à %@." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dein verfügbarer Betrag bleibt gleich. Eine Anpassung von %@ würde ihn dagegen von %@ auf %@ bringen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your available amount stays the same. An adjustment of %@, however, would take it from %@ to %@."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo disponibile non cambia. Una rettifica di %@, invece, lo porterebbe da %@ a %@."
-          }
-        }
-      }
-    },
     "Ton solde pointé : %@, ce que donnent tes mouvements pointés." : {
       "localizations" : {
         "de" : {
@@ -33147,50 +32808,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il tuo saldo spuntato: %@, ciò che danno i tuoi movimenti spuntati."
-          }
-        }
-      }
-    },
-    "Un ajustement de %@ ferait passer ton disponible de %@ à %@." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eine Anpassung von %@ würde deinen verfügbaren Betrag von %@ auf %@ bringen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "An adjustment of %@ would take your available amount from %@ to %@."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una rettifica di %@ porterebbe il tuo disponibile da %@ a %@."
-          }
-        }
-      }
-    },
-    "Un ajustement règle l'écart" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eine Anpassung gleicht die Abweichung aus"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "An adjustment settles the gap"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una rettifica chiude lo scarto"
           }
         }
       }
@@ -33257,28 +32874,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "aggiunto il %@"
-          }
-        }
-      }
-    },
-    "même montant" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "gleicher Betrag"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "same amount"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "stesso importo"
           }
         }
       }
@@ -47197,29 +46792,6 @@
         }
       }
     },
-    "Dernier solde : %@, %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Letzter Saldo: %@, %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last balance: %@, %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ultimo saldo: %@, %@"
-          }
-        }
-      }
-    },
     "Aucun" : {
       "localizations" : {
         "de" : {
@@ -47881,6 +47453,2172 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esempio: i risparmi passano da %1$@ a %2$@, il patrimonio netto sale a %3$@."
+          }
+        }
+      }
+    },
+    "J'ai" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich habe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I have"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ho"
+          }
+        }
+      }
+    },
+    "Je dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devo"
+          }
+        }
+      }
+    },
+    "Combien as-tu aujourd'hui ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie viel hast du heute?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How much do you have today?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quanto hai oggi?"
+          }
+        }
+      }
+    },
+    "Tape ce que ta banque affiche aujourd'hui, compte par compte." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib ein, was deine Bank heute anzeigt, Konto für Konto."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type what your bank shows today, account by account."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digita quello che mostra oggi la tua banca, conto per conto."
+          }
+        }
+      }
+    },
+    "Mis à jour dans Mon patrimoine." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Mein Vermögen aktualisiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated in My assets."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornato in Il mio patrimonio."
+          }
+        }
+      }
+    },
+    "Tout ce que tu dois, achats récents compris. Pas ta limite." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles, was du schuldest, inklusive neuer Käufe. Nicht dein Limit."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything you owe, recent purchases included. Not your limit."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto quello che devi, acquisti recenti compresi. Non il tuo limite."
+          }
+        }
+      }
+    },
+    "Retirer %@ de la liste" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ aus der Liste entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@ from the list"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi %@ dall'elenco"
+          }
+        }
+      }
+    },
+    "%@ : ce que j'ai ou ce que je dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: was ich habe oder was ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: what I have or what I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: quello che ho o quello che devo"
+          }
+        }
+      }
+    },
+    "Tu paies aussi par carte de crédit, PayPal ou Klarna ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahlst du auch per Kreditkarte, PayPal oder Klarna?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you also pay by credit card, PayPal or Klarna?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paghi anche con carta di credito, PayPal o Klarna?"
+          }
+        }
+      }
+    },
+    "Ajouter ce que je dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzufügen, was ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add what I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi quello che devo"
+          }
+        }
+      }
+    },
+    "En tout" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insgesamt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In total"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In tutto"
+          }
+        }
+      }
+    },
+    "%@ − %@ que tu dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ − %@, die du schuldest"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ − %@ that you owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ − %@ che devi"
+          }
+        }
+      }
+    },
+    "Seulement les comptes de tes dépenses. Pas l'épargne." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur die Konten für deine Ausgaben. Nicht das Sparkonto."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the accounts you spend from. Not savings."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo i conti delle tue spese. Non il risparmio."
+          }
+        }
+      }
+    },
+    "Nouveau compte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neues Konto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovo conto"
+          }
+        }
+      }
+    },
+    "Juste pour comparer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur zum Vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just to compare"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo per confrontare"
+          }
+        }
+      }
+    },
+    "Une somme que je dois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Betrag, den ich schulde"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sum I owe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una somma che devo"
+          }
+        }
+      }
+    },
+    "PayPal, Klarna, facture programmée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PayPal, Klarna, geplante Rechnung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PayPal, Klarna, scheduled bill"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PayPal, Klarna, fattura programmata"
+          }
+        }
+      }
+    },
+    "Depuis Mon patrimoine" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus Mein Vermögen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From My assets"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da Il mio patrimonio"
+          }
+        }
+      }
+    },
+    "Mis à jour avec ce que tu tapes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisiert mit dem, was du eingibst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated with what you type"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornato con quello che digiti"
+          }
+        }
+      }
+    },
+    "%@ · à la comparaison" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · beim Vergleich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · at comparison"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · al confronto"
+          }
+        }
+      }
+    },
+    "Comparaison faite, mais je n'ai pas pu enregistrer tes soldes dans Mon patrimoine." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleich erledigt, aber ich konnte deine Salden nicht in Mein Vermögen speichern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparison done, but I couldn't save your balances in My assets."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confronto fatto, ma non ho potuto salvare i tuoi saldi in Il mio patrimonio."
+          }
+        }
+      }
+    },
+    "Impossible de comparer pour l'instant." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleichen geht gerade nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't compare right now."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile confrontare per ora."
+          }
+        }
+      }
+    },
+    "Tes comptes ont %@ de moins que Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Konten haben %@ weniger als Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your accounts hold %@ less than Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi conti hanno %@ in meno di Pulpe"
+          }
+        }
+      }
+    },
+    "Tes comptes ont %@ de plus que Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Konten haben %@ mehr als Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your accounts hold %@ more than Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi conti hanno %@ in più di Pulpe"
+          }
+        }
+      }
+    },
+    "Tes comptes ont moins d'argent que Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Konten haben weniger Geld als Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your accounts hold less money than Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi conti hanno meno soldi di Pulpe"
+          }
+        }
+      }
+    },
+    "Tes comptes ont plus d'argent que Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Konten haben mehr Geld als Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your accounts hold more money than Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi conti hanno più soldi di Pulpe"
+          }
+        }
+      }
+    },
+    "%@ trouvés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ gefunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ found"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ trovati"
+          }
+        }
+      }
+    },
+    "Coche les revenus que tu vois dans l'app de ta banque." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake die Einnahmen ab, die du in deiner Bank-App siehst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the income you see in your banking app."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta le entrate che vedi nell'app della tua banca."
+          }
+        }
+      }
+    },
+    "Coche les achats faits avec ta carte." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake die Einkäufe ab, die du mit deiner Karte gemacht hast."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the purchases made with your card."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta gli acquisti fatti con la tua carta."
+          }
+        }
+      }
+    },
+    "Coche les dépenses que tu vois dans l'app de ta banque." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake die Ausgaben ab, die du in deiner Bank-App siehst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the expenses you see in your banking app."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta le spese che vedi nell'app della tua banca."
+          }
+        }
+      }
+    },
+    "Même montant que l'écart" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gleicher Betrag wie die Differenz"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same amount as the difference"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stesso importo della differenza"
+          }
+        }
+      }
+    },
+    "Prévue ce mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Monat geplant"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planned this month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prevista questo mese"
+          }
+        }
+      }
+    },
+    "Mois dernier" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letzter Monat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mese scorso"
+          }
+        }
+      }
+    },
+    "Il y a 2 mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vor 2 Monaten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 months ago"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 mesi fa"
+          }
+        }
+      }
+    },
+    "Tu coches tes achats de carte à la facture ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakst du deine Karteneinkäufe erst bei der Rechnung ab?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you check your card purchases when the bill comes?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunti gli acquisti con la carta quando arriva la fattura?"
+          }
+        }
+      }
+    },
+    "Retirer « Je dois %@ »" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Ich schulde %@“ entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove \"I owe %@\""
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Togli «Devo %@»"
+          }
+        }
+      }
+    },
+    "Un arrondi ou des frais de ta banque ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Rundung oder Gebühren deiner Bank?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rounding or a fee from your bank?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un arrotondamento o delle commissioni della tua banca?"
+          }
+        }
+      }
+    },
+    "Café · payé %@ · noté %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaffee · bezahlt %@ · notiert %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coffee · paid %@ · noted %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caffè · pagato %@ · annotato %@"
+          }
+        }
+      }
+    },
+    "Encore prévu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch geplant"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still planned"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora previsto"
+          }
+        }
+      }
+    },
+    "Encore à recevoir" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch zu erhalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still to receive"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora da ricevere"
+          }
+        }
+      }
+    },
+    "D'avant Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von vor Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From before Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da prima di Pulpe"
+          }
+        }
+      }
+    },
+    "À dépenser ce mois" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Monat auszugeben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To spend this month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da spendere questo mese"
+          }
+        }
+      }
+    },
+    "Aucune dépense ne correspond" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Ausgabe passt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No expense matches"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna spesa corrisponde"
+          }
+        }
+      }
+    },
+    "Aucun revenu ne correspond" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Einnahme passt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No income matches"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna entrata corrisponde"
+          }
+        }
+      }
+    },
+    "Laisser comme ça" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So lassen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave it as is"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lascia così"
+          }
+        }
+      }
+    },
+    "Non, laisser comme ça" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nein, so lassen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No, leave it as is"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No, lascia così"
+          }
+        }
+      }
+    },
+    "Tu vois %@ dans l'app de ta banque, mais pas dans Pulpe ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siehst du %@ in deiner Bank-App, aber nicht in Pulpe?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you see %@ in your banking app, but not in Pulpe?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi %@ nell'app della tua banca, ma non in Pulpe?"
+          }
+        }
+      }
+    },
+    "Noter une dépense de %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgabe von %@ notieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note an expense of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annota una spesa di %@"
+          }
+        }
+      }
+    },
+    "Noter un revenu de %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einnahme von %@ notieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note an income of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annota un’entrata di %@"
+          }
+        }
+      }
+    },
+    "Oui, noter une dépense de %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja, Ausgabe von %@ notieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, note an expense of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sì, annota una spesa di %@"
+          }
+        }
+      }
+    },
+    "Oui, noter un revenu de %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja, Einnahme von %@ notieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, note an income of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sì, annota un’entrata di %@"
+          }
+        }
+      }
+    },
+    "Écart avec mes comptes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abweichung zu meinen Konten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gap with my accounts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarto con i miei conti"
+          }
+        }
+      }
+    },
+    "« Écart avec mes comptes » noté" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Abweichung zu meinen Konten“ notiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Gap with my accounts” noted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Scarto con i miei conti» annotato"
+          }
+        }
+      }
+    },
+    "Voir les %lld autres à cocher" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld weiteren zum Abhaken ansehen"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Die %lld anderen zum Abhaken ansehen"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "See %lld more to check"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "See the %lld others to check"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Voir %lld autre à cocher"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Voir les %lld autres à cocher"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Vedi %lld altra da spuntare"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Vedi le altre %lld da spuntare"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@, avant %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, vorher %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, before %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, prima %@"
+          }
+        }
+      }
+    },
+    "Noter un revenu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einnahme erfassen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note an income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra un’entrata"
+          }
+        }
+      }
+    },
+    "Oui, noter une dépense" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja, Ausgabe notieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, note an expense"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sì, annota una spesa"
+          }
+        }
+      }
+    },
+    "Oui, noter un revenu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja, Einnahme notieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, note an income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sì, annota un’entrata"
+          }
+        }
+      }
+    },
+    "Retirer « Je dois »" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Ich schulde“ entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove \"I owe\""
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Togli «Devo»"
+          }
+        }
+      }
+    },
+    "Tu vois une dépense dans l'app de ta banque, mais pas dans Pulpe ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siehst du eine Ausgabe in deiner Bank-App, aber nicht in Pulpe?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you see an expense in your banking app, but not in Pulpe?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi una spesa nell'app della tua banca, ma non in Pulpe?"
+          }
+        }
+      }
+    },
+    "Tu vois un revenu dans l'app de ta banque, mais pas dans Pulpe ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siehst du eine Einnahme in deiner Bank-App, aber nicht in Pulpe?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you see an income in your banking app, but not in Pulpe?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi un’entrata nell'app della tua banca, ma non in Pulpe?"
+          }
+        }
+      }
+    },
+    "Pointer %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ abhaken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta %@"
+          }
+        }
+      }
+    },
+    "%@, pointé" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, checked"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, spuntato"
+          }
+        }
+      }
+    },
+    "Ces %@ étaient là avant Pulpe ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waren diese %@ schon vor Pulpe da?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was this %@ there before Pulpe?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questi %@ c'erano già prima di Pulpe?"
+          }
+        }
+      }
+    },
+    "Cet argent était là avant Pulpe ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "War dieses Geld schon vor Pulpe da?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was this money there before Pulpe?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questi soldi c'erano già prima di Pulpe?"
+          }
+        }
+      }
+    },
+    "Oui, c'était déjà là" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja, das war schon da"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, it was already there"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sì, c'erano già"
+          }
+        }
+      }
+    },
+    "Ton disponible ne change pas." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Verfügbares ändert sich nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your available amount doesn't change."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo disponibile non cambia."
+          }
+        }
+      }
+    },
+    "Ton salaire est arrivé en avance ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ist dein Lohn früher gekommen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Did your salary come in early?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo stipendio è arrivato in anticipo?"
+          }
+        }
+      }
+    },
+    "Reviens comparer le %lld, jour de ta paie." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleich am %lld. nochmal, an deinem Zahltag."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare again on the %lld, your pay day."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna a confrontare il %lld, giorno di paga."
+          }
+        }
+      }
+    },
+    "Tu as payé par carte de crédit, PayPal ou Klarna ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hast du mit Kreditkarte, PayPal oder Klarna bezahlt?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Did you pay by credit card, PayPal or Klarna?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai pagato con carta di credito, PayPal o Klarna?"
+          }
+        }
+      }
+    },
+    "%@ d'avant Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ von vor Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ from before Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ da prima di Pulpe"
+          }
+        }
+      }
+    },
+    "%@ pas coché les mois d'avant" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in früheren Monaten nicht abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ not checked in earlier months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non spuntato nei mesi precedenti"
+          }
+        }
+      }
+    },
+    "Coche les dépenses et l'épargne que tu vois dans l'app de ta banque." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hake die Ausgaben und das Sparen ab, die du in deiner Bank-App siehst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the expenses and savings you see in your banking app."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spunta le spese e il risparmio che vedi nell'app della tua banca."
+          }
+        }
+      }
+    },
+    "Rien ne correspond" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts passt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing matches"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente corrisponde"
+          }
+        }
+      }
+    },
+    "Pas coché les mois d'avant" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In früheren Monaten nicht abgehakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not checked in earlier months"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non spuntato nei mesi precedenti"
+          }
+        }
+      }
+    },
+    "Argent d'avant Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geld von vor Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Money from before Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soldi da prima di Pulpe"
+          }
+        }
+      }
+    },
+    "Remettre à 0" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf 0 setzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset to 0"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riporta a 0"
+          }
+        }
+      }
+    },
+    "Autres raisons" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Gründe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other reasons"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre ragioni"
+          }
+        }
+      }
+    },
+    "D'où viennent ces %@ ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Woher kommen diese %@?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where does this %@ come from?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da dove vengono questi %@?"
+          }
+        }
+      }
+    },
+    "D'où vient cet argent ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Woher kommt dieses Geld?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where does this money come from?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da dove vengono questi soldi?"
+          }
+        }
+      }
+    },
+    "Habits" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kleider"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clothes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vestiti"
+          }
+        }
+      }
+    },
+    "Ta banque" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Bank"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your bank"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua banca"
+          }
+        }
+      }
+    },
+    "Pas encore là" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nicht da"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not there yet"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ancora lì"
+          }
+        }
+      }
+    },
+    "Une prévision cochée n'est pas toute dépensée ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein abgehakter Planposten ist nicht ganz ausgegeben?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A checked planned item isn't all spent?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una previsione spuntata non è tutta spesa?"
+          }
+        }
+      }
+    },
+    "%@ dépensés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ausgegeben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ spent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ spesi"
+          }
+        }
+      }
+    },
+    "%@ encore là" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ noch da"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ still there"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ancora lì"
+          }
+        }
+      }
+    },
+    "Normal, rien à faire" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal, nichts zu tun"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal, nothing to do"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normale, niente da fare"
+          }
+        }
+      }
+    },
+    "Tu as reçu de l'argent ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hast du Geld bekommen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Did you receive money?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai ricevuto dei soldi?"
+          }
+        }
+      }
+    },
+    "Prime · %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prämie · %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonus · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Premio · %@"
+          }
+        }
+      }
+    },
+    "Pas dans Pulpe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht in Pulpe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not in Pulpe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non in Pulpe"
+          }
+        }
+      }
+    },
+    "Ton compte épargne est dans la liste ?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ist dein Sparkonto in der Liste?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Is your savings account in the list?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo conto risparmio è nella lista?"
+          }
+        }
+      }
+    },
+    "Compte épargne" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparkonto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Savings account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conto risparmio"
+          }
+        }
+      }
+    },
+    "À retirer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To remove"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da togliere"
+          }
+        }
+      }
+    },
+    "Revoir mes comptes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Konten prüfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review my accounts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rivedi i miei conti"
+          }
+        }
+      }
+    },
+    "Voir les autres raisons" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Gründe ansehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See other reasons"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi le altre ragioni"
+          }
+        }
+      }
+    },
+    "Non, autre chose" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nein, etwas anderes"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No, something else"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No, altro"
           }
         }
       }

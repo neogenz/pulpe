@@ -103,7 +103,7 @@ export class SpreadOccurrencesBottomSheet {
   // PUL-17 — derived once in the store (single source for every detail surface).
   protected readonly occurrences = this.store.spreadOccurrenceViewModels;
   protected readonly tracker = this.store.spreadTracker;
-  protected readonly isCurrentPeriod = this.store.isViewingSpreadCurrentPeriod;
+  protected readonly isCurrentPeriod = this.store.isViewingCurrentPeriod;
 
   protected close(): void {
     this.#bottomSheetRef.dismiss();

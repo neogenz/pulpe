@@ -1,5 +1,3 @@
-import type { Asset } from "pulpe-shared";
-
 import type { AccountRow } from "./reconcile-account-links";
 
 /**
@@ -11,9 +9,9 @@ import type { AccountRow } from "./reconcile-account-links";
  */
 export interface ReconcileDraft {
   budgetId: string;
-  accounts: Asset[] | null;
   rows: AccountRow[];
-  label: string | null;
+  /** A comparison was completed before the lock: the real close still saves the balances. */
+  hasCompleted: boolean;
 }
 
 let kept: ReconcileDraft | null = null;

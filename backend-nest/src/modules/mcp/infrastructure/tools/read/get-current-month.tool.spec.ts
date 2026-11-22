@@ -21,6 +21,7 @@ describe('GetCurrentMonthTool business timezone', () => {
       setSystemTime(new Date(instant));
       const budgets = {
         readMonth: mock(async () => null),
+        readBudget: async () => null,
         listMonths: async () => [],
       } satisfies BudgetMonthReadPort;
       const tags = { list: async () => [] } satisfies TagReadPort;

@@ -1,8 +1,14 @@
 import { BudgetFormulas } from "pulpe-shared";
 import { useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { router } from "expo-router";
-import { Button, Text, useTheme } from "react-native-paper";
+import { Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
@@ -11,9 +17,10 @@ import { areAmountsHidden } from "@/core/ui/amount-visibility";
 import { LedgerCard } from "@/core/ui/ledger";
 import { Notice } from "@/core/ui/notice";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
+import { useRipple } from "@/core/ui/ripple";
 import { SectionHeader } from "@/core/ui/section-header";
 import { useV2Colors } from "@/core/ui/scheme-colors";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 
 import { sortNewestFirst } from "../activity-window";
 import { isPointableLine, orderForChecking } from "../current-month-view-model";
@@ -46,6 +53,7 @@ export function ToPointPage() {
 function ToPoint({ month }: { month: LoadedMonth }) {
   const theme = useTheme();
   const v2 = useV2Colors();
+  const ripple = useRipple();
   const { locale, t } = useTranslation();
   const pull = usePullToRefresh(() => month.refresh());
   const pointing = usePointingNotice(month.budgetId);
@@ -63,7 +71,11 @@ function ToPoint({ month }: { month: LoadedMonth }) {
   const [pointedHere, setPointedHere] = useState<ReadonlySet<string>>(
     new Set(),
   );
-  const [isReconciling, setReconciling] = useState(false);
+  // The month the comparison opened on: the page may roll over to the next one
+  // under it, and a gap is only ever written to the budget it was typed against.
+  const [reconcileBudgetId, setReconcileBudgetId] = useState<string | null>(
+    null,
+  );
   const [reconcileNotice, setReconcileNotice] = useState<string | null>(null);
 
   const lineNames = new Map(budgetLines.map((line) => [line.id, line.name]));
@@ -141,15 +153,22 @@ function ToPoint({ month }: { month: LoadedMonth }) {
             >
               {t("home.toPoint.balance")}
             </Text>
-            <Button
-              mode="text"
-              compact
+            {/* Not Paper's Button: its label is one line, and this one is long in German. */}
+            <Pressable
+              accessibilityRole="button"
               testID="to-point-compare"
-              onPress={() => setReconciling(true)}
+              android_ripple={ripple}
+              onPress={() => setReconcileBudgetId(budget.id)}
               style={styles.compare}
             >
-              {t("home.toPoint.compare")}
-            </Button>
+              <Text
+                variant="labelLarge"
+                style={{ color: theme.colors.primary }}
+                textBreakStrategy="balanced"
+              >
+                {t("home.toPoint.compare")}
+              </Text>
+            </Pressable>
           </View>
           <View style={styles.balanceFigure}>
             <Amount size="hero" numberOfLines={1} style={styles.balanceAmount}>
@@ -284,24 +303,27 @@ function ToPoint({ month }: { month: LoadedMonth }) {
       </ScrollView>
 
       <ReconcileAccountsSheet
-        isVisible={isReconciling}
-        onDismiss={() => setReconciling(false)}
+        isVisible={reconcileBudgetId !== null}
+        onDismiss={() => setReconcileBudgetId(null)}
         onRecorded={() => {
-          setReconciling(false);
+          setReconcileBudgetId(null);
           setReconcileNotice("home.reconcile.recorded");
         }}
         onRecordFailed={() =>
           setReconcileNotice("budgets.mutations.activity.error")
         }
-        onViewItemsToCheck={() => setReconciling(false)}
-        budgetId={budget.id}
-        month={{
-          realized: viewModel.realized,
-          rollover: budget.rollover ?? 0,
-          period: month.period,
-          budgetLines,
-          transactions,
-        }}
+        onViewItemsToCheck={() => setReconcileBudgetId(null)}
+        budgetId={reconcileBudgetId ?? ""}
+        month={
+          reconcileBudgetId === budget.id
+            ? {
+                realized: viewModel.realized,
+                available: viewModel.metrics.remaining,
+                budgetLines,
+                transactions,
+              }
+            : null
+        }
         currency={currency}
       />
       <Notice
@@ -326,10 +348,20 @@ const styles = StyleSheet.create({
   },
   balanceHeader: {
     flexDirection: "row",
+    // A long label (German, large font) drops the button under it.
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  compare: { marginRight: -SPACING.sm },
+  // Its padding hangs outside on both sides: beside the label its text ends
+  // on the card's edge, and dropped under it, it starts on the label's.
+  compare: {
+    minHeight: TOUCH_TARGET,
+    justifyContent: "center",
+    paddingHorizontal: SPACING.sm,
+    marginHorizontal: -SPACING.sm,
+    maxWidth: "100%",
+  },
   balanceFigure: {
     flexDirection: "row",
     alignItems: "baseline",

@@ -60,7 +60,7 @@ struct NetWorthIntroSheet: View {
             .scrollBounceBehavior(.basedOnSize)
 
             VStack(spacing: DesignTokens.Spacing.lg) {
-                StepDots(current: step)
+                StepDots(current: step.rawValue, total: NetWorthIntroStep.allCases.count)
                 Button(actionTitle) { primaryTapped() }
                     .primaryButtonStyle()
                     .accessibilityIdentifier("netWorthIntroPrimary")
@@ -112,26 +112,6 @@ struct NetWorthIntroSheet: View {
         guard let outcome = completion.finish(outcome) else { return }
         AnalyticsService.shared.capture(outcome.event, properties: outcome.properties(source: source))
         onFinish(outcome)
-    }
-}
-
-/// Three dots, the current one stretched into a pill.
-private struct StepDots: View {
-    let current: NetWorthIntroStep
-
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.tightGap) {
-            ForEach(NetWorthIntroStep.allCases, id: \.self) { step in
-                Capsule()
-                    .fill(step == current ? Color.pulpePrimary : Color.outlineVariant)
-                    .frame(
-                        width: step == current ? DesignTokens.Spacing.xl : DesignTokens.Spacing.sm,
-                        height: DesignTokens.Spacing.sm
-                    )
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(AppLocale.string("Étape \(current.rawValue + 1) sur \(NetWorthIntroStep.allCases.count)"))
     }
 }
 

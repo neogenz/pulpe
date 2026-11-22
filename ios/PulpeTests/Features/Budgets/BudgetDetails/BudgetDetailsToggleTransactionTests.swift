@@ -47,6 +47,26 @@ struct BudgetDetailsToggleTransactionTests {
         #expect(await checking.toggle(.budgetLine(line)) == false)
     }
 
+    @Test func reconciliation_checksAPreviousMonthItemOnlyFromTheViewedMonth() async {
+        let service = MockTransactionService()
+        let coord = BudgetDetailsCoordinator(
+            budgetId: "budget", budgetLineService: MockBudgetLineService(), transactionService: service
+        )
+        let context = ToastContext(toastManager: ToastManager(), presentationCurrency: .chf)
+        let checking = coord.reconciliationChecking(context, amountsHidden: false)
+        let pharmacie = ReconciliationContext.PriorItem(
+            id: "pharmacie", source: .transaction, budgetId: "budget-previous", name: "Pharmacie",
+            amount: 40, kind: .expense, monthsAgo: 1, effect: -40
+        )
+
+        service.failingToggleIds = ["pharmacie"]
+        #expect(await checking.check(.prior(pharmacie)) == false)
+        service.failingToggleIds = []
+        #expect(await checking.check(.prior(pharmacie)))
+        await coord.dispatch(.prepareNavigation(to: "another-budget"))
+        #expect(await checking.check(.prior(pharmacie)) == false)
+    }
+
     @Test(arguments: [TransactionKind.expense, .saving], [true, false])
     func reconciliation_respectsHiddenAmounts(kind: TransactionKind, hidden: Bool) async {
         let coord = BudgetDetailsCoordinator(budgetId: "budget", budgetLineService: MockBudgetLineService())

@@ -20,6 +20,7 @@ final class MockAssetService: AssetServicing {
     private(set) var lastCreate: AssetCreate?
     private(set) var updates: [String: AssetUpdate] = [:]
     private(set) var calls: [String] = []
+    private(set) var snapshotItems: [AssetSnapshotItem] = []
     private(set) var didEnterHold = false
     private var heldContinuation: CheckedContinuation<Void, Never>?
 
@@ -66,6 +67,7 @@ final class MockAssetService: AssetServicing {
 
     func recordSnapshots(_ data: AssetSnapshotsCreate) async throws -> AssetSnapshotsResult {
         calls.append("snapshots")
+        snapshotItems += data.items
         if let snapshotsError { throw snapshotsError }
         return AssetSnapshotsResult(recordedAt: TestDataFactory.fixedDate)
     }

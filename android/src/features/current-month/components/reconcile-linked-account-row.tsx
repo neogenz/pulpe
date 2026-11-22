@@ -1,203 +1,221 @@
-import {
-  type Asset,
-  CURRENCY_METADATA,
-  type SupportedCurrency,
-} from "pulpe-shared";
+import { CURRENCY_METADATA, type SupportedCurrency } from "pulpe-shared";
+import { useRef } from "react";
 import { StyleSheet, View } from "react-native";
-import {
-  Button,
-  IconButton,
-  Switch,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { IconButton, Text, TextInput, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
-import { formatCurrency } from "@/core/ui/amount-format";
 import { FieldError } from "@/core/ui/field-error";
-import { FilterChip } from "@/core/ui/filter-chip";
-import { SPACING } from "@/core/ui/theme";
-import { assetAgeLabel } from "@/features/net-worth/net-worth-sections";
+import { useFinancialColors, useV2Colors } from "@/core/ui/scheme-colors";
+import { SegmentedPicker } from "@/core/ui/segmented-picker";
+import { useRevealInSheet } from "@/core/ui/sheet";
+import { RADIUS, SPACING, TABULAR_DIGITS, TOUCH_TARGET } from "@/core/ui/theme";
 
 import {
+  ACCOUNT_NAME_MAX_LENGTH,
   type AccountRow,
-  missingForNewAccount,
+  type RowSide,
 } from "../reconcile-account-links";
 
-// What the API takes for an asset name.
-const NAME_MAX_LENGTH = 100;
+// A pasted « -800 » already says it: no second sign in front.
+const LEADING_MINUS = /^\s*[-−]/;
 
-interface ReconcileLinkedAccountRowProps {
+interface ReconcileAccountRowProps {
   row: AccountRow;
+  /** 1-based, names a row that has no name yet. */
   number: number;
-  /** The account behind the row, `null` for a typed line. */
-  asset: Asset | null;
-  /** My accounts no other row holds, this row's own included. */
-  choices: Asset[];
   currency: SupportedCurrency;
-  isNegative: boolean;
   isUnreadable: boolean;
-  canRemove: boolean;
-  onChange: (changes: Partial<Omit<AccountRow, "id">>) => void;
-  onSelect: (asset: Asset | null) => void;
-  onToggleNegative: () => void;
+  /** Takes the keyboard when the row appears: the field the person types in next. */
+  autoFocus: boolean;
+  onFocus?: () => void;
+  onChange: (changes: Partial<Omit<AccountRow, "id" | "account">>) => void;
   onLeaveAmount: () => void;
   onRemove: () => void;
 }
 
 /**
- * One account of the reconciliation with « Mon patrimoine » on: picked among
- * mine or typed as another one, which a switch can add to Mon patrimoine.
- * `ReconcileAccountRow` on iOS; chips stand for its menu, which a native
- * modal cannot host.
+ * One account of the comparison. An item of « Mon patrimoine » shows its side
+ * as a fixed label; a free row types its name and picks its side. Removing a
+ * row only takes it out of this comparison.
  */
-export function ReconcileLinkedAccountRow({
+export function ReconcileAccountRow({
   row,
   number,
-  asset,
-  choices,
   currency,
-  isNegative,
   isUnreadable,
-  canRemove,
+  autoFocus,
+  onFocus,
   onChange,
-  onSelect,
-  onToggleNegative,
   onLeaveAmount,
   onRemove,
-}: ReconcileLinkedAccountRowProps) {
+}: ReconcileAccountRowProps) {
   const theme = useTheme();
+  const v2 = useV2Colors();
+  const financial = useFinancialColors();
   const { t } = useTranslation();
   const muted = { color: theme.colors.onSurfaceVariant };
-  const missing = missingForNewAccount(row);
-  const isAdded = row.account.kind === "other" && row.account.addToNetWorth;
-  // Taking a followed account off the list stops following it: the action says so.
-  const stopsFollowing = asset?.inPulpe === true;
-  const name = row.label.trim();
+  const isLinked = row.account.kind === "asset";
+  const isOwed = row.side === "owe";
+  // A focused field brings its whole row above the footer and the keyboard.
+  const card = useRef<View>(null);
+  const reveal = useRevealInSheet();
+  function focus() {
+    reveal(card.current);
+    onFocus?.();
+  }
+  const symbol = CURRENCY_METADATA[currency].symbol;
+  const name =
+    row.label.trim() === ""
+      ? t("home.reconcile.accounts.accountNumbered", { index: number })
+      : row.label.trim();
 
   return (
-    <View style={styles.account}>
-      {choices.length > 0 && (
-        <View
-          style={styles.chips}
-          accessibilityLabel={t("home.reconcile.accounts.accountNumbered", {
-            index: number,
-          })}
-        >
-          {choices.map((choice) => (
-            <FilterChip
-              key={choice.id}
-              selected={choice.id === asset?.id}
-              onPress={() => onSelect(choice)}
+    <View
+      ref={card}
+      style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}
+    >
+      <View style={styles.header}>
+        {isLinked ? (
+          <>
+            <Text variant="titleMedium" numberOfLines={1} style={styles.grow}>
+              {row.label}
+            </Text>
+            {/* A fixed side: a small tag, not a control. */}
+            <View
+              style={[
+                styles.sideTag,
+                { backgroundColor: isOwed ? v2.overWash : v2.accentWash },
+              ]}
             >
-              {choice.name}
-            </FilterChip>
-          ))}
-          <FilterChip selected={asset === null} onPress={() => onSelect(null)}>
-            {t("home.reconcile.accounts.otherAccount")}
-          </FilterChip>
-        </View>
-      )}
-      {asset === null ? (
-        <TextInput
-          mode="outlined"
-          label={t("home.reconcile.accounts.newAccountName")}
-          value={row.label}
-          onChangeText={(label) => onChange({ label })}
-          maxLength={NAME_MAX_LENGTH}
-        />
-      ) : (
-        choices.length === 0 && <Text variant="titleMedium">{asset.name}</Text>
-      )}
-      <View style={styles.amountRow}>
-        <TextInput
-          mode="outlined"
-          style={styles.amountInput}
-          label={t("home.reconcile.accounts.amount")}
-          value={row.amountText}
-          onChangeText={(amountText) => onChange({ amountText })}
-          onBlur={onLeaveAmount}
-          keyboardType="numeric"
-          error={isUnreadable}
-          right={<TextInput.Affix text={CURRENCY_METADATA[currency].symbol} />}
-        />
-        <IconButton
-          icon="plus-minus-variant"
-          selected={isNegative}
-          onPress={onToggleNegative}
-          accessibilityLabel={t("home.reconcile.accounts.negative")}
-          accessibilityState={{ selected: isNegative }}
-        />
-        {canRemove && !stopsFollowing && (
-          <IconButton
-            icon="trash-can-outline"
-            onPress={onRemove}
-            accessibilityLabel={
-              name === ""
-                ? t("home.reconcile.accounts.removeNumbered", { index: number })
-                : t("home.reconcile.accounts.removeNamed", { name })
-            }
+              <Text
+                variant="labelMedium"
+                style={{
+                  color: isOwed ? financial.overBudget : v2.accentInk,
+                }}
+              >
+                {t(`home.reconcile.accounts.${row.side}`)}
+              </Text>
+            </View>
+          </>
+        ) : (
+          <TextInput
+            mode="outlined"
+            style={styles.grow}
+            label={t("home.reconcile.accounts.accountName")}
+            value={row.label}
+            onChangeText={(label) => onChange({ label })}
+            maxLength={ACCOUNT_NAME_MAX_LENGTH}
+            autoFocus={autoFocus}
+            onFocus={focus}
+            onBlur={() => reveal(null)}
           />
         )}
+        <IconButton
+          icon="close"
+          onPress={onRemove}
+          style={styles.remove}
+          accessibilityLabel={t("home.reconcile.accounts.remove", { name })}
+          testID={`reconcile-remove-${row.id}`}
+        />
+      </View>
+      {!isLinked && (
+        <SegmentedPicker<RowSide>
+          isOnCard
+          value={row.side}
+          onValueChange={(side) => onChange({ side })}
+          accessibilityLabel={t("home.reconcile.accounts.side", { name })}
+          buttons={[
+            { value: "own", label: t("home.reconcile.accounts.own") },
+            { value: "owe", label: t("home.reconcile.accounts.owe") },
+          ]}
+        />
+      )}
+      <View>
+        <TextInput
+          mode="outlined"
+          label={t("home.reconcile.accounts.amount")}
+          // « Solde » alone, read out, says not whose: the name goes with it.
+          accessibilityLabel={t("home.reconcile.accounts.amountOf", { name })}
+          value={row.amountText}
+          onChangeText={(amountText) => onChange({ amountText })}
+          onFocus={focus}
+          onBlur={() => {
+            reveal(null);
+            onLeaveAmount();
+          }}
+          keyboardType="numeric"
+          error={isUnreadable}
+          autoFocus={autoFocus && isLinked}
+          // Paper puts `style` on the container: the digits are the input's own.
+          contentStyle={TABULAR_DIGITS}
+          // A debt reads as one: the amount is what I owe, counted against me.
+          left={
+            isOwed && !LEADING_MINUS.test(row.amountText) ? (
+              <TextInput.Affix text="−" />
+            ) : undefined
+          }
+          // Paper hides an affix while the field is empty and unfocused: this
+          // one only keeps the room for the symbol drawn over it, always shown.
+          // Inked as the field: Android draws a `transparent` text in the default
+          // ink, a second « CHF » beside the one over it.
+          right={
+            <TextInput.Affix
+              text={symbol}
+              textStyle={{ color: theme.colors.background }}
+            />
+          }
+        />
+        <View
+          pointerEvents="none"
+          importantForAccessibility="no-hide-descendants"
+          style={styles.currency}
+        >
+          <Text variant="bodyLarge" style={muted}>
+            {symbol}
+          </Text>
+        </View>
       </View>
       {isUnreadable && (
         <FieldError visible>
           {t("home.reconcile.accounts.invalidAmount")}
         </FieldError>
       )}
-      {asset !== null && (
-        <Text variant="bodySmall" style={muted}>
-          {t("home.reconcile.accounts.lastBalance", {
-            amount: formatCurrency(asset.latestValue, asset.currency),
-            when: assetAgeLabel(asset.latestRecordedAt, new Date(), t),
-          })}
-        </Text>
-      )}
-      {/* Asked in the neutral ink: nothing was done wrong yet. */}
-      {missing !== null && (
-        <Text variant="bodySmall" style={muted}>
-          {t(
-            missing === "name"
-              ? "home.reconcile.accounts.nameMissing"
-              : "home.reconcile.accounts.balanceMissing",
+      {isLinked && (
+        <>
+          {isOwed && (
+            <Text
+              variant="bodySmall"
+              style={muted}
+              textBreakStrategy="balanced"
+            >
+              {t("home.reconcile.accounts.cardCaption")}
+            </Text>
           )}
-        </Text>
-      )}
-      {asset === null && (
-        <View style={styles.toggleRow}>
-          <View style={styles.toggleLabel}>
-            <Text variant="bodyLarge">
-              {t("home.reconcile.accounts.addToNetWorth")}
-            </Text>
-            <Text variant="bodySmall" style={muted}>
-              {t("home.reconcile.accounts.addToNetWorthHint")}
-            </Text>
-          </View>
-          <Switch
-            value={isAdded}
-            onValueChange={(addToNetWorth) =>
-              onChange({ account: { kind: "other", addToNetWorth } })
-            }
-            accessibilityLabel={t("home.reconcile.accounts.addToNetWorth")}
-          />
-        </View>
-      )}
-      {canRemove && stopsFollowing && (
-        <Button mode="text" onPress={onRemove} style={styles.stopFollowing}>
-          {t("home.reconcile.accounts.stopFollowing")}
-        </Button>
+          <Text variant="bodySmall" style={muted} textBreakStrategy="balanced">
+            {t("home.reconcile.accounts.linkedCaption")}
+          </Text>
+        </>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  account: { gap: SPACING.xs },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
-  amountRow: { flexDirection: "row", alignItems: "center", gap: SPACING.xxs },
-  amountInput: { flex: 1 },
-  toggleRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
-  toggleLabel: { flex: 1, gap: SPACING.xxs },
-  stopFollowing: { alignSelf: "flex-start" },
+  card: { borderRadius: RADIUS.card, padding: SPACING.md, gap: SPACING.sm },
+  header: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  grow: { flex: 1 },
+  sideTag: {
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xxs,
+  },
+  remove: { width: TOUCH_TARGET, height: TOUCH_TARGET, margin: 0 },
+  // Where Paper draws its own affix: past the outline's 6dp label notch, 16dp in.
+  currency: {
+    position: "absolute",
+    top: 6,
+    bottom: 0,
+    right: SPACING.md,
+    justifyContent: "center",
+  },
 });

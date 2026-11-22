@@ -11,6 +11,7 @@ import TabStackLayout, {
   unstable_settings,
 } from "@/app/(main)/(tabs)/(home,budgets,goals,templates)/_layout";
 import { useShowTabRoot } from "@/core/navigation/tab-route";
+import { sourceFiles } from "@/core/testing/source-files";
 import { NavigationBar } from "@/core/ui/navigation-bar";
 import {
   useLeaveDeletedMonth,
@@ -77,6 +78,7 @@ const context = {
   [`${SHARED}/budget/[id]`]: stub("budget-detail"),
   [`${SHARED}/budget/[id]/line/[lineId]`]: stub("line-detail"),
   [`${SHARED}/goal/[id]`]: stub("goal-detail"),
+  [`${SHARED}/to-point`]: stub("to-point"),
   "(main)/(tabs)/(home)/home": stub("home"),
   "(main)/(tabs)/(home)/settings/index": stub("settings"),
   "(main)/(tabs)/(budgets)/budgets": stub("budgets"),
@@ -135,6 +137,22 @@ it.each([
   await act(() => router.back());
   await act(() => router.back());
   expect(view.getPathname()).toBe(tab);
+});
+
+it("opens « À pointer » from a month inside that month's tab, and goes back to it", async () => {
+  // The stub stands for the real route: back under (home), it would leave Budgets again.
+  expect(sourceFiles(`src/app/${SHARED}`)).toContain(
+    `src/app/${SHARED}/to-point.tsx`,
+  );
+  const view = renderRouter(context, { initialUrl: "/budgets" });
+  await view;
+
+  await act(() => router.push("/budget/nov"));
+  await act(() => router.push("/to-point"));
+  expect(view.getSegments()).toEqual([...TABS, "(budgets)", "to-point"]);
+
+  await act(() => router.back());
+  expect(screen.getByTestId("budget-detail")).toBeTruthy();
 });
 
 it("opens a link from outside any tab in Budgets, over its list", async () => {

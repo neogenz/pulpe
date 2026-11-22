@@ -10,6 +10,7 @@ import { firstValueFrom } from 'rxjs';
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi, NET_WORTH_CACHE_KEY } from '@core/asset/asset-api';
 import { loadNetWorth } from '@core/asset/net-worth';
+import { STORAGE_KEYS, StorageService } from '@core/storage';
 import {
   ReconcileAccountsDialog,
   type ReconcileAccountsDialogData,
@@ -21,6 +22,7 @@ export class ReconcileAccountsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #assetApi = inject(AssetApi);
   readonly #postHog = inject(PostHogService);
+  readonly #storage = inject(StorageService);
   #isOpening = false;
 
   // The same dialog at every width — only its frame changes. On a phone it
@@ -32,7 +34,7 @@ export class ReconcileAccountsDialogService {
   // typed. With the flag off no request is made and the dialog opens at once,
   // on one empty row.
   async open(
-    data: Omit<ReconcileAccountsDialogData, 'netWorth'>,
+    data: Omit<ReconcileAccountsDialogData, 'netWorth' | 'showGuide'>,
     isHandset: boolean,
   ): Promise<void> {
     if (this.#isOpening) return;
@@ -41,10 +43,19 @@ export class ReconcileAccountsDialogService {
       const netWorth = this.#postHog.isFeatureEnabled(FEATURE_FLAGS.NET_WORTH)
         ? await this.#readNetWorth(data.currency())
         : null;
+      // The page can have moved to another month while the accounts loaded: the
+      // dialog would close at once, so it must not open nor use up the first visit.
+      if (data.realized() === null) return;
+      // Seen from the moment it shows, whatever the exit: closing, skipping or
+      // finishing it must never bring it back by itself.
+      const showGuide = !this.#storage.get<boolean>(
+        STORAGE_KEYS.RECONCILE_GUIDE_SEEN,
+      );
+      if (showGuide) this.#storage.set(STORAGE_KEYS.RECONCILE_GUIDE_SEEN, true);
       this.#dialog.open<ReconcileAccountsDialog, ReconcileAccountsDialogData>(
         ReconcileAccountsDialog,
         {
-          data: { ...data, netWorth },
+          data: { ...data, netWorth, showGuide },
           autoFocus: '[inputmode="decimal"]',
           disableClose: true,
           ...(isHandset
@@ -55,7 +66,13 @@ export class ReconcileAccountsDialogService {
                 height: '100dvh',
                 maxHeight: '100dvh',
               }
-            : { width: '560px', maxWidth: 'calc(100vw - 48px)' }),
+            : {
+                width: '560px',
+                maxWidth: 'calc(100vw - 48px)',
+                // Pinned to the top: centred, it jumped with each step's height.
+                position: { top: '64px' },
+                maxHeight: 'calc(100dvh - 128px)',
+              }),
         },
       );
     } finally {
@@ -79,11 +96,8 @@ export class ReconcileAccountsDialogService {
       if (!netWorth) return null;
       return {
         categories: netWorth.categories,
-        accounts: netWorth.assets.filter(
-          (asset) =>
-            asset.direction === 'own' &&
-            asset.archivedAt === null &&
-            asset.currency === currency,
+        items: netWorth.assets.filter(
+          (asset) => asset.archivedAt === null && asset.currency === currency,
         ),
       };
     } catch {

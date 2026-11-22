@@ -1,6 +1,6 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { DeviceEventEmitter, Dimensions, ScrollView, Text } from "react-native";
-import { PaperProvider } from "react-native-paper";
+import { MD3LightTheme, PaperProvider } from "react-native-paper";
 
 import { readFileSync, sourceFiles } from "@/core/testing/source-files";
 
@@ -112,6 +112,89 @@ describe("sheets", () => {
     });
     await act(() => fireEvent(plainSheet, "layout", layout(500)));
     expect(plainSheet).toHaveStyle({ minHeight: 0 });
+  });
+
+  it("forgets the held height once it stops holding", async () => {
+    const layout = {
+      nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 500 } },
+    };
+    const modal = (holds: boolean) => (
+      <PaperProvider>
+        <FormModal
+          isVisible
+          holdsHeight={holds}
+          title="S"
+          onDismiss={jest.fn()}
+        >
+          <Text>Step</Text>
+        </FormModal>
+      </PaperProvider>
+    );
+    const view = await render(modal(true));
+    const sheet = () =>
+      view.getByTestId("form-modal-sheet", { includeHiddenElements: true });
+    await act(() => fireEvent(sheet(), "layout", layout));
+    expect(sheet()).toHaveStyle({ minHeight: 500 });
+
+    await view.rerender(modal(false));
+
+    expect(sheet()).toHaveStyle({ minHeight: 0 });
+  });
+
+  it("takes all the height the screen leaves it when asked to, and follows its content otherwise", async () => {
+    const sheet = (view: Awaited<ReturnType<typeof render>>) =>
+      view.getByTestId("form-modal-sheet", { includeHiddenElements: true });
+    const filled = await render(
+      <PaperProvider>
+        <FormModal isVisible fillsHeight title="Steps" onDismiss={jest.fn()}>
+          <Text>Step</Text>
+        </FormModal>
+      </PaperProvider>,
+    );
+    const { height } = Dimensions.get("window");
+    expect(sheet(filled)).toHaveStyle({
+      minHeight: height * SHEET_HEIGHT_RATIO,
+    });
+
+    const { view: plain } = await renderModal(false);
+    expect(sheet(plain)).toHaveStyle({ minHeight: 0 });
+  });
+
+  it("drops its title and close button for a page that brings its own", async () => {
+    const view = await render(
+      <PaperProvider>
+        <FormModal
+          isVisible
+          showsCloseButton={false}
+          onDismiss={jest.fn()}
+          headerAction={<Text>Passer</Text>}
+        >
+          <Text>Guide</Text>
+        </FormModal>
+      </PaperProvider>,
+    );
+
+    expect(view.queryByRole("header")).toBeNull();
+    expect(view.queryByLabelText("common.close")).toBeNull();
+    expect(view.getByText("Passer")).toBeTruthy();
+  });
+
+  it("names the sheet in a smaller title when its body opens on a heading", async () => {
+    const view = await render(
+      <PaperProvider>
+        <FormModal isVisible hasBodyHeading title="Name" onDismiss={jest.fn()}>
+          <Text>Question</Text>
+        </FormModal>
+      </PaperProvider>,
+    );
+    const large = await renderModal(false);
+
+    expect(view.getByRole("header", { name: "Name" })).toHaveStyle({
+      fontSize: MD3LightTheme.fonts.titleMedium.fontSize,
+    });
+    expect(large.view.getByRole("header", { name: "Form title" })).toHaveStyle({
+      fontSize: MD3LightTheme.fonts.titleLarge.fontSize,
+    });
   });
 
   it("dismisses from its visible close, backdrop and Android back action", async () => {

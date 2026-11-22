@@ -20,7 +20,7 @@ import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
-import { ROUTES } from '@core/routing/routes-constants';
+import { REVEAL_ITEMS_TO_CHECK, ROUTES } from '@core/routing/routes-constants';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -62,7 +62,7 @@ import { CURRENCY_CONFIG } from '@core/currency';
 import { dateFnsLocaleFor } from '@core/locale';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
 
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, take } from 'rxjs';
 
 // Longer than the plain notification below: this toast is not read, it is
 // reached. It has to survive the user noticing the mistake and travelling to
@@ -1060,13 +1060,13 @@ export default class Dashboard {
     const isHandset = this.#breakpointObserver.isMatched(Breakpoints.Handset);
     void this.#reconcileAccountsDialog.open(
       {
+        budgetId,
         realized: computed(() =>
+          !this.#destroyRef.destroyed &&
           this.store.dashboardData()?.budget?.id === budgetId
             ? {
                 balance: this.store.realizedBalance(),
-                checkedIncome: this.store.realizedIncome(),
-                checkedOutflows: this.store.realizedExpenses(),
-                rollover: this.store.rolloverAmount(),
+                available: this.store.remaining(),
               }
             : null,
         ),
@@ -1078,16 +1078,27 @@ export default class Dashboard {
               }
             : null,
         ),
-        pointTransaction: async (transactionId) => {
-          const refusal = await this.store.checkTransaction(transactionId);
+        checkItem: async ({ source, id }) => {
+          const refusal = await (source === 'transaction'
+            ? this.store.checkTransaction(id)
+            : this.store.checkBudgetLine(id));
           // Top, so the toast stays clear of the full-height dialog's actions.
           if (refusal) this.#notify(refusal, 'top');
         },
         currency: this.currency,
-        periodDates: this.store.periodDates,
         recordAdjustment: (adjustment) =>
           this.#recordAdjustment(budgetId, adjustment),
-        viewItemsToCheck: () => this.navigateToBudgetDetails(),
+        viewItemsToCheck: () => {
+          // After the close: on a phone, closing puts back the home's scroll
+          // position, which would push the budget's list off screen.
+          this.#dialog.afterAllClosed.pipe(take(1)).subscribe(() => {
+            this.#router.navigate(['/budget', budgetId], {
+              info: REVEAL_ITEMS_TO_CHECK,
+              // The budget scrolls itself to the list once it has rendered.
+              scroll: 'manual',
+            });
+          });
+        },
       },
       isHandset,
     );

@@ -9,7 +9,11 @@ import {
 } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
-import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
+import {
+  BudgetCalculator,
+  calculateAllConsumptions,
+  isLineEffectivelyChecked,
+} from '@core/budget';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
@@ -362,7 +366,8 @@ export class BudgetDetailsStore {
     buildSpreadTracker(this.spreadOccurrenceViewModels()),
   );
 
-  readonly isViewingSpreadCurrentPeriod = computed<boolean>(() => {
+  // Pay-day aware: the viewed budget is the one today falls in.
+  readonly isViewingCurrentPeriod = computed<boolean>(() => {
     const reference = this.#spreadReferencePeriod();
     if (!reference) return false;
     return compareBudgetPeriods(reference, this.#spreadLivePeriod()) === 0;
@@ -591,9 +596,8 @@ export class BudgetDetailsStore {
     const transactions = details.transactions;
     const consumptionMap = calculateAllConsumptions(lines, transactions);
     return (
-      lines.filter((line) =>
-        this.#isLineEffectivelyChecked(line, consumptionMap),
-      ).length +
+      lines.filter((line) => isLineEffectivelyChecked(line, consumptionMap))
+        .length +
       transactions.filter((transaction) => transaction.checkedAt != null).length
     );
   });
@@ -618,7 +622,7 @@ export class BudgetDetailsStore {
         this.budgetDetails()?.transactions ?? [],
       );
       lines = lines.filter(
-        (line) => !this.#isLineEffectivelyChecked(line, consumptionMap),
+        (line) => !isLineEffectivelyChecked(line, consumptionMap),
       );
     }
     const search = normalizeText(this.#searchText());
@@ -676,15 +680,6 @@ export class BudgetDetailsStore {
 
   setSearchText(value: string): void {
     this.#searchText.set(value);
-  }
-
-  #isLineEffectivelyChecked(
-    line: BudgetLine,
-    consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
-  ): boolean {
-    if (line.checkedAt != null) return true;
-    if (!line.sourceSavingsGoalId) return false;
-    return (consumptionMap.get(line.id)?.consumed ?? 0) >= line.amount;
   }
 
   setBudgetId(budgetId: string): void {

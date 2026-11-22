@@ -51,6 +51,7 @@ Chaque table stocke les montants chiffrés dans une colonne texte (type `text`).
 | `monthly_budget`               | `ending_balance`                                            |
 | `savings_goal_plan_withdrawal` | `amount`                                                    |
 | `asset_snapshot`               | `value`                                                     |
+| `user_reconciliation`          | `starting_amount`                                           |
 
 ### Colonnes plaintext liées mathématiquement aux montants chiffrés
 
@@ -105,7 +106,7 @@ Le changement de code PIN re-chiffre toutes les données financières avec une n
 1. Frontend dérive oldClientKey (ancien PIN) et newClientKey (nouveau PIN) via PBKDF2
 2. Frontend appelle POST /v1/encryption/change-pin { oldClientKey, newClientKey }
 3. Backend vérifie oldClientKey via key_check (canary)
-4. Toutes les données sont re-chiffrées atomiquement (RPC rekey_user_encrypted_data_with_asset_snapshots)
+4. Toutes les données sont re-chiffrées atomiquement (RPC rekey_user_encrypted_data_with_starting_amount)
 5. key_check est recalculé avec la nouvelle DEK
 6. Nouvelle recovery key générée et nouvelle DEK wrappée (inconditionnel)
 7. Réponse : { keyCheck: string, recoveryKey: string }
@@ -120,13 +121,13 @@ Si le re-wrapping échoue après un re-chiffrement réussi, le `wrapped_dek` est
 
 ### Atomicité et pagination du rekey
 
-Le backend lit d'abord toutes les lignes chiffrées, page par page avec un ordre stable sur `id`. Les filtres contenant des identifiants parents sont découpés pour rester sous les limites d'URL PostgREST. Il construit puis valide ensuite la totalité des payloads avant d'appeler une seule fois `rekey_user_encrypted_data_with_asset_snapshots`.
+Le backend lit d'abord toutes les lignes chiffrées, page par page avec un ordre stable sur `id`. Les filtres contenant des identifiants parents sont découpés pour rester sous les limites d'URL PostgREST. Il construit puis valide ensuite la totalité des payloads avant d'appeler une seule fois `rekey_user_encrypted_data_with_starting_amount`.
 
 Ce RPC met à jour atomiquement les ciphertexts et le nouveau `key_check`. Une erreur de lecture, y compris sur une page après les 1 000 premières lignes, interrompt donc le flux avant toute mutation. Après succès, le canary est lisible avec la nouvelle DEK et rejeté avec l'ancienne.
 
-L'ordre d'écriture est ce qui rend le canary honnête : le cœur partagé re-chiffre les cinq tables historiques **sans** canary, puis `savings_goal_plan_withdrawal` et `asset_snapshot` sont traitées, et `key_check` n'est écrit qu'en dernier. Deux assertions distinctes gardent chacune de ces deux tables, parce qu'elles n'attrapent pas la même chose. Le RPC compte d'abord les lignes de l'utilisateur sous le verrou de table : le backend a lu sa charge utile avant que ce verrou n'existe, donc une ligne validée entre-temps en serait simplement absente, et une vérification identifiant par identifiant passerait pendant que cette ligne garde son ancien chiffrement. Il vérifie ensuite que la mise à jour par identifiant a touché exactement autant de lignes que la charge en portait. Une ligne omise comme une ligne inconnue fait donc échouer toute la transaction avant que la nouvelle clé ne soit certifiée.
+L'ordre d'écriture est ce qui rend le canary honnête : le cœur partagé re-chiffre les cinq tables historiques **sans** canary, puis `savings_goal_plan_withdrawal`, `asset_snapshot` et `user_reconciliation` sont traitées, et `key_check` n'est écrit qu'en dernier. Deux assertions distinctes gardent chacune des deux premières, parce qu'elles n'attrapent pas la même chose. Le RPC compte d'abord les lignes de l'utilisateur sous le verrou de table : le backend a lu sa charge utile avant que ce verrou n'existe, donc une ligne validée entre-temps en serait simplement absente, et une vérification identifiant par identifiant passerait pendant que cette ligne garde son ancien chiffrement. Il vérifie ensuite que la mise à jour par identifiant a touché exactement autant de lignes que la charge en portait. Une ligne omise comme une ligne inconnue fait donc échouer toute la transaction avant que la nouvelle clé ne soit certifiée. `user_reconciliation` n'a qu'une ligne par personne, désignée par `p_user_id` : le RPC reçoit son montant de départ re-chiffré ou `NULL`, et seul le comptage sous verrou s'applique.
 
-Les deux signatures antérieures ne subsistent que pour un pod encore déployé pendant un rolling deploy, et échouent sans aucune mutation dès qu'elles laisseraient des lignes sous l'ancienne clé, sous verrou de table pour qu'une ligne ne puisse pas apparaître entre le contrôle et l'écriture. `rekey_user_encrypted_data`, qui ignore `savings_goal_plan_withdrawal` et `asset_snapshot`, refuse dès que l'utilisateur possède une ligne de l'une des deux (`rekey: asset snapshot requires v3`, ou `rekey: plan withdrawal requires v2`). `rekey_user_encrypted_data_with_plan_withdrawals`, qui ignore `asset_snapshot`, refuse dès que l'utilisateur possède un snapshot (`rekey: asset snapshot requires v3`). Les trois fonctions prennent leurs verrous dans le même ordre, plans puis snapshots, pour ne pas s'interbloquer. Preuves : `supabase/tests/rekey_plan_withdrawal_rolling_deploy.sql` et `supabase/tests/rekey_asset_snapshot_rolling_deploy.sql`.
+Les trois signatures antérieures ne subsistent que pour un pod encore déployé pendant un rolling deploy, et échouent sans aucune mutation dès qu'elles laisseraient des lignes sous l'ancienne clé, sous verrou de table pour qu'une ligne ne puisse pas apparaître entre le contrôle et l'écriture. Toutes refusent d'abord une personne qui a un montant de départ (`rekey: starting amount requires v4`). `rekey_user_encrypted_data`, qui ignore aussi `savings_goal_plan_withdrawal` et `asset_snapshot`, refuse ensuite dès que l'utilisateur possède une ligne de l'une des deux (`rekey: asset snapshot requires v3`, ou `rekey: plan withdrawal requires v2`). `rekey_user_encrypted_data_with_plan_withdrawals`, qui ignore aussi `asset_snapshot`, refuse dès que l'utilisateur possède un snapshot (`rekey: asset snapshot requires v3`). Une fois ces contrôles passés, chacune transmet sa charge à `rekey_user_encrypted_data_with_starting_amount`, avec des tableaux vides pour les tables qu'elle ne lit pas. Les quatre fonctions prennent leurs verrous dans le même ordre, plans, snapshots puis `user_reconciliation`, pour ne pas s'interbloquer. Preuves : `supabase/tests/rekey_plan_withdrawal_rolling_deploy.sql`, `supabase/tests/rekey_asset_snapshot_rolling_deploy.sql` et `supabase/tests/rekey_user_reconciliation_rolling_deploy.sql`.
 
 ### Rate limiting
 

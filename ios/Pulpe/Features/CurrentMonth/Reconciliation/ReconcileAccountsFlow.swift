@@ -9,105 +9,109 @@ import Observation
 final class ReconcileAccountsFlow {
     /// Form input, bound field by field.
     var accounts: [AccountReconciliation.Account]
-    /// Pre-filled, editable before the write. The amount is not: it is what makes the
-    /// checked balance equal the accounts.
-    var adjustmentLabel: String
+    /// « Écart avec mes comptes », in the interface language: the name of the one entry I can note.
+    private let entryName: String
 
     /// The create call is in flight: the sheet blocks dismiss, back and a second tap.
     private(set) var isSubmitting = false
+    /// The money from before Pulpe is on its way, or read again after a refusal: same blocks.
+    private(set) var isSavingState = false
+    /// A write is out: nothing ends the comparison or leaves the sheet before it lands.
+    var isWriting: Bool { isSubmitting || isSavingState }
     /// The flow reached its end once. Nothing is written or tracked after it, even if the
     /// sheet still shows for a frame while it dismisses.
     private(set) var isCompleted = false
+    /// This comparison is done for the server and the event, maybe before the sheet ends
+    /// (« Oui, c'était déjà là »). Each « Comparer » starts another comparison.
+    private(set) var isMarkedComplete = false
+    /// A comparison of this sheet was completed, whatever came after: closing saves the balances. Never reset.
+    private(set) var didCompleteComparison = false
+    /// The balances went to Mon patrimoine: once per sheet.
+    @ObservationIgnored var hasAppliedAccountLinks = false
 
-    /// What `submitAdjustment` did. A refusal carries no error: the sheet reports it with
-    /// one toast, and the form keeps everything for a retry.
+    /// What a write did. A refusal carries no error: the sheet reports it with one toast,
+    /// and the form keeps everything for a retry.
     enum SubmitOutcome: Equatable {
-        case created
+        case written
         case failed
         case ignored
     }
 
     let budgetId: String
 
-    /// One of my accounts of « Mon patrimoine », or a line typed for this time.
-    enum RowAccount: Equatable, Sendable {
-        case asset(id: String)
-        case other(addToNetWorth: Bool)
+    /// The two screens of the comparison: the balances typed, then what they say about the month.
+    enum Step: Equatable {
+        case accounts
+        case comparison
     }
+
+    private(set) var step = Step.accounts
 
     /// What finishing writes to « Mon patrimoine »: the accounts I finish with are the ones
     /// followed. The twin of the web `planAccountLinks`.
     struct LinkPlan: Equatable {
-        struct Create: Equatable {
-            let name: String
-            let value: Decimal
-        }
-
-        var creates: [Create] = []
         /// Accounts picked here that were not followed yet.
         var links: [String] = []
         /// Followed accounts that no row holds any more.
         var unlinks: [String] = []
         var snapshots: [AssetSnapshotItem] = []
 
-        var isEmpty: Bool { creates.isEmpty && links.isEmpty && unlinks.isEmpty && snapshots.isEmpty }
+        var isEmpty: Bool { links.isEmpty && unlinks.isEmpty && snapshots.isEmpty }
     }
 
-    /// My accounts of the user's currency, followed or not. `nil` when « Mon patrimoine » is
-    /// off or unread: rows are plain lines and finishing writes nothing there.
+    /// My accounts and what I owe in the user's currency, followed or not. `nil` when
+    /// « Mon patrimoine » is off or unread: every row is a free one and finishing writes nothing there.
     @ObservationIgnored private let ownAccounts: [Asset]?
-    /// A row missing here is a typed line that stays out of « Mon patrimoine ».
-    private(set) var rowAccounts: [AccountReconciliation.Account.ID: RowAccount]
+    /// The « Mon patrimoine » item behind a row; a row missing here is a free one.
+    private(set) var assetIds: [AccountReconciliation.Account.ID: String]
 
     @ObservationIgnored private let createTransaction: @Sendable (TransactionCreate) async throws -> Transaction
+    @ObservationIgnored private let fetchContext: @Sendable (String) async throws -> ReconciliationContext
+    @ObservationIgnored
+    private let updateState: @Sendable (ReconciliationStateUpdate) async throws -> ReconciliationState
     @ObservationIgnored private let onAdjustmentCreated: @MainActor (Transaction) -> Void
     @ObservationIgnored private let onCompleted: @MainActor (AccountReconciliation.Completion) -> Void
-    @ObservationIgnored private let now: () -> Date
+    @ObservationIgnored let now: () -> Date
 
     init(
         budgetId: String,
-        adjustmentLabel: String,
+        entryName: String,
         createTransaction: @escaping @Sendable (TransactionCreate) async throws -> Transaction,
+        fetchContext: @escaping @Sendable (String) async throws -> ReconciliationContext,
+        updateState: @escaping @Sendable (ReconciliationStateUpdate) async throws -> ReconciliationState,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void,
         onCompleted: @escaping @MainActor (AccountReconciliation.Completion) -> Void,
         netWorthAccounts: [Asset]? = nil,
+        freeAccounts: [ReconcileFreeAccountsStore.Entry] = [],
         restoring draft: Draft? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.budgetId = budgetId
-        // The accounts followed so far open the sheet, one row each.
-        let seeded = (netWorthAccounts ?? []).filter(\.inPulpe)
-            .map { (account: AccountReconciliation.Account(label: $0.name), asset: $0) }
+        // The accounts followed so far open the sheet, one row each, then the free rows of last time.
+        let seeded = (netWorthAccounts ?? []).filter(\.inPulpe).map {
+            (account: AccountReconciliation.Account(label: $0.name, isOwed: $0.direction == .owe), asset: $0)
+        }
+        let remembered = freeAccounts.map { AccountReconciliation.Account(label: $0.name, isOwed: $0.isOwed) }
         self.ownAccounts = netWorthAccounts
         if let draft, draft.budgetId == budgetId {
             self.accounts = draft.accounts
-            self.rowAccounts = draft.rowAccounts
-            self.adjustmentLabel = draft.adjustmentLabel
+            // An item deleted or archived during the lock comes back as a free row with its name,
+            // side and amount, so the save never names a gone item. Unread, nothing is known gone.
+            let offered = netWorthAccounts.map { Set($0.map(\.id)) }
+            self.assetIds = draft.assetIds.filter { offered?.contains($0.value) ?? true }
+            self.didCompleteComparison = draft.didCompleteComparison
         } else {
-            self.accounts = seeded.isEmpty ? [AccountReconciliation.Account()] : seeded.map(\.account)
-            self.rowAccounts = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, .asset(id: $0.asset.id)) })
-            self.adjustmentLabel = adjustmentLabel
+            let rows = seeded.map(\.account) + remembered
+            self.accounts = rows.isEmpty ? [AccountReconciliation.Account()] : rows
+            self.assetIds = Dictionary(uniqueKeysWithValues: seeded.map { ($0.account.id, $0.asset.id) })
         }
+        self.entryName = entryName
         self.createTransaction = createTransaction
+        self.fetchContext = fetchContext
+        self.updateState = updateState
         self.onAdjustmentCreated = onAdjustmentCreated
         self.onCompleted = onCompleted
         self.now = now
-    }
-
-    // MARK: - Draft
-
-    /// Everything typed so far, to reopen on after a lock rebuilt the screen.
-    struct Draft: Equatable {
-        let budgetId: String
-        let accounts: [AccountReconciliation.Account]
-        let rowAccounts: [AccountReconciliation.Account.ID: RowAccount]
-        let adjustmentLabel: String
-    }
-
-    /// `nil` once finished: a completed reconciliation leaves nothing to reopen.
-    var draft: Draft? {
-        guard !isCompleted else { return nil }
-        return Draft(budgetId: budgetId, accounts: accounts, rowAccounts: rowAccounts, adjustmentLabel: adjustmentLabel)
     }
 
     // MARK: - Accounts
@@ -116,75 +120,92 @@ final class ReconcileAccountsFlow {
 
     var total: Decimal? { totalCents.map(AccountReconciliation.amount(cents:)) }
 
+    /// Any balance typed, read or not: « 12. » has no total yet and is still worth keeping.
+    var hasTypedBalance: Bool { accounts.contains { $0.amount != .blank } }
+
+    /// What I have and what I owe, each as a positive figure; the total is the first minus the second.
+    var haveCents: Int { cents(owed: false) }
+    var oweCents: Int { cents(owed: true) }
+    var hasOwedRow: Bool { accounts.contains(where: \.isOwed) }
+
+    private func cents(owed: Bool) -> Int {
+        accounts.filter { $0.isOwed == owed }.reduce(0) { sum, account in
+            guard case .valid(let cents) = account.amount else { return sum }
+            return owed ? sum - cents : sum + cents
+        }
+    }
+
+    // MARK: - Steps
+
+    /// Compare waits for a total: an unreadable amount or nothing typed keeps step 1. New balances start
+    /// a new comparison: the suggestions show again, unchecked, nothing is struck through, and step 2
+    /// reads the server's side again (an item checked or unchecked on the web meanwhile moves the correction).
+    func compare() {
+        guard totalCents != nil else { return }
+        step = .comparison
+        isDismissed = false
+        isMarkedComplete = false
+        beforeChecks = nil
+        checkedSuggestions = []
+        contextRead += 1
+        contextState = .loading
+    }
+
+    func editAccounts() {
+        step = .accounts
+    }
+
+    /// « Ajouter ce que je dois » on step 2: back to the balances with a new « Je dois » row whose
+    /// name step 1 focuses. Once: a second tap finds step 1 and adds nothing.
+    func addOwedRowFromComparison() {
+        guard step == .comparison, !isWriting, !isChecking else { return }
+        rowToFocus = addFreeAccount(isOwed: true)
+        step = .accounts
+    }
+
+    /// The row step 1 focuses as it shows, handed out once.
+    @ObservationIgnored private var rowToFocus: AccountReconciliation.Account.ID?
+
+    func takeRowToFocus() -> AccountReconciliation.Account.ID? {
+        defer { rowToFocus = nil }
+        return rowToFocus
+    }
+
     // MARK: - Mon patrimoine
 
     var linksToNetWorth: Bool { ownAccounts != nil }
 
-    func rowAccount(id: AccountReconciliation.Account.ID) -> RowAccount {
-        rowAccounts[id] ?? .other(addToNetWorth: false)
-    }
-
-    /// The account behind a row, whose last value is shown as its hint.
+    /// The item behind a row, whose side is fixed and whose last value is shown as its hint.
     func asset(id: AccountReconciliation.Account.ID) -> Asset? {
-        guard case .asset(let assetId) = rowAccount(id: id) else { return nil }
+        guard let assetId = assetIds[id] else { return nil }
         return ownAccounts?.first { $0.id == assetId }
     }
 
-    /// My accounts no other row holds: an account is never counted twice.
-    func choices(for id: AccountReconciliation.Account.ID) -> [Asset] {
-        let taken = Set(rowAccounts.filter { $0.key != id }.values.compactMap { row -> String? in
-            if case .asset(let assetId) = row { return assetId }
-            return nil
-        })
+    /// What the add sheet offers: never one already in the list, nor one a saving prévision of
+    /// the month feeds (its balance follows from the month, not from what I type).
+    func addableAssets(excluding fedAssetIds: Set<String>) -> [Asset] {
+        let taken = Set(assetIds.values).union(fedAssetIds)
         return (ownAccounts ?? []).filter { !taken.contains($0.id) }
     }
 
-    /// `nil` turns the row into a typed line; the amount already typed stays.
-    func selectAccount(id: AccountReconciliation.Account.ID, _ asset: Asset?) {
-        guard let index = accounts.firstIndex(where: { $0.id == id }) else { return }
-        accounts[index].label = asset?.name ?? ""
-        rowAccounts[id] = asset.map { .asset(id: $0.id) }
-    }
-
-    func setAddToNetWorth(id: AccountReconciliation.Account.ID, _ isOn: Bool) {
-        guard asset(id: id) == nil else { return }
-        rowAccounts[id] = .other(addToNetWorth: isOn)
-    }
-
-    /// An account kept in « Mon patrimoine » needs a name to be found again.
-    func isNameMissing(id: AccountReconciliation.Account.ID) -> Bool {
-        guard rowAccount(id: id) == .other(addToNetWorth: true) else { return false }
-        return accounts.first { $0.id == id }?.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? false
-    }
-
-    /// ...and a balance to start from: the plan creates nothing without one. Only a blank one
-    /// needs this gate: an unreadable amount already leaves the total, hence the verdict, empty.
-    func isBalanceMissing(id: AccountReconciliation.Account.ID) -> Bool {
-        guard rowAccount(id: id) == .other(addToNetWorth: true) else { return false }
-        return accounts.first { $0.id == id }?.amount == .blank
-    }
-
-    private var hasIncompleteNewAccount: Bool {
-        accounts.contains { isNameMissing(id: $0.id) || isBalanceMissing(id: $0.id) }
+    /// The free rows to remember for next time: names and sides.
+    var freeAccountEntries: [ReconcileFreeAccountsStore.Entry] {
+        accounts.filter { assetIds[$0.id] == nil }.compactMap {
+            let name = String($0.label.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
+            return name.isEmpty ? nil : .init(name: name, isOwed: $0.isOwed)
+        }
     }
 
     var linkPlan: LinkPlan {
         guard let ownAccounts else { return LinkPlan() }
         var plan = LinkPlan()
-        var picked: [String] = []
+        let picked = accounts.compactMap { assetIds[$0.id] }
         for account in accounts {
-            var value: Decimal?
-            if case .valid(let cents) = account.amount { value = AccountReconciliation.amount(cents: cents) }
-            switch rowAccount(id: account.id) {
-            case .asset(let id):
-                guard !picked.contains(id) else { continue }
-                picked.append(id)
-                if let value { plan.snapshots.append(AssetSnapshotItem(assetId: id, value: value)) }
-            case .other(let addToNetWorth):
-                // The API refuses a longer name, and a refused create stops every write after it.
-                let name = String(account.label.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
-                if addToNetWorth, let value, !name.isEmpty { plan.creates.append(.init(name: name, value: value)) }
-            }
+            guard let id = assetIds[account.id], case .valid(let cents) = account.amount else { continue }
+            // Mon patrimoine values what I owe by the remaining balance: a positive figure.
+            let isOwed = ownAccounts.first { $0.id == id }?.direction == .owe
+            let value = AccountReconciliation.amount(cents: isOwed ? abs(cents) : cents)
+            plan.snapshots.append(AssetSnapshotItem(assetId: id, value: value))
         }
         let followed = ownAccounts.filter(\.inPulpe).map(\.id)
         plan.links = picked.filter { !followed.contains($0) }
@@ -192,50 +213,134 @@ final class ReconcileAccountsFlow {
         return plan
     }
 
-    /// Returns the new row's id so the sheet can focus its amount.
+    /// Both adds return the new row's id so the step can focus it.
     @discardableResult
-    func addAccount() -> AccountReconciliation.Account.ID {
-        let account = AccountReconciliation.Account()
+    func addAsset(_ asset: Asset) -> AccountReconciliation.Account.ID {
+        let account = AccountReconciliation.Account(label: asset.name, isOwed: asset.direction == .owe)
+        accounts.append(account)
+        assetIds[account.id] = asset.id
+        return account.id
+    }
+
+    @discardableResult
+    func addFreeAccount(isOwed: Bool) -> AccountReconciliation.Account.ID {
+        let account = AccountReconciliation.Account(isOwed: isOwed)
         accounts.append(account)
         return account.id
     }
 
-    /// Any row goes while another remains: a followed account I closed leaves like the others.
-    func canRemoveAccount(id: AccountReconciliation.Account.ID) -> Bool {
-        accounts.count > 1 && accounts.contains { $0.id == id }
-    }
-
+    /// Removing only takes the row out of this comparison; a followed item stops being followed
+    /// when I finish, as it always did, and is never archived or edited.
     func removeAccount(id: AccountReconciliation.Account.ID) {
-        guard canRemoveAccount(id: id) else { return }
         accounts.removeAll { $0.id == id }
-        rowAccounts[id] = nil
+        assetIds[id] = nil
     }
 
     func hasInvalidAmount(id: AccountReconciliation.Account.ID) -> Bool {
         accounts.first { $0.id == id }?.amount == .invalid
     }
 
-    // MARK: - Verdict
+    // MARK: - Comparison
 
-    /// The checked balance is read live from the caller, never copied at presentation.
-    func difference(realizedBalance: Decimal) -> Decimal? {
-        totalCents.map { AccountReconciliation.difference(totalCents: $0, realizedBalance: realizedBalance) }
+    /// The server's side of step 2. Without it the figure and the screen would be wrong, so step 2
+    /// waits for it and offers nothing to write.
+    enum ContextState: Equatable {
+        case loading
+        case loaded(ReconciliationContext)
+        case failed
     }
 
-    func verdict(realizedBalance: Decimal) -> AccountReconciliation.Verdict? {
-        totalCents.map { AccountReconciliation.verdict(totalCents: $0, realizedBalance: realizedBalance) }
+    private(set) var contextState = ContextState.loading
+    /// One check at a time, from the tap that fills its circle to the context read after it.
+    private(set) var isChecking = false
+    /// « Aucune … ne correspond » was tapped in this comparison.
+    private(set) var isDismissed = false
+    /// The figures at this comparison's first check: « trouvés » counts from the compared one, and the
+    /// checked balance is struck through once a check of this month moves it. Another total or starting
+    /// amount clears only `compared`: the next check counts « trouvés » again from the figure it sees.
+    struct BeforeChecks: Equatable {
+        let compared: Decimal?
+        let realized: Decimal
+    }
+
+    private(set) var beforeChecks: BeforeChecks?
+    /// Checked in this comparison: the « Voir les autres » list keeps their check.
+    private(set) var checkedSuggestions: [Suggestion] = []
+
+    /// Counts the context reads, so only the latest one lands; `compare()` counts one too, dropping any read out.
+    private var contextRead = 0
+
+    /// A refresh keeps the figures on screen; only a failure replaces them. When reads overlap
+    /// (« Réessayer », back, « Comparer »), an older one answering late is dropped.
+    func loadContext() async {
+        contextRead += 1
+        let read = contextRead
+        if contextState == .failed { contextState = .loading }
+        let state: ContextState
+        do {
+            state = .loaded(try await fetchContext(budgetId))
+        } catch {
+            state = .failed
+        }
+        if read == contextRead { contextState = state }
+    }
+
+    /// The tap: the circle fills before the request leaves, so from here nothing may end the
+    /// comparison. `false` while another check, a write or the completion is out.
+    func beginCheck() -> Bool {
+        guard !isChecking, !isWriting, !isCompleted else { return false }
+        isChecking = true
+        return true
+    }
+
+    /// Sends the check `beginCheck()` started through the screen that opened me. Only an item of a
+    /// previous month moves the server's correction, so only that one reads the context again; this
+    /// month's items move the balance the screen already reads. `false` when refused.
+    func check(_ suggestion: Suggestion, realizedBalance: Decimal, using toggle: () async -> Bool) async -> Bool {
+        guard isChecking else { return false }
+        defer { isChecking = false }
+        guard let before = comparedFigure(realizedBalance: realizedBalance) else { return false }
+        let isPrior = if case .prior = suggestion.target { true } else { false }
+        guard await toggle() else {
+            // Gone elsewhere (deleted on the web), or a lost answer that landed: read again.
+            if isPrior { await loadContext() }
+            return false
+        }
+        if beforeChecks?.compared == nil {
+            beforeChecks = BeforeChecks(compared: before, realized: beforeChecks?.realized ?? realizedBalance)
+        }
+        checkedSuggestions.append(suggestion)
+        if isPrior { await loadContext() }
+        return true
+    }
+
+    func dismissSuggestions() {
+        isDismissed = true
+    }
+
+    /// « Retirer « Je dois … » »: I check card purchases when the bill is paid, so what I owe leaves
+    /// the comparison, as « Retirer » does on each row.
+    func removeOwedRows() {
+        let totalBefore = totalCents
+        for account in accounts where account.isOwed {
+            removeAccount(id: account.id)
+        }
+        // Another total: « trouvés » counted from the old one.
+        if totalCents != totalBefore { forgetComparedBeforeChecks() }
+        // Nothing typed is left to compare: back to the balances.
+        if totalCents == nil { step = .accounts }
     }
 
     /// The balance must be read from the month this flow opened on: a refresh can load
     /// another one under the sheet, and its balance never meets a draft aimed at this budget.
     func canSubmitAdjustment(realizedBalance: Decimal, of loadedBudgetId: String) -> Bool {
-        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted, !hasIncompleteNewAccount else { return false }
+        guard canFinish(of: loadedBudgetId) else { return false }
         return adjustmentPayload(realizedBalance: realizedBalance) != nil
     }
 
-    /// The flow's one write. On success the entry goes to the month's own store before
-    /// anything else, so the checked balance moves to the accounts total at once; nothing
-    /// after the create can turn it back into a failure and re-open the button.
+    /// The flow's one write, « Écart avec mes comptes », checked and free. On success the entry
+    /// goes to the month's own store before anything else, so the checked balance moves to the
+    /// accounts total at once; nothing after the create can turn it back into a failure.
     func submitAdjustment(realizedBalance: Decimal, of loadedBudgetId: String) async -> SubmitOutcome {
         guard canSubmitAdjustment(realizedBalance: realizedBalance, of: loadedBudgetId),
               let payload = adjustmentPayload(realizedBalance: realizedBalance)
@@ -247,41 +352,121 @@ final class ReconcileAccountsFlow {
             let transaction = try await createTransaction(payload)
             isCompleted = true
             onAdjustmentCreated(transaction)
-            onCompleted(payload.kind == .income ? .income : .expense)
-            return .created
+            markCompleted(payload.kind == .income ? .income : .expense)
+            return .written
         } catch {
             return .failed
         }
     }
 
-    /// A write already out ends the flow itself, even if a refresh brings the balance level
-    /// meanwhile: "Terminer" waits for it rather than completing a second time.
-    func canConfirmUpToDate(realizedBalance: Decimal, of loadedBudgetId: String) -> Bool {
-        guard loadedBudgetId == budgetId, !isSubmitting, !isCompleted, !hasIncompleteNewAccount else { return false }
-        return verdict(realizedBalance: realizedBalance) == .upToDate
+    /// A write or a check already out ends nothing a second time; a context never read offers no exit
+    /// that counts as a comparison.
+    func canFinish(of loadedBudgetId: String) -> Bool {
+        loadedBudgetId == budgetId && !isWriting && !isChecking && !isCompleted && context != nil
     }
 
-    /// Ends an up-to-date reconciliation: nothing to write, one completion.
-    func confirmUpToDate(realizedBalance: Decimal, of loadedBudgetId: String) -> Bool {
-        guard canConfirmUpToDate(realizedBalance: realizedBalance, of: loadedBudgetId) else { return false }
+    /// « Terminer » and « Laisser comme ça »: nothing written, one completion.
+    func finishWithoutEntry(of loadedBudgetId: String) -> Bool {
+        guard canFinish(of: loadedBudgetId) else { return false }
         isCompleted = true
-        onCompleted(.upToDate)
+        markCompleted(.upToDate)
         return true
+    }
+
+    /// « Oui, c'était déjà là »: the gap becomes money from before Pulpe and the comparison completes in
+    /// the same write, so Pulpe matches. Refused, the screen stays and no event leaves.
+    func keepGapAsStartingAmount(realizedBalance: Decimal, of loadedBudgetId: String) async -> SubmitOutcome {
+        guard canFinish(of: loadedBudgetId), !isMarkedComplete, let context, let totalCents,
+              let compared = comparedFigure(realizedBalance: realizedBalance)
+        else { return .ignored }
+        let gap = AccountReconciliation.difference(totalCents: totalCents, realizedBalance: compared)
+        guard gap > 0 else { return .ignored }
+        let outcome = await writeState(.init(startingAmount: context.startingAmount + gap, completed: true))
+        if outcome == .written { markCompleted(.upToDate, isSent: true) }
+        return outcome
+    }
+
+    /// The money from before Pulpe corrected, or reset to 0: one write, none when unchanged.
+    func saveStartingAmount(_ amount: Decimal) async -> SubmitOutcome {
+        guard let context, amount != context.startingAmount else { return .ignored }
+        return await writeState(.init(startingAmount: amount))
+    }
+
+    /// One write per answer; its answer replaces the state in the context. The figure moved without a
+    /// check, so « trouvés » counts again from the next check. Refused, the server may still have stored
+    /// it: read again.
+    private func writeState(_ update: ReconciliationStateUpdate) async -> SubmitOutcome {
+        guard !isWriting, !isChecking, !isCompleted else { return .ignored }
+        isSavingState = true
+        defer { isSavingState = false }
+        do {
+            let state = try await updateState(update)
+            if let context {
+                contextState = .loaded(ReconciliationContext(
+                    startingAmount: state.startingAmount, hasCompletedComparison: state.hasCompletedComparison,
+                    priorCorrection: context.priorCorrection, priorItems: context.priorItems
+                ))
+            }
+            forgetComparedBeforeChecks()
+            return .written
+        } catch {
+            await loadContext()
+            return .failed
+        }
+    }
+
+    /// Once per comparison: the event, then the server hears of it unless the write that marked it did.
+    private func markCompleted(_ completion: AccountReconciliation.Completion, isSent: Bool = false) {
+        guard !isMarkedComplete else { return }
+        isMarkedComplete = true
+        didCompleteComparison = true
+        onCompleted(completion)
+        guard !isSent else { return }
+        // Only « first comparison » reads it: a refusal costs that screen once more, nothing else.
+        Task { [updateState] in _ = try? await updateState(.init(completed: true)) }
     }
 
     /// Another loaded month leaves the draft nothing to write against, so the sheet closes —
     /// once no write is in flight: one already out keeps its month and stays the only request.
     func shouldClose(loadedBudgetId: String) -> Bool {
-        loadedBudgetId != budgetId && !isSubmitting
+        loadedBudgetId != budgetId && !isWriting
     }
 
     private func adjustmentPayload(realizedBalance: Decimal) -> TransactionCreate? {
         guard let verdict = verdict(realizedBalance: realizedBalance),
               let payload = AccountReconciliation.adjustmentPayload(
-                  budgetId: budgetId, label: adjustmentLabel, verdict: verdict, now: now()
+                  budgetId: budgetId, label: entryName, verdict: verdict, now: now()
               ),
               !payload.name.isEmpty
         else { return nil }
         return payload
+    }
+}
+
+extension ReconcileAccountsFlow {
+    // MARK: - Draft
+
+    /// Everything typed so far, to reopen on after a lock rebuilt the screen.
+    struct Draft: Equatable {
+        let budgetId: String
+        let accounts: [AccountReconciliation.Account]
+        let assetIds: [AccountReconciliation.Account.ID: String]
+        /// A comparison was completed before the lock: the real close still saves the balances.
+        let didCompleteComparison: Bool
+    }
+
+    /// `nil` once finished: a completed reconciliation leaves nothing to reopen.
+    var draft: Draft? {
+        guard !isCompleted else { return nil }
+        return Draft(
+            budgetId: budgetId, accounts: accounts, assetIds: assetIds, didCompleteComparison: didCompleteComparison
+        )
+    }
+}
+
+private extension ReconcileAccountsFlow {
+    /// The checked balance before the first check still stands; only the « trouvés » reference goes.
+    func forgetComparedBeforeChecks() {
+        beforeChecks = beforeChecks.map { BeforeChecks(compared: nil, realized: $0.realized) }
     }
 }

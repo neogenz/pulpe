@@ -1,75 +1,93 @@
 import {
   ANALYTICS_EVENTS,
   type BudgetLine,
-  type BudgetPeriodDates,
-  CURRENCY_METADATA,
-  parseAccountAmount,
-  pointingCandidates,
-  reconciliationVerdict,
-  summarizeAccounts,
+  type ComparisonScreen,
+  moneyDifference,
+  partlySpentBudgetLines,
   type SupportedCurrency,
   type Transaction,
   type TransactionCreate,
 } from "pulpe-shared";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
-import {
-  ActivityIndicator,
-  Button,
-  IconButton,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { StyleSheet } from "react-native";
+import { Button, IconButton } from "react-native-paper";
 import { randomUUID } from "react-native-quick-crypto";
 
 import { hasClientKey } from "@/core/crypto/client-key-manager";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { captureEvent } from "@/core/observability/analytics";
-import { Amount } from "@/core/ui/amount";
-import { formatCurrency, formatSignedCurrency } from "@/core/ui/amount-format";
-import { formatDayMonth } from "@/core/ui/date-format";
-import { FieldError } from "@/core/ui/field-error";
 import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import { Notice } from "@/core/ui/notice";
 import { FormModal } from "@/core/ui/sheet";
-import { RADIUS, SPACING } from "@/core/ui/theme";
+import { SPACING, TOUCH_TARGET } from "@/core/ui/theme";
+import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useVaultStore } from "@/core/vault/vault-store";
-import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
+import {
+  useChecksSettled,
+  useToggleCheck,
+} from "@/features/budgets/toggle-check-mutation";
 import { useFollowAccounts } from "@/features/net-worth/net-worth-queries";
 import { loadFirstMovementState } from "@/features/transactions/first-movement-tracker";
 import { useCreateTransaction } from "@/features/transactions/transaction-mutations";
 
 import type { RealizedMetrics } from "../current-month-view-model";
 import {
-  accountChoices,
+  addableGroups,
   type AccountRow,
-  emptyRow,
+  assetRow,
+  freeAccountsToRemember,
+  freeRow,
   isEmptyPlan,
-  missingForNewAccount,
+  nextRowId,
   planAccountLinks,
+  restoreRows,
   seedRows,
-  selectAccount,
+  summarizeRows,
 } from "../reconcile-account-links";
 import { keepReconcileDraft, reconcileDraft } from "../reconcile-draft";
+import { readFreeAccounts, saveFreeAccounts } from "../reconcile-free-accounts";
 import { useReconcileLinkedAccounts } from "../reconcile-linked-accounts";
-import { buildAdjustmentPayload } from "../reconciliation";
-import { ReconcileLinkedAccountRow } from "./reconcile-linked-account-row";
+import {
+  buildAdjustmentPayload,
+  buildComparison,
+  type SuggestionRow,
+} from "../reconciliation";
+import { completeReconciliation } from "../reconciliation-api";
+import {
+  forgetReconciliationContext,
+  useReconciliationContext,
+  useWriteReconciliationState,
+} from "../reconciliation-queries";
+import {
+  markReconcileGuideSeen,
+  useHasSeenReconcileGuide,
+} from "../reconcile-guide-gate";
+import {
+  type AddAccountChoice,
+  ReconcileAddAccountSheet,
+} from "./reconcile-add-account-sheet";
+import { ReconcileAccountsStep } from "./reconcile-accounts-step";
+import {
+  ReconcileCompareActions,
+  ReconcileCompareStep,
+} from "./reconcile-compare-step";
+import { useReconcileGuidePage } from "./reconcile-guide-page";
+import {
+  type ReasonChoice,
+  type ReasonsSnapshot,
+  ReconcileReasonsSheet,
+} from "./reconcile-reasons-sheet";
+import { ReconcileStartingAmountSheet } from "./reconcile-starting-amount-sheet";
 
-const LABEL_MAX_LENGTH = 100;
-const ACCOUNT_NAME_MAX_LENGTH = 60;
-const CENTS_PER_UNIT = 100;
-const LEADING_MINUS = /^\s*[-−]/;
+type Step = 1 | 2;
 
-type Step = 1 | 2 | 3;
+const FIRST_ROW = freeRow(0, "own");
 
-const FIRST_ROW = emptyRow(0);
-
-/** What the loaded month has pointed, and the period it covers. */
+/** What the loaded month has pointed, and what it leaves to spend. */
 export interface ReconcileMonth {
   realized: RealizedMetrics;
-  rollover: number;
-  period: BudgetPeriodDates;
+  /** « Disponible à dépenser ». */
+  available: number;
   /** Its live rows: pointing one from here moves the gap. */
   budgetLines: BudgetLine[];
   transactions: Transaction[];
@@ -94,9 +112,10 @@ interface ReconcileAccountsSheetProps {
 }
 
 /**
- * The bank's balances against the pointed balance of the month, in three
- * steps: what the accounts hold, what the month has pointed, and the gap. The
- * gap becomes one checked entry — never a saving, never more than one per flow.
+ * The bank's balances against what Pulpe holds as checked, in two steps: what
+ * the accounts hold, then the comparison and what explains the gap. The gap
+ * becomes one checked entry at most — never a saving, never more than one per
+ * comparison.
  *
  * Nothing typed here outlives the sheet: every way out resets it, so the next
  * opening starts from one empty amount. The vault locking under it is not a
@@ -112,18 +131,24 @@ export function ReconcileAccountsSheet({
   month,
   currency,
 }: ReconcileAccountsSheetProps) {
-  const theme = useTheme();
-  const { locale, t } = useTranslation();
+  const { t } = useTranslation();
   const create = useCreateTransaction("reconciliation");
   const follow = useFollowAccounts();
   const toggle = useToggleCheck(budgetId);
-  // Pointed from here and not settled yet: the gap has already moved, so
-  // nothing is written against it before the server keeps the pointing.
-  const [pointingIds, setPointingIds] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
+  // A previous month's item lives in another budget: no row here to flip before the server.
+  const togglePrior = useToggleCheck(null);
+  const checksSettled = useChecksSettled();
+  const writeState = useWriteReconciliationState(budgetId);
+  const payDayOfMonth = useUserSettings().data?.payDayOfMonth ?? null;
+  const [isStartingOpen, setStartingOpen] = useState(false);
+  // What the reasons sheet shows, as step 2 was when it opened it, and from which screen.
+  const [reasons, setReasons] = useState<
+    (ReasonsSnapshot & { screen: ComparisonScreen }) | null
+  >(null);
+  // One check at a time, from the tap to the context read after it: the gap
+  // moves with each one, so nothing is written or ended meanwhile.
+  const [checkingId, setCheckingId] = useState<string | null>(null);
   const [hasPointFailed, setPointFailed] = useState(false);
-  const isPointing = pointingIds.size > 0;
   // Asked before the adjustment is saved: afterwards the server always says yes.
   useEffect(() => {
     if (isVisible) void loadFirstMovementState();
@@ -134,70 +159,126 @@ export function ReconcileAccountsSheet({
   // when « Mon patrimoine » is off: plain lines, nothing written there.
   const [accounts, setAccounts] = useState<typeof linked>(undefined);
   const [step, setStep] = useState<Step>(1);
+  const context = useReconciliationContext(budgetId, isVisible && step === 2);
+  const [before, setBefore] = useState<FiguresBeforeChecks | null>(null);
+  // « Aucune … ne correspond » was tapped in this comparison.
+  const [isDismissed, setDismissed] = useState(false);
+  // The guide opens by itself until it has been seen; « ? » replays it, over
+  // whatever step the person is on, typed rows untouched.
+  const hasSeenGuide = useHasSeenReconcileGuide();
+  const [isGuideRequested, setGuideRequested] = useState(false);
+  const guide = useReconcileGuidePage({
+    currency,
+    source: !isVisible
+      ? null
+      : isGuideRequested
+        ? "help"
+        : hasSeenGuide
+          ? null
+          : "auto",
+    onFinish: () => {
+      markReconcileGuideSeen();
+      setGuideRequested(false);
+    },
+  });
   const [rows, setRows] = useState<AccountRow[]>([FIRST_ROW]);
+  // Ids only go up: a row added after another was removed never inherits its
+  // « field left » state.
+  const [nextId, setNextId] = useState(0);
+  const [isAddOpen, setAddOpen] = useState(false);
+  // The row just added: its field takes the keyboard, once. Cleared as soon as
+  // it has, or the step coming back from the guide or step 2 would take it again.
+  const [focusRowId, setFocusRowId] = useState<number | null>(null);
   // Flagged once the field is left, never mid-keystroke: "12." is on its way
   // to "12.50". It never counts in the total either way.
   const [leftRowIds, setLeftRowIds] = useState<ReadonlySet<number>>(new Set());
-  // `null` follows the language's own default label until the user edits it.
-  const [label, setLabel] = useState<string | null>(null);
-  const nextRowId = useRef(1);
   // `isPending` arrives with the next render; a second tap before it must not
-  // write a second adjustment.
+  // write a second adjustment, nor a second starting amount.
   const isSubmitting = useRef(false);
   // One id per adjustment, replayed on a retry: a request whose answer was lost
   // may have committed, and `createOnce` reads it back instead of writing twice.
   const attempt = useRef<TransactionCreate | null>(null);
+  // The comparison is over; only « Comparer » starts a new one, so a second
+  // « Terminer » in the same render finds it over.
+  const isCompleted = useRef(false);
+  // Its completion, sent once, maybe before it ends (« Oui, c'était déjà là »).
+  const isCompletionSent = useRef(false);
+  // A comparison of this sheet was completed: its balances are saved on close.
+  const hasCompleted = useRef(false);
 
-  const draft =
-    isVisible && accounts === undefined ? reconcileDraft(budgetId) : null;
-  if (draft !== null) {
-    setAccounts(draft.accounts);
-    setRows(draft.rows);
-    setLabel(draft.label);
-  } else if (isVisible && accounts === undefined && linked !== undefined) {
+  if (isVisible && accounts === undefined && linked !== undefined) {
     setAccounts(linked);
-    setRows(seedRows(linked));
+    // A sheet lost to the auto-lock comes back with what was typed.
+    const draft = reconcileDraft(budgetId);
+    const seeded =
+      draft === null
+        ? seedRows(linked?.assets ?? null, readFreeAccounts())
+        : restoreRows(draft.rows, linked);
+    setNextId(nextRowId(seeded));
+    setRows(seeded);
+  }
+  // A sheet rebuilt after the lock: the lock saved nothing, its real close does.
+  useEffect(() => {
+    if (isVisible) {
+      hasCompleted.current = reconcileDraft(budgetId)?.hasCompleted ?? false;
+    }
+  }, [isVisible, budgetId]);
+
+  const summary = summarizeRows(rows);
+  // A refresh keeps the figures on screen; a failed one stops the comparison.
+  const contextData = context.isError ? undefined : context.data;
+  const comparison =
+    step !== 2 ||
+    summary.totalCents === null ||
+    month === null ||
+    contextData === undefined
+      ? null
+      : buildComparison({
+          onAccountsCents: summary.totalCents,
+          realizedBalance: month.realized.realizedBalance,
+          available: month.available,
+          budgetLines: month.budgetLines,
+          transactions: month.transactions,
+          context: contextData,
+          comparedBefore: before?.compared ?? null,
+          realizedBefore: before?.realized ?? null,
+          isDismissed,
+          payDayOfMonth,
+          today: new Date(),
+        });
+  // Offered even when the card is the only account: removing it then goes back to step 1.
+  const oweTotal =
+    summary.hasOwe && comparison !== null && comparison.gap < 0
+      ? summary.oweCents / 100
+      : null;
+  const isBusy =
+    create.isPending || writeState.isPending || checkingId !== null;
+
+  // The accounts I finished with, written to Mon patrimoine. A refusal only
+  // says so: the reconciliation stays done.
+  function followFinishedAccounts() {
+    if (accounts == null) return;
+    const plan = planAccountLinks(rows, accounts.assets);
+    if (!isEmptyPlan(plan)) follow.mutate(plan);
   }
 
-  const adjustmentLabel = label ?? t("home.reconcile.verdict.defaultLabel");
-  // A new account for Mon patrimoine still missing its name or its balance.
-  const hasIncompleteAccount = rows.some(
-    (row) => missingForNewAccount(row) !== null,
-  );
-  const summary = summarizeAccounts(rows.map((row) => row.amountText));
-  const verdict =
-    summary.totalCents === null || month === null
-      ? null
-      : reconciliationVerdict(
-          summary.totalCents,
-          month.realized.realizedBalance,
-        );
-  const adjustment =
-    verdict === null || verdict.kind === "upToDate" ? null : verdict;
-  const isBusy = create.isPending;
-  // Movements the bank may already hold: pointing them, not an adjustment,
-  // closes that part of the gap without counting it twice later.
-  const candidates =
-    adjustment === null || month === null
-      ? []
-      : pointingCandidates(
-          adjustment.kind === "income" ? adjustment.amount : -adjustment.amount,
-          month.budgetLines,
-          month.transactions,
-        );
-  const lineNames = new Map(
-    month?.budgetLines.map((line) => [line.id, line.name]),
-  );
-
+  // Every way out ends here. Mon patrimoine gets the balances once per sheet, as
+  // the rows stand when it closes, and only after a completed comparison.
   function reset() {
+    if (hasCompleted.current) followFinishedAccounts();
+    hasCompleted.current = false;
     keepReconcileDraft(null);
+    setStartingOpen(false);
+    setReasons(null);
+    writeState.reset();
+    setGuideRequested(false);
     setStep(1);
     setAccounts(undefined);
     setRows([FIRST_ROW]);
+    setAddOpen(false);
+    setFocusRowId(null);
     setLeftRowIds(new Set());
-    setLabel(null);
     setPointFailed(false);
-    nextRowId.current = 1;
     isSubmitting.current = false;
     attempt.current = null;
     create.reset();
@@ -207,6 +288,7 @@ export function ReconcileAccountsSheet({
   // write is out, so every exit asks both.
   function dismiss(): boolean {
     if (isBusy || isSubmitting.current) return false;
+    guide?.skip();
     reset();
     onDismiss();
     return true;
@@ -231,7 +313,11 @@ export function ReconcileAccountsSheet({
   const keepUnderLock = useEffectEvent(() => {
     const isLocked = useVaultStore.getState().status === "locked";
     if (!isLocked || !isVisible || accounts === undefined) return;
-    keepReconcileDraft({ budgetId, accounts, rows, label });
+    keepReconcileDraft({
+      budgetId,
+      rows,
+      hasCompleted: hasCompleted.current,
+    });
   });
   useEffect(() => () => keepUnderLock(), []);
 
@@ -241,94 +327,212 @@ export function ReconcileAccountsSheet({
       dismiss();
       return;
     }
-    setStep((step - 1) as Step);
+    setStep(1);
   }
 
+  // Each « Comparer » starts a comparison of its own, read fresh from the server.
   function next() {
-    if (!summary.canContinue || hasIncompleteAccount || step === 3) return;
-    setStep((step + 1) as Step);
+    if (summary.totalCents === null || step === 2) return;
+    // Names and sides stay for next time; « Retirer » forgets a row here.
+    saveFreeAccounts(freeAccountsToRemember(rows));
+    forgetReconciliationContext(budgetId);
+    setBefore(null);
+    setDismissed(false);
+    setReasons(null);
+    isCompleted.current = false;
+    isCompletionSent.current = false;
+    setStep(2);
   }
 
-  function updateRow(id: number, changes: Partial<Omit<AccountRow, "id">>) {
+  function updateRow(
+    id: number,
+    changes: Partial<Omit<AccountRow, "id" | "account">>,
+  ) {
     setRows((current) =>
       current.map((row) => (row.id === id ? { ...row, ...changes } : row)),
     );
   }
 
-  // Most keypads have no minus key, so the sign is a button. It edits the
-  // typed text itself: what the field shows is what gets summed.
-  function toggleNegative(row: AccountRow) {
-    updateRow(row.id, {
-      amountText: LEADING_MINUS.test(row.amountText)
-        ? row.amountText.replace(LEADING_MINUS, "")
-        : `-${row.amountText.trim()}`,
-    });
+  // Seeded and drafted rows took ids of their own: a new one never reuses any.
+  function addRow(row: AccountRow) {
+    const id = nextId;
+    setNextId(id + 1);
+    // A second tap in the same render carries the same id: it adds nothing.
+    setRows((current) =>
+      current.some((existing) => existing.id === id)
+        ? current
+        : [...current, { ...row, id }],
+    );
+    setFocusRowId(id);
   }
 
-  function addAccount() {
-    // Seeded rows took ids of their own: a new one never reuses any.
-    const id = Math.max(nextRowId.current, ...rows.map((row) => row.id + 1));
-    nextRowId.current = id + 1;
-    setRows((current) => [...current, emptyRow(id)]);
+  function choose(choice: AddAccountChoice) {
+    setAddOpen(false);
+    addRow(
+      choice.kind === "asset"
+        ? assetRow(0, choice.asset)
+        : freeRow(0, choice.side),
+    );
   }
 
-  // Completion, and only completion, writes the accounts I finished with to
-  // Mon patrimoine. A refusal only says so: the reconciliation stays done.
-  function followFinishedAccounts() {
-    if (accounts == null) return;
-    const plan = planAccountLinks(rows, accounts);
-    if (isEmptyPlan(plan)) return;
-    follow.mutate({
-      ...plan,
-      currency,
-      categoryName: t("netWorth.starter.accounts"),
-    });
-  }
-
-  function complete(adjustmentKind: "income" | "expense" | "none") {
+  // Once per comparison: the event, and the server unless a state write told it.
+  function markCompleted(
+    adjustmentKind: "income" | "expense" | "none",
+    isServerTold: boolean,
+  ) {
+    if (isCompletionSent.current) return;
+    isCompletionSent.current = true;
+    hasCompleted.current = true;
     captureEvent(ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED, {
       adjustment_kind: adjustmentKind,
     });
+    // A lost completion only asks the « first comparison » question once more.
+    if (!isServerTold) completeReconciliation().catch(() => undefined);
   }
 
-  async function point(transaction: Transaction) {
+  // Ends the comparison. `false` when it already was.
+  function complete(adjustmentKind: "income" | "expense" | "none"): boolean {
+    if (isCompleted.current) return false;
+    isCompleted.current = true;
+    markCompleted(adjustmentKind, false);
+    return true;
+  }
+
+  // One write per answer; the figure moves without a check, so nothing found is measured against it.
+  function writeStartingState(
+    patch: { startingAmount: number; completed?: true },
+    onWritten?: () => void,
+  ) {
+    if (isBusy || isSubmitting.current) return;
+    isSubmitting.current = true;
+    writeState.mutate(patch, {
+      onSuccess: () => {
+        setBefore(forgetComparedBefore);
+        onWritten?.();
+      },
+      onSettled: () => {
+        isSubmitting.current = false;
+      },
+    });
+  }
+
+  // « Oui, c'était déjà là »: the gap becomes money from before Pulpe, and the
+  // comparison completes in the same write. Pulpe now matches.
+  function keepAsStartingAmount() {
+    if (comparison?.screen !== "firstComparison") return;
+    writeStartingState(
+      {
+        startingAmount: moneyDifference(
+          comparison.startingAmount,
+          -comparison.gap,
+        ),
+        completed: true,
+      },
+      () => markCompleted("none", true),
+    );
+  }
+
+  // Corrected or reset from its sheet, which only answers with a changed amount.
+  function saveStartingAmount(amount: number) {
+    setStartingOpen(false);
+    writeStartingState({ startingAmount: amount });
+  }
+
+  // « Voir les autres raisons » and « Non, autre chose ».
+  function showReasons() {
+    if (comparison === null || month === null || isBusy) return;
+    const [partly] = partlySpentBudgetLines(
+      month.budgetLines,
+      month.transactions,
+    );
+    const line = month.budgetLines.find(({ id }) => id === partly?.id);
+    setReasons({
+      screen: comparison.screen,
+      gap: comparison.gap,
+      hasOwe: summary.hasOwe,
+      partlySpent:
+        partly && line
+          ? { ...partly, name: line.name, amount: line.amount }
+          : null,
+      note: comparison.note,
+    });
+  }
+
+  // The sheet only answers; the step does what that answer does here.
+  function answerReasons(choice: ReasonChoice) {
+    const shown = reasons;
+    setReasons(null);
+    if (choice === "addOwe") addOwe();
+    if (choice === "reviewAccounts") back();
+    if (choice === "leave") leave();
+    // The figures or the screen moved while it was open (an item to check came
+    // in, say): the person sees the new comparison instead.
+    if (
+      choice === "noteIncome" &&
+      comparison?.gap === shown?.gap &&
+      comparison?.screen === shown?.screen
+    ) {
+      record();
+    }
+  }
+
+  // [Ajouter ce que je dois]: back to the balances with a new « Je dois » row, focused.
+  function addOwe() {
+    if (isBusy || isSubmitting.current) return;
+    setStep(1);
+    addRow(freeRow(0, "owe"));
+  }
+
+  // The stored item, by id: the server flips it, and it was unchecked when ranked.
+  async function check(row: SuggestionRow) {
+    if (comparison === null || isBusy || isSubmitting.current) return;
     setPointFailed(false);
-    setPointingIds((ids) => new Set(ids).add(transaction.id));
+    setCheckingId(row.id);
+    setBefore((current) => ({
+      realized: current?.realized ?? comparison.realized,
+      compared: current?.compared ?? comparison.compared,
+    }));
     try {
-      await toggle.mutateAsync({
-        source: "transaction",
-        sourceId: transaction.id,
+      // A refused check re-reads too: the rows come back as the server holds them.
+      await (row.monthsAgo === 0 ? toggle : togglePrior).mutateAsync({
+        source: row.source,
+        sourceId: row.id,
       });
       hapticSuccess();
     } catch {
       hapticFailure();
       setPointFailed(true);
     } finally {
-      setPointingIds((ids) => {
-        const next = new Set(ids);
-        next.delete(transaction.id);
-        return next;
-      });
+      // The rows stay put until the month's re-read lands, which may wait behind
+      // another check. Only a previous month's item moves the context: it is read
+      // again, a refused check included, since that answer may be lost after it landed.
+      await Promise.all([
+        checksSettled(),
+        row.monthsAgo === 0 ? null : context.refetch(),
+      ]);
+      setCheckingId(null);
     }
   }
 
   function record() {
-    const name = adjustmentLabel.trim();
-    if (adjustment === null || name === "" || isBusy || isPointing) return;
-    if (isSubmitting.current) return;
+    if (comparison === null || comparison.gap === 0) return;
+    if (isBusy || isSubmitting.current || isCompleted.current) return;
     isSubmitting.current = true;
 
+    const adjustment = {
+      kind: comparison.gap > 0 ? "income" : "expense",
+      amount: Math.abs(comparison.gap),
+    } as const;
     const previous = attempt.current;
     const payload =
       previous !== null &&
-      previous.name === name &&
       previous.amount === adjustment.amount &&
       previous.kind === adjustment.kind
         ? previous
         : {
             ...buildAdjustmentPayload({
               budgetId,
-              name,
+              name: t("home.reconcile.compare.entryName"),
               adjustment,
               now: new Date(),
             }),
@@ -339,30 +543,37 @@ export function ReconcileAccountsSheet({
     create.mutate(payload, {
       onSuccess: () => {
         complete(adjustment.kind);
-        followFinishedAccounts();
         hapticSuccess();
         reset();
         onRecorded();
       },
-      // A refusal keeps the step and the label: retrying is one press.
+      // A refusal keeps the screen: retrying is one press.
       onSettled: () => {
         isSubmitting.current = false;
       },
     });
   }
 
-  // A write already out ends the flow itself, even once a refresh brings the
-  // balance level: Finish waits rather than completing a second time.
-  function finish() {
-    if (isBusy || isPointing || isSubmitting.current) return;
-    if (verdict?.kind !== "upToDate") return;
-    complete("none");
-    followFinishedAccounts();
+  // [Terminer], « Laisser comme ça » and « Non, laisser comme ça ».
+  function leave() {
+    if (comparison === null || isBusy || isSubmitting.current) return;
+    if (!complete("none")) return;
     reset();
     onDismiss();
   }
 
+  function removeOwe() {
+    if (isBusy) return;
+    const kept = rows.filter((row) => row.side !== "owe");
+    setRows(kept);
+    // Another total: what the checks found belonged to the old one.
+    setBefore(forgetComparedBefore);
+    // Nothing typed is left to compare: back to the balances.
+    if (summarizeRows(kept).totalCents === null) setStep(1);
+  }
+
   function viewItemsToCheck() {
+    if (isBusy || isSubmitting.current) return;
     reset();
     onViewItemsToCheck();
   }
@@ -372,387 +583,149 @@ export function ReconcileAccountsSheet({
       <Notice
         visible={create.isError}
         onDismiss={() => create.reset()}
-        wrapperStyle={{ bottom: SPACING.md + 48 }}
+        wrapperStyle={styles.aboveFooterButton}
         testID="reconcile-error-notice"
       >
         {t("budgets.mutations.activity.error")}
       </Notice>
       <Notice
+        visible={writeState.isError}
+        onDismiss={() => writeState.reset()}
+        wrapperStyle={styles.aboveFooterButton}
+        testID="reconcile-state-error-notice"
+      >
+        {t("home.reconcile.stateFailed")}
+      </Notice>
+      <Notice
         visible={hasPointFailed}
         onDismiss={() => setPointFailed(false)}
-        wrapperStyle={{ bottom: SPACING.md + 48 }}
+        wrapperStyle={styles.aboveFooterButton}
         testID="reconcile-point-error-notice"
       >
         {t("home.checking.pointFailure")}
       </Notice>
-      <View style={styles.actions}>
+      {step === 1 ? (
         <Button
-          mode="outlined"
-          onPress={back}
-          disabled={isBusy}
-          style={styles.action}
+          mode="contained"
+          onPress={next}
+          disabled={summary.totalCents === null}
         >
-          {t("home.reconcile.back")}
+          {t("home.reconcile.accounts.compare")}
         </Button>
-        {step < 3 ? (
-          <Button
-            mode="contained"
-            onPress={next}
-            disabled={!summary.canContinue || hasIncompleteAccount}
-            style={styles.action}
-          >
-            {t("home.reconcile.continue")}
-          </Button>
-        ) : verdict?.kind === "upToDate" ? (
-          <Button
-            mode="contained"
-            onPress={finish}
-            disabled={isBusy || isPointing}
-            style={styles.action}
-          >
-            {t("home.reconcile.verdict.finish")}
-          </Button>
-        ) : (
-          <Button
-            mode="contained"
-            onPress={record}
-            disabled={
-              adjustment === null ||
-              isBusy ||
-              isPointing ||
-              adjustmentLabel.trim() === ""
-            }
-            loading={isBusy}
-            style={styles.action}
-          >
-            {t("home.reconcile.verdict.record")}
-          </Button>
-        )}
-      </View>
+      ) : (
+        comparison !== null && (
+          <ReconcileCompareActions
+            comparison={comparison}
+            currency={currency}
+            isBusy={isBusy}
+            isRecording={create.isPending}
+            isSavingState={writeState.isPending}
+            onLeave={leave}
+            onDismiss={() => setDismissed(true)}
+            onRecord={record}
+            onKeep={keepAsStartingAmount}
+            onShowReasons={showReasons}
+          />
+        )
+      )}
     </>
   );
-
-  const muted = { color: theme.colors.onSurfaceVariant };
 
   return (
     <>
       <FormModal
         isVisible={isVisible}
-        onDismiss={dismiss}
-        onBack={back}
+        // Out of a replay, the scrim and ✕ go back to the step, typed values kept.
+        onDismiss={isGuideRequested && guide !== null ? guide.skip : dismiss}
+        onBack={guide === null ? back : guide.skip}
         isBusy={isBusy}
-        title={t("home.reconcile.title")}
-        subtitle={t("home.reconcile.stepOf", { step })}
-        footer={footer}
-      >
-        {step === 1 && (
-          <>
-            <Text variant="titleMedium">
-              {t("home.reconcile.accounts.heading")}
-            </Text>
-            <Text variant="bodyMedium" style={muted}>
-              {t("home.reconcile.accounts.hint")}
-            </Text>
-            {accounts === undefined && <ActivityIndicator />}
-            {rows.map((row, index) => {
-              if (accounts === undefined) return null;
-              const isNegative = LEADING_MINUS.test(row.amountText);
-              const isUnreadable =
-                leftRowIds.has(row.id) &&
-                parseAccountAmount(row.amountText).status === "invalid";
-              const name = row.label.trim();
-              if (accounts !== null) {
-                const { account } = row;
-                return (
-                  <ReconcileLinkedAccountRow
-                    key={row.id}
-                    row={row}
-                    number={index + 1}
-                    asset={
-                      account.kind === "asset"
-                        ? (accounts.find((asset) => asset.id === account.id) ??
-                          null)
-                        : null
-                    }
-                    choices={accountChoices(rows, row.id, accounts)}
-                    currency={currency}
-                    isNegative={isNegative}
-                    isUnreadable={isUnreadable}
-                    canRemove={rows.length > 1}
-                    onChange={(changes) => updateRow(row.id, changes)}
-                    onSelect={(asset) =>
-                      updateRow(row.id, selectAccount(row, asset))
-                    }
-                    onToggleNegative={() => toggleNegative(row)}
-                    onLeaveAmount={() =>
-                      setLeftRowIds((ids) => new Set(ids).add(row.id))
-                    }
-                    onRemove={() =>
-                      setRows((current) =>
-                        current.filter((other) => other.id !== row.id),
-                      )
-                    }
-                  />
-                );
-              }
-              return (
-                <View key={row.id} style={styles.account}>
-                  {index > 0 && (
-                    <TextInput
-                      mode="outlined"
-                      label={t("home.reconcile.accounts.accountName")}
-                      value={row.label}
-                      onChangeText={(value) =>
-                        updateRow(row.id, { label: value })
-                      }
-                      maxLength={ACCOUNT_NAME_MAX_LENGTH}
-                    />
-                  )}
-                  <View style={styles.amountRow}>
-                    <TextInput
-                      mode="outlined"
-                      style={styles.amountInput}
-                      label={t(
-                        index === 0
-                          ? "home.reconcile.accounts.firstAmount"
-                          : "home.reconcile.accounts.amount",
-                      )}
-                      value={row.amountText}
-                      onChangeText={(value) =>
-                        updateRow(row.id, { amountText: value })
-                      }
-                      onBlur={() =>
-                        setLeftRowIds((ids) => new Set(ids).add(row.id))
-                      }
-                      // Signed on Android, so a keypad that has a minus key
-                      // offers it; the sign button covers the ones that do not.
-                      keyboardType="numeric"
-                      error={isUnreadable}
-                      right={
-                        <TextInput.Affix
-                          text={CURRENCY_METADATA[currency].symbol}
-                        />
-                      }
-                    />
-                    <IconButton
-                      icon="plus-minus-variant"
-                      selected={isNegative}
-                      onPress={() => toggleNegative(row)}
-                      accessibilityLabel={t("home.reconcile.accounts.negative")}
-                      accessibilityState={{ selected: isNegative }}
-                    />
-                    {index > 0 && (
-                      <IconButton
-                        icon="trash-can-outline"
-                        onPress={() =>
-                          setRows((current) =>
-                            current.filter((other) => other.id !== row.id),
-                          )
-                        }
-                        accessibilityLabel={
-                          name === ""
-                            ? t("home.reconcile.accounts.removeNumbered", {
-                                index: index + 1,
-                              })
-                            : t("home.reconcile.accounts.removeNamed", { name })
-                        }
-                      />
-                    )}
-                  </View>
-                  {isUnreadable && (
-                    <FieldError visible>
-                      {t("home.reconcile.accounts.invalidAmount")}
-                    </FieldError>
-                  )}
-                </View>
-              );
-            })}
-            <Button
-              mode="text"
-              icon="plus"
-              onPress={addAccount}
-              style={styles.addAccount}
-            >
-              {t("home.reconcile.accounts.addAccount")}
-            </Button>
-            {accounts != null && (
-              <Text variant="bodySmall" style={muted}>
-                {t("home.reconcile.accounts.linkedFootnote")}
-              </Text>
-            )}
-            <View
-              testID="reconcile-total"
-              style={styles.totalRow}
-              accessibilityLiveRegion="polite"
-            >
-              <Text variant="titleSmall">
-                {t("home.reconcile.accounts.total")}
-              </Text>
-              <Amount size="row">
-                {summary.totalCents === null
-                  ? "—"
-                  : formatCurrency(
-                      summary.totalCents / CENTS_PER_UNIT,
-                      currency,
-                    )}
-              </Amount>
-            </View>
-          </>
-        )}
-
-        {step === 2 && month !== null && (
-          <>
-            <Text variant="titleMedium">
-              {t("home.reconcile.realized.heading")}
-            </Text>
-            {/* A period on the calendar month is named by the month alone. */}
-            {month.period.startDate.getDate() !== 1 && (
-              <Text variant="bodyMedium" style={muted}>
-                {t("home.reconcile.realized.period", {
-                  start: formatDayMonth(month.period.startDate, locale),
-                  end: formatDayMonth(month.period.endDate, locale),
-                })}
-              </Text>
-            )}
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: theme.colors.surfaceVariant },
-              ]}
-            >
-              <BreakdownRow
-                label={t("home.reconcile.realized.checkedIncome")}
-                amount={formatCurrency(month.realized.realizedIncome, currency)}
-              />
-              <BreakdownRow
-                label={t("home.reconcile.realized.checkedOutflows")}
-                amount={formatCurrency(
-                  0 - month.realized.realizedExpenses,
-                  currency,
-                )}
-              />
-              <BreakdownRow
-                testID="reconcile-rollover"
-                label={t("home.reconcile.realized.rollover")}
-                amount={formatCurrency(month.rollover, currency)}
-              />
-              <BreakdownRow
-                testID="reconcile-realized-balance"
-                label={t("home.reconcile.realized.balance")}
-                amount={formatCurrency(
-                  month.realized.realizedBalance,
-                  currency,
-                )}
-                isTotal
-              />
-            </View>
-            <Text variant="bodyMedium" style={muted}>
-              {t("home.reconcile.realized.hint")}
-            </Text>
-            <Button mode="text" icon="arrow-right" onPress={viewItemsToCheck}>
-              {t("home.reconcile.realized.viewItemsToCheck")}
-            </Button>
-          </>
-        )}
-
-        {step === 3 &&
-          verdict !== null &&
-          (verdict.kind === "upToDate" ? (
-            <>
-              <Text variant="titleMedium">
-                {t("home.reconcile.verdict.upToDateTitle")}
-              </Text>
-              <Text variant="bodyMedium" style={muted}>
-                {t("home.reconcile.verdict.upToDateMessage")}
-              </Text>
-            </>
+        // The guide has its own title; each step its own question below this name.
+        title={guide === null ? t("home.reconcile.title") : undefined}
+        hasBodyHeading
+        footer={guide === null ? footer : guide.footer}
+        fillsHeight
+        // Step 2 goes back to step 1 by its arrow; the scrim still leaves.
+        showsBackButton={guide === null && step === 2}
+        showsCloseButton={guide === null && step === 1}
+        headerAction={
+          guide !== null ? (
+            guide.skipAction
           ) : (
-            <>
-              <Text variant="titleMedium">
-                {t(
-                  verdict.kind === "income"
-                    ? "home.reconcile.verdict.moreTitle"
-                    : "home.reconcile.verdict.lessTitle",
-                  { amount: formatCurrency(verdict.amount, currency) },
-                )}
-              </Text>
-              {candidates.length > 0 && (
-                <View
-                  style={[
-                    styles.card,
-                    { backgroundColor: theme.colors.surfaceVariant },
-                  ]}
-                >
-                  <Text variant="titleSmall">
-                    {t("home.reconcile.verdict.candidatesTitle")}
-                  </Text>
-                  {candidates.map(({ transaction, remainingGap }) => (
-                    <View key={transaction.id} style={styles.breakdownRow}>
-                      <View style={styles.candidateText}>
-                        <Text variant="bodyMedium">{transaction.name}</Text>
-                        <Text variant="bodySmall" style={muted}>
-                          {`${
-                            (transaction.budgetLineId === null
-                              ? undefined
-                              : lineNames.get(transaction.budgetLineId)) ??
-                            t("home.movements.unplanned")
-                          } · ${
-                            remainingGap === 0
-                              ? t("home.reconcile.verdict.candidateSameAmount")
-                              : t("home.reconcile.verdict.candidateRemaining", {
-                                  amount: formatSignedCurrency(
-                                    remainingGap,
-                                    currency,
-                                  ),
-                                })
-                          }`}
-                        </Text>
-                      </View>
-                      <Amount size="meta">
-                        {formatCurrency(transaction.amount, currency)}
-                      </Amount>
-                      <Button
-                        mode="text"
-                        compact
-                        onPress={() => void point(transaction)}
-                        disabled={isPointing || isBusy}
-                        accessibilityLabel={t(
-                          "home.reconcile.verdict.pointNamed",
-                          { name: transaction.name },
-                        )}
-                      >
-                        {t("home.reconcile.verdict.point")}
-                      </Button>
-                    </View>
-                  ))}
-                </View>
-              )}
-              <Text variant="bodyMedium" style={muted}>
-                {t(
-                  verdict.kind === "income"
-                    ? "home.reconcile.verdict.moreMessage"
-                    : "home.reconcile.verdict.lessMessage",
-                  { amount: formatCurrency(verdict.amount, currency) },
-                )}
-                {candidates.length > 0 &&
-                  ` ${t("home.reconcile.verdict.countsTwice")}`}
-              </Text>
-              <TextInput
-                mode="outlined"
-                label={t("home.reconcile.verdict.label")}
-                value={adjustmentLabel}
-                onChangeText={setLabel}
-                maxLength={LABEL_MAX_LENGTH}
-                error={adjustmentLabel.trim() === ""}
-              />
-              {adjustmentLabel.trim() === "" && (
-                <FieldError visible>
-                  {t("home.reconcile.verdict.labelRequired")}
-                </FieldError>
-              )}
-            </>
-          ))}
+            <IconButton
+              icon="help-circle-outline"
+              disabled={isBusy}
+              onPress={() => {
+                if (!isSubmitting.current) setGuideRequested(true);
+              }}
+              accessibilityLabel={t("home.reconcile.guide.help")}
+              testID="reconcile-guide-help"
+              style={styles.headerButton}
+            />
+          )
+        }
+      >
+        {guide !== null && guide.body}
+        {guide === null && step === 1 && (
+          <ReconcileAccountsStep
+            rows={accounts === undefined ? null : rows}
+            summary={summary}
+            currency={currency}
+            leftRowIds={leftRowIds}
+            focusRowId={focusRowId}
+            onFocusTaken={() => setFocusRowId(null)}
+            onChange={updateRow}
+            onLeaveAmount={(id) => setLeftRowIds((ids) => new Set(ids).add(id))}
+            onRemove={(id) =>
+              setRows((current) => current.filter((row) => row.id !== id))
+            }
+            onAddAccount={() => setAddOpen(true)}
+            onAddOwe={() => addRow(freeRow(0, "owe"))}
+          />
+        )}
+
+        {guide === null && step === 2 && (
+          <ReconcileCompareStep
+            comparison={comparison}
+            isUnavailable={context.isError && !context.isFetching}
+            onRetry={() => void context.refetch()}
+            currency={currency}
+            hasOwe={summary.hasOwe}
+            oweTotal={oweTotal}
+            checkingId={checkingId}
+            isBusy={isBusy}
+            onCheck={(row) => void check(row)}
+            onRemoveOwe={removeOwe}
+            onViewOthers={viewItemsToCheck}
+            onAddOwe={addOwe}
+            onEditStartingAmount={() => setStartingOpen(true)}
+          />
+        )}
       </FormModal>
+      {reasons !== null && (
+        <ReconcileReasonsSheet
+          // Closes with the comparison: a write refused or a context lost takes it too.
+          isVisible={isVisible && step === 2 && comparison !== null}
+          reasons={reasons}
+          currency={currency}
+          onDismiss={() => setReasons(null)}
+          onChoose={answerReasons}
+        />
+      )}
+      {comparison !== null && (
+        <ReconcileStartingAmountSheet
+          isVisible={isVisible && step === 2 && isStartingOpen}
+          amount={comparison.startingAmount}
+          currency={currency}
+          onDismiss={() => setStartingOpen(false)}
+          onSave={saveStartingAmount}
+        />
+      )}
+      <ReconcileAddAccountSheet
+        isVisible={isAddOpen && isVisible}
+        onDismiss={() => setAddOpen(false)}
+        onChoose={choose}
+        groups={addableGroups(accounts, rows, month?.budgetLines ?? [])}
+      />
       <Notice
         visible={follow.isError}
         onDismiss={() => follow.reset()}
@@ -764,44 +737,26 @@ export function ReconcileAccountsSheet({
   );
 }
 
-function BreakdownRow({
-  label,
-  amount,
-  isTotal = false,
-  testID,
-}: {
-  label: string;
-  amount: string;
-  isTotal?: boolean;
-  testID?: string;
-}) {
-  return (
-    <View testID={testID} style={styles.breakdownRow}>
-      <Text variant={isTotal ? "titleSmall" : "bodyMedium"}>{label}</Text>
-      <Amount size={isTotal ? "row" : "meta"}>{amount}</Amount>
-    </View>
-  );
+const styles = StyleSheet.create({
+  // The same 48dp as the sheet's own close button beside it.
+  headerButton: { width: TOUCH_TARGET, height: TOUCH_TARGET, margin: 0 },
+  // A notice clears the footer's first button, one touch target tall.
+  aboveFooterButton: { bottom: SPACING.md + TOUCH_TARGET },
+});
+
+/**
+ * The figures before the first check of a comparison: the realized one struck
+ * through, and the compared one that measures what the checks found.
+ */
+interface FiguresBeforeChecks {
+  compared: number | null;
+  realized: number;
 }
 
-const styles = StyleSheet.create({
-  account: { gap: SPACING.xs },
-  amountRow: { flexDirection: "row", alignItems: "center", gap: SPACING.xxs },
-  amountInput: { flex: 1 },
-  addAccount: { alignSelf: "flex-start" },
-  totalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.sm,
-  },
-  card: { borderRadius: RADIUS.card, padding: SPACING.md, gap: SPACING.sm },
-  breakdownRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.sm,
-  },
-  candidateText: { flex: 1 },
-  actions: { flexDirection: "row", gap: SPACING.sm },
-  action: { flex: 1 },
-});
+// A new starting amount or total keeps the struck figure; what was found
+// waits for the next check (spec.md §4.2).
+function forgetComparedBefore(
+  before: FiguresBeforeChecks | null,
+): FiguresBeforeChecks | null {
+  return before && { ...before, compared: null };
+}

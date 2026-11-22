@@ -17,6 +17,7 @@ const RAW_ENV = {
   POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
   POSTHOG_ENABLED: process.env.EXPO_PUBLIC_POSTHOG_ENABLED,
   AUTO_LOCK_DELAY_MS: process.env.EXPO_PUBLIC_AUTO_LOCK_DELAY_MS,
+  DEV_FEATURE_FLAGS: process.env.EXPO_PUBLIC_DEV_FEATURE_FLAGS,
 } as const;
 
 const APP_ENVIRONMENTS = ["local", "preview", "production"] as const;
@@ -109,6 +110,21 @@ function autoLockDelayMs(environment: AppEnvironment): number {
   return delay;
 }
 
+/**
+ * Flags a local build forces on, as the web's dev override does: PostHog is off
+ * in development, so a gated feature would otherwise never show. Preview and
+ * production ignore the variable, so a forced flag can never ship.
+ */
+function devFeatureFlags(environment: AppEnvironment): readonly string[] {
+  // Typed here: CI has no expo-env.d.ts, so `process.env` reads as `any` there.
+  const flags: string | undefined = RAW_ENV.DEV_FEATURE_FLAGS;
+  if (environment !== "local" || !flags) return [];
+  return flags
+    .split(",")
+    .map((key) => key.trim())
+    .filter((key) => key !== "");
+}
+
 const environment = requiredEnvironment();
 
 export const ENV = {
@@ -133,6 +149,7 @@ export const ENV = {
         }
       : null,
   autoLockDelayMs: autoLockDelayMs(environment),
+  devFeatureFlags: devFeatureFlags(environment),
 } as const;
 
 export const isProduction = ENV.environment === "production";

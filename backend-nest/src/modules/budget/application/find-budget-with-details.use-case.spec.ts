@@ -173,6 +173,14 @@ describe('FindBudgetWithDetailsUseCase — drift history', () => {
     expect(result.history).toBeNull();
   });
 
+  it('reads without history when fresh', async () => {
+    const result = await useCase.execute('cur', USER, { fresh: true });
+
+    expect(result.history).toBeUndefined();
+    expect(repo.fetchAllBudgetsForRollover).not.toHaveBeenCalled();
+    expect(result.previousBudgetId).toBe('jul');
+  });
+
   it('skips the history query off the current pay-day period', async () => {
     const past = makeBudget('past', 6, 2026);
     repo.fetchBudgetData = mock(async () => ({

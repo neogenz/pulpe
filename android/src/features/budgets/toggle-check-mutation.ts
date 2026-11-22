@@ -109,6 +109,33 @@ function reconcileChecks(queryClient: QueryClient, budgetId: string | null) {
 }
 
 /**
+ * Resolves once no check is out and the budgets they re-read have landed, a
+ * failed read included. A check settling behind another one
+ * leaves its re-read to the last, so its own `mutateAsync` resolves before it.
+ */
+export function useChecksSettled(): () => Promise<void> {
+  const queryClient = useQueryClient();
+  const isSettled = () =>
+    queryClient.isMutating({ mutationKey: toggleCheckKeys }) === 0 &&
+    queryClient.isFetching({ queryKey: budgetKeys.all }) === 0;
+
+  return () =>
+    new Promise((resolve) => {
+      const unsubscribes: (() => void)[] = [];
+      const settle = () => {
+        if (!isSettled()) return;
+        unsubscribes.forEach((unsubscribe) => unsubscribe());
+        resolve();
+      };
+      unsubscribes.push(
+        queryClient.getMutationCache().subscribe(settle),
+        queryClient.getQueryCache().subscribe(settle),
+      );
+      settle();
+    });
+}
+
+/**
  * Whether a row's pointing is still on its way to the server — every row in
  * flight, not only the last one tapped. `useMutation`'s own state follows the
  * latest call alone, so pointing a second row while the first was pending

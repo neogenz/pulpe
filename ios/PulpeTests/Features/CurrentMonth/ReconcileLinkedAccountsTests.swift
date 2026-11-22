@@ -7,48 +7,71 @@ import Testing
 struct ReconcileLinkedAccountsTests {
     private let bcge = TestDataFactory.makeAsset(id: "bcge", name: "BCGE", inPulpe: true)
     private let revolut = TestDataFactory.makeAsset(id: "revolut", name: "Revolut")
+    private let card = TestDataFactory.makeAsset(id: "card", name: "Carte", direction: .owe)
 
     // MARK: - Rows
 
-    @Test func followedAccountsSeedOneRowEach_theOthersWaitInTheMenu() {
-        let flow = makeFlow([bcge, revolut])
+    @Test func followedAccountsSeedOneRowEach_theOthersWaitInTheAddSheet() {
+        let flow = makeFlow([bcge, revolut, card])
 
         #expect(flow.accounts.map(\.label) == ["BCGE"])
         #expect(flow.accounts[0].amountText.isEmpty)
         #expect(flow.asset(id: flow.accounts[0].id)?.id == "bcge")
         #expect(flow.linksToNetWorth)
         #expect(flow.linkPlan.isEmpty)
+        #expect(flow.addableAssets(excluding: []).map(\.id) == ["revolut", "card"])
     }
 
-    @Test func monPatrimoineOff_keepsOneEmptyRow_andWritesNothing() {
+    @Test func aFollowedDebtOpensOnTheOwingSide() {
+        let flow = makeFlow([card.followed])
+
+        #expect(flow.accounts.map(\.isOwed) == [true])
+        #expect(flow.hasOwedRow)
+    }
+
+    @Test func monPatrimoineOff_hasFreeRowsOnly_andWritesNothing() {
         let flow = makeFlow(nil)
         flow.accounts[0].amountText = "100"
-        flow.setAddToNetWorth(id: flow.accounts[0].id, true)
         flow.accounts[0].label = "Neon"
 
         #expect(flow.accounts.count == 1)
         #expect(!flow.linksToNetWorth)
+        #expect(flow.addableAssets(excluding: []).isEmpty)
         #expect(flow.linkPlan.isEmpty)
     }
 
-    @Test func anAccountIsOfferedToOneRowOnly() {
-        let flow = makeFlow([bcge, revolut])
-        let added = flow.addAccount()
+    @Test func anItemInTheListOrFedBySavings_isNotOffered() {
+        let flow = makeFlow([bcge, revolut, card])
+        flow.addAsset(revolut)
 
-        #expect(flow.choices(for: added).map(\.id) == ["revolut"])
-        #expect(flow.choices(for: flow.accounts[0].id).map(\.id) == ["bcge", "revolut"])
+        #expect(flow.addableAssets(excluding: ["card"]).isEmpty)
+        #expect(flow.addableAssets(excluding: []).map(\.id) == ["card"])
+    }
+
+    @Test func onlyASavingPrevisionHidesItsItem() {
+        let checking = ReconciliationChecking(
+            items: [], transactions: [],
+            budgetLines: [
+                makeLine(id: "l1", kind: .saving, assetId: "bcge"),
+                makeLine(id: "l2", kind: .expense, assetId: "revolut"),
+                makeLine(id: "l3", kind: .saving, assetId: nil),
+            ],
+            syncingTransactionIds: [], syncingBudgetLineIds: [], toggle: { _ in false }, checkPrior: { _ in false }
+        )
+
+        #expect(checking.savingAssetIds == ["bcge"])
     }
 
     // MARK: - Plan
 
-    @Test func pickingAnAccountOnANewRow_followsItAndRecordsItsBalance() {
+    @Test func addingAnItem_followsItAndRecordsItsBalance() {
         let flow = makeFlow([bcge, revolut])
         flow.accounts[0].amountText = "12300"
-        let added = flow.addAccount()
-        flow.selectAccount(id: added, revolut)
+        let added = flow.addAsset(revolut)
         flow.accounts[1].amountText = "50"
 
         #expect(flow.accounts[1].label == "Revolut")
+        #expect(flow.assetIds[added] == "revolut")
         #expect(flow.linkPlan == .init(
             links: ["revolut"],
             snapshots: [
@@ -57,141 +80,70 @@ struct ReconcileLinkedAccountsTests {
         ))
     }
 
-    @Test func anotherAccountAddedToMonPatrimoine_isCreatedWithoutASnapshotOnTop() {
+    @Test func aFreeRow_writesNothingToMonPatrimoine() {
         let flow = makeFlow([bcge])
-        let added = flow.addAccount()
-        flow.accounts[1].label = " Neon "
-        flow.accounts[1].amountText = "300"
-        flow.setAddToNetWorth(id: added, true)
-
-        #expect(flow.linkPlan == .init(creates: [.init(name: "Neon", value: 300)]))
-    }
-
-    @Test func aTypedLineLeftOutOfMonPatrimoine_writesNothing() {
-        let flow = makeFlow([bcge])
-        flow.addAccount()
+        flow.addFreeAccount(isOwed: false)
         flow.accounts[1].label = "Enveloppe"
         flow.accounts[1].amountText = "40"
 
         #expect(flow.linkPlan.isEmpty)
+        #expect(flow.freeAccountEntries == [.init(name: "Enveloppe", isOwed: false)])
     }
 
     @Test func removingAFollowedRow_stopsFollowingIt_withoutSnapshot() {
         let flow = makeFlow([bcge, revolut])
-        let added = flow.addAccount()
+        flow.addAsset(revolut)
         flow.accounts[1].amountText = "50"
 
-        #expect(flow.canRemoveAccount(id: flow.accounts[0].id))
         flow.removeAccount(id: flow.accounts[0].id)
 
-        #expect(flow.accounts.map(\.id) == [added])
-        #expect(flow.linkPlan == .init(unlinks: ["bcge"]))
+        #expect(flow.accounts.map(\.label) == ["Revolut"])
+        #expect(flow.linkPlan == .init(
+            links: ["revolut"], unlinks: ["bcge"], snapshots: [AssetSnapshotItem(assetId: "revolut", value: 50)]
+        ))
     }
 
-    @Test func turningAFollowedRowIntoAnotherAccount_stopsFollowingIt() {
-        let flow = makeFlow([bcge])
-        flow.selectAccount(id: flow.accounts[0].id, nil)
-
-        #expect(flow.accounts[0].label.isEmpty)
-        #expect(flow.linkPlan == .init(unlinks: ["bcge"]))
-    }
-
-    @Test func negativeRowIsSnapshottedAsNegative_andAnInvalidOneIsNot() {
-        let flow = makeFlow([bcge])
-        flow.accounts[0].amountText = "80.50"
-        flow.accounts[0].isNegative = true
-        #expect(flow.linkPlan.snapshots == [AssetSnapshotItem(assetId: "bcge", value: -80.5)])
+    @Test func aDebtIsSnapshottedAsWhatRemains_andAnInvalidAmountIsNot() {
+        let flow = makeFlow([card.followed])
+        flow.accounts[0].amountText = "800"
+        #expect(flow.linkPlan.snapshots == [AssetSnapshotItem(assetId: "card", value: 800)])
 
         flow.accounts[0].amountText = "abc"
         #expect(flow.linkPlan.isEmpty)
     }
 
-    @Test func theSameAccountOnTwoRows_isSnapshottedOnce() {
-        let flow = makeFlow([bcge])
-        flow.accounts[0].amountText = "10"
-        flow.selectAccount(id: flow.addAccount(), bcge)
-        flow.accounts[1].amountText = "20"
+    @Test func anItemGoneDuringTheLock_comesBackAsAFreeRow_andIsNotWritten() throws {
+        let typed = makeFlow([bcge, revolut.followed])
+        typed.accounts[0].amountText = "3000"
+        typed.accounts[1].amountText = "500"
+        let draft = try #require(typed.draft)
 
-        #expect(flow.linkPlan.snapshots.map(\.assetId) == ["bcge"])
-        #expect(flow.linkPlan.links.isEmpty)
-    }
+        // Revolut was deleted on another device while the app was locked.
+        let restored = makeFlow([bcge], restoring: draft)
 
-    // MARK: - Name
+        #expect(restored.accounts.map(\.label) == ["BCGE", "Revolut"])
+        #expect(restored.accounts.map(\.amountText) == ["3000", "500"])
+        #expect(restored.asset(id: restored.accounts[1].id) == nil)
+        #expect(restored.linkPlan == .init(snapshots: [AssetSnapshotItem(assetId: "bcge", value: 3000)]))
 
-    @Test func addingToMonPatrimoineWithoutAName_cannotFinish() {
-        let flow = makeFlow([])
-        let id = flow.accounts[0].id
-        flow.accounts[0].amountText = "100"
-        flow.setAddToNetWorth(id: id, true)
-
-        #expect(flow.isNameMissing(id: id))
-        #expect(!flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
-        #expect(!flow.canSubmitAdjustment(realizedBalance: 40, of: "b"))
-
-        flow.accounts[0].label = "Neon"
-        #expect(!flow.isNameMissing(id: id))
-        #expect(flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
-    }
-
-    @Test func addingToMonPatrimoineWithoutABalance_cannotFinish() {
-        let flow = makeFlow([bcge])
-        flow.accounts[0].amountText = "100"
-        let id = flow.addAccount()
-        flow.accounts[1].label = "Neon"
-        flow.setAddToNetWorth(id: id, true)
-
-        #expect(flow.isBalanceMissing(id: id))
-        #expect(!flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
-        #expect(!flow.canSubmitAdjustment(realizedBalance: 40, of: "b"))
-
-        flow.accounts[1].amountText = "0"
-        #expect(!flow.isBalanceMissing(id: id))
-        #expect(flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
-    }
-
-    @Test func addingToMonPatrimoine_capsTheNameAtWhatTheAPIAccepts() {
-        let flow = makeFlow([bcge])
-        let id = flow.addAccount()
-        flow.accounts[1].label = String(repeating: "n", count: 140)
-        flow.accounts[1].amountText = "300"
-        flow.setAddToNetWorth(id: id, true)
-
-        #expect(flow.linkPlan.creates.map(\.name.count) == [100])
-    }
-
-    @Test func addingToMonPatrimoineWithAnUnreadableBalance_cannotFinish() {
-        let flow = makeFlow([bcge])
-        flow.accounts[0].amountText = "100"
-        let id = flow.addAccount()
-        flow.accounts[1].label = "Neon"
-        flow.accounts[1].amountText = "abc"
-        flow.setAddToNetWorth(id: id, true)
-
-        #expect(!flow.canConfirmUpToDate(realizedBalance: 100, of: "b"))
-        #expect(!flow.canSubmitAdjustment(realizedBalance: 40, of: "b"))
+        // Unread, nothing is known gone: both rows stay linked, so no name is kept as a free one.
+        #expect(makeFlow(nil, restoring: draft).freeAccountEntries.isEmpty)
     }
 
     // MARK: - Write
 
-    @Test func completion_createsThenLinksThenUnlinksThenOneBatch() async {
+    @Test func completion_linksThenUnlinksThenOneBatch() async {
         let service = MockAssetService()
         let flow = makeFlow([bcge, revolut])
-        flow.removeAccount(id: flow.addAndReturnFirst())
-        flow.selectAccount(id: flow.accounts[0].id, revolut)
-        flow.accounts[0].amountText = "60"
-        flow.addAccount()
-        flow.accounts[1].label = "Neon"
-        flow.accounts[1].amountText = "40"
-        flow.setAddToNetWorth(id: flow.accounts[1].id, true)
-        _ = flow.confirmUpToDate(realizedBalance: 100, of: "b")
+        flow.addAsset(revolut)
+        flow.removeAccount(id: flow.accounts[0].id)
+        flow.accounts[0].amountText = "100"
+        await flow.loadContext()
+        _ = flow.finishWithoutEntry(of: "b")
 
-        await flow.applyAccountLinks(
-            into: AssetStore(service: service), currency: .chf, toastManager: ToastManager()
-        )
+        await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: ToastManager())
 
-        #expect(service.calls == ["createCategory", "create", "update", "update", "snapshots", "get"])
-        #expect(service.lastCreate?.inPulpe == true)
-        #expect(service.lastCreate?.name == "Neon")
+        #expect(service.calls == ["update", "update", "snapshots", "get"])
         #expect(service.updates == [
             "revolut": AssetUpdate(inPulpe: true), "bcge": AssetUpdate(inPulpe: false),
         ])
@@ -203,11 +155,12 @@ struct ReconcileLinkedAccountsTests {
         let toast = ToastManager()
         let flow = makeFlow([bcge, revolut])
         flow.accounts[0].amountText = "40"
-        flow.selectAccount(id: flow.addAccount(), revolut)
+        flow.addAsset(revolut)
         flow.accounts[1].amountText = "60"
-        _ = flow.confirmUpToDate(realizedBalance: 100, of: "b")
+        await flow.loadContext()
+        _ = flow.finishWithoutEntry(of: "b")
 
-        await flow.applyAccountLinks(into: AssetStore(service: service), currency: .chf, toastManager: toast)
+        await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: toast)
 
         #expect(service.calls == ["update", "get"])
         #expect(toast.currentToast?.type == .error)
@@ -219,7 +172,7 @@ struct ReconcileLinkedAccountsTests {
         flow.accounts[0].amountText = "100"
 
         await flow.applyAccountLinks(
-            into: AssetStore(service: service), currency: .chf, toastManager: ToastManager()
+            into: AssetStore(service: service), toastManager: ToastManager()
         )
 
         #expect(service.calls.isEmpty)
@@ -231,31 +184,107 @@ struct ReconcileLinkedAccountsTests {
         let toast = ToastManager()
         let flow = makeFlow([bcge])
         flow.accounts[0].amountText = "100"
-        _ = flow.confirmUpToDate(realizedBalance: 100, of: "b")
+        await flow.loadContext()
+        _ = flow.finishWithoutEntry(of: "b")
 
-        await flow.applyAccountLinks(into: AssetStore(service: service), currency: .chf, toastManager: toast)
+        await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: toast)
 
         #expect(toast.currentToast?.type == .error)
         #expect(flow.isCompleted)
     }
 
-    private func makeFlow(_ accounts: [Asset]?) -> ReconcileAccountsFlow {
+    @Test("« Oui, c'était déjà là » then any exit records the balances once, without Terminer")
+    func keptAsStartingAmount_recordsTheBalancesOnce() async {
+        let service = MockAssetService()
+        let store = AssetStore(service: service)
+        let flow = makeFlow([bcge])
+        flow.accounts[0].amountText = "100"
+        flow.compare()
+        await flow.loadContext()
+
+        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 0, of: "b") == .written)
+        await flow.applyAccountLinks(into: store, toastManager: ToastManager())
+        await flow.applyAccountLinks(into: store, toastManager: ToastManager())
+
+        #expect(!flow.isCompleted)
+        #expect(service.calls == ["snapshots", "get"])
+    }
+
+    @Test("the lock taking the sheet after « Oui » saves nothing; the restored sheet saves once on its real close")
+    func lockAfterKeptAmount_savesOnlyOnTheRealClose() async throws {
+        let service = MockAssetService()
+        let store = AssetStore(service: service)
+        let flow = makeFlow([bcge])
+        flow.accounts[0].amountText = "100"
+        flow.compare()
+        await flow.loadContext()
+        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 0, of: "b") == .written)
+        flow.editAccounts()
+
+        await flow.applyAccountLinks(into: store, toastManager: ToastManager(), isLocked: true)
+        #expect(service.calls.isEmpty)
+
+        let draft = try #require(flow.draft)
+        #expect(draft.didCompleteComparison)
+        let restored = makeFlow([bcge], restoring: draft)
+        restored.accounts[0].amountText = "150"
+        await restored.applyAccountLinks(into: store, toastManager: ToastManager())
+        await restored.applyAccountLinks(into: store, toastManager: ToastManager())
+
+        #expect(service.calls == ["snapshots", "get"])
+        #expect(service.snapshotItems == [AssetSnapshotItem(assetId: "bcge", value: 150)])
+    }
+
+    @Test("two comparisons completed in one sheet record the balances once, as the rows stand at the close")
+    func twoComparisons_recordTheLastBalancesOnce() async {
+        let service = MockAssetService()
+        let flow = makeFlow([bcge])
+        flow.accounts[0].amountText = "4000"
+        flow.compare()
+        await flow.loadContext()
+        #expect(await flow.keepGapAsStartingAmount(realizedBalance: 0, of: "b") == .written)
+
+        flow.editAccounts()
+        flow.accounts[0].amountText = "4200"
+        flow.compare()
+        await flow.loadContext()
+        #expect(flow.finishWithoutEntry(of: "b"))
+        await flow.applyAccountLinks(into: AssetStore(service: service), toastManager: ToastManager())
+
+        #expect(service.calls == ["snapshots", "get"])
+        #expect(service.snapshotItems == [AssetSnapshotItem(assetId: "bcge", value: 4200)])
+    }
+
+    private func makeLine(id: String, kind: TransactionKind, assetId: String?) -> BudgetLine {
+        BudgetLine(
+            id: id, budgetId: "b", templateLineId: nil, savingsGoalId: nil, name: id, amount: 100,
+            kind: kind, recurrence: .fixed, isManuallyAdjusted: false, checkedAt: nil,
+            createdAt: TestDataFactory.fixedDate, updatedAt: TestDataFactory.fixedDate, assetId: assetId
+        )
+    }
+
+    private func makeFlow(
+        _ accounts: [Asset]?,
+        restoring draft: ReconcileAccountsFlow.Draft? = nil
+    ) -> ReconcileAccountsFlow {
         ReconcileAccountsFlow(
             budgetId: "b",
-            adjustmentLabel: "Ajustement",
+            entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
+            fetchContext: { _ in TestDataFactory.createReconciliationContext() },
+            // The server takes every answer: « Oui, c'était déjà là » completes the comparison.
+            updateState: { ReconciliationState(startingAmount: $0.startingAmount ?? 0, hasCompletedComparison: true) },
             onAdjustmentCreated: { _ in },
             onCompleted: { _ in },
-            netWorthAccounts: accounts
+            netWorthAccounts: accounts,
+            restoring: draft
         )
     }
 }
 
-private extension ReconcileAccountsFlow {
-    /// Adds a row so the first one can go, and returns the first one's id.
-    func addAndReturnFirst() -> AccountReconciliation.Account.ID {
-        let first = accounts[0].id
-        addAccount()
-        return first
+private extension Asset {
+    /// The same item, followed in Pulpe.
+    var followed: Asset {
+        TestDataFactory.makeAsset(id: id, categoryId: categoryId, name: name, direction: direction, inPulpe: true)
     }
 }

@@ -11,6 +11,8 @@ import {
   linkedSignal,
   LOCALE_ID,
   signal,
+  viewChild,
+  type ElementRef,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -112,7 +114,14 @@ import {
         class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
       >
         <div class="min-w-0 flex-1">
-          <h2 class="text-title-large font-medium">
+          <!-- Focused from « Voir les autres à cocher » of the comparison;
+               the scroll margin clears the phone's sticky toolbar and breadcrumb. -->
+          <h2
+            #itemsTitle
+            id="budget-items-title"
+            tabindex="-1"
+            class="scroll-mt-32 text-title-large font-medium focus:outline-none"
+          >
             {{ 'budget.envelopes' | transloco }}
           </h2>
 
@@ -397,6 +406,21 @@ export class BudgetItemsContainer {
     computation: () => [],
   });
   readonly #selectedTagIdSet = computed(() => new Set(this.selectedTagIds()));
+  private readonly itemsTitle =
+    viewChild.required<ElementRef<HTMLElement>>('itemsTitle');
+
+  /**
+   * « Voir les autres à cocher » of the comparison: every item still to check,
+   * whatever the search or the tags hid, with the list title in view and focused.
+   */
+  revealItemsToCheck(): void {
+    this.store.setIsShowingOnlyUnchecked(true);
+    this.store.setSearchText('');
+    this.selectedTagIds.set([]);
+    const title = this.itemsTitle().nativeElement;
+    title.focus({ preventScroll: true });
+    title.scrollIntoView({ block: 'start' });
+  }
 
   readonly allUserTags = computed(() =>
     [...(this.#tagStore.tags.value() ?? [])].sort((a, b) =>

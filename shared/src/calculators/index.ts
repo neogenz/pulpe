@@ -33,13 +33,27 @@ export {
 } from './balance-trajectory.js';
 export { splitTotalPreserving } from './spread-split.js';
 export {
+  availableAfterNote,
+  comparedFigure,
+  comparisonScreen,
+  gapClosedByChecks,
+  isSalaryMaybeEarly,
+  matchedBreakdown,
   parseAccountAmount,
-  pointingCandidates,
+  partlySpentBudgetLines,
+  pointingEffects,
+  rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
   type AccountAmount,
   type AccountsSummary,
-  type PointingCandidate,
+  type ComparisonScreen,
+  type MatchedBreakdown,
+  type PartlySpentBudgetLine,
+  type PointingSource,
+  type PointingTarget,
+  type PriorPointingItem,
+  type RankedPointingCandidate,
   type ReconciliationVerdict,
 } from './account-reconciliation.js';
 export {

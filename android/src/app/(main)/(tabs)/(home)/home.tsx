@@ -223,7 +223,7 @@ export default function HomeScreen() {
     currentMonth.status === "ready" &&
     currentMonth.viewModel !== null &&
     details?.budget.id === currentMonth.budgetId
-      ? { details, realized: currentMonth.viewModel.realized }
+      ? { details, viewModel: currentMonth.viewModel }
       : null;
   // A lock took « Comparer avec mes comptes » away mid-way: it opens again on
   // the month it was made on, with what was typed.
@@ -239,9 +239,8 @@ export default function HomeScreen() {
   const reconcileMonth =
     loadedMonth !== null && loadedMonth.details.budget.id === reconcileBudgetId
       ? {
-          realized: loadedMonth.realized,
-          rollover: loadedMonth.details.budget.rollover ?? 0,
-          period,
+          realized: loadedMonth.viewModel.realized,
+          available: loadedMonth.viewModel.metrics.remaining,
           budgetLines: loadedMonth.details.budgetLines,
           transactions: loadedMonth.details.transactions,
         }
@@ -263,7 +262,7 @@ export default function HomeScreen() {
         onRecordFailed={() => setNotice({ kind: "reconcileFailure" })}
         onViewItemsToCheck={() => {
           setReconcileBudgetId(null);
-          push(`/budget/${currentMonth.budgetId}`);
+          push("/to-point");
         }}
         // Only read while open, which takes a captured budget.
         budgetId={reconcileBudgetId ?? ""}

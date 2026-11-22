@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Resolves my accounts of the user's currency, followed or not, before the reconciliation
-/// sheet is built, since its flow seeds its rows once. Flag off or a failed read: `nil`, the
-/// sheet opens on one empty row as it always did and writes nothing to « Mon patrimoine ».
+/// Resolves my accounts and what I owe, in the user's currency, followed or not, before the
+/// reconciliation sheet is built, since its flow seeds its rows once. Flag off or a failed read:
+/// `nil`, the sheet has free rows only and writes nothing to « Mon patrimoine ».
 struct ReconcileLinkedAccountsGate<Content: View>: View {
     @ViewBuilder let content: ([Asset]?) -> Content
 
@@ -25,7 +25,7 @@ struct ReconcileLinkedAccountsGate<Content: View>: View {
                     await assetStore.loadIfNeeded()
                     accounts = assetStore.hasError
                         ? nil
-                        : assetStore.ownAccounts(currency: userSettingsStore.currency)
+                        : assetStore.activeAssets.filter { $0.currency == userSettingsStore.currency }
                     isResolved = true
                 }
         }

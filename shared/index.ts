@@ -154,6 +154,14 @@ export {
   assetCategoryResponseSchema,
   assetCategoryDeleteResponseSchema,
 
+  // Account reconciliation
+  reconciliationPriorItemSchema,
+  reconciliationStateSchema,
+  reconciliationContextSchema,
+  reconciliationContextResponseSchema,
+  updateReconciliationStateSchema,
+  reconciliationStateResponseSchema,
+
   // Budget Line schemas
   budgetLineSchema,
   budgetLineCreateSchema,
@@ -298,13 +306,27 @@ export {
 } from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
+  availableAfterNote,
+  comparedFigure,
+  comparisonScreen,
+  gapClosedByChecks,
+  isSalaryMaybeEarly,
+  matchedBreakdown,
   parseAccountAmount,
-  pointingCandidates,
+  partlySpentBudgetLines,
+  pointingEffects,
+  rankedPointingCandidates,
   reconciliationVerdict,
   summarizeAccounts,
   type AccountAmount,
   type AccountsSummary,
-  type PointingCandidate,
+  type ComparisonScreen,
+  type MatchedBreakdown,
+  type PartlySpentBudgetLine,
+  type PointingSource,
+  type PointingTarget,
+  type PriorPointingItem,
+  type RankedPointingCandidate,
   type ReconciliationVerdict,
 } from './src/calculators/index.js';
 export {
@@ -555,6 +577,14 @@ export type {
   AssetSnapshotsResponse,
   AssetCategoryResponse,
   AssetCategoryDeleteResponse,
+
+  // Account reconciliation types
+  ReconciliationPriorItem,
+  ReconciliationState,
+  ReconciliationContext,
+  ReconciliationContextResponse,
+  UpdateReconciliationState,
+  ReconciliationStateResponse,
 
   // Budget Line types
   BudgetLine,

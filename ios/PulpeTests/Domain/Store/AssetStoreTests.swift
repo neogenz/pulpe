@@ -140,6 +140,5 @@ struct AssetStoreTests {
 
         #expect(store.archivedAssets.map(\.id) == ["old"])
         #expect(store.activeAssets(direction: .owe).map(\.id) == ["debt"])
-        #expect(store.ownAccounts(currency: .chf).map(\.id) == ["own-chf", "own-chf-unfollowed"])
     }
 }

@@ -184,6 +184,7 @@ describe('read tools · number concordance', () => {
   it('prints the month totals the shared budget formulas produce', async () => {
     const budgets = {
       readMonth: async () => MONTH,
+      readBudget: async () => null,
       listMonths: async () => [],
     } satisfies BudgetMonthReadPort;
 

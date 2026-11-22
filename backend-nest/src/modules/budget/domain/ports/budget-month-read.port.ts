@@ -22,6 +22,8 @@ export interface BudgetMonthSummary {
 export interface BudgetMonthReadPort {
   /** `null` when the user has no budget for that period. */
   readMonth(month: number, year: number): Promise<BudgetWithDetails | null>;
+  /** `null` when the id is not one of the user's budgets. */
+  readBudget(id: string): Promise<BudgetWithDetails | null>;
   /** Newest months first, totals included. */
   listMonths(limit: number): Promise<BudgetMonthSummary[]>;
 }

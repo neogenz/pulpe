@@ -52,6 +52,7 @@ const MONTH = {
 function setup() {
   const budgets = {
     readMonth: async () => MONTH,
+    readBudget: async () => null,
     listMonths: async () => [],
   } satisfies BudgetMonthReadPort;
   const list = mock(

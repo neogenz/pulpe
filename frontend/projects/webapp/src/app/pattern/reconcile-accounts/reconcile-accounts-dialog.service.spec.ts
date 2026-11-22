@@ -4,7 +4,6 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogConfig } from '@angular/material/dialog';
 import { of, Subject, throwError } from 'rxjs';
 import {
-  getBudgetPeriodDates,
   type Asset,
   type NetWorth,
   type SupportedCurrency,
@@ -13,10 +12,12 @@ import {
 import { createMockPostHogService } from '@app/testing/mock-posthog';
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
+import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { createMockDataCache } from '@core/testing';
 import {
   ReconcileAccountsDialog,
   type ReconcileAccountsDialogData,
+  type RealizedPosition,
 } from './reconcile-accounts-dialog';
 import { ReconcileAccountsDialogService } from './reconcile-accounts-dialog.service';
 
@@ -54,7 +55,11 @@ function makeNetWorth(assets: Asset[]): NetWorth {
 const UBS = makeAsset();
 
 function setup(
-  options: { isFlagOn?: boolean; currency?: SupportedCurrency } = {},
+  options: {
+    isFlagOn?: boolean;
+    isGuideSeen?: boolean;
+    currency?: SupportedCurrency;
+  } = {},
 ) {
   const cache = createMockDataCache();
   let stored: { data: NetWorth; fresh: boolean } | null = null;
@@ -68,6 +73,13 @@ function setup(
   const dialog = { open: vi.fn() };
   const postHog = createMockPostHogService();
   postHog.isFeatureEnabled.mockReturnValue(options.isFlagOn ?? true);
+  let isGuideSeen = options.isGuideSeen ?? false;
+  const storage = {
+    get: vi.fn(() => (isGuideSeen ? true : null)),
+    set: vi.fn(() => {
+      isGuideSeen = true;
+    }),
+  };
 
   TestBed.configureTestingModule({
     providers: [
@@ -75,15 +87,20 @@ function setup(
       { provide: MatDialog, useValue: dialog },
       { provide: AssetApi, useValue: assetApi },
       { provide: PostHogService, useValue: postHog },
+      { provide: StorageService, useValue: storage },
     ],
   });
 
-  const data: Omit<ReconcileAccountsDialogData, 'netWorth'> = {
-    realized: signal(null),
+  const realized = signal<RealizedPosition | null>({
+    balance: 0,
+    available: 0,
+  });
+  const data: Omit<ReconcileAccountsDialogData, 'netWorth' | 'showGuide'> = {
+    budgetId: '11111111-1111-4111-8111-111111111111',
+    realized,
     ledger: signal(null),
-    pointTransaction: vi.fn(),
+    checkItem: vi.fn(),
     currency: signal(options.currency ?? 'CHF'),
-    periodDates: signal(getBudgetPeriodDates(11, 2026)),
     recordAdjustment: vi.fn(),
     viewItemsToCheck: vi.fn(),
   };
@@ -101,6 +118,8 @@ function setup(
     assetApi,
     dialog,
     postHog,
+    storage,
+    realized,
     data,
     openedData,
     seed(assets: Asset[]) {
@@ -116,11 +135,42 @@ describe('ReconcileAccountsDialogService', () => {
     TestBed.resetTestingModule();
   });
 
-  it('should open at once without « Mon patrimoine » when the flag is off', () => {
+  it('should open on the guide the first time only, remembering it at once', async () => {
+    const view = setup({ isFlagOn: false });
+
+    await view.service.open(view.data, false);
+    await view.service.open(view.data, false);
+
+    const shown = view.dialog.open.mock.calls.map(
+      ([, config]) => config.data.showGuide,
+    );
+    expect(shown).toEqual([true, false]);
+    expect(view.storage.set).toHaveBeenCalledExactlyOnceWith(
+      STORAGE_KEYS.RECONCILE_GUIDE_SEEN,
+      true,
+    );
+  });
+
+  it('should neither open nor use up the first visit when the month changed while the accounts loaded', async () => {
+    const view = setup();
+    const response = new Subject<{ success: true; data: NetWorth }>();
+    view.assetApi.getNetWorth$.mockReturnValue(response);
+
+    const opening = view.service.open(view.data, false);
+    view.realized.set(null);
+    response.next({ success: true, data: makeNetWorth([UBS]) });
+    response.complete();
+    await opening;
+
+    expect(view.dialog.open).not.toHaveBeenCalled();
+    expect(view.storage.set).not.toHaveBeenCalled();
+  });
+
+  it('should open without « Mon patrimoine » nor any request when the flag is off', async () => {
     const view = setup({ isFlagOn: false });
     view.seed([UBS]);
 
-    void view.service.open(view.data, false);
+    await view.service.open(view.data, false);
 
     expect(view.dialog.open).toHaveBeenCalledTimes(1);
     expect(view.dialog.open).toHaveBeenCalledWith(
@@ -131,13 +181,14 @@ describe('ReconcileAccountsDialogService', () => {
     expect(view.assetApi.getNetWorth$).not.toHaveBeenCalled();
   });
 
-  it('should offer every active own account of the budget currency, followed or not', async () => {
+  it('should offer every active own and owe item of the budget currency, followed or not', async () => {
     const view = setup();
     const livret = makeAsset({
       id: 'a-livret',
       name: 'Livret',
       inPulpe: false,
     });
+    const debt = makeAsset({ id: 'a-debt', name: 'Prêt', direction: 'owe' });
     view.seed([
       UBS,
       livret,
@@ -147,12 +198,12 @@ describe('ReconcileAccountsDialogService', () => {
         name: 'Ancien',
         archivedAt: '2026-10-01T00:00:00.000Z',
       }),
-      makeAsset({ id: 'a-debt', name: 'Prêt', direction: 'owe' }),
+      debt,
     ]);
 
     await view.service.open(view.data, false);
 
-    expect(view.openedData()?.netWorth?.accounts).toEqual([UBS, livret]);
+    expect(view.openedData()?.netWorth?.items).toEqual([UBS, livret, debt]);
   });
 
   it('should follow the currency of the budget', async () => {
@@ -162,7 +213,7 @@ describe('ReconcileAccountsDialogService', () => {
 
     await view.service.open(view.data, false);
 
-    expect(view.openedData()?.netWorth?.accounts).toEqual([eur]);
+    expect(view.openedData()?.netWorth?.items).toEqual([eur]);
   });
 
   it('should read through the shared cache and skip the request when it is fresh', async () => {
@@ -206,7 +257,7 @@ describe('ReconcileAccountsDialogService', () => {
     await opening;
 
     expect(view.dialog.open).toHaveBeenCalledTimes(1);
-    expect(view.openedData()?.netWorth?.accounts).toEqual([UBS]);
+    expect(view.openedData()?.netWorth?.items).toEqual([UBS]);
   });
 
   it('should frame the dialog full-height on a phone and centred elsewhere', async () => {
@@ -220,7 +271,10 @@ describe('ReconcileAccountsDialogService', () => {
     );
     expect(phone.panelClass).toBe('full-screen-dialog');
     expect(phone.height).toBe('100dvh');
+    // Material keeps 80vw as its default otherwise: margins on a phone.
+    expect(phone.maxWidth).toBe('100dvw');
     expect(desktop.panelClass).toBeUndefined();
     expect(desktop.width).toBe('560px');
+    expect(desktop.position).toEqual({ top: '64px' });
   });
 });

@@ -37,7 +37,11 @@ export class FindBudgetWithDetailsUseCase {
   async execute(
     budgetId: string,
     user: AuthenticatedUser,
+    { fresh = false }: { fresh?: boolean } = {},
   ): Promise<BudgetWithDetails> {
+    // `fresh`: a read racing a toggle could otherwise put the old state back in the cache.
+    // It also skips the history, which the comparison refresh never reads.
+    if (fresh) return this.fetchBudgetWithDetails(budgetId, user, false);
     const clientKeyHash = user.clientKey.toString('hex').slice(0, 16);
     const cacheKey = `budgets:detail:${clientKeyHash}:${budgetId}`;
     return this.cacheService.getOrSet(user.id, cacheKey, 30_000, () =>
@@ -48,6 +52,7 @@ export class FindBudgetWithDetailsUseCase {
   private async fetchBudgetWithDetails(
     budgetId: string,
     user: AuthenticatedUser,
+    withHistory = true,
   ): Promise<BudgetWithDetails> {
     const payDayOfMonth = user.payDayOfMonth ?? PAY_DAY_MIN;
     const { budget, budgetLines, transactions } =
@@ -64,10 +69,11 @@ export class FindBudgetWithDetailsUseCase {
       historyMs = performance.now() - start;
       return result;
     };
+    const noHistory = { history: undefined, checkingDays: undefined };
 
     const [rolloverData, history] = await Promise.all([
       this.recalculateUseCase.getRollover(budgetId, payDayOfMonth),
-      timedHistory(),
+      withHistory ? timedHistory() : noHistory,
     ]);
 
     this.logger.info(

@@ -1,6 +1,6 @@
 import { CURRENCY_METADATA, type SupportedCurrency } from "pulpe-shared";
-import { useState } from "react";
-import { StyleSheet } from "react-native";
+import { type Ref, useState } from "react";
+import { StyleSheet, type TextInput as NativeTextInput } from "react-native";
 import { TextInput } from "react-native-paper";
 
 import { translate } from "@/core/i18n/i18n";
@@ -13,6 +13,9 @@ import {
   seedAmountText,
 } from "./money";
 import { DISPLAY_FAMILY, TABULAR_DIGITS } from "./theme";
+
+/** What a sheet holds to focus the field itself (`FormModal`'s `onShow`). */
+export type AmountFieldHandle = NativeTextInput;
 
 export function amountFieldAccessibilityLabel(
   t: typeof translate,
@@ -45,6 +48,7 @@ export function AmountField({
   onChange,
   autoFocus = false,
   isProminent = false,
+  ref,
 }: {
   label: string;
   placeholder?: string;
@@ -53,12 +57,14 @@ export function AmountField({
   onChange: (amount: number | null) => void;
   autoFocus?: boolean;
   isProminent?: boolean;
+  ref?: Ref<AmountFieldHandle>;
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState(() => seedAmountText(amount));
 
   return (
     <TextInput
+      ref={ref}
       mode="outlined"
       label={label}
       placeholder={placeholder}

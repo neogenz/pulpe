@@ -586,6 +586,26 @@ export const ERROR_DEFINITIONS = {
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
 
+  // Account reconciliation
+  RECONCILIATION_BUDGET_NOT_FOUND: {
+    code: API_ERROR_CODES.RECONCILIATION_BUDGET_NOT_FOUND,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Budget with ID '${details.id}' not found`
+        : 'Budget not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
+  RECONCILIATION_FETCH_FAILED: {
+    code: API_ERROR_CODES.RECONCILIATION_FETCH_FAILED,
+    message: () => 'Failed to fetch the reconciliation state',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  RECONCILIATION_UPDATE_FAILED: {
+    code: API_ERROR_CODES.RECONCILIATION_UPDATE_FAILED,
+    message: () => 'Failed to update the reconciliation state',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+
   // Budget Line Errors
   BUDGET_LINE_NOT_FOUND: {
     code: API_ERROR_CODES.BUDGET_LINE_NOT_FOUND,

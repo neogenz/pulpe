@@ -624,9 +624,10 @@ describe('SupabaseEncryptionKeyRepository', () => {
       assetSnapshots: [
         { id: '8a0f6c80-1234-4e5f-89ab-222222222222', value: 'snapshot' },
       ],
+      startingAmount: 'starting',
     };
 
-    it('rekeys through the v3 RPC with the asset snapshots and the canary', async () => {
+    it('rekeys through the v4 RPC with the starting amount and the canary', async () => {
       const rpc = mock(() => Promise.resolve({ data: null, error: null }));
       (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
         () => ({ rpc }),
@@ -636,9 +637,10 @@ describe('SupabaseEncryptionKeyRepository', () => {
 
       expect(rpc).toHaveBeenCalledTimes(1);
       expect(rpc).toHaveBeenCalledWith(
-        'rekey_user_encrypted_data_with_asset_snapshots',
+        'rekey_user_encrypted_data_with_starting_amount',
         {
           p_user_id: USER_ID,
+          p_starting_amount: 'starting',
           p_asset_snapshots: payloads.assetSnapshots,
           p_plan_withdrawals: payloads.planWithdrawals,
           p_budget_lines: [],

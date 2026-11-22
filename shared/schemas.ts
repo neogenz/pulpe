@@ -3220,3 +3220,65 @@ export const assetCategoryDeleteResponseSchema = deleteResponseSchema;
 export type AssetCategoryDeleteResponse = z.infer<
   typeof assetCategoryDeleteResponseSchema
 >;
+
+// « Comparer avec mes comptes »
+
+/** An unchecked item of one of the two previous months. `effect` is what pointing it moves in the compared figure. */
+export const reconciliationPriorItemSchema = z.object({
+  id: z.uuid(),
+  source: z.enum(['transaction', 'budgetLine']),
+  budgetId: z.uuid(),
+  name: z.string(),
+  amount: z.number(),
+  kind: transactionKindSchema,
+  monthsAgo: z.union([z.literal(1), z.literal(2)]),
+  effect: z.number(),
+});
+export type ReconciliationPriorItem = z.infer<
+  typeof reconciliationPriorItemSchema
+>;
+
+export const reconciliationStateSchema = z.object({
+  startingAmount: z.number(),
+  hasCompletedComparison: z.boolean(),
+});
+export type ReconciliationState = z.infer<typeof reconciliationStateSchema>;
+
+export const reconciliationContextSchema = reconciliationStateSchema.extend({
+  priorCorrection: z.number(),
+  priorItems: z.array(reconciliationPriorItemSchema),
+});
+export type ReconciliationContext = z.infer<typeof reconciliationContextSchema>;
+
+export const reconciliationContextResponseSchema = createSuccessResponse(
+  reconciliationContextSchema,
+);
+export type ReconciliationContextResponse = z.infer<
+  typeof reconciliationContextResponseSchema
+>;
+
+const MAX_RECONCILIATION_AMOUNT = 999_999_999.99;
+
+export const updateReconciliationStateSchema = z
+  .strictObject({
+    // The range the clients can type: nine digits of units, two of cents.
+    startingAmount: z
+      .number()
+      .min(-MAX_RECONCILIATION_AMOUNT)
+      .max(MAX_RECONCILIATION_AMOUNT)
+      .optional(),
+    completed: z.literal(true).optional(),
+  })
+  .refine((patch) => Object.keys(patch).length > 0, {
+    error: 'Au moins un champ à modifier est requis.',
+  });
+export type UpdateReconciliationState = z.infer<
+  typeof updateReconciliationStateSchema
+>;
+
+export const reconciliationStateResponseSchema = createSuccessResponse(
+  reconciliationStateSchema,
+);
+export type ReconciliationStateResponse = z.infer<
+  typeof reconciliationStateResponseSchema
+>;

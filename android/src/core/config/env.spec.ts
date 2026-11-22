@@ -44,3 +44,27 @@ describe("service URL configuration", () => {
     expect(loadEnv).toThrow("must use HTTPS");
   });
 });
+
+describe("developer feature flags", () => {
+  afterEach(() => {
+    delete process.env.EXPO_PUBLIC_APP_ENV;
+    delete process.env.EXPO_PUBLIC_API_BASE_URL;
+    delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+    delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    delete process.env.EXPO_PUBLIC_DEV_FEATURE_FLAGS;
+  });
+
+  it("lists the keys a local build forces on", () => {
+    setRequiredEnv("local", "http://localhost:3000");
+    process.env.EXPO_PUBLIC_DEV_FEATURE_FLAGS = "net_worth, other ,";
+
+    expect(loadEnv().devFeatureFlags).toEqual(["net_worth", "other"]);
+  });
+
+  it.each(["preview", "production"] as const)("ignores them in %s", (name) => {
+    setRequiredEnv(name, "https://api.pulpe.app");
+    process.env.EXPO_PUBLIC_DEV_FEATURE_FLAGS = "net_worth";
+
+    expect(loadEnv().devFeatureFlags).toEqual([]);
+  });
+});

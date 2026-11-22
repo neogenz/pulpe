@@ -4,8 +4,10 @@ export {
   STORAGE_SCHEMAS,
   TOUR_SCHEMA_CONFIG,
   completeProfileDraftSchema,
+  freeAccountsSchema,
   getSchemaConfig,
   type CompleteProfileDraft,
+  type FreeAccount,
 } from './storage-schemas';
 export {
   STORAGE_MIGRATIONS,

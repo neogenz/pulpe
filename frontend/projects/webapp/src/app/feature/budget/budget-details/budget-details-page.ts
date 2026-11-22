@@ -7,6 +7,8 @@ import {
   computed,
   effect,
   isDevMode,
+  viewChild,
+  afterRenderEffect,
 } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { formatLocalDate } from '@core/date/format-local-date';
@@ -18,11 +20,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { take } from 'rxjs';
 import { DatePipe } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { BreadcrumbState } from '@core/shell/breadcrumb-state';
-import { ROUTES } from '@core/routing/routes-constants';
+import { REVEAL_ITEMS_TO_CHECK, ROUTES } from '@core/routing/routes-constants';
 import { formatDate } from 'date-fns';
 import { dateFnsLocaleFor } from '@core/locale';
 import { BaseLoading } from '@ui/loading';
@@ -40,7 +44,6 @@ import {
 import {
   type BudgetDeletionImpact,
   formatBudgetPeriod,
-  getBudgetPeriodDates,
   transactionCreateSchema,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -144,6 +147,11 @@ export default class BudgetDetailsPage {
   readonly #transloco = inject(TranslocoService);
   readonly #reconcileAccountsDialog = inject(ReconcileAccountsDialogService);
   readonly #breakpoints = inject(BreakpointObserver);
+  readonly #dialog = inject(MatDialog);
+  private readonly itemsList = viewChild(BudgetItemsContainer);
+  // Read once: the page is built while the navigation that opens it is current.
+  #revealItemsToCheck =
+    this.#router.currentNavigation()?.extras.info === REVEAL_ITEMS_TO_CHECK;
   #isDeletingMonth = false;
 
   protected readonly currencyLocale = computed(
@@ -195,6 +203,14 @@ export default class BudgetDetailsPage {
       this.#loadingIndicator.setLoading(false);
     });
 
+    // Home's « Voir les autres à cocher » lands on the list once it has rendered.
+    afterRenderEffect(() => {
+      const list = this.itemsList();
+      if (!list || !this.#revealItemsToCheck) return;
+      this.#revealItemsToCheck = false;
+      list.revealItemsToCheck();
+    });
+
     effect((onCleanup) => {
       const details = this.store.budgetDetails();
       if (details) {
@@ -222,15 +238,14 @@ export default class BudgetDetailsPage {
       this.store.budgetDetails()?.id === budget.id;
     void this.#reconcileAccountsDialog.open(
       {
+        budgetId: budget.id,
         realized: computed(() =>
           matches()
             ? {
                 balance:
                   this.store.realizedBalance() +
                   this.store.previousMonthRollover(),
-                checkedIncome: this.store.realizedIncome(),
-                checkedOutflows: this.store.realizedExpenses(),
-                rollover: this.store.previousMonthRollover(),
+                available: this.store.financialTotals().remaining,
               }
             : null,
         ),
@@ -243,9 +258,11 @@ export default class BudgetDetailsPage {
               }
             : null;
         }),
-        pointTransaction: async (transactionId) => {
-          const outcome =
-            await this.store.toggleTransactionCheck(transactionId);
+        checkItem: async ({ source, id }) => {
+          // A suggestion is never checked: the toggle only checks it.
+          const outcome = await (source === 'transaction'
+            ? this.store.toggleTransactionCheck(id)
+            : this.store.toggleCheck(id));
           if (outcome.status === 'failed') {
             openMutationErrorSnackbar(
               outcome.reason,
@@ -255,13 +272,6 @@ export default class BudgetDetailsPage {
           }
         },
         currency: this.userSettingsStore.currency,
-        periodDates: computed(() =>
-          getBudgetPeriodDates(
-            budget.month,
-            budget.year,
-            this.userSettingsStore.payDayOfMonth(),
-          ),
-        ),
         recordAdjustment: async (adjustment) => {
           if (!matches()) return false;
           const now = new Date();
@@ -281,7 +291,12 @@ export default class BudgetDetailsPage {
           );
           return error === null;
         },
-        viewItemsToCheck: () => undefined,
+        viewItemsToCheck: () => {
+          // Once the dialog is gone: closing hands the focus back to its button first.
+          this.#dialog.afterAllClosed
+            .pipe(take(1))
+            .subscribe(() => this.itemsList()?.revealItemsToCheck());
+        },
       },
       this.#breakpoints.isMatched(Breakpoints.Handset),
     );

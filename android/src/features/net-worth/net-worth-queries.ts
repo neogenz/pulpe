@@ -1,11 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { NetWorth } from "pulpe-shared";
-
 import { queryClient } from "@/core/query/query-client";
 import { useVaultStore } from "@/core/vault/vault-store";
 
-import { followAccounts, type FollowAccountsInput } from "./follow-accounts";
+import { followAccounts } from "./follow-accounts";
 import {
   createAsset,
   createAssetCategory,
@@ -81,12 +79,6 @@ export function useRenameAssetCategory() {
   return useNetWorthMutation(renameAssetCategory);
 }
 
-/** New accounts land in a Type read from the cache: a reconciliation loads it first. */
 export function useFollowAccounts() {
-  return useNetWorthMutation((input: FollowAccountsInput) =>
-    followAccounts(
-      input,
-      queryClient.getQueryData<NetWorth>(netWorthKeys.all)?.categories ?? [],
-    ),
-  );
+  return useNetWorthMutation(followAccounts);
 }

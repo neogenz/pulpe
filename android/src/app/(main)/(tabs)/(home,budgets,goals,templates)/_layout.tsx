@@ -8,9 +8,10 @@ import { AmountMaskBoundary } from "@/core/ui/amount-mask-boundary";
  * inside the tab it was reached from, under the navigation bar, and the tab
  * keeps it when the user switches away and comes back.
  *
- * This one layout serves four tabs. The budget and goal screens it holds are
- * shared, so a month opened from Accueil stays in Accueil; the other screens
- * live in the one tab's folder that reaches them (`(home)/settings`,
+ * This one layout serves four tabs. The budget, goal and « À pointer » screens
+ * it holds are shared, so a month opened from Accueil stays in Accueil and
+ * « À pointer » opened from a month goes back to it; the other screens live in
+ * the one tab's folder that reaches them (`(home)/settings`,
  * `(templates)/template`). Each tab's root comes first, whatever the entry.
  */
 export const unstable_settings = {

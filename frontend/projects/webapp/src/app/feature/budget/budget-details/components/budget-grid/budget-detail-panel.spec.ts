@@ -119,7 +119,7 @@ async function setup(
           savingsGoalNameById: signal(new Map()),
           spreadOccurrenceViewModels: signal([]),
           spreadTracker: signal(null),
-          isViewingSpreadCurrentPeriod: signal(false),
+          isViewingCurrentPeriod: signal(false),
           isSpreadOccurrencesLoading: signal(false),
           spreadOccurrencesError: signal(null),
           setSpreadGroupId: vi.fn(),

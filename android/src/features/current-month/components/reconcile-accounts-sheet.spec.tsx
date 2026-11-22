@@ -1,14 +1,22 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
-import {
-  type Asset,
-  getBudgetPeriodDates,
-  type Transaction,
+import type {
+  Asset,
+  BudgetLine,
+  NetWorth,
+  ReconciliationContext,
+  Transaction,
 } from "pulpe-shared";
 
 import { captureEvent } from "@/core/observability/analytics";
 
 import type { RealizedMetrics } from "../current-month-view-model";
 import { keepReconcileDraft, pendingReconcileResume } from "../reconcile-draft";
+import {
+  clearFreeAccounts,
+  readFreeAccounts,
+} from "../reconcile-free-accounts";
+import type { LinkedAccounts } from "../reconcile-linked-accounts";
+import { forgetReconciliationContext } from "../reconciliation-queries";
 import {
   type ReconcileMonth,
   ReconcileAccountsSheet,
@@ -29,12 +37,26 @@ jest.mock("@/features/transactions/transaction-mutations", () => ({
   useCreateTransaction: () => mockCreate,
 }));
 const mockFollow = { mutate: jest.fn(), reset: jest.fn(), isError: false };
-let mockLinked: Asset[] | null | undefined = null;
+// The real linked-accounts hook runs on top of these two: its filter is under test.
+const mockNetWorth: {
+  isOn: boolean;
+  isFetching: boolean;
+  data: NetWorth | undefined;
+} = { isOn: false, isFetching: false, data: undefined };
+/** `null`: flag off. `undefined`: still loading. Else the flag is on with this data. */
+function offer(linked: LinkedAccounts | null | undefined) {
+  mockNetWorth.isOn = linked !== null;
+  mockNetWorth.isFetching = linked === undefined;
+  mockNetWorth.data = linked
+    ? ({ categories: linked.categories, assets: linked.assets } as NetWorth)
+    : undefined;
+}
 jest.mock("@/features/net-worth/net-worth-queries", () => ({
   useFollowAccounts: () => mockFollow,
+  useNetWorth: () => mockNetWorth,
 }));
-jest.mock("../reconcile-linked-accounts", () => ({
-  useReconcileLinkedAccounts: () => mockLinked,
+jest.mock("@/core/observability/feature-flags", () => ({
+  useFeatureFlag: () => mockNetWorth.isOn,
 }));
 let mockVaultStatus = "unlocked";
 let mockHasKey = true;
@@ -44,25 +66,65 @@ jest.mock("@/core/vault/vault-store", () => ({
 jest.mock("@/core/crypto/client-key-manager", () => ({
   hasClientKey: () => mockHasKey,
 }));
-jest.mock("@/features/net-worth/net-worth-sections", () => ({
-  assetAgeLabel: () => "today",
-}));
-jest.mock("@/core/ui/filter-chip", () => {
-  const { Pressable, Text } = jest.requireActual("react-native");
+jest.mock("@/core/ui/ripple", () => ({ useRipple: () => ({ color: "gray" }) }));
+jest.mock("@/core/ui/segmented-picker", () => {
+  const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
-    FilterChip: ({
-      children,
-      onPress,
+    SegmentedPicker: ({
+      value,
+      onValueChange,
+      buttons,
+      accessibilityLabel,
     }: {
-      children: React.ReactNode;
-      onPress: () => void;
+      value: string;
+      onValueChange: (value: string) => void;
+      buttons: { value: string; label: string }[];
+      accessibilityLabel: string;
     }) => (
-      <Pressable onPress={onPress}>
-        <Text>{children}</Text>
-      </Pressable>
+      <View accessibilityLabel={accessibilityLabel}>
+        <Text>{`side:${value}`}</Text>
+        {buttons.map((button) => (
+          <Pressable
+            key={button.value}
+            onPress={() => onValueChange(button.value)}
+          >
+            <Text>{button.label}</Text>
+          </Pressable>
+        ))}
+      </View>
     ),
   };
 });
+const CONTEXT: ReconciliationContext = {
+  startingAmount: 0,
+  hasCompletedComparison: true,
+  priorCorrection: 0,
+  priorItems: [],
+};
+const mockContext = {
+  data: CONTEXT as ReconciliationContext | undefined,
+  isError: false,
+  isFetching: false,
+  refetch: jest.fn(),
+};
+const mockWriteState = {
+  mutate: jest.fn(),
+  reset: jest.fn(),
+  isPending: false,
+  isError: false,
+};
+jest.mock("../reconciliation-queries", () => ({
+  useReconciliationContext: () => mockContext,
+  forgetReconciliationContext: jest.fn(),
+  useWriteReconciliationState: () => mockWriteState,
+}));
+jest.mock("@/core/user-settings/user-settings-queries", () => ({
+  useUserSettings: () => ({ data: { payDayOfMonth: null } }),
+}));
+const mockCompleteReconciliation = jest.fn(() => Promise.resolve());
+jest.mock("../reconciliation-api", () => ({
+  completeReconciliation: () => mockCompleteReconciliation(),
+}));
 jest.mock("@/core/observability/analytics", () => ({
   captureEvent: jest.fn(),
 }));
@@ -70,9 +132,14 @@ jest.mock("@/core/ui/haptics", () => ({
   hapticSuccess: jest.fn(),
   hapticFailure: jest.fn(),
 }));
+// This month's items and the previous months' go through a mutation each.
 const mockToggle = { mutateAsync: jest.fn(() => Promise.resolve()) };
+const mockTogglePrior = { mutateAsync: jest.fn(() => Promise.resolve()) };
+const mockChecksSettled = jest.fn(() => Promise.resolve());
 jest.mock("@/features/budgets/toggle-check-mutation", () => ({
-  useToggleCheck: () => mockToggle,
+  useToggleCheck: (budgetId: string | null) =>
+    budgetId === null ? mockTogglePrior : mockToggle,
+  useChecksSettled: () => () => mockChecksSettled(),
 }));
 jest.mock("@/core/ui/amount-visibility", () => ({
   areAmountsHidden: () => false,
@@ -85,8 +152,21 @@ jest.mock("@/core/i18n/locale-store", () => ({
   }),
 }));
 jest.mock("@/core/ui/theme", () => ({
+  ACCESSIBLE_FONT_SCALE: 1.5,
+  ICON_SIZE: { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 },
   RADIUS: { card: 18 },
   SPACING: { lg: 24, md: 16, sm: 8, xs: 4, xxs: 2 },
+  TOUCH_TARGET: 48,
+  TABULAR_DIGITS: {},
+  DISPLAY_FAMILY: {},
+}));
+jest.mock("@/core/ui/scheme-colors", () => ({
+  useV2Colors: () => ({
+    accentWash: "mint",
+    accentInk: "green",
+    overWash: "sand",
+  }),
+  useFinancialColors: () => ({ overBudget: "ochre" }),
 }));
 jest.mock("@/core/ui/amount", () => {
   const { Text } = jest.requireActual("react-native");
@@ -153,54 +233,104 @@ jest.mock("react-native-paper", () => {
       />
     ),
     ActivityIndicator: () => <View testID="reconcile-loading" />,
-    Switch: ({
-      value,
-      onValueChange,
-      accessibilityLabel,
-    }: {
-      value: boolean;
-      onValueChange: (value: boolean) => void;
-      accessibilityLabel: string;
-    }) => (
-      <Pressable
-        accessibilityLabel={accessibilityLabel}
-        onPress={() => onValueChange(!value)}
-      />
-    ),
+    Icon: () => null,
+    ProgressBar: () => <View testID="reconcile-progress" />,
     Text,
     TextInput: Object.assign(
       ({
         label,
+        accessibilityLabel,
         value,
         onChangeText,
+        onFocus,
         onBlur,
         onSubmitEditing,
+        autoFocus,
       }: {
         label: string;
+        accessibilityLabel?: string;
         value: string;
         onChangeText: (value: string) => void;
+        onFocus?: () => void;
         onBlur?: () => void;
         onSubmitEditing?: () => void;
+        autoFocus?: boolean;
       }) => (
         <TextInput
-          accessibilityLabel={label}
+          accessibilityLabel={accessibilityLabel ?? label}
           value={value}
           onChangeText={onChangeText}
+          onFocus={onFocus}
           onBlur={onBlur}
           onSubmitEditing={onSubmitEditing}
+          autoFocus={autoFocus}
         />
       ),
       { Affix: () => null },
     ),
     useTheme: () => ({
       colors: { onSurfaceVariant: "gray", surfaceVariant: "beige" },
+      fonts: { bodySmall: { fontSize: 12 } },
     }),
     Divider: () => <View />,
   };
 });
+let mockSeenGuide = true;
+const mockSeenListeners = new Set<() => void>();
+const mockMarkSeen = jest.fn();
+jest.mock("../reconcile-guide-gate", () => {
+  const { useSyncExternalStore } = jest.requireActual("react");
+  return {
+    useHasSeenReconcileGuide: () =>
+      useSyncExternalStore(
+        (listener: () => void) => {
+          mockSeenListeners.add(listener);
+          return () => mockSeenListeners.delete(listener);
+        },
+        () => mockSeenGuide,
+      ),
+    markReconcileGuideSeen: () => {
+      mockMarkSeen();
+      mockSeenGuide = true;
+      mockSeenListeners.forEach((listener) => listener());
+    },
+  };
+});
+// The guide's own behavior is its page's spec; here it only has to be a page.
+const mockGuideSkip = jest.fn();
+jest.mock("./reconcile-guide-page", () => {
+  const { Pressable, Text } = jest.requireActual("react-native");
+  return {
+    useReconcileGuidePage: ({
+      source,
+      onFinish,
+    }: {
+      source: string | null;
+      onFinish: (outcome: string) => void;
+    }) =>
+      source === null
+        ? null
+        : {
+            skip: () => {
+              mockGuideSkip(source);
+              onFinish("skipped");
+            },
+            skipAction: <Text>skip-action</Text>,
+            body: <Text>{`guide:${source}`}</Text>,
+            footer: (
+              <Pressable
+                accessibilityLabel="guide-start"
+                onPress={() => onFinish("completed")}
+              />
+            ),
+          },
+  };
+});
+const mockReveal = jest.fn();
 jest.mock("@/core/ui/sheet", () => {
   const { Pressable, Text, View } = jest.requireActual("react-native");
   return {
+    useRevealInSheet: () => mockReveal,
     FormModal: ({
       title,
       subtitle,
@@ -210,6 +340,7 @@ jest.mock("@/core/ui/sheet", () => {
       onBack,
       isBusy,
       isVisible,
+      headerAction,
     }: {
       title: string;
       subtitle?: string;
@@ -219,12 +350,14 @@ jest.mock("@/core/ui/sheet", () => {
       onBack?: () => void;
       isBusy: boolean;
       isVisible: boolean;
+      headerAction?: React.ReactNode;
     }) =>
       isVisible ? (
         <View>
           <Text>{title}</Text>
           <Text>{subtitle}</Text>
           <Text>{`busy:${isBusy}`}</Text>
+          {headerAction}
           {children}
           {footer}
           <Pressable
@@ -254,12 +387,12 @@ const REALIZED_LEVEL: RealizedMetrics = { ...REALIZED, realizedBalance: 1500 };
 function renderSheet(
   realized: Partial<RealizedMetrics> = {},
   transactions: Transaction[] = [],
+  budgetLines: BudgetLine[] = [],
 ) {
   const month: ReconcileMonth = {
     realized: { ...REALIZED, ...realized },
-    rollover: -120,
-    period: getBudgetPeriodDates(6, 2025, 27),
-    budgetLines: [],
+    available: 900,
+    budgetLines,
     transactions,
   };
   const props = {
@@ -280,28 +413,59 @@ async function reachVerdict(
   amount: string,
 ) {
   await fireEvent.changeText(view.getByLabelText(AMOUNT), amount);
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
 }
 
-const AMOUNT = "home.reconcile.accounts.firstAmount";
+/**
+ * Two taps landing in one frame, before React renders the first one's state.
+ * `fireEvent.press` awaits an act per tap: two at once overlap. This clicks the
+ * button around the label twice, as an accessibility service does.
+ */
+async function tapTwiceInOneFrame(label: { parent: unknown }) {
+  const button = label.parent as {
+    props: { onClick: (event: object) => void };
+  };
+  const click = { nativeEvent: {}, target: 1, currentTarget: 1 };
+  await act(() => {
+    button.props.onClick(click);
+    button.props.onClick(click);
+  });
+}
+
+// Read out with the account it belongs to.
+const AMOUNT = /^home\.reconcile\.accounts\.amountOf:/;
+const STEP_2 = "home.reconcile.compare.stepLabel";
+const NOTE_INCOME = /home\.reconcile\.compare\.yesNoteIncome/;
+const NOTE_EXPENSE = /home\.reconcile\.compare\.yesNoteExpense/;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSeenGuide = true;
   Object.assign(mockCreate, { isPending: false, isError: false });
-  mockLinked = null;
+  Object.assign(mockWriteState, { isPending: false, isError: false });
+  Object.assign(mockContext, {
+    data: CONTEXT,
+    isError: false,
+    isFetching: false,
+  });
+  offer(null);
   mockVaultStatus = "unlocked";
   mockHasKey = true;
   keepReconcileDraft(null);
+  clearFreeAccounts();
 });
 
-function ownAccount(id: string, inPulpe: boolean): Asset {
+function account(
+  id: string,
+  inPulpe: boolean,
+  direction: "own" | "owe" = "own",
+): Asset {
   return {
     id,
     categoryId: "type",
     name: `Compte ${id}`,
     currency: "CHF",
-    direction: "own",
+    direction,
     inPulpe,
     archivedAt: null,
     latestValue: 100,
@@ -311,11 +475,149 @@ function ownAccount(id: string, inPulpe: boolean): Asset {
   };
 }
 
+describe("guide", () => {
+  const HELP = "home.reconcile.guide.help";
+  const BARE_PROPS = {
+    isVisible: true,
+    onDismiss: jest.fn(),
+    onRecorded: jest.fn(),
+    onViewItemsToCheck: jest.fn(),
+    onRecordFailed: jest.fn(),
+    budgetId: "budget-1",
+    currency: "CHF" as const,
+  };
+  const MONTH: ReconcileMonth = {
+    realized: REALIZED,
+    available: 900,
+    budgetLines: [],
+    transactions: [],
+  };
+  async function open() {
+    const { props, view } = renderSheet();
+    return { props, view: await view };
+  }
+
+  it("opens on the guide the first time, then on step 1 once it is left", async () => {
+    mockSeenGuide = false;
+    const { view } = await open();
+    expect(await view.getByText("guide:auto")).toBeTruthy();
+    expect(view.queryByLabelText(AMOUNT)).toBeNull();
+    expect(view.queryByLabelText(HELP)).toBeNull();
+
+    await fireEvent.press(view.getByLabelText("guide-start"));
+
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+    expect(view.getByLabelText(AMOUNT)).toBeTruthy();
+  });
+
+  it("counts the back action as skipped and goes on to step 1", async () => {
+    mockSeenGuide = false;
+    const { view } = await open();
+
+    await fireEvent.press(view.getByLabelText("android-back"));
+
+    expect(mockGuideSkip).toHaveBeenCalledWith("auto");
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+    expect(view.getByLabelText(AMOUNT)).toBeTruthy();
+  });
+
+  it("counts the scrim as skipped and closes the sheet", async () => {
+    mockSeenGuide = false;
+    const { view, props } = await open();
+
+    await fireEvent.press(await view.getByLabelText("scrim"));
+
+    expect(mockGuideSkip).toHaveBeenCalledWith("auto");
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+    expect(props.onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the typed values when ✕ or the scrim leaves a replay", async () => {
+    const { view, props } = await open();
+    await fireEvent.changeText(view.getByLabelText(AMOUNT), "890");
+    await fireEvent.press(view.getByLabelText(HELP));
+    expect(view.getByText("guide:help")).toBeTruthy();
+
+    await fireEvent.press(view.getByLabelText("scrim"));
+
+    expect(mockGuideSkip).toHaveBeenCalledWith("help");
+    expect(props.onDismiss).not.toHaveBeenCalled();
+    expect(view.getByLabelText(AMOUNT).props.value).toBe("890");
+  });
+
+  it("shows the guide in one sheet only once the other has been through it", async () => {
+    mockSeenGuide = false;
+    const view = await render(
+      <>
+        <ReconcileAccountsSheet {...BARE_PROPS} month={MONTH} />
+        <ReconcileAccountsSheet {...BARE_PROPS} month={MONTH} />
+      </>,
+    );
+    expect(view.getAllByText("guide:auto")).toHaveLength(2);
+
+    await fireEvent.press(view.getAllByLabelText("guide-start")[0]);
+
+    expect(view.queryByText("guide:auto")).toBeNull();
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts the guide as skipped when the month leaves under it", async () => {
+    mockSeenGuide = false;
+    await render(<ReconcileAccountsSheet {...BARE_PROPS} month={null} />);
+    expect(mockGuideSkip).toHaveBeenCalledWith("auto");
+    expect(mockMarkSeen).toHaveBeenCalled();
+  });
+
+  it("replays from « ? » over the typed values and gives them back", async () => {
+    const { view } = await open();
+    expect(view.queryByText(/^guide:/)).toBeNull();
+    await fireEvent.changeText(view.getByLabelText(AMOUNT), "890");
+
+    await fireEvent.press(view.getByLabelText(HELP));
+    expect(await view.getByText("guide:help")).toBeTruthy();
+    await fireEvent.press(view.getByLabelText("guide-start"));
+
+    expect(view.getByLabelText(AMOUNT).props.value).toBe("890");
+  });
+
+  it("gives a new row the keyboard once, never again when the guide gives step 1 back", async () => {
+    const { view } = await open();
+    const NAME = "home.reconcile.accounts.accountName";
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addOwe"));
+    const added = view.getAllByLabelText(NAME)[1];
+    expect(added.props.autoFocus).toBe(true);
+    await fireEvent(added, "focus");
+
+    await fireEvent.press(view.getByLabelText(HELP));
+    await fireEvent.press(view.getByLabelText("guide-start"));
+
+    for (const field of view.getAllByLabelText(NAME)) {
+      expect(field.props.autoFocus).toBeFalsy();
+    }
+  });
+});
+
+it("brings a focused row above the footer and the keyboard, and lets go on blur", async () => {
+  const view = await renderSheet().view;
+  const amount = view.getByLabelText(AMOUNT);
+
+  await fireEvent(amount, "focus");
+  expect(mockReveal).toHaveBeenLastCalledWith(expect.anything());
+  expect(mockReveal.mock.lastCall?.[0]).not.toBeNull();
+
+  await fireEvent(amount, "blur");
+  expect(mockReveal).toHaveBeenLastCalledWith(null);
+});
+
 describe("with Mon patrimoine", () => {
-  const BALANCE = "home.reconcile.accounts.amount";
+  const BALANCE = AMOUNT;
+  const linked = (...assets: Asset[]): LinkedAccounts => ({
+    categories: [{ id: "type", name: "Comptes", total: 0 }],
+    assets,
+  });
 
   it("waits for my accounts before showing a row", async () => {
-    mockLinked = undefined;
+    offer(undefined);
     const view = await renderSheet().view;
     expect(view.getByTestId("reconcile-loading")).toBeTruthy();
     expect(view.queryByLabelText(BALANCE)).toBeNull();
@@ -323,51 +625,188 @@ describe("with Mon patrimoine", () => {
   });
 
   it("opens on my followed accounts and writes the finished ones on completion", async () => {
-    mockLinked = [ownAccount("a", true), ownAccount("b", false)];
+    offer(
+      linked(
+        account("a", true),
+        account("b", false),
+        account("card", true, "owe"),
+      ),
+    );
     const view = await renderSheet(REALIZED_LEVEL).view;
+    expect(view.getByText("Compte a")).toBeTruthy();
     expect(
-      view.getByText("home.reconcile.accounts.linkedFootnote"),
-    ).toBeTruthy();
+      view.getAllByText("home.reconcile.accounts.linkedCaption"),
+    ).toHaveLength(2);
     expect(
-      view.getByText("home.reconcile.accounts.lastBalance:100.00 CHF|today"),
-    ).toBeTruthy();
+      view.getAllByText("home.reconcile.accounts.cardCaption"),
+    ).toHaveLength(1);
 
-    // The followed account gives way to another of mine, and a new one is added.
-    await fireEvent.press(view.getByText("Compte b"));
-    await fireEvent.changeText(view.getByLabelText(BALANCE), "1000");
-    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    // « Compte a » leaves the comparison, « Compte b » joins it from the add sheet.
     await fireEvent.press(
-      view.getByLabelText("home.reconcile.accounts.addToNetWorth"),
+      view.getByLabelText("home.reconcile.accounts.remove:Compte a"),
     );
-    expect(view.getByText("home.reconcile.accounts.nameMissing")).toBeTruthy();
-    await fireEvent.changeText(
-      view.getByLabelText("home.reconcile.accounts.newAccountName"),
-      "Neon",
-    );
-    expect(
-      view.getByText("home.reconcile.accounts.balanceMissing"),
-    ).toBeTruthy();
-    await fireEvent.press(view.getByText("home.reconcile.continue"));
-    expect(view.queryByText("home.reconcile.realized.heading")).toBeNull();
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    await fireEvent.press(view.getByTestId("reconcile-add-asset-b"));
+    const [card, added] = view.getAllByLabelText(BALANCE);
+    await fireEvent.changeText(card, "500");
+    await fireEvent.changeText(added, "2000");
 
-    await fireEvent.changeText(view.getAllByLabelText(BALANCE)[1], "500");
-    await fireEvent.press(view.getByText("home.reconcile.continue"));
-    await fireEvent.press(view.getByText("home.reconcile.continue"));
-    await fireEvent.press(view.getByText("home.reconcile.verdict.finish"));
+    expect(view.getByTestId("reconcile-total")).toHaveTextContent(/1’500\.00/);
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    await fireEvent.press(view.getByText("home.reconcile.compare.finish"));
 
     expect(mockFollow.mutate).toHaveBeenCalledTimes(1);
     expect(mockFollow.mutate).toHaveBeenCalledWith({
-      creates: [{ name: "Neon", value: 500 }],
       links: ["b"],
       unlinks: ["a"],
-      snapshots: [{ assetId: "b", value: 1000 }],
-      currency: "CHF",
-      categoryName: "netWorth.starter.accounts",
+      snapshots: [
+        { assetId: "card", value: 500 },
+        { assetId: "b", value: 2000 },
+      ],
     });
   });
 
+  async function openAddSheet(assets: Asset[], isOn: boolean) {
+    // The same cached data in both cases: only the flag differs.
+    offer(linked(...assets));
+    mockNetWorth.isOn = isOn;
+    const view = await renderSheet().view;
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    return view;
+  }
+  const ELIGIBLE = account("b", false);
+  const ARCHIVED = { ...account("old", false), archivedAt: "2026-01-01" };
+
+  it("offers the eligible accounts with the flag on, never an archived one", async () => {
+    const view = await openAddSheet([ELIGIBLE, ARCHIVED], true);
+    expect(view.getByTestId("reconcile-add-asset-b")).toBeTruthy();
+    expect(view.queryByTestId("reconcile-add-asset-old")).toBeNull();
+  });
+
+  it("offers none of them with the flag off, whatever is cached", async () => {
+    const view = await openAddSheet([ELIGIBLE], false);
+    expect(view.getByTestId("reconcile-add-own")).toBeTruthy();
+    expect(view.queryByTestId("reconcile-add-asset-b")).toBeNull();
+  });
+
+  it("brings an account deleted while locked back as a free row, and writes nothing to it", async () => {
+    offer(linked(account("a", true)));
+    keepReconcileDraft({
+      budgetId: "budget-1",
+      hasCompleted: false,
+      rows: [
+        {
+          id: 0,
+          label: "Compte a",
+          amountText: "1500",
+          side: "own",
+          account: { kind: "asset", id: "a" },
+        },
+        {
+          id: 1,
+          label: "Compte gone",
+          amountText: "20",
+          side: "own",
+          account: { kind: "asset", id: "gone" },
+        },
+      ],
+    });
+    const view = await renderSheet(REALIZED).view;
+    expect(
+      view.getByLabelText("home.reconcile.accounts.accountName").props.value,
+    ).toBe("Compte gone");
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    await fireEvent.press(view.getByText(NOTE_INCOME));
+    await act(() => mockCreate.mutate.mock.calls[0][1].onSuccess());
+    expect(mockFollow.mutate).toHaveBeenCalledWith({
+      links: [],
+      unlinks: [],
+      snapshots: [{ assetId: "a", value: 1500 }],
+    });
+  });
+
+  it("gives a new row its own id: nothing is inherited from a removed one", async () => {
+    const view = await renderSheet().view;
+    const first = view.getByLabelText(AMOUNT);
+    await fireEvent.changeText(first, "12.");
+    await fireEvent(first, "blur");
+    expect(
+      view.getByText("home.reconcile.accounts.invalidAmount"),
+    ).toBeTruthy();
+
+    await fireEvent.press(
+      view.getByLabelText(
+        "home.reconcile.accounts.remove:home.reconcile.accounts.accountNumbered:1",
+      ),
+    );
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
+    await fireEvent.press(view.getByTestId("reconcile-add-own"));
+    await fireEvent.changeText(view.getByLabelText(AMOUNT), "12.");
+
+    expect(
+      view.queryByText("home.reconcile.accounts.invalidAmount"),
+    ).toBeNull();
+  });
+
+  it("saves the balances once, as they stand when the sheet closes after a completed comparison", async () => {
+    offer(linked(account("a", true)));
+    const { props, view: pending } = renderSheet({ realizedBalance: 4200 });
+    const view = await pending;
+    await reachVerdict(view, "4000");
+    await fireEvent.press(view.getByLabelText("android-back"));
+    await fireEvent.changeText(view.getByLabelText(BALANCE), "4200");
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    await fireEvent.press(view.getByText("home.reconcile.compare.finish"));
+
+    expect(mockFollow.mutate).toHaveBeenCalledTimes(1);
+    expect(mockFollow.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ snapshots: [{ assetId: "a", value: 4200 }] }),
+    );
+
+    // The next opening, left before its end, saves nothing more.
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} isVisible={false} />,
+    );
+    await view.rerender(<ReconcileAccountsSheet {...props} />);
+    await fireEvent.press(view.getByLabelText("scrim"));
+    expect(mockFollow.mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves nothing at the lock after « Oui, c'était déjà là », then once on the rebuilt sheet's real close", async () => {
+    offer(linked(account("a", true)));
+    mockContext.data = { ...CONTEXT, hasCompletedComparison: false };
+    const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+    const view = await pending;
+    await reachVerdict(view, "4000");
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.alreadyThere"),
+    );
+    const [, write] = mockWriteState.mutate.mock.calls[0] as [
+      unknown,
+      { onSuccess: () => void; onSettled: () => void },
+    ];
+    await act(() => {
+      write.onSuccess();
+      write.onSettled();
+    });
+
+    // The lock drops the whole tree: no close, nothing saved.
+    mockVaultStatus = "locked";
+    await view.unmount();
+    expect(mockFollow.mutate).not.toHaveBeenCalled();
+
+    mockVaultStatus = "unlocked";
+    const rebuilt = await render(<ReconcileAccountsSheet {...props} />);
+    await fireEvent.changeText(rebuilt.getByLabelText(BALANCE), "4100");
+    await fireEvent.press(rebuilt.getByLabelText("scrim"));
+    expect(mockFollow.mutate).toHaveBeenCalledTimes(1);
+    expect(mockFollow.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ snapshots: [{ assetId: "a", value: 4100 }] }),
+    );
+  });
+
   it("writes nothing there when the sheet is left before the end", async () => {
-    mockLinked = [ownAccount("a", true)];
+    offer(linked(account("a", true)));
     const view = await renderSheet().view;
     await fireEvent.changeText(view.getByLabelText(BALANCE), "1000");
     await fireEvent.press(view.getByLabelText("scrim"));
@@ -379,8 +818,8 @@ it("walks back one step at a time from the Android back action, then leaves", as
   const { props, view: pending } = renderSheet();
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
-  expect(view.getByText("home.reconcile.realized.heading")).toBeTruthy();
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+  expect(view.getByText(STEP_2)).toBeTruthy();
 
   await fireEvent.press(view.getByLabelText("android-back"));
   expect(view.getByLabelText(AMOUNT).props.value).toBe("1500");
@@ -395,7 +834,7 @@ it("dismisses from the scrim without changing step, and forgets what was typed",
   const { props, view: pending } = renderSheet();
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
 
   await fireEvent.press(view.getByLabelText("scrim"));
 
@@ -404,10 +843,67 @@ it("dismisses from the scrim without changing step, and forgets what was typed",
   expect(mockCreate.mutate).not.toHaveBeenCalled();
 });
 
+it("adds free rows, totals « J'ai » minus « Je dois » live and keeps an overdraft", async () => {
+  const { view: pending } = renderSheet();
+  const view = await pending;
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
+  expect(view.getByText("home.reconcile.accounts.cardHelp")).toBeTruthy();
+
+  // The card help adds a « Je dois » row.
+  await fireEvent.press(view.getByText("home.reconcile.accounts.addOwe"));
+  expect(view.queryByText("home.reconcile.accounts.cardHelp")).toBeNull();
+  await fireEvent.changeText(
+    view.getAllByLabelText("home.reconcile.accounts.accountName")[1],
+    "Carte",
+  );
+  // Each balance is read out with its account, the unnamed one by its number.
+  expect(
+    view.getByLabelText(
+      "home.reconcile.accounts.amountOf:home.reconcile.accounts.accountNumbered:1",
+    ),
+  ).toBeTruthy();
+  await fireEvent.changeText(
+    view.getByLabelText("home.reconcile.accounts.amountOf:Carte"),
+    "300",
+  );
+  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/700\.00/);
+  expect(
+    view.getByText(/accounts\.breakdown:1’000\.00 CHF\|300\.00 CHF/),
+  ).toBeTruthy();
+
+  // The side control moves a row from one side to the other.
+  await fireEvent.press(view.getAllByText("home.reconcile.accounts.owe")[0]);
+  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/-1’300\.00/);
+
+  await fireEvent.press(
+    view.getByLabelText("home.reconcile.accounts.remove:Carte"),
+  );
+  expect(view.getAllByLabelText(AMOUNT)).toHaveLength(1);
+});
+
+it("remembers the free rows by name and side when Comparer is pressed, never their amounts", async () => {
+  const { view: pending } = renderSheet();
+  const view = await pending;
+  await fireEvent.changeText(
+    view.getByLabelText("home.reconcile.accounts.accountName"),
+    "Revolut",
+  );
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
+  expect(readFreeAccounts()).toEqual([]);
+
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+
+  expect(readFreeAccounts()).toEqual([{ name: "Revolut", side: "own" }]);
+});
+
 it("keeps what was typed when the vault locks under it, and opens on it again", async () => {
   const { props, view: pending } = renderSheet();
   const view = await pending;
-  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
+  await fireEvent.changeText(
+    view.getByLabelText("home.reconcile.accounts.accountName"),
+    "Revolut",
+  );
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
 
   // The lock drops the key, then the month's data, then every screen.
   mockHasKey = false;
@@ -419,53 +915,81 @@ it("keeps what was typed when the vault locks under it, and opens on it again", 
 
   mockHasKey = true;
   mockVaultStatus = "unlocked";
-  const { view: reopening } = renderSheet();
-  const reopened = await reopening;
-  expect(reopened.getByLabelText(AMOUNT).props.value).toBe("1500");
+  const reopened = await renderSheet().view;
+  expect(reopened.getByLabelText(AMOUNT).props.value).toBe("1000");
+  expect(
+    reopened.getByLabelText("home.reconcile.accounts.accountName").props.value,
+  ).toBe("Revolut");
 
   await fireEvent.press(reopened.getByLabelText("scrim"));
   expect(pendingReconcileResume()).toBeNull();
 });
 
 it("keeps nothing when the sheet goes away without a lock", async () => {
-  const { view: pending } = renderSheet();
-  const view = await pending;
+  const view = await renderSheet().view;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
 
   await view.unmount();
 
   expect(pendingReconcileResume()).toBeNull();
+  expect((await renderSheet().view).getByLabelText(AMOUNT).props.value).toBe(
+    "",
+  );
 });
 
-it("adds and removes named accounts, totals them live and takes an overdraft", async () => {
-  const { view: pending } = renderSheet();
-  const view = await pending;
-  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
-  await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
-  await fireEvent.changeText(
-    view.getByLabelText("home.reconcile.accounts.accountName"),
-    "Épargne",
-  );
-  await fireEvent.changeText(
-    view.getByLabelText("home.reconcile.accounts.amount"),
-    "300",
-  );
-  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/1’300\.00/);
+describe("a drafted Mon patrimoine row while the read is unavailable", () => {
+  const drafted = [
+    {
+      id: 0,
+      label: "Compte a",
+      amountText: "1500",
+      side: "own" as const,
+      account: { kind: "asset" as const, id: "a" },
+    },
+  ];
 
-  const signs = view.getAllByLabelText("home.reconcile.accounts.negative");
-  await fireEvent.press(signs[0]);
-  expect(view.getByLabelText(AMOUNT).props.value).toBe("-1000");
-  expect(
-    view.getAllByLabelText("home.reconcile.accounts.negative")[0].props
-      .accessibilityState,
-  ).toEqual(expect.objectContaining({ selected: true }));
-  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/-700\.00/);
+  it("waits while the read is pending", async () => {
+    keepReconcileDraft({
+      budgetId: "budget-1",
+      rows: drafted,
+      hasCompleted: false,
+    });
+    offer(undefined);
+    const view = await renderSheet().view;
+    expect(view.getByTestId("reconcile-loading")).toBeTruthy();
+  });
 
-  await fireEvent.press(
-    view.getByLabelText("home.reconcile.accounts.removeNamed:Épargne"),
-  );
-  expect(view.queryByLabelText("home.reconcile.accounts.amount")).toBeNull();
-  expect(view.getByTestId("reconcile-total")).toHaveTextContent(/-1’000\.00/);
+  it("stays linked, and its name is never remembered, when the read fails with the flag on", async () => {
+    keepReconcileDraft({
+      budgetId: "budget-1",
+      rows: drafted,
+      hasCompleted: false,
+    });
+    // Flag on, nothing came back: a network error.
+    offer(undefined);
+    mockNetWorth.isFetching = false;
+    const view = await renderSheet().view;
+
+    expect(view.getByText("Compte a")).toBeTruthy();
+    expect(
+      view.queryByLabelText("home.reconcile.accounts.accountName"),
+    ).toBeNull();
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    // The press went through: an inactive « Comparer » would leave the memory empty too.
+    expect(view.getByText(STEP_2)).toBeTruthy();
+    expect(readFreeAccounts()).toEqual([]);
+  });
+
+  it("stays linked with the flag off", async () => {
+    keepReconcileDraft({
+      budgetId: "budget-1",
+      rows: drafted,
+      hasCompleted: false,
+    });
+    offer(null);
+    const view = await renderSheet().view;
+    expect(view.getByText("Compte a")).toBeTruthy();
+  });
 });
 
 it("refuses an unreadable amount even beside a valid one", async () => {
@@ -473,178 +997,726 @@ it("refuses an unreadable amount even beside a valid one", async () => {
   const view = await pending;
   await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
   await fireEvent.press(view.getByText("home.reconcile.accounts.addAccount"));
-  const second = view.getByLabelText("home.reconcile.accounts.amount");
+  await fireEvent.press(view.getByTestId("reconcile-add-own"));
+  const second = view.getAllByLabelText(AMOUNT)[1];
   await fireEvent.changeText(second, "12abc");
   await fireEvent(second, "blur");
 
   expect(view.getByText("home.reconcile.accounts.invalidAmount")).toBeTruthy();
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
-  expect(view.queryByText("home.reconcile.realized.heading")).toBeNull();
+  await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+  expect(view.queryByText(STEP_2)).toBeNull();
 });
 
-it("shows the realized balance, the period bounds and the way to what is left to check", async () => {
-  const { props, view: pending } = renderSheet();
-  const view = await pending;
-  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
-
-  expect(
-    view.getByText("home.reconcile.realized.period:27 mai|26 juin"),
-  ).toBeTruthy();
-  expect(view.getByTestId("reconcile-realized-balance")).toHaveTextContent(
-    /1’499\.99/,
-  );
-  expect(view.getByTestId("reconcile-rollover")).toHaveTextContent(/-120\.00/);
-
-  await fireEvent.press(
-    view.getByText("home.reconcile.realized.viewItemsToCheck"),
-  );
-  expect(props.onViewItemsToCheck).toHaveBeenCalledTimes(1);
-});
-
-it("records one checked adjustment with the edited label and reports completion once", async () => {
-  const { props, view: pending } = renderSheet();
-  const view = await pending;
-  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
-
-  expect(
-    view.getByText("home.reconcile.verdict.moreTitle:0.01 CHF"),
-  ).toBeTruthy();
-  await fireEvent.changeText(
-    view.getByLabelText("home.reconcile.verdict.label"),
-    "Écart banque",
-  );
-  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
-
-  expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
-  const [payload, callbacks] = mockCreate.mutate.mock.calls[0] as [
-    Record<string, unknown>,
-    { onSuccess: () => void },
-  ];
-  expect(payload).toEqual({
-    id: expect.any(String),
+describe("step 2", () => {
+  const STAMP = "2026-11-18T10:00:00.000Z";
+  const essence: Transaction = {
+    id: "t-essence",
     budgetId: "budget-1",
-    name: "Écart banque",
-    amount: 0.01,
+    budgetLineId: null,
+    name: "Essence",
+    amount: 60,
+    kind: "expense",
+    transactionDate: STAMP,
+    checkedAt: null,
+    createdAt: STAMP,
+    updatedAt: STAMP,
+  };
+  // An income cannot explain money missing on the accounts: it stays for « Voir les autres ».
+  const refund: Transaction = {
+    ...essence,
+    id: "t-refund",
+    name: "Remboursement",
+    amount: 30,
     kind: "income",
-    transactionDate: expect.any(String),
-    checkedAt: expect.any(String),
+  };
+  // Last month's, unchecked: the context counts it once checked.
+  const pharmacie: ReconciliationContext["priorItems"][number] = {
+    id: "t-pharmacie",
+    source: "transaction",
+    budgetId: "budget-0",
+    name: "Pharmacie",
+    amount: 40,
+    kind: "expense",
+    monthsAgo: 1,
+    effect: -40,
+  };
+  const PULPE = { realizedBalance: 1050 };
+
+  function deferredCheck(toggle = mockToggle) {
+    let settle: (isKept: boolean) => void = () => undefined;
+    toggle.mutateAsync.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          settle = (isKept) => (isKept ? resolve() : reject(new Error("no")));
+        }),
+    );
+    return (isKept: boolean) => act(() => settle(isKept));
+  }
+
+  it("reads the context afresh on each « Comparer » and waits for it", async () => {
+    mockContext.data = undefined;
+    const view = await renderSheet(PULPE).view;
+    await reachVerdict(view, "950");
+
+    expect(forgetReconciliationContext).toHaveBeenCalledWith("budget-1");
+    expect(view.getByTestId("reconcile-loading")).toBeTruthy();
+    expect(view.queryByText(NOTE_EXPENSE)).toBeNull();
+
+    await fireEvent.press(view.getByLabelText("android-back"));
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    expect(forgetReconciliationContext).toHaveBeenCalledTimes(2);
   });
 
-  await act(() => callbacks.onSuccess());
+  it("shows the error with [Réessayer], offers no write, and back keeps the amounts", async () => {
+    Object.assign(mockContext, { isError: true });
+    const view = await renderSheet(PULPE).view;
+    await reachVerdict(view, "950");
 
-  expect(captureEvent).toHaveBeenCalledTimes(1);
-  expect(captureEvent).toHaveBeenCalledWith(
-    "account_reconciliation_completed",
-    { adjustment_kind: "income" },
-  );
-  expect(props.onRecorded).toHaveBeenCalledTimes(1);
-});
+    expect(view.getByText("home.reconcile.compare.loadError")).toBeTruthy();
+    expect(view.queryByText(NOTE_EXPENSE)).toBeNull();
+    expect(view.queryByText("home.reconcile.compare.finish")).toBeNull();
+    await fireEvent.press(view.getByText("common.retry"));
+    expect(mockContext.refetch).toHaveBeenCalledTimes(1);
 
-it("holds every exit while the write is pending and keeps the step after a failure", async () => {
-  const { props, view: pending } = renderSheet({ realizedBalance: 1600 });
-  const view = await pending;
-  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+    await fireEvent.press(view.getByLabelText("android-back"));
+    expect(view.getByLabelText(AMOUNT).props.value).toBe("950");
+    expect(mockCreate.mutate).not.toHaveBeenCalled();
+  });
 
-  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
-  // A second tap landing before the pending state renders writes nothing.
-  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
-  expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
-  const [, callbacks] = mockCreate.mutate.mock.calls[0] as [
-    unknown,
-    { onSettled: () => void },
-  ];
+  it("checks each stored item by id, holds every exit until its re-read lands, then completes once", async () => {
+    mockContext.data = { ...CONTEXT, priorItems: [pharmacie] };
+    const { props, view: pending } = renderSheet(PULPE, [essence, refund]);
+    const view = await pending;
+    await reachVerdict(view, "950");
+    expect(view.getByText("home.reconcile.compare.leadExpense")).toBeTruthy();
+    expect(view.getByText("home.reconcile.compare.othersOne:1")).toBeTruthy();
 
-  Object.assign(mockCreate, { isPending: true });
-  await fireEvent.changeText(
-    view.getByLabelText("home.reconcile.verdict.label"),
-    "Ajustement",
-  );
-  expect(view.getByText("busy:true")).toBeTruthy();
-  await fireEvent.press(view.getByLabelText("android-back"));
-  await fireEvent.press(view.getByLabelText("scrim"));
-  await fireEvent.press(view.getByText("home.reconcile.back"));
-  expect(props.onDismiss).not.toHaveBeenCalled();
+    const settle = deferredCheck();
+    await fireEvent.press(view.getByText("Essence"));
+    expect(mockToggle.mutateAsync).toHaveBeenCalledWith({
+      source: "transaction",
+      sourceId: "t-essence",
+    });
+    expect(view.getByText("busy:true")).toBeTruthy();
+    await fireEvent.press(view.getByLabelText("android-back"));
+    await fireEvent.press(view.getByLabelText("scrim"));
+    expect(props.onDismiss).not.toHaveBeenCalled();
+    expect(view.getByText(STEP_2)).toBeTruthy();
 
-  Object.assign(mockCreate, { isPending: false, isError: true });
-  await act(() => callbacks.onSettled());
-  await view.rerender(<ReconcileAccountsSheet {...props} />);
+    // The month comes back with Essence checked, then the check settles.
+    const checkedMonth = {
+      ...props.month,
+      realized: { ...props.month.realized, realizedBalance: 990 },
+      transactions: [{ ...essence, checkedAt: STAMP }, refund],
+    };
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} month={checkedMonth} />,
+    );
+    await settle(true);
 
-  expect(view.getByTestId("reconcile-error-notice")).toHaveTextContent(
-    "budgets.mutations.activity.error",
-  );
-  expect(
-    view.getByText("home.reconcile.verdict.lessTitle:100.00 CHF"),
-  ).toBeTruthy();
-  expect(view.getByLabelText("home.reconcile.verdict.label").props.value).toBe(
-    "Ajustement",
-  );
+    expect(view.getByTestId("reconcile-compared-before")).toBeTruthy();
+    expect(
+      view.getByText("home.reconcile.compare.found:60.00 CHF"),
+    ).toBeTruthy();
+    // This month's item leaves the context alone: no read to wait for.
+    expect(mockContext.refetch).not.toHaveBeenCalled();
+    expect(view.getByText("busy:false")).toBeTruthy();
 
-  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
-  expect(mockCreate.mutate).toHaveBeenCalledTimes(2);
-  expect(mockCreate.mutate.mock.calls[1][0]).toEqual(
-    expect.objectContaining({ kind: "expense", amount: 100 }),
-  );
-  expect(captureEvent).not.toHaveBeenCalled();
-  // Still on screen with its own notice: nothing for the screen to say.
-  expect(props.onRecordFailed).not.toHaveBeenCalled();
+    // Pharmacie is last month's: answered by the server, then read back with the context.
+    const settlePrior = deferredCheck(mockTogglePrior);
+    let landReread: () => void = () => undefined;
+    mockContext.refetch.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (landReread = resolve)),
+    );
+    await fireEvent.press(view.getByText("Pharmacie"));
+    expect(mockTogglePrior.mutateAsync).toHaveBeenCalledWith({
+      source: "transaction",
+      sourceId: "t-pharmacie",
+    });
+    await settlePrior(true);
+    // Still listed until the context lands: a second tap would uncheck it.
+    expect(view.getByText("busy:true")).toBeTruthy();
+    await fireEvent.press(view.getByText("Pharmacie"));
+    expect(mockTogglePrior.mutateAsync).toHaveBeenCalledTimes(1);
+    expect(mockToggle.mutateAsync).toHaveBeenCalledTimes(1);
 
-  // The same values retried replay the same write, id included, so a lost
-  // answer that did commit is read back rather than written twice.
-  const [, retry] = mockCreate.mutate.mock.calls[1] as [
-    unknown,
-    { onSettled: () => void },
-  ];
-  await act(() => retry.onSettled());
-  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
-  expect(mockCreate.mutate.mock.calls[2][0]).toBe(
-    mockCreate.mutate.mock.calls[1][0],
-  );
-});
+    mockContext.data = { ...CONTEXT, priorCorrection: -40 };
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} month={checkedMonth} />,
+    );
+    await act(() => landReread());
 
-it("calls the accounts up to date at the exact cent and records nothing", async () => {
-  const { props, view: pending } = renderSheet({ realizedBalance: 0.1 + 0.2 });
-  const view = await pending;
-  await fireEvent.changeText(view.getByLabelText(AMOUNT), "0.30");
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
-  await fireEvent.press(view.getByText("home.reconcile.continue"));
+    expect(view.getByText("home.reconcile.compare.matched")).toBeTruthy();
+    expect(view.getByText("busy:false")).toBeTruthy();
+    await fireEvent.press(view.getByText("home.reconcile.compare.finish"));
+    expect(captureEvent).toHaveBeenCalledTimes(1);
+    expect(captureEvent).toHaveBeenCalledWith(
+      "account_reconciliation_completed",
+      { adjustment_kind: "none" },
+    );
+    expect(mockCompleteReconciliation).toHaveBeenCalledTimes(1);
+    expect(props.onDismiss).toHaveBeenCalledTimes(1);
+  });
 
-  expect(view.getByText("home.reconcile.verdict.upToDateTitle")).toBeTruthy();
-  expect(view.queryByText("home.reconcile.verdict.record")).toBeNull();
+  it("strikes nothing through when the check was last month's: only the « pas coché » line goes", async () => {
+    // Pharmacie left unchecked last month: the rollover counted it, the checks did not.
+    mockContext.data = {
+      ...CONTEXT,
+      priorCorrection: 40,
+      priorItems: [pharmacie],
+    };
+    const { props, view: pending } = renderSheet(PULPE);
+    const view = await pending;
+    await reachVerdict(view, "950");
+    expect(view.getByTestId("reconcile-prior-correction")).toHaveTextContent(
+      "home.reconcile.compare.priorCorrectionPart:+40.00 CHF",
+    );
 
-  await fireEvent.press(view.getByText("home.reconcile.verdict.finish"));
+    await fireEvent.press(view.getByText("Pharmacie"));
+    mockContext.data = CONTEXT;
+    await view.rerender(<ReconcileAccountsSheet {...props} />);
 
-  expect(mockCreate.mutate).not.toHaveBeenCalled();
-  expect(captureEvent).toHaveBeenCalledTimes(1);
-  expect(captureEvent).toHaveBeenCalledWith(
-    "account_reconciliation_completed",
-    { adjustment_kind: "none" },
-  );
-  expect(props.onDismiss).toHaveBeenCalledTimes(1);
-});
+    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(
+      /1’050\.00/,
+    );
+    expect(view.queryByTestId("reconcile-compared-before")).toBeNull();
+    expect(view.queryByTestId("reconcile-prior-correction")).toBeNull();
+    expect(
+      view.getByText("home.reconcile.compare.found:40.00 CHF"),
+    ).toBeTruthy();
+  });
 
-it("holds Finish while the write is out, even once the month's balance turns level", async () => {
-  const { props, view: pending } = renderSheet({ realizedBalance: 1600 });
-  const view = await pending;
-  await reachVerdict(view, "1500");
-  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
+  it("keeps the figure from before the first check through a second one", async () => {
+    const cafe: Transaction = {
+      ...essence,
+      id: "t-cafe",
+      name: "Café",
+      amount: 20,
+    };
+    const { props, view: pending } = renderSheet(PULPE, [essence, cafe]);
+    const view = await pending;
+    await reachVerdict(view, "950");
 
-  Object.assign(mockCreate, { isPending: true });
-  await view.rerender(
-    <ReconcileAccountsSheet
-      {...props}
-      month={{ ...props.month, realized: REALIZED_LEVEL }}
-    />,
-  );
-  await fireEvent.press(view.getByText("home.reconcile.verdict.finish"));
+    await fireEvent.press(view.getByText("Essence"));
+    const afterEssence = {
+      ...props.month,
+      realized: { ...props.month.realized, realizedBalance: 990 },
+      transactions: [{ ...essence, checkedAt: STAMP }, cafe],
+    };
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} month={afterEssence} />,
+    );
+    await fireEvent.press(view.getByText("Café"));
+    await view.rerender(
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...afterEssence,
+          realized: { ...afterEssence.realized, realizedBalance: 970 },
+          transactions: [
+            { ...essence, checkedAt: STAMP },
+            { ...cafe, checkedAt: STAMP },
+          ],
+        }}
+      />,
+    );
 
-  expect(captureEvent).not.toHaveBeenCalled();
-  expect(props.onDismiss).not.toHaveBeenCalled();
-  expect(mockCreate.reset).not.toHaveBeenCalled();
+    expect(view.getByTestId("reconcile-compared-before")).toHaveTextContent(
+      /1’050\.00/,
+    );
+    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(/970\.00/);
+  });
+
+  it("keeps the struck figure through a new starting amount; what was found waits for the next check", async () => {
+    mockContext.data = { ...CONTEXT, startingAmount: 3100 };
+    const cafe: Transaction = {
+      ...essence,
+      id: "t-cafe",
+      name: "Café",
+      amount: 20,
+    };
+    const pain: Transaction = {
+      ...essence,
+      id: "t-pain",
+      name: "Pain",
+      amount: 10,
+    };
+    const { props, view: pending } = renderSheet({ realizedBalance: 900 }, [
+      cafe,
+      pain,
+    ]);
+    const view = await pending;
+    await reachVerdict(view, "3950");
+
+    // A check moves the realized balance 900 → 880.
+    await fireEvent.press(view.getByText("Café"));
+    const afterCafe = {
+      ...props.month,
+      realized: { ...props.month.realized, realizedBalance: 880 },
+      transactions: [{ ...cafe, checkedAt: STAMP }, pain],
+    };
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} month={afterCafe} />,
+    );
+    expect(view.getByTestId("reconcile-found")).toBeTruthy();
+
+    await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
+    await fireEvent.changeText(
+      view.getByLabelText(/home\.reconcile\.compare\.startingAmountLabel/),
+      "3090",
+    );
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.saveStartingAmount"),
+    );
+    const [, write] = mockWriteState.mutate.mock.calls[0] as [
+      unknown,
+      { onSuccess: () => void; onSettled: () => void },
+    ];
+    mockContext.data = { ...CONTEXT, startingAmount: 3090 };
+    await act(() => {
+      write.onSuccess();
+      write.onSettled();
+    });
+    await view.rerender(
+      <ReconcileAccountsSheet {...props} month={afterCafe} />,
+    );
+
+    expect(view.getByTestId("reconcile-compared-before")).toHaveTextContent(
+      /900\.00/,
+    );
+    expect(view.queryByTestId("reconcile-found")).toBeNull();
+
+    // The next check measures from the figure it starts on.
+    await fireEvent.press(view.getByText("Pain"));
+    await view.rerender(
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...afterCafe,
+          realized: { ...afterCafe.realized, realizedBalance: 870 },
+          transactions: [
+            { ...cafe, checkedAt: STAMP },
+            { ...pain, checkedAt: STAMP },
+          ],
+        }}
+      />,
+    );
+    expect(view.getByTestId("reconcile-compared-before")).toHaveTextContent(
+      /900\.00/,
+    );
+    expect(view.getByTestId("reconcile-found")).toHaveTextContent(/10\.00/);
+  });
+
+  it("reads the context again when a previous month's check is refused, and lets go only then", async () => {
+    mockContext.data = {
+      ...CONTEXT,
+      priorCorrection: 40,
+      priorItems: [pharmacie],
+    };
+    const { props, view: pending } = renderSheet(PULPE);
+    const view = await pending;
+    await reachVerdict(view, "950");
+
+    const settlePrior = deferredCheck(mockTogglePrior);
+    let landReread: () => void = () => undefined;
+    mockContext.refetch.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (landReread = resolve)),
+    );
+    await fireEvent.press(view.getByText("Pharmacie"));
+    // Refused, but the server had applied it: only the re-read can tell.
+    await settlePrior(false);
+    expect(mockContext.refetch).toHaveBeenCalledTimes(1);
+    expect(view.getByText("busy:true")).toBeTruthy();
+
+    mockContext.data = { ...CONTEXT, priorCorrection: 0, priorItems: [] };
+    await view.rerender(<ReconcileAccountsSheet {...props} />);
+    await act(() => landReread());
+
+    expect(view.queryByText("Pharmacie")).toBeNull();
+    expect(view.getByText("busy:false")).toBeTruthy();
+  });
+
+  it("says so when a check is refused, and strikes nothing through", async () => {
+    const view = await renderSheet(PULPE, [essence]).view;
+    await reachVerdict(view, "950");
+    const settle = deferredCheck();
+    await fireEvent.press(view.getByText("Essence"));
+    await settle(false);
+
+    expect(view.getByText("home.checking.pointFailure")).toBeTruthy();
+    expect(view.queryByTestId("reconcile-compared-before")).toBeNull();
+    expect(view.getByText("Essence")).toBeTruthy();
+  });
+
+  it("goes from « Aucune dépense ne correspond » to one entry with a stable id, completed once", async () => {
+    const { props, view: pending } = renderSheet(PULPE, [essence]);
+    const view = await pending;
+    await reachVerdict(view, "930");
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.noExpenseMatches"),
+    );
+    expect(
+      view.getByText(
+        "home.reconcile.compare.availableNote:900.00 CHF|780.00 CHF",
+      ),
+    ).toBeTruthy();
+
+    await fireEvent.press(view.getByText(NOTE_EXPENSE));
+    // A second tap landing before the pending state renders writes nothing.
+    await fireEvent.press(view.getByText(NOTE_EXPENSE));
+    expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
+    const [payload, first] = mockCreate.mutate.mock.calls[0] as [
+      Record<string, unknown>,
+      { onSettled: () => void },
+    ];
+    expect(payload).toEqual({
+      id: expect.any(String),
+      budgetId: "budget-1",
+      name: "home.reconcile.compare.entryName",
+      amount: 120,
+      kind: "expense",
+      transactionDate: expect.any(String),
+      checkedAt: expect.any(String),
+    });
+
+    // Refused: the screen stays, and the retry replays the same write, id included.
+    Object.assign(mockCreate, { isError: true });
+    await act(() => first.onSettled());
+    await view.rerender(<ReconcileAccountsSheet {...props} />);
+    await fireEvent.press(view.getByText(NOTE_EXPENSE));
+    const [replayed, retry] = mockCreate.mutate.mock.calls[1] as [
+      unknown,
+      { onSuccess: () => void },
+    ];
+    expect(replayed).toBe(payload);
+    expect(captureEvent).not.toHaveBeenCalled();
+
+    await act(() => retry.onSuccess());
+    expect(captureEvent).toHaveBeenCalledTimes(1);
+    expect(captureEvent).toHaveBeenCalledWith(
+      "account_reconciliation_completed",
+      { adjustment_kind: "expense" },
+    );
+    expect(mockCompleteReconciliation).toHaveBeenCalledTimes(1);
+    expect(props.onRecorded).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers a small gap as a note of its own amount", async () => {
+    const view = await renderSheet(PULPE).view;
+    await reachVerdict(view, "1047.60");
+    expect(view.getByTestId("reconcile-small-gap")).toBeTruthy();
+    expect(
+      view.getByText("home.reconcile.compare.noteExpense:2.40 CHF"),
+    ).toBeTruthy();
+    expect(
+      view.getByText(
+        "home.reconcile.compare.availableNote:900.00 CHF|897.60 CHF",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("finishes a match once, writing nothing", async () => {
+    const { props, view: pending } = renderSheet({
+      realizedBalance: 0.1 + 0.2,
+    });
+    const view = await pending;
+    await reachVerdict(view, "0.30");
+    expect(view.getByText("home.reconcile.compare.matched")).toBeTruthy();
+
+    // A double tap: both presses land on the same render.
+    const finish = view.getByText("home.reconcile.compare.finish");
+    await tapTwiceInOneFrame(finish);
+
+    expect(mockCreate.mutate).not.toHaveBeenCalled();
+    expect(captureEvent).toHaveBeenCalledTimes(1);
+    expect(captureEvent).toHaveBeenCalledWith(
+      "account_reconciliation_completed",
+      { adjustment_kind: "none" },
+    );
+    expect(mockCompleteReconciliation).toHaveBeenCalledTimes(1);
+    expect(props.onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes « Je dois » out of the comparison and compares again", async () => {
+    const view = await renderSheet(PULPE, [essence]).view;
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addOwe"));
+    const [own, owe] = view.getAllByLabelText(AMOUNT);
+    await fireEvent.changeText(own, "1000");
+    await fireEvent.changeText(owe, "100");
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    expect(view.getByText("home.reconcile.compare.leadCard")).toBeTruthy();
+
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.removeOwe:100.00 CHF"),
+    );
+
+    expect(view.getByText(STEP_2)).toBeTruthy();
+    expect(view.queryByTestId("reconcile-owe-box")).toBeNull();
+    expect(view.queryByText("home.reconcile.compare.leadCard")).toBeNull();
+  });
+
+  it("keeps the struck figure when « Je dois » goes; what was found waits for the next check", async () => {
+    const cafe: Transaction = {
+      ...essence,
+      id: "t-cafe",
+      name: "Café",
+      amount: 20,
+    };
+    const { props, view: pending } = renderSheet(PULPE, [essence, cafe]);
+    const view = await pending;
+    await fireEvent.press(view.getByText("home.reconcile.accounts.addOwe"));
+    const [own, owe] = view.getAllByLabelText(AMOUNT);
+    await fireEvent.changeText(own, "1000");
+    await fireEvent.changeText(owe, "100");
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+    await fireEvent.press(view.getByText("Essence"));
+    await view.rerender(
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...props.month,
+          realized: { ...props.month.realized, realizedBalance: 990 },
+          transactions: [{ ...essence, checkedAt: STAMP }, cafe],
+        }}
+      />,
+    );
+    expect(view.getByTestId("reconcile-found")).toBeTruthy();
+
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.removeOwe:100.00 CHF"),
+    );
+
+    expect(view.getByTestId("reconcile-compared-before")).toHaveTextContent(
+      /1’050\.00/,
+    );
+    expect(view.queryByTestId("reconcile-found")).toBeNull();
+  });
+
+  it("starts a new comparison from step 1 with nothing struck through", async () => {
+    const { props, view: pending } = renderSheet(PULPE, [essence]);
+    const view = await pending;
+    await reachVerdict(view, "950");
+    await fireEvent.press(view.getByText("Essence"));
+    await view.rerender(
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...props.month,
+          realized: { ...props.month.realized, realizedBalance: 990 },
+          transactions: [{ ...essence, checkedAt: STAMP }],
+        }}
+      />,
+    );
+    expect(view.getByTestId("reconcile-compared-before")).toBeTruthy();
+
+    await fireEvent.press(view.getByLabelText("android-back"));
+    await fireEvent.press(view.getByText("home.reconcile.accounts.compare"));
+
+    expect(view.queryByTestId("reconcile-compared-before")).toBeNull();
+    expect(view.queryByTestId("reconcile-found")).toBeNull();
+  });
+
+  describe("money from before Pulpe", () => {
+    // Never compared, nothing stored: 4 000 on the accounts against 900 checked.
+    beforeEach(() => {
+      mockContext.data = { ...CONTEXT, hasCompletedComparison: false };
+    });
+    type WriteCall = [
+      unknown,
+      { onSuccess: () => void; onSettled: () => void },
+    ];
+
+    it("stores the gap once, completes once, then finishes as matched", async () => {
+      const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+      const view = await pending;
+      await reachVerdict(view, "4000");
+      expect(
+        view.getByText(
+          "home.reconcile.compare.firstQuestion:3’100.00\u00a0CHF",
+        ),
+      ).toBeTruthy();
+
+      const keep = view.getByText("home.reconcile.compare.alreadyThere");
+      await tapTwiceInOneFrame(keep);
+      expect(mockWriteState.mutate).toHaveBeenCalledTimes(1);
+      const [patch, write] = mockWriteState.mutate.mock.calls[0] as WriteCall;
+      expect(patch).toEqual({ startingAmount: 3100, completed: true });
+      await act(() => {
+        write.onSuccess();
+        write.onSettled();
+      });
+      expect(captureEvent).toHaveBeenCalledTimes(1);
+      expect(captureEvent).toHaveBeenCalledWith(
+        "account_reconciliation_completed",
+        { adjustment_kind: "none" },
+      );
+
+      // The stored state comes back with the context: Pulpe now matches.
+      mockContext.data = { ...CONTEXT, startingAmount: 3100 };
+      await view.rerender(<ReconcileAccountsSheet {...props} />);
+      await fireEvent.press(view.getByText("home.reconcile.compare.finish"));
+      expect(captureEvent).toHaveBeenCalledTimes(1);
+      expect(mockCompleteReconciliation).not.toHaveBeenCalled();
+      expect(props.onDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the question and says so when the write is refused", async () => {
+      const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+      const view = await pending;
+      await reachVerdict(view, "4000");
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.alreadyThere"),
+      );
+      const [, write] = mockWriteState.mutate.mock.calls[0] as WriteCall;
+      Object.assign(mockWriteState, { isError: true });
+      await act(() => write.onSettled());
+      await view.rerender(<ReconcileAccountsSheet {...props} />);
+
+      expect(view.getByText("home.reconcile.stateFailed")).toBeTruthy();
+      expect(view.getByTestId("reconcile-first-comparison")).toBeTruthy();
+      expect(captureEvent).not.toHaveBeenCalled();
+    });
+
+    it("notes the income from the reasons only while the gap is the one it showed", async () => {
+      const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+      const view = await pending;
+      await reachVerdict(view, "4000");
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.somethingElse"),
+      );
+      expect(
+        view.getByText("home.reconcile.reasons.title:3’100.00\u00a0CHF"),
+      ).toBeTruthy();
+
+      // A check elsewhere moves the figure while the sheet is open.
+      await view.rerender(
+        <ReconcileAccountsSheet
+          {...props}
+          month={{
+            ...props.month,
+            realized: { ...props.month.realized, realizedBalance: 1000 },
+          }}
+        />,
+      );
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.noteIncome:3’100.00\u00a0CHF"),
+      );
+      expect(mockCreate.mutate).not.toHaveBeenCalled();
+      expect(view.queryByText(/home\.reconcile\.reasons\.title/)).toBeNull();
+      expect(view.getByTestId("reconcile-first-comparison")).toHaveTextContent(
+        /3’000\.00/,
+      );
+
+      // Unmoved, the same answer writes the entry once.
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.somethingElse"),
+      );
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.noteIncome:3’000.00\u00a0CHF"),
+      );
+      expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
+      expect(mockCreate.mutate.mock.calls[0][0]).toMatchObject({
+        kind: "income",
+        amount: 3000,
+      });
+    });
+
+    it("notes nothing from the reasons once the step turned to suggestions, the gap unchanged", async () => {
+      const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+      const view = await pending;
+      await reachVerdict(view, "4000");
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.somethingElse"),
+      );
+
+      // A 3 100 salary, still unchecked, comes in while the sheet is open.
+      const salary: Transaction = {
+        id: "t-salary",
+        budgetId: "budget-1",
+        budgetLineId: null,
+        name: "Salaire",
+        amount: 3100,
+        kind: "income",
+        transactionDate: "2026-11-18T10:00:00.000Z",
+        checkedAt: null,
+        createdAt: "2026-11-18T10:00:00.000Z",
+        updatedAt: "2026-11-18T10:00:00.000Z",
+      };
+      await view.rerender(
+        <ReconcileAccountsSheet
+          {...props}
+          month={{ ...props.month, transactions: [salary] }}
+        />,
+      );
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.noteIncome:3’100.00\u00a0CHF"),
+      );
+
+      expect(mockCreate.mutate).not.toHaveBeenCalled();
+      expect(view.getAllByTestId("reconcile-suggestion")).toHaveLength(1);
+    });
+
+    it("writes a corrected amount once, from its sheet", async () => {
+      mockContext.data = { ...CONTEXT, startingAmount: 3100 };
+      const view = await renderSheet({ realizedBalance: 900 }).view;
+      await reachVerdict(view, "4000");
+      await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
+      const field = view.getByLabelText(
+        /home\.reconcile\.compare\.startingAmountLabel/,
+      );
+      await fireEvent.changeText(field, "3000");
+      await fireEvent.press(
+        view.getByText("home.reconcile.compare.saveStartingAmount"),
+      );
+
+      expect(mockWriteState.mutate).toHaveBeenCalledTimes(1);
+      expect(mockWriteState.mutate.mock.calls[0][0]).toEqual({
+        startingAmount: 3000,
+      });
+      expect(
+        view.queryByText("home.reconcile.compare.saveStartingAmount"),
+      ).toBeNull();
+    });
+  });
+
+  it("resets the money from before Pulpe in one write, and the figure follows", async () => {
+    mockContext.data = { ...CONTEXT, startingAmount: 3100 };
+    const { props, view: pending } = renderSheet({ realizedBalance: 900 });
+    const view = await pending;
+    await reachVerdict(view, "4000");
+    await fireEvent.press(view.getByTestId("reconcile-starting-amount"));
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.resetStartingAmount"),
+    );
+    expect(mockWriteState.mutate).toHaveBeenCalledTimes(1);
+    expect(mockWriteState.mutate.mock.calls[0][0]).toEqual({
+      startingAmount: 0,
+    });
+
+    mockContext.data = { ...CONTEXT, startingAmount: 0 };
+    await view.rerender(<ReconcileAccountsSheet {...props} />);
+    expect(view.queryByTestId("reconcile-starting-amount")).toBeNull();
+    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(/900\.00/);
+  });
+
+  it("goes back to step 1 with one new « Je dois » row from the card question", async () => {
+    const view = await renderSheet(PULPE).view;
+    await reachVerdict(view, "1200");
+    const addOwe = view.getByText("home.reconcile.accounts.addOwe");
+    await tapTwiceInOneFrame(addOwe);
+
+    expect(view.queryByText(STEP_2)).toBeNull();
+    expect(view.getAllByLabelText(AMOUNT)).toHaveLength(2);
+  });
+
+  it("opens « À pointer » from « Voir les autres »", async () => {
+    const { props, view: pending } = renderSheet(PULPE, [essence, refund]);
+    const view = await pending;
+    await reachVerdict(view, "950");
+    await fireEvent.press(view.getByText("home.reconcile.compare.othersOne:1"));
+    expect(props.onViewItemsToCheck).toHaveBeenCalledTimes(1);
+    expect(captureEvent).not.toHaveBeenCalled();
+  });
 });
 
 it("closes, writing nothing, once the screen no longer holds the month it opened on", async () => {
@@ -660,11 +1732,11 @@ it("closes, writing nothing, once the screen no longer holds the month it opened
   expect(view.getByLabelText(AMOUNT).props.value).toBe("");
 });
 
-it("lets a write already out settle on its own month, claiming nothing meanwhile, then closes", async () => {
+it("lets a write already out settle on its own month, then closes and hands the refusal over", async () => {
   const { props, view: pending } = renderSheet({ realizedBalance: 1600 });
   const view = await pending;
   await reachVerdict(view, "1500");
-  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
+  await fireEvent.press(view.getByText(NOTE_EXPENSE));
   const [payload, callbacks] = mockCreate.mutate.mock.calls[0] as [
     Record<string, unknown>,
     { onSettled: () => void },
@@ -675,31 +1747,25 @@ it("lets a write already out settle on its own month, claiming nothing meanwhile
 
   Object.assign(mockCreate, { isPending: true });
   await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
-
   expect(props.onDismiss).not.toHaveBeenCalled();
-  expect(view.queryByText("home.reconcile.verdict.upToDateTitle")).toBeNull();
-  expect(view.queryByText("home.reconcile.verdict.finish")).toBeNull();
 
   Object.assign(mockCreate, { isPending: false, isError: true });
   await act(() => callbacks.onSettled());
   await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
 
   expect(props.onDismiss).toHaveBeenCalledTimes(1);
-  // The sheet's own notice closes with it: the screen has to say it.
   expect(props.onRecordFailed).toHaveBeenCalledTimes(1);
   expect(props.onDismiss.mock.invocationCallOrder[0]).toBeLessThan(
     props.onRecordFailed.mock.invocationCallOrder[0],
   );
-  expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
   expect(captureEvent).not.toHaveBeenCalled();
-  expect(props.onRecorded).not.toHaveBeenCalled();
 });
 
 it("completes once when a write already out succeeds after the month went away", async () => {
   const { props, view: pending } = renderSheet({ realizedBalance: 1600 });
   const view = await pending;
   await reachVerdict(view, "1500");
-  await fireEvent.press(view.getByText("home.reconcile.verdict.record"));
+  await fireEvent.press(view.getByText(NOTE_EXPENSE));
   const [, callbacks] = mockCreate.mutate.mock.calls[0] as [
     unknown,
     { onSuccess: () => void; onSettled: () => void },
@@ -715,64 +1781,7 @@ it("completes once when a write already out succeeds after the month went away",
   await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
 
   expect(captureEvent).toHaveBeenCalledTimes(1);
-  expect(captureEvent).toHaveBeenCalledWith(
-    "account_reconciliation_completed",
-    { adjustment_kind: "expense" },
-  );
+  expect(mockCompleteReconciliation).toHaveBeenCalledTimes(1);
   expect(props.onRecorded).toHaveBeenCalledTimes(1);
   expect(props.onRecordFailed).not.toHaveBeenCalled();
-});
-
-describe("movements to point before adjusting", () => {
-  // The bank already has this income; the pointed balance does not.
-  const salary: Transaction = {
-    id: "t-salary",
-    budgetId: "budget-1",
-    budgetLineId: null,
-    name: "Salaire",
-    amount: 800,
-    kind: "income",
-    transactionDate: "2025-06-28T10:00:00.000Z",
-    checkedAt: null,
-    createdAt: "2025-06-28T10:00:00.000Z",
-    updatedAt: "2025-06-28T10:00:00.000Z",
-  };
-
-  it("offers to point it, says what would remain, and points it", async () => {
-    const view = await renderSheet({}, [salary]).view;
-    await reachVerdict(view, "2314.92");
-
-    expect(
-      view.getByText("home.reconcile.verdict.candidatesTitle"),
-    ).toBeTruthy();
-    expect(
-      view.getByText(
-        /home\.movements\.unplanned · home\.reconcile\.verdict\.candidateRemaining:\+14\.93/,
-      ),
-    ).toBeTruthy();
-    expect(
-      view.getByText(/home\.reconcile\.verdict\.countsTwice/),
-    ).toBeTruthy();
-
-    await fireEvent.press(
-      view.getByLabelText("home.reconcile.verdict.pointNamed:Salaire"),
-    );
-    expect(mockToggle.mutateAsync).toHaveBeenCalledWith({
-      source: "transaction",
-      sourceId: "t-salary",
-    });
-  });
-
-  it("shows no such section when nothing pointable explains the gap", async () => {
-    const view = await renderSheet().view;
-    await reachVerdict(view, "2314.92");
-
-    expect(view.getByText("home.reconcile.verdict.record")).toBeTruthy();
-    expect(
-      view.queryByText("home.reconcile.verdict.candidatesTitle"),
-    ).toBeNull();
-    expect(
-      view.queryByText(/home\.reconcile\.verdict\.countsTwice/),
-    ).toBeNull();
-  });
 });

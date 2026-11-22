@@ -289,6 +289,9 @@ jest.mock("@/features/budgets/budget-queries", () => ({
 jest.mock("@/features/savings-goals/goals-queries", () => ({
   goalKeys: { all: ["savings-goals"] },
 }));
+jest.mock("@/features/current-month/reconciliation-queries", () => ({
+  reconciliationKeys: { all: ["reconciliation"] },
+}));
 jest.mock("@/features/budgets/toggle-check-api", () => ({
   toggleCheck: (target: unknown) => mockToggleRequest(target),
 }));

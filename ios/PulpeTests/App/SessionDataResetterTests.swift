@@ -85,6 +85,12 @@ struct SessionDataResetterTests {
         await assetStore.loadIfNeeded()
         #expect(assetStore.netWorth != nil)
         #expect(featureFlagsStore.isNetWorthEnabled)
+        // « Comparer avec mes comptes » keeps free account names on the device and a draft in memory.
+        ReconcileFreeAccountsStore.shared.save([.init(name: "Revolut", isOwed: false)])
+        ReconcileDraftStore.shared.keep(ReconcileAccountsFlow.Draft(
+            budgetId: "budget-current", accounts: [.init(label: "Revolut", amountText: "120")],
+            assetIds: [:], didCompleteComparison: false
+        ))
 
         let sut = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
@@ -111,6 +117,10 @@ struct SessionDataResetterTests {
         #expect(tagStore.tags.isEmpty)
         #expect(assetStore.netWorth == nil)
         #expect(featureFlagsStore.isNetWorthEnabled == false)
+        // The next person on this device sees neither the account names nor the balances typed.
+        #expect(ReconcileFreeAccountsStore.shared.entries.isEmpty)
+        #expect(ReconcileDraftStore.shared.draft == nil)
+        #expect(!ReconcileDraftStore.shared.takeResume())
     }
 }
 

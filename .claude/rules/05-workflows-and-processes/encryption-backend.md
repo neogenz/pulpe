@@ -41,6 +41,7 @@ DEK is never stored — recalculated per request (with 5-min memory cache).
 | `monthly_budget` | `ending_balance` |
 | `savings_goal_plan_withdrawal` | `amount` |
 | `asset_snapshot` | `value` |
+| `user_reconciliation` | `starting_amount` |
 
 `original_amount` / `original_target_amount` hold the multi-currency source amount; `exchange_rate`
 sits next to them as plaintext `NUMERIC(18,8)`, so the two ciphertexts are mathematically linked.

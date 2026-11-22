@@ -51,7 +51,13 @@ interface FormModalProps {
   isVisible: boolean;
   onDismiss: () => void;
   isBusy?: boolean;
-  title: string;
+  /** Left out by a page that carries its own heading, such as a guide. */
+  title?: string;
+  /**
+   * The body opens on its own big heading: the title drops to the sheet's
+   * one-line name above it, the way iOS names a sheet in its bar.
+   */
+  hasBodyHeading?: boolean;
   /** Sits under the title, for the one line of context a form sometimes needs. */
   subtitle?: string;
   /**
@@ -72,6 +78,20 @@ interface FormModalProps {
    * keeps its tallest height, so its footer does not jump at each step.
    */
   holdsHeight?: boolean;
+  /**
+   * Takes all the height the screen leaves it from the start: for pages whose
+   * tallest only comes later (a guide, then a long form), so none of them jumps.
+   */
+  fillsHeight?: boolean;
+  /** A 48dp button, such as « ? », between the title and the close button. */
+  headerAction?: ReactNode;
+  /** Off for a page whose header action is already its way out (« Passer »). */
+  showsCloseButton?: boolean;
+  /**
+   * Once the sheet is on screen. A field's `autoFocus` runs before the sheet's
+   * window can take the keyboard: a sheet that opens on typing focuses it here.
+   */
+  onShow?: () => void;
   children?: ReactNode;
 }
 
@@ -92,11 +112,16 @@ export function FormModal({
   onDismiss,
   isBusy = false,
   title,
+  hasBodyHeading = false,
   subtitle,
   footer,
   onBack,
   showsBackButton = false,
   holdsHeight = false,
+  fillsHeight = false,
+  headerAction,
+  showsCloseButton = true,
+  onShow,
   children,
 }: FormModalProps) {
   const { t } = useTranslation();
@@ -165,6 +190,7 @@ export function FormModal({
       presentationStyle="overFullScreen"
       statusBarTranslucent
       onRequestClose={isBusy ? () => undefined : (onBack ?? onDismiss)}
+      onShow={onShow}
     >
       <View
         style={[styles.backdrop, { backgroundColor: theme.colors.backdrop }]}
@@ -182,7 +208,15 @@ export function FormModal({
           accessibilityViewIsModal
           style={[
             styles.sheet,
-            { backgroundColor: sheet.background, minHeight: heldHeight },
+            {
+              backgroundColor: sheet.background,
+              // Never past what the keyboard leaves.
+              minHeight: fillsHeight
+                ? box.maxHeight
+                : holdsHeight
+                  ? Math.min(heldHeight, box.maxHeight)
+                  : 0,
+            },
             box,
           ]}
           onLayout={
@@ -206,11 +240,17 @@ export function FormModal({
               />
             )}
             <View style={styles.heading}>
-              <View style={styles.titleLine}>
-                <Text variant="titleLarge" accessibilityRole="header">
-                  {title}
-                </Text>
-              </View>
+              {title !== undefined && (
+                <View style={styles.titleLine}>
+                  <Text
+                    variant={hasBodyHeading ? "titleMedium" : "titleLarge"}
+                    accessibilityRole="header"
+                    textBreakStrategy="balanced"
+                  >
+                    {title}
+                  </Text>
+                </View>
+              )}
               {subtitle !== undefined && (
                 <Text
                   variant="labelMedium"
@@ -220,14 +260,17 @@ export function FormModal({
                 </Text>
               )}
             </View>
-            <IconButton
-              icon="close"
-              disabled={isBusy}
-              onPress={onDismiss}
-              accessibilityLabel={t("common.close")}
-              testID="form-modal-close"
-              style={styles.headerButton}
-            />
+            {headerAction}
+            {showsCloseButton && (
+              <IconButton
+                icon="close"
+                disabled={isBusy}
+                onPress={onDismiss}
+                accessibilityLabel={t("common.close")}
+                testID="form-modal-close"
+                style={styles.headerButton}
+              />
+            )}
           </View>
 
           {/* Paper paints an outlined field's notch in `background`; inside the

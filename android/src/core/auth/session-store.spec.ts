@@ -1,6 +1,16 @@
 import { AuthRetryableFetchError, type Session } from "@supabase/supabase-js";
 
 import {
+  keepReconcileDraft,
+  pendingReconcileResume,
+  reconcileDraft,
+} from "@/features/current-month/reconcile-draft";
+import {
+  readFreeAccounts,
+  saveFreeAccounts,
+} from "@/features/current-month/reconcile-free-accounts";
+
+import {
   endRecoverySession,
   observeSession,
   useSessionStore,
@@ -321,6 +331,17 @@ describe("session lifecycle", () => {
     expect(mockQueryClear).toHaveBeenCalledTimes(1);
     expect(useSessionStore.getState().status).toBe("unauthenticated");
     unsubscribe();
+  });
+
+  it("leaves the next account none of the comparison's free account names or typed draft", async () => {
+    saveFreeAccounts([{ name: "Revolut", side: "own" }]);
+    keepReconcileDraft({ budgetId: "budget-1", rows: [], hasCompleted: false });
+
+    await useSessionStore.getState().signOut();
+
+    expect(readFreeAccounts()).toEqual([]);
+    expect(reconcileDraft("budget-1")).toBeNull();
+    expect(pendingReconcileResume()).toBeNull();
   });
 
   it("keeps local preferences for an initial signed-out session", async () => {

@@ -20,6 +20,7 @@ import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { Card } from "@/core/ui/card";
 import { useFinancialColors, useV2Colors } from "@/core/ui/scheme-colors";
 import { FormModal } from "@/core/ui/sheet";
+import { StepDots } from "@/core/ui/step-dots";
 import { ICON_SIZE, RADIUS, SPACING } from "@/core/ui/theme";
 
 import {
@@ -103,7 +104,14 @@ export function NetWorthIntroSheet({
       onDismiss={() => finish({ kind: "skipped", step })}
       footer={
         <View style={styles.footer}>
-          <StepDots current={step} />
+          <StepDots
+            count={INTRO_STEPS.length}
+            current={step}
+            label={t("netWorth.intro.stepOf", {
+              current: step + 1,
+              total: INTRO_STEPS.length,
+            })}
+          />
           <Button
             mode="contained"
             onPress={onPrimary}
@@ -462,37 +470,6 @@ function ExampleChip() {
   );
 }
 
-function StepDots({ current }: { current: number }) {
-  const { t } = useTranslation();
-  const theme = useTheme();
-  return (
-    <View
-      style={styles.dots}
-      accessible
-      accessibilityLabel={t("netWorth.intro.stepOf", {
-        current: current + 1,
-        total: INTRO_STEPS.length,
-      })}
-    >
-      {INTRO_STEPS.map((name, index) => (
-        <View
-          key={name}
-          style={[
-            styles.stepDot,
-            index === current && styles.stepDotCurrent,
-            {
-              backgroundColor:
-                index === current
-                  ? theme.colors.primary
-                  : theme.colors.outlineVariant,
-            },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   footer: { gap: SPACING.md },
   scene: { borderRadius: RADIUS.md },
@@ -545,7 +522,4 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
     padding: SPACING.sm,
   },
-  dots: { flexDirection: "row", justifyContent: "center", gap: 6 },
-  stepDot: { width: 8, height: 8, borderRadius: RADIUS.full },
-  stepDotCurrent: { width: 22 },
 });

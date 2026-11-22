@@ -5,7 +5,7 @@ struct RealizedBalanceSheet: View {
     let realizedMetrics: BudgetFormulas.RealizedMetrics
     /// The month this sheet reads; the current period when nil.
     var period: BudgetPeriod?
-    /// "Rapprocher mes comptes", right under the balance it checks against the bank.
+    /// "Comparer avec mes comptes", right under the balance it checks against the bank.
     var onReconcile: (() -> Void)?
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -22,7 +22,7 @@ struct RealizedBalanceSheet: View {
                         )
                         if let onReconcile {
                             Button(action: onReconcile) {
-                                Label("Rapprocher mes comptes", systemImage: "building.columns")
+                                Label("Comparer avec mes comptes", systemImage: "building.columns")
                             }
                             .secondaryButtonStyle()
                             .accessibilityIdentifier("reconcileAccountsButton")

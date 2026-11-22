@@ -26,6 +26,7 @@ export interface RekeyRpcPayloads {
   monthlyBudgets: RekeyMonthlyBudgetRpcPayload[];
   planWithdrawals: RekeyPlanWithdrawalRpcPayload[];
   assetSnapshots: RekeyAssetSnapshotRpcPayload[];
+  startingAmount: string | null;
 }
 
 @Injectable()
@@ -278,9 +279,10 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
   ): Promise<void> {
     const supabase = this.#supabaseService.getServiceRoleClient();
     const { error } = await supabase.rpc(
-      'rekey_user_encrypted_data_with_asset_snapshots',
+      'rekey_user_encrypted_data_with_starting_amount',
       {
         p_user_id: userId,
+        p_starting_amount: payloads.startingAmount ?? undefined,
         p_asset_snapshots: payloads.assetSnapshots,
         p_plan_withdrawals: payloads.planWithdrawals,
         p_budget_lines: payloads.budgetLines,

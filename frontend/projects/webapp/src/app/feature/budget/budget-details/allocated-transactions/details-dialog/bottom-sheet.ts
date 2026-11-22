@@ -352,7 +352,7 @@ export class AllocatedTransactionsBottomSheet {
   // (budget-items-container) sets the spreadGroupId on open so the resource loads.
   protected readonly spreadOccurrences = this.store.spreadOccurrenceViewModels;
   protected readonly spreadTracker = this.store.spreadTracker;
-  protected readonly isCurrentPeriod = this.store.isViewingSpreadCurrentPeriod;
+  protected readonly isCurrentPeriod = this.store.isViewingCurrentPeriod;
 
   protected readonly consumptionPercentage = computed(() =>
     this.data.budgetLine.amount > 0

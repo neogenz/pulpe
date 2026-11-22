@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// What the sheet reads to point a movement: the month's movements and prévisions, and the
-/// caller's own toggle, which reports whether the server took it.
+/// What the sheet reads to check an item: the month's movements and prévisions, the caller's own
+/// toggle, and how it checks an item of the two previous months. Each reports whether the server took it.
 struct ReconciliationChecking {
     let items: [CurrentMonthStore.CheckableItem]
     let transactions: [Transaction]
@@ -9,19 +9,55 @@ struct ReconciliationChecking {
     let syncingTransactionIds: Set<String>
     let syncingBudgetLineIds: Set<String>
     let toggle: @MainActor (CurrentMonthStore.CheckableItem) async -> Bool
+    /// No loaded store holds these: the caller drops what it cached of their month.
+    let checkPrior: @MainActor (ReconciliationContext.PriorItem) async -> Bool
+
+    @MainActor
+    func check(_ target: ReconcileAccountsFlow.Suggestion.Target) async -> Bool {
+        switch target {
+        case .transaction(let transaction): await toggle(.transaction(transaction))
+        case .budgetLine(let line): await toggle(.budgetLine(line))
+        case .prior(let item): await checkPrior(item)
+        }
+    }
+
+    /// Checks an item of a previous month on the server, through the same services as the month's own.
+    @MainActor
+    static func checkPrior(
+        _ item: ReconciliationContext.PriorItem,
+        transactionService: any TransactionServicing,
+        budgetLineService: any BudgetLineServicing
+    ) async -> Bool {
+        do {
+            switch item.source {
+            case .transaction: _ = try await transactionService.toggleCheck(id: item.id)
+            case .budgetLine: _ = try await budgetLineService.toggleCheck(id: item.id)
+            }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Items a saving prévision of the month feeds: their balance follows from the month, so the
+    /// add sheet never offers them. An expense prévision linked to an item does not hide it.
+    var savingAssetIds: Set<String> {
+        Set(budgetLines.filter { $0.kind == .saving }.compactMap(\.assetId))
+    }
 }
 
-/// « Comparer avec mes comptes » (PUL-351, V2): one sheet. The balances typed by the user, the
-/// gap to the pointed balance, the movement that probably explains it, and the two ways to
-/// close it: point that movement, or write one adjustment. Every input lives in `flow`, owned
-/// here, so closing discards it and writes nothing. Whatever is left unfinished goes to `onLeave`,
-/// whose owner decides whether it outlives the sheet.
+/// « Comparer avec mes comptes » (PUL-351, V2): one sheet. Step 1 takes the balances typed by the
+/// user (`ReconcileAccountsStepView`); step 2 compares them with Pulpe and walks the gap to a check,
+/// one noted « Écart avec mes comptes » or nothing (`ReconcileCompareStepView`). Every input lives in
+/// `flow`, owned here, so closing discards it and writes nothing. Whatever is left unfinished goes to
+/// `onLeave`, whose owner decides whether it outlives the sheet.
 struct ReconcileAccountsSheet: View {
     /// The loaded month, read again on every render.
     struct Month {
         let budgetId: String
         let realizedMetrics: BudgetFormulas.RealizedMetrics
-        let rollover: Decimal
+        /// « Disponible à dépenser » now.
+        let available: Decimal
         /// A pointing not yet confirmed: its rollback would move the balance under a
         /// verdict already acted on, so the actions wait for it.
         var hasPointingInFlight = false
@@ -33,24 +69,18 @@ struct ReconcileAccountsSheet: View {
     var onLeave: (@MainActor (ReconcileAccountsFlow.Draft?) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var flow: ReconcileAccountsFlow
-    @State private var submitSuccessTrigger = false
-    @State private var isPointing = false
-    @FocusState private var focusedField: Field?
-
-    enum Field: Hashable {
-        case label(UUID)
-        case amount(UUID)
-    }
+    /// The guide page, shown instead of the form while set; `nil` shows the form.
+    @State private var guideSource: ReconcileGuideSource?
+    @AppStorage(ReconcileGuideGate.storageKey) private var hasSeenGuide = false
 
     init(
         month: Month,
         checking: ReconciliationChecking,
         dependencies: AddTransactionDependencies = .live,
         netWorthAccounts: [Asset]? = nil,
+        freeAccounts: [ReconcileFreeAccountsStore.Entry] = ReconcileFreeAccountsStore.shared.entries,
         restoring draft: ReconcileAccountsFlow.Draft? = nil,
         onLeave: (@MainActor (ReconcileAccountsFlow.Draft?) -> Void)? = nil,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void
@@ -58,10 +88,14 @@ struct ReconcileAccountsSheet: View {
         self.month = month
         self.checking = checking
         self.onLeave = onLeave
+        let hasSeenGuide = UserDefaults.standard.bool(forKey: ReconcileGuideGate.storageKey)
+        _guideSource = State(initialValue: ReconcileGuideGate.shouldPresent(hasSeen: hasSeenGuide) ? .auto : nil)
         _flow = State(initialValue: ReconcileAccountsFlow(
             budgetId: month.budgetId,
-            adjustmentLabel: AppLocale.string("Ajustement"),
+            entryName: AppLocale.string("Écart avec mes comptes"),
             createTransaction: dependencies.createTransaction,
+            fetchContext: { try await ReconciliationService.shared.getContext(budgetId: $0) },
+            updateState: { try await ReconciliationService.shared.updateState($0) },
             onAdjustmentCreated: onAdjustmentCreated,
             onCompleted: { completion in
                 AnalyticsService.shared.capture(
@@ -70,338 +104,81 @@ struct ReconcileAccountsSheet: View {
                 )
             },
             netWorthAccounts: netWorthAccounts,
+            freeAccounts: freeAccounts,
             restoring: draft
         ))
     }
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
-    private var realizedBalance: Decimal { month.realizedMetrics.realizedBalance }
-    private var verdict: AccountReconciliation.Verdict? { flow.verdict(realizedBalance: realizedBalance) }
-    private var gap: Decimal? { flow.difference(realizedBalance: realizedBalance) }
 
-    private var pointingCandidates: [AccountReconciliation.PointingCandidate] {
-        guard let gap else { return [] }
-        return AccountReconciliation.pointingCandidates(
-            gap: gap, lines: checking.budgetLines, transactions: checking.transactions
-        )
-    }
-
-    /// The one movement whose pointing settles the gap: two that tie name none, guessing
-    /// could point the wrong one.
-    private var missedMovement: Transaction? {
-        let settling = pointingCandidates.filter { $0.remainingGap == 0 }
-        return settling.count == 1 ? settling.first?.transaction : nil
+    @ViewBuilder private var currentStep: some View {
+        switch flow.step {
+        case .accounts:
+            ReconcileAccountsStepView(
+                flow: flow, currency: currency, fedAssetIds: checking.savingAssetIds
+            )
+        case .comparison:
+            ReconcileCompareStepView(flow: flow, month: month, checking: checking, currency: currency)
+        }
     }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    Text("Saisis le solde de chaque compte, tel que ta banque l'affiche.")
-                        .font(PulpeTypography.captionRegular)
-                        .foregroundStyle(Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    accountsCard
-                    if flow.linksToNetWorth { LinkedAccountsFootnote() }
-                    if let total = flow.total { totalsCard(total) }
-                    if !pointingCandidates.isEmpty { candidatesSection(pointingCandidates) }
-                    outcomeBlock
+            if let guideSource {
+                ReconcileGuideView(source: guideSource, currency: currency) { _ in
+                    hasSeenGuide = true
+                    self.guideSource = nil
                 }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
-                .padding(.top, DesignTokens.Spacing.sm)
-                .padding(.bottom, DesignTokens.Spacing.xl)
-                .animation(reduceMotion ? nil : DesignTokens.Animation.smoothEaseOut, value: verdict)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
-            .background(Color.sheetBackground)
-            .dismissKeyboardOnTap()
-            .safeAreaInset(edge: .bottom, spacing: DesignTokens.Spacing.none) { footer }
-            .navigationTitle(AppLocale.string("Comparer avec mes comptes"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton().disabled(flow.isSubmitting)
-                }
+                // No bar title: the guide's own title says it, and « Passer » leaves no room for this long one
+                .navigationBarTitleDisplayMode(.inline)
+            } else {
+                currentStep
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .principal) {
+                            // Scaled, then wrapped: the long name never ends in an ellipsis.
+                            Text("Comparer avec mes comptes")
+                                .font(PulpeTypography.headline)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(DesignTokens.TextScale.compact)
+                                .accessibilityAddTraits(.isHeader)
+                        }
+                        ToolbarItem(placement: .cancellationAction) {
+                            leadingButton.disabled(flow.isWriting || flow.isChecking)
+                        }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { guideSource = .help } label: {
+                                Image(systemName: "questionmark.circle")
+                            }
+                            .disabled(flow.isWriting || flow.isChecking)
+                            .accessibilityLabel(AppLocale.string("Revoir le guide"))
+                            .accessibilityIdentifier("reconcileGuideHelp")
+                        }
+                    }
             }
         }
         .standardSheetPresentation()
-        // Nothing leaves the sheet while the write is in flight.
-        .interactiveDismissDisabled(flow.isSubmitting)
+        // Nothing leaves the sheet while a write or a check is in flight, nor by a swipe once a balance is
+        // typed: a swipe meant to lower the keyboard would throw them away. The close button still leaves.
+        .interactiveDismissDisabled(flow.isWriting || flow.isChecking || flow.hasTypedBalance || guideSource == .help)
         .onChange(of: flow.shouldClose(loadedBudgetId: month.budgetId)) { _, shouldClose in
             if shouldClose { dismiss() }
         }
         .onDisappear { onLeave?(flow.draft) }
-        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .appliesAccountLinks(of: flow)
         .suppressesTips()
-        .task {
-            // Opening on an empty flow focuses its one amount, as the add sheets do.
-            guard let first = flow.accounts.first, first.amountText.isEmpty else { return }
-            try? await Task.sleep(for: .milliseconds(DesignTokens.Animation.pushAutofocusDelayMs))
-            guard !Task.isCancelled else { return }
-            focusedField = .amount(first.id)
+    }
+
+    /// Step 1 closes the sheet; step 2 goes back to the balances.
+    @ViewBuilder private var leadingButton: some View {
+        if flow.step == .accounts {
+            SheetCloseButton()
+        } else {
+            Button { flow.editAccounts() } label: { Image(systemName: "chevron.left") }
+                .accessibilityLabel(AppLocale.string("Retour"))
+                .accessibilityIdentifier("reconcileBackToAccounts")
         }
-    }
-}
-
-// MARK: - Sections
-
-extension ReconcileAccountsSheet {
-    // MARK: - Accounts
-
-    private var accountsCard: some View {
-        FormCard {
-            ForEach(Array(flow.accounts.enumerated()), id: \.element.id) { index, account in
-                ReconcileAccountRow(
-                    flow: flow, account: account, number: index + 1, currency: currency, focus: $focusedField
-                ) { removeAccount(account.id) }
-                FormRowDivider()
-            }
-            SectionAddRow(title: AppLocale.string("Ajouter un compte")) {
-                let id = withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) { flow.addAccount() }
-                focusedField = .amount(id)
-            }
-            .accessibilityIdentifier("reconcileAddAccountButton")
-        }
-    }
-
-    // MARK: - Totals
-
-    private func totalsCard(_ total: Decimal) -> some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            totalLine(AppLocale.string("Sur tes comptes"), amount: total.asAmount(for: currency))
-            totalLine(AppLocale.string("Ton solde pointé"), amount: realizedBalance.asAmount(for: currency))
-            Divider().overlay(Color.outlineVariant)
-            totalLine(
-                AppLocale.string("Écart"),
-                amount: (gap ?? 0).asFormulaAmount(for: currency),
-                tint: gap == 0 ? .pulpePrimary : .financialOverBudget,
-                isEmphasized: true
-            )
-            .accessibilityIdentifier("reconcileGap")
-        }
-        .padding(DesignTokens.Spacing.lg)
-        .pulpeSurfaceCard()
-    }
-
-    private func totalLine(
-        _ title: String,
-        amount: String,
-        tint: Color = .textPrimary,
-        isEmphasized: Bool = false
-    ) -> some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            Text(title)
-                .font(isEmphasized ? PulpeTypography.rowTitle : PulpeTypography.rowTitleRegular)
-                .foregroundStyle(Color.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text(verbatim: amount)
-                .font(PulpeTypography.rowAmount)
-                .foregroundStyle(tint)
-                .lineLimit(1)
-                .minimumScaleFactor(DesignTokens.TextScale.compact)
-                .layoutPriority(1)
-                .sensitiveAmount()
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    // MARK: - Movements to point
-
-    /// Pointing one of them first keeps an adjustment from counting it twice later.
-    private func candidatesSection(_ candidates: [AccountReconciliation.PointingCandidate]) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(candidates.count > 1 ? AppLocale.string("À pointer d'abord, s'ils sont passés sur ton compte")
-                : missedMovement != nil ? AppLocale.string("Sans doute passé sans être pointé")
-                : AppLocale.string("À pointer d'abord, s'il est passé sur ton compte"))
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textSecondary)
-                .padding(.leading, DesignTokens.Spacing.xs)
-                .accessibilityAddTraits(.isHeader)
-            VStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(candidates, id: \.transaction.id) { candidate in
-                    candidateRow(candidate)
-                }
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .pulpeSurfaceCard()
-        }
-    }
-
-    private func candidateRow(_ candidate: AccountReconciliation.PointingCandidate) -> some View {
-        let transaction = candidate.transaction
-        let lineName = transaction.budgetLineId.flatMap { id in checking.budgetLines.first { $0.id == id }?.name }
-        let remaining = candidate.remainingGap == 0
-            ? AppLocale.string("même montant")
-            : AppLocale.string("il restera \(candidate.remainingGap.asFormulaAmount(for: currency))")
-        let subtitle = "\(lineName ?? PendingWording.unplanned) · \(remaining)"
-        let isBusy = month.hasPointingInFlight || isPointing || flow.isSubmitting
-        return PulpeListRow(title: transaction.name, subtitle: subtitle, showsChevron: false) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Text(verbatim: transaction.amount.asAmount(for: currency))
-                    .sensitiveAmount()
-                // The settling one already owns the footer's primary button.
-                if transaction.id != missedMovement?.id {
-                    Button(AppLocale.string("Pointer")) {
-                        Task { await point(transaction) }
-                    }
-                    .disabled(isBusy)
-                    .secondaryButtonStyle(size: .small)
-                    .fixedSize()
-                    .accessibilityLabel(AppLocale.string("Pointer \(transaction.name)"))
-                }
-            }
-        }
-        .accessibilityIdentifier("reconcilePointingCandidate")
-    }
-
-    // MARK: - Outcome
-
-    @ViewBuilder
-    private var outcomeBlock: some View {
-        switch verdict {
-        case .upToDate:
-            InfoBanner(
-                .ok,
-                systemImage: "checkmark.circle",
-                text: AppLocale.string("Tes comptes et ton solde pointé sont identiques, au centime près.")
-            )
-        case .adjustment(let kind, let amount):
-            let impact = MovementImpact.compute(
-                lines: checking.budgetLines,
-                transactions: checking.transactions,
-                rollover: month.rollover,
-                draft: .init(kind: kind, amount: amount, lineId: nil)
-            )
-            let signedGap = (gap ?? 0).asFormulaAmount(for: currency)
-            let before = impact.before.asAmount(for: currency)
-            let after = impact.after.asAmount(for: currency)
-            ImpactBlock(
-                title: missedMovement.map { AppLocale.string("Pointer \($0.name) règle l'écart") }
-                    ?? (pointingCandidates.isEmpty
-                        ? AppLocale.string("Un ajustement règle l'écart")
-                        : AppLocale.string("Pointe d'abord ce qui est passé")),
-                before: nil,
-                after: impact.after,
-                currency: currency,
-                note: adjustmentNote(
-                    gap: signedGap, before: before, after: after, pointingSettles: missedMovement != nil
-                ),
-                showsFigures: false
-            )
-            .sensitiveAmount()
-        case nil:
-            EmptyView()
-        }
-    }
-
-    /// What an adjustment would do to the disponible; pointing, by contrast, leaves it alone.
-    private func adjustmentNote(gap: String, before: String, after: String, pointingSettles: Bool) -> String {
-        guard pointingSettles else {
-            let note = AppLocale.string("Un ajustement de \(gap) ferait passer ton disponible de \(before) à \(after).")
-            guard !pointingCandidates.isEmpty else { return note }
-            // swiftlint:disable:next line_length
-            let countedTwice = AppLocale.string("Un ajustement maintenant compterait deux fois ce que tu pointeras ensuite.")
-            return note + " " + countedTwice
-        }
-        // swiftlint:disable:next line_length
-        return AppLocale.string("Ton disponible ne bouge pas. Un ajustement de \(gap), lui, le ferait passer de \(before) à \(after).")
-    }
-
-    // MARK: - Footer
-
-    @ViewBuilder
-    private var footer: some View {
-        let isBusy = month.hasPointingInFlight || isPointing
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            switch verdict {
-            case .upToDate:
-                let canFinish = !isBusy
-                    && flow.canConfirmUpToDate(realizedBalance: realizedBalance, of: month.budgetId)
-                Button(AppLocale.string("Terminer"), action: finishUpToDate)
-                    .disabled(!canFinish)
-                    .primaryButtonStyle(isEnabled: canFinish)
-                    .accessibilityIdentifier("reconcileFinishButton")
-            case .adjustment:
-                let canSubmit = !isBusy
-                    && flow.canSubmitAdjustment(realizedBalance: realizedBalance, of: month.budgetId)
-                if let missedMovement {
-                    Button {
-                        Task { await point(missedMovement) }
-                    } label: {
-                        Text("Pointer \(missedMovement.name)").lineLimit(1)
-                    }
-                    .disabled(isBusy || flow.isSubmitting)
-                    .primaryButtonStyle(isEnabled: !isBusy && !flow.isSubmitting)
-                    .accessibilityIdentifier("reconcilePointMissedButton")
-                    Button(AppLocale.string("Enregistrer un ajustement")) {
-                        Task { await submitAdjustment() }
-                    }
-                    .disabled(!canSubmit)
-                    .tertiaryButtonStyle()
-                    .accessibilityIdentifier("reconcileSubmitButton")
-                } else {
-                    Button {
-                        Task { await submitAdjustment() }
-                    } label: {
-                        if flow.isSubmitting { ProgressView() } else { Text("Enregistrer un ajustement") }
-                    }
-                    .disabled(!canSubmit)
-                    .primaryButtonStyle(isEnabled: canSubmit)
-                    .accessibilityIdentifier("reconcileSubmitButton")
-                }
-            case nil:
-                EmptyView()
-            }
-        }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .background(Color.sheetBackground)
-    }
-
-    // MARK: - Actions
-
-    /// Pointing the movement moves the pointed balance by its amount: the gap closes and the
-    /// sheet turns to « Terminer ». The disponible does not move.
-    private func point(_ transaction: Transaction) async {
-        isPointing = true
-        defer { isPointing = false }
-        let didSucceed = await checking.toggle(.transaction(transaction))
-        if !didSucceed {
-            toastManager.show(
-                AppLocale.string("\(transaction.name) n'a pas pu être pointé — réessaie"),
-                type: .error
-            )
-        }
-    }
-
-    /// A refusal keeps every input: one toast, then the same button retries.
-    private func submitAdjustment() async {
-        switch await flow.submitAdjustment(realizedBalance: realizedBalance, of: month.budgetId) {
-        case .created:
-            submitSuccessTrigger.toggle()
-            toastManager.show(AppLocale.string("Ajustement enregistré"))
-            dismiss()
-        case .failed:
-            toastManager.show(
-                AppLocale.string("L'ajustement n'a pas pu être enregistré — réessaie"),
-                type: .error
-            )
-        case .ignored:
-            break
-        }
-    }
-
-    private func finishUpToDate() {
-        guard flow.confirmUpToDate(realizedBalance: realizedBalance, of: month.budgetId) else { return }
-        submitSuccessTrigger.toggle()
-        dismiss()
-    }
-
-    private func removeAccount(_ id: UUID) {
-        focusedField = nil
-        withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) { flow.removeAccount(id: id) }
     }
 }
 
@@ -419,16 +196,18 @@ extension ReconcileAccountsSheet {
                         totalItemsCount: 18,
                         checkedSavingsAmount: 300
                     ),
-                    rollover: 120
+                    available: 900
                 ),
                 checking: .init(
                     items: [], transactions: [], budgetLines: [],
-                    syncingTransactionIds: [], syncingBudgetLineIds: [], toggle: { _ in false }
+                    syncingTransactionIds: [], syncingBudgetLineIds: [],
+                    toggle: { _ in false }, checkPrior: { _ in false }
                 ),
                 onAdjustmentCreated: { _ in }
             )
             .environment(ToastManager())
             .environment(UserSettingsStore())
             .environment(AssetStore())
+            .environment(AppState())
         }
 }
