@@ -23,7 +23,7 @@ function builder(result: Result) {
       get: (_t, method: string) =>
         method === 'then'
           ? (resolve: (value: Result) => void) => resolve(result)
-          : method === 'maybeSingle' || method === 'single'
+          : method === 'single'
             ? () => Promise.resolve(result)
             : (...args: unknown[]) => {
                 calls.push([method, args]);
@@ -44,26 +44,6 @@ function build(result: Result) {
 }
 
 describe('SupabaseReconciliationStateRepository', () => {
-  it('should default to null when the person has no row', async () => {
-    const { repo } = build({ data: null, error: null });
-
-    expect(await repo.get()).toEqual({ lastCompletedAt: null });
-  });
-
-  it('should read the completion time and never the starting amount', async () => {
-    const { repo, query } = build({
-      data: { last_completed_at: '2026-11-01T10:00:00.000Z' },
-      error: null,
-    });
-
-    expect(await repo.get()).toEqual({
-      lastCompletedAt: '2026-11-01T10:00:00.000Z',
-    });
-    expect(query.calls.find(([m]) => m === 'select')?.[1]).toEqual([
-      'last_completed_at',
-    ]);
-  });
-
   it('should write the completion time and never starting_amount', async () => {
     const { repo, query } = build({
       data: { last_completed_at: '2026-11-21T10:00:00.000Z' },

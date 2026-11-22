@@ -18,17 +18,6 @@ export class SupabaseReconciliationStateRepository implements ReconciliationStat
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
   ) {}
 
-  async get(): Promise<StoredReconciliationState> {
-    const { data, error } = await this.supabaseProvider.client
-      .from('user_reconciliation')
-      .select('last_completed_at')
-      .eq('user_id', this.supabaseProvider.user.id)
-      .maybeSingle();
-
-    if (error) throw this.failed('FETCH', 'getReconciliationState', error);
-    return { lastCompletedAt: data?.last_completed_at ?? null };
-  }
-
   async upsert(
     patch: ReconciliationStatePatch,
   ): Promise<StoredReconciliationState> {
@@ -46,17 +35,13 @@ export class SupabaseReconciliationStateRepository implements ReconciliationStat
       .select('last_completed_at')
       .single();
 
-    if (error) throw this.failed('UPDATE', 'upsertReconciliationState', error);
+    if (error) throw this.failed('upsertReconciliationState', error);
     return { lastCompletedAt: data.last_completed_at };
   }
 
-  private failed(
-    kind: 'FETCH' | 'UPDATE',
-    operation: string,
-    error: unknown,
-  ): BusinessException {
+  private failed(operation: string, error: unknown): BusinessException {
     return new BusinessException(
-      ERROR_DEFINITIONS[`RECONCILIATION_${kind}_FAILED`],
+      ERROR_DEFINITIONS.RECONCILIATION_UPDATE_FAILED,
       undefined,
       { operation, userId: this.supabaseProvider.user.id },
       { cause: error },
