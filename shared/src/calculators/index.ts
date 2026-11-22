@@ -33,7 +33,6 @@ export {
 } from './balance-trajectory.js';
 export { splitTotalPreserving } from './spread-split.js';
 export {
-  SMALL_GAP_THRESHOLD,
   availableAfterNote,
   comparedFigure,
   comparisonScreen,
@@ -42,8 +41,6 @@ export {
   matchedBreakdown,
   parseAccountAmount,
   partlySpentBudgetLines,
-  pointingCandidates,
-  pointingEffect,
   pointingEffects,
   rankedPointingCandidates,
   reconciliationVerdict,
@@ -53,7 +50,6 @@ export {
   type ComparisonScreen,
   type MatchedBreakdown,
   type PartlySpentBudgetLine,
-  type PointingCandidate,
   type PointingSource,
   type PointingTarget,
   type PriorPointingItem,

@@ -306,7 +306,6 @@ export {
 } from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
-  SMALL_GAP_THRESHOLD,
   availableAfterNote,
   comparedFigure,
   comparisonScreen,
@@ -315,8 +314,6 @@ export {
   matchedBreakdown,
   parseAccountAmount,
   partlySpentBudgetLines,
-  pointingCandidates,
-  pointingEffect,
   pointingEffects,
   rankedPointingCandidates,
   reconciliationVerdict,
@@ -326,7 +323,6 @@ export {
   type ComparisonScreen,
   type MatchedBreakdown,
   type PartlySpentBudgetLine,
-  type PointingCandidate,
   type PointingSource,
   type PointingTarget,
   type PriorPointingItem,

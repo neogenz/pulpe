@@ -5,7 +5,7 @@
  * Android clients import it from here.
  *
  * SWIFT TWIN: `parseAmount`, `totalCents(of:)`, `verdict`,
- * `pointingCandidates`, `rankedPointingCandidates` and the screen rules
+ * `rankedPointingCandidates` and the screen rules
  * (`comparisonScreen`, `isSalaryMaybeEarly`, `comparedFigure`,
  * `availableAfterNote`, `gapClosedByChecks`, `partlySpentBudgetLines`,
  * `matchedBreakdown`) in
@@ -112,33 +112,16 @@ type FormulaTransaction = NonNullable<
 
 const MAX_POINTING_CANDIDATES = 3;
 
-export interface PointingCandidate<T> {
-  readonly transaction: T;
-  /** The gap once this one is pointed: `0` settles it. */
-  readonly remainingGap: number;
-}
-
 export interface PointingTarget {
   readonly kind: 'transaction' | 'budgetLine';
   readonly id: string;
 }
 
 /**
- * What pointing one item moves in the pointed balance, measured rather than
- * read from its amount: under a pointée prévision a dépense moves the balance
- * by less, or not at all. Also the server's effect of a previous month's item.
- */
-export function pointingEffect(
-  budgetLines: FormulaLines,
-  transactions: readonly (FormulaTransaction & { readonly id: string })[],
-  target: PointingTarget,
-): number {
-  return pointingEffects(budgetLines, transactions, [target])[0]!;
-}
-
-/**
- * `pointingEffect` for several targets, in order, against one balance before
- * pointing. Server only (previous months' items): no Swift twin.
+ * What pointing each target moves in the pointed balance, in order, against
+ * one balance before pointing. Measured rather than read from the amount:
+ * under a pointée prévision a dépense moves the balance by less, or not at
+ * all. Server only (previous months' items): no Swift twin.
  */
 export function pointingEffects(
   budgetLines: FormulaLines,
@@ -153,7 +136,7 @@ export function pointingEffects(
   );
 }
 
-/** `pointingEffect` against a balance before pointing computed once for a whole ranking. */
+/** One target's effect against a balance before pointing computed once for a whole ranking. */
 function effectAfterPointing(
   budgetLines: readonly FormulaLines[number][],
   transactions: readonly (FormulaTransaction & { readonly id: string })[],
@@ -204,37 +187,6 @@ function rankByRemainingGap<T extends Effect>(
     .slice(0, MAX_POINTING_CANDIDATES);
 }
 
-/**
- * The movements not pointed yet that most likely explain the gap: each one,
- * pointed alone, moves the pointed balance toward the accounts total without
- * going past it. An adjustment written instead would count them twice once
- * they are pointed. Closest to settling first, at most three.
- */
-export function pointingCandidates<
-  T extends FormulaTransaction & { readonly id: string },
->(
-  gap: number,
-  budgetLines: FormulaLines,
-  transactions: readonly T[],
-): PointingCandidate<T>[] {
-  if (gap === 0) return [];
-  const balanceBefore = BudgetFormulas.calculateRealizedBalance(budgetLines, [
-    ...transactions,
-  ]);
-  return rankByRemainingGap(
-    gap,
-    transactions
-      .filter((transaction) => transaction.checkedAt == null)
-      .map((transaction) => ({
-        transaction,
-        effect: effectAfterPointing(budgetLines, transactions, balanceBefore, {
-          kind: 'transaction',
-          id: transaction.id,
-        }),
-      })),
-  ).map(({ transaction, remainingGap }) => ({ transaction, remainingGap }));
-}
-
 /** An unchecked item of a previous month, with the effect the server measured. */
 export interface PriorPointingItem {
   readonly id: string;
@@ -253,9 +205,12 @@ export interface RankedPointingCandidate {
 }
 
 /**
- * `pointingCandidates` over the three sources the comparison offers: unchecked
- * budget lines, unchecked movements of the month, then prior items. Same
- * filter and ranking; ties keep that source order.
+ * The items not pointed yet that most likely explain the gap: each one,
+ * pointed alone, moves the pointed balance toward the accounts total without
+ * going past it. An adjustment written instead would count them twice once
+ * they are pointed. Three sources: unchecked budget lines, unchecked movements
+ * of the month, then prior items; closest to settling first (ties keep that
+ * source order), at most three.
  */
 export function rankedPointingCandidates(
   gap: number,
@@ -312,7 +267,7 @@ export function rankedPointingCandidates(
 }
 
 /** In the budget currency. */
-export const SMALL_GAP_THRESHOLD = 10;
+const SMALL_GAP_THRESHOLD = 10;
 const SALARY_EARLY_DAYS = 5;
 
 /**
