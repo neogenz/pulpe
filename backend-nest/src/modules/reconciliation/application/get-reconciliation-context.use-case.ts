@@ -7,8 +7,10 @@ import {
   type BudgetMonthReadPort,
 } from '@modules/budget/domain/ports/budget-month-read.port';
 import { priorCorrection, type PriorMonth } from '../domain/prior-correction';
-import { RECONCILIATION_STATE_REPOSITORY } from '../reconciliation.tokens';
-import type { ReconciliationStateRepositoryPort } from '../domain/ports/reconciliation-state-repository.port';
+import {
+  RECONCILIATION_STATE_REPOSITORY,
+  type ReconciliationStateRepositoryPort,
+} from '../domain/ports/reconciliation-state-repository.port';
 
 @Injectable()
 export class GetReconciliationContextUseCase {
@@ -20,7 +22,9 @@ export class GetReconciliationContextUseCase {
   ) {}
 
   async execute(budgetId: string): Promise<ReconciliationContext> {
-    if (!(await this.repo.budgetExists(budgetId))) {
+    // `null` too for a budget of someone else: nothing else is read then.
+    const current = await this.budgets.readBudget(budgetId);
+    if (!current) {
       throw new BusinessException(
         ERROR_DEFINITIONS.RECONCILIATION_BUDGET_NOT_FOUND,
         { id: budgetId },
@@ -28,7 +32,7 @@ export class GetReconciliationContextUseCase {
     }
     const [state, prior] = await Promise.all([
       this.repo.get(),
-      this.#previousMonths(budgetId),
+      this.#previousMonths(current.previousBudgetId),
     ]);
     return {
       startingAmount: state.startingAmount,
@@ -38,9 +42,11 @@ export class GetReconciliationContextUseCase {
   }
 
   /** The two existing budgets before this one, following `previousBudgetId`. */
-  async #previousMonths(budgetId: string): Promise<PriorMonth[]> {
+  async #previousMonths(
+    previousBudgetId: string | null,
+  ): Promise<PriorMonth[]> {
     const months: PriorMonth[] = [];
-    let id = (await this.budgets.readBudget(budgetId))?.previousBudgetId;
+    let id = previousBudgetId;
     for (const monthsAgo of [1, 2] as const) {
       const details = id ? await this.budgets.readBudget(id) : null;
       if (!details) break;

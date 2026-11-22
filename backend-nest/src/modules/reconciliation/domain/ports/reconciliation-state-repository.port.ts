@@ -1,16 +1,18 @@
 import type {
-  ReconciliationState,
   ReconciliationStatePatch,
+  StoredReconciliationState,
 } from '../reconciliation-state.entity';
+
+export const RECONCILIATION_STATE_REPOSITORY = Symbol(
+  'RECONCILIATION_STATE_REPOSITORY',
+);
 
 /**
  * Persistence port for the person's comparison state. The repository owns the
  * encryption boundary: the starting amount is a plain number on both sides.
  */
 export interface ReconciliationStateRepositoryPort {
-  /** True when the budget exists and belongs to the person. */
-  budgetExists(budgetId: string): Promise<boolean>;
-  get(): Promise<ReconciliationState>;
+  get(): Promise<StoredReconciliationState>;
   /** Upserts the row, touching only the fields present in the patch. */
-  upsert(patch: ReconciliationStatePatch): Promise<ReconciliationState>;
+  upsert(patch: ReconciliationStatePatch): Promise<StoredReconciliationState>;
 }

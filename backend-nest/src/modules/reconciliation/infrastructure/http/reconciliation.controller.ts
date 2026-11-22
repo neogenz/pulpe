@@ -53,7 +53,6 @@ export class ReconciliationController {
     private readonly updateStateUseCase: UpdateReconciliationStateUseCase,
   ) {}
 
-  // Declared before `:budgetId` so `state` is never read as a budget id.
   @Put('state')
   @ApiOperation({
     summary: 'Enregistre l’état de la comparaison',

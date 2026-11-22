@@ -1,5 +1,5 @@
 /** What the person keeps between comparisons; 0 and null while nothing is stored. */
-export interface ReconciliationState {
+export interface StoredReconciliationState {
   startingAmount: number;
   lastCompletedAt: string | null;
 }

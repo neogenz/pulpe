@@ -19,12 +19,10 @@ const details = (
   }) as unknown as BudgetWithDetails;
 
 function build(
-  exists: boolean,
-  lastCompletedAt: string | null = null,
   months: Record<string, BudgetWithDetails> = {},
+  lastCompletedAt: string | null = null,
 ) {
   const repo = {
-    budgetExists: jest.fn().mockResolvedValue(exists),
     get: jest.fn().mockResolvedValue({ startingAmount: 3100, lastCompletedAt }),
   } as unknown as ReconciliationStateRepositoryPort;
   const budgets = {
@@ -42,9 +40,10 @@ function build(
 
 describe('GetReconciliationContextUseCase', () => {
   it('should return the stored state with an empty prior part for a first budget', async () => {
-    const { useCase } = build(true, '2026-11-01T10:00:00.000Z', {
-      b1: details('b1', null),
-    });
+    const { useCase } = build(
+      { b1: details('b1', null) },
+      '2026-11-01T10:00:00.000Z',
+    );
 
     expect(await useCase.execute('b1')).toEqual({
       startingAmount: 3100,
@@ -54,7 +53,7 @@ describe('GetReconciliationContextUseCase', () => {
     });
   });
 
-  it('should follow the chain two budgets back, skipping missing months, and no further', async () => {
+  it('should follow the chain two budgets back and no further', async () => {
     const pending = (id: string, amount: number) => ({
       budget: { id, endingBalance: -amount },
       transactions: [
@@ -68,7 +67,7 @@ describe('GetReconciliationContextUseCase', () => {
         },
       ],
     });
-    const { budgets, useCase } = build(true, null, {
+    const { budgets, useCase } = build({
       nov: details('nov', 'oct'),
       oct: details('oct', 'sep', pending('card', 800)),
       sep: details('sep', 'aug', pending('pharmacy', 40)),
@@ -82,21 +81,39 @@ describe('GetReconciliationContextUseCase', () => {
       ['pharmacy', 2],
     ]);
     expect(context.priorCorrection).toBe(840);
-    expect(budgets.readBudget).not.toHaveBeenCalledWith('aug');
+    expect(budgets.readBudget.mock.calls.map(([id]) => id)).toEqual([
+      'nov',
+      'oct',
+      'sep',
+    ]);
+  });
+
+  it('should stop at a previous budget it cannot read', async () => {
+    const { budgets, useCase } = build({
+      nov: details('nov', 'gone'),
+      sep: details('sep', null),
+    });
+
+    const context = await useCase.execute('nov');
+
+    expect(context.priorItems).toEqual([]);
+    expect(context.priorCorrection).toBe(0);
+    expect(budgets.readBudget).toHaveBeenCalledTimes(2);
   });
 
   it('should report no completed comparison without a completion time', async () => {
-    const { useCase } = build(true);
+    const { useCase } = build({ b1: details('b1', null) });
 
     expect((await useCase.execute('b1')).hasCompletedComparison).toBe(false);
   });
 
   it('should refuse a budget that is not the person’s and read nothing else', async () => {
-    const { repo, useCase } = build(false);
+    const { repo, budgets, useCase } = build();
 
     await expect(useCase.execute('other')).rejects.toBeInstanceOf(
       BusinessException,
     );
     expect(repo.get).not.toHaveBeenCalled();
+    expect(budgets.readBudget).toHaveBeenCalledTimes(1);
   });
 });

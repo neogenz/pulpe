@@ -1,3 +1,1 @@
-export const RECONCILIATION_STATE_REPOSITORY = Symbol(
-  'RECONCILIATION_STATE_REPOSITORY',
-);
+export { RECONCILIATION_STATE_REPOSITORY } from './domain/ports/reconciliation-state-repository.port';

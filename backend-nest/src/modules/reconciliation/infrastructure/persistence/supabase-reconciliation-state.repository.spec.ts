@@ -109,15 +109,6 @@ describe('SupabaseReconciliationStateRepository', () => {
     expect(encryption.encryptAmount).not.toHaveBeenCalled();
   });
 
-  it('should tell whether the budget is the person’s', async () => {
-    expect(
-      await build({ data: { id: 'b' }, error: null }).repo.budgetExists('b'),
-    ).toBe(true);
-    expect(
-      await build({ data: null, error: null }).repo.budgetExists('b'),
-    ).toBe(false);
-  });
-
   it('should wrap a database failure', async () => {
     const { repo } = build({ data: null, error: { message: 'boom' } });
 

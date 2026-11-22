@@ -8,8 +8,8 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { ReconciliationStateRepositoryPort } from '../../domain/ports/reconciliation-state-repository.port';
 import type {
-  ReconciliationState,
   ReconciliationStatePatch,
+  StoredReconciliationState,
 } from '../../domain/reconciliation-state.entity';
 import type { Database } from '../../../../types/database.types';
 
@@ -25,19 +25,7 @@ export class SupabaseReconciliationStateRepository implements ReconciliationStat
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
   ) {}
 
-  async budgetExists(budgetId: string): Promise<boolean> {
-    const { data, error } = await this.supabaseProvider.client
-      .from('monthly_budget')
-      .select('id')
-      .eq('id', budgetId)
-      .eq('user_id', this.supabaseProvider.user.id)
-      .maybeSingle();
-
-    if (error) throw this.failed('FETCH', 'budgetExists', error);
-    return data !== null;
-  }
-
-  async get(): Promise<ReconciliationState> {
+  async get(): Promise<StoredReconciliationState> {
     const { data, error } = await this.supabaseProvider.client
       .from('user_reconciliation')
       .select('*')
@@ -48,7 +36,9 @@ export class SupabaseReconciliationStateRepository implements ReconciliationStat
     return await this.toState(data);
   }
 
-  async upsert(patch: ReconciliationStatePatch): Promise<ReconciliationState> {
+  async upsert(
+    patch: ReconciliationStatePatch,
+  ): Promise<StoredReconciliationState> {
     const user = this.supabaseProvider.user;
     const row: ReconciliationInsert = { user_id: user.id };
     if (patch.startingAmount !== undefined) {
@@ -73,7 +63,7 @@ export class SupabaseReconciliationStateRepository implements ReconciliationStat
 
   private async toState(
     row: ReconciliationRow | null,
-  ): Promise<ReconciliationState> {
+  ): Promise<StoredReconciliationState> {
     const dek = row?.starting_amount
       ? await this.encryption.getDekFor(this.supabaseProvider.user)
       : null;
