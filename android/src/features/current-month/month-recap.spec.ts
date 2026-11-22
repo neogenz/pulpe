@@ -6,6 +6,7 @@ import {
   recapOutcome,
   recapSpending,
   recapSubtitle,
+  reportTitle,
 } from "./month-recap";
 
 const t = (key: string, options?: Record<string, unknown>) =>
@@ -117,5 +118,38 @@ describe("recapFindings", () => {
       "home.recap.findings.savingsFull",
       "home.recap.findings.allPointed",
     ]);
+  });
+});
+
+describe("reportTitle", () => {
+  const fr = (key: string, options?: object) =>
+    jest
+      .requireActual("@/core/i18n/i18n")
+      .translateForLocale("fr", key, options);
+  const sparse = (month: number, year: number) =>
+    ({ id: `${year}-${month}`, month, year }) as BudgetSparse;
+  const list = [
+    sparse(12, 2026),
+    sparse(8, 2026),
+    sparse(11, 2026),
+    sparse(12, 2025),
+  ];
+
+  it("names the budget the report comes from, skipped months included", () => {
+    expect(reportTitle(fr, "fr-CH", { month: 11, year: 2026 }, list)).toBe(
+      "Report d'août",
+    );
+    expect(reportTitle(fr, "fr-CH", { month: 1, year: 2027 }, list)).toBe(
+      "Report de décembre",
+    );
+    expect(reportTitle(fr, "fr-CH", { month: 8, year: 2026 }, list)).toBe(
+      "Report de décembre",
+    );
+  });
+
+  it("stays generic while the list does not hold that budget", () => {
+    expect(reportTitle(fr, "fr-CH", { month: 12, year: 2025 }, list)).toBe(
+      "Report du mois précédent",
+    );
   });
 });

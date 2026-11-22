@@ -111,12 +111,13 @@ const movement = (
   name: string,
   amount: number,
   budgetLineId: string | null = null,
+  kind: Transaction["kind"] = "expense",
 ) =>
   ({
     id: name,
     name,
     amount,
-    kind: "expense",
+    kind,
     budgetLineId,
   }) as Transaction;
 
@@ -139,12 +140,6 @@ const metrics = BudgetFormulas.calculateAllMetrics(
 const viewModel = {
   metrics,
   realized: { realizedBalance: 1234.5 },
-  driftLines: [
-    {
-      line: budgetLines[1],
-      consumption: { allocated: 650, available: -150, percentage: 130 },
-    },
-  ],
   trajectory: null,
 } as unknown as CurrentMonthViewModel;
 
@@ -164,6 +159,7 @@ function renderSheet(onReconcile?: () => void) {
       currency="CHF"
       month={11}
       year={2026}
+      budgets={[{ id: "oct", month: 10, year: 2026 }]}
       periodEnd={getBudgetPeriodDates(11, 2026, null).endDate}
       onReconcile={onReconcile}
     />,
@@ -233,18 +229,32 @@ it("hides the signs and what was spent where while amounts are hidden", async ()
   expect(view.queryByText(/Courses/)).toBeNull();
 });
 
-it("names two causes then counts the rest", () => {
+it("names the spending and savings overruns, then what no prévision covers", () => {
   const t = (key: string, options?: object) =>
     jest
       .requireActual("@/core/i18n/i18n")
       .translateForLocale("fr", key, options);
-  const overruns = ["A", "B", "C", "D"].map((name) => ({ name, overrun: 1 }));
   const plain = (value: number) => String(value);
+  const lines = [
+    line("courses", "Courses", "expense", 400),
+    line("pilier", "3e pilier", "saving", 500),
+    line("sorties", "Sorties", "expense", 100),
+    line("salaire", "Salaire", "income", 6000),
+  ];
+  const movements = [
+    movement("Migros", 464, "courses"),
+    movement("Virement 3a", 600, "pilier", "saving"),
+    movement("Cinéma", 80, "sorties"),
+    movement("Paie", 6500, "salaire", "income"),
+    movement("Tirelire", 50, null, "saving"),
+    movement("Remboursement", 30, null, "income"),
+  ];
 
   expect(gapCauses(t, [], [], plain)).toBeNull();
-  expect(gapCauses(t, overruns.slice(0, 1), [], plain)).toBe("A +1.");
-  expect(gapCauses(t, overruns.slice(0, 3), [], plain)).toBe(
-    "A +1, B +1 et C +1.",
+  expect(gapCauses(t, lines, movements, plain)).toBe(
+    "3e pilier +100, Courses +64 et Tirelire 50.",
   );
-  expect(gapCauses(t, overruns, [], plain)).toBe("A +1, B +1 et 2 autres.");
+  expect(
+    gapCauses(t, lines, [...movements, movement("Café", 6.5)], plain),
+  ).toBe("3e pilier +100, Courses +64 et 2 autres.");
 });

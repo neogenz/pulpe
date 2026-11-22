@@ -901,6 +901,7 @@
       "income": "Revenus",
       "report": "Report de %{month}",
       "reportElided": "Report d'%{month}",
+      "reportUnknown": "Report du mois précédent",
       "expenses": "Dépenses",
       "savings": "Épargne versée",
       "finalBalance": "Solde final",

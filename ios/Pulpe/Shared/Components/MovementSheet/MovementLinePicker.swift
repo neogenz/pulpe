@@ -25,6 +25,15 @@ struct MovementLinePicker: View {
                 section(AppLocale.string("Avec de la marge"), lines: matching(sections.margin))
                 section(AppLocale.string("Déjà dépassées"), lines: matching(sections.over), isOver: true)
                 section(otherTitle, lines: matching(sections.others), isPlannedList: true)
+                if hasNoMatch {
+                    Text("Aucune prévision trouvée")
+                        .font(PulpeTypography.bodyLarge)
+                        .foregroundStyle(Color.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DesignTokens.Spacing.lg)
+                        .accessibilityIdentifier("movementPickerNoMatch")
+                }
             }
             .padding(.horizontal, DesignTokens.Spacing.xl)
             .padding(.top, DesignTokens.Spacing.lg)
@@ -34,6 +43,12 @@ struct MovementLinePicker: View {
         .background(Color.sheetBackground)
         .navigationTitle("Dans quelle prévision ?")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// A search that hides every prévision says so, instead of leaving only the "imprévu" card.
+    private var hasNoMatch: Bool {
+        !query.trimmingCharacters(in: .whitespaces).isEmpty
+            && [sections.margin, sections.over, sections.others].allSatisfy { matching($0).isEmpty }
     }
 
     private func matching(_ lines: [BudgetLine]) -> [BudgetLine] {

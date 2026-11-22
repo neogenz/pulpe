@@ -6,6 +6,7 @@ import SwiftUI
 struct CalculationSheet: View {
     @Environment(CurrentMonthStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(\.amountsHidden) private var amountsHidden
     @State private var isReconciling = false
 
@@ -15,9 +16,10 @@ struct CalculationSheet: View {
         store.budget.map { Formatters.monthNameInText(for: $0.month) } ?? ""
     }
 
-    private var previousMonth: Int {
-        guard let month = store.budget?.month else { return 0 }
-        return month == 1 ? 12 : month - 1
+    private var reportTitle: String {
+        ReportWording.reportTitle(of: store.budget.flatMap {
+            ReportWording.sourceMonth(before: $0.month, year: $0.year, among: budgetListStore.budgets)
+        })
     }
 
     /// The hero's own reading of the plan, so the two screens quote one number.
@@ -83,7 +85,7 @@ struct CalculationSheet: View {
             budgetLines: store.budgetLines,
             transactions: store.transactions,
             rollover: store.metrics.rollover,
-            previousMonth: previousMonth
+            reportTitle: reportTitle
         )
         return FormCard {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
@@ -132,13 +134,13 @@ struct CalculationSheet: View {
         }
     }
 
-    /// The overruns and the movements no prévision covers when the month is behind its plan,
+    /// The overruns and the outflows no prévision covers when the month is behind its plan,
     /// then where its pace lands.
     private func gapExplanation(gap: Decimal) -> String? {
         let causes = gap < 0
             ? CalculationPresentation.gapCauses(
-                overruns: store.driftLines.map { ($0.line.name, -$0.consumption.available) },
-                unplannedOutflows: store.transactions.filter { $0.isFree && $0.kind == .expense },
+                budgetLines: store.budgetLines,
+                transactions: store.transactions,
                 currency: currency
             )
             : nil

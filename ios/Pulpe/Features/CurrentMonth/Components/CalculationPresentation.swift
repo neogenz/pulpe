@@ -18,7 +18,7 @@ enum CalculationPresentation {
         budgetLines: [BudgetLine],
         transactions: [Transaction],
         rollover: Decimal,
-        previousMonth: Int
+        reportTitle: String
     ) -> [Row] {
         let lines = budgetLines.filter { !($0.isRollover ?? false) }
         let allocated = transactions.filter { $0.budgetLineId != nil }
@@ -43,7 +43,7 @@ enum CalculationPresentation {
             ))
         }
         if rollover != 0 {
-            rows.append(Row(title: ReportWording.reportTitle(of: previousMonth), amount: rollover))
+            rows.append(Row(title: reportTitle, amount: rollover))
         }
         rows.append(Row(
             title: AppLocale.string("Dépenses prévues"),
@@ -61,15 +61,24 @@ enum CalculationPresentation {
         return rows
     }
 
-    /// What moved the month off its plan, named: the prévisions past their plan with how far,
-    /// then the movements no prévision covers. `nil` when there is nothing to name.
+    /// What moved the month off its plan, named: the spending and savings prévisions past their
+    /// plan with how far, largest first, then the spending and savings no prévision covers. Both
+    /// lower the disponible the same way. `nil` when there is nothing to name.
     static func gapCauses(
-        overruns: [(name: String, overrun: Decimal)],
-        unplannedOutflows: [Transaction],
+        budgetLines: [BudgetLine],
+        transactions: [Transaction],
         currency: SupportedCurrency
     ) -> String? {
+        let overruns = budgetLines
+            .filter { $0.kind != .income && !($0.isRollover ?? false) }
+            .compactMap { line -> (name: String, overrun: Decimal)? in
+                let available = BudgetFormulas.calculateConsumption(for: line, transactions: transactions).available
+                return available < 0 ? (line.name, -available) : nil
+            }
+            .sorted { $0.overrun > $1.overrun }
         let parts = overruns.map { "\($0.name) +\($0.overrun.asAmount(for: currency))" }
-            + unplannedOutflows
+            + transactions
+            .filter { $0.isFree && $0.kind != .income }
             .sorted { $0.amount > $1.amount }
             .map { "\($0.name) \($0.amount.asAmount(for: currency))" }
         return parts.isEmpty ? nil : listed(parts) + "."

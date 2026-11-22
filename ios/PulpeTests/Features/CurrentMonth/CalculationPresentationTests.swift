@@ -24,7 +24,8 @@ struct CalculationPresentationTests {
     @Test func rows_addUpToTheDisponible() {
         let rollover: Decimal = 340
         let rows = CalculationPresentation.rows(
-            budgetLines: Self.lines, transactions: Self.transactions, rollover: rollover, previousMonth: 10
+            budgetLines: Self.lines, transactions: Self.transactions,
+            rollover: rollover, reportTitle: "Report d'octobre"
         )
         let metrics = BudgetFormulas.calculateAllMetrics(
             budgetLines: Self.lines, transactions: Self.transactions, rollover: rollover
@@ -42,23 +43,37 @@ struct CalculationPresentationTests {
 
     @Test func rows_withoutReportOrUnplanned_dropThoseLines() {
         let rows = CalculationPresentation.rows(
-            budgetLines: Self.lines, transactions: [], rollover: 0, previousMonth: 9
+            budgetLines: Self.lines, transactions: [], rollover: 0, reportTitle: "Report de septembre"
         )
 
         #expect(rows.map(\.title) == ["Salaire", "Dépenses prévues", "Épargne prévue"])
         #expect(rows.reduce(.zero) { $0 + $1.amount } == Decimal(1_012))
     }
 
-    @Test func gapCauses_namesOverrunsThenUnplannedOutflows() {
-        let cafe = TestDataFactory.createTransaction(name: "Café Lomi", amount: Decimal(string: "6.50") ?? 0)
+    @Test func gapCauses_namesOverrunsThenUnplannedOutflows_savingsIncluded() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "courses", name: "Courses", amount: 400),
+            TestDataFactory.createBudgetLine(id: "pilier", name: "3e pilier", amount: 500, kind: .saving),
+            TestDataFactory.createBudgetLine(id: "sorties", name: "Sorties", amount: 100),
+            TestDataFactory.createBudgetLine(id: "salaire", name: "Salaire", amount: 6_000, kind: .income),
+        ]
+        let transactions = [
+            TestDataFactory.createTransaction(
+                id: "t1", budgetLineId: "courses", amount: Decimal(string: "464.20") ?? 0
+            ),
+            TestDataFactory.createTransaction(id: "t2", budgetLineId: "pilier", amount: 600, kind: .saving),
+            TestDataFactory.createTransaction(id: "t3", budgetLineId: "sorties", amount: 80),
+            TestDataFactory.createTransaction(id: "t4", budgetLineId: "salaire", amount: 6_500, kind: .income),
+            TestDataFactory.createTransaction(id: "t6", name: "Tirelire", amount: 50, kind: .saving),
+            TestDataFactory.createTransaction(id: "t7", name: "Remboursement", amount: 30, kind: .income),
+        ]
+
         let sentence = CalculationPresentation.gapCauses(
-            overruns: [("Courses", Decimal(string: "64.20") ?? 0), ("Sorties", 38)],
-            unplannedOutflows: [cafe],
-            currency: .chf
+            budgetLines: lines, transactions: transactions, currency: .chf
         )
 
-        #expect(sentence == "Courses +64.20, Sorties +38.00 et Café Lomi 6.50.")
-        #expect(CalculationPresentation.gapCauses(overruns: [], unplannedOutflows: [], currency: .chf) == nil)
+        #expect(sentence == "3e pilier +100.00, Courses +64.20 et Tirelire 50.00.")
+        #expect(CalculationPresentation.gapCauses(budgetLines: [], transactions: [], currency: .chf) == nil)
     }
 
     @Test func listed_countsBeyondThree() {
@@ -71,6 +86,22 @@ struct CalculationPresentationTests {
         #expect(ReportWording.reportTitle(of: 10) == "Report d'octobre")
         #expect(ReportWording.reportTitle(of: 9) == "Report de septembre")
         #expect(ReportWording.reportTitle(of: 8) == "Report d'août")
+    }
+
+    @Test func sourceMonth_isTheLastBudgetBefore_skippedMonthsIncluded() {
+        let budgets = [
+            TestDataFactory.createBudgetSparse(id: "dec", month: 12, year: 2026),
+            TestDataFactory.createBudgetSparse(id: "aug", month: 8, year: 2026),
+            TestDataFactory.createBudgetSparse(id: "nov", month: 11, year: 2026),
+            TestDataFactory.createBudgetSparse(id: "dec-old", month: 12, year: 2025),
+        ]
+
+        // October was skipped: November carries over from August.
+        #expect(ReportWording.sourceMonth(before: 11, year: 2026, among: budgets) == 8)
+        #expect(ReportWording.sourceMonth(before: 1, year: 2027, among: budgets) == 12)
+        #expect(ReportWording.sourceMonth(before: 8, year: 2026, among: budgets) == 12)
+        #expect(ReportWording.sourceMonth(before: 12, year: 2025, among: budgets) == nil)
+        #expect(ReportWording.reportTitle(of: nil) == "Report du mois précédent")
     }
 
     @Test func formulaAmount_signsByValue() {

@@ -14,6 +14,7 @@ struct MonthRecapSheet: View {
     }
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var findings: [MonthRecapFindings.Finding] = []
@@ -105,7 +106,9 @@ struct MonthRecapSheet: View {
             FormulaRow(title: AppLocale.string("Revenus"), amount: recap.income.asFormulaAmount(for: currency))
             FormRowDivider()
             FormulaRow(
-                title: ReportWording.reportTitle(of: recap.month == 1 ? 12 : recap.month - 1),
+                title: ReportWording.reportTitle(of: ReportWording.sourceMonth(
+                    before: recap.month, year: recap.year, among: budgetListStore.budgets
+                )),
                 amount: recap.previousRollover.asFormulaAmount(for: currency)
             )
             FormRowDivider()
@@ -201,4 +204,5 @@ struct MonthRecapSheet: View {
             )
         }
         .environment(UserSettingsStore())
+        .environment(BudgetListStore())
 }
