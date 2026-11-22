@@ -6,7 +6,6 @@ import {
   BUDGET_MONTH_READ_PORT,
   type BudgetMonthReadPort,
 } from '@modules/budget/domain/ports/budget-month-read.port';
-import { priorCorrection, type PriorMonth } from '../domain/prior-correction';
 import {
   RECONCILIATION_STATE_REPOSITORY,
   type ReconciliationStateRepositoryPort,
@@ -30,29 +29,13 @@ export class GetReconciliationContextUseCase {
         { id: budgetId },
       );
     }
-    const [state, prior] = await Promise.all([
-      this.repo.get(),
-      this.#previousMonths(current.previousBudgetId),
-    ]);
+    const state = await this.repo.get();
     return {
       startingAmount: state.startingAmount,
       hasCompletedComparison: state.lastCompletedAt !== null,
-      ...priorCorrection(prior),
+      // Previous months never count (spec.md §4.1); both keys stay for iOS 1.14.2.
+      priorCorrection: 0,
+      priorItems: [],
     };
-  }
-
-  /** The two existing budgets before this one, following `previousBudgetId`. */
-  async #previousMonths(
-    previousBudgetId: string | null,
-  ): Promise<PriorMonth[]> {
-    const months: PriorMonth[] = [];
-    let id = previousBudgetId;
-    for (const monthsAgo of [1, 2] as const) {
-      const details = id ? await this.budgets.readBudget(id) : null;
-      if (!details) break;
-      months.push({ details, monthsAgo });
-      id = details.previousBudgetId;
-    }
-    return months;
   }
 }

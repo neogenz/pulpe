@@ -44,19 +44,8 @@ jest.mock("@/core/vault/vault-store", () => ({
 const CONTEXT: ReconciliationContext = {
   startingAmount: 0,
   hasCompletedComparison: false,
-  priorCorrection: -40,
-  priorItems: [
-    {
-      id: "5b0c3a6e-34a1-4b38-9d41-bf2a3cf8b9a1",
-      source: "transaction",
-      budgetId: "0f0d2f43-9b5e-4c1b-8d0c-0b7b1f3c2a11",
-      name: "Pharmacie",
-      amount: 40,
-      kind: "expense",
-      monthsAgo: 1,
-      effect: -40,
-    },
-  ],
+  priorCorrection: 0,
+  priorItems: [],
 };
 
 const wrapper = ({ children }: { children: ReactNode }) =>

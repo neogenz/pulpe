@@ -183,29 +183,21 @@ function rankByRemainingGap<T extends Effect>(
     .slice(0, MAX_POINTING_CANDIDATES);
 }
 
-/** An unchecked item of a previous month, with the effect the server measured. */
-export interface PriorPointingItem {
-  readonly id: string;
-  readonly effect: number;
-  readonly monthsAgo: 1 | 2;
-}
-
-export type PointingSource = 'transaction' | 'budgetLine' | 'prior';
+export type PointingSource = 'transaction' | 'budgetLine';
 
 export interface RankedPointingCandidate {
   readonly source: PointingSource;
   readonly id: string;
-  /** `0` for the month itself, `1` or `2` for a previous budget. */
-  readonly monthsAgo: 0 | 1 | 2;
   readonly remainingGap: number;
 }
 
 /**
  * The items not pointed yet that most likely explain the gap: each one,
  * pointed alone, brings the pointed balance nearer the accounts total. An adjustment written instead would count them twice once
- * they are pointed. Three sources: unchecked budget lines, unchecked movements
- * of the month, then prior items; closest to settling first (ties keep that
- * source order), at most three.
+ * they are pointed. Two sources of the month only: unchecked budget lines, then
+ * unchecked movements; closest to settling first (ties keep that source
+ * order), at most three. Previous months are closed by the month-end recap,
+ * never here.
  */
 export function rankedPointingCandidates(
   gap: number,
@@ -213,7 +205,6 @@ export function rankedPointingCandidates(
     readonly sourceSavingsGoalId?: string | null;
   })[],
   transactions: readonly (FormulaTransaction & { readonly id: string })[],
-  priorItems: readonly PriorPointingItem[] = [],
 ): RankedPointingCandidate[] {
   if (gap === 0) return [];
   const balanceBefore = BudgetFormulas.calculateRealizedBalance(
@@ -227,7 +218,6 @@ export function rankedPointingCandidates(
       .map((line) => ({
         source: 'budgetLine' as const,
         id: line.id,
-        monthsAgo: 0 as const,
         effect: effectAfterPointing(budgetLines, transactions, balanceBefore, {
           kind: 'budgetLine',
           id: line.id,
@@ -238,26 +228,14 @@ export function rankedPointingCandidates(
       .map((transaction) => ({
         source: 'transaction' as const,
         id: transaction.id,
-        monthsAgo: 0 as const,
         effect: effectAfterPointing(budgetLines, transactions, balanceBefore, {
           kind: 'transaction',
           id: transaction.id,
         }),
       })),
-    ...priorItems.map(({ id, effect, monthsAgo }) => ({
-      source: 'prior' as const,
-      id,
-      monthsAgo,
-      effect,
-    })),
   ];
   return rankByRemainingGap(gap, entries).map(
-    ({ source, id, monthsAgo, remainingGap }) => ({
-      source,
-      id,
-      monthsAgo,
-      remainingGap,
-    }),
+    ({ source, id, remainingGap }) => ({ source, id, remainingGap }),
   );
 }
 
@@ -309,14 +287,17 @@ export function comparisonScreen(input: {
   return gap < 0 ? 'largeGap' : 'moreOnAccounts';
 }
 
-/** What Pulpe holds to be compared with the accounts: checked balance, prior correction, starting amount. */
+/**
+ * What Pulpe holds to be compared with the accounts: the month's checked
+ * balance plus the money from before Pulpe. What a previous month left
+ * unchecked never counts here (spec.md §4.1).
+ */
 export function comparedFigure(
   realizedBalance: number,
-  priorCorrection: number,
   startingAmount: number,
 ): number {
   // Rounded once after the sum, like the Swift twin.
-  return moneyDifference(realizedBalance + priorCorrection + startingAmount, 0);
+  return moneyDifference(realizedBalance + startingAmount, 0);
 }
 
 /** « Disponible : avant → après »: the available amount before and after noting the gap. */

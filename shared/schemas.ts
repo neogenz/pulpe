@@ -3223,21 +3223,6 @@ export type AssetCategoryDeleteResponse = z.infer<
 
 // « Comparer avec mes comptes »
 
-/** An unchecked item of one of the two previous months. `effect` is what pointing it moves in the compared figure. */
-export const reconciliationPriorItemSchema = z.object({
-  id: z.uuid(),
-  source: z.enum(['transaction', 'budgetLine']),
-  budgetId: z.uuid(),
-  name: z.string(),
-  amount: z.number(),
-  kind: transactionKindSchema,
-  monthsAgo: z.union([z.literal(1), z.literal(2)]),
-  effect: z.number(),
-});
-export type ReconciliationPriorItem = z.infer<
-  typeof reconciliationPriorItemSchema
->;
-
 export const reconciliationStateSchema = z.object({
   startingAmount: z.number(),
   hasCompletedComparison: z.boolean(),
@@ -3245,8 +3230,14 @@ export const reconciliationStateSchema = z.object({
 export type ReconciliationState = z.infer<typeof reconciliationStateSchema>;
 
 export const reconciliationContextSchema = reconciliationStateSchema.extend({
-  priorCorrection: z.number(),
-  priorItems: z.array(reconciliationPriorItemSchema),
+  /**
+   * @deprecated Always `0` and `[]`: what a previous month left unchecked no
+   * longer counts in the comparison. Still sent because iOS 1.14.2 requires
+   * both keys; drop them once no build older than 1.14.3 is in use.
+   */
+  priorCorrection: z.literal(0),
+  /** @deprecated See `priorCorrection`. */
+  priorItems: z.tuple([]),
 });
 export type ReconciliationContext = z.infer<typeof reconciliationContextSchema>;
 

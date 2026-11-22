@@ -95,27 +95,12 @@ extension ReconcileCompareStepView {
         .accessibilityIdentifier("reconcileMatchedBreakdown")
     }
 
-    /// What Pulpe counts besides « Solde pointé », under it, one line per part that is not 0:
-    /// « +120.00 CHF pas coché les mois d'avant », then « +3 100.00 CHF d'avant Pulpe ».
+    /// What Pulpe counts besides « Solde pointé », under it when not 0: « +3 100.00 CHF d'avant Pulpe ».
     @ViewBuilder
     func figureParts(_ comparison: ReconcileAccountsFlow.Comparison) -> some View {
-        if comparison.priorCorrection != 0 || comparison.startingAmount != 0 {
-            VStack(alignment: isStacked ? .leading : .trailing, spacing: DesignTokens.Spacing.xs) {
-                if comparison.priorCorrection != 0 {
-                    // Hidden amounts keep the words, as « D'avant Pulpe » below: a blurred line says nothing.
-                    let amount = signedCurrency(comparison.priorCorrection)
-                    Text(verbatim: amountsHidden ? AppLocale.string("Pas coché les mois d'avant")
-                        : AppLocale.string("\(amount) pas coché les mois d'avant"))
-                        .font(PulpeTypography.captionRegular)
-                        .monospacedDigit()
-                        .multilineTextAlignment(isStacked ? .leading : .trailing)
-                        .foregroundStyle(Color.textSecondary)
-                        .accessibilityIdentifier("reconcilePriorCorrection")
-                }
-                if comparison.startingAmount != 0 { startingAmountLink(comparison.startingAmount) }
-            }
-            .frame(maxWidth: .infinity, alignment: isStacked ? .leading : .trailing)
-            .padding(.bottom, DesignTokens.Spacing.md)
+        if comparison.startingAmount != 0 {
+            startingAmountLink(comparison.startingAmount)
+                .padding(.bottom, DesignTokens.Spacing.md)
         }
     }
 

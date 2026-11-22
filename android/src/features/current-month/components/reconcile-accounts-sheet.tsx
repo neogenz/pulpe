@@ -135,8 +135,6 @@ export function ReconcileAccountsSheet({
   const create = useCreateTransaction("reconciliation");
   const follow = useFollowAccounts();
   const toggle = useToggleCheck(budgetId);
-  // A previous month's item lives in another budget: no row here to flip before the server.
-  const togglePrior = useToggleCheck(null);
   const checksSettled = useChecksSettled();
   const writeState = useWriteReconciliationState(budgetId);
   const payDayOfMonth = useUserSettings().data?.payDayOfMonth ?? null;
@@ -494,7 +492,7 @@ export function ReconcileAccountsSheet({
     }));
     try {
       // A refused check re-reads too: the rows come back as the server holds them.
-      await (row.monthsAgo === 0 ? toggle : togglePrior).mutateAsync({
+      await toggle.mutateAsync({
         source: row.source,
         sourceId: row.id,
       });
@@ -503,13 +501,8 @@ export function ReconcileAccountsSheet({
       hapticFailure();
       setPointFailed(true);
     } finally {
-      // The rows stay put until the month's re-read lands, which may wait behind
-      // another check. Only a previous month's item moves the context: it is read
-      // again, a refused check included, since that answer may be lost after it landed.
-      await Promise.all([
-        checksSettled(),
-        row.monthsAgo === 0 ? null : context.refetch(),
-      ]);
+      // The rows stay put until the month's re-read lands, which may wait behind another check.
+      await checksSettled();
       setCheckingId(null);
     }
   }

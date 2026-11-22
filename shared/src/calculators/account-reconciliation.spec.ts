@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { moneyDifference } from '../money.js';
 import {
   availableAfterNote,
   comparedFigure,
@@ -180,7 +181,6 @@ describe('rankedPointingCandidates over the movements of the month', () => {
   const candidate = (id: string, remainingGap: number) => ({
     source: 'transaction',
     id,
-    monthsAgo: 0,
     remainingGap,
   });
 
@@ -305,31 +305,12 @@ describe('rankedPointingCandidates', () => {
     checkedAt: null,
   };
 
-  it('ranks budget lines, movements and prior items by what remains', () => {
+  it('ranks budget lines, then movements of the month, by what remains', () => {
     expect(
-      rankedPointingCandidates(
-        -100,
-        [line('assurance', 100)],
-        [essence],
-        [{ id: 'pharmacie', effect: -40, monthsAgo: 1 }],
-      ),
+      rankedPointingCandidates(-100, [line('assurance', 100)], [essence]),
     ).toEqual([
-      { source: 'budgetLine', id: 'assurance', monthsAgo: 0, remainingGap: 0 },
-      { source: 'transaction', id: 'essence', monthsAgo: 0, remainingGap: -40 },
-      { source: 'prior', id: 'pharmacie', monthsAgo: 1, remainingGap: -60 },
-    ]);
-  });
-
-  it('names an eligible prior item two months back', () => {
-    expect(
-      rankedPointingCandidates(
-        -100,
-        [],
-        [],
-        [{ id: 'loyer', effect: -100, monthsAgo: 2 }],
-      ),
-    ).toEqual([
-      { source: 'prior', id: 'loyer', monthsAgo: 2, remainingGap: 0 },
+      { source: 'budgetLine', id: 'assurance', remainingGap: 0 },
+      { source: 'transaction', id: 'essence', remainingGap: -40 },
     ]);
   });
 
@@ -356,31 +337,28 @@ describe('rankedPointingCandidates', () => {
         [income('a', 100.004, '2026-11-01'), income('b', 0.004, null)],
         [],
       ),
-    ).toEqual([
-      { source: 'budgetLine', id: 'b', monthsAgo: 0, remainingGap: 0 },
+    ).toEqual([{ source: 'budgetLine', id: 'b', remainingGap: 0 }]);
+  });
+
+  it('offers an item of the month that explains most of the gap, even past it', () => {
+    const salaire = {
+      ...essence,
+      id: 'salaire',
+      kind: 'income' as const,
+      amount: 4_600,
+    };
+    expect(rankedPointingCandidates(4_570.48, [], [salaire])).toEqual([
+      { source: 'transaction', id: 'salaire', remainingGap: -29.52 },
     ]);
   });
 
-  it("offers last month's item that explains most of the gap, even past it", () => {
-    expect(
-      rankedPointingCandidates(
-        4_570.48,
-        [],
-        [],
-        [{ id: 'salaire', effect: 4_600, monthsAgo: 1 }],
-      ),
-    ).toEqual([
-      { source: 'prior', id: 'salaire', monthsAgo: 1, remainingGap: -29.52 },
-    ]);
-  });
-
-  it('leaves out a checked line, a prior item that leaves the gap farther, and a zero gap', () => {
+  it('leaves out a checked line, a movement that leaves the gap farther, and a zero gap', () => {
+    const loyer = { ...essence, id: 'loyer', amount: 250 };
     expect(
       rankedPointingCandidates(
         -100,
         [line('assurance', 100, '2026-11-01')],
-        [],
-        [{ id: 'loyer', effect: -250, monthsAgo: 2 }],
+        [loyer],
       ),
     ).toEqual([]);
     expect(rankedPointingCandidates(0, [line('assurance', 100)], [])).toEqual(
@@ -469,10 +447,27 @@ describe('isSalaryMaybeEarly', () => {
 });
 
 describe('comparedFigure and availableAfterNote', () => {
-  it('adds the prior correction and the starting amount to the checked balance', () => {
-    expect(comparedFigure(900, 50, 3_100)).toBe(4_050);
-    expect(comparedFigure(900.1, -0.2, 0)).toBe(899.9);
-    expect(comparedFigure(100.004, 0.004, 0)).toBe(100.01);
+  it('adds only the starting amount to the checked balance', () => {
+    expect(comparedFigure(900, 3_100)).toBe(4_000);
+    expect(comparedFigure(900.1, -0.2)).toBe(899.9);
+    expect(comparedFigure(100.004, 0.004)).toBe(100.01);
+  });
+
+  it('compares only the month: a « Solde pointé » of -1 832.48 against -1 862 on the accounts', () => {
+    const compared = comparedFigure(-1_832.48, 0);
+    const gap = moneyDifference(-1_862, compared);
+
+    expect(compared).toBe(-1_832.48);
+    expect(gap).toBe(-29.52);
+    expect(
+      comparisonScreen({
+        gap,
+        candidateCount: 0,
+        dismissed: false,
+        first: false,
+        salaryMaybeEarly: false,
+      }),
+    ).toBe('largeGap');
   });
 
   it('shows the available amount before and after noting the gap', () => {

@@ -132,13 +132,10 @@ jest.mock("@/core/ui/haptics", () => ({
   hapticSuccess: jest.fn(),
   hapticFailure: jest.fn(),
 }));
-// This month's items and the previous months' go through a mutation each.
 const mockToggle = { mutateAsync: jest.fn(() => Promise.resolve()) };
-const mockTogglePrior = { mutateAsync: jest.fn(() => Promise.resolve()) };
 const mockChecksSettled = jest.fn(() => Promise.resolve());
 jest.mock("@/features/budgets/toggle-check-mutation", () => ({
-  useToggleCheck: (budgetId: string | null) =>
-    budgetId === null ? mockTogglePrior : mockToggle,
+  useToggleCheck: () => mockToggle,
   useChecksSettled: () => () => mockChecksSettled(),
 }));
 jest.mock("@/core/ui/amount-visibility", () => ({
@@ -1029,22 +1026,17 @@ describe("step 2", () => {
     amount: 30,
     kind: "income",
   };
-  // Last month's, unchecked: the context counts it once checked.
-  const pharmacie: ReconciliationContext["priorItems"][number] = {
+  const pharmacie: Transaction = {
+    ...essence,
     id: "t-pharmacie",
-    source: "transaction",
-    budgetId: "budget-0",
     name: "Pharmacie",
     amount: 40,
-    kind: "expense",
-    monthsAgo: 1,
-    effect: -40,
   };
   const PULPE = { realizedBalance: 1050 };
 
-  function deferredCheck(toggle = mockToggle) {
+  function deferredCheck() {
     let settle: (isKept: boolean) => void = () => undefined;
-    toggle.mutateAsync.mockImplementationOnce(
+    mockToggle.mutateAsync.mockImplementationOnce(
       () =>
         new Promise<void>((resolve, reject) => {
           settle = (isKept) => (isKept ? resolve() : reject(new Error("no")));
@@ -1084,8 +1076,11 @@ describe("step 2", () => {
   });
 
   it("checks each stored item by id, holds every exit until its re-read lands, then completes once", async () => {
-    mockContext.data = { ...CONTEXT, priorItems: [pharmacie] };
-    const { props, view: pending } = renderSheet(PULPE, [essence, refund]);
+    const { props, view: pending } = renderSheet(PULPE, [
+      essence,
+      pharmacie,
+      refund,
+    ]);
     const view = await pending;
     await reachVerdict(view, "950");
     expect(view.getByText("home.reconcile.compare.leadExpense")).toBeTruthy();
@@ -1107,7 +1102,7 @@ describe("step 2", () => {
     const checkedMonth = {
       ...props.month,
       realized: { ...props.month.realized, realizedBalance: 990 },
-      transactions: [{ ...essence, checkedAt: STAMP }, refund],
+      transactions: [{ ...essence, checkedAt: STAMP }, pharmacie, refund],
     };
     await view.rerender(
       <ReconcileAccountsSheet {...props} month={checkedMonth} />,
@@ -1118,33 +1113,35 @@ describe("step 2", () => {
     expect(
       view.getByText("home.reconcile.compare.found:60.00 CHF"),
     ).toBeTruthy();
-    // This month's item leaves the context alone: no read to wait for.
+    // A check leaves the context alone: no read to wait for.
     expect(mockContext.refetch).not.toHaveBeenCalled();
     expect(view.getByText("busy:false")).toBeTruthy();
 
-    // Pharmacie is last month's: answered by the server, then read back with the context.
-    const settlePrior = deferredCheck(mockTogglePrior);
-    let landReread: () => void = () => undefined;
-    mockContext.refetch.mockImplementationOnce(
-      () => new Promise<void>((resolve) => (landReread = resolve)),
-    );
+    const settlePharmacie = deferredCheck();
     await fireEvent.press(view.getByText("Pharmacie"));
-    expect(mockTogglePrior.mutateAsync).toHaveBeenCalledWith({
+    expect(mockToggle.mutateAsync).toHaveBeenLastCalledWith({
       source: "transaction",
       sourceId: "t-pharmacie",
     });
-    await settlePrior(true);
-    // Still listed until the context lands: a second tap would uncheck it.
-    expect(view.getByText("busy:true")).toBeTruthy();
+    // Still listed until it settles: a second tap would uncheck it.
     await fireEvent.press(view.getByText("Pharmacie"));
-    expect(mockTogglePrior.mutateAsync).toHaveBeenCalledTimes(1);
-    expect(mockToggle.mutateAsync).toHaveBeenCalledTimes(1);
+    expect(mockToggle.mutateAsync).toHaveBeenCalledTimes(2);
 
-    mockContext.data = { ...CONTEXT, priorCorrection: -40 };
     await view.rerender(
-      <ReconcileAccountsSheet {...props} month={checkedMonth} />,
+      <ReconcileAccountsSheet
+        {...props}
+        month={{
+          ...checkedMonth,
+          realized: { ...checkedMonth.realized, realizedBalance: 950 },
+          transactions: [
+            { ...essence, checkedAt: STAMP },
+            { ...pharmacie, checkedAt: STAMP },
+            refund,
+          ],
+        }}
+      />,
     );
-    await act(() => landReread());
+    await settlePharmacie(true);
 
     expect(view.getByText("home.reconcile.compare.matched")).toBeTruthy();
     expect(view.getByText("busy:false")).toBeTruthy();
@@ -1156,34 +1153,6 @@ describe("step 2", () => {
     );
     expect(mockCompleteReconciliation).toHaveBeenCalledTimes(1);
     expect(props.onDismiss).toHaveBeenCalledTimes(1);
-  });
-
-  it("strikes nothing through when the check was last month's: only the « pas coché » line goes", async () => {
-    // Pharmacie left unchecked last month: the rollover counted it, the checks did not.
-    mockContext.data = {
-      ...CONTEXT,
-      priorCorrection: 40,
-      priorItems: [pharmacie],
-    };
-    const { props, view: pending } = renderSheet(PULPE);
-    const view = await pending;
-    await reachVerdict(view, "950");
-    expect(view.getByTestId("reconcile-prior-correction")).toHaveTextContent(
-      "home.reconcile.compare.priorCorrectionPart:+40.00 CHF",
-    );
-
-    await fireEvent.press(view.getByText("Pharmacie"));
-    mockContext.data = CONTEXT;
-    await view.rerender(<ReconcileAccountsSheet {...props} />);
-
-    expect(view.getByTestId("reconcile-in-pulpe")).toHaveTextContent(
-      /1’050\.00/,
-    );
-    expect(view.queryByTestId("reconcile-compared-before")).toBeNull();
-    expect(view.queryByTestId("reconcile-prior-correction")).toBeNull();
-    expect(
-      view.getByText("home.reconcile.compare.found:40.00 CHF"),
-    ).toBeTruthy();
   });
 
   it("keeps the figure from before the first check through a second one", async () => {
@@ -1305,35 +1274,6 @@ describe("step 2", () => {
       /900\.00/,
     );
     expect(view.getByTestId("reconcile-found")).toHaveTextContent(/10\.00/);
-  });
-
-  it("reads the context again when a previous month's check is refused, and lets go only then", async () => {
-    mockContext.data = {
-      ...CONTEXT,
-      priorCorrection: 40,
-      priorItems: [pharmacie],
-    };
-    const { props, view: pending } = renderSheet(PULPE);
-    const view = await pending;
-    await reachVerdict(view, "950");
-
-    const settlePrior = deferredCheck(mockTogglePrior);
-    let landReread: () => void = () => undefined;
-    mockContext.refetch.mockImplementationOnce(
-      () => new Promise<void>((resolve) => (landReread = resolve)),
-    );
-    await fireEvent.press(view.getByText("Pharmacie"));
-    // Refused, but the server had applied it: only the re-read can tell.
-    await settlePrior(false);
-    expect(mockContext.refetch).toHaveBeenCalledTimes(1);
-    expect(view.getByText("busy:true")).toBeTruthy();
-
-    mockContext.data = { ...CONTEXT, priorCorrection: 0, priorItems: [] };
-    await view.rerender(<ReconcileAccountsSheet {...props} />);
-    await act(() => landReread());
-
-    expect(view.queryByText("Pharmacie")).toBeNull();
-    expect(view.getByText("busy:false")).toBeTruthy();
   });
 
   it("says so when a check is refused, and strikes nothing through", async () => {

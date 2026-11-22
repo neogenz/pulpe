@@ -48,9 +48,8 @@ extension BudgetDetailsCoordinator {
         dataStore.invalidateAdjacentCache()
     }
 
-    /// The viewed month's items toggle through the coordinator, refused once another month is loaded;
-    /// an item of the two months before goes through the services, then every cached month is dropped
-    /// and `syncCache()` tells the sibling stores. The suggestions rank the movements the balance reads:
+    /// The viewed month's items toggle through the coordinator, refused once another month is loaded.
+    /// The suggestions rank the movements the balance reads:
     /// one whose prévision is pending deletion counts as Hors prévision, while the stored row keeps its link.
     func reconciliationChecking(_ context: ToastContext, amountsHidden: Bool) -> ReconciliationChecking {
         let budgetId = dataStore.budgetId
@@ -71,16 +70,6 @@ extension BudgetDetailsCoordinator {
                     await dispatch(.confirmCheckAll(line: line, checkAll: false, context, amountsHidden: amountsHidden))
                     return dataStore.budgetLines.first { $0.id == line.id }?.isChecked == !line.isChecked
                 }
-            },
-            checkPrior: { [self] item in
-                guard dataStore.budgetId == budgetId,
-                      await ReconciliationChecking.checkPrior(
-                          item, transactionService: transactionService, budgetLineService: budgetLineService
-                      )
-                else { return false }
-                dataStore.invalidateAllCache()
-                dataStore.syncCache()
-                return true
             }
         )
     }

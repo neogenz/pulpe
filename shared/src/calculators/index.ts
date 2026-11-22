@@ -52,7 +52,6 @@ export {
   type PartlySpentBudgetLine,
   type PointingSource,
   type PointingTarget,
-  type PriorPointingItem,
   type RankedPointingCandidate,
   type ReconciliationVerdict,
 } from './account-reconciliation.js';

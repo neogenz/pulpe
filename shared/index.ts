@@ -155,7 +155,6 @@ export {
   assetCategoryDeleteResponseSchema,
 
   // Account reconciliation
-  reconciliationPriorItemSchema,
   reconciliationStateSchema,
   reconciliationContextSchema,
   reconciliationContextResponseSchema,
@@ -325,7 +324,6 @@ export {
   type PartlySpentBudgetLine,
   type PointingSource,
   type PointingTarget,
-  type PriorPointingItem,
   type RankedPointingCandidate,
   type ReconciliationVerdict,
 } from './src/calculators/index.js';
@@ -579,7 +577,6 @@ export type {
   AssetCategoryDeleteResponse,
 
   // Account reconciliation types
-  ReconciliationPriorItem,
   ReconciliationState,
   ReconciliationContext,
   ReconciliationContextResponse,

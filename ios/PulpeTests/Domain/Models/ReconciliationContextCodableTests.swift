@@ -4,8 +4,9 @@ import Testing
 
 @Suite("Reconciliation wire contract")
 struct ReconciliationContextCodableTests {
+    /// The server keeps sending the previous months' fields for older builds: they are ignored.
     @Test
-    func context_decodesEveryField_fromTheSuccessEnvelope() throws {
+    func context_decodesEveryField_ignoringThePreviousMonthsFields() throws {
         let json = """
         {
           "success": true,
@@ -32,11 +33,6 @@ struct ReconciliationContextCodableTests {
 
         #expect(context.startingAmount == Decimal(string: "3100.5"))
         #expect(!context.hasCompletedComparison)
-        #expect(context.priorCorrection == -40)
-        #expect(context.priorItems.map(\.source) == [.transaction, .budgetLine])
-        #expect(context.priorItems.map(\.kind) == [.expense, .income])
-        #expect(context.priorItems.map(\.monthsAgo) == [1, 2])
-        #expect(context.priorItems.map(\.effect) == [-40, 200])
     }
 
     @Test
@@ -44,7 +40,7 @@ struct ReconciliationContextCodableTests {
         let json = """
         {
           "success": true,
-          "data": { "startingAmount": 0, "hasCompletedComparison": false, "priorCorrection": 0, "priorItems": [] }
+          "data": { "startingAmount": 0, "hasCompletedComparison": false }
         }
         """
 
@@ -53,8 +49,6 @@ struct ReconciliationContextCodableTests {
 
         #expect(context.startingAmount == 0)
         #expect(!context.hasCompletedComparison)
-        #expect(context.priorCorrection == 0)
-        #expect(context.priorItems.isEmpty)
     }
 
     @Test

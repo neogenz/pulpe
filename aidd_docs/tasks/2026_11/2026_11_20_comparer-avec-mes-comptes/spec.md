@@ -52,22 +52,22 @@ Header: « Étape 2 sur 2 », back arrow to step 1, « ? ».
 ### 4.1 The figures
 
 - « Sur tes comptes » = J'ai total − Je dois total.
-- Compared figure = realized balance of the month + prior correction + starting amount. The « Dans Pulpe, déjà coché » row shows its parts apart (see Display).
-  - Prior correction (server): for each of the last two existing budgets before this one (`previousBudgetId` chain), `realizedNet(P) − storedEndingBalance(P)`, a null stored value counting as 0, exactly as the rollover counts it. It removes from the comparison what the rollover counted as spent but nobody checked. « Disponible à dépenser » does not change.
+- Compared figure = realized balance of the month + starting amount. The « Dans Pulpe, déjà coché » row shows its parts apart (see Display).
+  - What a previous month left unchecked never counts: the rollover already carries it as done. The context API still sends `priorCorrection: 0` and `priorItems: []` for iOS 1.14.2 builds, which require both keys.
   - Starting amount (server, per person): 0 until the person answers « Oui, c'était déjà là ». When it is not 0, tapping « {starting amount} d'avant Pulpe » opens a small editor with an amount field, [Enregistrer] and [Remettre à 0].
-  - Display: the figure on the « Dans Pulpe, déjà coché » row is the realized balance alone, the same number as « Solde pointé » on the Accueil. Under it, in this order, one line per part that is not 0: « {±prior correction} pas coché les mois d'avant » (plain text), then « {±starting amount} d'avant Pulpe » (the editor button). The gap still uses the whole compared figure.
-  - After a check moves the realized balance, the old realized balance is shown struck through next to the new one. Checking an item of a previous month only changes the « pas coché » line. Editing the starting amount or removing « Je dois » keeps the struck figure.
+  - Display: the figure on the « Dans Pulpe, déjà coché » row is the realized balance alone, the same number as « Solde pointé » on the Accueil. Under it, in this order, a line « {±starting amount} d'avant Pulpe » (the editor button) when it is not 0. The gap still uses the whole compared figure.
+  - After a check moves the realized balance, the old realized balance is shown struck through next to the new one. Editing the starting amount or removing « Je dois » keeps the struck figure.
 - Step 2 waits for the server context. If it fails, step 2 shows « Impossible de comparer pour l'instant. » with [Réessayer], writes nothing, and the back arrow keeps step 1's amounts.
 - Gap = Sur tes comptes − Dans Pulpe, in cents, no tolerance.
 - Title = verdict: « Tes comptes ont {|gap|} de moins que Pulpe » (gap < 0), « Tes comptes ont {gap} de plus que Pulpe » (gap > 0), « Pareil des deux côtés » (gap = 0).
 
 ### 4.2 Suggestions
 
-- Candidates: unchecked movements and unchecked budget lines of the month, plus the server's unchecked items of the two previous budgets. The check leaves the gap nearer zero, even past it (4 600.00 for a 4 570.48 gap leaves 29.52); ranked by what remains; 3 at most.
-- Each row: name, then a second line « Prévue ce mois » (budget line), « Mois dernier » (1 budget back) or « Il y a 2 mois » (2 back), else the date (« Essence · mardi »). The amount is highlighted green when it equals the remaining gap exactly. Rows are at least 64pt high.
+- Candidates: unchecked movements and unchecked budget lines of the month only. The check leaves the gap nearer zero, even past it (4 600.00 for a 4 570.48 gap leaves 29.52); ranked by what remains; 3 at most.
+- Each row: name, then a second line « Prévue ce mois » (budget line), else the date (« Essence · mardi »). The amount is highlighted green when it equals the remaining gap exactly. Rows are at least 64pt high.
 - Lead sentence: « Coche les dépenses que tu vois dans l'app de ta banque. » (gap < 0, no « Je dois » row), or « Coche les dépenses et l'épargne que tu vois dans l'app de ta banque. » when a shown row is a saving, « Coche les achats faits avec ta carte. » (gap < 0 and a « Je dois » row), « Coche les revenus que tu vois dans l'app de ta banque. » (gap > 0).
 - « Voir les {n} autres à cocher » opens the existing list of items to check.
-- Checking a row checks the real item (any of the three months) and recomputes. The struck figure follows §4.1. Once a check has closed part of the gap, a bar reads « {found} trouvés » (what is left is already in the title, never repeated); editing the starting amount or removing « Je dois » hides it until the next check.
+- Checking a row checks the real item and recomputes. The struck figure follows §4.1. Once a check has closed part of the gap, a bar reads « {found} trouvés » (what is left is already in the title, never repeated); editing the starting amount or removing « Je dois » hides it until the next check.
 - With a « Je dois » row and gap < 0: « Tu coches tes achats de carte à la facture ? » [Retirer « Je dois {montant} »] (removes the « Je dois » rows and recomputes).
 - Footer: [Aucune dépense ne correspond] (« Rien ne correspond » when a shown row is a saving, « Aucun revenu ne correspond » when gap > 0), then « Laisser comme ça ».
 

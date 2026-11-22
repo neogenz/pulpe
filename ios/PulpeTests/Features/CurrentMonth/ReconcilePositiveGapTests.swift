@@ -282,8 +282,7 @@ private final class StateServer {
         if refusesWrites { throw URLError(.notConnectedToInternet) }
         context = ReconciliationContext(
             startingAmount: update.startingAmount ?? context.startingAmount,
-            hasCompletedComparison: update.completed ?? context.hasCompletedComparison,
-            priorCorrection: context.priorCorrection, priorItems: context.priorItems
+            hasCompletedComparison: update.completed ?? context.hasCompletedComparison
         )
         return ReconciliationState(
             startingAmount: context.startingAmount, hasCompletedComparison: context.hasCompletedComparison

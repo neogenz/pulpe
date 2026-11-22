@@ -22,7 +22,6 @@ import {
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
-import { BudgetApi } from '@core/budget/budget-api';
 import { ReconciliationApi } from '@core/reconciliation/reconciliation-api';
 import { STORAGE_KEYS } from '@core/storage';
 import { createMockDataCache } from '@core/testing';
@@ -197,11 +196,6 @@ async function setup(
   const sheet = {
     open: vi.fn(() => Promise.resolve(options.sheetAnswer)),
   };
-  const budgetApi = {
-    cache: createMockDataCache(),
-    toggleTransactionCheck$: vi.fn(() => of({ success: true as const })),
-    toggleBudgetLineCheck$: vi.fn(() => of({ success: true as const })),
-  };
   const snackBar = { open: vi.fn() };
 
   TestBed.configureTestingModule({
@@ -215,7 +209,6 @@ async function setup(
       { provide: PostHogService, useValue: postHog },
       { provide: AssetApi, useValue: assetApi },
       { provide: ReconciliationApi, useValue: reconciliationApi },
-      { provide: BudgetApi, useValue: budgetApi },
       { provide: MatSnackBar, useValue: snackBar },
       { provide: ReconcileSheet, useValue: sheet },
       {
@@ -266,7 +259,6 @@ async function setup(
     postHog,
     assetApi,
     reconciliationApi,
-    budgetApi,
     snackBar,
     sheet,
     backdropClick,
@@ -796,51 +788,8 @@ describe('ReconcileAccountsDialog', () => {
       expect(view.data.checkItem).toHaveBeenCalledTimes(1);
     });
 
-    it('should check a previous month item through the API and read the context again', async () => {
-      const prior: ReconciliationContext = {
-        ...CONTEXT,
-        priorItems: [
-          {
-            id: '12121212-1212-4121-8121-121212121212',
-            source: 'budgetLine',
-            budgetId: '13131313-1313-4131-8131-131313131313',
-            name: 'Pharmacie',
-            amount: 40,
-            kind: 'expense',
-            monthsAgo: 1,
-            effect: -40,
-          },
-        ],
-      };
-      const view = await setup({
-        realized: { ...REALIZED, balance: 1050 },
-        context: prior,
-      });
-      await compare(view, '1010');
-      expect(view.byTestId('reconcile-suggestion-detail')?.textContent).toBe(
-        'Mois dernier',
-      );
-      view.reconciliationApi.getContext$.mockReturnValue(
-        of({
-          success: true as const,
-          data: { ...CONTEXT, priorCorrection: -40 },
-        }),
-      );
-
-      await view.click(view.byTestId('reconcile-suggestion'));
-
-      expect(view.budgetApi.toggleBudgetLineCheck$).toHaveBeenCalledWith(
-        prior.priorItems[0].id,
-      );
-      expect(view.data.checkItem).not.toHaveBeenCalled();
-      expect(view.reconciliationApi.getContext$).toHaveBeenCalledTimes(2);
-      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
-        'Pareil des deux côtés',
-      );
-    });
-
-    // Pulpe 1 050.00 + 40.00 left unchecked before, the accounts 940.00: two
-    // checks of 60.00 and 40.00 leave 50.00 to find.
+    // Pulpe 1 050.00, the accounts 900.00: two checks of 60.00 and 40.00
+    // leave 50.00 to find.
     it('should keep the figure from before the first check, and add up what each check found', async () => {
       const pharmacie = {
         ...ESSENCE,
@@ -851,9 +800,8 @@ describe('ReconcileAccountsDialog', () => {
       const view = await setup({
         realized: { ...REALIZED, balance: 1050 },
         ledger: { budgetLines: [], transactions: [ESSENCE, pharmacie] },
-        context: { ...CONTEXT, priorCorrection: 40 },
       });
-      await compare(view, '940');
+      await compare(view, '900');
       const checkRow = async (name: string) =>
         view.click(
           view
@@ -894,171 +842,6 @@ describe('ReconcileAccountsDialog', () => {
       );
       expect(view.byTestId('reconcile-found')?.textContent).toContain(
         `${money(100, 'CHF')} trouvés`,
-      );
-      expect(
-        view.byTestId('reconcile-prior-correction')?.textContent?.trim(),
-      ).toBe(`+${money(40, 'CHF')} pas coché les mois d'avant`);
-    });
-
-    // The month's balance did not move: only the « pas coché » line did.
-    it('should leave the figure unstruck when a previous month item is checked', async () => {
-      const view = await setup({
-        realized: { ...REALIZED, balance: 1050 },
-        context: {
-          ...CONTEXT,
-          priorItems: [
-            {
-              id: '12121212-1212-4121-8121-121212121212',
-              source: 'budgetLine',
-              budgetId: '13131313-1313-4131-8131-131313131313',
-              name: 'Pharmacie',
-              amount: 40,
-              kind: 'expense',
-              monthsAgo: 1,
-              effect: -40,
-            },
-          ],
-        },
-      });
-      await compare(view, '1000');
-      expect(view.byTestId('reconcile-prior-correction')).toBeNull();
-      view.reconciliationApi.getContext$.mockReturnValue(
-        of({
-          success: true as const,
-          data: { ...CONTEXT, priorCorrection: -40 },
-        }),
-      );
-
-      await view.click(view.byTestId('reconcile-suggestion'));
-
-      expect(view.byTestId('reconcile-compared-before')).toBeNull();
-      expect(view.byTestId('reconcile-compared')?.textContent).toBe(
-        money(1050, 'CHF'),
-      );
-      expect(
-        view.byTestId('reconcile-prior-correction')?.textContent?.trim(),
-      ).toBe(`−${money(40, 'CHF')} pas coché les mois d'avant`);
-      expect(view.byTestId('reconcile-found')?.textContent).toContain(
-        `${money(40, 'CHF')} trouvés`,
-      );
-    });
-
-    it('should hand the focus to the heading when reading the context again fails after a check', async () => {
-      const prior: ReconciliationContext = {
-        ...CONTEXT,
-        priorItems: [
-          {
-            id: '12121212-1212-4121-8121-121212121212',
-            source: 'transaction',
-            budgetId: '13131313-1313-4131-8131-131313131313',
-            name: 'Pharmacie',
-            amount: 40,
-            kind: 'expense',
-            monthsAgo: 1,
-            effect: -40,
-          },
-        ],
-      };
-      const view = await setup({
-        realized: { ...REALIZED, balance: 1050 },
-        context: prior,
-      });
-      await compare(view, '1010');
-      view.reconciliationApi.getContext$
-        .mockReturnValueOnce(throwError(() => new Error('offline')))
-        .mockReturnValue(
-          of({
-            success: true as const,
-            data: { ...CONTEXT, priorCorrection: -40 },
-          }),
-        );
-
-      await view.click(view.byTestId('reconcile-suggestion'));
-
-      expect(view.reconciliationApi.getContext$).toHaveBeenCalledTimes(3);
-      expect(document.activeElement).toBe(
-        view.byTestId('reconcile-step-heading'),
-      );
-    });
-
-    it('should hand the focus to the error heading when the context stays unreadable after a check', async () => {
-      const prior: ReconciliationContext = {
-        ...CONTEXT,
-        priorItems: [
-          {
-            id: '12121212-1212-4121-8121-121212121212',
-            source: 'transaction',
-            budgetId: '13131313-1313-4131-8131-131313131313',
-            name: 'Pharmacie',
-            amount: 40,
-            kind: 'expense',
-            monthsAgo: 1,
-            effect: -40,
-          },
-        ],
-      };
-      const view = await setup({
-        realized: { ...REALIZED, balance: 1050 },
-        context: prior,
-      });
-      await compare(view, '1010');
-      view.reconciliationApi.getContext$.mockReturnValue(
-        throwError(() => new Error('offline')),
-      );
-      view.byTestId('reconcile-suggestion')?.focus();
-
-      await view.click(view.byTestId('reconcile-suggestion'));
-
-      const error = view.byTestId('reconcile-context-error');
-      expect(error).not.toBeNull();
-      expect(document.activeElement).toBe(
-        error?.querySelector('.step-heading'),
-      );
-      expect(view.byTestId('reconcile-retry-button')).not.toBeNull();
-    });
-
-    it('should read the context again after a failed previous month check, so a check that landed is not offered again', async () => {
-      const prior: ReconciliationContext = {
-        ...CONTEXT,
-        priorItems: [
-          {
-            id: '12121212-1212-4121-8121-121212121212',
-            source: 'transaction',
-            budgetId: '13131313-1313-4131-8131-131313131313',
-            name: 'Pharmacie',
-            amount: 40,
-            kind: 'expense',
-            monthsAgo: 1,
-            effect: -40,
-          },
-        ],
-      };
-      const view = await setup({
-        realized: { ...REALIZED, balance: 1050 },
-        context: prior,
-      });
-      await compare(view, '1010');
-      view.budgetApi.toggleTransactionCheck$.mockReturnValue(
-        throwError(() => new Error('response lost')),
-      );
-      view.reconciliationApi.getContext$.mockReturnValue(
-        of({
-          success: true as const,
-          data: { ...CONTEXT, priorCorrection: -40 },
-        }),
-      );
-
-      await view.click(view.byTestId('reconcile-suggestion'));
-
-      expect(view.snackBar.open).toHaveBeenCalledWith(
-        expect.any(String),
-        'Fermer',
-        expect.objectContaining({ verticalPosition: 'top' }),
-      );
-      expect(view.reconciliationApi.getContext$).toHaveBeenCalledTimes(2);
-      expect(view.byTestId('reconcile-suggestion')).toBeNull();
-      expect(view.byTestId('reconcile-step-heading')?.textContent).toContain(
-        'Pareil des deux côtés',
       );
     });
 

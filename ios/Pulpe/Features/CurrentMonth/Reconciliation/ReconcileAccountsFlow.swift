@@ -293,24 +293,17 @@ final class ReconcileAccountsFlow {
         return true
     }
 
-    /// Sends the check `beginCheck()` started through the screen that opened me. Only an item of a
-    /// previous month moves the server's correction, so only that one reads the context again; this
-    /// month's items move the balance the screen already reads. `false` when refused.
+    /// Sends the check `beginCheck()` started through the screen that opened me: the month's items move
+    /// the balance the screen already reads. `false` when refused.
     func check(_ suggestion: Suggestion, realizedBalance: Decimal, using toggle: () async -> Bool) async -> Bool {
         guard isChecking else { return false }
         defer { isChecking = false }
         guard let before = comparedFigure(realizedBalance: realizedBalance) else { return false }
-        let isPrior = if case .prior = suggestion.target { true } else { false }
-        guard await toggle() else {
-            // Gone elsewhere (deleted on the web), or a lost answer that landed: read again.
-            if isPrior { await loadContext() }
-            return false
-        }
+        guard await toggle() else { return false }
         if beforeChecks?.compared == nil {
             beforeChecks = BeforeChecks(compared: before, realized: beforeChecks?.realized ?? realizedBalance)
         }
         checkedSuggestions.append(suggestion)
-        if isPrior { await loadContext() }
         return true
     }
 
@@ -401,10 +394,9 @@ final class ReconcileAccountsFlow {
         defer { isSavingState = false }
         do {
             let state = try await updateState(update)
-            if let context {
+            if context != nil {
                 contextState = .loaded(ReconciliationContext(
-                    startingAmount: state.startingAmount, hasCompletedComparison: state.hasCompletedComparison,
-                    priorCorrection: context.priorCorrection, priorItems: context.priorItems
+                    startingAmount: state.startingAmount, hasCompletedComparison: state.hasCompletedComparison
                 ))
             }
             forgetComparedBeforeChecks()

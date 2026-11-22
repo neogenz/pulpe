@@ -39,12 +39,6 @@ const SUGGESTION_MIN_HEIGHT = 64;
 /** The round mark over « Pareil des deux côtés », twice its check. */
 const MARK_SIZE = 2 * ICON_SIZE.xl;
 
-const DETAIL_KEYS = [
-  "home.reconcile.compare.plannedThisMonth",
-  "home.reconcile.compare.lastMonth",
-  "home.reconcile.compare.twoMonthsAgo",
-] as const;
-
 /** An amount and its currency never part across two lines; a true minus, as on web and iOS. */
 export function money(value: number, currency: SupportedCurrency): string {
   return formatCurrency(value, currency).replace(/ /g, " ").replace("-", "−");
@@ -301,22 +295,6 @@ export function ReconcileCompareStep({
               </Amount>
             </View>
           </View>
-          {comparison.priorCorrection !== 0 && (
-            // Plain text, quieter than the figure and the button under it, as on web and iOS.
-            <Text
-              variant="bodyMedium"
-              style={[
-                muted,
-                stacks ? styles.start : styles.trailing,
-                TABULAR_DIGITS,
-              ]}
-              testID="reconcile-prior-correction"
-            >
-              {t("home.reconcile.compare.priorCorrectionPart", {
-                amount: signed(comparison.priorCorrection, currency),
-              })}
-            </Text>
-          )}
           {comparison.startingAmount !== 0 && (
             <Pressable
               accessibilityRole="button"
@@ -421,9 +399,9 @@ export function ReconcileCompareStep({
                       {row.name}
                     </Text>
                     <Text variant="bodySmall" style={muted}>
-                      {row.monthsAgo === 0 && row.date !== null
+                      {row.date !== null
                         ? formatDayMonth(new Date(row.date), locale)
-                        : t(DETAIL_KEYS[row.monthsAgo])}
+                        : t("home.reconcile.compare.plannedThisMonth")}
                     </Text>
                     {stacks && amount}
                   </View>
@@ -875,8 +853,6 @@ const styles = StyleSheet.create({
     minHeight: TOUCH_TARGET,
   },
   end: { alignSelf: "flex-end" },
-  // A line under a figure that wraps keeps to the figure's edge.
-  trailing: { alignSelf: "flex-end", textAlign: "right" },
   target: { minHeight: TOUCH_TARGET },
   note: { textAlign: "center" },
   // Close to the button it explains, clear of the framed one under it.

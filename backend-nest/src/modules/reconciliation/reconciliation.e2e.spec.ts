@@ -222,7 +222,7 @@ describe('Reconciliation E2E (local Supabase)', () => {
     }
   }, 30_000);
 
-  it('GET prices the two previous budgets and ignores the third', async () => {
+  it('GET never counts what previous budgets left unchecked', async () => {
     if (!hasSupabase) return;
 
     const templateId = randomUUID();
@@ -274,35 +274,14 @@ describe('Reconciliation E2E (local Supabase)', () => {
       await addMovement(september!, 'Pharmacie', 'expense', 40, false);
       await addMovement(august!, 'Vieux', 'expense', 5, false);
 
-      const started = performance.now();
       const res = await call(
         'get',
         `/api/v1/reconciliation/${november}`,
       ).expect(200);
-      console.info(
-        `reconciliation GET with 2 prior budgets: ${Math.round(performance.now() - started)}ms`,
-      );
 
-      expect(res.body.data.priorCorrection).toBe(840);
-      expect(
-        res.body.data.priorItems.map(
-          (i: { name: string; monthsAgo: number; effect: number }) => [
-            i.name,
-            i.monthsAgo,
-            i.effect,
-          ],
-        ),
-      ).toEqual([
-        ['Carte', 1, -800],
-        ['Pharmacie', 2, -40],
-      ]);
-
-      const first = await call(
-        'get',
-        `/api/v1/reconciliation/${august}`,
-      ).expect(200);
-      expect(first.body.data.priorCorrection).toBe(0);
-      expect(first.body.data.priorItems).toEqual([]);
+      // Still sent for iOS 1.14.2, which requires both keys.
+      expect(res.body.data.priorCorrection).toBe(0);
+      expect(res.body.data.priorItems).toEqual([]);
     } finally {
       await adminClient
         .from('transaction')
@@ -361,73 +340,6 @@ describe('Reconciliation E2E (local Supabase)', () => {
       await adminClient.from('monthly_budget').delete().eq('id', budgetId);
       await adminClient.from('template').delete().eq('id', templateId);
       await adminClient.auth.admin.deleteUser(otherId);
-    }
-  }, 30_000);
-
-  it('GET follows previousBudgetId across a missing month', async () => {
-    if (!hasSupabase) return;
-
-    const templateId = randomUUID();
-    const periods = [2, 4, 5, 7].map((month) => ({ id: randomUUID(), month }));
-    const [february, april, may, july] = periods.map((p) => p.id);
-    const addExpense = (budgetId: string, name: string, amount: number) =>
-      request(app.getHttpServer())
-        .post('/api/v1/transactions')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .set('X-Client-Key', CLIENT_KEY_HEX)
-        .send({ budgetId, name, kind: 'expense', amount, checkedAt: null })
-        .expect(201);
-
-    await adminClient
-      .from('template')
-      .insert({ id: templateId, user_id: userId, name: 'reconciliation e2e' });
-    await adminClient.from('monthly_budget').insert(
-      periods.map(({ id, month }) => ({
-        id,
-        user_id: userId,
-        month,
-        year: 2031,
-        description: 'reconciliation e2e',
-        template_id: templateId,
-      })),
-    );
-
-    try {
-      await addExpense(may!, 'Mai', 10);
-      await addExpense(april!, 'Avril', 20);
-      await addExpense(february!, 'Fevrier', 30);
-
-      // June is absent: May and April are the two budgets before July.
-      const res = await request(app.getHttpServer())
-        .get(`/api/v1/reconciliation/${july}`)
-        .set('Authorization', `Bearer ${accessToken}`)
-        .set('X-Client-Key', CLIENT_KEY_HEX)
-        .expect(200);
-
-      expect(
-        res.body.data.priorItems.map(
-          (i: { name: string; monthsAgo: number }) => [i.name, i.monthsAgo],
-        ),
-      ).toEqual([
-        ['Mai', 1],
-        ['Avril', 2],
-      ]);
-    } finally {
-      await adminClient
-        .from('transaction')
-        .delete()
-        .in(
-          'budget_id',
-          periods.map((p) => p.id),
-        );
-      await adminClient
-        .from('monthly_budget')
-        .delete()
-        .in(
-          'id',
-          periods.map((p) => p.id),
-        );
-      await adminClient.from('template').delete().eq('id', templateId);
     }
   }, 30_000);
 });

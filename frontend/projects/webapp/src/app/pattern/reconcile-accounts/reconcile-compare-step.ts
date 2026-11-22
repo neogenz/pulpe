@@ -55,15 +55,14 @@ export function money(value: number, currency: SupportedCurrency): string {
   ).replaceAll(' ', ' ');
 }
 
-/** An item that checking moves the compared figure: a movement or a prévision, of this month or a previous one. */
+/** An item of the month that checking moves the compared figure: a movement or a prévision. */
 export interface SuggestionRow {
   readonly source: 'transaction' | 'budgetLine';
   readonly kind: TransactionKind;
   readonly id: string;
   readonly name: string;
   readonly amount: number;
-  readonly monthsAgo: 0 | 1 | 2;
-  /** The movement's date, for a movement of this month. */
+  /** The movement's date; `null` for a prévision. */
   readonly date: string | null;
   /** Checking it leaves no gap, and its amount is the gap itself (spec §4.2). */
   readonly settles: boolean;
@@ -78,8 +77,6 @@ export interface Comparison {
   readonly realized: number;
   /** The realized balance at the first check of this comparison, once a check moved it. */
   readonly realizedBefore: number | null;
-  /** What the previous months left unchecked, part of `compared`; shown apart when not 0. */
-  readonly priorCorrection: number;
   /** A shown suggestion is a saving: « Coche les dépenses et l'épargne ». */
   readonly hasSaving: boolean;
   /** How much nearer zero the gap came since the first check: a check that widens it finds nothing. */
@@ -118,7 +115,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
   const onAccounts = input.onAccountsCents / 100;
   const compared = comparedFigure(
     input.realizedBalance,
-    context.priorCorrection,
     context.startingAmount,
   );
   const gap = moneyDifference(onAccounts, compared);
@@ -128,27 +124,7 @@ export function buildComparison(input: ComparisonInput): Comparison {
     gap,
     budgetLines,
     transactions,
-    context.priorItems,
-  ).flatMap(({ source, id, monthsAgo, remainingGap }): SuggestionRow[] => {
-    // A 120 movement on a checked 100 prévision closes a 20 gap: ranked first,
-    // but not shown as the exact amount.
-    const settles = (amount: number) =>
-      remainingGap === 0 && moneyDifference(amount, Math.abs(gap)) === 0;
-    const row = { id, monthsAgo };
-    if (source === 'prior') {
-      const prior = context.priorItems.find((item) => item.id === id);
-      return prior
-        ? [
-            {
-              ...row,
-              ...prior,
-              monthsAgo,
-              date: null,
-              settles: settles(prior.amount),
-            },
-          ]
-        : [];
-    }
+  ).flatMap(({ source, id, remainingGap }): SuggestionRow[] => {
     const item =
       source === 'budgetLine'
         ? budgetLines.find((line) => line.id === id)
@@ -157,13 +133,17 @@ export function buildComparison(input: ComparisonInput): Comparison {
     const date = 'transactionDate' in item ? item.transactionDate : null;
     return [
       {
-        ...row,
+        id,
         source,
         kind: item.kind,
         name: item.name,
         amount: item.amount,
         date,
-        settles: settles(item.amount),
+        // A 120 movement on a checked 100 prévision closes a 20 gap: ranked
+        // first, but not shown as the exact amount.
+        settles:
+          remainingGap === 0 &&
+          moneyDifference(item.amount, Math.abs(gap)) === 0,
       },
     ];
   });
@@ -203,7 +183,7 @@ export function buildComparison(input: ComparisonInput): Comparison {
     differenceInCalendarDays(following, input.today) > 0
       ? following
       : startOf(current + 2);
-  // A check of a previous month moves only the « pas coché » line: nothing to strike.
+  // Editing the money from before Pulpe moves the figure, not the balance: nothing to strike.
   const { realizedBefore } = input;
   const hasRealizedMoved =
     realizedBefore !== null &&
@@ -214,7 +194,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
     comparedBefore,
     realized: input.realizedBalance,
     realizedBefore: hasRealizedMoved ? realizedBefore : null,
-    priorCorrection: context.priorCorrection,
     hasSaving: suggestions.some((row) => row.kind === 'saving'),
     found:
       comparedBefore === null
@@ -416,23 +395,6 @@ export function buildComparison(input: ComparisonInput): Comparison {
               >
             }
           </dd>
-          @if (view.priorCorrection !== 0) {
-            @let unchecked =
-              (
-                'currentMonth.reconcile.compare.priorCorrectionPart'
-                | transloco: { amount: AMOUNT_SLOT }
-              ).split(AMOUNT_SLOT);
-            <dd
-              class="col-span-2 m-0 justify-self-end text-right text-sm text-on-surface-variant"
-              data-testid="reconcile-prior-correction"
-            >
-              {{ unchecked[0]
-              }}<span class="ph-no-capture whitespace-nowrap">{{
-                signed(view.priorCorrection)
-              }}</span
-              >{{ unchecked[1] }}
-            </dd>
-          }
           @if (view.startingAmount !== 0) {
             <dd class="col-span-2 m-0 -mb-2 justify-self-end">
               @let part =
@@ -535,9 +497,10 @@ export function buildComparison(input: ComparisonInput): Comparison {
                       class="text-body-small text-on-surface-variant"
                       data-testid="reconcile-suggestion-detail"
                       >{{
-                        row.monthsAgo === 0 && row.date !== null
+                        row.date !== null
                           ? dayMonth(row.date)
-                          : (detailKey(row.monthsAgo) | transloco)
+                          : ('currentMonth.reconcile.compare.plannedThisMonth'
+                            | transloco)
                       }}</span
                     >
                   </span>
@@ -777,10 +740,6 @@ export class ReconcileCompareStep {
 
   protected signed(value: number): string {
     return `${value < 0 ? '−' : '+'}${this.money(Math.abs(value))}`;
-  }
-
-  protected detailKey(monthsAgo: 0 | 1 | 2): string {
-    return `currentMonth.reconcile.compare.${['plannedThisMonth', 'lastMonth', 'twoMonthsAgo'][monthsAgo]}`;
   }
 
   protected dayMonth(date: string): string {

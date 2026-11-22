@@ -127,16 +127,16 @@ struct ReconcileAccountsFlowTests {
         #expect(flow.isCompleted)
     }
 
-    @Test("the gap counts the previous months' correction and the starting amount")
+    @Test("the gap counts the starting amount")
     func submitAdjustment_writesTheComparedGap() async throws {
-        let context = TestDataFactory.createReconciliationContext(startingAmount: 3100, priorCorrection: -40)
+        let context = TestDataFactory.createReconciliationContext(startingAmount: 3100)
         let recorder = Recorder(context: context)
         let flow = await makeComparingFlow("4000", recorder: recorder)
 
         #expect(await flow.submitAdjustment(realizedBalance: 1000, of: "budget-current") == .written)
         let payload = try #require(await recorder.payloads.first)
         #expect(payload.kind == .expense)
-        #expect(payload.amount == 60)
+        #expect(payload.amount == 100)
     }
 
     @Test("a refused write keeps every input, then can be retried")

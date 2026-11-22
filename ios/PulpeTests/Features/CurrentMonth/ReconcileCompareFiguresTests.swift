@@ -26,49 +26,29 @@ struct ReconcileCompareFiguresTests {
 
     // MARK: - « Dans Pulpe, déjà coché »
 
-    @Test("the Pulpe figure is the Accueil's 900.00; +120.00 unchecked earlier and +3 100.00 from before show apart")
+    @Test("the Pulpe figure is the Accueil's 900.00; +3 100.00 from before shows apart")
     func pulpeFigure_isTheCheckedBalance_withItsPartsApart() async throws {
-        let context = TestDataFactory.createReconciliationContext(startingAmount: 3100, priorCorrection: 120)
+        let context = TestDataFactory.createReconciliationContext(startingAmount: 3100)
         let flow = await makeComparingFlow("3940", context: context)
         let comparison = try #require(flow.comparison(realizedBalance: 900, lines: [], transactions: []))
 
         #expect(comparison.realized == 900)
-        #expect(comparison.priorCorrection == 120)
         #expect(comparison.startingAmount == 3100)
         // The gap still reads the whole figure.
-        #expect(comparison.compared == 4120)
-        #expect(comparison.gap == -180)
-
-        // Nothing left unchecked before: no « pas coché » line.
-        let upToDate = await makeComparingFlow(
-            "3940", context: TestDataFactory.createReconciliationContext(startingAmount: 3100)
-        )
-        #expect(upToDate.comparison(realizedBalance: 900, lines: [], transactions: [])?.priorCorrection == 0)
+        #expect(comparison.compared == 4000)
+        #expect(comparison.gap == -60)
     }
 
-    @Test("checking last month's Assurance moves only the « pas coché » line; checking Courses strikes 900.00")
-    func struckFigure_onlyOnceTheCheckedBalanceMoved() async throws {
-        let assurance = ReconciliationContext.PriorItem(
-            id: "assurance", source: .budgetLine, budgetId: "budget-previous", name: "Assurance",
-            amount: 120, kind: .expense, monthsAgo: 1, effect: -120
+    @Test("checking Courses strikes 900.00 through")
+    func struckFigure_onceTheCheckedBalanceMoved() async throws {
+        let flow = await makeComparingFlow(
+            "3940", context: TestDataFactory.createReconciliationContext(startingAmount: 3100)
         )
-        let endpoint = ContextEndpoint(TestDataFactory.createReconciliationContext(
-            startingAmount: 3100, priorCorrection: 120, priorItems: [assurance]
-        ))
-        let flow = await makeComparingFlow("3940", endpoint: endpoint)
         let courses = TestDataFactory.createBudgetLine(id: "courses", name: "Courses", amount: 60)
         let opened = try #require(flow.comparison(realizedBalance: 900, lines: [courses], transactions: []))
-        let assuranceRow = try #require(opened.suggestions.first { $0.id == "prior-assurance" })
+        #expect(opened.realizedBefore == nil)
 
-        endpoint.context = TestDataFactory.createReconciliationContext(startingAmount: 3100)
-        #expect(flow.beginCheck())
-        #expect(await flow.check(assuranceRow, realizedBalance: 900) { true })
-        let afterPrior = try #require(flow.comparison(realizedBalance: 900, lines: [courses], transactions: []))
-        #expect(afterPrior.priorCorrection == 0)
-        #expect(afterPrior.realizedBefore == nil)
-        #expect(afterPrior.found == 120)
-
-        let coursesRow = try #require(afterPrior.suggestions.first)
+        let coursesRow = try #require(opened.suggestions.first)
         #expect(flow.beginCheck())
         #expect(await flow.check(coursesRow, realizedBalance: 900) { true })
         let checked = TestDataFactory.createBudgetLine(id: "courses", name: "Courses", amount: 60, isChecked: true)
@@ -149,20 +129,14 @@ struct ReconcileCompareFiguresTests {
         #expect(owed.dismiss == AppLocale.string("Rien ne correspond"))
     }
 
-    @Test("a saving counts by its money kind, whether a movement or a previous month's item")
+    @Test("a saving movement counts by its money kind, as a saving prévision does")
     func suggestionsWording_savingByMoneyKind_notBySource() async throws {
-        let versement = ReconciliationContext.PriorItem(
-            id: "versement", source: .transaction, budgetId: "budget-previous", name: "Versement",
-            amount: 100, kind: .saving, monthsAgo: 1, effect: -100
-        )
-        let flow = await makeComparingFlow(
-            "950", context: TestDataFactory.createReconciliationContext(priorItems: [versement])
-        )
+        let flow = await makeComparingFlow("950")
         let virement = TestDataFactory.createTransaction(id: "virement", name: "Virement", amount: 100, kind: .saving)
         let comparison = try #require(flow.comparison(realizedBalance: 1050, lines: [], transactions: [virement]))
 
-        #expect(comparison.suggestions.map(\.id) == ["tx-virement", "prior-versement"])
-        #expect(comparison.suggestions.map(\.kind) == [.saving, .saving])
+        #expect(comparison.suggestions.map(\.id) == ["tx-virement"])
+        #expect(comparison.suggestions.map(\.kind) == [.saving])
         let wording = ReconcileCompareStepView.suggestionsWording(comparison, hasOwedRow: false)
         #expect(wording.dismiss == AppLocale.string("Rien ne correspond"))
     }
@@ -195,19 +169,15 @@ struct ReconcileCompareFiguresTests {
         )
     }
 
+    /// Step 2 with one account typed and the server context read, as the sheet opens it.
     private func makeComparingFlow(
         _ amount: String, context: ReconciliationContext = TestDataFactory.createReconciliationContext()
     ) async -> ReconcileAccountsFlow {
-        await makeComparingFlow(amount, endpoint: ContextEndpoint(context))
-    }
-
-    /// Step 2 with one account typed and the server context read, as the sheet opens it.
-    private func makeComparingFlow(_ amount: String, endpoint: ContextEndpoint) async -> ReconcileAccountsFlow {
         let flow = ReconcileAccountsFlow(
             budgetId: "budget-current",
             entryName: "Écart avec mes comptes",
             createTransaction: { _ in throw CancellationError() },
-            fetchContext: { _ in await endpoint.context },
+            fetchContext: { _ in context },
             updateState: { ReconciliationState(startingAmount: $0.startingAmount ?? 0, hasCompletedComparison: false) },
             onAdjustmentCreated: { _ in },
             onCompleted: { _ in }
@@ -216,15 +186,5 @@ struct ReconcileCompareFiguresTests {
         flow.compare()
         await flow.loadContext()
         return flow
-    }
-}
-
-/// The context endpoint, faked: answers what the test last set.
-@MainActor
-private final class ContextEndpoint {
-    var context: ReconciliationContext
-
-    init(_ context: ReconciliationContext) {
-        self.context = context
     }
 }

@@ -48161,50 +48161,6 @@
         }
       }
     },
-    "Mois dernier" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Letzter Monat"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last month"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mese scorso"
-          }
-        }
-      }
-    },
-    "Il y a 2 mois" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vor 2 Monaten"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2 months ago"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2 mesi fa"
-          }
-        }
-      }
-    },
     "Tu coches tes achats de carte à la facture ?" : {
       "localizations" : {
         "de" : {
@@ -49095,28 +49051,6 @@
         }
       }
     },
-    "%@ pas coché les mois d'avant" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ in früheren Monaten nicht abgehakt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ not checked in earlier months"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ non spuntato nei mesi precedenti"
-          }
-        }
-      }
-    },
     "Coche les dépenses et l'épargne que tu vois dans l'app de ta banque." : {
       "localizations" : {
         "de" : {
@@ -49157,28 +49091,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niente corrisponde"
-          }
-        }
-      }
-    },
-    "Pas coché les mois d'avant" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In früheren Monaten nicht abgehakt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not checked in earlier months"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non spuntato nei mesi precedenti"
           }
         }
       }

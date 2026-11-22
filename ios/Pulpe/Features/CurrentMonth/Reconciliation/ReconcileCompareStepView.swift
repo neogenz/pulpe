@@ -308,8 +308,6 @@ extension ReconcileCompareStepView {
     private func origin(of suggestion: Suggestion) -> String {
         switch suggestion.origin {
         case .plannedThisMonth: AppLocale.string("Prévue ce mois")
-        case .monthsAgo(1): AppLocale.string("Mois dernier")
-        case .monthsAgo: AppLocale.string("Il y a 2 mois")
         case .date(let date): date.relativeFormatted
         }
     }

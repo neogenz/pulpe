@@ -213,35 +213,25 @@ extension AccountReconciliation {
         return after - balanceBefore
     }
 
-    /// An unchecked item of a previous month, with the effect the server measured.
-    struct PriorPointingItem: Equatable, Sendable {
-        let id: String
-        let effect: Decimal
-        /// 1 or 2.
-        let monthsAgo: Int
-    }
-
     enum PointingSource: Equatable, Sendable {
         case transaction
         case budgetLine
-        case prior
     }
 
     struct RankedPointingCandidate: Equatable, Sendable {
         let source: PointingSource
         let id: String
-        /// 0 for the month itself, 1 or 2 for a previous budget.
-        let monthsAgo: Int
         let remainingGap: Decimal
     }
 
     /// The items not checked yet that most likely explain the gap: each one, checked alone, brings the
     /// checked balance nearer the accounts total. The effect is measured, not read
     /// from the amount: under a checked prévision an expense moves the balance by less, or not at all.
-    /// Unchecked budget lines, unchecked movements of the month, then prior items; closest to settling
-    /// first, ties keep that source order, at most three. Twin of `rankedPointingCandidates`.
+    /// Two sources of the month only: unchecked budget lines, then unchecked movements; closest to settling
+    /// first, ties keep that source order, at most three. Previous months are closed by the month-end
+    /// recap, never here. Twin of `rankedPointingCandidates`.
     static func rankedPointingCandidates(
-        gap: Decimal, lines: [BudgetLine], transactions: [Transaction], priorItems: [PriorPointingItem] = []
+        gap: Decimal, lines: [BudgetLine], transactions: [Transaction]
     ) -> [RankedPointingCandidate] {
         let gap = gap.rounded(maxCentDigits)
         guard gap != 0 else { return [] }
@@ -250,7 +240,7 @@ extension AccountReconciliation {
         let entries: [(RankedPointingCandidate, Decimal)] =
             lines.filter { !$0.isChecked && $0.sourceSavingsGoalId == nil }.map { line in
                 (
-                    RankedPointingCandidate(source: .budgetLine, id: line.id, monthsAgo: 0, remainingGap: 0),
+                    RankedPointingCandidate(source: .budgetLine, id: line.id, remainingGap: 0),
                     effectAfterPointing(
                         lines: lines, transactions: transactions, balanceBefore: balanceBefore,
                         target: .budgetLine(line.id)
@@ -259,23 +249,15 @@ extension AccountReconciliation {
             }
             + transactions.filter { !$0.isChecked }.map { transaction in
                 (
-                    RankedPointingCandidate(source: .transaction, id: transaction.id, monthsAgo: 0, remainingGap: 0),
+                    RankedPointingCandidate(source: .transaction, id: transaction.id, remainingGap: 0),
                     effectAfterPointing(
                         lines: lines, transactions: transactions, balanceBefore: balanceBefore,
                         target: .transaction(transaction.id)
                     )
                 )
             }
-            + priorItems.map {
-                (
-                    RankedPointingCandidate(source: .prior, id: $0.id, monthsAgo: $0.monthsAgo, remainingGap: 0),
-                    $0.effect
-                )
-            }
         return rankByRemainingGap(gap: gap, entries: entries).map {
-            RankedPointingCandidate(
-                source: $0.item.source, id: $0.item.id, monthsAgo: $0.item.monthsAgo, remainingGap: $0.remainingGap
-            )
+            RankedPointingCandidate(source: $0.item.source, id: $0.item.id, remainingGap: $0.remainingGap)
         }
     }
 
@@ -310,9 +292,10 @@ extension AccountReconciliation {
         return gap < 0 ? .largeGap : .moreOnAccounts
     }
 
-    /// Checked balance, plus the prior correction, plus the starting amount.
-    static func comparedFigure(realizedBalance: Decimal, priorCorrection: Decimal, startingAmount: Decimal) -> Decimal {
-        (realizedBalance + priorCorrection + startingAmount).rounded(maxCentDigits)
+    /// The month's checked balance plus the money from before Pulpe. What a previous month left unchecked
+    /// never counts here (spec.md §4.1). Twin of `comparedFigure`.
+    static func comparedFigure(realizedBalance: Decimal, startingAmount: Decimal) -> Decimal {
+        (realizedBalance + startingAmount).rounded(maxCentDigits)
     }
 
     /// « … trouvés »: how much nearer zero the gap came since the first check; a check that widens

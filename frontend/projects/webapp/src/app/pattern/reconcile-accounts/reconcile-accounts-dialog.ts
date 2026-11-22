@@ -40,7 +40,6 @@ import { filter, firstValueFrom, map, merge } from 'rxjs';
 
 import { PostHogService } from '@core/analytics/posthog';
 import { AssetApi } from '@core/asset/asset-api';
-import { BudgetApi } from '@core/budget/budget-api';
 import { ReconciliationApi } from '@core/reconciliation/reconciliation-api';
 import { StorageService } from '@core/storage';
 import { UserSettingsStore } from '@core/user-settings';
@@ -163,7 +162,6 @@ export class ReconcileAccountsDialog {
   readonly #dialogRef = inject(MatDialogRef<ReconcileAccountsDialog>);
   readonly #postHog = inject(PostHogService);
   readonly #assetApi = inject(AssetApi);
-  readonly #budgetApi = inject(BudgetApi);
   readonly #reconciliationApi = inject(ReconciliationApi);
   readonly #storage = inject(StorageService);
   readonly #snackBar = inject(MatSnackBar);
@@ -287,17 +285,6 @@ export class ReconcileAccountsDialog {
       this.checkingId() !== null ||
       this.context.isLoading(),
   );
-  readonly #checkPriorItem = cachedMutation<CheckTarget, unknown>({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => [
-      ['budget', 'details'],
-      ['budget', 'history'],
-    ],
-    mutationFn: ({ source, id }) =>
-      source === 'transaction'
-        ? firstValueFrom(this.#budgetApi.toggleTransactionCheck$(id))
-        : firstValueFrom(this.#budgetApi.toggleBudgetLineCheck$(id)),
-  });
   // Once per comparison, maybe before the dialog ends (« Oui, c'était déjà là »);
   // each « Comparer » starts a new one.
   #isCompletionSent = false;
@@ -449,35 +436,9 @@ export class ReconcileAccountsDialog {
       realized: before?.realized ?? view.realized,
     }));
     try {
-      if (row.monthsAgo === 0) {
-        await this.data.checkItem(row);
-      } else {
-        if (!(await this.#checkPriorItem.mutate(row))) {
-          this.#snackBar.open(
-            this.#transloco.translate('currentMonth.updateError'),
-            this.#transloco.translate('common.close'),
-            { duration: 5000, verticalPosition: 'top' },
-          );
-        }
-        // Read again even after a failure: a toggle whose answer was lost may
-        // have landed, and offering the item again would let the next tap undo it.
-        await this.#refreshContext();
-      }
+      await this.data.checkItem(row);
     } finally {
       this.checkingId.set(null);
-    }
-  }
-
-  async #refreshContext(): Promise<void> {
-    try {
-      const { data } = await firstValueFrom(
-        this.#reconciliationApi.getContext$(this.data.budgetId),
-      );
-      this.context.set(data);
-    } catch {
-      this.context.reload();
-      // The checked row has left with the focus: the heading takes it once the reload ends.
-      this.#isHeadingToFocus.set(true);
     }
   }
 

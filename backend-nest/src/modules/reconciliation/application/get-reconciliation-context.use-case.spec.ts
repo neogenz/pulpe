@@ -39,7 +39,7 @@ function build(
 }
 
 describe('GetReconciliationContextUseCase', () => {
-  it('should return the stored state with an empty prior part for a first budget', async () => {
+  it('should return the stored state with the deprecated prior keys empty', async () => {
     const { useCase } = build(
       { b1: details('b1', null) },
       '2026-11-01T10:00:00.000Z',
@@ -53,52 +53,17 @@ describe('GetReconciliationContextUseCase', () => {
     });
   });
 
-  it('should follow the chain two budgets back and no further', async () => {
-    const pending = (id: string, amount: number) => ({
-      budget: { id, endingBalance: -amount },
-      transactions: [
-        {
-          id,
-          name: id,
-          amount,
-          kind: 'expense',
-          budgetLineId: null,
-          checkedAt: null,
-        },
-      ],
-    });
+  it('should never read or count a previous budget', async () => {
     const { budgets, useCase } = build({
       nov: details('nov', 'oct'),
-      oct: details('oct', 'sep', pending('card', 800)),
-      sep: details('sep', 'aug', pending('pharmacy', 40)),
-      aug: details('aug', null, pending('old', 5)),
+      oct: details('oct', null, { budget: { id: 'oct', endingBalance: -800 } }),
     });
 
     const context = await useCase.execute('nov');
 
-    expect(context.priorItems.map((i) => [i.id, i.monthsAgo])).toEqual([
-      ['card', 1],
-      ['pharmacy', 2],
-    ]);
-    expect(context.priorCorrection).toBe(840);
-    expect(budgets.readBudget.mock.calls.map(([id]) => id)).toEqual([
-      'nov',
-      'oct',
-      'sep',
-    ]);
-  });
-
-  it('should stop at a previous budget it cannot read', async () => {
-    const { budgets, useCase } = build({
-      nov: details('nov', 'gone'),
-      sep: details('sep', null),
-    });
-
-    const context = await useCase.execute('nov');
-
-    expect(context.priorItems).toEqual([]);
     expect(context.priorCorrection).toBe(0);
-    expect(budgets.readBudget).toHaveBeenCalledTimes(2);
+    expect(context.priorItems).toEqual([]);
+    expect(budgets.readBudget).toHaveBeenCalledTimes(1);
   });
 
   it('should report no completed comparison without a completion time', async () => {

@@ -56,7 +56,7 @@ struct ReconcileLinkedAccountsTests {
                 makeLine(id: "l2", kind: .expense, assetId: "revolut"),
                 makeLine(id: "l3", kind: .saving, assetId: nil),
             ],
-            syncingTransactionIds: [], syncingBudgetLineIds: [], toggle: { _ in false }, checkPrior: { _ in false }
+            syncingTransactionIds: [], syncingBudgetLineIds: [], toggle: { _ in false }
         )
 
         #expect(checking.savingAssetIds == ["bcge"])

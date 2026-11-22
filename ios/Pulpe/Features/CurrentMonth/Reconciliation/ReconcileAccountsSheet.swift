@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// What the sheet reads to check an item: the month's movements and prévisions, the caller's own
-/// toggle, and how it checks an item of the two previous months. Each reports whether the server took it.
+/// What the sheet reads to check an item: the month's movements and prévisions and the caller's own
+/// toggle, which reports whether the server took it.
 struct ReconciliationChecking {
     let items: [CurrentMonthStore.CheckableItem]
     let transactions: [Transaction]
@@ -9,33 +9,12 @@ struct ReconciliationChecking {
     let syncingTransactionIds: Set<String>
     let syncingBudgetLineIds: Set<String>
     let toggle: @MainActor (CurrentMonthStore.CheckableItem) async -> Bool
-    /// No loaded store holds these: the caller drops what it cached of their month.
-    let checkPrior: @MainActor (ReconciliationContext.PriorItem) async -> Bool
 
     @MainActor
     func check(_ target: ReconcileAccountsFlow.Suggestion.Target) async -> Bool {
         switch target {
         case .transaction(let transaction): await toggle(.transaction(transaction))
         case .budgetLine(let line): await toggle(.budgetLine(line))
-        case .prior(let item): await checkPrior(item)
-        }
-    }
-
-    /// Checks an item of a previous month on the server, through the same services as the month's own.
-    @MainActor
-    static func checkPrior(
-        _ item: ReconciliationContext.PriorItem,
-        transactionService: any TransactionServicing,
-        budgetLineService: any BudgetLineServicing
-    ) async -> Bool {
-        do {
-            switch item.source {
-            case .transaction: _ = try await transactionService.toggleCheck(id: item.id)
-            case .budgetLine: _ = try await budgetLineService.toggleCheck(id: item.id)
-            }
-            return true
-        } catch {
-            return false
         }
     }
 
@@ -201,7 +180,7 @@ struct ReconcileAccountsSheet: View {
                 checking: .init(
                     items: [], transactions: [], budgetLines: [],
                     syncingTransactionIds: [], syncingBudgetLineIds: [],
-                    toggle: { _ in false }, checkPrior: { _ in false }
+                    toggle: { _ in false }
                 ),
                 onAdjustmentCreated: { _ in }
             )
