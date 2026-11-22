@@ -901,6 +901,7 @@
       "income": "Einnahmen",
       "report": "Übertrag aus %{month}",
       "reportElided": "Übertrag aus %{month}",
+      "reportUnknown": "Übertrag aus dem Vormonat",
       "expenses": "Ausgaben",
       "savings": "Eingezahlte Ersparnisse",
       "finalBalance": "Endsaldo",

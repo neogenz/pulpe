@@ -13,6 +13,7 @@ import { StyleSheet } from "react-native";
 import { Button, IconButton } from "react-native-paper";
 import { randomUUID } from "react-native-quick-crypto";
 
+import { hasClientKey } from "@/core/crypto/client-key-manager";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { captureEvent } from "@/core/observability/analytics";
 import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
@@ -20,6 +21,7 @@ import { Notice } from "@/core/ui/notice";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { useVaultStore } from "@/core/vault/vault-store";
 import {
   useChecksSettled,
   useToggleCheck,
@@ -42,11 +44,7 @@ import {
   seedRows,
   summarizeRows,
 } from "../reconcile-account-links";
-import {
-  clearReconcileDraft,
-  keepReconcileDraft,
-  readReconcileDraft,
-} from "../reconcile-draft-store";
+import { keepReconcileDraft, reconcileDraft } from "../reconcile-draft";
 import { readFreeAccounts, saveFreeAccounts } from "../reconcile-free-accounts";
 import { useReconcileLinkedAccounts } from "../reconcile-linked-accounts";
 import {
@@ -120,7 +118,8 @@ interface ReconcileAccountsSheetProps {
  * comparison.
  *
  * Nothing typed here outlives the sheet: every way out resets it, so the next
- * opening starts from one empty amount.
+ * opening starts from one empty amount. The vault locking under it is not a
+ * way out: what was typed is kept for the Accueil to reopen (`reconcile-draft`).
  */
 export function ReconcileAccountsSheet({
   isVisible,
@@ -211,7 +210,7 @@ export function ReconcileAccountsSheet({
   if (isVisible && accounts === undefined && linked !== undefined) {
     setAccounts(linked);
     // A sheet lost to the auto-lock comes back with what was typed.
-    const draft = readReconcileDraft(budgetId);
+    const draft = reconcileDraft(budgetId);
     const seeded =
       draft === null
         ? seedRows(linked?.assets ?? null, readFreeAccounts())
@@ -222,15 +221,9 @@ export function ReconcileAccountsSheet({
   // A sheet rebuilt after the lock: the lock saved nothing, its real close does.
   useEffect(() => {
     if (isVisible) {
-      hasCompleted.current =
-        readReconcileDraft(budgetId)?.hasCompleted ?? false;
+      hasCompleted.current = reconcileDraft(budgetId)?.hasCompleted ?? false;
     }
   }, [isVisible, budgetId]);
-  useEffect(() => {
-    if (isVisible && accounts !== undefined) {
-      keepReconcileDraft(budgetId, rows, hasCompleted.current);
-    }
-  }, [isVisible, accounts, budgetId, rows]);
 
   const summary = summarizeRows(rows);
   // A refresh keeps the figures on screen; a failed one stops the comparison.
@@ -274,6 +267,7 @@ export function ReconcileAccountsSheet({
   function reset() {
     if (hasCompleted.current) followFinishedAccounts();
     hasCompleted.current = false;
+    keepReconcileDraft(null);
     setStartingOpen(false);
     setReasons(null);
     writeState.reset();
@@ -283,7 +277,6 @@ export function ReconcileAccountsSheet({
     setRows([FIRST_ROW]);
     setAddOpen(false);
     setFocusRowId(null);
-    clearReconcileDraft();
     setLeftRowIds(new Set());
     setPointFailed(false);
     isSubmitting.current = false;
@@ -307,12 +300,26 @@ export function ReconcileAccountsSheet({
   // refusal of that write is handed to the screen, since its notice is here.
   const isOffMonth = isVisible && month === null;
   const closeOffMonth = useEffectEvent(() => {
+    // The lock drops the key, then the month: that is not leaving it.
+    if (!hasClientKey()) return;
     const hasFailed = create.isError;
     if (dismiss() && hasFailed) onRecordFailed();
   });
   useEffect(() => {
     if (isOffMonth && !isBusy) closeOffMonth();
   }, [isOffMonth, isBusy]);
+
+  // The lock closes every screen, this one with it: keep what was typed.
+  const keepUnderLock = useEffectEvent(() => {
+    const isLocked = useVaultStore.getState().status === "locked";
+    if (!isLocked || !isVisible || accounts === undefined) return;
+    keepReconcileDraft({
+      budgetId,
+      rows,
+      hasCompleted: hasCompleted.current,
+    });
+  });
+  useEffect(() => () => keepUnderLock(), []);
 
   function back() {
     if (isBusy || isSubmitting.current) return;
@@ -376,8 +383,6 @@ export function ReconcileAccountsSheet({
     if (isCompletionSent.current) return;
     isCompletionSent.current = true;
     hasCompleted.current = true;
-    // The sheet may stay open after it (« Oui, c'était déjà là »): a lock must not lose it.
-    keepReconcileDraft(budgetId, rows, true);
     captureEvent(ANALYTICS_EVENTS.ACCOUNT_RECONCILIATION_COMPLETED, {
       adjustment_kind: adjustmentKind,
     });

@@ -124,22 +124,29 @@ struct BudgetMixedSection: View {
 
 // MARK: - Report row
 
-/// The amount the previous month left, carried into this one.
+/// The amount the previous budget left, carried into this one.
 struct SectionRollover: Equatable {
-    let previousMonth: Int
+    /// The month of the budget it comes from; `nil` while the budget list does not hold it.
+    let sourceMonth: Int?
     let amount: Decimal
     var onTap: (() -> Void)?
     /// « Estimé, novembre en cours » on a month that has not started; `nil` keeps the default.
     var subtitle: String?
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.previousMonth == rhs.previousMonth && lhs.amount == rhs.amount && lhs.subtitle == rhs.subtitle
+        lhs.sourceMonth == rhs.sourceMonth && lhs.amount == rhs.amount && lhs.subtitle == rhs.subtitle
     }
 }
 
 private struct SectionRolloverRow: View {
     let rollover: SectionRollover
     let currency: SupportedCurrency
+
+    private var subtitle: String? {
+        rollover.subtitle ?? rollover.sourceMonth.map {
+            AppLocale.string("Ce qu'il te restait fin \(Formatters.monthNameInText(for: $0))")
+        }
+    }
 
     private var amountText: String {
         let rounded = rollover.amount.rounded(2)
@@ -160,14 +167,14 @@ private struct SectionRolloverRow: View {
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.dividerGap) {
-                    Text(ReportWording.reportTitle(of: rollover.previousMonth))
+                    Text(ReportWording.reportTitle(of: rollover.sourceMonth))
                         .font(PulpeTypography.rowTitle)
                         .foregroundStyle(Color.textPrimary)
-                    Text(rollover.subtitle ?? AppLocale.string(
-                        "Ce qu'il te restait fin \(Formatters.monthNameInText(for: rollover.previousMonth))"
-                    ))
-                        .font(PulpeTypography.captionRegular)
-                        .foregroundStyle(Color.textSecondary)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(PulpeTypography.captionRegular)
+                            .foregroundStyle(Color.textSecondary)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

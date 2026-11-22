@@ -150,9 +150,9 @@ struct BudgetDetailsView: View {
         let screenState = projector.screenState
         guard screenState.checkedFilter == .all,
               let rollover = screenState.rollover, rollover.amount.rounded(2) != 0,
-              let month = screenState.hero.month else { return nil }
+              let month = screenState.hero.month, let year = screenState.hero.year else { return nil }
         return SectionRollover(
-            previousMonth: month == 1 ? 12 : month - 1,
+            sourceMonth: ReportWording.sourceMonth(before: month, year: year, among: budgetListStore.budgets),
             amount: rollover.amount,
             onTap: rollover.previousBudgetId.map { id in
                 { router.present(.previousBudget(PreviousBudgetItem(id: id))) }

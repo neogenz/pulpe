@@ -2,6 +2,10 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import HomeScreen from "@/app/(main)/(tabs)/(home)/home";
+import {
+  keepReconcileDraft,
+  pendingReconcileResume,
+} from "@/features/current-month/reconcile-draft";
 
 const mockRefresh = jest.fn(async () => undefined);
 const mockCurrentMonth = { status: "loading" } as Record<string, unknown>;
@@ -543,6 +547,27 @@ it("hands « Le calcul » over to the reconciliation of the loaded budget", asyn
 
   expect(view.queryByText("reconcile-sheet:budget-1:100")).toBeNull();
   expect(view.getByText("home.reconcile.recorded")).toBeTruthy();
+});
+
+it("reopens the reconciliation a lock took away, on its own month only", async () => {
+  const loaded = {
+    details: {
+      budget: { id: "budget-1", month: 8, year: 2026, rollover: -120 },
+      transactions: [],
+    },
+  };
+  const draft = { rows: [], hasCompleted: false };
+  Object.assign(mockCurrentMonth, readyMonth(), loaded);
+  keepReconcileDraft({ budgetId: "budget-1", ...draft });
+  const view = await render(<HomeScreen />);
+  expect(view.getByText("reconcile-sheet:budget-1:100")).toBeTruthy();
+  await view.unmount();
+  keepReconcileDraft(null);
+
+  keepReconcileDraft({ budgetId: "budget-0", ...draft });
+  const other = await render(<HomeScreen />);
+  expect(other.queryByText(/reconcile-sheet:budget/)).toBeNull();
+  expect(pendingReconcileResume()).toBeNull();
 });
 
 it("offers the reconciliation only once the loaded budget's own details are in", async () => {

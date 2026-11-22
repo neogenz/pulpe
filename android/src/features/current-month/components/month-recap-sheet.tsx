@@ -1,4 +1,4 @@
-import type { SupportedCurrency } from "pulpe-shared";
+import type { BudgetSparse, SupportedCurrency } from "pulpe-shared";
 import { StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 
@@ -14,6 +14,7 @@ import { useBudgetDetails } from "@/features/budgets/budget-queries";
 
 import {
   elidedKey,
+  reportTitle,
   recapFindings,
   recapSpending,
   type MonthRecap,
@@ -24,6 +25,8 @@ interface MonthRecapSheetProps {
   onDismiss: () => void;
   recap: MonthRecap;
   currency: SupportedCurrency;
+  /** Names the report after the budget it comes from. */
+  budgets: BudgetSparse[];
   /** « C'est noté »: retires the row. */
   onAcknowledge: () => void;
   onShowBudget: () => void;
@@ -39,6 +42,7 @@ export function MonthRecapSheet({
   onDismiss,
   recap,
   currency,
+  budgets,
   onAcknowledge,
   onShowBudget,
 }: MonthRecapSheetProps) {
@@ -53,11 +57,6 @@ export function MonthRecapSheet({
   const openedName = formatMonthName(
     recap.openedMonth,
     recap.month === 12 ? recap.year + 1 : recap.year,
-    locale,
-  );
-  const previousName = formatMonthName(
-    recap.month === 1 ? 12 : recap.month - 1,
-    recap.month === 1 ? recap.year - 1 : recap.year,
     locale,
   );
   const findings =
@@ -119,9 +118,7 @@ export function MonthRecapSheet({
           trailing={figure(recap.income)}
         />
         <LedgerRow
-          title={t(elidedKey("home.recap.report", previousName), {
-            month: previousName,
-          })}
+          title={reportTitle(t, locale, recap, budgets)}
           trailing={figure(recap.previousRollover)}
         />
         <LedgerRow

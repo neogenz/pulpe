@@ -81,19 +81,31 @@ export function calculationRows(
 }
 
 /**
- * What moved the month off its plan, named: the prévisions past their plan
- * with how far, then the expenses no prévision covers, largest first. `null`
- * when there is nothing to name. Port of `CalculationPresentation.gapCauses`.
+ * What moved the month off its plan, named: the spending and savings
+ * prévisions past their plan with how far, largest first, then the spending
+ * and savings no prévision covers, largest first. Both lower the disponible
+ * the same way. `null` when there is nothing to name. Port of
+ * `CalculationPresentation.gapCauses`.
  */
 export function gapCauses(
   t: Translate,
-  overruns: { name: string; overrun: number }[],
-  unplannedOutflows: Transaction[],
+  budgetLines: BudgetLine[],
+  transactions: Transaction[],
   formatAmount: (value: number) => string,
 ): string | null {
+  const overruns = budgetLines
+    .filter((line) => line.kind !== "income" && line.isRollover !== true)
+    .map((line) => ({
+      name: line.name,
+      overrun: -BudgetFormulas.calculateConsumption(line, transactions)
+        .available,
+    }))
+    .filter(({ overrun }) => overrun > 0)
+    .sort((a, b) => b.overrun - a.overrun);
   const parts = [
     ...overruns.map(({ name, overrun }) => `${name} +${formatAmount(overrun)}`),
-    ...[...unplannedOutflows]
+    ...transactions
+      .filter((tx) => tx.budgetLineId == null && tx.kind !== "income")
       .sort((a, b) => b.amount - a.amount)
       .map((tx) => `${tx.name} ${formatAmount(tx.amount)}`),
   ];

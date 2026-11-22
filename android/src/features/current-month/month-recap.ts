@@ -8,7 +8,7 @@ import {
   type Transaction,
 } from "pulpe-shared";
 
-import { ofMonth } from "@/core/ui/date-format";
+import { formatMonthName, ofMonth } from "@/core/ui/date-format";
 
 type Translate = (key: string, options?: TranslateOptions) => string;
 
@@ -86,6 +86,33 @@ export function recapOutcome(recap: MonthRecap): RecapOutcome {
 /** French elides « de » before a vowel; the other catalogs share both keys. */
 export function elidedKey(key: string, monthName: string): string {
   return ofMonth(monthName).startsWith("d'") ? `${key}Elided` : key;
+}
+
+/**
+ * « Report d'août »: named after the budget the carry-over comes from, the last
+ * one before `period`. The server carries over from that budget, which is not
+ * the calendar month before when the user skipped one; « Report du mois
+ * précédent » while the list does not hold it. Port of
+ * `ReportWording.sourceMonth` and `reportTitle`.
+ */
+export function reportTitle(
+  t: Translate,
+  locale: string,
+  period: { month: number; year: number },
+  budgets: BudgetSparse[],
+): string {
+  const before = periodIndex(period);
+  const source = budgets.reduce<number | null>((latest, budget) => {
+    if (budget.month === undefined || budget.year === undefined) return latest;
+    const index = periodIndex({ month: budget.month, year: budget.year });
+    return index < before && (latest === null || index > latest)
+      ? index
+      : latest;
+  }, null);
+  if (source === null) return t("home.recap.reportUnknown");
+  const { month, year } = periodFromIndex(source);
+  const name = formatMonthName(month, year, locale);
+  return t(elidedKey("home.recap.report", name), { month: name });
 }
 
 /** What the closed month leaves: its carry-over when it has one, else its verdict. */

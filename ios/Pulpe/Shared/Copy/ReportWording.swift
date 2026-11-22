@@ -4,7 +4,9 @@ import Foundation
 enum ReportWording {
     /// "Report d'octobre" / "Report de septembre": French elides before a vowel; the other
     /// languages translate both keys the same.
-    static func reportTitle(of month: Int) -> String {
+    /// `nil` when the month the report comes from is not known: « Report du mois précédent ».
+    static func reportTitle(of month: Int?) -> String {
+        guard let month else { return AppLocale.string("Report du mois précédent") }
         let name = Formatters.monthNameInText(for: month)
         return elides(name) ? AppLocale.string("Report d'\(name)") : AppLocale.string("Report de \(name)")
     }
@@ -23,5 +25,21 @@ extension ReportWording {
         return elides(name)
             ? AppLocale.string("Ton disponible d'\(name)")
             : AppLocale.string("Ton disponible de \(name)")
+    }
+}
+
+extension ReportWording {
+    /// The month a report comes from: the last budget before `month`/`year` among `budgets`.
+    /// The server carries over from that budget, which is not the calendar month before when
+    /// the user skipped one. `nil` when the list does not hold it.
+    static func sourceMonth(before month: Int, year: Int, among budgets: [BudgetSparse]) -> Int? {
+        budgets
+            .compactMap { budget -> (year: Int, month: Int)? in
+                guard let budgetMonth = budget.month, let budgetYear = budget.year,
+                      (budgetYear, budgetMonth) < (year, month) else { return nil }
+                return (budgetYear, budgetMonth)
+            }
+            .max { $0 < $1 }?
+            .month
     }
 }

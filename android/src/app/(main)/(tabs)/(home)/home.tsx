@@ -59,6 +59,10 @@ import {
   type MonthRecap,
 } from "@/features/current-month/month-recap";
 import { ReconcileAccountsSheet } from "@/features/current-month/components/reconcile-accounts-sheet";
+import {
+  keepReconcileDraft,
+  pendingReconcileResume,
+} from "@/features/current-month/reconcile-draft";
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
 import {
   currentBudgetPeriod,
@@ -221,6 +225,17 @@ export default function HomeScreen() {
     details?.budget.id === currentMonth.budgetId
       ? { details, viewModel: currentMonth.viewModel }
       : null;
+  // A lock took « Comparer avec mes comptes » away mid-way: it opens again on
+  // the month it was made on, with what was typed.
+  // Checked once per loaded month; a draft from another month is dropped.
+  const loadedBudgetId = loadedMonth?.details.budget.id ?? null;
+  const [resumeCheckedFor, setResumeCheckedFor] = useState<string | null>(null);
+  if (loadedBudgetId !== null && loadedBudgetId !== resumeCheckedFor) {
+    setResumeCheckedFor(loadedBudgetId);
+    const pending = pendingReconcileResume();
+    if (pending === loadedBudgetId) setReconcileBudgetId(loadedBudgetId);
+    else if (pending !== null) keepReconcileDraft(null);
+  }
   const reconcileMonth =
     loadedMonth !== null && loadedMonth.details.budget.id === reconcileBudgetId
       ? {
@@ -581,6 +596,7 @@ export default function HomeScreen() {
           currency={currency}
           month={month}
           year={year}
+          budgets={budgets.data ?? []}
           periodEnd={period.endDate}
           onReconcile={
             loadedMonth === null
@@ -598,6 +614,7 @@ export default function HomeScreen() {
             onDismiss={() => setRecapOpen(false)}
             recap={shownRecap}
             currency={currency}
+            budgets={budgets.data ?? []}
             onAcknowledge={() => {
               setRecapOpen(false);
               acknowledgeMonthRecap(shownRecap.key);

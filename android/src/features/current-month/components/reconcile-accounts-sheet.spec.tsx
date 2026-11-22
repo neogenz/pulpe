@@ -10,10 +10,7 @@ import type {
 import { captureEvent } from "@/core/observability/analytics";
 
 import type { RealizedMetrics } from "../current-month-view-model";
-import {
-  clearReconcileDraft,
-  keepReconcileDraft,
-} from "../reconcile-draft-store";
+import { keepReconcileDraft, pendingReconcileResume } from "../reconcile-draft";
 import {
   clearFreeAccounts,
   readFreeAccounts,
@@ -60,6 +57,14 @@ jest.mock("@/features/net-worth/net-worth-queries", () => ({
 }));
 jest.mock("@/core/observability/feature-flags", () => ({
   useFeatureFlag: () => mockNetWorth.isOn,
+}));
+let mockVaultStatus = "unlocked";
+let mockHasKey = true;
+jest.mock("@/core/vault/vault-store", () => ({
+  useVaultStore: { getState: () => ({ status: mockVaultStatus }) },
+}));
+jest.mock("@/core/crypto/client-key-manager", () => ({
+  hasClientKey: () => mockHasKey,
 }));
 jest.mock("@/core/ui/ripple", () => ({ useRipple: () => ({ color: "gray" }) }));
 jest.mock("@/core/ui/segmented-picker", () => {
@@ -423,7 +428,9 @@ beforeEach(() => {
     isFetching: false,
   });
   offer(null);
-  clearReconcileDraft();
+  mockVaultStatus = "unlocked";
+  mockHasKey = true;
+  keepReconcileDraft(null);
   clearFreeAccounts();
 });
 
@@ -663,22 +670,26 @@ describe("with Mon patrimoine", () => {
 
   it("brings an account deleted while locked back as a free row, and writes nothing to it", async () => {
     offer(linked(account("a", true)));
-    keepReconcileDraft("budget-1", [
-      {
-        id: 0,
-        label: "Compte a",
-        amountText: "1500",
-        side: "own",
-        account: { kind: "asset", id: "a" },
-      },
-      {
-        id: 1,
-        label: "Compte gone",
-        amountText: "20",
-        side: "own",
-        account: { kind: "asset", id: "gone" },
-      },
-    ]);
+    keepReconcileDraft({
+      budgetId: "budget-1",
+      hasCompleted: false,
+      rows: [
+        {
+          id: 0,
+          label: "Compte a",
+          amountText: "1500",
+          side: "own",
+          account: { kind: "asset", id: "a" },
+        },
+        {
+          id: 1,
+          label: "Compte gone",
+          amountText: "20",
+          side: "own",
+          account: { kind: "asset", id: "gone" },
+        },
+      ],
+    });
     const view = await renderSheet(REALIZED).view;
     expect(
       view.getByLabelText("home.reconcile.accounts.accountName").props.value,
@@ -759,9 +770,11 @@ describe("with Mon patrimoine", () => {
     });
 
     // The lock drops the whole tree: no close, nothing saved.
+    mockVaultStatus = "locked";
     await view.unmount();
     expect(mockFollow.mutate).not.toHaveBeenCalled();
 
+    mockVaultStatus = "unlocked";
     const rebuilt = await render(<ReconcileAccountsSheet {...props} />);
     await fireEvent.changeText(rebuilt.getByLabelText(BALANCE), "4100");
     await fireEvent.press(rebuilt.getByLabelText("scrim"));
@@ -853,21 +866,45 @@ it("remembers the free rows by name and side when Comparer is pressed, never the
   expect(readFreeAccounts()).toEqual([{ name: "Revolut", side: "own" }]);
 });
 
-it("brings what was typed back after the sheet is lost to the auto-lock", async () => {
-  const first = await renderSheet().view;
+it("keeps what was typed when the vault locks under it, and opens on it again", async () => {
+  const { props, view: pending } = renderSheet();
+  const view = await pending;
   await fireEvent.changeText(
-    first.getByLabelText("home.reconcile.accounts.accountName"),
+    view.getByLabelText("home.reconcile.accounts.accountName"),
     "Revolut",
   );
-  await fireEvent.changeText(first.getByLabelText(AMOUNT), "1000");
-  // The lock drops the screen tree: the sheet unmounts without dismissing.
-  await first.unmount();
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1000");
 
-  const view = await renderSheet().view;
-  expect(view.getByLabelText(AMOUNT).props.value).toBe("1000");
+  // The lock drops the key, then the month's data, then every screen.
+  mockHasKey = false;
+  await view.rerender(<ReconcileAccountsSheet {...props} month={null} />);
+  expect(props.onDismiss).not.toHaveBeenCalled();
+  mockVaultStatus = "locked";
+  await view.unmount();
+  expect(pendingReconcileResume()).toBe("budget-1");
+
+  mockHasKey = true;
+  mockVaultStatus = "unlocked";
+  const reopened = await renderSheet().view;
+  expect(reopened.getByLabelText(AMOUNT).props.value).toBe("1000");
   expect(
-    view.getByLabelText("home.reconcile.accounts.accountName").props.value,
+    reopened.getByLabelText("home.reconcile.accounts.accountName").props.value,
   ).toBe("Revolut");
+
+  await fireEvent.press(reopened.getByLabelText("scrim"));
+  expect(pendingReconcileResume()).toBeNull();
+});
+
+it("keeps nothing when the sheet goes away without a lock", async () => {
+  const view = await renderSheet().view;
+  await fireEvent.changeText(view.getByLabelText(AMOUNT), "1500");
+
+  await view.unmount();
+
+  expect(pendingReconcileResume()).toBeNull();
+  expect((await renderSheet().view).getByLabelText(AMOUNT).props.value).toBe(
+    "",
+  );
 });
 
 describe("a drafted Mon patrimoine row while the read is unavailable", () => {
@@ -882,14 +919,22 @@ describe("a drafted Mon patrimoine row while the read is unavailable", () => {
   ];
 
   it("waits while the read is pending", async () => {
-    keepReconcileDraft("budget-1", drafted);
+    keepReconcileDraft({
+      budgetId: "budget-1",
+      rows: drafted,
+      hasCompleted: false,
+    });
     offer(undefined);
     const view = await renderSheet().view;
     expect(view.getByTestId("reconcile-loading")).toBeTruthy();
   });
 
   it("stays linked, and its name is never remembered, when the read fails with the flag on", async () => {
-    keepReconcileDraft("budget-1", drafted);
+    keepReconcileDraft({
+      budgetId: "budget-1",
+      rows: drafted,
+      hasCompleted: false,
+    });
     // Flag on, nothing came back: a network error.
     offer(undefined);
     mockNetWorth.isFetching = false;
@@ -906,7 +951,11 @@ describe("a drafted Mon patrimoine row while the read is unavailable", () => {
   });
 
   it("stays linked with the flag off", async () => {
-    keepReconcileDraft("budget-1", drafted);
+    keepReconcileDraft({
+      budgetId: "budget-1",
+      rows: drafted,
+      hasCompleted: false,
+    });
     offer(null);
     const view = await renderSheet().view;
     expect(view.getByText("Compte a")).toBeTruthy();

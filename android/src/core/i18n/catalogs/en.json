@@ -901,6 +901,7 @@
       "income": "Income",
       "report": "Carry-over from %{month}",
       "reportElided": "Carry-over from %{month}",
+      "reportUnknown": "Carried over from last month",
       "expenses": "Expenses",
       "savings": "Savings paid in",
       "finalBalance": "Final balance",

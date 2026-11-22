@@ -21,7 +21,7 @@ import { captureLogoutCompleted } from "@/core/observability/product-events";
 import { queryClient } from "@/core/query/query-client";
 import { resetVault } from "@/core/vault/vault-store";
 import { resetMonthRecap } from "@/features/current-month/month-recap-store";
-import { clearReconcileDraft } from "@/features/current-month/reconcile-draft-store";
+import { keepReconcileDraft } from "@/features/current-month/reconcile-draft";
 import { clearFreeAccounts } from "@/features/current-month/reconcile-free-accounts";
 import { resetFirstMovementTracker } from "@/features/transactions/first-movement-tracker";
 
@@ -176,7 +176,7 @@ async function purgeLocalAccountData(): Promise<void> {
     () => resetFirstMovementTracker(),
     () => resetMonthRecap(),
     () => clearFreeAccounts(),
-    () => clearReconcileDraft(),
+    () => keepReconcileDraft(null),
   ];
 
   for (const cleanup of cleanupSteps) {
