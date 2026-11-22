@@ -16,7 +16,6 @@ import {
   TABULAR_DIGITS,
   TOUCH_TARGET,
 } from "@/core/ui/theme";
-import { KIND_ICONS } from "@/core/ui/vocabulary";
 
 import { PointCircle } from "./point-circle";
 import { SwipeToPoint } from "./swipe-to-point";
@@ -101,8 +100,6 @@ export function TransactionRow({
         >
           <PointCircle
             isChecked={isChecked}
-            color={accent}
-            icon={KIND_ICONS[transaction.kind]}
             isSyncing={isSyncing}
             label={transaction.name}
             onToggle={guard(onToggle) ?? onToggle}

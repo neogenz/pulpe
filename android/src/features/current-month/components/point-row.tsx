@@ -1,4 +1,3 @@
-import type { TransactionKind } from "pulpe-shared";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 
@@ -6,14 +5,7 @@ import { Amount } from "@/core/ui/amount";
 import { useRipple } from "@/core/ui/ripple";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { ROW, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
-import { KIND_ICONS } from "@/core/ui/vocabulary";
 import { PointCircle } from "@/features/budget-details/components/point-circle";
-
-const KIND_ACCENTS = {
-  income: "income",
-  expense: "expense",
-  saving: "savings",
-} as const;
 
 interface PointRowProps {
   title: string;
@@ -22,7 +14,6 @@ interface PointRowProps {
   isOverrun?: boolean;
   /** Already formatted. */
   amount: string;
-  kind: TransactionKind;
   isPointed: boolean;
   isSyncing: boolean;
   onToggle: () => void;
@@ -39,7 +30,6 @@ export function PointRow({
   subtitle,
   isOverrun = false,
   amount,
-  kind,
   isPointed,
   isSyncing,
   onToggle,
@@ -53,8 +43,6 @@ export function PointRow({
     <View style={styles.row}>
       <PointCircle
         isChecked={isPointed}
-        color={financial[KIND_ACCENTS[kind]]}
-        icon={KIND_ICONS[kind]}
         isSyncing={isSyncing}
         label={title}
         onToggle={onToggle}

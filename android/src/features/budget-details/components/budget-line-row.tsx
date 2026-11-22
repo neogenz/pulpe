@@ -121,8 +121,6 @@ export function BudgetLineRow({
           {isPointable && (
             <PointCircle
               isChecked={item.isChecked}
-              color={discColor}
-              icon={KIND_ICONS[line.kind]}
               isSyncing={isSyncing}
               label={line.name}
               onToggle={guard(onToggle) ?? onToggle}
