@@ -8,6 +8,7 @@
 ## Branches
 
 - Branch from and PR into `main`. A release uses one `release/vX.Y.Z` branch and its single preparation PR to `main`; approving its exact version/notes authorizes trusted CI to auto-merge, prove staging, advance `production`, finalize publication and submit App Review when declared. Any concurrent merge moves the tip away from the candidate and fails authorization closed.
+- A PR that only changes docs or agent context ships without a release: merge it once `✅ CI Success` is green, after any release in flight has reached production.
 - Formats include `feature/*`, `fix/*`, and Linear-generated names.
 - The former durable `preview` branch and its ruleset were removed after the cutover; no active workflow or provider depends on them.
 
