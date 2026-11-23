@@ -25,14 +25,13 @@ export function MovementRow({
   onOpen,
 }: MovementRowProps) {
   const { t } = useTranslation();
-  const amount = formatCurrency(transaction.amount, currency);
 
   return (
     <PointRow
       title={transaction.name}
       subtitle={movementSubtitle(t, transaction, lineName)}
-      // An income keeps its `+`: nothing else tells it apart from an outflow.
-      amount={transaction.kind === "income" ? `+${amount}` : amount}
+      amount={formatCurrency(transaction.amount, currency)}
+      isIncome={transaction.kind === "income"}
       isPointed={transaction.checkedAt !== null}
       isSyncing={isSyncing}
       onToggle={onToggle}

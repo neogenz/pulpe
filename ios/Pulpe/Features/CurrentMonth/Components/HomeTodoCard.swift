@@ -155,6 +155,7 @@ struct HomeTodoCard: View {
             isOverrun: isOverrun,
             subtitleHasAmount: subtitleHasAmount,
             amount: amount.asAmount(for: currency),
+            isIncome: item.kind == .income,
             isPointed: false,
             isSyncing: isSyncing,
             // The circle centred on the discs of the rows around it, the text on their titles.
