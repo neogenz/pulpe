@@ -9,7 +9,7 @@ On Xcode 27 (seen 2026-11-22, `build-for-testing -scheme PulpeLocal -quiet`), th
 `error: the following command failed with exit code 0 but produced no further output` while xcodebuild
 exits 0 and the products are built.
 
-**How to apply:** judge a build by the exit code and by
+**How to apply:** save the output (`xcodebuild … > build.log 2>&1`), then judge the build by the exit code and by
 `grep -v "failed with exit code 0 but produced no further output" build.log | grep error`, never by a raw
 `grep error:`. For test counts, read the result bundle
 (`xcrun xcresulttool get test-results summary --path X.xcresult --compact` → `totalTestCount`, and

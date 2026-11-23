@@ -46,7 +46,7 @@ Bump iOS only when files under `ios/` are modified in the release. If only web o
 
 ## Apply version
 
-Before any iOS upload, query App Store Connect for the highest build number under the selected marketing version and choose the next unused integer. Never infer it only from `project.yml`. `asc builds list --app 6758464920 --limit 5` lists the latest uploads with their build numbers (`6758464920` is Pulpe's App Store Connect app id).
+Before any iOS upload, query App Store Connect for the highest build number under the selected marketing version and choose the next unused integer. Never infer it only from `project.yml`. `asc builds list --app 6758464920 --version <marketing version> --sort -version --limit 1` returns that highest build (`6758464920` is Pulpe's App Store Connect app id).
 
 **Build number only** (default for iOS fix-only releases, or web/backend releases that happened to touch `ios/`):
 
