@@ -38,3 +38,8 @@ this.control()().value.set(next);
 Also: reading a **required** `control` input inside a `computed` that runs during view init throws NG0950. Wrap it in a `#safeControl` computed with a `try/catch` that returns `null` on `NG0950` (copied from `amount-input`), and derive `selectedIds`/etc. from `#safeControl()`.
 
 To test such a component, build the field via `TestBed.runInInjectionContext(() => form(model))` (signal-forms `form()` calls `inject()`), then `setTestInput(component.control, testForm.someField)`.
+
+## Index
+
+- [rxResource reload/retry gotchas](reference_rxresource_reload_and_retry_gotchas.md) — stale error while reloading, whenStable hangs, ApiClient retries GETs twice
+- [Reconcile sheet surfaces](reconcile_sheet_surfaces.md) — card bg vanishes in phone bottom sheet; 560px footer fits 2 buttons

@@ -16,8 +16,10 @@ When using `foregroundStyle()` with custom `Color` static members (e.g., `.finan
 
 - [Identifier placement in UI tests](feedback_uitest_identifier_placement.md) — container/Button/tap traps when swapping display literals for identifiers
 - [Harness locale split](reference_uitest_harness_locale_split.md) — app copy follows AppLocale, system controls follow the simulator language
+- [Simulator driving on Xcode 27](reference_simulator_driving_xcode27.md) — axe taps are no-ops; XCUITest driver; reinstall the signed app; hidden amounts cannot be typed
 
 ## Build / Lint
 
+- [xcodebuild -quiet exit-0 error noise](reference_xcodebuild_quiet_exit0_error_noise.md) — "failed with exit code 0" lines on a green build; count tests from the xcresult
 - [SwiftLint file_length thresholds](reference_swiftlint_file_length_thresholds.md) — global file_length is 500/800, NOT 350; the 350-LOC cap is BudgetDetails-only. Don't over-refactor.
 - [Xcode build cache recovery](reference_ios_build_test_env.md) — recognize stale build-graph failures after project regeneration and clear only Pulpe's DerivedData.
