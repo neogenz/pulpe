@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pulpe",
     "slug": "pulpe",
-    "version": "0.66.1",
+    "version": "0.66.2",
     "orientation": "portrait",
     "scheme": "pulpe",
     "userInterfaceStyle": "automatic",

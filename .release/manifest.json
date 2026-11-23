@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.66.1",
-  "githubReleaseNotes": "## v0.66.1\n\n### Corrections\n\n- **Écart avec ta banque** — « Comparer avec mes comptes » ne regarde plus que le « Solde pointé » du mois : si ta banque affiche −1 862 et le « Solde pointé » −1 832.48, Pulpe annonce 29.52 d’écart, même avec un salaire du mois dernier resté non pointé.\n- **Plus de question « avant Pulpe »** — La comparaison ne demande plus quel argent était là avant Pulpe, et un montant déjà donné à cette question ne fausse plus le résultat.\n- **Cases à pointer sur Android** — Une ligne encore à pointer montre un cercle vide, comme sur iPhone ; une fois pointée, elle devient un disque coché.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.66.2",
+  "githubReleaseNotes": "## v0.66.2\n\n### Corrections\n\n- **Revenus dans « À pointer »** — Sur iPhone et Android, un revenu encore à pointer affiche son « + » (+4 600.00 pour un salaire), pour ne plus le confondre avec une dépense.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }
