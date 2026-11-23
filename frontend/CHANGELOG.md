@@ -1,5 +1,12 @@
 # pulpe-frontend
 
+## 0.66.2
+
+### Patch Changes
+
+- Dans « À pointer », un revenu garde son « + » sur iPhone et Android, comme dans le reste de l'app.
+  - pulpe-shared@0.66.2
+
 ## 0.66.1
 
 ### Patch Changes

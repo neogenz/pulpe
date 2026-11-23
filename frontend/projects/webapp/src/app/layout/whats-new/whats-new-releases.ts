@@ -38,6 +38,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.66.2',
+    reason:
+      'Correction d’affichage dans « À pointer » sur iPhone et Android : pas de nouveauté à annoncer',
+  },
+  {
     version: '0.66.1',
     reason:
       'Corrections de « Comparer avec mes comptes », sorti dans la version précédente : pas de nouveauté à annoncer',
