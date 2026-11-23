@@ -48,13 +48,14 @@ Use the user's invocation text as the argument (`$ARGUMENTS` in Claude Code, the
 
 Run this before modifying release files. A failed check stops the workflow without changing local or remote state.
 
-1. Require a clean, synchronized `main` worktree and fetch the release branches and tags:
+1. Require a clean worktree on `main`, or detached at `origin/main`, and fetch the release branches and tags. When `main` is already checked out elsewhere (a release run from a separate worktree), first run `git fetch origin main && git switch --detach origin/main`:
 
    ```bash
    test -z "$(git status --porcelain)"
    git fetch origin main production --tags
 
-   test "$(git branch --show-current)" = main
+   BASE_BRANCH=$(git branch --show-current)
+   test "$BASE_BRANCH" = main || test -z "$BASE_BRANCH"
    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
    node .github/scripts/check-release-lineage.mjs "$(git rev-parse origin/production)" "$(git rev-parse HEAD)"
    ```
@@ -461,7 +462,8 @@ Execute ONLY after user confirms.
 
    ```bash
    git fetch origin main
-   test "$(git branch --show-current)" = main
+   BASE_BRANCH=$(git branch --show-current)
+   test "$BASE_BRANCH" = main || test -z "$BASE_BRANCH"
    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
    test -z "$(git branch --list "release/vX.Y.Z")"
    test -z "$(git ls-remote --heads origin "refs/heads/release/vX.Y.Z")"
