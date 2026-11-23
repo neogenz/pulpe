@@ -9,6 +9,8 @@ The app is **live on the App Store**. Read the current `MARKETING_VERSION` from 
 
 The releaser decides build-only vs. marketing-bump per release. Propose `build` when the iOS changes are not user-facing, and include that decision in the release proposal for approval. When unsure for a fix-only iOS release, a `build` bump is the safe default.
 
+Before choosing, check in App Store Connect whether the current `MARKETING_VERSION` is already on sale. TestFlight refuses new builds for a version that is on sale, so that case needs at least a patch bump. A version that never went on sale (only internal builds) takes more builds, so `build` is enough to ship it to TestFlight.
+
 Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json`. It must then choose exactly one persistent backend mode: a curated entry in `RELEASES` when at least one item qualifies for the iOS dialog, or a motivated entry in `SILENT_IOS_RELEASES` when none qualifies. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
 
 | Mode         | iOS version           | Public changelog           | Persistent backend record                  |
