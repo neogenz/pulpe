@@ -118,4 +118,11 @@ describe("default account in the row (PUL-378)", () => {
 
     expect(view.getAllByText("Par défaut")).toHaveLength(1);
   });
+
+  it("reads the « Par défaut » badge to TalkBack with the row", async () => {
+    const view = await card([], LIVRET);
+
+    const row = view.getByLabelText(/^Livret, /);
+    expect(row.props.accessibilityLabel).toMatch(/, Par défaut$/);
+  });
 });
