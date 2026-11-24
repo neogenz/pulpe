@@ -13,6 +13,7 @@ import { AssetApi } from '@core/asset/asset-api';
 interface LaterPages {
   entries: AssetHistoryEntry[];
   nextCursor: string | null;
+  monthEndProjection: AssetHistory['monthEndProjection'] | null;
 }
 
 /**
@@ -64,6 +65,13 @@ export class AssetHistoryStore {
       : (this.firstPage.value()?.nextCursor ?? null);
   });
   readonly hasMore = computed(() => this.#nextCursor() !== null);
+  /** From the latest page loaded: each page carries the projection of the moment. */
+  readonly monthEndProjection = computed(() => {
+    const later = this.#laterPages();
+    return later
+      ? later.monthEndProjection
+      : (this.firstPage.value()?.monthEndProjection ?? null);
+  });
   readonly isLoadingMore = this.#isLoadingMore.asReadonly();
   readonly loadMoreFailed = this.#loadMoreFailed.asReadonly();
 
@@ -97,6 +105,7 @@ export class AssetHistoryStore {
       this.#laterPages.update((later) => ({
         entries: [...(later?.entries ?? []), ...data.entries],
         nextCursor: data.nextCursor,
+        monthEndProjection: data.monthEndProjection ?? null,
       }));
     } catch {
       if (this.firstPage.value() === firstPage) this.#loadMoreFailed.set(true);

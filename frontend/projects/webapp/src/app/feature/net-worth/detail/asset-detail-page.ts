@@ -136,6 +136,16 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
             >
               {{ value() }}
             </p>
+            @if (monthEnd(); as monthEnd) {
+              <!-- A paragraph cannot carry an aria-label: the spoken sentence adds the condition. -->
+              <p
+                class="ph-no-capture m-0 text-body-large tabular-nums"
+                data-testid="asset-detail-month-end"
+              >
+                <span aria-hidden="true">{{ monthEnd.text }}</span>
+                <span class="sr-only">{{ monthEnd.label }}</span>
+              </p>
+            }
             <p
               class="ph-no-capture m-0 text-body-medium text-on-surface-variant"
               data-testid="asset-detail-last-entry"
@@ -317,6 +327,26 @@ export default class AssetDetailPage {
       amount: this.#signed(asset.recordedValue, asset.currency, false),
       date: this.lastEntryDate(),
     });
+  });
+
+  /** « Fin novembre : 8’000.00 CHF », or nothing when nothing is to come this month. */
+  protected readonly monthEnd = computed(() => {
+    const asset = this.asset();
+    const projection = this.history.monthEndProjection();
+    if (!asset || !projection) return null;
+    const params = {
+      month: new Intl.DateTimeFormat(this.#locale, { month: 'long' }).format(
+        new Date(projection.year, projection.month - 1, 1),
+      ),
+      amount: this.#signed(projection.value, asset.currency, false),
+    };
+    return {
+      text: this.#transloco.translate('netWorth.detail.monthEnd', params),
+      label: this.#transloco.translate(
+        'netWorth.detail.monthEndAccessibility',
+        params,
+      ),
+    };
   });
 
   /** Newest first, so an entry on top means nothing was checked since it. */
