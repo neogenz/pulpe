@@ -39,7 +39,6 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
     MatIconModule,
     MatProgressSpinnerModule,
     TranslocoPipe,
-    AppCurrencyPipe,
     BaseLoading,
     StateCard,
   ],
@@ -118,7 +117,6 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           />
         }
         @default {
-          @let a = asset()!;
           <section
             class="flex flex-col gap-1"
             data-testid="asset-detail-summary"
@@ -136,7 +134,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               [class.amber]="isDebt()"
               data-testid="asset-detail-value"
             >
-              {{ a.latestValue | appCurrency: a.currency : '1.2-2' }}
+              {{ value() }}
             </p>
             <p
               class="ph-no-capture m-0 text-body-medium text-on-surface-variant"
@@ -301,12 +299,17 @@ export default class AssetDetailPage {
     return !!asset && (asset.direction === 'owe' || asset.latestValue < 0);
   });
 
+  protected readonly value = computed(() => {
+    const asset = this.asset();
+    return asset ? this.#signed(asset.latestValue, asset.currency, false) : '';
+  });
+
   protected readonly lastEntryDate = computed(() => {
     const asset = this.asset();
     return asset ? formatEntryDate(asset.latestRecordedAt, this.#locale) : '';
   });
 
-  /** « Ta dernière saisie : 5’000.00 CHF, le 1 novembre », as the edit sheet says it. */
+  /** « Ta dernière saisie : 5’000.00 CHF, le 1er novembre », as the edit sheet says it. */
   protected readonly lastEntry = computed(() => {
     const asset = this.asset();
     if (!asset) return '';

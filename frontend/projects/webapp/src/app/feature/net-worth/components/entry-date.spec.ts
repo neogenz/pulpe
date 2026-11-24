@@ -18,10 +18,13 @@ describe('formatEntryDate', () => {
     );
   });
 
-  it('should leave the first of the month alone in the other languages', () => {
+  it('should write the first of the month as « 1º » in Italian', () => {
+    expect(formatEntryDate(thisYear(NOVEMBER, 1), 'it-CH')).toBe('1º novembre');
+  });
+
+  it('should leave the first of the month alone in English and German', () => {
     expect(formatEntryDate(thisYear(NOVEMBER, 1), 'en-US')).toBe('November 1');
     expect(formatEntryDate(thisYear(NOVEMBER, 1), 'de-CH')).toBe('1. November');
-    expect(formatEntryDate(thisYear(NOVEMBER, 1), 'it-CH')).toBe('1 novembre');
   });
 
   it('should add the year of an earlier year', () => {

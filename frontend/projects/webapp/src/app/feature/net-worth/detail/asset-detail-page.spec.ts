@@ -296,6 +296,41 @@ describe('AssetDetailPage', () => {
     expect(entry).toMatch(/^5\s000,00 €$/);
   });
 
+  it('writes a negative value with the real minus sign, as the rows do', async () => {
+    await render(
+      historyResponse({
+        asset: { ...HISTORY_ACCOUNT, latestValue: -150 },
+        entries: [snapshotEntry(1, '2026-11-01T09:00:00.000Z', -150)],
+      }),
+    );
+
+    expect(text('asset-detail-value')).toBe('−150.00 CHF');
+    expect(column('asset-history-amount')).toEqual(['−150.00 CHF']);
+  });
+
+  it('CA19: shows each time a recurring prévision was checked, even with the same id', async () => {
+    await render(
+      historyResponse({
+        entries: [
+          movementEntry(7, '2026-11-12T09:00:00.000Z', 'Courses', -120),
+          movementEntry(7, '2026-10-12T09:00:00.000Z', 'Courses', -90),
+          snapshotEntry(1, '2026-10-01T09:00:00.000Z', 4_800),
+        ],
+      }),
+    );
+
+    expect(column('asset-history-label')).toEqual([
+      'Courses',
+      'Courses',
+      'Valeur enregistrée',
+    ]);
+    expect(column('asset-history-amount')).toEqual([
+      '−120.00 CHF',
+      '−90.00 CHF',
+      '4’800.00 CHF',
+    ]);
+  });
+
   it('CA15: says an archived or unknown asset is no longer available, with a way back', async () => {
     await render(
       new ApiError('Not found', 'ERR_ASSET_NOT_FOUND', 404, undefined),

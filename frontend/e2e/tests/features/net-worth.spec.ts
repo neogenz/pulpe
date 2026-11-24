@@ -174,6 +174,14 @@ test.describe('Mon patrimoine', () => {
       'Valeur enregistrée',
     ]);
 
+    await page.goBack();
+    await expect(page).toHaveURL(/\/net-worth$/);
+    await expect(page.getByTestId('net-worth-hero')).toBeVisible();
+
+    await page.goForward();
+    await expect(page).toHaveURL(new RegExp(`/net-worth/${ubs.id}$`));
+    await expect(page.getByTestId('page-title')).toHaveText('UBS');
+
     await page.reload();
     await expect(page.getByTestId('page-title')).toHaveText('UBS');
 
