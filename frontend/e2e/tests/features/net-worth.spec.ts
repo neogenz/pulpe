@@ -128,8 +128,56 @@ test.describe('Mon patrimoine', () => {
       'Compte à découvert',
     ]);
     await expect(page.getByTestId('asset-overdraft-chip')).toBeVisible();
+  });
 
-    await page.getByTestId('asset-row-edit-button').first().click();
+  test('opens the detail of a row at its own address, then edits from there', async ({
+    authenticatedPage: page,
+  }) => {
+    const [ubs] = populatedNetWorth.assets;
+    await page.route('**/api/v1/assets', (route) =>
+      route.fulfill({ json: { success: true, data: populatedNetWorth } }),
+    );
+    await page.route(`**/api/v1/assets/${ubs.id}/history*`, (route) =>
+      route.fulfill({
+        json: {
+          success: true,
+          data: {
+            asset: ubs,
+            entries: [
+              {
+                type: 'movement',
+                id: '88888888-8888-4888-8888-888888888888',
+                at: '2026-11-03T09:00:00.000Z',
+                name: 'Loyer',
+                effect: -1500,
+                supersededAt: null,
+              },
+              {
+                type: 'snapshot',
+                id: '99999999-9999-4999-8999-999999999999',
+                at: '2026-11-01T09:00:00.000Z',
+                value: 9500,
+              },
+            ],
+            nextCursor: null,
+          },
+        },
+      }),
+    );
+
+    await page.goto('/net-worth');
+    await page.getByTestId('asset-row-open-button').first().click();
+
+    await expect(page).toHaveURL(new RegExp(`/net-worth/${ubs.id}$`));
+    await expect(page.getByTestId('asset-history-label')).toHaveText([
+      'Loyer',
+      'Valeur enregistrée',
+    ]);
+
+    await page.reload();
+    await expect(page.getByTestId('page-title')).toHaveText('UBS');
+
+    await page.getByTestId('asset-detail-edit-button').click();
     await expect(page.getByTestId('asset-form-dialog')).toBeVisible();
   });
 });

@@ -1663,6 +1663,16 @@
       "defaultLabel": "Compte par défaut",
       "defaultHint": "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.",
       "defaultBadge": "Par défaut"
+    },
+    "detail": {
+      "back": "Retour à Mon patrimoine",
+      "history": "Historique",
+      "recorded": "Valeur enregistrée",
+      "superseded": "Avant ta saisie du {{date}}, qui fait foi",
+      "nothingSince": "Tu n'as rien pointé depuis ta saisie du {{date}}.",
+      "loadError": "Impossible de charger cet historique, réessaie",
+      "loadMoreError": "Impossible de charger la suite, réessaie",
+      "notFound": "Cet élément n'est plus disponible"
     }
   },
   "completeProfile": {
@@ -2154,7 +2164,8 @@
     "maintenance": "Maintenance",
     "mcpConsent": "Connecter un assistant IA",
     "settingsConnections": "Connexions",
-    "netWorth": "Mon patrimoine"
+    "netWorth": "Mon patrimoine",
+    "netWorthAssetDetails": "Détail de l'élément"
   },
   "authError": {
     "generic": "Quelque chose n'a pas fonctionné — réessaie",

@@ -11,6 +11,8 @@ import {
   assetCreateSchema,
   type AssetDeleteResponse,
   assetDeleteResponseSchema,
+  type AssetHistoryResponse,
+  assetHistoryResponseSchema,
   type AssetResponse,
   assetResponseSchema,
   type AssetSnapshotsCreate,
@@ -63,6 +65,19 @@ export class AssetApi {
 
   getNetWorth$(): Observable<NetWorthResponse> {
     return this.#api.get$('/assets', netWorthResponseSchema);
+  }
+
+  /**
+   * One page of an asset's history, newest first; without `cursor`, the first.
+   * Cache it under `['assets', …]`: every write that moves a value already
+   * invalidates that prefix.
+   */
+  getHistory$(id: string, cursor?: string): Observable<AssetHistoryResponse> {
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+    return this.#api.get$(
+      `/assets/${id}/history${query}`,
+      assetHistoryResponseSchema,
+    );
   }
 
   create$(asset: AssetCreate): Observable<AssetResponse> {

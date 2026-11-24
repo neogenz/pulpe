@@ -83,6 +83,22 @@ describe('AssetApi', () => {
     expect((await response).data).toEqual(netWorth);
   });
 
+  it('getHistory$ GETs the first page, then the page after a cursor', async () => {
+    const page = { asset: netWorth.assets[0], entries: [], nextCursor: null };
+    const first = firstValueFrom(api.getHistory$(ASSET_ID));
+    httpTesting
+      .expectOne(`${BASE_URL}/assets/${ASSET_ID}/history`)
+      .flush({ success: true, data: page });
+    expect((await first).data).toEqual(page);
+
+    const cursor = `1762000000000.1.${ASSET_ID}`;
+    const next = firstValueFrom(api.getHistory$(ASSET_ID, cursor));
+    httpTesting
+      .expectOne(`${BASE_URL}/assets/${ASSET_ID}/history?cursor=${cursor}`)
+      .flush({ success: true, data: page });
+    await next;
+  });
+
   it('create$ POSTs the asset with its first value', async () => {
     const body = {
       name: 'Cash',

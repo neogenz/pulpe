@@ -20,6 +20,7 @@ import { AppCurrencyPipe } from '@core/currency';
 import { formatEntryDate } from './entry-date';
 
 export type AssetRowAction =
+  | 'open'
   | 'edit'
   | 'archive'
   | 'unarchive'
@@ -65,8 +66,8 @@ const DAYS_PER_YEAR = 365;
         class="summary summary-action"
         matRipple
         [disabled]="busy()"
-        (click)="emit('edit')"
-        data-testid="asset-row-edit-button"
+        (click)="emit('open')"
+        data-testid="asset-row-open-button"
       >
         <ng-container [ngTemplateOutlet]="summary" />
       </button>
