@@ -782,12 +782,16 @@ describe("« Compte » (PUL-378)", () => {
     mockAccounts = { isFlagOn: true, assets: contractAssets() };
   });
 
+  /** « Compte » is one field; its list opens in a sheet over the form. */
+  const openAccounts = (view: Awaited<ReturnType<typeof render>>) =>
+    fireEvent.press(view.getByTestId("account-field"));
   const created = () => mockCreate.mutate.mock.calls[0][0] as object;
   const add = (view: Awaited<ReturnType<typeof render>>) =>
     fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
 
   it("CA1 lists « Aucun », then what I have and what I owe", async () => {
     const view = await render(<TransactionSheet {...baseProps} />);
+    await openAccounts(view);
 
     for (const name of [
       NONE,
@@ -822,9 +826,7 @@ describe("« Compte » (PUL-378)", () => {
 
   it("CA3 starts on « Aucun » without a default and sends null", async () => {
     const view = await render(<TransactionSheet {...baseProps} />);
-    expect(
-      view.getByTestId("account-none").props.accessibilityState,
-    ).toMatchObject({ selected: true });
+    expect(view.getByDisplayValue(NONE)).toBeTruthy();
     await fill(view);
     await add(view);
 
@@ -834,6 +836,7 @@ describe("« Compte » (PUL-378)", () => {
   it("CA29 prefills the default account, which stays changeable", async () => {
     mockSettings = { data: { defaultAccountId: COMPTE_COURANT } };
     const view = await render(<TransactionSheet {...baseProps} />);
+    expect(view.getByDisplayValue("Compte courant")).toBeTruthy();
     await fill(view, 6000, "Salaire");
     await add(view);
     expect(created()).toMatchObject({ accountId: COMPTE_COURANT });
@@ -841,7 +844,8 @@ describe("« Compte » (PUL-378)", () => {
     mockCreate.mutate.mockClear();
     const other = await render(<TransactionSheet {...baseProps} />);
     await fill(other, 80, "Restaurant");
-    await fireEvent.press(other.getAllByText("Revolut")[0]);
+    await openAccounts(other);
+    await fireEvent.press(other.getByText("Revolut"));
     await add(other);
     expect(created()).toMatchObject({ accountId: REVOLUT });
   });
@@ -850,6 +854,7 @@ describe("« Compte » (PUL-378)", () => {
     mockSettings = { data: { defaultAccountId: COMPTE_COURANT } };
     const view = await render(<TransactionSheet {...baseProps} />);
     await fill(view);
+    await openAccounts(view);
     await fireEvent.press(view.getByText(NONE));
     await add(view);
 
@@ -924,6 +929,7 @@ describe("« Compte » (PUL-378)", () => {
     const view = await render(
       <TransactionSheet {...baseProps} transaction={free} />,
     );
+    await openAccounts(view);
     await fireEvent.press(view.getByText("Leasing"));
     await fireEvent.press(view.getByText("budgets.mutations.save"));
     expect(mockUpdate.mutate.mock.calls[0][0]).toEqual({
@@ -931,6 +937,7 @@ describe("« Compte » (PUL-378)", () => {
       changes: { accountId: LEASING },
     });
 
+    await openAccounts(view);
     await fireEvent.press(view.getByText(NONE));
     await fireEvent.press(view.getByText("budgets.mutations.save"));
     expect(mockUpdate.mutate.mock.calls[1][0]).toEqual({

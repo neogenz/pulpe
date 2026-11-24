@@ -26,30 +26,6 @@ jest.mock("@/core/user-settings/user-settings-queries", () => ({
     data: { defaultAccountId: mockAccounts.defaultAccountId },
   }),
 }));
-jest.mock("@/core/ui/filter-chip", () => {
-  const { Pressable, Text } = jest.requireActual("react-native");
-  return {
-    FilterChip: ({
-      children,
-      onPress,
-      selected,
-      testID,
-    }: {
-      children: React.ReactNode;
-      onPress: () => void;
-      selected?: boolean;
-      testID?: string;
-    }) => (
-      <Pressable
-        testID={testID}
-        onPress={onPress}
-        accessibilityState={{ selected: selected === true }}
-      >
-        <Text>{children}</Text>
-      </Pressable>
-    ),
-  };
-});
 
 const mockCreate = {
   mutate: jest.fn(),
@@ -348,6 +324,10 @@ describe("« Compte » (PUL-378)", () => {
     isManuallyAdjusted: false,
   } as BudgetLine;
 
+  /** « Compte » is one field; its list opens in a sheet over the form. */
+  const openAccounts = (view: Awaited<ReturnType<typeof render>>) =>
+    fireEvent.press(view.getByTestId("account-field"));
+
   beforeEach(() => {
     mockAccounts = {
       isFlagOn: true,
@@ -358,6 +338,7 @@ describe("« Compte » (PUL-378)", () => {
 
   it("CA1 lists the elements, and CA2 hides them with the flag off", async () => {
     const view = await render(<BudgetLineSheet {...baseProps} />);
+    await openAccounts(view);
     for (const name of ["Compte courant", "Revolut", "Livret", "Leasing"]) {
       expect(view.getByText(name)).toBeTruthy();
     }
@@ -380,6 +361,7 @@ describe("« Compte » (PUL-378)", () => {
   it("CA29 prefills the default account, and CA23 gives the spread the same one", async () => {
     mockAccounts = { ...mockAccounts, defaultAccountId: COMPTE_COURANT };
     const view = await render(<BudgetLineSheet {...baseProps} />);
+    expect(view.getByDisplayValue("Compte courant")).toBeTruthy();
     await fill(view);
     await fireEvent.press(view.getByText("budgets.mutations.add"));
     expect(mockCreate.mutate.mock.calls[0][0]).toMatchObject({
@@ -407,12 +389,14 @@ describe("« Compte » (PUL-378)", () => {
     const view = await render(
       <BudgetLineSheet {...baseProps} line={forecast} />,
     );
+    await openAccounts(view);
     await fireEvent.press(view.getByText("Revolut"));
     await fireEvent.press(view.getByText("budgets.mutations.save"));
     expect(mockUpdate.mutate.mock.calls[0][0]).toMatchObject({
       accountId: REVOLUT,
     });
 
+    await openAccounts(view);
     await fireEvent.press(view.getByTestId("account-none"));
     await fireEvent.press(view.getByText("budgets.mutations.save"));
     expect(mockUpdate.mutate.mock.calls[1][0]).toMatchObject({
@@ -430,12 +414,14 @@ describe("« Compte » (PUL-378)", () => {
     const view = await render(
       <BudgetLineSheet {...baseProps} line={savings} />,
     );
+    await openAccounts(view);
     await fireEvent.press(view.getByText("Livret"));
 
     expect(view.getByText(/^netWorth\.account\.sameAsLink/)).toBeTruthy();
     await fireEvent.press(view.getByText("budgets.mutations.save"));
     expect(mockUpdate.mutate).not.toHaveBeenCalled();
 
+    await openAccounts(view);
     await fireEvent.press(view.getByText("Compte courant"));
     await fireEvent.press(view.getByText("budgets.mutations.save"));
     expect(mockUpdate.mutate.mock.calls[0][0]).toMatchObject({
@@ -449,6 +435,7 @@ describe("« Compte » (PUL-378)", () => {
       assets: contractAssets([{}, { archivedAt: "2026-11-02T00:00:00.000Z" }]),
     };
     const view = await render(<BudgetLineSheet {...baseProps} />);
+    await openAccounts(view);
 
     expect(view.queryByText("Revolut")).toBeNull();
     expect(view.getByText("Leasing")).toBeTruthy();

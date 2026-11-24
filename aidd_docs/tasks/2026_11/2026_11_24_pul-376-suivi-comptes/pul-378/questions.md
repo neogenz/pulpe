@@ -55,7 +55,7 @@ Choix prudents pris là où le plan ne tranchait pas. À relire.
 ## Android
 
 1. **Pas de « Versée sur » sur Android.** Aucun écran Android ne pose ni n'affiche le lien d'un élément (`assetId`). CA25 est donc tenu contre le lien que la prévision porte déjà (elle vient du web ou d'iOS) : choisir le même élément dans « Compte » bloque l'enregistrement avec le message de la règle. CA45 n'a rien à remettre à « Aucun » à la création, puisqu'un nouveau mouvement n'a pas de lien ; la règle reste dans `startAccount`, testée.
-2. **Chips au lieu d'un menu.** Le champ « Compte » est une rangée de chips (« Aucun », puis « Ce que j'ai » et « Ce que je dois »), comme le Type d'un élément : un menu Paper s'ouvre derrière la feuille native.
+2. **Un champ, une liste dans une feuille.** « Compte » est un seul champ déroulant (valeur ou « Aucun », flèche ▾, pas de chevron sur Android) ; il ouvre la liste « Aucun », « Ce que j'ai », « Ce que je dois » dans une feuille posée sur le formulaire, comme iOS pousse sa liste. Une rangée de chips allongeait la feuille d'une ligne par compte, et un menu Paper s'ouvre derrière la feuille native. La liste est la même que l'écran « Compte par défaut » (`AccountChoiceList`).
 3. **Revenu tiré d'un objectif d'épargne.** Le champ est masqué et `accountId` n'est pas envoyé : iOS route ce cas à part, sans champ, et le serveur applique le compte par défaut (phase 4, question 3).
 4. **Mouvement supprimé puis rétabli (annuler).** Un mouvement libre renvoie son compte, « Aucun » compris, sinon le compte par défaut s'y poserait. Un mouvement rattaché à une prévision n'en envoie pas (CA4).
 5. **Flag éteint ou aucun élément actif.** Le champ est absent et la création envoie `accountId: null`, comme iOS (CA2) : la saisie reste celle d'avant, sans compte par défaut surprise. Une modification n'envoie rien.
@@ -64,9 +64,11 @@ Choix prudents pris là où le plan ne tranchait pas. À relire.
 8. **Introduction de « Mon patrimoine ».** Le texte de l'étape « Garde-la à jour » et l'exemple parlaient encore de proposition : alignés mot pour mot sur le web et iOS.
 9. **Compte par défaut qui change.** Le réglage passe par `useUpdateUserSettings`, qui invalide tout le cache comme pour la devise : « Mon patrimoine » et les feuilles se rechargent. Archiver ou supprimer l'élément relit le réglage (CA35).
 10. **`reconcile-accounts-sheet.spec.tsx`.** L'attendu du mouvement d'écart reçoit `accountId: null` (CA44, posé dans `reconciliation.ts` par l'agent web, que je n'ai pas touché).
+
 - Préférences : la ligne « Compte par défaut » montre le nom du compte en description et non en valeur, sinon le titre se tronque à l'échelle de police 1,3. L'aide iOS est sur l'écran de choix.
 - Menu d'un élément : l'entrée « Utiliser par défaut dans le budget » dépasse les 280dp imposés par Paper, d'où une largeur forcée à 400.
-- Le message de CA25 n'apparaît qu'en cas de conflit (un HelperText réserve sinon une ligne vide sous les chips).
+- Le message de CA25 n'apparaît qu'en cas de conflit (un HelperText réserve sinon une ligne vide sous le champ), et le champ passe en erreur.
+- Captures : le rond gris à engrenage en haut à droite était le bouton flottant du menu de développement Expo (`expo-dev-menu`, build debug seulement), pas l'app. Coupé dans les réglages du menu de développement de l'émulateur.
 
 ## Écart de rapprochement des apps déjà installées (CA44)
 

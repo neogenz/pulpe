@@ -128,6 +128,10 @@ describe("the choice of default account (CA28, CA34, CA35)", () => {
     ]) {
       expect(view.getAllByText(name).length).toBeGreaterThan(0);
     }
+    expect(view.getAllByRole("radio")[0]).toHaveProp(
+      "accessibilityLabel",
+      "Aucun",
+    );
   });
 
   it("CA28 writes the account chosen, CA34 « Aucun » as null", async () => {
