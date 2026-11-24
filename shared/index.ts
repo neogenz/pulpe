@@ -153,6 +153,10 @@ export {
   assetSnapshotsResponseSchema,
   assetCategoryResponseSchema,
   assetCategoryDeleteResponseSchema,
+  assetHistoryQuerySchema,
+  assetHistoryEntrySchema,
+  assetHistorySchema,
+  assetHistoryResponseSchema,
 
   // Account reconciliation
   reconciliationStateSchema,
@@ -572,6 +576,10 @@ export type {
   AssetSnapshotsResponse,
   AssetCategoryResponse,
   AssetCategoryDeleteResponse,
+  AssetHistoryQuery,
+  AssetHistoryEntry,
+  AssetHistory,
+  AssetHistoryResponse,
 
   // Account reconciliation types
   ReconciliationState,

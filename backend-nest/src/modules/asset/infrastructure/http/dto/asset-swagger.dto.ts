@@ -11,6 +11,8 @@ import {
   assetSnapshotsResponseSchema,
   assetCategoryResponseSchema,
   assetCategoryDeleteResponseSchema,
+  assetHistoryQuerySchema,
+  assetHistoryResponseSchema,
 } from 'pulpe-shared';
 
 // Swagger DTOs derived from the shared Zod schemas (single source of truth).
@@ -38,4 +40,10 @@ export class AssetCategoryResponseDto extends createZodDto(
 ) {}
 export class AssetCategoryDeleteResponseDto extends createZodDto(
   assetCategoryDeleteResponseSchema,
+) {}
+export class AssetHistoryQueryDto extends createZodDto(
+  assetHistoryQuerySchema,
+) {}
+export class AssetHistoryResponseDto extends createZodDto(
+  assetHistoryResponseSchema,
 ) {}

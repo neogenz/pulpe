@@ -148,3 +148,10 @@ export interface NetWorth {
   categories: NetWorthCategory[];
   assets: NetWorthAsset[];
 }
+
+/** The asset as `GET /v1/assets` values it, and one page of its history. */
+export interface AssetHistoryPage {
+  asset: NetWorthAsset;
+  entries: AssetHistoryEntry[];
+  nextCursor: string | null;
+}
