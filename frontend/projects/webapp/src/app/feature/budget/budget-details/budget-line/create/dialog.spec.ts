@@ -681,6 +681,42 @@ describe('AddBudgetLineDialog', () => {
       expect(component['accountErrorKey']()).toBeNull();
     });
 
+    it('CA25: an account picked by hand stays when the link takes it, and blocks', () => {
+      const { component } = configureDialog({
+        providers: withTicketAssets(true),
+      });
+      component['model'].update((m) => ({
+        ...m,
+        kind: 'saving',
+        accountId: LIVRET.id,
+      }));
+
+      component['setAssetLink'](LIVRET.id);
+
+      expect(component['model']().accountId).toBe(LIVRET.id);
+      expect(component['accountErrorKey']()).toBe(
+        'netWorth.account.sameAsLink',
+      );
+    });
+
+    it('hides « Compte » on « Remettre le mois prochain », which carries no account', () => {
+      const { fixture, component } = configureDialog({
+        providers: withTicketAssets(true),
+      });
+      component['model'].update((m) => ({ ...m, kind: 'income' }));
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('pulpe-account-picker-field'),
+      ).not.toBeNull();
+
+      component['setIncomeOrigin']('repayNextMonth');
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector('pulpe-account-picker-field'),
+      ).toBeNull();
+    });
+
     it('CA45: another link leaves the prefilled account alone', () => {
       const { component } = configureDialog({
         defaultAccountId: COMPTE_COURANT.id,

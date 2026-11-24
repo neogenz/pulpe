@@ -285,13 +285,18 @@ export class EditTemplateLineDialog {
   );
 
   // Picking the link on the account a new line started on frees the account
-  // rather than blocking a form the user did not get wrong.
+  // rather than blocking a form the user did not get wrong (CA45). An account
+  // picked by hand stays, and the CA25 message asks for another one.
   protected setAssetLink(assetId: string | null): void {
     this.model.update((m) => ({
       ...m,
       assetId,
       accountId:
-        !this.isEditMode() && m.accountId === assetId ? null : m.accountId,
+        !this.isEditMode() &&
+        m.accountId === assetId &&
+        m.accountId === this.#initialAccountId()
+          ? null
+          : m.accountId,
     }));
   }
 

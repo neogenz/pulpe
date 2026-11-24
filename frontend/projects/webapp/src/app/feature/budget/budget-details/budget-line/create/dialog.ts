@@ -332,11 +332,17 @@ interface AddBudgetLineModel {
             }
           }
 
-          <pulpe-account-picker-field
-            [value]="model().accountId"
-            [errorKey]="accountErrorKey()"
-            (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
-          />
+          <!-- « Remettre le mois prochain » writes the withdrawal pair, which
+               carries no account: iOS hides the field there too. -->
+          @if (
+            !(model().kind === 'income' && incomeOrigin() === 'repayNextMonth')
+          ) {
+            <pulpe-account-picker-field
+              [value]="model().accountId"
+              [errorKey]="accountErrorKey()"
+              (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
+            />
+          }
 
           @if (mode() === 'spread') {
             <div class="flex flex-col gap-4" data-testid="spread-section">
@@ -611,12 +617,16 @@ export class AddBudgetLineDialog {
   });
 
   // Picking the link on the account the form started on frees the account
-  // rather than blocking a form the user did not get wrong.
+  // rather than blocking a form the user did not get wrong (CA45). An account
+  // picked by hand stays, and the CA25 message asks for another one.
   protected setAssetLink(assetId: string | null): void {
     this.model.update((m) => ({
       ...m,
       assetId,
-      accountId: m.accountId === assetId ? null : m.accountId,
+      accountId:
+        m.accountId === assetId && m.accountId === this.#initialAccountId()
+          ? null
+          : m.accountId,
     }));
   }
 

@@ -676,6 +676,22 @@ describe('EditTemplateLineDialog — account field (PUL-378)', () => {
     expect(context.component['canSubmit']()).toBe(false);
   });
 
+  it('CA25: on a new line, an account picked by hand stays when the link takes it', async () => {
+    const context = await open({});
+    context.component['model'].update((m) => ({
+      ...m,
+      kind: 'saving',
+      accountId: LIVRET.id,
+    }));
+
+    context.component['setAssetLink'](LIVRET.id);
+
+    expect(context.component['model']().accountId).toBe(LIVRET.id);
+    expect(context.component['accountErrorKey']()).toBe(
+      'netWorth.account.sameAsLink',
+    );
+  });
+
   it('CA45: on a new line, choosing the prefilled account as the link frees « Compte »', async () => {
     const context = await open({ defaultAccountId: LIVRET.id });
     context.component['model'].update((m) => ({ ...m, kind: 'saving' }));
