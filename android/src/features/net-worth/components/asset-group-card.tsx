@@ -166,6 +166,20 @@ function AssetRow({
     ? `≈ ${formatCurrency(asset.convertedValue ?? 0, baseCurrency)}`
     : null;
   const badges = assetBadges(asset);
+  const badgeLabels = [
+    ...(isDefault ? [t("netWorth.account.defaultBadge")] : []),
+    ...badges.map((badge) =>
+      t(
+        badge === "overdraft"
+          ? "netWorth.badgeOverdraft"
+          : "netWorth.badgeExcluded",
+      ),
+    ),
+  ];
+  // The row's own label hides its children from TalkBack: the badges go in it too.
+  const rowLabel = [asset.name, value, converted, caption, ...badgeLabels]
+    .filter(Boolean)
+    .join(", ");
 
   const body = (
     <View style={styles.content}>
@@ -194,20 +208,18 @@ function AssetRow({
       >
         {caption}
       </Text>
-      {(isDefault || badges.length > 0) && (
+      {badgeLabels.length > 0 && (
         <View style={styles.badges}>
-          {isDefault && (
-            <StateChip tint={theme.colors.primary}>
-              {t("netWorth.account.defaultBadge")}
-            </StateChip>
-          )}
-          {badges.map((badge) => (
-            <StateChip key={badge} tint={financial.overBudget}>
-              {t(
-                badge === "overdraft"
-                  ? "netWorth.badgeOverdraft"
-                  : "netWorth.badgeExcluded",
-              )}
+          {badgeLabels.map((label, index) => (
+            <StateChip
+              key={label}
+              tint={
+                isDefault && index === 0
+                  ? theme.colors.primary
+                  : financial.overBudget
+              }
+            >
+              {label}
             </StateChip>
           ))}
         </View>
@@ -219,13 +231,7 @@ function AssetRow({
     <View>
       <View style={styles.row}>
         {isArchived ? (
-          <View
-            accessible
-            accessibilityLabel={[asset.name, value, converted, caption]
-              .filter(Boolean)
-              .join(", ")}
-            style={styles.main}
-          >
+          <View accessible accessibilityLabel={rowLabel} style={styles.main}>
             {body}
           </View>
         ) : (
@@ -233,9 +239,7 @@ function AssetRow({
             onPress={() => actions.open(asset)}
             android_ripple={ripple}
             accessibilityRole="button"
-            accessibilityLabel={[asset.name, value, converted, caption]
-              .filter(Boolean)
-              .join(", ")}
+            accessibilityLabel={rowLabel}
             accessibilityHint={t("netWorth.openAccessibility", {
               name: asset.name,
             })}

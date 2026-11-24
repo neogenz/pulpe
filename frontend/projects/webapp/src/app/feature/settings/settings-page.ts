@@ -218,14 +218,6 @@ import { SettingsDialogService } from './settings-dialog.service';
               </p>
             </details>
 
-            <!-- Saved on pick, like the language: it is not part of the draft below. -->
-            <pulpe-account-picker-field
-              labelKey="netWorth.account.defaultLabel"
-              hintKey="netWorth.account.defaultHint"
-              [value]="defaultAccountId()"
-              (valueChanged)="onDefaultAccountChange($event)"
-            />
-
             @if (hasChanges()) {
               <div class="flex justify-end gap-3 pt-2">
                 <button
@@ -253,6 +245,14 @@ import { SettingsDialogService } from './settings-dialog.service';
               </div>
             }
           </div>
+          <!-- Saved on pick, like the language: kept out of the draft that « Annuler » resets. -->
+          <pulpe-account-picker-field
+            class="border-t border-outline-variant pt-6"
+            labelKey="netWorth.account.defaultLabel"
+            hintKey="netWorth.account.defaultHint"
+            [value]="defaultAccountId()"
+            (valueChanged)="onDefaultAccountChange($event)"
+          />
           <!-- Language -->
           <div class="flex flex-col gap-2 border-t border-outline-variant pt-6">
             <pulpe-language-selector
