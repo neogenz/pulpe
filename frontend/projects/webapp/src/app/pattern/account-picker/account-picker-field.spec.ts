@@ -98,6 +98,17 @@ describe('AccountPickerField', () => {
     ]);
   });
 
+  it('CA3: the closed field reads « Aucun » when no account is chosen', async () => {
+    getNetWorth$.mockReturnValue(of(netWorthResponse(TICKET_ASSETS)));
+    const fixture = await render();
+
+    expect(
+      fixture.nativeElement
+        .querySelector('.mat-mdc-select-trigger')
+        .textContent.trim(),
+    ).toBe('Aucun');
+  });
+
   it('keeps an archived account the movement already carries, and no other', async () => {
     getNetWorth$.mockReturnValue(
       of(netWorthResponse([COMPTE_COURANT, OLD_ACCOUNT])),

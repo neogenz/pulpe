@@ -34,14 +34,18 @@ import { UserSettingsStore } from '@core/user-settings';
   imports: [MatFormFieldModule, MatSelectModule, TranslocoPipe],
   template: `
     @if (groups(); as groups) {
+      <!-- « Aucun » is the empty choice: shown as the placeholder of a label
+           that always floats, or the closed field would read blank. -->
       <mat-form-field
         appearance="outline"
         subscriptSizing="dynamic"
+        floatLabel="always"
         class="w-full"
       >
         <mat-label>{{ labelKey() | transloco }}</mat-label>
         <mat-select
           [value]="value()"
+          [placeholder]="'netWorth.link.none' | transloco"
           [disableOptionCentering]="true"
           panelClass="pulpe-account-select-panel"
           (selectionChange)="valueChanged.emit($event.value)"
