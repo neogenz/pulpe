@@ -34,6 +34,7 @@ struct NavigationKeyboardInsetTests {
         "SavingsGoalDetailView": .resets,
         "GoalHistoryView": .resets,
         "NetWorthView": .resets,
+        "AssetDetailView": .resets,
         "BudgetListView": .resets,
         "BudgetDetailsView": .resets,
         // The open iPhone Duo's month pane before any month exists.

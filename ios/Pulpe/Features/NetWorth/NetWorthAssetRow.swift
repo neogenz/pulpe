@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct NetWorthAssetActions {
+    /// Pushes the element's detail (PUL-379).
+    let open: () -> Void
     let edit: () -> Void
     let toggleArchive: () -> Void
     let delete: () -> Void
@@ -48,12 +50,12 @@ struct NetWorthAssetRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.xs) {
             if let actions, asset.archivedAt == nil {
-                // The row and its menu are siblings: tapping the row edits, the menu holds the rest.
-                Button(action: actions.edit) { content }
+                // The row and its menu are siblings: tapping the row opens the detail, the menu holds the rest.
+                Button(action: actions.open) { content }
                     .contentShape(Rectangle())
                     .plainPressedButtonStyle()
-                    .accessibilityHint(AppLocale.string("Modifier"))
-                    .accessibilityIdentifier("netWorthRowEdit")
+                    .accessibilityHint(AppLocale.string("Ouvre le détail de \(asset.name)"))
+                    .accessibilityIdentifier("netWorthRowOpen")
             } else {
                 content
             }

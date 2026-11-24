@@ -11,6 +11,11 @@ struct NetWorthTab: View {
             NetWorthView()
                 .pulpeStatusBarBlur()
                 .ignoresForeignKeyboardInset()
+                .navigationDestination(for: NetWorthDestination.self) { destination in
+                    switch destination {
+                    case .asset(let id): AssetDetailView(assetId: id).ignoresForeignKeyboardInset()
+                    }
+                }
         }
     }
 }

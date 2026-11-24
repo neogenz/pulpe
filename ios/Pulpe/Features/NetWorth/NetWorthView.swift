@@ -4,6 +4,7 @@ import SwiftUI
 /// the archives. Totals come from `GET /v1/assets`; only a debt Type's total is summed here.
 struct NetWorthView: View {
     @Environment(AssetStore.self) private var store
+    @Environment(AppState.self) private var appState
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(FeatureFlagsStore.self) private var featureFlags
@@ -270,6 +271,7 @@ struct NetWorthView: View {
             baseCurrency: sections.baseCurrency,
             categoryName: showsCategory ? sections.categoryName(of: asset) : nil,
             actions: NetWorthAssetActions(
+                open: { appState.pushOnActiveStack(NetWorthDestination.asset(id: asset.id)) },
                 edit: { form = .edit(asset) },
                 toggleArchive: {
                     run {
