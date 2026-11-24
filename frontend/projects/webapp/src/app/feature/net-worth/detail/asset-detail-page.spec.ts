@@ -338,6 +338,7 @@ describe('AssetDetailPage', () => {
     );
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
 
+    expect(text('page-title')).toBe("Détail de l'élément");
     expect(text('asset-detail-not-found')).toContain(
       "Cet élément n'est plus disponible",
     );
