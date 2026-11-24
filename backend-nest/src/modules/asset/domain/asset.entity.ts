@@ -51,6 +51,7 @@ export interface CheckedReal {
  */
 export interface MovementLine {
   id: string;
+  name: string;
   kind: TransactionKind;
   amount: number;
   checkedAt: string | null;
@@ -61,6 +62,8 @@ export interface MovementLine {
 
 /** A checked movement outside any prévision, with an account. */
 export interface FreeMovement {
+  id: string;
+  name: string;
   accountId: string;
   kind: TransactionKind;
   amount: number;
@@ -76,6 +79,31 @@ export interface AssetMovements {
   lines: MovementLine[];
   freeMovements: FreeMovement[];
 }
+
+/** A value typed by the user (edit or reconciliation), in the asset's currency. */
+export interface AssetSnapshot {
+  id: string;
+  value: number;
+  recordedAt: string;
+}
+
+/**
+ * One line of an asset's history, in its own currency. A movement is a
+ * prévision or a free movement over one period between two entries, dated by
+ * its last check in that period; `effect` is what it retained on the value
+ * (`null` without a rate). `supersededAt` is the entry that closes the period,
+ * `null` while the movement still counts in the value.
+ */
+export type AssetHistoryEntry =
+  | { type: 'snapshot'; id: string; at: string; value: number }
+  | {
+      type: 'movement';
+      id: string;
+      at: string;
+      name: string;
+      effect: number | null;
+      supersededAt: string | null;
+    };
 
 export interface AssetCreateInput {
   name: string;

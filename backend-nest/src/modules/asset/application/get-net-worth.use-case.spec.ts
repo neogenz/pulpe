@@ -143,7 +143,14 @@ describe('GetNetWorthUseCase', () => {
     const checkedAt = '2026-11-05T10:00:00.000Z';
 
     function revenu(accountId: string, amount: number): FreeMovement {
-      return { accountId, kind: 'income', amount, checkedAt };
+      return {
+        id: `revenu-${accountId}`,
+        name: 'Revenu',
+        accountId,
+        kind: 'income',
+        amount,
+        checkedAt,
+      };
     }
 
     it('PUL-378 CA6: a checked Revenu of 6 000 on the Compte courant brings it to 11 000', async () => {
@@ -188,6 +195,7 @@ describe('GetNetWorthUseCase', () => {
       movements.lines = [
         {
           id: 'epargne',
+          name: 'Épargne mensuelle',
           kind: 'saving',
           amount: 500,
           checkedAt,

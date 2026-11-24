@@ -3,6 +3,7 @@ import type {
   AssetCategory,
   AssetCreateInput,
   AssetMovements,
+  AssetSnapshot,
   AssetSnapshotInput,
   AssetUpdatePatch,
   AssetWithValue,
@@ -26,8 +27,13 @@ export interface AssetRepositoryPort {
   findAll(): Promise<Asset[]>;
   /** Every asset with its latest snapshot decrypted. */
   findAllWithLatestValue(): Promise<AssetWithValue[]>;
-  /** What can move an asset strictly after `since`, amounts decrypted. */
-  findMovementsSince(since: string): Promise<AssetMovements>;
+  /**
+   * What can move an asset strictly after `since`, amounts decrypted: every
+   * asset, or only `assetId` when given.
+   */
+  findMovementsSince(since: string, assetId?: string): Promise<AssetMovements>;
+  /** Every entry of an asset, oldest first, decrypted; the last is its latest. */
+  findSnapshots(assetId: string): Promise<AssetSnapshot[]>;
   /** Writes the asset and its first snapshot together. */
   insertAsset(input: AssetCreateInput): Promise<Asset>;
   update(id: string, patch: AssetUpdatePatch): Promise<Asset>;
