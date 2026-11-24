@@ -417,7 +417,7 @@ describe('AssetDetailPage', () => {
       await render(projected(NOVEMBER));
 
       expect(spoken()).toBe(
-        'Fin novembre : 8’000.00 CHF, si tout ton prévu de ce mois arrive',
+        'Fin novembre : 8’000.00 CHF, si tout se passe comme prévu ce mois-ci',
       );
     });
 

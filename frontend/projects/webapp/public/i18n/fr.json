@@ -1674,7 +1674,7 @@
       "loadMoreError": "Impossible de charger la suite, réessaie",
       "notFound": "Cet élément n'est plus disponible",
       "monthEnd": "Fin {{month}} : {{amount}}",
-      "monthEndAccessibility": "Fin {{month}} : {{amount}}, si tout ton prévu de ce mois arrive"
+      "monthEndAccessibility": "Fin {{month}} : {{amount}}, si tout se passe comme prévu ce mois-ci"
     }
   },
   "completeProfile": {

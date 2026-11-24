@@ -1674,7 +1674,7 @@
       "loadMoreError": "Couldn't load more, try again",
       "notFound": "This item is no longer available",
       "monthEnd": "End of {{month}}: {{amount}}",
-      "monthEndAccessibility": "End of {{month}}: {{amount}}, if everything you planned this month happens"
+      "monthEndAccessibility": "End of {{month}}: {{amount}}, if everything goes as planned this month"
     }
   },
   "completeProfile": {

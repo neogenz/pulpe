@@ -1674,7 +1674,7 @@
       "loadMoreError": "Weitere Einträge konnten nicht geladen werden, versuche es nochmal",
       "notFound": "Dieses Element ist nicht mehr verfügbar",
       "monthEnd": "Ende {{month}}: {{amount}}",
-      "monthEndAccessibility": "Ende {{month}}: {{amount}}, wenn alles eintrifft, was du diesen Monat geplant hast"
+      "monthEndAccessibility": "Ende {{month}}: {{amount}}, wenn diesen Monat alles wie geplant läuft"
     }
   },
   "completeProfile": {

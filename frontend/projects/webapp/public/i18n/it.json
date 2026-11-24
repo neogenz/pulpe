@@ -1674,7 +1674,7 @@
       "loadMoreError": "Impossibile caricare il resto, riprova",
       "notFound": "Questo elemento non è più disponibile",
       "monthEnd": "Fine {{month}}: {{amount}}",
-      "monthEndAccessibility": "Fine {{month}}: {{amount}}, se tutto ciò che hai previsto questo mese si realizza"
+      "monthEndAccessibility": "Fine {{month}}: {{amount}}, se questo mese tutto va come previsto"
     }
   },
   "completeProfile": {
