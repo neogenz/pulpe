@@ -1661,6 +1661,7 @@
       "groupOwe": "Ce que je dois",
       "sameAsLink": "Choisis un autre compte : celui-ci est déjà l'élément lié ci-dessus.",
       "defaultLabel": "Compte par défaut",
+      "defaultHint": "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.",
       "defaultBadge": "Par défaut"
     }
   },

@@ -41,6 +41,8 @@ import { UserSettingsStore } from '@core/user-settings';
         <mat-label>{{ labelKey() | transloco }}</mat-label>
         <mat-select
           [value]="value()"
+          [disableOptionCentering]="true"
+          panelClass="pulpe-account-select-panel"
           (selectionChange)="valueChanged.emit($event.value)"
           [attr.aria-invalid]="errorKey() ? 'true' : null"
           data-testid="account-picker-select"
@@ -82,6 +84,10 @@ import { UserSettingsStore } from '@core/user-settings';
             data-testid="account-picker-error"
             >{{ key | transloco }}</mat-hint
           >
+        } @else if (hintKey(); as key) {
+          <mat-hint data-testid="account-picker-hint">{{
+            key | transloco
+          }}</mat-hint>
         }
       </mat-form-field>
     }
@@ -91,6 +97,8 @@ export class AccountPickerField {
   readonly value = input<string | null>(null);
   readonly labelKey = input('netWorth.account.label');
   /** Translation key of the message shown under the field, `null` when fine. */
+  /** Translation key of a standing hint under the field, shown when there is no error. */
+  readonly hintKey = input<string | null>(null);
   readonly errorKey = input<string | null>(null);
   readonly valueChanged = output<string | null>();
 

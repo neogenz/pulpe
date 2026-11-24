@@ -232,16 +232,16 @@ interface DateOutOfRangeError {
         }
       </mat-form-field>
 
-      <!-- Tags Field -->
-      @if (!isFieldHidden('tags')) {
-        <pulpe-tag-picker [control]="transactionForm.tagIds" />
-      }
       <!-- A movement under a prévision follows its account: no field. -->
       @if (hasAccountField()) {
         <pulpe-account-picker-field
           [value]="model().accountId"
           (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
         />
+      }
+      <!-- Tags Field -->
+      @if (!isFieldHidden('tags')) {
+        <pulpe-tag-picker [control]="transactionForm.tagIds" />
       }
     </form>
     @if (conversionError()) {

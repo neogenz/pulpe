@@ -1661,6 +1661,7 @@
       "groupOwe": "What I owe",
       "sameAsLink": "Pick another account: this one is already the linked item above.",
       "defaultLabel": "Default account",
+      "defaultHint": "Each new entry starts on this account. You can change it each time.",
       "defaultBadge": "Default"
     }
   },

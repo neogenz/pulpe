@@ -163,7 +163,6 @@ interface EditTemplateLineModel {
             }
           </mat-form-field>
 
-          <pulpe-tag-picker [control]="addForm.tagIds" />
           @if (model().kind === 'saving') {
             <pulpe-savings-goal-picker-field
               [value]="model().savingsGoalId"
@@ -184,6 +183,7 @@ interface EditTemplateLineModel {
             [errorKey]="accountErrorKey()"
             (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
           />
+          <pulpe-tag-picker [control]="addForm.tagIds" />
         </div>
       </div>
     </mat-dialog-content>

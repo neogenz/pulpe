@@ -200,13 +200,6 @@ import { SettingsDialogService } from './settings-dialog.service';
               </mat-hint>
             </mat-form-field>
 
-            <!-- Saved on pick, like the language: it is not part of the draft below. -->
-            <pulpe-account-picker-field
-              labelKey="netWorth.account.defaultLabel"
-              [value]="defaultAccountId()"
-              (valueChanged)="onDefaultAccountChange($event)"
-            />
-
             <details
               class="group rounded-xl bg-surface-container px-4 open:pb-4"
             >
@@ -224,6 +217,14 @@ import { SettingsDialogService } from './settings-dialog.service';
                 {{ 'settings.howItWorksDetail' | transloco }}
               </p>
             </details>
+
+            <!-- Saved on pick, like the language: it is not part of the draft below. -->
+            <pulpe-account-picker-field
+              labelKey="netWorth.account.defaultLabel"
+              hintKey="netWorth.account.defaultHint"
+              [value]="defaultAccountId()"
+              (valueChanged)="onDefaultAccountChange($event)"
+            />
 
             @if (hasChanges()) {
               <div class="flex justify-end gap-3 pt-2">

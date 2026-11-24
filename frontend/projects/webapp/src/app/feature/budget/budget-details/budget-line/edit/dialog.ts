@@ -164,7 +164,6 @@ interface EditBudgetLineModel {
             }
           </mat-form-field>
 
-          <pulpe-tag-picker [control]="editForm.tagIds" />
           @if (model().kind === 'saving') {
             <pulpe-savings-goal-picker-field
               [value]="model().savingsGoalId"
@@ -186,6 +185,7 @@ interface EditBudgetLineModel {
             [errorKey]="accountErrorKey()"
             (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
           />
+          <pulpe-tag-picker [control]="editForm.tagIds" />
           <!--
             L'origine est en lecture seule : aucune API ne déplace un retrait
             d'un objectif à un autre. Un second sélecteur laisserait croire

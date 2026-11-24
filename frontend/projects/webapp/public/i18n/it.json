@@ -1661,6 +1661,7 @@
       "groupOwe": "Ciò che devo",
       "sameAsLink": "Scegli un altro conto: questo è già l'elemento collegato qui sopra.",
       "defaultLabel": "Conto predefinito",
+      "defaultHint": "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta.",
       "defaultBadge": "Predefinito"
     }
   },

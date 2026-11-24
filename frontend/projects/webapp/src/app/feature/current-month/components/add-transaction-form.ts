@@ -160,11 +160,11 @@ interface AddTransactionModel {
             </mat-option>
           </mat-select>
         </mat-form-field>
-        <pulpe-tag-picker [control]="transactionForm.tagIds" />
         <pulpe-account-picker-field
           [value]="model().accountId"
           (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
         />
+        <pulpe-tag-picker [control]="transactionForm.tagIds" />
         @if (model().kind === 'income') {
           <div class="flex flex-col gap-1">
             <div class="flex items-center justify-between gap-4 py-2">

@@ -79,10 +79,12 @@ const SHEET_TITLE_ID = 'add-transaction-sheet-title';
            guessing the sheet scrolls, which it gives no sign of doing. The
            background matches the sheet's own surface-container-low so the
            form passes under the bar instead of through it; the existing top
-           rule doubles as the scroll edge. Desktop uses the dialog, which is
+           rule doubles as the scroll edge. It sticks 8px below the
+           container's own bottom padding (-bottom-2) so the form never shows
+           through that strip under the buttons. Desktop uses the dialog, which is
            short enough that this changes nothing there. -->
       <div
-        class="sticky bottom-0 flex flex-col gap-3 pt-4 pb-2 -mb-2 border-t border-outline-variant bg-surface-container-low"
+        class="sticky -bottom-2 flex flex-col gap-3 pt-4 pb-4 -mb-2 border-t border-outline-variant bg-surface-container-low"
       >
         <!-- The refusal belongs here rather than in a toast: the sheet is
              still up, holding everything that was typed, and a toast at the
