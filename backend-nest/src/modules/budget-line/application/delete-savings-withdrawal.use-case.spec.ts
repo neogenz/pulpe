@@ -23,6 +23,7 @@ const makeLine = (
   templateLineId: null,
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   spreadGroupId: null,
   savingsWithdrawalGroupId: GROUP_ID,
   sourceSavingsGoalId: null,

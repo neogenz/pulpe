@@ -19,6 +19,22 @@ export function assetIdPatchForKind(
 }
 
 /**
+ * Create path (PUL-378, CA32): an account sent by the client wins, `null`
+ * included; absent, the default account applies, unless it is the asset the
+ * line already feeds, draws from or repays (CA45, the CHECK would refuse it).
+ * The default is read only when it may apply.
+ */
+export async function accountIdForCreate(
+  requested: string | null | undefined,
+  assetId: string | null | undefined,
+  readDefault: () => Promise<string | null>,
+): Promise<string | null> {
+  if (requested !== undefined) return requested;
+  const defaultAccountId = await readDefault();
+  return defaultAccountId === assetId ? null : defaultAccountId;
+}
+
+/**
  * Exact messages RAISEd (P0001) by the `enforce_asset_line_link` trigger
  * (migration 20261103130000): an `asset_id` that isn't an asset of the line's
  * owner (stale picker or foreign asset), then a kind↔direction mismatch.
@@ -36,15 +52,59 @@ function isP0001With(error: unknown, text: string): boolean {
 }
 
 /**
+ * Refusals of the account link (migration 20261125120000): the
+ * `enforce_account_link` trigger RAISEs this message for an account that isn't
+ * the owner's, and the `*_account_not_asset` CHECKs refuse the same asset as
+ * account and as `asset_id` (CA25).
+ */
+const ACCOUNT_LINK_DENIED_MESSAGE = 'Account access denied';
+const ACCOUNT_NOT_ASSET_CONSTRAINT = '_account_not_asset';
+
+/**
+ * Called by every write path that can carry an `account_id`. A missing or
+ * foreign account is a 404 (RLS-hiding idiom), the same asset on both links a
+ * 400. Anything else falls through to the caller.
+ */
+export function throwIfAccountLinkRefused(
+  error: unknown,
+  loggingContext: Record<string, unknown>,
+): void {
+  if (isP0001With(error, ACCOUNT_LINK_DENIED_MESSAGE)) {
+    throw new BusinessException(
+      ERROR_DEFINITIONS.ASSET_NOT_FOUND,
+      undefined,
+      loggingContext,
+      { cause: error ?? undefined },
+    );
+  }
+  const { code, message } = (error ?? {}) as {
+    code?: string;
+    message?: string;
+  };
+  if (code === '23514' && message?.includes(ACCOUNT_NOT_ASSET_CONSTRAINT)) {
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUSINESS_RULE_VIOLATION,
+      {
+        rule: 'the account cannot be the asset the line feeds, draws from or repays',
+      },
+      loggingContext,
+      { cause: error },
+    );
+  }
+}
+
+/**
  * Called first by every write path that can carry an `asset_id`. Business
  * rejections, not server faults: a missing or foreign asset is a 404 (RLS-hiding
  * idiom), a wrong direction is a 400. Anything else falls through to the
- * caller's generic failure.
+ * caller's generic failure. Those paths carry `account_id` too, so its
+ * refusals are mapped here as well.
  */
 export function throwIfAssetLinkRefused(
   error: unknown,
   loggingContext: Record<string, unknown>,
 ): void {
+  throwIfAccountLinkRefused(error, loggingContext);
   if (isP0001With(error, ASSET_LINK_DENIED_MESSAGE)) {
     throw new BusinessException(
       ERROR_DEFINITIONS.ASSET_NOT_FOUND,

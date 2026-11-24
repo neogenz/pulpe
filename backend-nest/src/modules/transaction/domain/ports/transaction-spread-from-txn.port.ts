@@ -22,6 +22,7 @@ export interface TransactionSpreadBudgetLine {
   templateLineId: string | null;
   savingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
   spreadGroupId: string | null;
   savingsWithdrawalGroupId: string | null;
   name: string;

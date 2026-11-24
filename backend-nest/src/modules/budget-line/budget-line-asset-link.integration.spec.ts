@@ -182,6 +182,49 @@ describe('prévision asset link refusals', () => {
     expect(refusalOf(error).code).toBe('ERR_ASSET_NOT_FOUND');
   });
 
+  it('CA25: refuses the same asset as account and link with a 400 rule, on a prévision', async () => {
+    if (!env) return;
+    const { error } = await owner
+      .from('budget_line')
+      .update({ account_id: savingsAssetId })
+      .eq('id', savingLineId)
+      .select()
+      .single();
+
+    const refusal = refusalOf(error);
+    expect(refusal.getStatus()).toBe(400);
+    expect(refusal.message).toContain('account cannot be the asset');
+  });
+
+  it('CA25: refuses the same asset as account and link on a template line', async () => {
+    if (!env) return;
+    const { error } = await owner.from('template_line').insert({
+      template_id: templateId,
+      name: 'Épargne mensuelle',
+      amount: 'ciphertext',
+      kind: 'saving',
+      recurrence: 'fixed',
+      description: '',
+      asset_id: savingsAssetId,
+      account_id: savingsAssetId,
+    });
+
+    expect(refusalOf(error).getStatus()).toBe(400);
+  });
+
+  it("maps another user's account to a 404 on a free movement", async () => {
+    if (!env) return;
+    const { error } = await owner.from('transaction').insert({
+      budget_id: budgetId,
+      name: 'Restaurant',
+      amount: 'ciphertext',
+      kind: 'expense',
+      account_id: foreignAssetId,
+    });
+
+    expect(refusalOf(error).code).toBe('ERR_ASSET_NOT_FOUND');
+  });
+
   it('keeps the prévision and clears the link when the asset is deleted', async () => {
     if (!env) return;
     const { error: deleteError } = await admin

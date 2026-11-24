@@ -10,6 +10,7 @@ const DATE = '2026-08-02T12:00:00+00:00';
 const validCreate = {
   budget_id: UUID,
   budget_line_id: null,
+  account_id: null,
   name: 'Retrait Maison',
   amount: 'AES-cipher-amount',
   original_amount: null,
@@ -26,6 +27,19 @@ describe('createSavingsGoalWithdrawalPayloadSchema', () => {
     expect(() =>
       createSavingsGoalWithdrawalPayloadSchema.parse(validCreate),
     ).not.toThrow();
+  });
+
+  it('carries the account of the withdrawal (PUL-378)', () => {
+    expect(
+      createSavingsGoalWithdrawalPayloadSchema.parse({
+        ...validCreate,
+        account_id: UUID,
+      }).account_id,
+    ).toBe(UUID);
+    expect(
+      updateSavingsGoalWithdrawalPayloadSchema.parse({ account_id: null })
+        .account_id,
+    ).toBeNull();
   });
 
   it('rejects a plaintext amount', () => {

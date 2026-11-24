@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import type { AssetWithValue, CheckedLinkedLine } from './asset.entity';
+import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
+import type {
+  AssetWithValue,
+  FreeMovement,
+  MovementLine,
+} from './asset.entity';
 import {
-  checkedLinesCutoffs,
   computeNetWorth,
+  movementsSince,
   type NetWorthInput,
 } from './asset.formulas';
 
@@ -34,7 +39,7 @@ function compute(
     categories: [COMPTES, BIENS, VIDE],
     assets,
     rates: {},
-    checkedLines: [],
+    movements: { lines: [], freeMovements: [] },
     ...overrides,
   });
 }
@@ -207,15 +212,42 @@ describe('computeNetWorth', () => {
   });
 });
 
-function line(
-  overrides: Partial<CheckedLinkedLine> & Pick<CheckedLinkedLine, 'kind'>,
-): CheckedLinkedLine {
+/** An instant on day `day` of November 2026; the entries default to the 3rd. */
+function on(day: number, hour = 10): string {
+  return `2026-11-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:00:00.000Z`;
+}
+
+function prevision(
+  overrides: Partial<MovementLine> & Pick<MovementLine, 'kind' | 'amount'>,
+): MovementLine {
   return {
-    assetId: 'asset-1',
-    amount: 100,
-    checkedAt: '2026-11-05T10:00:00.000Z',
+    id: 'line-1',
+    checkedAt: on(5),
+    accountId: null,
+    assetId: null,
+    checkedReals: [],
     ...overrides,
   };
+}
+
+function free(
+  accountId: string,
+  kind: TransactionKind,
+  amount: number,
+  checkedAt = on(5),
+): FreeMovement {
+  return { accountId, kind, amount, checkedAt };
+}
+
+function withMovements(
+  lines: MovementLine[],
+  freeMovements: FreeMovement[] = [],
+): Pick<NetWorthInput, 'movements'> {
+  return { movements: { lines, freeMovements } };
+}
+
+function valueOf(result: ReturnType<typeof compute>, id: string) {
+  return result.assets.find((a) => a.id === id)?.value;
 }
 
 // PUL-377 jeu d'essai: Livret 10 000 (own), Leasing 8 000 (owe), CHF.
@@ -227,21 +259,24 @@ const LEASING = asset({
   direction: 'owe',
   recordedValue: 8_000,
 });
-const EPARGNE_MENSUELLE = line({
+const EPARGNE_MENSUELLE = prevision({
+  id: 'epargne-mensuelle',
   assetId: 'livret',
   kind: 'saving',
   amount: 500,
 });
-const MENSUALITE_LEASING = line({
+const MENSUALITE_LEASING = prevision({
+  id: 'mensualite-leasing',
   assetId: 'leasing',
   kind: 'expense',
   amount: 300,
 });
-const RETRAIT = line({ assetId: 'livret', kind: 'income', amount: 1000 });
-
-function valueOf(result: ReturnType<typeof compute>, id: string) {
-  return result.assets.find((a) => a.id === id)?.value;
-}
+const RETRAIT = prevision({
+  id: 'retrait',
+  assetId: 'livret',
+  kind: 'income',
+  amount: 1000,
+});
 
 describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
   it('starts from the last entry when nothing is checked', () => {
@@ -256,9 +291,10 @@ describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
   });
 
   it('CA1: a checked Épargne raises the Livret, gross and net', () => {
-    const result = compute([LIVRET, LEASING], {
-      checkedLines: [EPARGNE_MENSUELLE],
-    });
+    const result = compute(
+      [LIVRET, LEASING],
+      withMovements([EPARGNE_MENSUELLE]),
+    );
 
     expect(valueOf(result, 'livret')).toBe(10_500);
     expect(result.assets[0]?.recordedValue).toBe(10_000);
@@ -266,61 +302,81 @@ describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
   });
 
   it('CA2: a checked Dépense lowers what remains due on the Leasing', () => {
-    const result = compute([LIVRET, LEASING], {
-      checkedLines: [MENSUALITE_LEASING],
-    });
+    const result = compute(
+      [LIVRET, LEASING],
+      withMovements([MENSUALITE_LEASING]),
+    );
 
     expect(valueOf(result, 'leasing')).toBe(7_700);
     expect(result.totals).toMatchObject({ debts: 7_700, net: 2_300 });
   });
 
   it('CA3: a checked Revenu drawn from the Livret lowers it', () => {
-    const result = compute([LIVRET], { checkedLines: [RETRAIT] });
+    const result = compute([LIVRET], withMovements([RETRAIT]));
 
     expect(valueOf(result, 'livret')).toBe(9_000);
   });
 
-  it('CA4: unchecking takes the line out, so the Livret is back at 10 000', () => {
-    const result = compute([LIVRET, LEASING], { checkedLines: [] });
+  it('CA4: an unchecked prévision without checked movements moves nothing', () => {
+    const result = compute(
+      [LIVRET, LEASING],
+      withMovements([{ ...EPARGNE_MENSUELLE, checkedAt: null }]),
+    );
 
     expect(valueOf(result, 'livret')).toBe(10_000);
     expect(result.totals.net).toBe(2_000);
   });
 
   it('CA5: a new entry of 12 000 is the value, then a later Épargne of 200 adds to it', () => {
-    const livret = { ...LIVRET, recordedValue: 12_000 };
+    const livret = {
+      ...LIVRET,
+      recordedValue: 12_000,
+      latestRecordedAt: on(6),
+    };
 
-    // The cutoff drops the Épargne checked before the entry; the repository
-    // hands over only the 200 checked after it.
-    const result = compute([livret], {
-      checkedLines: [line({ assetId: 'livret', kind: 'saving', amount: 200 })],
-    });
+    const result = compute(
+      [livret],
+      withMovements([
+        // Checked before the entry, which already holds it.
+        EPARGNE_MENSUELLE,
+        prevision({
+          id: 'epargne-2',
+          assetId: 'livret',
+          kind: 'saving',
+          amount: 200,
+          checkedAt: on(7),
+        }),
+      ]),
+    );
 
     expect(valueOf(result, 'livret')).toBe(12_200);
   });
 
   it('CA6: a debt never goes below zero', () => {
-    const result = compute([{ ...LEASING, recordedValue: 200 }], {
-      checkedLines: [MENSUALITE_LEASING],
-    });
+    const result = compute(
+      [{ ...LEASING, recordedValue: 200 }],
+      withMovements([MENSUALITE_LEASING]),
+    );
 
     expect(valueOf(result, 'leasing')).toBe(0);
     expect(result.totals.debts).toBe(0);
   });
 
   it('lets an own asset go below zero, counted as a debt', () => {
-    const result = compute([{ ...LIVRET, recordedValue: 400 }], {
-      checkedLines: [RETRAIT],
-    });
+    const result = compute(
+      [{ ...LIVRET, recordedValue: 400 }],
+      withMovements([RETRAIT]),
+    );
 
     expect(valueOf(result, 'livret')).toBe(-600);
     expect(result.totals).toMatchObject({ gross: 0, debts: 600, net: -600 });
   });
 
   it('CA7: after CA1 and CA2, every total is the sum of the values shown', () => {
-    const result = compute([LIVRET, LEASING], {
-      checkedLines: [EPARGNE_MENSUELLE, MENSUALITE_LEASING],
-    });
+    const result = compute(
+      [LIVRET, LEASING],
+      withMovements([EPARGNE_MENSUELLE, MENSUALITE_LEASING]),
+    );
 
     const own = result.assets
       .filter((a) => a.direction === 'own')
@@ -344,9 +400,12 @@ describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
   });
 
   it('moves nothing for a pairing the database refuses to link', () => {
-    const result = compute([LIVRET], {
-      checkedLines: [line({ assetId: 'livret', kind: 'expense', amount: 50 })],
-    });
+    const result = compute(
+      [LIVRET],
+      withMovements([
+        prevision({ assetId: 'livret', kind: 'expense', amount: 50 }),
+      ]),
+    );
 
     expect(valueOf(result, 'livret')).toBe(10_000);
   });
@@ -354,7 +413,7 @@ describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
   it("CA14: a EUR asset receives the CHF line converted at today's rate", () => {
     const livretEur = { ...LIVRET, currency: 'EUR' as const };
     const result = compute([livretEur], {
-      checkedLines: [EPARGNE_MENSUELLE],
+      ...withMovements([EPARGNE_MENSUELLE]),
       rates: { EUR: 0.93 },
     });
 
@@ -365,7 +424,7 @@ describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
 
   it('CA14: without a rate, a EUR asset keeps its last entry and the page is incomplete', () => {
     const livretEur = { ...LIVRET, currency: 'EUR' as const };
-    const result = compute([livretEur], { checkedLines: [EPARGNE_MENSUELLE] });
+    const result = compute([livretEur], withMovements([EPARGNE_MENSUELLE]));
 
     expect(valueOf(result, 'livret')).toBe(10_000);
     expect(result.assets[0]?.convertedValue).toBeNull();
@@ -374,7 +433,7 @@ describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
 
   it('CA15: an archived asset keeps its last entry and the totals do not move', () => {
     const archived = { ...LIVRET, archivedAt: '2026-11-01T00:00:00.000Z' };
-    const result = compute([archived], { checkedLines: [EPARGNE_MENSUELLE] });
+    const result = compute([archived], withMovements([EPARGNE_MENSUELLE]));
 
     expect(valueOf(result, 'livret')).toBe(10_000);
     expect(result.totals).toMatchObject({ gross: 0, net: 0 });
@@ -383,7 +442,9 @@ describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
   it('converts into a CHF asset when the base currency is EUR', () => {
     const result = compute([LIVRET], {
       baseCurrency: 'EUR',
-      checkedLines: [line({ assetId: 'livret', kind: 'saving', amount: 93 })],
+      ...withMovements([
+        prevision({ assetId: 'livret', kind: 'saving', amount: 93 }),
+      ]),
       rates: { CHF: 0.93 },
     });
 
@@ -391,13 +452,543 @@ describe('computeNetWorth: the value follows what is checked (PUL-377)', () => {
   });
 });
 
-describe('checkedLinesCutoffs', () => {
-  it('is the last entry of each active asset, none for an archived one', () => {
+// PUL-378 jeu d'essai, CHF, nothing checked, entries on 3 November.
+const COMPTE_COURANT = asset({
+  id: 'compte-courant',
+  name: 'Compte courant',
+  recordedValue: 5_000,
+});
+const REVOLUT = asset({ id: 'revolut', name: 'Revolut', recordedValue: 400 });
+const CARTE = asset({
+  id: 'carte',
+  categoryId: BIENS.id,
+  name: 'Carte de crédit',
+  direction: 'owe',
+  recordedValue: 200,
+});
+const JEU_D_ESSAI = [COMPTE_COURANT, REVOLUT, LIVRET, LEASING];
+const AVEC_CARTE = [...JEU_D_ESSAI, CARTE];
+
+function courses(overrides: Partial<MovementLine> = {}): MovementLine {
+  return prevision({
+    id: 'courses',
+    kind: 'expense',
+    amount: 400,
+    accountId: 'compte-courant',
+    ...overrides,
+  });
+}
+
+describe('computeNetWorth: a movement moves its account (PUL-378)', () => {
+  it('starts from the jeu d’essai: gross 15 400, debts 8 000, net 7 400', () => {
+    const result = compute(JEU_D_ESSAI);
+
+    expect(result.totals).toMatchObject({
+      gross: 15_400,
+      debts: 8_000,
+      net: 7_400,
+    });
+  });
+
+  describe('Ce que ça change dans « Mon patrimoine »', () => {
+    it('CA5: the imprévu « Restaurant » 80 on the Compte courant, checked: 4 920, net 7 320', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([], [free('compte-courant', 'expense', 80)]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(4_920);
+      expect(result.totals.net).toBe(7_320);
+    });
+
+    it('CA6: the Revenu « Salaire » 6 000 on the Compte courant, checked: 11 000, net 13 400', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([
+          prevision({
+            kind: 'income',
+            amount: 6_000,
+            accountId: 'compte-courant',
+          }),
+        ]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(11_000);
+      expect(result.totals.net).toBe(13_400);
+    });
+
+    it('CA7: « Épargne mensuelle » 500 from the Compte courant « Versée sur » Livret: 4 500 and 10 500, net unchanged', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([{ ...EPARGNE_MENSUELLE, accountId: 'compte-courant' }]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(4_500);
+      expect(valueOf(result, 'livret')).toBe(10_500);
+      expect(result.totals.net).toBe(7_400);
+    });
+
+    it('CA8: « Mensualité leasing » 300 from the Compte courant repaying the Leasing: 4 700 and 7 700, net unchanged', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([{ ...MENSUALITE_LEASING, accountId: 'compte-courant' }]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(4_700);
+      expect(valueOf(result, 'leasing')).toBe(7_700);
+      expect(result.totals.net).toBe(7_400);
+    });
+
+    it('CA9: « Retrait » 1 000 « Tiré de » Livret onto the Compte courant: 9 000 and 6 000, net unchanged', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([{ ...RETRAIT, accountId: 'compte-courant' }]),
+      );
+
+      expect(valueOf(result, 'livret')).toBe(9_000);
+      expect(valueOf(result, 'compte-courant')).toBe(6_000);
+      expect(result.totals.net).toBe(7_400);
+    });
+
+    it('CA10, CA12: unchecked or deleted, « Restaurant » is no longer read and the Compte courant is back at 5 000', () => {
+      // `list_asset_movements` only returns a free movement once checked, and
+      // a deleted one is gone (movement_account_link.sql).
+      const result = compute(JEU_D_ESSAI, withMovements([], []));
+
+      expect(valueOf(result, 'compte-courant')).toBe(5_000);
+      expect(result.totals.net).toBe(7_400);
+    });
+
+    it('CA11: « Restaurant » moved to Revolut: the Compte courant is back at 5 000 and Revolut is 320', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([], [free('revolut', 'expense', 80)]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(5_000);
+      expect(valueOf(result, 'revolut')).toBe(320);
+    });
+
+    it('CA13: an Épargne 500 with « Aucun » as account still feeds the Livret: Compte courant 5 000, Livret 10 500', () => {
+      const result = compute(JEU_D_ESSAI, withMovements([EPARGNE_MENSUELLE]));
+
+      expect(valueOf(result, 'compte-courant')).toBe(5_000);
+      expect(valueOf(result, 'livret')).toBe(10_500);
+    });
+
+    it('CA14: a Dépense of 500 on Revolut overdraws it to −100, counted with the debts', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([], [free('revolut', 'expense', 500)]),
+      );
+
+      expect(valueOf(result, 'revolut')).toBe(-100);
+      expect(result.totals).toMatchObject({
+        gross: 15_000,
+        debts: 8_100,
+        net: 6_900,
+      });
+    });
+
+    it('CA15: an entry of 4 880 between the movement of 120 and the check of « Courses » 400: 4 600', () => {
+      const compteCourant = {
+        ...COMPTE_COURANT,
+        recordedValue: 4_880,
+        latestRecordedAt: on(5),
+      };
+
+      const result = compute(
+        [compteCourant],
+        withMovements([
+          courses({
+            checkedAt: on(6),
+            checkedReals: [{ amount: 120, checkedAt: on(4) }],
+          }),
+        ]),
+      );
+
+      // 400 counted now, 120 counted at the entry: 280 more, not 400.
+      expect(valueOf(result, 'compte-courant')).toBe(4_600);
+    });
+
+    it('a movement checked at the very instant of the entry is already in it', () => {
+      const result = compute(
+        [COMPTE_COURANT],
+        withMovements(
+          [],
+          [
+            free(
+              'compte-courant',
+              'expense',
+              80,
+              COMPTE_COURANT.latestRecordedAt,
+            ),
+          ],
+        ),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(5_000);
+    });
+
+    it("CA16: a EUR account receives the amount converted at today's rate", () => {
+      const compteEur = { ...COMPTE_COURANT, currency: 'EUR' as const };
+      const result = compute([compteEur], {
+        ...withMovements([], [free('compte-courant', 'expense', 80)]),
+        rates: { EUR: 0.8 },
+      });
+
+      // 80 CHF / 0.8 = 100 EUR.
+      expect(valueOf(result, 'compte-courant')).toBe(4_900);
+      expect(result.assets[0]?.convertedValue).toBe(3_920);
+    });
+
+    it('CA16: without a rate, a EUR account keeps its last entry', () => {
+      const compteEur = { ...COMPTE_COURANT, currency: 'EUR' as const };
+      const result = compute(
+        [compteEur],
+        withMovements([], [free('compte-courant', 'expense', 80)]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(5_000);
+      expect(result.totals.incomplete).toBe(true);
+    });
+  });
+
+  describe('Prévision et mouvements réels rattachés', () => {
+    it('CA17: « Courses » 400 unchecked, with 120 checked: 4 880', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([
+          courses({
+            checkedAt: null,
+            checkedReals: [{ amount: 120, checkedAt: on(4) }],
+          }),
+        ]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(4_880);
+    });
+
+    it('CA18: then « Courses » is checked: 4 600', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([
+          courses({
+            checkedAt: on(6),
+            checkedReals: [{ amount: 120, checkedAt: on(4) }],
+          }),
+        ]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(4_600);
+    });
+
+    it('CA19: « Courses » checked with 450 of checked movements: 4 550', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([
+          courses({
+            checkedReals: [
+              { amount: 300, checkedAt: on(6) },
+              { amount: 150, checkedAt: on(7) },
+            ],
+          }),
+        ]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(4_550);
+    });
+
+    it('CA20: an Épargne 500 to the Livret, checked with 600 of movements: 4 400 and 10 600, both sides alike', () => {
+      const result = compute(
+        JEU_D_ESSAI,
+        withMovements([
+          {
+            ...EPARGNE_MENSUELLE,
+            accountId: 'compte-courant',
+            checkedReals: [{ amount: 600, checkedAt: on(6) }],
+          },
+        ]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(4_400);
+      expect(valueOf(result, 'livret')).toBe(10_600);
+      expect(result.totals.net).toBe(7_400);
+    });
+
+    it('CA21: one account, a whole month, no entry: the account moves as much as the checked balance', () => {
+      type Line = MovementLine & { name: string };
+      const line = (
+        name: string,
+        kind: TransactionKind,
+        amount: number,
+        checkedAt: string | null,
+        reals: number[] = [],
+      ): Line => ({
+        ...prevision({ kind, amount, accountId: 'compte-courant' }),
+        id: name,
+        name,
+        checkedAt,
+        checkedReals: reals.map((real, i) => ({
+          amount: real,
+          checkedAt: on(10 + i),
+        })),
+      });
+      const lines = [
+        line('Salaire', 'income', 6_000, on(5)),
+        line('Loyer', 'expense', 1_500, on(5), [1_600]),
+        line('Courses', 'expense', 400, null, [120]),
+        line('Épargne', 'saving', 500, on(6)),
+        line('Vacances', 'expense', 1_000, null),
+      ];
+      const freeMovements = [
+        free('compte-courant', 'expense', 80, on(7)),
+        free('compte-courant', 'income', 50, on(8)),
+      ];
+
+      const result = compute(
+        [COMPTE_COURANT],
+        withMovements(lines, freeMovements),
+      );
+
+      const checkedBalance = BudgetFormulas.calculateRealizedBalance(lines, [
+        ...lines.flatMap((l) =>
+          l.checkedReals.map((real) => ({
+            kind: l.kind,
+            amount: real.amount,
+            checkedAt: real.checkedAt,
+            budgetLineId: l.id,
+          })),
+        ),
+        ...freeMovements.map((m) => ({ ...m, budgetLineId: null })),
+      ]);
+      expect(checkedBalance).toBe(3_750);
+      expect((valueOf(result, 'compte-courant') ?? 0) - 5_000).toBe(
+        checkedBalance,
+      );
+    });
+
+    it('CA43: « Salaire » 6 000 checked with a movement of 6 000 checked: 11 000, while the budget counts 12 000', () => {
+      const salaire = prevision({
+        id: 'salaire',
+        kind: 'income',
+        amount: 6_000,
+        accountId: 'compte-courant',
+        checkedReals: [{ amount: 6_000, checkedAt: on(6) }],
+      });
+
+      const result = compute(JEU_D_ESSAI, withMovements([salaire]));
+
+      expect(valueOf(result, 'compte-courant')).toBe(11_000);
+      expect(
+        BudgetFormulas.calculateRealizedBalance(
+          [salaire],
+          [
+            {
+              kind: 'income',
+              amount: 6_000,
+              checkedAt: on(6),
+              budgetLineId: 'salaire',
+            },
+          ],
+        ),
+      ).toBe(12_000);
+    });
+  });
+
+  describe('Modèle, lissage, suppression', () => {
+    it('CA46: « Courses » 400 on Revolut checked with 120: Revolut 0; once deleted, its freed 120 keep Revolut: 280', () => {
+      const before = compute(
+        JEU_D_ESSAI,
+        withMovements([
+          courses({
+            accountId: 'revolut',
+            checkedReals: [{ amount: 120, checkedAt: on(6) }],
+          }),
+        ]),
+      );
+      // The delete trigger hands the freed movement the prévision's account.
+      const after = compute(
+        JEU_D_ESSAI,
+        withMovements([], [free('revolut', 'expense', 120, on(6))]),
+      );
+
+      expect(valueOf(before, 'revolut')).toBe(0);
+      expect(valueOf(after, 'revolut')).toBe(280);
+    });
+
+    it('CA24: an archived account keeps the link but checking no longer moves it', () => {
+      const archived = { ...REVOLUT, archivedAt: '2026-11-04T00:00:00.000Z' };
+      const result = compute(
+        [COMPTE_COURANT, archived],
+        withMovements([], [free('revolut', 'expense', 80)]),
+      );
+
+      expect(valueOf(result, 'revolut')).toBe(400);
+      expect(result.totals).toMatchObject({ gross: 5_000, debts: 0 });
+    });
+  });
+
+  describe('Payer avec une dette', () => {
+    it('starts with the Carte de crédit at 200: debts 8 200, net 7 200', () => {
+      expect(compute(AVEC_CARTE).totals).toMatchObject({
+        debts: 8_200,
+        net: 7_200,
+      });
+    });
+
+    it('CA37: « Restaurant » 80 on the Carte de crédit: 280, debts 8 280, net 7 120, Compte courant 5 000', () => {
+      const result = compute(
+        AVEC_CARTE,
+        withMovements([], [free('carte', 'expense', 80)]),
+      );
+
+      expect(valueOf(result, 'carte')).toBe(280);
+      expect(valueOf(result, 'compte-courant')).toBe(5_000);
+      expect(result.totals).toMatchObject({ debts: 8_280, net: 7_120 });
+    });
+
+    it('CA38: « Restaurant » unchecked: the Carte de crédit is back at 200', () => {
+      const result = compute(AVEC_CARTE, withMovements([], []));
+
+      expect(valueOf(result, 'carte')).toBe(200);
+    });
+
+    it('CA39: a Revenu of 50 on the card brings it to 150; one of 300 to 0, never below', () => {
+      const fifty = compute(
+        AVEC_CARTE,
+        withMovements([], [free('carte', 'income', 50)]),
+      );
+      const threeHundred = compute(
+        AVEC_CARTE,
+        withMovements([], [free('carte', 'income', 300)]),
+      );
+
+      expect(valueOf(fifty, 'carte')).toBe(150);
+      expect(valueOf(threeHundred, 'carte')).toBe(0);
+    });
+
+    it('CA40: « Mensualité leasing » 300 paid by card: Carte 500, Leasing 7 700, net still 7 200', () => {
+      const result = compute(
+        AVEC_CARTE,
+        withMovements([{ ...MENSUALITE_LEASING, accountId: 'carte' }]),
+      );
+
+      expect(valueOf(result, 'carte')).toBe(500);
+      expect(valueOf(result, 'leasing')).toBe(7_700);
+      expect(result.totals.net).toBe(7_200);
+    });
+
+    it('CA41: after entries of 0 for the card and 4 920 for the Compte courant, the rest starts from them', () => {
+      const carte = { ...CARTE, recordedValue: 0, latestRecordedAt: on(6) };
+      const compteCourant = {
+        ...COMPTE_COURANT,
+        recordedValue: 4_920,
+        latestRecordedAt: on(6),
+      };
+
+      const result = compute(
+        [compteCourant, carte],
+        withMovements(
+          [],
+          [
+            // « Restaurant » 80, checked before the entries: already in them.
+            free('carte', 'expense', 80, on(5)),
+            free('carte', 'expense', 30, on(7)),
+          ],
+        ),
+      );
+
+      expect(valueOf(result, 'carte')).toBe(30);
+      expect(valueOf(result, 'compte-courant')).toBe(4_920);
+    });
+
+    it('takes a debt in check order: Leasing 200, repayment 300 checked → 0, then a purchase of 100 checked afterwards → 100', () => {
+      const leasing = { ...LEASING, recordedValue: 200 };
+      const repayment = { ...MENSUALITE_LEASING, checkedAt: on(5) };
+      const purchase = free('leasing', 'expense', 100, on(6));
+
+      const afterRepayment = compute([leasing], withMovements([repayment]));
+      const afterPurchase = compute(
+        [leasing],
+        withMovements([repayment], [purchase]),
+      );
+
+      expect(valueOf(afterRepayment, 'leasing')).toBe(0);
+      expect(valueOf(afterPurchase, 'leasing')).toBe(100);
+    });
+
+    it('loses the neutrality when a debt touches zero: 300 from the Compte courant on a debt of 200', () => {
+      const leasing = { ...LEASING, recordedValue: 200 };
+      const result = compute(
+        [COMPTE_COURANT, leasing],
+        withMovements([{ ...MENSUALITE_LEASING, accountId: 'compte-courant' }]),
+      );
+
+      expect(valueOf(result, 'compte-courant')).toBe(4_700);
+      expect(valueOf(result, 'leasing')).toBe(0);
+      // Net was 4 800, it is now 4 700.
+      expect(result.totals.net).toBe(4_700);
+    });
+  });
+});
+
+describe('movementsSince', () => {
+  it('is the earliest last entry among the active assets', () => {
     expect(
-      checkedLinesCutoffs([
-        asset({ id: 'a' }),
+      movementsSince([
+        asset({ id: 'a', latestRecordedAt: on(10) }),
+        asset({ id: 'b', latestRecordedAt: on(3) }),
+        asset({
+          id: 'old',
+          latestRecordedAt: on(1),
+          archivedAt: '2026-10-01T00:00:00.000Z',
+        }),
+      ]),
+    ).toBe(on(3));
+  });
+
+  it('is null without an active asset', () => {
+    expect(
+      movementsSince([
         asset({ id: 'old', archivedAt: '2026-10-01T00:00:00.000Z' }),
       ]),
-    ).toEqual([{ assetId: 'a', since: '2026-11-03T10:00:00.000Z' }]);
+    ).toBeNull();
+  });
+});
+
+// The server writes the default account on create (accountIdForCreate); these
+// are the movements it leaves behind, read back by the value.
+describe('computeNetWorth: movements created with a default account (PUL-378)', () => {
+  it('CA36: Compte courant by default, « Loyer » 1 500, « Restaurant » 80 and « Salaire » 6 000 checked: 9 420', () => {
+    const result = compute(
+      JEU_D_ESSAI,
+      withMovements(
+        [
+          prevision({
+            id: 'loyer',
+            kind: 'expense',
+            amount: 1_500,
+            accountId: 'compte-courant',
+          }),
+          prevision({
+            id: 'salaire',
+            kind: 'income',
+            amount: 6_000,
+            accountId: 'compte-courant',
+          }),
+        ],
+        [free('compte-courant', 'expense', 80)],
+      ),
+    );
+
+    expect(valueOf(result, 'compte-courant')).toBe(9_420);
+  });
+
+  it('CA45: Livret by default, the Épargne 500 « Versée sur » Livret kept without account: Livret 10 500 once checked', () => {
+    const result = compute(JEU_D_ESSAI, withMovements([EPARGNE_MENSUELLE]));
+
+    expect(valueOf(result, 'livret')).toBe(10_500);
+    expect(valueOf(result, 'compte-courant')).toBe(5_000);
   });
 });

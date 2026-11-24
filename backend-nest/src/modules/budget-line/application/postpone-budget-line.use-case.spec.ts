@@ -20,6 +20,7 @@ const eligibleLine: BudgetLine = {
   templateLineId: 'tpl-1',
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,

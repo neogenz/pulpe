@@ -22,6 +22,8 @@ export interface UserSettings {
   showCurrencySelector: boolean;
   /** Interface language. Independent of `currency`, which drives amount formatting. */
   locale?: SupportedLocale;
+  /** Asset attached to the movements created without an account (PUL-378). */
+  defaultAccountId: string | null;
 }
 
 /**
@@ -41,6 +43,8 @@ export interface UpdateUserSettingsInput {
   currency?: SupportedCurrency;
   showCurrencySelector?: boolean;
   locale?: SupportedLocale;
+  /** `null` removes the default account; an archived or foreign asset is refused. */
+  defaultAccountId?: string | null;
 }
 
 /**

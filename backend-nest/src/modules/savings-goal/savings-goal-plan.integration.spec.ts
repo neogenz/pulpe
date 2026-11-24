@@ -48,6 +48,7 @@ import { EnsureBudgetsForPeriodsUseCase } from '@modules/budget/application/ensu
 import { CreateBudgetLineSpreadUseCase } from '@modules/budget-line/application/create-budget-line-spread.use-case';
 import { SupabaseBudgetLineRepository } from '@modules/budget-line/infrastructure/persistence/supabase-budget-line.repository';
 import { SupabaseBudgetLineSpreadReader } from '@modules/budget-line/infrastructure/persistence/supabase-budget-line-spread.reader';
+import type { UserRepositoryPort } from '@modules/user/domain/ports/user-repository.port';
 
 const PASSWORD = 'test-password-123';
 
@@ -193,6 +194,9 @@ function applyPlanUseCaseFor(
         ),
         recalcPort,
         cacheStub,
+        {
+          findDefaultAccountId: async () => null,
+        } as unknown as UserRepositoryPort,
         noopLogger,
       )
     : ({

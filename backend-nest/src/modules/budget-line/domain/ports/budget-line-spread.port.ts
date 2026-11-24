@@ -28,6 +28,7 @@ export interface SpreadFanOutInput {
   kind: BudgetLine['kind'];
   savingsGoalId?: string | null;
   assetId?: string | null;
+  accountId?: string | null;
   tranches: SpreadTranche[];
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;

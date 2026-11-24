@@ -6,6 +6,7 @@ import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
 import { SAVINGS_GOAL_WITHDRAWAL_POLICY } from '@modules/savings-goal/domain/ports/savings-goal-withdrawal-policy.port';
+import { USER_REPOSITORY } from '@modules/user/domain/ports/user-repository.port';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { TransactionCreate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -15,6 +16,7 @@ const mockTransactionEntity: Transaction = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   budgetId: '123e4567-e89b-12d3-a456-426614174001',
   budgetLineId: null,
+  accountId: null,
   amount: 50,
   name: 'Restaurant',
   kind: 'expense',
@@ -49,6 +51,7 @@ describe('CreateTransactionUseCase', () => {
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
   let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
+  let mockUserRepo: { findDefaultAccountId: ReturnType<typeof jest.fn> };
 
   beforeEach(async () => {
     mockRepo = {
@@ -68,6 +71,7 @@ describe('CreateTransactionUseCase', () => {
     mockBudget = {
       recalculate: jest.fn().mockResolvedValue(undefined),
     };
+    mockUserRepo = { findDefaultAccountId: jest.fn().mockResolvedValue(null) };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -80,6 +84,7 @@ describe('CreateTransactionUseCase', () => {
           provide: SAVINGS_GOAL_WITHDRAWAL_POLICY,
           useValue: mockWithdrawalPolicy,
         },
+        { provide: USER_REPOSITORY, useValue: mockUserRepo },
         {
           provide: `INFO_LOGGER:${CreateTransactionUseCase.name}`,
           useValue: {
@@ -407,6 +412,151 @@ describe('CreateTransactionUseCase', () => {
       );
       expect(mockRepo.insertWithdrawal).not.toHaveBeenCalled();
       expect(mockBudget.recalculate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('account of the movement (PUL-378)', () => {
+    const compteCourantId = '123e4567-e89b-42d3-a456-000000000001';
+    const budgetId = '123e4567-e89b-12d3-a456-426614174001';
+
+    it('CA5: writes the chosen account on a free movement (Restaurant 80 on Compte courant)', async () => {
+      await useCase.execute(
+        {
+          budgetId,
+          name: 'Restaurant',
+          amount: 80,
+          kind: 'expense',
+          checkedAt: '2026-11-05T10:00:00Z',
+          accountId: compteCourantId,
+        },
+        mockUser,
+      );
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBe(compteCourantId);
+    });
+
+    it('CA4: an allocated movement stores no account, it follows its prévision', async () => {
+      mockRepo.fetchBudgetLineForAllocation.mockResolvedValueOnce({
+        id: 'line-courses',
+        budgetId,
+        kind: 'expense',
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: null,
+      });
+
+      await useCase.execute(
+        {
+          budgetId,
+          budgetLineId: 'line-courses',
+          name: 'Courses',
+          amount: 120,
+          kind: 'expense',
+          accountId: compteCourantId,
+        },
+        mockUser,
+      );
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBeNull();
+    });
+
+    it('an old client that sends no account creates a movement without one', async () => {
+      await useCase.execute(
+        { budgetId, name: 'Restaurant', amount: 80, kind: 'expense' },
+        mockUser,
+      );
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBeNull();
+    });
+
+    it('writes the account of a savings-goal withdrawal through its RPC', async () => {
+      await useCase.execute(
+        {
+          budgetId,
+          name: 'Retrait',
+          amount: 1000,
+          kind: 'income',
+          sourceSavingsGoalId: '123e4567-e89b-42d3-a456-000000000009',
+          accountId: compteCourantId,
+        },
+        mockUser,
+      );
+
+      expect(mockRepo.insertWithdrawal.mock.calls[0][0].accountId).toBe(
+        compteCourantId,
+      );
+    });
+  });
+
+  describe('default account (PUL-378)', () => {
+    const compteCourantId = '123e4567-e89b-42d3-a456-000000000001';
+    const revolutId = '123e4567-e89b-42d3-a456-000000000002';
+    const budgetId = '123e4567-e89b-12d3-a456-426614174001';
+    const restaurant = {
+      budgetId,
+      name: 'Restaurant',
+      amount: 80,
+      kind: 'expense' as const,
+    };
+
+    it('CA32, CA36: a movement created without account takes the default (Restaurant 80 on Compte courant)', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+
+      await useCase.execute(restaurant, mockUser);
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBe(compteCourantId);
+    });
+
+    it('CA32, CA44: an explicit « Aucun » stays without account, the default is not read', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+
+      await useCase.execute(
+        { ...restaurant, name: 'Écart avec mes comptes', accountId: null },
+        mockUser,
+      );
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBeNull();
+      expect(mockUserRepo.findDefaultAccountId).not.toHaveBeenCalled();
+    });
+
+    it('CA29: a chosen account wins over the default', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+
+      await useCase.execute({ ...restaurant, accountId: revolutId }, mockUser);
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBe(revolutId);
+    });
+
+    it('CA4, CA32: an allocated movement never takes the default', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+      mockRepo.fetchBudgetLineForAllocation.mockResolvedValueOnce({
+        id: 'line-courses',
+        budgetId,
+        kind: 'expense',
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: null,
+      });
+
+      await useCase.execute(
+        { ...restaurant, name: 'Courses', budgetLineId: 'line-courses' },
+        mockUser,
+      );
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBeNull();
+      expect(mockUserRepo.findDefaultAccountId).not.toHaveBeenCalled();
+    });
+
+    it('CA33: once the default is Revolut, the next movement takes Revolut', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(revolutId);
+
+      await useCase.execute(restaurant, mockUser);
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBe(revolutId);
+    });
+
+    it('CA34: without a default, the next movement has no account', async () => {
+      await useCase.execute(restaurant, mockUser);
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBeNull();
     });
   });
 

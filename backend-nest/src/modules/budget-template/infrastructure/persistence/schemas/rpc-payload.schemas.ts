@@ -24,6 +24,7 @@ export const createTemplateLineRpcPayloadSchema = z
     // PUL-12 link — null when untagged / non-saving line.
     savings_goal_id: z.string().uuid().nullable().optional(),
     asset_id: z.string().uuid().nullable().optional(),
+    account_id: z.string().uuid().nullable().optional(),
     // PUL-18 links — empty when the API request omits tagIds.
     tag_ids: z.array(z.string().uuid()),
     description: z.string(),
@@ -67,6 +68,8 @@ export const applyTemplateLineOperationsItemSchema = z
     savings_goal_id: z.string().uuid().nullable().optional(),
     // Same contract as the goal link: null = unlink, absent = preserve.
     asset_id: z.string().uuid().nullable().optional(),
+    // PUL-378 account: null = no account, absent = preserve.
+    account_id: z.string().uuid().nullable().optional(),
     original_amount: z.string().min(1).nullable().optional(),
     original_currency: supportedCurrencySchema.nullable().optional(),
     target_currency: supportedCurrencySchema.nullable().optional(),

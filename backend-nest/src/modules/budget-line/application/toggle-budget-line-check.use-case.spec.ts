@@ -16,6 +16,7 @@ const mockEntity: BudgetLine = {
   templateLineId: null,
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,

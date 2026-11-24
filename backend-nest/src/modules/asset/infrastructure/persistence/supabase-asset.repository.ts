@@ -21,11 +21,21 @@ import type {
   AssetCreateInput,
   AssetRow,
   AssetSnapshotInput,
+  AssetMovements,
   AssetUpdatePatch,
   AssetWithValue,
-  CheckedLinesCutoff,
-  CheckedLinkedLine,
+  CheckedReal,
+  FreeMovement,
+  MovementLine,
 } from '../../domain/asset.entity';
+import type { Database } from '../../../../types/database.types';
+
+type ListedMovement =
+  Database['public']['Functions']['list_asset_movements']['Returns'][number];
+/** The generated type says every column is set; a row only fills those of its `movement`. */
+type AssetMovementRow = {
+  [K in keyof ListedMovement]: ListedMovement[K] | null;
+};
 
 const POSTGRES_FOREIGN_KEY_VIOLATION = '23503';
 const POSTGRES_UNIQUE_VIOLATION = '23505';
@@ -181,50 +191,61 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
     });
   }
 
-  async findCheckedLinkedLines(
-    cutoffs: CheckedLinesCutoff[],
-  ): Promise<CheckedLinkedLine[]> {
-    if (cutoffs.length === 0) return [];
+  async findMovementsSince(since: string): Promise<AssetMovements> {
     const supabase = this.supabaseProvider.client;
-
-    // `budget_line` has no user column: the asset ids come from the user's own
-    // assets, and the link trigger keeps a line on an asset of its owner.
-    // One read from the earliest cutoff, then each line is held to its own
-    // asset's cutoff. `gt` also drops the lines that are not checked.
-    const sinceByAssetId = new Map(
-      cutoffs.map(({ assetId, since }) => [assetId, Date.parse(since)]),
-    );
-    const earliestSince = new Date(
-      Math.min(...sinceByAssetId.values()),
-    ).toISOString();
-    const rows = await fetchAllPages((from, to) =>
+    const rows = await fetchAllPages<AssetMovementRow>((from, to) =>
       supabase
-        .from('budget_line')
-        .select('id, asset_id, kind, amount, checked_at')
-        .in('asset_id', [...sinceByAssetId.keys()])
-        .gt('checked_at', earliestSince)
+        .rpc('list_asset_movements', { p_since: since })
         .order('id', { ascending: true })
         .range(from, to),
     ).catch((error: unknown) => {
-      throw this.fetchFailed('listCheckedLinkedLines', error);
+      throw this.fetchFailed('listAssetMovements', error);
     });
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return rows.flatMap(
-      ({ asset_id: assetId, kind, amount, checked_at: checkedAt }) => {
-        const since = assetId ? sinceByAssetId.get(assetId) : undefined;
-        if (!assetId || since === undefined || !checkedAt || !amount) return [];
-        if (Date.parse(checkedAt) <= since) return [];
-        return {
-          assetId,
-          kind,
-          // Strict: the value of an asset must never move by an amount that
-          // failed to decrypt.
-          amount: this.encryption.decryptAmount(amount, dek),
-          checkedAt,
-        };
-      },
-    );
+    // Strict: the value of an asset must never move by an amount that failed
+    // to decrypt. A row without an amount moves nothing.
+    const decrypt = (amount: string) =>
+      this.encryption.decryptAmount(amount, dek);
+
+    const realsByLineId = new Map<string, CheckedReal[]>();
+    for (const row of rows) {
+      if (row.movement !== 'real' || !row.budget_line_id) continue;
+      if (!row.amount || !row.checked_at) continue;
+      const reals = realsByLineId.get(row.budget_line_id) ?? [];
+      reals.push({ amount: decrypt(row.amount), checkedAt: row.checked_at });
+      realsByLineId.set(row.budget_line_id, reals);
+    }
+
+    const lines = rows.flatMap((row): MovementLine[] => {
+      if (row.movement !== 'line' || !row.id || !row.kind || !row.amount) {
+        return [];
+      }
+      return [
+        {
+          id: row.id,
+          kind: row.kind,
+          amount: decrypt(row.amount),
+          checkedAt: row.checked_at,
+          accountId: row.account_id,
+          assetId: row.asset_id,
+          checkedReals: realsByLineId.get(row.id) ?? [],
+        },
+      ];
+    });
+    const freeMovements = rows.flatMap((row): FreeMovement[] => {
+      if (row.movement !== 'free' || !row.kind || !row.amount) return [];
+      if (!row.account_id || !row.checked_at) return [];
+      return [
+        {
+          accountId: row.account_id,
+          kind: row.kind,
+          amount: decrypt(row.amount),
+          checkedAt: row.checked_at,
+        },
+      ];
+    });
+    return { lines, freeMovements };
   }
 
   async insertAsset(input: AssetCreateInput): Promise<Asset> {

@@ -21,6 +21,7 @@ const mockRow: TransactionRow = {
   import_fingerprint: null,
   budget_id: 'budget-1',
   budget_line_id: null,
+  account_id: null,
   amount: 'encrypted',
   name: 'Restaurant',
   kind: 'expense' as const,

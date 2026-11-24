@@ -23,6 +23,7 @@ export interface BudgetLine {
   templateLineId: string | null;
   savingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
   /** PUL-17: groupe des prévisions sœurs d'une dépense lissée. null = non lissée. */
   spreadGroupId: string | null;
   /** PUL-292: groupe du couple Revenu M ↔ Épargne M+1 (pioche dans l'épargne). null = non liée. */
@@ -73,6 +74,7 @@ export interface SpreadSourceLine {
   budgetId: string;
   savingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
   month: number;
   year: number;
   name: string;
@@ -143,6 +145,7 @@ export interface TemplateLine {
   templateId: string;
   savingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -192,6 +195,7 @@ export interface BudgetLineCreateInput {
   templateLineId?: string | null;
   savingsGoalId?: string | null;
   assetId?: string | null;
+  accountId?: string | null;
   /**
    * Objectif source d'un retrait planifié. Seul l'identifiant est écrit : le
    * nom instantané est posé par le trigger qui valide déjà le tenant, donc les
@@ -228,6 +232,7 @@ export interface BudgetLineUpdatePatch {
   templateLineId?: string | null;
   savingsGoalId?: string | null;
   assetId?: string | null;
+  accountId?: string | null;
   /** présent = remplace l'ensemble des tags ; absent = ne touche pas */
   tagIds?: string[];
   isManuallyAdjusted?: boolean;

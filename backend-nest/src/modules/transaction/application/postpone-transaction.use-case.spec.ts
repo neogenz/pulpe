@@ -18,6 +18,7 @@ const eligibleTransaction: Transaction = {
   id: 'tx-1',
   budgetId: SOURCE_BUDGET_ID,
   budgetLineId: null,
+  accountId: null,
   name: 'Restaurant',
   amount: 42,
   originalAmount: null,

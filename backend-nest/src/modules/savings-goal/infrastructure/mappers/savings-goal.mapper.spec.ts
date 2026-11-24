@@ -180,6 +180,7 @@ describe('SavingsGoalMapper', () => {
           id: 'tx-1',
           budgetId: 'budget-1',
           budgetLineId: 'line-1',
+          accountId: null,
           name: 'Virement épargne',
           amount: 150,
           originalAmount: null,

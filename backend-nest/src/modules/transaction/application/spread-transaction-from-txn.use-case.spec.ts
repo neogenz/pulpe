@@ -18,6 +18,7 @@ import type { TransactionSpreadFromTxnCreate } from 'pulpe-shared';
 import { SpreadTransactionFromTxnUseCase } from './spread-transaction-from-txn.use-case';
 import { TRANSACTION_REPOSITORY } from '../domain/ports/transaction-repository.port';
 import type { SpreadSourceTransaction } from '../domain/transaction.entity';
+import { USER_REPOSITORY } from '@modules/user/domain/ports/user-repository.port';
 
 const mockUser: AuthenticatedUser = {
   id: 'user-1',
@@ -33,6 +34,7 @@ const makeSource = (
   budgetId: 'b-1-2026',
   userId: 'user-1',
   budgetLineId: null,
+  accountId: null,
   month: 1,
   year: 2026,
   name: 'Canapé',
@@ -55,6 +57,7 @@ const makeLine = (
   templateLineId: null,
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   spreadGroupId,
   savingsWithdrawalGroupId: null,
@@ -160,6 +163,15 @@ describe('SpreadTransactionFromTxnUseCase', () => {
       providers: [
         SpreadTransactionFromTxnUseCase,
         CreateBudgetLineSpreadUseCase,
+        // A spread takes its source's account, never the default one.
+        {
+          provide: USER_REPOSITORY,
+          useValue: {
+            findDefaultAccountId: jest
+              .fn()
+              .mockResolvedValue('99999999-9999-4999-8999-999999999999'),
+          },
+        },
         {
           provide: BUDGET_LINE_SPREAD_PORT,
           useExisting: CreateBudgetLineSpreadUseCase,
@@ -201,6 +213,19 @@ describe('SpreadTransactionFromTxnUseCase', () => {
     });
     expect(order).toEqual(['fanOut']);
     expect(mockTxnRepo.delete).not.toHaveBeenCalled();
+  });
+
+  it('CA23: every tranche takes the account of the spread movement', async () => {
+    const revolutId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+    mockTxnRepo.findSpreadSource.mockResolvedValue(
+      makeSource({ accountId: revolutId }),
+    );
+
+    await useCase.execute('txn-source', { periods: eightPeriods }, mockUser);
+
+    expect(captured[0].inputs.every((i) => i.accountId === revolutId)).toBe(
+      true,
+    );
   });
 
   it('rejects an allocated transaction (budgetLineId set) with TRANSACTION_NOT_SPREADABLE, no fan-out/delete', async () => {

@@ -118,6 +118,7 @@ export interface BudgetLineDecrypted {
   templateLineId: string | null;
   savingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
   spreadGroupId: string | null;
   savingsWithdrawalGroupId: string | null;
   sourceSavingsGoalId: string | null;
@@ -145,6 +146,7 @@ export interface TransactionDecrypted {
   id: string;
   budgetId: string;
   budgetLineId: string | null;
+  accountId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;

@@ -22,6 +22,11 @@ export interface TransactionImportRepositoryPort {
   /**
    * Creates every planned Réel in ONE statement: all rows or none. Throws
    * TRANSACTION_IMPORT_CONFLICT when one of them was imported in the meantime.
+   * Free Réels take `defaultAccountId`; attached ones follow their Prévision.
    */
-  insertAll(budgetId: string, planned: readonly PlannedImport[]): Promise<void>;
+  insertAll(
+    budgetId: string,
+    planned: readonly PlannedImport[],
+    defaultAccountId: string | null,
+  ): Promise<void>;
 }

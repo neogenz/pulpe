@@ -17,6 +17,7 @@ const mockEntity: BudgetLine = {
   templateLineId: null,
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
@@ -276,6 +277,55 @@ describe('UpdateBudgetLineUseCase', () => {
       );
 
       expect(patchSentToRepo().assetId).toBeNull();
+    });
+  });
+
+  describe('account (PUL-378)', () => {
+    const compteCourantId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+    const patchSentToRepo = () => mockRepo.update.mock.calls[0][1];
+
+    it('CA26: an update without the account keeps it, without tags', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, amount: 1500 },
+        mockUser,
+      );
+
+      expect(patchSentToRepo()).not.toHaveProperty('accountId');
+    });
+
+    it('CA26: an update without the account keeps it, with tags', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        {
+          id: mockEntity.id,
+          amount: 1500,
+          tagIds: ['8a0f6c80-1234-4e5f-89ab-666666666666'],
+        },
+        mockUser,
+      );
+
+      expect(patchSentToRepo()).not.toHaveProperty('accountId');
+    });
+
+    it('writes the account and keeps it across a kind change', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, kind: 'income', accountId: compteCourantId },
+        mockUser,
+      );
+
+      expect(patchSentToRepo().accountId).toBe(compteCourantId);
+    });
+
+    it('a kind change without the account leaves it untouched', async () => {
+      await useCase.execute(
+        mockEntity.id,
+        { id: mockEntity.id, kind: 'income' },
+        mockUser,
+      );
+
+      expect(patchSentToRepo()).not.toHaveProperty('accountId');
     });
   });
 

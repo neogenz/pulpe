@@ -30,6 +30,7 @@ function buildController() {
       currency: 'EUR' as const,
       showCurrencySelector: true,
       locale: 'de' as const,
+      defaultAccountId: null,
     })),
   };
   const updateSettings = {
@@ -115,6 +116,7 @@ describe('UserController (HTTP wiring)', () => {
         currency: 'EUR',
         showCurrencySelector: true,
         locale: 'de',
+        defaultAccountId: null,
       });
     });
   });

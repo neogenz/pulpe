@@ -10,6 +10,11 @@ import {
 } from '@modules/budget/domain/ports/budget-recalculation.port';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { accountIdForCreate } from '@common/utils/asset-link';
+import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '@modules/user/domain/ports/user-repository.port';
 import {
   SAVINGS_GOAL_WITHDRAWAL_POLICY,
   type SavingsGoalWithdrawalPolicyPort,
@@ -36,6 +41,8 @@ export class CreateTransactionUseCase {
     private readonly budgetRecalculation: BudgetRecalculationPort,
     @Inject(SAVINGS_GOAL_WITHDRAWAL_POLICY)
     private readonly withdrawalPolicy: SavingsGoalWithdrawalPolicyPort,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepositoryPort,
     @InjectInfoLogger(CreateTransactionUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -60,6 +67,13 @@ export class CreateTransactionUseCase {
       id: withRate.id,
       budgetId: withRate.budgetId,
       budgetLineId: withRate.budgetLineId ?? null,
+      // CA4: an allocated movement follows its prévision's account, never the
+      // default one.
+      accountId: allocatedLine
+        ? null
+        : await accountIdForCreate(withRate.accountId, null, () =>
+            this.userRepo.findDefaultAccountId(),
+          ),
       name: withRate.name,
       amount: withRate.amount,
       originalAmount: withRate.originalAmount ?? null,

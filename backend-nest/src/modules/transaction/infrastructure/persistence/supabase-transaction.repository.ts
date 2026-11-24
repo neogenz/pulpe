@@ -12,6 +12,7 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { throwIfRetryableConflict } from '@common/utils/postgres-conflict';
+import { throwIfAccountLinkRefused } from '@common/utils/asset-link';
 import {
   fetchTagIds,
   replaceTagLinks as replaceTagLinksWithRpc,
@@ -140,6 +141,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       budgetId: decrypted.budget_id,
       userId: row.monthly_budget.user_id,
       budgetLineId: decrypted.budget_line_id,
+      accountId: decrypted.account_id,
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
       name: decrypted.name,
@@ -260,6 +262,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         );
       }
 
+      throwIfAccountLinkRefused(error, loggingContext);
+
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
         undefined,
@@ -347,6 +351,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       };
 
       throwIfRetryableConflict(error, 'transaction', loggingContext);
+      throwIfAccountLinkRefused(error, loggingContext);
 
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
@@ -605,6 +610,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         ...(insertRow.id ? { id: insertRow.id } : {}),
         budget_id: insertRow.budget_id,
         budget_line_id: insertRow.budget_line_id ?? null,
+        account_id: insertRow.account_id ?? null,
         name: insertRow.name,
         amount: insertRow.amount,
         original_amount: insertRow.original_amount ?? null,
@@ -748,6 +754,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     fallbackErrorDef: (typeof ERROR_DEFINITIONS)[keyof typeof ERROR_DEFINITIONS],
     transactionId?: string,
   ): BusinessException {
+    throwIfAccountLinkRefused(error, { operation, entityId: transactionId });
     return mapWithdrawalRpcError({
       error,
       operation,
@@ -1170,6 +1177,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       id: decrypted.id,
       budgetId: decrypted.budget_id,
       budgetLineId: decrypted.budget_line_id,
+      accountId: decrypted.account_id,
       name: decrypted.name,
       amount: decrypted.amount,
       originalAmount: decrypted.original_amount,
@@ -1243,6 +1251,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       ...(input.id ? { id: input.id } : {}),
       budget_id: input.budgetId,
       budget_line_id: input.budgetLineId ?? null,
+      account_id: input.accountId ?? null,
       name: input.name,
       amount: encryptedAmount,
       original_amount: encryptedOriginalAmount,
@@ -1304,6 +1313,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   private buildScalarUpdates(patch: TransactionUpdatePatch): TransactionUpdate {
     const updateData: TransactionUpdate = {};
     if (patch.name !== undefined) updateData.name = patch.name;
+    if (patch.accountId !== undefined) updateData.account_id = patch.accountId;
     if (patch.kind !== undefined)
       updateData.kind = patch.kind as TransactionKind;
     if (patch.transactionDate !== undefined)

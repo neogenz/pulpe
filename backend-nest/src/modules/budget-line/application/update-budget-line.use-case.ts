@@ -20,6 +20,21 @@ import type {
   BudgetLineUpdatePatch,
 } from '../domain/budget-line.entity';
 
+/**
+ * Absent keys keep the asset and the account (CA26). A kind change without a
+ * new asset clears it; the account has no direction rule and stays.
+ */
+function linkPatch(
+  dto: BudgetLineUpdate,
+  lineKind: BudgetLine['kind'],
+): BudgetLineUpdatePatch {
+  const patch: BudgetLineUpdatePatch = {};
+  const ruledAssetId = assetIdPatchForKind(dto.kind, lineKind, dto.assetId);
+  if (ruledAssetId !== undefined) patch.assetId = ruledAssetId;
+  if (dto.accountId !== undefined) patch.accountId = dto.accountId;
+  return patch;
+}
+
 @Injectable()
 export class UpdateBudgetLineUseCase {
   constructor(
@@ -69,7 +84,7 @@ export class UpdateBudgetLineUseCase {
     lineKind: BudgetLine['kind'],
     currentKind?: BudgetLine['kind'],
   ): BudgetLineUpdatePatch {
-    const patch: BudgetLineUpdatePatch = {};
+    const patch: BudgetLineUpdatePatch = linkPatch(dto, lineKind);
     if (dto.name !== undefined) patch.name = dto.name;
     if (dto.amount !== undefined) patch.amount = dto.amount;
     if (dto.originalAmount !== undefined)
@@ -95,9 +110,6 @@ export class UpdateBudgetLineUseCase {
     if (ruledSavingsGoalId !== undefined) {
       patch.savingsGoalId = ruledSavingsGoalId;
     }
-    // Absent key keeps the asset; a kind change without a new one clears it.
-    const ruledAssetId = assetIdPatchForKind(dto.kind, lineKind, dto.assetId);
-    if (ruledAssetId !== undefined) patch.assetId = ruledAssetId;
     if (dto.tagIds !== undefined) patch.tagIds = dto.tagIds;
     if (dto.isManuallyAdjusted !== undefined) {
       patch.isManuallyAdjusted = dto.isManuallyAdjusted;
