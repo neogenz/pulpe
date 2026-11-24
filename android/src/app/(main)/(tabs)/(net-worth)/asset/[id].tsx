@@ -70,7 +70,6 @@ export default function AssetDetailScreen() {
 
   const asset = history.data?.pages[0]?.asset;
   const entries = history.data?.pages.flatMap((page) => page.entries) ?? [];
-  // Every page carries it: the latest one is the freshest.
   // From the first page, like the asset: every write refetches it.
   const projection = history.data?.pages[0]?.monthEndProjection ?? null;
   // Archiving or deleting here refetches this history before going back: that
