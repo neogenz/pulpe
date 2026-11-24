@@ -67,3 +67,9 @@ Choix prudents pris là où le plan ne tranchait pas. À relire.
 - Préférences : la ligne « Compte par défaut » montre le nom du compte en description et non en valeur, sinon le titre se tronque à l'échelle de police 1,3. L'aide iOS est sur l'écran de choix.
 - Menu d'un élément : l'entrée « Utiliser par défaut dans le budget » dépasse les 280dp imposés par Paper, d'où une largeur forcée à 400.
 - Le message de CA25 n'apparaît qu'en cas de conflit (un HelperText réserve sinon une ligne vide sous les chips).
+
+## Écart de rapprochement des apps déjà installées (CA44)
+
+iOS 1.14.x et Android avant ce lot envoient l'écart sans `accountId` : le serveur y aurait posé le compte par défaut. Aucun marqueur ni route dédiée ne le distingue d'un mouvement ordinaire (même `POST /transactions`). Choix : le serveur le reconnaît à ce qu'il est, un mouvement libre (sans prévision), déjà pointé, sans `accountId`, au nom fixe de l'écart (« Écart avec mes comptes » et ses traductions en/de/it, ou « Ajustement » et ses traductions jusqu'à iOS 1.14.1), et le laisse sans compte. Les apps à jour envoient `null` explicitement, la règle ne les concerne pas.
+
+Limite acceptée : depuis une ancienne app, un mouvement libre saisi déjà pointé et nommé exactement « Ajustement » (ou l'un de ces noms) ne prend pas le compte par défaut. Impact : la personne choisit son compte à la main sur ce mouvement, comme avant PUL-378.
