@@ -139,7 +139,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
             @if (monthEnd(); as monthEnd) {
               <!-- A paragraph cannot carry an aria-label: the spoken sentence adds the condition. -->
               <p
-                class="ph-no-capture m-0 text-body-large tabular-nums"
+                class="ph-no-capture m-0 text-body-medium text-on-surface-variant tabular-nums"
                 data-testid="asset-detail-month-end"
               >
                 <span aria-hidden="true">{{ monthEnd.text }}</span>

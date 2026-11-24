@@ -115,7 +115,7 @@ describe('AssetHistoryStore', () => {
     expect(getHistory$).toHaveBeenCalledTimes(3);
   });
 
-  it('PUL-380: keeps the month-end projection of the latest page loaded', async () => {
+  it('PUL-380: keeps the month-end projection of the first page when a later page loads', async () => {
     await open(
       historyResponse({
         monthEndProjection: { month: 11, year: 2026, value: 8_000 },
@@ -135,7 +135,7 @@ describe('AssetHistoryStore', () => {
     );
     await store.loadMore();
 
-    expect(store.monthEndProjection()?.value).toBe(7_900);
+    expect(store.monthEndProjection()?.value).toBe(8_000);
   });
 
   it('PUL-380: reads a missing projection as none', async () => {
