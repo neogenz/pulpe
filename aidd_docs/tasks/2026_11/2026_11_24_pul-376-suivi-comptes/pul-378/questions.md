@@ -70,6 +70,15 @@ Choix prudents pris là où le plan ne tranchait pas. À relire.
 
 ## Écart de rapprochement des apps déjà installées (CA44)
 
-iOS 1.14.x et Android avant ce lot envoient l'écart sans `accountId` : le serveur y aurait posé le compte par défaut. Aucun marqueur ni route dédiée ne le distingue d'un mouvement ordinaire (même `POST /transactions`). Choix : le serveur le reconnaît à ce qu'il est, un mouvement libre (sans prévision), déjà pointé, sans `accountId`, au nom fixe de l'écart (« Écart avec mes comptes » et ses traductions en/de/it, ou « Ajustement » et ses traductions jusqu'à iOS 1.14.1), et le laisse sans compte. Les apps à jour envoient `null` explicitement, la règle ne les concerne pas.
+iOS 1.14.x et Android avant ce lot envoient l'écart sans `accountId` : le serveur y aurait posé le compte par défaut. Aucun marqueur ni route dédiée ne le distingue d'un mouvement ordinaire (même `POST /transactions`). Choix : le serveur le reconnaît à ce qu'il est, un mouvement libre (sans prévision), déjà pointé, sans `accountId`, et au nom de l'écart. Les apps à jour envoient `null` explicitement, la règle ne les concerne pas.
 
-Limite acceptée : depuis une ancienne app, un mouvement libre saisi déjà pointé et nommé exactement « Ajustement » (ou l'un de ces noms) ne prend pas le compte par défaut. Impact : la personne choisit son compte à la main sur ce mouvement, comme avant PUL-378.
+Noms retrouvés dans l'historique git (tags v0.60.0 à v0.66.2) :
+
+- depuis v0.66 (web, iOS, Android) : « Écart avec mes comptes », « Gap with my accounts », « Abweichung zu meinen Konten », « Scarto con i miei conti » ;
+- avant v0.66, iOS (nom fixe) : « Ajustement », « Adjustment », « Anpassung », « Aggiustamento » ;
+- avant v0.66, web et Android (libellé par défaut, modifiable) : « Ajustement », « Adjustment », « Ausgleich », « Allineamento ».
+
+Limites acceptées :
+
+1. Depuis une ancienne app, une dépense ou un revenu libre, saisi déjà pointé et que la personne appelle elle-même « Écart avec mes comptes » (ou l'un des noms ci-dessus), ne prend pas le compte par défaut. Impact : elle choisit le compte à la main sur ce mouvement, comme avant PUL-378. Les apps à jour envoient toujours le compte, elles ne sont pas touchées.
+2. Avant v0.66, le web et Android laissaient renommer l'écart. Un écart renommé, envoyé par un Android pas encore mis à jour, n'est pas reconnu et prend le compte par défaut : la valeur de ce compte bouge du montant de l'écart. Le web est servi à jour, seul un onglet resté ouvert depuis avant v0.66 serait concerné.

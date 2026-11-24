@@ -524,6 +524,9 @@ describe('CreateTransactionUseCase', () => {
       'Abweichung zu meinen Konten',
       'Scarto con i miei conti',
       'Ajustement',
+      'Anpassung',
+      'Ausgleich',
+      'Allineamento',
     ])(
       'CA44: the gap « %s » from an app that sends no account stays without account',
       async (name) => {

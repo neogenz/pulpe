@@ -213,19 +213,23 @@ export class CreateTransactionUseCase {
  * n'en porte pas.
  */
 /**
- * The fixed name each app gives the gap « Comparer avec mes comptes » writes, in
- * every language: « Ajustement » up to iOS 1.14.1, « Écart avec mes comptes »
- * since.
+ * The name each app gives the gap « Comparer avec mes comptes » writes, in
+ * every language: « Écart avec mes comptes » since v0.66. Before, iOS wrote a
+ * fixed « Ajustement », and the web and Android a default label the user could
+ * rename (a renamed one is not recognized).
  */
 const RECONCILIATION_GAP_NAMES = new Set([
   'Écart avec mes comptes',
   'Gap with my accounts',
   'Abweichung zu meinen Konten',
   'Scarto con i miei conti',
+  // Before v0.66: iOS (fixed), then the web and Android default label.
   'Ajustement',
   'Adjustment',
   'Anpassung',
   'Aggiustamento',
+  'Ausgleich',
+  'Allineamento',
 ]);
 
 /**
