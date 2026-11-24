@@ -58,3 +58,15 @@ Aucun défaut bloquant. Le calcul serveur tient (valeur et historique sortent de
 ## Non vérifié
 
 Tests SQL `asset_history_movements.sql` (base locale partagée non migrée sur cette branche), tests iOS (exclus par consigne), typage strict des templates Angular (`ng build`), e2e Playwright, rendu sur appareil (Dynamic Type, taille de police Android).
+
+## UX/UI pass (impeccable critique, web, iOS, Android)
+
+Fresh captures in light, dark and enlarged text in `shots/ux-before/` (local), after the fix in `shots/ux-after/` (local): `web-detail-not-found-desktop-light.png`, `web-detail-not-found-mobile-dark.png`.
+
+Fixed:
+- web, P2: the detail page rendered an empty `<h1>` while loading, on error and for an unknown or archived asset. It now falls back to the page title « Détail de l'élément ». 2a83942a6, CA15 spec asserts it.
+
+Rejected, with the reason:
+- web, P3: superseded and recorded history rows are barely distinct by color in dark mode. Their state is said in words on every row (« Déjà compris dans ta saisie du… », « Valeur enregistrée »), so the tint only reinforces it; retuning it is taste.
+- web, P3: a debt's value in amber on web, neutral on iOS and Android. Amber is the web's existing debt color in the list and CA13 of this story.
+- Not checked: an asset with an empty history (every seed asset has an entry), the « load more » error state, and hidden-amounts mode.
