@@ -206,13 +206,6 @@ export class CreateTransactionUseCase {
 }
 
 /**
- * Deux chemins, une seule origine effective : un revenu LIBRE déclare la sienne
- * (le contrat client l'autorise là seulement), une transaction ALLOUÉE hérite
- * de celle de sa prévision. Le client n'envoie donc jamais deux fois la même
- * origine, et il ne peut pas non plus en inventer une sur une prévision qui
- * n'en porte pas.
- */
-/**
  * The name each app gives the gap « Comparer avec mes comptes » writes, in
  * every language: « Écart avec mes comptes » since v0.66. Before, iOS wrote a
  * fixed « Ajustement », and the web and Android a default label the user could
@@ -252,6 +245,13 @@ function isUnmarkedReconciliationGap(
   );
 }
 
+/**
+ * Deux chemins, une seule origine effective : un revenu LIBRE déclare la sienne
+ * (le contrat client l'autorise là seulement), une transaction ALLOUÉE hérite
+ * de celle de sa prévision. Le client n'envoie donc jamais deux fois la même
+ * origine, et il ne peut pas non plus en inventer une sur une prévision qui
+ * n'en porte pas.
+ */
 function resolveSourceSavingsGoalId(
   dto: Pick<TransactionCreate, 'sourceSavingsGoalId'>,
   allocatedLine: BudgetLineForAllocation | null,
