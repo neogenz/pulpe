@@ -850,6 +850,27 @@ describe("« Compte » (PUL-378)", () => {
     expect(created()).toMatchObject({ accountId: REVOLUT });
   });
 
+  it("CA1 keeps « Compte » on an income drawn from a goal, like iOS", async () => {
+    mockSettings = { data: { defaultAccountId: COMPTE_COURANT } };
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fireEvent.press(view.getByText("vocabulary.kind.income"));
+    await fill(view, 120, "Retrait");
+    await fireEvent(
+      view.getByLabelText("budgets.mutations.activity.originAccessibility"),
+      "change",
+      { nativeEvent: { value: true } },
+    );
+    await fireEvent.press(view.getByText(/Voyage/));
+    await openAccounts(view);
+    await fireEvent.press(view.getByText("Revolut"));
+    await add(view);
+
+    expect(created()).toMatchObject({
+      sourceSavingsGoalId: "goal-1",
+      accountId: REVOLUT,
+    });
+  });
+
   it("CA29 lets me choose « Aucun » over the default", async () => {
     mockSettings = { data: { defaultAccountId: COMPTE_COURANT } };
     const view = await render(<TransactionSheet {...baseProps} />);

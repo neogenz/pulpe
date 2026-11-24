@@ -271,9 +271,9 @@ export function TransactionSheet({
         ? null
         : pickedLineId;
   const selectedLine = lines.find((line) => line.id === selectedLineId);
-  // A movement allocated to a prévision follows its account (CA4), and a
-  // withdrawal from a goal is routed on its own.
-  const isFreeMovement = selectedLineId === null && !isQuestionLockedByGoal;
+  // A movement allocated to a prévision follows its account (CA4). An income
+  // drawn from a goal is still a free movement: iOS and the web keep the field.
+  const isFreeMovement = selectedLineId === null;
   const showsAccount = account.isOffered && isFreeMovement;
   const hasEligibleLines = eligibleLines(lines, draft.kind).length > 0;
   const showsQuestion =
