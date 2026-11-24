@@ -28,6 +28,10 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
     var sourceSavingsGoalId: String?
     var sourceSavingsGoalName: String?
 
+    /// Net-worth element this movement moves (PUL-378). Absent in payloads served before the
+    /// feature, and for a movement allocated to a prévision, which follows its prévision's.
+    var accountId: String?
+
     // MARK: - Computed Properties
 
     var isChecked: Bool {
@@ -68,7 +72,8 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
             targetCurrency: targetCurrency,
             exchangeRate: exchangeRate,
             sourceSavingsGoalId: sourceSavingsGoalId,
-            sourceSavingsGoalName: sourceSavingsGoalName
+            sourceSavingsGoalName: sourceSavingsGoalName,
+            accountId: accountId
         )
     }
 }
@@ -97,6 +102,9 @@ struct TransactionCreate: Encodable {
     /// Only ever set at creation (PUL-329). The origin is immutable afterwards,
     /// so `TransactionUpdate` deliberately has no counterpart.
     let sourceSavingsGoalId: String?
+    /// Tri-state (PUL-378): `.none` omits the key (the server applies the default account),
+    /// `.some(nil)` sends `null` (« Aucun »), `.some(id)` sets it.
+    let accountId: String??
 
     init(
         budgetId: String,
@@ -112,7 +120,8 @@ struct TransactionCreate: Encodable {
         targetCurrency: SupportedCurrency? = nil,
         exchangeRate: Decimal? = nil,
         tagIds: [String]? = nil,
-        sourceSavingsGoalId: String? = nil
+        sourceSavingsGoalId: String? = nil,
+        accountId: String?? = nil
     ) {
         self.budgetId = budgetId
         self.budgetLineId = budgetLineId
@@ -128,6 +137,7 @@ struct TransactionCreate: Encodable {
         self.exchangeRate = exchangeRate
         self.tagIds = tagIds
         self.sourceSavingsGoalId = sourceSavingsGoalId
+        self.accountId = accountId
     }
 }
 
@@ -142,4 +152,6 @@ struct TransactionUpdate: Encodable {
     var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
     var tagIds: [String]?
+    /// Tri-state net-worth account, same contract as `BudgetLineUpdate.assetId`.
+    var accountId: String??
 }

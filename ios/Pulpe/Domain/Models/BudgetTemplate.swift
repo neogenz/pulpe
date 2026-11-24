@@ -30,6 +30,7 @@ struct TemplateLine: Codable, Identifiable, Hashable, Sendable {
     // Savings goal link (PUL-12) — the primary tagging surface lives on the template
     var savingsGoalId: String?
     var assetId: String?
+    var accountId: String?
     var tagIds: [String]?
 
     // Currency conversion metadata
@@ -74,6 +75,8 @@ struct TemplateLineCreate: Encodable {
     let description: String
     let savingsGoalId: String?
     let assetId: String?
+    /// Tri-state (PUL-378), see `TransactionCreate.accountId`.
+    let accountId: String??
     let originalAmount: Decimal?
     let originalCurrency: SupportedCurrency?
     let targetCurrency: SupportedCurrency?
@@ -88,6 +91,7 @@ struct TemplateLineCreate: Encodable {
         description: String = "",
         savingsGoalId: String? = nil,
         assetId: String? = nil,
+        accountId: String?? = nil,
         originalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
@@ -101,6 +105,7 @@ struct TemplateLineCreate: Encodable {
         self.description = description
         self.savingsGoalId = savingsGoalId
         self.assetId = assetId
+        self.accountId = accountId
         self.originalAmount = originalAmount
         self.originalCurrency = originalCurrency
         self.targetCurrency = targetCurrency
@@ -118,6 +123,7 @@ struct TemplateLineUpdate: Encodable {
     /// Tri-state savings-goal link — see `BudgetLineUpdate.savingsGoalId`.
     var savingsGoalId: String??
     var assetId: String??
+    var accountId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?
@@ -156,6 +162,7 @@ struct TemplateLineUpdateWithId: Encodable {
     /// Tri-state savings-goal link — see `BudgetLineUpdate.savingsGoalId`.
     var savingsGoalId: String??
     var assetId: String??
+    var accountId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?

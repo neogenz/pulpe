@@ -161,6 +161,28 @@
         }
       }
     },
+    "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeder neue Eintrag beginnt mit diesem Konto. Du kannst es jedes Mal ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each new entry starts on this account. You can change it each time."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta."
+          }
+        }
+      }
+    },
     "Coche l'essence de 60 : Pulpe est à jour avec ta banque." : {
       "localizations" : {
         "de" : {
@@ -224,6 +246,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conto %lld"
+          }
+        }
+      }
+    },
+    "Compte par défaut" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standardkonto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conto predefinito"
           }
         }
       }
@@ -404,6 +448,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiornato in Il mio patrimonio, dove oggi vale %@."
+          }
+        }
+      }
+    },
+    "Mon budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mein Budget"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il mio budget"
+          }
+        }
+      }
+    },
+    "Ne plus utiliser par défaut" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht mehr als Standard verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop using as default"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non usare più come predefinito"
           }
         }
       }
@@ -962,6 +1050,28 @@
         }
       }
     },
+    "Utiliser par défaut dans le budget" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Budget als Standard verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use as default in my budget"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa come predefinito nel budget"
+          }
+        }
+      }
+    },
     "Vérifie que Pulpe et ta banque disent la même chose" : {
       "localizations" : {
         "de" : {
@@ -980,6 +1090,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verifica che Pulpe e la tua banca dicano la stessa cosa"
+          }
+        }
+      }
+    },
+    "« Compte » et « %@ » doivent être deux éléments différents." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Konto“ und „%@“ müssen zwei verschiedene Elemente sein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Account” and “%@” must be two different items."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Account» e «%@» devono essere due elementi diversi."
           }
         }
       }

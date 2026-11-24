@@ -56,6 +56,11 @@ final class AssetStore: StoreProtocol {
         activeAssets.filter { $0.direction == direction }
     }
 
+    /// `id` when it still names an active element: an archived or deleted one is not usable.
+    func activeAssetId(_ id: String?) -> String? {
+        activeAssets.contains { $0.id == id } ? id : nil
+    }
+
     // MARK: - Smart Loading (StoreProtocol)
 
     func loadIfNeeded() async {

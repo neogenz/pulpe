@@ -30,6 +30,7 @@ actor MockUserSettingsService: UserSettingsServicing {
     }
 
     func setUpdateError(_ error: Error?) { updateError = error }
+    func setStubbedGetSettings(_ settings: UserSettings) { stubbedGetSettings = settings }
     func setStubbedUpdateSettings(_ settings: UserSettings) { stubbedUpdateSettings = settings }
 
     func getSettings() async throws -> UserSettings {

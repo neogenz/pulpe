@@ -43,6 +43,10 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     /// payloads served before the feature.
     var assetId: String?
 
+    /// Net-worth element this prévision moves once pointed (PUL-378). Absent in payloads
+    /// served before the feature.
+    var accountId: String?
+
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
@@ -142,6 +146,7 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             sourceSavingsGoalId: sourceSavingsGoalId,
             sourceSavingsGoalName: sourceSavingsGoalName,
             assetId: assetId,
+            accountId: accountId,
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,
@@ -187,6 +192,8 @@ struct BudgetLineCreate: Encodable {
     /// the same asymmetry `TransactionCreate` already carries.
     let sourceSavingsGoalId: String?
     let assetId: String?
+    /// Tri-state (PUL-378), see `TransactionCreate.accountId`.
+    let accountId: String??
 
     init(
         budgetId: String,
@@ -198,6 +205,7 @@ struct BudgetLineCreate: Encodable {
         savingsGoalId: String? = nil,
         sourceSavingsGoalId: String? = nil,
         assetId: String? = nil,
+        accountId: String?? = nil,
         isManuallyAdjusted: Bool = false,
         checkedAt: Date? = nil,
         originalAmount: Decimal? = nil,
@@ -211,6 +219,7 @@ struct BudgetLineCreate: Encodable {
         self.savingsGoalId = savingsGoalId
         self.sourceSavingsGoalId = sourceSavingsGoalId
         self.assetId = assetId
+        self.accountId = accountId
         self.name = name
         self.amount = amount
         self.kind = kind
@@ -238,6 +247,9 @@ struct BudgetLineUpdate: Encodable {
     var savingsGoalId: String??
     /// Tri-state net-worth asset link, same contract as `savingsGoalId`.
     var assetId: String??
+    /// Tri-state net-worth account: omitted when untouched so a client that does not know the
+    /// field keeps it (PUL-378 CA26).
+    var accountId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?

@@ -6,6 +6,9 @@ struct UserSettings: Codable, Sendable {
     let currency: SupportedCurrency?
     let showCurrencySelector: Bool?
     let locale: SupportedLocale?
+    /// Net-worth element new movements start on (PUL-378). `var` so the memberwise
+    /// initializer keeps it optional.
+    var defaultAccountId: String?
 }
 
 extension UserSettings {
@@ -19,6 +22,7 @@ extension UserSettings {
         currency = try container.decodeIfPresent(SupportedCurrency.self, forKey: .currency)
         showCurrencySelector = try container.decodeIfPresent(Bool.self, forKey: .showCurrencySelector)
         locale = try? container.decodeIfPresent(SupportedLocale.self, forKey: .locale)
+        defaultAccountId = try container.decodeIfPresent(String.self, forKey: .defaultAccountId)
     }
 }
 
@@ -28,6 +32,8 @@ struct UpdateUserSettings: Codable, Sendable {
     let currency: SupportedCurrency?
     let showCurrencySelector: Bool?
     let locale: SupportedLocale?
+    /// Tri-state: `.none` omits the key, `.some(nil)` sends `null` (« Aucun »).
+    let defaultAccountId: String??
 
     /// Every field defaults to `nil` so the synthesized `Encodable` omits the keys the
     /// caller did not set — that is what keeps a PUT from resetting the preferences it
@@ -36,11 +42,13 @@ struct UpdateUserSettings: Codable, Sendable {
         payDayOfMonth: Int? = nil,
         currency: SupportedCurrency? = nil,
         showCurrencySelector: Bool? = nil,
-        locale: SupportedLocale? = nil
+        locale: SupportedLocale? = nil,
+        defaultAccountId: String?? = nil
     ) {
         self.payDayOfMonth = payDayOfMonth
         self.currency = currency
         self.showCurrencySelector = showCurrencySelector
         self.locale = locale
+        self.defaultAccountId = defaultAccountId
     }
 }

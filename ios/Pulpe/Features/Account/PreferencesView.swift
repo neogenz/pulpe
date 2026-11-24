@@ -2,6 +2,8 @@ import SwiftUI
 
 struct PreferencesView: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(AssetStore.self) private var assetStore
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPayDayPicker = false
     @State private var remindersEnabled = ReminderPreferences().remindersEnabled
@@ -38,6 +40,21 @@ struct PreferencesView: View {
                 }
             }
             .listRowSettingsBackground()
+
+            if featureFlags.isNetWorthEnabled, !assetStore.activeAssets.isEmpty {
+                Section {
+                    AccountPickerField(
+                        selection: defaultAccountBinding,
+                        title: AppLocale.string("Compte par défaut"),
+                        style: .row
+                    )
+                } header: {
+                    SettingsSectionHeader(text: AppLocale.string("Mon budget"))
+                } footer: {
+                    Text("Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.")
+                }
+                .listRowSettingsBackground()
+            }
 
             Section {
                 reminderToggle(
@@ -78,6 +95,7 @@ struct PreferencesView: View {
         .localizedNavigationTitle("Préférences")
         .navigationBarTitleDisplayMode(.large)
         .keyboardFieldNavigation(focus: $currencyConverterFocus, order: [.input])
+        .task { if featureFlags.isNetWorthEnabled { await assetStore.loadIfNeeded() } }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await reconcileReminderState()
@@ -128,6 +146,14 @@ struct PreferencesView: View {
                     await applyWeeklyRecapPreference(newValue)
                 }
             }
+        )
+    }
+
+    /// An archived or deleted element reads as « Aucun »: the server clears it the same way.
+    private var defaultAccountBinding: Binding<String?> {
+        Binding(
+            get: { assetStore.activeAssetId(userSettingsStore.defaultAccountId) },
+            set: { id in Task { await userSettingsStore.setDefaultAccount(id) } }
         )
     }
 
@@ -238,6 +264,8 @@ struct PreferencesView: View {
         PreferencesView()
             .environment(AppState())
             .environment(UserSettingsStore())
+            .environment(AssetStore())
+            .environment(FeatureFlagsStore())
             .environment(CurrentMonthStore())
             .environment(BudgetListStore())
             .environment(DashboardStore())
