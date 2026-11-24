@@ -607,7 +607,7 @@ describe("the month-end projection in the detail (PUL-380)", () => {
     ).toBeTruthy();
   });
 
-  it("reads the projection from the latest page loaded", async () => {
+  it("reads the projection from the first page, like the asset", async () => {
     pages[`${COMPTE_COURANT}:`] = {
       ...page(current, [SALAIRE], "page-2"),
       monthEndProjection: NOVEMBER,
@@ -623,6 +623,8 @@ describe("the month-end projection in the detail (PUL-380)", () => {
       screen.getByTestId("asset-history").props.onEndReached();
     });
 
-    expect(await screen.findByText(`Fin novembre : 7’900.00 CHF`)).toBeTruthy();
+    expect(await screen.findByText("Valeur enregistrée")).toBeTruthy();
+    expect(screen.queryByText(`Fin novembre : 7’900.00 CHF`)).toBeNull();
+    expect(screen.getByText(`Fin novembre : 8’000.00 CHF`)).toBeTruthy();
   });
 });
