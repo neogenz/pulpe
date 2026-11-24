@@ -222,6 +222,20 @@ struct AccountLinkTests {
 
     // MARK: - Create bodies
 
+    @Test("A line added while creating a model leaves with the account picked in its sheet")
+    func newModelLineCarriesItsAccount() throws {
+        func body(_ accountId: String??) throws -> [String: Any] {
+            let input = TemplateLineInput(
+                name: "Loyer", amount: 1_500, kind: .expense, recurrence: .fixed, accountId: accountId
+            )
+            return try json(CreateTemplateView.lineCreate(input))
+        }
+        #expect(try body(.some("revolut"))["accountId"] as? String == "revolut")
+        #expect(try body(.some(nil))["accountId"] is NSNull)
+        // Field never shown (flag off): the key is left out and the server applies the default.
+        #expect(try body(.none)["accountId"] == nil)
+    }
+
     @Test("Create bodies of a prévision, a model line and a spread carry the three states")
     func createBodies() throws {
         let line = BudgetLineCreate(
