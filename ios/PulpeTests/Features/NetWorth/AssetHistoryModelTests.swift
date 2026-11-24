@@ -107,6 +107,27 @@ struct AssetHistoryModelTests {
         #expect(service.historyCursors == [nil, "page-2", nil])
     }
 
+    /// PUL-380: a prévision edited without being checked moves the projection, not the history.
+    @Test
+    func reload_withTheSameFirstPage_takesTheFreshProjection() async throws {
+        let service = longService()
+        service.stubbedHistory[nil]?.monthEndProjection = AssetMonthEndProjection(month: 11, year: 2026, value: 8000)
+        let model = makeModel(service)
+        await model.load()
+        await model.loadMore()
+        #expect(model.monthEndProjection?.value == 8000)
+        service.stubbedHistory[nil]?.monthEndProjection = AssetMonthEndProjection(month: 11, year: 2026, value: 7900)
+
+        await model.load()
+
+        #expect(model.entries.count == 35)
+        #expect(model.monthEndProjection?.value == 7900)
+
+        service.stubbedHistory[nil]?.monthEndProjection = nil
+        await model.load()
+        #expect(model.monthEndProjection == nil)
+    }
+
     @Test
     func reload_withAChangedFirstPage_replacesTheList() async {
         let service = longService()
@@ -320,5 +341,37 @@ struct AssetHistoryLineTests {
         let below = HistoryFixture.movement("courses", "Courses", "2026-10-28", -120, supersededAt: "2026-11-01")
 
         #expect(above.id != below.id)
+    }
+}
+
+/// PUL-380: the line under the value of the detail, CA1 « Fin novembre : 8 000 ».
+@Suite("AssetMonthEndProjection label")
+struct AssetMonthEndProjectionLabelTests {
+    private let projection = AssetMonthEndProjection(month: 11, year: 2026, value: 8000)
+
+    @Test(arguments: [
+        (SupportedLocale.fr, "Fin novembre : 8\u{2019}000.00 CHF"),
+        (.en, "End of November: 8\u{2019}000.00 CHF"),
+        (.de, "Ende November: 8\u{2019}000.00 CHF"),
+        (.it, "Fine novembre: 8\u{2019}000.00 CHF"),
+    ])
+    func label_inEachLanguage(language: SupportedLocale, expected: String) {
+        #expect(projection.label(currency: .chf, language: language) == expected)
+    }
+
+    @Test
+    func label_signsANegativeProjectionLikeTheValue() {
+        let overdrawn = AssetMonthEndProjection(month: 11, year: 2026, value: -250)
+        #expect(overdrawn.label(currency: .chf, language: .fr) == "Fin novembre : \u{2212}250.00 CHF")
+    }
+
+    @Test(arguments: [
+        (SupportedLocale.fr, "Fin novembre : 8\u{2019}000.00 CHF, si tout se passe comme prévu ce mois-ci"),
+        (.en, "End of November: 8\u{2019}000.00 CHF, if everything goes as planned this month"),
+        (.de, "Ende November: 8\u{2019}000.00 CHF, wenn diesen Monat alles wie geplant läuft"),
+        (.it, "Fine novembre: 8\u{2019}000.00 CHF, se questo mese tutto va come previsto"),
+    ])
+    func accessibilityLabel_addsTheCondition(language: SupportedLocale, expected: String) {
+        #expect(projection.accessibilityLabel(currency: .chf, language: language) == expected)
     }
 }
