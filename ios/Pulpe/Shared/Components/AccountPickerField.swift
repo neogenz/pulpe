@@ -115,33 +115,40 @@ struct AccountPickerField: View {
         .accessibilityValue(selectedAsset?.name ?? none)
     }
 
-    /// In a card, the shared goal-picker row; in a `List`, the plain row of the other settings.
+    /// In a card, the shared goal-picker row (stacked at accessibility sizes); in a `List`, the
+    /// plain row of the other settings.
     @ViewBuilder
     private func label(value: String, isPlaceholder: Bool) -> some View {
-        if style == .standalone {
+        if style == .standalone, !dynamicTypeSize.isAccessibilitySize {
             savingsGoalMenuLabel(style: .row, title: title, value: value, isPlaceholder: isPlaceholder)
+        } else if style == .standalone {
+            savingsGoalFieldSurface(style: .row) { listRow(value: value) }
         } else {
-            HStack {
-                // At accessibility sizes the account goes under the title: beside it, it was cut.
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        rowTitle
-                        Text(value).foregroundStyle(Color.onSurfaceVariant)
-                    }
-                    // A Menu label centers wrapped lines by default.
-                    .multilineTextAlignment(.leading)
-                    Spacer(minLength: DesignTokens.Spacing.sm)
-                } else {
-                    rowTitle
-                    Spacer()
-                    Text(value).foregroundStyle(Color.onSurfaceVariant).lineLimit(1)
-                }
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
-            }
-            .contentShape(Rectangle())
+            listRow(value: value)
         }
+    }
+
+    private func listRow(value: String) -> some View {
+        HStack {
+            // At accessibility sizes the account goes under the title: beside it, it was cut.
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    rowTitle
+                    Text(value).foregroundStyle(Color.onSurfaceVariant)
+                }
+                // A Menu label centers wrapped lines by default.
+                .multilineTextAlignment(.leading)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+            } else {
+                rowTitle
+                Spacer()
+                Text(value).foregroundStyle(Color.onSurfaceVariant).lineLimit(1)
+            }
+            Image(systemName: "chevron.right")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textTertiary)
+        }
+        .contentShape(Rectangle())
     }
 
     private var rowTitle: some View {

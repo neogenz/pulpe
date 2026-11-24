@@ -59,7 +59,8 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           class="ph-no-capture min-w-0 flex-shrink truncate text-headline-medium font-bold md:text-display-small"
           data-testid="page-title"
         >
-          {{ asset()?.name }}
+          <!-- Never an empty heading: before the asset loads, or when it is gone. -->
+          {{ asset()?.name ?? ('pageTitle.netWorthAssetDetails' | transloco) }}
         </h1>
         @if (viewState() === 'ready') {
           <!-- An icon on a phone: the labelled button would leave the name a few letters. -->

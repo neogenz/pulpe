@@ -33,6 +33,13 @@ export default function DefaultAccountScreen() {
       </ScreenAppBar>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* The why before the list: under it, it only showed past the last account. */}
+        <Text
+          variant="bodySmall"
+          style={{ color: theme.colors.onSurfaceVariant }}
+        >
+          {t("netWorth.account.defaultHint")}
+        </Text>
         <AccountChoiceList
           choices={choices}
           value={defaultId}
@@ -43,12 +50,6 @@ export default function DefaultAccountScreen() {
             )
           }
         />
-        <Text
-          variant="bodySmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {t("netWorth.account.defaultHint")}
-        </Text>
       </ScrollView>
 
       <Notice visible={hasFailed} onDismiss={() => setFailed(false)}>
