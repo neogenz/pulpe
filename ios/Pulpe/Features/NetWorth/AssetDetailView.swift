@@ -127,8 +127,9 @@ struct AssetDetailView: View {
     }
 }
 
-/// The history of one element: `load` reads the first page and replaces everything, `loadMore`
-/// appends the next one. A page read for an older `load` is dropped.
+/// The history of one element: `load` reads the first page, `loadMore` appends the next one. A
+/// reload whose first page did not change keeps the pages appended after it, so coming back to the
+/// detail does not cut a long list to its first page. A page read for an older `load` is dropped.
 @Observable @MainActor
 final class AssetHistoryModel {
     enum Content {
@@ -149,6 +150,8 @@ final class AssetHistoryModel {
     private let assetId: String
     private let service: any AssetServicing
     private var generation = 0
+    /// The first page as last read: a check, an uncheck or an edit changes it.
+    private var firstPage: (entries: [AssetHistoryEntry], nextCursor: String?)?
 
     init(assetId: String, service: any AssetServicing) {
         self.assetId = assetId
@@ -179,9 +182,11 @@ final class AssetHistoryModel {
             let page = try await service.getHistory(id: assetId, cursor: nil)
             guard current == generation else { return }
             asset = page.asset
+            error = nil
+            if let firstPage, firstPage.entries == page.entries, firstPage.nextCursor == page.nextCursor { return }
+            firstPage = (page.entries, page.nextCursor)
             entries = page.entries
             nextCursor = page.nextCursor
-            error = nil
         } catch where error.isCancellationOrURLCancellation {
             // Left the screen: keep what is shown.
         } catch {

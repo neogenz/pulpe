@@ -80,16 +80,45 @@ struct AssetHistoryModelTests {
         #expect(service.historyCursors == [nil, "page-2"])
     }
 
+    /// A full first page of 30 movements, then `count` older ones on the next page.
+    private func longService(firstName: String = "Courses", count: Int = 5) -> MockAssetService {
+        let day = { (index: Int) in String(format: "2026-11-%02d", 30 - index % 28) }
+        let first = (0..<30).map { HistoryFixture.movement("m\($0)", firstName, day($0), -10) }
+        let older = (30..<(30 + count)).map { HistoryFixture.movement("m\($0)", "Courses", "2026-10-01", -10) }
+        let service = MockAssetService()
+        service.stubbedHistory = [
+            nil: AssetHistory(asset: HistoryFixture.compteCourant, entries: first, nextCursor: "page-2"),
+            "page-2": AssetHistory(asset: HistoryFixture.compteCourant, entries: older, nextCursor: nil),
+        ]
+        return service
+    }
+
     @Test
-    func load_replacesWhatWasAppended() async {
-        let service = pagedService()
+    func reload_withTheSameFirstPage_keepsWhatWasAppended() async {
+        let service = longService()
         let model = makeModel(service)
         await model.load()
         await model.loadMore()
 
         await model.load()
 
-        #expect(model.entries.count == 3)
+        #expect(model.entries.count == 35)
+        #expect(model.nextCursor == nil)
+        #expect(service.historyCursors == [nil, "page-2", nil])
+    }
+
+    @Test
+    func reload_withAChangedFirstPage_replacesTheList() async {
+        let service = longService()
+        let model = makeModel(service)
+        await model.load()
+        await model.loadMore()
+        service.stubbedHistory[nil] = longService(firstName: "Courses Migros").stubbedHistory[nil]
+
+        await model.load()
+
+        #expect(model.entries.count == 30)
+        #expect(model.entries.first?.kind == .movement(name: "Courses Migros", effect: -10, supersededAt: nil))
         #expect(model.nextCursor == "page-2")
     }
 
