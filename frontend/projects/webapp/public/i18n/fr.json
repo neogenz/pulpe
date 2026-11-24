@@ -1668,7 +1668,7 @@
       "back": "Retour à Mon patrimoine",
       "history": "Historique",
       "recorded": "Valeur enregistrée",
-      "superseded": "Avant ta saisie du {{date}}, qui fait foi",
+      "superseded": "Déjà compris dans ta saisie du {{date}}",
       "nothingSince": "Tu n'as rien pointé depuis ta saisie du {{date}}.",
       "loadError": "Impossible de charger cet historique, réessaie",
       "loadMoreError": "Impossible de charger la suite, réessaie",

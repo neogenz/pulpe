@@ -107,9 +107,9 @@ describe('AssetDetailPage', () => {
     expect(getHistory$).toHaveBeenCalledWith(HISTORY_ACCOUNT.id);
     expect(text('page-title')).toBe('Compte courant');
     expect(text('asset-detail-type')).toBe('Comptes');
-    expect(text('asset-detail-value')).toBe('9’420 CHF');
+    expect(text('asset-detail-value')).toBe('9’420.00 CHF');
     expect(text('asset-detail-last-entry')).toMatch(
-      /^Ta dernière saisie : 5’000\.00 CHF, le 1 novembre/,
+      /^Ta dernière saisie : 5’000\.00 CHF, le 1er novembre/,
     );
   });
 
@@ -141,9 +141,9 @@ describe('AssetDetailPage', () => {
       expect.stringMatching(/^10 novembre/),
       expect.stringMatching(/^5 novembre/),
       expect.stringMatching(/^3 novembre/),
-      expect.stringMatching(/^1 novembre/),
+      expect.stringMatching(/^1er novembre/),
       expect.stringMatching(/^28 octobre/),
-      expect.stringMatching(/^1 octobre/),
+      expect.stringMatching(/^1er octobre/),
     ]);
   });
 
@@ -170,7 +170,7 @@ describe('AssetDetailPage', () => {
 
     expect(isSuperseded(assurance)).toBe(true);
     expect(cell(assurance, 'asset-history-superseded')).toMatch(
-      /^Avant ta saisie du 1 novembre.*, qui fait foi$/,
+      /^Déjà compris dans ta saisie du 1er novembre/,
     );
     expect(rows().filter(isSuperseded)).toHaveLength(1);
   });
@@ -195,7 +195,7 @@ describe('AssetDetailPage', () => {
       }),
     );
 
-    expect(text('asset-detail-value')).toBe('9’000 CHF');
+    expect(text('asset-detail-value')).toBe('9’000.00 CHF');
     expect(column('asset-history-label').slice(0, 4)).toEqual([
       'Valeur enregistrée',
       'Salaire',
@@ -215,7 +215,7 @@ describe('AssetDetailPage', () => {
     );
 
     expect(text('asset-detail-nothing-since')).toMatch(
-      /^info Tu n'as rien pointé depuis ta saisie du 1 novembre/,
+      /^info Tu n'as rien pointé depuis ta saisie du 1er novembre/,
     );
     expect(column('asset-history-amount')).toEqual(['10’000.00 CHF']);
   });

@@ -175,6 +175,17 @@ describe('NetWorthAssetRow', () => {
       ).toContain('3 novembre');
     });
 
+    it('should write an entry of the first of the month as « 1er » in French', () => {
+      render({
+        ...livret,
+        latestRecordedAt: `${new Date().getFullYear()}-11-01T10:00:00.000Z`,
+      });
+
+      expect(text('asset-row-meta')).toBe(
+        '+500.00 CHF depuis ta saisie du 1er novembre',
+      );
+    });
+
     it('keeps the category of a debt and signs what was repaid', () => {
       render(
         {

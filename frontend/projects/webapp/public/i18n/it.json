@@ -1668,7 +1668,7 @@
       "back": "Torna a Il mio patrimonio",
       "history": "Cronologia",
       "recorded": "Valore registrato",
-      "superseded": "Prima del tuo inserimento del {{date}}, che fa fede",
+      "superseded": "Già compreso nel tuo inserimento del {{date}}",
       "nothingSince": "Non hai spuntato niente dal tuo inserimento del {{date}}.",
       "loadError": "Impossibile caricare questa cronologia, riprova",
       "loadMoreError": "Impossibile caricare il resto, riprova",

@@ -1668,7 +1668,7 @@
       "back": "Zurück zu Mein Vermögen",
       "history": "Verlauf",
       "recorded": "Erfasster Wert",
-      "superseded": "Vor deiner Eingabe vom {{date}}, die massgebend ist",
+      "superseded": "Bereits in deiner Eingabe vom {{date}} enthalten",
       "nothingSince": "Du hast seit deiner Eingabe vom {{date}} nichts abgehakt.",
       "loadError": "Dieser Verlauf konnte nicht geladen werden, versuche es nochmal",
       "loadMoreError": "Weitere Einträge konnten nicht geladen werden, versuche es nochmal",

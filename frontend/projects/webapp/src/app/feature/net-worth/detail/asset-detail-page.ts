@@ -136,7 +136,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               [class.amber]="isDebt()"
               data-testid="asset-detail-value"
             >
-              {{ a.latestValue | appCurrency: a.currency : '1.0-0' }}
+              {{ a.latestValue | appCurrency: a.currency : '1.2-2' }}
             </p>
             <p
               class="ph-no-capture m-0 text-body-medium text-on-surface-variant"
