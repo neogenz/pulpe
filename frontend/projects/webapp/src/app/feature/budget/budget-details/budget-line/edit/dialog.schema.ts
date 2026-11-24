@@ -29,6 +29,7 @@ export const budgetLineUpdateFromFormSchema = z
     tagIds: z.array(z.uuid()).optional(),
     savingsGoalId: z.uuid().nullable().optional(),
     assetId: z.uuid().nullable().optional(),
+    accountId: z.uuid().nullable().optional(),
     conversion: conversionFormSchema.nullable(),
   })
   .transform(
@@ -39,6 +40,7 @@ export const budgetLineUpdateFromFormSchema = z
       recurrence: input.recurrence,
       savingsGoalId: input.savingsGoalId,
       ...(input.assetId !== undefined ? { assetId: input.assetId } : {}),
+      ...(input.accountId !== undefined ? { accountId: input.accountId } : {}),
       isManuallyAdjusted: true,
       tagIds: input.tagIds,
       ...(input.conversion ?? {}),

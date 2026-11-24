@@ -128,6 +128,7 @@ import { type AssetRowEvent, NetWorthAssetRow } from './net-worth-asset-row';
                 [asset]="asset"
                 [baseCurrency]="baseCurrency()"
                 [busy]="busy()"
+                [isDefault]="asset.id === defaultAccountId()"
                 [categoryName]="
                   showCategory()
                     ? (categoryNames().get(asset.categoryId) ?? null)
@@ -182,6 +183,7 @@ export class NetWorthSection {
   readonly showCategory = input(false);
   readonly categoryNames = input<ReadonlyMap<string, string>>(new Map());
   /** A write is in flight: the rows' quick actions wait for it. */
+  readonly defaultAccountId = input<string | null>(null);
   readonly busy = input(false);
   /** `null` keeps the card open for good (the archives already sit behind their own toggle). */
   readonly collapsed = input<boolean | null>(null);

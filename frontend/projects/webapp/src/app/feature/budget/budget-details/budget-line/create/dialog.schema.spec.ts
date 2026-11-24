@@ -15,6 +15,7 @@ const createFormValue: BudgetLineCreateFormValue = {
   isChecked: false,
   conversion: null,
   budgetId: BUDGET_ID,
+  accountId: null,
 };
 
 describe('budgetLineCreateFromFormSchema', () => {
@@ -30,6 +31,7 @@ describe('budgetLineCreateFromFormSchema', () => {
         recurrence: 'fixed',
         isManuallyAdjusted: true,
         checkedAt: null,
+        accountId: null,
       });
       expect('isChecked' in result).toBe(false);
       expect('conversion' in result).toBe(false);

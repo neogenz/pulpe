@@ -20,6 +20,7 @@ const totalFormValue: BudgetLineSpreadCreateFormValue = {
   months,
   conversion: null,
   spreadGroupId: SPREAD_GROUP_ID,
+  accountId: null,
 };
 
 const perMonthFormValue: BudgetLineSpreadCreateFormValue = {
@@ -30,6 +31,7 @@ const perMonthFormValue: BudgetLineSpreadCreateFormValue = {
   months,
   conversion: null,
   spreadGroupId: SPREAD_GROUP_ID,
+  accountId: null,
 };
 
 describe('budgetLineSpreadCreateFromFormSchema', () => {
@@ -44,6 +46,7 @@ describe('budgetLineSpreadCreateFromFormSchema', () => {
         totalAmount: 200,
         months,
         spreadGroupId: SPREAD_GROUP_ID,
+        accountId: null,
       });
       expect('perMonthAmount' in result).toBe(false);
       expect('tranches' in result).toBe(false);

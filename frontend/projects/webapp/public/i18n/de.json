@@ -1564,7 +1564,9 @@
       "edit": "Bearbeiten",
       "archive": "Archivieren",
       "unarchive": "Wiederherstellen",
-      "delete": "Löschen"
+      "delete": "Löschen",
+      "setDefault": "Im Budget als Standard verwenden",
+      "unsetDefault": "Nicht mehr als Standard verwenden"
     },
     "type": {
       "menu": "Aktionen für den Typ {{name}}",
@@ -1652,6 +1654,14 @@
       "updatedLongAgo": "Vor 2 Monaten aktualisiert",
       "updatedToday": "Heute aktualisiert",
       "budgetHint": "{{amount}} in deinem Budget zur Seite gelegt und abgehakt → hier +{{amount}}."
+    },
+    "account": {
+      "label": "Konto",
+      "groupOwn": "Was ich habe",
+      "groupOwe": "Was ich schulde",
+      "sameAsLink": "Wähle ein anderes Konto: Dieses ist bereits das oben verknüpfte Element.",
+      "defaultLabel": "Standardkonto",
+      "defaultBadge": "Standard"
     }
   },
   "completeProfile": {

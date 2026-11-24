@@ -1564,7 +1564,9 @@
       "edit": "Edit",
       "archive": "Archive",
       "unarchive": "Unarchive",
-      "delete": "Delete"
+      "delete": "Delete",
+      "setDefault": "Use as default in the budget",
+      "unsetDefault": "Stop using as default"
     },
     "type": {
       "menu": "Actions for the type {{name}}",
@@ -1652,6 +1654,14 @@
       "updatedLongAgo": "Updated 2 months ago",
       "updatedToday": "Updated today",
       "budgetHint": "{{amount}} set aside and checked in your budget → +{{amount}} here."
+    },
+    "account": {
+      "label": "Account",
+      "groupOwn": "What I have",
+      "groupOwe": "What I owe",
+      "sameAsLink": "Pick another account: this one is already the linked item above.",
+      "defaultLabel": "Default account",
+      "defaultBadge": "Default"
     }
   },
   "completeProfile": {

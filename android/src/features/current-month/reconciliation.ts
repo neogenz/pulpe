@@ -47,6 +47,8 @@ export function buildAdjustmentPayload(input: {
     kind: input.adjustment.kind,
     transactionDate: stamp,
     checkedAt: stamp,
+    // Explicit « Aucun »: absent, the server would apply the default account.
+    accountId: null,
   };
 }
 

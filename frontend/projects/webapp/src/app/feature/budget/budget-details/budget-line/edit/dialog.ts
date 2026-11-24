@@ -47,6 +47,7 @@ import {
   injectNetWorthResource,
 } from '@core/asset/net-worth';
 import { AssetPickerField } from '@app/pattern/asset-picker/asset-picker-field';
+import { AccountPickerField } from '@app/pattern/account-picker/account-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { budgetLineUpdateFromFormSchema } from './dialog.schema';
@@ -65,6 +66,7 @@ interface EditBudgetLineModel {
   tagIds: string[];
   savingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
 }
 
 @Component({
@@ -84,6 +86,7 @@ interface EditBudgetLineModel {
     TagPicker,
     SavingsGoalPickerField,
     AssetPickerField,
+    AccountPickerField,
     SavingsGoalSourceLine,
   ],
   host: { 'data-testid': 'edit-budget-line-dialog' },
@@ -178,6 +181,11 @@ interface EditBudgetLineModel {
               (valueChanged)="model.update((m) => ({ ...m, assetId: $event }))"
             />
           }
+          <pulpe-account-picker-field
+            [value]="model().accountId"
+            [errorKey]="accountErrorKey()"
+            (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
+          />
           <!--
             L'origine est en lecture seule : aucune API ne déplace un retrait
             d'un objectif à un autre. Un second sélecteur laisserait croire
@@ -273,6 +281,7 @@ export class EditBudgetLineDialog {
     tagIds: this.#data.budgetLine.tagIds ?? [],
     savingsGoalId: this.#data.budgetLine.savingsGoalId,
     assetId: this.#data.budgetLine.assetId,
+    accountId: this.#data.budgetLine.accountId ?? null,
   });
 
   protected readonly editForm = form(this.model, (path) => {
@@ -285,8 +294,18 @@ export class EditBudgetLineDialog {
 
   protected readonly conversionError = signal(false);
   protected readonly isSubmitting = signal(false);
+  // « Compte » and the link cannot name the same element.
+  protected readonly accountErrorKey = computed(() => {
+    const { accountId, assetId } = this.model();
+    return accountId !== null && accountId === assetId
+      ? 'netWorth.account.sameAsLink'
+      : null;
+  });
   protected readonly canSubmit = computed(
-    () => this.editForm().valid() && !this.isSubmitting(),
+    () =>
+      this.editForm().valid() &&
+      !this.isSubmitting() &&
+      this.accountErrorKey() === null,
   );
 
   // Which assets the kind can be linked to; null hides the field (flag off, or
@@ -364,6 +383,7 @@ export class EditBudgetLineDialog {
               tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               assetId: this.#isAssetLinkEnabled ? m.assetId : undefined,
+              accountId: this.#isAssetLinkEnabled ? m.accountId : undefined,
               conversion: metadata,
             });
             return {

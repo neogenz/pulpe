@@ -11,6 +11,16 @@ import { StorageService } from '@core/storage/storage.service';
 import { Logger } from '@core/logging/logger';
 import { CurrencyConverterService } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
+import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
+import { createMockDataCache } from '@core/testing';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
+import {
+  REVOLUT,
+  TICKET_ASSETS,
+  netWorthResponse,
+} from '@app/testing/net-worth-fixtures';
+import { of } from 'rxjs';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
 import type {
@@ -723,5 +733,103 @@ describe('EditTransactionForm — currency edit rules', () => {
 
     // Post-fix expectation: user's edit survives the settings change
     expect(component['model']().name).toBe('User Edit');
+  });
+});
+
+describe('EditTransactionForm account field (PUL-378)', () => {
+  const setup = async (
+    transaction: Transaction,
+    { isNetWorthEnabled = true } = {},
+  ) => {
+    TestBed.resetTestingModule();
+    const postHog = createMockPostHogService();
+    postHog.isFeatureEnabled.mockReturnValue(isNetWorthEnabled);
+    await TestBed.configureTestingModule({
+      imports: [EditTransactionForm],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+        provideAnimationsAsync(),
+        provideRouter([]),
+        ...provideLocale(),
+        { provide: StorageService, useValue: mockStorageService },
+        { provide: Logger, useValue: mockLogger },
+        {
+          provide: CurrencyConverterService,
+          useValue: {
+            convertWithMetadata: vi
+              .fn()
+              .mockResolvedValue({ convertedAmount: 1200, metadata: null }),
+          },
+        },
+        { provide: TagStore, useValue: createMockTagStore() },
+        { provide: PostHogService, useValue: postHog },
+        {
+          provide: AssetApi,
+          useValue: {
+            cache: createMockDataCache(),
+            getNetWorth$: () => of(netWorthResponse(TICKET_ASSETS)),
+          },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(EditTransactionForm);
+    setTestInput(fixture.componentInstance.transaction, transaction);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const emitted: TransactionUpdate[] = [];
+    fixture.componentInstance.updateTransaction.subscribe((d) =>
+      emitted.push(d),
+    );
+    return { fixture, component: fixture.componentInstance, emitted };
+  };
+  const field = (fixture: ComponentFixture<EditTransactionForm>) =>
+    fixture.nativeElement.querySelector(
+      'pulpe-account-picker-field mat-select',
+    );
+
+  it('shows « Compte » on a free movement, on the account it carries', async () => {
+    const { fixture, component } = await setup(
+      makeTransaction({ accountId: REVOLUT.id }),
+    );
+
+    expect(field(fixture)).not.toBeNull();
+    expect(component['model']().accountId).toBe(REVOLUT.id);
+  });
+
+  it('CA4: shows no « Compte » on a movement under a prévision', async () => {
+    const { fixture } = await setup(
+      makeTransaction({ budgetLineId: 'line-1' }),
+    );
+
+    expect(field(fixture)).toBeNull();
+  });
+
+  it('sends the picked account, and null for « Aucun »', async () => {
+    const { component, emitted } = await setup(
+      makeTransaction({ accountId: REVOLUT.id }),
+    );
+
+    await component.onSubmit();
+    component['model'].update((m) => ({ ...m, accountId: null }));
+    await component.onSubmit();
+
+    expect(emitted.map((d) => d.accountId)).toEqual([REVOLUT.id, null]);
+  });
+
+  it('CA26: sends no accountId when the field is not shown (under a prévision, flag off)', async () => {
+    const underLine = await setup(
+      makeTransaction({ budgetLineId: 'line-1', accountId: null }),
+    );
+    await underLine.component.onSubmit();
+    const flagOff = await setup(makeTransaction({ accountId: REVOLUT.id }), {
+      isNetWorthEnabled: false,
+    });
+    await flagOff.component.onSubmit();
+
+    expect(underLine.emitted[0]).not.toHaveProperty('accountId');
+    expect(flagOff.emitted[0]).not.toHaveProperty('accountId');
+    expect(field(flagOff.fixture)).toBeNull();
   });
 });

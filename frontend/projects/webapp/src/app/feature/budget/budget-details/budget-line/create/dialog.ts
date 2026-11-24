@@ -50,6 +50,10 @@ import {
   injectNetWorthResource,
 } from '@core/asset/net-worth';
 import { AssetPickerField } from '@app/pattern/asset-picker/asset-picker-field';
+import {
+  AccountPickerField,
+  injectInitialAccountId,
+} from '@app/pattern/account-picker/account-picker-field';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import {
   TransactionIconPipe,
@@ -98,6 +102,7 @@ interface AddBudgetLineModel {
   savingsGoalId: string | null;
   sourceSavingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
   money: AmountFormSlice;
 }
 
@@ -121,6 +126,7 @@ interface AddBudgetLineModel {
     TagPicker,
     SavingsGoalPickerField,
     AssetPickerField,
+    AccountPickerField,
   ],
   host: { 'data-testid': 'add-budget-line-dialog' },
   template: `
@@ -269,7 +275,7 @@ interface AddBudgetLineModel {
             <pulpe-asset-picker-field
               [direction]="direction"
               [value]="model().assetId"
-              (valueChanged)="model.update((m) => ({ ...m, assetId: $event }))"
+              (valueChanged)="setAssetLink($event)"
             />
           }
 
@@ -321,12 +327,16 @@ interface AddBudgetLineModel {
                 kind="income"
                 direction="own"
                 [value]="model().assetId"
-                (valueChanged)="
-                  model.update((m) => ({ ...m, assetId: $event }))
-                "
+                (valueChanged)="setAssetLink($event)"
               />
             }
           }
+
+          <pulpe-account-picker-field
+            [value]="model().accountId"
+            [errorKey]="accountErrorKey()"
+            (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
+          />
 
           @if (mode() === 'spread') {
             <div class="flex flex-col gap-4" data-testid="spread-section">
@@ -545,6 +555,7 @@ export class AddBudgetLineDialog {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #initialAccountId = injectInitialAccountId();
   readonly #isAssetLinkEnabled = inject(PostHogService).isFeatureEnabled(
     FEATURE_FLAGS.NET_WORTH,
   );
@@ -560,6 +571,7 @@ export class AddBudgetLineDialog {
     savingsGoalId: null,
     sourceSavingsGoalId: null,
     assetId: null,
+    accountId: this.#initialAccountId(),
     money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
 
@@ -589,6 +601,24 @@ export class AddBudgetLineDialog {
           (asset) => asset.direction === 'own' && asset.archivedAt === null,
         ) ?? false,
   );
+
+  // « Compte » and the link cannot name the same element.
+  protected readonly accountErrorKey = computed(() => {
+    const { accountId, assetId } = this.model();
+    return accountId !== null && accountId === assetId
+      ? 'netWorth.account.sameAsLink'
+      : null;
+  });
+
+  // Picking the link on the account the form started on frees the account
+  // rather than blocking a form the user did not get wrong.
+  protected setAssetLink(assetId: string | null): void {
+    this.model.update((m) => ({
+      ...m,
+      assetId,
+      accountId: m.accountId === assetId ? null : m.accountId,
+    }));
+  }
 
   protected readonly nameErrors = touchedFieldErrors(
     () => this.addForm.name,
@@ -812,7 +842,7 @@ export class AddBudgetLineDialog {
   protected readonly conversionError = signal(false);
   protected readonly isSubmitting = signal(false);
   protected readonly canSubmit = computed(() => {
-    if (this.isSubmitting()) return false;
+    if (this.isSubmitting() || this.accountErrorKey() !== null) return false;
     if (this.#mode() === 'spread') {
       return this.addForm().valid() && this.spreadError() === null;
     }
@@ -900,6 +930,7 @@ export class AddBudgetLineDialog {
                 ? lineDraft.sourceSavingsGoalId
                 : null,
               assetId: this.#isAssetLinkEnabled ? lineDraft.assetId : undefined,
+              accountId: lineDraft.accountId,
               conversion: metadata,
             }),
         };
@@ -934,6 +965,7 @@ export class AddBudgetLineDialog {
               savingsGoalId:
                 lineDraft.kind === 'saving' ? lineDraft.savingsGoalId : null,
               assetId: this.#isAssetLinkEnabled ? lineDraft.assetId : undefined,
+              accountId: lineDraft.accountId,
               spreadGroupId: this.#spreadGroupId,
             }),
         };

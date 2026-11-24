@@ -19,6 +19,13 @@ import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { createMockPostHogService } from '@app/testing/mock-posthog';
+import {
+  COMPTE_COURANT,
+  LIVRET,
+  REVOLUT,
+  TICKET_ASSETS,
+  netWorthResponse,
+} from '@app/testing/net-worth-fixtures';
 import type { Asset, SupportedCurrency, SupportedLocale } from 'pulpe-shared';
 import { AddBudgetLineDialog, type BudgetLineDialogData } from './dialog';
 
@@ -30,6 +37,7 @@ interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
   showCurrencySelector: ReturnType<typeof signal<boolean>>;
   locale: ReturnType<typeof signal<SupportedLocale>>;
+  defaultAccountId: ReturnType<typeof signal<string | null>>;
 }
 interface ConverterMock {
   convertWithMetadata: ReturnType<typeof vi.fn>;
@@ -43,10 +51,12 @@ interface DialogRefMock {
 function configureDialog({
   userCurrency = 'CHF',
   showCurrencyPref = true,
+  defaultAccountId = null,
   providers = [],
 }: {
   userCurrency?: SupportedCurrency;
   showCurrencyPref?: boolean;
+  defaultAccountId?: string | null;
   providers?: Provider[];
 } = {}) {
   const dialogRef: DialogRefMock = { close: vi.fn() };
@@ -54,6 +64,7 @@ function configureDialog({
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(showCurrencyPref),
     locale: signal<SupportedLocale>('fr'),
+    defaultAccountId: signal<string | null>(defaultAccountId),
   };
   const converter: ConverterMock = {
     convertWithMetadata: vi.fn().mockImplementation(async (amount: number) => ({
@@ -524,6 +535,161 @@ describe('AddBudgetLineDialog', () => {
 
       const { value } = off.dialogRef.close.mock.calls[0][0];
       expect(value).not.toHaveProperty('assetId');
+    });
+  });
+
+  describe('account field (PUL-378)', () => {
+    const withTicketAssets = (isEnabled: boolean): Provider[] => {
+      const postHog = createMockPostHogService();
+      postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+      return [
+        { provide: PostHogService, useValue: postHog },
+        {
+          provide: AssetApi,
+          useValue: {
+            cache: createMockDataCache(),
+            getNetWorth$: () => of(netWorthResponse(TICKET_ASSETS)),
+          },
+        },
+      ];
+    };
+    const fill = (component: AddBudgetLineDialog) =>
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Loyer',
+        money: { amount: 1500, inputCurrency: 'CHF' },
+      }));
+    const submitted = async (
+      component: AddBudgetLineDialog,
+      dialogRef: DialogRefMock,
+    ) => {
+      await component['handleSubmit']();
+      return dialogRef.close.mock.calls[0][0].value;
+    };
+
+    it('CA1: shows the « Compte » field with the flag on', async () => {
+      const { fixture } = configureDialog({
+        providers: withTicketAssets(true),
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          'pulpe-account-picker-field mat-select',
+        ),
+      ).not.toBeNull();
+    });
+
+    it('CA3: starts on « Aucun » and sends an explicit null accountId', async () => {
+      const { component, dialogRef } = configureDialog({
+        providers: withTicketAssets(true),
+      });
+      fill(component);
+
+      expect(component['model']().accountId).toBeNull();
+      expect((await submitted(component, dialogRef)).accountId).toBeNull();
+    });
+
+    it('CA29: starts on the default account, which can be changed or cleared', async () => {
+      const { component, dialogRef } = configureDialog({
+        defaultAccountId: COMPTE_COURANT.id,
+        providers: withTicketAssets(true),
+      });
+      fill(component);
+
+      expect(component['model']().accountId).toBe(COMPTE_COURANT.id);
+      expect((await submitted(component, dialogRef)).accountId).toBe(
+        COMPTE_COURANT.id,
+      );
+
+      component['model'].update((m) => ({ ...m, accountId: REVOLUT.id }));
+      dialogRef.close.mockClear();
+      expect((await submitted(component, dialogRef)).accountId).toBe(
+        REVOLUT.id,
+      );
+
+      component['model'].update((m) => ({ ...m, accountId: null }));
+      dialogRef.close.mockClear();
+      expect((await submitted(component, dialogRef)).accountId).toBeNull();
+    });
+
+    it('CA29: a spread carries the account on every occurrence', async () => {
+      const { component, dialogRef } = configureDialog({
+        defaultAccountId: COMPTE_COURANT.id,
+        providers: withTicketAssets(true),
+      });
+      fill(component);
+      component['setMode']('spread');
+
+      expect((await submitted(component, dialogRef)).accountId).toBe(
+        COMPTE_COURANT.id,
+      );
+    });
+
+    it('CA2: with the flag off the field is absent and the payload says « Aucun »', async () => {
+      const { fixture, component, dialogRef } = configureDialog({
+        defaultAccountId: COMPTE_COURANT.id,
+        providers: withTicketAssets(false),
+      });
+      fill(component);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          'pulpe-account-picker-field mat-select',
+        ),
+      ).toBeNull();
+      expect((await submitted(component, dialogRef)).accountId).toBeNull();
+    });
+
+    it('CA25: refuses the same item as « Compte » and as « Versée sur »', () => {
+      const { fixture, component } = configureDialog({
+        providers: withTicketAssets(true),
+      });
+      fill(component);
+      component['model'].update((m) => ({
+        ...m,
+        kind: 'saving',
+        assetId: LIVRET.id,
+        accountId: LIVRET.id,
+      }));
+
+      expect(component['accountErrorKey']()).toBe(
+        'netWorth.account.sameAsLink',
+      );
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="add-new-line"]')
+          .disabled,
+      ).toBe(true);
+    });
+
+    it('CA45: choosing the prefilled account as « Versée sur » puts « Compte » back on « Aucun »', () => {
+      const { component } = configureDialog({
+        defaultAccountId: LIVRET.id,
+        providers: withTicketAssets(true),
+      });
+      component['model'].update((m) => ({ ...m, kind: 'saving' }));
+
+      component['setAssetLink'](LIVRET.id);
+
+      expect(component['model']().accountId).toBeNull();
+      expect(component['model']().assetId).toBe(LIVRET.id);
+      expect(component['accountErrorKey']()).toBeNull();
+    });
+
+    it('CA45: another link leaves the prefilled account alone', () => {
+      const { component } = configureDialog({
+        defaultAccountId: COMPTE_COURANT.id,
+        providers: withTicketAssets(true),
+      });
+
+      component['setAssetLink'](LIVRET.id);
+
+      expect(component['model']().accountId).toBe(COMPTE_COURANT.id);
     });
   });
 

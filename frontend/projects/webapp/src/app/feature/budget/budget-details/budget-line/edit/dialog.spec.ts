@@ -5,6 +5,13 @@ import {
   type Provider,
 } from '@angular/core';
 import { of, Subject } from 'rxjs';
+import {
+  COMPTE_COURANT,
+  LIVRET,
+  REVOLUT,
+  TICKET_ASSETS,
+  netWorthResponse,
+} from '@app/testing/net-worth-fixtures';
 import { TestBed } from '@angular/core/testing';
 import {
   MatDialogRef,
@@ -497,5 +504,99 @@ describe('EditBudgetLineDialog — income drawn from an asset', () => {
 
     expect(originLine(fixture)).toBeNull();
     expect(component['model']().assetId).toBeNull();
+  });
+});
+
+describe('EditBudgetLineDialog — account field (PUL-378)', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const withTicketAssets = (isEnabled: boolean): Provider[] => {
+    const postHog = createMockPostHogService();
+    postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+    return [
+      { provide: PostHogService, useValue: postHog },
+      {
+        provide: AssetApi,
+        useValue: {
+          cache: createMockDataCache(),
+          getNetWorth$: () => of(netWorthResponse(TICKET_ASSETS)),
+        },
+      },
+    ];
+  };
+  const open = async (line: BudgetLine, isEnabled = true) => {
+    const context = configureDialog(line, {
+      userCurrency: 'CHF',
+      providers: withTicketAssets(isEnabled),
+    });
+    context.converter.convertWithMetadata.mockResolvedValue({
+      convertedAmount: line.amount,
+      metadata: null,
+    });
+    context.fixture.detectChanges();
+    await context.fixture.whenStable();
+    context.fixture.detectChanges();
+    return context;
+  };
+  const sent = (dialogRef: { close: ReturnType<typeof vi.fn> }) =>
+    dialogRef.close.mock.calls[0][0];
+
+  it('CA1: shows « Compte » on the account the prévision carries', async () => {
+    const { fixture, component } = await open(
+      createMockBudgetLine({ accountId: COMPTE_COURANT.id }),
+    );
+
+    expect(
+      fixture.nativeElement.querySelector(
+        'pulpe-account-picker-field mat-select',
+      ),
+    ).not.toBeNull();
+    expect(component['model']().accountId).toBe(COMPTE_COURANT.id);
+  });
+
+  it('sends the new account, and null for « Aucun »', async () => {
+    const line = createMockBudgetLine({ accountId: COMPTE_COURANT.id });
+    const moved = await open(line);
+    moved.component['model'].update((m) => ({ ...m, accountId: REVOLUT.id }));
+    await moved.component.handleSubmit();
+    TestBed.resetTestingModule();
+    const cleared = await open(line);
+    cleared.component['model'].update((m) => ({ ...m, accountId: null }));
+    await cleared.component.handleSubmit();
+
+    expect(sent(moved.dialogRef).accountId).toBe(REVOLUT.id);
+    expect(sent(cleared.dialogRef).accountId).toBeNull();
+  });
+
+  it('CA26: sends no accountId with the flag off, so the account is kept', async () => {
+    const { component, dialogRef } = await open(
+      createMockBudgetLine({ accountId: COMPTE_COURANT.id }),
+      false,
+    );
+
+    await component.handleSubmit();
+
+    expect(sent(dialogRef)).not.toHaveProperty('accountId');
+  });
+
+  it('CA25: blocks saving when « Compte » and « Versée sur » are the same item', async () => {
+    const { fixture, component } = await open(
+      createMockBudgetLine({
+        kind: 'saving',
+        assetId: LIVRET.id,
+        accountId: LIVRET.id,
+      }),
+    );
+
+    expect(component['accountErrorKey']()).toBe('netWorth.account.sameAsLink');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="save-edit-line"]')
+        .disabled,
+    ).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="account-picker-error"]',
+      ),
+    ).not.toBeNull();
   });
 });

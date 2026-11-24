@@ -530,6 +530,50 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     });
   });
 
+  describe('User deletes a prévision that carries an account (CA46)', () => {
+    const REVOLUT_ID = '00000000-0000-4000-8000-000000000b02';
+
+    it('its real movements stay in the budget with the prévision account', async () => {
+      mockBudgetApi.getBudgetWithDetails$.mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [
+              createMockBudgetLine({
+                id: 'courses',
+                budgetId: mockBudgetId,
+                name: 'Courses',
+                amount: 400,
+                kind: 'expense',
+                accountId: REVOLUT_ID,
+              }),
+            ],
+            transactions: [
+              createMockTransaction({
+                id: 'tx-courses',
+                budgetId: mockBudgetId,
+                budgetLineId: 'courses',
+                amount: 120,
+                kind: 'expense',
+                accountId: null,
+              }),
+            ],
+          }),
+        ),
+      );
+      mockBudgetApi.deleteBudgetLine$ = vi.fn().mockReturnValue(of({}));
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      await service.deleteBudgetLine('courses');
+
+      const [freed] = service.budgetDetails()!.transactions;
+      expect(freed.budgetLineId).toBeNull();
+      expect(freed.accountId).toBe(REVOLUT_ID);
+    });
+  });
+
   describe('User deletes a budget line', () => {
     beforeEach(async () => {
       service.setBudgetId(mockBudgetId);

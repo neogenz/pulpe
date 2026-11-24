@@ -29,6 +29,7 @@ import {
   type Transaction,
   type TransactionKind,
   type TransactionUpdate,
+  FEATURE_FLAGS,
 } from 'pulpe-shared';
 import { transactionUpdateFromFormSchema } from './edit-transaction-form.schema';
 import { startOfMonth, endOfMonth } from 'date-fns';
@@ -42,9 +43,11 @@ import {
   runFormSubmit,
   StaleRateNotifier,
 } from '@core/currency';
+import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { AccountPickerField } from '@app/pattern/account-picker/account-picker-field';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -60,6 +63,7 @@ interface EditTransactionModel {
   kind: TransactionKind;
   transactionDate: Date;
   tagIds: string[];
+  accountId: string | null;
 }
 
 interface DateOutOfRangeError {
@@ -84,6 +88,7 @@ interface DateOutOfRangeError {
     AmountInput,
     SavingsGoalSourceLine,
     TagPicker,
+    AccountPickerField,
   ],
 
   template: `
@@ -231,6 +236,13 @@ interface DateOutOfRangeError {
       @if (!isFieldHidden('tags')) {
         <pulpe-tag-picker [control]="transactionForm.tagIds" />
       }
+      <!-- A movement under a prévision follows its account: no field. -->
+      @if (hasAccountField()) {
+        <pulpe-account-picker-field
+          [value]="model().accountId"
+          (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
+        />
+      }
     </form>
     @if (conversionError()) {
       <p role="alert" class="text-error text-body-small px-1 pt-2">
@@ -250,6 +262,9 @@ export class EditTransactionForm {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #isNetWorthEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
 
   readonly transaction = input.required<Transaction>();
 
@@ -305,8 +320,13 @@ export class EditTransactionForm {
         kind: tx.kind,
         transactionDate: new Date(tx.transactionDate),
         tagIds: tx.tagIds ?? [],
+        accountId: tx.accountId ?? null,
       })),
   });
+
+  protected readonly hasAccountField = computed(
+    () => this.#isNetWorthEnabled && this.transaction().budgetLineId === null,
+  );
 
   #initialMoneySlice(tx: Transaction): AmountFormSlice {
     return createInitialAmountSlice({
@@ -390,6 +410,7 @@ export class EditTransactionForm {
               kind: m.kind,
               transactionDate: formatLocalDate(transactionDate),
               tagIds,
+              accountId: this.hasAccountField() ? m.accountId : undefined,
               conversion: metadata,
             }),
         };

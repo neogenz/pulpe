@@ -17,6 +17,10 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import {
+  AccountPickerField,
+  injectInitialAccountId,
+} from '@app/pattern/account-picker/account-picker-field';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import {
   AppCurrencyPipe,
@@ -45,6 +49,7 @@ interface AddTransactionModel {
   kind: 'expense' | 'income' | 'saving';
   tagIds: string[];
   isChecked: boolean;
+  accountId: string | null;
 }
 
 @Component({
@@ -63,6 +68,7 @@ interface AddTransactionModel {
     AmountInput,
     TagPicker,
     SavingsGoalPickerField,
+    AccountPickerField,
   ],
   template: `
     <form
@@ -155,6 +161,10 @@ interface AddTransactionModel {
           </mat-select>
         </mat-form-field>
         <pulpe-tag-picker [control]="transactionForm.tagIds" />
+        <pulpe-account-picker-field
+          [value]="model().accountId"
+          (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
+        />
         @if (model().kind === 'income') {
           <div class="flex flex-col gap-1">
             <div class="flex items-center justify-between gap-4 py-2">
@@ -256,6 +266,7 @@ export class AddTransactionForm {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #initialAccountId = injectInitialAccountId();
   readonly #isSubmittingState = signal(false);
 
   readonly created = output<TransactionFormData>();
@@ -276,6 +287,7 @@ export class AddTransactionForm {
     kind: 'expense',
     tagIds: [],
     isChecked: true,
+    accountId: this.#initialAccountId(),
   });
 
   // Lu par les deux coques pour terminer leur titre : « Noter une dépense »
@@ -404,6 +416,7 @@ export class AddTransactionForm {
               sourceSavingsGoalId: this.isFromSavingsGoal()
                 ? this.sourceSavingsGoalId()
                 : null,
+              accountId: m.accountId,
             }),
         };
       },

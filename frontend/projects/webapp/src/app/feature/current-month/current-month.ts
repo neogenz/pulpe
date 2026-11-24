@@ -1128,6 +1128,9 @@ export default class Dashboard {
         kind: adjustment.kind,
         transactionDate: formatLocalDate(now),
         checkedAt: now.toISOString(),
+        // The gap is not a movement of one account: the balances typed in the
+        // reconciliation realign them. Explicit, or the server would apply the default.
+        accountId: null,
       }),
     );
     if ('reason' in outcome) {

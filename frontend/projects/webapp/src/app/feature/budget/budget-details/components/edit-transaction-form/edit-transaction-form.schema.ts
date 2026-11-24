@@ -55,7 +55,11 @@ export type TransactionCreateFormValue = z.input<
  * toggle-check is a separate endpoint.
  */
 export const transactionUpdateFromFormSchema = z
-  .object(baseFormFields)
+  .object({
+    ...baseFormFields,
+    /** Absent quand le champ « Compte » n'est pas affiché : le compte est gardé. */
+    accountId: z.uuid().nullable().optional(),
+  })
   .transform(
     (input): TransactionUpdate => ({
       name: input.name,
@@ -63,6 +67,7 @@ export const transactionUpdateFromFormSchema = z
       kind: input.kind,
       transactionDate: input.transactionDate,
       tagIds: input.tagIds,
+      ...(input.accountId !== undefined ? { accountId: input.accountId } : {}),
       ...(input.conversion ?? {}),
     }),
   );
