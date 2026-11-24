@@ -21,6 +21,8 @@ import {
 } from "../net-worth-sections";
 
 export interface AssetActions {
+  /** The element's detail and history; the menu still edits in place. */
+  open: (asset: Asset) => void;
   edit: (asset: Asset) => void;
   toggleArchive: (asset: Asset) => void;
   remove: (asset: Asset) => void;
@@ -228,13 +230,13 @@ function AssetRow({
           </View>
         ) : (
           <Pressable
-            onPress={() => actions.edit(asset)}
+            onPress={() => actions.open(asset)}
             android_ripple={ripple}
             accessibilityRole="button"
             accessibilityLabel={[asset.name, value, converted, caption]
               .filter(Boolean)
               .join(", ")}
-            accessibilityHint={t("netWorth.editAccessibility", {
+            accessibilityHint={t("netWorth.openAccessibility", {
               name: asset.name,
             })}
             style={styles.main}

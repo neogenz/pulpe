@@ -1276,7 +1276,7 @@
     "actionsFor": "Actions for %{name}",
     "archive": "Archive",
     "unarchive": "Unarchive",
-    "editAccessibility": "Edit %{name}",
+    "openAccessibility": "Opens the details of %{name}",
     "deleteTitle": "Delete %{name}?",
     "deleteMessage": "Its whole history of values is deleted too. Archive it instead to take it out of the totals and keep the history.",
     "hideArchived": "Hide archived",
@@ -1384,6 +1384,16 @@
       "defaultHint": "Each new entry starts on this account. You can change it each time.",
       "setDefault": "Use as default in my budget",
       "unsetDefault": "Stop using as default"
+    },
+    "detail": {
+      "back": "Back to My assets",
+      "history": "History",
+      "recorded": "Recorded value",
+      "superseded": "Already included in your entry on %{date}",
+      "nothingSince": "You haven't checked anything since your entry on %{date}.",
+      "loadError": "Couldn't load this history, try again",
+      "loadMoreError": "Couldn't load more, try again",
+      "notFound": "This item is no longer available"
     }
   },
   "onboarding": {

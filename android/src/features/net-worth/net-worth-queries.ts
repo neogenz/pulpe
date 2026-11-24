@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { queryClient } from "@/core/query/query-client";
 import { useVaultStore } from "@/core/vault/vault-store";
@@ -8,6 +13,7 @@ import {
   createAsset,
   createAssetCategory,
   deleteAsset,
+  fetchAssetHistory,
   fetchNetWorth,
   recordAssetSnapshots,
   renameAssetCategory,
@@ -17,13 +23,20 @@ import { netWorthKeys } from "./net-worth-keys";
 
 export { netWorthKeys };
 
-/** Silent when nothing went stale: a budget write only marks this read stale. */
+/**
+ * Silent when nothing went stale: a budget write only marks this read stale.
+ * A read already under way is joined, not restarted: a screen opening fetches
+ * and asks again on focus in the same breath.
+ */
 export function refetchStaleNetWorth(): Promise<void> {
-  return queryClient.refetchQueries({
-    queryKey: netWorthKeys.all,
-    stale: true,
-    type: "active",
-  });
+  return queryClient.refetchQueries(
+    {
+      queryKey: netWorthKeys.all,
+      stale: true,
+      type: "active",
+    },
+    { cancelRefetch: false },
+  );
 }
 
 /** Values are decrypted server-side: no read before the vault is open. */
@@ -34,6 +47,22 @@ export function useNetWorth(isWanted = true) {
     queryKey: netWorthKeys.all,
     queryFn: fetchNetWorth,
     enabled: isUnlocked && isWanted,
+  });
+}
+
+/**
+ * An element and its history, page by page. The element comes with every page;
+ * the first one is the freshest, since a refetch reloads the pages in order.
+ */
+export function useAssetHistory(assetId: string) {
+  const isUnlocked = useVaultStore((state) => state.status === "unlocked");
+
+  return useInfiniteQuery({
+    queryKey: netWorthKeys.history(assetId),
+    queryFn: ({ pageParam }) => fetchAssetHistory(assetId, pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled: isUnlocked,
   });
 }
 

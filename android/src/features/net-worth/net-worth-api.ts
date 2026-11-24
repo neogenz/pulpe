@@ -8,6 +8,8 @@ import {
   type AssetCreate,
   assetCreateSchema,
   assetDeleteResponseSchema,
+  type AssetHistory,
+  assetHistoryResponseSchema,
   type AssetRecord,
   assetResponseSchema,
   type AssetSnapshotsCreate,
@@ -25,6 +27,18 @@ import { ENDPOINTS } from "@/core/api/endpoints";
 export function fetchNetWorth(): Promise<NetWorth> {
   return api
     .get(ENDPOINTS.assets, netWorthResponseSchema)
+    .then((response) => response.data);
+}
+
+/** One page of an element's history, newest first; `cursor` is the previous page's `nextCursor`. */
+export function fetchAssetHistory(
+  assetId: string,
+  cursor: string | null,
+): Promise<AssetHistory> {
+  return api
+    .get(ENDPOINTS.assetHistory(assetId), assetHistoryResponseSchema, {
+      cursor: cursor ?? undefined,
+    })
     .then((response) => response.data);
 }
 

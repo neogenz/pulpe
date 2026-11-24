@@ -1,14 +1,11 @@
 import type { Asset } from "pulpe-shared";
-import { useFocusEffect, useIsFocused } from "expo-router";
+import { router, useFocusEffect, useIsFocused } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
   Button,
-  Dialog,
-  Portal,
-  Text,
   useTheme,
 } from "react-native-paper";
 
@@ -28,6 +25,7 @@ import {
 import { useUpdateUserSettings } from "@/features/account/account-queries";
 import { defaultAfterToggle } from "@/features/net-worth/account-link";
 import { AssetFormSheet } from "@/features/net-worth/components/asset-form-sheet";
+import { DeleteAssetDialog } from "@/features/net-worth/components/delete-asset-dialog";
 import {
   type IntroOutcome,
   NetWorthIntroSheet,
@@ -110,6 +108,7 @@ export default function NetWorthScreen() {
     onSuccess: () => void invalidateUserSettings(),
   };
   const actions: AssetActions = {
+    open: (asset) => router.push(`/asset/${asset.id}`),
     edit: (asset) => setForm({ kind: "edit", asset }),
     toggleArchive: (asset) =>
       updateAsset.mutate(
@@ -291,35 +290,11 @@ export default function NetWorthScreen() {
         <RenameTypeSheet type={renaming} onDismiss={() => setRenaming(null)} />
       )}
 
-      <Portal>
-        <Dialog
-          visible={pendingDelete !== null}
-          onDismiss={() => setPendingDelete(null)}
-        >
-          <Dialog.Title>
-            {t("netWorth.deleteTitle", { name: pendingDelete?.name ?? "" })}
-          </Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">{t("netWorth.deleteMessage")}</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setPendingDelete(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              textColor={theme.colors.error}
-              onPress={() => {
-                if (pendingDelete !== null) {
-                  deleteAsset.mutate(pendingDelete.id, afterRemoval);
-                }
-                setPendingDelete(null);
-              }}
-            >
-              {t("common.delete")}
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <DeleteAssetDialog
+        asset={pendingDelete}
+        onDismiss={() => setPendingDelete(null)}
+        onConfirm={(asset) => deleteAsset.mutate(asset.id, afterRemoval)}
+      />
 
       <Notice
         visible={hasWriteFailed}

@@ -74,6 +74,7 @@ export const ENDPOINTS = {
 
   assets: "/assets",
   asset: (id: string) => `/assets/${id}`,
+  assetHistory: (id: string) => `/assets/${id}/history`,
   assetSnapshots: "/assets/snapshots",
   assetCategories: "/asset-categories",
   assetCategory: (id: string) => `/asset-categories/${id}`,

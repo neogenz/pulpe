@@ -1276,7 +1276,7 @@
     "actionsFor": "Azioni per %{name}",
     "archive": "Archivia",
     "unarchive": "Ripristina",
-    "editAccessibility": "Modifica %{name}",
+    "openAccessibility": "Apre il dettaglio di %{name}",
     "deleteTitle": "Eliminare %{name}?",
     "deleteMessage": "Viene eliminata anche tutta la cronologia dei valori. Archivialo invece per toglierlo dai totali e conservare la cronologia.",
     "hideArchived": "Nascondi gli archiviati",
@@ -1384,6 +1384,16 @@
       "defaultHint": "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta.",
       "setDefault": "Usa come predefinito nel budget",
       "unsetDefault": "Non usare più come predefinito"
+    },
+    "detail": {
+      "back": "Torna a Il mio patrimonio",
+      "history": "Cronologia",
+      "recorded": "Valore registrato",
+      "superseded": "Già compreso nel tuo inserimento del %{date}",
+      "nothingSince": "Non hai spuntato niente dal tuo inserimento del %{date}.",
+      "loadError": "Impossibile caricare questa cronologia, riprova",
+      "loadMoreError": "Impossibile caricare il resto, riprova",
+      "notFound": "Questo elemento non è più disponibile"
     }
   },
   "onboarding": {
