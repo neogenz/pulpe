@@ -69,8 +69,16 @@ export default function AssetDetailScreen() {
 
   const asset = history.data?.pages[0]?.asset;
   const entries = history.data?.pages.flatMap((page) => page.entries) ?? [];
-  // Archived or deleted, here or elsewhere: the server no longer shows it (CA15).
+  // Archiving or deleting here refetches this history before going back: that
+  // 404 is my own write, not the element gone elsewhere.
+  const isLeaving =
+    updateAsset.isPending ||
+    updateAsset.isSuccess ||
+    deleteAsset.isPending ||
+    deleteAsset.isSuccess;
+  // Archived or deleted elsewhere: the server no longer shows it (CA15).
   const isNotFound =
+    !isLeaving &&
     history.error instanceof ApiError &&
     history.error.status === HTTP_NOT_FOUND;
 

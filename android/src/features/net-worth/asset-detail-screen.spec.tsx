@@ -1,5 +1,11 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { Asset, AssetHistory, AssetHistoryEntry } from "pulpe-shared";
 import { PaperProvider } from "react-native-paper";
@@ -10,6 +16,7 @@ import { ApiError } from "@/core/api/api-error";
 import { queryClient } from "@/core/query/query-client";
 import { useAmountVisibility } from "@/core/ui/amount-visibility";
 import {
+  CARTE,
   COMPTE_COURANT,
   contractAssets,
   LIVRET,
@@ -29,7 +36,9 @@ jest.mock("expo-router", () => ({
     React.useEffect(effect, [effect]);
   },
 }));
-jest.mock("@/core/api/api", () => ({ api: { get: jest.fn() } }));
+jest.mock("@/core/api/api", () => ({
+  api: { get: jest.fn(), patch: jest.fn(), delete: jest.fn() },
+}));
 jest.mock("@/core/vault/vault-store", () => ({
   useVaultStore: (select: (state: { status: string }) => unknown) =>
     select({ status: "unlocked" }),
@@ -52,13 +61,41 @@ jest.mock("react-native-safe-area-context", () => ({
 jest.mock("@/core/user-settings/user-settings-queries", () => ({
   invalidateUserSettings: jest.fn(),
 }));
-// The sheet is tested on its own; here it only says it opened, and on what.
+// The sheet and the dialog are tested on their own; here they only say they
+// opened, on what, and hand back archive or delete.
 jest.mock("@/features/net-worth/components/asset-form-sheet", () => {
   const { Text } = jest.requireActual("react-native");
   return {
-    AssetFormSheet: ({ asset }: { asset: Asset }) => (
-      <Text>{`sheet:${asset.name}`}</Text>
+    AssetFormSheet: ({
+      asset,
+      onToggleArchive,
+      onDelete,
+    }: {
+      asset: Asset;
+      onToggleArchive: (asset: Asset) => void;
+      onDelete: (asset: Asset) => void;
+    }) => (
+      <>
+        <Text>{`sheet:${asset.name}`}</Text>
+        <Text onPress={() => onToggleArchive(asset)}>sheet:archive</Text>
+        <Text onPress={() => onDelete(asset)}>sheet:delete</Text>
+      </>
     ),
+  };
+});
+jest.mock("@/features/net-worth/components/delete-asset-dialog", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    DeleteAssetDialog: ({
+      asset,
+      onConfirm,
+    }: {
+      asset: Asset | null;
+      onConfirm: (asset: Asset) => void;
+    }) =>
+      asset === null ? null : (
+        <Text onPress={() => onConfirm(asset)}>dialog:confirm</Text>
+      ),
   };
 });
 
@@ -111,8 +148,12 @@ const COMPTE_ENTRIES = [
   ENTRY_OCT,
 ];
 
-const [compteCourant, , livret] = contractAssets([
+const [compteCourant, , livret, , carte] = contractAssets([
   { latestValue: 9420, recordedValue: 5000, convertedValue: 9420 },
+  {},
+  {},
+  {},
+  { latestValue: 100, convertedValue: 100 },
 ]);
 
 let pages: Record<string, AssetHistory | ApiError>;
@@ -143,6 +184,7 @@ beforeEach(() => {
   jest.useFakeTimers({ now: NOW, advanceTimers: true });
   queryClient.clear();
   jest.mocked(api.get).mockReset();
+  jest.mocked(router.back).mockClear();
   jest.mocked(api.get).mockImplementation(async (path, _schema, query) => {
     if (path === "/assets") {
       return {
@@ -363,6 +405,28 @@ describe("the detail of an element (PUL-379)", () => {
     expect(screen.getByText("sheet:Compte courant")).toBeTruthy();
   });
 
+  it("CA13 shows what a debt kept: −200 down to zero, 0 at zero, +100 after", async () => {
+    // Carte de crédit 200: 300 repaid, a further repayment, then a purchase.
+    pages[`${CARTE}:`] = page(carte, [
+      movement(10, "Achat", "2026-11-05T09:00:00.000Z", 100),
+      movement(11, "Virement", "2026-11-04T09:00:00.000Z", 0),
+      movement(12, "Remboursement", "2026-11-03T09:00:00.000Z", -200),
+      snapshot(13, NOV_1, 200),
+    ]);
+    await open(CARTE);
+
+    expect(
+      await screen.findByLabelText(`Achat, 5${NBSP}novembre, +100.00 CHF`),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText(`Virement, 4${NBSP}novembre, 0.00 CHF`),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText(`Remboursement, 3${NBSP}novembre, −200.00 CHF`),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Comptes 100.00 CHF")).toBeTruthy();
+  });
+
   it("CA14 shows each effect in the element's own currency", async () => {
     const euros = { ...compteCourant, currency: "EUR" as const };
     pages[`${COMPTE_COURANT}:`] = page(euros, [RESTAURANT, ENTRY_NOV]);
@@ -370,6 +434,36 @@ describe("the detail of an element (PUL-379)", () => {
 
     expect(await screen.findByText(/^−80,00\s€$/)).toBeTruthy();
     expect(screen.getByText(/^5\s000,00\s€$/)).toBeTruthy();
+  });
+
+  it("CA19 shows « Courses » once per period, both under the same id", async () => {
+    const courses = (at: string, effect: number, supersededAt: string | null) =>
+      movement(14, "Courses", at, effect, supersededAt);
+    pages[`${COMPTE_COURANT}:`] = page(
+      { ...compteCourant, latestValue: 9140 },
+      [
+        SALAIRE,
+        RESTAURANT,
+        courses("2026-11-04T09:00:00.000Z", -280, null),
+        LOYER,
+        ENTRY_NOV,
+        ASSURANCE,
+        courses("2026-10-28T08:00:00.000Z", -120, NOV_1),
+        ENTRY_OCT,
+      ],
+    );
+    await open(COMPTE_COURANT);
+
+    expect(
+      await screen.findByLabelText(`Courses, 4${NBSP}novembre, −280.00 CHF`),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText(
+        `Courses, 28${NBSP}octobre, −120.00 CHF, Déjà compris dans ta saisie du 1er${NBSP}novembre`,
+      ),
+    ).toBeTruthy();
+    expect(rowTitles().filter((title) => title === "Courses")).toHaveLength(2);
+    expect(screen.getByLabelText("Comptes 9’140.00 CHF")).toBeTruthy();
   });
 
   it("CA15 says an archived or unknown element is no longer there", async () => {
@@ -387,5 +481,45 @@ describe("the detail of an element (PUL-379)", () => {
     expect(screen.queryByLabelText("Modifier")).toBeNull();
     await fireEvent.press(screen.getByText("Retour à Mon patrimoine"));
     expect(router.back).toHaveBeenCalled();
+  });
+
+  describe("leaving after archiving or deleting it here", () => {
+    const gone = new ApiError("Not found", "ERR_ASSET_NOT_FOUND", 404, null);
+
+    beforeEach(() => {
+      jest.mocked(api.patch).mockResolvedValue({ data: compteCourant });
+      jest.mocked(api.delete).mockResolvedValue({ success: true });
+    });
+
+    async function removeWith(...steps: string[]) {
+      await open(COMPTE_COURANT);
+      await screen.findByText("Salaire");
+      // What the server answers once the element is archived or deleted.
+      pages[`${COMPTE_COURANT}:`] = gone;
+      await fireEvent.press(screen.getByLabelText("Modifier"));
+      for (const step of steps) await fireEvent.press(screen.getByText(step));
+      await waitFor(() => expect(router.back).toHaveBeenCalled());
+      // The refetch saw the 404, and the screen has drawn what came of it.
+      expect(
+        queryClient.getQueryState(netWorthKeys.history(COMPTE_COURANT))?.status,
+      ).toBe("error");
+      await act(() => jest.advanceTimersByTimeAsync(0));
+    }
+
+    it("Q29 goes back after archiving without saying the element is gone", async () => {
+      await removeWith("sheet:archive");
+
+      expect(
+        screen.queryByText("Cet élément n'est plus disponible"),
+      ).toBeNull();
+    });
+
+    it("Q29 goes back after deleting without saying the element is gone", async () => {
+      await removeWith("sheet:delete", "dialog:confirm");
+
+      expect(
+        screen.queryByText("Cet élément n'est plus disponible"),
+      ).toBeNull();
+    });
   });
 });
