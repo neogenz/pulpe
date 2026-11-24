@@ -1,5 +1,8 @@
 import type { Asset, NetWorth, SupportedCurrency } from "pulpe-shared";
 
+import { formatCurrency } from "@/core/ui/amount-format";
+import { formatDayMonth } from "@/core/ui/date-format";
+
 /** One card of the page: a Type and its assets, or the overdrawn accounts. */
 export interface NetWorthGroup {
   id: string;
@@ -146,19 +149,6 @@ export function showsConversion(
   return asset.currency !== baseCurrency && asset.convertedValue !== null;
 }
 
-export type SuggestionDetail = "saved" | "drawn" | "repaid";
-
-/** An archived asset never offers a suggestion, whatever the payload carries. */
-export function visibleSuggestion(asset: Asset) {
-  return isActive(asset) ? asset.suggestion : null;
-}
-
-/** The wording carries the direction, so the amount shown has no sign. */
-export function suggestionDetail(asset: Asset): SuggestionDetail {
-  if (asset.direction === "owe") return "repaid";
-  return (asset.suggestion?.delta ?? 0) < 0 ? "drawn" : "saved";
-}
-
 const MS_PER_DAY = 86_400_000;
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -192,6 +182,62 @@ export function assetAgeLabel(
     return t("netWorth.ageMonths", { count: Math.floor(days / 30) });
   }
   return t("netWorth.ageDays", { count: days });
+}
+
+/** « 24 novembre » this year, « 24 novembre 2025 » before, kept on one line. */
+export function formatEntryDate(
+  recordedAt: string,
+  locale: string,
+  now: Date = new Date(),
+): string {
+  const date = new Date(recordedAt);
+  const day = formatDayMonth(date, locale);
+  const label =
+    date.getFullYear() === now.getFullYear()
+      ? day
+      : `${day} ${date.getFullYear()}`;
+  return label.replaceAll(" ", "\u00a0");
+}
+
+/** U+2212 for a negative amount, « + » on demand for a positive one. */
+export function signedAmount(
+  value: number,
+  currency: SupportedCurrency,
+  showsPlus: boolean,
+): string {
+  const amount = formatCurrency(Math.abs(value), currency);
+  if (value < 0) return `\u2212${amount}`;
+  return showsPlus && value > 0 ? `+${amount}` : amount;
+}
+
+/** What the checked lines moved since my last entry, `null` when nothing did. */
+export function movedSinceEntry(asset: Asset): number | null {
+  const cents =
+    Math.round(asset.latestValue * 100) - Math.round(asset.recordedValue * 100);
+  return cents === 0 ? null : cents / 100;
+}
+
+export function entryCaption(
+  asset: Asset,
+  locale: string,
+  t: Translate,
+  categoryName?: string,
+  now: Date = new Date(),
+): string {
+  const moved = movedSinceEntry(asset);
+  if (moved === null) {
+    const when = assetAgeLabel(asset.latestRecordedAt, now, t);
+    return categoryName === undefined
+      ? t("netWorth.updated", { when })
+      : t("netWorth.updatedIn", { category: categoryName, when });
+  }
+  const since = {
+    amount: signedAmount(moved, asset.currency, true),
+    date: formatEntryDate(asset.latestRecordedAt, locale, now),
+  };
+  return categoryName === undefined
+    ? t("netWorth.sinceEntry", since)
+    : t("netWorth.sinceEntryDebt", { ...since, category: categoryName });
 }
 
 export interface AllocationShare {

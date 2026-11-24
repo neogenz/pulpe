@@ -1298,21 +1298,15 @@
       "other": "il y a %{count} ans"
     },
     "whenMatching": "%{line} · à la comparaison",
+    "sinceEntry": "%{amount} depuis ta saisie du %{date}",
+    "sinceEntryDebt": "%{category} · %{amount} depuis ta saisie du %{date}",
     "badgeOverdraft": "Découvert",
     "badgeExcluded": "Hors total",
-    "suggestion": {
-      "propose": "Je propose %{amount}",
-      "dismiss": "Écarter",
-      "apply": "Appliquer",
-      "saved": "%{amount} d'épargne pointée depuis la dernière valeur",
-      "drawn": "%{amount} de revenu tiré depuis la dernière valeur",
-      "repaid": "%{amount} de remboursement pointé depuis la dernière valeur"
-    },
     "form": {
       "addTitle": "Ajouter à mon patrimoine",
       "currency": "Devise",
       "editTitle": "Modifier %{name}",
-      "lastValue": "Dernière valeur : %{amount}, le %{date}",
+      "lastValue": "Ta dernière saisie : %{amount}, le %{date}",
       "value": "Valeur actuelle",
       "overdraft": "Solde négatif (découvert)",
       "namePlaceholder": "Compte UBS, Leasing…",
@@ -1359,7 +1353,7 @@
         },
         "update": {
           "title": "Garde-la à jour en un geste",
-          "body": "Une valeur change ? Tu la mets à jour. Et quand tu mets de l'argent de côté dans ton budget, je te propose de l'ajouter ici.",
+          "body": "Une valeur change ? Tu la mets à jour. Et quand tu pointes de l'argent mis de côté dans ton budget, je l'ajoute ici.",
           "scene": "Exemple : l'épargne passe de %{before} à %{after}, la fortune nette monte à %{netAfter}."
         }
       },
@@ -1373,7 +1367,23 @@
       },
       "updatedLongAgo": "Mis à jour il y a 2 mois",
       "updatedToday": "Mis à jour aujourd'hui",
-      "budgetHint": "%{amount} mis de côté dans ton budget → je te propose +%{amount} ici."
+      "budgetHint": "%{amount} mis de côté et pointé dans ton budget → +%{amount} ici."
+    },
+    "account": {
+      "label": "Compte",
+      "none": "Aucun",
+      "sameAsLink": "« Compte » et « %{link} » doivent être deux éléments différents.",
+      "link": {
+        "expense": "Dette remboursée",
+        "saving": "Versée sur",
+        "income": "Tiré de"
+      },
+      "defaultLabel": "Compte par défaut",
+      "defaultBadge": "Par défaut",
+      "defaultSection": "Mon budget",
+      "defaultHint": "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.",
+      "setDefault": "Utiliser par défaut dans le budget",
+      "unsetDefault": "Ne plus utiliser par défaut"
     }
   },
   "onboarding": {

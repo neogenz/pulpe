@@ -1298,21 +1298,15 @@
       "other": "%{count} years ago"
     },
     "whenMatching": "%{line} · when comparing",
+    "sinceEntry": "%{amount} since your entry on %{date}",
+    "sinceEntryDebt": "%{category} · %{amount} since your entry on %{date}",
     "badgeOverdraft": "Overdrawn",
     "badgeExcluded": "Not in total",
-    "suggestion": {
-      "propose": "I suggest %{amount}",
-      "dismiss": "Dismiss",
-      "apply": "Apply",
-      "saved": "%{amount} of checked savings since the last value",
-      "drawn": "%{amount} of income drawn since the last value",
-      "repaid": "%{amount} of checked repayment since the last value"
-    },
     "form": {
       "addTitle": "Add to my net worth",
       "currency": "Currency",
       "editTitle": "Edit %{name}",
-      "lastValue": "Last value: %{amount}, on %{date}",
+      "lastValue": "Your last entry: %{amount}, on %{date}",
       "value": "Current value",
       "overdraft": "Negative balance (overdraft)",
       "namePlaceholder": "UBS account, Leasing…",
@@ -1359,7 +1353,7 @@
         },
         "update": {
           "title": "Keep it up to date in one tap",
-          "body": "A value changes? You update it. And when you set money aside in your budget, I suggest adding it here.",
+          "body": "A value changes? You update it. And when you check money set aside in your budget, I add it here.",
           "scene": "Example: savings go from %{before} to %{after}, net worth rises to %{netAfter}."
         }
       },
@@ -1373,7 +1367,23 @@
       },
       "updatedLongAgo": "Updated 2 months ago",
       "updatedToday": "Updated today",
-      "budgetHint": "%{amount} set aside in your budget → I suggest +%{amount} here."
+      "budgetHint": "%{amount} set aside and checked in your budget → +%{amount} here."
+    },
+    "account": {
+      "label": "Account",
+      "none": "None",
+      "sameAsLink": "“Account” and “%{link}” must be two different items.",
+      "link": {
+        "expense": "Debt repaid",
+        "saving": "Saved to",
+        "income": "Drawn from"
+      },
+      "defaultLabel": "Default account",
+      "defaultBadge": "Default",
+      "defaultSection": "My budget",
+      "defaultHint": "Each new entry starts on this account. You can change it each time.",
+      "setDefault": "Use as default in my budget",
+      "unsetDefault": "Stop using as default"
     }
   },
   "onboarding": {

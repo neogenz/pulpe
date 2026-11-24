@@ -232,9 +232,11 @@ export function buildTransactionRestore(
     kind: transaction.kind,
     transactionDate: transaction.transactionDate,
     checkedAt: transaction.checkedAt,
+    // A free movement restores its account, « Aucun » included, so the
+    // default never lands on it; an allocated one follows its prévision (CA4).
     ...(transaction.budgetLineId !== null
       ? { budgetLineId: transaction.budgetLineId }
-      : {}),
+      : { accountId: transaction.accountId ?? null }),
     ...(transaction.tagIds !== undefined && transaction.tagIds.length > 0
       ? { tagIds: transaction.tagIds }
       : {}),

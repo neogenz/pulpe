@@ -1,7 +1,25 @@
 import type { Transaction } from "pulpe-shared";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 
+import {
+  COMPTE_COURANT,
+  contractAssets,
+  LEASING,
+  REVOLUT,
+} from "@/core/testing/net-worth-accounts";
+
 import { TransactionSheet } from "./transaction-sheet";
+
+let mockAccounts: {
+  isFlagOn: boolean;
+  assets: ReturnType<typeof contractAssets>;
+} = { isFlagOn: false, assets: contractAssets() };
+jest.mock("@/core/observability/feature-flags", () => ({
+  useFeatureFlag: () => mockAccounts.isFlagOn,
+}));
+jest.mock("@/features/net-worth/net-worth-queries", () => ({
+  useNetWorth: () => ({ data: { assets: mockAccounts.assets } }),
+}));
 
 const mockCreate = {
   mutate: jest.fn(),
@@ -34,7 +52,9 @@ jest.mock("../transaction-mutations", () => ({
   useRefreshAfterTransactionWrite: () => mockRefreshAfterWrite,
   isUnsavedCreate: (error: object) => mockUnsaved.has(error),
 }));
-let mockSettings: { data: { showCurrencySelector?: boolean } } = { data: {} };
+let mockSettings: {
+  data: { showCurrencySelector?: boolean; defaultAccountId?: string | null };
+} = { data: {} };
 jest.mock("@/core/user-settings/user-settings-queries", () => ({
   useUserSettings: () => mockSettings,
 }));
@@ -156,6 +176,7 @@ beforeEach(() => {
   Object.assign(mockUpdate, { isPending: false, isError: false });
   mockDetails = { data: undefined };
   mockSettings = { data: {} };
+  mockAccounts = { isFlagOn: false, assets: contractAssets() };
   mockRate = { data: undefined, isError: false };
   mockWithdrawalOptions.data = [
     { goalId: "goal-1", name: "Voyage", availableAmount: 300, currency: "CHF" },
@@ -737,5 +758,184 @@ describe("editing a movement typed in another currency", () => {
       },
       expect.any(Object),
     );
+  });
+});
+
+describe("« Compte » (PUL-378)", () => {
+  const NONE = "netWorth.account.none";
+  const free = {
+    id: "transaction-1",
+    budgetId: "budget-1",
+    budgetLineId: null,
+    accountId: COMPTE_COURANT,
+    name: "Restaurant",
+    amount: 80,
+    kind: "expense",
+    transactionDate: "2026-08-10T08:00:00.000Z",
+    checkedAt: null,
+    tagIds: [],
+    createdAt: "2026-08-10T08:00:00.000Z",
+    updatedAt: "2026-08-10T08:00:00.000Z",
+  } as Transaction;
+
+  beforeEach(() => {
+    mockAccounts = { isFlagOn: true, assets: contractAssets() };
+  });
+
+  const created = () => mockCreate.mutate.mock.calls[0][0] as object;
+  const add = (view: Awaited<ReturnType<typeof render>>) =>
+    fireEvent.press(view.getByText("budgets.mutations.activity.addAmount"));
+
+  it("CA1 lists « Aucun », then what I have and what I owe", async () => {
+    const view = await render(<TransactionSheet {...baseProps} />);
+
+    for (const name of [
+      NONE,
+      "Compte courant",
+      "Revolut",
+      "Livret",
+      "Leasing",
+      "Carte de crédit",
+    ]) {
+      expect(view.getByText(name)).toBeTruthy();
+    }
+    expect(view.getByText("netWorth.have")).toBeTruthy();
+    expect(view.getByText("netWorth.owe")).toBeTruthy();
+  });
+
+  it("CA2 shows no field with the flag off, and states « Aucun »", async () => {
+    mockAccounts = { isFlagOn: false, assets: contractAssets() };
+    const view = await render(<TransactionSheet {...baseProps} />);
+    expect(view.queryByTestId("account-field")).toBeNull();
+    await fill(view);
+    await add(view);
+
+    expect(created()).toMatchObject({ accountId: null });
+  });
+
+  it("CA2 shows no field without an active element", async () => {
+    mockAccounts = { isFlagOn: true, assets: [] };
+    const view = await render(<TransactionSheet {...baseProps} />);
+
+    expect(view.queryByTestId("account-field")).toBeNull();
+  });
+
+  it("CA3 starts on « Aucun » without a default and sends null", async () => {
+    const view = await render(<TransactionSheet {...baseProps} />);
+    expect(
+      view.getByTestId("account-none").props.accessibilityState,
+    ).toMatchObject({ selected: true });
+    await fill(view);
+    await add(view);
+
+    expect(created()).toMatchObject({ accountId: null });
+  });
+
+  it("CA29 prefills the default account, which stays changeable", async () => {
+    mockSettings = { data: { defaultAccountId: COMPTE_COURANT } };
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view, 6000, "Salaire");
+    await add(view);
+    expect(created()).toMatchObject({ accountId: COMPTE_COURANT });
+
+    mockCreate.mutate.mockClear();
+    const other = await render(<TransactionSheet {...baseProps} />);
+    await fill(other, 80, "Restaurant");
+    await fireEvent.press(other.getAllByText("Revolut")[0]);
+    await add(other);
+    expect(created()).toMatchObject({ accountId: REVOLUT });
+  });
+
+  it("CA29 lets me choose « Aucun » over the default", async () => {
+    mockSettings = { data: { defaultAccountId: COMPTE_COURANT } };
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view);
+    await fireEvent.press(view.getByText(NONE));
+    await add(view);
+
+    expect(created()).toMatchObject({ accountId: null });
+  });
+
+  it("CA35 ignores a default that was archived", async () => {
+    mockSettings = { data: { defaultAccountId: REVOLUT } };
+    mockAccounts = {
+      isFlagOn: true,
+      assets: contractAssets([{}, { archivedAt: "2026-11-02T00:00:00.000Z" }]),
+    };
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view);
+    await add(view);
+
+    expect(created()).toMatchObject({ accountId: null });
+  });
+
+  it("CA4 has no field, and sends no account, once filed under a prévision", async () => {
+    mockDetails = {
+      data: {
+        budget: { rollover: 0 },
+        transactions: [],
+        budgetLines: [
+          {
+            id: "line-1",
+            name: "Loyer",
+            kind: "expense",
+            amount: 500,
+            checkedAt: null,
+          },
+        ],
+      },
+    };
+    mockSettings = { data: { defaultAccountId: COMPTE_COURANT } };
+    const view = await render(<TransactionSheet {...baseProps} />);
+    await fill(view);
+    await fireEvent.press(view.getByText(/^Loyer · /));
+
+    expect(view.queryByTestId("account-field")).toBeNull();
+    await add(view);
+    expect(created()).toMatchObject({ budgetLineId: "line-1" });
+    expect(created()).not.toHaveProperty("accountId");
+  });
+
+  it("CA4 has no field when editing a movement filed under a prévision", async () => {
+    const view = await render(
+      <TransactionSheet
+        {...baseProps}
+        transaction={{ ...free, budgetLineId: "line-1", accountId: null }}
+      />,
+    );
+
+    expect(view.queryByTestId("account-field")).toBeNull();
+  });
+
+  it("CA26 keeps the account when an edit leaves the field alone", async () => {
+    const view = await render(
+      <TransactionSheet {...baseProps} transaction={free} />,
+    );
+    await fill(view, 90, "Restaurant");
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+
+    expect(mockUpdate.mutate).toHaveBeenCalledWith(
+      { id: "transaction-1", changes: { amount: 90 } },
+      expect.any(Object),
+    );
+  });
+
+  it("sends the new account of an edit, and null for « Aucun »", async () => {
+    const view = await render(
+      <TransactionSheet {...baseProps} transaction={free} />,
+    );
+    await fireEvent.press(view.getByText("Leasing"));
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+    expect(mockUpdate.mutate.mock.calls[0][0]).toEqual({
+      id: "transaction-1",
+      changes: { accountId: LEASING },
+    });
+
+    await fireEvent.press(view.getByText(NONE));
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+    expect(mockUpdate.mutate.mock.calls[1][0]).toEqual({
+      id: "transaction-1",
+      changes: { accountId: null },
+    });
   });
 });

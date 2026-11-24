@@ -104,4 +104,16 @@ describe("draft", () => {
       ),
     ).toEqual({ name: "Autre", value: 10 });
   });
+
+  it("CA10 opens on the value today, and saves nothing until it changes", () => {
+    // Livret entered at 10 000, 500 checked since.
+    const original = asset({ recordedValue: 10_000, latestValue: 10_500 });
+    const draft = assetDraftFrom(original);
+
+    expect(draft.amount).toBe(10_500);
+    expect(assetEdit(draft, original)).toEqual({});
+    expect(assetEdit({ ...draft, amount: 12_000 }, original)).toEqual({
+      value: 12_000,
+    });
+  });
 });

@@ -1298,21 +1298,15 @@
       "other": "vor %{count} Jahren"
     },
     "whenMatching": "%{line} · beim Vergleich",
+    "sinceEntry": "%{amount} seit deiner Eingabe vom %{date}",
+    "sinceEntryDebt": "%{category} · %{amount} seit deiner Eingabe vom %{date}",
     "badgeOverdraft": "Überzogen",
     "badgeExcluded": "Nicht in der Summe",
-    "suggestion": {
-      "propose": "Ich schlage %{amount} vor",
-      "dismiss": "Verwerfen",
-      "apply": "Anwenden",
-      "saved": "%{amount} Sparen abgehakt seit dem letzten Wert",
-      "drawn": "%{amount} Einnahme entnommen seit dem letzten Wert",
-      "repaid": "%{amount} Rückzahlung abgehakt seit dem letzten Wert"
-    },
     "form": {
       "addTitle": "Zu meinem Vermögen hinzufügen",
       "currency": "Währung",
       "editTitle": "%{name} bearbeiten",
-      "lastValue": "Letzter Wert: %{amount}, am %{date}",
+      "lastValue": "Deine letzte Eingabe: %{amount}, am %{date}",
       "value": "Aktueller Wert",
       "overdraft": "Negativer Saldo (überzogen)",
       "namePlaceholder": "UBS-Konto, Leasing…",
@@ -1359,7 +1353,7 @@
         },
         "update": {
           "title": "Mit einem Tipp aktuell halten",
-          "body": "Ein Wert ändert sich? Du aktualisierst ihn. Und wenn du in deinem Budget Geld zur Seite legst, schlage ich dir vor, es hier hinzuzufügen.",
+          "body": "Ein Wert ändert sich? Du aktualisierst ihn. Und wenn du in deinem Budget zur Seite gelegtes Geld abhakst, füge ich es hier hinzu.",
           "scene": "Beispiel: Die Ersparnisse steigen von %{before} auf %{after}, das Nettovermögen auf %{netAfter}."
         }
       },
@@ -1373,7 +1367,23 @@
       },
       "updatedLongAgo": "Vor 2 Monaten aktualisiert",
       "updatedToday": "Heute aktualisiert",
-      "budgetHint": "%{amount} in deinem Budget zur Seite gelegt → ich schlage dir hier +%{amount} vor."
+      "budgetHint": "%{amount} in deinem Budget zur Seite gelegt und abgehakt → hier +%{amount}."
+    },
+    "account": {
+      "label": "Konto",
+      "none": "Keine",
+      "sameAsLink": "„Konto“ und „%{link}“ müssen zwei verschiedene Elemente sein.",
+      "link": {
+        "expense": "Getilgte Schuld",
+        "saving": "Eingezahlt auf",
+        "income": "Entnommen aus"
+      },
+      "defaultLabel": "Standardkonto",
+      "defaultBadge": "Standard",
+      "defaultSection": "Mein Budget",
+      "defaultHint": "Jeder neue Eintrag beginnt mit diesem Konto. Du kannst es jedes Mal ändern.",
+      "setDefault": "Im Budget als Standard verwenden",
+      "unsetDefault": "Nicht mehr als Standard verwenden"
     }
   },
   "onboarding": {
