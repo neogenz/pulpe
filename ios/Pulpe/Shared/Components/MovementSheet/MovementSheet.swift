@@ -55,6 +55,7 @@ struct MovementSheet: View {
     @State var inputCurrency: SupportedCurrency
     @State var selectedTagIds: Set<String>
     @State var accountId: String?
+    @State var didPrefillAccount = false
     @State var linePick: LinePick?
     @State var showsLinePicker = false
     @State var isConfirmingPostpone = false
@@ -276,7 +277,7 @@ struct MovementSheet: View {
             if !isEditing { savingsOriginCard }
             impactBlock
             if showsAccountField {
-                AccountPickerField(selection: $accountId, prefillsDefault: !isEditing)
+                AccountPickerField(selection: $accountId, didPrefill: isEditing ? nil : $didPrefillAccount)
             }
             detailsCard
 

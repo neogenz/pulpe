@@ -25,6 +25,7 @@ struct AddBudgetLineSheet: View {
     @State var savingsGoalId: String?
     @State var assetId: String?
     @State var accountId: String?
+    @State var didPrefillAccount = false
     @State var isLoading = false
     @State var error: Error?
     @FocusState var focusedField: AmountDescriptionField?
@@ -165,7 +166,7 @@ struct AddBudgetLineSheet: View {
                     selection: $accountId,
                     link: linkedAssetId,
                     linkTitle: AssetPickerField.linkTitle(kind: kind),
-                    prefillsDefault: true
+                    didPrefill: $didPrefillAccount
                 )
             }
 

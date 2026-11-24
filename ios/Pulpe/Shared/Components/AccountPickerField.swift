@@ -48,8 +48,10 @@ struct AccountPickerField: View {
     /// The « Versée sur » / « Dette remboursée » / « Tiré de » element, and its title.
     var link: String?
     var linkTitle: String?
-    /// Starts on the default account once the elements are loaded (creation only).
-    var prefillsDefault = false
+    /// Starts on the default account once the elements are loaded (creation only): `nil` never
+    /// prefills. The sheet owns the flag, because the field leaves the screen and comes back
+    /// (a prévision picked then dropped) and must not prefill over « Aucun » a second time.
+    var didPrefill: Binding<Bool>?
     /// Alone in its own card, or a bare row for a `List`.
     var style: FormRowStyle = .standalone
 
@@ -57,7 +59,6 @@ struct AccountPickerField: View {
     @Environment(FeatureFlagsStore.self) private var featureFlags
     @Environment(UserSettingsStore.self) private var settings
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var didPrefill = false
 
     private var selectedAsset: Asset? {
         guard let selection else { return nil }
@@ -92,8 +93,8 @@ struct AccountPickerField: View {
             }
             .task {
                 await store.loadIfNeeded()
-                guard prefillsDefault, !didPrefill else { return }
-                didPrefill = true
+                guard let didPrefill, !didPrefill.wrappedValue else { return }
+                didPrefill.wrappedValue = true
                 if selection == nil {
                     selection = AccountLink.start(defaultId: settings.defaultAccountId, link: link, store: store)
                 }
