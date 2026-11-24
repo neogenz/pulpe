@@ -360,6 +360,24 @@ describe('SettingsPage', () => {
       ).toBe('Compte par défaut');
     });
 
+    it('sits after « Annuler / Enregistrer », which do not undo it', async () => {
+      await render();
+      fixture.componentInstance.selectedPayDay.set(15);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const cancel = fixture.nativeElement.querySelector(
+        '[data-testid="cancel-settings-button"]',
+      );
+      const picker = fixture.nativeElement.querySelector(
+        'pulpe-account-picker-field',
+      );
+      expect(
+        cancel.compareDocumentPosition(picker) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
     it('CA28: is absent with the flag off', async () => {
       mockPostHog.isFeatureEnabled.mockReturnValue(false);
       await render();
