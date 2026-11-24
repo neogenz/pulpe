@@ -1,6 +1,5 @@
 import type {
   AssetDirection,
-  AssetSuggestion,
   SupportedCurrency,
   TransactionKind,
 } from 'pulpe-shared';
@@ -17,7 +16,7 @@ const CENTS_PER_UNIT = 100;
 export interface NetWorthInput {
   baseCurrency: SupportedCurrency;
   categories: AssetCategory[];
-  /** Every asset, archived ones included, valued in its own currency. */
+  /** Every asset, archived ones included, with its last entry. */
   assets: AssetWithValue[];
   /**
    * Today's rate per foreign currency: how many `baseCurrency` one unit of it
@@ -26,8 +25,8 @@ export interface NetWorthInput {
   rates: Partial<Record<SupportedCurrency, number>>;
   /**
    * Checked prévisions linked to an active asset, already restricted to those
-   * checked after that asset's cutoff (`checkedLinesCutoffs`). Amounts are in
-   * `baseCurrency`.
+   * checked after that asset's last entry (`checkedLinesCutoffs`). Amounts are
+   * in `baseCurrency`.
    */
   checkedLines: CheckedLinkedLine[];
 }
@@ -36,12 +35,13 @@ export interface NetWorthInput {
  * The only place net-worth money is computed. Every figure is rounded to the
  * cent; sums run on integer cents so they do not drift.
  *
+ * The value of an asset is its last entry plus what was checked since. An
+ * archived asset, or one without a rate, keeps its last entry.
+ *
  * Active assets only count in the totals. A positive `own` value goes to its
  * category `total` and to `gross`; a negative `own` value (overdraft) and an
  * `owe` value go to `debts`. An asset with no rate keeps `convertedValue: null`
  * and stays out of the totals, which then carry `incomplete`.
- *
- * Each active asset also carries the value its `checkedLines` propose.
  */
 export function computeNetWorth(input: NetWorthInput): NetWorth {
   const { baseCurrency, categories, assets, rates, checkedLines } = input;
@@ -52,13 +52,13 @@ export function computeNetWorth(input: NetWorthInput): NetWorth {
 
   const valuedAssets = assets.map((asset) => {
     const rate = asset.currency === baseCurrency ? 1 : rates[asset.currency];
-    const suggestion = computeAssetSuggestion(asset, checkedLines, rate);
     if (rate === undefined) {
       incomplete ||= asset.archivedAt === null;
-      return { ...asset, convertedValue: null, suggestion };
+      return { ...asset, value: asset.recordedValue, convertedValue: null };
     }
 
-    const cents = Math.round(asset.latestValue * rate * CENTS_PER_UNIT);
+    const valueCents = assetValueCents(asset, checkedLines, rate);
+    const cents = Math.round(valueCents * rate);
     if (asset.archivedAt === null) {
       if (asset.direction === 'own' && cents >= 0) {
         grossCents += cents;
@@ -70,7 +70,11 @@ export function computeNetWorth(input: NetWorthInput): NetWorth {
         debtsCents += Math.abs(cents);
       }
     }
-    return { ...asset, convertedValue: toUnits(cents), suggestion };
+    return {
+      ...asset,
+      value: toUnits(valueCents),
+      convertedValue: toUnits(cents),
+    };
   });
 
   return {
@@ -90,23 +94,18 @@ export function computeNetWorth(input: NetWorthInput): NetWorth {
 }
 
 /**
- * For each active asset, the instant after which a checked prévision still
- * counts: the later of its latest snapshot (the value already includes what
- * was checked before) and its last dismissal (a dismissed movement is
- * forgotten). An archived asset carries no suggestion, so it has no cutoff.
+ * For each active asset, the instant after which a checked prévision moves its
+ * value: its last entry, which already holds what was checked before. An
+ * archived asset keeps its last entry, so it has no cutoff.
  */
 export function checkedLinesCutoffs(
   assets: AssetWithValue[],
 ): CheckedLinesCutoff[] {
   return assets
     .filter((asset) => asset.archivedAt === null)
-    .map(({ id, latestRecordedAt, suggestionDismissedAt }) => ({
+    .map(({ id, latestRecordedAt }) => ({
       assetId: id,
-      since:
-        suggestionDismissedAt !== null &&
-        Date.parse(suggestionDismissedAt) > Date.parse(latestRecordedAt)
-          ? suggestionDismissedAt
-          : latestRecordedAt,
+      since: latestRecordedAt,
     }));
 }
 
@@ -123,37 +122,30 @@ function movementSign(direction: AssetDirection, kind: TransactionKind) {
 }
 
 /**
- * The value `lines` propose for an active asset, in its own currency. `rate` is
- * how many base currency one unit of the asset currency is worth; the lines
- * are in base currency, so no rate means no suggestion. A debt never goes below
- * zero. `null` when nothing moves the value.
+ * The value of an asset in its own currency, in cents: its last entry plus its
+ * `lines`, each converted from base currency at `rate`. A debt takes them in
+ * the order they were checked and never goes below zero: each movement only
+ * counts for what remains due at that moment. An archived asset keeps its last
+ * entry.
  */
-function computeAssetSuggestion(
+function assetValueCents(
   asset: AssetWithValue,
   lines: CheckedLinkedLine[],
-  rate: number | undefined,
-): AssetSuggestion | null {
-  if (asset.archivedAt !== null || rate === undefined) return null;
+  rate: number,
+): number {
+  const recordedCents = Math.round(asset.recordedValue * CENTS_PER_UNIT);
+  if (asset.archivedAt !== null) return recordedCents;
 
-  const movedBaseCents = lines
+  return lines
     .filter((line) => line.assetId === asset.id)
-    .reduce(
-      (sum, line) =>
-        sum +
+    .sort((a, b) => Date.parse(a.checkedAt) - Date.parse(b.checkedAt))
+    .reduce((valueCents, line) => {
+      const movedCents =
         movementSign(asset.direction, line.kind) *
-          Math.round(line.amount * CENTS_PER_UNIT),
-      0,
-    );
-  const valueCents = Math.round(asset.latestValue * CENTS_PER_UNIT);
-  const movedValueCents = valueCents + Math.round(movedBaseCents / rate);
-  const proposedCents =
-    asset.direction === 'owe' ? Math.max(0, movedValueCents) : movedValueCents;
-  if (proposedCents === valueCents) return null;
-
-  return {
-    delta: toUnits(proposedCents - valueCents),
-    proposedValue: toUnits(proposedCents),
-  };
+        Math.round((line.amount * CENTS_PER_UNIT) / rate);
+      const next = valueCents + movedCents;
+      return asset.direction === 'owe' ? Math.max(0, next) : next;
+    }, recordedCents);
 }
 
 function toUnits(cents: number): number {

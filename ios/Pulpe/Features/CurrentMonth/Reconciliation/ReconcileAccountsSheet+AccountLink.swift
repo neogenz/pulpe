@@ -71,8 +71,10 @@ struct ReconcileAccountRow: View {
             }
             if let asset {
                 // A card's figure is what is owed so far, not the limit the bank also shows.
-                if asset.direction == .owe { caption("Tout ce que tu dois, achats récents compris. Pas ta limite.") }
-                caption("Mis à jour dans Mon patrimoine.")
+                if asset.direction == .owe {
+                    caption(AppLocale.string("Tout ce que tu dois, achats récents compris. Pas ta limite."))
+                }
+                caption(Self.followedCaption(asset)).sensitiveAmount()
             }
         }
         .padding(.vertical, DesignTokens.Spacing.md)
@@ -101,7 +103,15 @@ struct ReconcileAccountRow: View {
             .background(color.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
     }
 
-    private func caption(_ text: LocalizedStringKey) -> some View {
+    /// A hint, never a prefill: the balance typed here comes from the bank.
+    static func followedCaption(_ asset: Asset, language: SupportedLocale = AppLocale.current) -> String {
+        AppLocale.string(
+            "Mis à jour dans Mon patrimoine, où il vaut aujourd'hui \(asset.latestValue.asCurrency(asset.currency)).",
+            locale: AppLocale.uiLocale(for: language)
+        )
+    }
+
+    private func caption(_ text: String) -> some View {
         Text(text)
             .font(PulpeTypography.captionRegular)
             .foregroundStyle(Color.textSecondary)

@@ -49,10 +49,13 @@ export class AssetMapper {
   private toNetWorthAssetApi(entity: NetWorthAsset): AssetApi {
     return {
       ...this.toApi(entity),
-      latestValue: entity.latestValue,
+      // Installed apps (iOS 1.14.x, Android) show `latestValue`: it carries the
+      // up-to-date value, and `suggestion` stays for them, always null.
+      latestValue: entity.value,
+      recordedValue: entity.recordedValue,
       latestRecordedAt: entity.latestRecordedAt,
       convertedValue: entity.convertedValue,
-      suggestion: entity.suggestion,
+      suggestion: null,
     };
   }
 }

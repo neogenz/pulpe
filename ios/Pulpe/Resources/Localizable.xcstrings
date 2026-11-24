@@ -23,6 +23,52 @@
         }
       }
     },
+    "%@ depuis ta saisie du %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ seit deiner Eingabe vom %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ since your entry on %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ dal tuo inserimento del %@"
+          }
+        }
+      }
+    },
+    "%@ · %@ depuis ta saisie du %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@ seit deiner Eingabe vom %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@ since your entry on %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@ dal tuo inserimento del %@"
+          }
+        }
+      }
+    },
     "Autre type…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -335,6 +381,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La mia banca"
+          }
+        }
+      }
+    },
+    "Mis à jour dans Mon patrimoine, où il vaut aujourd'hui %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Mein Vermögen aktualisiert, wo es heute %@ wert ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated in My assets, where it is worth %@ today."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornato in Il mio patrimonio, dove oggi vale %@."
           }
         }
       }
@@ -754,6 +823,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rinomina il tipo"
+          }
+        }
+      }
+    },
+    "Ta dernière saisie : %@, le %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine letzte Eingabe: %@, am %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your last entry: %@, on %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo ultimo inserimento: %@, il %@"
           }
         }
       }
@@ -21039,24 +21131,24 @@
         }
       }
     },
-    "Une fois pointé, je te propose de baisser la valeur de %@." : {
+    "Une fois pointé, il baisse la valeur de %@." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sobald sie abgehakt ist, schlage ich dir vor, den Wert von %@ zu senken."
+            "value" : "Sobald sie abgehakt ist, senkt sie den Wert von %@."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Once checked, I'll suggest lowering the value of %@."
+            "value" : "Once checked, it lowers the value of %@."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Una volta spuntata, ti propongo di abbassare il valore di %@."
+            "value" : "Una volta spuntata, abbassa il valore di %@."
           }
         }
       }
@@ -46585,29 +46677,6 @@
         }
       }
     },
-    "Dernière valeur : %@, le %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Letzter Wert: %@, am %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last value: %@, on %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ultimo valore: %@, il %@"
-          }
-        }
-      }
-    },
     "Solde négatif (découvert)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -46858,139 +46927,24 @@
         }
       }
     },
-    "Une fois pointée, je te propose de baisser ce qu'il reste dû sur %@." : {
+    "Une fois pointée, elle baisse ce qu'il reste dû sur %@." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sobald er abgehakt ist, schlage ich dir vor, den noch offenen Betrag bei %@ zu senken."
+            "value" : "Sobald er abgehakt ist, senkt er den noch offenen Betrag bei %@."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Once checked, I'll suggest lowering what's still owed on %@."
+            "value" : "Once checked, it lowers what's still owed on %@."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Una volta spuntata, ti propongo di abbassare quanto resta da pagare su %@."
-          }
-        }
-      }
-    },
-    "Je propose %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ich schlage %@ vor"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I suggest %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Propongo %@"
-          }
-        }
-      }
-    },
-    "%@ d'épargne pointée depuis la dernière valeur" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Sparen abgehakt seit dem letzten Wert"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ of checked savings since the last value"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ di risparmio spuntato dall'ultimo valore"
-          }
-        }
-      }
-    },
-    "%@ de revenu tiré depuis la dernière valeur" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Einnahme entnommen seit dem letzten Wert"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ of income drawn since the last value"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ di entrata prelevata dall'ultimo valore"
-          }
-        }
-      }
-    },
-    "%@ de remboursement pointé depuis la dernière valeur" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Rückzahlung abgehakt seit dem letzten Wert"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ of checked repayment since the last value"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ di rimborso spuntato dall'ultimo valore"
-          }
-        }
-      }
-    },
-    "Écarter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verwerfen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dismiss"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scarta"
+            "value" : "Una volta spuntata, abbassa quanto resta da pagare su %@."
           }
         }
       }
@@ -47105,24 +47059,24 @@
         }
       }
     },
-    "%@ mis de côté dans ton budget → je te propose +%@ ici." : {
+    "%@ mis de côté et pointé dans ton budget → +%@ ici." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ in deinem Budget zur Seite gelegt → ich schlage dir hier +%@ vor."
+            "value" : "%@ in deinem Budget zur Seite gelegt und abgehakt → hier +%@."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ set aside in your budget → I suggest +%@ here."
+            "value" : "%@ set aside and checked in your budget → +%@ here."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ messi da parte nel tuo budget → ti propongo +%@ qui."
+            "value" : "%@ messi da parte e spuntati nel tuo budget → +%@ qui."
           }
         }
       }
@@ -47237,24 +47191,24 @@
         }
       }
     },
-    "Une valeur change ? Tu la mets à jour. Et quand tu mets de l'argent de côté dans ton budget, je te propose de l'ajouter ici." : {
+    "Une valeur change ? Tu la mets à jour. Et quand tu pointes de l'argent mis de côté dans ton budget, je l'ajoute ici." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Wert ändert sich? Du aktualisierst ihn. Und wenn du in deinem Budget Geld zur Seite legst, schlage ich dir vor, es hier hinzuzufügen."
+            "value" : "Ein Wert ändert sich? Du aktualisierst ihn. Und wenn du in deinem Budget zur Seite gelegtes Geld abhakst, füge ich es hier hinzu."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A value changes? You update it. And when you set money aside in your budget, I suggest adding it here."
+            "value" : "A value changes? You update it. And when you check money set aside in your budget, I add it here."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un valore cambia? Lo aggiorni. E quando metti da parte dei soldi nel tuo budget, ti propongo di aggiungerli qui."
+            "value" : "Un valore cambia? Lo aggiorni. E quando spunti dei soldi messi da parte nel tuo budget, li aggiungo qui."
           }
         }
       }
@@ -47541,28 +47495,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Digita quello che mostra oggi la tua banca, conto per conto."
-          }
-        }
-      }
-    },
-    "Mis à jour dans Mon patrimoine." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In Mein Vermögen aktualisiert."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updated in My assets."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiornato in Il mio patrimonio."
           }
         }
       }

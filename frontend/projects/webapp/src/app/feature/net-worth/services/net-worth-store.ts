@@ -103,10 +103,6 @@ export class NetWorthStore {
     });
   }
 
-  dismissSuggestion(id: string): Promise<void> {
-    return this.#run(() => firstValueFrom(this.#api.dismissSuggestion$(id)));
-  }
-
   setArchived(id: string, archived: boolean): Promise<void> {
     return this.#run(() => firstValueFrom(this.#api.update$(id, { archived })));
   }

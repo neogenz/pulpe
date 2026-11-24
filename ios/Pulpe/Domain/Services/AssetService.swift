@@ -7,7 +7,6 @@ protocol AssetServicing: Sendable {
     func update(id: String, _ data: AssetUpdate) async throws -> AssetRecord
     func delete(id: String) async throws
     func recordSnapshots(_ data: AssetSnapshotsCreate) async throws -> AssetSnapshotsResult
-    func dismissSuggestion(id: String) async throws -> AssetRecord
     func createCategory(_ data: AssetCategoryWrite) async throws -> AssetCategoryRecord
     func renameCategory(id: String, _ data: AssetCategoryWrite) async throws -> AssetCategoryRecord
 }
@@ -39,10 +38,6 @@ actor AssetService: AssetServicing {
 
     func recordSnapshots(_ data: AssetSnapshotsCreate) async throws -> AssetSnapshotsResult {
         try await apiClient.request(.assetSnapshots, body: data, method: .post)
-    }
-
-    func dismissSuggestion(id: String) async throws -> AssetRecord {
-        try await apiClient.request(.assetDismissSuggestion(id: id), method: .post)
     }
 
     func createCategory(_ data: AssetCategoryWrite) async throws -> AssetCategoryRecord {

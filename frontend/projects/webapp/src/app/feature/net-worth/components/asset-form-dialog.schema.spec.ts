@@ -31,6 +31,7 @@ const asset: Asset = {
   direction: 'own',
   inPulpe: false,
   archivedAt: null,
+  recordedValue: 1200,
   latestValue: 1200,
   latestRecordedAt: '2026-11-03T10:00:00.000Z',
   convertedValue: 1200,
@@ -154,6 +155,15 @@ describe('asset form schema', () => {
       );
 
       expect(defaultCategoryKey(options)).toBe('savings');
+    });
+  });
+
+  it('records a snapshot only when the typed value differs from the up-to-date one', () => {
+    const livret = { ...asset, recordedValue: 10_000, latestValue: 10_500 };
+
+    expect(buildAssetEdit({ ...value, value: 10_500 }, livret)).toEqual({});
+    expect(buildAssetEdit({ ...value, value: 10_000 }, livret)).toEqual({
+      value: 10_000,
     });
   });
 });

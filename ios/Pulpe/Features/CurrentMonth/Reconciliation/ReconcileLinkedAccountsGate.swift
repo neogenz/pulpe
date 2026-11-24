@@ -22,7 +22,10 @@ struct ReconcileLinkedAccountsGate<Content: View>: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.sheetBackground)
                 .task {
-                    await assetStore.loadIfNeeded()
+                    // Always fresh: a line checked a minute ago already moved the value the
+                    // caption shows (« où il vaut aujourd'hui … »). A failed refresh keeps the
+                    // assets of an earlier load, and `hasError` stays false while they are there.
+                    await assetStore.forceRefresh()
                     accounts = assetStore.hasError
                         ? nil
                         : assetStore.activeAssets.filter { $0.currency == userSettingsStore.currency }

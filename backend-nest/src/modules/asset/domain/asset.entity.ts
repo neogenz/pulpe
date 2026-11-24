@@ -1,6 +1,5 @@
 import type {
   AssetDirection,
-  AssetSuggestion,
   NetWorthTotals,
   SupportedCurrency,
   TransactionKind,
@@ -28,14 +27,13 @@ export interface Asset {
 }
 
 /**
- * An asset with its current value: the latest snapshot, decrypted, in the
- * asset's own currency.
+ * An asset with its last entry: the latest snapshot, decrypted, in the asset's
+ * own currency. A snapshot is a value typed by the user (edit or
+ * reconciliation), never a checked movement.
  */
 export interface AssetWithValue extends Asset {
-  latestValue: number;
+  recordedValue: number;
   latestRecordedAt: string;
-  /** When the user last dismissed a suggestion; never exposed by the API. */
-  suggestionDismissedAt: string | null;
 }
 
 /**
@@ -46,6 +44,8 @@ export interface CheckedLinkedLine {
   assetId: string;
   kind: TransactionKind;
   amount: number;
+  /** When it was checked: a debt applies its movements in this order. */
+  checkedAt: string;
 }
 
 /** Lines are read when checked strictly after `since` (an ISO instant). */
@@ -70,7 +70,6 @@ export interface AssetUpdatePatch {
   categoryId?: string;
   inPulpe?: boolean;
   archivedAt?: string | null;
-  suggestionDismissedAt?: string;
 }
 
 export interface AssetSnapshotInput {
@@ -83,10 +82,14 @@ export interface NetWorthCategory extends AssetCategory {
   total: number;
 }
 
-/** Asset with its value in base currency at today's rate; `null` without a rate. */
+/**
+ * Asset with its up-to-date `value` (last entry plus what was checked since,
+ * own currency) and that value in base currency at today's rate, `null`
+ * without a rate.
+ */
 export interface NetWorthAsset extends AssetWithValue {
+  value: number;
   convertedValue: number | null;
-  suggestion: AssetSuggestion | null;
 }
 
 export interface NetWorth {

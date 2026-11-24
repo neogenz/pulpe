@@ -177,45 +177,13 @@ describe('SupabaseAssetRepository', () => {
       const assets = await repo.findAllWithLatestValue();
 
       expect(
-        assets.map((a) => [a.id, a.latestValue, a.latestRecordedAt]),
+        assets.map((a) => [a.id, a.recordedValue, a.latestRecordedAt]),
       ).toEqual([
         ['a', 300, '2026-11-03T10:00:00Z'],
         ['b', 50, '2026-09-01T10:00:00Z'],
       ]);
       expect(encryption.decryptAmount).toHaveBeenCalledTimes(2);
       expect(latest.argsOf('eq')).toEqual([['user_id', 'user-1']]);
-    });
-
-    it('carries the dismissal instant of each asset', async () => {
-      const { repo } = createRepository({
-        asset: [
-          query(() => ({
-            data: [
-              assetRow('a', {
-                suggestion_dismissed_at: '2026-11-02T08:00:00Z',
-              }),
-              assetRow('b'),
-            ],
-            error: null,
-          })),
-        ],
-        asset_latest_snapshot: [
-          query(() => ({
-            data: [
-              snapshotRow('a', 1, '2026-11-01T10:00:00Z'),
-              snapshotRow('b', 2, '2026-11-01T10:00:00Z'),
-            ],
-            error: null,
-          })),
-        ],
-      });
-
-      const assets = await repo.findAllWithLatestValue();
-
-      expect(assets.map((a) => a.suggestionDismissedAt)).toEqual([
-        '2026-11-02T08:00:00Z',
-        null,
-      ]);
     });
 
     it('does not swallow a decryption failure', async () => {
@@ -307,9 +275,24 @@ describe('SupabaseAssetRepository', () => {
       ]);
 
       expect(result).toEqual([
-        { assetId: 'livret', kind: 'saving', amount: 500 },
-        { assetId: 'livret', kind: 'saving', amount: 200.5 },
-        { assetId: 'leasing', kind: 'expense', amount: 400 },
+        {
+          assetId: 'livret',
+          kind: 'saving',
+          amount: 500,
+          checkedAt: '2026-11-05T09:00:00+00:00',
+        },
+        {
+          assetId: 'livret',
+          kind: 'saving',
+          amount: 200.5,
+          checkedAt: '2026-11-05T09:00:00+00:00',
+        },
+        {
+          assetId: 'leasing',
+          kind: 'expense',
+          amount: 400,
+          checkedAt: '2026-11-05T09:00:00+00:00',
+        },
       ]);
       expect(lines.argsOf('in')).toEqual([['asset_id', ['livret', 'leasing']]]);
       expect(lines.argsOf('gt')).toEqual([
@@ -507,15 +490,15 @@ describe('SupabaseAssetRepository', () => {
   });
 
   describe('update', () => {
-    it('writes the dismissal instant and leaves the other columns out', async () => {
+    it('writes only the fields of the patch', async () => {
       const update = query(() => ({ data: assetRow('a'), error: null }));
       const { repo } = createRepository({ asset: [update] });
 
-      await repo.update('a', { suggestionDismissedAt: '2026-11-03T10:00:00Z' });
+      await repo.update('a', { name: 'Livret B' });
 
       expect(
         JSON.parse(JSON.stringify(update.argsOf('update')[0]?.[0])),
-      ).toEqual({ suggestion_dismissed_at: '2026-11-03T10:00:00Z' });
+      ).toEqual({ name: 'Livret B' });
     });
   });
 

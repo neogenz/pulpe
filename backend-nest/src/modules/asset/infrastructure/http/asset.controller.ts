@@ -131,14 +131,15 @@ export class AssetController {
   @Post(':id/dismiss-suggestion')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Écarte la valeur proposée',
+    summary: 'Obsolète : ne fait plus rien',
+    deprecated: true,
     description:
-      "Les Prévisions déjà pointées sont oubliées : la prochaine proposition ne compte que celles pointées ensuite. Pour accepter une proposition, l'enregistrer avec `POST /assets/snapshots`.",
+      "Depuis que la valeur d'un avoir suit ce qui est pointé, il n'y a plus de proposition à écarter. Gardée pour iOS 1.14.x et Android : renvoie l'avoir sans rien écrire.",
   })
   @ApiParam({ name: 'id', description: "Identifiant unique de l'avoir" })
   @ApiResponse({
     status: 200,
-    description: 'Proposition écartée avec succès',
+    description: "L'avoir, inchangé",
     type: AssetResponseDto,
   })
   @ApiNotFoundResponse({

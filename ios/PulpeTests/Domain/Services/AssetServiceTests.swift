@@ -84,14 +84,6 @@ struct AssetServiceTests {
     }
 
     @Test
-    func dismissSuggestion_postsWithoutBody() async throws {
-        let seen = try await capture(data: Self.record) { _ = try await $0.dismissSuggestion(id: "a1") }
-
-        #expect(seen.method == "POST")
-        #expect(seen.path == "/assets/a1/dismiss-suggestion")
-    }
-
-    @Test
     func createCategory_postsName() async throws {
         let seen = try await capture(data: Self.category) {
             _ = try await $0.createCategory(AssetCategoryWrite(name: "Comptes"))

@@ -23,6 +23,7 @@ function asset(overrides: Partial<Asset>): Asset {
     inPulpe: false,
     archivedAt: null,
     latestValue: 100,
+    recordedValue: 100,
     latestRecordedAt: "2026-11-01T10:00:00.000Z",
     convertedValue: 100,
     suggestion: null,

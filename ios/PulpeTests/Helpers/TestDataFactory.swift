@@ -208,12 +208,14 @@ enum TestDataFactory {
         inPulpe: Bool = false,
         archivedAt: Date? = nil,
         latestValue: Decimal = 1000,
-        suggestion: AssetSuggestion? = nil
+        recordedValue: Decimal? = nil,
+        latestRecordedAt: Date = fixedDate
     ) -> Asset {
         Asset(
             id: id, categoryId: categoryId, name: name, currency: currency, direction: direction,
             inPulpe: inPulpe, archivedAt: archivedAt, latestValue: latestValue,
-            latestRecordedAt: fixedDate, convertedValue: latestValue, suggestion: suggestion
+            recordedValue: recordedValue ?? latestValue, latestRecordedAt: latestRecordedAt,
+            convertedValue: latestValue
         )
     }
 

@@ -1189,7 +1189,7 @@
         "own": "Ich habe",
         "owe": "Ich schulde",
         "remove": "{{ name }} aus der Liste entfernen",
-        "linkedCaption": "In Mein Vermögen aktualisiert.",
+        "linkedCaption": "In Mein Vermögen aktualisiert, wo es heute {{amount}} wert ist.",
         "cardCaption": "Alles, was du schuldest, auch die letzten Einkäufe. Nicht dein Limit.",
         "cardHelp": "Zahlst du auch mit Kreditkarte, PayPal oder Klarna?",
         "addOwe": "Hinzufügen, was ich schulde",
@@ -1544,6 +1544,8 @@
     "overdraft": "Überzogen",
     "updated": "Aktualisiert {{when}}",
     "updatedDebt": "{{category}} · aktualisiert {{when}}",
+    "sinceEntry": "{{amount}} seit deiner Eingabe vom {{date}}",
+    "sinceEntryDebt": "{{category}} · {{amount}} seit deiner Eingabe vom {{date}}",
     "showArchived": "Archiv anzeigen ({{count}})",
     "hideArchived": "Archiv ausblenden",
     "archivedTitle": "Archiviert",
@@ -1587,25 +1589,17 @@
       "add": "Hinzufügen"
     },
     "value": {
-      "lastValue": "Letzter Wert: {{amount}}, am {{date}}",
+      "lastValue": "Deine letzte Eingabe: {{amount}}, am {{date}}",
       "overdraft": "Negativer Saldo (überzogen)"
     },
     "link": {
       "none": "Keine",
       "ownLabel": "Eingezahlt auf",
       "oweLabel": "Getilgte Schuld",
-      "oweHint": "Sobald er abgehakt ist, schlage ich dir vor, den noch offenen Betrag bei {{debt}} zu senken.",
+      "oweHint": "Sobald er abgehakt ist, senkt er den noch offenen Betrag bei {{debt}}.",
       "drawnLabel": "Entnommen aus",
-      "drawnHint": "Sobald sie abgehakt ist, schlage ich dir vor, den Wert von {{asset}} zu senken.",
+      "drawnHint": "Sobald sie abgehakt ist, senkt sie den Wert von {{asset}}.",
       "drawnFrom": "Geholt von"
-    },
-    "suggestion": {
-      "proposes": "Ich schlage vor:",
-      "detailSaved": "{{amount}} Sparen abgehakt seit dem letzten Wert",
-      "detailDrawn": "{{amount}} Einnahme entnommen seit dem letzten Wert",
-      "detailRepaid": "{{amount}} Rückzahlung abgehakt seit dem letzten Wert",
-      "dismiss": "Verwerfen",
-      "apply": "Übernehmen"
     },
     "starter": {
       "accounts": "Konten",
@@ -1643,7 +1637,7 @@
         },
         "update": {
           "title": "Mit einem Tipp aktuell halten",
-          "body": "Ein Wert ändert sich? Du aktualisierst ihn. Und wenn du in deinem Budget Geld zur Seite legst, schlage ich dir vor, es hier hinzuzufügen.",
+          "body": "Ein Wert ändert sich? Du aktualisierst ihn. Und wenn du in deinem Budget zur Seite gelegtes Geld abhakst, füge ich es hier hinzu.",
           "scene": "Beispiel: Die Ersparnisse steigen von {{before}} auf {{after}}, das Nettovermögen auf {{netAfter}}."
         }
       },
@@ -1657,7 +1651,7 @@
       },
       "updatedLongAgo": "Vor 2 Monaten aktualisiert",
       "updatedToday": "Heute aktualisiert",
-      "budgetHint": "{{amount}} in deinem Budget zur Seite gelegt → ich schlage dir hier +{{amount}} vor."
+      "budgetHint": "{{amount}} in deinem Budget zur Seite gelegt und abgehakt → hier +{{amount}}."
     }
   },
   "completeProfile": {

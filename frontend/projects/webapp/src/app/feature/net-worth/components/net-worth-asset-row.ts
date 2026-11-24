@@ -17,14 +17,9 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { differenceInCalendarDays } from 'date-fns';
 import type { Asset, SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
+import { formatEntryDate } from './entry-date';
 
-export type AssetRowAction =
-  | 'edit'
-  | 'archive'
-  | 'unarchive'
-  | 'delete'
-  | 'applySuggestion'
-  | 'dismissSuggestion';
+export type AssetRowAction = 'edit' | 'archive' | 'unarchive' | 'delete';
 
 export interface AssetRowEvent {
   asset: Asset;
@@ -50,6 +45,7 @@ const DAYS_PER_YEAR = 365;
     TranslocoPipe,
     AppCurrencyPipe,
   ],
+  providers: [AppCurrencyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- The row and its menu are siblings: a button never holds a button. -->
@@ -112,7 +108,17 @@ const DAYS_PER_YEAR = 365;
         class="ph-no-capture block w-full text-body-small text-on-surface-variant"
         data-testid="asset-row-meta"
       >
-        @if (categoryName(); as category) {
+        @if (sinceEntry(); as since) {
+          @if (categoryName(); as category) {
+            {{
+              'netWorth.sinceEntryDebt'
+                | transloco
+                  : { category, amount: since.amount, date: since.date }
+            }}
+          } @else {
+            {{ 'netWorth.sinceEntry' | transloco: since }}
+          }
+        } @else if (categoryName(); as category) {
           {{
             'netWorth.updatedDebt'
               | transloco: { category, when: updatedWhen() }
@@ -140,56 +146,6 @@ const DAYS_PER_YEAR = 365;
     >
       <mat-icon>more_vert</mat-icon>
     </button>
-    @if (visibleSuggestion(); as suggestion) {
-      <div
-        class="mb-3 ml-5 mr-3 flex w-full flex-wrap items-center gap-3 rounded-xl bg-surface-container-high py-3 pl-3.5 pr-3"
-        data-testid="asset-suggestion"
-      >
-        <mat-icon class="text-primary" aria-hidden="true"
-          >auto_awesome</mat-icon
-        >
-        <div class="ph-no-capture min-w-0 flex-[1_1_14rem] tabular-nums">
-          <p class="m-0 text-body-medium">
-            {{ 'netWorth.suggestion.proposes' | transloco }}
-            <strong data-testid="asset-suggestion-value">{{
-              suggestion.proposedValue | appCurrency: asset().currency : '1.2-2'
-            }}</strong>
-          </p>
-          <p
-            class="m-0 text-body-small text-on-surface-variant"
-            data-testid="asset-suggestion-detail"
-          >
-            {{
-              suggestionDetailKey()
-                | transloco
-                  : {
-                      amount:
-                        suggestionAmount()
-                        | appCurrency: asset().currency : '1.2-2',
-                    }
-            }}
-          </p>
-        </div>
-        <div class="ml-auto flex gap-1">
-          <button
-            matButton
-            [disabled]="busy()"
-            (click)="emit('dismissSuggestion')"
-            data-testid="asset-suggestion-dismiss-button"
-          >
-            {{ 'netWorth.suggestion.dismiss' | transloco }}
-          </button>
-          <button
-            matButton="tonal"
-            [disabled]="busy()"
-            (click)="emit('applySuggestion')"
-            data-testid="asset-suggestion-apply-button"
-          >
-            {{ 'netWorth.suggestion.apply' | transloco }}
-          </button>
-        </div>
-      </div>
-    }
     <mat-menu #menu="matMenu">
       @if (asset().archivedAt) {
         <button
@@ -279,6 +235,7 @@ const DAYS_PER_YEAR = 365;
 })
 export class NetWorthAssetRow {
   readonly #locale = inject(LOCALE_ID);
+  readonly #currencyPipe = inject(AppCurrencyPipe);
   readonly #relativeTime = new Intl.RelativeTimeFormat(this.#locale, {
     numeric: 'auto',
   });
@@ -298,21 +255,20 @@ export class NetWorthAssetRow {
     () => this.asset().direction === 'owe' || this.isOverdraft(),
   );
 
-  // An archived asset never offers one, whatever the payload carries.
-  protected readonly visibleSuggestion = computed(() =>
-    this.asset().archivedAt ? null : this.asset().suggestion,
-  );
-  // The wording carries the direction (« pointée », « tiré »), so no sign.
-  protected readonly suggestionAmount = computed(() =>
-    Math.abs(this.visibleSuggestion()?.delta ?? 0),
-  );
-  protected readonly suggestionDetailKey = computed(() => {
-    if (this.asset().direction === 'owe') {
-      return 'netWorth.suggestion.detailRepaid';
-    }
-    return (this.visibleSuggestion()?.delta ?? 0) < 0
-      ? 'netWorth.suggestion.detailDrawn'
-      : 'netWorth.suggestion.detailSaved';
+  /** What was checked since my last entry, e.g. « +500.00 CHF depuis ta saisie du 3 novembre ». */
+  protected readonly sinceEntry = computed(() => {
+    const { latestValue, recordedValue, latestRecordedAt, currency } =
+      this.asset();
+    const deltaCents =
+      Math.round(latestValue * 100) - Math.round(recordedValue * 100);
+    if (deltaCents === 0) return null;
+    const amount = `${deltaCents < 0 ? '−' : '+'}${this.#currencyPipe.transform(
+      Math.abs(deltaCents) / 100,
+      currency,
+      '1.2-2',
+    )}`;
+    const date = formatEntryDate(latestRecordedAt, this.#locale);
+    return { amount, date };
   });
 
   protected readonly updatedWhen = computed(() => {

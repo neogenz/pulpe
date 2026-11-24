@@ -133,23 +133,66 @@ extension Asset {
     }
 }
 
-// MARK: - Suggestion
-
-enum NetWorthSuggestionDetail: Equatable {
-    case saved
-    case drawn
-    case repaid
-}
+// MARK: - Since the last entry
 
 extension Asset {
-    /// An archived asset never offers one, whatever the payload carries.
-    var visibleSuggestion: AssetSuggestion? { isActive ? suggestion : nil }
-
-    /// The wording carries the direction (« pointée », « tiré »), so the amount has no sign.
-    var suggestionDetail: NetWorthSuggestionDetail {
-        if direction == .owe { return .repaid }
-        return (suggestion?.delta ?? 0) < 0 ? .drawn : .saved
+    /// What the checked prévisions moved since the last entry, `nil` when nothing did.
+    var movedSinceEntry: Decimal? {
+        latestValue == recordedValue ? nil : latestValue - recordedValue
     }
 
-    var suggestionMagnitude: Decimal { (suggestion?.delta ?? 0).magnitude }
+    /// The line under a row: what moved since the last entry and its date, else the entry's age.
+    func metaLine(
+        categoryName: String?,
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        language: SupportedLocale = AppLocale.current
+    ) -> String {
+        let locale = AppLocale.uiLocale(for: language)
+        let line: String
+        if let moved = movedSinceEntry {
+            let amount = signed(moved, showsPlus: true)
+            let date = entryDate(now: now, calendar: calendar, language: language)
+            line = categoryName.map {
+                AppLocale.string("\($0) · \(amount) depuis ta saisie du \(date)", locale: locale)
+            } ?? AppLocale.string("\(amount) depuis ta saisie du \(date)", locale: locale)
+        } else {
+            let when = ageLabel(now: now, calendar: calendar, locale: locale)
+            line = categoryName.map { AppLocale.string("\($0) · mis à jour \(when)", locale: locale) }
+                ?? AppLocale.string("Mis à jour \(when)", locale: locale)
+        }
+        // A followed account says where its balance comes from, in the same breath.
+        return inPulpe ? AppLocale.string("\(line) · à la comparaison", locale: locale) : line
+    }
+
+    /// The edit sheet's reminder of the last entry, under a field prefilled with `latestValue`.
+    /// Signed: the « Découvert » box follows the up-to-date value, not this entry.
+    func lastEntryCaption(
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        language: SupportedLocale = AppLocale.current
+    ) -> String {
+        let amount = signed(recordedValue, showsPlus: false)
+        let date = entryDate(now: now, calendar: calendar, language: language)
+        return AppLocale.string(
+            "Ta dernière saisie : \(amount), le \(date)",
+            locale: AppLocale.uiLocale(for: language)
+        )
+    }
+
+    /// « 3 novembre » this year, « 3 novembre 2025 » before, as on the web.
+    private func entryDate(now: Date, calendar: Calendar, language: SupportedLocale) -> String {
+        Formatters.dayMonthLabel(
+            for: latestRecordedAt,
+            in: language,
+            withYear: !calendar.isDate(latestRecordedAt, equalTo: now, toGranularity: .year)
+        )
+    }
+
+    /// Signed as on the web: U+2212 « − » for a negative amount, « + » for a positive one on demand.
+    private func signed(_ value: Decimal, showsPlus: Bool) -> String {
+        let amount = value.magnitude.asCurrency(currency)
+        if value < 0 { return "\u{2212}\(amount)" }
+        return showsPlus && value > 0 ? "+\(amount)" : amount
+    }
 }

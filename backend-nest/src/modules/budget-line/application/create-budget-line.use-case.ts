@@ -60,7 +60,8 @@ export class CreateBudgetLineUseCase {
       tagIds: withRate.tagIds,
       isManuallyAdjusted: withRate.isManuallyAdjusted ?? false,
       // The client only says "checked"; the server clock dates it, so the
-      // patrimoine suggestion cutoff never compares a skewed device clock.
+      // patrimoine cutoff (checked after my last entry) never compares a
+      // skewed device clock.
       checkedAt: withRate.checkedAt ? new Date().toISOString() : null,
     };
 

@@ -7,13 +7,15 @@ struct NetWorthAssetActions {
 }
 
 /// One asset: name, value in its own currency (and, for a foreign one, the base-currency
-/// counterpart computed by the API), then its last-update line and its warnings.
+/// counterpart computed by the API), then what moved since the last entry (else its age) and
+/// its warnings.
 struct NetWorthAssetRow: View {
     let asset: Asset
     let baseCurrency: SupportedCurrency
-    /// Shown before « mis à jour » where the card is not the element's Type (« Découverts »).
+    /// Leads the meta line where the card is not the element's Type (« Découverts »).
     var categoryName: String?
     var actions: NetWorthAssetActions?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.xs) {
@@ -34,27 +36,23 @@ struct NetWorthAssetRow: View {
     private var content: some View {
         // The caption runs under the whole row: beside the amount, it would wrap.
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                Text(asset.name)
-                    .font(PulpeTypography.rowTitle)
-                    .foregroundStyle(Color.textPrimary)
-                Spacer(minLength: DesignTokens.Spacing.sm)
-                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                    Text(asset.latestValue.asCurrency(asset.currency))
-                        .font(PulpeTypography.rowAmount)
-                        .foregroundStyle(Color.textPrimary)
-                    if asset.showsConversion(in: baseCurrency), let converted = asset.convertedValue {
-                        Text("≈ \(converted.asCurrency(baseCurrency))")
-                            .font(PulpeTypography.captionRegular)
-                            .foregroundStyle(Color.textSecondary)
-                            .monospacedDigit()
-                    }
+            // At accessibility sizes the amount goes under the name: beside it, it broke mid-number.
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    name
+                    amounts(alignment: .leading)
                 }
-                .sensitiveAmount()
+            } else {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    name
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    amounts(alignment: .trailing)
+                }
             }
-            Text(updatedLine)
+            Text(asset.metaLine(categoryName: categoryName))
                 .font(PulpeTypography.captionRegular)
                 .foregroundStyle(Color.textSecondary)
+                .sensitiveAmount(asset.movedSinceEntry != nil)
             if !asset.badges.isEmpty {
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     ForEach(asset.badges, id: \.self) { badge in
@@ -64,8 +62,31 @@ struct NetWorthAssetRow: View {
                 .padding(.top, DesignTokens.Spacing.xs)
             }
         }
+        // Stacked, nothing else fills the row: every row starts at the same edge.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, DesignTokens.Spacing.md)
         .accessibilityElement(children: .combine)
+    }
+
+    private var name: some View {
+        Text(asset.name)
+            .font(PulpeTypography.rowTitle)
+            .foregroundStyle(Color.textPrimary)
+    }
+
+    private func amounts(alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: DesignTokens.Spacing.xxs) {
+            Text(asset.latestValue.asCurrency(asset.currency))
+                .font(PulpeTypography.rowAmount)
+                .foregroundStyle(Color.textPrimary)
+            if asset.showsConversion(in: baseCurrency), let converted = asset.convertedValue {
+                Text("≈ \(converted.asCurrency(baseCurrency))")
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .monospacedDigit()
+            }
+        }
+        .sensitiveAmount()
     }
 
     private func menu(_ actions: NetWorthAssetActions) -> some View {
@@ -84,14 +105,6 @@ struct NetWorthAssetRow: View {
         }
         .accessibilityLabel(AppLocale.string("Actions pour \(asset.name)"))
         .accessibilityIdentifier("netWorthRowMenu")
-    }
-
-    private var updatedLine: String {
-        let when = asset.ageLabel()
-        let line = categoryName.map { AppLocale.string("\($0) · mis à jour \(when)") }
-            ?? AppLocale.string("Mis à jour \(when)")
-        // A followed account says where its balance comes from, in the same breath.
-        return asset.inPulpe ? AppLocale.string("\(line) · à la comparaison") : line
     }
 
     private func label(of badge: NetWorthBadge) -> String {

@@ -30,6 +30,7 @@ function makeAsset(overrides: Partial<Asset> = {}): Asset {
     direction: 'own',
     inPulpe: true,
     archivedAt: null,
+    recordedValue: 12000,
     latestValue: 12000,
     latestRecordedAt: '2026-11-01T10:00:00.000Z',
     convertedValue: 12000,

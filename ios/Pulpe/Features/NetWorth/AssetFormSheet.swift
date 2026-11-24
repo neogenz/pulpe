@@ -45,16 +45,6 @@ struct AssetFormSheet: View {
         )
     }
 
-    private var lastValue: String? {
-        guard let asset else { return nil }
-        let date = asset.latestRecordedAt.formatted(
-            .dateTime.day().month(.abbreviated).locale(AppLocale.currentUILocale)
-        )
-        return AppLocale.string(
-            "Dernière valeur : \(asset.latestValue.magnitude.asCurrency(asset.currency)), le \(date)"
-        )
-    }
-
     var body: some View {
         SheetFormContainer(
             title: title,
@@ -69,7 +59,7 @@ struct AssetFormSheet: View {
                 field: .amount,
                 hint: AppLocale.string("Valeur actuelle"),
                 currency: draft.currency,
-                caption: lastValue ?? AppLocale.string("Valeur actuelle")
+                caption: asset?.lastEntryCaption() ?? AppLocale.string("Valeur actuelle")
             )
             if draft.direction == .own { overdraftToggle }
             nameField

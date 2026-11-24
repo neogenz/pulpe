@@ -19,7 +19,7 @@ struct NetWorthSankeyTests {
         Asset(
             id: id, categoryId: category ?? checking, name: name, currency: currency, direction: direction,
             inPulpe: false, archivedAt: archived ? TestDataFactory.fixedDate : nil, latestValue: value ?? 0,
-            latestRecordedAt: TestDataFactory.fixedDate, convertedValue: value, suggestion: nil
+            recordedValue: value ?? 0, latestRecordedAt: TestDataFactory.fixedDate, convertedValue: value
         )
     }
 

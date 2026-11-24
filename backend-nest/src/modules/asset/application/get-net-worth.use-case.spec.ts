@@ -20,7 +20,7 @@ const category = { id: 'cat-1', name: 'Comptes' };
 function asset(
   id: string,
   currency: SupportedCurrency,
-  latestValue: number,
+  recordedValue: number,
 ): AssetWithValue {
   return {
     id,
@@ -30,9 +30,8 @@ function asset(
     direction: 'own',
     inPulpe: false,
     archivedAt: null,
-    latestValue,
+    recordedValue,
     latestRecordedAt: '2026-11-03T10:00:00.000Z',
-    suggestionDismissedAt: null,
   };
 }
 
@@ -136,77 +135,95 @@ describe('GetNetWorthUseCase', () => {
     expect(logger.warn).toHaveBeenCalledTimes(1);
   });
 
-  describe('suggestions', () => {
-    it('proposes the value moved by the checked lines the repository returns', async () => {
-      assets = [asset('livret', 'CHF', 3000)];
-      checkedLines = [{ assetId: 'livret', kind: 'saving', amount: 500 }];
+  describe('the value follows what is checked (PUL-377)', () => {
+    const checkedAt = '2026-11-05T10:00:00.000Z';
+
+    it('CA1: adds the checked Épargne to the last entry of the Livret', async () => {
+      assets = [asset('livret', 'CHF', 10_000)];
+      checkedLines = [
+        { assetId: 'livret', kind: 'saving', amount: 500, checkedAt },
+      ];
 
       const result = await useCase.execute(user);
 
-      expect(result.assets[0]?.suggestion).toEqual({
-        delta: 500,
-        proposedValue: 3500,
+      expect(result.assets[0]).toMatchObject({
+        value: 10_500,
+        recordedValue: 10_000,
+        convertedValue: 10_500,
       });
+      expect(result.totals.net).toBe(10_500);
     });
 
-    it('lowers a debt by a checked instalment', async () => {
-      assets = [{ ...asset('leasing', 'CHF', 8000), direction: 'owe' }];
-      checkedLines = [{ assetId: 'leasing', kind: 'expense', amount: 400 }];
-
-      const result = await useCase.execute(user);
-
-      expect(result.assets[0]?.suggestion).toEqual({
-        delta: -400,
-        proposedValue: 7600,
-      });
-    });
-
-    it('converts a CHF prévision into a EUR asset at the rate of the day', async () => {
+    it('CA14: converts a CHF prévision into a EUR asset at the rate of the day', async () => {
       assets = [asset('eur', 'EUR', 1000)];
-      checkedLines = [{ assetId: 'eur', kind: 'saving', amount: 93 }];
+      checkedLines = [
+        { assetId: 'eur', kind: 'saving', amount: 93, checkedAt },
+      ];
       getRate.mockResolvedValue(0.93);
 
       const result = await useCase.execute(user);
 
-      expect(result.assets[0]?.suggestion).toEqual({
-        delta: 100,
-        proposedValue: 1100,
-      });
+      expect(result.assets[0]?.value).toBe(1100);
     });
 
-    it('proposes nothing without a rate, whatever was checked', async () => {
+    it('CA14: keeps the last entry without a rate, whatever was checked', async () => {
       assets = [asset('eur', 'EUR', 1000)];
-      checkedLines = [{ assetId: 'eur', kind: 'saving', amount: 93 }];
+      checkedLines = [
+        { assetId: 'eur', kind: 'saving', amount: 93, checkedAt },
+      ];
       getRate.mockRejectedValue(new Error('Currency API unavailable'));
 
       const result = await useCase.execute(user);
 
-      expect(result.assets[0]?.suggestion).toBeNull();
+      expect(result.assets[0]?.value).toBe(1000);
+      expect(result.totals.incomplete).toBe(true);
     });
 
-    it('asks for the lines checked after the later of the snapshot and the dismissal', async () => {
+    it('CA16: a proposal still waiting for a click at go-live is simply the value', async () => {
+      // Livret entered at 10 000 on 3 Nov; « Épargne mensuelle » (500) checked
+      // on 5 Nov used to wait as « Je propose 10 500 ».
+      assets = [asset('livret', 'CHF', 10_000)];
+      checkedLines = [
+        { assetId: 'livret', kind: 'saving', amount: 500, checkedAt },
+      ];
+
+      const result = await useCase.execute(user);
+
+      expect(result.assets[0]).toMatchObject({
+        value: 10_500,
+        recordedValue: 10_000,
+      });
+      expect(result.totals.gross).toBe(10_500);
+    });
+
+    it('CA17: after a dismissed proposal is converted, a later Épargne of 200 brings the Livret to 10 200', async () => {
+      // The migration copied the 10 000 entry, dated when I dismissed.
+      const dismissedAt = '2026-11-10T08:00:00.000Z';
       assets = [
-        asset('fresh-snapshot', 'CHF', 1),
+        { ...asset('livret', 'CHF', 10_000), latestRecordedAt: dismissedAt },
+      ];
+      checkedLines = [
         {
-          ...asset('dismissed', 'CHF', 1),
-          suggestionDismissedAt: '2026-11-04T08:00:00.000Z',
-        },
-        {
-          ...asset('stale-dismissal', 'CHF', 1),
-          suggestionDismissedAt: '2026-11-01T08:00:00.000Z',
+          assetId: 'livret',
+          kind: 'saving',
+          amount: 200,
+          checkedAt: '2026-11-12T08:00:00.000Z',
         },
       ];
 
-      await useCase.execute(user);
+      const result = await useCase.execute(user);
 
+      // The 500 checked before the dismissal is before the cutoff: never asked for.
       expect(findCheckedLinkedLines).toHaveBeenCalledWith([
-        { assetId: 'fresh-snapshot', since: '2026-11-03T10:00:00.000Z' },
-        { assetId: 'dismissed', since: '2026-11-04T08:00:00.000Z' },
-        { assetId: 'stale-dismissal', since: '2026-11-03T10:00:00.000Z' },
+        { assetId: 'livret', since: dismissedAt },
       ]);
+      expect(result.assets[0]).toMatchObject({
+        value: 10_200,
+        recordedValue: 10_000,
+      });
     });
 
-    it('does not read the lines of an archived asset', async () => {
+    it('CA5: asks for the lines checked after the last entry of each active asset only', async () => {
       assets = [
         asset('active', 'CHF', 1),
         { ...asset('old', 'CHF', 1), archivedAt: '2026-10-01T00:00:00.000Z' },

@@ -175,9 +175,8 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
       }
       return {
         ...this.toAsset(row),
-        latestValue: this.encryption.decryptAmount(latest.value, dek),
+        recordedValue: this.encryption.decryptAmount(latest.value, dek),
         latestRecordedAt: latest.recorded_at,
-        suggestionDismissedAt: row.suggestion_dismissed_at,
       };
     });
   }
@@ -219,9 +218,10 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
         return {
           assetId,
           kind,
-          // Strict: a value Pulpe proposes and the user can apply must never
-          // come from an amount that failed to decrypt.
+          // Strict: the value of an asset must never move by an amount that
+          // failed to decrypt.
           amount: this.encryption.decryptAmount(amount, dek),
+          checkedAt,
         };
       },
     );
@@ -268,7 +268,6 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
         category_id: patch.categoryId,
         in_pulpe: patch.inPulpe,
         archived_at: patch.archivedAt,
-        suggestion_dismissed_at: patch.suggestionDismissedAt,
       })
       .eq('id', id)
       .eq('user_id', this.supabaseProvider.user.id)

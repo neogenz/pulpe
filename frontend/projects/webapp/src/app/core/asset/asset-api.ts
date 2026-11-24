@@ -48,9 +48,9 @@ export class AssetApi {
   });
 
   constructor() {
-    // Value suggestions are computed server-side from the checked prévisions
-    // linked to an asset: any budget-domain mutation (checking one, linking
-    // one…) makes them stale, so returning to the page shows them unreloaded.
+    // An asset's value includes the checked prévisions linked to it, computed
+    // server-side: any budget-domain mutation (checking one, linking one…)
+    // makes it stale, so returning to the page shows it unreloaded.
     effect(() => {
       if (this.#budgetApi.cache.version() === 0) return;
       untracked(() => this.cache.invalidate(['assets']));
@@ -102,14 +102,6 @@ export class AssetApi {
       snapshots,
       assetSnapshotsResponseSchema,
       assetSnapshotsCreateSchema,
-    );
-  }
-
-  dismissSuggestion$(id: string): Observable<AssetResponse> {
-    return this.#api.post$(
-      `/assets/${id}/dismiss-suggestion`,
-      {},
-      assetResponseSchema,
     );
   }
 

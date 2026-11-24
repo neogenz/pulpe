@@ -506,20 +506,6 @@ export default class NetWorthPage {
         }
         return;
       }
-      case 'applySuggestion': {
-        const { suggestion } = asset;
-        if (suggestion) {
-          await this.#attempt(() =>
-            this.store.saveAsset(asset.id, {
-              value: suggestion.proposedValue,
-            }),
-          );
-        }
-        return;
-      }
-      case 'dismissSuggestion':
-        await this.#attempt(() => this.store.dismissSuggestion(asset.id));
-        return;
       case 'archive':
       case 'unarchive':
         await this.#attempt(() =>

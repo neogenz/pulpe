@@ -172,10 +172,6 @@ final class AssetStore: StoreProtocol {
         }
     }
 
-    func dismissSuggestion(id: String) async throws {
-        try await write { _ = try await self.service.dismissSuggestion(id: id) }
-    }
-
     func renameCategory(id: String, name: String) async throws {
         try await write { _ = try await self.service.renameCategory(id: id, AssetCategoryWrite(name: name)) }
     }

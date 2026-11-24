@@ -22,6 +22,13 @@ struct ReconcileLinkedAccountsTests {
         #expect(flow.addableAssets(excluding: []).map(\.id) == ["revolut", "card"])
     }
 
+    @Test func followedAccountCaption_givesTheUpToDateValue_notTheLastEntry() {
+        let livret = TestDataFactory.makeAsset(name: "Livret", inPulpe: true, latestValue: 10500, recordedValue: 10000)
+
+        #expect(ReconcileAccountRow.followedCaption(livret, language: .fr)
+            == "Mis à jour dans Mon patrimoine, où il vaut aujourd'hui 10\u{2019}500.00 CHF.")
+    }
+
     @Test func aFollowedDebtOpensOnTheOwingSide() {
         let flow = makeFlow([card.followed])
 

@@ -1,5 +1,6 @@
 import {
   Component,
+  LOCALE_ID,
   provideZonelessChangeDetection,
   signal,
 } from '@angular/core';
@@ -17,6 +18,7 @@ const asset: Asset = {
   direction: 'own',
   inPulpe: false,
   archivedAt: null,
+  recordedValue: 1234.5,
   latestValue: 1234.5,
   latestRecordedAt: new Date().toISOString(),
   convertedValue: 1234.5,
@@ -67,6 +69,7 @@ describe('NetWorthAssetRow', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'fr-FR' },
       ],
     });
     fixture = TestBed.createComponent(HostComponent);
@@ -148,62 +151,73 @@ describe('NetWorthAssetRow', () => {
     expect(text('asset-row-meta')).toContain('Prêts');
   });
 
-  describe('suggestion', () => {
-    const suggestion = { delta: 500, proposedValue: 3500 };
-    const click = (id: string) =>
-      fixture.nativeElement.querySelector(`[data-testid="${id}"]`).click();
+  describe('what moved since my last entry', () => {
+    const livret = {
+      name: 'Livret',
+      recordedValue: 10_000,
+      latestValue: 10_500,
+      latestRecordedAt: `${new Date().getFullYear()}-11-03T10:00:00.000Z`,
+    };
 
-    it('proposes the new value in the asset currency with its detail', () => {
-      render({ suggestion });
+    it('replaces « Mis à jour » with the signed amount and the date of my entry', () => {
+      render(livret);
 
-      expect(text('asset-suggestion')).toContain('Je propose');
-      expect(text('asset-suggestion-value')).toBe('3’500.00 CHF');
-      expect(text('asset-suggestion-detail')).toBe(
-        "500.00 CHF d'épargne pointée depuis la dernière valeur",
+      expect(text('asset-row-value')).toContain('10’500.00');
+      expect(text('asset-row-meta')).toBe(
+        '+500.00 CHF depuis ta saisie du 3 novembre',
+      );
+      // The date never wraps between the day and the month on a phone.
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="asset-row-meta"]')
+          .textContent,
+      ).toContain('3 novembre');
+    });
+
+    it('keeps the category of a debt and signs what was repaid', () => {
+      render(
+        {
+          direction: 'owe',
+          recordedValue: 8000,
+          latestValue: 7700,
+          latestRecordedAt: livret.latestRecordedAt,
+        },
+        'Leasing',
+      );
+
+      expect(text('asset-row-meta')).toBe(
+        'Leasing · −300.00 CHF depuis ta saisie du 3 novembre',
       );
     });
 
-    it('words a negative delta as income drawn from an own asset', () => {
-      render({ suggestion: { delta: -200, proposedValue: 3000 } });
+    it('names the year of an entry made in an earlier year', () => {
+      render({ ...livret, latestRecordedAt: '2020-11-03T10:00:00.000Z' });
 
-      expect(text('asset-suggestion-detail')).toBe(
-        '200.00 CHF de revenu tiré depuis la dernière valeur',
+      expect(text('asset-row-meta')).toBe(
+        '+500.00 CHF depuis ta saisie du 3 novembre 2020',
       );
     });
 
-    it('words a debt delta as a checked repayment', () => {
-      render({
-        direction: 'owe',
-        suggestion: { delta: -400, proposedValue: 7600 },
-      });
+    it('keeps the comparison suffix of a followed account', () => {
+      render({ ...livret, inPulpe: true });
 
-      expect(text('asset-suggestion-detail')).toBe(
-        '400.00 CHF de remboursement pointé depuis la dernière valeur',
+      expect(text('asset-row-meta')).toBe(
+        '+500.00 CHF depuis ta saisie du 3 novembre · à la comparaison',
       );
     });
 
-    it('shows nothing without a suggestion', () => {
-      render();
+    it('says only when it was updated once nothing moved', () => {
+      render({ recordedValue: 10_000, latestValue: 10_000 });
 
-      expect(text('asset-suggestion')).toBeNull();
+      expect(text('asset-row-meta')).toMatch(/^Mis à jour aujourd.hui$/);
     });
 
-    it('never shows a suggestion on an archived asset', () => {
-      render({ suggestion, archivedAt: '2026-10-01T00:00:00.000Z' });
+    it('never offers a proposal, even from a payload that still carries one', () => {
+      render({ ...livret, suggestion: { delta: 500, proposedValue: 10_500 } });
 
-      expect(text('asset-suggestion')).toBeNull();
-    });
-
-    it('emits apply and dismiss with the asset', () => {
-      render({ suggestion });
-
-      click('asset-suggestion-apply-button');
-      click('asset-suggestion-dismiss-button');
-
-      expect(fixture.componentInstance.events).toEqual([
-        { asset: { ...asset, suggestion }, action: 'applySuggestion' },
-        { asset: { ...asset, suggestion }, action: 'dismissSuggestion' },
-      ]);
+      const row = fixture.nativeElement.textContent;
+      expect(row).not.toContain('Je propose');
+      expect(row).not.toContain('Appliquer');
+      expect(row).not.toContain('Écarter');
     });
   });
 

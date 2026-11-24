@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   assetCategoryCreateSchema,
   assetCreateSchema,
+  assetSchema,
   assetSnapshotsCreateSchema,
   assetUpdateSchema,
+  netWorthResponseSchema,
   budgetLineSchema,
   templateLineSchema,
 } from '../schemas.js';
@@ -168,5 +170,54 @@ describe('asset link on read schemas', () => {
     });
 
     expect(result.assetId).toBeNull();
+  });
+});
+
+describe('net worth read contract (PUL-377)', () => {
+  // CA1: Livret saisi à 10 000, Épargne mensuelle de 500 pointée depuis.
+  const livret = {
+    id: '11111111-1111-4111-8111-111111111111',
+    categoryId: '22222222-2222-4222-8222-222222222222',
+    name: 'Livret',
+    currency: 'CHF',
+    direction: 'own',
+    inPulpe: false,
+    archivedAt: null,
+    latestValue: 10_500,
+    recordedValue: 10_000,
+    latestRecordedAt: '2026-11-03T10:00:00.000Z',
+    convertedValue: 10_500,
+    suggestion: null,
+  };
+  const payload = {
+    success: true,
+    data: {
+      totals: {
+        baseCurrency: 'CHF',
+        gross: 10_500,
+        debts: 8_000,
+        net: 2_500,
+        incomplete: false,
+      },
+      categories: [{ id: livret.categoryId, name: 'Épargne', total: 10_500 }],
+      assets: [livret],
+    },
+  };
+
+  it('should read the up-to-date value and the last entry', () => {
+    const [asset] = netWorthResponseSchema.parse(payload).data.assets;
+
+    expect(asset.latestValue).toBe(10_500);
+    expect(asset.recordedValue).toBe(10_000);
+    expect(asset.suggestion).toBeNull();
+  });
+
+  it('should still read for an installed app that knows no recordedValue (CA18)', () => {
+    // The shape iOS 1.14.x and Android parse: no `recordedValue`, loose object.
+    const installedAssetSchema = assetSchema.omit({ recordedValue: true });
+    const asset = installedAssetSchema.parse(livret);
+
+    expect(asset.latestValue).toBe(10_500);
+    expect(asset.suggestion).toBeNull();
   });
 });

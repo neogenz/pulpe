@@ -1,9 +1,9 @@
-import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
+  LOCALE_ID,
   signal,
 } from '@angular/core';
 import { FormField, form, maxLength, required } from '@angular/forms/signals';
@@ -41,6 +41,7 @@ import {
   typeOptionsFor,
   type AssetFormValue,
 } from './asset-form-dialog.schema';
+import { formatEntryDate } from './entry-date';
 
 export interface AssetFormDialogData {
   categories: AssetCategory[];
@@ -67,7 +68,7 @@ export interface AssetFormDialogData {
     FormField,
     CurrencyInput,
   ],
-  providers: [AppCurrencyPipe, DatePipe],
+  providers: [AppCurrencyPipe],
   host: { 'data-testid': 'asset-form-dialog' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -195,7 +196,6 @@ export interface AssetFormDialogData {
 
         @if (model().direction === 'own') {
           <mat-checkbox
-            class="-mt-3"
             [checked]="model().isOverdraft"
             (change)="setOverdraft($event.checked)"
             data-testid="asset-overdraft-checkbox"
@@ -238,7 +238,7 @@ export class AssetFormDialog {
   readonly #transloco = inject(TranslocoService);
   readonly #settings = inject(UserSettingsStore);
   readonly #currencyPipe = inject(AppCurrencyPipe);
-  readonly #datePipe = inject(DatePipe);
+  readonly #locale = inject(LOCALE_ID);
 
   protected readonly newCategoryPrefix = NEW_CATEGORY_PREFIX;
   protected readonly otherTypeKey = OTHER_TYPE_KEY;
@@ -277,13 +277,14 @@ export class AssetFormDialog {
     const asset = this.asset();
     if (!asset) return undefined;
     return this.#transloco.translate('netWorth.value.lastValue', {
-      // The overdraft box carries the sign, as in the field above.
-      amount: this.#currencyPipe.transform(
-        Math.abs(asset.latestValue),
+      // The entry keeps its own sign: the overdraft box follows the value
+      // today, which checked lines may have moved past zero since.
+      amount: `${asset.recordedValue < 0 ? '−' : ''}${this.#currencyPipe.transform(
+        Math.abs(asset.recordedValue),
         asset.currency,
         '1.2-2',
-      ),
-      date: this.#datePipe.transform(asset.latestRecordedAt, 'longDate'),
+      )}`,
+      date: formatEntryDate(asset.latestRecordedAt, this.#locale),
     });
   });
   protected readonly canSubmit = computed(() => {
