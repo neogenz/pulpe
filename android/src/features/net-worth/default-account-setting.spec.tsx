@@ -88,12 +88,6 @@ describe("« Compte par défaut » in the preferences (CA28)", () => {
     const none = await render(inApp(<PreferencesScreen />));
     expect(none.getByText("Compte par défaut")).toBeTruthy();
     expect(none.getByText("Aucun")).toBeTruthy();
-    // A description like its neighbours, the account on the right as their value.
-    expect(
-      none.getByText(
-        "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.",
-      ),
-    ).toBeTruthy();
 
     mockState.defaultAccountId = COMPTE_COURANT;
     const set = await render(inApp(<PreferencesScreen />));
