@@ -188,8 +188,7 @@ export default function PreferencesScreen() {
               testID="settings-default-account"
               icon="bank-outline"
               title={t("netWorth.account.defaultLabel")}
-              description={t("netWorth.account.defaultHint")}
-              value={defaultAccount?.name ?? t("netWorth.account.none")}
+              description={defaultAccount?.name ?? t("netWorth.account.none")}
               onPress={() => router.push("/settings/default-account")}
             />
           </SettingsSection>

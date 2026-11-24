@@ -71,3 +71,13 @@
 - Deploy window and unarchive: product calls, written as Q3 and Q4 in `questions.md`. Vercel and Railway both deploy on the `production` push, and nothing orders them (`production-finalize.yml` only verifies after the fact).
 - Debt order: its test lands with PUL-378, the first story where a movement raises a debt.
 - Accessibility layout (defect from before this story): at accessibility text sizes the asset row and the Type header stack the name above the full amount (`NetWorthAssetRow.swift`, `NetWorthView.swift`). Checked on the simulator in `shots/ios-net-worth-dark-ax-large.png`. The default size is unchanged (`shots/ios-net-worth-light.png`).
+
+## UX/UI pass (impeccable critique, web, iOS, Android)
+
+Fresh captures in light, dark and enlarged text (iOS largest accessibility size, Android font scale 1.3) in `shots/ux-before/` (local). No defect introduced by PUL-377 itself; the row badges it adds are covered by the PUL-378 TalkBack fix.
+
+Rejected, with the reason:
+- Android, P2: system Back with a row or Type ⋮ menu open goes back to Accueil instead of closing the menu. The cause is react-native-paper 5.15.3 (`Menu` returns `undefined` from its Back handler) and it affects every Paper menu in the app; it predates the epic. Follow-up, not this story.
+- iOS, P2: at the largest text size `AssetFormSheet` cuts both « Sens » options (« Ce que j… ») and breaks the type name mid-word. Introduced in 65c97e183, before the epic. Follow-up.
+- iOS, P3: the « Répartition » diagram truncates its labels at the largest text size (da40149e3, before the epic). Follow-up.
+- Web: a debt's value in amber. It is the web list's existing rule (ab263c206) and a CA of PUL-379 (CA13), not an inconsistency to fix here.
