@@ -518,6 +518,39 @@ describe('CreateTransactionUseCase', () => {
       expect(mockUserRepo.findDefaultAccountId).not.toHaveBeenCalled();
     });
 
+    it.each([
+      'Écart avec mes comptes',
+      'Gap with my accounts',
+      'Abweichung zu meinen Konten',
+      'Scarto con i miei conti',
+      'Ajustement',
+    ])(
+      'CA44: the gap « %s » from an app that sends no account stays without account',
+      async (name) => {
+        mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+
+        // iOS 1.14.2 notes a gap of −80: free, checked now, no `accountId`.
+        await useCase.execute(
+          { ...restaurant, name, checkedAt: '2026-11-24T10:00:00.000Z' },
+          mockUser,
+        );
+
+        expect(mockRepo.insert.mock.calls[0][0].accountId).toBeNull();
+        expect(mockUserRepo.findDefaultAccountId).not.toHaveBeenCalled();
+      },
+    );
+
+    it('CA32: a movement named like the gap but not yet checked takes the default', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+
+      await useCase.execute(
+        { ...restaurant, name: 'Écart avec mes comptes' },
+        mockUser,
+      );
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBe(compteCourantId);
+    });
+
     it('CA29: a chosen account wins over the default', async () => {
       mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
 

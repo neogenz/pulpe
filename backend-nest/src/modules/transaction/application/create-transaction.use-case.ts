@@ -68,12 +68,13 @@ export class CreateTransactionUseCase {
       budgetId: withRate.budgetId,
       budgetLineId: withRate.budgetLineId ?? null,
       // CA4: an allocated movement follows its prévision's account, never the
-      // default one.
-      accountId: allocatedLine
-        ? null
-        : await accountIdForCreate(withRate.accountId, null, () =>
-            this.userRepo.findDefaultAccountId(),
-          ),
+      // default one. CA44: neither does a reconciliation gap.
+      accountId:
+        allocatedLine || isUnmarkedReconciliationGap(withRate)
+          ? null
+          : await accountIdForCreate(withRate.accountId, null, () =>
+              this.userRepo.findDefaultAccountId(),
+            ),
       name: withRate.name,
       amount: withRate.amount,
       originalAmount: withRate.originalAmount ?? null,
@@ -211,6 +212,42 @@ export class CreateTransactionUseCase {
  * origine, et il ne peut pas non plus en inventer une sur une prévision qui
  * n'en porte pas.
  */
+/**
+ * The fixed name each app gives the gap « Comparer avec mes comptes » writes, in
+ * every language: « Ajustement » up to iOS 1.14.1, « Écart avec mes comptes »
+ * since.
+ */
+const RECONCILIATION_GAP_NAMES = new Set([
+  'Écart avec mes comptes',
+  'Gap with my accounts',
+  'Abweichung zu meinen Konten',
+  'Scarto con i miei conti',
+  'Ajustement',
+  'Adjustment',
+  'Anpassung',
+  'Aggiustamento',
+]);
+
+/**
+ * CA44 for the apps installed before PUL-378 (iOS 1.14.x, Android): they send
+ * the reconciliation gap without `accountId`, and the default account would
+ * then absorb it. Among what those apps create, the gap is the free, already
+ * checked movement carrying that fixed name. Current apps send `null` instead.
+ */
+function isUnmarkedReconciliationGap(
+  dto: Pick<
+    TransactionCreate,
+    'accountId' | 'budgetLineId' | 'checkedAt' | 'name'
+  >,
+): boolean {
+  return (
+    dto.accountId === undefined &&
+    !dto.budgetLineId &&
+    dto.checkedAt != null &&
+    RECONCILIATION_GAP_NAMES.has(dto.name.trim())
+  );
+}
+
 function resolveSourceSavingsGoalId(
   dto: Pick<TransactionCreate, 'sourceSavingsGoalId'>,
   allocatedLine: BudgetLineForAllocation | null,
