@@ -2,7 +2,7 @@ import { fireEvent, render } from "@testing-library/react-native";
 import type { Asset, NetWorth } from "pulpe-shared";
 import { PaperProvider } from "react-native-paper";
 
-import NetWorthScreen from "@/app/(main)/(tabs)/net-worth";
+import NetWorthScreen from "@/app/(main)/(tabs)/(net-worth)/net-worth";
 import { contractAssets } from "@/core/testing/net-worth-accounts";
 import { useNetWorth } from "@/features/net-worth/net-worth-queries";
 

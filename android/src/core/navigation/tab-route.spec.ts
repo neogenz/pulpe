@@ -1,10 +1,10 @@
 import { currentTab, screenName, tabGroupUnder, tabKey } from "./tab-route";
 
 describe("tabKey", () => {
-  it("reads a stack tab and a single-screen tab the same way", () => {
+  it("reads a tab group and its bare name the same way", () => {
     expect(tabKey("(budgets)")).toBe("budgets");
     expect(tabKey("budgets")).toBe("budgets");
-    expect(tabKey("net-worth")).toBe("net-worth");
+    expect(tabKey("(net-worth)")).toBe("net-worth");
   });
 });
 
@@ -16,7 +16,9 @@ describe("currentTab", () => {
     expect(
       currentTab(["(main)", "(tabs)", "(budgets)", "budget", "[id]"]),
     ).toBe("budgets");
-    expect(currentTab(["(main)", "(tabs)", "net-worth"])).toBe("net-worth");
+    expect(currentTab(["(main)", "(tabs)", "(net-worth)", "net-worth"])).toBe(
+      "net-worth",
+    );
   });
 
   it("is undefined on a screen pushed over the bar", () => {
@@ -31,7 +33,10 @@ describe("screenName", () => {
   it.each([
     [["(main)", "(tabs)", "(home)", "home"], "(main)/(tabs)/home"],
     [["(main)", "(tabs)", "(budgets)", "budgets"], "(main)/(tabs)/budgets"],
-    [["(main)", "(tabs)", "net-worth"], "(main)/(tabs)/net-worth"],
+    [
+      ["(main)", "(tabs)", "(net-worth)", "net-worth"],
+      "(main)/(tabs)/net-worth",
+    ],
     [["(main)", "(tabs)", "(budgets)", "budget", "[id]"], "(main)/budget/[id]"],
     [["(main)", "(tabs)", "(home)", "budget", "[id]"], "(main)/budget/[id]"],
     [
@@ -60,7 +65,7 @@ describe("tabGroupUnder", () => {
           routes: [
             { name: "(home)" },
             { name: "(budgets)" },
-            { name: "net-worth" },
+            { name: "(net-worth)" },
           ],
         },
       },
@@ -71,10 +76,10 @@ describe("tabGroupUnder", () => {
   it("is the tab group focused under a screen pushed over the bar", () => {
     expect(tabGroupUnder(under(1))).toBe("(budgets)");
     expect(tabGroupUnder(under(0))).toBe("(home)");
+    expect(tabGroupUnder(under(2))).toBe("(net-worth)");
   });
 
-  it("is undefined for a single-screen tab or no tabs at all", () => {
-    expect(tabGroupUnder(under(2))).toBeUndefined();
+  it("is undefined without tabs", () => {
     expect(
       tabGroupUnder({ routes: [{ name: "budget/create" }] }),
     ).toBeUndefined();

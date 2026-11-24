@@ -73,7 +73,7 @@ const context = {
   "(main)/budget/create": CreateForm,
   "(main)/budget/plan": stub("budget-plan"),
   "(main)/(tabs)/_layout": TabsLayout,
-  "(main)/(tabs)/net-worth": stub("net-worth"),
+  "(main)/(tabs)/(net-worth)/net-worth": stub("net-worth"),
   [`${SHARED}/_layout`]: { default: TabStackLayout, unstable_settings },
   [`${SHARED}/budget/[id]`]: stub("budget-detail"),
   [`${SHARED}/budget/[id]/line/[lineId]`]: stub("line-detail"),

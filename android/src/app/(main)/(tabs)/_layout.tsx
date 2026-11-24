@@ -3,13 +3,11 @@ import { useEffect, useRef } from "react";
 import { useTheme } from "react-native-paper";
 
 import { currentTab } from "@/core/navigation/tab-route";
-import { AmountMaskBoundary } from "@/core/ui/amount-mask-boundary";
 import { NavigationBar } from "@/core/ui/navigation-bar";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { useFeatureFlag } from "@/core/observability/feature-flags";
 import { captureTabSwitched } from "@/core/observability/product-events";
 import {
-  NET_WORTH_ROUTE,
   shouldLeaveNetWorthTab,
   withoutNetWorthTab,
 } from "@/features/net-worth/net-worth-tab";
@@ -17,10 +15,9 @@ import { FEATURE_FLAGS } from "pulpe-shared";
 
 /**
  * The top-level destinations (a fifth, « Patrimoine », only behind the
- * `net_worth` flag), and nothing else. Four of them are a group holding the
- * tab's own stack, so a detail screen opens under the bar with its tab still
- * active; « Patrimoine » has no detail and stays a single screen. A screen
- * that cannot be reached from the bar has no business being a tab, and
+ * `net_worth` flag), and nothing else. Each is a group holding the tab's own
+ * stack, so a detail screen opens under the bar with its tab still active. A
+ * screen that cannot be reached from the bar has no business being a tab, and
  * registering it here — even hidden behind `href: null` — is what left the
  * bar with no active item.
  *
@@ -62,15 +59,6 @@ export default function TabsLayout() {
           }
         />
       )}
-      // A tab holding a stack masks each of its screens itself: remounting the
-      // whole stack would send the tab back to its root.
-      screenLayout={({ route, children }) =>
-        route.name === NET_WORTH_ROUTE ? (
-          <AmountMaskBoundary>{children}</AmountMaskBoundary>
-        ) : (
-          children
-        )
-      }
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: theme.colors.background },
@@ -98,7 +86,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name={NET_WORTH_ROUTE}
+        name="(net-worth)"
         options={{
           title: t("main.tabs.netWorth.short"),
           tabBarAccessibilityLabel: t("main.tabs.netWorth.accessibility"),

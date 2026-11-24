@@ -5,10 +5,9 @@ const TABS_SEGMENT = "(tabs)";
 const GROUP = /^\((.+)\)$/;
 
 /**
- * The tab a navigator route stands for. A tab that holds its own stack is a
- * group (`(budgets)`), a tab that is a single screen is not (`net-worth`):
- * both answer to the bare name, which is what the bar, analytics and the flag
- * redirect compare against.
+ * The tab a navigator route stands for: the group (`(budgets)`) or its bare
+ * name, which is what the bar, analytics and the flag redirect compare
+ * against.
  */
 export function tabKey(routeName: string): string {
   return routeName.replace(GROUP, "$1");
@@ -75,8 +74,7 @@ function tabsState(state: NavigatorState | undefined) {
 
 /**
  * The tab left focused under the screens pushed over the bar: `(budgets)`
- * under a form opened from Budgets. Only a tab holding a stack is one: a
- * single-screen tab has nothing to push a page onto.
+ * under a form opened from Budgets.
  */
 export function tabGroupUnder(
   state: NavigatorState | undefined,
