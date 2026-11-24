@@ -155,6 +155,28 @@ struct AssetHistoryModelTests {
         }
     }
 
+    /// CA19: « Courses » checked in two periods comes twice with the same id; the list keeps both.
+    @Test
+    func ca19_samePrevisionTwice_rendersBothRows() async {
+        let service = MockAssetService()
+        service.stubbedHistory = [nil: AssetHistory(
+            asset: HistoryFixture.compteCourant,
+            entries: [
+                HistoryFixture.movement("courses", "Courses", "2026-11-04", -280),
+                HistoryFixture.snapshot("s2", "2026-11-01", 5000),
+                HistoryFixture.movement("courses", "Courses", "2026-10-28", -120, supersededAt: "2026-11-01"),
+            ],
+            nextCursor: nil
+        )]
+        let model = makeModel(service)
+
+        await model.load()
+
+        let courses = model.entries.filter { $0.sourceId == "courses" }
+        #expect(courses.count == 2)
+        #expect(Set(model.entries.map(\.id)).count == model.entries.count)
+    }
+
     @Test
     func nothingCheckedSince_isTheEntryDate_onlyWhenTheNewestLineIsAnEntry() async {
         let livret = MockAssetService()
@@ -178,8 +200,12 @@ struct AssetHistoryModelTests {
 struct AssetHistoryLineTests {
     private let now = HistoryFixture.day("2026-11-24")
 
-    private func line(_ entry: AssetHistoryEntry, language: SupportedLocale = .fr) -> AssetHistoryLine {
-        AssetHistoryLine(entry, currency: .chf, now: now, language: language)
+    private func line(
+        _ entry: AssetHistoryEntry,
+        currency: SupportedCurrency = .chf,
+        language: SupportedLocale = .fr
+    ) -> AssetHistoryLine {
+        AssetHistoryLine(entry, currency: currency, now: now, language: language)
     }
 
     private func day(_ iso: String, _ language: SupportedLocale = .fr) -> String {
@@ -192,7 +218,7 @@ struct AssetHistoryLineTests {
         let loyer = line(HistoryFixture.movement("l", "Loyer", "2026-11-03", -1500))
 
         #expect(salaire.accessibilityLabel(amountsHidden: false)
-            == "Salaire, Pointé le \(day("2026-11-10")), +\(Decimal(6000).asCurrency(.chf))")
+            == "Salaire, \(day("2026-11-10")), +\(Decimal(6000).asCurrency(.chf))")
         #expect(loyer.amount == "\u{2212}\(Decimal(1500).asCurrency(.chf))")
         #expect(!loyer.isSuperseded)
     }
@@ -214,7 +240,7 @@ struct AssetHistoryLineTests {
         #expect(assurance.isSuperseded)
         #expect(assurance.legend == "Déjà compris dans ta saisie du 1er novembre")
         #expect(assurance.accessibilityLabel(amountsHidden: true)
-            == "Assurance, Pointé le \(day("2026-10-28")), Déjà compris dans ta saisie du 1er novembre")
+            == "Assurance, \(day("2026-10-28")), Déjà compris dans ta saisie du 1er novembre")
     }
 
     @Test
@@ -222,7 +248,7 @@ struct AssetHistoryLineTests {
         let courses = line(HistoryFixture.movement("c", "Courses", "2026-11-04", nil))
 
         #expect(courses.amount == nil)
-        #expect(courses.accessibilityLabel(amountsHidden: false) == "Courses, Pointé le \(day("2026-11-04"))")
+        #expect(courses.accessibilityLabel(amountsHidden: false) == "Courses, \(day("2026-11-04"))")
     }
 
     @Test
@@ -232,8 +258,31 @@ struct AssetHistoryLineTests {
             language: .en
         )
 
-        #expect(assurance.date == "Checked on \(day("2026-10-28", .en))")
+        #expect(assurance.date == day("2026-10-28", .en))
         #expect(assurance.legend == "Already included in your entry on \(day("2026-11-01", .en))")
+    }
+
+    /// The server's debt example (asset.formulas.spec, CA13): on a debt of 200, a repayment of 300
+    /// moves it by −200 and a purchase checked afterwards by +100; once at zero, a repayment by 0.
+    @Test
+    func ca13_debtEffects_keepTheServerSigns() {
+        let achat = line(HistoryFixture.movement("achat", "Achat", "2026-11-04", 100))
+        let remboursement = line(HistoryFixture.movement("remboursement", "Remboursement", "2026-11-03", -200))
+        let atZero = line(HistoryFixture.movement("r0", "Remboursement", "2026-11-03", 0))
+
+        #expect(achat.amount == "+\(Decimal(100).asCurrency(.chf))")
+        #expect(remboursement.amount == "\u{2212}\(Decimal(200).asCurrency(.chf))")
+        #expect(atZero.amount == Decimal(0).asCurrency(.chf))
+    }
+
+    /// A Restaurant of 80 CHF on a EUR account comes as −100 at a rate of 0.8, and without a rate.
+    @Test
+    func ca14_euroAsset_showsTheEffectInEuros_orADash() {
+        let converted = line(HistoryFixture.movement("r", "Restaurant", "2026-11-05", -100), currency: .eur)
+        let noRate = line(HistoryFixture.movement("r", "Restaurant", "2026-11-05", nil), currency: .eur)
+
+        #expect(converted.amount == "\u{2212}100,00 €")
+        #expect(noRate.amount == nil)
     }
 
     @Test

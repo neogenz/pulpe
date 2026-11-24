@@ -33,7 +33,7 @@ struct AssetHistoryLine: Equatable {
             isSuperseded = false
         case let .movement(name, effect, supersededAt):
             title = name
-            date = AppLocale.string("Pointé le \(day(entry.at))", locale: locale)
+            date = day(entry.at)
             amount = effect?.netWorthSigned(currency, showsPlus: true)
             legend = supersededAt.map {
                 AppLocale.string("Déjà compris dans ta saisie du \(day($0))", locale: locale)
