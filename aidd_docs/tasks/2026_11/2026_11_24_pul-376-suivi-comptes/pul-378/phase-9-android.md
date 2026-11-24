@@ -38,7 +38,7 @@ Tests : `net-worth-sections.spec.ts` et `net-worth-rows.spec.tsx` (CA8, CA9), `a
 ## Partie B, PUL-378
 
 1. `account-link.ts` : sélecteur absent flag éteint ou sans élément actif (CA2) ; prérempli par le compte par défaut actif à la création (CA29) ; `accountId` toujours envoyé à la création d'un mouvement libre, `null` pour « Aucun » (CA3) ; jamais sur un mouvement rattaché à une prévision (CA4) ; omis au PATCH tant que le champ n'a pas bougé (CA26) ; même élément que le lien existant de la prévision refusé avec le message de la règle (CA25) ; lien égal au compte prérempli : « Aucun » (CA45).
-2. `AccountField` : rangée de chips (« Aucun », puis « Ce que j'ai », « Ce que je dois »). Un menu Paper s'afficherait derrière la feuille native, comme pour le Type d'un élément.
+2. `AccountField` : un champ « Compte » qui ouvre, au-dessus de la feuille, la liste « Aucun », « Ce que j'ai », « Ce que je dois » (`AccountChoiceList`, partagée avec l'écran « Compte par défaut »). Un menu Paper s'afficherait derrière la feuille native.
 3. Branchement dans `TransactionSheet`, `BudgetLineSheet` (lissage compris), `TemplateLineSheet`. La réouverture après suppression d'un mouvement libre renvoie son compte.
 4. Réglage « Compte par défaut » : ligne dans Préférences (section « Mon budget »), écran de choix, `PUT /v1/users/settings` `defaultAccountId` (CA28, CA34). Absent flag éteint ou sans élément actif.
 5. Menu d'un élément actif : « Utiliser par défaut dans le budget » / « Ne plus utiliser par défaut », pastille « Par défaut » (CA47, CA33). Archiver ou supprimer le compte par défaut recharge le réglage (CA35).
