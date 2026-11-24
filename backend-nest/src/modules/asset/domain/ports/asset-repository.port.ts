@@ -7,6 +7,7 @@ import type {
   AssetSnapshotInput,
   AssetUpdatePatch,
   AssetWithValue,
+  MonthMovements,
 } from '../asset.entity';
 
 export const ASSET_REPOSITORY = Symbol('ASSET_REPOSITORY');
@@ -32,6 +33,17 @@ export interface AssetRepositoryPort {
    * asset, or only `assetId` when given.
    */
   findMovementsSince(since: string, assetId?: string): Promise<AssetMovements>;
+  /**
+   * What the budget of `month`/`year` plans or holds for an asset, checked or
+   * not, amounts decrypted, uncached: its prévisions linked by `account_id` or
+   * `asset_id` with all their movements, and its free movements. Empty without
+   * a budget that month.
+   */
+  findMonthMovements(
+    assetId: string,
+    month: number,
+    year: number,
+  ): Promise<MonthMovements>;
   /** Every entry of an asset, oldest first, decrypted; the last is its latest. */
   findSnapshots(assetId: string): Promise<AssetSnapshot[]>;
   /** Writes the asset and its first snapshot together. */

@@ -27,6 +27,9 @@ import type {
   AssetWithValue,
   CheckedReal,
   FreeMovement,
+  MonthFreeMovement,
+  MonthLine,
+  MonthMovements,
   MovementLine,
 } from '../../domain/asset.entity';
 import type { Database } from '../../../../types/database.types';
@@ -255,6 +258,87 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
         },
       ];
     });
+    return { lines, freeMovements };
+  }
+
+  async findMonthMovements(
+    assetId: string,
+    month: number,
+    year: number,
+  ): Promise<MonthMovements> {
+    const supabase = this.supabaseProvider.client;
+    const userId = this.supabaseProvider.user.id;
+    const failed = (error: unknown) => {
+      throw this.fetchFailed('listAssetMonthMovements', error, {
+        entityId: assetId,
+      });
+    };
+    // The budget is joined rather than read first: no budget, no rows.
+    const [lineRows, freeRows] = await Promise.all([
+      fetchAllPages((from, to) =>
+        supabase
+          .from('budget_line')
+          .select(
+            'id, kind, amount, checked_at, account_id, asset_id, transaction(amount, checked_at), monthly_budget!inner(month, year, user_id)',
+          )
+          .eq('monthly_budget.month', month)
+          .eq('monthly_budget.year', year)
+          .eq('monthly_budget.user_id', userId)
+          .or(`account_id.eq.${assetId},asset_id.eq.${assetId}`)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ).catch(failed),
+      fetchAllPages((from, to) =>
+        supabase
+          .from('transaction')
+          .select(
+            'id, kind, amount, checked_at, monthly_budget!inner(month, year, user_id)',
+          )
+          .eq('monthly_budget.month', month)
+          .eq('monthly_budget.year', year)
+          .eq('monthly_budget.user_id', userId)
+          .is('budget_line_id', null)
+          .eq('account_id', assetId)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ).catch(failed),
+    ]);
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    // Strict, like `findMovementsSince`: a projection never moves by an amount
+    // that failed to decrypt. A row without an amount moves nothing.
+    const decrypt = (amount: string) =>
+      this.encryption.decryptAmount(amount, dek);
+
+    const lines = lineRows.flatMap((row): MonthLine[] => {
+      if (!row.amount) return [];
+      return [
+        {
+          kind: row.kind,
+          amount: decrypt(row.amount),
+          checkedAt: row.checked_at,
+          accountId: row.account_id,
+          assetId: row.asset_id,
+          reals: row.transaction.flatMap((real) =>
+            real.amount
+              ? [{ amount: decrypt(real.amount), checkedAt: real.checked_at }]
+              : [],
+          ),
+        },
+      ];
+    });
+    const freeMovements = freeRows.flatMap((row): MonthFreeMovement[] =>
+      row.amount
+        ? [
+            {
+              kind: row.kind,
+              amount: decrypt(row.amount),
+              accountId: assetId,
+              checkedAt: row.checked_at,
+            },
+          ]
+        : [],
+    );
     return { lines, freeMovements };
   }
 

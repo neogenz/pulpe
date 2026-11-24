@@ -47,6 +47,7 @@ export class AssetMapper {
   toAssetHistoryApi(page: AssetHistoryPage): AssetHistoryApi {
     return {
       asset: this.toNetWorthAssetApi(page.asset),
+      monthEndProjection: page.monthEndProjection,
       entries: page.entries,
       nextCursor: page.nextCursor,
     };

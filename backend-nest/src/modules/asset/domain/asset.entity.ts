@@ -80,6 +80,47 @@ export interface AssetMovements {
   freeMovements: FreeMovement[];
 }
 
+/** A movement of a prévision, checked or not. */
+export interface MonthReal {
+  amount: number;
+  checkedAt: string | null;
+}
+
+/**
+ * A prévision of the current budget linked to an asset (`accountId` or
+ * `assetId`), checked or not, with all its movements. Amounts in the budget
+ * currency.
+ */
+export interface MonthLine {
+  kind: TransactionKind;
+  amount: number;
+  checkedAt: string | null;
+  accountId: string | null;
+  assetId: string | null;
+  reals: MonthReal[];
+}
+
+/** A movement of the current budget outside any prévision, checked or not. */
+export interface MonthFreeMovement {
+  kind: TransactionKind;
+  amount: number;
+  accountId: string;
+  checkedAt: string | null;
+}
+
+/** What the current budget plans or holds for one asset. */
+export interface MonthMovements {
+  lines: MonthLine[];
+  freeMovements: MonthFreeMovement[];
+}
+
+/** The value of an asset once the current budget is all checked, own currency. */
+export interface MonthEndProjection {
+  month: number;
+  year: number;
+  value: number;
+}
+
 /** A value typed by the user (edit or reconciliation), in the asset's currency. */
 export interface AssetSnapshot {
   id: string;
@@ -152,6 +193,8 @@ export interface NetWorth {
 /** The asset as `GET /v1/assets` values it, and one page of its history. */
 export interface AssetHistoryPage {
   asset: NetWorthAsset;
+  /** `null` when nothing is left to come this month. */
+  monthEndProjection: MonthEndProjection | null;
   entries: AssetHistoryEntry[];
   nextCursor: string | null;
 }

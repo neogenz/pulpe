@@ -69,6 +69,60 @@ describe('assetHistoryEntrySchema', () => {
   });
 });
 
+const ASSET = {
+  id: ID,
+  categoryId: ID,
+  name: 'Compte courant',
+  currency: 'CHF',
+  direction: 'own',
+  inPulpe: true,
+  archivedAt: null,
+  latestValue: 3800,
+  recordedValue: 5000,
+  latestRecordedAt: '2026-11-01T08:00:00.000Z',
+  convertedValue: 3800,
+  suggestion: null,
+};
+
+const page = (extra: Record<string, unknown>) => ({
+  success: true,
+  data: { asset: ASSET, entries: [], nextCursor: null, ...extra },
+});
+
+describe('assetHistoryResponseSchema: monthEndProjection (PUL-380)', () => {
+  it('reads « Fin novembre : 8 000 »', () => {
+    const result = assetHistoryResponseSchema.parse(
+      page({ monthEndProjection: { month: 11, year: 2026, value: 8000 } }),
+    );
+
+    expect(result.data.monthEndProjection).toEqual({
+      month: 11,
+      year: 2026,
+      value: 8000,
+    });
+  });
+
+  it('reads nothing to come as null, and a server without the field as absent', () => {
+    expect(
+      assetHistoryResponseSchema.safeParse(page({ monthEndProjection: null }))
+        .success,
+    ).toBe(true);
+    expect(assetHistoryResponseSchema.safeParse(page({})).success).toBe(true);
+  });
+
+  it.each([
+    { month: 0, year: 2026, value: 1 },
+    { month: 13, year: 2026, value: 1 },
+    { month: 11, year: 2026 },
+    { month: 11, year: 2026, value: '8000' },
+  ])('rejects the projection %o', (monthEndProjection) => {
+    expect(
+      assetHistoryResponseSchema.safeParse(page({ monthEndProjection }))
+        .success,
+    ).toBe(false);
+  });
+});
+
 describe('assetHistoryResponseSchema', () => {
   it('reads the asset as GET /v1/assets does, a page and the last page marker', () => {
     const result = assetHistoryResponseSchema.safeParse({
