@@ -31,3 +31,9 @@ Diff : `git diff f608d037b..HEAD` (hors `shots/`), branche `feat/pul-380-project
 ## Hors diff
 
 Rien de préexistant relevé qui touche cette story.
+
+## UX/UI pass (impeccable critique, web, iOS, Android)
+
+No defect found on the « Fin <mois> » line. Fresh captures show it absent where it should be (savings account, and a current account with everything checked this month, CA2) in `shots/ux-before/` (local). The seed data has no unchecked movement linked to an account, so no fresh capture shows the line itself: iOS and Android were reviewed on this story's earlier captures (`ios-detail-8000-*`, `android-detail-*`), web on the current code with a projection injected in the browser response only (`ux-before/web-month-end-*`, layout and wording, not a computed figure).
+
+Open question, not changed: the visible line has no condition while screen readers hear « si tout se passe comme prévu » (questions.md 13 and 20).
