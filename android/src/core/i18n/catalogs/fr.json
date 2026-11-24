@@ -1393,7 +1393,9 @@
       "nothingSince": "Tu n'as rien pointé depuis ta saisie du %{date}.",
       "loadError": "Impossible de charger cet historique, réessaie",
       "loadMoreError": "Impossible de charger la suite, réessaie",
-      "notFound": "Cet élément n'est plus disponible"
+      "notFound": "Cet élément n'est plus disponible",
+      "monthEnd": "Fin %{month} : %{amount}",
+      "monthEndAccessibility": "Fin %{month} : %{amount}, si tout se passe comme prévu ce mois-ci"
     }
   },
   "onboarding": {

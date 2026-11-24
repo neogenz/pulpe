@@ -8,6 +8,7 @@ import { ApiError } from "@/core/api/api-error";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { formatAmount } from "@/core/ui/amount-format";
 import { useAmountMasking } from "@/core/ui/amount-visibility";
+import { formatMonthName } from "@/core/ui/date-format";
 import {
   HeroAppBar,
   HeroAppBarAction,
@@ -69,6 +70,8 @@ export default function AssetDetailScreen() {
 
   const asset = history.data?.pages[0]?.asset;
   const entries = history.data?.pages.flatMap((page) => page.entries) ?? [];
+  // Every page carries it: the latest one is the freshest.
+  const projection = history.data?.pages.at(-1)?.monthEndProjection ?? null;
   // Archiving or deleting here refetches this history before going back: that
   // 404 is my own write, not the element gone elsewhere.
   const isLeaving =
@@ -146,6 +149,10 @@ export default function AssetDetailScreen() {
     const entryDate = formatEntryDate(asset.latestRecordedAt, locale);
     // Newest first: an entry on top means nothing was checked since (CA10).
     const isUntouchedSinceEntry = entries[0]?.type === "snapshot";
+    const monthEnd = projection && {
+      month: formatMonthName(projection.month, projection.year, locale),
+      amount: signedAmount(projection.value, asset.currency, false),
+    };
 
     const header = (
       <>
@@ -159,6 +166,18 @@ export default function AssetDetailScreen() {
             }
             currency={CURRENCY_METADATA[asset.currency].symbol}
           />
+          {monthEnd && (
+            <Text
+              variant="bodyMedium"
+              style={{ color: hero.support }}
+              accessibilityLabel={t(
+                "netWorth.detail.monthEndAccessibility",
+                monthEnd,
+              )}
+            >
+              {t("netWorth.detail.monthEnd", monthEnd)}
+            </Text>
+          )}
           <Text variant="bodyMedium" style={{ color: hero.support }}>
             {t("netWorth.form.lastValue", {
               amount: signedAmount(asset.recordedValue, asset.currency, false),
