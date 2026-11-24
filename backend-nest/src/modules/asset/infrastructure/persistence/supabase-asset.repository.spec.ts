@@ -502,6 +502,11 @@ describe('SupabaseAssetRepository', () => {
         ['monthly_budget.year', 2026],
         ['monthly_budget.user_id', 'user-1'],
       ];
+      // Without `!inner` the budget filters only empty the embed and every
+      // month's rows come back (CA4: « Impôts » of December would count).
+      const innerBudget = 'monthly_budget!inner(month, year, user_id)';
+      expect(lines.argsOf('select')[0]?.[0]).toContain(innerBudget);
+      expect(free.argsOf('select')[0]?.[0]).toContain(innerBudget);
       expect(lines.argsOf('eq')).toEqual(period);
       expect(lines.argsOf('or')).toEqual([['account_id.eq.cc,asset_id.eq.cc']]);
       expect(free.argsOf('eq')).toEqual([...period, ['account_id', 'cc']]);
