@@ -67,12 +67,13 @@ describe('AssetDetailPage', () => {
 
   async function render(
     response: AssetHistoryResponse | Error = historyResponse(),
+    id: string = HISTORY_ACCOUNT.id,
   ): Promise<void> {
     getHistory$.mockReturnValue(
       response instanceof Error ? throwError(() => response) : of(response),
     );
     fixture = TestBed.createComponent(AssetDetailPage);
-    fixture.componentRef.setInput('id', HISTORY_ACCOUNT.id);
+    fixture.componentRef.setInput('id', id);
     fixture.detectChanges();
     await settle();
     fixture.detectChanges();
@@ -344,6 +345,16 @@ describe('AssetDetailPage', () => {
 
     byTestId('asset-detail-not-found')!.querySelector('button')!.click();
     expect(navigate).toHaveBeenCalledWith(['/', 'net-worth']);
+  });
+
+  it('says an address that is not an asset id leads nowhere, without asking the server', async () => {
+    await render(historyResponse(), 'not-a-uuid');
+
+    expect(getHistory$).not.toHaveBeenCalled();
+    expect(text('asset-detail-not-found')).toContain(
+      "Cet élément n'est plus disponible",
+    );
+    expect(byTestId('asset-detail-error')).toBeNull();
   });
 
   it('offers to retry when the history cannot load', async () => {

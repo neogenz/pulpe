@@ -1,6 +1,7 @@
 import { computed, inject, linkedSignal, Service, signal } from '@angular/core';
 import { cachedResource } from 'ngx-ziflux';
 import { firstValueFrom, map } from 'rxjs';
+import * as z from 'zod';
 import {
   API_ERROR_CODES,
   type AssetHistory,
@@ -24,13 +25,18 @@ interface LaterPages {
 export class AssetHistoryStore {
   readonly #api = inject(AssetApi);
   readonly #assetId = signal<string | null>(null);
+  // A typed or truncated address: the server would answer 400, not 404.
+  readonly #isMalformedId = computed(() => {
+    const id = this.#assetId();
+    return id !== null && !z.uuid().safeParse(id).success;
+  });
 
   readonly firstPage = cachedResource<AssetHistory, { id: string }>({
     cache: this.#api.cache,
     cacheKey: ({ id }) => ['assets', 'history', id],
     params: () => {
       const id = this.#assetId();
-      return id ? { id } : undefined;
+      return id && !this.#isMalformedId() ? { id } : undefined;
     },
     loader: ({ params }) =>
       this.#api.getHistory$(params.id).pipe(map((response) => response.data)),
@@ -61,8 +67,9 @@ export class AssetHistoryStore {
   readonly isLoadingMore = this.#isLoadingMore.asReadonly();
   readonly loadMoreFailed = this.#loadMoreFailed.asReadonly();
 
-  /** Unknown or archived: the server answers 404 for both. */
+  /** Unknown or archived (the server answers 404 for both), or not an id at all. */
   readonly isNotFound = computed(() => {
+    if (this.#isMalformedId()) return true;
     const error = this.firstPage.error();
     return isApiError(error) && error.code === API_ERROR_CODES.ASSET_NOT_FOUND;
   });
