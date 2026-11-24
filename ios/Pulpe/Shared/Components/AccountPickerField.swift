@@ -56,6 +56,7 @@ struct AccountPickerField: View {
     @Environment(AssetStore.self) private var store
     @Environment(FeatureFlagsStore.self) private var featureFlags
     @Environment(UserSettingsStore.self) private var settings
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var didPrefill = false
 
     private var selectedAsset: Asset? {
@@ -120,15 +121,30 @@ struct AccountPickerField: View {
             savingsGoalMenuLabel(style: .row, title: title, value: value, isPlaceholder: isPlaceholder)
         } else {
             HStack {
-                Text(title).font(PulpeTypography.listRowTitle).foregroundStyle(Color.textPrimary)
-                Spacer()
-                Text(value).foregroundStyle(Color.onSurfaceVariant).lineLimit(1)
+                // At accessibility sizes the account goes under the title: beside it, it was cut.
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        rowTitle
+                        Text(value).foregroundStyle(Color.onSurfaceVariant)
+                    }
+                    // A Menu label centers wrapped lines by default.
+                    .multilineTextAlignment(.leading)
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                } else {
+                    rowTitle
+                    Spacer()
+                    Text(value).foregroundStyle(Color.onSurfaceVariant).lineLimit(1)
+                }
                 Image(systemName: "chevron.right")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.textTertiary)
             }
             .contentShape(Rectangle())
         }
+    }
+
+    private var rowTitle: some View {
+        Text(title).font(PulpeTypography.listRowTitle).foregroundStyle(Color.textPrimary)
     }
 
     @ViewBuilder
