@@ -29,7 +29,8 @@ import { UserSettingsStore } from '@core/user-settings';
 @Component({
   selector: 'pulpe-account-picker-field',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'block' },
+  // Rendering nothing, the host must not take a slot in the form's gap.
+  host: { class: 'block empty:hidden' },
   imports: [MatFormFieldModule, MatSelectModule, TranslocoPipe],
   template: `
     @if (groups(); as groups) {
@@ -96,9 +97,9 @@ import { UserSettingsStore } from '@core/user-settings';
 export class AccountPickerField {
   readonly value = input<string | null>(null);
   readonly labelKey = input('netWorth.account.label');
-  /** Translation key of the message shown under the field, `null` when fine. */
   /** Translation key of a standing hint under the field, shown when there is no error. */
   readonly hintKey = input<string | null>(null);
+  /** Translation key of the message shown under the field, `null` when fine. */
   readonly errorKey = input<string | null>(null);
   readonly valueChanged = output<string | null>();
 
