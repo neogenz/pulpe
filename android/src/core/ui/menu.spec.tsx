@@ -97,4 +97,50 @@ describe("Menu", () => {
 
     expect(leaveScreen).toHaveBeenCalledTimes(1);
   });
+
+  it("closes with the latest onDismiss after the screen re-renders", async () => {
+    const dismissed = jest.fn();
+    function RefreshingScreen() {
+      const [isOpen, setOpen] = useState(false);
+      const [refreshCount, setRefreshCount] = useState(0);
+      return (
+        <View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setRefreshCount((count) => count + 1)}
+          >
+            <Text>Rafraîchir</Text>
+          </Pressable>
+          <Menu
+            visible={isOpen}
+            onDismiss={() => {
+              dismissed(refreshCount);
+              setOpen(false);
+            }}
+            anchor={
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setOpen(true)}
+              >
+                <Text>Options</Text>
+              </Pressable>
+            }
+          >
+            <Text>Supprimer</Text>
+          </Menu>
+        </View>
+      );
+    }
+    const view = await render(<RefreshingScreen />);
+
+    await fireEvent.press(view.getByText("Options"));
+    await fireEvent.press(view.getByText("Rafraîchir"));
+    await pressBack();
+
+    expect(view.queryByText("Supprimer")).toBeNull();
+    expect(dismissed).toHaveBeenCalledTimes(1);
+    expect(dismissed).toHaveBeenCalledWith(1);
+    // One Back listener for the whole time the menu stayed open.
+    expect(BackHandler.addEventListener).toHaveBeenCalledTimes(1);
+  });
 });

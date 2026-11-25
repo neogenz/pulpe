@@ -1,4 +1,4 @@
-import { useEffect, type ComponentProps } from "react";
+import { useEffect, useRef, type ComponentProps } from "react";
 import { BackHandler } from "react-native";
 import { Menu as PaperMenu } from "react-native-paper";
 
@@ -9,18 +9,25 @@ import { Menu as PaperMenu } from "react-native-paper";
  */
 export function Menu(props: ComponentProps<typeof PaperMenu>) {
   const { visible, onDismiss } = props;
+  // Callers pass an inline onDismiss: a ref keeps one Back listener for as
+  // long as the menu is open. Refreshed before the effect that reads it.
+  const onDismissRef = useRef(onDismiss);
+
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  });
 
   useEffect(() => {
     if (!visible) return;
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        onDismiss?.();
+        onDismissRef.current?.();
         return true;
       },
     );
     return () => subscription.remove();
-  }, [visible, onDismiss]);
+  }, [visible]);
 
   return <PaperMenu {...props} />;
 }
