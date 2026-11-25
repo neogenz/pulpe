@@ -36,6 +36,14 @@ describe("accountChoices (CA1)", () => {
     );
     expect(archived.own.map((asset) => asset.id)).not.toContain(REVOLUT);
   });
+
+  it("keeps the archived account a movement already has (CA24)", () => {
+    const kept = accountChoices(
+      contractAssets([{}, { archivedAt: "2026-11-02T00:00:00.000Z" }]),
+      REVOLUT,
+    );
+    expect(kept.own.map((asset) => asset.id)).toContain(REVOLUT);
+  });
 });
 
 describe("isAccountOffered (CA2)", () => {

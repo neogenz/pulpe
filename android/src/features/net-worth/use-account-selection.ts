@@ -12,17 +12,21 @@ import {
 } from "./account-link";
 import { useNetWorth } from "./net-worth-queries";
 
-/** What « Compte » may be set to, and the default as long as it is still active. */
-export function useAccountChoices() {
+/**
+ * What « Compte » may be set to, `current` included even archived, and the
+ * default as long as it is still active.
+ */
+export function useAccountChoices(current: string | null = null) {
   const isFlagOn = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
   const netWorth = useNetWorth(isFlagOn);
   const settings = useUserSettings();
-  const choices = accountChoices(netWorth.data?.assets ?? []);
+  const assets = netWorth.data?.assets ?? [];
+  const active = accountChoices(assets);
   return {
-    choices,
-    isOffered: isAccountOffered(isFlagOn, choices),
+    choices: accountChoices(assets, current),
+    isOffered: isAccountOffered(isFlagOn, active),
     // An archived or deleted element reads as « Aucun »: the server clears it too.
-    defaultId: startAccount(settings.data?.defaultAccountId ?? null, choices),
+    defaultId: startAccount(settings.data?.defaultAccountId ?? null, active),
   };
 }
 
@@ -36,7 +40,9 @@ export function useAccountSelection(
   initial: string | null,
   isCreating: boolean,
 ) {
-  const { choices, isOffered, defaultId } = useAccountChoices();
+  const { choices, isOffered, defaultId } = useAccountChoices(
+    isCreating ? null : initial,
+  );
   // `undefined` is untouched: the field then shows its start value.
   const [picked, setPicked] = useState<string | null | undefined>(undefined);
 
