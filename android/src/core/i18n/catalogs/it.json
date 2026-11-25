@@ -1376,7 +1376,7 @@
       "defaultLabel": "Conto predefinito",
       "defaultBadge": "Predefinito",
       "defaultSection": "Il mio budget",
-      "defaultHint": "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta.",
+      "defaultHint": "Ogni nuovo movimento parte da questo conto. Puoi cambiarlo ogni volta.",
       "setDefault": "Usa come predefinito nel budget",
       "unsetDefault": "Non usare più come predefinito"
     },

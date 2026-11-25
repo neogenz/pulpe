@@ -1376,7 +1376,7 @@
       "defaultLabel": "Standardkonto",
       "defaultBadge": "Standard",
       "defaultSection": "Mein Budget",
-      "defaultHint": "Jeder neue Eintrag beginnt mit diesem Konto. Du kannst es jedes Mal ändern.",
+      "defaultHint": "Jede neue Bewegung startet auf diesem Konto. Du kannst es jedes Mal ändern.",
       "setDefault": "Im Budget als Standard verwenden",
       "unsetDefault": "Nicht mehr als Standard verwenden"
     },

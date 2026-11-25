@@ -1661,7 +1661,7 @@
       "groupOwe": "Was ich schulde",
       "sameAsLink": "Wähle ein anderes Konto: „{{name}}“ ist bereits das verknüpfte Element.",
       "defaultLabel": "Standardkonto",
-      "defaultHint": "Jede neue Buchung startet auf diesem Konto. Du kannst es jedes Mal ändern.",
+      "defaultHint": "Jede neue Bewegung startet auf diesem Konto. Du kannst es jedes Mal ändern.",
       "defaultBadge": "Standard"
     },
     "detail": {

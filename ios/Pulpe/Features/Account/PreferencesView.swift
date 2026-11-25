@@ -51,7 +51,7 @@ struct PreferencesView: View {
                 } header: {
                     SettingsSectionHeader(text: AppLocale.string("Mon budget"))
                 } footer: {
-                    Text("Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.")
+                    Text("Chaque nouveau mouvement démarre sur ce compte. Tu peux le changer à chaque fois.")
                 }
                 .listRowSettingsBackground()
             }

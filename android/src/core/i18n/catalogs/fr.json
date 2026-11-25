@@ -1376,7 +1376,7 @@
       "defaultLabel": "Compte par défaut",
       "defaultBadge": "Par défaut",
       "defaultSection": "Mon budget",
-      "defaultHint": "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.",
+      "defaultHint": "Chaque nouveau mouvement démarre sur ce compte. Tu peux le changer à chaque fois.",
       "setDefault": "Utiliser par défaut dans le budget",
       "unsetDefault": "Ne plus utiliser par défaut"
     },

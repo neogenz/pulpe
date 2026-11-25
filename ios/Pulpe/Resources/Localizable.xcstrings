@@ -161,12 +161,12 @@
         }
       }
     },
-    "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois." : {
+    "Chaque nouveau mouvement démarre sur ce compte. Tu peux le changer à chaque fois." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jeder neue Eintrag beginnt mit diesem Konto. Du kannst es jedes Mal ändern."
+            "value" : "Jede neue Bewegung startet auf diesem Konto. Du kannst es jedes Mal ändern."
           }
         },
         "en" : {
@@ -178,7 +178,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta."
+            "value" : "Ogni nuovo movimento parte da questo conto. Puoi cambiarlo ogni volta."
           }
         }
       }
