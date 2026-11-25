@@ -36,6 +36,7 @@ const asset = (id: string, over: Partial<Asset> = {}): Asset => ({
   direction: 'own',
   inPulpe: false,
   archivedAt: null,
+  recordedValue: 0,
   latestValue: 0,
   latestRecordedAt: '2026-11-01T00:00:00.000Z',
   convertedValue: 0,
@@ -90,12 +91,14 @@ describe('summarizeRows', () => {
   template: `<pulpe-reconcile-accounts-step
     [(accounts)]="rows"
     currency="CHF"
+    [items]="items"
     [offers]="offers"
     [categories]="categories"
   />`,
 })
 class Host {
   readonly rows = signal<AccountRow[]>([]);
+  items: Asset[] = [];
   offers: Asset[] = [];
   readonly categories = [{ id: 'cat', name: 'Comptes', total: 0 }];
 }
@@ -105,7 +108,11 @@ describe('ReconcileAccountsStep', () => {
   let choice: unknown;
   let handset: boolean;
 
-  const setup = async (rows: AccountRow[], offers: Asset[] = []) => {
+  const setup = async (
+    rows: AccountRow[],
+    offers: Asset[] = [],
+    items: Asset[] = offers,
+  ) => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -134,6 +141,7 @@ describe('ReconcileAccountsStep', () => {
     const fixture = TestBed.createComponent(Host);
     fixture.componentInstance.rows.set(rows);
     fixture.componentInstance.offers = offers;
+    fixture.componentInstance.items = items;
     fixture.detectChanges();
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
@@ -152,6 +160,24 @@ describe('ReconcileAccountsStep', () => {
     opened = undefined;
     choice = undefined;
     handset = false;
+  });
+
+  // A saving target of the month is never offered, yet its row still shows its value.
+  it('should give a followed item its up-to-date value, not only my last entry', async () => {
+    const livret = asset('livret', {
+      name: 'Livret',
+      recordedValue: 10_000,
+      latestValue: 10_500,
+    });
+    const view = await setup(
+      [row(0, { account: { kind: 'asset', id: 'livret' } })],
+      [],
+      [livret],
+    );
+
+    expect(view.q('reconcile-linked-caption')!.textContent).toContain(
+      "Mis à jour dans Mon patrimoine, où il vaut aujourd'hui 10’500.00 CHF.",
+    );
   });
 
   it('should open the add dialog on desktop, listing no item already on the list', async () => {

@@ -27,6 +27,8 @@ import {
   type SupportedCurrency,
 } from 'pulpe-shared';
 
+import { AppCurrencyPipe } from '@core/currency';
+
 import type { RowAccount } from './reconcile-account-links';
 import {
   ReconcileAddAccountSheet,
@@ -87,6 +89,7 @@ export function summarizeRows(rows: readonly AccountRow[]) {
     MatIconModule,
     MatInputModule,
     TranslocoPipe,
+    AppCurrencyPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
@@ -216,12 +219,25 @@ export function summarizeRows(rows: readonly AccountRow[]) {
                 {{ 'currentMonth.reconcile.accounts.cardCaption' | transloco }}
               </p>
             }
-            <p class="m-0 flex items-center gap-1 text-xs text-secondary">
-              <mat-icon class="mat-icon-sm" aria-hidden="true"
-                >trending_up</mat-icon
+            @if (itemsById().get(row.account.id); as item) {
+              <p
+                class="ph-no-capture m-0 flex items-center gap-1 text-xs text-secondary"
+                data-testid="reconcile-linked-caption"
               >
-              {{ 'currentMonth.reconcile.accounts.linkedCaption' | transloco }}
-            </p>
+                <mat-icon class="mat-icon-sm" aria-hidden="true"
+                  >trending_up</mat-icon
+                >
+                {{
+                  'currentMonth.reconcile.accounts.linkedCaption'
+                    | transloco
+                      : {
+                          amount:
+                            item.latestValue
+                            | appCurrency: item.currency : '1.2-2',
+                        }
+                }}
+              </p>
+            }
           }
         </li>
       }
@@ -268,6 +284,8 @@ export class ReconcileAccountsStep {
 
   readonly accounts = model.required<AccountRow[]>();
   readonly currency = input.required<SupportedCurrency>();
+  /** Every Mon patrimoine item, read for the up-to-date value of a linked row. */
+  readonly items = input.required<readonly Asset[]>();
   /** Mon patrimoine items that may be added: already filtered by the dialog. */
   readonly offers = input.required<readonly Asset[]>();
   readonly categories = input.required<readonly AssetCategory[]>();
@@ -277,6 +295,9 @@ export class ReconcileAccountsStep {
   protected readonly sides = SIDES;
   protected readonly currencySymbol = computed(
     () => CURRENCY_METADATA[this.currency()].symbol,
+  );
+  protected readonly itemsById = computed(
+    () => new Map(this.items().map((item) => [item.id, item])),
   );
   protected readonly hasOwe = computed(() =>
     this.accounts().some((row) => row.side === 'owe'),

@@ -31,6 +31,7 @@ const asset = (
   direction,
   inPulpe: false,
   archivedAt: null,
+  recordedValue: value,
   latestValue: value,
   latestRecordedAt: new Date().toISOString(),
   convertedValue: value,

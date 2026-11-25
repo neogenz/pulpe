@@ -384,6 +384,7 @@ describe('EditBudgetLineDialog — income drawn from an asset', () => {
     direction: 'own',
     inPulpe: false,
     archivedAt: null,
+    recordedValue: 3_000,
     latestValue: 3_000,
     latestRecordedAt: '2026-11-01T08:00:00.000Z',
     convertedValue: 3_000,

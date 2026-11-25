@@ -109,6 +109,14 @@ struct FormattersLocaleSplitTests {
         #expect(english.contains("1") && english.contains("August"))
     }
 
+    @Test func dayMonthLabel_withYear_keepsTheDeclension() throws {
+        let first = try #require(Self.august1)
+        let fifth = try #require(Self.march5)
+
+        #expect(Formatters.dayMonthLabel(for: first, in: .fr, withYear: true) == "1er août 2026")
+        #expect(Formatters.dayMonthLabel(for: fifth, in: .fr, withYear: true) == "5 mars 2026")
+    }
+
     @Test func dayMonthLabel_otherDays_areNotDeclined() throws {
         let date = try #require(Self.march5)
 

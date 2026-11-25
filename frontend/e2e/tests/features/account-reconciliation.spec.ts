@@ -59,6 +59,7 @@ const netWorthAsset = (
   direction,
   inPulpe,
   archivedAt: null,
+  recordedValue: 0,
   latestValue: 0,
   latestRecordedAt: new Date().toISOString(),
   convertedValue: 0,

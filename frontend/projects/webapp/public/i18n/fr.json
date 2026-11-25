@@ -1189,7 +1189,7 @@
         "own": "J'ai",
         "owe": "Je dois",
         "remove": "Retirer {{ name }} de la liste",
-        "linkedCaption": "Mis à jour dans Mon patrimoine.",
+        "linkedCaption": "Mis à jour dans Mon patrimoine, où il vaut aujourd'hui {{amount}}.",
         "cardCaption": "Tout ce que tu dois, achats récents compris. Pas ta limite.",
         "cardHelp": "Tu paies aussi par carte de crédit, PayPal ou Klarna ?",
         "addOwe": "Ajouter ce que je dois",
@@ -1544,6 +1544,8 @@
     "overdraft": "Découvert",
     "updated": "Mis à jour {{when}}",
     "updatedDebt": "{{category}} · mis à jour {{when}}",
+    "sinceEntry": "{{amount}} depuis ta saisie du {{date}}",
+    "sinceEntryDebt": "{{category}} · {{amount}} depuis ta saisie du {{date}}",
     "showArchived": "Voir les archives ({{count}})",
     "hideArchived": "Masquer les archives",
     "archivedTitle": "Archives",
@@ -1587,25 +1589,17 @@
       "add": "Ajouter"
     },
     "value": {
-      "lastValue": "Dernière valeur : {{amount}}, le {{date}}",
+      "lastValue": "Ta dernière saisie : {{amount}}, le {{date}}",
       "overdraft": "Solde négatif (découvert)"
     },
     "link": {
       "none": "Aucun",
       "ownLabel": "Versée sur",
       "oweLabel": "Dette remboursée",
-      "oweHint": "Une fois pointée, je te propose de baisser ce qu'il reste dû sur {{debt}}.",
+      "oweHint": "Une fois pointée, elle baisse ce qu'il reste dû sur {{debt}}.",
       "drawnLabel": "Tiré de",
-      "drawnHint": "Une fois pointé, je te propose de baisser la valeur de {{asset}}.",
+      "drawnHint": "Une fois pointé, il baisse la valeur de {{asset}}.",
       "drawnFrom": "Pris sur"
-    },
-    "suggestion": {
-      "proposes": "Je propose",
-      "detailSaved": "{{amount}} d'épargne pointée depuis la dernière valeur",
-      "detailDrawn": "{{amount}} de revenu tiré depuis la dernière valeur",
-      "detailRepaid": "{{amount}} de remboursement pointé depuis la dernière valeur",
-      "dismiss": "Écarter",
-      "apply": "Appliquer"
     },
     "starter": {
       "accounts": "Comptes",
@@ -1643,7 +1637,7 @@
         },
         "update": {
           "title": "Garde-la à jour en un geste",
-          "body": "Une valeur change ? Tu la mets à jour. Et quand tu mets de l'argent de côté dans ton budget, je te propose de l'ajouter ici.",
+          "body": "Une valeur change ? Tu la mets à jour. Et quand tu pointes de l'argent mis de côté dans ton budget, je l'ajoute ici.",
           "scene": "Exemple : l'épargne passe de {{before}} à {{after}}, la fortune nette monte à {{netAfter}}."
         }
       },
@@ -1657,7 +1651,7 @@
       },
       "updatedLongAgo": "Mis à jour il y a 2 mois",
       "updatedToday": "Mis à jour aujourd'hui",
-      "budgetHint": "{{amount}} mis de côté dans ton budget → je te propose +{{amount}} ici."
+      "budgetHint": "{{amount}} mis de côté et pointé dans ton budget → +{{amount}} ici."
     }
   },
   "completeProfile": {

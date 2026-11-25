@@ -20,6 +20,32 @@ struct AssetStoreTests {
         #expect(store.hasLoadedOnce)
     }
 
+    /// The reconciliation gate refreshes on every opening: a failure must not drop the linked rows.
+    @Test func forceRefresh_failsAfterALoad_keepsTheEarlierAssets() async {
+        let service = MockAssetService()
+        let store = AssetStore(service: service)
+        await store.forceRefresh()
+
+        service.getNetWorthError = APIError.networkError(URLError(.notConnectedToInternet))
+        await store.forceRefresh()
+
+        #expect(store.error != nil)
+        #expect(!store.hasError)
+        #expect(!store.activeAssets.isEmpty)
+        #expect(store.netWorth == service.stubbedNetWorth)
+    }
+
+    @Test func forceRefresh_failsWithNothingLoaded_hasError() async {
+        let service = MockAssetService()
+        service.getNetWorthError = APIError.networkError(URLError(.notConnectedToInternet))
+        let store = AssetStore(service: service)
+
+        await store.forceRefresh()
+
+        #expect(store.hasError)
+        #expect(store.activeAssets.isEmpty)
+    }
+
     @Test func create_starterCategory_createsCategoryThenAssetThenRefetches() async throws {
         let service = MockAssetService()
         let store = AssetStore(service: service)

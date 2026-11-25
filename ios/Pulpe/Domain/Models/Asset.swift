@@ -19,15 +19,10 @@ struct AssetCategoryRecord: Codable, Identifiable, Hashable, Sendable {
     let name: String
 }
 
-/// Value proposed by the checked prévisions since the last snapshot. Both amounts are in
-/// the asset's own currency; `delta` is signed.
-struct AssetSuggestion: Codable, Hashable, Sendable {
-    let delta: Decimal
-    let proposedValue: Decimal
-}
-
-/// An asset as read on the page. `convertedValue` is in the base currency and `nil` when
-/// no rate is available; `suggestion` is `nil` when nothing justifies one.
+/// An asset as read on the page. `latestValue` is the last entry plus what was checked since,
+/// `recordedValue` the last entry itself (dated `latestRecordedAt`), both in the asset's own
+/// currency. `convertedValue` is `latestValue` in the base currency, `nil` when no rate is
+/// available. The deprecated `suggestion` key is ignored.
 struct Asset: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let categoryId: String
@@ -37,9 +32,9 @@ struct Asset: Codable, Identifiable, Hashable, Sendable {
     let inPulpe: Bool
     let archivedAt: Date?
     let latestValue: Decimal
+    let recordedValue: Decimal
     let latestRecordedAt: Date
     let convertedValue: Decimal?
-    let suggestion: AssetSuggestion?
 }
 
 /// An asset as returned by writes: no amounts.

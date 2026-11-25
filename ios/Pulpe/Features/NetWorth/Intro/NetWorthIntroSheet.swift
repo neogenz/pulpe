@@ -88,7 +88,7 @@ struct NetWorthIntroSheet: View {
             "J'enlève ce que tu dois, crédit ou leasing. Il reste un chiffre : ta fortune nette, l'état réel de tes finances."
         case .update:
             // swiftlint:disable:next line_length
-            "Une valeur change ? Tu la mets à jour. Et quand tu mets de l'argent de côté dans ton budget, je te propose de l'ajouter ici."
+            "Une valeur change ? Tu la mets à jour. Et quand tu pointes de l'argent mis de côté dans ton budget, je l'ajoute ici."
         }
     }
 

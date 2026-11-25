@@ -28,6 +28,7 @@ const buildAsset = (overrides: Partial<Asset>): Asset => ({
   direction: 'own',
   inPulpe: false,
   archivedAt: null,
+  recordedValue: 1_000,
   latestValue: 1_000,
   latestRecordedAt: '2026-11-01T08:00:00.000Z',
   convertedValue: 1_000,
@@ -204,7 +205,7 @@ describe('AssetPickerField', () => {
     fixture.detectChanges();
 
     expect(hint().nativeElement.textContent.trim()).toBe(
-      "Une fois pointée, je te propose de baisser ce qu'il reste dû sur Leasing.",
+      "Une fois pointée, elle baisse ce qu'il reste dû sur Leasing.",
     );
   });
 
@@ -240,7 +241,7 @@ describe('AssetPickerField', () => {
     fixture.detectChanges();
 
     expect(hint().nativeElement.textContent.trim()).toBe(
-      'Une fois pointé, je te propose de baisser la valeur de Livret.',
+      'Une fois pointé, il baisse la valeur de Livret.',
     );
   });
 

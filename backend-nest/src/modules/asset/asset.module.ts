@@ -44,7 +44,6 @@ import { RemoveAssetCategoryUseCase } from './application/remove-asset-category.
     createInfoLoggerProvider(UpdateAssetUseCase.name),
     createInfoLoggerProvider(RemoveAssetUseCase.name),
     createInfoLoggerProvider(RecordAssetSnapshotsUseCase.name),
-    createInfoLoggerProvider(DismissAssetSuggestionUseCase.name),
     createInfoLoggerProvider(CreateAssetCategoryUseCase.name),
     createInfoLoggerProvider(UpdateAssetCategoryUseCase.name),
     createInfoLoggerProvider(RemoveAssetCategoryUseCase.name),

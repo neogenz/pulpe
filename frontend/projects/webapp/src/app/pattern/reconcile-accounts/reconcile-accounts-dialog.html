@@ -60,6 +60,7 @@
     <pulpe-reconcile-accounts-step
       [(accounts)]="accounts"
       [currency]="data.currency()"
+      [items]="data.netWorth?.items ?? []"
       [offers]="offers()"
       [categories]="data.netWorth?.categories ?? []"
     />

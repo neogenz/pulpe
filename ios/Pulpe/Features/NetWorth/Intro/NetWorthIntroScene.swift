@@ -338,7 +338,7 @@ private struct UpdateScene: View {
             Image(systemName: "arrow.up.arrow.down")
                 .foregroundStyle(Color.accentInk)
             let amount = NetWorthIntroSample.budgetSuggestion.asCompactAmount(for: currency)
-            Text("\(amount) mis de côté dans ton budget → je te propose +\(amount) ici.")
+            Text("\(amount) mis de côté et pointé dans ton budget → +\(amount) ici.")
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)

@@ -1189,7 +1189,7 @@
         "own": "I have",
         "owe": "I owe",
         "remove": "Remove {{ name }} from the list",
-        "linkedCaption": "Updated in My net worth.",
+        "linkedCaption": "Updated in My net worth, where it's worth {{amount}} today.",
         "cardCaption": "Everything you owe, recent purchases included. Not your limit.",
         "cardHelp": "Do you also pay by credit card, PayPal or Klarna?",
         "addOwe": "Add what I owe",
@@ -1544,6 +1544,8 @@
     "overdraft": "Overdrawn",
     "updated": "Updated {{when}}",
     "updatedDebt": "{{category}} · updated {{when}}",
+    "sinceEntry": "{{amount}} since your entry on {{date}}",
+    "sinceEntryDebt": "{{category}} · {{amount}} since your entry on {{date}}",
     "showArchived": "Show archived ({{count}})",
     "hideArchived": "Hide archived",
     "archivedTitle": "Archived",
@@ -1587,25 +1589,17 @@
       "add": "Add"
     },
     "value": {
-      "lastValue": "Last value: {{amount}}, on {{date}}",
+      "lastValue": "Your last entry: {{amount}}, on {{date}}",
       "overdraft": "Negative balance (overdraft)"
     },
     "link": {
       "none": "None",
       "ownLabel": "Saved to",
       "oweLabel": "Debt repaid",
-      "oweHint": "Once checked, I'll suggest lowering what's still owed on {{debt}}.",
+      "oweHint": "Once checked, it lowers what's still owed on {{debt}}.",
       "drawnLabel": "Drawn from",
-      "drawnHint": "Once checked, I'll suggest lowering the value of {{asset}}.",
+      "drawnHint": "Once checked, it lowers the value of {{asset}}.",
       "drawnFrom": "Taken from"
-    },
-    "suggestion": {
-      "proposes": "I suggest",
-      "detailSaved": "{{amount}} of checked savings since the last value",
-      "detailDrawn": "{{amount}} of income drawn since the last value",
-      "detailRepaid": "{{amount}} of checked repayment since the last value",
-      "dismiss": "Dismiss",
-      "apply": "Apply"
     },
     "starter": {
       "accounts": "Accounts",
@@ -1643,7 +1637,7 @@
         },
         "update": {
           "title": "Keep it up to date in one tap",
-          "body": "A value changes? You update it. And when you set money aside in your budget, I suggest adding it here.",
+          "body": "A value changes? You update it. And when you check money set aside in your budget, I add it here.",
           "scene": "Example: savings go from {{before}} to {{after}}, net worth rises to {{netAfter}}."
         }
       },
@@ -1657,7 +1651,7 @@
       },
       "updatedLongAgo": "Updated 2 months ago",
       "updatedToday": "Updated today",
-      "budgetHint": "{{amount}} set aside in your budget → I suggest +{{amount}} here."
+      "budgetHint": "{{amount}} set aside and checked in your budget → +{{amount}} here."
     }
   },
   "completeProfile": {

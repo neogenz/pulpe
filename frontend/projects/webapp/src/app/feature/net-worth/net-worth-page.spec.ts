@@ -38,6 +38,8 @@ function makeAsset(overrides: Partial<Asset> & Pick<Asset, 'id' | 'name'>) {
     convertedValue: 0,
     suggestion: null,
     ...overrides,
+    // Nothing checked since the last entry unless a test says so.
+    recordedValue: overrides.recordedValue ?? overrides.latestValue ?? 0,
   } satisfies Asset;
 }
 
@@ -127,7 +129,6 @@ describe('NetWorthPage', () => {
     setArchived: vi.fn(),
     saveAsset: vi.fn(),
     renameCategory: vi.fn(),
-    dismissSuggestion: vi.fn(),
   };
   const dialogs = { openCreate: vi.fn(), openIntro: vi.fn() };
   const matDialog = { open: vi.fn() };
@@ -163,7 +164,6 @@ describe('NetWorthPage', () => {
     dialogs.openIntro.mockResolvedValue('close');
     store.setArchived.mockResolvedValue(undefined);
     store.saveAsset.mockResolvedValue(undefined);
-    store.dismissSuggestion.mockResolvedValue(undefined);
 
     await TestBed.configureTestingModule({
       imports: [NetWorthPage],
@@ -430,52 +430,6 @@ describe('NetWorthPage', () => {
 
     expect(store.setArchived).toHaveBeenCalledWith('a1', true);
     expect(snackBar.open).toHaveBeenCalledOnce();
-  });
-
-  describe('suggestion', () => {
-    const withSuggestion: NetWorth = {
-      ...populated,
-      assets: [
-        makeAsset({
-          id: 'a1',
-          name: 'Livret',
-          latestValue: 3000,
-          convertedValue: 3000,
-          suggestion: { delta: 500, proposedValue: 3500 },
-        }),
-      ],
-    };
-    const click = (id: string) => byTestId(id)!.click();
-
-    it('applies the proposed value as a new snapshot', async () => {
-      render(withSuggestion);
-
-      click('asset-suggestion-apply-button');
-      await fixture.whenStable();
-
-      expect(store.saveAsset).toHaveBeenCalledWith('a1', { value: 3500 });
-      expect(store.dismissSuggestion).not.toHaveBeenCalled();
-    });
-
-    it('dismisses the suggestion without recording a value', async () => {
-      render(withSuggestion);
-
-      click('asset-suggestion-dismiss-button');
-      await fixture.whenStable();
-
-      expect(store.dismissSuggestion).toHaveBeenCalledWith('a1');
-      expect(store.saveAsset).not.toHaveBeenCalled();
-    });
-
-    it('surfaces a refused apply in a snackbar', async () => {
-      render(withSuggestion);
-      store.saveAsset.mockRejectedValue(new Error('boom'));
-
-      click('asset-suggestion-apply-button');
-      await fixture.whenStable();
-
-      expect(snackBar.open).toHaveBeenCalledOnce();
-    });
   });
 
   describe('explainer', () => {

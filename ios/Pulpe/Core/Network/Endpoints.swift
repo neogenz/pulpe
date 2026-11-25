@@ -88,7 +88,6 @@ enum Endpoint {
     case assets
     case asset(id: String)
     case assetSnapshots
-    case assetDismissSuggestion(id: String)
     case assetCategories
     case assetCategory(id: String)
 
@@ -200,7 +199,6 @@ enum Endpoint {
         case .assets: return "/assets"
         case .asset(let id): return "/assets/\(id)"
         case .assetSnapshots: return "/assets/snapshots"
-        case .assetDismissSuggestion(let id): return "/assets/\(id)/dismiss-suggestion"
         case .assetCategories: return "/asset-categories"
         case .assetCategory(let id): return "/asset-categories/\(id)"
 
@@ -245,7 +243,7 @@ enum Endpoint {
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
              .encryptionVerifyRecoveryKey, .encryptionChangePin,
              .savingsGoalPlanApply, .savingsGoalGenerationStop, .savingsGoalDeletion,
-             .assetSnapshots, .assetDismissSuggestion, .assetCategories:
+             .assetSnapshots, .assetCategories:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetDeletionImpact, .budgetsExport,

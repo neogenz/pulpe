@@ -5,6 +5,7 @@ import SwiftUI
 struct NetWorthView: View {
     @Environment(AssetStore.self) private var store
     @Environment(ToastManager.self) private var toastManager
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showsArchived = false
     @AppStorage(NetWorthSections.collapsedStorageKey) private var collapsedGroupIds = ""
     @State private var form: FormTarget?
@@ -199,15 +200,7 @@ struct NetWorthView: View {
                         .foregroundStyle(Color.textSecondary)
                         .rotationEffect(.degrees(isCollapsed ? 0 : 90))
                         .accessibilityHidden(true)
-                    Text(group.name)
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.textPrimary)
-                    Spacer(minLength: DesignTokens.Spacing.sm)
-                    Text(group.total.asCurrency(currency))
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.textSecondary)
-                        .monospacedDigit()
-                        .sensitiveAmount()
+                    groupTitle(group, currency: currency)
                 }
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
                 .contentShape(Rectangle())
@@ -231,6 +224,30 @@ struct NetWorthView: View {
         }
     }
 
+    /// At accessibility sizes the total goes under the name: beside it, both broke mid-word.
+    @ViewBuilder
+    private func groupTitle(_ group: NetWorthSections.Group, currency: SupportedCurrency) -> some View {
+        let name = Text(group.name)
+            .font(PulpeTypography.labelLarge)
+            .foregroundStyle(Color.textPrimary)
+        let total = Text(group.total.asCurrency(currency))
+            .font(PulpeTypography.labelLarge)
+            .foregroundStyle(Color.textSecondary)
+            .monospacedDigit()
+            .sensitiveAmount()
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                name
+                total.lineLimit(1).minimumScaleFactor(DesignTokens.TextScale.floor)
+            }
+            Spacer(minLength: DesignTokens.Spacing.none)
+        } else {
+            name
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            total
+        }
+    }
+
     private func rows(_ assets: [Asset], sections: NetWorthSections, showsCategory: Bool) -> some View {
         VStack(spacing: DesignTokens.Spacing.none) {
             ForEach(Array(assets.enumerated()), id: \.element.id) { index, asset in
@@ -243,33 +260,18 @@ struct NetWorthView: View {
     }
 
     private func assetRow(_ asset: Asset, sections: NetWorthSections, showsCategory: Bool) -> some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            NetWorthAssetRow(
-                asset: asset,
-                baseCurrency: sections.baseCurrency,
-                categoryName: showsCategory ? sections.categoryName(of: asset) : nil,
-                actions: NetWorthAssetActions(
-                    edit: { form = .edit(asset) },
-                    toggleArchive: {
-                        run { try await store.setArchived(id: asset.id, asset.archivedAt == nil) }
-                    },
-                    delete: { pendingDelete = asset }
-                )
+        NetWorthAssetRow(
+            asset: asset,
+            baseCurrency: sections.baseCurrency,
+            categoryName: showsCategory ? sections.categoryName(of: asset) : nil,
+            actions: NetWorthAssetActions(
+                edit: { form = .edit(asset) },
+                toggleArchive: {
+                    run { try await store.setArchived(id: asset.id, asset.archivedAt == nil) }
+                },
+                delete: { pendingDelete = asset }
             )
-            if let suggestion = asset.visibleSuggestion {
-                NetWorthSuggestionRow(
-                    asset: asset,
-                    suggestion: suggestion,
-                    apply: {
-                        run {
-                            let item = AssetSnapshotItem(assetId: asset.id, value: suggestion.proposedValue)
-                            try await store.recordSnapshots(AssetSnapshotsCreate(items: [item]))
-                        }
-                    },
-                    dismiss: { run { try await store.dismissSuggestion(id: asset.id) } }
-                )
-            }
-        }
+        )
     }
 
     private func archived(_ sections: NetWorthSections) -> some View {

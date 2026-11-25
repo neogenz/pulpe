@@ -1,4 +1,8 @@
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  LOCALE_ID,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -21,6 +25,7 @@ const asset: Asset = {
   direction: 'own',
   inPulpe: true,
   archivedAt: null,
+  recordedValue: 1000,
   latestValue: 1000,
   latestRecordedAt: '2026-11-03T10:00:00.000Z',
   convertedValue: 950,
@@ -38,6 +43,7 @@ describe('AssetFormDialog', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
+        { provide: LOCALE_ID, useValue: 'fr-FR' },
         { provide: MatDialogRef, useValue: { close } },
         { provide: MAT_DIALOG_DATA, useValue: data },
         {
@@ -218,12 +224,33 @@ describe('AssetFormDialog', () => {
       const fixture = render({ categories, assets: [asset], asset });
       await fixture.whenStable();
       expect(value(fixture)).toBe('1000');
-      expect(fixture.nativeElement.textContent).toContain('Dernière valeur');
+      expect(fixture.nativeElement.textContent).toContain('Ta dernière saisie');
 
       type(fixture, 'asset-value-input', '1400');
       submitButton(fixture).click();
 
       expect(close).toHaveBeenCalledWith({ value: 1400 });
+    });
+
+    it('starts from the up-to-date value and recalls my last entry', async () => {
+      const livret: Asset = {
+        ...asset,
+        name: 'Livret',
+        currency: 'CHF',
+        recordedValue: 10_000,
+        latestValue: 10_500,
+        latestRecordedAt: `${new Date().getFullYear()}-11-03T10:00:00.000Z`,
+      };
+      const fixture = render({ categories, assets: [livret], asset: livret });
+      await fixture.whenStable();
+
+      expect(value(fixture)).toBe('10500');
+      expect(fixture.nativeElement.textContent).toContain(
+        'Ta dernière saisie : 10’000.00 CHF, le 3\u00a0novembre',
+      );
+
+      submitButton(fixture).click();
+      expect(close).toHaveBeenCalledWith(undefined);
     });
 
     it('sends only a changed name', () => {
@@ -241,8 +268,13 @@ describe('AssetFormDialog', () => {
       expect(close).toHaveBeenCalledWith(undefined);
     });
 
-    it('shows the magnitude of an overdrawn account with the box ticked', async () => {
-      const overdrawn = { ...asset, latestValue: -250 };
+    it('shows the magnitude of an overdrawn account with the box ticked, and my signed entry', async () => {
+      const overdrawn = {
+        ...asset,
+        recordedValue: -250,
+        latestValue: -250,
+        latestRecordedAt: '2020-11-03T10:00:00.000Z',
+      };
       const fixture = render({
         categories,
         assets: [overdrawn],
@@ -255,9 +287,34 @@ describe('AssetFormDialog', () => {
         byTestId(fixture, 'asset-overdraft-checkbox').querySelector('input')!
           .checked,
       ).toBe(true);
-      const hint = fixture.nativeElement.querySelector('mat-hint').textContent;
-      expect(hint).toContain('250');
-      expect(hint).not.toMatch(/[-−]/);
+      const hint = fixture.nativeElement
+        .querySelector('mat-hint')
+        .textContent.replace(/\s+/g, ' ');
+      expect(hint).toContain(
+        'Ta dernière saisie : −250,00 €, le 3 novembre 2020',
+      );
+    });
+
+    it('recalls a positive entry without a sign once checked lines overdrew the account', async () => {
+      // Livret entered at 400, then 1 000 of expenses checked: −600 today.
+      const livret: Asset = {
+        ...asset,
+        currency: 'CHF',
+        recordedValue: 400,
+        latestValue: -600,
+        latestRecordedAt: `${new Date().getFullYear()}-11-03T10:00:00.000Z`,
+      };
+      const fixture = render({ categories, assets: [livret], asset: livret });
+      await fixture.whenStable();
+
+      expect(value(fixture)).toBe('600');
+      expect(
+        byTestId(fixture, 'asset-overdraft-checkbox').querySelector('input')!
+          .checked,
+      ).toBe(true);
+      expect(
+        fixture.nativeElement.querySelector('mat-hint').textContent,
+      ).toContain('Ta dernière saisie : 400.00 CHF, le 3\u00a0novembre');
     });
   });
 });

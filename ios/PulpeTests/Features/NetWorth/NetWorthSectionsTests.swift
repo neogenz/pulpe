@@ -82,8 +82,8 @@ struct NetWorthSectionsTests {
     @Test func unconvertedForeignAsset_isExcluded_andShowsNoConversion() {
         let usd = Asset(
             id: "f", categoryId: "c1", name: "Livret", currency: .eur, direction: .own, inPulpe: true,
-            archivedAt: nil, latestValue: 3000, latestRecordedAt: TestDataFactory.fixedDate,
-            convertedValue: nil, suggestion: nil
+            archivedAt: nil, latestValue: 3000, recordedValue: 3000, latestRecordedAt: TestDataFactory.fixedDate,
+            convertedValue: nil
         )
         let sections = NetWorthSections(netWorth([usd], incomplete: true))
 
@@ -96,8 +96,8 @@ struct NetWorthSectionsTests {
     @Test func convertedForeignAsset_showsConversion() {
         let eur = Asset(
             id: "f", categoryId: "c2", name: "Livret", currency: .eur, direction: .own, inPulpe: false,
-            archivedAt: nil, latestValue: 3000, latestRecordedAt: TestDataFactory.fixedDate,
-            convertedValue: 2820, suggestion: nil
+            archivedAt: nil, latestValue: 3000, recordedValue: 3000, latestRecordedAt: TestDataFactory.fixedDate,
+            convertedValue: 2820
         )
 
         #expect(eur.showsConversion(in: .chf))
@@ -116,33 +116,69 @@ struct NetWorthSectionsTests {
         #expect(today.ageLabel(now: later, calendar: calendar, locale: locale) == "il y a 3 jours")
     }
 
-    // MARK: - Suggestion
+    // MARK: - Since the last entry (PUL-377)
 
-    @Test func archivedAssetHidesItsSuggestion() {
-        let suggestion = AssetSuggestion(delta: 500, proposedValue: 3500)
-        let active = TestDataFactory.makeAsset(suggestion: suggestion)
-        let archived = TestDataFactory.makeAsset(archivedAt: TestDataFactory.fixedDate, suggestion: suggestion)
-
-        #expect(active.visibleSuggestion == suggestion)
-        #expect(archived.visibleSuggestion == nil)
-    }
-
-    @Test func suggestionDetail_followsDirectionAndSign() {
-        let saved = TestDataFactory.makeAsset(suggestion: AssetSuggestion(delta: 500, proposedValue: 3500))
-        let drawn = TestDataFactory.makeAsset(suggestion: AssetSuggestion(delta: -200, proposedValue: 800))
-        let repaid = TestDataFactory.makeAsset(
-            direction: .owe, suggestion: AssetSuggestion(delta: -400, proposedValue: 7600)
+    /// Livret entered at 10 000 on 3 November, then an Épargne of 500 checked; read on 24 November.
+    private let entryDate = Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: 3, hour: 12)) ?? .now
+    private var now: Date { entryDate.addingTimeInterval(21 * 86400) }
+    private func livret(
+        latestValue: Decimal = 10500,
+        recordedValue: Decimal = 10000,
+        recordedAt: Date? = nil,
+        inPulpe: Bool = false
+    ) -> Asset {
+        TestDataFactory.makeAsset(
+            name: "Livret", inPulpe: inPulpe, latestValue: latestValue, recordedValue: recordedValue,
+            latestRecordedAt: recordedAt ?? entryDate
         )
-
-        #expect(saved.suggestionDetail == .saved)
-        #expect(drawn.suggestionDetail == .drawn)
-        #expect(repaid.suggestionDetail == .repaid)
     }
 
-    @Test func suggestionMagnitudeIsUnsigned() {
-        let drawn = TestDataFactory.makeAsset(suggestion: AssetSuggestion(delta: -200, proposedValue: 800))
+    @Test func metaLine_saysWhatMovedSinceTheEntry_withItsDate() {
+        #expect(livret().movedSinceEntry == 500)
+        #expect(livret().metaLine(categoryName: nil, now: now, language: .fr)
+            == "+500.00 CHF depuis ta saisie du 3 novembre")
+        #expect(livret().metaLine(categoryName: "Épargne", now: now, language: .fr)
+            == "Épargne · +500.00 CHF depuis ta saisie du 3 novembre")
+        #expect(livret(inPulpe: true).metaLine(categoryName: nil, now: now, language: .fr)
+            == "+500.00 CHF depuis ta saisie du 3 novembre · à la comparaison")
+    }
 
-        #expect(drawn.suggestionMagnitude == 200)
+    @Test func metaLine_signsADropWithTheWebMinus() {
+        let drawn = livret(latestValue: 9700)
+        #expect(drawn.movedSinceEntry == -300)
+        #expect(drawn.metaLine(categoryName: nil, now: now, language: .fr)
+            == "\u{2212}300.00 CHF depuis ta saisie du 3 novembre")
+    }
+
+    @Test func entryOfAnEarlierYear_carriesTheYear() {
+        let lastYear = Calendar.current.date(byAdding: .year, value: -1, to: entryDate) ?? entryDate
+        let old = livret(recordedAt: lastYear)
+        #expect(old.metaLine(categoryName: nil, now: now, language: .fr)
+            == "+500.00 CHF depuis ta saisie du 3 novembre 2025")
+        #expect(old.lastEntryCaption(now: now, language: .fr)
+            == "Ta dernière saisie : 10\u{2019}000.00 CHF, le 3 novembre 2025")
+    }
+
+    @Test func metaLine_nothingMoved_keepsTheAge() {
+        let unchanged = livret(latestValue: 10000)
+        let now = entryDate.addingTimeInterval(3600)
+        #expect(unchanged.movedSinceEntry == nil)
+        #expect(unchanged.metaLine(categoryName: nil, now: now, language: .fr) == "Mis à jour aujourd'hui")
+    }
+
+    @Test func lastEntryCaption_recallsTheEntry_notTheUpToDateValue() {
+        #expect(livret().lastEntryCaption(now: now, language: .fr)
+            == "Ta dernière saisie : 10\u{2019}000.00 CHF, le 3 novembre")
+    }
+
+    /// The « Découvert » box follows the up-to-date value, so the entry carries its own sign.
+    @Test func lastEntryCaption_signsTheEntry_notTheValue() {
+        let overdrawn = livret(latestValue: -600, recordedValue: 400)
+        #expect(overdrawn.lastEntryCaption(now: now, language: .fr) == "Ta dernière saisie : 400.00 CHF, le 3 novembre")
+
+        let refilled = livret(latestValue: 300, recordedValue: -200)
+        #expect(refilled.lastEntryCaption(now: now, language: .fr)
+            == "Ta dernière saisie : \u{2212}200.00 CHF, le 3 novembre")
     }
 
     @Test func togglingACardFoldsItThenUnfoldsIt_leavingTheOthers() {

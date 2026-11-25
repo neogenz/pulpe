@@ -37,14 +37,14 @@ struct AssetPickerField: View {
                 menu(direction: direction)
                 if drawn, let selectedAsset {
                     Text(AppLocale.string(
-                        "Une fois pointé, je te propose de baisser la valeur de \(selectedAsset.name)."
+                        "Une fois pointé, il baisse la valeur de \(selectedAsset.name)."
                     ))
                         .font(PulpeTypography.footnote)
                         .foregroundStyle(Color.onSurfaceVariant)
                         .padding(.bottom, DesignTokens.Spacing.lg)
                 } else if direction == .owe, let selectedAsset {
                     Text(AppLocale.string(
-                        "Une fois pointée, je te propose de baisser ce qu'il reste dû sur \(selectedAsset.name)."
+                        "Une fois pointée, elle baisse ce qu'il reste dû sur \(selectedAsset.name)."
                     ))
                         .font(PulpeTypography.footnote)
                         .foregroundStyle(Color.onSurfaceVariant)

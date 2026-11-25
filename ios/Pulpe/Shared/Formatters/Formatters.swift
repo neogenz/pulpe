@@ -212,6 +212,7 @@ enum Formatters {
         static let monthYear = "MMMMyyyy"
         static let shortMonthYear = "MMMyyyy"
         static let dayMonth = "dMMMM"
+        static let dayMonthYear = "dMMMMyyyy"
         static let shortMonth = "MMM"
         static let month = "MMMM"
         static let weekday = "EEEE"
@@ -256,12 +257,19 @@ enum Formatters {
     /// It is grammar, not locale data: French writes "1er août", Italian "1º agosto".
     /// German needs no special case — its template already yields "1. August" — and
     /// English writes "August 1" in running text, so neither is touched here.
-    static func dayMonthLabel(for date: Date, in language: SupportedLocale = AppLocale.current) -> String {
-        let dayAndMonth = dateFormatter(Template.dayMonth, in: language).string(from: date)
+    /// `withYear` appends the year: "5 juillet 2025", "1er août 2025".
+    static func dayMonthLabel(
+        for date: Date,
+        in language: SupportedLocale = AppLocale.current,
+        withYear: Bool = false
+    ) -> String {
+        let dayAndMonth = dateFormatter(withYear ? Template.dayMonthYear : Template.dayMonth, in: language)
+            .string(from: date)
         guard Calendar.current.component(.day, from: date) == 1 else {
             return dayAndMonth
         }
-        let monthName = dateFormatter(Template.month, in: language).string(from: date)
+        let monthName = dateFormatter(withYear ? Template.monthYear : Template.month, in: language)
+            .string(from: date)
         switch language {
         case .fr: return "1er \(monthName)"
         case .it: return "1º \(monthName)"

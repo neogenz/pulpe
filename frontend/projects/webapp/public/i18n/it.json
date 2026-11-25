@@ -1189,7 +1189,7 @@
         "own": "Ho",
         "owe": "Devo",
         "remove": "Rimuovi {{ name }} dall'elenco",
-        "linkedCaption": "Aggiornato in Il mio patrimonio.",
+        "linkedCaption": "Aggiornato in Il mio patrimonio, dove oggi vale {{amount}}.",
         "cardCaption": "Tutto ciò che devi, acquisti recenti compresi. Non il tuo limite.",
         "cardHelp": "Paghi anche con carta di credito, PayPal o Klarna?",
         "addOwe": "Aggiungi ciò che devo",
@@ -1544,6 +1544,8 @@
     "overdraft": "Scoperto",
     "updated": "Aggiornato {{when}}",
     "updatedDebt": "{{category}} · aggiornato {{when}}",
+    "sinceEntry": "{{amount}} dal tuo inserimento del {{date}}",
+    "sinceEntryDebt": "{{category}} · {{amount}} dal tuo inserimento del {{date}}",
     "showArchived": "Mostra gli archiviati ({{count}})",
     "hideArchived": "Nascondi gli archiviati",
     "archivedTitle": "Archiviati",
@@ -1587,25 +1589,17 @@
       "add": "Aggiungi"
     },
     "value": {
-      "lastValue": "Ultimo valore: {{amount}}, il {{date}}",
+      "lastValue": "Il tuo ultimo inserimento: {{amount}}, il {{date}}",
       "overdraft": "Saldo negativo (scoperto)"
     },
     "link": {
       "none": "Nessuno",
       "ownLabel": "Versato su",
       "oweLabel": "Debito rimborsato",
-      "oweHint": "Una volta spuntata, ti propongo di abbassare quanto resta da pagare su {{debt}}.",
+      "oweHint": "Una volta spuntata, abbassa quanto resta da pagare su {{debt}}.",
       "drawnLabel": "Prelevata da",
-      "drawnHint": "Una volta spuntata, ti propongo di abbassare il valore di {{asset}}.",
+      "drawnHint": "Una volta spuntata, abbassa il valore di {{asset}}.",
       "drawnFrom": "Presa da"
-    },
-    "suggestion": {
-      "proposes": "Propongo",
-      "detailSaved": "{{amount}} di risparmio spuntato dall'ultimo valore",
-      "detailDrawn": "{{amount}} di entrata prelevata dall'ultimo valore",
-      "detailRepaid": "{{amount}} di rimborso spuntato dall'ultimo valore",
-      "dismiss": "Scarta",
-      "apply": "Applica"
     },
     "starter": {
       "accounts": "Conti",
@@ -1643,7 +1637,7 @@
         },
         "update": {
           "title": "Tienilo aggiornato con un tocco",
-          "body": "Un valore cambia? Lo aggiorni. E quando metti da parte dei soldi nel tuo budget, ti propongo di aggiungerli qui.",
+          "body": "Un valore cambia? Lo aggiorni. E quando spunti dei soldi messi da parte nel tuo budget, li aggiungo qui.",
           "scene": "Esempio: i risparmi passano da {{before}} a {{after}}, il patrimonio netto sale a {{netAfter}}."
         }
       },
@@ -1657,7 +1651,7 @@
       },
       "updatedLongAgo": "Aggiornato 2 mesi fa",
       "updatedToday": "Aggiornato oggi",
-      "budgetHint": "{{amount}} messi da parte nel tuo budget → ti propongo +{{amount}} qui."
+      "budgetHint": "{{amount}} messi da parte e spuntati nel tuo budget → +{{amount}} qui."
     }
   },
   "completeProfile": {

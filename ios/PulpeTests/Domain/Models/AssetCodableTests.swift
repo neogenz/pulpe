@@ -19,18 +19,17 @@ struct AssetCodableTests {
           "assets": [
             {
               "id": "a1", "categoryId": "c1", "name": "UBS", "currency": "CHF", "direction": "own",
-              "inPulpe": true, "archivedAt": null, "latestValue": 1500.5,
-              "latestRecordedAt": "2026-11-01T10:00:00Z", "convertedValue": 1500.5,
-              "suggestion": {"delta": -50, "proposedValue": 1450.5}
+              "inPulpe": true, "archivedAt": null, "latestValue": 10500, "recordedValue": 10000,
+              "latestRecordedAt": "2026-11-03T10:00:00Z", "convertedValue": 10500, "suggestion": null
             },
             {
               "id": "a2", "categoryId": "c1", "name": "Revolut", "currency": "EUR", "direction": "own",
-              "inPulpe": false, "archivedAt": null, "latestValue": 300,
+              "inPulpe": false, "archivedAt": null, "latestValue": 300, "recordedValue": 300,
               "latestRecordedAt": "2026-11-01T10:00:00Z", "convertedValue": null, "suggestion": null
             },
             {
               "id": "a3", "categoryId": "c1", "name": "Prêt", "currency": "CHF", "direction": "owe",
-              "inPulpe": false, "archivedAt": "2026-10-01T08:00:00Z", "latestValue": 200,
+              "inPulpe": false, "archivedAt": "2026-10-01T08:00:00Z", "latestValue": 200, "recordedValue": 200,
               "latestRecordedAt": "2026-10-01T08:00:00Z", "convertedValue": 200, "suggestion": null
             }
           ]
@@ -44,11 +43,11 @@ struct AssetCodableTests {
         #expect(netWorth.totals.incomplete)
         #expect(netWorth.categories.first?.total == Decimal(string: "1300.5"))
         let first = try #require(netWorth.assets.first)
-        #expect(first.suggestion == AssetSuggestion(delta: -50, proposedValue: Decimal(string: "1450.5") ?? 0))
+        #expect(first.latestValue == 10500)
+        #expect(first.recordedValue == 10000)
         #expect(first.archivedAt == nil)
         #expect(netWorth.assets[1].currency == .eur)
         #expect(netWorth.assets[1].convertedValue == nil)
-        #expect(netWorth.assets[1].suggestion == nil)
         #expect(netWorth.assets[2].direction == .owe)
         #expect(netWorth.assets[2].archivedAt != nil)
     }

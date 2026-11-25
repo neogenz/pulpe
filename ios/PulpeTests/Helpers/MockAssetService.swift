@@ -11,6 +11,7 @@ final class MockAssetService: AssetServicing {
     var createError: Error?
     var snapshotsError: Error?
     var updateError: Error?
+    var getNetWorthError: Error?
     var holdGetNetWorth = false
     var holdCreateCategory = false
 
@@ -45,6 +46,7 @@ final class MockAssetService: AssetServicing {
         getNetWorthCallCount += 1
         calls.append("get")
         if holdGetNetWorth { await hold() }
+        if let getNetWorthError { throw getNetWorthError }
         return stubbedNetWorth
     }
 
@@ -70,11 +72,6 @@ final class MockAssetService: AssetServicing {
         snapshotItems += data.items
         if let snapshotsError { throw snapshotsError }
         return AssetSnapshotsResult(recordedAt: TestDataFactory.fixedDate)
-    }
-
-    func dismissSuggestion(id: String) async throws -> AssetRecord {
-        calls.append("dismiss")
-        return Self.record(id: id)
     }
 
     func createCategory(_ data: AssetCategoryWrite) async throws -> AssetCategoryRecord {

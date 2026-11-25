@@ -106,6 +106,14 @@ struct AssetFormDraftTests {
         #expect(valid().submission(original: nil) == .create)
     }
 
+    @Test func editAfterACheck_prefillsTheUpToDateValue_andSendsNoSnapshotWhenUntouched() {
+        let livret = TestDataFactory.makeAsset(name: "Livret", latestValue: 10500, recordedValue: 10000)
+        let draft = AssetFormDraft(asset: livret)
+
+        #expect(draft.amount == 10500)
+        #expect(draft.submission(original: livret) == .close)
+    }
+
     @Test func edit_sendsOnlyWhatChanged() {
         let original = TestDataFactory.makeAsset(categoryId: "c1", name: "Compte UBS", latestValue: 1000)
 

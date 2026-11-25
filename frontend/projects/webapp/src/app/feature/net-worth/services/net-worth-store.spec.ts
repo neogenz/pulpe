@@ -20,6 +20,7 @@ function makeAsset(overrides: Partial<Asset> = {}): Asset {
     direction: 'own',
     inPulpe: true,
     archivedAt: null,
+    recordedValue: 1000,
     latestValue: 1000,
     latestRecordedAt: '2026-11-03T10:00:00.000Z',
     convertedValue: 1000,
@@ -70,9 +71,6 @@ describe('NetWorthStore', () => {
         .fn()
         .mockReturnValue(of({ success: true, data: makeAsset() })),
       delete$: vi.fn().mockReturnValue(of({ success: true, message: 'ok' })),
-      dismissSuggestion$: vi
-        .fn()
-        .mockReturnValue(of({ success: true, data: makeAsset() })),
       recordSnapshots$: vi.fn().mockReturnValue(
         of({
           success: true,
@@ -242,13 +240,6 @@ describe('NetWorthStore', () => {
 
     expect(api['recordSnapshots$']).toHaveBeenCalledOnce();
     expect(store.isSaving()).toBe(false);
-  });
-
-  it('dismisses a suggestion through the API and refreshes the assets', async () => {
-    await store.dismissSuggestion(ASSET_ID);
-
-    expect(api['dismissSuggestion$']).toHaveBeenCalledWith(ASSET_ID);
-    expect(cache.invalidate).toHaveBeenCalledWith(['assets']);
   });
 
   it('archives, unarchives and deletes through the API', async () => {

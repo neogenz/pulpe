@@ -3102,9 +3102,9 @@ export const assetRecordSchema = z.object({
 export type AssetRecord = z.infer<typeof assetRecordSchema>;
 
 /**
- * Valeur que proposent les Prévisions pointées depuis la dernière photo de
- * l'avoir (ou depuis le dernier « Écarter »). Les deux montants sont dans la
- * devise de l'avoir ; `delta` est signé (une dette qui se rembourse baisse).
+ * @deprecated Toujours `null` depuis PUL-377 : la valeur suit ce qui est pointé,
+ * il n'y a plus rien à appliquer. Gardé parce que iOS 1.14.x et Android lisent
+ * la clé ; à retirer quand plus aucune version installée ne la lit.
  */
 export const assetSuggestionSchema = z.object({
   delta: z.number(),
@@ -3113,15 +3113,20 @@ export const assetSuggestionSchema = z.object({
 export type AssetSuggestion = z.infer<typeof assetSuggestionSchema>;
 
 /**
- * Avoir tel que lu sur la page. `latestValue` est dans la devise de l'avoir ;
- * `convertedValue` est en devise de base au taux du jour, `null` quand aucun
- * taux n'est disponible (l'avoir est alors hors des totaux). `suggestion` est
- * `null` quand rien ne la justifie (avoir archivé, aucun taux, rien de pointé).
+ * Avoir tel que lu sur la page, montants dans la devise de l'avoir.
+ * `latestValue` est la valeur à jour : la dernière saisie (`recordedValue`,
+ * datée `latestRecordedAt`) plus ce qui a été pointé depuis. Le nom reste
+ * celui de la dernière saisie parce que iOS 1.14.x et Android l'affichent.
+ * Archivé ou sans taux, la valeur à jour est la dernière saisie.
+ * `convertedValue` est la valeur à jour en devise de base au taux du jour,
+ * `null` quand aucun taux n'est disponible (l'avoir est alors hors des totaux).
  */
 export const assetSchema = assetRecordSchema.extend({
   latestValue: z.number(),
+  recordedValue: z.number(),
   latestRecordedAt: z.iso.datetime({ offset: true }),
   convertedValue: z.number().nullable(),
+  /** @deprecated Toujours `null`, voir `assetSuggestionSchema`. */
   suggestion: assetSuggestionSchema.nullable(),
 });
 export type Asset = z.infer<typeof assetSchema>;

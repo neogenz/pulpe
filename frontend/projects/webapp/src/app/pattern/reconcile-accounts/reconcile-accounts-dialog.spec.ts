@@ -62,6 +62,7 @@ function linkedAsset(overrides: Partial<Asset>): Asset {
     direction: 'own',
     inPulpe: true,
     archivedAt: null,
+    recordedValue: 12000,
     latestValue: 12000,
     latestRecordedAt: daysAgo(3),
     convertedValue: 12000,
@@ -76,6 +77,7 @@ const UBS = linkedAsset({});
 const POSTFINANCE = linkedAsset({
   id: POSTFINANCE_ID,
   name: 'Compte PostFinance',
+  recordedValue: 1902.1,
   latestValue: 1902.1,
   latestRecordedAt: daysAgo(1),
 });
@@ -1399,7 +1401,7 @@ describe('ReconcileAccountsDialog', () => {
           .map((input) => input.value),
       ).toEqual(['', '', '']);
       expect(view.host.textContent).toContain(
-        'Mis à jour dans Mon patrimoine.',
+        "Mis à jour dans Mon patrimoine, où il vaut aujourd'hui 12’000.00 CHF.",
       );
       expect(view.host.textContent).toContain(
         'Tout ce que tu dois, achats récents compris. Pas ta limite.',

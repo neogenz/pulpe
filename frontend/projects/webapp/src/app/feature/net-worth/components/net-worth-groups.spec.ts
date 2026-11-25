@@ -16,6 +16,7 @@ function asset(overrides: Partial<Asset> & Pick<Asset, 'id'>): Asset {
     direction: 'own',
     inPulpe: false,
     archivedAt: null,
+    recordedValue: 0,
     latestValue: 0,
     latestRecordedAt: '2026-11-03T10:00:00.000Z',
     convertedValue: 0,
