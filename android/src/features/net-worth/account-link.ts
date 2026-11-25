@@ -6,12 +6,20 @@ export interface AccountChoices {
   owe: Asset[];
 }
 
-/** Active elements only: an archived one no longer moves when I check (CA24). */
-export function accountChoices(assets: Asset[]): AccountChoices {
-  const active = assets.filter((asset) => asset.archivedAt === null);
+/**
+ * Active elements, plus `current` even archived: an archived one no longer
+ * moves when I check, but a movement keeps the account it has (CA24).
+ */
+export function accountChoices(
+  assets: Asset[],
+  current: string | null = null,
+): AccountChoices {
+  const offered = assets.filter(
+    (asset) => asset.archivedAt === null || asset.id === current,
+  );
   return {
-    own: active.filter((asset) => asset.direction === "own"),
-    owe: active.filter((asset) => asset.direction === "owe"),
+    own: offered.filter((asset) => asset.direction === "own"),
+    owe: offered.filter((asset) => asset.direction === "owe"),
   };
 }
 

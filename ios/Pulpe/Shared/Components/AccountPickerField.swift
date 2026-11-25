@@ -157,7 +157,7 @@ struct AccountPickerField: View {
 
     @ViewBuilder
     private func section(_ name: String, direction: AssetDirection) -> some View {
-        let assets = store.activeAssets(direction: direction)
+        let assets = store.accountChoices(direction: direction, keeping: selection)
         if !assets.isEmpty {
             Section(name) {
                 ForEach(assets) { asset in
