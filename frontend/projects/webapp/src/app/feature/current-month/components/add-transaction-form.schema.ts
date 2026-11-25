@@ -20,8 +20,8 @@ export const transactionFormDataSchema = z.strictObject({
    * peut sortir d'un objectif, et le contrat wire le refuse de toute façon.
    */
   sourceSavingsGoalId: z.uuid().nullable().default(null),
-  /** Toujours envoyé, `null` pour « Aucun » : absent, le serveur y mettrait le compte par défaut. */
-  accountId: z.uuid().nullable().default(null),
+  /** Envoyé seulement avec le flag `net_worth` allumé, `null` pour « Aucun ». Absent, la requête reste celle d'avant la fonctionnalité. */
+  accountId: z.uuid().nullable().optional(),
 });
 
 export type TransactionFormData = z.input<typeof transactionFormDataSchema>;

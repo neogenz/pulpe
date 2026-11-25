@@ -38,6 +38,7 @@ export function buildAdjustmentPayload(input: {
   name: string;
   adjustment: ReconciliationAdjustment;
   now: Date;
+  isAccountOffered: boolean;
 }): TransactionCreate {
   const stamp = input.now.toISOString();
   return {
@@ -48,7 +49,8 @@ export function buildAdjustmentPayload(input: {
     transactionDate: stamp,
     checkedAt: stamp,
     // Explicit « Aucun »: absent, the server would apply the default account.
-    accountId: null,
+    // Without the account field the request stays the pre-feature one.
+    ...(input.isAccountOffered ? { accountId: null } : {}),
   };
 }
 

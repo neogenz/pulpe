@@ -34,6 +34,9 @@ import { BudgetItemsContainer } from './components/budget-items-container';
 import { createMockBudget } from '../../../testing/mock-factories';
 import { REVEAL_ITEMS_TO_CHECK } from '@core/routing/routes-constants';
 import { By } from '@angular/platform-browser';
+import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
 
 /**
  * Tests the loading indicator ↔ isStale contract used by BudgetDetailsPage.
@@ -248,6 +251,7 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
     month = 11,
     budgetId = 'budget-1',
     navigationInfo?: string,
+    isNetWorthEnabled = false,
   ): Promise<void> => {
     isViewedMonthFuture = signal(true);
     isViewingCurrentPeriod = signal(true);
@@ -281,6 +285,18 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
+        {
+          provide: PostHogService,
+          useValue: {
+            ...createMockPostHogService(),
+            isFeatureEnabled: vi.fn().mockReturnValue(isNetWorthEnabled),
+          },
+        },
+        // Flag on, the reconciliation reads the net worth first: nothing to read here.
+        {
+          provide: AssetApi,
+          useValue: { cache: { get: () => ({ fresh: true, data: null }) } },
+        },
         { provide: Router, useValue: router },
         { provide: MatSnackBar, useValue: snackBar },
         {
@@ -409,16 +425,39 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
           id: attemptedId,
           budgetId,
           checkedAt: expect.any(String),
-          // CA44: the gap never takes the default account.
-          accountId: null,
         }),
       );
+      // CA2, CA44: flag off, no accountId key at all.
+      expect(
+        store.createAllocatedTransaction.mock.calls.at(-1)![0],
+      ).not.toHaveProperty('accountId');
       fixture.componentRef.setInput('id', 'another-month');
       expect(data.realized()).toBeNull();
       expect(await data.recordAdjustment(adjustment)).toBe(false);
       expect(store.createAllocatedTransaction).toHaveBeenCalledTimes(2);
     },
   );
+
+  it('CA2, CA44: with the flag on the reconciliation adjustment sends an explicit null accountId', async () => {
+    TestBed.resetTestingModule();
+    await setup(12, '11111111-1111-4111-8111-111111111111', undefined, true);
+    let data!: ReconcileAccountsDialogData;
+    vi.spyOn(TestBed.inject(MatDialog), 'open').mockImplementation(
+      (_component, config) => {
+        data = config!.data as ReconcileAccountsDialogData;
+        return {} as never;
+      },
+    );
+    query('budget-reconcile-button')!.click();
+    await vi.waitFor(() => expect(data).toBeDefined());
+
+    await data.recordAdjustment({ name: 'Écart', amount: 10, kind: 'income' });
+
+    expect(store.createAllocatedTransaction.mock.calls[0][0]).toHaveProperty(
+      'accountId',
+      null,
+    );
+  });
 
   const itemsList = (): BudgetItemsStub =>
     fixture.debugElement.query(By.directive(BudgetItemsStub)).componentInstance;

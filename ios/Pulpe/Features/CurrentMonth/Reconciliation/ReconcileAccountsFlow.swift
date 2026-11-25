@@ -61,6 +61,8 @@ final class ReconcileAccountsFlow {
     @ObservationIgnored private let onAdjustmentCreated: @MainActor (Transaction) -> Void
     @ObservationIgnored private let onCompleted: @MainActor (AccountReconciliation.Completion) -> Void
     @ObservationIgnored let now: () -> Date
+    /// Off with the `net_worth` flag off: the gap then goes out without an account key (CA2).
+    @ObservationIgnored private let statesAccount: Bool
 
     init(
         budgetId: String,
@@ -71,9 +73,11 @@ final class ReconcileAccountsFlow {
         netWorthAccounts: [Asset]? = nil,
         freeAccounts: [ReconcileFreeAccountsStore.Entry] = [],
         restoring draft: Draft? = nil,
+        statesAccount: Bool = true,
         now: @escaping () -> Date = Date.init
     ) {
         self.budgetId = budgetId
+        self.statesAccount = statesAccount
         // The accounts followed so far open the sheet, one row each, then the free rows of last time.
         let seeded = (netWorthAccounts ?? []).filter(\.inPulpe).map {
             (account: AccountReconciliation.Account(label: $0.name, isOwed: $0.direction == .owe), asset: $0)
@@ -326,7 +330,8 @@ final class ReconcileAccountsFlow {
     private func adjustmentPayload(realizedBalance: Decimal) -> TransactionCreate? {
         guard let verdict = verdict(realizedBalance: realizedBalance),
               let payload = AccountReconciliation.adjustmentPayload(
-                  budgetId: budgetId, label: entryName, verdict: verdict, now: now()
+                  budgetId: budgetId, label: entryName, verdict: verdict, now: now(),
+                  statesAccount: statesAccount
               ),
               !payload.name.isEmpty
         else { return nil }

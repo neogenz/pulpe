@@ -61,6 +61,7 @@ struct ReconcileAccountsSheet: View {
         netWorthAccounts: [Asset]? = nil,
         freeAccounts: [ReconcileFreeAccountsStore.Entry] = ReconcileFreeAccountsStore.shared.entries,
         restoring draft: ReconcileAccountsFlow.Draft? = nil,
+        statesAccount: Bool,
         onLeave: (@MainActor (ReconcileAccountsFlow.Draft?) -> Void)? = nil,
         onAdjustmentCreated: @escaping @MainActor (Transaction) -> Void
     ) {
@@ -82,7 +83,8 @@ struct ReconcileAccountsSheet: View {
             },
             netWorthAccounts: netWorthAccounts,
             freeAccounts: freeAccounts,
-            restoring: draft
+            restoring: draft,
+            statesAccount: statesAccount
         ))
     }
 
@@ -182,6 +184,7 @@ struct ReconcileAccountsSheet: View {
                     syncingTransactionIds: [], syncingBudgetLineIds: [],
                     toggle: { _ in false }
                 ),
+                statesAccount: true,
                 onAdjustmentCreated: { _ in }
             )
             .environment(ToastManager())

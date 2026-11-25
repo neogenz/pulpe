@@ -31,7 +31,8 @@ import {
   transactionCreateFromQuickFormSchema,
   type TransactionFormData,
 } from './components/add-transaction-form.schema';
-import { transactionCreateSchema } from 'pulpe-shared';
+import { FEATURE_FLAGS, transactionCreateSchema } from 'pulpe-shared';
+import { PostHogService } from '@core/analytics/posthog';
 import {
   FirstTransactionTracker,
   type FirstTransactionSource,
@@ -628,6 +629,9 @@ export default class Dashboard {
   readonly #reconcileAccountsDialog = inject(ReconcileAccountsDialogService);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #firstTransactionTracker = inject(FirstTransactionTracker);
+  readonly #isAccountEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
 
   // Folded by default: the daily visit is the one this page is for, and it ends
@@ -1129,8 +1133,9 @@ export default class Dashboard {
         transactionDate: formatLocalDate(now),
         checkedAt: now.toISOString(),
         // The gap is not a movement of one account: the balances typed in the
-        // reconciliation realign them. Explicit, or the server would apply the default.
-        accountId: null,
+        // reconciliation realign them. With the flag on, an explicit `null` stops the
+        // server applying the default account; off, the key is omitted (pre-feature body).
+        ...(this.#isAccountEnabled ? { accountId: null } : {}),
       }),
     );
     if ('reason' in outcome) {

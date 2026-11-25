@@ -628,7 +628,7 @@ describe('AddBudgetLineDialog', () => {
       );
     });
 
-    it('CA2: with the flag off the field is absent and the payload says « Aucun »', async () => {
+    it('CA2: with the flag off the field is absent and the payload has no accountId', async () => {
       const { fixture, component, dialogRef } = configureDialog({
         defaultAccountId: COMPTE_COURANT.id,
         providers: withTicketAssets(false),
@@ -641,7 +641,15 @@ describe('AddBudgetLineDialog', () => {
           'pulpe-account-picker-field mat-select',
         ),
       ).toBeNull();
-      expect((await submitted(component, dialogRef)).accountId).toBeNull();
+      expect(await submitted(component, dialogRef)).not.toHaveProperty(
+        'accountId',
+      );
+
+      component['setMode']('spread');
+      dialogRef.close.mockClear();
+      expect(await submitted(component, dialogRef)).not.toHaveProperty(
+        'accountId',
+      );
     });
 
     it('CA25: refuses the same item as « Compte » and as « Versée sur »', () => {

@@ -21,10 +21,16 @@ enum AccountLink {
         conflicts(account: account, link: link) && account == defaultId ? nil : account
     }
 
-    /// What a creation sends. A free movement always states its account (`null` = « Aucun »), so
-    /// the server's default never overrides a choice; an allocated one follows its prévision.
-    static func onCreate(lineId: String?, account: String?) -> String?? {
-        lineId == nil ? .some(account) : nil
+    /// What a creation sends. Nothing until the field has shown, so with the flag off the body
+    /// is the one from before the feature (CA2). Then always stated (`null` = « Aucun »), so the
+    /// server's default never overrides a choice.
+    static func onCreate(account: String?, didPrefill: Bool) -> String?? {
+        didPrefill ? .some(account) : nil
+    }
+
+    /// A free movement states its account as above; an allocated one follows its prévision.
+    static func onCreate(lineId: String?, account: String?, didPrefill: Bool) -> String?? {
+        lineId == nil ? onCreate(account: account, didPrefill: didPrefill) : nil
     }
 
     /// What a movement PATCH sends: only a free movement whose account moved, so an untouched

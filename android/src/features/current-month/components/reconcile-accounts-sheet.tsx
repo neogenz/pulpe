@@ -2,6 +2,7 @@ import {
   ANALYTICS_EVENTS,
   type BudgetLine,
   type ComparisonScreen,
+  FEATURE_FLAGS,
   partlySpentBudgetLines,
   type SupportedCurrency,
   type Transaction,
@@ -15,6 +16,7 @@ import { randomUUID } from "react-native-quick-crypto";
 import { hasClientKey } from "@/core/crypto/client-key-manager";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { captureEvent } from "@/core/observability/analytics";
+import { useFeatureFlag } from "@/core/observability/feature-flags";
 import { hapticFailure, hapticSuccess } from "@/core/ui/haptics";
 import { Notice } from "@/core/ui/notice";
 import { FormModal } from "@/core/ui/sheet";
@@ -126,6 +128,7 @@ export function ReconcileAccountsSheet({
   const { t } = useTranslation();
   const create = useCreateTransaction("reconciliation");
   const follow = useFollowAccounts();
+  const isAccountOffered = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
   const toggle = useToggleCheck(budgetId);
   const checksSettled = useChecksSettled();
   const payDayOfMonth = useUserSettings().data?.payDayOfMonth ?? null;
@@ -438,6 +441,7 @@ export function ReconcileAccountsSheet({
               name: t("home.reconcile.compare.entryName"),
               adjustment,
               now: new Date(),
+              isAccountOffered,
             }),
             id: randomUUID(),
           };

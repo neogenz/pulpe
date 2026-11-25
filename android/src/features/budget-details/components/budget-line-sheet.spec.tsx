@@ -151,7 +151,6 @@ it("creates a forecast and clears its amount for the next one", async () => {
       kind: "saving",
       recurrence: "one_off",
       isManuallyAdjusted: false,
-      accountId: null,
     },
     expect.any(Object),
   );
@@ -346,6 +345,15 @@ describe("« Compte » (PUL-378)", () => {
     mockAccounts = { ...mockAccounts, isFlagOn: false };
     const off = await render(<BudgetLineSheet {...baseProps} />);
     expect(off.queryByTestId("account-field")).toBeNull();
+  });
+
+  it("CA2 sends no account with the flag off", async () => {
+    mockAccounts = { ...mockAccounts, isFlagOn: false };
+    const view = await render(<BudgetLineSheet {...baseProps} />);
+    await fill(view);
+    await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+    expect(mockCreate.mutate.mock.calls[0][0]).not.toHaveProperty("accountId");
   });
 
   it("CA3 creates on « Aucun » by default, and sends null", async () => {

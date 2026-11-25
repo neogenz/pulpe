@@ -940,7 +940,9 @@ export class AddBudgetLineDialog {
                 ? lineDraft.sourceSavingsGoalId
                 : null,
               assetId: this.#isAssetLinkEnabled ? lineDraft.assetId : undefined,
-              accountId: lineDraft.accountId,
+              accountId: this.#isAssetLinkEnabled
+                ? lineDraft.accountId
+                : undefined,
               conversion: metadata,
             }),
         };
@@ -975,7 +977,9 @@ export class AddBudgetLineDialog {
               savingsGoalId:
                 lineDraft.kind === 'saving' ? lineDraft.savingsGoalId : null,
               assetId: this.#isAssetLinkEnabled ? lineDraft.assetId : undefined,
-              accountId: lineDraft.accountId,
+              accountId: this.#isAssetLinkEnabled
+                ? lineDraft.accountId
+                : undefined,
               spreadGroupId: this.#spreadGroupId,
             }),
         };

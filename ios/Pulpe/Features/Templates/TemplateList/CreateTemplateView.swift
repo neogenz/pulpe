@@ -331,8 +331,7 @@ struct AddTemplateLineSheet: View {
                         amount: amount,
                         kind: kind,
                         recurrence: recurrence,
-                        // The field prefills only once it has shown: before that, no account is sent.
-                        accountId: didPrefillAccount ? .some(accountId) : .none
+                        accountId: AccountLink.onCreate(account: accountId, didPrefill: didPrefillAccount)
                     )
                     onAdd(line)
                     dismiss()

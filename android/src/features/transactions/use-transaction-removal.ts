@@ -1,5 +1,7 @@
-import type { Transaction } from "pulpe-shared";
+import { FEATURE_FLAGS, type Transaction } from "pulpe-shared";
 import { useRef, useState } from "react";
+
+import { useFeatureFlag } from "@/core/observability/feature-flags";
 
 import { buildTransactionRestore } from "./transaction-draft";
 import {
@@ -27,6 +29,7 @@ import {
 export function useTransactionRemoval() {
   const remove = useDeleteTransaction();
   const restore = useRestoreTransaction();
+  const isAccountOffered = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
   const [undoable, setUndoable] = useState<Transaction[]>([]);
   const [failure, setFailure] = useState<"delete" | "undo" | null>(null);
   // The id whose restore is in flight. A ref, not `restore.isPending`: two taps
@@ -66,7 +69,9 @@ export function useTransactionRemoval() {
   async function restoreOne(transaction: Transaction) {
     restoring.current = transaction.id;
     try {
-      await restore.mutateAsync(buildTransactionRestore(transaction));
+      await restore.mutateAsync(
+        buildTransactionRestore(transaction, isAccountOffered),
+      );
       setUndoable((current) =>
         current.filter((entry) => entry.id !== transaction.id),
       );

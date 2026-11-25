@@ -33,8 +33,9 @@ export function useAccountChoices(current: string | null = null) {
 /**
  * The « Compte » of a form. A creation starts on the default account; an edit
  * on the account it already has. `change` is what a PATCH carries (CA26) and
- * `create` what a creation sends: always stated, `null` for « Aucun », so the
- * server's default never overrides a choice (CA3).
+ * `create` what a creation sends: stated once the field is offered, `null` for
+ * « Aucun », so the server's default never overrides a choice (CA3). Not
+ * offered, it carries no key: the request is the one from before the feature.
  */
 export function useAccountSelection(
   initial: string | null,
@@ -55,7 +56,7 @@ export function useAccountSelection(
     account,
     setAccount: setPicked,
     reset: () => setPicked(undefined),
-    create: { accountId: account },
+    create: isOffered ? { accountId: account } : {},
     change: isOffered ? accountChange(initial, account) : {},
   };
 }

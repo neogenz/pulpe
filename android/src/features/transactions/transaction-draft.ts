@@ -218,6 +218,7 @@ function haveSameTags(chosen: string[], stored: string[]): boolean {
  */
 export function buildTransactionRestore(
   transaction: Transaction,
+  isAccountOffered: boolean,
 ): TransactionCreate {
   const declarableOrigin =
     transaction.kind === "income" && transaction.budgetLineId === null
@@ -234,9 +235,12 @@ export function buildTransactionRestore(
     checkedAt: transaction.checkedAt,
     // A free movement restores its account, « Aucun » included, so the
     // default never lands on it; an allocated one follows its prévision (CA4).
+    // Without the account field the request stays the pre-feature one.
     ...(transaction.budgetLineId !== null
       ? { budgetLineId: transaction.budgetLineId }
-      : { accountId: transaction.accountId ?? null }),
+      : isAccountOffered
+        ? { accountId: transaction.accountId ?? null }
+        : {}),
     ...(transaction.tagIds !== undefined && transaction.tagIds.length > 0
       ? { tagIds: transaction.tagIds }
       : {}),

@@ -74,11 +74,11 @@ struct AccountLinkTests {
 
     @Test("CA4: an allocated movement shows no account and sends none")
     func ca4_allocatedSendsNothing() throws {
-        #expect(AccountLink.onCreate(lineId: "line-1", account: "checking") == nil)
+        #expect(AccountLink.onCreate(lineId: "line-1", account: "checking", didPrefill: true) == nil)
         #expect(AccountLink.onUpdate(lineId: "line-1", initial: nil, account: "revolut") == nil)
         let tx = TransactionCreate(
             budgetId: "b", name: "n", amount: 1, kind: .expense, budgetLineId: "line-1",
-            accountId: AccountLink.onCreate(lineId: "line-1", account: "checking")
+            accountId: AccountLink.onCreate(lineId: "line-1", account: "checking", didPrefill: true)
         )
         #expect(try json(tx)["accountId"] == nil)
     }
@@ -88,12 +88,26 @@ struct AccountLinkTests {
         func body(_ account: String?) throws -> [String: Any] {
             try json(TransactionCreate(
                 budgetId: "b", name: "Restaurant", amount: 80, kind: .expense,
-                accountId: AccountLink.onCreate(lineId: nil, account: account)
+                accountId: AccountLink.onCreate(lineId: nil, account: account, didPrefill: true)
             ))
         }
         #expect(try body("checking")["accountId"] as? String == "checking")
         #expect(try body(nil)["accountId"] is NSNull)
         #expect(try json(TransactionCreate(budgetId: "b", name: "n", amount: 1, kind: .expense))["accountId"] == nil)
+    }
+
+    @Test("CA2: with the flag off the field never shows, so a creation sends no account at all")
+    func ca2_flagOffSendsNoAccount() throws {
+        func body(_ account: String?, didPrefill: Bool) throws -> [String: Any] {
+            try json(TransactionCreate(
+                budgetId: "b", name: "Restaurant", amount: 80, kind: .expense,
+                accountId: AccountLink.onCreate(lineId: nil, account: account, didPrefill: didPrefill)
+            ))
+        }
+        #expect(try body(nil, didPrefill: false).keys.contains("accountId") == false)
+        #expect(try body("checking", didPrefill: true)["accountId"] as? String == "checking")
+        #expect(AccountLink.onCreate(account: nil, didPrefill: false) == nil)
+        #expect(AccountLink.onCreate(account: "checking", didPrefill: true) == .some("checking"))
     }
 
     // MARK: - CA25, CA45: the same element twice
@@ -156,9 +170,9 @@ struct AccountLinkTests {
         var account = AccountLink.start(defaultId: "checking", link: nil, store: store)
         #expect(account == "checking")
         account = "revolut"
-        #expect(AccountLink.onCreate(lineId: nil, account: account) == .some("revolut"))
+        #expect(AccountLink.onCreate(lineId: nil, account: account, didPrefill: true) == .some("revolut"))
         account = nil
-        #expect(AccountLink.onCreate(lineId: nil, account: account) == .some(nil))
+        #expect(AccountLink.onCreate(lineId: nil, account: account, didPrefill: true) == .some(nil))
     }
 
     @Test("An archived default account is not prefilled")
@@ -264,9 +278,18 @@ struct AccountLinkTests {
         #expect(try json(spread)["accountId"] as? String == "revolut")
         let noAccount = AddBudgetLineSpreadLogic.buildCreate(
             calculator: calculator,
-            input: .init(name: "n", kind: .expense, amount: 10, mode: .perMonth, conversion: nil, spreadGroupId: "g")
+            input: .init(
+                name: "n", kind: .expense, amount: 10, mode: .perMonth, conversion: nil,
+                spreadGroupId: "g", accountId: .some(nil)
+            )
         )
         #expect(try json(noAccount)["accountId"] is NSNull)
+        // Flag off: the field never showed, so the key stays out (CA2).
+        let flagOff = AddBudgetLineSpreadLogic.buildCreate(
+            calculator: calculator,
+            input: .init(name: "n", kind: .expense, amount: 10, mode: .perMonth, conversion: nil, spreadGroupId: "g")
+        )
+        #expect(try json(flagOff)["accountId"] == nil)
     }
 
     // MARK: - Models
