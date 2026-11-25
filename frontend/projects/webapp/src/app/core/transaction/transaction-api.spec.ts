@@ -88,6 +88,27 @@ describe('TransactionApi', () => {
     },
   );
 
+  // PUL-378 CA44: an absent key lets the server apply the default account, so
+  // the reconciliation gap's explicit null must survive request validation.
+  it('should keep an explicit null account in the POST body', () => {
+    service
+      .create$({
+        budgetId: 'd9bc5bb2-ef0e-49b6-bfd5-7bfc2d66f62f',
+        name: 'Écart avec mes comptes',
+        amount: 80,
+        kind: 'expense',
+        checkedAt: '2026-11-24T10:00:00.000Z',
+        accountId: null,
+      })
+      .subscribe({ error: () => undefined });
+
+    const req = httpTesting.expectOne(
+      'http://localhost:3000/api/v1/transactions',
+    );
+    expect(req.request.body).toHaveProperty('accountId', null);
+    req.flush({}, { status: 500, statusText: 'Server Error' });
+  });
+
   it('should serialize active search filters as repeated query parameters', async () => {
     const tagIds = [
       '4df3df43-2b73-467a-a7ac-322f3ab8ed49',

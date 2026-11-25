@@ -1042,11 +1042,17 @@ export class BudgetDetailsStore {
         this.#budgetApi.deleteBudgetLine$(id).pipe(map(() => void 0 as void)),
       onMutate: (id) => {
         const previous = this.budgetDetails();
+        // Freed movements keep the account of the prévision they leave (CA46).
+        const accountId =
+          previous?.budgetLines.find((line) => line.id === id)?.accountId ??
+          null;
         this.#updateDetails((details) => ({
           ...details,
           budgetLines: details.budgetLines.filter((line) => line.id !== id),
           transactions: details.transactions.map((tx) =>
-            tx.budgetLineId === id ? { ...tx, budgetLineId: null } : tx,
+            tx.budgetLineId === id
+              ? { ...tx, budgetLineId: null, accountId }
+              : tx,
           ),
         }));
         return this.#rewindPoint(previous);

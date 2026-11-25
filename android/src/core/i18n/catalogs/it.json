@@ -1298,21 +1298,15 @@
       "other": "%{count} anni fa"
     },
     "whenMatching": "%{line} · al confronto",
+    "sinceEntry": "%{amount} dal tuo inserimento del %{date}",
+    "sinceEntryDebt": "%{category} · %{amount} dal tuo inserimento del %{date}",
     "badgeOverdraft": "Scoperto",
     "badgeExcluded": "Fuori dal totale",
-    "suggestion": {
-      "propose": "Propongo %{amount}",
-      "dismiss": "Scarta",
-      "apply": "Applica",
-      "saved": "%{amount} di risparmio spuntato dall'ultimo valore",
-      "drawn": "%{amount} di entrata prelevata dall'ultimo valore",
-      "repaid": "%{amount} di rimborso spuntato dall'ultimo valore"
-    },
     "form": {
       "addTitle": "Aggiungi al mio patrimonio",
       "currency": "Valuta",
       "editTitle": "Modifica %{name}",
-      "lastValue": "Ultimo valore: %{amount}, il %{date}",
+      "lastValue": "Il tuo ultimo inserimento: %{amount}, il %{date}",
       "value": "Valore attuale",
       "overdraft": "Saldo negativo (scoperto)",
       "namePlaceholder": "Conto UBS, Leasing…",
@@ -1359,7 +1353,7 @@
         },
         "update": {
           "title": "Tienilo aggiornato con un tocco",
-          "body": "Un valore cambia? Lo aggiorni. E quando metti da parte dei soldi nel tuo budget, ti propongo di aggiungerli qui.",
+          "body": "Un valore cambia? Lo aggiorni. E quando spunti dei soldi messi da parte nel tuo budget, li aggiungo qui.",
           "scene": "Esempio: i risparmi passano da %{before} a %{after}, il patrimonio netto sale a %{netAfter}."
         }
       },
@@ -1373,7 +1367,23 @@
       },
       "updatedLongAgo": "Aggiornato 2 mesi fa",
       "updatedToday": "Aggiornato oggi",
-      "budgetHint": "%{amount} messi da parte nel tuo budget → ti propongo +%{amount} qui."
+      "budgetHint": "%{amount} messi da parte e spuntati nel tuo budget → +%{amount} qui."
+    },
+    "account": {
+      "label": "Account",
+      "none": "Nessuno",
+      "sameAsLink": "«Account» e «%{link}» devono essere due elementi diversi.",
+      "link": {
+        "expense": "Debito rimborsato",
+        "saving": "Versato su",
+        "income": "Prelevata da"
+      },
+      "defaultLabel": "Conto predefinito",
+      "defaultBadge": "Predefinito",
+      "defaultSection": "Il mio budget",
+      "defaultHint": "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta.",
+      "setDefault": "Usa come predefinito nel budget",
+      "unsetDefault": "Non usare più come predefinito"
     }
   },
   "onboarding": {

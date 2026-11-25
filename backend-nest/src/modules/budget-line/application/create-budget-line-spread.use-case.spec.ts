@@ -5,6 +5,7 @@ import { CacheService } from '@modules/cache/cache.service';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
 import { BUDGET_PROVISIONING_PORT } from '@modules/budget/domain/ports/budget-provisioning.port';
 import { BUDGET_TEMPLATE_REPOSITORY } from '@modules/budget-template/domain/ports/budget-template-repository.port';
+import { USER_REPOSITORY } from '@modules/user/domain/ports/user-repository.port';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { BudgetLineSpreadCreate } from 'pulpe-shared';
 import { CreateBudgetLineSpreadUseCase } from './create-budget-line-spread.use-case';
@@ -32,6 +33,7 @@ const makeLine = (
   templateLineId: null,
   savingsGoalId: input.savingsGoalId ?? null,
   assetId: input.assetId ?? null,
+  accountId: null,
   tagIds: [],
   spreadGroupId,
   savingsWithdrawalGroupId: null,
@@ -83,6 +85,7 @@ describe('CreateBudgetLineSpreadUseCase', () => {
   let mockTemplateRepo: { findDefaultTemplateId: ReturnType<typeof jest.fn> };
   let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
+  let mockUserRepo: { findDefaultAccountId: ReturnType<typeof jest.fn> };
 
   const mapAllPeriods = (
     periods: { month: number; year: number }[],
@@ -129,10 +132,12 @@ describe('CreateBudgetLineSpreadUseCase', () => {
     };
     mockBudget = { recalculate: jest.fn().mockResolvedValue(undefined) };
     mockCache = { invalidateForUser: jest.fn().mockResolvedValue(undefined) };
+    mockUserRepo = { findDefaultAccountId: jest.fn().mockResolvedValue(null) };
 
     const module = await Test.createTestingModule({
       providers: [
         CreateBudgetLineSpreadUseCase,
+        { provide: USER_REPOSITORY, useValue: mockUserRepo },
         { provide: BUDGET_LINE_REPOSITORY, useValue: mockRepo },
         { provide: BUDGET_PROVISIONING_PORT, useValue: mockProvisioning },
         { provide: BUDGET_TEMPLATE_REPOSITORY, useValue: mockTemplateRepo },
@@ -271,6 +276,45 @@ describe('CreateBudgetLineSpreadUseCase', () => {
 
     expect(captured[0].inputs).toHaveLength(3);
     expect(captured[0].inputs.every((i) => i.assetId === assetId)).toBe(true);
+  });
+
+  it('CA23: gives every occurrence of a spread expense the same account (300 on Revolut over 3 months)', async () => {
+    const revolutId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+
+    await useCase.execute(makeDto({ accountId: revolutId }), mockUser);
+    await useCase.execute(makeDto(), mockUser);
+
+    expect(captured[0].inputs.map((i) => i.accountId)).toEqual([
+      revolutId,
+      revolutId,
+      revolutId,
+    ]);
+    expect(captured[1].inputs.every((i) => i.accountId === null)).toBe(true);
+  });
+
+  it('CA32: a spread created without account gives every occurrence the default, « Aucun » none', async () => {
+    const compteCourantId = '8a0f6c80-1234-4e5f-89ab-666666666666';
+    mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+
+    await useCase.execute(makeDto(), mockUser);
+    await useCase.execute(makeDto({ accountId: null }), mockUser);
+
+    expect(
+      captured[0].inputs.every((i) => i.accountId === compteCourantId),
+    ).toBe(true);
+    expect(captured[1].inputs.every((i) => i.accountId === null)).toBe(true);
+  });
+
+  it('CA45: a spread Épargne « Versée sur » the default account stays without account', async () => {
+    const livretId = '8a0f6c80-1234-4e5f-89ab-777777777777';
+    mockUserRepo.findDefaultAccountId.mockResolvedValue(livretId);
+
+    await useCase.execute(
+      makeDto({ kind: 'saving', assetId: livretId }),
+      mockUser,
+    );
+
+    expect(captured[0].inputs.every((i) => i.accountId === null)).toBe(true);
   });
 
   it('should discard a forged savings-goal link on expense tranches', async () => {

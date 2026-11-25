@@ -1,7 +1,31 @@
 import type { BudgetLine } from "pulpe-shared";
 import { act, fireEvent, render } from "@testing-library/react-native";
 
+import {
+  COMPTE_COURANT,
+  contractAssets,
+  LIVRET,
+  REVOLUT,
+} from "@/core/testing/net-worth-accounts";
+
 import { BudgetLineSheet } from "./budget-line-sheet";
+
+let mockAccounts: {
+  isFlagOn: boolean;
+  defaultAccountId: string | null;
+  assets: ReturnType<typeof contractAssets>;
+} = { isFlagOn: false, defaultAccountId: null, assets: contractAssets() };
+jest.mock("@/core/observability/feature-flags", () => ({
+  useFeatureFlag: () => mockAccounts.isFlagOn,
+}));
+jest.mock("@/features/net-worth/net-worth-queries", () => ({
+  useNetWorth: () => ({ data: { assets: mockAccounts.assets } }),
+}));
+jest.mock("@/core/user-settings/user-settings-queries", () => ({
+  useUserSettings: () => ({
+    data: { defaultAccountId: mockAccounts.defaultAccountId },
+  }),
+}));
 
 const mockCreate = {
   mutate: jest.fn(),
@@ -93,6 +117,11 @@ beforeEach(() => {
   jest.clearAllMocks();
   for (const mutation of [mockCreate, mockUpdate, mockSpread])
     Object.assign(mutation, { isPending: false, isError: false });
+  mockAccounts = {
+    isFlagOn: false,
+    defaultAccountId: null,
+    assets: contractAssets(),
+  };
 });
 
 async function fill(
@@ -122,6 +151,7 @@ it("creates a forecast and clears its amount for the next one", async () => {
       kind: "saving",
       recurrence: "one_off",
       isManuallyAdjusted: false,
+      accountId: null,
     },
     expect.any(Object),
   );
@@ -276,4 +306,138 @@ it("blocks dismissal while pending and keeps a rejected form editable", async ()
   expect(view.getByLabelText("budgets.mutations.name")).toHaveDisplayValue(
     "Retry me",
   );
+});
+
+describe("« Compte » (PUL-378)", () => {
+  const forecast = {
+    id: "line-1",
+    budgetId: "budget-1",
+    name: "Courses",
+    amount: 400,
+    kind: "expense",
+    recurrence: "one_off",
+    templateLineId: null,
+    savingsGoalId: null,
+    assetId: null,
+    accountId: COMPTE_COURANT,
+    sourceSavingsGoalId: null,
+    isManuallyAdjusted: false,
+  } as BudgetLine;
+
+  /** « Compte » is one field; its list opens in a sheet over the form. */
+  const openAccounts = (view: Awaited<ReturnType<typeof render>>) =>
+    fireEvent.press(view.getByTestId("account-field"));
+
+  beforeEach(() => {
+    mockAccounts = {
+      isFlagOn: true,
+      defaultAccountId: null,
+      assets: contractAssets(),
+    };
+  });
+
+  it("CA1 lists the elements, and CA2 hides them with the flag off", async () => {
+    const view = await render(<BudgetLineSheet {...baseProps} />);
+    await openAccounts(view);
+    for (const name of ["Compte courant", "Revolut", "Livret", "Leasing"]) {
+      expect(view.getByText(name)).toBeTruthy();
+    }
+
+    mockAccounts = { ...mockAccounts, isFlagOn: false };
+    const off = await render(<BudgetLineSheet {...baseProps} />);
+    expect(off.queryByTestId("account-field")).toBeNull();
+  });
+
+  it("CA3 creates on « Aucun » by default, and sends null", async () => {
+    const view = await render(<BudgetLineSheet {...baseProps} />);
+    await fill(view);
+    await fireEvent.press(view.getByText("budgets.mutations.add"));
+
+    expect(mockCreate.mutate.mock.calls[0][0]).toMatchObject({
+      accountId: null,
+    });
+  });
+
+  it("CA29 prefills the default account, and CA23 gives the spread the same one", async () => {
+    mockAccounts = { ...mockAccounts, defaultAccountId: COMPTE_COURANT };
+    const view = await render(<BudgetLineSheet {...baseProps} />);
+    expect(view.getByDisplayValue("Compte courant")).toBeTruthy();
+    await fill(view);
+    await fireEvent.press(view.getByText("budgets.mutations.add"));
+    expect(mockCreate.mutate.mock.calls[0][0]).toMatchObject({
+      accountId: COMPTE_COURANT,
+    });
+
+    await fireEvent.press(view.getByText("budgets.detail.spread"));
+    await fireEvent.press(view.getByText("budgets.mutations.spread"));
+    expect(mockSpread.mutate.mock.calls[0][0]).toMatchObject({
+      accountId: COMPTE_COURANT,
+    });
+  });
+
+  it("CA26 leaves the account out of an edit that does not touch it", async () => {
+    const view = await render(
+      <BudgetLineSheet {...baseProps} line={forecast} />,
+    );
+    await fill(view, 450, "Courses");
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+
+    expect(mockUpdate.mutate.mock.calls[0][0]).not.toHaveProperty("accountId");
+  });
+
+  it("sends the account the edit moved to, « Aucun » as null", async () => {
+    const view = await render(
+      <BudgetLineSheet {...baseProps} line={forecast} />,
+    );
+    await openAccounts(view);
+    await fireEvent.press(view.getByText("Revolut"));
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+    expect(mockUpdate.mutate.mock.calls[0][0]).toMatchObject({
+      accountId: REVOLUT,
+    });
+
+    await openAccounts(view);
+    await fireEvent.press(view.getByTestId("account-none"));
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+    expect(mockUpdate.mutate.mock.calls[1][0]).toMatchObject({
+      accountId: null,
+    });
+  });
+
+  it("CA25 refuses the element the line already feeds, with the rule's message", async () => {
+    const savings = {
+      ...forecast,
+      kind: "saving",
+      assetId: LIVRET,
+      accountId: null,
+    } as BudgetLine;
+    const view = await render(
+      <BudgetLineSheet {...baseProps} line={savings} />,
+    );
+    await openAccounts(view);
+    await fireEvent.press(view.getByText("Livret"));
+
+    expect(view.getByText(/^netWorth\.account\.sameAsLink/)).toBeTruthy();
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+    expect(mockUpdate.mutate).not.toHaveBeenCalled();
+
+    await openAccounts(view);
+    await fireEvent.press(view.getByText("Compte courant"));
+    await fireEvent.press(view.getByText("budgets.mutations.save"));
+    expect(mockUpdate.mutate.mock.calls[0][0]).toMatchObject({
+      accountId: COMPTE_COURANT,
+    });
+  });
+
+  it("CA24 an archived element is no longer offered, a debt still is", async () => {
+    mockAccounts = {
+      ...mockAccounts,
+      assets: contractAssets([{}, { archivedAt: "2026-11-02T00:00:00.000Z" }]),
+    };
+    const view = await render(<BudgetLineSheet {...baseProps} />);
+    await openAccounts(view);
+
+    expect(view.queryByText("Revolut")).toBeNull();
+    expect(view.getByText("Leasing")).toBeTruthy();
+  });
 });

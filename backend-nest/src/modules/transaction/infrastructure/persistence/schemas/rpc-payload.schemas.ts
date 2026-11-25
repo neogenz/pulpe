@@ -35,6 +35,7 @@ export const createSavingsGoalWithdrawalPayloadSchema = z
     id: z.uuid().optional(),
     budget_id: z.uuid(),
     budget_line_id: z.uuid().nullable(),
+    account_id: z.uuid().nullable(),
     name: z.string().min(1),
     amount: z.string().min(1),
     original_amount: z.string().min(1).nullable(),
@@ -61,6 +62,7 @@ export type CreateSavingsGoalWithdrawalPayload = z.infer<
 export const updateSavingsGoalWithdrawalPayloadSchema = z
   .object({
     budget_id: z.uuid().optional(),
+    account_id: z.uuid().nullable().optional(),
     name: z.string().min(1).optional(),
     amount: z.string().min(1).optional(),
     original_amount: z.string().min(1).nullable().optional(),

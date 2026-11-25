@@ -10,6 +10,11 @@ import {
 } from '@modules/budget/domain/ports/budget-recalculation.port';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { accountIdForCreate } from '@common/utils/asset-link';
+import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '@modules/user/domain/ports/user-repository.port';
 import {
   SAVINGS_GOAL_WITHDRAWAL_POLICY,
   type SavingsGoalWithdrawalPolicyPort,
@@ -36,6 +41,8 @@ export class CreateTransactionUseCase {
     private readonly budgetRecalculation: BudgetRecalculationPort,
     @Inject(SAVINGS_GOAL_WITHDRAWAL_POLICY)
     private readonly withdrawalPolicy: SavingsGoalWithdrawalPolicyPort,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepositoryPort,
     @InjectInfoLogger(CreateTransactionUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -60,6 +67,14 @@ export class CreateTransactionUseCase {
       id: withRate.id,
       budgetId: withRate.budgetId,
       budgetLineId: withRate.budgetLineId ?? null,
+      // CA4: an allocated movement follows its prévision's account, never the
+      // default one. CA44: neither does a reconciliation gap.
+      accountId:
+        allocatedLine || isUnmarkedReconciliationGap(withRate)
+          ? null
+          : await accountIdForCreate(withRate.accountId, null, () =>
+              this.userRepo.findDefaultAccountId(),
+            ),
       name: withRate.name,
       amount: withRate.amount,
       originalAmount: withRate.originalAmount ?? null,
@@ -188,6 +203,46 @@ export class CreateTransactionUseCase {
 
     return budgetLine;
   }
+}
+
+/**
+ * The name each app gives the gap « Comparer avec mes comptes » writes, in
+ * every language: « Écart avec mes comptes » since v0.66. Before, iOS wrote a
+ * fixed « Ajustement », and the web and Android a default label the user could
+ * rename (a renamed one is not recognized).
+ */
+const RECONCILIATION_GAP_NAMES = new Set([
+  'Écart avec mes comptes',
+  'Gap with my accounts',
+  'Abweichung zu meinen Konten',
+  'Scarto con i miei conti',
+  // Before v0.66: iOS (fixed), then the web and Android default label.
+  'Ajustement',
+  'Adjustment',
+  'Anpassung',
+  'Aggiustamento',
+  'Ausgleich',
+  'Allineamento',
+]);
+
+/**
+ * CA44 for the apps installed before PUL-378 (iOS 1.14.x, Android): they send
+ * the reconciliation gap without `accountId`, and the default account would
+ * then absorb it. Among what those apps create, the gap is the free, already
+ * checked movement carrying that fixed name. Current apps send `null` instead.
+ */
+function isUnmarkedReconciliationGap(
+  dto: Pick<
+    TransactionCreate,
+    'accountId' | 'budgetLineId' | 'checkedAt' | 'name'
+  >,
+): boolean {
+  return (
+    dto.accountId === undefined &&
+    !dto.budgetLineId &&
+    dto.checkedAt != null &&
+    RECONCILIATION_GAP_NAMES.has(dto.name.trim())
+  );
 }
 
 /**

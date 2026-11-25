@@ -887,6 +887,8 @@ describe('Dashboard (TestBed)', () => {
         kind: 'income',
         transactionDate: expect.any(String),
         checkedAt: expect.any(String),
+        // CA44: the gap belongs to no account, whatever the default account is.
+        accountId: null,
       });
       expect(Number.isNaN(Date.parse(payload.checkedAt))).toBe(false);
       expect(mockSnackBar.open).toHaveBeenCalledWith(

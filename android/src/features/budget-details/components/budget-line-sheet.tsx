@@ -16,6 +16,9 @@ import { SegmentedPicker } from "@/core/ui/segmented-picker";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import { accountConflicts } from "@/features/net-worth/account-link";
+import { AccountField } from "@/features/net-worth/components/account-field";
+import { useAccountSelection } from "@/features/net-worth/use-account-selection";
 
 import {
   budgetLineDraftFrom,
@@ -101,6 +104,10 @@ export function BudgetLineSheet({
   // after the rows were written must not leave a second group behind.
   const [spreadGroupId, setSpreadGroupId] = useState(() => randomUUID());
   const isEditing = line !== undefined;
+  const account = useAccountSelection(line?.accountId ?? null, !isEditing);
+  // The element the line already feeds, repays or is drawn from (CA25).
+  const link = line?.kind === draft.kind ? (line.assetId ?? null) : null;
+  const hasAccountConflict = accountConflicts(account.account, link);
   const isPlannedWithdrawal = line?.sourceSavingsGoalId != null;
   // A spread is a shape of expense, and a revenue has no shape to spread.
   const canSpread = !isEditing && draft.kind !== "income";
@@ -146,6 +153,7 @@ export function BudgetLineSheet({
     setDeselected([]);
     // A new form is a new intention, so it gets its own idempotency key.
     setSpreadGroupId(randomUUID());
+    account.reset();
   }
 
   function dismiss() {
@@ -157,7 +165,7 @@ export function BudgetLineSheet({
   }
 
   function submit() {
-    if (!isBudgetLineDraftSubmittable(draft)) return;
+    if (!isBudgetLineDraftSubmittable(draft) || hasAccountConflict) return;
 
     const onSuccess = () => {
       hapticSuccess();
@@ -177,6 +185,7 @@ export function BudgetLineSheet({
             ? { totalAmount: draft.amount }
             : { perMonthAmount: draft.amount }),
           spreadGroupId,
+          ...account.create,
         },
         { onSuccess },
       );
@@ -184,10 +193,16 @@ export function BudgetLineSheet({
     }
 
     if (line === undefined) {
-      create.mutate(buildBudgetLineCreate(draft, budgetId), { onSuccess });
+      create.mutate(
+        { ...buildBudgetLineCreate(draft, budgetId), ...account.create },
+        { onSuccess },
+      );
       return;
     }
-    update.mutate(buildBudgetLineUpdate(draft, line), { onSuccess });
+    update.mutate(
+      { ...buildBudgetLineUpdate(draft, line), ...account.change },
+      { onSuccess },
+    );
   }
 
   const problem = budgetLineDraftHint(draft);
@@ -213,7 +228,9 @@ export function BudgetLineSheet({
             mode="contained"
             onPress={submit}
             disabled={
-              !isBudgetLineDraftSubmittable(draft) || mutation.isPending
+              !isBudgetLineDraftSubmittable(draft) ||
+              hasAccountConflict ||
+              mutation.isPending
             }
             loading={mutation.isPending}
           >
@@ -278,6 +295,16 @@ export function BudgetLineSheet({
         onChangeText={(name) => change({ name })}
         maxLength={NAME_MAX_LENGTH}
       />
+
+      {account.isOffered && (
+        <AccountField
+          choices={account.choices}
+          value={account.account}
+          onChange={account.setAccount}
+          link={link}
+          linkKind={draft.kind}
+        />
+      )}
 
       <View style={styles.when}>
         <Text

@@ -12,6 +12,7 @@ export const editTemplateLineFromFormSchema = z
     tagIds: z.array(z.uuid()).nullable().optional(),
     savingsGoalId: z.uuid().nullable().optional(),
     assetId: z.uuid().nullable().optional(),
+    accountId: z.uuid().nullable().optional(),
     conversion: conversionFormSchema.nullable(),
   })
   .transform(
@@ -22,6 +23,7 @@ export const editTemplateLineFromFormSchema = z
       tagIds: input.tagIds ?? [],
       savingsGoalId: input.savingsGoalId,
       ...(input.assetId !== undefined ? { assetId: input.assetId } : {}),
+      ...(input.accountId !== undefined ? { accountId: input.accountId } : {}),
       ...(input.conversion ?? {}),
     }),
   );

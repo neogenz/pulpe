@@ -281,6 +281,8 @@ export default class BudgetDetailsPage {
               budgetId: budget.id,
               transactionDate: formatLocalDate(now),
               checkedAt: now.toISOString(),
+              // Not a movement of one account: explicit, or the server would apply the default.
+              accountId: null,
             }),
           );
           this.#snackBar.open(

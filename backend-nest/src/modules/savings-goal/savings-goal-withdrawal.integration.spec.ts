@@ -107,6 +107,7 @@ const userRepoStub = {
     currency: 'CHF' as const,
     showCurrencySelector: false,
   }),
+  findDefaultAccountId: async () => null,
 } as unknown as UserRepositoryPort;
 
 const period = (() => {
@@ -153,6 +154,7 @@ function buildSuite(client: SupabaseClient<Database>, id: string) {
       currencyStub,
       recalcStub,
       policy,
+      userRepoStub,
       noopLogger,
     ),
     update: new UpdateTransactionUseCase(

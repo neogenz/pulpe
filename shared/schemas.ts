@@ -975,6 +975,9 @@ export const budgetLineSchema = z.object({
   // Absent d'une réponse = aucun lien : un backend plus ancien ne l'envoie pas
   // pendant le déploiement.
   assetId: z.uuid().nullable().default(null),
+  // Compte d'où part ou où arrive le mouvement (PUL-378), avoir ou dette,
+  // distinct de `assetId`. Absent d'une réponse = aucun compte (backend ancien).
+  accountId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
@@ -1035,6 +1038,8 @@ const budgetLineCreateBaseSchema = z.strictObject({
   templateLineId: z.uuid().nullable().optional(),
   savingsGoalId: z.uuid().nullable().optional(),
   assetId: z.uuid().nullable().optional(),
+  // Absent en mise à jour = compte gardé (PUL-378) ; `null` = aucun compte.
+  accountId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -1176,6 +1181,7 @@ export const budgetLineSpreadCreateSchema = z
     kind: transactionKindSchema.exclude(['income']),
     savingsGoalId: z.uuid().nullable().optional(),
     assetId: z.uuid().nullable().optional(),
+    accountId: z.uuid().nullable().optional(),
     mode: z.enum(['perMonth', 'total']),
     months: z
       .array(spreadFromExistingPeriodSchema)
@@ -1539,6 +1545,9 @@ export const transactionSchema = z.object({
   id: z.uuid(),
   budgetId: z.uuid(),
   budgetLineId: z.uuid().nullable(),
+  // Compte du mouvement (PUL-378), toujours nul sur un mouvement rattaché à une
+  // prévision : il suit le compte de sa prévision. Absent = aucun compte.
+  accountId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
@@ -1574,6 +1583,8 @@ export const transactionCreateSchema = z
     id: z.uuid().optional(),
     budgetId: z.uuid(),
     budgetLineId: z.uuid().nullable().optional(),
+    // Ignoré sur un mouvement rattaché à une prévision (PUL-378).
+    accountId: z.uuid().nullable().optional(),
     name: z.string().min(1).max(100).trim(),
     amount: z.number().positive(),
     kind: transactionKindSchema,
@@ -1637,6 +1648,8 @@ export const transactionCreateSchema = z
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
 export const transactionUpdateSchema = z.strictObject({
+  // absent = compte gardé ; `null` = aucun ; ignoré sur un mouvement rattaché
+  accountId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
@@ -2006,6 +2019,9 @@ export const templateLineSchema = z.object({
   // budget lines like the goal link. Missing from a response means no link: an
   // older backend omits it while it deploys.
   assetId: z.uuid().nullable().default(null),
+  // Account the movement leaves or reaches (PUL-378), copied onto the budget
+  // lines like `assetId`. Missing from a response means no account.
+  accountId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
@@ -2027,6 +2043,7 @@ export const templateLineCreateSchema = z.strictObject({
   templateId: z.uuid(),
   savingsGoalId: z.uuid().nullable().optional(),
   assetId: z.uuid().nullable().optional(),
+  accountId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -2050,6 +2067,7 @@ export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
   savingsGoalId: z.uuid().nullable().optional(),
   assetId: z.uuid().nullable().optional(),
+  accountId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -2102,6 +2120,7 @@ export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
 export const templateLineUpdateSchema = z.strictObject({
   savingsGoalId: z.uuid().nullable().optional(),
   assetId: z.uuid().nullable().optional(),
+  accountId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
@@ -2537,6 +2556,8 @@ export const updateUserSettingsSchema = z
     currency: supportedCurrencySchema.optional(),
     showCurrencySelector: z.boolean().optional(),
     locale: supportedLocaleSchema.optional(),
+    // Absent = compte par défaut gardé (PUL-378) ; `null` le retire.
+    defaultAccountId: z.uuid().nullable().optional(),
   })
   .refine(
     ({ locale, payDayOfMonth, currency, showCurrencySelector }) =>
@@ -2553,6 +2574,9 @@ export const userSettingsSchema = z.object({
   currency: supportedCurrencySchema.default('CHF'),
   showCurrencySelector: z.boolean().default(false),
   locale: supportedLocaleSchema.optional(),
+  // Compte rattaché aux mouvements créés sans compte (PUL-378). Absent d'une
+  // réponse = aucun (backend ancien).
+  defaultAccountId: z.uuid().nullable().optional(),
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 

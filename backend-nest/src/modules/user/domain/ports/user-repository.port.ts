@@ -34,6 +34,12 @@ export interface UserRepositoryPort {
   findSettings(): Promise<UserSettings>;
 
   /**
+   * The caller's default account, read from its own table without calling
+   * Supabase Auth: every create of a movement may need it.
+   */
+  findDefaultAccountId(): Promise<string | null>;
+
+  /**
    * Update only supplied keys. Locale is persisted in the dedicated table;
    * legacy budget settings preserve the rest of `user_metadata`.
    */

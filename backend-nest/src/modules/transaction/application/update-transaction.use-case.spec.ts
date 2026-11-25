@@ -23,6 +23,7 @@ const mockEntity: Transaction = {
   id: 'txn-1',
   budgetId: 'budget-1',
   budgetLineId: null,
+  accountId: null,
   amount: 50,
   name: 'Restaurant',
   kind: 'expense',
@@ -344,6 +345,61 @@ describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => 
         useCase.execute('txn-1', { kind: 'saving' }, mockUser),
       ).rejects.toThrow(BusinessException);
       expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('account of the movement (PUL-378)', () => {
+    const revolutId = '123e4567-e89b-42d3-a456-000000000002';
+
+    it('CA11: moves a free movement to another account (Restaurant to Revolut)', async () => {
+      await useCase.execute('txn-1', { accountId: revolutId }, mockUser);
+
+      expect(mockRepo.update.mock.calls[0][1]).toEqual({
+        accountId: revolutId,
+      });
+    });
+
+    it('clears the account with an explicit null', async () => {
+      await useCase.execute('txn-1', { accountId: null }, mockUser);
+
+      expect(mockRepo.update.mock.calls[0][1]).toEqual({ accountId: null });
+    });
+
+    it('CA26: an update without the account keeps it, without tags', async () => {
+      await useCase.execute('txn-1', { amount: 90 }, mockUser);
+
+      expect(mockRepo.update.mock.calls[0][1]).not.toHaveProperty('accountId');
+    });
+
+    it('CA26: an update without the account keeps it, with tags', async () => {
+      await useCase.execute(
+        'txn-1',
+        { amount: 90, tagIds: ['123e4567-e89b-42d3-a456-000000000003'] },
+        mockUser,
+      );
+
+      expect(mockRepo.update.mock.calls[0][1]).not.toHaveProperty('accountId');
+    });
+
+    it('CA4: ignores an account sent for a movement allocated to a prévision', async () => {
+      mockRepo.findMutationContext.mockResolvedValue({
+        budgetId: 'budget-1',
+        budgetLineId: 'line-courses',
+        kind: 'expense',
+        amount: 120,
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: null,
+      });
+
+      await useCase.execute(
+        'txn-1',
+        { name: 'Courses Migros', accountId: revolutId },
+        mockUser,
+      );
+
+      expect(mockRepo.update.mock.calls[0][1]).toEqual({
+        name: 'Courses Migros',
+      });
     });
   });
 });

@@ -64,16 +64,6 @@ export function recordAssetSnapshots(
   );
 }
 
-export function dismissAssetSuggestion(assetId: string): Promise<AssetRecord> {
-  return api
-    .post(
-      ENDPOINTS.assetDismissSuggestion(assetId),
-      undefined,
-      assetResponseSchema,
-    )
-    .then((response) => response.data);
-}
-
 export function createAssetCategory(
   payload: AssetCategoryCreate,
 ): Promise<AssetCategoryRecord> {

@@ -35,6 +35,7 @@ const asset: Asset = {
           baseCurrency="CHF"
           [categoryName]="categoryName()"
           [busy]="busy()"
+          [isDefault]="isDefault()"
           (action)="events.push($event)"
         />
       </li>
@@ -45,6 +46,7 @@ class HostComponent {
   readonly asset = signal<Asset>(asset);
   readonly categoryName = signal<string | null>(null);
   readonly busy = signal(false);
+  readonly isDefault = signal(false);
   readonly events: AssetRowEvent[] = [];
 }
 
@@ -262,5 +264,65 @@ describe('NetWorthAssetRow', () => {
     expect(
       document.querySelector('[data-testid="asset-edit-action"]'),
     ).toBeNull();
+  });
+  describe('default account (PUL-378)', () => {
+    const openMenu = () => {
+      fixture.nativeElement
+        .querySelector('[data-testid="asset-row-menu-button"]')
+        .click();
+      fixture.detectChanges();
+    };
+    const defaultEntry = () =>
+      document.querySelector<HTMLElement>(
+        '[data-testid="asset-default-action"]',
+      );
+
+    it('CA47: the default account carries the badge, the others do not', () => {
+      render({ name: 'Compte courant' });
+      expect(text('asset-default-chip')).toBeNull();
+
+      fixture.componentInstance.isDefault.set(true);
+      fixture.detectChanges();
+
+      expect(text('asset-default-chip')).toBe('Par défaut');
+    });
+
+    it('CA47: offers « Utiliser par défaut dans le budget » and emits setDefault', () => {
+      render({ name: 'Revolut' });
+
+      openMenu();
+
+      expect(defaultEntry()!.textContent).toContain(
+        'Utiliser par défaut dans le budget',
+      );
+      defaultEntry()!.click();
+      expect(fixture.componentInstance.events.at(-1)).toEqual({
+        asset: { ...asset, name: 'Revolut' },
+        action: 'setDefault',
+      });
+    });
+
+    it('CA34, CA47: on the default account the entry becomes « Ne plus utiliser par défaut »', () => {
+      fixture.componentInstance.isDefault.set(true);
+      render({ name: 'Compte courant' });
+
+      openMenu();
+
+      expect(defaultEntry()!.textContent).toContain(
+        'Ne plus utiliser par défaut',
+      );
+      defaultEntry()!.click();
+      expect(fixture.componentInstance.events.at(-1)?.action).toBe(
+        'unsetDefault',
+      );
+    });
+
+    it('offers no default entry on an archived item', () => {
+      render({ archivedAt: '2026-10-01T08:00:00.000Z' });
+
+      openMenu();
+
+      expect(defaultEntry()).toBeNull();
+    });
   });
 });

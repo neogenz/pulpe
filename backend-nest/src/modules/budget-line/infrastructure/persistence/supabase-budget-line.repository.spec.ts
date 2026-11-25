@@ -32,6 +32,7 @@ const mockRow: BudgetLineRow = {
   template_line_id: null,
   savings_goal_id: null,
   asset_id: null,
+  account_id: null,
   spread_group_id: null,
   savings_withdrawal_group_id: null,
   source_savings_goal_id: null,
@@ -57,6 +58,7 @@ const expectedEntity: BudgetLine = {
   templateLineId: null,
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
@@ -660,6 +662,55 @@ describe('SupabaseBudgetLineRepository', () => {
           'ERR_BUDGET_LINE_UPDATE_FAILED',
         );
       }
+    });
+
+    it('CA25: maps the same asset as account and link to a 400 with the rule', async () => {
+      const provider = createMockProvider(() => ({
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: {
+                  code: '23514',
+                  message:
+                    'new row for relation "budget_line" violates check constraint "budget_line_account_not_asset"',
+                },
+              }),
+            }),
+          }),
+        }),
+      }));
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const refusal = await repo
+        .update('line-1', { accountId: 'livret-id' })
+        .catch((error: BusinessException) => error);
+
+      expect(refusal).toBeInstanceOf(BusinessException);
+      expect((refusal as BusinessException).getStatus()).toBe(400);
+      expect((refusal as BusinessException).message).toContain(
+        'account cannot be the asset',
+      );
+    });
+
+    it('CA26: sends the account to the tagged RPC only when the patch carries it', async () => {
+      const rpc = jest.fn().mockResolvedValue({ data: mockRow, error: null });
+      repo = createRepository(
+        createMockProvider(jest.fn(), rpc),
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await repo.update('line-1', { name: 'Loyer', tagIds: ['tag-1'] });
+      await repo.update('line-1', { accountId: null, tagIds: ['tag-1'] });
+
+      expect(rpc.mock.calls[0][1].p_patch).not.toHaveProperty('account_id');
+      expect(rpc.mock.calls[1][1].p_patch.account_id).toBeNull();
     });
 
     it('should update scalar fields and tags in one atomic RPC', async () => {

@@ -1,4 +1,5 @@
-import { act, fireEvent, render } from "@testing-library/react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import type { Asset, BudgetLine, NetWorth, Transaction } from "pulpe-shared";
 
 import { captureEvent } from "@/core/observability/analytics";
@@ -26,8 +27,22 @@ let mockUuidCount = 0;
 jest.mock("react-native-quick-crypto", () => ({
   randomUUID: () => `adjustment-${(mockUuidCount += 1)}`,
 }));
+// Swapped for the real hook by the one test that follows the body to the wire.
+let mockCreateHook: () => typeof mockCreate = () => mockCreate;
 jest.mock("@/features/transactions/transaction-mutations", () => ({
-  useCreateTransaction: () => mockCreate,
+  useCreateTransaction: () => mockCreateHook(),
+}));
+const mockHttpPost = jest.fn();
+// No gc timer left behind to hold the test process open.
+const wireClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { gcTime: Infinity },
+      mutations: { gcTime: Infinity },
+    },
+  });
+jest.mock("@/core/api/api", () => ({
+  api: { post: (...args: unknown[]) => mockHttpPost(...args) },
 }));
 const mockFollow = { mutate: jest.fn(), reset: jest.fn(), isError: false };
 // The real linked-accounts hook runs on top of these two: its filter is under test.
@@ -352,6 +367,8 @@ function renderSheet(
   realized: Partial<RealizedMetrics> = {},
   transactions: Transaction[] = [],
   budgetLines: BudgetLine[] = [],
+  /** Needed by the real mutation hook, which the one wire-level test uses. */
+  withQueryClient = false,
 ) {
   const month: ReconcileMonth = {
     realized: { ...REALIZED, ...realized },
@@ -369,7 +386,17 @@ function renderSheet(
     month,
     currency: "CHF" as const,
   };
-  return { props, view: render(<ReconcileAccountsSheet {...props} />) };
+  const sheet = <ReconcileAccountsSheet {...props} />;
+  return {
+    props,
+    view: render(
+      withQueryClient ? (
+        <QueryClientProvider client={wireClient()}>{sheet}</QueryClientProvider>
+      ) : (
+        sheet
+      ),
+    ),
+  };
 }
 
 async function reachVerdict(
@@ -406,6 +433,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockSeenGuide = true;
   Object.assign(mockCreate, { isPending: false, isError: false });
+  mockCreateHook = () => mockCreate;
   mockPayDay = null;
   offer(null);
   mockVaultStatus = "unlocked";
@@ -1101,6 +1129,26 @@ describe("step 2", () => {
     expect(view.getByText("Essence")).toBeTruthy();
   });
 
+  // CA44, through the real create mutation with only the HTTP layer faked: the
+  // body posted for the gap carries `accountId: null`, key present.
+  it("posts the gap movement with accountId null", async () => {
+    mockCreateHook = jest.requireActual(
+      "@/features/transactions/transaction-mutations",
+    ).useCreateTransaction;
+    mockHttpPost.mockResolvedValue({ data: { id: "adjustment-1" } });
+    const view = await renderSheet(PULPE, [essence], [], true).view;
+    await reachVerdict(view, "930");
+    await fireEvent.press(
+      view.getByText("home.reconcile.compare.noExpenseMatches"),
+    );
+    await fireEvent.press(view.getByText(NOTE_EXPENSE));
+
+    await waitFor(() => expect(mockHttpPost).toHaveBeenCalledTimes(1));
+    const [endpoint, body] = mockHttpPost.mock.calls[0] as [string, object];
+    expect(endpoint).toBe("/transactions");
+    expect(body).toHaveProperty("accountId", null);
+  });
+
   it("goes from « Aucune dépense ne correspond » to one entry with a stable id, completed once", async () => {
     const { props, view: pending } = renderSheet(PULPE, [essence]);
     const view = await pending;
@@ -1130,6 +1178,8 @@ describe("step 2", () => {
       kind: "expense",
       transactionDate: expect.any(String),
       checkedAt: expect.any(String),
+      // CA44: the gap movement states « Aucun », whatever the default account.
+      accountId: null,
     });
 
     // Refused: the screen stays, and the retry replays the same write, id included.

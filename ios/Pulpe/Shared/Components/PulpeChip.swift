@@ -104,7 +104,8 @@ struct PulpeChip<Trailing: View>: View {
     var body: some View {
         content
             .padding(.horizontal, size.horizontalPadding)
-            .frame(height: DesignTokens.FrameHeight.chip)
+            // A floor, not a fixed height: at accessibility sizes the label outgrows 36pt.
+            .frame(minHeight: DesignTokens.FrameHeight.chip)
             .background(Capsule().fill(backgroundFill))
             .overlay { borderOverlay }
             .foregroundStyle(foregroundColor)

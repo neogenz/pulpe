@@ -19,6 +19,13 @@ struct AssetPickerField: View {
         flagEnabled && kind.assetDirection != nil
     }
 
+    /// The title of the link a prévision of this kind carries, `nil` when it has none.
+    static func linkTitle(kind: TransactionKind) -> String? {
+        kind == .income
+            ? title(direction: .own, drawn: true)
+            : kind.assetDirection.map { title(direction: $0, drawn: false) }
+    }
+
     private var direction: AssetDirection? { drawn ? .own : kind.assetDirection }
 
     private var selectedAsset: Asset? {
@@ -27,6 +34,10 @@ struct AssetPickerField: View {
     }
 
     private func title(_ direction: AssetDirection) -> String {
+        Self.title(direction: direction, drawn: drawn)
+    }
+
+    static func title(direction: AssetDirection, drawn: Bool) -> String {
         if drawn { return AppLocale.string("Tiré de") }
         return AppLocale.string(direction == .own ? "Versée sur" : "Dette remboursée")
     }

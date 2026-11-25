@@ -12,6 +12,7 @@ const validItem = {
   recurrence: 'one_off',
   savings_goal_id: null,
   asset_id: null,
+  account_id: null,
   original_amount: null,
   original_currency: null,
   target_currency: null,
@@ -47,6 +48,20 @@ describe('createBudgetLineSpreadItemSchema', () => {
         ...validItem,
         asset_id: 'nope',
       }),
+    ).toThrow();
+  });
+
+  it('requires the account key and accepts an account uuid (PUL-378)', () => {
+    const accountId = '123e4567-e89b-12d3-a456-426614174002';
+    expect(
+      createBudgetLineSpreadItemSchema.parse({
+        ...validItem,
+        account_id: accountId,
+      }).account_id,
+    ).toBe(accountId);
+    const { account_id: _omitted, ...withoutAccount } = validItem;
+    expect(() =>
+      createBudgetLineSpreadItemSchema.parse(withoutAccount),
     ).toThrow();
   });
 

@@ -58,6 +58,11 @@ export class UserSettingsStore {
     () => this.settings()?.showCurrencySelector ?? false,
   );
 
+  /** Account new movements start on; the server clears it when that account is archived or deleted. */
+  readonly defaultAccountId = computed(
+    () => this.settings()?.defaultAccountId ?? null,
+  );
+
   readonly isLoading = this.#settingsResource.isInitialLoading;
 
   readonly error = this.#settingsResource.error;
@@ -91,6 +96,10 @@ export class UserSettingsStore {
     const response = await firstValueFrom(this.#api.updateSettings$(settings));
     this.#settingsResource.set(response.data);
     return response.data;
+  }
+
+  setDefaultAccount(accountId: string | null): Promise<UserSettings> {
+    return this.updateSettings({ defaultAccountId: accountId });
   }
 
   reload(): void {

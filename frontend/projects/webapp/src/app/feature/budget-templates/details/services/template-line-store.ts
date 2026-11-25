@@ -30,6 +30,8 @@ export interface TemplateLineFormInput {
   savingsGoalId?: string | null;
   /** Absent with the `net_worth` flag off: the payload then carries no `assetId`. */
   assetId?: string | null;
+  /** Absent with the `net_worth` flag off on an edit: the line keeps its account. */
+  accountId?: string | null;
   originalAmount?: number;
   originalCurrency?: SupportedCurrency;
   targetCurrency?: SupportedCurrency;
@@ -194,6 +196,7 @@ export class TemplateLineStore {
       tagIds: input.tagIds ?? [],
       savingsGoalId: input.savingsGoalId ?? null,
       ...(input.assetId !== undefined ? { assetId: input.assetId } : {}),
+      ...(input.accountId !== undefined ? { accountId: input.accountId } : {}),
       ...this.#extractCurrencyFields(input),
     };
 
@@ -244,6 +247,7 @@ export class TemplateLineStore {
       templateId: template?.id ?? '',
       savingsGoalId: payload.savingsGoalId ?? null,
       assetId: payload.assetId ?? null,
+      accountId: payload.accountId ?? null,
       name: payload.name,
       amount: payload.amount,
       kind: payload.kind,
@@ -267,6 +271,7 @@ export class TemplateLineStore {
       kind: input.kind,
       savingsGoalId: input.savingsGoalId ?? null,
       ...(input.assetId !== undefined ? { assetId: input.assetId } : {}),
+      ...(input.accountId !== undefined ? { accountId: input.accountId } : {}),
       recurrence: 'fixed',
       description: '',
       tagIds: input.tagIds ?? [],

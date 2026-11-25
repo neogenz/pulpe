@@ -18,6 +18,7 @@ const checkedEntity: Transaction = {
   id: 'txn-1',
   budgetId: 'budget-1',
   budgetLineId: null,
+  accountId: null,
   name: 'Restaurant',
   amount: 50,
   originalAmount: null,

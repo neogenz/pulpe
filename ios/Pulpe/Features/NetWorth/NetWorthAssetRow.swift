@@ -4,6 +4,32 @@ struct NetWorthAssetActions {
     let edit: () -> Void
     let toggleArchive: () -> Void
     let delete: () -> Void
+    /// « Utiliser par défaut dans le budget » (PUL-378). `nil` where the entry is not offered.
+    var toggleDefault: (() -> Void)?
+}
+
+/// The default account as « Mon patrimoine » shows it (PUL-378): the badge, and the menu entry
+/// that sets or unsets it. The setting itself lives in `UserSettingsStore`.
+enum NetWorthDefaultAccount {
+    /// An archived element is never the default: archiving clears the setting.
+    static func isDefault(_ asset: Asset, defaultId: String?) -> Bool {
+        asset.archivedAt == nil && asset.id == defaultId
+    }
+
+    static func offersMenuEntry(for asset: Asset, flagEnabled: Bool) -> Bool {
+        flagEnabled && asset.archivedAt == nil
+    }
+
+    static func menuTitle(isDefault: Bool) -> String {
+        isDefault
+            ? AppLocale.string("Ne plus utiliser par défaut")
+            : AppLocale.string("Utiliser par défaut dans le budget")
+    }
+
+    /// The setting after the entry is chosen: the default element unsets it, any other takes it.
+    static func settingAfterToggle(of asset: Asset, current: String?) -> String? {
+        current == asset.id ? nil : asset.id
+    }
 }
 
 /// One asset: name, value in its own currency (and, for a foreign one, the base-currency
@@ -15,6 +41,8 @@ struct NetWorthAssetRow: View {
     /// Leads the meta line where the card is not the element's Type (« Découverts »).
     var categoryName: String?
     var actions: NetWorthAssetActions?
+    /// The element new movements start on (PUL-378).
+    var isDefault = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -53,8 +81,14 @@ struct NetWorthAssetRow: View {
                 .font(PulpeTypography.captionRegular)
                 .foregroundStyle(Color.textSecondary)
                 .sensitiveAmount(asset.movedSinceEntry != nil)
-            if !asset.badges.isEmpty {
+            if isDefault || !asset.badges.isEmpty {
                 HStack(spacing: DesignTokens.Spacing.xs) {
+                    if isDefault {
+                        PulpeChip(
+                            label: AppLocale.string("Par défaut"),
+                            style: .tinted(surface: .accentWash, foreground: .accentInk)
+                        )
+                    }
                     ForEach(asset.badges, id: \.self) { badge in
                         PulpeChip(label: label(of: badge), style: .semantic(.financialOverBudget))
                     }
@@ -93,6 +127,13 @@ struct NetWorthAssetRow: View {
         Menu {
             if asset.archivedAt == nil {
                 Button(AppLocale.string("Modifier"), systemImage: "pencil", action: actions.edit)
+            }
+            if let toggleDefault = actions.toggleDefault {
+                Button(
+                    NetWorthDefaultAccount.menuTitle(isDefault: isDefault),
+                    systemImage: isDefault ? "star.slash" : "star",
+                    action: toggleDefault
+                )
             }
             Button(
                 asset.archivedAt == nil ? AppLocale.string("Archiver") : AppLocale.string("Désarchiver"),

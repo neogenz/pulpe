@@ -34,6 +34,7 @@ import { captureReminderToggled } from "@/core/observability/product-events";
 import { Notice } from "@/core/ui/notice";
 import { useCurrentMonth } from "@/features/current-month/current-month-queries";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { useAccountChoices } from "@/features/net-worth/use-account-selection";
 import { usePullToRefresh } from "@/core/ui/pull-to-refresh";
 import {
   SettingsRow,
@@ -67,6 +68,11 @@ export default function PreferencesScreen() {
     (state) => state.isDiagnosticSharingEnabled,
   );
 
+  const accounts = useAccountChoices();
+  const defaultAccount = [
+    ...accounts.choices.own,
+    ...accounts.choices.owe,
+  ].find((asset) => asset.id === accounts.defaultId);
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDay = settings.data?.payDayOfMonth ?? null;
 
@@ -175,6 +181,18 @@ export default function PreferencesScreen() {
             onPress={() => router.push("/settings/pay-day")}
           />
         </SettingsSection>
+
+        {accounts.isOffered && (
+          <SettingsSection title={t("netWorth.account.defaultSection")}>
+            <SettingsRow
+              testID="settings-default-account"
+              icon="bank-outline"
+              title={t("netWorth.account.defaultLabel")}
+              description={defaultAccount?.name ?? t("netWorth.account.none")}
+              onPress={() => router.push("/settings/default-account")}
+            />
+          </SettingsSection>
+        )}
 
         <View style={styles.section}>
           <SettingsSectionTitle>

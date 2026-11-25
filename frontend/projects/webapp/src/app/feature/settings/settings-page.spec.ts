@@ -8,10 +8,21 @@ import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { type Observable, of } from 'rxjs';
 import { type SupportedLocale } from 'pulpe-shared';
+import { By } from '@angular/platform-browser';
 
 import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
+import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
+import { createMockDataCache } from '@core/testing';
+import { AccountPickerField } from '@app/pattern/account-picker/account-picker-field';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
+import {
+  LIVRET,
+  TICKET_ASSETS,
+  netWorthResponse,
+} from '@app/testing/net-worth-fixtures';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStore } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
@@ -34,9 +45,13 @@ describe('SettingsPage', () => {
     currency: ReturnType<typeof signal<string>>;
     showCurrencySelector: ReturnType<typeof signal<boolean>>;
     locale: ReturnType<typeof signal<SupportedLocale>>;
+    defaultAccountId: ReturnType<typeof signal<string | null>>;
+    setDefaultAccount: ReturnType<typeof vi.fn>;
     updateSettings: ReturnType<typeof vi.fn>;
     deleteAccount: ReturnType<typeof vi.fn>;
   };
+  let mockPostHog: ReturnType<typeof createMockPostHogService>;
+  let netWorthAssets: typeof TICKET_ASSETS;
   let mockSnackBar: { open: ReturnType<typeof vi.fn> };
   let mockLogger: {
     error: ReturnType<typeof vi.fn>;
@@ -63,11 +78,17 @@ describe('SettingsPage', () => {
       open: vi.fn().mockReturnValue(mockDialogRef),
     };
 
+    mockPostHog = createMockPostHogService();
+    mockPostHog.isFeatureEnabled.mockReturnValue(true);
+    netWorthAssets = TICKET_ASSETS;
+
     mockUserSettingsStore = {
       payDayOfMonth: signal<number | null>(null),
       currency: signal('CHF'),
       showCurrencySelector: signal(false),
       locale: signal<SupportedLocale>('fr'),
+      defaultAccountId: signal<string | null>(null),
+      setDefaultAccount: vi.fn().mockResolvedValue({}),
       updateSettings: vi.fn().mockResolvedValue({}),
       deleteAccount: vi.fn().mockResolvedValue(undefined),
     };
@@ -109,6 +130,14 @@ describe('SettingsPage', () => {
         ...provideTranslocoForTest(),
         SettingsDialogService,
         { provide: UserSettingsStore, useValue: mockUserSettingsStore },
+        { provide: PostHogService, useValue: mockPostHog },
+        {
+          provide: AssetApi,
+          useValue: {
+            cache: createMockDataCache(),
+            getNetWorth$: () => of(netWorthResponse(netWorthAssets)),
+          },
+        },
         { provide: MatDialog, useValue: mockDialog },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: Logger, useValue: mockLogger },
@@ -301,6 +330,116 @@ describe('SettingsPage', () => {
       );
 
       expect(toggle).not.toBeNull();
+    });
+  });
+
+  describe('default account (PUL-378)', () => {
+    const accountSelect = () =>
+      fixture.nativeElement.querySelector(
+        'pulpe-account-picker-field mat-select',
+      );
+    const render = async () => {
+      fixture = TestBed.createComponent(SettingsPage);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+    const pick = (accountId: string | null) =>
+      fixture.debugElement
+        .query(By.directive(AccountPickerField))
+        .componentInstance.valueChanged.emit(accountId);
+
+    it('CA28: shows « Compte par défaut » with the flag on and an active item', async () => {
+      await render();
+
+      expect(accountSelect()).not.toBeNull();
+      expect(
+        fixture.nativeElement
+          .querySelector('pulpe-account-picker-field mat-label')
+          .textContent.trim(),
+      ).toBe('Compte par défaut');
+    });
+
+    it('sits after « Annuler / Enregistrer », which do not undo it', async () => {
+      await render();
+      fixture.componentInstance.selectedPayDay.set(15);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const cancel = fixture.nativeElement.querySelector(
+        '[data-testid="cancel-settings-button"]',
+      );
+      const picker = fixture.nativeElement.querySelector(
+        'pulpe-account-picker-field',
+      );
+      expect(
+        cancel.compareDocumentPosition(picker) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('CA28: is absent with the flag off', async () => {
+      mockPostHog.isFeatureEnabled.mockReturnValue(false);
+      await render();
+
+      expect(accountSelect()).toBeNull();
+    });
+
+    it('CA28: is absent without an active item', async () => {
+      netWorthAssets = [];
+      await render();
+
+      expect(accountSelect()).toBeNull();
+    });
+
+    it('writes the picked account, then « Aucun » as a null (CA34)', async () => {
+      await render();
+
+      pick(LIVRET.id);
+      await fixture.whenStable();
+      pick(null);
+      await fixture.whenStable();
+
+      expect(mockUserSettingsStore.setDefaultAccount).toHaveBeenNthCalledWith(
+        1,
+        LIVRET.id,
+      );
+      expect(mockUserSettingsStore.setDefaultAccount).toHaveBeenNthCalledWith(
+        2,
+        null,
+      );
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        "C'est enregistré",
+        'OK',
+        expect.any(Object),
+      );
+    });
+
+    it('says so when the write fails', async () => {
+      mockUserSettingsStore.setDefaultAccount.mockRejectedValue(
+        new Error('boom'),
+      );
+      await render();
+
+      pick(LIVRET.id);
+      await fixture.whenStable();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining("L'enregistrement a échoué"),
+        'OK',
+        expect.any(Object),
+      );
+    });
+
+    it('shows the account the store holds, so both screens agree (CA28)', async () => {
+      mockUserSettingsStore.defaultAccountId.set(LIVRET.id);
+      await render();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('pulpe-account-picker-field .mat-mdc-select-value')
+          .textContent.trim(),
+      ).toBe('Livret');
     });
   });
 

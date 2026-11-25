@@ -20,6 +20,7 @@ import { AppCurrencyPipe } from '@core/currency';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { TitleDisplay } from '@core/routing';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
+import { UserSettingsStore } from '@core/user-settings';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { type AssetRowEvent } from './components/net-worth-asset-row';
@@ -237,6 +238,7 @@ import { injectWriteAttempt } from './services/write-attempt';
                     [assets]="group.assets"
                     [baseCurrency]="totals.baseCurrency"
                     [busy]="store.isSaving()"
+                    [defaultAccountId]="defaultAccountId()"
                     [renamable]="true"
                     [collapsed]="collapsedTypeIds().has(group.category.id)"
                     (toggleCollapsed)="toggleType(group.category.id)"
@@ -267,6 +269,7 @@ import { injectWriteAttempt } from './services/write-attempt';
                       [assets]="group.assets"
                       [baseCurrency]="totals.baseCurrency"
                       [busy]="store.isSaving()"
+                      [defaultAccountId]="defaultAccountId()"
                       [isDebts]="true"
                       [renamable]="true"
                       [collapsed]="collapsedTypeIds().has(category.id)"
@@ -281,6 +284,7 @@ import { injectWriteAttempt } from './services/write-attempt';
                       [assets]="group.assets"
                       [baseCurrency]="totals.baseCurrency"
                       [busy]="store.isSaving()"
+                      [defaultAccountId]="defaultAccountId()"
                       [isDebts]="true"
                       [showCategory]="true"
                       [categoryNames]="categoryNames()"
@@ -318,6 +322,7 @@ import { injectWriteAttempt } from './services/write-attempt';
                     [assets]="store.archivedAssets()"
                     [baseCurrency]="totals.baseCurrency"
                     [busy]="store.isSaving()"
+                    [defaultAccountId]="defaultAccountId()"
                     [showCategory]="true"
                     [categoryNames]="categoryNames()"
                     (action)="onAction($event)"
@@ -373,6 +378,8 @@ export default class NetWorthPage {
   protected readonly title = inject(TitleDisplay);
   readonly #dialogs = inject(NetWorthDialogService);
   readonly #matDialog = inject(MatDialog);
+  readonly #settings = inject(UserSettingsStore);
+  protected readonly defaultAccountId = this.#settings.defaultAccountId;
   readonly #attempt = injectWriteAttempt();
   readonly #listFormat = new Intl.ListFormat(inject(LOCALE_ID), {
     style: 'long',
@@ -511,11 +518,22 @@ export default class NetWorthPage {
         await this.#attempt(() =>
           this.store.setArchived(asset.id, action === 'archive'),
         );
+        // The server clears the default account when it goes away (CA35).
+        this.#settings.reload();
         return;
       case 'delete':
         if (await this.#dialogs.confirmDelete(asset)) {
           await this.#attempt(() => this.store.deleteAsset(asset.id));
+          this.#settings.reload();
         }
+        return;
+      case 'setDefault':
+      case 'unsetDefault':
+        await this.#attempt(async () => {
+          await this.#settings.setDefaultAccount(
+            action === 'setDefault' ? asset.id : null,
+          );
+        });
         return;
     }
   }

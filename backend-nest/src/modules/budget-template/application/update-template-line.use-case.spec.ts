@@ -19,6 +19,7 @@ const templateLine: TemplateLine = {
   templateId: 'template-1',
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   name: 'Salaire',
   amount: 5000,
@@ -119,6 +120,35 @@ describe('UpdateTemplateLineUseCase', () => {
       await useCase.execute(templateLine.id, { assetId: null }, mockUser);
 
       expect(patchSentToRepo().assetId).toBeNull();
+    });
+  });
+
+  describe('account (PUL-378)', () => {
+    const revolutId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+    const patchSentToRepo = () => mockRepo.updateLine.mock.calls[0][1];
+
+    it('CA26: an update without the account keeps it, with or without tags', async () => {
+      await useCase.execute(templateLine.id, { name: 'Paie' }, mockUser);
+      await useCase.execute(
+        templateLine.id,
+        { name: 'Paie', tagIds: ['8a0f6c80-1234-4e5f-89ab-666666666666'] },
+        mockUser,
+      );
+
+      expect(mockRepo.updateLine.mock.calls[0][1].accountId).toBeUndefined();
+      expect(mockRepo.updateLine.mock.calls[1][1].accountId).toBeUndefined();
+    });
+
+    it('writes the account, kept across a kind change, and clears it on null', async () => {
+      await useCase.execute(
+        templateLine.id,
+        { kind: 'expense', accountId: revolutId },
+        mockUser,
+      );
+      expect(patchSentToRepo().accountId).toBe(revolutId);
+
+      await useCase.execute(templateLine.id, { accountId: null }, mockUser);
+      expect(mockRepo.updateLine.mock.calls[1][1].accountId).toBeNull();
     });
   });
 });

@@ -24,6 +24,8 @@ struct AddBudgetLineSheet: View {
     @State var kind: TransactionKind = .expense
     @State var savingsGoalId: String?
     @State var assetId: String?
+    @State var accountId: String?
+    @State var didPrefillAccount = false
     @State var isLoading = false
     @State var error: Error?
     @FocusState var focusedField: AmountDescriptionField?
@@ -111,6 +113,7 @@ struct AddBudgetLineSheet: View {
         // An announcement without a goal names no pot to draw from.
         if isPlannedWithdrawalMode, sourceSavingsGoalId == nil { return false }
         if kind == .income, incomeOrigin == .asset, assetId == nil { return false }
+        if AccountLink.conflicts(account: accountId, link: linkedAssetId) { return false }
         if mode == .everyMonth, !offersEveryMonth { return false }
         return isSpreadMode ? spreadCalculator.isValid : true
     }
@@ -158,6 +161,15 @@ struct AddBudgetLineSheet: View {
 
             detailsCard
 
+            if !isSavingsWithdrawalMode {
+                AccountPickerField(
+                    selection: $accountId,
+                    link: linkedAssetId,
+                    linkTitle: AssetPickerField.linkTitle(kind: kind),
+                    didPrefill: $didPrefillAccount
+                )
+            }
+
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
                     self.error = nil
@@ -177,6 +189,11 @@ struct AddBudgetLineSheet: View {
             resetIncompatibleOriginState()
         }
         .onChange(of: incomeOrigin) { _, _ in resetIncompatibleOriginState() }
+        .onChange(of: linkedAssetId) { _, link in
+            accountId = AccountLink.afterLinkChange(
+                account: accountId, link: link, defaultId: userSettingsStore.defaultAccountId
+            )
+        }
         .task { await Self.loadAssets(flagOn: featureFlags.isNetWorthEnabled, store: assetStore) }
         .onChange(of: spreadMonthCount, initial: true) { _, count in
             spreadCalculator.setEnd(SpreadMonth.from(ordinal: spreadCalculator.start.ordinal + count - 1))

@@ -7,6 +7,9 @@ final class UserSettingsStore: StoreProtocol {
     private(set) var payDayOfMonth: Int?
     private(set) var currency: SupportedCurrency = .chf
     private(set) var showCurrencySelector = false
+    /// Net-worth element new movements start on (PUL-378), as the server holds it. It may name
+    /// an element since archived: read it through `AssetStore.activeAssetId(_:)`.
+    private(set) var defaultAccountId: String?
 
     /// Seeded from the persisted snapshot so the first frame paints in the user's language,
     /// before the settings request answers.
@@ -78,6 +81,7 @@ final class UserSettingsStore: StoreProtocol {
                 payDayOfMonth = settings.payDayOfMonth
                 currency = settings.currency ?? .chf
                 showCurrencySelector = settings.showCurrencySelector ?? false
+                defaultAccountId = settings.defaultAccountId
                 if let serverLocale = settings.locale {
                     applyLocale(serverLocale)
                 } else {
@@ -117,6 +121,7 @@ final class UserSettingsStore: StoreProtocol {
         payDayOfMonth = nil
         currency = .chf
         showCurrencySelector = false
+        defaultAccountId = nil
         // Clear rather than default: the next account must not inherit this one's language
         // for the seconds between launch and the first settings response. With the
         // snapshot gone, `current` resolves from device detection, like a fresh install.
@@ -222,6 +227,27 @@ final class UserSettingsStore: StoreProtocol {
             self.error = apiError
         } catch {
             showCurrencySelector = previousValue
+            self.error = .networkError(error)
+        }
+    }
+
+    /// `nil` is « Aucun ».
+    func setDefaultAccount(_ id: String?) async {
+        let previousValue = defaultAccountId
+        error = nil
+
+        // Optimistic update
+        defaultAccountId = id
+
+        do {
+            let updated = try await service.updateSettings(UpdateUserSettings(defaultAccountId: .some(id)))
+            defaultAccountId = updated.defaultAccountId ?? id
+            lastLoadTime = Date()
+        } catch let apiError as APIError {
+            defaultAccountId = previousValue
+            self.error = apiError
+        } catch {
+            defaultAccountId = previousValue
             self.error = .networkError(error)
         }
     }

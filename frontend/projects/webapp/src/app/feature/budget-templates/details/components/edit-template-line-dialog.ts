@@ -47,6 +47,10 @@ import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { assetDirectionForKind } from '@core/asset/net-worth';
 import { AssetPickerField } from '@pattern/asset-picker/asset-picker-field';
+import {
+  AccountPickerField,
+  injectInitialAccountId,
+} from '@pattern/account-picker/account-picker-field';
 import { SavingsGoalPickerField } from '@pattern/savings-goal-picker/savings-goal-picker-field';
 
 const TRANSACTION_KINDS: readonly TransactionKind[] = [
@@ -67,6 +71,7 @@ interface EditTemplateLineModel {
   tagIds: string[];
   savingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
 }
 
 @Component({
@@ -88,6 +93,7 @@ interface EditTemplateLineModel {
     TagPicker,
     SavingsGoalPickerField,
     AssetPickerField,
+    AccountPickerField,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -157,7 +163,6 @@ interface EditTemplateLineModel {
             }
           </mat-form-field>
 
-          <pulpe-tag-picker [control]="addForm.tagIds" />
           @if (model().kind === 'saving') {
             <pulpe-savings-goal-picker-field
               [value]="model().savingsGoalId"
@@ -170,9 +175,15 @@ interface EditTemplateLineModel {
             <pulpe-asset-picker-field
               [direction]="direction"
               [value]="model().assetId"
-              (valueChanged)="model.update((m) => ({ ...m, assetId: $event }))"
+              (valueChanged)="setAssetLink($event)"
             />
           }
+          <pulpe-account-picker-field
+            [value]="model().accountId"
+            [errorKey]="accountErrorKey()"
+            (valueChanged)="model.update((m) => ({ ...m, accountId: $event }))"
+          />
+          <pulpe-tag-picker [control]="addForm.tagIds" />
         </div>
       </div>
     </mat-dialog-content>
@@ -213,6 +224,7 @@ export class EditTemplateLineDialog {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #initialAccountId = injectInitialAccountId();
   readonly #isAssetLinkEnabled = inject(PostHogService).isFeatureEnabled(
     FEATURE_FLAGS.NET_WORTH,
   );
@@ -233,6 +245,10 @@ export class EditTemplateLineDialog {
     tagIds: this.#data.line?.tagIds ?? [],
     savingsGoalId: this.#data.line?.savingsGoalId ?? null,
     assetId: this.#data.line?.assetId ?? null,
+    // A new line starts on the default account; an existing one on its own.
+    accountId: this.#data.line
+      ? (this.#data.line.accountId ?? null)
+      : this.#initialAccountId(),
   });
 
   protected readonly addForm = form(this.model, (path) => {
@@ -254,9 +270,35 @@ export class EditTemplateLineDialog {
 
   protected readonly conversionError = signal(false);
   protected readonly isSubmitting = signal(false);
+  // « Compte » and the link cannot name the same element.
+  protected readonly accountErrorKey = computed(() => {
+    const { accountId, assetId } = this.model();
+    return accountId !== null && accountId === assetId
+      ? 'netWorth.account.sameAsLink'
+      : null;
+  });
   protected readonly canSubmit = computed(
-    () => this.addForm().valid() && !this.isSubmitting(),
+    () =>
+      this.addForm().valid() &&
+      !this.isSubmitting() &&
+      this.accountErrorKey() === null,
   );
+
+  // Picking the link on the account a new line started on frees the account
+  // rather than blocking a form the user did not get wrong (CA45). An account
+  // picked by hand stays, and the CA25 message asks for another one.
+  protected setAssetLink(assetId: string | null): void {
+    this.model.update((m) => ({
+      ...m,
+      assetId,
+      accountId:
+        !this.isEditMode() &&
+        m.accountId === assetId &&
+        m.accountId === this.#initialAccountId()
+          ? null
+          : m.accountId,
+    }));
+  }
 
   // Which assets the kind can be linked to; null hides the field (flag off, or
   // a Revenu: a template carries no asset origin).
@@ -313,6 +355,11 @@ export class EditTemplateLineDialog {
               tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               assetId: this.#isAssetLinkEnabled ? m.assetId : undefined,
+              // Create always sends it; an edit only when the field can show.
+              accountId:
+                this.#isAssetLinkEnabled || !this.isEditMode()
+                  ? m.accountId
+                  : undefined,
               conversion: metadata,
             }),
         };

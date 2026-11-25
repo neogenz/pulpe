@@ -56,6 +56,17 @@ final class AssetStore: StoreProtocol {
         activeAssets.filter { $0.direction == direction }
     }
 
+    /// What « Compte » offers: the active elements, plus `kept` even archived, so a movement
+    /// keeps the account it already has (CA24).
+    func accountChoices(direction: AssetDirection, keeping kept: String?) -> [Asset] {
+        (netWorth?.assets ?? []).filter { $0.direction == direction && ($0.archivedAt == nil || $0.id == kept) }
+    }
+
+    /// `id` when it still names an active element: an archived or deleted one is not usable.
+    func activeAssetId(_ id: String?) -> String? {
+        activeAssets.contains { $0.id == id } ? id : nil
+    }
+
     // MARK: - Smart Loading (StoreProtocol)
 
     func loadIfNeeded() async {

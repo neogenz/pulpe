@@ -210,6 +210,50 @@ describe('UserSettingsStore', () => {
       });
     });
   });
+
+  describe('default account (PUL-378)', () => {
+    const REVOLUT_ID = '00000000-0000-4000-8000-000000000b02';
+
+    it('is « Aucun » until a default account is set', async () => {
+      await vi.waitFor(() => expect(store.settings()).toEqual(mockSettings));
+
+      expect(store.defaultAccountId()).toBeNull();
+    });
+
+    it('CA28, CA47: writes the account, and both screens read the answer', async () => {
+      await vi.waitFor(() => expect(store.settings()).toEqual(mockSettings));
+      mockApi.updateSettings$ = vi.fn().mockReturnValue(
+        of({
+          data: { ...mockSettings, defaultAccountId: REVOLUT_ID },
+          success: true,
+        }),
+      );
+
+      await store.setDefaultAccount(REVOLUT_ID);
+
+      expect(mockApi.updateSettings$).toHaveBeenCalledWith({
+        defaultAccountId: REVOLUT_ID,
+      });
+      expect(store.defaultAccountId()).toBe(REVOLUT_ID);
+    });
+
+    it('CA34: « Aucun » is sent as an explicit null', async () => {
+      await vi.waitFor(() => expect(store.settings()).toEqual(mockSettings));
+      mockApi.updateSettings$ = vi.fn().mockReturnValue(
+        of({
+          data: { ...mockSettings, defaultAccountId: null },
+          success: true,
+        }),
+      );
+
+      await store.setDefaultAccount(null);
+
+      expect(mockApi.updateSettings$).toHaveBeenCalledWith({
+        defaultAccountId: null,
+      });
+      expect(store.defaultAccountId()).toBeNull();
+    });
+  });
 });
 
 describe('UserSettingsStore — loading conditions', () => {

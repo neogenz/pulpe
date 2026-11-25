@@ -4,6 +4,7 @@ import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { SavingsGoalModule } from '@modules/savings-goal/savings-goal.module';
+import { UserModule } from '@modules/user/user.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { TransactionController } from './infrastructure/http/transaction.controller';
 import { SupabaseTransactionRepository } from './infrastructure/persistence/supabase-transaction.repository';
@@ -36,6 +37,7 @@ import { HasTransactionsUseCase } from './application/has-transactions.use-case'
     CurrencyModule,
     EncryptionModule,
     SavingsGoalModule,
+    UserModule,
   ],
   controllers: [TransactionController],
   providers: [

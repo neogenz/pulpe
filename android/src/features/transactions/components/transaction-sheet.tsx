@@ -27,6 +27,8 @@ import { FieldError } from "@/core/ui/field-error";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useCurrencyRate } from "@/features/account/currency-queries";
 import { useSavingsGoalWithdrawalOptions } from "@/features/savings-goals/goals-queries";
+import { AccountField } from "@/features/net-worth/components/account-field";
+import { useAccountSelection } from "@/features/net-worth/use-account-selection";
 
 import {
   computeMovementImpact,
@@ -183,6 +185,10 @@ export function TransactionSheet({
   // one is refused: from then on the submitted values stay as they are.
   const hasUncertainAttempt = useRef(false);
   const draft: TransactionDraft = { ...form, budgetId };
+  const account = useAccountSelection(
+    transaction?.accountId ?? null,
+    !isEditing,
+  );
   const settings = useUserSettings();
   // Entered in the other currency, converted on the way out: an edit keeps the
   // currency the row was typed in, and cannot change it.
@@ -255,7 +261,8 @@ export function TransactionSheet({
   const lines = details.data?.budgetLines ?? [];
   const transactions = details.data?.transactions ?? [];
   // Savings drawn from a goal are free by backend rule: they carry no prévision.
-  const isQuestionLocked = isEditing || (isOriginOffered && isFromSavingsGoal);
+  const isQuestionLockedByGoal = isOriginOffered && isFromSavingsGoal;
+  const isQuestionLocked = isEditing || isQuestionLockedByGoal;
   const selectedLineId = isEditing
     ? (transaction.budgetLineId ?? null)
     : envelope !== undefined
@@ -264,6 +271,10 @@ export function TransactionSheet({
         ? null
         : pickedLineId;
   const selectedLine = lines.find((line) => line.id === selectedLineId);
+  // A movement allocated to a prévision follows its account (CA4). An income
+  // drawn from a goal is still a free movement: iOS and the web keep the field.
+  const isFreeMovement = selectedLineId === null;
+  const showsAccount = account.isOffered && isFreeMovement;
   const hasEligibleLines = eligibleLines(lines, draft.kind).length > 0;
   const showsQuestion =
     envelope === undefined && (hasEligibleLines || isEditing);
@@ -322,6 +333,7 @@ export function TransactionSheet({
     setFromSavingsGoal(prefilledGoalId !== undefined);
     setPickedLineId(null);
     setPickingLine(false);
+    account.reset();
     setGeneration((current) => current + 1);
     setCreateId(randomUUID());
     setSubmittedCreate(null);
@@ -361,7 +373,11 @@ export function TransactionSheet({
           conversion,
         ),
         id: createId,
-        ...(selectedLineId === null ? {} : { budgetLineId: selectedLineId }),
+        ...(selectedLineId === null
+          ? isFreeMovement
+            ? account.create
+            : {}
+          : { budgetLineId: selectedLineId }),
       };
       createAttempt.current = payload;
       setSubmittedCreate(payload);
@@ -386,11 +402,14 @@ export function TransactionSheet({
     update.mutate(
       {
         id: transaction.id,
-        changes: buildTransactionUpdate(
-          draft,
-          transaction,
-          foreign === null ? null : { leg: foreign, conversion },
-        ),
+        changes: {
+          ...buildTransactionUpdate(
+            draft,
+            transaction,
+            foreign === null ? null : { leg: foreign, conversion },
+          ),
+          ...(showsAccount ? account.change : {}),
+        },
       },
       { onSuccess },
     );
@@ -600,6 +619,14 @@ export function TransactionSheet({
                   Keyboard.dismiss();
                   setPickingLine(true);
                 }}
+              />
+            )}
+
+            {showsAccount && (
+              <AccountField
+                choices={account.choices}
+                value={account.account}
+                onChange={account.setAccount}
               />
             )}
 

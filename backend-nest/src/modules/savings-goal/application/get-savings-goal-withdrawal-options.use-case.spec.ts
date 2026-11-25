@@ -22,6 +22,7 @@ const settings: UserSettings = {
   payDayOfMonth: null,
   currency: 'CHF',
   showCurrencySelector: false,
+  defaultAccountId: null,
   locale: 'fr',
 };
 

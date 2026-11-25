@@ -11,6 +11,7 @@ const spreadSourceTransaction = (
   budgetId: 'budget-1',
   userId: 'user-1',
   budgetLineId: null,
+  accountId: null,
   month: 3,
   year: 2026,
   name: 'Resto',

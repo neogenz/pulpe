@@ -33,6 +33,8 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
     let kind: TransactionKind
     let savingsGoalId: String?
     let assetId: String?
+    /// Tri-state (PUL-378), see `TransactionCreate.accountId`.
+    let accountId: String??
     let mode: SpreadAmountKind
     let months: [SpreadMonthRef]
     let perMonthAmount: Decimal?
@@ -49,6 +51,7 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
         kind: TransactionKind,
         savingsGoalId: String? = nil,
         assetId: String? = nil,
+        accountId: String?? = nil,
         mode: SpreadAmountKind = .perMonth,
         months: [SpreadMonthRef],
         perMonthAmount: Decimal? = nil,
@@ -64,6 +67,7 @@ struct BudgetLineSpreadCreate: Encodable, Sendable {
         self.kind = kind
         self.savingsGoalId = savingsGoalId
         self.assetId = assetId
+        self.accountId = accountId
         self.mode = mode
         self.months = months
         self.perMonthAmount = perMonthAmount

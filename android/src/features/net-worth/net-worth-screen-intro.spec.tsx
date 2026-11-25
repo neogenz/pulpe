@@ -3,6 +3,7 @@ import type { Asset, NetWorth } from "pulpe-shared";
 import { PaperProvider } from "react-native-paper";
 
 import NetWorthScreen from "@/app/(main)/(tabs)/net-worth";
+import { contractAssets } from "@/core/testing/net-worth-accounts";
 import { useNetWorth } from "@/features/net-worth/net-worth-queries";
 
 let mockHasSeenIntro = false;
@@ -25,15 +26,50 @@ jest.mock("@/features/net-worth/net-worth-intro-gate", () => ({
     mockHasSeenIntro = true;
   },
 }));
+const mockUpdateAsset = { mutate: jest.fn() };
+const mockUpdateSettings = { mutate: jest.fn() };
+const mockInvalidateSettings = jest.fn();
+let mockDefaultAccountId: string | null = null;
 jest.mock("@/features/net-worth/net-worth-queries", () => {
   const mutation = () => ({ mutate: jest.fn() });
   return {
     refetchStaleNetWorth: jest.fn(),
     useNetWorth: jest.fn(),
     useDeleteAsset: mutation,
-    useDismissAssetSuggestion: mutation,
-    useRecordAssetSnapshots: mutation,
-    useUpdateAsset: mutation,
+    useUpdateAsset: () => mockUpdateAsset,
+  };
+});
+jest.mock("@/core/user-settings/user-settings-queries", () => ({
+  useUserSettings: () => ({ data: { defaultAccountId: mockDefaultAccountId } }),
+  invalidateUserSettings: () => mockInvalidateSettings(),
+}));
+jest.mock("@/features/account/account-queries", () => ({
+  useUpdateUserSettings: () => mockUpdateSettings,
+}));
+// The rows are tested on their own; here they only hand back what the screen
+// wires: the actions on the first element.
+jest.mock("@/features/net-worth/components/asset-group-card", () => {
+  const { Pressable: Press } = jest.requireActual("react-native");
+  return {
+    AssetGroupCard: ({
+      group,
+      actions,
+    }: {
+      group: { assets: object[] };
+      actions: Record<string, (asset: object) => void>;
+    }) => (
+      <>
+        <Press
+          testID="row-archive"
+          onPress={() => actions.toggleArchive(group.assets[0])}
+        />
+        <Press
+          testID="row-default"
+          onPress={() => actions.toggleDefault(group.assets[0])}
+        />
+      </>
+    ),
+    AssetRows: () => null,
   };
 });
 // The sheets are tested on their own; here they only say they are open and
@@ -75,10 +111,6 @@ jest.mock("@/features/net-worth/components/net-worth-hero", () => ({
 }));
 jest.mock("@/features/net-worth/components/net-worth-allocation", () => ({
   NetWorthAllocation: () => null,
-}));
-jest.mock("@/features/net-worth/components/asset-group-card", () => ({
-  AssetGroupCard: () => null,
-  AssetRows: () => null,
 }));
 
 const CATEGORY = "00000000-0000-4000-8000-000000000001";
@@ -129,6 +161,8 @@ const renderTab = () =>
   );
 
 beforeEach(() => {
+  jest.clearAllMocks();
+  mockDefaultAccountId = null;
   mockHasSeenIntro = false;
   mockIsFocused = true;
 });
@@ -199,4 +233,54 @@ it("closes on « Compris » without opening the form when accounts exist", async
 
   expect(view.queryByText("intro:auto")).toBeNull();
   expect(view.queryByText("asset-form")).toBeNull();
+});
+
+describe("the default account from « Mon patrimoine » (PUL-378)", () => {
+  const compteCourant = contractAssets()[0];
+  const revolut = contractAssets()[1];
+  const assets = contractAssets().slice(0, 2);
+
+  beforeEach(() => {
+    mockHasSeenIntro = true;
+    serve({
+      ...netWorth(assets),
+      categories: [
+        { id: compteCourant.categoryId, name: "Comptes", total: 5400 },
+      ],
+    });
+  });
+
+  it("CA47 takes the first element as default, then lets it go", async () => {
+    const view = await renderTab();
+    await fireEvent.press(view.getByTestId("row-default"));
+    expect(mockUpdateSettings.mutate.mock.calls[0][0]).toEqual({
+      defaultAccountId: compteCourant.id,
+    });
+
+    mockDefaultAccountId = compteCourant.id;
+    await view.rerender(
+      <PaperProvider>
+        <NetWorthScreen />
+      </PaperProvider>,
+    );
+    await fireEvent.press(view.getByTestId("row-default"));
+    expect(mockUpdateSettings.mutate.mock.calls[1][0]).toEqual({
+      defaultAccountId: null,
+    });
+    expect(revolut.id).not.toBe(compteCourant.id);
+  });
+
+  it("CA35 reads the setting again once an element is archived", async () => {
+    const view = await renderTab();
+    await fireEvent.press(view.getByTestId("row-archive"));
+
+    const [changes, options] = mockUpdateAsset.mutate.mock.calls[0];
+    expect(changes).toEqual({
+      assetId: compteCourant.id,
+      changes: { archived: true },
+    });
+    expect(mockInvalidateSettings).not.toHaveBeenCalled();
+    options.onSuccess();
+    expect(mockInvalidateSettings).toHaveBeenCalledTimes(1);
+  });
 });

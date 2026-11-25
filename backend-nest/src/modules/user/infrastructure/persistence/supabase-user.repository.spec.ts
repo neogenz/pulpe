@@ -110,6 +110,57 @@ function buildServiceRoleClient() {
   };
 }
 
+const COMPTE_COURANT_ID = '11111111-1111-4111-8111-111111111111';
+const REVOLUT_ID = '22222222-2222-4222-8222-222222222222';
+
+/**
+ * Routes `user_default_account` and `asset` to their own queries; every other
+ * table keeps the locale query. `activeAssetIds` are the caller's assets that
+ * RLS shows and that are not archived.
+ */
+function withDefaultAccountTables(
+  client: ReturnType<typeof buildAuthenticatedClient>,
+  stored: string | null,
+  activeAssetIds: string[] = [],
+) {
+  let assetId: string | undefined;
+  const defaultQuery = {
+    select: mock(() => defaultQuery),
+    eq: mock(() => defaultQuery),
+    maybeSingle: mock(() =>
+      Promise.resolve({
+        data: stored === null ? null : { asset_id: stored },
+        error: null,
+      }),
+    ),
+    upsert: mock(() => Promise.resolve({ error: null })),
+    delete: mock(() => defaultQuery),
+    then: (resolve: (value: { error: null }) => void) =>
+      resolve({ error: null }),
+  };
+  const assetQuery = {
+    select: mock(() => assetQuery),
+    eq: mock((column: string, value: string) => {
+      if (column === 'id') assetId = value;
+      return assetQuery;
+    }),
+    is: mock(() => assetQuery),
+    maybeSingle: mock(() =>
+      Promise.resolve({
+        data:
+          assetId && activeAssetIds.includes(assetId) ? { id: assetId } : null,
+        error: null,
+      }),
+    ),
+  };
+  client.from = mock((table: string) => {
+    if (table === 'user_default_account') return defaultQuery;
+    if (table === 'asset') return assetQuery;
+    return client.localeQuery;
+  }) as unknown as typeof client.from;
+  return { defaultQuery, assetQuery };
+}
+
 describe('SupabaseUserRepository', () => {
   let repo: SupabaseUserRepository;
   let authenticatedProvider: AuthenticatedSupabaseProvider;
@@ -127,7 +178,7 @@ describe('SupabaseUserRepository', () => {
         SupabaseUserRepository,
         {
           provide: AuthenticatedSupabaseProvider,
-          useValue: { client: undefined as any },
+          useValue: { client: undefined as any, user: { id: 'user-1' } },
         },
         {
           provide: SupabaseService,
@@ -271,8 +322,25 @@ describe('SupabaseUserRepository', () => {
         currency: 'EUR',
         showCurrencySelector: true,
         locale: 'it',
+        defaultAccountId: null,
       });
       expect(client.from).toHaveBeenCalledWith('user_locale_preference');
+    });
+
+    it('returns the stored default account', async () => {
+      const client = buildAuthenticatedClient({});
+      const { defaultQuery } = withDefaultAccountTables(
+        client,
+        COMPTE_COURANT_ID,
+      );
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+
+      const result = await repo.findSettings();
+
+      expect(result.defaultAccountId).toBe(COMPTE_COURANT_ID);
+      expect(defaultQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
     });
 
     it('falls back to CHF when currency is invalid', async () => {
@@ -347,12 +415,123 @@ describe('SupabaseUserRepository', () => {
         payDayOfMonth: null,
         currency: 'CHF',
         showCurrencySelector: false,
+        defaultAccountId: null,
       });
       expect(mockLogger.warn).not.toHaveBeenCalled();
     });
   });
 
   describe('updateSettings', () => {
+    // CA28: the setting is written and read back through the same route.
+    it('stores an active asset of the caller as default account', async () => {
+      const client = buildAuthenticatedClient({});
+      const { defaultQuery } = withDefaultAccountTables(client, null, [
+        COMPTE_COURANT_ID,
+      ]);
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+      const serviceRole = buildServiceRoleClient();
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => serviceRole,
+      );
+
+      const result = await repo.updateSettings('user-1', {
+        defaultAccountId: COMPTE_COURANT_ID,
+      });
+
+      expect(defaultQuery.upsert).toHaveBeenCalledWith(
+        { user_id: 'user-1', asset_id: COMPTE_COURANT_ID },
+        { onConflict: 'user_id' },
+      );
+      expect(serviceRole.updateUserById).not.toHaveBeenCalled();
+      expect(result.defaultAccountId).toBe(COMPTE_COURANT_ID);
+    });
+
+    // CA33: switching the default only rewrites the setting row.
+    it('replaces the default account by another active asset', async () => {
+      const client = buildAuthenticatedClient({});
+      const { defaultQuery } = withDefaultAccountTables(
+        client,
+        COMPTE_COURANT_ID,
+        [COMPTE_COURANT_ID, REVOLUT_ID],
+      );
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+
+      const result = await repo.updateSettings('user-1', {
+        defaultAccountId: REVOLUT_ID,
+      });
+
+      expect(result.defaultAccountId).toBe(REVOLUT_ID);
+      expect(client.from).not.toHaveBeenCalledWith('budget_line');
+      expect(client.from).not.toHaveBeenCalledWith('transaction');
+      expect(defaultQuery.upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses an archived or foreign asset with a 404 and writes nothing', async () => {
+      const client = buildAuthenticatedClient({});
+      const { defaultQuery, assetQuery } = withDefaultAccountTables(
+        client,
+        COMPTE_COURANT_ID,
+      );
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+
+      const promise = repo.updateSettings('user-1', {
+        defaultAccountId: REVOLUT_ID,
+      });
+
+      await expect(promise).rejects.toMatchObject({
+        code: 'ERR_ASSET_NOT_FOUND',
+      });
+      expect(assetQuery.is).toHaveBeenCalledWith('archived_at', null);
+      expect(defaultQuery.upsert).not.toHaveBeenCalled();
+    });
+
+    // CA34: null removes the setting.
+    it('deletes the setting when the patch sends null', async () => {
+      const client = buildAuthenticatedClient({});
+      const { defaultQuery } = withDefaultAccountTables(
+        client,
+        COMPTE_COURANT_ID,
+      );
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+
+      const result = await repo.updateSettings('user-1', {
+        defaultAccountId: null,
+      });
+
+      expect(defaultQuery.delete).toHaveBeenCalledTimes(1);
+      expect(defaultQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
+      expect(result.defaultAccountId).toBeNull();
+    });
+
+    it('keeps the stored default when an older client omits the field', async () => {
+      const client = buildAuthenticatedClient({});
+      const { defaultQuery } = withDefaultAccountTables(
+        client,
+        COMPTE_COURANT_ID,
+      );
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => client,
+      });
+      const serviceRole = buildServiceRoleClient();
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => serviceRole,
+      );
+
+      const result = await repo.updateSettings('user-1', { payDayOfMonth: 25 });
+
+      expect(defaultQuery.upsert).not.toHaveBeenCalled();
+      expect(defaultQuery.delete).not.toHaveBeenCalled();
+      expect(result.defaultAccountId).toBe(COMPTE_COURANT_ID);
+    });
+
     it('preserves existing payDayOfMonth when patch omits it', async () => {
       const authClient = buildAuthenticatedClient({
         firstName: 'Jane',

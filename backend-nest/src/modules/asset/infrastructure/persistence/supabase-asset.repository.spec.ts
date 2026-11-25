@@ -233,144 +233,118 @@ describe('SupabaseAssetRepository', () => {
     });
   });
 
-  describe('findCheckedLinkedLines', () => {
-    function lineRow(
-      id: number,
+  describe('findMovementsSince', () => {
+    const SINCE = '2026-11-03T10:00:00+00:00';
+    const CHECKED = '2026-11-05T09:00:00+00:00';
+
+    function movementRow(
+      movement: 'line' | 'real' | 'free',
+      id: string,
       amount: number | null,
-      {
-        assetId = 'livret',
-        kind = 'saving',
-        checkedAt = '2026-11-05T09:00:00+00:00',
-      } = {},
+      overrides: Record<string, unknown> = {},
     ) {
       return {
-        id: `line-${id}`,
-        asset_id: assetId,
-        kind,
-        amount: amount && `enc:${amount}`,
-        checked_at: checkedAt,
+        movement,
+        id,
+        budget_line_id: null,
+        kind: 'expense',
+        amount: amount === null ? null : `enc:${amount}`,
+        checked_at: CHECKED,
+        account_id: null,
+        asset_id: null,
+        ...overrides,
       };
     }
 
-    it('reads every asset in one query and holds each line to its own cutoff', async () => {
-      const lines = query(() => ({
+    it('reads every movement in one call and hangs the checked movements on their prévision', async () => {
+      // « Courses » 400 on the Compte courant, unchecked, with 120 checked
+      // (CA17), and the imprévu « Restaurant » 80 (CA5).
+      const rpc = query(() => ({
         data: [
-          lineRow(1, 500),
-          lineRow(2, 200.5),
-          // After the earliest cutoff, before the leasing's own: dropped.
-          lineRow(3, 900, {
-            assetId: 'leasing',
-            kind: 'expense',
-            checkedAt: '2026-11-03T12:00:00+00:00',
+          movementRow('line', 'courses', 400, {
+            checked_at: null,
+            account_id: 'compte-courant',
           }),
-          lineRow(4, 400, { assetId: 'leasing', kind: 'expense' }),
+          movementRow('real', 'real-1', 120, { budget_line_id: 'courses' }),
+          movementRow('free', 'restaurant', 80, {
+            account_id: 'compte-courant',
+          }),
         ],
         error: null,
       }));
-      const { repo, encryption } = createRepository({ budget_line: [lines] });
+      const { repo } = createRepository({
+        'rpc:list_asset_movements': [rpc],
+      });
 
-      const result = await repo.findCheckedLinkedLines([
-        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
-        { assetId: 'leasing', since: '2026-11-04T08:00:00+00:00' },
-      ]);
+      const result = await repo.findMovementsSince(SINCE);
 
-      expect(result).toEqual([
-        {
-          assetId: 'livret',
-          kind: 'saving',
-          amount: 500,
-          checkedAt: '2026-11-05T09:00:00+00:00',
-        },
-        {
-          assetId: 'livret',
-          kind: 'saving',
-          amount: 200.5,
-          checkedAt: '2026-11-05T09:00:00+00:00',
-        },
-        {
-          assetId: 'leasing',
-          kind: 'expense',
-          amount: 400,
-          checkedAt: '2026-11-05T09:00:00+00:00',
-        },
-      ]);
-      expect(lines.argsOf('in')).toEqual([['asset_id', ['livret', 'leasing']]]);
-      expect(lines.argsOf('gt')).toEqual([
-        ['checked_at', '2026-11-03T10:00:00.000Z'],
-      ]);
-      expect(encryption.decryptAmount).toHaveBeenCalledTimes(3);
+      expect(result).toEqual({
+        lines: [
+          {
+            id: 'courses',
+            kind: 'expense',
+            amount: 400,
+            checkedAt: null,
+            accountId: 'compte-courant',
+            assetId: null,
+            checkedReals: [{ amount: 120, checkedAt: CHECKED }],
+          },
+        ],
+        freeMovements: [
+          {
+            accountId: 'compte-courant',
+            kind: 'expense',
+            amount: 80,
+            checkedAt: CHECKED,
+          },
+        ],
+      });
+      expect(rpc.argsOf('rpc')).toEqual([[{ p_since: SINCE }]]);
     });
 
-    it('drops a line checked at the cutoff instant itself', async () => {
+    it('counts every movement past the 1000-row PostgREST page', async () => {
+      const page = (from: number, length: number) =>
+        query((calls) => {
+          const [start] = calls.find(([m]) => m === 'range')?.[1] as number[];
+          expect(start).toBe(from);
+          return {
+            data: Array.from({ length }, (_, i) =>
+              movementRow('free', `free-${from + i}`, 1, {
+                account_id: 'compte-courant',
+              }),
+            ),
+            error: null,
+          };
+        });
+      const firstPage = page(0, POSTGREST_PAGE_SIZE);
       const { repo } = createRepository({
-        budget_line: [
+        'rpc:list_asset_movements': [firstPage, page(POSTGREST_PAGE_SIZE, 5)],
+      });
+
+      const { freeMovements } = await repo.findMovementsSince(SINCE);
+
+      expect(freeMovements).toHaveLength(POSTGREST_PAGE_SIZE + 5);
+      expect(firstPage.argsOf('order')).toEqual([['id', { ascending: true }]]);
+    });
+
+    it('skips a movement without a stored amount, which moves no value', async () => {
+      const { repo, encryption } = createRepository({
+        'rpc:list_asset_movements': [
           query(() => ({
-            data: [lineRow(1, 500, { checkedAt: '2026-11-03T10:00:00+00:00' })],
+            data: [
+              movementRow('line', 'line-1', null, { account_id: 'a' }),
+              movementRow('real', 'real-1', null, { budget_line_id: 'x' }),
+              movementRow('free', 'free-1', null, { account_id: 'a' }),
+            ],
             error: null,
           })),
         ],
       });
 
-      await expect(
-        repo.findCheckedLinkedLines([
-          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
-        ]),
-      ).resolves.toEqual([]);
-    });
-
-    it('counts every line past the 1000-row PostgREST page', async () => {
-      const firstPage = query((calls) => {
-        const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
-        expect([from, to]).toEqual([0, POSTGREST_PAGE_SIZE - 1]);
-        return {
-          data: Array.from({ length: POSTGREST_PAGE_SIZE }, (_, i) =>
-            lineRow(i, 1),
-          ),
-          error: null,
-        };
+      await expect(repo.findMovementsSince(SINCE)).resolves.toEqual({
+        lines: [],
+        freeMovements: [],
       });
-      const secondPage = query((calls) => {
-        const [from, to] = calls.find(([m]) => m === 'range')?.[1] as number[];
-        expect([from, to]).toEqual([
-          POSTGREST_PAGE_SIZE,
-          2 * POSTGREST_PAGE_SIZE - 1,
-        ]);
-        return {
-          data: Array.from({ length: 5 }, (_, i) => lineRow(10_000 + i, 2)),
-          error: null,
-        };
-      });
-      const { repo } = createRepository({
-        budget_line: [firstPage, secondPage],
-      });
-
-      const lines = await repo.findCheckedLinkedLines([
-        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
-      ]);
-
-      expect(lines).toHaveLength(POSTGREST_PAGE_SIZE + 5);
-      expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(
-        POSTGREST_PAGE_SIZE + 10,
-      );
-      expect(firstPage.argsOf('order')).toEqual([['id', { ascending: true }]]);
-    });
-
-    it('does not query anything without an active asset', async () => {
-      const { repo } = createRepository({ budget_line: [] });
-
-      await expect(repo.findCheckedLinkedLines([])).resolves.toEqual([]);
-    });
-
-    it('skips a line without a stored amount, which moves no value', async () => {
-      const { repo, encryption } = createRepository({
-        budget_line: [query(() => ({ data: [lineRow(1, null)], error: null }))],
-      });
-
-      const lines = await repo.findCheckedLinkedLines([
-        { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
-      ]);
-
-      expect(lines).toEqual([]);
       expect(encryption.decryptAmount).not.toHaveBeenCalled();
     });
 
@@ -380,8 +354,11 @@ describe('SupabaseAssetRepository', () => {
       );
       const { repo } = createRepository(
         {
-          budget_line: [
-            query(() => ({ data: [lineRow(1, 500)], error: null })),
+          'rpc:list_asset_movements': [
+            query(() => ({
+              data: [movementRow('free', 'free-1', 80, { account_id: 'a' })],
+              error: null,
+            })),
           ],
         },
         {
@@ -391,16 +368,12 @@ describe('SupabaseAssetRepository', () => {
         },
       );
 
-      await expect(
-        repo.findCheckedLinkedLines([
-          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
-        ]),
-      ).rejects.toBe(failure);
+      await expect(repo.findMovementsSince(SINCE)).rejects.toBe(failure);
     });
 
-    it('fails with ASSET_FETCH_FAILED when a read fails', async () => {
+    it('fails with ASSET_FETCH_FAILED when the read fails', async () => {
       const { repo } = createRepository({
-        budget_line: [
+        'rpc:list_asset_movements': [
           query(() => ({
             data: null,
             error: { code: '08006', message: 'down' },
@@ -408,11 +381,7 @@ describe('SupabaseAssetRepository', () => {
         ],
       });
 
-      await expect(
-        repo.findCheckedLinkedLines([
-          { assetId: 'livret', since: '2026-11-03T10:00:00+00:00' },
-        ]),
-      ).rejects.toMatchObject({
+      await expect(repo.findMovementsSince(SINCE)).rejects.toMatchObject({
         code: ERROR_DEFINITIONS.ASSET_FETCH_FAILED.code,
       });
     });

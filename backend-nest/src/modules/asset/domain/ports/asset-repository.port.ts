@@ -2,11 +2,10 @@ import type {
   Asset,
   AssetCategory,
   AssetCreateInput,
+  AssetMovements,
   AssetSnapshotInput,
   AssetUpdatePatch,
   AssetWithValue,
-  CheckedLinesCutoff,
-  CheckedLinkedLine,
 } from '../asset.entity';
 
 export const ASSET_REPOSITORY = Symbol('ASSET_REPOSITORY');
@@ -27,13 +26,8 @@ export interface AssetRepositoryPort {
   findAll(): Promise<Asset[]>;
   /** Every asset with its latest snapshot decrypted. */
   findAllWithLatestValue(): Promise<AssetWithValue[]>;
-  /**
-   * The checked prévisions linked to each asset, `checked_at` strictly after
-   * that asset's `since`, with `amount` decrypted.
-   */
-  findCheckedLinkedLines(
-    cutoffs: CheckedLinesCutoff[],
-  ): Promise<CheckedLinkedLine[]>;
+  /** What can move an asset strictly after `since`, amounts decrypted. */
+  findMovementsSince(since: string): Promise<AssetMovements>;
   /** Writes the asset and its first snapshot together. */
   insertAsset(input: AssetCreateInput): Promise<Asset>;
   update(id: string, patch: AssetUpdatePatch): Promise<Asset>;

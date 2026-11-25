@@ -1564,7 +1564,9 @@
       "edit": "Modifica",
       "archive": "Archivia",
       "unarchive": "Ripristina",
-      "delete": "Elimina"
+      "delete": "Elimina",
+      "setDefault": "Usa come predefinito nel budget",
+      "unsetDefault": "Non usare più come predefinito"
     },
     "type": {
       "menu": "Azioni per il tipo {{name}}",
@@ -1652,6 +1654,15 @@
       "updatedLongAgo": "Aggiornato 2 mesi fa",
       "updatedToday": "Aggiornato oggi",
       "budgetHint": "{{amount}} messi da parte e spuntati nel tuo budget → +{{amount}} qui."
+    },
+    "account": {
+      "label": "Conto",
+      "groupOwn": "Ciò che ho",
+      "groupOwe": "Ciò che devo",
+      "sameAsLink": "Scegli un altro conto: questo è già l'elemento collegato qui sopra.",
+      "defaultLabel": "Conto predefinito",
+      "defaultHint": "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta.",
+      "defaultBadge": "Predefinito"
     }
   },
   "completeProfile": {

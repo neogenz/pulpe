@@ -15,6 +15,7 @@ const mockEntity: BudgetLine = {
   templateLineId: '123e4567-e89b-12d3-a456-426614174002',
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
@@ -39,6 +40,7 @@ const mockTemplateLine: TemplateLine = {
   templateId: '123e4567-e89b-12d3-a456-426614174003',
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   name: 'Loyer',
   amount: 1200,
   originalAmount: null,
@@ -125,6 +127,21 @@ describe('ResetBudgetLineFromTemplateUseCase', () => {
     expect(mockRepo.update).toHaveBeenCalledWith(
       mockEntity.id,
       expect.objectContaining({ assetId }),
+    );
+  });
+
+  it('takes back the account of its template line (CA31)', async () => {
+    const compteCourantId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+    mockRepo.fetchTemplateLineById.mockResolvedValueOnce({
+      ...mockTemplateLine,
+      accountId: compteCourantId,
+    });
+
+    await useCase.execute(mockEntity.id, mockUser);
+
+    expect(mockRepo.update).toHaveBeenCalledWith(
+      mockEntity.id,
+      expect.objectContaining({ accountId: compteCourantId }),
     );
   });
 
