@@ -104,7 +104,25 @@ struct AssetHistoryModelTests {
 
         #expect(model.entries.count == 35)
         #expect(model.nextCursor == nil)
-        #expect(service.historyCursors == [nil, "page-2", nil])
+        #expect(service.historyCursors == [nil, "page-2", nil, "page-2"])
+    }
+
+    /// A movement unchecked below the first page leaves it unchanged: its line still goes away.
+    @Test
+    func reload_withTheSameFirstPage_rereadsTheOlderPages() async throws {
+        let service = longService()
+        let model = makeModel(service)
+        await model.load()
+        await model.loadMore()
+        let older = try #require(service.stubbedHistory["page-2"])
+        service.stubbedHistory["page-2"] = AssetHistory(
+            asset: older.asset, entries: Array(older.entries.dropLast()), nextCursor: nil
+        )
+
+        await model.load()
+
+        #expect(model.entries.count == 34)
+        #expect(model.nextCursor == nil)
     }
 
     /// PUL-380: a prévision edited without being checked moves the projection, not the history.
