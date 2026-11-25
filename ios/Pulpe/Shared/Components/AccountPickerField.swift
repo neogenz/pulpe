@@ -52,9 +52,8 @@ enum AccountLink {
 struct AccountPickerField: View {
     @Binding var selection: String?
     var title = AppLocale.string("Compte")
-    /// The « Versée sur » / « Dette remboursée » / « Tiré de » element, and its title.
+    /// The « Versée sur » / « Dette remboursée » / « Tiré de » element.
     var link: String?
-    var linkTitle: String?
     /// Starts on the default account once the elements are loaded (creation only): `nil` never
     /// prefills. The sheet owns the flag, because the field leaves the screen and comes back
     /// (a prévision picked then dropped) and must not prefill over « Aucun » a second time.
@@ -78,7 +77,7 @@ struct AccountPickerField: View {
     }
 
     private var conflictMessage: String? {
-        guard linkTitle != nil, AccountLink.conflicts(account: selection, link: link),
+        guard AccountLink.conflicts(account: selection, link: link),
               let name = selectedAsset?.name else { return nil }
         return AccountLink.conflictMessage(name: name)
     }

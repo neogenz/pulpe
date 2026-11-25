@@ -149,9 +149,7 @@ struct EditBudgetLineSheet: View {
                     AssetPickerField(selection: $assetId, kind: kind)
                 }
             }
-            AccountPickerField(
-                selection: $accountId, link: linkedAssetId, linkTitle: AssetPickerField.linkTitle(kind: kind)
-            )
+            AccountPickerField(selection: $accountId, link: linkedAssetId)
             // PUL-329 v2 — the goal an income was announced to be drawn from is
             // read-only: the origin is fixed at creation, and a second picker
             // here would suggest the source could be swapped.

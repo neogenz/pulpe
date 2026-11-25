@@ -141,13 +141,6 @@ struct AccountLinkTests {
         #expect(AccountLink.afterLinkChange(account: "checking", link: "savings", defaultId: "checking") == "checking")
     }
 
-    @Test("The link title names the field the message points at")
-    func linkTitles() {
-        #expect(AssetPickerField.linkTitle(kind: .saving) == "Versée sur")
-        #expect(AssetPickerField.linkTitle(kind: .expense) == "Dette remboursée")
-        #expect(AssetPickerField.linkTitle(kind: .income) == "Tiré de")
-    }
-
     @Test("An income edit only counts the origin it was created with")
     func editLinkedAsset() {
         func line(_ kind: TransactionKind) -> BudgetLine {
