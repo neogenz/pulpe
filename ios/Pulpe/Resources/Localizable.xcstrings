@@ -43204,6 +43204,35 @@
         }
       }
     },
+    "Devise, langue, jour de paie, compte par défaut, rappels" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devise, langue, jour de paie, compte par défaut, rappels"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Currency, language, pay day, default account, reminders"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Währung, Sprache, Zahltag, Standardkonto, Erinnerungen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valuta, lingua, giorno di paga, conto predefinito, promemoria"
+          }
+        }
+      }
+    },
     "Devise, langue, jour de paie, rappels" : {
       "extractionState" : "manual",
       "localizations" : {
