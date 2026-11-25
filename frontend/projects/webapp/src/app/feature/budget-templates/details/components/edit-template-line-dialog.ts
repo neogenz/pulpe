@@ -355,11 +355,7 @@ export class EditTemplateLineDialog {
               tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               assetId: this.#isAssetLinkEnabled ? m.assetId : undefined,
-              // Create always sends it; an edit only when the field can show.
-              accountId:
-                this.#isAssetLinkEnabled || !this.isEditMode()
-                  ? m.accountId
-                  : undefined,
+              accountId: this.#isAssetLinkEnabled ? m.accountId : undefined,
               conversion: metadata,
             }),
         };

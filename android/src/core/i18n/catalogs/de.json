@@ -1372,16 +1372,11 @@
     "account": {
       "label": "Konto",
       "none": "Keine",
-      "sameAsLink": "„Konto“ und „%{link}“ müssen zwei verschiedene Elemente sein.",
-      "link": {
-        "expense": "Getilgte Schuld",
-        "saving": "Eingezahlt auf",
-        "income": "Entnommen aus"
-      },
+      "sameAsLink": "Wähle ein anderes Konto: „%{name}“ ist bereits das verknüpfte Element.",
       "defaultLabel": "Standardkonto",
       "defaultBadge": "Standard",
       "defaultSection": "Mein Budget",
-      "defaultHint": "Jeder neue Eintrag beginnt mit diesem Konto. Du kannst es jedes Mal ändern.",
+      "defaultHint": "Jede neue Bewegung startet auf diesem Konto. Du kannst es jedes Mal ändern.",
       "setDefault": "Im Budget als Standard verwenden",
       "unsetDefault": "Nicht mehr als Standard verwenden"
     },
@@ -1575,6 +1570,7 @@
         },
         "preferences": {
           "description": "Währung, Sprache, Zahltag, Erinnerungen",
+          "descriptionWithDefaultAccount": "Währung, Sprache, Zahltag, Standardkonto, Erinnerungen",
           "title": "Einstellungen"
         },
         "privacy": {

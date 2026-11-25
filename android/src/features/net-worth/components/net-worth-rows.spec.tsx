@@ -1,4 +1,5 @@
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent, render, within } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 import { PaperProvider } from "react-native-paper";
 
 import { contractAssets } from "@/core/testing/net-worth-accounts";
@@ -15,6 +16,16 @@ jest.mock("@/core/i18n/locale-store", () => ({
   }),
 }));
 jest.mock("@/core/ui/ripple", () => ({ useRipple: () => ({}) }));
+let mockFontScale = 1;
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  __esModule: true,
+  default: () => ({
+    width: 411,
+    height: 891,
+    scale: 1,
+    fontScale: mockFontScale,
+  }),
+}));
 jest.mock("react-native-safe-area-context", () => ({
   ...jest.requireActual("react-native-safe-area-context"),
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
@@ -126,4 +137,32 @@ describe("a row opens the element's detail (PUL-379)", () => {
     expect(view.getByLabelText(/^Livret, /)).toBeTruthy();
     expect(view.queryByRole("button", { name: /^Livret, / })).toBeNull();
   });
+});
+
+describe("a row at large text", () => {
+  afterEach(() => {
+    mockFontScale = 1;
+  });
+
+  it.each([1, 1.5, 2])(
+    "puts the value under the whole name from the accessible scale (scale: %s)",
+    async (fontScale) => {
+      mockFontScale = fontScale;
+      const view = await card();
+      const name = view.getByText("Compte courant");
+      const value = view.getByText(/^5.000\.00 CHF$/);
+      const stacked = fontScale >= 1.5;
+
+      expect(name.props.numberOfLines).toBe(stacked ? undefined : 2);
+      expect(value.props.numberOfLines).toBe(1);
+      // The nearest view holding both: a row side by side, a column stacked.
+      let line = value.parent;
+      while (line !== null && !within(line).queryByText("Compte courant")) {
+        line = line.parent;
+      }
+      expect(StyleSheet.flatten(line?.props.style)?.flexDirection).toBe(
+        stacked ? undefined : "row",
+      );
+    },
+  );
 });

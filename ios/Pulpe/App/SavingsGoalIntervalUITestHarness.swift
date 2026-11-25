@@ -408,7 +408,8 @@ struct SavingsGoalIntervalUITestHarness: View {
              .contextualCreationBudget,
              .languageSettings,
              .loginScreen,
-             .planBudgetsPending:
+             .planBudgetsPending,
+             .netWorthAccounts:
             EmptyView()
         }
     }

@@ -19,13 +19,6 @@ struct AssetPickerField: View {
         flagEnabled && kind.assetDirection != nil
     }
 
-    /// The title of the link a prévision of this kind carries, `nil` when it has none.
-    static func linkTitle(kind: TransactionKind) -> String? {
-        kind == .income
-            ? title(direction: .own, drawn: true)
-            : kind.assetDirection.map { title(direction: $0, drawn: false) }
-    }
-
     private var direction: AssetDirection? { drawn ? .own : kind.assetDirection }
 
     private var selectedAsset: Asset? {

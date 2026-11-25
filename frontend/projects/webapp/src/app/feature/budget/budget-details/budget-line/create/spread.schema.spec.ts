@@ -20,7 +20,6 @@ const totalFormValue: BudgetLineSpreadCreateFormValue = {
   months,
   conversion: null,
   spreadGroupId: SPREAD_GROUP_ID,
-  accountId: null,
 };
 
 const perMonthFormValue: BudgetLineSpreadCreateFormValue = {
@@ -31,10 +30,24 @@ const perMonthFormValue: BudgetLineSpreadCreateFormValue = {
   months,
   conversion: null,
   spreadGroupId: SPREAD_GROUP_ID,
-  accountId: null,
 };
 
 describe('budgetLineSpreadCreateFromFormSchema', () => {
+  it.each([totalFormValue, perMonthFormValue])(
+    'CA2: omits accountId when absent, keeps an explicit null ($mode)',
+    (formValue) => {
+      expect(
+        budgetLineSpreadCreateFromFormSchema.parse(formValue),
+      ).not.toHaveProperty('accountId');
+      expect(
+        budgetLineSpreadCreateFromFormSchema.parse({
+          ...formValue,
+          accountId: null,
+        }),
+      ).toHaveProperty('accountId', null);
+    },
+  );
+
   describe('transform — total mode', () => {
     it('should emit totalAmount and months without expanding tranches', () => {
       const result = budgetLineSpreadCreateFromFormSchema.parse(totalFormValue);
@@ -46,7 +59,6 @@ describe('budgetLineSpreadCreateFromFormSchema', () => {
         totalAmount: 200,
         months,
         spreadGroupId: SPREAD_GROUP_ID,
-        accountId: null,
       });
       expect('perMonthAmount' in result).toBe(false);
       expect('tranches' in result).toBe(false);

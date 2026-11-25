@@ -15,6 +15,7 @@ describe("buildAdjustmentPayload", () => {
         name: "  Ajustement ",
         adjustment: { kind: "expense", amount: 170.3 },
         now,
+        isNetWorthEnabled: true,
       }),
     ).toEqual({
       budgetId: "budget-1",
@@ -25,6 +26,18 @@ describe("buildAdjustmentPayload", () => {
       checkedAt: "2026-10-02T09:30:00.000Z",
       accountId: null,
     });
+  });
+
+  it("states no account at all with the flag off (CA2)", () => {
+    expect(
+      buildAdjustmentPayload({
+        budgetId: "budget-1",
+        name: "Ajustement",
+        adjustment: { kind: "expense", amount: 170.3 },
+        now: new Date("2026-10-02T09:30:00.000Z"),
+        isNetWorthEnabled: false,
+      }),
+    ).not.toHaveProperty("accountId");
   });
 });
 

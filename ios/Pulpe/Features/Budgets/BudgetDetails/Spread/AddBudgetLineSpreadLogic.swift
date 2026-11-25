@@ -26,7 +26,8 @@ enum AddBudgetLineSpreadLogic {
         let spreadGroupId: String
         let savingsGoalId: String?
         let assetId: String?
-        let accountId: String?
+        /// Tri-state, see `AccountLink.onCreate`: `.none` leaves it out of the body.
+        let accountId: String??
 
         init(
             name: String,
@@ -37,7 +38,7 @@ enum AddBudgetLineSpreadLogic {
             spreadGroupId: String,
             savingsGoalId: String? = nil,
             assetId: String? = nil,
-            accountId: String? = nil
+            accountId: String?? = nil
         ) {
             self.name = name
             self.kind = kind
@@ -72,7 +73,7 @@ enum AddBudgetLineSpreadLogic {
             kind: input.kind,
             savingsGoalId: input.kind.savingsGoalLink(input.savingsGoalId),
             assetId: input.kind.assetLink(input.assetId),
-            accountId: .some(input.accountId),
+            accountId: input.accountId,
             mode: isTotal ? .total : .perMonth,
             months: months,
             perMonthAmount: isTotal ? nil : convertedAmount,

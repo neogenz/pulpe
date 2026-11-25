@@ -275,7 +275,7 @@ describe("buildTransactionRestore", () => {
       budgetLineId: "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d",
       tagIds: ["7b6b1a3e-0f4d-4c11-9a2b-3c4d5e6f7a80"],
     });
-    const payload = buildTransactionRestore(deleted);
+    const payload = buildTransactionRestore(deleted, false);
 
     expect(payload.id).toBe(deleted.id);
     expect(payload.budgetLineId).toBe(deleted.budgetLineId);
@@ -292,7 +292,7 @@ describe("buildTransactionRestore", () => {
       sourceSavingsGoalId: "9d8e7f6a-5b4c-4d3e-8f9a-0b1c2d3e4f5a",
       sourceSavingsGoalName: "Vacances",
     });
-    const payload = buildTransactionRestore(deleted);
+    const payload = buildTransactionRestore(deleted, false);
 
     expect(payload.sourceSavingsGoalId).toBe(deleted.sourceSavingsGoalId);
     expect(transactionCreateSchema.safeParse(payload).success).toBe(true);
@@ -309,15 +309,30 @@ describe("buildTransactionRestore", () => {
       sourceSavingsGoalName: "Vacances",
     });
 
-    const payload = buildTransactionRestore(deleted);
+    const payload = buildTransactionRestore(deleted, false);
 
     expect(payload.budgetLineId).toBe(deleted.budgetLineId);
     expect("sourceSavingsGoalId" in payload).toBe(false);
     expect(transactionCreateSchema.safeParse(payload).success).toBe(true);
   });
 
+  it("restores a free movement's account, « Aucun » included, once the field is offered", () => {
+    expect(
+      buildTransactionRestore(transaction({ accountId: null }), true),
+    ).toHaveProperty("accountId", null);
+    expect(
+      buildTransactionRestore(transaction({ accountId: "acc-1" }), true),
+    ).toHaveProperty("accountId", "acc-1");
+  });
+
+  it("states no account with the flag off (CA2)", () => {
+    expect(
+      buildTransactionRestore(transaction({ accountId: "acc-1" }), false),
+    ).not.toHaveProperty("accountId");
+  });
+
   it("omits what the create schema will not take as null", () => {
-    const payload = buildTransactionRestore(transaction());
+    const payload = buildTransactionRestore(transaction(), false);
 
     expect("budgetLineId" in payload).toBe(false);
     expect("sourceSavingsGoalId" in payload).toBe(false);

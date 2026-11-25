@@ -26,6 +26,8 @@ import { AddTransactionDialogService } from './services/add-transaction-dialog.s
 import { DashboardStore } from './services/dashboard-store';
 import type { MonthRecap } from './services/dashboard-state';
 import { MonthRecapDialog } from './components/month-recap-dialog';
+import { PostHogService } from '@core/analytics/posthog';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
 import { REVEAL_ITEMS_TO_CHECK } from '@core/routing/routes-constants';
 import { FirstTransactionTracker } from '@core/transaction';
@@ -565,6 +567,7 @@ describe('Dashboard (TestBed)', () => {
   async function setup(
     budgetId: string,
     dialogResult: TransactionFormData | undefined,
+    isNetWorthEnabled = false,
   ) {
     const mockStore = createMockStore(budgetId);
     // The real shell stays open and calls `persist` with what was typed,
@@ -615,6 +618,13 @@ describe('Dashboard (TestBed)', () => {
           provideZonelessChangeDetection(),
           provideAnimationsAsync(),
           ...provideTranslocoForTest(),
+          {
+            provide: PostHogService,
+            useValue: {
+              ...createMockPostHogService(),
+              isFeatureEnabled: vi.fn().mockReturnValue(isNetWorthEnabled),
+            },
+          },
           { provide: DashboardStore, useValue: mockStore },
           {
             provide: AddTransactionDialogService,
@@ -887,8 +897,6 @@ describe('Dashboard (TestBed)', () => {
         kind: 'income',
         transactionDate: expect.any(String),
         checkedAt: expect.any(String),
-        // CA44: the gap belongs to no account, whatever the default account is.
-        accountId: null,
       });
       expect(Number.isNaN(Date.parse(payload.checkedAt))).toBe(false);
       expect(mockSnackBar.open).toHaveBeenCalledWith(
@@ -896,6 +904,26 @@ describe('Dashboard (TestBed)', () => {
         expect.any(String),
         expect.objectContaining({ duration: UNDO_WINDOW_MS }),
       );
+    });
+
+    it('CA2, CA44: with the flag off the adjustment carries no accountId; on, an explicit null', async () => {
+      const record = async (isNetWorthEnabled: boolean) => {
+        const { component, mockReconcileDialog, mockStore } = await setup(
+          budgetId,
+          undefined,
+          isNetWorthEnabled,
+        );
+        component['openReconcileAccounts']();
+        await openedWith(mockReconcileDialog).data.recordAdjustment({
+          name: 'Ajustement',
+          kind: 'income',
+          amount: 12.34,
+        });
+        return mockStore.addTransaction.mock.calls[0][0];
+      };
+
+      expect(await record(false)).not.toHaveProperty('accountId');
+      expect(await record(true)).toHaveProperty('accountId', null);
     });
 
     it('should toast a refusal and report it to the dialog, which keeps the entry', async () => {

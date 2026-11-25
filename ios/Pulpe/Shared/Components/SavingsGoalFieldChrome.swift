@@ -50,20 +50,50 @@ func savingsGoalMenuLabel(
                 .foregroundStyle(Color.onSurfaceVariant)
         }
     case .row:
+        MenuRowLabel(title: title, value: value, valueColor: valueColor)
+    }
+}
+
+/// The `.row` label. At accessibility sizes the value goes under the title: beside it, the
+/// title broke mid-word (« Ver-sée sur ») and the value was cut to « Livret… ».
+private struct MenuRowLabel: View {
+    let title: String
+    let value: String
+    let valueColor: Color
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
         savingsGoalFieldSurface(style: .row) {
-            Text(title)
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-            Spacer()
-            Text(value)
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(valueColor)
-                .lineLimit(1)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    titleText
+                    valueText
+                }
+                // A Menu label centers wrapped lines by default.
+                .multilineTextAlignment(.leading)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+            } else {
+                titleText
+                Spacer()
+                valueText.lineLimit(1)
+            }
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundStyle(Color.onSurfaceVariant)
         }
         .contentShape(Rectangle())
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(PulpeTypography.bodyLarge)
+            .foregroundStyle(Color.textPrimary)
+    }
+
+    private var valueText: Text {
+        Text(value)
+            .font(PulpeTypography.bodyLarge)
+            .foregroundStyle(valueColor)
     }
 }
 

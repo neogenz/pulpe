@@ -1130,8 +1130,8 @@ describe("step 2", () => {
   });
 
   // CA44, through the real create mutation with only the HTTP layer faked: the
-  // body posted for the gap carries `accountId: null`, key present.
-  it("posts the gap movement with accountId null", async () => {
+  // body posted for the gap carries no `accountId` with the flag off.
+  it("posts the gap movement without accountId", async () => {
     mockCreateHook = jest.requireActual(
       "@/features/transactions/transaction-mutations",
     ).useCreateTransaction;
@@ -1146,7 +1146,7 @@ describe("step 2", () => {
     await waitFor(() => expect(mockHttpPost).toHaveBeenCalledTimes(1));
     const [endpoint, body] = mockHttpPost.mock.calls[0] as [string, object];
     expect(endpoint).toBe("/transactions");
-    expect(body).toHaveProperty("accountId", null);
+    expect(body).not.toHaveProperty("accountId");
   });
 
   it("goes from « Aucune dépense ne correspond » to one entry with a stable id, completed once", async () => {
@@ -1178,8 +1178,6 @@ describe("step 2", () => {
       kind: "expense",
       transactionDate: expect.any(String),
       checkedAt: expect.any(String),
-      // CA44: the gap movement states « Aucun », whatever the default account.
-      accountId: null,
     });
 
     // Refused: the screen stays, and the retry replays the same write, id included.

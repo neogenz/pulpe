@@ -214,6 +214,17 @@ describe('AddBudgetLineDialog', () => {
   });
 
   describe('checked toggle', () => {
+    it('names the switch for screen readers', () => {
+      const { fixture } = configureDialog();
+      fixture.detectChanges();
+
+      const toggle: HTMLElement = fixture.nativeElement.querySelector(
+        'mat-slide-toggle button[role="switch"]',
+      );
+
+      expect(toggle.getAttribute('aria-label')).toBe('Déjà pointé');
+    });
+
     it('should set checkedAt to null by default', async () => {
       const { component, dialogRef } = configureDialog();
       component['model'].update((m) => ({
@@ -628,7 +639,7 @@ describe('AddBudgetLineDialog', () => {
       );
     });
 
-    it('CA2: with the flag off the field is absent and the payload says « Aucun »', async () => {
+    it('CA2: with the flag off the field is absent and the payload has no accountId', async () => {
       const { fixture, component, dialogRef } = configureDialog({
         defaultAccountId: COMPTE_COURANT.id,
         providers: withTicketAssets(false),
@@ -641,7 +652,15 @@ describe('AddBudgetLineDialog', () => {
           'pulpe-account-picker-field mat-select',
         ),
       ).toBeNull();
-      expect((await submitted(component, dialogRef)).accountId).toBeNull();
+      expect(await submitted(component, dialogRef)).not.toHaveProperty(
+        'accountId',
+      );
+
+      component['setMode']('spread');
+      dialogRef.close.mockClear();
+      expect(await submitted(component, dialogRef)).not.toHaveProperty(
+        'accountId',
+      );
     });
 
     it('CA25: refuses the same item as « Compte » and as « Versée sur »', () => {

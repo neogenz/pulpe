@@ -148,8 +148,7 @@ struct EditTemplateLineSheet: View {
             }
             AccountPickerField(
                 selection: $accountId,
-                link: Self.linkedAssetId(kind: kind, assetId: assetId),
-                linkTitle: AssetPickerField.linkTitle(kind: kind)
+                link: Self.linkedAssetId(kind: kind, assetId: assetId)
             )
             if let impact = availableImpact {
                 ImpactBlock(

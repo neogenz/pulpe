@@ -9,6 +9,9 @@ import { Notice } from "@/core/ui/notice";
 
 import { useTransactionRemoval } from "./use-transaction-removal";
 
+jest.mock("@/core/observability/feature-flags", () => ({
+  useFeatureFlag: () => false,
+}));
 jest.mock("./first-movement-tracker", () => ({
   recordMovementCreated: jest.fn(),
 }));

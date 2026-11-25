@@ -43,6 +43,34 @@ struct ReconcileAdjustmentRequestTests {
         #expect((body["amount"] as? NSNumber)?.decimalValue == 80)
     }
 
+    @Test("CA2: with the net_worth flag off the gap's POST body has no account key")
+    func submitAdjustment_flagOff_postsNoAccountKey() async throws {
+        let recorder = AdjustmentRequestRecorder()
+        InterceptingURLProtocol.requestHandler = { request in
+            recorder.record(request)
+            return (makeHTTPResponse(for: request, statusCode: 201), try Self.echo())
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let service = TransactionService(apiClient: makeAPIClient(), onCreated: { _ in })
+        let flow = ReconcileAccountsFlow(
+            budgetId: "budget-current",
+            entryName: "Écart avec mes comptes",
+            createTransaction: { try await service.createTransaction($0) },
+            onAdjustmentCreated: { _ in },
+            onCompleted: { _ in },
+            statesAccount: false
+        )
+        flow.accounts[0].amountText = "5000"
+        flow.compare()
+
+        #expect(await flow.submitAdjustment(realizedBalance: 5080, of: "budget-current") == .written)
+
+        let body = try #require(recorder.json)
+        #expect(!body.keys.contains("accountId"))
+        #expect(body["name"] as? String == "Écart avec mes comptes")
+    }
+
     // MARK: - Helpers
 
     /// The created entry as `POST /transactions` returns it.

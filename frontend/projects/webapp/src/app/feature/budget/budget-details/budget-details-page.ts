@@ -43,10 +43,12 @@ import {
 } from './utils/budget-details-snackbar.utils';
 import {
   type BudgetDeletionImpact,
+  FEATURE_FLAGS,
   formatBudgetPeriod,
   transactionCreateSchema,
   type SupportedCurrency,
 } from 'pulpe-shared';
+import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 
@@ -148,6 +150,9 @@ export default class BudgetDetailsPage {
   readonly #reconcileAccountsDialog = inject(ReconcileAccountsDialogService);
   readonly #breakpoints = inject(BreakpointObserver);
   readonly #dialog = inject(MatDialog);
+  readonly #isAccountEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
   private readonly itemsList = viewChild(BudgetItemsContainer);
   // Read once: the page is built while the navigation that opens it is current.
   #revealItemsToCheck =
@@ -281,8 +286,9 @@ export default class BudgetDetailsPage {
               budgetId: budget.id,
               transactionDate: formatLocalDate(now),
               checkedAt: now.toISOString(),
-              // Not a movement of one account: explicit, or the server would apply the default.
-              accountId: null,
+              // Not a movement of one account: with the flag on, an explicit `null` stops the
+              // server applying the default; off, the key is omitted (pre-feature body).
+              ...(this.#isAccountEnabled ? { accountId: null } : {}),
             }),
           );
           this.#snackBar.open(

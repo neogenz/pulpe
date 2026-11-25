@@ -161,12 +161,12 @@
         }
       }
     },
-    "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois." : {
+    "Chaque nouveau mouvement démarre sur ce compte. Tu peux le changer à chaque fois." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jeder neue Eintrag beginnt mit diesem Konto. Du kannst es jedes Mal ändern."
+            "value" : "Jede neue Bewegung startet auf diesem Konto. Du kannst es jedes Mal ändern."
           }
         },
         "en" : {
@@ -178,7 +178,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta."
+            "value" : "Ogni nuovo movimento parte da questo conto. Puoi cambiarlo ogni volta."
           }
         }
       }
@@ -1094,24 +1094,24 @@
         }
       }
     },
-    "« Compte » et « %@ » doivent être deux éléments différents." : {
+    "Choisis un autre compte : « %@ » est déjà l'élément lié." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„Konto“ und „%@“ müssen zwei verschiedene Elemente sein."
+            "value" : "Wähle ein anderes Konto: „%@“ ist bereits das verknüpfte Element."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“Account” and “%@” must be two different items."
+            "value" : "Pick another account: “%@” is already the linked item."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "«Account» e «%@» devono essere due elementi diversi."
+            "value" : "Scegli un altro conto: «%@» è già l'elemento collegato."
           }
         }
       }
@@ -43200,6 +43200,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Codice PIN, password, %@"
+          }
+        }
+      }
+    },
+    "Devise, langue, jour de paie, compte par défaut, rappels" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devise, langue, jour de paie, compte par défaut, rappels"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Currency, language, pay day, default account, reminders"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Währung, Sprache, Zahltag, Standardkonto, Erinnerungen"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valuta, lingua, giorno di paga, conto predefinito, promemoria"
           }
         }
       }

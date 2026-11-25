@@ -312,7 +312,6 @@ it("keeps an invalid creation local then creates from explicit fields", async ()
       recurrence: "one_off",
       description: "",
       savingsGoalId: "goal-1",
-      accountId: null,
     },
     expect.any(Object),
   );
@@ -496,6 +495,15 @@ describe("« Compte » (PUL-378)", () => {
     mockAccounts = { ...mockAccounts, isFlagOn: false };
     const off = await render(<TemplateLineSheet {...baseProps} />);
     expect(off.queryByTestId("account-field")).toBeNull();
+  });
+
+  it("CA2 sends no account with the flag off", async () => {
+    mockAccounts = { ...mockAccounts, isFlagOn: false };
+    const view = await render(<TemplateLineSheet {...baseProps} />);
+    await editFields(view);
+    await fireEvent.press(view.getByText("templates.lines.add"));
+
+    expect(mockCreate.mutate.mock.calls[0][0]).not.toHaveProperty("accountId");
   });
 
   it("CA29 prefills the default account on a new line, CA3 sends null without one", async () => {

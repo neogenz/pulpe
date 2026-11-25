@@ -73,7 +73,8 @@ const DAYS_PER_YEAR = 365;
       </button>
     }
     <ng-template #summary>
-      <span class="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+      <!-- Never narrower than a few letters: with large text the amount wraps below instead. -->
+      <span class="flex flex-wrap items-center gap-2 min-w-[8ch] flex-1">
         <span
           class="ph-no-capture min-w-0 truncate text-body-large font-semibold"
           data-testid="asset-row-name"

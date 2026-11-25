@@ -5,6 +5,7 @@ import SwiftUI
 struct AccountView: View {
     @Environment(AppState.self) private var appState
     @Environment(TagStore.self) private var tagStore
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @Environment(\.openURL) private var openURL
     @State private var showLogoutConfirmation = false
     @State private var isDebugVisible = false
@@ -142,6 +143,13 @@ extension AccountView {
 // MARK: - Groups
 
 extension AccountView {
+    /// Lists what Préférences holds, the default account only where the flag shows it.
+    static func preferencesSubtitle(isNetWorthEnabled: Bool) -> String {
+        isNetWorthEnabled
+            ? AppLocale.string("Devise, langue, jour de paie, compte par défaut, rappels")
+            : AppLocale.string("Devise, langue, jour de paie, rappels")
+    }
+
     private var settingsGroup: some View {
         SettingsGroup(header: AppLocale.string("Réglages")) {
             NavigationLink { SecuritySettingsView() } label: {
@@ -157,7 +165,7 @@ extension AccountView {
                 SettingsRow(
                     systemImage: "slider.horizontal.3",
                     title: AppLocale.string("Préférences"),
-                    subtitle: AppLocale.string("Devise, langue, jour de paie, rappels")
+                    subtitle: Self.preferencesSubtitle(isNetWorthEnabled: featureFlags.isNetWorthEnabled)
                 )
             }
             .buttonStyle(.plain)
@@ -332,4 +340,5 @@ extension AccountView {
     .environment(AppState())
     .environment(UserSettingsStore())
     .environment(TagStore())
+    .environment(FeatureFlagsStore())
 }

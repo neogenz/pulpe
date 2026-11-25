@@ -5,6 +5,7 @@ struct BudgetDetailsRealizedBalanceSheet: View {
     @Environment(UserSettingsStore.self) private var settings
     @Environment(ToastManager.self) private var toastManager
     @Environment(AppState.self) private var appState
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @Environment(\.amountsHidden) private var amountsHidden
     @State private var isReconciling = false
     private let drafts = ReconcileDraftStore.shared
@@ -30,6 +31,7 @@ struct BudgetDetailsRealizedBalanceSheet: View {
                         ),
                         netWorthAccounts: netWorthAccounts,
                         restoring: drafts.draft(for: month.budgetId),
+                        statesAccount: featureFlags.isNetWorthEnabled,
                         // Only the PIN lock takes the sheet without the user: closed any other way, it starts over.
                         onLeave: { drafts.keep(appState.authState == .needsPinEntry ? $0 : nil, resumes: false) },
                         onAdjustmentCreated: { transaction in
