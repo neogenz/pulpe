@@ -125,6 +125,7 @@ docs/angular-architecture-for-enterprise.md
 !.agents/skills/product-owner
 !.agents/skills/release
 !.agents/skills/drive-local-app
+!.agents/skills/verify
 !.agents/skills/refresh-pulpe-app-store-captures/
 !.agents/skills/refresh-pulpe-app-store-captures/**
 .agent/skills/
@@ -137,6 +138,7 @@ docs/angular-architecture-for-enterprise.md
 !.claude/skills/release/
 !.claude/skills/practical-ui/
 !.claude/skills/product-designer/
+!.claude/skills/verify/
 
 # Design assets (generated files)
 design/icons/**/*.png
