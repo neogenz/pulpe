@@ -89,9 +89,9 @@ struct AssetDetailView: View {
                 ForEach(model.entries) { entry in
                     if entry.id != model.entries.first?.id { Divider().overlay(Color.outlineVariant) }
                     AssetHistoryRow(line: AssetHistoryLine(entry, currency: asset.currency))
-                        .onAppear {
+                        .task {
                             if entry.id == model.entries.last?.id, !model.loadMoreFailed {
-                                Task { await model.loadMore() }
+                                await model.loadMore()
                             }
                         }
                 }
@@ -183,7 +183,10 @@ final class AssetHistoryModel {
             guard current == generation else { return }
             asset = page.asset
             error = nil
-            if let firstPage, firstPage.entries == page.entries, firstPage.nextCursor == page.nextCursor { return }
+            if let firstPage, firstPage.entries == page.entries, firstPage.nextCursor == page.nextCursor {
+                await rereadLaterPages(after: page, generation: current)
+                return
+            }
             firstPage = (page.entries, page.nextCursor)
             entries = page.entries
             nextCursor = page.nextCursor
@@ -193,6 +196,22 @@ final class AssetHistoryModel {
             guard current == generation else { return }
             self.error = error as? APIError ?? .networkError(error)
         }
+    }
+
+    /// The first page is unchanged, but a movement further down may have been unchecked: read the
+    /// pages already shown again, so the list neither collapses nor keeps a removed line. A failed
+    /// read keeps what is shown.
+    private func rereadLaterPages(after page: AssetHistory, generation current: Int) async {
+        var reread = page.entries
+        var cursor = page.nextCursor
+        while reread.count < entries.count, let next = cursor {
+            guard let older = try? await service.getHistory(id: assetId, cursor: next),
+                  current == generation else { return }
+            reread += older.entries
+            cursor = older.nextCursor
+        }
+        entries = reread
+        nextCursor = cursor
     }
 
     func loadMore() async {
