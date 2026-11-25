@@ -178,6 +178,20 @@ describe('AccountPickerField', () => {
         .query(By.css('[data-testid="account-picker-error"]'))
         .nativeElement.textContent.trim(),
     ).toBe("Choisis un autre compte : « Livret » est déjà l'élément lié.");
+    expect(
+      fixture.debugElement.query(By.directive(MatSelect)).componentInstance
+        .errorState,
+    ).toBe(true);
+  });
+
+  it('CA25: keeps the outline neutral without a message', async () => {
+    getNetWorth$.mockReturnValue(of(netWorthResponse([LIVRET, LEASING])));
+    const fixture = await render(LIVRET.id);
+
+    expect(
+      fixture.debugElement.query(By.directive(MatSelect)).componentInstance
+        .errorState,
+    ).toBe(false);
   });
 
   it('takes another label, for the « Compte par défaut » setting', async () => {

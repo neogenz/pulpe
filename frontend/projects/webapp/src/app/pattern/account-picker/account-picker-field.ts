@@ -2,12 +2,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   output,
+  viewChild,
 } from '@angular/core';
+import type { ErrorStateMatcher } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelect, MatSelectModule } from '@angular/material/select';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { FEATURE_FLAGS } from 'pulpe-shared';
 
@@ -50,6 +53,7 @@ import { UserSettingsStore } from '@core/user-settings';
           panelClass="pulpe-account-select-panel"
           (selectionChange)="valueChanged.emit($event.value)"
           [attr.aria-invalid]="errorKey() ? 'true' : null"
+          [errorStateMatcher]="conflictState"
           data-testid="account-picker-select"
         >
           <mat-option [value]="null">{{
@@ -113,6 +117,20 @@ export class AccountPickerField {
   )
     ? injectNetWorthResource()
     : null;
+
+  /** No form control behind the select: the message alone turns its outline red. */
+  protected readonly conflictState: ErrorStateMatcher = {
+    isErrorState: () => this.errorKey() !== null,
+  };
+  private readonly select = viewChild(MatSelect);
+
+  constructor() {
+    // Material only rechecks the error state of a select bound to a form control.
+    effect(() => {
+      this.errorKey();
+      this.select()?.updateErrorState();
+    });
+  }
 
   /** Named in the error message: « « Livret » est déjà l'élément lié ». */
   protected readonly selectedName = computed(
