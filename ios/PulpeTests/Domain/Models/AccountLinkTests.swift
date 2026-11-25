@@ -232,7 +232,7 @@ struct AccountLinkTests {
         }
         #expect(try body(.some("revolut"))["accountId"] as? String == "revolut")
         #expect(try body(.some(nil))["accountId"] is NSNull)
-        // Field never shown (flag off): the key is left out and the server applies the default.
+        // Field never shown (flag off): the key is left out; a model line never gets the default.
         #expect(try body(.none)["accountId"] == nil)
     }
 
