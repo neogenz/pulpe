@@ -22,4 +22,6 @@
 - `pnpm test`; `pnpm test:e2e`; `cd backend-nest && bun run test:integration`; package-scoped commands are in `CLAUDE.md`.
 - Run backend integration specs through `bun run test:integration`: it sets `RUN_INTEGRATION_TESTS=true`, without which those specs return early and a plain `bun test` stays green. If the global Supabase CLI fails with « Expected 3 parts in JWT », it does not match the local stack's key format; run from `backend-nest/` with `SUPABASE_CLI_PATH=$PWD/node_modules/.bin/supabase` to use the project's CLI.
 - In a fresh worktree, install with scripts. After `pnpm install --ignore-scripts`, `pnpm quality` fails on `backend-nest#lint` with « Bun's postinstall script was not run »; `node node_modules/bun/install.js` repairs it.
+- Android Maestro smoke runs the PR's app against the Preview backend, which serves `main`. A PR that adds a field to an API request stays red there until the backend side is merged and deployed; the check is not part of `✅ CI Success`.
+- On the Android emulator, a blank `adb exec-out screencap` comes from host GPU mode; restart the emulator with `-gpu swiftshader_indirect`.
 - Root pnpm commands do not include iOS; generate the Xcode project and run `xcodebuild test -scheme PulpeTests` separately. A wrong `-scheme` prints its error and still exits 0, so only `** TEST SUCCEEDED **` in the log proves the suite ran.
