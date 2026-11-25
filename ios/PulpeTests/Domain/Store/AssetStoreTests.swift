@@ -166,5 +166,7 @@ struct AssetStoreTests {
 
         #expect(store.archivedAssets.map(\.id) == ["old"])
         #expect(store.activeAssets(direction: .owe).map(\.id) == ["debt"])
+        #expect(store.accountChoices(direction: .own, keeping: nil).map(\.id).contains("old") == false)
+        #expect(store.accountChoices(direction: .own, keeping: "old").map(\.id).contains("old"))
     }
 }
