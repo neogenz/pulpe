@@ -4,7 +4,8 @@ import SwiftUI
 /// (V2 `seg`): a `sunk` capsule track with 3pt padding, 36pt segments, the selected one a
 /// white capsule with a small shadow and `ink` text, the others `ink2`.
 /// `itemLabel` returns a plain `Text` (emoji allowed). Values that are not an enum (years)
-/// pass their `options`.
+/// pass their `options`. At accessibility text sizes the segments stack, one per line, so a
+/// label is read whole instead of being cut to fit a third of the screen.
 struct SegmentedPicker<T: Hashable>: View {
     @Binding var selection: T
     let title: String?
@@ -15,7 +16,21 @@ struct SegmentedPicker<T: Hashable>: View {
     let itemLabel: (T) -> Text
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Namespace private var thumb
+
+    private var isStacked: Bool { dynamicTypeSize.isAccessibilitySize }
+
+    /// A capsule on one line; stacked, its ends would be half-circles as tall as the track.
+    private var trackShape: AnyShape {
+        isStacked ? AnyShape(.rect(cornerRadius: DesignTokens.CornerRadius.card)) : AnyShape(.capsule)
+    }
+
+    private var thumbShape: AnyShape {
+        isStacked
+            ? AnyShape(.rect(cornerRadius: DesignTokens.CornerRadius.card - DesignTokens.Control.segmentedPadding))
+            : AnyShape(.capsule)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -29,13 +44,16 @@ struct SegmentedPicker<T: Hashable>: View {
                     .accessibilityHidden(true)
             }
 
-            HStack(spacing: DesignTokens.Spacing.none) {
+            let layout = isStacked
+                ? AnyLayout(VStackLayout(spacing: DesignTokens.Spacing.none))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.none))
+            layout {
                 ForEach(options, id: \.self) { item in
                     segment(item)
                 }
             }
             .padding(DesignTokens.Control.segmentedPadding)
-            .background(Color.sunk, in: Capsule())
+            .background(Color.sunk, in: trackShape)
             .sensoryFeedback(.selection, trigger: selection)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(title ?? "")
@@ -52,15 +70,17 @@ struct SegmentedPicker<T: Hashable>: View {
             itemLabel(item)
                 .font(PulpeTypography.chipLabel)
                 .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
-                .lineLimit(1)
+                .lineLimit(isStacked ? nil : 1)
                 .minimumScaleFactor(DesignTokens.TextScale.compact)
+                .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: DesignTokens.FrameHeight.chip)
+                .padding(.horizontal, isStacked ? DesignTokens.Spacing.md : DesignTokens.Spacing.none)
                 .accessibilityShowsLargeContentViewer()
                 .background {
                     if isSelected {
                         Color.surface
-                            .clipShape(Capsule())
+                            .clipShape(thumbShape)
                             .shadow(DesignTokens.Shadow.segmentThumb)
                             .matchedGeometryEffect(id: "thumb", in: thumb)
                     }

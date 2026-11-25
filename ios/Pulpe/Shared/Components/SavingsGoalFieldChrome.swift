@@ -50,19 +50,43 @@ func savingsGoalMenuLabel(
                 .foregroundStyle(Color.onSurfaceVariant)
         }
     case .row:
+        SavingsGoalMenuRowLabel(title: title, value: value, valueColor: valueColor)
+    }
+}
+
+/// A free function reads no environment, so the row that stacks with the text size is a view.
+private struct SavingsGoalMenuRowLabel: View {
+    let title: String
+    let value: String
+    let valueColor: Color
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        // At accessibility sizes the value goes under the title: beside it, both were cut mid-word.
+        let isStacked = dynamicTypeSize.isAccessibilitySize
+        let layout = isStacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
         savingsGoalFieldSurface(style: .row) {
-            Text(title)
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
-            Spacer()
-            Text(value)
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(valueColor)
-                .lineLimit(1)
+            layout {
+                Text(title)
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(Color.textPrimary)
+                if !isStacked { Spacer() }
+                Text(value)
+                    .font(PulpeTypography.bodyLarge)
+                    .foregroundStyle(valueColor)
+                    .lineLimit(isStacked ? nil : 1)
+            }
+            // A Menu label centers wrapped lines by default.
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundStyle(Color.onSurfaceVariant)
         }
+        .padding(.vertical, isStacked ? DesignTokens.Spacing.sm : DesignTokens.Spacing.none)
         .contentShape(Rectangle())
     }
 }

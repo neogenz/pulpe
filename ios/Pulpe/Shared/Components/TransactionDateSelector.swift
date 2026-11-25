@@ -9,6 +9,8 @@ struct TransactionDateSelector: View {
     /// `.standalone` draws its own soft background; `.row` is a bare line for a `FormCard`.
     var style: FormRowStyle = .standalone
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         switch style {
         case .standalone:
@@ -23,12 +25,18 @@ struct TransactionDateSelector: View {
     }
 
     private var row: some View {
-        HStack {
+        // The compact picker never shrinks: beside its label at accessibility sizes it widened
+        // the whole sheet past the screen, so it goes under the label there.
+        let isStacked = dynamicTypeSize.isAccessibilitySize
+        let layout = isStacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout())
+        return layout {
             Label("Date", systemImage: "calendar")
                 .font(PulpeTypography.bodyLarge)
                 .foregroundStyle(Color.textPrimary)
 
-            Spacer()
+            if !isStacked { Spacer() }
 
             DatePicker("", selection: $date, displayedComponents: .date)
                 .labelsHidden()
@@ -36,6 +44,8 @@ struct TransactionDateSelector: View {
                 .environment(\.locale, Formatters.locale(for: currency))
                 .accessibilityLabel("Date")
         }
+        .padding(.vertical, isStacked ? DesignTokens.Spacing.sm : DesignTokens.Spacing.none)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

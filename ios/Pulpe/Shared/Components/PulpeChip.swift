@@ -147,6 +147,8 @@ struct PulpeChip<Trailing: View>: View {
                 // cross-fade with its symbol, not snap while the symbol morphs. Inert for
                 // the static labels most chips carry.
                 .contentTransition(.opacity)
+                // In a narrow chip (a large text size) the label keeps its words; the trailing wraps.
+                .layoutPriority(1)
             if let count {
                 countBadge(count)
             }

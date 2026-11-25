@@ -398,6 +398,7 @@ free-floating pills, whose unselected options read as bare text and blur into th
 families around them.
 
 - **Rendering:** a `sunk` capsule track with 3pt padding, 36pt segments; the selected segment is a `surface` capsule with a small shadow and ink text, the others ink2. Built from buttons (44pt hit area, `.isSelected` trait, Reduce Motion respected), so the track still separates segmented _choices_ from chip _actions_.
+- **Accessibility sizes:** the segments stack one per line in a `CornerRadius.card` track, labels wrap instead of being cut to a third of the width.
 - **Labels are plain `Text`** (emoji allowed — Devise reads `🇨🇭 CHF`).
 - The wrapper adds the optional form-field title (13pt semibold ink2) and `.sensoryFeedback(.selection)`.
 
