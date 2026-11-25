@@ -193,8 +193,9 @@ struct TemplateLineInput: Identifiable {
     var amount: Decimal
     var kind: TransactionKind
     var recurrence: TransactionRecurrence
-    /// Tri-state (PUL-378): `.none` when the « Compte » field never showed (flag off), so the
-    /// server applies the default account; `.some(nil)` is « Aucun ».
+    /// Tri-state (PUL-378): `.none` when the « Compte » field never showed (flag off), left out
+    /// of the body; `.some(nil)` is « Aucun ». Both leave the line without an account: the
+    /// server never applies the default account to a model line.
     var accountId: String??
 }
 
@@ -330,7 +331,7 @@ struct AddTemplateLineSheet: View {
                         amount: amount,
                         kind: kind,
                         recurrence: recurrence,
-                        // The field prefills only once it has shown: before that, the server decides.
+                        // The field prefills only once it has shown: before that, no account is sent.
                         accountId: didPrefillAccount ? .some(accountId) : .none
                     )
                     onAdd(line)
