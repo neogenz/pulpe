@@ -21,7 +21,7 @@ interface PlaceholderScreenProps {
   icon: ComponentProps<typeof MaterialCommunityIcons>["name"];
   title: string;
   /** Empty states guide rather than apologise — the Tutoiement Rule. */
-  hint: string;
+  hint?: string;
   /** A way out of the state, when there is one to offer. */
   action?: { label: string; loading?: boolean; onPress: () => void };
   /**
@@ -67,12 +67,14 @@ export function PlaceholderScreen({
       >
         {title}
       </Text>
-      <Text
-        variant="bodyLarge"
-        style={[styles.centered, { color: theme.colors.onSurfaceVariant }]}
-      >
-        {hint}
-      </Text>
+      {hint !== undefined && (
+        <Text
+          variant="bodyLarge"
+          style={[styles.centered, { color: theme.colors.onSurfaceVariant }]}
+        >
+          {hint}
+        </Text>
+      )}
       {action !== undefined && (
         <ActionButton
           loading={action.loading}

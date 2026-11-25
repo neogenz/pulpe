@@ -36,11 +36,18 @@ interface HeroAppBarProps {
   title: string;
   /** Present on a pushed screen; a tab has nowhere to go back to. */
   onBack?: () => void;
+  /** Names where back leads, when « Retour » alone would not say it. */
+  backLabel?: string;
   /** `HeroAppBarAction`s, trailing. */
   children?: ReactNode;
 }
 
-export function HeroAppBar({ title, onBack, children }: HeroAppBarProps) {
+export function HeroAppBar({
+  title,
+  onBack,
+  backLabel,
+  children,
+}: HeroAppBarProps) {
   const hero = useHeroColors();
   const { t } = useTranslation();
 
@@ -54,7 +61,7 @@ export function HeroAppBar({ title, onBack, children }: HeroAppBarProps) {
         <Appbar.BackAction
           color={hero.ink}
           onPress={onBack}
-          accessibilityLabel={t("common.back")}
+          accessibilityLabel={backLabel ?? t("common.back")}
         />
       )}
       <Appbar.Content title={title} color={hero.ink} />

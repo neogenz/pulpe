@@ -1663,6 +1663,16 @@
       "defaultLabel": "Default account",
       "defaultHint": "Each new entry starts on this account. You can change it each time.",
       "defaultBadge": "Default"
+    },
+    "detail": {
+      "back": "Back to My net worth",
+      "history": "History",
+      "recorded": "Recorded value",
+      "superseded": "Already included in your entry on {{date}}",
+      "nothingSince": "You haven't checked anything since your entry on {{date}}.",
+      "loadError": "Couldn't load this history, try again",
+      "loadMoreError": "Couldn't load more, try again",
+      "notFound": "This item is no longer available"
     }
   },
   "completeProfile": {
@@ -2154,7 +2164,8 @@
     "maintenance": "Maintenance",
     "mcpConsent": "Connect an AI assistant",
     "settingsConnections": "Connections",
-    "netWorth": "My net worth"
+    "netWorth": "My net worth",
+    "netWorthAssetDetails": "Item details"
   },
   "authError": {
     "generic": "Something didn't work — try again",

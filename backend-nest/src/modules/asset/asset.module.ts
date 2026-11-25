@@ -12,6 +12,7 @@ import { AssetMapper } from './infrastructure/mappers/asset.mapper';
 import { ASSET_REPOSITORY } from './domain/ports/asset-repository.port';
 import { EXCHANGE_RATE_PORT } from './domain/ports/exchange-rate.port';
 import { GetNetWorthUseCase } from './application/get-net-worth.use-case';
+import { GetAssetHistoryUseCase } from './application/get-asset-history.use-case';
 import { CreateAssetUseCase } from './application/create-asset.use-case';
 import { UpdateAssetUseCase } from './application/update-asset.use-case';
 import { RemoveAssetUseCase } from './application/remove-asset.use-case';
@@ -28,6 +29,7 @@ import { RemoveAssetCategoryUseCase } from './application/remove-asset-category.
   controllers: [AssetController, AssetCategoryController],
   providers: [
     GetNetWorthUseCase,
+    GetAssetHistoryUseCase,
     CreateAssetUseCase,
     UpdateAssetUseCase,
     RemoveAssetUseCase,
@@ -40,6 +42,7 @@ import { RemoveAssetCategoryUseCase } from './application/remove-asset-category.
     { provide: EXCHANGE_RATE_PORT, useClass: CurrencyExchangeRateAdapter },
     AssetMapper,
     createInfoLoggerProvider(GetNetWorthUseCase.name),
+    createInfoLoggerProvider(GetAssetHistoryUseCase.name),
     createInfoLoggerProvider(CreateAssetUseCase.name),
     createInfoLoggerProvider(UpdateAssetUseCase.name),
     createInfoLoggerProvider(RemoveAssetUseCase.name),

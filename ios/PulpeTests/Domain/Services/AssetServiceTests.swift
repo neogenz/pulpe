@@ -105,6 +105,90 @@ struct AssetServiceTests {
         #expect(seen.json["name"] as? String == "Épargne")
     }
 
+    /// The contract data set (PUL-379): « Compte courant » worth 9 420, its last entry 5 000.
+    static let compteCourantHistory = """
+    {"asset":{"id":"a1","categoryId":"c1","name":"Compte courant","currency":"CHF","direction":"own",
+    "inPulpe":false,"archivedAt":null,"latestValue":9420,"recordedValue":5000,
+    "latestRecordedAt":"2026-11-01T10:00:00.000Z","convertedValue":9420,"suggestion":null},
+    "entries":[
+    {"type":"movement","id":"11111111-1111-4111-8111-111111111111","at":"2026-11-10T10:00:00.000Z",
+    "name":"Salaire","effect":6000,"supersededAt":null},
+    {"type":"movement","id":"22222222-2222-4222-8222-222222222222","at":"2026-11-05T10:00:00.000Z",
+    "name":"Restaurant","effect":-80,"supersededAt":null},
+    {"type":"movement","id":"33333333-3333-4333-8333-333333333333","at":"2026-11-03T10:00:00.000Z",
+    "name":"Loyer","effect":-1500,"supersededAt":null},
+    {"type":"snapshot","id":"44444444-4444-4444-8444-444444444444","at":"2026-11-01T10:00:00.000Z","value":5000},
+    {"type":"movement","id":"55555555-5555-4555-8555-555555555555","at":"2026-10-28T10:00:00.000Z",
+    "name":"Assurance","effect":-300,"supersededAt":"2026-11-01T10:00:00.000Z"},
+    {"type":"snapshot","id":"66666666-6666-4666-8666-666666666666","at":"2026-10-01T10:00:00.000Z","value":4800}
+    ],
+    "nextCursor":null}
+    """
+
+    @Test
+    func getHistory_decodesTheContractDataSet_newestFirst() async throws {
+        var history: AssetHistory?
+        let seen = try await capture(data: Self.compteCourantHistory) {
+            history = try await $0.getHistory(id: "a1", cursor: nil)
+        }
+        let page = try #require(history)
+
+        #expect(seen.method == "GET")
+        #expect(seen.path == "/assets/a1/history")
+        #expect(seen.query == nil)
+        #expect(page.asset.latestValue == 9420)
+        #expect(page.asset.recordedValue == 5000)
+        #expect(page.nextCursor == nil)
+        let titles = page.entries.map { entry -> String in
+            switch entry.kind {
+            case .snapshot(let value): "\(value)"
+            case let .movement(name, _, _): name
+            }
+        }
+        #expect(titles == ["Salaire", "Restaurant", "Loyer", "5000", "Assurance", "4800"])
+        let effects = page.entries.compactMap { entry -> Decimal? in
+            if case let .movement(_, effect, _) = entry.kind { return effect }
+            return nil
+        }
+        #expect(effects == [6000, -80, -1500, -300])
+        // Dates carry milliseconds: the second is kept exactly.
+        #expect(page.entries[3].at == ISO8601DateFormatter().date(from: "2026-11-01T10:00:00Z"))
+        guard case let .movement(_, _, supersededAt) = page.entries[4].kind else {
+            Issue.record("Assurance should be a movement")
+            return
+        }
+        #expect(supersededAt == page.entries[3].at)
+        // CA5: what counts in the value is the value minus the last entry.
+        let counted = page.entries.reduce(Decimal(0)) { sum, entry in
+            if case let .movement(_, effect?, nil) = entry.kind { return sum + effect }
+            return sum
+        }
+        #expect(counted == page.asset.latestValue - page.asset.recordedValue)
+    }
+
+    @Test
+    func getHistory_sendsTheCursor_andDecodesAMissingRate() async throws {
+        let payload = """
+        {"asset":\(Self.historyAsset),"entries":[{"type":"movement","id":"77777777-7777-4777-8777-777777777777",
+        "at":"2026-11-04T08:30:00.123Z","name":"Courses","effect":null,"supersededAt":null}],"nextCursor":"1.1.x"}
+        """
+        var history: AssetHistory?
+        let seen = try await capture(data: payload) {
+            history = try await $0.getHistory(id: "a1", cursor: "1793782800000.0.abc")
+        }
+        let page = try #require(history)
+
+        #expect(seen.query == "cursor=1793782800000.0.abc")
+        #expect(page.nextCursor == "1.1.x")
+        #expect(page.entries.first?.kind == .movement(name: "Courses", effect: nil, supersededAt: nil))
+    }
+
+    private static let historyAsset = """
+    {"id":"a1","categoryId":"c1","name":"Compte courant","currency":"EUR","direction":"own","inPulpe":false,
+    "archivedAt":null,"latestValue":10,"recordedValue":10,"latestRecordedAt":"2026-11-01T10:00:00.000Z",
+    "convertedValue":null}
+    """
+
     private func makeAPIClient() -> APIClient {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [InterceptingURLProtocol.self]
@@ -120,6 +204,7 @@ struct AssetServiceTests {
 private final class AssetRequestRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var storedPath: String?
+    private var storedQuery: String?
     private var storedMethod: String?
     private var storedBody: Data?
 
@@ -127,12 +212,14 @@ private final class AssetRequestRecorder: @unchecked Sendable {
         let body = urlRequest.httpBody ?? urlRequest.httpBodyStream.map(Self.drain)
         lock.withLock {
             storedPath = urlRequest.url?.path
+            storedQuery = urlRequest.url?.query
             storedMethod = urlRequest.httpMethod
             storedBody = body
         }
     }
 
     var path: String? { lock.withLock { storedPath } }
+    var query: String? { lock.withLock { storedQuery } }
     var method: String? { lock.withLock { storedMethod } }
     var body: Data? { lock.withLock { storedBody } }
 

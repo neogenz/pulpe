@@ -3,12 +3,14 @@ import type {
   Asset as AssetApi,
   AssetCategory as AssetCategoryApi,
   AssetCategoryRecord,
+  AssetHistory as AssetHistoryApi,
   AssetRecord,
   NetWorth as NetWorthApi,
 } from 'pulpe-shared';
 import type {
   Asset,
   AssetCategory,
+  AssetHistoryPage,
   NetWorth,
   NetWorthAsset,
   NetWorthCategory,
@@ -39,6 +41,14 @@ export class AssetMapper {
         this.toNetWorthCategoryApi(category),
       ),
       assets: netWorth.assets.map((asset) => this.toNetWorthAssetApi(asset)),
+    };
+  }
+
+  toAssetHistoryApi(page: AssetHistoryPage): AssetHistoryApi {
+    return {
+      asset: this.toNetWorthAssetApi(page.asset),
+      entries: page.entries,
+      nextCursor: page.nextCursor,
     };
   }
 

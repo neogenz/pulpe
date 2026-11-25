@@ -1,11 +1,30 @@
 import SwiftUI
 
 struct NetWorthAssetActions {
+    /// Pushes the element's detail (PUL-379).
+    let open: () -> Void
     let edit: () -> Void
     let toggleArchive: () -> Void
     let delete: () -> Void
     /// « Utiliser par défaut dans le budget » (PUL-378). `nil` where the entry is not offered.
     var toggleDefault: (() -> Void)?
+}
+
+/// What a row's ⋮ menu offers (PUL-379): « Modifier » stays there now that a tap opens the detail.
+enum NetWorthRowMenuEntry: Equatable {
+    case edit, toggleDefault, archive, unarchive, delete
+}
+
+extension Asset {
+    /// An archived row is inert: it has no detail (CA15).
+    var opensDetail: Bool { archivedAt == nil }
+
+    func rowMenuEntries(offersDefault: Bool) -> [NetWorthRowMenuEntry] {
+        let isArchived = archivedAt != nil
+        return (isArchived ? [] : [.edit])
+            + (offersDefault ? [.toggleDefault] : [])
+            + [isArchived ? .unarchive : .archive, .delete]
+    }
 }
 
 /// The default account as « Mon patrimoine » shows it (PUL-378): the badge, and the menu entry
@@ -47,13 +66,13 @@ struct NetWorthAssetRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.xs) {
-            if let actions, asset.archivedAt == nil {
-                // The row and its menu are siblings: tapping the row edits, the menu holds the rest.
-                Button(action: actions.edit) { content }
+            if let actions, asset.opensDetail {
+                // The row and its menu are siblings: tapping the row opens the detail, the menu holds the rest.
+                Button(action: actions.open) { content }
                     .contentShape(Rectangle())
                     .plainPressedButtonStyle()
-                    .accessibilityHint(AppLocale.string("Modifier"))
-                    .accessibilityIdentifier("netWorthRowEdit")
+                    .accessibilityHint(AppLocale.string("Ouvre le détail de \(asset.name)"))
+                    .accessibilityIdentifier("netWorthRowOpen")
             } else {
                 content
             }
@@ -125,27 +144,33 @@ struct NetWorthAssetRow: View {
 
     private func menu(_ actions: NetWorthAssetActions) -> some View {
         Menu {
-            if asset.archivedAt == nil {
-                Button(AppLocale.string("Modifier"), systemImage: "pencil", action: actions.edit)
+            ForEach(asset.rowMenuEntries(offersDefault: actions.toggleDefault != nil), id: \.self) { entry in
+                menuButton(entry, actions)
             }
-            if let toggleDefault = actions.toggleDefault {
-                Button(
-                    NetWorthDefaultAccount.menuTitle(isDefault: isDefault),
-                    systemImage: isDefault ? "star.slash" : "star",
-                    action: toggleDefault
-                )
-            }
-            Button(
-                asset.archivedAt == nil ? AppLocale.string("Archiver") : AppLocale.string("Désarchiver"),
-                systemImage: asset.archivedAt == nil ? "archivebox" : "tray.and.arrow.up",
-                action: actions.toggleArchive
-            )
-            Button(AppLocale.string("Supprimer"), systemImage: "trash", role: .destructive, action: actions.delete)
         } label: {
             NetWorthMenuLabel()
         }
         .accessibilityLabel(AppLocale.string("Actions pour \(asset.name)"))
         .accessibilityIdentifier("netWorthRowMenu")
+    }
+
+    @ViewBuilder
+    private func menuButton(_ entry: NetWorthRowMenuEntry, _ actions: NetWorthAssetActions) -> some View {
+        switch entry {
+        case .edit:
+            Button(AppLocale.string("Modifier"), systemImage: "pencil", action: actions.edit)
+        case .toggleDefault:
+            Button(
+                NetWorthDefaultAccount.menuTitle(isDefault: isDefault),
+                systemImage: isDefault ? "star.slash" : "star"
+            ) { actions.toggleDefault?() }
+        case .archive:
+            Button(AppLocale.string("Archiver"), systemImage: "archivebox", action: actions.toggleArchive)
+        case .unarchive:
+            Button(AppLocale.string("Désarchiver"), systemImage: "tray.and.arrow.up", action: actions.toggleArchive)
+        case .delete:
+            Button(AppLocale.string("Supprimer"), systemImage: "trash", role: .destructive, action: actions.delete)
+        }
     }
 
     private func label(of badge: NetWorthBadge) -> String {

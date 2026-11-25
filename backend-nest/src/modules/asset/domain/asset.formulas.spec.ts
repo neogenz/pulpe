@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
 import type {
+  AssetHistoryEntry,
+  AssetMovements,
+  AssetSnapshot,
   AssetWithValue,
   FreeMovement,
   MovementLine,
 } from './asset.entity';
 import {
+  assetHistory,
   computeNetWorth,
   movementsSince,
   type NetWorthInput,
@@ -222,6 +226,7 @@ function prevision(
 ): MovementLine {
   return {
     id: 'line-1',
+    name: 'Prévision',
     checkedAt: on(5),
     accountId: null,
     assetId: null,
@@ -236,7 +241,14 @@ function free(
   amount: number,
   checkedAt = on(5),
 ): FreeMovement {
-  return { accountId, kind, amount, checkedAt };
+  return {
+    id: `${accountId}:${amount}:${checkedAt}`,
+    name: 'Mouvement',
+    accountId,
+    kind,
+    amount,
+    checkedAt,
+  };
 }
 
 function withMovements(
@@ -990,5 +1002,457 @@ describe('computeNetWorth: movements created with a default account (PUL-378)', 
 
     expect(valueOf(result, 'livret')).toBe(10_500);
     expect(valueOf(result, 'compte-courant')).toBe(5_000);
+  });
+});
+
+// PUL-379 jeu d'essai: the Compte courant, entries of 4 800 on 1 October and
+// 5 000 on 1 November; « Assurance » 300 checked between them; « Loyer »
+// 1 500, the imprévu « Restaurant » 80 and « Salaire » 6 000 checked since.
+const OCT_1 = '2026-10-01T08:00:00.000Z';
+const OCT_28 = '2026-10-28T10:00:00.000Z';
+const NOV_1 = '2026-11-01T08:00:00.000Z';
+const SAISIE_OCT = { id: 'saisie-oct', value: 4_800, recordedAt: OCT_1 };
+const SAISIE_NOV = { id: 'saisie-nov', value: 5_000, recordedAt: NOV_1 };
+const COURANT = asset({
+  id: 'compte-courant',
+  name: 'Compte courant',
+  recordedValue: 5_000,
+  latestRecordedAt: NOV_1,
+});
+
+function onCourant(
+  name: string,
+  kind: TransactionKind,
+  amount: number,
+  checkedAt: string,
+): MovementLine {
+  return prevision({
+    id: name,
+    name,
+    kind,
+    amount,
+    checkedAt,
+    accountId: 'compte-courant',
+  });
+}
+
+function named(
+  name: string,
+  accountId: string,
+  kind: TransactionKind,
+  amount: number,
+  checkedAt: string,
+): FreeMovement {
+  return { ...free(accountId, kind, amount, checkedAt), id: name, name };
+}
+
+const ASSURANCE = onCourant('Assurance', 'expense', 300, OCT_28);
+const LOYER = onCourant('Loyer', 'expense', 1_500, on(3));
+const RESTAURANT = named('Restaurant', 'compte-courant', 'expense', 80, on(5));
+const SALAIRE = onCourant('Salaire', 'income', 6_000, on(10));
+const CONTRACT_MOVEMENTS: AssetMovements = {
+  lines: [ASSURANCE, LOYER, SALAIRE],
+  freeMovements: [RESTAURANT],
+};
+
+function historyOf(
+  movements: AssetMovements = CONTRACT_MOVEMENTS,
+  snapshots: AssetSnapshot[] = [SAISIE_OCT, SAISIE_NOV],
+  account: AssetWithValue = COURANT,
+  rate: number | undefined = 1,
+) {
+  return assetHistory(account, snapshots, movements, rate);
+}
+
+function valueNow(account: AssetWithValue, movements: AssetMovements) {
+  return valueOf(compute([account], { movements }), account.id);
+}
+
+function label(entry: AssetHistoryEntry) {
+  return entry.type === 'snapshot' ? `saisie ${entry.value}` : entry.name;
+}
+
+function movementsOf(entries: AssetHistoryEntry[]) {
+  return entries.filter((entry) => entry.type === 'movement');
+}
+
+/** Sum of the effects still counted in the value, in cents (CA5). */
+function openSumCents(entries: AssetHistoryEntry[]) {
+  return movementsOf(entries)
+    .filter((entry) => entry.supersededAt === null)
+    .reduce((sum, entry) => sum + Math.round((entry.effect ?? 0) * 100), 0);
+}
+
+describe('assetHistory: the history follows the rule of the value (PUL-379)', () => {
+  it('values the Compte courant at 9 420', () => {
+    expect(valueNow(COURANT, CONTRACT_MOVEMENTS)).toBe(9_420);
+  });
+
+  it('CA3: one list, newest first, entries and movements mixed', () => {
+    expect(historyOf().map(label)).toEqual([
+      'Salaire',
+      'Restaurant',
+      'Loyer',
+      'saisie 5000',
+      'Assurance',
+      'saisie 4800',
+    ]);
+  });
+
+  it('CA4: each movement shows its name, check date and signed effect; each entry its value and date', () => {
+    expect(historyOf()).toEqual([
+      expect.objectContaining({ name: 'Salaire', at: on(10), effect: 6_000 }),
+      expect.objectContaining({ name: 'Restaurant', at: on(5), effect: -80 }),
+      expect.objectContaining({ name: 'Loyer', at: on(3), effect: -1_500 }),
+      { type: 'snapshot', id: 'saisie-nov', at: NOV_1, value: 5_000 },
+      expect.objectContaining({ name: 'Assurance', at: OCT_28, effect: -300 }),
+      { type: 'snapshot', id: 'saisie-oct', at: OCT_1, value: 4_800 },
+    ]);
+  });
+
+  it('CA5: the effects above the last entry add up to the value minus that entry (+4 420)', () => {
+    expect(openSumCents(historyOf())).toBe(442_000);
+    expect(openSumCents(historyOf())).toBe(
+      ((valueNow(COURANT, CONTRACT_MOVEMENTS) ?? 0) - 5_000) * 100,
+    );
+  });
+
+  it('CA5 invariant: rounding, a debt touching zero and a foreign currency keep the sum equal to value minus entry', () => {
+    const scenarios: [AssetWithValue, AssetMovements, number][] = [
+      [
+        { ...COURANT, currency: 'EUR' },
+        {
+          lines: [
+            onCourant('a', 'expense', 33.33, on(3)),
+            onCourant('b', 'income', 0.07, on(4)),
+          ],
+          freeMovements: [
+            named('c', 'compte-courant', 'expense', 10.01, on(5)),
+          ],
+        },
+        0.93,
+      ],
+      [
+        { ...COURANT, direction: 'owe', recordedValue: 200 },
+        {
+          lines: [onCourant('remboursement', 'income', 300, on(3))],
+          freeMovements: [
+            named('achat', 'compte-courant', 'expense', 100, on(4)),
+            named('revenu', 'compte-courant', 'income', 40, on(6)),
+          ],
+        },
+        1,
+      ],
+    ];
+
+    for (const [account, movements, rate] of scenarios) {
+      const value = compute([account], {
+        movements,
+        rates: { EUR: rate },
+      }).assets[0]?.value;
+      const entries = assetHistory(
+        account,
+        [SAISIE_OCT, { ...SAISIE_NOV, value: account.recordedValue }],
+        movements,
+        rate,
+      );
+
+      expect(openSumCents(entries)).toBe(
+        Math.round(((value ?? 0) - account.recordedValue) * 100),
+      );
+    }
+  });
+
+  it('CA6: « Assurance », below the 1 November entry, no longer counts: that entry takes over', () => {
+    const entries = movementsOf(historyOf());
+
+    expect(
+      entries.map((entry) => [
+        entry.type === 'movement' && entry.name,
+        entry.type === 'movement' && entry.supersededAt,
+      ]),
+    ).toEqual([
+      ['Salaire', null],
+      ['Restaurant', null],
+      ['Loyer', null],
+      ['Assurance', NOV_1],
+    ]);
+  });
+
+  it('CA7: the history goes back to the first entry, and nothing checked before it shows', () => {
+    const before = onCourant(
+      'Avant',
+      'expense',
+      50,
+      '2026-09-20T10:00:00.000Z',
+    );
+    const entries = historyOf({
+      ...CONTRACT_MOVEMENTS,
+      lines: [...CONTRACT_MOVEMENTS.lines, before],
+    });
+
+    expect(entries.at(-1)).toEqual({
+      type: 'snapshot',
+      id: 'saisie-oct',
+      at: OCT_1,
+      value: 4_800,
+    });
+    expect(entries.map(label)).not.toContain('Avant');
+  });
+
+  it('CA8: « Restaurant » unchecked leaves the history and the value is 9 500', () => {
+    const movements = { ...CONTRACT_MOVEMENTS, freeMovements: [] };
+
+    expect(historyOf(movements).map(label)).not.toContain('Restaurant');
+    expect(valueNow(COURANT, movements)).toBe(9_500);
+  });
+
+  it('CA9: an entry of 9 000 goes on top, the value is 9 000 and the movements stay under it', () => {
+    const NOV_12 = on(12);
+    const courant = {
+      ...COURANT,
+      recordedValue: 9_000,
+      latestRecordedAt: NOV_12,
+    };
+    const entries = historyOf(
+      CONTRACT_MOVEMENTS,
+      [
+        SAISIE_OCT,
+        SAISIE_NOV,
+        { id: 'saisie-9000', value: 9_000, recordedAt: NOV_12 },
+      ],
+      courant,
+    );
+
+    expect(entries[0]).toEqual({
+      type: 'snapshot',
+      id: 'saisie-9000',
+      at: NOV_12,
+      value: 9_000,
+    });
+    expect(valueNow(courant, CONTRACT_MOVEMENTS)).toBe(9_000);
+    expect(
+      entries
+        .slice(1, 4)
+        .map((entry) => [
+          label(entry),
+          entry.type === 'movement' && entry.supersededAt,
+        ]),
+    ).toEqual([
+      ['Salaire', NOV_12],
+      ['Restaurant', NOV_12],
+      ['Loyer', NOV_12],
+    ]);
+    expect(openSumCents(entries)).toBe(0);
+  });
+
+  it('CA10: the Livret holds its single entry of 10 000 and nothing else', () => {
+    const livret = asset({
+      id: 'livret',
+      recordedValue: 10_000,
+      latestRecordedAt: NOV_1,
+    });
+
+    expect(
+      historyOf(CONTRACT_MOVEMENTS, [{ ...SAISIE_NOV, value: 10_000 }], livret),
+    ).toEqual([
+      { type: 'snapshot', id: 'saisie-nov', at: NOV_1, value: 10_000 },
+    ]);
+  });
+
+  describe('CA13: what moves a debt or an asset, signed', () => {
+    const DETTE = asset({
+      id: 'dette',
+      direction: 'owe',
+      recordedValue: 200,
+      latestRecordedAt: NOV_1,
+    });
+    const effects = (account: AssetWithValue, movements: AssetMovements) =>
+      historyOf(
+        movements,
+        [{ ...SAISIE_NOV, value: account.recordedValue }],
+        account,
+      )
+        .filter((entry) => entry.type === 'movement')
+        .map((entry) => [entry.name, entry.effect]);
+
+    it('a debt of 200: a repayment of 300 shows −200, a purchase of 100 checked afterwards +100', () => {
+      const movements = {
+        lines: [
+          prevision({
+            id: 'remboursement',
+            name: 'Remboursement',
+            kind: 'expense',
+            amount: 300,
+            checkedAt: on(3),
+            assetId: 'dette',
+          }),
+        ],
+        freeMovements: [named('Achat', 'dette', 'expense', 100, on(4))],
+      };
+
+      expect(effects(DETTE, movements)).toEqual([
+        ['Achat', 100],
+        ['Remboursement', -200],
+      ]);
+      expect(valueNow(DETTE, movements)).toBe(100);
+    });
+
+    it('a debt: a saving paid with it is positive, a Revenu on it negative, a repayment bounded by zero, a purchase after it positive', () => {
+      const movements = {
+        lines: [
+          prevision({
+            id: 'epargne',
+            name: 'Épargne',
+            kind: 'saving',
+            amount: 50,
+            checkedAt: on(3),
+            accountId: 'dette',
+          }),
+          prevision({
+            id: 'remboursement',
+            name: 'Remboursement',
+            kind: 'expense',
+            amount: 500,
+            checkedAt: on(5),
+            assetId: 'dette',
+          }),
+        ],
+        freeMovements: [
+          named('Revenu', 'dette', 'income', 30, on(4)),
+          named('Achat', 'dette', 'expense', 10, on(6)),
+        ],
+      };
+
+      expect(effects(DETTE, movements)).toEqual([
+        ['Achat', 10],
+        ['Remboursement', -220],
+        ['Revenu', -30],
+        ['Épargne', 50],
+      ]);
+    });
+
+    it('a debt at 0: a further repayment is listed with an effect of 0', () => {
+      const zero = { ...DETTE, recordedValue: 0 };
+      const movements = {
+        lines: [],
+        freeMovements: [named('Remboursement', 'dette', 'income', 100, on(3))],
+      };
+
+      expect(effects(zero, movements)).toEqual([['Remboursement', 0]]);
+    });
+
+    it('an asset: a saving that feeds it is positive, a Revenu drawn from it negative', () => {
+      const livret = asset({
+        id: 'livret',
+        recordedValue: 10_000,
+        latestRecordedAt: NOV_1,
+      });
+      const movements = {
+        lines: [
+          prevision({
+            id: 'epargne',
+            name: 'Épargne',
+            kind: 'saving',
+            amount: 500,
+            checkedAt: on(3),
+            assetId: 'livret',
+          }),
+          prevision({
+            id: 'retrait',
+            name: 'Retrait',
+            kind: 'income',
+            amount: 1_000,
+            checkedAt: on(4),
+            assetId: 'livret',
+          }),
+        ],
+        freeMovements: [],
+      };
+
+      expect(effects(livret, movements)).toEqual([
+        ['Retrait', -1_000],
+        ['Épargne', 500],
+      ]);
+    });
+  });
+
+  it("CA14: a EUR account shows each effect in euros at today's rate, and none without a rate", () => {
+    const courantEur = { ...COURANT, currency: 'EUR' as const };
+    const restaurant = { lines: [], freeMovements: [RESTAURANT] };
+
+    // 80 CHF / 0.8 = 100 EUR.
+    expect(
+      historyOf(restaurant, [SAISIE_OCT, SAISIE_NOV], courantEur, 0.8)[0],
+    ).toMatchObject({ name: 'Restaurant', effect: -100 });
+    expect(
+      assetHistory(
+        courantEur,
+        [SAISIE_OCT, SAISIE_NOV],
+        restaurant,
+        undefined,
+      )[0],
+    ).toMatchObject({ name: 'Restaurant', effect: null });
+  });
+
+  it('CA19: a prévision that moved several times in one period shows once, at its last check, with the total', () => {
+    const courses = prevision({
+      id: 'courses',
+      name: 'Courses',
+      kind: 'expense',
+      amount: 400,
+      checkedAt: on(6),
+      accountId: 'compte-courant',
+      checkedReals: [
+        { amount: 120, checkedAt: on(2) },
+        { amount: 300, checkedAt: on(4) },
+      ],
+    });
+
+    expect(historyOf({ lines: [courses], freeMovements: [] })[0]).toEqual({
+      type: 'movement',
+      id: 'courses',
+      at: on(4),
+      name: 'Courses',
+      effect: -420,
+      supersededAt: null,
+    });
+  });
+
+  it('CA19: « Courses » shows −120 under the 1 November entry and −280 above it, dated 4 November; value 9 140', () => {
+    const courses = prevision({
+      id: 'courses',
+      name: 'Courses',
+      kind: 'expense',
+      amount: 400,
+      checkedAt: on(4),
+      accountId: 'compte-courant',
+      checkedReals: [{ amount: 120, checkedAt: '2026-10-28T12:00:00.000Z' }],
+    });
+    const movements = {
+      ...CONTRACT_MOVEMENTS,
+      lines: [...CONTRACT_MOVEMENTS.lines, courses],
+    };
+    const entries = historyOf(movements);
+
+    expect(
+      movementsOf(entries)
+        .filter(
+          (entry) => entry.type === 'movement' && entry.name === 'Courses',
+        )
+        .map(
+          (entry) =>
+            entry.type === 'movement' && [
+              entry.at,
+              entry.effect,
+              entry.supersededAt,
+            ],
+        ),
+    ).toEqual([
+      [on(4), -280, null],
+      ['2026-10-28T12:00:00.000Z', -120, NOV_1],
+    ]);
+    expect(valueNow(COURANT, movements)).toBe(9_140);
+    expect(openSumCents(entries)).toBe(414_000);
   });
 });

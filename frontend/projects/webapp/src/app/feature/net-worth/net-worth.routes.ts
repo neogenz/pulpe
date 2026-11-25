@@ -7,7 +7,21 @@ export default [
   {
     path: '',
     providers: [NetWorthStore, NetWorthDialogService],
-    title: PAGE_TITLES.NET_WORTH,
-    loadComponent: () => import('./net-worth-page'),
+    children: [
+      {
+        path: '',
+        title: PAGE_TITLES.NET_WORTH,
+        loadComponent: () => import('./net-worth-page'),
+      },
+      {
+        path: ':id',
+        title: PAGE_TITLES.NET_WORTH_ASSET_DETAILS,
+        data: {
+          breadcrumb: 'pageTitle.netWorthAssetDetails',
+          icon: 'account_balance_wallet',
+        },
+        loadComponent: () => import('./detail/asset-detail-page'),
+      },
+    ],
   },
 ] satisfies Routes;

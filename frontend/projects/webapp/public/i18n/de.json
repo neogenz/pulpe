@@ -1663,6 +1663,16 @@
       "defaultLabel": "Standardkonto",
       "defaultHint": "Jede neue Buchung startet auf diesem Konto. Du kannst es jedes Mal ändern.",
       "defaultBadge": "Standard"
+    },
+    "detail": {
+      "back": "Zurück zu Mein Vermögen",
+      "history": "Verlauf",
+      "recorded": "Erfasster Wert",
+      "superseded": "Bereits in deiner Eingabe vom {{date}} enthalten",
+      "nothingSince": "Du hast seit deiner Eingabe vom {{date}} nichts abgehakt.",
+      "loadError": "Dieser Verlauf konnte nicht geladen werden, versuche es nochmal",
+      "loadMoreError": "Weitere Einträge konnten nicht geladen werden, versuche es nochmal",
+      "notFound": "Dieses Element ist nicht mehr verfügbar"
     }
   },
   "completeProfile": {
@@ -2154,7 +2164,8 @@
     "maintenance": "Wartung",
     "mcpConsent": "KI-Assistenten verbinden",
     "settingsConnections": "Verbindungen",
-    "netWorth": "Mein Vermögen"
+    "netWorth": "Mein Vermögen",
+    "netWorthAssetDetails": "Elementdetails"
   },
   "authError": {
     "generic": "Etwas hat nicht funktioniert — versuch es nochmal",

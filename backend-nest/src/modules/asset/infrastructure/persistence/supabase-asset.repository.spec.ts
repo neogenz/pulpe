@@ -252,6 +252,7 @@ describe('SupabaseAssetRepository', () => {
         checked_at: CHECKED,
         account_id: null,
         asset_id: null,
+        name: id,
         ...overrides,
       };
     }
@@ -273,7 +274,7 @@ describe('SupabaseAssetRepository', () => {
         error: null,
       }));
       const { repo } = createRepository({
-        'rpc:list_asset_movements': [rpc],
+        'rpc:list_asset_movements_for': [rpc],
       });
 
       const result = await repo.findMovementsSince(SINCE);
@@ -282,6 +283,7 @@ describe('SupabaseAssetRepository', () => {
         lines: [
           {
             id: 'courses',
+            name: 'courses',
             kind: 'expense',
             amount: 400,
             checkedAt: null,
@@ -292,6 +294,8 @@ describe('SupabaseAssetRepository', () => {
         ],
         freeMovements: [
           {
+            id: 'restaurant',
+            name: 'restaurant',
             accountId: 'compte-courant',
             kind: 'expense',
             amount: 80,
@@ -299,7 +303,22 @@ describe('SupabaseAssetRepository', () => {
           },
         ],
       });
-      expect(rpc.argsOf('rpc')).toEqual([[{ p_since: SINCE }]]);
+      expect(rpc.argsOf('rpc')).toEqual([
+        [{ p_since: SINCE, p_asset_id: undefined }],
+      ]);
+    });
+
+    it('reads only what can move one asset when given', async () => {
+      const rpc = query();
+      const { repo } = createRepository({
+        'rpc:list_asset_movements_for': [rpc],
+      });
+
+      await repo.findMovementsSince(SINCE, 'compte-courant');
+
+      expect(rpc.argsOf('rpc')).toEqual([
+        [{ p_since: SINCE, p_asset_id: 'compte-courant' }],
+      ]);
     });
 
     it('counts every movement past the 1000-row PostgREST page', async () => {
@@ -318,7 +337,10 @@ describe('SupabaseAssetRepository', () => {
         });
       const firstPage = page(0, POSTGREST_PAGE_SIZE);
       const { repo } = createRepository({
-        'rpc:list_asset_movements': [firstPage, page(POSTGREST_PAGE_SIZE, 5)],
+        'rpc:list_asset_movements_for': [
+          firstPage,
+          page(POSTGREST_PAGE_SIZE, 5),
+        ],
       });
 
       const { freeMovements } = await repo.findMovementsSince(SINCE);
@@ -329,7 +351,7 @@ describe('SupabaseAssetRepository', () => {
 
     it('skips a movement without a stored amount, which moves no value', async () => {
       const { repo, encryption } = createRepository({
-        'rpc:list_asset_movements': [
+        'rpc:list_asset_movements_for': [
           query(() => ({
             data: [
               movementRow('line', 'line-1', null, { account_id: 'a' }),
@@ -354,7 +376,7 @@ describe('SupabaseAssetRepository', () => {
       );
       const { repo } = createRepository(
         {
-          'rpc:list_asset_movements': [
+          'rpc:list_asset_movements_for': [
             query(() => ({
               data: [movementRow('free', 'free-1', 80, { account_id: 'a' })],
               error: null,
@@ -373,7 +395,7 @@ describe('SupabaseAssetRepository', () => {
 
     it('fails with ASSET_FETCH_FAILED when the read fails', async () => {
       const { repo } = createRepository({
-        'rpc:list_asset_movements': [
+        'rpc:list_asset_movements_for': [
           query(() => ({
             data: null,
             error: { code: '08006', message: 'down' },
@@ -382,6 +404,67 @@ describe('SupabaseAssetRepository', () => {
       });
 
       await expect(repo.findMovementsSince(SINCE)).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_FETCH_FAILED.code,
+      });
+    });
+  });
+
+  describe('findSnapshots', () => {
+    it('decrypts every entry of the asset, oldest first', async () => {
+      const snapshots = query(() => ({
+        data: [
+          { id: 's1', value: 'enc:4800', recorded_at: '2026-10-01T08:00:00Z' },
+          { id: 's2', value: 'enc:5000', recorded_at: '2026-11-01T08:00:00Z' },
+        ],
+        error: null,
+      }));
+      const { repo } = createRepository({ asset_snapshot: [snapshots] });
+
+      await expect(repo.findSnapshots('compte-courant')).resolves.toEqual([
+        { id: 's1', value: 4800, recordedAt: '2026-10-01T08:00:00Z' },
+        { id: 's2', value: 5000, recordedAt: '2026-11-01T08:00:00Z' },
+      ]);
+      expect(snapshots.argsOf('eq')).toEqual([
+        ['asset_id', 'compte-courant'],
+        ['user_id', 'user-1'],
+      ]);
+      expect(snapshots.argsOf('order')).toEqual([
+        ['recorded_at', { ascending: true }],
+        ['id', { ascending: false }],
+      ]);
+    });
+
+    it('does not read an undecryptable entry as zero', async () => {
+      const failure = new Error(
+        'Unsupported state or unable to authenticate data',
+      );
+      const { repo } = createRepository(
+        {
+          asset_snapshot: [
+            query(() => ({
+              data: [{ id: 's1', value: 'x', recorded_at: '2026-10-01' }],
+              error: null,
+            })),
+          ],
+        },
+        {
+          decryptAmount: jest.fn(() => {
+            throw failure;
+          }),
+        },
+      );
+
+      await expect(repo.findSnapshots('a')).rejects.toBe(failure);
+    });
+
+    it('fails with ASSET_FETCH_FAILED when the read fails', async () => {
+      const { repo } = createRepository({
+        asset_snapshot: [
+          query(() => ({ data: null, error: { code: '08006' } })),
+        ],
+      });
+
+      await expect(repo.findSnapshots('a')).rejects.toMatchObject({
         code: ERROR_DEFINITIONS.ASSET_FETCH_FAILED.code,
       });
     });

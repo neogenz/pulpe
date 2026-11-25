@@ -51,6 +51,7 @@ jest.mock("react-native-paper", () => {
 });
 
 const actions = {
+  open: jest.fn(),
   edit: jest.fn(),
   toggleArchive: jest.fn(),
   remove: jest.fn(),
@@ -124,5 +125,23 @@ describe("default account in the row (PUL-378)", () => {
 
     const row = view.getByLabelText(/^Livret, /);
     expect(row.props.accessibilityLabel).toMatch(/, Par défaut$/);
+  });
+});
+
+describe("the row menu next to the detail (PUL-379)", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("CA12 keeps Modifier, Archiver and Supprimer in the row's menu", async () => {
+    const view = await card();
+
+    await fireEvent.press(view.getByLabelText("Actions pour Compte courant"));
+    expect(view.getByText("Archiver")).toBeTruthy();
+    expect(view.getByText("Supprimer")).toBeTruthy();
+    await fireEvent.press(view.getByText("Modifier"));
+
+    expect(actions.edit).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Compte courant" }),
+    );
+    expect(actions.open).not.toHaveBeenCalled();
   });
 });

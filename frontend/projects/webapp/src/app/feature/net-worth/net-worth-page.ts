@@ -13,6 +13,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import type { AssetCategory } from 'pulpe-shared';
@@ -378,6 +379,8 @@ export default class NetWorthPage {
   protected readonly title = inject(TitleDisplay);
   readonly #dialogs = inject(NetWorthDialogService);
   readonly #matDialog = inject(MatDialog);
+  readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
   readonly #settings = inject(UserSettingsStore);
   protected readonly defaultAccountId = this.#settings.defaultAccountId;
   readonly #attempt = injectWriteAttempt();
@@ -502,6 +505,9 @@ export default class NetWorthPage {
 
   protected async onAction({ asset, action }: AssetRowEvent): Promise<void> {
     switch (action) {
+      case 'open':
+        await this.#router.navigate([asset.id], { relativeTo: this.#route });
+        return;
       case 'edit': {
         const request = await this.#dialogs.openEdit(
           asset,

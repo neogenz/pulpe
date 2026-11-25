@@ -189,10 +189,16 @@ extension Asset {
         )
     }
 
-    /// Signed as on the web: U+2212 « − » for a negative amount, « + » for a positive one on demand.
     private func signed(_ value: Decimal, showsPlus: Bool) -> String {
-        let amount = value.magnitude.asCurrency(currency)
-        if value < 0 { return "\u{2212}\(amount)" }
-        return showsPlus && value > 0 ? "+\(amount)" : amount
+        value.netWorthSigned(currency, showsPlus: showsPlus)
+    }
+}
+
+extension Decimal {
+    /// Signed as on the web: U+2212 « − » for a negative amount, « + » for a positive one on demand.
+    func netWorthSigned(_ currency: SupportedCurrency, showsPlus: Bool) -> String {
+        let amount = magnitude.asCurrency(currency)
+        if self < 0 { return "\u{2212}\(amount)" }
+        return showsPlus && self > 0 ? "+\(amount)" : amount
     }
 }

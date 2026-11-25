@@ -1467,6 +1467,20 @@ export type Database = {
           movement: string
         }[]
       }
+      list_asset_movements_for: {
+        Args: { p_asset_id?: string; p_since: string }
+        Returns: {
+          account_id: string
+          amount: string
+          asset_id: string
+          budget_line_id: string
+          checked_at: string
+          id: string
+          kind: Database["public"]["Enums"]["transaction_kind"]
+          movement: string
+          name: string
+        }[]
+      }
       lock_savings_goal_for_withdrawal: {
         Args: { p_expected_revision: number; p_goal_id: string }
         Returns: string

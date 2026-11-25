@@ -1,4 +1,9 @@
-import type { Asset, NetWorth } from 'pulpe-shared';
+import type {
+  Asset,
+  AssetHistory,
+  AssetHistoryEntry,
+  NetWorth,
+} from 'pulpe-shared';
 
 /** PUL-378 jeu d'essai: ids shared by the account-field specs. */
 export const SAVINGS_CATEGORY_ID = '00000000-0000-4000-8000-0000000000c1';
@@ -77,5 +82,67 @@ export const netWorthResponse = (
       { id: DEBTS_CATEGORY_ID, name: 'Dettes', total: 8_000 },
     ],
     assets,
+  },
+});
+
+/** PUL-379 jeu d'essai: the Compte courant is worth 9 420 since its entry of 5 000 on 1 November. */
+export const HISTORY_ACCOUNT = buildAsset({
+  id: '00000000-0000-4000-8000-000000000c01',
+  name: 'Compte courant',
+  recordedValue: 5_000,
+  latestValue: 9_420,
+  convertedValue: 9_420,
+  latestRecordedAt: '2026-11-01T09:00:00.000Z',
+});
+
+const historyId = (n: number) =>
+  `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+export const snapshotEntry = (
+  n: number,
+  at: string,
+  value: number,
+): AssetHistoryEntry => ({ type: 'snapshot', id: historyId(n), at, value });
+
+export const movementEntry = (
+  n: number,
+  at: string,
+  name: string,
+  effect: number | null,
+  supersededAt: string | null = null,
+): AssetHistoryEntry => ({
+  type: 'movement',
+  id: historyId(n),
+  at,
+  name,
+  effect,
+  supersededAt,
+});
+
+/** Newest first, as the server sends it. */
+export const HISTORY_ENTRIES: AssetHistoryEntry[] = [
+  movementEntry(6, '2026-11-10T09:00:00.000Z', 'Salaire', 6_000),
+  movementEntry(5, '2026-11-05T09:00:00.000Z', 'Restaurant', -80),
+  movementEntry(4, '2026-11-03T09:00:00.000Z', 'Loyer', -1_500),
+  snapshotEntry(3, '2026-11-01T09:00:00.000Z', 5_000),
+  movementEntry(
+    2,
+    '2026-10-28T09:00:00.000Z',
+    'Assurance',
+    -300,
+    '2026-11-01T09:00:00.000Z',
+  ),
+  snapshotEntry(1, '2026-10-01T09:00:00.000Z', 4_800),
+];
+
+export const historyResponse = (
+  history: Partial<AssetHistory> = {},
+): { success: true; data: AssetHistory } => ({
+  success: true,
+  data: {
+    asset: HISTORY_ACCOUNT,
+    entries: HISTORY_ENTRIES,
+    nextCursor: null,
+    ...history,
   },
 });

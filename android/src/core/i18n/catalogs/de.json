@@ -1276,7 +1276,7 @@
     "actionsFor": "Aktionen für %{name}",
     "archive": "Archivieren",
     "unarchive": "Wiederherstellen",
-    "editAccessibility": "%{name} bearbeiten",
+    "openAccessibility": "Öffnet die Details von %{name}",
     "deleteTitle": "%{name} löschen?",
     "deleteMessage": "Auch der ganze Wertverlauf wird gelöscht. Archiviere stattdessen, um den Eintrag aus den Summen zu nehmen und den Verlauf zu behalten.",
     "hideArchived": "Archiv ausblenden",
@@ -1384,6 +1384,16 @@
       "defaultHint": "Jeder neue Eintrag beginnt mit diesem Konto. Du kannst es jedes Mal ändern.",
       "setDefault": "Im Budget als Standard verwenden",
       "unsetDefault": "Nicht mehr als Standard verwenden"
+    },
+    "detail": {
+      "back": "Zurück zu Mein Vermögen",
+      "history": "Verlauf",
+      "recorded": "Erfasster Wert",
+      "superseded": "Bereits in deiner Eingabe vom %{date} enthalten",
+      "nothingSince": "Du hast seit deiner Eingabe vom %{date} nichts abgehakt.",
+      "loadError": "Dieser Verlauf konnte nicht geladen werden, versuche es nochmal",
+      "loadMoreError": "Weitere Einträge konnten nicht geladen werden, versuche es nochmal",
+      "notFound": "Dieses Element ist nicht mehr verfügbar"
     }
   },
   "onboarding": {

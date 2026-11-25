@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   ParseUUIDPipe,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -18,6 +19,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiNotFoundResponse,
+  ApiBadRequestResponse,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -26,6 +28,7 @@ import {
   type AssetResponse,
   type AssetDeleteResponse,
   type AssetSnapshotsResponse,
+  type AssetHistoryResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -41,8 +44,11 @@ import {
   AssetResponseDto,
   AssetDeleteResponseDto,
   AssetSnapshotsResponseDto,
+  AssetHistoryQueryDto,
+  AssetHistoryResponseDto,
 } from './dto/asset-swagger.dto';
 import { GetNetWorthUseCase } from '../../application/get-net-worth.use-case';
+import { GetAssetHistoryUseCase } from '../../application/get-asset-history.use-case';
 import { CreateAssetUseCase } from '../../application/create-asset.use-case';
 import { UpdateAssetUseCase } from '../../application/update-asset.use-case';
 import { RemoveAssetUseCase } from '../../application/remove-asset.use-case';
@@ -65,6 +71,7 @@ import { AssetMapper } from '../mappers/asset.mapper';
 export class AssetController {
   constructor(
     private readonly getNetWorthUseCase: GetNetWorthUseCase,
+    private readonly getHistoryUseCase: GetAssetHistoryUseCase,
     private readonly createUseCase: CreateAssetUseCase,
     private readonly updateUseCase: UpdateAssetUseCase,
     private readonly removeUseCase: RemoveAssetUseCase,
@@ -89,6 +96,35 @@ export class AssetController {
   ): Promise<NetWorthResponse> {
     const netWorth = await this.getNetWorthUseCase.execute(user);
     return { success: true, data: this.mapper.toNetWorthApi(netWorth) };
+  }
+
+  @Get(':id/history')
+  @ApiOperation({
+    summary: "Lit l'historique d'un avoir",
+    description:
+      "L'avoir calculé comme dans `GET /v1/assets` et une page de son historique, du plus récent au plus ancien : les saisies et, entre elles, l'effet de chaque mouvement pointé dans la devise de l'avoir. Passer `nextCursor` en `cursor` pour la page suivante.",
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'avoir" })
+  @ApiResponse({
+    status: 200,
+    description: 'Historique récupéré avec succès',
+    type: AssetHistoryResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Identifiant, limite ou curseur invalide',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Avoir introuvable ou archivé',
+    type: ErrorResponseDto,
+  })
+  async getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: AssetHistoryQueryDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<AssetHistoryResponse> {
+    const page = await this.getHistoryUseCase.execute(id, query, user);
+    return { success: true, data: this.mapper.toAssetHistoryApi(page) };
   }
 
   @Post()

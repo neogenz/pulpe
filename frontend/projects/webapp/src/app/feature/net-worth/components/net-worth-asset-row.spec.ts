@@ -105,26 +105,26 @@ describe('NetWorthAssetRow', () => {
     expect(text('asset-linked-note')).toBe('· à la comparaison');
   });
 
-  it('opens the edit sheet from a tap on the row, beside the menu and never around it', () => {
+  it('CA1: opens the detail from a tap on the row, beside the menu and never around it', () => {
     render();
     const row = fixture.nativeElement.querySelector(
-      '[data-testid="asset-row-edit-button"]',
+      '[data-testid="asset-row-open-button"]',
     ) as HTMLButtonElement;
 
     expect(row.querySelector('button')).toBeNull();
     row.click();
 
     expect(fixture.componentInstance.events).toEqual([
-      { asset, action: 'edit' },
+      { asset, action: 'open' },
     ]);
   });
 
-  it('leaves an archived row untappable', () => {
+  it('CA15: leaves an archived row untappable', () => {
     render({ archivedAt: '2026-10-01T00:00:00.000Z' });
 
     expect(
       fixture.nativeElement.querySelector(
-        '[data-testid="asset-row-edit-button"]',
+        '[data-testid="asset-row-open-button"]',
       ),
     ).toBeNull();
   });
@@ -173,6 +173,17 @@ describe('NetWorthAssetRow', () => {
         fixture.nativeElement.querySelector('[data-testid="asset-row-meta"]')
           .textContent,
       ).toContain('3 novembre');
+    });
+
+    it('should write an entry of the first of the month as « 1er » in French', () => {
+      render({
+        ...livret,
+        latestRecordedAt: `${new Date().getFullYear()}-11-01T10:00:00.000Z`,
+      });
+
+      expect(text('asset-row-meta')).toBe(
+        '+500.00 CHF depuis ta saisie du 1er novembre',
+      );
     });
 
     it('keeps the category of a debt and signs what was repaid', () => {

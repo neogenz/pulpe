@@ -4,8 +4,11 @@ import type {
   TransactionKind,
 } from 'pulpe-shared';
 import type {
+  Asset,
   AssetCategory,
+  AssetHistoryEntry,
   AssetMovements,
+  AssetSnapshot,
   AssetWithValue,
   MovementLine,
   NetWorth,
@@ -174,12 +177,76 @@ function lineEvents(line: MovementLine, since: number): MoveEvent[] {
   });
 }
 
+/** What one event of a source retained on an asset, in the asset's cents. */
+interface RetainedMove {
+  sourceId: string;
+  name: string;
+  at: number;
+  cents: number;
+}
+
+/**
+ * What each event in `(since, until]` retained on an asset worth `startCents`
+ * at `since`, in its own currency: each amount converted from base currency at
+ * `rate`, in the order they were checked. A debt never goes below zero: an
+ * event only retains what remains due at that moment.
+ */
+function retainedMoves(
+  asset: Asset,
+  startCents: number,
+  movements: AssetMovements,
+  rate: number,
+  since: number,
+  until = Infinity,
+): RetainedMove[] {
+  const lineMoves = movements.lines.flatMap((line) => {
+    const sign =
+      line.accountId === asset.id
+        ? accountSign(asset.direction, line.kind)
+        : line.assetId === asset.id
+          ? linkedAssetSign(asset.direction, line.kind)
+          : 0;
+    if (sign === 0) return [];
+    return lineEvents(line, since)
+      .filter(({ at }) => at <= until)
+      .map(({ at, cents }) => ({
+        sourceId: line.id,
+        name: line.name,
+        at,
+        cents: sign * cents,
+      }));
+  });
+  const freeMoves = movements.freeMovements.flatMap((movement) => {
+    const at = Date.parse(movement.checkedAt);
+    if (movement.accountId !== asset.id || at <= since || at > until) return [];
+    return [
+      {
+        sourceId: movement.id,
+        name: movement.name,
+        at,
+        cents:
+          accountSign(asset.direction, movement.kind) *
+          toCents(movement.amount),
+      },
+    ];
+  });
+
+  let valueCents = startCents;
+  return [...lineMoves, ...freeMoves]
+    .sort((a, b) => a.at - b.at)
+    .map((move) => {
+      const next = valueCents + Math.round(move.cents / rate);
+      const retained =
+        (asset.direction === 'owe' ? Math.max(0, next) : next) - valueCents;
+      valueCents += retained;
+      return { ...move, cents: retained };
+    });
+}
+
 /**
  * The value of an asset in its own currency, in cents: its last entry plus
- * what moved it after that entry, each amount converted from base currency at
- * `rate`. A debt takes the movements in the order they were checked and never
- * goes below zero: each one only counts for what remains due at that moment.
- * An archived asset keeps its last entry.
+ * what moved it after that entry (`retainedMoves`). An archived asset keeps its
+ * last entry.
  */
 function assetValueCents(
   asset: AssetWithValue,
@@ -189,38 +256,95 @@ function assetValueCents(
   const recordedCents = toCents(asset.recordedValue);
   if (asset.archivedAt !== null) return recordedCents;
 
-  const since = Date.parse(asset.latestRecordedAt);
-  const lineMoves = movements.lines.flatMap((line) => {
-    const sign =
-      line.accountId === asset.id
-        ? accountSign(asset.direction, line.kind)
-        : line.assetId === asset.id
-          ? linkedAssetSign(asset.direction, line.kind)
-          : 0;
-    if (sign === 0) return [];
-    return lineEvents(line, since).map(({ at, cents }) => ({
-      at,
-      cents: sign * cents,
-    }));
-  });
-  const freeMoves = movements.freeMovements
-    .filter(
-      (movement) =>
-        movement.accountId === asset.id &&
-        Date.parse(movement.checkedAt) > since,
-    )
-    .map((movement) => ({
-      at: Date.parse(movement.checkedAt),
-      cents:
-        accountSign(asset.direction, movement.kind) * toCents(movement.amount),
-    }));
+  return retainedMoves(
+    asset,
+    recordedCents,
+    movements,
+    rate,
+    Date.parse(asset.latestRecordedAt),
+  ).reduce((valueCents, move) => valueCents + move.cents, recordedCents);
+}
 
-  return [...lineMoves, ...freeMoves]
-    .sort((a, b) => a.at - b.at)
-    .reduce((valueCents, { cents }) => {
-      const next = valueCents + Math.round(cents / rate);
-      return asset.direction === 'owe' ? Math.max(0, next) : next;
-    }, recordedCents);
+const SNAPSHOT_RANK = 0;
+const MOVEMENT_RANK = 1;
+
+/**
+ * Where an entry sits in the history: newest first, an entry before a
+ * movement at the same instant (the movement is already in it), then by id.
+ */
+export function historyRank(entry: AssetHistoryEntry) {
+  return {
+    at: Date.parse(entry.at),
+    rank: entry.type === 'snapshot' ? SNAPSHOT_RANK : MOVEMENT_RANK,
+    id: entry.id,
+  };
+}
+
+/**
+ * The whole history of an asset, by the rule of its value: every entry, and
+ * between two entries (or after the last one) one line per prévision or free
+ * movement that moved it, with what it retained over that period
+ * (`retainedMoves` from the entry that opens it) at its last check in the
+ * period. The movements of the open period add up to the value minus the last
+ * entry. Nothing before the first entry is shown.
+ *
+ * `snapshots` are oldest first, the last one being the asset's last entry;
+ * `movements` hold what moved it after the first one. Without a `rate` the
+ * movements are listed with a `null` effect.
+ */
+export function assetHistory(
+  asset: Asset,
+  snapshots: AssetSnapshot[],
+  movements: AssetMovements,
+  rate: number | undefined,
+): AssetHistoryEntry[] {
+  const entries = snapshots.flatMap((snapshot, i): AssetHistoryEntry[] => {
+    const next = snapshots[i + 1];
+    const bySource = new Map<string, RetainedMove>();
+    for (const move of retainedMoves(
+      asset,
+      toCents(snapshot.value),
+      movements,
+      rate ?? 1,
+      Date.parse(snapshot.recordedAt),
+      next ? Date.parse(next.recordedAt) : Infinity,
+    )) {
+      const previous = bySource.get(move.sourceId);
+      bySource.set(move.sourceId, {
+        ...move,
+        cents: move.cents + (previous?.cents ?? 0),
+      });
+    }
+
+    return [
+      {
+        type: 'snapshot',
+        id: snapshot.id,
+        at: toIso(snapshot.recordedAt),
+        value: snapshot.value,
+      },
+      ...[...bySource.values()].map(
+        (move): AssetHistoryEntry => ({
+          type: 'movement',
+          id: move.sourceId,
+          at: new Date(move.at).toISOString(),
+          name: move.name,
+          effect: rate === undefined ? null : toUnits(move.cents),
+          supersededAt: next ? toIso(next.recordedAt) : null,
+        }),
+      ),
+    ];
+  });
+
+  return entries.sort((a, b) => {
+    const x = historyRank(a);
+    const y = historyRank(b);
+    return y.at - x.at || x.rank - y.rank || (x.id < y.id ? -1 : 1);
+  });
+}
+
+function toIso(instant: string): string {
+  return new Date(instant).toISOString();
 }
 
 function toCents(amount: number): number {

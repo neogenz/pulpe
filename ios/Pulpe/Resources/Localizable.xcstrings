@@ -49378,6 +49378,144 @@
           }
         }
       }
+    },
+    "Valeur enregistrée" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfasster Wert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded value"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valore registrato"
+          }
+        }
+      }
+    },
+    "Déjà compris dans ta saisie du %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereits in deiner Eingabe vom %@ enthalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already included in your entry on %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Già compreso nel tuo inserimento del %@"
+          }
+        }
+      }
+    },
+    "Tu n'as rien pointé depuis ta saisie du %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast seit deiner Eingabe vom %@ nichts abgehakt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You haven't checked anything since your entry on %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non hai spuntato niente dal tuo inserimento del %@."
+          }
+        }
+      }
+    },
+    "Impossible de charger la suite, réessaie" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Einträge konnten nicht geladen werden, versuche es nochmal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load more, try again"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare il resto, riprova"
+          }
+        }
+      }
+    },
+    "Cet élément n'est plus disponible" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Element ist nicht mehr verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This item is no longer available"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo elemento non è più disponibile"
+          }
+        }
+      }
+    },
+    "Ouvre le détail de %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Details von %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the details of %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apre il dettaglio di %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

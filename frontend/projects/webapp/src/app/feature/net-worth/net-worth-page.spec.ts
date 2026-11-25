@@ -9,6 +9,7 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { provideRouter, Router } from '@angular/router';
 import type { Asset, NetWorth } from 'pulpe-shared';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -188,6 +189,7 @@ describe('NetWorthPage', () => {
       imports: [NetWorthPage],
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([]),
         ...provideTranslocoForTest(),
         { provide: LOCALE_ID, useValue: 'fr-FR' },
         { provide: NetWorthStore, useValue: store },
@@ -208,6 +210,23 @@ describe('NetWorthPage', () => {
       .compileComponents();
 
     fixture = TestBed.createComponent(NetWorthPage);
+  });
+
+  it('CA1, CA16: opens the detail of a tapped row at its own address, never the edit sheet', async () => {
+    render(populated);
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), 'navigate')
+      .mockResolvedValue(true);
+
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="asset-row-open-button"]',
+      ) as HTMLButtonElement
+    ).click();
+    await fixture.whenStable();
+
+    expect(navigate).toHaveBeenCalledWith(['a1'], expect.anything());
+    expect(store.saveAsset).not.toHaveBeenCalled();
   });
 
   it('invites to add a first asset when there is none', async () => {

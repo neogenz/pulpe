@@ -1,9 +1,9 @@
-import { render } from "@testing-library/react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 import { PaperProvider } from "react-native-paper";
 
 import { contractAssets } from "@/core/testing/net-worth-accounts";
 
-import { AssetGroupCard } from "./asset-group-card";
+import { AssetGroupCard, AssetRows } from "./asset-group-card";
 
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({
@@ -22,6 +22,7 @@ jest.mock("react-native-safe-area-context", () => ({
 
 const NOW = new Date("2026-11-24T12:00:00.000Z");
 const actions = {
+  open: jest.fn(),
   edit: jest.fn(),
   toggleArchive: jest.fn(),
   remove: jest.fn(),
@@ -88,5 +89,41 @@ describe("what moved since my last entry (PUL-377)", () => {
     ]);
 
     expect(view.queryByText(/Je propose|Appliquer|Écarter/)).toBeNull();
+  });
+});
+
+describe("a row opens the element's detail (PUL-379)", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("CA1 opens the detail on a tap, and says so to TalkBack", async () => {
+    const view = await card();
+    const row = view.getByRole("button", { name: /^Compte courant, / });
+
+    expect(row.props.accessibilityHint).toBe(
+      "Ouvre le détail de Compte courant",
+    );
+    await fireEvent.press(row);
+
+    expect(actions.open).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Compte courant" }),
+    );
+    expect(actions.edit).not.toHaveBeenCalled();
+  });
+
+  it("CA15 leaves an archived row inert", async () => {
+    const [, , livret] = contractAssets();
+    const view = await render(
+      <PaperProvider>
+        <AssetRows
+          assets={[{ ...livret, archivedAt: "2026-11-20T10:00:00.000Z" }]}
+          baseCurrency="CHF"
+          actions={actions}
+          defaultAccountId={null}
+        />
+      </PaperProvider>,
+    );
+
+    expect(view.getByLabelText(/^Livret, /)).toBeTruthy();
+    expect(view.queryByRole("button", { name: /^Livret, / })).toBeNull();
   });
 });

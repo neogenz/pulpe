@@ -3,6 +3,8 @@ import Foundation
 /// Net-worth API surface (PUL-366). A protocol so stores can be driven by a test double.
 protocol AssetServicing: Sendable {
     func getNetWorth() async throws -> NetWorth
+    /// One page of an element's history, newest first; `cursor` is the previous page's `nextCursor`.
+    func getHistory(id: String, cursor: String?) async throws -> AssetHistory
     func create(_ data: AssetCreate) async throws -> AssetRecord
     func update(id: String, _ data: AssetUpdate) async throws -> AssetRecord
     func delete(id: String) async throws
@@ -22,6 +24,10 @@ actor AssetService: AssetServicing {
 
     func getNetWorth() async throws -> NetWorth {
         try await apiClient.request(.assets, method: .get)
+    }
+
+    func getHistory(id: String, cursor: String?) async throws -> AssetHistory {
+        try await apiClient.request(.assetHistory(id: id, cursor: cursor), method: .get)
     }
 
     func create(_ data: AssetCreate) async throws -> AssetRecord {

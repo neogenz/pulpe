@@ -1276,7 +1276,7 @@
     "actionsFor": "Actions pour %{name}",
     "archive": "Archiver",
     "unarchive": "Désarchiver",
-    "editAccessibility": "Modifier %{name}",
+    "openAccessibility": "Ouvre le détail de %{name}",
     "deleteTitle": "Supprimer %{name} ?",
     "deleteMessage": "Tout son historique de valeurs est supprimé aussi. Archive-le plutôt pour le sortir des totaux en gardant l'historique.",
     "hideArchived": "Masquer les archives",
@@ -1384,6 +1384,16 @@
       "defaultHint": "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.",
       "setDefault": "Utiliser par défaut dans le budget",
       "unsetDefault": "Ne plus utiliser par défaut"
+    },
+    "detail": {
+      "back": "Retour à Mon patrimoine",
+      "history": "Historique",
+      "recorded": "Valeur enregistrée",
+      "superseded": "Déjà compris dans ta saisie du %{date}",
+      "nothingSince": "Tu n'as rien pointé depuis ta saisie du %{date}.",
+      "loadError": "Impossible de charger cet historique, réessaie",
+      "loadMoreError": "Impossible de charger la suite, réessaie",
+      "notFound": "Cet élément n'est plus disponible"
     }
   },
   "onboarding": {

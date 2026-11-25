@@ -21,6 +21,9 @@ enum SavingsGoalDestination: Hashable {
 
 enum TemplateDestination: Hashable { case details(templateId: String) }
 
+/// An element of « Mon patrimoine » pushed over the list (PUL-379).
+enum NetWorthDestination: Hashable { case asset(id: String) }
+
 // MARK: - Per-Section Navigation Stacks
 
 extension AppState {

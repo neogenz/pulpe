@@ -44,6 +44,7 @@ export const PAGE_TITLES = {
   SAVINGS_GOALS: 'pageTitle.savingsGoals',
   SAVINGS_GOAL_DETAILS: 'pageTitle.savingsGoalDetails',
   NET_WORTH: 'pageTitle.netWorth',
+  NET_WORTH_ASSET_DETAILS: 'pageTitle.netWorthAssetDetails',
   WELCOME: 'pageTitle.welcome',
   DASHBOARD_MONTH: 'pageTitle.dashboard',
   BUDGET_TEMPLATES_LIST: 'pageTitle.budgetTemplatesList',

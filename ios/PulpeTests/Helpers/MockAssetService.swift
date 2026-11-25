@@ -14,6 +14,10 @@ final class MockAssetService: AssetServicing {
     var getNetWorthError: Error?
     var holdGetNetWorth = false
     var holdCreateCategory = false
+    /// History pages by the cursor that asks for them (`nil` = first page).
+    var stubbedHistory: [String?: AssetHistory] = [:]
+    var getHistoryError: Error?
+    var holdGetHistory = false
 
     private(set) var getNetWorthCallCount = 0
     private(set) var createCallCount = 0
@@ -22,6 +26,7 @@ final class MockAssetService: AssetServicing {
     private(set) var updates: [String: AssetUpdate] = [:]
     private(set) var calls: [String] = []
     private(set) var snapshotItems: [AssetSnapshotItem] = []
+    private(set) var historyCursors: [String?] = []
     private(set) var didEnterHold = false
     private var heldContinuation: CheckedContinuation<Void, Never>?
 
@@ -48,6 +53,14 @@ final class MockAssetService: AssetServicing {
         if holdGetNetWorth { await hold() }
         if let getNetWorthError { throw getNetWorthError }
         return stubbedNetWorth
+    }
+
+    func getHistory(id: String, cursor: String?) async throws -> AssetHistory {
+        historyCursors.append(cursor)
+        if holdGetHistory { await hold() }
+        if let getHistoryError { throw getHistoryError }
+        guard let page = stubbedHistory[cursor] else { throw APIError.assetNotFound }
+        return page
     }
 
     func create(_ data: AssetCreate) async throws -> AssetRecord {

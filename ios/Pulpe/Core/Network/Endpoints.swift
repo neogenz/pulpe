@@ -87,6 +87,7 @@ enum Endpoint {
 
     case assets
     case asset(id: String)
+    case assetHistory(id: String, cursor: String?)
     case assetSnapshots
     case assetCategories
     case assetCategory(id: String)
@@ -198,6 +199,7 @@ enum Endpoint {
         // Net Worth
         case .assets: return "/assets"
         case .asset(let id): return "/assets/\(id)"
+        case .assetHistory(let id, _): return "/assets/\(id)/history"
         case .assetSnapshots: return "/assets/snapshots"
         case .assetCategories: return "/asset-categories"
         case .assetCategory(let id): return "/asset-categories/\(id)"
@@ -253,7 +255,7 @@ enum Endpoint {
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,
              .encryptionVaultStatus, .encryptionSalt,
-             .assets, .asset, .assetCategory,
+             .assets, .asset, .assetHistory, .assetCategory,
              .userSettings, .tags, .currencyRate, .whatsNewIos,
              .mcpConnections, .mcpConnectionActivity:
             return .get
@@ -272,7 +274,7 @@ enum Endpoint {
     // MARK: - URL Request
 
     func urlRequest(baseURL: URL) -> URLRequest {
-        var url = urlWithConfirmLinks(baseURL.appendingPathComponent(path))
+        var url = urlWithHistoryCursor(urlWithConfirmLinks(baseURL.appendingPathComponent(path)))
 
         // Add query parameters
         switch self {
@@ -330,6 +332,14 @@ private extension Endpoint {
         guard case let .budgetDelete(_, confirmLinks) = self else { return url }
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.queryItems = [URLQueryItem(name: "confirmLinks", value: confirmLinks ? "true" : "false")]
+        return components?.url ?? url
+    }
+
+    /// The opaque cursor of the next history page (PUL-379); the first page sends none.
+    func urlWithHistoryCursor(_ url: URL) -> URL {
+        guard case let .assetHistory(_, cursor?) = self else { return url }
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "cursor", value: cursor)]
         return components?.url ?? url
     }
 }

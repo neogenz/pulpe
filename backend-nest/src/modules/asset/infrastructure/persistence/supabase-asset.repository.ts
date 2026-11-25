@@ -22,6 +22,7 @@ import type {
   AssetRow,
   AssetSnapshotInput,
   AssetMovements,
+  AssetSnapshot,
   AssetUpdatePatch,
   AssetWithValue,
   CheckedReal,
@@ -31,7 +32,7 @@ import type {
 import type { Database } from '../../../../types/database.types';
 
 type ListedMovement =
-  Database['public']['Functions']['list_asset_movements']['Returns'][number];
+  Database['public']['Functions']['list_asset_movements_for']['Returns'][number];
 /** The generated type says every column is set; a row only fills those of its `movement`. */
 type AssetMovementRow = {
   [K in keyof ListedMovement]: ListedMovement[K] | null;
@@ -191,11 +192,17 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
     });
   }
 
-  async findMovementsSince(since: string): Promise<AssetMovements> {
+  async findMovementsSince(
+    since: string,
+    assetId?: string,
+  ): Promise<AssetMovements> {
     const supabase = this.supabaseProvider.client;
     const rows = await fetchAllPages<AssetMovementRow>((from, to) =>
       supabase
-        .rpc('list_asset_movements', { p_since: since })
+        .rpc('list_asset_movements_for', {
+          p_since: since,
+          p_asset_id: assetId,
+        })
         .order('id', { ascending: true })
         .range(from, to),
     ).catch((error: unknown) => {
@@ -224,6 +231,7 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
       return [
         {
           id: row.id,
+          name: row.name ?? '',
           kind: row.kind,
           amount: decrypt(row.amount),
           checkedAt: row.checked_at,
@@ -234,10 +242,12 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
       ];
     });
     const freeMovements = rows.flatMap((row): FreeMovement[] => {
-      if (row.movement !== 'free' || !row.kind || !row.amount) return [];
-      if (!row.account_id || !row.checked_at) return [];
+      if (row.movement !== 'free' || !row.id || !row.kind) return [];
+      if (!row.amount || !row.account_id || !row.checked_at) return [];
       return [
         {
+          id: row.id,
+          name: row.name ?? '',
           accountId: row.account_id,
           kind: row.kind,
           amount: decrypt(row.amount),
@@ -246,6 +256,33 @@ export class SupabaseAssetRepository implements AssetRepositoryPort {
       ];
     });
     return { lines, freeMovements };
+  }
+
+  async findSnapshots(assetId: string): Promise<AssetSnapshot[]> {
+    const supabase = this.supabaseProvider.client;
+    const rows = await fetchAllPages((from, to) =>
+      supabase
+        .from('asset_snapshot')
+        .select('id, value, recorded_at')
+        .eq('asset_id', assetId)
+        .eq('user_id', this.supabaseProvider.user.id)
+        // Same tie-break as `asset_latest_snapshot`: the last row is the latest.
+        .order('recorded_at', { ascending: true })
+        .order('id', { ascending: false })
+        .range(from, to),
+    ).catch((error: unknown) => {
+      throw this.fetchFailed('listAssetSnapshotHistory', error, {
+        entityId: assetId,
+      });
+    });
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    // Strict: an entry that fails to decrypt fails the read, never shows as 0.
+    return rows.map((row) => ({
+      id: row.id,
+      value: this.encryption.decryptAmount(row.value, dek),
+      recordedAt: row.recorded_at,
+    }));
   }
 
   async insertAsset(input: AssetCreateInput): Promise<Asset> {

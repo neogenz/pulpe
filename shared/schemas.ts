@@ -3240,6 +3240,67 @@ export type AssetSnapshotsResponse = z.infer<
   typeof assetSnapshotsResponseSchema
 >;
 
+/**
+ * GET /v1/assets/:id/history : une page de l'historique, du plus récent au
+ * plus ancien. `cursor` est le `nextCursor` de la page précédente, opaque pour
+ * les clients (`<epochMs>.<0 saisie | 1 mouvement>.<id>`).
+ */
+export const assetHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(30),
+  cursor: z
+    .string()
+    .regex(
+      /^\d{1,15}\.[01]\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    )
+    .optional(),
+});
+export type AssetHistoryQuery = z.infer<typeof assetHistoryQuerySchema>;
+
+/**
+ * Une entrée de l'historique, montants dans la devise de l'élément.
+ * `snapshot` : une valeur saisie (« Modifier » ou rapprochement).
+ * `movement` : une prévision ou un mouvement libre pointé, une fois par
+ * période entre deux saisies, daté de son dernier pointage dans la période ;
+ * `id` est celui de la prévision ou du mouvement, répété d'une période à
+ * l'autre. `effect` est ce qu'il a fait bouger la valeur (borné par le zéro
+ * d'une dette), `null` sans taux de change. `supersededAt` est la date de la
+ * saisie qui le suit et fait foi, `null` s'il compte encore dans la valeur.
+ */
+export const assetHistoryEntrySchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('snapshot'),
+    id: z.uuid(),
+    at: z.iso.datetime({ offset: true }),
+    value: z.number(),
+  }),
+  z.object({
+    type: z.literal('movement'),
+    id: z.uuid(),
+    at: z.iso.datetime({ offset: true }),
+    name: z.string(),
+    effect: z.number().nullable(),
+    supersededAt: z.iso.datetime({ offset: true }).nullable(),
+  }),
+]);
+export type AssetHistoryEntry = z.infer<typeof assetHistoryEntrySchema>;
+
+/**
+ * L'élément calculé (comme dans `GET /v1/assets`) et une page de son
+ * historique. Les `effect` dont `supersededAt` est `null` ont pour somme
+ * `asset.latestValue - asset.recordedValue`. `nextCursor` est `null` sur la
+ * dernière page.
+ */
+export const assetHistorySchema = z.object({
+  asset: assetSchema,
+  entries: z.array(assetHistoryEntrySchema),
+  nextCursor: z.string().nullable(),
+});
+export type AssetHistory = z.infer<typeof assetHistorySchema>;
+
+export const assetHistoryResponseSchema =
+  createSuccessResponse(assetHistorySchema);
+export type AssetHistoryResponse = z.infer<typeof assetHistoryResponseSchema>;
+
 export const assetCategoryResponseSchema = createSuccessResponse(
   assetCategoryRecordSchema,
 );

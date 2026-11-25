@@ -1,0 +1,33 @@
+# PUL-379 : questions tranchées
+
+1. **Android.** Le contrat le met hors périmètre ; l'utilisateur a demandé Android sur toute l'epic, en parité avec iOS. Inclus (phases 5 et 6).
+2. **CA4 et CA18.** L'écran dit « Valeur enregistrée », CA18 dit « Valeur saisie » pour VoiceOver. VoiceOver lit le texte visible, « Valeur enregistrée » : le nom accessible doit contenir le libellé visible.
+3. **CA8, où dépointer.** Le détail n'a pas de case à pointer, et ouvrir un mouvement depuis l'historique est hors périmètre. On dépointe dans le budget ; le détail se relit seul au retour.
+4. **CA16 et CA17.** CA17 parle de « feuille », CA16 exige une adresse. Page routée `/net-worth/:id`, comme le détail d'un objectif ; sur téléphone elle occupe toute la zone de contenu.
+5. **CA7.** Un mouvement pointé avant la première saisie n'est pas affiché : l'historique commence à la première saisie.
+6. **CA13, effet entièrement absorbé** (remboursement sur une dette déjà à 0) : affiché avec un effet 0, l'historique montre ce qui est pointé.
+7. **Élément en devise étrangère sans taux.** `effect: null`, affiché « — » ; la valeur reste la dernière saisie (règle existante).
+8. **CA15 par l'adresse web.** Le serveur répond 404 pour un élément archivé ; le web affiche « introuvable » avec un retour.
+9. **CA12.** Le détail offre « Modifier » ; Archiver et Supprimer restent dans le menu de la ligne.
+10. **Taille de page.** 30, maximum 100.
+11. **Nouvelle fonction SQL** `list_asset_movements_for` plutôt que modifier `list_asset_movements` : migrations publiées immuables, et un backend PUL-378 déjà déployé appelle l'ancienne. À retirer dans un lot ultérieur.
+12. **Discriminant des entrées.** `type: 'snapshot' | 'movement'` (`kind` désigne déjà la nature d'un mouvement). L'`id` d'un mouvement est celui de sa Prévision ou de son mouvement libre : une Prévision présente dans deux périodes (CA19) répète son `id`. Les clients identifient une ligne par `type` + `id` + `at`.
+13. **Mouvement qui n'a rien fait bouger.** Une Prévision dont le pointage n'ajoute rien (ses mouvements réels dépassaient déjà son montant) n'a pas d'événement et n'apparaît pas dans la période. Seul le plancher d'une dette produit un effet 0 (question 6).
+14. **Dates de l'historique.** `at` et `supersededAt` sont en ISO UTC à la milliseconde (`…Z`) ; le curseur est fait de ces millisecondes. `asset.latestRecordedAt` garde le format de `GET /v1/assets`.
+15. **Requête.** `assetHistoryQuerySchema` est un `z.object` souple : un paramètre inconnu est ignoré, une limite hors 1–100 ou un curseur mal formé répond 400.
+16. **Web, phrase CA10.** « Tu n'as rien pointé depuis ta saisie du {{date}}. » plutôt que « Rien n'a été pointé depuis… » : slopcheck-fr signale la voix passive, et la phrase dit qui pointe. en/de/it suivent la même tournure.
+17. **Web, nom accessible de la ligne.** `netWorth.openAccessibility` n'est pas posé : la ligne est un bouton dont le texte visible (nom, valeur, date) est déjà le nom accessible, et un `aria-label` « Ouvre le détail de {{name}} » le remplacerait sans contenir la valeur affichée. La clé reste à l'usage d'iOS et d'Android.
+18. **Web, titre de l'onglet et fil d'Ariane.** Nouvelle clé `pageTitle.netWorthAssetDetails` (« Détail de l'élément »), comme `savingsGoalDetails` pour le détail d'un objectif.
+19. **Web, valeur de l'en-tête.** Agrégat `'1.0-0'` (9’420 CHF) comme le héros de « Mon patrimoine » ; la ligne « Ta dernière saisie » et chaque entrée de l'historique gardent `'1.2-2'`.
+20. **iOS, erreur de chargement.** L'écran affiche l'`ErrorView` partagée (message de `DomainErrorLocalizer`, bouton « Réessayer ») plutôt que `netWorth.detail.loadError` ; le 404 affiche `netWorth.detail.notFound` sans bouton. `netWorth.detail.back` n'existe pas sur iOS : le retour est celui de la pile.
+21. **iOS, ligne et VoiceOver.** `netWorth.openAccessibility` est l'indice (`accessibilityHint`) de la ligne, son nom reste la ligne lue. Une entrée lit « libellé, date, montant signé, légende » ; le montant est omis quand les montants sont masqués, comme le chiffre flouté. Un mouvement sans taux affiche « — » et ne lit pas de montant.
+22. **iOS, valeur de l'en-tête.** Deux décimales (`asCurrency`, signe U+2212 si négative), comme la ligne de la liste, pas l'agrégat arrondi du hero.
+23. **iOS, phrase CA10.** Même tournure que le web (question 16) : « Tu n'as rien pointé depuis ta saisie du … », en/de/it repris des catalogues web.
+24. **iOS, légende d'un mouvement dépassé.** Même phrase que le web et Android : « Déjà compris dans ta saisie du … », sans point final ; « Avant ta saisie du …, qui fait foi » est retirée du catalogue.
+25. **Web, revu après la question 19.** La valeur de l'en-tête prend les centimes (`'1.2-2'`, 9’420.00 CHF), comme iOS et la ligne de « Mon patrimoine ». La légende d'un mouvement remplacé devient « Déjà compris dans ta saisie du {{date}} », et le 1er du mois s'écrit « 1er novembre » en français.
+26. **Android, retour.** L'action de retour de l'en-tête porte « Retour à Mon patrimoine » pour TalkBack ; en anglais « Back to My assets », parce que l'écran Android s'appelle « My assets » dans son catalogue, pas « My net worth ».
+27. **Android, repli `(budgets)` de `useOpenMonthInOpeningTab`.** Inutile : le détail n'ouvre ni création de mois ni rien d'autre au-dessus de la barre ; seuls Accueil et Budgets poussent `/budget/create`. Aucun changement.
+28. **Android, « 1º » en italien.** `formatDayMonth` garde l'ordinal italien (« 1º novembre »), miroir de `dayMonthLabel` iOS ; seul le français dit « 1er », l'anglais et l'allemand le chiffre.
+29. **Android, archiver ou supprimer depuis « Modifier » ouvert sur le détail.** Le détail revient à « Mon patrimoine » une fois l'écriture réussie ; un échec reste sur le détail avec le toast d'enregistrement.
+30. **Limite de la légende « Déjà compris dans ta saisie du … » (revue, constat 3).** La saisie fait foi qu'elle comprenne le mouvement ou non. Une saisie qui ne le comprend pas, par exemple une saisie faite à la mise en service de PUL-377 après une proposition écartée, porte donc une légende inexacte au sens strict. On garde la phrase demandée par la supervision : elle se comprend sans jargon, et le cas inexact est rare (une saisie qui ignore un mouvement déjà pointé). À rouvrir si un utilisateur s'en plaint ; la tournure exacte était « Avant ta saisie du …, qui fait foi ».
+31. **iOS, date d'un mouvement (revue, constat 1).** La ligne montre la date seule (« 10 novembre »), comme le web et Android ; VoiceOver lit « Salaire, 10 novembre, +6’000.00 CHF ». La clé « Pointé le %@ » reste dans le catalogue : la carte d'un objectif (`GoalThisMonthCard`) s'en sert encore.

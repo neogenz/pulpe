@@ -140,6 +140,18 @@ describe("row presentation", () => {
       );
     });
 
+    it("says « 1er » on the first of the month in French, the day otherwise", () => {
+      expect(formatEntryDate("2026-11-01T10:00:00.000Z", "fr", now)).toBe(
+        "1er\u00a0novembre",
+      );
+      expect(formatEntryDate("2026-11-15T10:00:00.000Z", "fr", now)).toBe(
+        "15\u00a0novembre",
+      );
+      expect(formatEntryDate("2026-11-01T10:00:00.000Z", "en", now)).toBe(
+        "November\u00a01",
+      );
+    });
+
     it("falls back on the age when nothing moved", () => {
       const still = asset({ ...livret, latestValue: 10_000 });
       expect(movedSinceEntry(still)).toBeNull();
