@@ -22,6 +22,9 @@ struct NetWorthHero: View {
             .foregroundStyle(isNegative ? Color.financialOverBudget : Color.textPrimary)
             .lineLimit(1)
             .minimumScaleFactor(DesignTokens.TextScale.floor)
+            // One amount, one VoiceOver stop: apart, the figure was read without its currency.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(sections.net.asCompactCurrency(sections.baseCurrency))
             .sensitiveAmount()
 
             HStack(spacing: DesignTokens.Spacing.xl) {

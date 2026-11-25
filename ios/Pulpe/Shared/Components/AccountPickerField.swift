@@ -77,6 +77,12 @@ struct AccountPickerField: View {
         flagEnabled && !store.activeAssets.isEmpty
     }
 
+    private var conflictMessage: String? {
+        guard linkTitle != nil, AccountLink.conflicts(account: selection, link: link),
+              let name = selectedAsset?.name else { return nil }
+        return AccountLink.conflictMessage(name: name)
+    }
+
     private var isShown: Bool {
         Self.isShown(flagEnabled: featureFlags.isNetWorthEnabled, store: store)
     }
@@ -91,13 +97,17 @@ struct AccountPickerField: View {
                     } else {
                         menu
                     }
-                    if linkTitle != nil, AccountLink.conflicts(account: selection, link: link),
-                       let name = selectedAsset?.name {
-                        Text(AccountLink.conflictMessage(name: name))
+                    if let conflictMessage {
+                        Text(conflictMessage)
                             .font(PulpeTypography.footnote)
                             .foregroundStyle(Color.destructivePrimary)
                     }
                 }
+            }
+            // The message appears below a menu VoiceOver has just closed: said aloud, or the
+            // save button turns disabled with no reason given.
+            .onChange(of: conflictMessage) { _, message in
+                if let message { AccessibilityNotification.Announcement(message).post() }
             }
             .task {
                 await store.loadIfNeeded()
@@ -144,8 +154,6 @@ struct AccountPickerField: View {
                     rowTitle
                     Text(value).foregroundStyle(Color.onSurfaceVariant)
                 }
-                // A Menu label centers wrapped lines by default.
-                .multilineTextAlignment(.leading)
                 Spacer(minLength: DesignTokens.Spacing.sm)
             } else {
                 rowTitle
@@ -156,6 +164,8 @@ struct AccountPickerField: View {
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
         }
+        // A Menu label centers wrapped lines by default: « Compte par défaut » wraps from XXL.
+        .multilineTextAlignment(.leading)
         .contentShape(Rectangle())
     }
 
