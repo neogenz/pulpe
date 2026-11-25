@@ -4,6 +4,7 @@
 
 - Trunk and staging branch: `main`; production pointer branch: `production`.
 - Platform: GitHub (`neogenz/pulpe`); ticketing: Linear (`PUL-*`).
+- Linear is on the Free plan, which caps the number of non-archived issues. When it refuses a new issue, archive the Done and Canceled issues to free room; archiving is reversible.
 
 ## Branches
 
