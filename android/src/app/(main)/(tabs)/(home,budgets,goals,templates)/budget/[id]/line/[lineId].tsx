@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Appbar,
   FAB,
-  Menu,
   Text,
   useTheme,
 } from "react-native-paper";
@@ -19,6 +18,7 @@ import { KIND_ICONS, recurrenceLabel } from "@/core/ui/vocabulary";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { IconDisc } from "@/core/ui/icon-disc";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
+import { Menu } from "@/core/ui/menu";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { SectionHeader } from "@/core/ui/section-header";
 

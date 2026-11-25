@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import type { BudgetDeletionImpact, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { View } from "react-native";
-import { Menu, Text } from "react-native-paper";
+import { Text } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { HeroAppBarAction } from "@/core/ui/hero";
+import { Menu } from "@/core/ui/menu";
 import { fetchBudgetDeletionImpact } from "@/features/budgets/budget-api";
 import { budgetKeys } from "@/features/budgets/budget-queries";
 import { useDeleteBudget } from "@/features/budgets/delete-budget-mutation";

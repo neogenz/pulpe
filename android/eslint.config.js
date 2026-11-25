@@ -11,4 +11,23 @@ module.exports = defineConfig([
     files: ["jest.setup.js"],
     languageOptions: { globals: { jest: "readonly" } },
   },
+  // Le Menu de Paper laisse passer Retour à l'écran derrière lui.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/core/ui/menu.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "react-native-paper",
+              importNames: ["Menu"],
+              message: "Importer Menu depuis @/core/ui/menu.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);

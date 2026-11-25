@@ -13,7 +13,6 @@ import {
   Appbar,
   Button,
   Divider,
-  Menu,
   RadioButton,
   Text,
   useTheme,
@@ -23,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "@/core/i18n/locale-store";
 import { FieldError } from "@/core/ui/field-error";
 import { formatMonthName } from "@/core/ui/date-format";
+import { Menu } from "@/core/ui/menu";
 import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 import { RADIUS, SPACING, TOUCH_TARGET } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";

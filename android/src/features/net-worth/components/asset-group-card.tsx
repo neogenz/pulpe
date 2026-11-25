@@ -1,12 +1,13 @@
 import type { Asset, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { IconButton, Menu, Text, useTheme } from "react-native-paper";
+import { IconButton, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
 import { formatCompactCurrency, formatCurrency } from "@/core/ui/amount-format";
 import { LedgerCard } from "@/core/ui/ledger";
+import { Menu } from "@/core/ui/menu";
 import { useRipple } from "@/core/ui/ripple";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { StateChip } from "@/core/ui/state-chip";

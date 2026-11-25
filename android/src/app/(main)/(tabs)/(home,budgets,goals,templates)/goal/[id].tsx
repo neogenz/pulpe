@@ -7,7 +7,7 @@ import {
 } from "pulpe-shared";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { Menu, useTheme } from "react-native-paper";
+import { useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import {
@@ -16,6 +16,7 @@ import {
   HeroAppBarAction,
   HeroZone,
 } from "@/core/ui/hero";
+import { Menu } from "@/core/ui/menu";
 import { Notice } from "@/core/ui/notice";
 import { SectionHeader } from "@/core/ui/section-header";
 import { useHeroColors } from "@/core/ui/scheme-colors";
