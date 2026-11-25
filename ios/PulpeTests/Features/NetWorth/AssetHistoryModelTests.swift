@@ -128,6 +128,19 @@ struct AssetHistoryModelTests {
         #expect(model.monthEndProjection == nil)
     }
 
+    /// PUL-380 CA8: the projection sits beside the value, it never replaces it.
+    @Test
+    func load_withAProjection_keepsTheAssetValue() async {
+        let service = pagedService()
+        service.stubbedHistory[nil]?.monthEndProjection = AssetMonthEndProjection(month: 11, year: 2026, value: 8000)
+        let model = makeModel(service)
+
+        await model.load()
+
+        #expect(model.monthEndProjection?.value == 8000)
+        #expect(model.asset?.latestValue == 9420)
+    }
+
     @Test
     func reload_withAChangedFirstPage_replacesTheList() async {
         let service = longService()
