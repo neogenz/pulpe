@@ -352,6 +352,20 @@ describe('GetAssetHistoryUseCase', () => {
       expect(withMonth.nextCursor).toBe(without.nextCursor);
     });
 
+    it('CA8: the month unreadable, the history still shows without a projection', async () => {
+      const without = await read();
+      findMonthMovements.mockRejectedValue(
+        new Error('budget_line unavailable'),
+      );
+
+      const page = await read();
+
+      expect(page.monthEndProjection).toBeNull();
+      expect(page.asset).toEqual(without.asset);
+      expect(page.entries).toEqual(without.entries);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
     it('a EUR asset without a rate has no projection', async () => {
       assets = [asset({ currency: 'EUR' })];
       getRate.mockRejectedValue(new Error('Currency API unavailable'));

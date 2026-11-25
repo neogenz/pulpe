@@ -31,6 +31,7 @@ import type {
   AssetHistoryEntry,
   AssetHistoryPage,
   AssetWithValue,
+  MonthMovements,
 } from '../domain/asset.entity';
 
 @Injectable()
@@ -83,7 +84,7 @@ export class GetAssetHistoryUseCase {
         snapshots.at(0)?.recordedAt ?? asset.latestRecordedAt,
         id,
       ),
-      this.repo.findMonthMovements(id, month, year),
+      this.monthMovementsOf(id, month, year, user),
       asset.currency === baseCurrency
         ? 1
         : this.rateOf(asset, baseCurrency, user),
@@ -96,12 +97,38 @@ export class GetAssetHistoryUseCase {
       rates: rate === undefined ? {} : { [asset.currency]: rate },
       movements,
     }).assets;
-    const value = monthEndValue(valued, monthMovements, rate);
+    const value =
+      monthMovements === null
+        ? null
+        : monthEndValue(valued, monthMovements, rate);
     return {
       asset: valued,
       monthEndProjection: value === null ? null : { month, year, value },
       ...pageOf(assetHistory(asset, snapshots, movements, rate), query),
     };
+  }
+
+  /** The projection is extra: when the month cannot be read, the page still shows. */
+  private async monthMovementsOf(
+    id: string,
+    month: number,
+    year: number,
+    user: AuthenticatedUser,
+  ): Promise<MonthMovements | null> {
+    try {
+      return await this.repo.findMonthMovements(id, month, year);
+    } catch (error) {
+      this.logger.warn(
+        {
+          operation: 'assetHistory.get',
+          userId: user.id,
+          entityId: id,
+          err: error,
+        },
+        'Month movements unavailable, asset history without projection',
+      );
+      return null;
+    }
   }
 
   private async rateOf(
