@@ -103,7 +103,10 @@ struct AccountLinkTests {
         #expect(AccountLink.conflicts(account: "savings", link: "savings"))
         #expect(!AccountLink.conflicts(account: "checking", link: "savings"))
         #expect(!AccountLink.conflicts(account: nil, link: nil))
-        #expect(AccountLink.conflictMessage(linkTitle: "Versée sur").contains("Versée sur"))
+        #expect(
+            AccountLink.conflictMessage(name: "Livret")
+                == "Choisis un autre compte : « Livret » est déjà l'élément lié."
+        )
     }
 
     @Test("CA25: a link chosen on purpose stays and is refused, it does not erase the account")

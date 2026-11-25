@@ -1372,12 +1372,7 @@
     "account": {
       "label": "Compte",
       "none": "Aucun",
-      "sameAsLink": "« Compte » et « %{link} » doivent être deux éléments différents.",
-      "link": {
-        "expense": "Dette remboursée",
-        "saving": "Versée sur",
-        "income": "Tiré de"
-      },
+      "sameAsLink": "Choisis un autre compte : « %{name} » est déjà l'élément lié.",
       "defaultLabel": "Compte par défaut",
       "defaultBadge": "Par défaut",
       "defaultSection": "Mon budget",

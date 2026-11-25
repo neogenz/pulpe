@@ -281,7 +281,6 @@ export function TemplateLineSheet({
             value={account.account}
             onChange={account.setAccount}
             link={link}
-            linkKind={kind}
           />
         )}
 

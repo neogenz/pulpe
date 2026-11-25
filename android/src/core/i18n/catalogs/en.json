@@ -1372,12 +1372,7 @@
     "account": {
       "label": "Account",
       "none": "None",
-      "sameAsLink": "“Account” and “%{link}” must be two different items.",
-      "link": {
-        "expense": "Debt repaid",
-        "saving": "Saved to",
-        "income": "Drawn from"
-      },
+      "sameAsLink": "Pick another account: “%{name}” is already the linked item.",
       "defaultLabel": "Default account",
       "defaultBadge": "Default",
       "defaultSection": "My budget",

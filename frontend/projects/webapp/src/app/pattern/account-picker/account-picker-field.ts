@@ -84,10 +84,10 @@ import { UserSettingsStore } from '@core/user-settings';
         </mat-select>
         @if (errorKey(); as key) {
           <mat-hint
-            class="text-error"
+            class="ph-no-capture text-error"
             role="alert"
             data-testid="account-picker-error"
-            >{{ key | transloco }}</mat-hint
+            >{{ key | transloco: { name: selectedName() } }}</mat-hint
           >
         } @else if (hintKey(); as key) {
           <mat-hint data-testid="account-picker-hint">{{
@@ -113,6 +113,13 @@ export class AccountPickerField {
   )
     ? injectNetWorthResource()
     : null;
+
+  /** Named in the error message: « « Livret » est déjà l'élément lié ». */
+  protected readonly selectedName = computed(
+    () =>
+      this.#netWorth?.value()?.assets.find((asset) => asset.id === this.value())
+        ?.name ?? '',
+  );
 
   protected readonly groups = computed(() => {
     const assets = this.#netWorth?.value()?.assets ?? [];

@@ -1,4 +1,3 @@
-import type { TransactionKind } from "pulpe-shared";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { TextInput } from "react-native-paper";
@@ -19,7 +18,6 @@ interface AccountFieldProps {
   onChange: (id: string | null) => void;
   /** The element the line already feeds, repays or is drawn from (CA25). */
   link?: string | null;
-  linkKind?: TransactionKind;
 }
 
 /**
@@ -32,7 +30,6 @@ export function AccountField({
   value,
   onChange,
   link = null,
-  linkKind = "saving",
 }: AccountFieldProps) {
   const { t } = useTranslation();
   const ripple = useRipple();
@@ -67,9 +64,7 @@ export function AccountField({
       </Pressable>
       {hasConflict && (
         <FieldError visible>
-          {t("netWorth.account.sameAsLink", {
-            link: t(`netWorth.account.link.${linkKind}`),
-          })}
+          {t("netWorth.account.sameAsLink", { name: shown })}
         </FieldError>
       )}
 

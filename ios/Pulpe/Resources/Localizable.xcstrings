@@ -1094,24 +1094,24 @@
         }
       }
     },
-    "« Compte » et « %@ » doivent être deux éléments différents." : {
+    "Choisis un autre compte : « %@ » est déjà l'élément lié." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„Konto“ und „%@“ müssen zwei verschiedene Elemente sein."
+            "value" : "Wähle ein anderes Konto: „%@“ ist bereits das verknüpfte Element."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“Account” and “%@” must be two different items."
+            "value" : "Pick another account: “%@” is already the linked item."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "«Account» e «%@» devono essere due elementi diversi."
+            "value" : "Scegli un altro conto: «%@» è già l'elemento collegato."
           }
         }
       }

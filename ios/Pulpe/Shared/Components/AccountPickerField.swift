@@ -33,8 +33,9 @@ enum AccountLink {
         lineId == nil ? assetLinkChange(initial: initial, current: account) : nil
     }
 
-    static func conflictMessage(linkTitle: String) -> String {
-        AppLocale.string("« Compte » et « \(linkTitle) » doivent être deux éléments différents.")
+    /// Keeps the action and names the element chosen twice (CA25).
+    static func conflictMessage(name: String) -> String {
+        AppLocale.string("Choisis un autre compte : « \(name) » est déjà l'élément lié.")
     }
 }
 
@@ -84,8 +85,9 @@ struct AccountPickerField: View {
                     } else {
                         menu
                     }
-                    if let linkTitle, AccountLink.conflicts(account: selection, link: link) {
-                        Text(AccountLink.conflictMessage(linkTitle: linkTitle))
+                    if linkTitle != nil, AccountLink.conflicts(account: selection, link: link),
+                       let name = selectedAsset?.name {
+                        Text(AccountLink.conflictMessage(name: name))
                             .font(PulpeTypography.footnote)
                             .foregroundStyle(Color.destructivePrimary)
                     }

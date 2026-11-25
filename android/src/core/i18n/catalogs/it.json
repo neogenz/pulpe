@@ -1372,12 +1372,7 @@
     "account": {
       "label": "Account",
       "none": "Nessuno",
-      "sameAsLink": "«Account» e «%{link}» devono essere due elementi diversi.",
-      "link": {
-        "expense": "Debito rimborsato",
-        "saving": "Versato su",
-        "income": "Prelevata da"
-      },
+      "sameAsLink": "Scegli un altro conto: «%{name}» è già l'elemento collegato.",
       "defaultLabel": "Conto predefinito",
       "defaultBadge": "Predefinito",
       "defaultSection": "Il mio budget",

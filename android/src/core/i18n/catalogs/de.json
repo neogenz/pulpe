@@ -1372,12 +1372,7 @@
     "account": {
       "label": "Konto",
       "none": "Keine",
-      "sameAsLink": "„Konto“ und „%{link}“ müssen zwei verschiedene Elemente sein.",
-      "link": {
-        "expense": "Getilgte Schuld",
-        "saving": "Eingezahlt auf",
-        "income": "Entnommen aus"
-      },
+      "sameAsLink": "Wähle ein anderes Konto: „%{name}“ ist bereits das verknüpfte Element.",
       "defaultLabel": "Standardkonto",
       "defaultBadge": "Standard",
       "defaultSection": "Mein Budget",

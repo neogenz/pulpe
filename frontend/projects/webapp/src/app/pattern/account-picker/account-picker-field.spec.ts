@@ -177,9 +177,7 @@ describe('AccountPickerField', () => {
       fixture.debugElement
         .query(By.css('[data-testid="account-picker-error"]'))
         .nativeElement.textContent.trim(),
-    ).toBe(
-      "Choisis un autre compte : celui-ci est déjà l'élément lié ci-dessus.",
-    );
+    ).toBe("Choisis un autre compte : « Livret » est déjà l'élément lié.");
   });
 
   it('takes another label, for the « Compte par défaut » setting', async () => {
