@@ -9,7 +9,7 @@ Un utilisateur demande de pouvoir rattacher une dépense (prévue, imprévue ou 
 ## Ce qui est clair
 
 - Chaque mouvement du budget peut porter un compte : une prévision, un imprévu, une ligne de modèle. Trois états : aucun compte, le compte par défaut prérempli, ou un autre compte choisi à la main.
-- Le compte par défaut est un réglage, dans les préférences : un élément actif de « Mon patrimoine », dette comprise, ou aucun.
+- Le compte par défaut est un réglage : un élément actif de « Mon patrimoine », dette comprise, ou aucun. Il se règle dans les préférences et depuis le menu de l'élément sur « Mon patrimoine », où un badge « Par défaut » le signale (PUL-378).
 - Les trois natures ont le champ : une dépense baisse le compte, un revenu le monte, une épargne le baisse. Sur une dette c'est l'inverse, et elle ne descend pas sous zéro. Sans les revenus, le compte ne ferait que descendre.
 - Pointer un mouvement qui a un compte change la valeur de ce compte tout de suite. Dépointer annule. Il n'y a plus de « Appliquer » ni de « Écarter », pour aucun élément : la valeur d'un élément est ma dernière saisie plus ce que j'ai pointé depuis.
 - Je peux toujours écraser la valeur à la main ; la suite repart de cette saisie.
