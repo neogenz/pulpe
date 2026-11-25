@@ -64,6 +64,10 @@ export class AssetHistoryStore {
       : (this.firstPage.value()?.nextCursor ?? null);
   });
   readonly hasMore = computed(() => this.#nextCursor() !== null);
+  /** From the first page, like the asset: every write reloads it. */
+  readonly monthEndProjection = computed(
+    () => this.firstPage.value()?.monthEndProjection ?? null,
+  );
   readonly isLoadingMore = this.#isLoadingMore.asReadonly();
   readonly loadMoreFailed = this.#loadMoreFailed.asReadonly();
 

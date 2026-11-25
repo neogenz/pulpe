@@ -3285,13 +3285,33 @@ export const assetHistoryEntrySchema = z.discriminatedUnion('type', [
 export type AssetHistoryEntry = z.infer<typeof assetHistoryEntrySchema>;
 
 /**
+ * Ce que vaudra l'élément une fois pointé tout ce que le budget en cours
+ * (`month`/`year`, selon le jour de paie) prévoit ou porte pour lui, dans sa
+ * devise. Calculée par le serveur avec la valeur, jamais additionnée dans
+ * `latestValue`, les totaux ou l'historique.
+ */
+export const assetMonthEndProjectionSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+  value: z.number(),
+});
+export type AssetMonthEndProjection = z.infer<
+  typeof assetMonthEndProjectionSchema
+>;
+
+/**
  * L'élément calculé (comme dans `GET /v1/assets`) et une page de son
  * historique. Les `effect` dont `supersededAt` est `null` ont pour somme
  * `asset.latestValue - asset.recordedValue`. `nextCursor` est `null` sur la
  * dernière page.
+ *
+ * `monthEndProjection` est la même sur chaque page, `null` quand rien n'est à
+ * venir ce mois, sans budget ce mois-là ou sans taux de change. Facultative :
+ * un client déployé avant le serveur la lit absente, comme `null`.
  */
 export const assetHistorySchema = z.object({
   asset: assetSchema,
+  monthEndProjection: assetMonthEndProjectionSchema.nullable().optional(),
   entries: z.array(assetHistoryEntrySchema),
   nextCursor: z.string().nullable(),
 });

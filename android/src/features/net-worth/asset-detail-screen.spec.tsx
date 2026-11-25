@@ -27,6 +27,7 @@ import { netWorthKeys } from "./net-worth-keys";
 
 let mockFocus: () => void = () => undefined;
 let mockAssetId = "";
+let mockLocale = "fr";
 jest.mock("expo-router", () => ({
   router: { back: jest.fn(), push: jest.fn() },
   useLocalSearchParams: () => ({ id: mockAssetId }),
@@ -45,11 +46,11 @@ jest.mock("@/core/vault/vault-store", () => ({
 }));
 jest.mock("@/core/i18n/locale-store", () => ({
   useTranslation: () => ({
-    locale: "fr",
+    locale: mockLocale,
     t: (key: string, options?: Record<string, unknown>) =>
       jest
         .requireActual("@/core/i18n/i18n")
-        .translateForLocale("fr", key, options),
+        .translateForLocale(mockLocale, key, options),
   }),
 }));
 jest.mock("@/core/ui/ripple", () => ({ useRipple: () => ({}) }));
@@ -182,6 +183,7 @@ const historyCalls = () =>
 
 beforeEach(() => {
   jest.useFakeTimers({ now: NOW, advanceTimers: true });
+  mockLocale = "fr";
   queryClient.clear();
   jest.mocked(api.get).mockReset();
   jest.mocked(router.back).mockClear();
@@ -521,5 +523,108 @@ describe("the detail of an element (PUL-379)", () => {
         screen.queryByText("Cet élément n'est plus disponible"),
       ).toBeNull();
     });
+  });
+});
+
+describe("the month-end projection in the detail (PUL-380)", () => {
+  // Compte courant 3 800 with Loyer 1 500, Assurance 300 and Salaire 6 000
+  // still to come this November.
+  const current = { ...compteCourant, latestValue: 3800 };
+  const NOVEMBER = { month: 11, year: 2026, value: 8000 };
+  const withProjection = (
+    monthEndProjection: AssetHistory["monthEndProjection"],
+  ) => ({ ...page(current, [ENTRY_NOV]), monthEndProjection });
+
+  it("CA1 shows « Fin novembre : 8’000.00 CHF » beside the value", async () => {
+    pages[`${COMPTE_COURANT}:`] = withProjection(NOVEMBER);
+    await open(COMPTE_COURANT);
+
+    expect(await screen.findByText(`Fin novembre : 8’000.00 CHF`)).toBeTruthy();
+    expect(screen.getByLabelText("Comptes 3’800.00 CHF")).toBeTruthy();
+  });
+
+  it("CA1 reads the line with what it assumes", async () => {
+    pages[`${COMPTE_COURANT}:`] = withProjection(NOVEMBER);
+    await open(COMPTE_COURANT);
+
+    expect(
+      await screen.findByLabelText(
+        `Fin novembre : 8’000.00 CHF, si tout se passe comme prévu ce mois-ci`,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("signs a negative projection like the value", async () => {
+    pages[`${COMPTE_COURANT}:`] = withProjection({ ...NOVEMBER, value: -250 });
+    await open(COMPTE_COURANT);
+
+    expect(await screen.findByText(`Fin novembre : −250.00 CHF`)).toBeTruthy();
+  });
+
+  it("CA6 CA7 shows no line when nothing is to come", async () => {
+    pages[`${COMPTE_COURANT}:`] = withProjection(null);
+    await open(COMPTE_COURANT);
+    await screen.findByLabelText("Comptes 3’800.00 CHF");
+
+    expect(screen.queryByText(/^Fin /)).toBeNull();
+  });
+
+  it("shows no line when a server without the field answers", async () => {
+    pages[`${COMPTE_COURANT}:`] = page(current, [ENTRY_NOV]);
+    await open(COMPTE_COURANT);
+    await screen.findByLabelText("Comptes 3’800.00 CHF");
+
+    expect(screen.queryByText(/^Fin /)).toBeNull();
+  });
+
+  it("hides the amount like the value while amounts are hidden", async () => {
+    pages[`${COMPTE_COURANT}:`] = withProjection(NOVEMBER);
+    await open(COMPTE_COURANT);
+    await screen.findByText(`Fin novembre : 8’000.00 CHF`);
+
+    await act(async () =>
+      useAmountVisibility.setState({ areAmountsHidden: true }),
+    );
+    expect(await screen.findByText(`Fin novembre : •••`)).toBeTruthy();
+    expect(screen.getByLabelText("Comptes ••• CHF")).toBeTruthy();
+    expect(
+      screen.getByLabelText(
+        `Fin novembre : •••, si tout se passe comme prévu ce mois-ci`,
+      ),
+    ).toBeTruthy();
+    await act(async () =>
+      useAmountVisibility.setState({ areAmountsHidden: false }),
+    );
+  });
+
+  it("names the month in the interface language", async () => {
+    mockLocale = "en";
+    pages[`${COMPTE_COURANT}:`] = withProjection(NOVEMBER);
+    await open(COMPTE_COURANT);
+
+    expect(
+      await screen.findByText("End of November: 8’000.00 CHF"),
+    ).toBeTruthy();
+  });
+
+  it("reads the projection from the first page, like the asset", async () => {
+    pages[`${COMPTE_COURANT}:`] = {
+      ...page(current, [SALAIRE], "page-2"),
+      monthEndProjection: NOVEMBER,
+    };
+    pages[`${COMPTE_COURANT}:page-2`] = {
+      ...page(current, [ENTRY_NOV]),
+      monthEndProjection: { ...NOVEMBER, value: 7900 },
+    };
+    await open(COMPTE_COURANT);
+    await screen.findByText(`Fin novembre : 8’000.00 CHF`);
+
+    await act(async () => {
+      screen.getByTestId("asset-history").props.onEndReached();
+    });
+
+    expect(await screen.findByText("Valeur enregistrée")).toBeTruthy();
+    expect(screen.queryByText(`Fin novembre : 7’900.00 CHF`)).toBeNull();
+    expect(screen.getByText(`Fin novembre : 8’000.00 CHF`)).toBeTruthy();
   });
 });

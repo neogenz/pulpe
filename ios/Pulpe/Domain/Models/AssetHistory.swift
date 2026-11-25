@@ -2,11 +2,21 @@ import Foundation
 
 /// A page of an element's history (PUL-379), newest first. `asset` is the element as
 /// `GET /v1/assets` computes it, read in the same pass as the entries. `nextCursor` is `nil` on
-/// the last page.
+/// the last page. `monthEndProjection` (PUL-380) is `nil` when nothing is to come this month, and
+/// absent from an older server.
 struct AssetHistory: Decodable, Hashable, Sendable {
     let asset: Asset
     let entries: [AssetHistoryEntry]
     let nextCursor: String?
+    var monthEndProjection: AssetMonthEndProjection?
+}
+
+/// What the element will be worth at the end of the current budget's month once everything
+/// planned and not yet checked happens, in its currency. Computed by the server, never summed.
+struct AssetMonthEndProjection: Decodable, Hashable, Sendable {
+    let month: Int
+    let year: Int
+    let value: Decimal
 }
 
 /// One line of the history, amounts in the element's currency: a value the user entered, or a

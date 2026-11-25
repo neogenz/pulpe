@@ -1393,7 +1393,9 @@
       "nothingSince": "Non hai spuntato niente dal tuo inserimento del %{date}.",
       "loadError": "Impossibile caricare questa cronologia, riprova",
       "loadMoreError": "Impossibile caricare il resto, riprova",
-      "notFound": "Questo elemento non è più disponibile"
+      "notFound": "Questo elemento non è più disponibile",
+      "monthEnd": "Fine %{month}: %{amount}",
+      "monthEndAccessibility": "Fine %{month}: %{amount}, se questo mese tutto va come previsto"
     }
   },
   "onboarding": {

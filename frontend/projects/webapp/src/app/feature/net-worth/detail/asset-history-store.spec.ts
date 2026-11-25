@@ -115,6 +115,35 @@ describe('AssetHistoryStore', () => {
     expect(getHistory$).toHaveBeenCalledTimes(3);
   });
 
+  it('PUL-380: keeps the month-end projection of the first page when a later page loads', async () => {
+    await open(
+      historyResponse({
+        monthEndProjection: { month: 11, year: 2026, value: 8_000 },
+        nextCursor: CURSOR_1,
+      }),
+    );
+    expect(store.monthEndProjection()?.value).toBe(8_000);
+
+    getHistory$.mockReturnValueOnce(
+      of(
+        historyResponse({
+          entries: [],
+          monthEndProjection: { month: 11, year: 2026, value: 7_900 },
+          nextCursor: null,
+        }),
+      ),
+    );
+    await store.loadMore();
+
+    expect(store.monthEndProjection()?.value).toBe(8_000);
+  });
+
+  it('PUL-380: reads a missing projection as none', async () => {
+    await open(historyResponse());
+
+    expect(store.monthEndProjection()).toBeNull();
+  });
+
   it('drops a second scroll while a page is on its way', async () => {
     await open(historyResponse({ nextCursor: CURSOR_1 }));
     const page = new Subject<AssetHistoryResponse>();

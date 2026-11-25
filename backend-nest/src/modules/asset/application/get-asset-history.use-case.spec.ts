@@ -1,4 +1,12 @@
-import { beforeEach, describe, expect, it, jest } from 'bun:test';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+  setSystemTime,
+} from 'bun:test';
 import { Buffer } from 'node:buffer';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -10,6 +18,7 @@ import type {
   AssetMovements,
   AssetSnapshot,
   AssetWithValue,
+  MonthMovements,
   MovementLine,
 } from '../domain/asset.entity';
 import { GetAssetHistoryUseCase } from './get-asset-history.use-case';
@@ -98,6 +107,7 @@ describe('GetAssetHistoryUseCase', () => {
   let assets: AssetWithValue[];
   let movements: AssetMovements;
   let findMovementsSince: ReturnType<typeof jest.fn>;
+  let findMonthMovements: ReturnType<typeof jest.fn>;
   let getRate: ReturnType<typeof jest.fn>;
   let logger: {
     info: jest.Mock;
@@ -116,6 +126,9 @@ describe('GetAssetHistoryUseCase', () => {
     ];
     movements = contractMovements();
     findMovementsSince = jest.fn(async () => movements);
+    findMonthMovements = jest.fn(
+      async (): Promise<MonthMovements> => ({ lines: [], freeMovements: [] }),
+    );
     getRate = jest.fn();
     logger = {
       info: jest.fn(),
@@ -128,6 +141,7 @@ describe('GetAssetHistoryUseCase', () => {
       findAllWithLatestValue: jest.fn(async () => assets),
       findSnapshots: jest.fn(async () => SNAPSHOTS),
       findMovementsSince,
+      findMonthMovements,
     } as unknown as AssetRepositoryPort;
     userRepo = {
       findSettings: jest.fn(async () => ({ currency: 'CHF' })),
@@ -259,5 +273,108 @@ describe('GetAssetHistoryUseCase', () => {
     expect(header).toMatchObject({ value: 5_000, convertedValue: null });
     expect(entries[0]).toMatchObject({ name: 'Salaire', effect: null });
     expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  describe('the month-end projection (PUL-380)', () => {
+    const PHARMACIE = {
+      kind: 'expense' as const,
+      amount: 40,
+      accountId: COURANT_ID,
+      checkedAt: null,
+    };
+    const IMPOTS = {
+      kind: 'expense' as const,
+      amount: 2_000,
+      checkedAt: null,
+      accountId: COURANT_ID,
+      assetId: null,
+      reals: [],
+    };
+
+    afterEach(() => {
+      setSystemTime();
+    });
+
+    it('reads the current budget: November on 12 November without a payday', async () => {
+      setSystemTime(new Date('2026-11-12T10:00:00.000Z'));
+
+      await read();
+
+      expect(findMonthMovements).toHaveBeenCalledWith(COURANT_ID, 11, 2026);
+    });
+
+    it('reads the budget of the payday: December on 28 November with a payday on the 27th', async () => {
+      setSystemTime(new Date('2026-11-28T10:00:00.000Z'));
+
+      await useCase.execute(
+        COURANT_ID,
+        { limit: 30 },
+        { ...user, payDayOfMonth: 27 },
+      );
+
+      expect(findMonthMovements).toHaveBeenCalledWith(COURANT_ID, 12, 2026);
+    });
+
+    it('CA4, CA9: projects November only, Impôts of December left out', async () => {
+      setSystemTime(new Date('2026-11-12T10:00:00.000Z'));
+      findMonthMovements.mockImplementation(
+        async (_id: string, month: number): Promise<MonthMovements> =>
+          month === 11
+            ? { lines: [], freeMovements: [PHARMACIE] }
+            : { lines: [IMPOTS], freeMovements: [] },
+      );
+
+      const page = await read();
+
+      expect(page.monthEndProjection).toEqual({
+        month: 11,
+        year: 2026,
+        value: 9_380,
+      });
+    });
+
+    it('CA7: nothing to come this month, no projection', async () => {
+      expect((await read()).monthEndProjection).toBeNull();
+    });
+
+    it('CA8: the asset and its history are the same with or without the month', async () => {
+      const without = await read();
+      findMonthMovements.mockResolvedValue({
+        lines: [IMPOTS],
+        freeMovements: [PHARMACIE],
+      });
+
+      const withMonth = await read();
+
+      expect(withMonth.monthEndProjection).not.toBeNull();
+      expect(withMonth.asset).toEqual(without.asset);
+      expect(withMonth.entries).toEqual(without.entries);
+      expect(withMonth.nextCursor).toBe(without.nextCursor);
+    });
+
+    it('CA8: the month unreadable, the history still shows without a projection', async () => {
+      const without = await read();
+      findMonthMovements.mockRejectedValue(
+        new Error('budget_line unavailable'),
+      );
+
+      const page = await read();
+
+      expect(page.monthEndProjection).toBeNull();
+      expect(page.asset).toEqual(without.asset);
+      expect(page.entries).toEqual(without.entries);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('a EUR asset without a rate has no projection', async () => {
+      assets = [asset({ currency: 'EUR' })];
+      getRate.mockRejectedValue(new Error('Currency API unavailable'));
+      findMonthMovements.mockResolvedValue({
+        lines: [],
+        freeMovements: [PHARMACIE],
+      });
+
+      expect((await read()).monthEndProjection).toBeNull();
+    });
   });
 });

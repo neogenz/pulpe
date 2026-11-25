@@ -10,8 +10,11 @@ import type {
   AssetMovements,
   AssetSnapshot,
   AssetWithValue,
+  CheckedReal,
+  MonthMovements,
   MovementLine,
   NetWorth,
+  NetWorthAsset,
 } from './asset.entity';
 
 const CENTS_PER_UNIT = 100;
@@ -134,11 +137,33 @@ function accountSign(direction: AssetDirection, kind: TransactionKind) {
 }
 
 /**
+ * How a movement moves `asset`: by its account first, else by the asset it is
+ * linked to. 0 when it is linked to neither.
+ */
+function linkSign(
+  asset: Asset,
+  movement: Pick<MovementLine, 'kind' | 'accountId'> & {
+    assetId?: string | null;
+  },
+): number {
+  if (movement.accountId === asset.id) {
+    return accountSign(asset.direction, movement.kind);
+  }
+  if (movement.assetId === asset.id) {
+    return linkedAssetSign(asset.direction, movement.kind);
+  }
+  return 0;
+}
+
+/**
  * What a prévision counts at `at`, in cents, by the rule of the checked
  * balance: checked by then, the larger of its amount and its movements
  * checked by then; otherwise those movements alone.
  */
-function countedCents(line: MovementLine, at: number): number {
+function countedCents(
+  line: Pick<MovementLine, 'amount' | 'checkedAt' | 'checkedReals'>,
+  at: number,
+): number {
   const realsCents = line.checkedReals
     .filter((real) => Date.parse(real.checkedAt) <= at)
     .reduce((sum, real) => sum + toCents(real.amount), 0);
@@ -200,12 +225,7 @@ function retainedMoves(
   until = Infinity,
 ): RetainedMove[] {
   const lineMoves = movements.lines.flatMap((line) => {
-    const sign =
-      line.accountId === asset.id
-        ? accountSign(asset.direction, line.kind)
-        : line.assetId === asset.id
-          ? linkedAssetSign(asset.direction, line.kind)
-          : 0;
+    const sign = linkSign(asset, line);
     if (sign === 0) return [];
     return lineEvents(line, since)
       .filter(({ at }) => at <= until)
@@ -218,15 +238,14 @@ function retainedMoves(
   });
   const freeMoves = movements.freeMovements.flatMap((movement) => {
     const at = Date.parse(movement.checkedAt);
-    if (movement.accountId !== asset.id || at <= since || at > until) return [];
+    const sign = linkSign(asset, movement);
+    if (sign === 0 || at <= since || at > until) return [];
     return [
       {
         sourceId: movement.id,
         name: movement.name,
         at,
-        cents:
-          accountSign(asset.direction, movement.kind) *
-          toCents(movement.amount),
+        cents: sign * toCents(movement.amount),
       },
     ];
   });
@@ -263,6 +282,55 @@ function assetValueCents(
     rate,
     Date.parse(asset.latestRecordedAt),
   ).reduce((valueCents, move) => valueCents + move.cents, recordedCents);
+}
+
+/**
+ * The value of an asset once the current budget is all checked, in its own
+ * currency: its value now plus, for each movement of the month, what it will
+ * count then minus what it counts now (`countedCents`), even when an entry
+ * already absorbed part of it. A prévision will count the larger of its amount
+ * and all its movements, a free movement its amount. Each rest is converted at
+ * `rate` like an effect of the value. A debt floors the result at zero, the
+ * order of the coming checks being unknown.
+ *
+ * `null` for an archived asset, without a rate, or when nothing is left to
+ * come (`movements` in base currency).
+ */
+export function monthEndValue(
+  asset: NetWorthAsset,
+  movements: MonthMovements,
+  rate: number | undefined,
+): number | null {
+  if (asset.archivedAt !== null || rate === undefined) return null;
+
+  const lineRests = movements.lines.map((line) => {
+    const realsCents = line.reals.reduce(
+      (sum, real) => sum + toCents(real.amount),
+      0,
+    );
+    const checkedReals = line.reals.filter(
+      (real): real is CheckedReal => real.checkedAt !== null,
+    );
+    const counted = countedCents({ ...line, checkedReals }, Infinity);
+    return {
+      sign: linkSign(asset, line),
+      cents: Math.max(toCents(line.amount), realsCents) - counted,
+    };
+  });
+  const freeRests = movements.freeMovements.map((movement) => ({
+    sign: linkSign(asset, movement),
+    cents: movement.checkedAt === null ? toCents(movement.amount) : 0,
+  }));
+  const rests = [...lineRests, ...freeRests].filter(
+    (rest) => rest.sign !== 0 && rest.cents !== 0,
+  );
+  if (rests.length === 0) return null;
+
+  const cents = rests.reduce(
+    (sum, rest) => sum + Math.round((rest.sign * rest.cents) / rate),
+    toCents(asset.value),
+  );
+  return toUnits(asset.direction === 'owe' ? Math.max(0, cents) : cents);
 }
 
 const SNAPSHOT_RANK = 0;

@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { AssetHistoryQuery } from 'pulpe-shared';
+import {
+  type AssetHistoryQuery,
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
+} from 'pulpe-shared';
+import { formatBusinessCalendarDate } from '@common/utils/business-calendar-date';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -20,11 +25,13 @@ import {
   assetHistory,
   computeNetWorth,
   historyRank,
+  monthEndValue,
 } from '../domain/asset.formulas';
 import type {
   AssetHistoryEntry,
   AssetHistoryPage,
   AssetWithValue,
+  MonthMovements,
 } from '../domain/asset.entity';
 
 @Injectable()
@@ -41,8 +48,9 @@ export class GetAssetHistoryUseCase {
   ) {}
 
   /**
-   * The asset valued as on `GET /v1/assets` and one page of its history, both
-   * computed from the same read. An archived or unknown asset has no detail.
+   * The asset valued as on `GET /v1/assets`, its value at the end of the
+   * current budget and one page of its history, all computed from the same
+   * read. An archived or unknown asset has no detail.
    */
   async execute(
     id: string,
@@ -66,11 +74,17 @@ export class GetAssetHistoryUseCase {
     }
 
     const baseCurrency = settings.currency;
-    const [movements, rate] = await Promise.all([
+    // The current budget, as `get_current_month` reads it: today in Zurich.
+    const { month, year } = getBudgetPeriodForDate(
+      parseIsoDateLocal(formatBusinessCalendarDate()),
+      user.payDayOfMonth,
+    );
+    const [movements, monthMovements, rate] = await Promise.all([
       this.repo.findMovementsSince(
         snapshots.at(0)?.recordedAt ?? asset.latestRecordedAt,
         id,
       ),
+      this.monthMovementsOf(id, month, year, user),
       asset.currency === baseCurrency
         ? 1
         : this.rateOf(asset, baseCurrency, user),
@@ -83,10 +97,38 @@ export class GetAssetHistoryUseCase {
       rates: rate === undefined ? {} : { [asset.currency]: rate },
       movements,
     }).assets;
+    const value =
+      monthMovements === null
+        ? null
+        : monthEndValue(valued, monthMovements, rate);
     return {
       asset: valued,
+      monthEndProjection: value === null ? null : { month, year, value },
       ...pageOf(assetHistory(asset, snapshots, movements, rate), query),
     };
+  }
+
+  /** The projection is extra: when the month cannot be read, the page still shows. */
+  private async monthMovementsOf(
+    id: string,
+    month: number,
+    year: number,
+    user: AuthenticatedUser,
+  ): Promise<MonthMovements | null> {
+    try {
+      return await this.repo.findMonthMovements(id, month, year);
+    } catch (error) {
+      this.logger.warn(
+        {
+          operation: 'assetHistory.get',
+          userId: user.id,
+          entityId: id,
+          err: error,
+        },
+        'Month movements unavailable, asset history without projection',
+      );
+      return null;
+    }
   }
 
   private async rateOf(

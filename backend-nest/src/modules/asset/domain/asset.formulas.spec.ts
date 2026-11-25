@@ -6,11 +6,14 @@ import type {
   AssetSnapshot,
   AssetWithValue,
   FreeMovement,
+  MonthLine,
+  MonthMovements,
   MovementLine,
 } from './asset.entity';
 import {
   assetHistory,
   computeNetWorth,
+  monthEndValue,
   movementsSince,
   type NetWorthInput,
 } from './asset.formulas';
@@ -1454,5 +1457,291 @@ describe('assetHistory: the history follows the rule of the value (PUL-379)', ()
     ]);
     expect(valueNow(COURANT, movements)).toBe(9_140);
     expect(openSumCents(entries)).toBe(414_000);
+  });
+});
+
+describe('monthEndValue: the value once the month is all checked (PUL-380)', () => {
+  const ENTRY = '2026-11-01T08:00:00.000Z';
+  const day = (n: number) =>
+    `2026-11-${String(n).padStart(2, '0')}T10:00:00.000Z`;
+  const CC = asset({ id: 'cc', name: 'Compte courant', recordedValue: 5_000 });
+
+  function prevision(
+    name: string,
+    kind: TransactionKind,
+    amount: number,
+    overrides: Partial<MonthLine> = {},
+  ): MonthLine & { name: string } {
+    return {
+      name,
+      kind,
+      amount,
+      checkedAt: null,
+      accountId: 'cc',
+      assetId: null,
+      reals: [],
+      ...overrides,
+    };
+  }
+
+  /** 1 200 of Dépenses checked since the entry of 5 000: the Compte courant is worth 3 800. */
+  const DEPENSES = {
+    kind: 'expense' as const,
+    amount: 1_200,
+    accountId: 'cc',
+    checkedAt: day(5),
+  };
+  const loyer = (overrides: Partial<MonthLine> = {}) =>
+    prevision('Loyer', 'expense', 1_500, overrides);
+  const assurance = (amount = 300) => prevision('Assurance', 'expense', amount);
+  const salaire = (overrides: Partial<MonthLine> = {}) =>
+    prevision('Salaire', 'income', 6_000, overrides);
+  const contract = (lines = [loyer(), assurance(), salaire()]) => ({
+    lines,
+    freeMovements: [DEPENSES],
+  });
+
+  /**
+   * The asset valued from the month as `GET /v1/assets` does, and its
+   * projection: `{ value, projection }`.
+   */
+  function project(
+    account: AssetWithValue,
+    month: MonthMovements,
+    /** `null`: no rate could be obtained. */
+    rate: number | null = 1,
+  ) {
+    const movements: AssetMovements = {
+      lines: month.lines.map((line, i) => ({
+        id: `line-${i}`,
+        name: `line-${i}`,
+        ...line,
+        checkedReals: line.reals.flatMap((real) =>
+          real.checkedAt === null
+            ? []
+            : [{ amount: real.amount, checkedAt: real.checkedAt }],
+        ),
+      })),
+      freeMovements: month.freeMovements.flatMap((movement, i) =>
+        movement.checkedAt === null
+          ? []
+          : [
+              {
+                id: `free-${i}`,
+                name: `free-${i}`,
+                ...movement,
+                checkedAt: movement.checkedAt,
+              },
+            ],
+      ),
+    };
+    const [valued] = computeNetWorth({
+      baseCurrency: 'CHF',
+      categories: [],
+      assets: [{ ...account, latestRecordedAt: ENTRY }],
+      rates: rate === null ? {} : { [account.currency]: rate },
+      movements,
+    }).assets;
+    return {
+      value: valued!.value,
+      projection: monthEndValue(
+        valued!,
+        month,
+        account.currency === 'CHF' ? 1 : (rate ?? undefined),
+      ),
+    };
+  }
+
+  it('CA1: the Compte courant at 3 800 ends November at 8 000', () => {
+    expect(project(CC, contract())).toEqual({
+      value: 3_800,
+      projection: 8_000,
+    });
+  });
+
+  it('CA2: checking Loyer moves the value to 2 300, the projection stays 8 000', () => {
+    expect(
+      project(
+        CC,
+        contract([loyer({ checkedAt: day(12) }), assurance(), salaire()]),
+      ),
+    ).toEqual({ value: 2_300, projection: 8_000 });
+  });
+
+  it('CA2 invariant: once everything is checked, the value is the projection of before', () => {
+    const all = contract(
+      [loyer(), assurance(), salaire()].map((line) => ({
+        ...line,
+        checkedAt: day(20),
+      })),
+    );
+
+    expect(project(CC, all)).toEqual({ value: 8_000, projection: null });
+  });
+
+  it('CA3: Assurance at 400 moves the projection to 7 900, not the value', () => {
+    expect(project(CC, contract([loyer(), assurance(400), salaire()]))).toEqual(
+      { value: 3_800, projection: 7_900 },
+    );
+  });
+
+  it('CA4: only the month it is given counts, Impôts of December goes to December', () => {
+    const impots = prevision('Impôts', 'expense', 2_000);
+
+    expect(project(CC, contract()).projection).toBe(8_000);
+    expect(project(CC, { lines: [impots], freeMovements: [DEPENSES] })).toEqual(
+      {
+        value: 3_800,
+        projection: 1_800,
+      },
+    );
+  });
+
+  const courses = (overrides: Partial<MonthLine> = {}) =>
+    prevision('Courses', 'expense', 400, {
+      reals: [
+        { amount: 100, checkedAt: day(3) },
+        { amount: 350, checkedAt: null },
+      ],
+      ...overrides,
+    });
+  const ENTRY_3_800 = asset({ id: 'cc', recordedValue: 3_800 });
+
+  it('CA5: Courses 400 with 450 of movements, 100 checked, counts for 450: 350 still to come', () => {
+    expect(
+      project(ENTRY_3_800, { lines: [courses()], freeMovements: [] }),
+    ).toEqual({ value: 3_700, projection: 3_350 });
+  });
+
+  it('CA6: nothing left to come, no projection', () => {
+    const checked = courses({
+      checkedAt: day(10),
+      reals: [{ amount: 450, checkedAt: day(3) }],
+    });
+
+    expect(
+      project(ENTRY_3_800, { lines: [checked], freeMovements: [] }),
+    ).toEqual({ value: 3_350, projection: null });
+  });
+
+  it('CA6: a prévision of 400 checked with a movement of 450 not checked leaves 50 to come', () => {
+    const checked = courses({
+      checkedAt: day(10),
+      reals: [{ amount: 450, checkedAt: null }],
+    });
+
+    expect(
+      project(ENTRY_3_800, { lines: [checked], freeMovements: [] }),
+    ).toEqual({ value: 3_400, projection: 3_350 });
+  });
+
+  const PHARMACIE = {
+    kind: 'expense' as const,
+    amount: 40,
+    accountId: 'cc',
+    checkedAt: null,
+  };
+
+  it('CA7: nothing planned nor typed this month, no projection', () => {
+    expect(
+      project(ENTRY_3_800, { lines: [], freeMovements: [] }).projection,
+    ).toBeNull();
+  });
+
+  it('CA9, CA7: Pharmacie 40 typed and not checked takes 40 off, and is enough to show it', () => {
+    expect(
+      project(ENTRY_3_800, { lines: [], freeMovements: [PHARMACIE] }),
+    ).toEqual({ value: 3_800, projection: 3_760 });
+  });
+
+  it('CA10: an entry of 4 900 after 100 checked on Courses does not count them twice', () => {
+    const entry = asset({ id: 'cc', recordedValue: 4_900 });
+    const month = {
+      lines: [
+        courses({
+          reals: [
+            { amount: 100, checkedAt: '2026-10-31T10:00:00.000Z' },
+            { amount: 350, checkedAt: null },
+          ],
+        }),
+      ],
+      freeMovements: [],
+    };
+
+    expect(project(entry, month)).toEqual({ value: 4_900, projection: 4_550 });
+  });
+
+  describe('a debt and the two links', () => {
+    const CARTE = asset({ id: 'carte', direction: 'owe', recordedValue: 200 });
+    const remboursement = prevision('Remboursement', 'expense', 300, {
+      accountId: 'cc',
+      assetId: 'carte',
+    });
+    const RESTAURANT = {
+      kind: 'expense' as const,
+      amount: 80,
+      accountId: 'carte',
+      checkedAt: null,
+    };
+
+    it('floors the result of a debt at zero: 200 − 300 + 80 = 0', () => {
+      expect(
+        project(CARTE, { lines: [remboursement], freeMovements: [RESTAURANT] })
+          .projection,
+      ).toBe(0);
+    });
+
+    it('a Restaurant 80 paid with the card raises it to 280', () => {
+      expect(
+        project(CARTE, { lines: [], freeMovements: [RESTAURANT] }).projection,
+      ).toBe(280);
+    });
+
+    it('an Épargne 500 from the Compte courant to the Livret moves both', () => {
+      const epargne = prevision('Épargne', 'saving', 500, {
+        accountId: 'cc',
+        assetId: 'livret',
+      });
+      const month = { lines: [epargne], freeMovements: [] };
+
+      expect(project(ENTRY_3_800, month).projection).toBe(3_300);
+      expect(
+        project(asset({ id: 'livret', recordedValue: 10_000 }), month)
+          .projection,
+      ).toBe(10_500);
+    });
+  });
+
+  it("converts each rest at today's rate: 95 CHF to come on 1 000 EUR at 0.95 gives 900 EUR", () => {
+    const eur = asset({ id: 'cc', currency: 'EUR', recordedValue: 1_000 });
+    const month = {
+      lines: [prevision('Dépense', 'expense', 95)],
+      freeMovements: [],
+    };
+
+    expect(project(eur, month, 0.95)).toEqual({
+      value: 1_000,
+      projection: 900,
+    });
+  });
+
+  it('has no projection without a rate', () => {
+    const eur = asset({ id: 'cc', currency: 'EUR', recordedValue: 1_000 });
+
+    expect(
+      project(eur, { lines: [], freeMovements: [PHARMACIE] }, null).projection,
+    ).toBeNull();
+  });
+
+  it('has no projection for an archived asset', () => {
+    const archived = asset({
+      id: 'cc',
+      recordedValue: 3_800,
+      archivedAt: '2026-11-10T00:00:00.000Z',
+    });
+
+    expect(
+      project(archived, { lines: [], freeMovements: [PHARMACIE] }).projection,
+    ).toBeNull();
   });
 });

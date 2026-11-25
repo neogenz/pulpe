@@ -67,6 +67,13 @@ struct AssetDetailView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(DesignTokens.TextScale.floor)
                 .sensitiveAmount()
+            if let projection = model.monthEndProjection {
+                Text(projection.label(currency: asset.currency))
+                    .font(PulpeTypography.captionRegular)
+                    .foregroundStyle(Color.textSecondary)
+                    .accessibilityLabel(projection.accessibilityLabel(currency: asset.currency))
+                    .sensitiveAmount()
+            }
             Text(asset.lastEntryCaption())
                 .font(PulpeTypography.captionRegular)
                 .foregroundStyle(Color.textSecondary)
@@ -140,6 +147,7 @@ final class AssetHistoryModel {
     }
 
     private(set) var asset: Asset?
+    private(set) var monthEndProjection: AssetMonthEndProjection?
     private(set) var entries: [AssetHistoryEntry] = []
     private(set) var nextCursor: String?
     private(set) var error: APIError?
@@ -182,6 +190,7 @@ final class AssetHistoryModel {
             let page = try await service.getHistory(id: assetId, cursor: nil)
             guard current == generation else { return }
             asset = page.asset
+            monthEndProjection = page.monthEndProjection
             error = nil
             if let firstPage, firstPage.entries == page.entries, firstPage.nextCursor == page.nextCursor {
                 await rereadLaterPages(after: page, generation: current)
@@ -230,5 +239,26 @@ final class AssetHistoryModel {
         } catch {
             if current == generation { loadMoreFailed = true }
         }
+    }
+}
+
+extension AssetMonthEndProjection {
+    /// « Fin novembre : 8’000.00 CHF », signed and formatted as the detail's value.
+    func label(currency: SupportedCurrency, language: SupportedLocale = AppLocale.current) -> String {
+        let (month, amount) = parts(currency: currency, language: language)
+        return AppLocale.string("Fin \(month) : \(amount)", locale: AppLocale.uiLocale(for: language))
+    }
+
+    /// The label and the condition it rests on. Hidden amounts hide the line from VoiceOver, as the value.
+    func accessibilityLabel(currency: SupportedCurrency, language: SupportedLocale = AppLocale.current) -> String {
+        let (month, amount) = parts(currency: currency, language: language)
+        return AppLocale.string(
+            "Fin \(month) : \(amount), si tout se passe comme prévu ce mois-ci",
+            locale: AppLocale.uiLocale(for: language)
+        )
+    }
+
+    private func parts(currency: SupportedCurrency, language: SupportedLocale) -> (month: String, amount: String) {
+        (Formatters.monthNameInText(for: month, in: language), value.netWorthSigned(currency, showsPlus: false))
     }
 }

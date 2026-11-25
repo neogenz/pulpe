@@ -143,6 +143,7 @@ test.describe('Mon patrimoine', () => {
           success: true,
           data: {
             asset: ubs,
+            monthEndProjection: { month: 11, year: 2026, value: 8000 },
             entries: [
               {
                 type: 'movement',
@@ -173,6 +174,9 @@ test.describe('Mon patrimoine', () => {
       'Loyer',
       'Valeur enregistrée',
     ]);
+    await expect(page.getByTestId('asset-detail-month-end')).toContainText(
+      'Fin novembre : 8’000.00 CHF',
+    );
 
     await page.goBack();
     await expect(page).toHaveURL(/\/net-worth$/);

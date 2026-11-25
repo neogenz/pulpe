@@ -409,6 +409,176 @@ describe('SupabaseAssetRepository', () => {
     });
   });
 
+  describe('findMonthMovements', () => {
+    const CHECKED = '2026-11-05T09:00:00+00:00';
+
+    it('reads the prévisions of the asset with all their movements, and its free movements, checked or not', async () => {
+      // « Courses » 400 on the Compte courant, 450 of movements of which 100
+      // checked (CA5), an Épargne 500 to it, and « Pharmacie » 40 (CA9).
+      const lines = query(() => ({
+        data: [
+          {
+            id: 'courses',
+            kind: 'expense',
+            amount: 'enc:400',
+            checked_at: null,
+            account_id: 'cc',
+            asset_id: null,
+            transaction: [
+              { amount: 'enc:100', checked_at: CHECKED },
+              { amount: 'enc:350', checked_at: null },
+            ],
+          },
+          {
+            id: 'epargne',
+            kind: 'saving',
+            amount: 'enc:500',
+            checked_at: CHECKED,
+            account_id: 'livret',
+            asset_id: 'cc',
+            transaction: [],
+          },
+        ],
+        error: null,
+      }));
+      const free = query(() => ({
+        data: [
+          {
+            id: 'pharmacie',
+            kind: 'expense',
+            amount: 'enc:40',
+            checked_at: null,
+          },
+        ],
+        error: null,
+      }));
+      const { repo } = createRepository({
+        budget_line: [lines],
+        transaction: [free],
+      });
+
+      const result = await repo.findMonthMovements('cc', 11, 2026);
+
+      expect(result).toEqual({
+        lines: [
+          {
+            kind: 'expense',
+            amount: 400,
+            checkedAt: null,
+            accountId: 'cc',
+            assetId: null,
+            reals: [
+              { amount: 100, checkedAt: CHECKED },
+              { amount: 350, checkedAt: null },
+            ],
+          },
+          {
+            kind: 'saving',
+            amount: 500,
+            checkedAt: CHECKED,
+            accountId: 'livret',
+            assetId: 'cc',
+            reals: [],
+          },
+        ],
+        freeMovements: [
+          { kind: 'expense', amount: 40, accountId: 'cc', checkedAt: null },
+        ],
+      });
+    });
+
+    it('reads only that month of the user, the prévisions linked to the asset and its own free movements', async () => {
+      const lines = query();
+      const free = query();
+      const { repo } = createRepository({
+        budget_line: [lines],
+        transaction: [free],
+      });
+
+      await repo.findMonthMovements('cc', 11, 2026);
+
+      const period = [
+        ['monthly_budget.month', 11],
+        ['monthly_budget.year', 2026],
+        ['monthly_budget.user_id', 'user-1'],
+      ];
+      // Without `!inner` the budget filters only empty the embed and every
+      // month's rows come back (CA4: « Impôts » of December would count).
+      const innerBudget = 'monthly_budget!inner(month, year, user_id)';
+      expect(lines.argsOf('select')[0]?.[0]).toContain(innerBudget);
+      expect(free.argsOf('select')[0]?.[0]).toContain(innerBudget);
+      expect(lines.argsOf('eq')).toEqual(period);
+      expect(lines.argsOf('or')).toEqual([['account_id.eq.cc,asset_id.eq.cc']]);
+      expect(free.argsOf('eq')).toEqual([...period, ['account_id', 'cc']]);
+      expect(free.argsOf('is')).toEqual([['budget_line_id', null]]);
+      expect(lines.argsOf('order')).toEqual([['id', { ascending: true }]]);
+      expect(free.argsOf('order')).toEqual([['id', { ascending: true }]]);
+    });
+
+    it('is empty without a budget that month', async () => {
+      const { repo } = createRepository({
+        budget_line: [query()],
+        transaction: [query()],
+      });
+
+      await expect(repo.findMonthMovements('cc', 12, 2026)).resolves.toEqual({
+        lines: [],
+        freeMovements: [],
+      });
+    });
+
+    it('does not read an undecryptable amount as zero', async () => {
+      const failure = new Error(
+        'Unsupported state or unable to authenticate data',
+      );
+      const { repo } = createRepository(
+        {
+          budget_line: [query()],
+          transaction: [
+            query(() => ({
+              data: [
+                {
+                  id: 'f',
+                  kind: 'expense',
+                  amount: 'enc:40',
+                  checked_at: null,
+                },
+              ],
+              error: null,
+            })),
+          ],
+        },
+        {
+          decryptAmount: jest.fn(() => {
+            throw failure;
+          }),
+        },
+      );
+
+      await expect(repo.findMonthMovements('cc', 11, 2026)).rejects.toBe(
+        failure,
+      );
+    });
+
+    it('fails with ASSET_FETCH_FAILED when a read fails', async () => {
+      const { repo } = createRepository({
+        budget_line: [query()],
+        transaction: [
+          query(() => ({
+            data: null,
+            error: { code: '08006', message: 'down' },
+          })),
+        ],
+      });
+
+      await expect(
+        repo.findMonthMovements('cc', 11, 2026),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ASSET_FETCH_FAILED.code,
+      });
+    });
+  });
+
   describe('findSnapshots', () => {
     it('decrypts every entry of the asset, oldest first', async () => {
       const snapshots = query(() => ({

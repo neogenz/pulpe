@@ -1672,7 +1672,9 @@
       "nothingSince": "You haven't checked anything since your entry on {{date}}.",
       "loadError": "Couldn't load this history, try again",
       "loadMoreError": "Couldn't load more, try again",
-      "notFound": "This item is no longer available"
+      "notFound": "This item is no longer available",
+      "monthEnd": "End of {{month}}: {{amount}}",
+      "monthEndAccessibility": "End of {{month}}: {{amount}}, if everything goes as planned this month"
     }
   },
   "completeProfile": {

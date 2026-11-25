@@ -183,6 +183,22 @@ struct AssetServiceTests {
         #expect(page.entries.first?.kind == .movement(name: "Courses", effect: nil, supersededAt: nil))
     }
 
+    /// PUL-380: the projection rides at the root of the page; `null` and an older server read as `nil`.
+    @Test(arguments: [
+        (#","monthEndProjection":{"month":11,"year":2026,"value":13620}"#, AssetMonthEndProjection?.some(
+            AssetMonthEndProjection(month: 11, year: 2026, value: 13620)
+        )),
+        (#","monthEndProjection":null"#, nil),
+        ("", nil),
+    ])
+    func getHistory_decodesTheMonthEndProjection(field: String, expected: AssetMonthEndProjection?) async throws {
+        let payload = #"{"asset":\#(Self.historyAsset),"entries":[],"nextCursor":null\#(field)}"#
+        var history: AssetHistory?
+        _ = try await capture(data: payload) { history = try await $0.getHistory(id: "a1", cursor: nil) }
+
+        #expect(try #require(history).monthEndProjection == expected)
+    }
+
     private static let historyAsset = """
     {"id":"a1","categoryId":"c1","name":"Compte courant","currency":"EUR","direction":"own","inPulpe":false,
     "archivedAt":null,"latestValue":10,"recordedValue":10,"latestRecordedAt":"2026-11-01T10:00:00.000Z",

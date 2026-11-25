@@ -6,6 +6,7 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
+import { TranslocoService } from '@jsverse/transloco';
 import type { AssetHistoryResponse } from 'pulpe-shared';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,6 +25,10 @@ import {
   snapshotEntry,
 } from '@app/testing/net-worth-fixtures';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+// eslint-disable-next-line boundaries/no-unknown -- JSON asset, not a layer import
+import de from '../../../../../public/i18n/de.json';
+// eslint-disable-next-line boundaries/no-unknown -- JSON asset, not a layer import
+import en from '../../../../../public/i18n/en.json';
 import { NetWorthDialogService } from '../services/net-worth-dialog.service';
 import { NetWorthStore } from '../services/net-worth-store';
 import AssetDetailPage from './asset-detail-page';
@@ -89,7 +94,7 @@ describe('AssetDetailPage', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
-        ...provideTranslocoForTest(),
+        ...provideTranslocoForTest({ de, en }),
         { provide: LOCALE_ID, useValue: 'fr-FR' },
         {
           provide: AssetApi,
@@ -370,6 +375,93 @@ describe('AssetDetailPage', () => {
     fixture.detectChanges();
 
     expect(rows()).toHaveLength(6);
+  });
+
+  describe('month-end projection (PUL-380)', () => {
+    // Contract data: 3 800 today, Loyer 1 500, Assurance 300 and Salaire 6 000 to come.
+    const projected = (
+      monthEndProjection: AssetHistoryResponse['data']['monthEndProjection'],
+    ) =>
+      historyResponse({
+        asset: { ...HISTORY_ACCOUNT, latestValue: 3_800 },
+        monthEndProjection,
+      });
+    const NOVEMBER = { month: 11, year: 2026, value: 8_000 };
+    const shown = () =>
+      byTestId('asset-detail-month-end')
+        ?.querySelector('[aria-hidden="true"]')
+        ?.textContent?.trim() ?? null;
+    const spoken = () =>
+      byTestId('asset-detail-month-end')
+        ?.querySelector('.sr-only')
+        ?.textContent?.trim() ?? null;
+
+    it('CA1: shows « Fin novembre : 8’000.00 CHF » between the value and my last entry', async () => {
+      await render(projected(NOVEMBER));
+
+      expect(text('asset-detail-value')).toBe('3’800.00 CHF');
+      expect(shown()).toBe('Fin novembre : 8’000.00 CHF');
+      const summary = [
+        ...byTestId('asset-detail-summary')!.querySelectorAll(
+          ':scope > [data-testid]',
+        ),
+      ].map((element) => element.getAttribute('data-testid'));
+      expect(summary).toEqual([
+        'asset-detail-type',
+        'asset-detail-value',
+        'asset-detail-month-end',
+        'asset-detail-last-entry',
+      ]);
+    });
+
+    it('CA1: says the condition to a screen reader, not twice the visible line', async () => {
+      await render(projected(NOVEMBER));
+
+      expect(spoken()).toBe(
+        'Fin novembre : 8’000.00 CHF, si tout se passe comme prévu ce mois-ci',
+      );
+    });
+
+    it('CA6, CA7: shows no line when nothing is to come this month', async () => {
+      await render(projected(null));
+
+      expect(byTestId('asset-detail-month-end')).toBeNull();
+    });
+
+    it('shows no line when the server does not send the projection yet', async () => {
+      await render();
+
+      expect(byTestId('asset-detail-month-end')).toBeNull();
+    });
+
+    it('hides the projection with the other amounts', async () => {
+      await render(projected(NOVEMBER));
+
+      expect(byTestId('asset-detail-month-end')!.classList).toContain(
+        'ph-no-capture',
+      );
+    });
+
+    it('writes a negative projection with the real minus sign', async () => {
+      await render(projected({ ...NOVEMBER, value: -250 }));
+
+      expect(shown()).toBe('Fin novembre : −250.00 CHF');
+    });
+
+    it.each([
+      ['de', 'de-CH', 'Ende Dezember: 8’000.00 CHF'],
+      ['en', 'en-GB', 'End of December: 8’000.00 CHF'],
+    ])(
+      'names the month in the interface language (%s)',
+      async (lang, locale, expected) => {
+        TestBed.overrideProvider(LOCALE_ID, { useValue: locale });
+        TestBed.inject(TranslocoService).setActiveLang(lang);
+
+        await render(projected({ ...NOVEMBER, month: 12 }));
+
+        expect(shown()).toBe(expected);
+      },
+    );
   });
 
   it('goes back to « Mon patrimoine »', async () => {

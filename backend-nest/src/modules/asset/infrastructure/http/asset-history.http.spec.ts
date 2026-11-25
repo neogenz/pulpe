@@ -68,6 +68,7 @@ const page: AssetHistoryPage = {
     value: 9_420,
     convertedValue: 9_420,
   },
+  monthEndProjection: { month: 11, year: 2026, value: 8_000 },
   entries: [
     {
       type: 'movement',
@@ -141,6 +142,31 @@ describe('GET /api/v1/assets/:id/history', () => {
       { limit: 30 },
       expect.objectContaining({ id: 'user-http-test' }),
     );
+  });
+
+  it('PUL-380 CA1: answers the month-end projection beside the asset', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/assets/${ASSET_ID}/history`)
+      .expect(200);
+
+    expect(
+      assetHistoryResponseSchema.parse(res.body).data.monthEndProjection,
+    ).toEqual({ month: 11, year: 2026, value: 8_000 });
+  });
+
+  it('PUL-380 CA7: answers null when nothing is left to come', async () => {
+    getHistory.execute.mockImplementationOnce(() =>
+      Promise.resolve({ ...page, monthEndProjection: null }),
+    );
+
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/assets/${ASSET_ID}/history`)
+      .expect(200);
+
+    expect(res.body.data).toHaveProperty('monthEndProjection', null);
+    expect(
+      assetHistoryResponseSchema.parse(res.body).data.monthEndProjection,
+    ).toBeNull();
   });
 
   it('passes the limit and the cursor of the previous page', async () => {

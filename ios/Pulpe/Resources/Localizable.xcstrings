@@ -14557,6 +14557,52 @@
         }
       }
     },
+    "Fin %@ : %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ende %@: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End of %@: %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine %@: %@"
+          }
+        }
+      }
+    },
+    "Fin %@ : %@, si tout se passe comme prévu ce mois-ci" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ende %@: %@, wenn diesen Monat alles wie geplant läuft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End of %@: %@, if everything goes as planned this month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine %@: %@, se questo mese tutto va come previsto"
+          }
+        }
+      }
+    },
     "Fixe ton premier objectif" : {
       "localizations" : {
         "de" : {
