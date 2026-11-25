@@ -128,7 +128,7 @@ export function ReconcileAccountsSheet({
   const { t } = useTranslation();
   const create = useCreateTransaction("reconciliation");
   const follow = useFollowAccounts();
-  const isAccountOffered = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
+  const isNetWorthEnabled = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
   const toggle = useToggleCheck(budgetId);
   const checksSettled = useChecksSettled();
   const payDayOfMonth = useUserSettings().data?.payDayOfMonth ?? null;
@@ -441,7 +441,7 @@ export function ReconcileAccountsSheet({
               name: t("home.reconcile.compare.entryName"),
               adjustment,
               now: new Date(),
-              isAccountOffered,
+              isNetWorthEnabled,
             }),
             id: randomUUID(),
           };

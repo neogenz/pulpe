@@ -29,7 +29,7 @@ import {
 export function useTransactionRemoval() {
   const remove = useDeleteTransaction();
   const restore = useRestoreTransaction();
-  const isAccountOffered = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
+  const isNetWorthEnabled = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
   const [undoable, setUndoable] = useState<Transaction[]>([]);
   const [failure, setFailure] = useState<"delete" | "undo" | null>(null);
   // The id whose restore is in flight. A ref, not `restore.isPending`: two taps
@@ -70,7 +70,7 @@ export function useTransactionRemoval() {
     restoring.current = transaction.id;
     try {
       await restore.mutateAsync(
-        buildTransactionRestore(transaction, isAccountOffered),
+        buildTransactionRestore(transaction, isNetWorthEnabled),
       );
       setUndoable((current) =>
         current.filter((entry) => entry.id !== transaction.id),

@@ -1570,6 +1570,7 @@
         },
         "preferences": {
           "description": "Devise, langue, jour de paie, rappels",
+          "descriptionWithDefaultAccount": "Devise, langue, jour de paie, compte par défaut, rappels",
           "title": "Préférences"
         },
         "privacy": {

@@ -15,7 +15,7 @@ describe("buildAdjustmentPayload", () => {
         name: "  Ajustement ",
         adjustment: { kind: "expense", amount: 170.3 },
         now,
-        isAccountOffered: true,
+        isNetWorthEnabled: true,
       }),
     ).toEqual({
       budgetId: "budget-1",
@@ -35,7 +35,7 @@ describe("buildAdjustmentPayload", () => {
         name: "Ajustement",
         adjustment: { kind: "expense", amount: 170.3 },
         now: new Date("2026-10-02T09:30:00.000Z"),
-        isAccountOffered: false,
+        isNetWorthEnabled: false,
       }),
     ).not.toHaveProperty("accountId");
   });

@@ -1570,6 +1570,7 @@
         },
         "preferences": {
           "description": "Currency, language, pay day, reminders",
+          "descriptionWithDefaultAccount": "Currency, language, pay day, default account, reminders",
           "title": "Preferences"
         },
         "privacy": {

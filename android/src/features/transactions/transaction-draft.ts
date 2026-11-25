@@ -218,7 +218,7 @@ function haveSameTags(chosen: string[], stored: string[]): boolean {
  */
 export function buildTransactionRestore(
   transaction: Transaction,
-  isAccountOffered: boolean,
+  isNetWorthEnabled: boolean,
 ): TransactionCreate {
   const declarableOrigin =
     transaction.kind === "income" && transaction.budgetLineId === null
@@ -238,7 +238,7 @@ export function buildTransactionRestore(
     // Without the account field the request stays the pre-feature one.
     ...(transaction.budgetLineId !== null
       ? { budgetLineId: transaction.budgetLineId }
-      : isAccountOffered
+      : isNetWorthEnabled
         ? { accountId: transaction.accountId ?? null }
         : {}),
     ...(transaction.tagIds !== undefined && transaction.tagIds.length > 0
