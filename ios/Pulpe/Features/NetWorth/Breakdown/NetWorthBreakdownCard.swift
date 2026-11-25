@@ -54,6 +54,8 @@ struct NetWorthBreakdownCard: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     ForEach(result.nodes, id: \.id) { legendRow($0) }
                 }
+                // The diagram's VoiceOver sentence already reads every amount.
+                .accessibilityHidden(true)
             }
         }
         .padding(DesignTokens.Spacing.lg)
@@ -129,7 +131,6 @@ struct NetWorthBreakdownCard: View {
             Image(systemName: "circle.fill")
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(color(frame.kind))
-                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
                 Text(title(of: frame.kind, name: node?.name))
                     .font(PulpeTypography.metricMini)
@@ -140,7 +141,6 @@ struct NetWorthBreakdownCard: View {
                     .sensitiveAmount()
             }
         }
-        .accessibilityElement(children: .combine)
     }
 
     private func title(of kind: NetWorthSankey.Kind, name: String?) -> String {
