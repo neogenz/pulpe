@@ -314,6 +314,19 @@ describe('AssetDetailPage', () => {
     expect(column('asset-history-amount')).toEqual(['−150.00 CHF']);
   });
 
+  // Large text (200 %) cut the title to « Comp… » and the labels to one letter.
+  it('wraps the name and the history labels instead of cutting them', async () => {
+    await render();
+
+    expect(byTestId('page-title')?.classList).not.toContain('truncate');
+    const label = rows()[0].querySelector(
+      '[data-testid="asset-history-label"]',
+    );
+    expect(label?.classList).not.toContain('truncate');
+    // A label column with a floor: past it, the amount goes to the next line.
+    expect(label?.parentElement?.classList).toContain('min-w-[8ch]');
+  });
+
   it('CA19: shows each time a recurring prévision was checked, even with the same id', async () => {
     await render(
       historyResponse({

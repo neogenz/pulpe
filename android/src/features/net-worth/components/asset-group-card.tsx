@@ -1,6 +1,6 @@
 import type { Asset, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { IconButton, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
@@ -11,7 +11,7 @@ import { Menu } from "@/core/ui/menu";
 import { useRipple } from "@/core/ui/ripple";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { StateChip } from "@/core/ui/state-chip";
-import { SPACING } from "@/core/ui/theme";
+import { ACCESSIBLE_FONT_SCALE, SPACING } from "@/core/ui/theme";
 
 import { isDefaultAccount } from "../account-link";
 import {
@@ -156,6 +156,8 @@ function AssetRow({
   const { locale, t } = useTranslation();
   const [isMenuVisible, setMenuVisible] = useState(false);
   const isArchived = asset.archivedAt !== null;
+  // Side by side, a large text leaves the name a few letters and cuts the value.
+  const stacksValue = useWindowDimensions().fontScale >= ACCESSIBLE_FONT_SCALE;
 
   const updated = entryCaption(asset, locale, t, categoryName);
   // A followed account says where its balance comes from, in the same breath.
@@ -184,15 +186,18 @@ function AssetRow({
 
   const body = (
     <View style={styles.content}>
-      <View style={styles.line}>
+      <View style={stacksValue ? styles.stacked : styles.line}>
         <Text
           variant="titleMedium"
-          numberOfLines={2}
-          style={[styles.name, { color: theme.colors.onSurface }]}
+          numberOfLines={stacksValue ? undefined : 2}
+          style={[
+            !stacksValue && styles.name,
+            { color: theme.colors.onSurface },
+          ]}
         >
           {asset.name}
         </Text>
-        <View style={styles.values}>
+        <View style={!stacksValue && styles.values}>
           <Amount size="row" numberOfLines={1}>
             {value}
           </Amount>
@@ -326,6 +331,7 @@ const styles = StyleSheet.create({
   main: { flex: 1, paddingLeft: SPACING.md, paddingVertical: SPACING.md },
   content: { gap: SPACING.xs },
   line: { flexDirection: "row", alignItems: "flex-start", gap: SPACING.md },
+  stacked: { gap: SPACING.xxs },
   name: { flex: 1 },
   // The name wraps on two lines; a five-figure value must stay whole.
   values: { alignItems: "flex-end", flexShrink: 0, maxWidth: "70%" },

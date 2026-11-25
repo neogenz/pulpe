@@ -85,7 +85,7 @@ extension MovementSheet {
                 exchangeRate: conversion?.exchangeRate,
                 tagIds: TagPickerField.createdTagIds(from: selectedTagIds),
                 sourceSavingsGoalId: savingsOriginRule.sourceSavingsGoalId,
-                accountId: AccountLink.onCreate(lineId: selectedLineId, account: accountId)
+                accountId: createdAccountId
             )
 
             let transaction = try await dependencies.createTransaction(data)
@@ -104,6 +104,11 @@ extension MovementSheet {
             }
             await refreshConfirmedBalance()
         }
+    }
+
+    /// What the creation states as account: nothing until the field has shown (CA2).
+    private var createdAccountId: String?? {
+        AccountLink.onCreate(lineId: selectedLineId, account: accountId, didPrefill: didPrefillAccount)
     }
 
     private func save(_ tx: Transaction, amount: Decimal) async {

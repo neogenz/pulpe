@@ -1372,16 +1372,11 @@
     "account": {
       "label": "Compte",
       "none": "Aucun",
-      "sameAsLink": "« Compte » et « %{link} » doivent être deux éléments différents.",
-      "link": {
-        "expense": "Dette remboursée",
-        "saving": "Versée sur",
-        "income": "Tiré de"
-      },
+      "sameAsLink": "Choisis un autre compte : « %{name} » est déjà l'élément lié.",
       "defaultLabel": "Compte par défaut",
       "defaultBadge": "Par défaut",
       "defaultSection": "Mon budget",
-      "defaultHint": "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.",
+      "defaultHint": "Chaque nouveau mouvement démarre sur ce compte. Tu peux le changer à chaque fois.",
       "setDefault": "Utiliser par défaut dans le budget",
       "unsetDefault": "Ne plus utiliser par défaut"
     },
@@ -1575,6 +1570,7 @@
         },
         "preferences": {
           "description": "Devise, langue, jour de paie, rappels",
+          "descriptionWithDefaultAccount": "Devise, langue, jour de paie, compte par défaut, rappels",
           "title": "Préférences"
         },
         "privacy": {

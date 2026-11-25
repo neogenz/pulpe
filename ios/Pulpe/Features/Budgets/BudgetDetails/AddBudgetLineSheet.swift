@@ -165,7 +165,6 @@ struct AddBudgetLineSheet: View {
                 AccountPickerField(
                     selection: $accountId,
                     link: linkedAssetId,
-                    linkTitle: AssetPickerField.linkTitle(kind: kind),
                     didPrefill: $didPrefillAccount
                 )
             }

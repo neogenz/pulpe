@@ -1372,16 +1372,11 @@
     "account": {
       "label": "Account",
       "none": "Nessuno",
-      "sameAsLink": "«Account» e «%{link}» devono essere due elementi diversi.",
-      "link": {
-        "expense": "Debito rimborsato",
-        "saving": "Versato su",
-        "income": "Prelevata da"
-      },
+      "sameAsLink": "Scegli un altro conto: «%{name}» è già l'elemento collegato.",
       "defaultLabel": "Conto predefinito",
       "defaultBadge": "Predefinito",
       "defaultSection": "Il mio budget",
-      "defaultHint": "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta.",
+      "defaultHint": "Ogni nuovo movimento parte da questo conto. Puoi cambiarlo ogni volta.",
       "setDefault": "Usa come predefinito nel budget",
       "unsetDefault": "Non usare più come predefinito"
     },
@@ -1575,6 +1570,7 @@
         },
         "preferences": {
           "description": "Valuta, lingua, giorno di paga, promemoria",
+          "descriptionWithDefaultAccount": "Valuta, lingua, giorno di paga, conto predefinito, promemoria",
           "title": "Preferenze"
         },
         "privacy": {

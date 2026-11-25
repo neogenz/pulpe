@@ -27,18 +27,29 @@ describe('transactionFormDataSchema', () => {
     expect(transactionFormDataSchema.parse(formData)).toEqual({
       ...formData,
       sourceSavingsGoalId: null,
-      accountId: null,
     });
   });
 
-  it('should keep the chosen account, and send « Aucun » as an explicit null', () => {
+  it('CA2: leaves accountId out when the form did not set it, through to the API body', () => {
+    expect(transactionFormDataSchema.parse(formData)).not.toHaveProperty(
+      'accountId',
+    );
+    expect(
+      transactionCreateFromQuickFormSchema.parse({ ...formData, ...context }),
+    ).not.toHaveProperty('accountId');
+  });
+
+  it('should keep the chosen account, and « Aucun » as an explicit null', () => {
     const ACCOUNT_ID = '00000000-0000-4000-8000-000000000b01';
 
     expect(
       transactionFormDataSchema.parse({ ...formData, accountId: ACCOUNT_ID })
         .accountId,
     ).toBe(ACCOUNT_ID);
-    expect(transactionFormDataSchema.parse(formData).accountId).toBeNull();
+    expect(
+      transactionFormDataSchema.parse({ ...formData, accountId: null })
+        .accountId,
+    ).toBeNull();
   });
 
   it('should reject a one-character name', () => {

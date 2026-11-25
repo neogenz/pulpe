@@ -302,7 +302,6 @@ export function BudgetLineSheet({
           value={account.account}
           onChange={account.setAccount}
           link={link}
-          linkKind={draft.kind}
         />
       )}
 

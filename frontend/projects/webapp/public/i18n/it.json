@@ -1659,9 +1659,9 @@
       "label": "Conto",
       "groupOwn": "Ciò che ho",
       "groupOwe": "Ciò che devo",
-      "sameAsLink": "Scegli un altro conto: questo è già l'elemento collegato qui sopra.",
+      "sameAsLink": "Scegli un altro conto: «{{name}}» è già l'elemento collegato.",
       "defaultLabel": "Conto predefinito",
-      "defaultHint": "Ogni nuova voce parte da questo conto. Puoi cambiarlo ogni volta.",
+      "defaultHint": "Ogni nuovo movimento parte da questo conto. Puoi cambiarlo ogni volta.",
       "defaultBadge": "Predefinito"
     },
     "detail": {

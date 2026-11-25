@@ -48,8 +48,8 @@ export const budgetLineSpreadCreateFromFormSchema = z
     conversion: conversionFormSchema.nullable(),
     savingsGoalId: z.uuid().nullable().optional(),
     assetId: z.uuid().nullable().optional(),
-    /** Compte de chaque occurrence, toujours envoyé (absent = compte par défaut côté serveur). */
-    accountId: z.uuid().nullable(),
+    /** Compte de chaque occurrence, envoyé seulement avec le flag `net_worth` allumé (`null` = « Aucun »). */
+    accountId: z.uuid().nullable().optional(),
     spreadGroupId: z.uuid(),
   })
   .transform((input): BudgetLineSpreadCreate => {
@@ -63,7 +63,8 @@ export const budgetLineSpreadCreateFromFormSchema = z
       : {};
     const assetFields =
       input.assetId !== undefined ? { assetId: input.assetId } : {};
-    const accountFields = { accountId: input.accountId };
+    const accountFields =
+      input.accountId !== undefined ? { accountId: input.accountId } : {};
 
     if (input.mode === 'total') {
       return {
@@ -75,7 +76,6 @@ export const budgetLineSpreadCreateFromFormSchema = z
         spreadGroupId: input.spreadGroupId,
         savingsGoalId: input.savingsGoalId,
         ...assetFields,
-        ...accountFields,
         ...accountFields,
         ...fxFields,
         ...(conversion
@@ -93,6 +93,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
       spreadGroupId: input.spreadGroupId,
       savingsGoalId: input.savingsGoalId,
       ...assetFields,
+      ...accountFields,
       ...fxFields,
       ...(conversion
         ? { perMonthOriginalAmount: conversion.originalAmount }

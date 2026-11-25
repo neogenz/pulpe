@@ -1,4 +1,3 @@
-import type { TransactionKind } from "pulpe-shared";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { TextInput } from "react-native-paper";
@@ -19,7 +18,6 @@ interface AccountFieldProps {
   onChange: (id: string | null) => void;
   /** The element the line already feeds, repays or is drawn from (CA25). */
   link?: string | null;
-  linkKind?: TransactionKind;
 }
 
 /**
@@ -32,7 +30,6 @@ export function AccountField({
   value,
   onChange,
   link = null,
-  linkKind = "saving",
 }: AccountFieldProps) {
   const { t } = useTranslation();
   const ripple = useRipple();
@@ -53,8 +50,13 @@ export function AccountField({
         // Over the field, which would otherwise paint over its own ripple.
         android_ripple={{ ...ripple, foreground: true }}
       >
-        {/* Read-only: the whole field is the button that opens the list. */}
-        <View pointerEvents="none">
+        {/* Read-only: the whole field is the button that opens the list. Hidden
+            from TalkBack too, or it stops again on the value and on an unlabelled arrow. */}
+        <View
+          pointerEvents="none"
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+        >
           <TextInput
             mode="outlined"
             label={label}
@@ -67,9 +69,7 @@ export function AccountField({
       </Pressable>
       {hasConflict && (
         <FieldError visible>
-          {t("netWorth.account.sameAsLink", {
-            link: t(`netWorth.account.link.${linkKind}`),
-          })}
+          {t("netWorth.account.sameAsLink", { name: shown })}
         </FieldError>
       )}
 

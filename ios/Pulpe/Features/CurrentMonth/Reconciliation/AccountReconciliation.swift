@@ -88,11 +88,13 @@ enum AccountReconciliation {
 
     /// The one create call of the flow: a checked entry with no budget line, on the
     /// budget the home screen has loaded, dated now. `nil` when there is nothing to write.
+    /// `statesAccount` is off with the `net_worth` flag off: the body stays the pre-feature one (CA2).
     static func adjustmentPayload(
         budgetId: String,
         label: String,
         verdict: Verdict,
-        now: Date
+        now: Date,
+        statesAccount: Bool = true
     ) -> TransactionCreate? {
         guard case .adjustment(let kind, let amount) = verdict else { return nil }
         return TransactionCreate(
@@ -105,7 +107,7 @@ enum AccountReconciliation {
             checkedAt: now,
             // The gap moves no account, whatever the default (CA44): the balances typed in the
             // flow are what re-sync them.
-            accountId: .some(nil)
+            accountId: statesAccount ? .some(nil) : nil
         )
     }
 

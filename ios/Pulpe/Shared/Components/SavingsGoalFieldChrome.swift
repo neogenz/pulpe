@@ -50,44 +50,51 @@ func savingsGoalMenuLabel(
                 .foregroundStyle(Color.onSurfaceVariant)
         }
     case .row:
-        SavingsGoalMenuRowLabel(title: title, value: value, valueColor: valueColor)
+        MenuRowLabel(title: title, value: value, valueColor: valueColor)
     }
 }
 
-/// A free function reads no environment, so the row that stacks with the text size is a view.
-private struct SavingsGoalMenuRowLabel: View {
+/// The `.row` label. At accessibility sizes the value goes under the title: beside it, the
+/// title broke mid-word (« Ver-sée sur ») and the value was cut to « Livret… ».
+private struct MenuRowLabel: View {
     let title: String
     let value: String
     let valueColor: Color
-
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        // At accessibility sizes the value goes under the title: beside it, both were cut mid-word.
-        let isStacked = dynamicTypeSize.isAccessibilitySize
-        let layout = isStacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
-            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
         savingsGoalFieldSurface(style: .row) {
-            layout {
-                Text(title)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textPrimary)
-                if !isStacked { Spacer() }
-                Text(value)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(valueColor)
-                    .lineLimit(isStacked ? nil : 1)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    titleText
+                    valueText
+                }
+                // A Menu label centers wrapped lines by default.
+                .multilineTextAlignment(.leading)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+            } else {
+                titleText
+                Spacer()
+                valueText.lineLimit(1)
             }
-            // A Menu label centers wrapped lines by default.
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundStyle(Color.onSurfaceVariant)
         }
-        .padding(.vertical, isStacked ? DesignTokens.Spacing.sm : DesignTokens.Spacing.none)
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? DesignTokens.Spacing.sm : DesignTokens.Spacing.none)
         .contentShape(Rectangle())
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(PulpeTypography.bodyLarge)
+            .foregroundStyle(Color.textPrimary)
+    }
+
+    private var valueText: Text {
+        Text(value)
+            .font(PulpeTypography.bodyLarge)
+            .foregroundStyle(valueColor)
     }
 }
 

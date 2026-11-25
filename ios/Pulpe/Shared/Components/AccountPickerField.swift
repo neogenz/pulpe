@@ -21,10 +21,16 @@ enum AccountLink {
         conflicts(account: account, link: link) && account == defaultId ? nil : account
     }
 
-    /// What a creation sends. A free movement always states its account (`null` = « Aucun »), so
-    /// the server's default never overrides a choice; an allocated one follows its prévision.
-    static func onCreate(lineId: String?, account: String?) -> String?? {
-        lineId == nil ? .some(account) : nil
+    /// What a creation sends. Nothing until the field has shown, so with the flag off the body
+    /// is the one from before the feature (CA2). Then always stated (`null` = « Aucun »), so the
+    /// server's default never overrides a choice.
+    static func onCreate(account: String?, didPrefill: Bool) -> String?? {
+        didPrefill ? .some(account) : nil
+    }
+
+    /// A free movement states its account as above; an allocated one follows its prévision.
+    static func onCreate(lineId: String?, account: String?, didPrefill: Bool) -> String?? {
+        lineId == nil ? onCreate(account: account, didPrefill: didPrefill) : nil
     }
 
     /// What a movement PATCH sends: only a free movement whose account moved, so an untouched
@@ -33,8 +39,9 @@ enum AccountLink {
         lineId == nil ? assetLinkChange(initial: initial, current: account) : nil
     }
 
-    static func conflictMessage(linkTitle: String) -> String {
-        AppLocale.string("« Compte » et « \(linkTitle) » doivent être deux éléments différents.")
+    /// Keeps the action and names the element chosen twice (CA25).
+    static func conflictMessage(name: String) -> String {
+        AppLocale.string("Choisis un autre compte : « \(name) » est déjà l'élément lié.")
     }
 }
 
@@ -45,9 +52,8 @@ enum AccountLink {
 struct AccountPickerField: View {
     @Binding var selection: String?
     var title = AppLocale.string("Compte")
-    /// The « Versée sur » / « Dette remboursée » / « Tiré de » element, and its title.
+    /// The « Versée sur » / « Dette remboursée » / « Tiré de » element.
     var link: String?
-    var linkTitle: String?
     /// Starts on the default account once the elements are loaded (creation only): `nil` never
     /// prefills. The sheet owns the flag, because the field leaves the screen and comes back
     /// (a prévision picked then dropped) and must not prefill over « Aucun » a second time.
@@ -70,6 +76,12 @@ struct AccountPickerField: View {
         flagEnabled && !store.activeAssets.isEmpty
     }
 
+    private var conflictMessage: String? {
+        guard AccountLink.conflicts(account: selection, link: link),
+              let name = selectedAsset?.name else { return nil }
+        return AccountLink.conflictMessage(name: name)
+    }
+
     private var isShown: Bool {
         Self.isShown(flagEnabled: featureFlags.isNetWorthEnabled, store: store)
     }
@@ -84,12 +96,17 @@ struct AccountPickerField: View {
                     } else {
                         menu
                     }
-                    if let linkTitle, AccountLink.conflicts(account: selection, link: link) {
-                        Text(AccountLink.conflictMessage(linkTitle: linkTitle))
+                    if let conflictMessage {
+                        Text(conflictMessage)
                             .font(PulpeTypography.footnote)
                             .foregroundStyle(Color.destructivePrimary)
                     }
                 }
+            }
+            // The message appears below a menu VoiceOver has just closed: said aloud, or the
+            // save button turns disabled with no reason given.
+            .onChange(of: conflictMessage) { _, message in
+                if let message { AccessibilityNotification.Announcement(message).post() }
             }
             .task {
                 await store.loadIfNeeded()
@@ -136,8 +153,6 @@ struct AccountPickerField: View {
                     rowTitle
                     Text(value).foregroundStyle(Color.onSurfaceVariant)
                 }
-                // A Menu label centers wrapped lines by default.
-                .multilineTextAlignment(.leading)
                 Spacer(minLength: DesignTokens.Spacing.sm)
             } else {
                 rowTitle
@@ -148,6 +163,8 @@ struct AccountPickerField: View {
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textTertiary)
         }
+        // A Menu label centers wrapped lines by default: « Compte par défaut » wraps from XXL.
+        .multilineTextAlignment(.leading)
         .contentShape(Rectangle())
     }
 

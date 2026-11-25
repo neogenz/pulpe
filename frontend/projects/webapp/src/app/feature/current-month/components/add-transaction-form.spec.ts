@@ -526,7 +526,7 @@ describe('AddTransactionForm', () => {
       ]);
     });
 
-    it('CA2: with the flag off the field is absent and « Aucun » is sent, default or not', async () => {
+    it('CA2: with the flag off the field is absent and no accountId is sent, default or not', async () => {
       const { fixture, component, createdSpy } = configureForm({
         defaultAccountId: COMPTE_COURANT.id,
         isNetWorthEnabled: false,
@@ -541,7 +541,7 @@ describe('AddTransactionForm', () => {
       ).toBeNull();
       await component.submit();
 
-      expect(createdSpy.mock.calls[0][0].accountId).toBeNull();
+      expect(createdSpy.mock.calls[0][0]).not.toHaveProperty('accountId');
     });
   });
 });

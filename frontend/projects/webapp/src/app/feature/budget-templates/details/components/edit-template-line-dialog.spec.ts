@@ -619,6 +619,12 @@ describe('EditTemplateLineDialog — account field (PUL-378)', () => {
     return context.dialogRef.close.mock.calls.at(-1)![0];
   };
 
+  it('CA2: flag off, a new line sends no accountId', async () => {
+    const context = await open({ defaultAccountId: COMPTE_COURANT.id }, false);
+
+    expect(await fillAndSubmit(context)).not.toHaveProperty('accountId');
+  });
+
   it('CA1, CA3: a new line shows « Compte » on « Aucun » and sends the null', async () => {
     const context = await open({});
 

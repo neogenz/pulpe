@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { FEATURE_FLAGS } from "pulpe-shared";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -23,6 +24,7 @@ import { ScreenAppBar } from "@/core/ui/screen-app-bar";
 
 import { useSessionStore } from "@/core/auth/session-store";
 import { useTranslation } from "@/core/i18n/locale-store";
+import { useFeatureFlag } from "@/core/observability/feature-flags";
 import { captureStoreReviewRequested } from "@/core/observability/product-events";
 import { APP_URLS } from "@/core/ui/app-urls";
 import { SPACING } from "@/core/ui/theme";
@@ -47,6 +49,7 @@ const AVATAR_SIZE = 72;
 export default function SettingsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const isNetWorthEnabled = useFeatureFlag(FEATURE_FLAGS.NET_WORTH);
   const profile = useUserProfile();
   const tags = useTags();
   const connections = useConnections();
@@ -119,7 +122,12 @@ export default function SettingsScreen() {
             testID="settings-preferences"
             icon="cog-outline"
             title={t("settings.account.rows.preferences.title")}
-            description={t("settings.account.rows.preferences.description")}
+            // Préférences holds the default account only with the flag on.
+            description={t(
+              isNetWorthEnabled
+                ? "settings.account.rows.preferences.descriptionWithDefaultAccount"
+                : "settings.account.rows.preferences.description",
+            )}
             onPress={() => router.push("/settings/preferences")}
           />
           <SettingsRow

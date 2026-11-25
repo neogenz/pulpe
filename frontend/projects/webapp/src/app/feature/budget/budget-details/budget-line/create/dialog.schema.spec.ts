@@ -15,7 +15,6 @@ const createFormValue: BudgetLineCreateFormValue = {
   isChecked: false,
   conversion: null,
   budgetId: BUDGET_ID,
-  accountId: null,
 };
 
 describe('budgetLineCreateFromFormSchema', () => {
@@ -31,10 +30,21 @@ describe('budgetLineCreateFromFormSchema', () => {
         recurrence: 'fixed',
         isManuallyAdjusted: true,
         checkedAt: null,
-        accountId: null,
       });
       expect('isChecked' in result).toBe(false);
       expect('conversion' in result).toBe(false);
+    });
+
+    it('CA2: omits accountId when absent, keeps an explicit null', () => {
+      expect(
+        budgetLineCreateFromFormSchema.parse(createFormValue),
+      ).not.toHaveProperty('accountId');
+      expect(
+        budgetLineCreateFromFormSchema.parse({
+          ...createFormValue,
+          accountId: null,
+        }),
+      ).toHaveProperty('accountId', null);
     });
 
     it('should populate currency fields when conversion is provided', () => {

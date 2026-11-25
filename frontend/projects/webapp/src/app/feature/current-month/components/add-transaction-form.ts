@@ -7,6 +7,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { FEATURE_FLAGS } from 'pulpe-shared';
 import { FormField, form, required, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -33,6 +34,7 @@ import {
   StaleRateNotifier,
 } from '@core/currency';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
+import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -266,6 +268,9 @@ export class AddTransactionForm {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #isAccountEnabled = inject(PostHogService).isFeatureEnabled(
+    FEATURE_FLAGS.NET_WORTH,
+  );
   readonly #initialAccountId = injectInitialAccountId();
   readonly #isSubmittingState = signal(false);
 
@@ -416,7 +421,7 @@ export class AddTransactionForm {
               sourceSavingsGoalId: this.isFromSavingsGoal()
                 ? this.sourceSavingsGoalId()
                 : null,
-              accountId: m.accountId,
+              ...(this.#isAccountEnabled ? { accountId: m.accountId } : {}),
             }),
         };
       },

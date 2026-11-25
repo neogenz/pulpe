@@ -192,7 +192,7 @@ interface CreateAllocatedTransactionModel {
           }}</span>
           <mat-slide-toggle
             [formField]="transactionForm.isChecked"
-            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+            [aria-label]="'transactionForm.checkedToggle' | transloco"
           />
         }
       </div>

@@ -4,6 +4,7 @@ import SwiftUI
 /// « Le calcul » and from « À pointer ». Budget details supplies its own viewed month.
 struct CurrentMonthReconcileSheet: View {
     @Environment(AppState.self) private var appState
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @Environment(CurrentMonthStore.self) private var store
     private let drafts = ReconcileDraftStore.shared
 
@@ -33,6 +34,7 @@ struct CurrentMonthReconcileSheet: View {
                     ),
                     netWorthAccounts: netWorthAccounts,
                     restoring: drafts.draft(for: budget.id),
+                    statesAccount: featureFlags.isNetWorthEnabled,
                     // Only the PIN lock takes the sheet without the user: closed any other way, it starts over.
                     onLeave: { drafts.keep(appState.authState == .needsPinEntry ? $0 : nil) },
                     onAdjustmentCreated: { transaction in

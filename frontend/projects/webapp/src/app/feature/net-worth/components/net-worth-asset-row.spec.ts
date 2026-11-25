@@ -276,6 +276,16 @@ describe('NetWorthAssetRow', () => {
       document.querySelector('[data-testid="asset-edit-action"]'),
     ).toBeNull();
   });
+  // Large text (200 %) left one letter of the name beside the amount.
+  it('keeps a few letters of the name, the amount wrapping below instead', () => {
+    render();
+
+    const name = fixture.nativeElement.querySelector(
+      '[data-testid="asset-row-name"]',
+    ) as HTMLElement;
+    expect(name.parentElement?.classList).toContain('min-w-[8ch]');
+  });
+
   describe('default account (PUL-378)', () => {
     const openMenu = () => {
       fixture.nativeElement
