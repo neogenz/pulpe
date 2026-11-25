@@ -54,7 +54,7 @@ struct NetWorthBreakdownCard: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     ForEach(result.nodes, id: \.id) { legendRow($0) }
                 }
-                // The diagram's VoiceOver sentence already reads every amount.
+                // The diagram's VoiceOver summary reads every node, once.
                 .accessibilityHidden(true)
             }
         }
@@ -160,9 +160,17 @@ struct NetWorthBreakdownCard: View {
         }
     }
 
-    /// A Canvas is invisible to VoiceOver: one sentence carries the figures the API computed.
+    /// A Canvas is invisible to VoiceOver: one sentence carries the figures the API computed,
+    /// then each Type I own and each debt Type, as the labels and the legend show them.
     private var summary: String {
         guard !amountsHidden else { return AppLocale.string("Répartition aujourd'hui") }
+        return ([totalsSentence]
+            + nodeLines(.category, title: AppLocale.string("Ce que j'ai"))
+            + nodeLines(.debt, title: AppLocale.string("Ce que je dois")))
+            .joined(separator: " ")
+    }
+
+    private var totalsSentence: String {
         let gross = totals.gross.asCompactCurrency(currency)
         let debts = totals.debts.asCompactCurrency(currency)
         if graph.hasShortfall {
@@ -171,6 +179,13 @@ struct NetWorthBreakdownCard: View {
         let net = totals.net.asCompactCurrency(currency)
         // swiftlint:disable:next line_length
         return AppLocale.string("Répartition de ce que j'ai : fortune brute \(gross), partagée entre \(debts) dus et \(net) de fortune nette.")
+    }
+
+    /// « Ce que j'ai. Comptes, 9’170 CHF. » — the title, then one sentence per node.
+    private func nodeLines(_ kind: NetWorthSankey.Kind, title: String) -> [String] {
+        let lines = graph.order.compactMap { graph.nodes[$0] }.filter { $0.kind == kind }
+            .map { "\($0.name ?? ""), \($0.value.asCompactCurrency(currency))." }
+        return lines.isEmpty ? [] : ["\(title)."] + lines
     }
 }
 

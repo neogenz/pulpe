@@ -31,6 +31,25 @@ final class NetWorthAccountsAccessibilityUITests: XCTestCase {
         XCTAssertTrue(label(of: "Livret EUR").contains("Hors total"), app.debugDescription)
     }
 
+    /// The diagram is a Canvas: its summary carries each Type, and the legend shown at
+    /// accessibility sizes stays hidden, so VoiceOver reads each amount exactly once.
+    func testBreakdownReadsEachTypeOnceAtEveryTextSize() throws {
+        let lines = ["Comptes, 9’170 CHF", "Épargne, 12’000 CHF", "Crédits, 8’500 CHF"]
+        for size in [nil, "UICTContentSizeCategoryAccessibilityXXXL"] {
+            launch("list", contentSize: size)
+            let summary = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label BEGINSWITH 'Répartition de ce que j'"))
+                .firstMatch
+            XCTAssertTrue(summary.waitForExistence(timeout: 10), app.debugDescription)
+            for line in lines {
+                let matches = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", line))
+                XCTAssertEqual(matches.count, 1, "\(line) at \(size ?? "default")\n\(app.debugDescription)")
+            }
+            scrollUntilHittable(summary)
+            try auditAndCapture(size == nil ? "breakdown" : "breakdown-ax5", ours: ["Répartition"])
+        }
+    }
+
     func testDetailReadsTheMonthEndLineAndTheHistory() throws {
         launch("detail")
         let monthEnd = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH 'Fin '")).firstMatch
@@ -80,9 +99,10 @@ final class NetWorthAccountsAccessibilityUITests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func launch(_ screen: String) {
+    private func launch(_ screen: String, contentSize: String? = nil) {
         app = XCUIApplication()
         app.launchArguments = ["-\(Self.scenario)", "-AppleLanguages", "(fr)"]
+        if let contentSize { app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize] }
         app.launchEnvironment["UITEST_SCENARIO"] = Self.scenario
         app.launchEnvironment["UITEST_NET_WORTH_SCREEN"] = screen
         app.launch()
