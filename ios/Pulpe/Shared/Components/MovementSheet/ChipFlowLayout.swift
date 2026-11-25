@@ -14,32 +14,35 @@ struct ChipFlowLayout: Layout {
         // returned row width, and re-wrapping at that exact width can push a chip down a row
         // the measured height does not have.
         let result = arrange(width: proposal.width ?? bounds.width, subviews: subviews)
-        for (index, origin) in result.origins.enumerated() {
+        for (index, frame) in result.frames.enumerated() {
             subviews[index].place(
-                at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y),
-                proposal: .unspecified
+                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
+                proposal: ProposedViewSize(frame.size)
             )
         }
     }
 
-    private func arrange(width: CGFloat, subviews: Subviews) -> (origins: [CGPoint], size: CGSize) {
-        var origins: [CGPoint] = []
+    private func arrange(width: CGFloat, subviews: Subviews) -> (frames: [CGRect], size: CGSize) {
+        var frames: [CGRect] = []
         var x: CGFloat = 0
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
         var maxX: CGFloat = 0
         for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
+            // A chip wider than the row (a long name, a large text size) wraps its own text
+            // instead of widening the row past the screen.
+            let ideal = subview.sizeThatFits(.unspecified)
+            let size = ideal.width > width ? subview.sizeThatFits(ProposedViewSize(width: width, height: nil)) : ideal
             if x > 0, x + size.width > width {
                 x = 0
                 y += rowHeight + spacing
                 rowHeight = 0
             }
-            origins.append(CGPoint(x: x, y: y))
+            frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
             maxX = max(maxX, x - spacing)
         }
-        return (origins, CGSize(width: maxX, height: y + rowHeight))
+        return (frames, CGSize(width: maxX, height: y + rowHeight))
     }
 }

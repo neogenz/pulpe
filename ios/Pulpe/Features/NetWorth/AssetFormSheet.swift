@@ -7,6 +7,7 @@ struct AssetFormSheet: View {
 
     @Environment(AssetStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var draft: AssetFormDraft
     @State private var amountText: String
@@ -175,16 +176,26 @@ struct AssetFormSheet: View {
                 focus = .type
             }
         } label: {
+            // At accessibility sizes the chosen type goes under its title instead of breaking mid-word.
+            let isStacked = dynamicTypeSize.isAccessibilitySize
+            let layout = isStacked
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
             HStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Type")
-                    .font(PulpeTypography.rowTitleRegular)
-                    .foregroundStyle(Color.textPrimary)
-                Spacer(minLength: DesignTokens.Spacing.sm)
-                Text(typeLabel)
-                    .font(PulpeTypography.rowTitleRegular)
-                    .foregroundStyle(Color.textSecondary)
+                layout {
+                    Text("Type")
+                        .font(PulpeTypography.rowTitleRegular)
+                        .foregroundStyle(Color.textPrimary)
+                    if !isStacked { Spacer(minLength: DesignTokens.Spacing.sm) }
+                    Text(typeLabel)
+                        .font(PulpeTypography.rowTitleRegular)
+                        .foregroundStyle(Color.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 RowChevron()
             }
+            .padding(.vertical, isStacked ? DesignTokens.Spacing.sm : DesignTokens.Spacing.none)
             .frame(minHeight: DesignTokens.ListRow.formRowHeight)
             .contentShape(Rectangle())
         }

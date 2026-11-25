@@ -13,10 +13,16 @@ struct QuickAmountChips<Field: Hashable>: View {
     @State private var pendingQuickAmount: Int?
     @State private var selectionTrigger = false
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private let quickAmounts = DesignTokens.AmountInput.quickAmounts
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
+        // One row of equal chips; at accessibility sizes they no longer fit side by side and wrap.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(ChipFlowLayout())
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
+        layout {
             ForEach(quickAmounts, id: \.self) { quickAmount in
                 let isSelected = amount == Decimal(quickAmount)
                 Button {

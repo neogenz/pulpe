@@ -8,8 +8,9 @@ import {
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { router } from "expo-router";
 import { BackHandler, StyleSheet } from "react-native";
-import { FAB, Menu, useTheme } from "react-native-paper";
+import { FAB, useTheme } from "react-native-paper";
 
+import { Menu } from "@/core/ui/menu";
 import { budgetTiming } from "@/features/budgets/budget-list-selectors";
 import { Notice } from "@/core/ui/notice";
 import { useTranslation } from "@/core/i18n/locale-store";

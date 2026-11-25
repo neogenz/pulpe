@@ -398,6 +398,7 @@ free-floating pills, whose unselected options read as bare text and blur into th
 families around them.
 
 - **Rendering:** a `sunk` capsule track with 3pt padding, 36pt segments; the selected segment is a `surface` capsule with a small shadow and ink text, the others ink2. Built from buttons (44pt hit area, `.isSelected` trait, Reduce Motion respected), so the track still separates segmented _choices_ from chip _actions_.
+- **Accessibility sizes:** the segments stack one per line in a `CornerRadius.card` track, labels wrap instead of being cut to a third of the width.
 - **Labels are plain `Text`** (emoji allowed — Devise reads `🇨🇭 CHF`).
 - The wrapper adds the optional form-field title (13pt semibold ink2) and `.sensoryFeedback(.selection)`.
 
@@ -429,7 +430,7 @@ families around them.
 - **`ImpactBlock`:** what an action does to a figure: `sunk`, radius 16, caption title, struck-through "before" in ink3 → "after" Manrope 700 17pt, optional caption.
 - **`InfoBanner`:** radius 16, 15pt; `.neutral` (sunk), `.over` (over-wash, ocre glyph), `.ok` (accent wash), `.err` (red wash, red glyph). Never a button.
 - **`PulpeEmptyState`:** 56pt `accentWash` disc, 20pt bold title, one 15pt ink2 sentence, one small primary action. **`StatusScreen`:** the full-screen version for maintenance, error and update.
-- **`NetWorthBreakdownCard`:** « Répartition aujourd'hui », a drawn flow diagram (assets, categories, gross, then debts and net worth) in a `surface` card; sideways scroll below `sankeyMinWidth`, bands at `sankeyBandOpacity`, debts and net worth below zero in the ocre ink, never red; one VoiceOver sentence for the whole drawing.
+- **`NetWorthBreakdownCard`:** « Répartition aujourd'hui », a drawn flow diagram (assets, categories, gross, then debts and net worth) in a `surface` card; sideways scroll below `sankeyMinWidth`, bands at `sankeyBandOpacity`, debts and net worth below zero in the ocre ink, never red; one VoiceOver summary for the whole drawing: the totals, then each Type and each debt Type with its amount, once (the legend stays hidden from VoiceOver). At accessibility sizes the drawing keeps only its bands and the labels move to a legend under it, since points-sized bands cannot hold large text.
 - **`SettingsRow`:** 32pt `sunk` tile (radius 9, ink2 glyph), title, ink2 value, chevron. **`PageHeader`:** 34pt bold large title and 15pt ink2 subtitle.
 - **Toast:** white card radius 20, soft shadow, green icon, bold green action.
 

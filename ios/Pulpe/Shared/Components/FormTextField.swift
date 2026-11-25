@@ -21,15 +21,23 @@ struct FormTextField<Field: Hashable>: View {
     /// so a valid entry is created without reaching for the button under the keyboard.
     var onSubmit: (() -> Void)?
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         if style == .row, let label {
-            HStack(spacing: DesignTokens.Spacing.md) {
+            // At accessibility sizes the title takes its own line: side by side, both get
+            // half the row and the title breaks mid-word.
+            let isStacked = dynamicTypeSize.isAccessibilitySize
+            let layout = isStacked
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
+            layout {
                 Text(label)
                     .font(PulpeTypography.bodyLarge)
                     .foregroundStyle(Color.textPrimary)
                 TextField(hint, text: $text)
                     .font(PulpeTypography.bodyLarge)
-                    .multilineTextAlignment(.trailing)
+                    .multilineTextAlignment(isStacked ? .leading : .trailing)
                     .submitLabel(.done)
                     .focused(focusBinding, equals: field)
                     .textContentType(textContentType)

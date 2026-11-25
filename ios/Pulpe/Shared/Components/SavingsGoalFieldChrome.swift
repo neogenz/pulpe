@@ -81,6 +81,7 @@ private struct MenuRowLabel: View {
                 .font(.caption)
                 .foregroundStyle(Color.onSurfaceVariant)
         }
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? DesignTokens.Spacing.sm : DesignTokens.Spacing.none)
         .contentShape(Rectangle())
     }
 

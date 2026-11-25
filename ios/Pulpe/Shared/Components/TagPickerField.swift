@@ -6,6 +6,7 @@ struct TagPickerField: View {
     var style: FormRowStyle = .standalone
 
     @Environment(TagStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isPresented = false
 
     private var selectedNames: [String] {
@@ -30,15 +31,24 @@ struct TagPickerField: View {
         Button {
             isPresented = true
         } label: {
+            // At accessibility sizes the selection goes under the title: beside it, it was cut.
+            let isStacked = dynamicTypeSize.isAccessibilitySize
+            let layout = isStacked
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
             HStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Tags")
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(Color.textPrimary)
-                Spacer()
-                Text(summary)
-                    .font(PulpeTypography.bodyLarge)
-                    .foregroundStyle(selection.isEmpty ? Color.onSurfaceVariant : Color.textPrimary)
-                    .lineLimit(1)
+                layout {
+                    Text("Tags")
+                        .font(PulpeTypography.bodyLarge)
+                        .foregroundStyle(Color.textPrimary)
+                    if !isStacked { Spacer() }
+                    Text(summary)
+                        .font(PulpeTypography.bodyLarge)
+                        .foregroundStyle(selection.isEmpty ? Color.onSurfaceVariant : Color.textPrimary)
+                        .lineLimit(isStacked ? nil : 1)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundStyle(Color.onSurfaceVariant)

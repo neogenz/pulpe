@@ -12,7 +12,6 @@ import {
   Button,
   Chip,
   Dialog,
-  Menu,
   Portal,
   Text,
   useTheme,
@@ -21,6 +20,7 @@ import {
 import { useTranslation } from "@/core/i18n/locale-store";
 import { ActionButton } from "@/core/ui/action-button";
 import { LedgerCard, LedgerRow } from "@/core/ui/ledger";
+import { Menu } from "@/core/ui/menu";
 import { Notice } from "@/core/ui/notice";
 import { SectionHeader } from "@/core/ui/section-header";
 import { useFinancialColors } from "@/core/ui/scheme-colors";
